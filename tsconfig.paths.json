@@ -4,6 +4,7 @@
       "@FluxContracts/*": ["./packages/contracts/src/*"],
       "@FluxCore/*": ["./packages/core/src/*"],
       "@FluxSDK/*": ["./packages/plugin-sdk/src/*"],
+      "@FluxServer/*": ["./apps/server/src/*"],
       "@FluxUI/cn": ["./packages/ui/src/functions/cn.ts"],
       "@FluxUI/tokens": ["./packages/ui/src/tokens/tokens.ts"],
       "@FluxUI/lazyFlux": ["./packages/ui/src/lazyFlux.ts"],

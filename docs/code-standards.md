@@ -152,6 +152,21 @@ default export, because they are erased at runtime and are not members.
 
 One exported runtime member per file. The file name matches the member name.
 
+### The one tooling exception
+
+`apps/server/src/db/Schema.ts` additionally exports each table as a named
+export. **drizzle-kit discovers tables by scanning a module's named exports**;
+given only a default-exported object it reports `0 tables` and generates an
+empty migration — silently, with no error.
+
+This is the same class of exception as `// SAFETY:` in section 6: a rule that
+fights the toolchain is a rule that gets worked around badly. The file keeps its
+default export as well, and application code imports through the default. The
+named exports exist for drizzle-kit alone.
+
+Do not extend this exception to other files without the same kind of hard
+tooling requirement.
+
 ### Known costs of this rule, and required mitigations
 
 This form was chosen deliberately. Its consequences are managed, not ignored.

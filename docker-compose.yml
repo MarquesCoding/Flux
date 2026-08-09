@@ -23,10 +23,14 @@ services:
       db:
         condition: service_healthy
     environment:
+      NODE_ENV: production
       DATABASE_URL: postgres://flux:flux@db:5432/flux
       PORT: '8420'
-      TRUSTED_ORIGINS: http://localhost:8420
-      COOKIE_SECURE: 'false'
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:8420}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8420}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      AUTH_RATE_LIMIT_ENABLED: ${AUTH_RATE_LIMIT_ENABLED:-true}
     ports:
       - '8420:8420'
     devices:
