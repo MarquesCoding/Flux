@@ -8,9 +8,14 @@
     "build": "tsc --build",
     "start": "node dist/Main.js",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@better-auth/api-key": "^1.6.26",
+    "@better-auth/passkey": "^1.6.26",
     "@flux/contracts": "workspace:*",
     "@flux/core": "workspace:*",
     "@flux/plugin-sdk": "workspace:*",
@@ -24,7 +29,6 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@better-auth/cli": "^1.4.21",
     "@types/pg": "^8.21.0",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.19.2",

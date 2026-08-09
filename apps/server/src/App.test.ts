@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import AppModule from './App'
+import createMemoryAuthModule from './auth/createMemoryAuth'
 
 const { createApp } = AppModule
+const { createMemoryAuth } = createMemoryAuthModule
 
-const app = createApp()
+const app = createApp({ auth: createMemoryAuth() })
 
 const deviceProfile = {
   schemaVersion: 1,

@@ -2,6 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi'
 import { apiReference } from '@scalar/hono-api-reference'
 import negotiatePlaybackModule from '@FluxCore/functions/negotiatePlayback'
 import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
+import type { FluxAuth } from '@FluxServer/auth/Auth'
 import HealthRouteModule from './routes/HealthRoute'
 import PlaybackExplainRouteModule from './routes/PlaybackExplainRoute'
 
@@ -12,14 +13,24 @@ const { playbackExplainRoute } = PlaybackExplainRouteModule
 
 const SERVER_VERSION = '0.0.0'
 
+type CreateAppOptions = {
+  auth: FluxAuth
+}
+
 /**
  * Builds the Flux HTTP application.
  *
- * Every route is registered through its OpenAPI definition, so the published
- * specification cannot drift from the implementation. See ADR-0002.
+ * Every Flux route is registered through its OpenAPI definition, so the
+ * published specification cannot drift from the implementation. See ADR-0002.
+ *
+ * The `/api/auth/*` prefix is delegated wholesale to better-auth, which owns
+ * its own routing and documents itself through its `openAPI` plugin. It is the
+ * one part of the surface Flux does not define route by route.
  */
-const createApp = () => {
+const createApp = ({ auth }: CreateAppOptions) => {
   const app = new OpenAPIHono()
+
+  app.on(['GET', 'POST'], '/api/auth/*', (context) => auth.handler(context.req.raw))
 
   app.openapi(healthRoute, (context) =>
     context.json({ status: 'ok', version: SERVER_VERSION, transcoderReachable: false }, 200),
@@ -63,5 +74,7 @@ const createApp = () => {
 
   return app
 }
+
+export type { CreateAppOptions }
 
 export default { createApp, SERVER_VERSION }

@@ -1,14 +1,28 @@
 import { serve } from '@hono/node-server'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import AppModule from './App'
-import EnvModule from './env/Env'
+import AuthModule from '@FluxServer/auth/Auth'
+import DatabaseModule from '@FluxServer/db/Database'
+import EnvModule from '@FluxServer/env/Env'
 
 const { createApp } = AppModule
+const { createAuth } = AuthModule
+const { createDatabase } = DatabaseModule
 const { readEnv } = EnvModule
 
 const env = readEnv(process.env)
-const app = createApp()
+const { db, schema } = createDatabase(env.DATABASE_URL)
+
+const auth = createAuth({
+  env,
+  database: drizzleAdapter(db, { provider: 'pg', schema }),
+})
+
+const app = createApp({ auth })
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
-  process.stdout.write(`Flux listening on http://localhost:${info.port.toString()}\n`)
-  process.stdout.write(`API reference at http://localhost:${info.port.toString()}/api/reference\n`)
+  const origin = `http://localhost:${info.port.toString()}`
+
+  process.stdout.write(`Flux listening on ${origin}\n`)
+  process.stdout.write(`API reference at ${origin}/api/reference\n`)
 })
