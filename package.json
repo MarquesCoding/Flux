@@ -1,0 +1,51 @@
+{
+  "name": "flux",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "oxlint && eslint .",
+    "lint:fix": "oxlint --fix && eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "rust:check": "cargo clippy --all-targets -- -D warnings && cargo fmt --check",
+    "rust:test": "cargo test",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.18.0",
+    "husky": "^9.1.7",
+    "jiti": "^2.4.2",
+    "lint-staged": "^15.3.0",
+    "oxlint": "^0.15.7",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "oxlint --fix",
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,yaml,yml}": [
+      "prettier --write"
+    ],
+    "*.rs": [
+      "rustfmt --edition 2021"
+    ]
+  }
+}

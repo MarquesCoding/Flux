@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+target/
+
+.fixtures/
+.env
+.env.local
+
+.DS_Store
+.idea/
+*.iml

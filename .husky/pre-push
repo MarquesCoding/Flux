@@ -1,0 +1,3 @@
+pnpm test
+pnpm rust:check
+pnpm rust:test
