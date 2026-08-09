@@ -39,7 +39,7 @@ afterEach(() => {
 
 describe('createAuth', () => {
   it('registers a user with email and password', async () => {
-    const auth = createMemoryAuth()
+    const { auth } = createMemoryAuth()
 
     const response = await auth.handler(post('/api/auth/sign-up/email', credentials))
 
@@ -47,7 +47,7 @@ describe('createAuth', () => {
   })
 
   it('rejects a password shorter than the configured minimum', async () => {
-    const auth = createMemoryAuth()
+    const { auth } = createMemoryAuth()
 
     const response = await auth.handler(
       post('/api/auth/sign-up/email', { ...credentials, password: 'short' }),
@@ -57,7 +57,7 @@ describe('createAuth', () => {
   })
 
   it('signs an existing user in', async () => {
-    const auth = createMemoryAuth()
+    const { auth } = createMemoryAuth()
     await auth.handler(post('/api/auth/sign-up/email', credentials))
 
     const response = await auth.handler(
@@ -68,7 +68,7 @@ describe('createAuth', () => {
   })
 
   it('rejects a wrong password', async () => {
-    const auth = createMemoryAuth()
+    const { auth } = createMemoryAuth()
     await auth.handler(post('/api/auth/sign-up/email', credentials))
 
     const response = await auth.handler(
@@ -82,7 +82,7 @@ describe('createAuth', () => {
   })
 
   it('issues a session cookie on sign in', async () => {
-    const auth = createMemoryAuth()
+    const { auth } = createMemoryAuth()
     await auth.handler(post('/api/auth/sign-up/email', credentials))
 
     const response = await auth.handler(
@@ -93,7 +93,7 @@ describe('createAuth', () => {
   })
 
   it('marks cookies insecure when the instance is served over plain http', async () => {
-    const auth = createMemoryAuth({ COOKIE_SECURE: 'false' })
+    const { auth } = createMemoryAuth({ COOKIE_SECURE: 'false' })
     await auth.handler(post('/api/auth/sign-up/email', credentials))
 
     const response = await auth.handler(
@@ -104,7 +104,7 @@ describe('createAuth', () => {
   })
 
   it('marks cookies secure when the instance is served over tls', async () => {
-    const auth = createMemoryAuth({
+    const { auth } = createMemoryAuth({
       COOKIE_SECURE: 'true',
       BETTER_AUTH_URL: 'https://flux.example',
       TRUSTED_ORIGINS: 'https://flux.example',
@@ -122,7 +122,7 @@ describe('createAuth', () => {
   })
 
   it('accepts a bearer token as an alternative to a session cookie', async () => {
-    const auth = createMemoryAuth()
+    const { auth } = createMemoryAuth()
     await auth.handler(post('/api/auth/sign-up/email', credentials))
 
     const signIn = await auth.handler(
@@ -143,7 +143,7 @@ describe('createAuth', () => {
   })
 
   it('exposes a jwks endpoint for native clients to verify tokens', async () => {
-    const auth = createMemoryAuth()
+    const { auth } = createMemoryAuth()
 
     const response = await auth.handler(new Request(`${BASE_URL}/api/auth/jwks`))
 
@@ -152,7 +152,7 @@ describe('createAuth', () => {
   })
 
   it('exposes the device authorization endpoint for keyboard-less clients', async () => {
-    const auth = createMemoryAuth()
+    const { auth } = createMemoryAuth()
 
     const response = await auth.handler(post('/api/auth/device/code', { client_id: 'flux-tv' }))
 
@@ -165,7 +165,7 @@ describe('createAuth', () => {
   })
 
   it('refuses to redirect to an untrusted origin', async () => {
-    const auth = createProductionAuth({ TRUSTED_ORIGINS: 'http://localhost:8420' })
+    const { auth } = createProductionAuth({ TRUSTED_ORIGINS: 'http://localhost:8420' })
 
     const response = await auth.handler(
       post('/api/auth/sign-up/email', { ...credentials, callbackURL: 'http://evil.example/steal' }),
@@ -176,7 +176,7 @@ describe('createAuth', () => {
   })
 
   it('allows a redirect to a configured trusted origin', async () => {
-    const auth = createProductionAuth({
+    const { auth } = createProductionAuth({
       TRUSTED_ORIGINS: 'http://localhost:8420,http://192.168.1.40:8420',
     })
 

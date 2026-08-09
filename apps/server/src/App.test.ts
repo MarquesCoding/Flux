@@ -5,7 +5,13 @@ import createMemoryAuthModule from './auth/createMemoryAuth'
 const { createApp } = AppModule
 const { createMemoryAuth } = createMemoryAuthModule
 
-const app = createApp({ auth: createMemoryAuth() })
+const { auth, settings } = createMemoryAuth()
+const app = createApp({
+  auth,
+  settings,
+  countUsers: () => Promise.resolve(1),
+  promoteToAdmin: () => Promise.resolve(),
+})
 
 const deviceProfile = {
   schemaVersion: 1,

@@ -12,12 +12,15 @@ import {
 import { apiKey } from '@better-auth/api-key'
 import { passkey } from '@better-auth/passkey'
 import type { Env } from '@FluxServer/env/Env'
+import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
 
 type AuthDatabase = DBAdapter | DBAdapterInstance
 
 type CreateAuthOptions = {
   env: Env
   database: AuthDatabase
+  settings: SettingsStore
+  cookieSecure: boolean
 }
 
 const FLUX_APP_NAME = 'Flux'
@@ -35,22 +38,22 @@ const FLUX_APP_NAME = 'Flux'
  * release. Any capability reachable only by cookie is a capability native
  * clients do not have. See ADR-0004.
  */
-const createAuth = ({ env, database }: CreateAuthOptions) => {
+const createAuth = ({ env, database, settings, cookieSecure }: CreateAuthOptions) => {
   return betterAuth({
     appName: FLUX_APP_NAME,
     database,
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
-    trustedOrigins: env.TRUSTED_ORIGINS,
+    trustedOrigins: async () => (await settings.read()).trustedOrigins,
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 10,
     },
     advanced: {
-      useSecureCookies: env.COOKIE_SECURE,
+      useSecureCookies: cookieSecure,
       defaultCookieAttributes: {
         sameSite: 'lax',
-        secure: env.COOKIE_SECURE,
+        secure: cookieSecure,
         httpOnly: true,
       },
     },

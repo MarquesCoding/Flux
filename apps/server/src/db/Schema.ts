@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -130,6 +130,12 @@ const apikey = pgTable('apikey', {
   metadata: text('metadata'),
 })
 
+const serverSetting = pgTable('server_setting', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+})
+
 const userProfile = pgTable('user_profile', {
   userId: text('userId')
     .primaryKey()
@@ -151,6 +157,7 @@ export {
   passkey,
   deviceCode,
   jwks,
+  serverSetting,
   apikey,
   userProfile,
 }
@@ -167,7 +174,7 @@ const authSchema = {
   apikey,
 }
 
-const fluxSchema = { userProfile }
+const fluxSchema = { userProfile, serverSetting }
 
 export default {
   authSchema,
@@ -180,6 +187,7 @@ export default {
   passkey,
   deviceCode,
   jwks,
+  serverSetting,
   apikey,
   userProfile,
 }

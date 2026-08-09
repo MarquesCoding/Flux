@@ -1,28 +1,61 @@
 import { serve } from '@hono/node-server'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { count, eq } from 'drizzle-orm'
 import AppModule from './App'
 import AuthModule from '@FluxServer/auth/Auth'
 import DatabaseModule from '@FluxServer/db/Database'
+import SchemaModule from '@FluxServer/db/Schema'
 import EnvModule from '@FluxServer/env/Env'
+import createDatabaseSettingsStoreModule from '@FluxServer/settings/createDatabaseSettingsStore'
 
 const { createApp } = AppModule
 const { createAuth } = AuthModule
 const { createDatabase } = DatabaseModule
+const { user } = SchemaModule
 const { readEnv } = EnvModule
+const { createDatabaseSettingsStore } = createDatabaseSettingsStoreModule
 
 const env = readEnv(process.env)
 const { db, schema } = createDatabase(env.DATABASE_URL)
 
+const settings = createDatabaseSettingsStore({
+  db,
+  defaults: {
+    trustedOrigins: env.TRUSTED_ORIGINS,
+    cookieSecure: env.COOKIE_SECURE,
+    setupCompletedAt: null,
+  },
+})
+
+const persisted = await settings.read()
+
 const auth = createAuth({
   env,
   database: drizzleAdapter(db, { provider: 'pg', schema }),
+  settings,
+  cookieSecure: persisted.cookieSecure,
 })
 
-const app = createApp({ auth })
+const countUsers = async (): Promise<number> => {
+  const rows = await db.select({ total: count() }).from(user)
+
+  return rows[0]?.total ?? 0
+}
+
+const promoteToAdmin = async (email: string): Promise<void> => {
+  await db.update(user).set({ role: 'admin' }).where(eq(user.email, email))
+}
+
+const app = createApp({ auth, settings, countUsers, promoteToAdmin })
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   const origin = `http://localhost:${info.port.toString()}`
 
   process.stdout.write(`Flux listening on ${origin}\n`)
+
+  if (persisted.setupCompletedAt === null) {
+    process.stdout.write(`First-run setup at ${origin}\n`)
+  }
+
   process.stdout.write(`API reference at ${origin}/api/reference\n`)
 })
