@@ -1,51 +1,84 @@
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AppModule from './App'
 
 const { App } = AppModule
 
+const fetchMock = vi.fn()
+
+const status = {
+  isComplete: false,
+  detectedOrigin: 'http://192.168.1.40:8420',
+  isSecureContext: false,
+  suggestedTrustedOrigins: ['http://192.168.1.40:8420'],
+}
+
+const respondWith = (body: object) => {
+  fetchMock.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve(body) })
+}
+
+beforeEach(() => {
+  fetchMock.mockReset()
+  vi.stubGlobal('fetch', fetchMock)
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
 describe('App', () => {
-  it('renders the default title', () => {
+  it('shows the setup wizard when the server reports setup is incomplete', async () => {
+    respondWith(status)
     render(<App />)
 
-    expect(screen.getByRole('heading', { name: 'Flux' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument()
   })
 
-  it('renders a supplied title', () => {
+  it('shows the shell when the server reports setup is complete', async () => {
+    respondWith({ ...status, isComplete: true })
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Flux' })).toBeInTheDocument()
+  })
+
+  it('renders a supplied title once setup is complete', async () => {
+    respondWith({ ...status, isComplete: true })
     render(<App initialTitle="Living Room" />)
 
-    expect(screen.getByRole('heading', { name: 'Living Room' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Living Room' })).toBeInTheDocument()
   })
 
-  it('formats the sample runtime with the shared core function', () => {
+  it('shows a spinner while the status is loading', () => {
+    fetchMock.mockReturnValue(new Promise(() => undefined))
     render(<App />)
 
-    expect(screen.getByText('Sample runtime 2:02:05')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Loading Flux' })).toBeInTheDocument()
   })
 
-  it('puts the play button into a loading state when pressed', async () => {
-    const user = userEvent.setup()
+  it('reports an unreachable server rather than assuming setup is needed', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'))
     render(<App />)
 
-    await user.click(screen.getByRole('button', { name: /Play/ }))
-
-    expect(screen.getByRole('button', { name: /Play/ })).toHaveAttribute('aria-busy', 'true')
+    expect(
+      await screen.findByRole('heading', { name: 'Flux is not reachable' }),
+    ).toBeInTheDocument()
   })
 
-  it('clears the loading state when reset', async () => {
-    const user = userEvent.setup()
+  it('does not show the wizard when the status request fails', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500 })
     render(<App />)
 
-    await user.click(screen.getByRole('button', { name: /Play/ }))
-    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await screen.findByRole('heading', { name: 'Flux is not reachable' })
 
-    expect(screen.getByRole('button', { name: 'Play' })).toHaveAttribute('aria-busy', 'false')
+    expect(screen.queryByRole('heading', { name: 'Set up Flux' })).not.toBeInTheDocument()
   })
 
-  it('renders the subtitle checkbox', () => {
+  it('asks the server again after setup completes', async () => {
+    respondWith(status)
     render(<App />)
 
-    expect(screen.getByRole('checkbox', { name: 'Burn in subtitles' })).toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'Set up Flux' })
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/setup/status')
   })
 })
