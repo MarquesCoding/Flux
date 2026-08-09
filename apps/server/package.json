@@ -1,0 +1,34 @@
+{
+  "name": "@flux/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/Main.ts",
+    "build": "tsc --build",
+    "start": "node dist/Main.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@flux/contracts": "workspace:*",
+    "@flux/core": "workspace:*",
+    "@flux/plugin-sdk": "workspace:*",
+    "@hono/node-server": "^1.13.7",
+    "@hono/zod-openapi": "^0.18.3",
+    "@scalar/hono-api-reference": "^0.5.165",
+    "better-auth": "^1.6.26",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.6.16",
+    "pg": "^8.23.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@better-auth/cli": "^1.4.21",
+    "@types/pg": "^8.21.0",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.19.2",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.0.2"
+  }
+}
