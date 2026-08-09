@@ -1,20 +1,42 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AppModule from './App'
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
 const { App } = AppModule
 
-const fetchMock = vi.fn()
+type FetchLike = (
+  input: string,
+  init?: RequestInit,
+) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>
 
-const status = {
-  isComplete: false,
+const fetchMock = vi.fn<FetchLike>()
+
+const setupComplete = {
+  isComplete: true,
   detectedOrigin: 'http://192.168.1.40:8420',
   isSecureContext: false,
   suggestedTrustedOrigins: ['http://192.168.1.40:8420'],
 }
 
-const respondWith = (body: object) => {
-  fetchMock.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve(body) })
+const user = {
+  id: 'usr_1',
+  name: 'Operator',
+  email: 'admin@flux.test',
+  emailVerified: false,
+}
+
+const ok = (body: JsonValue) => ({ ok: true, status: 200, json: () => Promise.resolve(body) })
+
+/**
+ * Routes the two endpoints the shell depends on, so tests describe server
+ * state rather than call ordering.
+ */
+const serverState = (options: { setup: JsonValue; session: JsonValue }) => {
+  fetchMock.mockImplementation((input) =>
+    Promise.resolve(input === '/api/setup/status' ? ok(options.setup) : ok(options.session)),
+  )
 }
 
 beforeEach(() => {
@@ -26,33 +48,50 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('App', () => {
-  it('shows the setup wizard when the server reports setup is incomplete', async () => {
-    respondWith(status)
+describe('App routing', () => {
+  it('shows a spinner while loading', () => {
+    fetchMock.mockReturnValue(new Promise(() => undefined))
+    render(<App />)
+
+    expect(screen.getByRole('status', { name: 'Loading Flux' })).toBeInTheDocument()
+  })
+
+  it('shows the setup wizard when setup is incomplete', async () => {
+    serverState({ setup: { ...setupComplete, isComplete: false }, session: null })
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument()
   })
 
-  it('shows the shell when the server reports setup is complete', async () => {
-    respondWith({ ...status, isComplete: true })
+  it('does not ask for a session before setup is complete', async () => {
+    serverState({ setup: { ...setupComplete, isComplete: false }, session: null })
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Set up Flux' })
+
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/get-session', expect.anything())
+  })
+
+  it('shows sign in when setup is complete but nobody is signed in', async () => {
+    serverState({ setup: setupComplete, session: null })
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Sign in to Flux' })).toBeInTheDocument()
+  })
+
+  it('shows the library shell when signed in', async () => {
+    serverState({ setup: setupComplete, session: { user } })
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Flux' })).toBeInTheDocument()
+    expect(screen.getByText(/Signed in as admin@flux.test/)).toBeInTheDocument()
   })
 
-  it('renders a supplied title once setup is complete', async () => {
-    respondWith({ ...status, isComplete: true })
+  it('renders a supplied title when signed in', async () => {
+    serverState({ setup: setupComplete, session: { user } })
     render(<App initialTitle="Living Room" />)
 
     expect(await screen.findByRole('heading', { name: 'Living Room' })).toBeInTheDocument()
-  })
-
-  it('shows a spinner while the status is loading', () => {
-    fetchMock.mockReturnValue(new Promise(() => undefined))
-    render(<App />)
-
-    expect(screen.getByRole('status', { name: 'Loading Flux' })).toBeInTheDocument()
   })
 
   it('reports an unreachable server rather than assuming setup is needed', async () => {
@@ -64,21 +103,29 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
-  it('does not show the wizard when the status request fails', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 500 })
+  it('does not show sign in when the session request fails', async () => {
+    fetchMock.mockImplementation((input) =>
+      input === '/api/setup/status'
+        ? Promise.resolve(ok(setupComplete))
+        : Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve(null) }),
+    )
     render(<App />)
 
     await screen.findByRole('heading', { name: 'Flux is not reachable' })
 
-    expect(screen.queryByRole('heading', { name: 'Set up Flux' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Sign in to Flux' })).not.toBeInTheDocument()
   })
 
-  it('asks the server again after setup completes', async () => {
-    respondWith(status)
+  it('signs out and returns to the sign in screen', async () => {
+    serverState({ setup: setupComplete, session: { user } })
+    const actor = userEvent.setup()
     render(<App />)
 
-    await screen.findByRole('heading', { name: 'Set up Flux' })
+    await screen.findByText(/Signed in as admin@flux.test/)
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/setup/status')
+    serverState({ setup: setupComplete, session: null })
+    await actor.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    expect(await screen.findByRole('heading', { name: 'Sign in to Flux' })).toBeInTheDocument()
   })
 })
