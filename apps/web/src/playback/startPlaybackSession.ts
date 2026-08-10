@@ -10,6 +10,7 @@ const StartedSessionSchema = z.object({
   manifestUrl: z.string().min(1),
   mode: z.string(),
   plan: PlaybackPlanSchema,
+  warnings: z.array(z.string()).default([]),
 })
 
 type StartedSession = z.infer<typeof StartedSessionSchema>

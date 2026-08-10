@@ -287,6 +287,7 @@ async fn re_encodes_video_when_asked() {
             max_bitrate_kbps: 400,
             max_width: 160,
             max_height: 120,
+            tone_map: None,
         },
         AudioAction::Copy,
     );
@@ -386,6 +387,62 @@ async fn refuses_to_serve_files_outside_the_session_directory() {
     let (status, _) = call(&app, get(&format!("/sessions/{id}/..%2f..%2fetc%2fpasswd"))).await;
 
     assert_ne!(status, StatusCode::OK, "path traversal must not be served");
+}
+
+#[tokio::test]
+async fn records_completion_only_when_ffmpeg_finishes_cleanly() {
+    let app = app(registry("complete"));
+    let (_, body) = start(&app, &spec(VideoAction::Copy, AudioAction::Copy)).await;
+    let id = body["id"].as_str().expect("has an id");
+    let marker = cache_root("complete").join(id).join(".complete");
+
+    for _ in 0..100 {
+        if marker.exists() {
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    assert!(
+        marker.exists(),
+        "expected a completion marker once ffmpeg finished"
+    );
+}
+
+#[tokio::test]
+async fn reuses_a_finished_transcode_instead_of_running_it_again() {
+    let registry = registry("reuse");
+    let app = app(registry.clone());
+    let subject = spec(VideoAction::Copy, AudioAction::Copy);
+
+    let (_, body) = start(&app, &subject).await;
+    let id = body["id"].as_str().expect("has an id").to_owned();
+    let marker = cache_root("reuse").join(&id).join(".complete");
+
+    for _ in 0..100 {
+        if marker.exists() {
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    registry.stop(&id).await;
+
+    let before = std::fs::metadata(cache_root("reuse").join(&id).join("index.m3u8"))
+        .and_then(|meta| meta.modified())
+        .expect("reads the manifest time");
+
+    let (status, again) = start(&app, &subject).await;
+
+    let after = std::fs::metadata(cache_root("reuse").join(&id).join("index.m3u8"))
+        .and_then(|meta| meta.modified())
+        .expect("reads the manifest time");
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(again["id"].as_str(), Some(id.as_str()));
+    assert_eq!(before, after, "a finished transcode must not be rewritten");
 }
 
 #[tokio::test]

@@ -26,6 +26,7 @@ const StartResponse = z
     manifestUrl: z.string(),
     mode: z.enum(PLAYBACK_MODES),
     plan: PlaybackPlanSchema,
+    warnings: z.array(z.string()),
   })
   .openapi('PlaybackStartResponse')
 

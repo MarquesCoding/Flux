@@ -53,11 +53,18 @@ const transcodingPlan: PlaybackPlan = {
 
 const media = { id: 'media-1', title: 'Arrival' }
 
-const startedSession = {
+const startedSession: {
+  sessionId: string
+  manifestUrl: string
+  mode: string
+  plan: PlaybackPlan
+  warnings: string[]
+} = {
   sessionId: 'abc',
   manifestUrl: '/api/playback/session/abc/index.m3u8',
   mode: 'Transcode',
   plan: transcodingPlan,
+  warnings: [],
 }
 
 beforeEach(() => {
@@ -195,6 +202,27 @@ describe('VideoPlayer', () => {
     await screen.findByLabelText('Arrival')
 
     expect(screen.getByText('0:00 / 0:00')).toBeInTheDocument()
+  })
+
+  it('warns when the server cannot tone map, without hiding it behind a click', async () => {
+    startMock.mockResolvedValue({
+      kind: 'started',
+      session: {
+        ...startedSession,
+        warnings: ['This server cannot tone map HDR to SDR, so colours will look washed out.'],
+      },
+    })
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    expect(await screen.findByText(/cannot tone map/)).toBeInTheDocument()
+  })
+
+  it('shows no warning banner when there is nothing to warn about', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await screen.findByRole('button', { name: /Transcode/ })
+
+    expect(screen.queryByText(/cannot tone map/)).not.toBeInTheDocument()
   })
 
   it('sets a display name so devtools can identify it', () => {

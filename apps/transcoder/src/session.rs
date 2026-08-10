@@ -4,10 +4,29 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use thiserror::Error;
-use tokio::process::{Child, Command};
-use tokio::sync::Mutex;
+use tokio::process::Command;
+use tokio::sync::{oneshot, Mutex};
 
 use crate::transcode_plan::{SessionSpec, TranscodePlan, MANIFEST_NAME};
+
+/// Written only when ffmpeg exits cleanly.
+///
+/// A finished playlist is not proof of a usable transcode: an interrupted run
+/// can leave an `#EXT-X-ENDLIST` from a previous attempt beside a zero length
+/// initialisation segment. Only the process's own exit status can say the
+/// output is whole, so completion is recorded rather than inferred.
+const COMPLETE_MARKER: &str = ".complete";
+
+/// Reports whether a session directory already holds a finished transcode.
+///
+/// Segments are content addressed, so the same request after a restart lands
+/// on a directory that may already be complete. Re-running ffmpeg over it
+/// wastes the work and truncates a playlist a client may be reading.
+async fn is_already_complete(directory: &Path) -> bool {
+    tokio::fs::try_exists(directory.join(COMPLETE_MARKER))
+        .await
+        .unwrap_or(false)
+}
 
 /// Why a session could not be started.
 #[derive(Debug, Error)]
@@ -78,7 +97,7 @@ pub struct Session {
     pub id: String,
     pub directory: PathBuf,
     pub spec: SessionSpec,
-    child: Option<Child>,
+    cancel: Option<oneshot::Sender<()>>,
     last_touched: Instant,
 }
 
@@ -103,19 +122,11 @@ impl Session {
     /// Stops the transcode, if it is still running.
     ///
     /// An ffmpeg process outliving the client that asked for it is the classic
-    /// resource leak in this kind of software, so sessions are killed
+    /// resource leak in this kind of software, so sessions are cancelled
     /// explicitly rather than left to finish.
-    pub async fn stop(&mut self) {
-        if let Some(mut child) = self.child.take() {
-            let _ = child.kill().await;
-        }
-    }
-
-    /// Whether the transcode is still running.
-    pub fn is_running(&mut self) -> bool {
-        match self.child.as_mut() {
-            None => false,
-            Some(child) => matches!(child.try_wait(), Ok(None)),
+    pub fn stop(&mut self) {
+        if let Some(cancel) = self.cancel.take() {
+            let _ = cancel.send(());
         }
     }
 }
@@ -196,12 +207,38 @@ impl SessionRegistry {
             .await
             .map_err(SessionError::Directory)?;
 
+        if is_already_complete(&directory).await {
+            let mut sessions = self.sessions.lock().await;
+
+            sessions.insert(
+                id.clone(),
+                Session {
+                    id: id.clone(),
+                    directory,
+                    spec,
+                    cancel: None,
+                    last_touched: Instant::now(),
+                },
+            );
+
+            return Ok(id);
+        }
+
         let plan = TranscodePlan {
             spec: spec.clone(),
             output_directory: directory.to_string_lossy().into_owned(),
         };
 
-        let child = spawn_ffmpeg(&self.config.ffmpeg, &plan)?;
+        // Prove ffmpeg can start before reporting a session, so a bad binary
+        // or unreadable input fails here rather than as a manifest that never
+        // appears.
+        drop(spawn_ffmpeg(&self.config.ffmpeg, &plan)?);
+
+        let (cancel_tx, cancel_rx) = oneshot::channel();
+        let config = self.config.clone();
+        let supervised = plan.clone();
+
+        tokio::spawn(async move { supervise(config, supervised, cancel_rx).await });
 
         let mut sessions = self.sessions.lock().await;
 
@@ -211,7 +248,7 @@ impl SessionRegistry {
                 id: id.clone(),
                 directory,
                 spec,
-                child: Some(child),
+                cancel: Some(cancel_tx),
                 last_touched: Instant::now(),
             },
         );
@@ -237,7 +274,7 @@ impl SessionRegistry {
         match sessions.remove(id) {
             None => false,
             Some(mut session) => {
-                session.stop().await;
+                session.stop();
 
                 true
             }
@@ -271,7 +308,7 @@ impl SessionRegistry {
 
         for id in &stale {
             if let Some(mut session) = sessions.remove(id) {
-                session.stop().await;
+                session.stop();
             }
         }
 
@@ -283,14 +320,75 @@ impl SessionRegistry {
         let mut sessions = self.sessions.lock().await;
 
         for (_, session) in sessions.iter_mut() {
-            session.stop().await;
+            session.stop();
         }
 
         sessions.clear();
     }
 }
 
-fn spawn_ffmpeg(ffmpeg: &str, plan: &TranscodePlan) -> Result<Child, SessionError> {
+/// Runs one ffmpeg attempt to completion, or until cancelled.
+async fn run_attempt(
+    ffmpeg: &str,
+    plan: &TranscodePlan,
+    cancel: &mut oneshot::Receiver<()>,
+) -> ExitClass {
+    let Ok(child) = spawn_ffmpeg(ffmpeg, plan) else {
+        return ExitClass::InputError;
+    };
+
+    let waiting = child.wait_with_output();
+    tokio::pin!(waiting);
+
+    tokio::select! {
+        biased;
+
+        // Cancelling drops the pending wait, which drops the child. The
+        // process is spawned with `kill_on_drop`, so a cancelled session
+        // cannot leave ffmpeg running.
+        _ = &mut *cancel => ExitClass::Cancelled,
+
+        finished = &mut waiting => match finished {
+            Err(_) => ExitClass::InputError,
+            Ok(output) => classify_exit(
+                output.status.code(),
+                &String::from_utf8_lossy(&output.stderr),
+            ),
+        },
+    }
+}
+
+/// Supervises a transcode from start to finish.
+///
+/// A hardware encoder that fails is retried once in software. A busy or broken
+/// GPU should mean a slower film, not a dead player. A bad input is not
+/// retried: retrying it in software just burns CPU and fails again. See
+/// ADR-0009.
+async fn supervise(config: SessionConfig, plan: TranscodePlan, mut cancel: oneshot::Receiver<()>) {
+    let directory = PathBuf::from(&plan.output_directory);
+    let mut attempt = plan;
+
+    for _ in 0..2 {
+        let outcome = run_attempt(&config.ffmpeg, &attempt, &mut cancel).await;
+
+        if outcome == ExitClass::Completed {
+            let _ = tokio::fs::write(directory.join(COMPLETE_MARKER), b"ok").await;
+
+            return;
+        }
+
+        if outcome != ExitClass::HardwareFailure || !attempt.spec.uses_hardware() {
+            return;
+        }
+
+        attempt = TranscodePlan {
+            spec: attempt.spec.without_hardware(),
+            output_directory: attempt.output_directory,
+        };
+    }
+}
+
+fn spawn_ffmpeg(ffmpeg: &str, plan: &TranscodePlan) -> Result<tokio::process::Child, SessionError> {
     let child = Command::new(ffmpeg)
         .args(plan.to_ffmpeg_args())
         .stdin(std::process::Stdio::null())

@@ -10,6 +10,9 @@ type Explanation = {
 type StartedSession = Explanation & {
   sessionId: string
   manifestUrl: string
+  /// Things the viewer should know that are not failures, such as a server
+  /// that cannot tone map the HDR source it is about to convert.
+  warnings: string[]
 }
 
 type StartOutcome =

@@ -32,6 +32,24 @@ impl HardwareAccel {
     }
 }
 
+/// How HDR is converted to SDR.
+///
+/// Tone mapping needs a filter that can linearise a PQ or HLG transfer curve.
+/// `tonemap` alone cannot: it expects linear light, and feeding it PQ-encoded
+/// samples produces a washed out picture that looks broken rather than
+/// obviously wrong. See ADR-0010.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ToneMapping {
+    /// `zscale` plus `tonemap`. The usual route, needs libzimg.
+    Zscale,
+    /// `libplacebo`, which does the whole conversion in one filter.
+    Libplacebo,
+    /// This build cannot tone map. Colours will be wrong, so callers must say
+    /// so rather than pretending the conversion happened.
+    Unavailable,
+}
+
 /// What should happen to the video stream.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
@@ -46,6 +64,8 @@ pub enum VideoAction {
         max_bitrate_kbps: u32,
         max_width: u32,
         max_height: u32,
+        #[serde(default)]
+        tone_map: Option<ToneMapping>,
     },
 }
 
@@ -130,11 +150,13 @@ impl SessionSpec {
                 max_bitrate_kbps,
                 max_width,
                 max_height,
+                tone_map,
             } => VideoAction::Encode {
                 encoder: software_equivalent(encoder).to_owned(),
                 max_bitrate_kbps: *max_bitrate_kbps,
                 max_width: *max_width,
                 max_height: *max_height,
+                tone_map: *tone_map,
             },
         };
 
@@ -143,6 +165,26 @@ impl SessionSpec {
             video,
             ..self.clone()
         }
+    }
+}
+
+/// The filter chain that converts HDR to SDR.
+///
+/// The `zscale` route linearises the transfer curve, converts primaries to
+/// BT.709, tone maps in linear light, then re-encodes the BT.709 curve. Each
+/// step matters: skipping the linearisation is what produces the washed out
+/// picture people recognise as "HDR played wrong".
+#[must_use]
+pub fn tone_map_filter(method: ToneMapping) -> Option<&'static str> {
+    match method {
+        ToneMapping::Zscale => Some(
+            "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,\
+tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv",
+        ),
+        ToneMapping::Libplacebo => Some(
+            "libplacebo=tonemapping=bt.2390:colorspace=bt709:color_primaries=bt709:color_trc=bt709",
+        ),
+        ToneMapping::Unavailable => None,
     }
 }
 
@@ -172,6 +214,28 @@ pub fn software_equivalent(encoder: &str) -> &'static str {
     }
 
     "libx264"
+}
+
+/// The complete video filter chain.
+///
+/// Tone mapping runs before scaling: converting a smaller picture is cheaper,
+/// but tone mapping the already-resampled result loses highlight detail that
+/// the mapping curve needs.
+#[must_use]
+pub fn video_filter_chain(
+    max_width: u32,
+    max_height: u32,
+    tone_map: Option<ToneMapping>,
+) -> String {
+    let mapping = tone_map.and_then(tone_map_filter);
+
+    match mapping {
+        None => format!("{},format=yuv420p", scale_filter(max_width, max_height)),
+        Some(filter) => format!(
+            "{filter},{},format=yuv420p",
+            scale_filter(max_width, max_height)
+        ),
+    }
 }
 
 /// A fully resolved transcode instruction.
@@ -226,13 +290,14 @@ impl TranscodePlan {
                 max_bitrate_kbps,
                 max_width,
                 max_height,
+                tone_map,
             } => {
                 args.push("-c:v".into());
                 args.push(encoder.clone());
                 args.push("-b:v".into());
                 args.push(format!("{max_bitrate_kbps}k"));
                 args.push("-vf".into());
-                args.push(scale_filter(*max_width, *max_height));
+                args.push(video_filter_chain(*max_width, *max_height, *tone_map));
             }
         }
 
@@ -334,6 +399,7 @@ mod tests {
                 max_bitrate_kbps: 8000,
                 max_width: 1920,
                 max_height: 1080,
+                tone_map: None,
             },
             ..spec()
         })
@@ -377,6 +443,67 @@ mod tests {
 
         assert!(args.windows(2).any(|w| w == ["-hls_list_size", "0"]));
         assert!(args.windows(2).any(|w| w == ["-hls_playlist_type", "vod"]));
+    }
+
+    #[test]
+    fn tone_mapping_linearises_before_mapping() {
+        use super::{tone_map_filter, ToneMapping};
+
+        let filter = tone_map_filter(ToneMapping::Zscale).expect("zscale is available");
+        let linearise = filter.find("t=linear").expect("linearises");
+        let map = filter.find("tonemap=").expect("maps");
+
+        assert!(
+            linearise < map,
+            "must linearise before tone mapping: {filter}"
+        );
+    }
+
+    #[test]
+    fn tone_mapping_converts_primaries_to_bt709() {
+        use super::{tone_map_filter, ToneMapping};
+
+        let filter = tone_map_filter(ToneMapping::Zscale).expect("zscale is available");
+
+        assert!(
+            filter.contains("p=bt709"),
+            "expected primaries conversion: {filter}"
+        );
+        assert!(
+            filter.contains("m=bt709"),
+            "expected matrix conversion: {filter}"
+        );
+    }
+
+    #[test]
+    fn a_build_without_the_filters_offers_no_chain() {
+        use super::{tone_map_filter, ToneMapping};
+
+        assert!(tone_map_filter(ToneMapping::Unavailable).is_none());
+    }
+
+    #[test]
+    fn tone_maps_before_scaling_to_keep_highlight_detail() {
+        use super::{video_filter_chain, ToneMapping};
+
+        let chain = video_filter_chain(1920, 1080, Some(ToneMapping::Zscale));
+        let map = chain.find("tonemap=").expect("maps");
+        let scale = chain.find("scale=w=").expect("scales");
+
+        assert!(map < scale, "tone mapping must precede scaling: {chain}");
+    }
+
+    #[test]
+    fn omits_tone_mapping_when_it_is_not_needed() {
+        use super::video_filter_chain;
+
+        let chain = video_filter_chain(1920, 1080, None);
+
+        assert!(
+            !chain.contains("tonemap"),
+            "expected no tone mapping: {chain}"
+        );
+        assert!(chain.contains("format=yuv420p"));
     }
 
     #[test]
@@ -432,6 +559,7 @@ mod tests {
                 max_bitrate_kbps: 4000,
                 max_width: 1280,
                 max_height: 720,
+                tone_map: None,
             },
             ..spec()
         };
@@ -456,6 +584,7 @@ mod tests {
                 max_bitrate_kbps: 8000,
                 max_width: 1920,
                 max_height: 1080,
+                tone_map: None,
             },
             ..spec()
         };
@@ -470,6 +599,7 @@ mod tests {
                 max_bitrate_kbps: 8000,
                 max_width: 1920,
                 max_height: 1080,
+                tone_map: None,
             }
         );
     }

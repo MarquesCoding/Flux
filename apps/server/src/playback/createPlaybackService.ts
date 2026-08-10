@@ -66,6 +66,7 @@ const createPlaybackService = ({
       const outcome = planToSessionSpec({
         plan,
         inputPath: found.path,
+        sourceRange: found.item.videoRange,
         capabilities: await capabilities(),
         startSeconds,
         segmentSeconds: SEGMENT_SECONDS,
@@ -85,6 +86,7 @@ const createPlaybackService = ({
             manifestUrl: `${sessionUrlPrefix}/${session.id}/index.m3u8`,
             mode: describePlaybackMode(plan),
             plan,
+            warnings: outcome.warnings,
           },
         }
       } catch (error) {

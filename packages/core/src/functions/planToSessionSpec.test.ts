@@ -16,6 +16,7 @@ const directPlay: PlaybackPlan = {
 }
 
 const capabilities: Capabilities = {
+  toneMapping: 'zscale',
   encoders: [
     { codec: 'h264', encoder: 'h264_videotoolbox', accel: 'videotoolbox' },
     { codec: 'h264', encoder: 'libx264', accel: 'none' },
@@ -24,13 +25,17 @@ const capabilities: Capabilities = {
 }
 
 const softwareOnly: Capabilities = {
+  toneMapping: 'zscale',
   encoders: [{ codec: 'h264', encoder: 'libx264', accel: 'none' }],
 }
 
-const build = (plan: PlaybackPlan, caps: Capabilities = capabilities) =>
+const noToneMapping: Capabilities = { ...capabilities, toneMapping: 'unavailable' }
+
+const build = (plan: PlaybackPlan, caps: Capabilities = capabilities, sourceRange = 'SDR') =>
   planToSessionSpec({
     plan,
     inputPath: '/media/film.mkv',
+    sourceRange,
     capabilities: caps,
     startSeconds: 0,
     segmentSeconds: 4,
@@ -154,6 +159,48 @@ describe('planToSessionSpec', () => {
     expect(outcome).toMatchObject({ kind: 'ok', spec: { video: { encoder: 'libx264' } } })
   })
 
+  it('tone maps when converting HDR to SDR', () => {
+    const outcome = build({ ...directPlay, video: transcodeVideo }, capabilities, 'HDR10')
+
+    expect(outcome).toMatchObject({ kind: 'ok', spec: { video: { toneMap: 'zscale' } } })
+  })
+
+  it('does not tone map an SDR source', () => {
+    const outcome = build({ ...directPlay, video: transcodeVideo }, capabilities, 'SDR')
+
+    expect(outcome).toMatchObject({ kind: 'ok' })
+    expect(outcome.kind === 'ok' && 'toneMap' in outcome.spec.video).toBe(false)
+  })
+
+  it('does not tone map when the range is preserved', () => {
+    const outcome = build(
+      { ...directPlay, video: { ...transcodeVideo, range: 'HDR10' } },
+      capabilities,
+      'HDR10',
+    )
+
+    expect(outcome.kind === 'ok' && 'toneMap' in outcome.spec.video).toBe(false)
+  })
+
+  it('warns when the server cannot tone map, rather than failing silently', () => {
+    const outcome = build({ ...directPlay, video: transcodeVideo }, noToneMapping, 'HDR10')
+
+    expect(outcome).toMatchObject({ kind: 'ok' })
+    expect(outcome.kind === 'ok' && outcome.warnings[0]).toMatch(/washed out/)
+  })
+
+  it('still produces a stream when it cannot tone map', () => {
+    const outcome = build({ ...directPlay, video: transcodeVideo }, noToneMapping, 'HDR10')
+
+    expect(outcome).toMatchObject({ kind: 'ok', spec: { video: { kind: 'encode' } } })
+  })
+
+  it('warns about nothing for an ordinary transcode', () => {
+    const outcome = build({ ...directPlay, video: transcodeVideo }, capabilities, 'SDR')
+
+    expect(outcome.kind === 'ok' && outcome.warnings).toEqual([])
+  })
+
   it('reports when the machine cannot encode at all', () => {
     const outcome = build({ ...directPlay, video: transcodeVideo }, { encoders: [] })
 
@@ -164,6 +211,7 @@ describe('planToSessionSpec', () => {
     const outcome = planToSessionSpec({
       plan: directPlay,
       inputPath: '/media/film.mkv',
+      sourceRange: 'SDR',
       capabilities,
       startSeconds: 120,
       segmentSeconds: 6,

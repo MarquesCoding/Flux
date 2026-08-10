@@ -62,6 +62,7 @@ const createMemoryPlaybackService = (
         manifestUrl: `/api/playback/session/${sessionId}/index.m3u8`,
         mode: describePlaybackMode(plan),
         plan,
+        warnings: [],
       },
     })
   },

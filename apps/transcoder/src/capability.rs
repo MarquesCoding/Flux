@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 
-use crate::transcode_plan::HardwareAccel;
+use crate::transcode_plan::{HardwareAccel, ToneMapping};
 
 /// An encoder Flux may use, and the acceleration it belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -132,6 +132,40 @@ pub struct Capabilities {
     pub ffmpeg_version: String,
     pub encoders: Vec<VerifiedEncoder>,
     pub hardware_accels: Vec<HardwareAccel>,
+    /// How, or whether, this build can convert HDR to SDR.
+    pub tone_mapping: ToneMapping,
+}
+
+/// Chooses a tone mapping route from the filters a build actually has.
+///
+/// `libplacebo` is preferred: it does the whole conversion in one filter and
+/// handles more source formats. `zscale` is the widely available fallback. A
+/// build with neither cannot tone map at all, which callers must surface
+/// rather than quietly producing a washed out picture. See ADR-0010.
+#[must_use]
+pub fn select_tone_mapping(filters: &[String]) -> ToneMapping {
+    let has = |name: &str| filters.iter().any(|filter| filter == name);
+
+    if has("libplacebo") {
+        return ToneMapping::Libplacebo;
+    }
+
+    if has("zscale") && has("tonemap") {
+        return ToneMapping::Zscale;
+    }
+
+    ToneMapping::Unavailable
+}
+
+/// Parses filter names out of `ffmpeg -filters` output.
+#[must_use]
+pub fn parse_listed_filters(output: &str) -> Vec<String> {
+    output
+        .lines()
+        .skip_while(|line| !line.trim_start().starts_with("------"))
+        .filter_map(|line| line.split_whitespace().nth(1))
+        .map(str::to_owned)
+        .collect()
 }
 
 impl Capabilities {
@@ -244,17 +278,30 @@ pub async fn detect_capabilities(ffmpeg: &str) -> Capabilities {
 
     hardware_accels.dedup();
 
+    let filters = match Command::new(ffmpeg)
+        .args(["-hide_banner", "-filters"])
+        .output()
+        .await
+    {
+        Ok(output) => parse_listed_filters(&String::from_utf8_lossy(&output.stdout)),
+        Err(_) => Vec::new(),
+    };
+
     Capabilities {
         ffmpeg_version: read_version(ffmpeg).await,
         encoders,
         hardware_accels,
+        tone_mapping: select_tone_mapping(&filters),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_listed_encoders, Capabilities, VerifiedEncoder};
-    use crate::transcode_plan::HardwareAccel;
+    use super::{
+        parse_listed_encoders, parse_listed_filters, select_tone_mapping, Capabilities,
+        VerifiedEncoder,
+    };
+    use crate::transcode_plan::{HardwareAccel, ToneMapping};
 
     const ENCODERS_OUTPUT: &str = "Encoders:\n V..... = Video\n ------\n V....D libx264              libx264 H.264\n V....D h264_videotoolbox    VideoToolbox H.264\n A....D aac                  AAC\n";
 
@@ -279,7 +326,49 @@ mod tests {
             ffmpeg_version: "test".to_owned(),
             encoders,
             hardware_accels: Vec::new(),
+            tone_mapping: ToneMapping::Unavailable,
         }
+    }
+
+    #[test]
+    fn prefers_libplacebo_for_tone_mapping() {
+        let filters = vec![
+            "zscale".to_owned(),
+            "tonemap".to_owned(),
+            "libplacebo".to_owned(),
+        ];
+
+        assert_eq!(select_tone_mapping(&filters), ToneMapping::Libplacebo);
+    }
+
+    #[test]
+    fn falls_back_to_zscale() {
+        let filters = vec!["zscale".to_owned(), "tonemap".to_owned()];
+
+        assert_eq!(select_tone_mapping(&filters), ToneMapping::Zscale);
+    }
+
+    #[test]
+    fn reports_unavailable_when_tonemap_has_no_lineariser() {
+        assert_eq!(
+            select_tone_mapping(&["tonemap".to_owned()]),
+            ToneMapping::Unavailable
+        );
+    }
+
+    #[test]
+    fn reports_unavailable_when_no_filters_exist() {
+        assert_eq!(select_tone_mapping(&[]), ToneMapping::Unavailable);
+    }
+
+    #[test]
+    fn parses_filter_names() {
+        let output = "Filters:\n T.. = Timeline\n ------\n ... scale  V->V  Scale\n .S. tonemap V->V  Tone\n";
+
+        let names = parse_listed_filters(output);
+
+        assert!(names.contains(&"scale".to_owned()));
+        assert!(names.contains(&"tonemap".to_owned()));
     }
 
     #[test]

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconInfoCircle, IconPlayerPause, IconPlayerPlay, IconX } from '@tabler/icons-react'
+import {
+  IconAlertTriangle,
+  IconInfoCircle,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconX,
+} from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import SpinnerModule from '@FluxUI/Spinner'
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
@@ -137,6 +143,17 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
           </div>
         ) : null}
       </div>
+
+      {session === null || session.warnings.length === 0 ? null : (
+        <ul className="flex flex-col gap-1 rounded-md border border-border p-3 text-sm text-text-muted">
+          {session.warnings.map((warning) => (
+            <li key={warning} className="flex items-start gap-2">
+              <IconAlertTriangle size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
+              {warning}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {state === 'failed' ? (
         <p role="alert" className="text-sm text-danger">
