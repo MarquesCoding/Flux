@@ -7,6 +7,13 @@ type MoodBackgroundProps = {
    */
   hasGrid?: boolean
   /**
+   * Whether the light drifts rather than sitting still.
+   *
+   * For screens somebody is waiting on — signing in, choosing who they are —
+   * where a painted background reads as a page that has stopped.
+   */
+  isDrifting?: boolean
+  /**
    * The colour the page takes its light from, as any CSS colour.
    *
    * Left out means the accent, so a library with no artwork still looks

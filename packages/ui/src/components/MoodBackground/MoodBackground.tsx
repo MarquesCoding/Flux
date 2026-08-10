@@ -25,7 +25,7 @@ type MoodStyle = CSSProperties & { '--color-mood'?: string }
  * every time the hero moves on. Two stacked layers, the new one fading in over
  * the old, is the only way to actually dissolve between them.
  */
-const MoodBackground = ({ color, hasGrid = false }: MoodBackgroundProps) => {
+const MoodBackground = ({ color, hasGrid = false, isDrifting = false }: MoodBackgroundProps) => {
   const prefersReducedMotion = useReducedMotion()
   const shown = color === null || color === undefined || color === '' ? null : color
   const style: MoodStyle = shown === null ? {} : { '--color-mood': shown }
@@ -44,7 +44,27 @@ const MoodBackground = ({ color, hasGrid = false }: MoodBackgroundProps) => {
           transition={{ duration: prefersReducedMotion === true ? 0 : 0.9, ease: 'easeInOut' }}
           className="absolute inset-0"
         >
-          <div style={style} className={hasGrid ? 'flux-mood flux-mood--grid' : 'flux-mood'} />
+          <div
+            style={style}
+            className={[
+              'flux-mood',
+              hasGrid ? 'flux-mood--grid' : '',
+              isDrifting ? 'flux-mood--drift' : '',
+            ]
+              .filter((name) => name !== '')
+              .join(' ')}
+          >
+            {/* Slow swells of light passing over the grid, offset from each
+                other so they never line up into a pulse. The grid is drawn by
+                the layer beneath; these only change how brightly it is lit. */}
+            {!hasGrid ? null : (
+              <>
+                <span role="presentation" className="flux-wave flux-wave--one" />
+                <span role="presentation" className="flux-wave flux-wave--two" />
+                <span role="presentation" className="flux-wave flux-wave--three" />
+              </>
+            )}
+          </div>
         </motion.div>
       </AnimatePresence>
     </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { IconArrowLeft, IconArrowRight, IconKey } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import IconButtonModule from '@FluxUI/IconButton'
@@ -9,6 +9,7 @@ import SpinnerModule from '@FluxUI/Spinner'
 import revealModule from '@FluxUI/animations/reveal'
 import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
 import fetchEveryoneModule from '@FluxWeb/profiles/fetchEveryone'
+import readVersionModule from '@FluxWeb/session/readVersion'
 import isPasskeySupportedModule from '@FluxWeb/passkeys/isPasskeySupported'
 import authenticateWithPasskeyModule from '@FluxWeb/passkeys/authenticateWithPasskey'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
@@ -23,6 +24,7 @@ const { revealVariants, revealTransition, staggerVariants, liquidSpring, stillTr
   revealModule
 const { profileInitial, profileAvatarUrl } = ViewerProfileModule
 const { fetchEveryone, signInAsProfile } = fetchEveryoneModule
+const { readVersion } = readVersionModule
 const { isPasskeySupported } = isPasskeySupportedModule
 const { authenticateWithPasskey } = authenticateWithPasskeyModule
 
@@ -70,12 +72,18 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   const [problem, setProblem] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUsingPasskey, setIsUsingPasskey] = useState(false)
+  const [version, setVersion] = useState<string | null>(null)
+  // Whether the wall has been left and come back to. Its arrival animation is
+  // for arriving; replaying it on the way back would fade the portrait in
+  // rather than letting it travel home.
+  const [hasLeftWall, setHasLeftWall] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
   const move = prefersReducedMotion === true ? stillTransition : liquidSpring
 
   useEffect(() => {
     void fetchEveryone().then(setEveryone)
+    void readVersion().then(setVersion)
   }, [])
 
   const submit = async () => {
@@ -123,19 +131,18 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
 
   return (
     <main className="relative flex min-h-svh flex-col items-center justify-center px-6 py-16">
-      <MoodBackground color={chosen?.colour ?? null} hasGrid />
+      <MoodBackground color={chosen?.colour ?? null} hasGrid isDrifting />
 
       {everyone === null ? (
         <Spinner label="Reading who is here" size="lg" />
       ) : (
-        <AnimatePresence mode="wait" initial={false}>
+        <div className="flex w-full flex-col items-center">
           {chosen === null ? (
             <motion.div
               key="wall"
               variants={staggerVariants}
-              initial="hidden"
+              initial={hasLeftWall ? false : 'hidden'}
               animate="shown"
-              exit="gone"
               className="flex w-full flex-col items-center gap-12"
             >
               <motion.h1
@@ -158,6 +165,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                       layoutId={`profile-${profile.id}`}
                       transition={move}
                       onClick={() => {
+                        setHasLeftWall(true)
                         setChosen(profile)
                         setProblem(null)
                       }}
@@ -187,16 +195,10 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
               )}
             </motion.div>
           ) : (
-            <motion.div
-              key="password"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: prefersReducedMotion === true ? 0.1 : 0.25 }}
-              className="flex w-full max-w-sm flex-col items-center gap-6"
-            >
-              {/* The same portrait, moved rather than redrawn: it is the same
-                  person on both screens and the animation says so. */}
+            <div key="password" className="flex w-full max-w-sm flex-col items-center gap-6">
+              {/* Neither side fades this: it is the same portrait moved, and
+                  a shared layout animation only reads as one object travelling
+                  if nothing is changing its opacity underneath. */}
               <motion.span layoutId={`profile-${chosen.id}`} transition={move}>
                 <Portrait profile={chosen} isLarge />
               </motion.span>
@@ -276,18 +278,18 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                   <IconArrowLeft size={18} aria-hidden />
                 </IconButton>
               </motion.div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </div>
       )}
 
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
-        className="absolute bottom-8 text-xs uppercase tracking-[0.3em] text-text-muted/60"
+        className="absolute bottom-8 text-xs tracking-[0.2em] text-text-muted/60"
       >
-        {name}
+        © {name} · {version ?? '…'}
       </motion.p>
     </main>
   )
