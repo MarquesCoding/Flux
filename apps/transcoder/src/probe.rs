@@ -114,7 +114,7 @@ fn is_forced(stream: &FfprobeStream) -> bool {
         .is_some_and(|forced| *forced == 1)
 }
 
-fn to_media_probe(output: &FfprobeOutput) -> MediaProbe {
+fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
     let format = output.format.as_ref();
 
     let video = output
@@ -166,8 +166,9 @@ fn to_media_probe(output: &FfprobeOutput) -> MediaProbe {
         .collect();
 
     MediaProbe {
-        container: Container::from_format_name(
+        container: Container::detect(
             format.map(|f| f.format_name.as_str()).unwrap_or_default(),
+            path,
         ),
         duration_seconds: format
             .and_then(|f| f.duration.as_ref())
@@ -183,16 +184,18 @@ fn to_media_probe(output: &FfprobeOutput) -> MediaProbe {
 /// Parses ffprobe JSON into a `MediaProbe`.
 ///
 /// Kept separate from process spawning so that parsing is testable against
-/// captured output without touching the filesystem.
+/// captured output without touching the filesystem. The path is read for its
+/// extension alone, because one demuxer serves the whole ISO base media family
+/// and its name cannot say which member a file is.
 ///
 /// # Errors
 ///
 /// Returns [`ProbeError::Parse`] when the JSON does not match ffprobe's
 /// documented output.
-pub fn parse_ffprobe_output(json: &str) -> Result<MediaProbe, ProbeError> {
+pub fn parse_ffprobe_output(json: &str, path: &Path) -> Result<MediaProbe, ProbeError> {
     let output: FfprobeOutput = serde_json::from_str(json)?;
 
-    Ok(to_media_probe(&output))
+    Ok(to_media_probe(&output, path))
 }
 
 /// Probes a media file.
@@ -226,13 +229,14 @@ pub async fn probe_media(ffprobe: &str, path: &Path) -> Result<MediaProbe, Probe
         });
     }
 
-    parse_ffprobe_output(&String::from_utf8_lossy(&output.stdout))
+    parse_ffprobe_output(&String::from_utf8_lossy(&output.stdout), path)
 }
 
 #[cfg(test)]
 mod tests {
     use super::parse_ffprobe_output;
     use crate::media::{Container, VideoRange};
+    use std::path::Path;
 
     const HDR10_JSON: &str = r#"{
         "streams": [
@@ -246,7 +250,7 @@ mod tests {
 
     #[test]
     fn reads_container_duration_and_bitrate() {
-        let probe = parse_ffprobe_output(HDR10_JSON).expect("parses");
+        let probe = parse_ffprobe_output(HDR10_JSON, Path::new("/media/film.mkv")).expect("parses");
 
         assert_eq!(probe.container, Container::Mkv);
         assert!((probe.duration_seconds - 7200.5).abs() < f64::EPSILON);
@@ -255,7 +259,7 @@ mod tests {
 
     #[test]
     fn detects_hdr10_from_the_transfer_curve() {
-        let probe = parse_ffprobe_output(HDR10_JSON).expect("parses");
+        let probe = parse_ffprobe_output(HDR10_JSON, Path::new("/media/film.mkv")).expect("parses");
         let video = probe.video.expect("has video");
 
         assert_eq!(video.range, VideoRange::Hdr10);
@@ -264,7 +268,7 @@ mod tests {
 
     #[test]
     fn detects_atmos_from_the_audio_profile() {
-        let probe = parse_ffprobe_output(HDR10_JSON).expect("parses");
+        let probe = parse_ffprobe_output(HDR10_JSON, Path::new("/media/film.mkv")).expect("parses");
 
         assert!(probe.audio_streams[0].is_atmos);
         assert_eq!(probe.audio_streams[0].language.as_deref(), Some("eng"));
@@ -277,7 +281,7 @@ mod tests {
             "side_data_list": [{"side_data_type": "DOVI configuration record"}]}],
             "format": {"format_name": "matroska"}}"#;
 
-        let probe = parse_ffprobe_output(json).expect("parses");
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
 
         assert_eq!(
             probe.video.expect("has video").range,
@@ -292,7 +296,7 @@ mod tests {
             "side_data_list": [{"side_data_type": "HDR Dynamic Metadata SMPTE2094-40"}]}],
             "format": {"format_name": "matroska"}}"#;
 
-        let probe = parse_ffprobe_output(json).expect("parses");
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
 
         assert_eq!(probe.video.expect("has video").range, VideoRange::Hdr10Plus);
     }
@@ -302,7 +306,7 @@ mod tests {
         let json = r#"{"streams": [{"index": 0, "codec_type": "video", "codec_name": "hevc",
             "color_transfer": "arib-std-b67"}], "format": {"format_name": "matroska"}}"#;
 
-        let probe = parse_ffprobe_output(json).expect("parses");
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
 
         assert_eq!(probe.video.expect("has video").range, VideoRange::Hlg);
     }
@@ -312,7 +316,7 @@ mod tests {
         let json = r#"{"streams": [{"index": 0, "codec_type": "video", "codec_name": "h264"}],
             "format": {"format_name": "mov,mp4"}}"#;
 
-        let probe = parse_ffprobe_output(json).expect("parses");
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
 
         assert_eq!(probe.video.expect("has video").range, VideoRange::Sdr);
     }
@@ -325,7 +329,7 @@ mod tests {
             {"index": 3, "codec_type": "subtitle", "codec_name": "subrip"}],
             "format": {"format_name": "matroska"}}"#;
 
-        let probe = parse_ffprobe_output(json).expect("parses");
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
 
         assert_eq!(probe.subtitle_streams[0].format, "pgs");
         assert!(probe.subtitle_streams[0].is_image_based);
@@ -338,7 +342,7 @@ mod tests {
         let json = r#"{"streams": [{"index": 1, "codec_type": "audio", "codec_name": "aac",
             "channels": 2, "tags": {"language": "und"}}], "format": {"format_name": "mov,mp4"}}"#;
 
-        let probe = parse_ffprobe_output(json).expect("parses");
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
 
         assert_eq!(probe.audio_streams[0].language, None);
     }
@@ -348,7 +352,7 @@ mod tests {
         let json = r#"{"streams": [{"index": 0, "codec_type": "audio", "codec_name": "flac",
             "channels": 2}], "format": {"format_name": "matroska"}}"#;
 
-        let probe = parse_ffprobe_output(json).expect("parses");
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
 
         assert!(probe.video.is_none());
         assert_eq!(probe.audio_streams.len(), 1);
@@ -356,6 +360,6 @@ mod tests {
 
     #[test]
     fn rejects_output_that_is_not_json() {
-        assert!(parse_ffprobe_output("not json").is_err());
+        assert!(parse_ffprobe_output("not json", Path::new("/media/film.mkv")).is_err());
     }
 }

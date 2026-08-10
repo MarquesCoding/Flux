@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
 
 /// The dynamic range of a video stream.
@@ -38,21 +40,53 @@ impl Container {
     /// ffprobe reports a comma separated list of every format the demuxer
     /// matched, so the first recognised entry wins rather than the first
     /// entry.
+    ///
+    /// One demuxer reads the whole ISO base media family and reports the same
+    /// list — `mov,mp4,m4a,3gp,3g2,mj2` — for every file it opens, so nothing
+    /// in that list says which of them a file actually is. Use
+    /// [`Container::detect`] where the path is known; this treats the family
+    /// as MP4, which is what almost every such file is and what clients
+    /// declare support for.
     #[must_use]
     pub fn from_format_name(format_name: &str) -> Self {
         for name in format_name.split(',') {
             match name.trim() {
-                "mp4" | "m4a" | "3gp" | "mj2" => return Self::Mp4,
+                "mov" | "mp4" | "m4a" | "3gp" | "mj2" => return Self::Mp4,
                 "matroska" => return Self::Mkv,
                 "webm" => return Self::Webm,
                 "mpegts" => return Self::Ts,
-                "mov" => return Self::Mov,
                 "avi" => return Self::Avi,
                 _ => {}
             }
         }
 
         Self::Unknown
+    }
+
+    /// Maps an ffprobe `format_name` list onto a container, using the path to
+    /// tell members of the ISO base media family apart.
+    ///
+    /// Reporting every MP4 as QuickTime is not cosmetic: a client declares
+    /// direct play for `mp4` and not for `mov`, so the whole library would be
+    /// remuxed for no reason.
+    #[must_use]
+    pub fn detect(format_name: &str, path: &Path) -> Self {
+        let container = Self::from_format_name(format_name);
+
+        if container != Self::Mp4 {
+            return container;
+        }
+
+        let extension = path
+            .extension()
+            .map(|value| value.to_string_lossy().to_lowercase())
+            .unwrap_or_default();
+
+        if extension == "mov" {
+            Self::Mov
+        } else {
+            Self::Mp4
+        }
     }
 }
 
@@ -173,6 +207,8 @@ pub fn video_codec(codec_name: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::{audio_codec, is_image_subtitle, subtitle_format, video_codec, Container};
 
     #[test]
@@ -184,7 +220,39 @@ mod tests {
     fn maps_the_mp4_family() {
         assert_eq!(
             Container::from_format_name("mov,mp4,m4a,3gp,3g2,mj2"),
+            Container::Mp4
+        );
+    }
+
+    #[test]
+    fn tells_quicktime_from_mp4_by_the_path() {
+        assert_eq!(
+            Container::detect("mov,mp4,m4a,3gp,3g2,mj2", Path::new("/media/film.mov")),
             Container::Mov
+        );
+    }
+
+    #[test]
+    fn reads_the_shared_demuxer_name_as_mp4_for_an_mp4_file() {
+        assert_eq!(
+            Container::detect("mov,mp4,m4a,3gp,3g2,mj2", Path::new("/media/film.mp4")),
+            Container::Mp4
+        );
+    }
+
+    #[test]
+    fn falls_back_to_mp4_when_the_file_has_no_extension() {
+        assert_eq!(
+            Container::detect("mov,mp4,m4a,3gp,3g2,mj2", Path::new("/media/film")),
+            Container::Mp4
+        );
+    }
+
+    #[test]
+    fn the_path_never_overrides_a_container_the_demuxer_named_exactly() {
+        assert_eq!(
+            Container::detect("matroska,webm", Path::new("/media/film.mov")),
+            Container::Mkv
         );
     }
 
