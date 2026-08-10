@@ -116,6 +116,9 @@ importers:
       '@flux/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@simplewebauthn/browser':
+        specifier: ^13.3.0
+        version: 13.3.0
       '@tabler/icons-react':
         specifier: ^3.26.0
         version: 3.46.0(react@19.2.8)
