@@ -9,6 +9,7 @@
       "@FluxUI/Button": ["./packages/ui/src/components/Button/Button.tsx"],
       "@FluxUI/Checkbox": ["./packages/ui/src/components/Checkbox/Checkbox.tsx"],
       "@FluxUI/Dialog": ["./packages/ui/src/components/Dialog/Dialog.tsx"],
+      "@FluxUI/DotField": ["./packages/ui/src/components/DotField/DotField.tsx"],
       "@FluxUI/Dock": ["./packages/ui/src/components/Dock/Dock.tsx"],
       "@FluxUI/Dock.types": ["./packages/ui/src/components/Dock/Dock.types.ts"],
       "@FluxUI/FilePicker": ["./packages/ui/src/components/FilePicker/FilePicker.tsx"],

@@ -181,39 +181,17 @@ body {
  * becomes the background, and the pages that are mostly text and numbers read
  * better on something plain.
  */
-.flux-mood--grid::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(currentcolor 1px, transparent 1px);
-  background-size: 22px 22px;
-  background-position: -1px -1px;
-  color: color-mix(in oklab, var(--color-text) 14%, transparent);
-  mask-image: linear-gradient(180deg, black 0%, transparent 85%);
-  animation: flux-grid-breathe 11s ease-in-out infinite alternate;
-}
-
 /*
- * The grid brightening and dimming as a whole.
+ * A wave passing through the dots.
  *
- * A property of the light rather than a thing moving across it: anything with
- * an edge reads as an object somebody put there, which is not what a texture
- * should ever look like.
+ * The same grid drawn a second time, brighter, and shown only through a soft
+ * diagonal band that sweeps across. What travels is the mask, so nothing with
+ * an edge is ever drawn — the dots themselves light up as it reaches them and
+ * fade as it goes, which is what a wave through a grid actually looks like.
+ *
+ * Masked by the page fade as well, so the wave dies out down the screen along
+ * with the grid it belongs to.
  */
-@keyframes flux-grid-breathe {
-  0% {
-    opacity: 0.55;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .flux-mood--grid::after {
-    animation: none;
-  }
-}
 
 /*
  * Glass.
@@ -291,131 +269,74 @@ body {
 }
 
 /*
- * A grid of dots over the wash.
+ * A field of dots, each with its own timing.
  *
- * Gives the gradient something to be a gradient across: a plain wash reads as
- * a rendering artefact, where the same wash behind a regular grid reads as a
- * surface with light falling on it. Fades out down the page so it never
- * competes with what is written over it.
- *
- * Home only. A texture that appears everywhere stops being a texture and
- * becomes the background, and the pages that are mostly text and numbers read
- * better on something plain.
+ * The grid is real elements rather than a repeating background, because a
+ * background can only be moved or faded as a whole. Every dot runs the same
+ * animation and differs only in when it starts, so a wave crosses the field
+ * without anything being computed per frame — the delay is the wave.
  */
-.flux-mood--grid::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(currentcolor 1px, transparent 1px);
-  background-size: 22px 22px;
-  background-position: -1px -1px;
-  color: color-mix(in oklab, var(--color-text) 14%, transparent);
+.flux-dots {
+  display: grid;
+  overflow: hidden;
   mask-image: linear-gradient(180deg, black 0%, transparent 85%);
-  animation: flux-grid-breathe 11s ease-in-out infinite alternate;
+}
+
+.flux-dot {
+  width: 2px;
+  height: 2px;
+  align-self: center;
+  justify-self: center;
+  border-radius: 50%;
+  background: currentcolor;
+  color: var(--color-text);
+  opacity: 0.08;
 }
 
 /*
- * The grid brightening and dimming as a whole.
- *
- * A property of the light rather than a thing moving across it: anything with
- * an edge reads as an object somebody put there, which is not what a texture
- * should ever look like.
+ * One animation per source, each entering at its own delay. A dot lit by two
+ * ripples at once is simply lit twice, which is what a real interference
+ * looks like.
  */
-@keyframes flux-grid-breathe {
-  0% {
-    opacity: 0.55;
-  }
+.flux-dot--1 {
+  animation: flux-dot-lift var(--flux-dot-seconds, 7s) ease-out infinite;
+  animation-delay: var(--dot-delay-0, 0s);
+}
+
+.flux-dot--2 {
+  animation:
+    flux-dot-lift var(--flux-dot-seconds, 7s) ease-out infinite,
+    flux-dot-lift var(--flux-dot-seconds, 7s) ease-out infinite;
+  animation-delay: var(--dot-delay-0, 0s), var(--dot-delay-1, 0s);
+}
+
+.flux-dot--3 {
+  animation:
+    flux-dot-lift var(--flux-dot-seconds, 7s) ease-out infinite,
+    flux-dot-lift var(--flux-dot-seconds, 7s) ease-out infinite,
+    flux-dot-lift var(--flux-dot-seconds, 7s) ease-out infinite;
+  animation-delay: var(--dot-delay-0, 0s), var(--dot-delay-1, 0s), var(--dot-delay-2, 0s);
+}
+
+/*
+ * Most of the cycle is spent dark. A dot that is lit for half of every pass
+ * reads as a flashing grid rather than as a wave going by.
+ */
+@keyframes flux-dot-lift {
+  0%,
+  88%,
   100% {
-    opacity: 1;
+    opacity: 0.08;
+    transform: scale(1);
+  }
+  94% {
+    opacity: 0.85;
+    transform: scale(1.9);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flux-mood--grid::after {
+  .flux-dot {
     animation: none;
   }
 }
-
-/*
- * Glass.
- *
- * The blur alone is not what sells it. What does is the bright hairline along
- * the top edge, where light catches the lip of a real pane, and the darker one
- * beneath it.
- */
-.flux-glass {
-  background: var(--glass-tint);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid var(--glass-edge);
-  box-shadow:
-    inset 0 1px 0 0 color-mix(in oklab, white 28%, transparent),
-    inset 0 -1px 0 0 rgb(0 0 0 / 0.25),
-    var(--glass-shadow);
-}
-
-/*
- * Gloss.
- *
- * A control lit from above: brighter at the top, a highlight along its lip,
- * and a shadow underneath so it sits on the surface rather than in it.
- */
-.flux-gloss {
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in oklab, white 24%, transparent),
-    transparent 55%
-  );
-  box-shadow:
-    inset 0 1px 0 0 color-mix(in oklab, white 45%, transparent),
-    0 8px 20px -8px rgb(0 0 0 / 0.55);
-}
-
-/*
- * Rails scroll horizontally and their scrollbars are noise: the cards
- * themselves say which way to go, and controls sit at either end.
- */
-.flux-rail {
-  scrollbar-width: none;
-}
-
-.flux-rail::-webkit-scrollbar {
-  display: none;
-}
-
-/*
- * Nothing draws a focus ring. Asked for explicitly: the rings read as browser
- * chrome over a design that signals focus through its own hover and selection
- * states instead.
- */
-:focus,
-:focus-visible {
-  outline: none;
-}
-
-/*
- * Fields a browser cannot repaint.
- *
- * Chrome fills a remembered field with its own pale background and dark text,
- * which turns a dark form white the moment a password manager touches it —
- * and the colour is not something a class can override. The inset shadow is
- * the only thing that covers it, and the text colour has to be set through
- * the fill property rather than through `color`.
- */
-.flux-field:-webkit-autofill,
-.flux-field:-webkit-autofill:hover,
-.flux-field:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--color-text);
-  -webkit-box-shadow: 0 0 0 1000px color-mix(in oklab, var(--color-surface) 92%, white) inset;
-  caret-color: var(--color-text);
-  transition: background-color 5000s ease-in-out 0s;
-}
-
-/*
- * Light that will not sit still.
- *
- * Two soft shapes drifting across each other, which is what makes a screen
- * somebody is waiting on feel alive rather than painted. Transforms only, so
- * the whole thing runs on the compositor and costs nothing to animate; a
- * gradient whose stops move would repaint every frame.
- */

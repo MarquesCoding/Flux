@@ -1,6 +1,9 @@
 import type { CSSProperties } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import DotFieldModule from '@FluxUI/DotField'
 import type { MoodBackgroundProps } from './MoodBackground.types'
+
+const { DotField } = DotFieldModule
 
 /**
  * Inline styles that may carry the custom property the wash reads.
@@ -53,7 +56,12 @@ const MoodBackground = ({ color, hasGrid = false, isDrifting = false }: MoodBack
             ]
               .filter((name) => name !== '')
               .join(' ')}
-          />
+          >
+            {/* The dots are drawn as a field of elements rather than as a
+                repeating background, so a ripple can cross them one at a time.
+                Only where the grid belongs. */}
+            {!hasGrid ? null : <DotField />}
+          </div>
         </motion.div>
       </AnimatePresence>
     </div>

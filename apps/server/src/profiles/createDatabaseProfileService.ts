@@ -161,36 +161,41 @@ const createDatabaseProfileService = (
     return rows.map(toProfile)
   }
 
+  /**
+   * The profile an account uses, made if it has none.
+   */
+  const ensure = async (userId: string, name: string): Promise<ViewerProfile> => {
+    const existing = await listFor(userId)
+    const first = existing[0]
+
+    if (first !== undefined) {
+      return first
+    }
+
+    const created = {
+      id: randomUUID(),
+      userId,
+      name: name.trim() === '' ? 'Me' : name.trim(),
+      colour: DEFAULT_COLOUR,
+    }
+
+    await db.insert(viewerProfile).values(created)
+
+    // Only what the contract describes. The owning account is Flux's
+    // business, not the browser's.
+    return {
+      id: created.id,
+      name: created.name,
+      colour: readColour(created.colour),
+      avatar: { kind: 'initial' },
+      createdAt: new Date().toISOString(),
+    }
+  }
+
   return {
     list: listFor,
 
-    ensureDefault: async (userId, name) => {
-      const existing = await listFor(userId)
-      const first = existing[0]
-
-      if (first !== undefined) {
-        return first
-      }
-
-      const created = {
-        id: randomUUID(),
-        userId,
-        name: name.trim() === '' ? 'Me' : name.trim(),
-        colour: DEFAULT_COLOUR,
-      }
-
-      await db.insert(viewerProfile).values(created)
-
-      // Only what the contract describes. The owning account is Flux's
-      // business, not the browser's.
-      return {
-        id: created.id,
-        name: created.name,
-        colour: readColour(created.colour),
-        avatar: { kind: 'initial' },
-        createdAt: new Date().toISOString(),
-      }
-    },
+    ensureDefault: ensure,
 
     create: async (userId, request) => {
       const existing = await listFor(userId)
@@ -263,23 +268,45 @@ const createDatabaseProfileService = (
     },
 
     listEveryone: async () => {
-      // One face per account, the oldest profile standing for it. An account
-      // that has never been looked at has no profile row yet, so its name is
-      // taken from the account itself and a profile is made the first time
-      // somebody actually signs in as them.
+      // Every account, whether or not it has been looked at. A profile is made
+      // for one that has none, because the wall is the only way in: an account
+      // that is invisible until it signs in can never sign in.
       const rows = await db
-        .select({ ...COLUMNS, userId: viewerProfile.userId })
-        .from(viewerProfile)
-        .orderBy(asc(viewerProfile.createdAt))
+        .select({
+          userId: user.id,
+          userName: user.name,
+          createdAt: user.createdAt,
+          profile: COLUMNS,
+        })
+        .from(user)
+        .leftJoin(viewerProfile, eq(viewerProfile.userId, user.id))
+        .orderBy(asc(user.createdAt))
 
       const seen = new Set<string>()
       const everyone: ViewerProfile[] = []
 
       for (const row of rows) {
-        if (!seen.has(row.userId)) {
-          seen.add(row.userId)
-          everyone.push(toProfile(row))
+        if (seen.has(row.userId)) {
+          continue
         }
+
+        seen.add(row.userId)
+
+        const found = row.profile
+
+        everyone.push(
+          found === null
+            ? await ensure(row.userId, row.userName)
+            : toProfile({
+                id: found.id,
+                name: found.name,
+                colour: found.colour,
+                avatarStyle: found.avatarStyle,
+                avatarSeed: found.avatarSeed,
+                photoPath: found.photoPath,
+                createdAt: found.createdAt,
+              }),
+        )
       }
 
       return everyone
