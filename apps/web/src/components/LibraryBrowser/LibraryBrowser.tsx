@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { IconRefresh, IconRefreshAlert, IconSearch } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
-import MediaCardModule from '@FluxUI/MediaCard'
+import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
 import SpinnerModule from '@FluxUI/Spinner'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import RailModule from '@FluxUI/Rail'
@@ -17,7 +17,7 @@ import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
 
 const { Button } = ButtonModule
-const { MediaCard } = MediaCardModule
+const { RailCard } = RailCardModule
 const { Hero } = HeroModule
 const { Rail } = RailModule
 const { groupIntoRails } = groupIntoRailsModule
@@ -299,10 +299,9 @@ const LibraryBrowser = ({
               <Rail key={rail.id} title={rail.title} className="px-0">
                 {rail.items.map((media) => (
                   <li key={media.id} className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80">
-                    <MediaCard
-                      title={media.title}
+                    <RailCard
+                      media={media}
                       subtitle={describeMedia(media)}
-                      shape="wide"
                       {...(progress.has(media.id)
                         ? {
                             watchedFraction: watchedFraction(
@@ -316,15 +315,8 @@ const LibraryBrowser = ({
                             ),
                           }
                         : {})}
-                      {...(media.hasBackdrop
-                        ? { imageUrl: `/api/media/${media.id}/image/backdrop` }
-                        : media.hasPoster
-                          ? { imageUrl: `/api/media/${media.id}/image/poster` }
-                          : {})}
-                      onSelect={() => {
-                        onPlay(media)
-                      }}
-                      className="w-full"
+                      onPlay={onPlay}
+                      onInspect={onPlay}
                     />
                   </li>
                 ))}

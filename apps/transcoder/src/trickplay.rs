@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::process::Command;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Semaphore};
 
 /// Written only when every sheet is on disk.
 ///
@@ -180,11 +180,33 @@ pub fn thumbnail_count(duration_seconds: f64, interval_seconds: u32) -> u32 {
     }
 }
 
+/// How many threads a thumbnail render may use.
+///
+/// Deliberately a fraction of the machine. Rendering thumbnails is background
+/// work that nobody is waiting for, and a decode allowed to take every core
+/// will starve the transcode of whatever somebody is actually watching — which
+/// is a stalled film in exchange for seek previews of a different one.
+const RENDER_THREADS: u32 = 2;
+
+/// How many files may be rendered at once.
+///
+/// One. A library scan hands over every file it imported, and three feature
+/// films decoding in parallel is enough to make playback stutter on any
+/// machine.
+static RENDER_PERMITS: Semaphore = Semaphore::const_new(1);
+
 /// The ffmpeg arguments that render the sheets.
 ///
 /// One decode pass drives both the sampling and the tiling, so the file is
 /// read once. `fps` before `scale` means the expensive resize only runs on the
 /// frames that survive.
+///
+/// Only keyframes are decoded. A seek preview is a rough idea of where the
+/// timeline is about to land, and the nearest keyframe answers that as well as
+/// the exact frame does — at a fraction of the cost, because the decoder skips
+/// everything between them. Measured on a ninety minute film: fifteen seconds
+/// against several minutes. The `fps` filter still emits one image per
+/// interval, so the index and the sheets line up as before.
 #[must_use]
 pub fn sheet_arguments(
     request: &TrickplayRequest,
@@ -205,6 +227,10 @@ pub fn sheet_arguments(
         "-loglevel".to_owned(),
         "error".to_owned(),
         "-nostdin".to_owned(),
+        "-threads".to_owned(),
+        RENDER_THREADS.to_string(),
+        "-skip_frame".to_owned(),
+        "nokey".to_owned(),
         "-i".to_owned(),
         request.input_path.clone(),
         "-vf".to_owned(),
@@ -417,6 +443,17 @@ pub async fn generate(
         return Ok(finish(list_sheets(&directory).await));
     }
 
+    // Waits its turn behind any other file being rendered. Checked again
+    // afterwards, because the file may well have been rendered by whoever was
+    // holding the permit.
+    let permit = RENDER_PERMITS.acquire().await;
+
+    if is_already_complete(&directory).await {
+        drop(permit);
+
+        return Ok(finish(list_sheets(&directory).await));
+    }
+
     tokio::fs::create_dir_all(&directory)
         .await
         .map_err(TrickplayError::Directory)?;
@@ -445,6 +482,8 @@ pub async fn generate(
     tokio::fs::write(directory.join(COMPLETE_MARKER), b"")
         .await
         .map_err(TrickplayError::Index)?;
+
+    drop(permit);
 
     Ok(finish(sheets))
 }
