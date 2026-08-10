@@ -1,7 +1,10 @@
 import WatchProgressModule from '@FluxContracts/schemas/WatchProgress'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 
+import currentProfileModule from '@FluxWeb/profiles/currentProfile'
+
 const { WatchProgressListSchema } = WatchProgressModule
+const { profileHeaders } = currentProfileModule
 
 /**
  * How often a position is sent while something is playing.
@@ -20,7 +23,9 @@ const REPORT_EVERY_MILLISECONDS = 10_000
  */
 const fetchWatchProgress = async (): Promise<WatchProgress[]> => {
   try {
-    const response = await fetch('/api/progress', { headers: { accept: 'application/json' } })
+    const response = await fetch('/api/progress', {
+      headers: { accept: 'application/json', ...profileHeaders() },
+    })
 
     if (!response.ok) {
       return []
@@ -45,7 +50,7 @@ const reportWatchProgress = async (
   try {
     await fetch(`/api/media/${mediaId}/progress`, {
       method: 'PUT',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...profileHeaders() },
       body: JSON.stringify({ isFinished: false, ...report }),
     })
   } catch {

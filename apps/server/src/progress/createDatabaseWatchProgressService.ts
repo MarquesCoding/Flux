@@ -16,15 +16,15 @@ const LIMIT = 60
 /**
  * Watch progress held in Postgres.
  *
- * One row per viewer per item, replaced in place rather than appended to: this
+ * One row per person per item, replaced in place rather than appended to: this
  * records where someone is, not everywhere they have been.
  */
 const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressService => ({
-  list: async (userId) => {
+  list: async (profileId) => {
     const rows = await db
       .select()
       .from(watchProgress)
-      .where(eq(watchProgress.userId, userId))
+      .where(eq(watchProgress.profileId, profileId))
       .orderBy(desc(watchProgress.updatedAt))
       .limit(LIMIT)
 
@@ -37,12 +37,12 @@ const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressServ
     }))
   },
 
-  record: async (userId, report) => {
+  record: async (profileId, report) => {
     await db
       .insert(watchProgress)
       .values({
         id: randomUUID(),
-        userId,
+        profileId,
         mediaItemId: report.mediaId,
         positionSeconds: report.positionSeconds,
         durationSeconds: report.durationSeconds,
@@ -50,7 +50,7 @@ const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressServ
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
-        target: [watchProgress.userId, watchProgress.mediaItemId],
+        target: [watchProgress.profileId, watchProgress.mediaItemId],
         set: {
           positionSeconds: report.positionSeconds,
           durationSeconds: report.durationSeconds,
@@ -60,10 +60,10 @@ const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressServ
       })
   },
 
-  forget: async (userId, mediaId) => {
+  forget: async (profileId, mediaId) => {
     await db
       .delete(watchProgress)
-      .where(and(eq(watchProgress.userId, userId), eq(watchProgress.mediaItemId, mediaId)))
+      .where(and(eq(watchProgress.profileId, profileId), eq(watchProgress.mediaItemId, mediaId)))
   },
 })
 

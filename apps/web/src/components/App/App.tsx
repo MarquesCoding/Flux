@@ -10,6 +10,9 @@ import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/Media
 import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
 import SplashScreenModule from '@FluxUI/SplashScreen'
 import AdminAreaModule from '@FluxWeb/components/AdminArea/AdminArea'
+import ProfilePickerModule from '@FluxWeb/components/ProfilePicker/ProfilePicker'
+import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
+import currentProfileModule from '@FluxWeb/profiles/currentProfile'
 import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types'
 import fetchSessionModule from '@FluxWeb/session/fetchSession'
 import signOutModule from '@FluxWeb/session/signOut'
@@ -17,6 +20,7 @@ import SetupModule from '@FluxContracts/schemas/Setup'
 import type { SetupStatus } from '@FluxContracts/schemas/Setup'
 import type { SessionUser } from '@FluxContracts/schemas/Session'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import type { AppProps } from './App.types'
 
 const { Button } = ButtonModule
@@ -30,6 +34,9 @@ const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
 const { SplashScreen } = SplashScreenModule
 const { AdminArea } = AdminAreaModule
+const { ProfilePicker } = ProfilePickerModule
+const { fetchProfiles } = fetchProfilesModule
+const { readCurrentProfile, writeCurrentProfile } = currentProfileModule
 
 /**
  * How long the opening title stays up.
@@ -58,6 +65,12 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [search, setSearch] = useState('')
   const [featured, setFeatured] = useState<MediaSummary | null>(null)
   const [isTitleOver, setIsTitleOver] = useState(false)
+  const [profiles, setProfiles] = useState<ViewerProfile[] | null>(null)
+  const [watchingId, setWatchingId] = useState<string | null>(readCurrentProfile())
+
+  const readProfiles = useCallback(async () => {
+    setProfiles(await fetchProfiles())
+  }, [])
 
   // The opening title is held for its own length rather than for however long
   // the server happens to take. A title card that flashes for 200ms on a fast
@@ -96,6 +109,14 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     void refresh()
   }, [refresh])
 
+  // Read once there is somebody to read them for. Asking before sign-in would
+  // be a request that can only ever answer with nobody.
+  useEffect(() => {
+    if (user !== null) {
+      void readProfiles()
+    }
+  }, [user, readProfiles])
+
   if (loadState === 'loading' || !isTitleOver) {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
   }
@@ -128,6 +149,29 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         onSignedIn={() => {
           void refresh()
         }}
+      />
+    )
+  }
+
+  // Between signing in and the library: who is watching. Asked once per device
+  // and remembered, because a household shares an account and does not share a
+  // continue watching row.
+  if (profiles === null) {
+    return <SplashScreen name={initialTitle} label="Loading profiles" />
+  }
+
+  if (watchingId === null || !profiles.some((profile) => profile.id === watchingId)) {
+    return (
+      <ProfilePicker
+        profiles={profiles}
+        onChoose={(profile) => {
+          writeCurrentProfile(profile.id)
+          setWatchingId(profile.id)
+        }}
+        onChanged={() => {
+          void readProfiles()
+        }}
+        isEditable
       />
     )
   }

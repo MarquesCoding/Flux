@@ -16,9 +16,12 @@ import ImageRouteModule from '@FluxServer/routes/ImageRoute'
 import SegmentRouteModule from '@FluxServer/routes/SegmentRoute'
 import ProgressRouteModule from '@FluxServer/routes/ProgressRoute'
 import AdminRouteModule from '@FluxServer/routes/AdminRoute'
+import ProfileRouteModule from '@FluxServer/routes/ProfileRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+import type { ProfileService } from '@FluxServer/profiles/ProfileService'
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 
 const { suggestTrustedOrigins } = suggestTrustedOriginsModule
 const { healthRoute } = HealthRouteModule
@@ -47,6 +50,18 @@ const { mediaImageRoute } = ImageRouteModule
 const { listSegmentsRoute } = SegmentRouteModule
 const { listProgressRoute, recordProgressRoute, forgetProgressRoute } = ProgressRouteModule
 const { adminOverviewRoute, adminSettingsRoute } = AdminRouteModule
+const {
+  listProfilesRoute,
+  createProfileRoute,
+  updateProfileRoute,
+  deleteProfileRoute,
+  promoteProfileRoute,
+} = ProfileRouteModule
+
+/**
+ * The header a browser names the watching profile in.
+ */
+const PROFILE_HEADER = 'x-flux-profile'
 
 const SERVER_VERSION = '0.0.0'
 
@@ -60,6 +75,23 @@ type CreateAppOptions = {
   subtitles: SubtitleService
   segments: SegmentService
   progress: WatchProgressService
+  /**
+   * The people using each account.
+   */
+  profiles?: ProfileService
+  /**
+   * Gives a profile an account of its own.
+   *
+   * Passed in rather than done here, because making an account is better-auth's
+   * business and it owns how a password becomes a credential.
+   */
+  promoteProfile?: (request: {
+    profileId: string
+    email: string
+    password: string
+  }) => Promise<
+    { kind: 'promoted'; profile: ViewerProfile } | { kind: 'taken' } | { kind: 'missing' }
+  >
   /**
    * Everyone with an account, for the administration page.
    */
@@ -102,6 +134,8 @@ const createApp = ({
   subtitles,
   segments,
   progress,
+  profiles,
+  promoteProfile,
   listUsers,
   capabilities,
   monitor,
@@ -360,10 +394,31 @@ const createApp = ({
    * know who that is. better-auth owns the session, and asking it is cheaper
    * than Flux keeping a second idea of who is signed in.
    */
-  const readViewerId = async (headers: Headers): Promise<string | null> => {
+  /**
+   * Which person on this account is watching.
+   *
+   * Named by a header the browser sets from whoever was picked. The identifier
+   * is not a secret — it sits in local storage — so it is checked against the
+   * account on every request rather than trusted. An unrecognised one falls
+   * back to the account's default profile rather than failing: somebody whose
+   * profile was removed on another device should carry on watching, not meet
+   * an error.
+   */
+  const readProfileId = async (headers: Headers): Promise<string | null> => {
     const session = await auth.api.getSession({ headers }).catch(() => null)
+    const viewer = session?.user
 
-    return session?.user.id ?? null
+    if (viewer === undefined || profiles === undefined) {
+      return null
+    }
+
+    const named = headers.get(PROFILE_HEADER)
+
+    if (named !== null && (await profiles.belongsTo(viewer.id, named))) {
+      return named
+    }
+
+    return (await profiles.ensureDefault(viewer.id, viewer.name)).id
   }
 
   /**
@@ -377,6 +432,105 @@ const createApp = ({
 
     return session?.user.role === 'admin'
   }
+
+  /**
+   * Who is signed in, for the routes that act on their own account.
+   */
+  const readAccount = async (headers: Headers) => {
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    return session?.user ?? null
+  }
+
+  app.openapi(listProfilesRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null || profiles === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    // Asked for a default first, so an account that has never thought about
+    // profiles still answers with the one it is really using.
+    await profiles.ensureDefault(account.id, account.name)
+
+    return context.json({ profiles: await profiles.list(account.id) }, 200)
+  })
+
+  app.openapi(createProfileRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null || profiles === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    try {
+      const created = await profiles.create(account.id, context.req.valid('json'))
+
+      return context.json(created, 201)
+    } catch (error) {
+      return context.json(
+        { error: error instanceof Error ? error.message : 'That profile could not be added.' },
+        409,
+      )
+    }
+  })
+
+  app.openapi(updateProfileRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null || profiles === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const changed = await profiles.rename(
+      account.id,
+      context.req.valid('param').profileId,
+      context.req.valid('json'),
+    )
+
+    return changed
+      ? context.body(null, 204)
+      : context.json({ error: 'No such profile on this account.' }, 404)
+  })
+
+  app.openapi(deleteProfileRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null || profiles === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const removed = await profiles.remove(account.id, context.req.valid('param').profileId)
+
+    return removed
+      ? context.body(null, 204)
+      : context.json({ error: 'No such profile, or it is the only one left.' }, 404)
+  })
+
+  app.openapi(promoteProfileRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    if (profiles === undefined || promoteProfile === undefined) {
+      return context.json({ error: 'No such profile.' }, 404)
+    }
+
+    const { profileId } = context.req.valid('param')
+    const { email, password } = context.req.valid('json')
+
+    const outcome = await promoteProfile({ profileId, email, password })
+
+    if (outcome.kind === 'taken') {
+      return context.json({ error: 'That address already has an account.' }, 409)
+    }
+
+    if (outcome.kind === 'missing') {
+      return context.json({ error: 'No such profile.' }, 404)
+    }
+
+    return context.json(outcome.profile, 200)
+  })
 
   app.openapi(adminOverviewRoute, async (context) => {
     if (!(await isAdministrator(context.req.raw.headers))) {
@@ -485,19 +639,19 @@ const createApp = ({
   })
 
   app.openapi(listProgressRoute, async (context) => {
-    const viewerId = await readViewerId(context.req.raw.headers)
+    const profileId = await readProfileId(context.req.raw.headers)
 
-    if (viewerId === null) {
+    if (profileId === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401)
     }
 
-    return context.json({ progress: await progress.list(viewerId) }, 200)
+    return context.json({ progress: await progress.list(profileId) }, 200)
   })
 
   app.openapi(recordProgressRoute, async (context) => {
-    const viewerId = await readViewerId(context.req.raw.headers)
+    const profileId = await readProfileId(context.req.raw.headers)
 
-    if (viewerId === null) {
+    if (profileId === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401)
     }
 
@@ -509,19 +663,19 @@ const createApp = ({
 
     const report = context.req.valid('json')
 
-    await progress.record(viewerId, { mediaId, ...report })
+    await progress.record(profileId, { mediaId, ...report })
 
     return context.body(null, 204)
   })
 
   app.openapi(forgetProgressRoute, async (context) => {
-    const viewerId = await readViewerId(context.req.raw.headers)
+    const profileId = await readProfileId(context.req.raw.headers)
 
-    if (viewerId === null) {
+    if (profileId === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401)
     }
 
-    await progress.forget(viewerId, context.req.valid('param').mediaId)
+    await progress.forget(profileId, context.req.valid('param').mediaId)
 
     return context.body(null, 204)
   })

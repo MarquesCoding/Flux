@@ -20,6 +20,8 @@ import createDatabaseSegmentServiceModule from '@FluxServer/segments/createDatab
 import createChapterSegmentProviderModule from '@FluxServer/segments/createChapterSegmentProvider'
 import createFingerprintSegmentProviderModule from '@FluxServer/segments/createFingerprintSegmentProvider'
 import createSidecarSubtitleServiceModule from '@FluxServer/subtitles/createSidecarSubtitleService'
+import createDatabaseProfileServiceModule from '@FluxServer/profiles/createDatabaseProfileService'
+import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
 import createEmbeddedSubtitleServiceModule from '@FluxServer/subtitles/createEmbeddedSubtitleService'
 import createLayeredSubtitleServiceModule from '@FluxServer/subtitles/createLayeredSubtitleService'
 import createPlaybackServiceModule from '@FluxServer/playback/createPlaybackService'
@@ -28,7 +30,7 @@ import createJobQueueModule from '@FluxServer/jobs/createJobQueue'
 const { createApp } = AppModule
 const { createAuth } = AuthModule
 const { createDatabase } = DatabaseModule
-const { user, mediaItem, userProfile } = SchemaModule
+const { user, mediaItem, userProfile, viewerProfile } = SchemaModule
 const { readEnv } = EnvModule
 const { createDatabaseSettingsStore } = createDatabaseSettingsStoreModule
 const { createDatabaseLibraryService } = createDatabaseLibraryServiceModule
@@ -38,6 +40,8 @@ const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
 const { createTranscoderClient } = TranscoderClientModule
 const { createPlaybackService } = createPlaybackServiceModule
 const { createSidecarSubtitleService } = createSidecarSubtitleServiceModule
+const { createDatabaseProfileService } = createDatabaseProfileServiceModule
+const { ViewerProfileSchema } = ViewerProfileModule
 const { createEmbeddedSubtitleService } = createEmbeddedSubtitleServiceModule
 const { createLayeredSubtitleService } = createLayeredSubtitleServiceModule
 const { createImageCache } = createImageCacheModule
@@ -100,6 +104,8 @@ const countUsers = async (): Promise<number> => {
 const promoteToAdmin = async (email: string): Promise<void> => {
   await db.update(user).set({ role: 'admin' }).where(eq(user.email, email))
 }
+
+const profileService = createDatabaseProfileService(db)
 
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL })
 
@@ -278,6 +284,48 @@ const app = createApp({
   subtitles: subtitleService,
   segments: segmentService,
   progress: createDatabaseWatchProgressService(db),
+  profiles: profileService,
+  promoteProfile: async ({ profileId, email, password }) => {
+    const rows = await db
+      .select({
+        id: viewerProfile.id,
+        name: viewerProfile.name,
+        colour: viewerProfile.colour,
+        createdAt: viewerProfile.createdAt,
+      })
+      .from(viewerProfile)
+      .where(eq(viewerProfile.id, profileId))
+      .limit(1)
+
+    const found = rows[0]
+
+    if (found === undefined) {
+      return { kind: 'missing' }
+    }
+
+    // better-auth owns how a password becomes a credential, so the account is
+    // made through it rather than by writing rows. A duplicate address is the
+    // ordinary failure here and reads as a conflict rather than as a fault.
+    const created = await auth.api
+      .signUpEmail({ body: { email, password, name: found.name } })
+      .catch(() => null)
+
+    if (created === null) {
+      return { kind: 'taken' }
+    }
+
+    await profileService.moveTo(profileId, created.user.id)
+
+    return {
+      kind: 'promoted',
+      profile: ViewerProfileSchema.parse({
+        id: found.id,
+        name: found.name,
+        colour: found.colour,
+        createdAt: found.createdAt.toISOString(),
+      }),
+    }
+  },
   listUsers: async () => {
     const rows = await db
       .select({
