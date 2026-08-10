@@ -93,8 +93,14 @@ type SessionSpec = {
 type Transcoder = {
   probe: (path: string) => Promise<MediaProbe>
   startSession: (spec: SessionSpec) => Promise<SessionResponse>
+  readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>
   stopSession: (id: string) => Promise<boolean>
   capabilities: () => Promise<TranscoderCapabilities>
+}
+
+type TranscoderFile = {
+  body: ArrayBuffer
+  contentType: string
 }
 
 type CreateTranscoderClientOptions = {
@@ -143,6 +149,21 @@ const createTranscoderClient = ({
     startSession: async (spec) =>
       SessionResponseSchema.parse(await (await postJson('/sessions', spec)).json()),
 
+    readSessionFile: async (sessionId, name) => {
+      const response = await fetchImpl(
+        `${baseUrl}/sessions/${encodeURIComponent(sessionId)}/${encodeURIComponent(name)}`,
+      )
+
+      if (!response.ok) {
+        return null
+      }
+
+      return {
+        body: await response.arrayBuffer(),
+        contentType: response.headers.get('content-type') ?? 'application/octet-stream',
+      }
+    },
+
     stopSession: async (id) => {
       const response = await fetchImpl(`${baseUrl}/sessions/${id}`, { method: 'DELETE' })
 
@@ -153,6 +174,13 @@ const createTranscoderClient = ({
   }
 }
 
-export type { MediaProbe, SessionResponse, SessionSpec, Transcoder, TranscoderCapabilities }
+export type {
+  MediaProbe,
+  SessionResponse,
+  SessionSpec,
+  Transcoder,
+  TranscoderCapabilities,
+  TranscoderFile,
+}
 
 export default { createTranscoderClient, TranscoderError, MediaProbeSchema }

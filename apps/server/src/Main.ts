@@ -10,16 +10,18 @@ import createDatabaseSettingsStoreModule from '@FluxServer/settings/createDataba
 import createDatabaseLibraryServiceModule from '@FluxServer/library/createDatabaseLibraryService'
 import createMediaFileSystemModule from '@FluxServer/library/createMediaFileSystem'
 import TranscoderClientModule from '@FluxServer/transcoder/TranscoderClient'
+import createPlaybackServiceModule from '@FluxServer/playback/createPlaybackService'
 
 const { createApp } = AppModule
 const { createAuth } = AuthModule
 const { createDatabase } = DatabaseModule
-const { user } = SchemaModule
+const { user, mediaItem } = SchemaModule
 const { readEnv } = EnvModule
 const { createDatabaseSettingsStore } = createDatabaseSettingsStoreModule
 const { createDatabaseLibraryService } = createDatabaseLibraryServiceModule
 const { createMediaFileSystem } = createMediaFileSystemModule
 const { createTranscoderClient } = TranscoderClientModule
+const { createPlaybackService } = createPlaybackServiceModule
 
 const env = readEnv(process.env)
 const { db, schema } = createDatabase(env.DATABASE_URL)
@@ -63,12 +65,37 @@ const libraryService = createDatabaseLibraryService({
   },
 })
 
+const playbackService = createPlaybackService({
+  media: {
+    findForPlayback: async (mediaId) => {
+      const item = await libraryService.getMedia(mediaId)
+
+      if (item === null) {
+        return null
+      }
+
+      const rows = await db
+        .select({ path: mediaItem.path })
+        .from(mediaItem)
+        .where(eq(mediaItem.id, mediaId))
+        .limit(1)
+
+      const path = rows[0]?.path
+
+      return path === undefined ? null : { item, path }
+    },
+  },
+  transcoder,
+  sessionUrlPrefix: '/api/playback/session',
+})
+
 const app = createApp({
   auth,
   settings,
   countUsers,
   promoteToAdmin,
   library: libraryService,
+  playback: playbackService,
 })
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {

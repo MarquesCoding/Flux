@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import AppModule from '@FluxServer/App'
 import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from '@FluxServer/library/createMemoryLibraryService'
+import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
 
 const { createApp } = AppModule
 const { createMemoryAuth } = createMemoryAuthModule
 const { createMemoryLibraryService } = createMemoryLibraryServiceModule
+const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 
 const adminPayload = {
   admin: { name: 'Operator', email: 'admin@flux.test', password: 'a-long-enough-password' },
@@ -24,6 +26,7 @@ const buildApp = (initialUserCount = 0) => {
     countUsers: () => Promise.resolve(state.users),
     promoteToAdmin,
     library: createMemoryLibraryService(),
+    playback: createMemoryPlaybackService(),
   })
 
   return { app, settings, state, promoteToAdmin }

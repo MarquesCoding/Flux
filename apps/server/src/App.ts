@@ -1,25 +1,22 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { apiReference } from '@scalar/hono-api-reference'
-import negotiatePlaybackModule from '@FluxCore/functions/negotiatePlayback'
-import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
 import suggestTrustedOriginsModule from '@FluxServer/setup/suggestTrustedOrigins'
 import type { FluxAuth } from '@FluxServer/auth/Auth'
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
 import LibraryServiceModule from '@FluxServer/library/LibraryService'
 import type { LibraryService } from '@FluxServer/library/LibraryService'
+import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
 import HealthRouteModule from './routes/HealthRoute'
 import LibraryRouteModule from './routes/LibraryRoute'
-import PlaybackExplainRouteModule from './routes/PlaybackExplainRoute'
+import PlaybackRouteModule from './routes/PlaybackRoute'
 import SetupRouteModule from './routes/SetupRoute'
 
-const { negotiatePlayback } = negotiatePlaybackModule
-const { describePlaybackMode } = describePlaybackModeModule
 const { suggestTrustedOrigins } = suggestTrustedOriginsModule
 const { healthRoute } = HealthRouteModule
 const { DEFAULT_LIMIT } = LibraryServiceModule
 const { listLibrariesRoute, createLibraryRoute, listItemsRoute, getMediaRoute, scanLibraryRoute } =
   LibraryRouteModule
-const { playbackExplainRoute } = PlaybackExplainRouteModule
+const { explainRoute, startRoute, sessionFileRoute, stopRoute } = PlaybackRouteModule
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
 
 const SERVER_VERSION = '0.0.0'
@@ -30,6 +27,7 @@ type CreateAppOptions = {
   countUsers: () => Promise<number>
   promoteToAdmin: (email: string) => Promise<void>
   library: LibraryService
+  playback: PlaybackService
 }
 
 /**
@@ -42,7 +40,14 @@ type CreateAppOptions = {
  * its own routing and documents itself through its `openAPI` plugin. It is the
  * one part of the surface Flux does not define route by route.
  */
-const createApp = ({ auth, settings, countUsers, promoteToAdmin, library }: CreateAppOptions) => {
+const createApp = ({
+  auth,
+  settings,
+  countUsers,
+  promoteToAdmin,
+  library,
+  playback,
+}: CreateAppOptions) => {
   const app = new OpenAPIHono()
 
   app.on(['GET', 'POST'], '/api/auth/*', (context) => auth.handler(context.req.raw))
@@ -146,26 +151,60 @@ const createApp = ({ auth, settings, countUsers, promoteToAdmin, library }: Crea
     context.json({ status: 'ok', version: SERVER_VERSION, transcoderReachable: false }, 200),
   )
 
-  app.openapi(playbackExplainRoute, (context) => {
+  app.openapi(explainRoute, async (context) => {
+    const { mediaId } = context.req.valid('param')
     const { deviceProfile } = context.req.valid('json')
 
-    const media = {
-      id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
-      title: 'Sample Film',
-      container: 'mkv',
-      durationSeconds: 7200,
-      videoCodec: 'hevc',
-      videoRange: 'HDR10',
-      width: 3840,
-      height: 2160,
-      bitrateKbps: 24000,
-      audioStreams: [{ index: 1, codec: 'truehd', channels: 8, isAtmos: true }],
-      subtitleStreams: [],
-    } satisfies Parameters<typeof negotiatePlayback>[0]
+    const explanation = await playback.explain(mediaId, deviceProfile)
 
-    const plan = negotiatePlayback(media, deviceProfile)
+    if (explanation === null) {
+      return context.json({ error: 'No such media item.' }, 404)
+    }
 
-    return context.json({ mode: describePlaybackMode(plan), plan }, 200)
+    return context.json(explanation, 200)
+  })
+
+  app.openapi(startRoute, async (context) => {
+    const { mediaId } = context.req.valid('param')
+    const { deviceProfile, startSeconds } = context.req.valid('json')
+
+    const outcome = await playback.start(mediaId, deviceProfile, startSeconds ?? 0)
+
+    if (outcome.kind === 'notFound') {
+      return context.json({ error: 'No such media item.' }, 404)
+    }
+
+    if (outcome.kind === 'unsupported') {
+      return context.json({ error: outcome.reason }, 422)
+    }
+
+    if (outcome.kind === 'failed') {
+      return context.json({ error: outcome.reason }, 500)
+    }
+
+    return context.json(outcome.session, 200)
+  })
+
+  app.openapi(sessionFileRoute, async (context) => {
+    const { sessionId, name } = context.req.valid('param')
+
+    const file = await playback.readSessionFile(sessionId, name)
+
+    if (file === null) {
+      return context.json({ error: 'No such session or segment.' }, 404)
+    }
+
+    return context.body(file.body, 200, { 'content-type': file.contentType })
+  })
+
+  app.openapi(stopRoute, async (context) => {
+    const stopped = await playback.stop(context.req.valid('param').sessionId)
+
+    if (!stopped) {
+      return context.json({ error: 'No such session.' }, 404)
+    }
+
+    return context.body(null, 204)
   })
 
   app.doc('/api/openapi.json', {

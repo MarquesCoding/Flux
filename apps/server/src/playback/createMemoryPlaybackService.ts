@@ -1,0 +1,97 @@
+import negotiatePlaybackModule from '@FluxCore/functions/negotiatePlayback'
+import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
+import type { MediaItem } from '@FluxContracts/schemas/MediaItem'
+import type { PlaybackService } from './PlaybackService'
+
+const { negotiatePlayback } = negotiatePlaybackModule
+const { describePlaybackMode } = describePlaybackModeModule
+
+type MemoryPlaybackState = {
+  media: Record<string, MediaItem>
+  sessions: Record<string, Record<string, string>>
+  unsupported?: boolean
+}
+
+/**
+ * Playback held in memory.
+ *
+ * Runs the real negotiator over the supplied items, so the routes are tested
+ * against genuine plans rather than canned ones. Only the media service is
+ * stood in for.
+ */
+const createMemoryPlaybackService = (
+  state: MemoryPlaybackState = { media: {}, sessions: {} },
+): PlaybackService & { state: MemoryPlaybackState } => ({
+  state,
+
+  explain: (mediaId, profile) => {
+    const item = state.media[mediaId]
+
+    if (item === undefined) {
+      return Promise.resolve(null)
+    }
+
+    const plan = negotiatePlayback(item, profile)
+
+    return Promise.resolve({ mode: describePlaybackMode(plan), plan })
+  },
+
+  start: (mediaId, profile) => {
+    const item = state.media[mediaId]
+
+    if (item === undefined) {
+      return Promise.resolve({ kind: 'notFound' as const })
+    }
+
+    if (state.unsupported === true) {
+      return Promise.resolve({
+        kind: 'unsupported' as const,
+        reason: 'This server has no working encoder for h264.',
+      })
+    }
+
+    const plan = negotiatePlayback(item, profile)
+    const sessionId = `session-${mediaId}`
+
+    state.sessions[sessionId] = { 'index.m3u8': '#EXTM3U\n#EXT-X-VERSION:7\n' }
+
+    return Promise.resolve({
+      kind: 'started' as const,
+      session: {
+        sessionId,
+        manifestUrl: `/api/playback/session/${sessionId}/index.m3u8`,
+        mode: describePlaybackMode(plan),
+        plan,
+      },
+    })
+  },
+
+  readSessionFile: (sessionId, name) => {
+    const contents = state.sessions[sessionId]?.[name]
+
+    if (contents === undefined) {
+      return Promise.resolve(null)
+    }
+
+    return Promise.resolve({
+      body: new TextEncoder().encode(contents).buffer,
+      contentType: name.endsWith('.m3u8')
+        ? 'application/vnd.apple.mpegurl'
+        : 'application/octet-stream',
+    })
+  },
+
+  stop: (sessionId) => {
+    if (state.sessions[sessionId] === undefined) {
+      return Promise.resolve(false)
+    }
+
+    delete state.sessions[sessionId]
+
+    return Promise.resolve(true)
+  },
+})
+
+export type { MemoryPlaybackState }
+
+export default { createMemoryPlaybackService }

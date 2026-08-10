@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import AppModule from '@FluxServer/App'
 import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from './createMemoryLibraryService'
+import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
 import LibraryContract from '@FluxContracts/schemas/Library'
 import JsonValueModule from '@FluxContracts/schemas/JsonValue'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
@@ -10,6 +11,7 @@ import type { MediaDetail } from '@FluxContracts/schemas/Library'
 const { createApp } = AppModule
 const { createMemoryAuth } = createMemoryAuthModule
 const { createMemoryLibraryService } = createMemoryLibraryServiceModule
+const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 
 const { MediaSummarySchema } = LibraryContract
 const { JsonValueSchema } = JsonValueModule
@@ -58,6 +60,7 @@ const build = (media: MediaDetail[] = []) => {
     countUsers: () => Promise.resolve(1),
     promoteToAdmin: () => Promise.resolve(),
     library,
+    playback: createMemoryPlaybackService(),
   })
 
   return { app, library }

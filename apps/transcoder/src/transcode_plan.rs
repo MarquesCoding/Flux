@@ -146,6 +146,20 @@ impl SessionSpec {
     }
 }
 
+/// Builds a scale filter that shrinks but never enlarges.
+///
+/// `force_original_aspect_ratio=decrease` alone still scales *up* when the
+/// client's limit is larger than the source, so a 640x480 file played on a
+/// 1080p client would be upscaled to 1440x1080: more CPU, more bandwidth, and
+/// not one pixel of extra detail. Clamping each axis to the input size first
+/// makes the limit a ceiling rather than a target.
+#[must_use]
+pub fn scale_filter(max_width: u32, max_height: u32) -> String {
+    format!(
+        "scale=w='min(iw,{max_width})':h='min(ih,{max_height})':force_original_aspect_ratio=decrease"
+    )
+}
+
 /// The software encoder that replaces a hardware one on fallback.
 #[must_use]
 pub fn software_equivalent(encoder: &str) -> &'static str {
@@ -218,9 +232,7 @@ impl TranscodePlan {
                 args.push("-b:v".into());
                 args.push(format!("{max_bitrate_kbps}k"));
                 args.push("-vf".into());
-                args.push(format!(
-                    "scale=w={max_width}:h={max_height}:force_original_aspect_ratio=decrease"
-                ));
+                args.push(scale_filter(*max_width, *max_height));
             }
         }
 
@@ -365,6 +377,29 @@ mod tests {
 
         assert!(args.windows(2).any(|w| w == ["-hls_list_size", "0"]));
         assert!(args.windows(2).any(|w| w == ["-hls_playlist_type", "vod"]));
+    }
+
+    #[test]
+    fn never_upscales_beyond_the_source() {
+        use super::scale_filter;
+
+        let filter = scale_filter(1920, 1080);
+
+        assert!(
+            filter.contains("min(iw,1920)"),
+            "expected a width ceiling: {filter}"
+        );
+        assert!(
+            filter.contains("min(ih,1080)"),
+            "expected a height ceiling: {filter}"
+        );
+    }
+
+    #[test]
+    fn keeps_the_aspect_ratio_when_shrinking() {
+        use super::scale_filter;
+
+        assert!(scale_filter(1280, 720).contains("force_original_aspect_ratio=decrease"));
     }
 
     #[test]

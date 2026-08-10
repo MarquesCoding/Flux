@@ -50,6 +50,7 @@ const harness = (options: {
   const transcoder: Transcoder = {
     probe: options.probeImpl ?? (() => Promise.resolve(probe())),
     startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
+    readSessionFile: () => Promise.resolve(null),
     stopSession: () => Promise.resolve(true),
     capabilities: () =>
       Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
@@ -199,6 +200,7 @@ describe('scanLibrary', () => {
       transcoder: {
         probe: () => Promise.reject(new Error('moov atom not found')),
         startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
+        readSessionFile: () => Promise.resolve(null),
         stopSession: () => Promise.resolve(true),
         capabilities: () =>
           Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
