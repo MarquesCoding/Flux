@@ -56,14 +56,15 @@ const MoodBackground = ({ color, hasGrid = false, isDrifting = false }: MoodBack
             ]
               .filter((name) => name !== '')
               .join(' ')}
-          >
-            {/* The dots are drawn as a field of elements rather than as a
-                repeating background, so a ripple can cross them one at a time.
-                Only where the grid belongs. */}
-            {!hasGrid ? null : <DotField />}
-          </div>
+          />
         </motion.div>
       </AnimatePresence>
+
+      {/* Outside the fading layer on purpose. The wash is rebuilt whenever the
+          colour changes, and rebuilding a field of two thousand elements in
+          the middle of a transition is what makes that transition stutter.
+          The dots belong to the page, not to the colour it happens to be. */}
+      {!hasGrid ? null : <DotField />}
     </div>
   )
 }

@@ -11,7 +11,7 @@ const { cn } = cnModule
  * Chosen against the cost of drawing them: one element per dot means this is
  * the difference between a thousand nodes and ten thousand.
  */
-const SPACING = 34
+const SPACING = 40
 
 /**
  * How long a ripple takes to cross the field.
@@ -99,7 +99,10 @@ const DotField = ({
     <div ref={holderRef} className={cn('pointer-events-none absolute inset-0', className)}>
       <div
         aria-hidden
-        className="flux-dots absolute inset-0"
+        // Told to stay off the main thread's critical path: the field never
+        // reacts to anything, so the browser is free to raster it once and
+        // leave it alone.
+        className="flux-dots absolute inset-0 [contain:strict]"
         style={{
           gridTemplateColumns: `repeat(${columns.toString()}, ${spacing.toString()}px)`,
           gridAutoRows: `${spacing.toString()}px`,
