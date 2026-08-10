@@ -58,12 +58,27 @@ const MediaPreview = ({
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  // Whether the clip has finished. Together with whether it has started, this
+  // is the only thing that decides which of the two pictures is on top —
+  // pausing is not one of them, because a paused video is still a frame of the
+  // film and covering it with a still is covering a picture with a picture.
+  const [hasEnded, setHasEnded] = useState(false)
   const [hasFrame, setHasFrame] = useState(false)
   const [isMuted, setIsMuted] = useState(!hasSound)
   // Whether the clip has ever run. The controls appear once it has and stay,
   // because a pause button that vanishes the moment it is pressed is a pause
   // button nobody can undo.
   const [hasStarted, setHasStarted] = useState(false)
+
+  /**
+   * Whether the frame is the thing being shown.
+   *
+   * Before the clip has produced anything, and again once it has run out.
+   * Deliberately not tied to whether it is playing at this instant: that flag
+   * flickers with every pause, stall and buffer, and each flicker used to
+   * throw the still back over a picture that was perfectly good.
+   */
+  const isShowingFrame = !hasStarted || hasEnded
   const startSeconds = Math.floor(durationSeconds * startFraction)
 
   useEffect(() => {
@@ -106,6 +121,8 @@ const MediaPreview = ({
       abandoned = true
       clearTimeout(timer)
       setIsPlaying(false)
+      setHasStarted(false)
+      setHasEnded(false)
       element.removeAttribute('src')
       element.load()
     }
@@ -143,7 +160,7 @@ const MediaPreview = ({
           setHasFrame(true)
         }}
         className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-          isPlaying || !hasFrame ? 'opacity-0' : 'opacity-100'
+          isShowingFrame && hasFrame ? 'opacity-100' : 'opacity-0'
         }`}
       />
 
@@ -151,7 +168,7 @@ const MediaPreview = ({
         label="Preview"
         videoRef={videoRef}
         className={`h-full w-full object-cover transition-opacity duration-700 ${
-          isPlaying ? 'opacity-100' : 'opacity-0'
+          isShowingFrame ? 'opacity-0' : 'opacity-100'
         }`}
         // Whether something is playing is the element's own business, not a
         // flag kept beside it. Tracking it separately meant the two could
@@ -162,15 +179,16 @@ const MediaPreview = ({
 
           if (playing) {
             setHasStarted(true)
+            setHasEnded(false)
           }
 
           onPlayingChange?.(playing)
         }}
         onEnded={() => {
-          // The element has already said it stopped, so the still is back by
-          // the time this runs: a rotation that begins while the video is
-          // still on screen is a cut, and one that begins from the frame is a
-          // dissolve.
+          // Back to the frame first, and only then is whoever owns this told:
+          // a rotation that begins while the video is on screen is a cut, and
+          // one that begins from the frame is a dissolve.
+          setHasEnded(true)
           onEnded?.()
         }}
       />
