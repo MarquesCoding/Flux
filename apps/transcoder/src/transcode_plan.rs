@@ -1,4 +1,7 @@
+use std::fmt::Write as _;
+
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 /// A hardware acceleration backend the host may offer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -31,11 +34,15 @@ impl HardwareAccel {
 
 /// What should happen to the video stream.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum VideoAction {
     Copy,
     Encode {
-        codec: String,
+        encoder: String,
         max_bitrate_kbps: u32,
         max_width: u32,
         max_height: u32,
@@ -44,14 +51,113 @@ pub enum VideoAction {
 
 /// What should happen to the audio stream.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum AudioAction {
     Copy,
     Encode {
-        codec: String,
+        encoder: String,
         channels: u8,
         max_bitrate_kbps: u32,
     },
+}
+
+/// Everything that decides what bytes come out, and therefore everything the
+/// session cache is keyed on.
+///
+/// The output directory is deliberately absent: it is derived from this
+/// specification's own hash, so two requests that would produce identical
+/// output share a session rather than transcoding twice. Including the
+/// directory would defeat that. See ADR-0011.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionSpec {
+    pub input_path: String,
+    pub start_seconds: u32,
+    pub segment_seconds: u32,
+    pub hardware_accel: HardwareAccel,
+    pub video: VideoAction,
+    pub audio: AudioAction,
+}
+
+impl SessionSpec {
+    /// A stable identifier for the output this specification produces.
+    ///
+    /// Content addressed rather than random so that a client reconnecting, or
+    /// a second client asking for the same thing, reuses the segments already
+    /// on disk. Stable across restarts, which a random id would not be.
+    #[must_use]
+    pub fn session_id(&self) -> String {
+        let mut hasher = Sha256::new();
+
+        hasher.update(self.input_path.as_bytes());
+        hasher.update(self.start_seconds.to_be_bytes());
+        hasher.update(self.segment_seconds.to_be_bytes());
+        hasher.update(format!("{:?}", self.hardware_accel).as_bytes());
+        hasher.update(format!("{:?}", self.video).as_bytes());
+        hasher.update(format!("{:?}", self.audio).as_bytes());
+
+        let digest = hasher.finalize();
+        let mut id = String::with_capacity(32);
+
+        for byte in digest.iter().take(16) {
+            let _ = write!(id, "{byte:02x}");
+        }
+
+        id
+    }
+
+    /// Whether this specification asks for hardware acceleration.
+    #[must_use]
+    pub fn uses_hardware(&self) -> bool {
+        self.hardware_accel != HardwareAccel::None
+    }
+
+    /// The same specification with hardware acceleration removed.
+    ///
+    /// Used for the single automatic retry when a hardware encoder fails.
+    /// A machine whose GPU is busy, or whose driver has fallen over, should
+    /// still play the film. See ADR-0009.
+    #[must_use]
+    pub fn without_hardware(&self) -> Self {
+        let video = match &self.video {
+            VideoAction::Copy => VideoAction::Copy,
+            VideoAction::Encode {
+                encoder,
+                max_bitrate_kbps,
+                max_width,
+                max_height,
+            } => VideoAction::Encode {
+                encoder: software_equivalent(encoder).to_owned(),
+                max_bitrate_kbps: *max_bitrate_kbps,
+                max_width: *max_width,
+                max_height: *max_height,
+            },
+        };
+
+        Self {
+            hardware_accel: HardwareAccel::None,
+            video,
+            ..self.clone()
+        }
+    }
+}
+
+/// The software encoder that replaces a hardware one on fallback.
+#[must_use]
+pub fn software_equivalent(encoder: &str) -> &'static str {
+    if encoder.starts_with("hevc") {
+        return "libx265";
+    }
+
+    if encoder.starts_with("av1") {
+        return "libsvtav1";
+    }
+
+    "libx264"
 }
 
 /// A fully resolved transcode instruction.
@@ -60,43 +166,55 @@ pub enum AudioAction {
 /// assembled from strings at call sites, so that invocations are
 /// deterministic, unit testable without spawning a process, and loggable in
 /// full for support. See ADR-0009.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TranscodePlan {
-    pub input_path: String,
-    pub output_path: String,
-    pub hardware_accel: HardwareAccel,
-    pub video: VideoAction,
-    pub audio: AudioAction,
+    pub spec: SessionSpec,
+    pub output_directory: String,
 }
+
+/// The manifest file every session writes.
+pub const MANIFEST_NAME: &str = "index.m3u8";
+
+/// The initialisation segment for fragmented MP4 output.
+pub const INIT_SEGMENT_NAME: &str = "init.mp4";
 
 impl TranscodePlan {
     /// Builds the `FFmpeg` argument vector for this plan.
     #[must_use]
     pub fn to_ffmpeg_args(&self) -> Vec<String> {
-        let mut args: Vec<String> = vec!["-hide_banner".into(), "-nostdin".into()];
+        let mut args: Vec<String> = vec![
+            "-hide_banner".into(),
+            "-nostdin".into(),
+            "-loglevel".into(),
+            "error".into(),
+        ];
 
-        if let Some(flag) = self.hardware_accel.ffmpeg_flag() {
+        if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
             args.push("-hwaccel".into());
             args.push(flag.into());
         }
 
-        args.push("-i".into());
-        args.push(self.input_path.clone());
+        if self.spec.start_seconds > 0 {
+            args.push("-ss".into());
+            args.push(self.spec.start_seconds.to_string());
+        }
 
-        match &self.video {
+        args.push("-i".into());
+        args.push(self.spec.input_path.clone());
+
+        match &self.spec.video {
             VideoAction::Copy => {
                 args.push("-c:v".into());
                 args.push("copy".into());
             }
             VideoAction::Encode {
-                codec,
+                encoder,
                 max_bitrate_kbps,
                 max_width,
                 max_height,
             } => {
                 args.push("-c:v".into());
-                args.push(codec.clone());
+                args.push(encoder.clone());
                 args.push("-b:v".into());
                 args.push(format!("{max_bitrate_kbps}k"));
                 args.push("-vf".into());
@@ -106,18 +224,18 @@ impl TranscodePlan {
             }
         }
 
-        match &self.audio {
+        match &self.spec.audio {
             AudioAction::Copy => {
                 args.push("-c:a".into());
                 args.push("copy".into());
             }
             AudioAction::Encode {
-                codec,
+                encoder,
                 channels,
                 max_bitrate_kbps,
             } => {
                 args.push("-c:a".into());
-                args.push(codec.clone());
+                args.push(encoder.clone());
                 args.push("-ac".into());
                 args.push(channels.to_string());
                 args.push("-b:a".into());
@@ -125,7 +243,21 @@ impl TranscodePlan {
             }
         }
 
-        args.push(self.output_path.clone());
+        args.push("-f".into());
+        args.push("hls".into());
+        args.push("-hls_time".into());
+        args.push(self.spec.segment_seconds.to_string());
+        args.push("-hls_playlist_type".into());
+        args.push("vod".into());
+        args.push("-hls_segment_type".into());
+        args.push("fmp4".into());
+        args.push("-hls_list_size".into());
+        args.push("0".into());
+        args.push("-hls_fmp4_init_filename".into());
+        args.push(INIT_SEGMENT_NAME.into());
+        args.push("-hls_segment_filename".into());
+        args.push(format!("{}/segment%05d.m4s", self.output_directory));
+        args.push(format!("{}/{MANIFEST_NAME}", self.output_directory));
 
         args
     }
@@ -133,21 +265,31 @@ impl TranscodePlan {
 
 #[cfg(test)]
 mod tests {
-    use super::{AudioAction, HardwareAccel, TranscodePlan, VideoAction};
+    use super::{
+        software_equivalent, AudioAction, HardwareAccel, SessionSpec, TranscodePlan, VideoAction,
+    };
 
-    fn plan(video: VideoAction, audio: AudioAction, accel: HardwareAccel) -> TranscodePlan {
-        TranscodePlan {
+    fn spec() -> SessionSpec {
+        SessionSpec {
             input_path: "/media/film.mkv".into(),
-            output_path: "/transcodes/out.m3u8".into(),
-            hardware_accel: accel,
-            video,
-            audio,
+            start_seconds: 0,
+            segment_seconds: 4,
+            hardware_accel: HardwareAccel::None,
+            video: VideoAction::Copy,
+            audio: AudioAction::Copy,
+        }
+    }
+
+    fn plan(spec: SessionSpec) -> TranscodePlan {
+        TranscodePlan {
+            spec,
+            output_directory: "/transcodes/abc".into(),
         }
     }
 
     #[test]
     fn copies_both_streams_when_nothing_needs_encoding() {
-        let args = plan(VideoAction::Copy, AudioAction::Copy, HardwareAccel::None).to_ffmpeg_args();
+        let args = plan(spec()).to_ffmpeg_args();
 
         assert!(args.windows(2).any(|w| w == ["-c:v", "copy"]));
         assert!(args.windows(2).any(|w| w == ["-c:a", "copy"]));
@@ -155,68 +297,173 @@ mod tests {
 
     #[test]
     fn omits_hwaccel_flag_when_none() {
-        let args = plan(VideoAction::Copy, AudioAction::Copy, HardwareAccel::None).to_ffmpeg_args();
-
-        assert!(!args.iter().any(|a| a == "-hwaccel"));
+        assert!(!plan(spec())
+            .to_ffmpeg_args()
+            .iter()
+            .any(|a| a == "-hwaccel"));
     }
 
     #[test]
     fn includes_hwaccel_flag_when_available() {
-        let args =
-            plan(VideoAction::Copy, AudioAction::Copy, HardwareAccel::Vaapi).to_ffmpeg_args();
+        let args = plan(SessionSpec {
+            hardware_accel: HardwareAccel::VideoToolbox,
+            ..spec()
+        })
+        .to_ffmpeg_args();
 
-        assert!(args.windows(2).any(|w| w == ["-hwaccel", "vaapi"]));
+        assert!(args.windows(2).any(|w| w == ["-hwaccel", "videotoolbox"]));
     }
 
     #[test]
     fn copies_audio_when_only_video_is_encoded() {
-        let args = plan(
-            VideoAction::Encode {
-                codec: "h264_vaapi".into(),
+        let args = plan(SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264_videotoolbox".into(),
                 max_bitrate_kbps: 8000,
                 max_width: 1920,
                 max_height: 1080,
             },
-            AudioAction::Copy,
-            HardwareAccel::Vaapi,
-        )
+            ..spec()
+        })
         .to_ffmpeg_args();
 
-        assert!(args.windows(2).any(|w| w == ["-c:v", "h264_vaapi"]));
+        assert!(args.windows(2).any(|w| w == ["-c:v", "h264_videotoolbox"]));
         assert!(args.windows(2).any(|w| w == ["-c:a", "copy"]));
     }
 
     #[test]
-    fn copies_video_when_only_audio_is_encoded() {
-        let args = plan(
-            VideoAction::Copy,
-            AudioAction::Encode {
-                codec: "aac".into(),
-                channels: 2,
-                max_bitrate_kbps: 256,
-            },
-            HardwareAccel::None,
-        )
+    fn seeks_before_the_input_so_the_seek_is_fast() {
+        let args = plan(SessionSpec {
+            start_seconds: 90,
+            ..spec()
+        })
         .to_ffmpeg_args();
 
-        assert!(args.windows(2).any(|w| w == ["-c:v", "copy"]));
-        assert!(args.windows(2).any(|w| w == ["-ac", "2"]));
+        let seek = args.iter().position(|a| a == "-ss");
+        let input = args.iter().position(|a| a == "-i");
+
+        assert!(seek < input, "expected -ss before -i");
     }
 
     #[test]
-    fn places_input_before_output() {
-        let args = plan(VideoAction::Copy, AudioAction::Copy, HardwareAccel::None).to_ffmpeg_args();
+    fn omits_the_seek_when_starting_at_zero() {
+        assert!(!plan(spec()).to_ffmpeg_args().iter().any(|a| a == "-ss"));
+    }
 
-        let input = args.iter().position(|a| a == "/media/film.mkv");
-        let output = args.iter().position(|a| a == "/transcodes/out.m3u8");
+    #[test]
+    fn writes_fragmented_hls_into_the_session_directory() {
+        let args = plan(spec()).to_ffmpeg_args();
 
-        assert!(input < output);
+        assert!(args.windows(2).any(|w| w == ["-hls_segment_type", "fmp4"]));
+        assert!(args.contains(&"/transcodes/abc/segment%05d.m4s".to_owned()));
+        assert!(args.contains(&"/transcodes/abc/index.m3u8".to_owned()));
+    }
+
+    #[test]
+    fn keeps_every_segment_in_the_playlist() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|w| w == ["-hls_list_size", "0"]));
+        assert!(args.windows(2).any(|w| w == ["-hls_playlist_type", "vod"]));
     }
 
     #[test]
     fn is_deterministic() {
-        let subject = plan(VideoAction::Copy, AudioAction::Copy, HardwareAccel::Qsv);
+        let subject = plan(spec());
 
         assert_eq!(subject.to_ffmpeg_args(), subject.to_ffmpeg_args());
+    }
+
+    #[test]
+    fn identical_specifications_share_a_session_id() {
+        assert_eq!(spec().session_id(), spec().session_id());
+    }
+
+    #[test]
+    fn a_different_seek_is_a_different_session() {
+        let other = SessionSpec {
+            start_seconds: 30,
+            ..spec()
+        };
+
+        assert_ne!(spec().session_id(), other.session_id());
+    }
+
+    #[test]
+    fn a_different_encode_is_a_different_session() {
+        let other = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "libx264".into(),
+                max_bitrate_kbps: 4000,
+                max_width: 1280,
+                max_height: 720,
+            },
+            ..spec()
+        };
+
+        assert_ne!(spec().session_id(), other.session_id());
+    }
+
+    #[test]
+    fn session_ids_are_filesystem_safe() {
+        let id = spec().session_id();
+
+        assert_eq!(id.len(), 32);
+        assert!(id.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn falling_back_drops_hardware_and_swaps_the_encoder() {
+        let hardware = SessionSpec {
+            hardware_accel: HardwareAccel::VideoToolbox,
+            video: VideoAction::Encode {
+                encoder: "hevc_videotoolbox".into(),
+                max_bitrate_kbps: 8000,
+                max_width: 1920,
+                max_height: 1080,
+            },
+            ..spec()
+        };
+
+        let fallback = hardware.without_hardware();
+
+        assert_eq!(fallback.hardware_accel, HardwareAccel::None);
+        assert_eq!(
+            fallback.video,
+            VideoAction::Encode {
+                encoder: "libx265".into(),
+                max_bitrate_kbps: 8000,
+                max_width: 1920,
+                max_height: 1080,
+            }
+        );
+    }
+
+    #[test]
+    fn falling_back_leaves_a_stream_copy_alone() {
+        let fallback = SessionSpec {
+            hardware_accel: HardwareAccel::Nvenc,
+            ..spec()
+        }
+        .without_hardware();
+
+        assert_eq!(fallback.video, VideoAction::Copy);
+    }
+
+    #[test]
+    fn maps_hardware_encoders_onto_software_ones() {
+        assert_eq!(software_equivalent("hevc_nvenc"), "libx265");
+        assert_eq!(software_equivalent("av1_qsv"), "libsvtav1");
+        assert_eq!(software_equivalent("h264_vaapi"), "libx264");
+    }
+
+    #[test]
+    fn reports_whether_hardware_is_requested() {
+        assert!(!spec().uses_hardware());
+        assert!(SessionSpec {
+            hardware_accel: HardwareAccel::Qsv,
+            ..spec()
+        }
+        .uses_hardware());
     }
 }

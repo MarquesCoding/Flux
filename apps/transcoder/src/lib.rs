@@ -9,4 +9,6 @@
 pub mod capability;
 pub mod media;
 pub mod probe;
+pub mod router;
+pub mod session;
 pub mod transcode_plan;
