@@ -92,6 +92,8 @@ const transcoderThat = (
   stopSession: () => Promise.resolve(true),
   readSubtitle: () => Promise.resolve('WEBVTT\n'),
   readFrame: () => Promise.resolve(new ArrayBuffer(0)),
+  readMonitor: () => Promise.resolve({}),
+  openMonitorStream: () => Promise.resolve(null),
   capabilities: () => Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
 })
 

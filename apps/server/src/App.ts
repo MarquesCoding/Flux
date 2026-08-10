@@ -18,6 +18,7 @@ import ProgressRouteModule from '@FluxServer/routes/ProgressRoute'
 import AdminRouteModule from '@FluxServer/routes/AdminRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
 const { suggestTrustedOrigins } = suggestTrustedOriginsModule
 const { healthRoute } = HealthRouteModule
@@ -67,6 +68,11 @@ type CreateAppOptions = {
   >
   capabilities?: () => Promise<{ ffmpegVersion: string; hardwareAccels: string[] }>
   /**
+   * What the media service is doing right now.
+   */
+  monitor?: () => Promise<JsonValue>
+  monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>
+  /**
    * Reads artwork from Flux's own cache, fetching it once if needed.
    *
    * Optional because an instance with no metadata provider configured has no
@@ -98,6 +104,8 @@ const createApp = ({
   progress,
   listUsers,
   capabilities,
+  monitor,
+  monitorStream,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
 }: CreateAppOptions) => {
@@ -423,6 +431,57 @@ const createApp = ({
       },
       200,
     )
+  })
+
+  /**
+   * What the media service is doing at this moment.
+   *
+   * Outside the OpenAPI routes, like the stream below it. The reading's type
+   * is recursive by nature — it is whatever the media service measured — and
+   * describing it in a schema would freeze a monitoring surface that should be
+   * free to grow a field without breaking the page that reads it.
+   */
+  app.get('/api/admin/monitor', async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const reading = await monitor?.().catch(() => null)
+
+    if (reading === null || reading === undefined) {
+      return context.json({ error: 'The media service did not answer.' }, 503)
+    }
+
+    return new Response(JSON.stringify(reading), {
+      headers: { 'content-type': 'application/json' },
+    })
+  })
+
+  /**
+   * The same reading, over and over, for a page that wants to watch.
+   *
+   * Outside the OpenAPI routes because an event stream is not a JSON response
+   * and describing it as one would be a lie in the schema. The body is passed
+   * through untouched from the media service.
+   */
+  app.get('/api/admin/monitor/stream', async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const stream = await monitorStream?.().catch(() => null)
+
+    if (stream === null || stream === undefined) {
+      return context.json({ error: 'The media service did not answer.' }, 503)
+    }
+
+    return new Response(stream, {
+      headers: {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      },
+    })
   })
 
   app.openapi(listProgressRoute, async (context) => {

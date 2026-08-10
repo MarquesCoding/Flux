@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::process::Command;
-use tokio::sync::{Mutex, Semaphore};
+use tokio::sync::Mutex;
 
 /// Written only when every sheet is on disk.
 ///
@@ -187,13 +187,6 @@ pub fn thumbnail_count(duration_seconds: f64, interval_seconds: u32) -> u32 {
 /// will starve the transcode of whatever somebody is actually watching — which
 /// is a stalled film in exchange for seek previews of a different one.
 const RENDER_THREADS: u32 = 2;
-
-/// How many files may be rendered at once.
-///
-/// One. A library scan hands over every file it imported, and three feature
-/// films decoding in parallel is enough to make playback stutter on any
-/// machine.
-static RENDER_PERMITS: Semaphore = Semaphore::const_new(1);
 
 /// The ffmpeg arguments that render the sheets.
 ///
@@ -443,17 +436,6 @@ pub async fn generate(
         return Ok(finish(list_sheets(&directory).await));
     }
 
-    // Waits its turn behind any other file being rendered. Checked again
-    // afterwards, because the file may well have been rendered by whoever was
-    // holding the permit.
-    let permit = RENDER_PERMITS.acquire().await;
-
-    if is_already_complete(&directory).await {
-        drop(permit);
-
-        return Ok(finish(list_sheets(&directory).await));
-    }
-
     tokio::fs::create_dir_all(&directory)
         .await
         .map_err(TrickplayError::Directory)?;
@@ -482,8 +464,6 @@ pub async fn generate(
     tokio::fs::write(directory.join(COMPLETE_MARKER), b"")
         .await
         .map_err(TrickplayError::Index)?;
-
-    drop(permit);
 
     Ok(finish(sheets))
 }

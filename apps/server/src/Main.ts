@@ -292,6 +292,8 @@ const app = createApp({
     return rows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }))
   },
   capabilities: () => transcoder.capabilities(),
+  monitor: () => transcoder.readMonitor(),
+  monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
 })

@@ -13,7 +13,9 @@ use crate::capability::{detect_capabilities, Capabilities};
 use crate::colour::{sample_colour, ColourRequest};
 use crate::fingerprint::{fingerprint, FingerprintRequest};
 use crate::frame::{take_frame, FrameRequest};
+use crate::monitor::{Monitor, Report};
 use crate::probe::probe_media;
+use crate::queue::WorkQueue;
 use crate::session::{await_manifest, SessionRegistry};
 use crate::subtitle::{extract_subtitle, SubtitleRequest};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
@@ -22,6 +24,23 @@ use crate::trickplay::{
 };
 
 const MANIFEST_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// How often a watching page is sent a new reading.
+///
+/// A second is fast enough to watch a transcode start and slow enough that
+/// measuring costs less than the thing being measured.
+const MONITOR_INTERVAL: Duration = Duration::from_secs(1);
+
+/// What to call a file in a list of work.
+///
+/// The name alone: an operator watching a queue recognises "Parasite.mkv" and
+/// learns nothing from the eighty characters of path in front of it.
+fn name_of(path: &Path) -> String {
+    path.file_name().map_or_else(
+        || path.to_string_lossy().into_owned(),
+        |name| name.to_string_lossy().into_owned(),
+    )
+}
 
 /// Everything the routes need.
 #[derive(Clone)]
@@ -35,6 +54,13 @@ pub struct AppState {
     pub media_roots: Vec<PathBuf>,
     /// Keeps one set of thumbnails from being rendered twice at once.
     pub trickplay: TrickplayRegistry,
+    /// Where background work waits its turn.
+    ///
+    /// Everything that reads a whole file goes through here, so there is a
+    /// ceiling on how much of the machine work nobody is waiting for can take.
+    pub queue: WorkQueue,
+    /// What the machine is using, and what has happened lately.
+    pub monitor: Monitor,
 }
 
 impl AppState {
@@ -422,9 +448,16 @@ async fn start_trickplay(
             let queued = request.clone();
             let (width, height, duration) = (video.width, video.height, probe.duration_seconds);
 
+            let queue = state.queue.clone();
+            let subject = name_of(&path);
+
             tokio::spawn(async move {
-                let _ = trickplay
-                    .generate(&ffmpeg, &cache_root, &queued, width, height, duration)
+                let _ = queue
+                    .run(
+                        "thumbnails",
+                        &subject,
+                        trickplay.generate(&ffmpeg, &cache_root, &queued, width, height, duration),
+                    )
                     .await;
             });
 
@@ -433,14 +466,18 @@ async fn start_trickplay(
     }
 
     match state
-        .trickplay
-        .generate(
-            &state.registry.config().ffmpeg,
-            &state.registry.config().cache_root,
-            &request,
-            video.width,
-            video.height,
-            probe.duration_seconds,
+        .queue
+        .run(
+            "thumbnails",
+            &name_of(&path),
+            state.trickplay.generate(
+                &config.ffmpeg,
+                &config.cache_root,
+                &request,
+                video.width,
+                video.height,
+                probe.duration_seconds,
+            ),
         )
         .await
     {
@@ -478,7 +515,15 @@ async fn start_fingerprint(
         );
     }
 
-    match fingerprint(&state.registry.config().ffmpeg, &request).await {
+    match state
+        .queue
+        .run(
+            "fingerprint",
+            &name_of(&PathBuf::from(&request.input_path)),
+            fingerprint(&state.registry.config().ffmpeg, &request),
+        )
+        .await
+    {
         Ok(prints) => (StatusCode::OK, Json(prints)).into_response(),
         Err(failure) => error(StatusCode::BAD_REQUEST, &failure.to_string()),
     }
@@ -501,7 +546,15 @@ async fn start_colour(
         );
     }
 
-    match sample_colour(&state.registry.config().ffmpeg, &request).await {
+    match state
+        .queue
+        .run(
+            "colour",
+            &name_of(&PathBuf::from(&request.input_path)),
+            sample_colour(&state.registry.config().ffmpeg, &request),
+        )
+        .await
+    {
         Ok(colour) => (StatusCode::OK, Json(colour)).into_response(),
         Err(failure) => error(StatusCode::BAD_REQUEST, &failure.to_string()),
     }
@@ -515,6 +568,54 @@ async fn stop_session(State(state): State<AppState>, AxumPath(id): AxumPath<Stri
     error(StatusCode::NOT_FOUND, "No such session.")
 }
 
+/// Everything an operator watching the server reads.
+///
+/// One request rather than four, because these are read together and read
+/// often: a page refreshing four endpoints a second is four times the work for
+/// no more information.
+async fn monitor(State(state): State<AppState>) -> Response {
+    let report = Report {
+        resources: state.monitor.measure().await,
+        queue: state.queue.snapshot().await,
+        sessions: state.registry.len().await,
+        logs: state.monitor.journal().read().await,
+    };
+
+    (StatusCode::OK, Json(report)).into_response()
+}
+
+/// The same report, over and over, as an event stream.
+///
+/// Server-sent events rather than a socket: this is one direction only, it
+/// reconnects on its own, and it survives a proxy that knows nothing about it.
+async fn monitor_stream(State(state): State<AppState>) -> Response {
+    let stream = async_stream::stream! {
+        let mut ticker = tokio::time::interval(MONITOR_INTERVAL);
+
+        loop {
+            ticker.tick().await;
+
+            let report = Report {
+                resources: state.monitor.measure().await,
+                queue: state.queue.snapshot().await,
+                sessions: state.registry.len().await,
+                logs: state.monitor.journal().read().await,
+            };
+
+            match serde_json::to_string(&report) {
+                Ok(payload) => yield Ok::<_, std::convert::Infallible>(
+                    axum::response::sse::Event::default().data(payload),
+                ),
+                Err(_) => continue,
+            }
+        }
+    };
+
+    axum::response::Sse::new(stream)
+        .keep_alive(axum::response::sse::KeepAlive::default())
+        .into_response()
+}
+
 /// Builds the media service routes.
 ///
 /// Returned as a router rather than a bound server so the whole surface can be
@@ -522,6 +623,8 @@ async fn stop_session(State(state): State<AppState>, AxumPath(id): AxumPath<Stri
 pub fn create_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
+        .route("/monitor", get(monitor))
+        .route("/monitor/stream", get(monitor_stream))
         .route("/capabilities", get(capabilities))
         .route("/probe", post(probe))
         .route("/file", get(direct_file))

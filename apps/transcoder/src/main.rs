@@ -55,6 +55,13 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
         registry: registry.clone(),
         ffprobe,
         trickplay: flux_transcoder::trickplay::TrickplayRegistry::new(),
+        monitor: flux_transcoder::monitor::Monitor::new(flux_transcoder::monitor::Journal::new()),
+        queue: flux_transcoder::queue::WorkQueue::new(
+            env::var("FLUX_BACKGROUND_JOBS")
+                .ok()
+                .and_then(|value| value.parse().ok())
+                .unwrap_or(1),
+        ),
         media_roots: env::var("FLUX_MEDIA_ROOTS")
             .map(|value| value.split(':').map(PathBuf::from).collect())
             .unwrap_or_default(),

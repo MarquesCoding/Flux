@@ -208,6 +208,22 @@ type Transcoder = {
    */
   readSubtitle: (request: { inputPath: string; streamIndex: number }) => Promise<string>
   /**
+   * Reads what the media service is doing right now.
+   *
+   * Left as parsed JSON rather than given a schema of its own: this is a
+   * live reading for a person to look at, not something Flux makes decisions
+   * from, and a monitoring endpoint that stops working because it grew a
+   * field is worse than one that shows an unexpected one.
+   */
+  readMonitor: () => Promise<JsonValue>
+  /**
+   * Opens the stream of readings, for a page that wants to watch.
+   *
+   * Null when the media service cannot be reached, so a monitoring page can
+   * say so rather than hanging on a connection that will never open.
+   */
+  openMonitorStream: () => Promise<ReadableStream<Uint8Array> | null>
+  /**
    * Takes one frame of a file as a JPEG.
    */
   readFrame: (request: {
@@ -291,6 +307,23 @@ const createSocketFetch = (socketPath: string): FetchLike => {
   return async (url, init) => narrow(await undiciFetch(url, { ...init, dispatcher: agent }))
 }
 
+/**
+ * Opens a response whose body is read as it arrives.
+ *
+ * Separate from the narrowed fetch every other call uses, because that one
+ * reads a whole body before returning it — which is right for a probe and
+ * wrong for a stream that never ends.
+ */
+const createStreamFetch =
+  (socketPath: string | null) =>
+  async (url: string): Promise<{ ok: boolean; body: ReadableStream<Uint8Array> | null }> => {
+    if (socketPath === null) {
+      return fetch(url)
+    }
+
+    return undiciFetch(url, { dispatcher: new Agent({ connect: { socketPath } }) })
+  }
+
 class TranscoderError extends Error {
   constructor(
     message: string,
@@ -320,6 +353,8 @@ const createTranscoderClient = ({
 
     return response
   }
+
+  const streamFrom = createStreamFetch(socketPath)
 
   const postJson = (path: string, body: object): Promise<HttpResponse> =>
     call(path, {
@@ -380,6 +415,14 @@ const createTranscoderClient = ({
       FingerprintSchema.parse(await (await postJson('/fingerprint', request)).json()),
 
     readFrame: async (request) => (await postJson('/frame', request)).arrayBuffer(),
+
+    readMonitor: async () => (await call('/monitor')).json(),
+
+    openMonitorStream: async () => {
+      const response = await streamFrom(`${origin}/monitor/stream`).catch(() => null)
+
+      return response === null || !response.ok ? null : response.body
+    },
 
     readSubtitle: async (request) =>
       SubtitleTrackSchema.parse(await (await postJson('/subtitles', request)).json()).content,
