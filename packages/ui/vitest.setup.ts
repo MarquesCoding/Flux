@@ -43,6 +43,22 @@ if (!('ResizeObserver' in globalThis)) {
  */
 MotionGlobalConfig.skipAnimations = true
 
+/**
+ * jsdom has no pointer events either.
+ *
+ * Motion synthesises one when a control is activated from the keyboard, so a
+ * button that can be pressed with the space bar throws in an environment that
+ * has never heard of pointers. A mouse event carries everything the gesture
+ * reads, and defining it this way keeps the fill-in free of the type
+ * assertions the standards forbid.
+ */
+if (!('PointerEvent' in globalThis)) {
+  Object.defineProperty(globalThis, 'PointerEvent', {
+    configurable: true,
+    value: MouseEvent,
+  })
+}
+
 afterEach(() => {
   cleanup()
 })

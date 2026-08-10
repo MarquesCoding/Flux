@@ -244,13 +244,23 @@ const LibraryBrowser = ({
           <div className="flex flex-col gap-10">
             {groupIntoRails(items).map((rail) => (
               <Rail key={rail.id} title={rail.title}>
-                {rail.items.map((media) => (
-                  <li key={media.id} className="w-64 shrink-0 snap-start sm:w-72 lg:w-80">
+                {rail.items.map((media, position) => (
+                  <li
+                    key={media.id}
+                    // The first card of a row is larger, so a row has a shape
+                    // rather than being a queue.
+                    className={
+                      position === 0
+                        ? 'w-[85vw] shrink-0 snap-start sm:w-[28rem] lg:w-[34rem]'
+                        : 'w-[62vw] shrink-0 snap-start sm:w-64 lg:w-72'
+                    }
+                  >
                     <MediaCard
                       title={media.title}
                       subtitle={describeMedia(media)}
                       badges={describeBadges(media)}
                       shape="wide"
+                      emphasis={position === 0 ? 'lead' : 'standard'}
                       {...(media.hasBackdrop
                         ? { imageUrl: `/api/media/${media.id}/image/backdrop` }
                         : media.hasPoster

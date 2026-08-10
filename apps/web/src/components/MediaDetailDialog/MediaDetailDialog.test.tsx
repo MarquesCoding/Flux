@@ -92,14 +92,31 @@ describe('MediaDetailDialog', () => {
     expect(screen.getByText('Louise Banks')).toBeInTheDocument()
   })
 
-  it('shows no cast section at all when nobody is known', async () => {
+  it('says why the cast is empty rather than leaving a blank space', async () => {
     render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />)
 
     await waitFor(() => {
       expect(detailMock).toHaveBeenCalled()
     })
 
-    expect(screen.queryByRole('heading', { name: 'Cast' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Cast' })).toBeInTheDocument()
+    expect(await screen.findByText(/metadata provider supplies the cast/)).toBeInTheDocument()
+  })
+
+  it('says why there is no synopsis rather than showing an empty paragraph', async () => {
+    render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />)
+
+    expect(await screen.findByText(/Configure a metadata provider/)).toBeInTheDocument()
+  })
+
+  it('holds the shape of what is coming while it loads', () => {
+    detailMock.mockReturnValue(new Promise(() => undefined))
+    render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />)
+
+    // Content that lands in a space already the right size does not shove the
+    // rest of the panel down the page. Searched from the document rather than
+    // the render container, because a dialog is drawn in a portal.
+    expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0)
   })
 
   it('says which episode this is when it is one', async () => {

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import ButtonModule from '@FluxUI/Button'
-import SpinnerModule from '@FluxUI/Spinner'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
 import SignInModule from '@FluxWeb/components/SignIn/SignIn'
 import TwoFactorSetupModule from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup'
@@ -9,6 +8,7 @@ import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrow
 import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
 import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
 import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
+import SplashScreenModule from '@FluxUI/SplashScreen'
 import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types'
 import fetchSessionModule from '@FluxWeb/session/fetchSession'
 import signOutModule from '@FluxWeb/session/signOut'
@@ -19,7 +19,6 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { AppProps } from './App.types'
 
 const { Button } = ButtonModule
-const { Spinner } = SpinnerModule
 const { SetupWizard } = SetupWizardModule
 const { SignIn } = SignInModule
 const { TwoFactorSetup } = TwoFactorSetupModule
@@ -28,6 +27,7 @@ const { LibraryBrowser } = LibraryBrowserModule
 const { VideoPlayer } = VideoPlayerModule
 const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
+const { SplashScreen } = SplashScreenModule
 const { fetchSession } = fetchSessionModule
 const { signOut } = signOutModule
 const { SetupStatusSchema } = SetupModule
@@ -76,11 +76,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   }, [refresh])
 
   if (loadState === 'loading') {
-    return (
-      <main className="flex min-h-screen items-center justify-center">
-        <Spinner label="Loading Flux" size="lg" />
-      </main>
-    )
+    return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
   }
 
   if (loadState === 'unreachable' || status === null) {

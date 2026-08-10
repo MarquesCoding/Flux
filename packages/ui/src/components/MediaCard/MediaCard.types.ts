@@ -7,14 +7,24 @@
  */
 type MediaCardShape = 'poster' | 'wide'
 
+/**
+ * How much of a row an item is entitled to.
+ *
+ * `lead` is for the item a row is really about — larger, with its title set
+ * over the artwork. Everything being the same size is what makes a catalogue
+ * feel like a spreadsheet.
+ */
+type MediaCardEmphasis = 'lead' | 'standard'
+
 type MediaCardProps = {
   title: string
   subtitle: string
   badges?: string[]
   imageUrl?: string
   shape?: MediaCardShape
+  emphasis?: MediaCardEmphasis
   onSelect: () => void
   className?: string
 }
 
-export type { MediaCardProps, MediaCardShape }
+export type { MediaCardEmphasis, MediaCardProps, MediaCardShape }
