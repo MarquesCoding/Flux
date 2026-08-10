@@ -86,10 +86,6 @@ const MediaPreview = ({
           // The still frame is a perfectly good answer.
         })
       }
-
-      if (!abandoned) {
-        setIsPlaying(true)
-      }
     }
 
     const timer = setTimeout(() => {
@@ -147,11 +143,16 @@ const MediaPreview = ({
         className={`h-full w-full object-cover transition-opacity duration-700 ${
           isPlaying ? 'opacity-100' : 'opacity-0'
         }`}
+        // Whether something is playing is the element's own business, not a
+        // flag kept beside it. Tracking it separately meant the two could
+        // disagree — and when they did, the still came back over a clip that
+        // was still running, which is the one state that must be impossible.
+        onPlayingChange={setIsPlaying}
         onEnded={() => {
-          // Back to the still first, and only then is whoever owns this told.
-          // A rotation that begins while the video is still on screen is a
-          // cut; one that begins from the frame is a dissolve.
-          setIsPlaying(false)
+          // The element has already said it stopped, so the still is back by
+          // the time this runs: a rotation that begins while the video is
+          // still on screen is a cut, and one that begins from the frame is a
+          // dissolve.
           onEnded?.()
         }}
       />
