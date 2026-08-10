@@ -184,9 +184,9 @@ const LibraryBrowser = ({
         />
       ) : null}
 
-      <section className="flex flex-col gap-5 px-6">
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2">
+      <section className="flex flex-col gap-5 px-5 sm:px-10">
+        <header className="flux-rail flex items-center gap-3 overflow-x-auto pb-1">
+          <div className="flex shrink-0 items-center gap-2">
             {total === 0 ? null : (
               <span className="mr-1 text-sm text-text-muted">
                 {total === 1 ? '1 item' : `${String(total)} items`}
@@ -197,7 +197,8 @@ const LibraryBrowser = ({
               <Button
                 key={entry.id}
                 size="sm"
-                variant={entry.id === selectedId ? 'primary' : 'secondary'}
+                isPill
+                variant={entry.id === selectedId ? 'glossy' : 'secondary'}
                 onClick={() => {
                   setSelectedId(entry.id)
                 }}
@@ -207,10 +208,11 @@ const LibraryBrowser = ({
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
+              isPill
               isLoading={isScanning}
               onClick={() => {
                 void rescan(false)
@@ -223,13 +225,23 @@ const LibraryBrowser = ({
             <Button
               variant="ghost"
               size="sm"
+              isPill
               disabled={isScanning}
+              // Named once and shortened only on screen: two visible labels
+              // would both be read aloud, so what is spoken stays the same
+              // whatever the width.
+              aria-label="Full rescan"
               onClick={() => {
                 void rescan(true)
               }}
             >
               <IconRefreshAlert size={16} aria-hidden />
-              Full rescan
+              <span aria-hidden className="hidden sm:inline">
+                Full rescan
+              </span>
+              <span aria-hidden className="sm:hidden">
+                All
+              </span>
             </Button>
           </div>
         </header>
@@ -243,7 +255,7 @@ const LibraryBrowser = ({
         ) : (
           <div className="flex flex-col gap-10">
             {groupIntoRails(items).map((rail) => (
-              <Rail key={rail.id} title={rail.title}>
+              <Rail key={rail.id} title={rail.title} className="px-0">
                 {rail.items.map((media, position) => (
                   <li
                     key={media.id}

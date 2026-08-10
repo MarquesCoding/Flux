@@ -116,7 +116,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   // closing puts the library back exactly where it was.
   if (nowPlaying !== null) {
     return (
-      <main className="fixed inset-0 z-30 flex flex-col bg-black">
+      <main className="fixed inset-0 z-40 flex flex-col bg-black">
         <VideoPlayer
           media={nowPlaying}
           isImmersive
