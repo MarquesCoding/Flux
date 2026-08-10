@@ -53,7 +53,10 @@ const fetchLibraryItems = async (
 }
 
 /**
- * Asks the server to rescan a library.
+ * Asks the server to queue a rescan.
+ *
+ * Answers as soon as the scan is queued, not when it finishes: a real library
+ * takes minutes to walk and probe.
  */
 const scanLibrary = async (libraryId: string): Promise<boolean> => {
   const response = await fetch(`/api/libraries/${libraryId}/scan`, { method: 'POST' })

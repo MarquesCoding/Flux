@@ -74,9 +74,11 @@ const createMemoryLibraryService = (
   scan: (libraryId) =>
     Promise.resolve(
       state.libraries.some((entry) => entry.id === libraryId)
-        ? { added: 0, updated: 0, removed: 0, failed: 0 }
+        ? { jobId: `job-${libraryId}`, state: 'queued' }
         : null,
     ),
+
+  readScanState: () => Promise.resolve('completed'),
 })
 
 export type { MemoryState }

@@ -11,6 +11,7 @@ import createDatabaseLibraryServiceModule from '@FluxServer/library/createDataba
 import createMediaFileSystemModule from '@FluxServer/library/createMediaFileSystem'
 import TranscoderClientModule from '@FluxServer/transcoder/TranscoderClient'
 import createPlaybackServiceModule from '@FluxServer/playback/createPlaybackService'
+import createJobQueueModule from '@FluxServer/jobs/createJobQueue'
 
 const { createApp } = AppModule
 const { createAuth } = AuthModule
@@ -22,6 +23,7 @@ const { createDatabaseLibraryService } = createDatabaseLibraryServiceModule
 const { createMediaFileSystem } = createMediaFileSystemModule
 const { createTranscoderClient } = TranscoderClientModule
 const { createPlaybackService } = createPlaybackServiceModule
+const { createJobQueue } = createJobQueueModule
 
 const env = readEnv(process.env)
 const { db, schema } = createDatabase(env.DATABASE_URL)
@@ -59,10 +61,23 @@ const promoteToAdmin = async (email: string): Promise<void> => {
 
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL })
 
+// The queue and the library know about each other: the library enqueues
+// scans, and the queue calls the library's worker body to run them.
+const jobs = await createJobQueue({
+  connectionString: env.DATABASE_URL,
+  onScan: async (libraryId) => {
+    await libraryService.runScan(libraryId)
+  },
+  onProblem: (message) => {
+    process.stderr.write(`job queue: ${message}\n`)
+  },
+})
+
 const libraryService = createDatabaseLibraryService({
   db,
   files: createMediaFileSystem(),
   transcoder,
+  jobs,
   onProblem: (path, reason) => {
     process.stderr.write(`skipped ${path}: ${reason}\n`)
   },

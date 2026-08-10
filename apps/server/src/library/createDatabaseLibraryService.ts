@@ -10,6 +10,7 @@ import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/
 import type { MediaFileSystem } from './scanLibrary'
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
 import type { LibraryService } from './LibraryService'
+import type { JobQueue } from '@FluxServer/jobs/JobQueue'
 
 const { library, mediaItem } = SchemaModule
 const { createMediaStore } = createMediaStoreModule
@@ -20,6 +21,7 @@ type CreateDatabaseLibraryServiceOptions = {
   db: FluxDatabase
   files: MediaFileSystem
   transcoder: Transcoder
+  jobs: JobQueue
   onProblem?: (path: string, reason: string) => void
 }
 
@@ -32,12 +34,18 @@ const toIso = (value: Date | null): string | null => value?.toISOString() ?? nul
  * a row written by an older version that no longer matches the contract fails
  * here rather than reaching a client as a half-populated object.
  */
+/**
+ * The library backed by Postgres, plus the worker body the queue calls.
+ */
 const createDatabaseLibraryService = ({
   db,
   files,
   transcoder,
+  jobs,
   onProblem,
-}: CreateDatabaseLibraryServiceOptions): LibraryService => {
+}: CreateDatabaseLibraryServiceOptions): LibraryService & {
+  runScan: (libraryId: string) => Promise<void>
+} => {
   const store = createMediaStore(db)
 
   const findLibrary = async (id: string) => {
@@ -162,13 +170,28 @@ const createDatabaseLibraryService = ({
     },
 
     scan: async (libraryId) => {
-      const found = await findLibrary(libraryId)
-
-      if (found === null) {
+      if ((await findLibrary(libraryId)) === null) {
         return null
       }
 
-      return scanLibrary({
+      const jobId = await jobs.enqueueScan(libraryId)
+
+      // pg-boss returns null when a singleton job for this library is already
+      // queued. Reporting that as a failure would be wrong: the scan the
+      // caller asked for is going to happen.
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+    },
+
+    readScanState: (jobId) => jobs.readState(jobId),
+
+    runScan: async (libraryId) => {
+      const found = await findLibrary(libraryId)
+
+      if (found === null) {
+        return
+      }
+
+      await scanLibrary({
         libraryId,
         root: found.path,
         files,

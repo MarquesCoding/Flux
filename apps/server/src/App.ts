@@ -14,8 +14,14 @@ import SetupRouteModule from './routes/SetupRoute'
 const { suggestTrustedOrigins } = suggestTrustedOriginsModule
 const { healthRoute } = HealthRouteModule
 const { DEFAULT_LIMIT } = LibraryServiceModule
-const { listLibrariesRoute, createLibraryRoute, listItemsRoute, getMediaRoute, scanLibraryRoute } =
-  LibraryRouteModule
+const {
+  listLibrariesRoute,
+  createLibraryRoute,
+  listItemsRoute,
+  getMediaRoute,
+  scanLibraryRoute,
+  scanStateRoute,
+} = LibraryRouteModule
 const { explainRoute, startRoute, sessionFileRoute, directFileRoute, stopRoute } =
   PlaybackRouteModule
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
@@ -141,13 +147,19 @@ const createApp = ({
   })
 
   app.openapi(scanLibraryRoute, async (context) => {
-    const result = await library.scan(context.req.valid('param').id)
+    const queued = await library.scan(context.req.valid('param').id)
 
-    if (result === null) {
+    if (queued === null) {
       return context.json({ error: 'No such library.' }, 404)
     }
 
-    return context.json(result, 200)
+    return context.json(queued, 202)
+  })
+
+  app.openapi(scanStateRoute, async (context) => {
+    const { jobId } = context.req.valid('param')
+
+    return context.json({ jobId, state: await library.readScanState(jobId) }, 200)
   })
 
   app.openapi(healthRoute, async (context) => {

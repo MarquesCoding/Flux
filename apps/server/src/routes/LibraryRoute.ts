@@ -1,13 +1,11 @@
 import { createRoute, z } from '@hono/zod-openapi'
 import LibraryModule from '@FluxContracts/schemas/Library'
 
-const { LibrarySchema, MediaSummarySchema, MediaDetailSchema, ScanResultSchema, LIBRARY_KINDS } =
-  LibraryModule
+const { LibrarySchema, MediaSummarySchema, MediaDetailSchema, LIBRARY_KINDS } = LibraryModule
 
 const Library = LibrarySchema.openapi('Library')
 const MediaSummary = MediaSummarySchema.openapi('MediaSummary')
 const MediaDetail = MediaDetailSchema.openapi('MediaDetail')
-const ScanResult = ScanResultSchema.openapi('ScanResult')
 const NotFound = z.object({ error: z.string() }).openapi('LibraryNotFound')
 
 const CreateLibraryRequest = z
@@ -102,20 +100,43 @@ const getMediaRoute = createRoute({
   },
 })
 
+const ScanAccepted = z.object({ jobId: z.string(), state: z.string() }).openapi('ScanAccepted')
+
+/**
+ * Queues a scan.
+ *
+ * Answers 202 rather than waiting: walking and probing a real library takes
+ * minutes, and an HTTP request that long will be cut off by every proxy
+ * between the browser and the server while the work carries on unseen.
+ */
 const scanLibraryRoute = createRoute({
   method: 'post',
   path: '/api/libraries/{id}/scan',
   tags: ['Library'],
-  summary: 'Scan a library for new, changed and removed files',
+  summary: 'Queue a scan for new, changed and removed files',
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: {
-    200: {
-      description: 'What the scan changed',
-      content: { 'application/json': { schema: ScanResult } },
+    202: {
+      description: 'The scan was queued',
+      content: { 'application/json': { schema: ScanAccepted } },
     },
     404: {
       description: 'No such library',
       content: { 'application/json': { schema: NotFound } },
+    },
+  },
+})
+
+const scanStateRoute = createRoute({
+  method: 'get',
+  path: '/api/libraries/scans/{jobId}',
+  tags: ['Library'],
+  summary: 'Report how a queued scan is getting on',
+  request: { params: z.object({ jobId: z.string().min(1) }) },
+  responses: {
+    200: {
+      description: 'The state of the scan',
+      content: { 'application/json': { schema: ScanAccepted } },
     },
   },
 })
@@ -126,4 +147,5 @@ export default {
   listItemsRoute,
   getMediaRoute,
   scanLibraryRoute,
+  scanStateRoute,
 }

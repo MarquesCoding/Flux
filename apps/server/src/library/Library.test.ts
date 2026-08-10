@@ -162,15 +162,32 @@ describe('library routes', () => {
     expect(response.status).toBe(404)
   })
 
-  it('scans a library', async () => {
+  it('queues a scan rather than making the caller wait for it', async () => {
     const { app } = build()
 
     const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/scan`, {
       method: 'POST',
     })
 
+    expect(response.status).toBe(202)
+    expect(await response.json()).toMatchObject({ state: 'queued' })
+  })
+
+  it('reports how a queued scan is getting on', async () => {
+    const { app } = build()
+
+    const queued = z
+      .object({ jobId: z.string(), state: z.string() })
+      .parse(
+        await (
+          await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/scan`, { method: 'POST' })
+        ).json(),
+      )
+
+    const response = await app.request(`${BASE}/api/libraries/scans/${queued.jobId}`)
+
     expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({ added: 0, failed: 0 })
+    expect(await response.json()).toMatchObject({ state: 'completed' })
   })
 
   it('reports scanning an unknown library', async () => {

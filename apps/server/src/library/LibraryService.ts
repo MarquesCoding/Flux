@@ -1,4 +1,4 @@
-import type { Library, MediaDetail, MediaSummary, ScanResult } from '@FluxContracts/schemas/Library'
+import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
 
 type ListItemsOptions = {
   search?: string
@@ -27,7 +27,14 @@ type LibraryService = {
     options: ListItemsOptions,
   ) => Promise<{ items: MediaSummary[]; total: number } | null>
   getMedia: (id: string) => Promise<MediaDetail | null>
-  scan: (libraryId: string) => Promise<ScanResult | null>
+  /**
+   * Queues a scan and reports the job.
+   *
+   * Null means there is no such library. The scan itself runs in the
+   * background; callers poll rather than wait.
+   */
+  scan: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
+  readScanState: (jobId: string) => Promise<string>
 }
 
 const DEFAULT_LIMIT = 60
