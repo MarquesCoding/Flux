@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import AppModule from '@FluxServer/App'
 import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from '@FluxServer/library/createMemoryLibraryService'
+import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from './createMemoryPlaybackService'
 import { z } from 'zod'
@@ -13,6 +14,7 @@ const { createMemoryAuth } = createMemoryAuthModule
 const { createMemoryLibraryService } = createMemoryLibraryServiceModule
 const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
+const { createMemorySegmentService } = createMemorySegmentServiceModule
 
 const { PlaybackPlanSchema } = PlaybackPlanModule
 
@@ -91,6 +93,7 @@ const build = (options: { unsupported?: boolean } = {}) => {
     promoteToAdmin: () => Promise.resolve(),
     library: createMemoryLibraryService(),
     subtitles: createMemorySubtitleService(),
+    segments: createMemorySegmentService(),
     playback,
   })
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconAlertTriangle, IconX } from '@tabler/icons-react'
+import { IconAlertTriangle, IconPlayerTrackNext, IconX } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import SpinnerModule from '@FluxUI/Spinner'
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
@@ -11,6 +11,7 @@ import captureFrameModule from '@FluxWeb/playback/captureFrame'
 import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import captionStyleModule from '@FluxWeb/playback/captionStyle'
+import fetchSegmentsModule from '@FluxWeb/playback/fetchSegments'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
 import PlayerControlsModule from './components/PlayerControls/PlayerControls'
@@ -20,6 +21,7 @@ import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
+import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
 import type { PlaybackHealth } from './components/StreamStats/StreamStats.types'
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types'
 
@@ -40,6 +42,7 @@ const { PlayerControls } = PlayerControlsModule
 const { StreamStats } = StreamStatsModule
 const { CaptionSettings } = CaptionSettingsModule
 const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
+const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
 
 /**
  * An element that may be able to go full screen.
@@ -99,6 +102,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
   const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF)
   const [captionStyle, setCaptionStyle] = useState(readCaptionStyle)
   const [isEditingCaptions, setIsEditingCaptions] = useState(false)
+  const [segments, setSegments] = useState<MediaSegment[]>([])
   // What the current session was asked for. A transcode is produced from the
   // point it starts at, so seeking outside what has been encoded means asking
   // for a new one rather than moving within this one.
@@ -217,6 +221,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
     setDetail(null)
     setSubtitleTracks([])
     setSelectedSubtitleId(SUBTITLES_OFF)
+    setSegments([])
 
     void fetchTrickplay(media.id).then((found) => {
       if (!abandoned) {
@@ -227,6 +232,12 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
     void fetchMediaDetail(media.id).then((found) => {
       if (!abandoned) {
         setDetail(found)
+      }
+    })
+
+    void fetchSegments(media.id).then((found) => {
+      if (!abandoned) {
+        setSegments(found)
       }
     })
 
@@ -370,6 +381,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
   }, [captionStyle])
 
   const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null
+  const skippable = state === 'playing' ? skippableAt(segments, position) : null
 
   const skip = useCallback(
     (delta: number) => {
@@ -535,6 +547,22 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
             />
           </div>
         ) : null}
+
+        {skippable === null ? null : (
+          <div className="absolute bottom-24 right-6 z-10">
+            <Button
+              size="lg"
+              variant="secondary"
+              className="rounded-full px-6 shadow-lg"
+              onClick={() => {
+                seek(skippable.endSeconds)
+              }}
+            >
+              {describeSkip(skippable)}
+              <IconPlayerTrackNext size={18} fill="currentColor" aria-hidden />
+            </Button>
+          </div>
+        )}
 
         <div
           className={`absolute inset-x-3 bottom-3 transition-opacity ${

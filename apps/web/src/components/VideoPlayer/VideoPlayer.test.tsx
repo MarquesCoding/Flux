@@ -5,6 +5,7 @@ import VideoPlayerModule from './VideoPlayer'
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
 import type TrickplayModule from '@FluxWeb/playback/fetchTrickplay'
 import type SubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
+import type SegmentsModule from '@FluxWeb/playback/fetchSegments'
 
 const { VideoPlayer } = VideoPlayerModule
 
@@ -15,6 +16,7 @@ const teardownMock = vi.hoisted(() => vi.fn())
 const trickplayMock = vi.hoisted(() => vi.fn())
 const captureMock = vi.hoisted(() => vi.fn())
 const subtitlesMock = vi.hoisted(() => vi.fn())
+const segmentsMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
@@ -43,6 +45,14 @@ vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
 vi.mock('@FluxWeb/playback/captureFrame', () => ({
   default: { captureFrame: captureMock },
 }))
+
+vi.mock('@FluxWeb/playback/fetchSegments', async () => {
+  const actual = await vi.importActual<{ default: typeof SegmentsModule }>(
+    '@FluxWeb/playback/fetchSegments',
+  )
+
+  return { default: { ...actual.default, fetchSegments: segmentsMock } }
+})
 
 vi.mock('@FluxWeb/playback/fetchSubtitles', async () => {
   const actual = await vi.importActual<{ default: typeof SubtitlesModule }>(
@@ -139,6 +149,8 @@ beforeEach(() => {
   captureMock.mockReturnValue(null)
   subtitlesMock.mockReset()
   subtitlesMock.mockResolvedValue([])
+  segmentsMock.mockReset()
+  segmentsMock.mockResolvedValue([])
 
   startMock.mockResolvedValue({ kind: 'started', session: startedSession })
   attachMock.mockResolvedValue(teardownMock)
@@ -732,6 +744,86 @@ describe('VideoPlayer', () => {
     expect(await screen.findByRole('button', { name: 'Caption edge' })).toHaveTextContent(
       'Drop shadow',
     )
+  })
+
+  it('offers to skip an intro once playback reaches it', async () => {
+    segmentsMock.mockResolvedValue([
+      { kind: 'intro', startSeconds: 30, endSeconds: 120, source: 'fingerprint' },
+    ])
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    await settled()
+
+    expect(screen.queryByRole('button', { name: /Skip Intro/ })).not.toBeInTheDocument()
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 32 })
+    fireEvent.timeUpdate(element)
+
+    expect(await screen.findByRole('button', { name: /Skip Intro/ })).toBeInTheDocument()
+  })
+
+  it('jumps to the end of the intro when asked', async () => {
+    const actor = userEvent.setup()
+    segmentsMock.mockResolvedValue([
+      { kind: 'intro', startSeconds: 30, endSeconds: 120, source: 'fingerprint' },
+    ])
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    seekableTo(element, 600)
+    await settled()
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 32 })
+    fireEvent.timeUpdate(element)
+
+    await actor.click(await screen.findByRole('button', { name: /Skip Intro/ }))
+
+    expect(element).toHaveProperty('currentTime', 120)
+  })
+
+  it('stops offering the skip once the intro is well under way', async () => {
+    segmentsMock.mockResolvedValue([
+      { kind: 'intro', startSeconds: 30, endSeconds: 120, source: 'fingerprint' },
+    ])
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    await settled()
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 90 })
+    fireEvent.timeUpdate(element)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /Skip Intro/ })).not.toBeInTheDocument()
+    })
+  })
+
+  it('names what it is skipping', async () => {
+    segmentsMock.mockResolvedValue([
+      { kind: 'recap', startSeconds: 0, endSeconds: 40, source: 'chapters' },
+    ])
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    await settled()
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 2 })
+    fireEvent.timeUpdate(element)
+
+    expect(await screen.findByRole('button', { name: /Skip Recap/ })).toBeInTheDocument()
+  })
+
+  it('offers nothing for an item with no known segments', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    await settled()
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 32 })
+    fireEvent.timeUpdate(element)
+
+    expect(screen.queryByRole('button', { name: /Skip/ })).not.toBeInTheDocument()
   })
 
   it('sets a display name so devtools can identify it', () => {

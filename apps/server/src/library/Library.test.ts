@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import AppModule from '@FluxServer/App'
 import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from './createMemoryLibraryService'
+import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
 import LibraryContract from '@FluxContracts/schemas/Library'
@@ -14,6 +15,7 @@ const { createMemoryAuth } = createMemoryAuthModule
 const { createMemoryLibraryService } = createMemoryLibraryServiceModule
 const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
+const { createMemorySegmentService } = createMemorySegmentServiceModule
 
 const { MediaSummarySchema } = LibraryContract
 const { JsonValueSchema } = JsonValueModule
@@ -64,6 +66,7 @@ const build = (media: MediaDetail[] = []) => {
     promoteToAdmin: () => Promise.resolve(),
     library,
     subtitles: createMemorySubtitleService(),
+    segments: createMemorySegmentService(),
     playback: createMemoryPlaybackService(),
   })
 
@@ -303,6 +306,7 @@ describe('library routes', () => {
       }),
       playback: createMemoryPlaybackService(),
       subtitles: createMemorySubtitleService(),
+      segments: createMemorySegmentService(),
       readImage: () => Promise.resolve({ body: new ArrayBuffer(8), contentType: 'image/jpeg' }),
     })
 

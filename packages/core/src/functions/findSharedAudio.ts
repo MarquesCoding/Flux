@@ -47,6 +47,30 @@ const DEFAULT_MIN_SECONDS = 15
 const DEFAULT_TOLERATED_GAP_SECONDS = 3
 
 /**
+ * How much work is worth doing exhaustively.
+ *
+ * Trying every alignment is exact and costs the product of the two lengths. On
+ * ten minutes of audio that is ninety million comparisons per pair, which is
+ * minutes of arithmetic for one season. Below this, exhaustive is instant and
+ * worth keeping.
+ */
+const EXHAUSTIVE_LIMIT = 4_000_000
+
+/**
+ * The bits an offset is proposed from.
+ *
+ * The low bits compare the lowest frequency bands, which are the ones that
+ * survive re-encoding best. Indexing on them finds the frames two recordings
+ * genuinely share without demanding they agree bit for bit.
+ */
+const INDEX_MASK = 0xffff
+
+/**
+ * How many proposed alignments are worth scoring properly.
+ */
+const CANDIDATE_OFFSETS = 24
+
+/**
  * How many bits two hashes differ by.
  */
 const bitsDiffering = (left: number, right: number): number => {
@@ -121,6 +145,50 @@ const longestRunAt = (
 }
 
 /**
+ * Proposes the alignments worth scoring.
+ *
+ * Every frame of one recording votes for the offsets at which a frame of the
+ * other carries the same robust bits. Real shared audio casts thousands of
+ * votes at one offset; coincidences scatter theirs. Scoring only the winners
+ * turns a quadratic search into a linear one.
+ *
+ * Alignment cannot be approximated — a run misaligned by a single frame
+ * matches nothing at all — which is why this narrows *which* offsets to try
+ * rather than how carefully to try them.
+ */
+const proposeOffsets = (left: number[], right: number[]): number[] => {
+  const positions = new Map<number, number[]>()
+
+  for (const [index, hash] of right.entries()) {
+    const key = hash & INDEX_MASK
+    const seen = positions.get(key)
+
+    if (seen === undefined) {
+      positions.set(key, [index])
+    } else if (seen.length < 64) {
+      // A hash appearing everywhere is silence or a drone, and says nothing
+      // about alignment. Capping keeps one such hash from dominating.
+      seen.push(index)
+    }
+  }
+
+  const votes = new Map<number, number>()
+
+  for (const [index, hash] of left.entries()) {
+    for (const position of positions.get(hash & INDEX_MASK) ?? []) {
+      const offset = position - index
+
+      votes.set(offset, (votes.get(offset) ?? 0) + 1)
+    }
+  }
+
+  return [...votes.entries()]
+    .sort((first, second) => second[1] - first[1])
+    .slice(0, CANDIDATE_OFFSETS)
+    .map(([offset]) => offset)
+}
+
+/**
  * Finds the longest stretch of audio two recordings have in common.
  *
  * Two episodes of the same series share exactly one substantial thing: the
@@ -153,7 +221,15 @@ const findSharedAudio = (
 
   let best = { start: 0, length: 0, offset: 0 }
 
-  for (let offset = -(left.length - 1); offset < right.length; offset += 1) {
+  const offsets =
+    left.length * right.length <= EXHAUSTIVE_LIMIT
+      ? Array.from(
+          { length: left.length + right.length - 1 },
+          (_, index) => index - left.length + 1,
+        )
+      : proposeOffsets(left, right)
+
+  for (const offset of offsets) {
     const run = longestRunAt(left, right, offset, maxBitsDiffering, toleratedGap)
 
     if (run.length > best.length) {
@@ -232,6 +308,7 @@ export type { CompareOptions, Range, SharedAudio }
 
 export default {
   findSharedAudio,
+  proposeOffsets,
   agreeRange,
   bitsDiffering,
   longestRunAt,

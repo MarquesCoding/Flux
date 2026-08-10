@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { serve } from '@hono/node-server'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { count, eq } from 'drizzle-orm'
@@ -13,6 +14,10 @@ import createFilenameMetadataProviderModule from '@FluxServer/library/createFile
 import createMediaFileSystemModule from '@FluxServer/library/createMediaFileSystem'
 import TranscoderClientModule from '@FluxServer/transcoder/TranscoderClient'
 import createImageCacheModule from '@FluxServer/images/createImageCache'
+import detectLibrarySegmentsModule from '@FluxServer/segments/detectLibrarySegments'
+import createDatabaseSegmentServiceModule from '@FluxServer/segments/createDatabaseSegmentService'
+import createChapterSegmentProviderModule from '@FluxServer/segments/createChapterSegmentProvider'
+import createFingerprintSegmentProviderModule from '@FluxServer/segments/createFingerprintSegmentProvider'
 import createSidecarSubtitleServiceModule from '@FluxServer/subtitles/createSidecarSubtitleService'
 import createPlaybackServiceModule from '@FluxServer/playback/createPlaybackService'
 import createJobQueueModule from '@FluxServer/jobs/createJobQueue'
@@ -31,6 +36,21 @@ const { createTranscoderClient } = TranscoderClientModule
 const { createPlaybackService } = createPlaybackServiceModule
 const { createSidecarSubtitleService } = createSidecarSubtitleServiceModule
 const { createImageCache } = createImageCacheModule
+const { createDatabaseSegmentService } = createDatabaseSegmentServiceModule
+const { detectLibrarySegments } = detectLibrarySegmentsModule
+
+/**
+ * Chapters as they were stored, which may be from an older shape.
+ */
+const ChapterListSchema = z.array(
+  z.object({
+    title: z.string().nullable(),
+    startSeconds: z.number(),
+    endSeconds: z.number(),
+  }),
+)
+const { createChapterSegmentProvider } = createChapterSegmentProviderModule
+const { createFingerprintSegmentProvider } = createFingerprintSegmentProviderModule
 const { createJobQueue } = createJobQueueModule
 
 const env = readEnv(process.env)
@@ -83,6 +103,56 @@ const jobs = await createJobQueue({
   connectionString: env.DATABASE_URL,
   onScan: async (libraryId, force) => {
     await libraryService.runScan(libraryId, force)
+
+    // Detection runs after the scan rather than inside it. Walking a directory
+    // takes seconds; listening to a season takes minutes, and a library should
+    // be browsable long before its intros are known.
+    const marked = await detectLibrarySegments({
+      libraryId,
+      providers: segmentProviders,
+      segments: segmentService,
+      listCandidates: async (id) => {
+        const rows = await db
+          .select({
+            mediaId: mediaItem.id,
+            path: mediaItem.path,
+            durationSeconds: mediaItem.durationSeconds,
+            seriesTitle: mediaItem.seriesTitle,
+            seasonNumber: mediaItem.seasonNumber,
+            chapters: mediaItem.chapters,
+            container: mediaItem.container,
+            bitrateKbps: mediaItem.bitrateKbps,
+          })
+          .from(mediaItem)
+          .where(eq(mediaItem.libraryId, id))
+
+        return rows.map((row) => ({
+          mediaId: row.mediaId,
+          path: row.path,
+          durationSeconds: row.durationSeconds,
+          seriesTitle: row.seriesTitle,
+          seasonNumber: row.seasonNumber,
+          probe: {
+            container: row.container,
+            durationSeconds: row.durationSeconds,
+            bitrateKbps: row.bitrateKbps,
+            video: null,
+            // Only the chapters matter here. Detection reads names a release
+            // wrote; nothing else about the streams is consulted.
+            audioStreams: [],
+            subtitleStreams: [],
+            chapters: ChapterListSchema.catch([]).parse(row.chapters),
+          },
+        }))
+      },
+      onProblem: (provider, reason) => {
+        process.stderr.write(`segments: ${provider}: ${reason}\n`)
+      },
+    })
+
+    if (marked > 0) {
+      process.stdout.write(`marked segments on ${marked.toString()} item(s)\n`)
+    }
   },
   onProblem: (message) => {
     process.stderr.write(`job queue: ${message}\n`)
@@ -127,6 +197,20 @@ const subtitleService = createSidecarSubtitleService({
   },
 })
 
+const segmentService = createDatabaseSegmentService(db)
+
+// Chapters first: where a release named its own intro there is nothing to
+// detect, and listening to a whole season to rediscover it would be absurd.
+const segmentProviders = [
+  createChapterSegmentProvider(),
+  createFingerprintSegmentProvider({
+    transcoder,
+    onProblem: (path, reason) => {
+      process.stderr.write(`segments ${path}: ${reason}\n`)
+    },
+  }),
+]
+
 const images = createImageCache({
   directory: env.IMAGE_CACHE_DIR,
   onProblem: (url, reason) => {
@@ -168,6 +252,7 @@ const app = createApp({
   library: libraryService,
   playback: playbackService,
   subtitles: subtitleService,
+  segments: segmentService,
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
 })

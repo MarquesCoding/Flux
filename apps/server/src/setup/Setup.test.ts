@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import AppModule from '@FluxServer/App'
 import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from '@FluxServer/library/createMemoryLibraryService'
+import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
 
@@ -10,6 +11,7 @@ const { createMemoryAuth } = createMemoryAuthModule
 const { createMemoryLibraryService } = createMemoryLibraryServiceModule
 const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
+const { createMemorySegmentService } = createMemorySegmentServiceModule
 
 const adminPayload = {
   admin: { name: 'Operator', email: 'admin@flux.test', password: 'a-long-enough-password' },
@@ -29,6 +31,7 @@ const buildApp = (initialUserCount = 0) => {
     promoteToAdmin,
     library: createMemoryLibraryService(),
     subtitles: createMemorySubtitleService(),
+    segments: createMemorySegmentService(),
     playback: createMemoryPlaybackService(),
   })
 

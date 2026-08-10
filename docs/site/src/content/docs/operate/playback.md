@@ -105,3 +105,35 @@ properties the cues get, so what you choose is what appears.
 The settings live in the browser rather than on your account, because captions
 are read at arm's length on a laptop and across a room on a television, and the
 right size differs per screen rather than per person.
+
+## Skipping intros
+
+Flux marks the intro, recap and credits of an episode, and offers a button for
+the first few seconds of each. Someone who wants to watch the theme should not
+spend the whole of it being asked whether they meant it.
+
+Ranges come from two places, in order.
+
+**Chapters.** Where a release named a chapter `Intro`, `Opening`, `Previously`
+or `Credits`, that is exact and free — nothing is detected and no audio is read.
+Only unambiguous names are used: `Part 1` might be anything, and guessing wrong
+skips the opening scene.
+
+**Listening.** Otherwise Flux compares the episodes of a season to each other.
+The first ten minutes of each is decoded to mono, reduced to a compact hash per
+frame of its spectral shape, and every pair of episodes is compared at every
+plausible alignment. The longest run of matching frames is the audio those two
+episodes share — and two episodes of one series share exactly one substantial
+thing. A range that several independent pairs agree on is kept; one that a
+single pair found is discarded, because one pair can agree on a coincidence.
+
+Detection needs at least three episodes in a season, runs after a scan rather
+than during it, and compares at most eight episodes — a theme is no more
+discoverable from twenty examples than from eight. Seasons are compared
+separately, since a theme is often re-recorded between them, and films are
+skipped entirely as they have nothing to be compared against.
+
+A range is only believed if it is plausible: an intro is between ten seconds and
+three minutes and begins in the first part of the runtime. A measurement saying
+the intro is forty minutes long is wrong however confidently it was arrived at,
+and no button is far better than one that skips half the episode.

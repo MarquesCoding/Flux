@@ -6,11 +6,13 @@ import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
 import LibraryServiceModule from '@FluxServer/library/LibraryService'
 import type { LibraryService } from '@FluxServer/library/LibraryService'
 import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService'
+import type { SegmentService } from '@FluxServer/segments/SegmentService'
 import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
 import HealthRouteModule from './routes/HealthRoute'
 import LibraryRouteModule from './routes/LibraryRoute'
 import PlaybackRouteModule from './routes/PlaybackRoute'
 import ImageRouteModule from '@FluxServer/routes/ImageRoute'
+import SegmentRouteModule from '@FluxServer/routes/SegmentRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
 
@@ -37,6 +39,7 @@ const {
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
 const { listSubtitlesRoute, readSubtitleRoute } = SubtitleRouteModule
 const { mediaImageRoute } = ImageRouteModule
+const { listSegmentsRoute } = SegmentRouteModule
 
 const SERVER_VERSION = '0.0.0'
 
@@ -48,6 +51,7 @@ type CreateAppOptions = {
   library: LibraryService
   playback: PlaybackService
   subtitles: SubtitleService
+  segments: SegmentService
   /**
    * Reads artwork from Flux's own cache, fetching it once if needed.
    *
@@ -76,6 +80,7 @@ const createApp = ({
   library,
   playback,
   subtitles,
+  segments,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
 }: CreateAppOptions) => {
@@ -298,6 +303,16 @@ const createApp = ({
     }
 
     return context.body(file.body, 200, { 'content-type': file.contentType })
+  })
+
+  app.openapi(listSegmentsRoute, async (context) => {
+    const { mediaId } = context.req.valid('param')
+
+    if ((await library.getMedia(mediaId)) === null) {
+      return context.json({ error: 'No such media item.' }, 404)
+    }
+
+    return context.json({ segments: await segments.list(mediaId) }, 200)
   })
 
   app.openapi(mediaImageRoute, async (context) => {

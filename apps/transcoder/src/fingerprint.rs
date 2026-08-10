@@ -9,7 +9,22 @@
 //! themselves. A difference of differences survives a change of volume, a
 //! change of codec and a change of bitrate, all of which move absolute energies
 //! around while leaving the shape of the spectrum intact.
-
+//!
+//! It is unreliable on audio that barely changes. A sustained tone or near
+//! silence has almost no frame-to-frame movement to measure, so the sign of
+//! each difference is decided by rounding noise and two encodes of the same
+//! passage disagree. Music and speech move far too much for this to matter,
+//! but it is why a detected range is only trusted when several independent
+//! pairs of episodes agree on it.
+// Frame sizes, band counts and sample rates are all far below the point where a
+// float loses an integer, and the arithmetic is approximate by nature: the
+// result is the sign of a difference rather than a measurement.
+#![allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "spectral arithmetic on values bounded well inside float precision"
+)]
 use std::f32::consts::PI;
 use std::path::Path;
 use std::process::Stdio;

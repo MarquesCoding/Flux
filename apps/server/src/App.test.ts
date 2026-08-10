@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import AppModule from './App'
 import createMemoryAuthModule from './auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from './library/createMemoryLibraryService'
+import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from './playback/createMemoryPlaybackService'
 
@@ -10,6 +11,7 @@ const { createMemoryAuth } = createMemoryAuthModule
 const { createMemoryLibraryService } = createMemoryLibraryServiceModule
 const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
+const { createMemorySegmentService } = createMemorySegmentServiceModule
 
 const { auth, settings } = createMemoryAuth()
 const app = createApp({
@@ -19,6 +21,7 @@ const app = createApp({
   promoteToAdmin: () => Promise.resolve(),
   library: createMemoryLibraryService(),
   subtitles: createMemorySubtitleService(),
+  segments: createMemorySegmentService(),
   playback: createMemoryPlaybackService(),
 })
 
@@ -42,6 +45,7 @@ describe('createApp', () => {
       promoteToAdmin: () => Promise.resolve(),
       library: createMemoryLibraryService(),
       subtitles: createMemorySubtitleService(),
+      segments: createMemorySegmentService(),
       playback: createMemoryPlaybackService(),
       isTranscoderReachable: () => Promise.resolve(true),
     })

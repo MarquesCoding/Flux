@@ -1,0 +1,135 @@
+import type { MediaSegment, SegmentKind } from '@FluxContracts/schemas/MediaSegment'
+import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient'
+
+type SegmentCandidate = {
+  mediaId: string
+  path: string
+  probe: MediaProbe
+  durationSeconds: number
+}
+
+/**
+ * Where the marked stretches of an item come from.
+ *
+ * The extension point a plugin implements to bring its own detection. Flux
+ * ships two: one that reads chapters a release already named, and one that
+ * finds what the episodes of a season have in common.
+ *
+ * A provider is given a whole group at once rather than one item at a time,
+ * because the interesting question — what do these files share — cannot be
+ * answered from a single file.
+ */
+type SegmentProvider = {
+  name: string
+  detect: (group: SegmentCandidate[]) => Promise<Map<string, MediaSegment[]>>
+}
+
+/**
+ * The bounds a detected intro has to fall inside to be believed.
+ *
+ * A theme tune is not eight seconds and not eight minutes, and it does not
+ * begin an hour into an episode. Anything outside this is a coincidence that
+ * happened to survive the comparison.
+ */
+const INTRO_BOUNDS = {
+  minSeconds: 10,
+  maxSeconds: 180,
+  /**
+   * How far into a runtime an intro may begin, as a fraction.
+   */
+  maxStartFraction: 0.4,
+} as const
+
+const CREDITS_BOUNDS = {
+  minSeconds: 15,
+  maxSeconds: 300,
+  /**
+   * How late credits must begin to be credits rather than a theme.
+   */
+  minStartFraction: 0.6,
+} as const
+
+/**
+ * Whether a range is plausible for the kind of thing it claims to be.
+ *
+ * Detection produces measurements, and a measurement that says the intro is
+ * forty minutes long is wrong however confidently it was arrived at. Refusing
+ * it leaves the viewer with no button, which is far better than a button that
+ * skips half the episode.
+ */
+const isPlausible = (
+  segment: { kind: SegmentKind; startSeconds: number; endSeconds: number },
+  durationSeconds: number,
+): boolean => {
+  const length = segment.endSeconds - segment.startSeconds
+
+  if (length <= 0 || segment.startSeconds < 0 || segment.endSeconds > durationSeconds + 1) {
+    return false
+  }
+
+  if (segment.kind === 'intro' || segment.kind === 'recap') {
+    return (
+      length >= INTRO_BOUNDS.minSeconds &&
+      length <= INTRO_BOUNDS.maxSeconds &&
+      segment.startSeconds <= durationSeconds * INTRO_BOUNDS.maxStartFraction
+    )
+  }
+
+  if (segment.kind === 'credits') {
+    return (
+      length >= CREDITS_BOUNDS.minSeconds &&
+      length <= CREDITS_BOUNDS.maxSeconds &&
+      segment.startSeconds >= durationSeconds * CREDITS_BOUNDS.minStartFraction
+    )
+  }
+
+  return true
+}
+
+/**
+ * Asks each provider in turn and keeps the first answer for each kind.
+ *
+ * Ordered rather than merged, so a chapter a human named beats a range a
+ * machine measured. A provider that throws is skipped: detection is an
+ * improvement to playback and must never stop it.
+ */
+const resolveSegments = async (
+  providers: SegmentProvider[],
+  group: SegmentCandidate[],
+  onProblem?: (provider: string, reason: string) => void,
+): Promise<Map<string, MediaSegment[]>> => {
+  const resolved = new Map<string, MediaSegment[]>()
+  const durations = new Map(group.map((item) => [item.mediaId, item.durationSeconds]))
+
+  for (const provider of providers) {
+    let found: Map<string, MediaSegment[]>
+
+    try {
+      found = await provider.detect(group)
+    } catch (error) {
+      onProblem?.(provider.name, error instanceof Error ? error.message : 'Detection failed.')
+
+      continue
+    }
+
+    for (const [mediaId, segments] of found) {
+      const existing = resolved.get(mediaId) ?? []
+      const kinds = new Set(existing.map((segment) => segment.kind))
+
+      const additions = segments.filter(
+        (segment) =>
+          !kinds.has(segment.kind) && isPlausible(segment, durations.get(mediaId) ?? Infinity),
+      )
+
+      if (additions.length > 0) {
+        resolved.set(mediaId, [...existing, ...additions])
+      }
+    }
+  }
+
+  return resolved
+}
+
+export type { SegmentCandidate, SegmentProvider }
+
+export default { resolveSegments, isPlausible, INTRO_BOUNDS, CREDITS_BOUNDS }

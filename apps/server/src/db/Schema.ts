@@ -150,6 +150,25 @@ const library = pgTable('library', {
   lastScannedAt: timestamp('lastScannedAt'),
 })
 
+const mediaSegment = pgTable(
+  'media_segment',
+  {
+    id: text('id').primaryKey(),
+    mediaItemId: text('mediaItemId')
+      .notNull()
+      .references(() => mediaItem.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    startSeconds: real('startSeconds').notNull(),
+    endSeconds: real('endSeconds').notNull(),
+    source: text('source').notNull(),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('media_segment_kind_idx').on(table.mediaItemId, table.kind),
+    index('media_segment_item_idx').on(table.mediaItemId),
+  ],
+)
+
 const mediaItem = pgTable(
   'media_item',
   {
@@ -171,6 +190,7 @@ const mediaItem = pgTable(
     height: integer('height').notNull(),
     audioStreams: jsonb('audioStreams').notNull(),
     subtitleStreams: jsonb('subtitleStreams').notNull(),
+    chapters: jsonb('chapters'),
     seriesTitle: text('seriesTitle'),
     seasonNumber: integer('seasonNumber'),
     episodeNumber: integer('episodeNumber'),
@@ -214,6 +234,7 @@ const userProfile = pgTable('user_profile', {
 export {
   library,
   mediaItem,
+  mediaSegment,
   user,
   session,
   account,
@@ -246,6 +267,7 @@ export default {
   fluxSchema,
   library,
   mediaItem,
+  mediaSegment,
   user,
   session,
   account,

@@ -58,6 +58,7 @@ const harness = (options: {
     startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
     readSessionFile: () => Promise.resolve(null),
     readFile: () => Promise.resolve(null),
+    fingerprint: () => Promise.resolve({ framesPerSecond: 15.625, startSeconds: 0, hashes: [] }),
     requestTrickplay: () =>
       Promise.resolve({
         id: 'thumbs',
@@ -225,6 +226,8 @@ describe('scanLibrary', () => {
         startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
         readSessionFile: () => Promise.resolve(null),
         readFile: () => Promise.resolve(null),
+        fingerprint: () =>
+          Promise.resolve({ framesPerSecond: 15.625, startSeconds: 0, hashes: [] }),
         requestTrickplay: () =>
           Promise.resolve({
             id: 'thumbs',

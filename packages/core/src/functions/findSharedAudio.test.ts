@@ -158,4 +158,36 @@ describe('agreeRange', () => {
   it('answers with the one measurement it has', () => {
     expect(agreeRange([range(10, 90)])).toMatchObject({ startSeconds: 10, endSeconds: 90 })
   })
+
+  it('still finds the run when the sequences are too long to try every alignment', () => {
+    // Past the exhaustive limit, alignments are proposed rather than swept.
+    const theme = distinct(1, 900)
+    const left = [...distinct(2, 400), ...theme, ...distinct(3, 1500)]
+    const right = [...distinct(4, 900), ...theme, ...distinct(5, 1000)]
+
+    const found = findSharedAudio(left, right, { framesPerSecond: FPS, minSeconds: 2 })
+
+    expect(found?.frames).toBeGreaterThan(800)
+    expect(found?.left.startSeconds).toBeCloseTo(40, 0)
+    expect(found?.right.startSeconds).toBeCloseTo(90, 0)
+  })
+
+  it('finishes a season sized comparison in a reasonable time', () => {
+    const theme = distinct(1, 940)
+    const left = [...distinct(2, 300), ...theme, ...distinct(3, 8000)]
+    const right = [...distinct(4, 700), ...theme, ...distinct(5, 8000)]
+
+    const started = performance.now()
+
+    findSharedAudio(left, right, { framesPerSecond: FPS, minSeconds: 15 })
+
+    expect(performance.now() - started).toBeLessThan(1000)
+  })
+
+  it('reports nothing rather than inventing a run when long sequences share nothing', () => {
+    const left = distinct(2, 6000)
+    const right = distinct(3, 6000)
+
+    expect(findSharedAudio(left, right, { framesPerSecond: FPS, minSeconds: 15 })).toBeNull()
+  })
 })

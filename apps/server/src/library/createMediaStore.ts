@@ -51,6 +51,7 @@ const createMediaStore = (db: FluxDatabase): MediaStore => ({
       height: video.height,
       audioStreams: row.probe.audioStreams,
       subtitleStreams: row.probe.subtitleStreams,
+      chapters: row.probe.chapters,
       seriesTitle: row.episode.seriesTitle,
       seasonNumber: row.episode.seasonNumber,
       episodeNumber: row.episode.episodeNumber,

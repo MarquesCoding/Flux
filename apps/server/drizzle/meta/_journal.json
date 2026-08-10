@@ -29,6 +29,20 @@
       "when": 1786370323392,
       "tag": "0003_nostalgic_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786371783713,
+      "tag": "0004_futuristic_marten_broadcloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786372190897,
+      "tag": "0005_fixed_callisto",
+      "breakpoints": true
     }
   ]
 }

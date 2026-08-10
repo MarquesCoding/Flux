@@ -97,6 +97,12 @@ const CapabilitiesSchema = z.object({
   hardwareAccels: z.array(z.string()),
 })
 
+const FingerprintSchema = z.object({
+  framesPerSecond: z.number().positive(),
+  startSeconds: z.number().nonnegative(),
+  hashes: z.array(z.number()),
+})
+
 const TrickplayIndexSchema = z.object({
   id: z.string(),
   intervalSeconds: z.number(),
@@ -109,6 +115,13 @@ const TrickplayIndexSchema = z.object({
 })
 
 type MediaProbe = z.infer<typeof MediaProbeSchema>
+type Fingerprint = z.infer<typeof FingerprintSchema>
+
+type FingerprintRequest = {
+  inputPath: string
+  startSeconds: number
+  durationSeconds: number
+}
 type TrickplayIndex = z.infer<typeof TrickplayIndexSchema>
 
 type TrickplayRequest = {
@@ -156,6 +169,14 @@ type Transcoder = {
   /**
    * Renders seek-bar previews, or reuses ones already on disk.
    */
+  /**
+   * Reduces a window of a file's audio to one hash per frame.
+   *
+   * Answers with hashes rather than a verdict: what two episodes share is
+   * arithmetic over them, and that belongs where it can be tested without
+   * media.
+   */
+  fingerprint: (request: FingerprintRequest) => Promise<Fingerprint>
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>
   stopSession: (id: string) => Promise<boolean>
@@ -314,6 +335,9 @@ const createTranscoderClient = ({
       }
     },
 
+    fingerprint: async (request) =>
+      FingerprintSchema.parse(await (await postJson('/fingerprint', request)).json()),
+
     requestTrickplay: async (request) =>
       TrickplayIndexSchema.parse(await (await postJson('/trickplay', request)).json()),
 
@@ -352,6 +376,8 @@ export type {
   TranscoderCapabilities,
   TrickplayIndex,
   TrickplayRequest,
+  Fingerprint,
+  FingerprintRequest,
   TranscoderFile,
   TranscoderRangedFile,
 }
