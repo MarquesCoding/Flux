@@ -372,3 +372,18 @@ button:disabled,
 [role='button'][aria-disabled='true'] {
   cursor: not-allowed;
 }
+
+/*
+ * Subtitles over a preview.
+ *
+ * A preview is faded into the page along its bottom edge, and a browser draws
+ * cues inside the video where that fade covers them. They are lifted clear in
+ * script; this gives them something to sit on, because a white line over a
+ * bright frame is unreadable wherever it lands.
+ */
+.flux-preview::cue {
+  background: rgb(0 0 0 / 0.78);
+  color: #fff;
+  font-size: 0.85em;
+  line-height: 1.3;
+}

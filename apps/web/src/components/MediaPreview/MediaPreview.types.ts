@@ -47,6 +47,14 @@ type MediaPreviewProps = {
    */
   hasSubtitles?: boolean
   /**
+   * Whether the clip runs again when it reaches the end.
+   *
+   * Defaults to whether anything is waiting for it to finish. A page about
+   * one item has nothing to hand over to, but it does have something to go
+   * back to — the picture and the words that describe it.
+   */
+  repeats?: boolean
+  /**
    * Called when the clip has finished.
    *
    * A hero waits for this before moving on, so it changes item from a still

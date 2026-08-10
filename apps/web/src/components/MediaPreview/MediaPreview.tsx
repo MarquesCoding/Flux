@@ -30,6 +30,15 @@ const SETTLE_MILLISECONDS = 1200
 const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`
 
 /**
+ * How far down the picture a subtitle sits, as a percentage.
+ *
+ * Well clear of the fade along the bottom edge and of the controls in the
+ * corner. A preview is masked into the page along that edge, so a cue on the
+ * last line is drawn underneath the very gradient that hides it.
+ */
+const CUE_LINE = 50
+
+/**
  * A glimpse of what an item looks like.
  *
  * The clip is a file made when the item was imported, not a stream produced on
@@ -56,6 +65,7 @@ const MediaPreview = ({
   tint = null,
   hasSound = false,
   hasSubtitles = false,
+  repeats,
   onEnded,
   onPlayingChange,
 }: MediaPreviewProps) => {
@@ -94,7 +104,7 @@ const MediaPreview = ({
   // handler because it rotates; a dialog and a hovered card have nowhere to
   // go, and dropping them back to a photograph after twenty four seconds
   // reads as the preview breaking.
-  const loops = onEnded === undefined
+  const loops = repeats ?? onEnded === undefined
 
   const isShowingFrame = !hasStarted || hasEnded
   const startSeconds = Math.floor(durationSeconds * startFraction)
@@ -166,6 +176,37 @@ const MediaPreview = ({
     }
   }, [mediaId, settleMilliseconds, hasSound])
 
+  // Cues sit where the picture is, not where the page fades it out. A preview
+  // is masked into the surface along its bottom edge, and a subtitle placed on
+  // the last line lands inside that fade — technically drawn, practically
+  // invisible.
+  useEffect(() => {
+    const element = videoRef.current
+
+    if (element === null || subtitles === null) {
+      return
+    }
+
+    const lift = () => {
+      for (const track of Array.from(element.textTracks)) {
+        for (const cue of Array.from(track.cues ?? [])) {
+          if ('line' in cue && 'snapToLines' in cue) {
+            cue.snapToLines = false
+            cue.line = CUE_LINE
+          }
+        }
+      }
+    }
+
+    lift()
+
+    element.textTracks.addEventListener('addtrack', lift)
+
+    return () => {
+      element.textTracks.removeEventListener('addtrack', lift)
+    }
+  }, [subtitles])
+
   return (
     <div
       // Tinted rather than black, and tinted before anything has loaded, so
@@ -195,7 +236,7 @@ const MediaPreview = ({
       <VideoSurface
         label="Preview"
         videoRef={videoRef}
-        className={`h-full w-full object-cover transition-opacity duration-700 ${
+        className={`flux-preview h-full w-full object-cover transition-opacity duration-700 ${
           isShowingFrame ? 'opacity-0' : 'opacity-100'
         }`}
         // Whether something is playing is the element's own business, not a
@@ -247,11 +288,11 @@ const MediaPreview = ({
 
           // Back to the frame first, and only then is whoever owns this told:
           // a rotation that begins while the video is on screen is a cut, and
-          // one that begins from the frame is a dissolve.
-          // Reaching here means somebody is waiting to be told, since a clip
-          // with nobody waiting has already started itself again above.
+          // one that begins from the frame is a dissolve. Not everything that
+          // plays once has somebody waiting — a page about one item simply
+          // goes back to being a page about one item.
           setHasEnded(true)
-          onEnded()
+          onEnded?.()
         }}
       />
 

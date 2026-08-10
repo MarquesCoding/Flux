@@ -131,12 +131,20 @@ const MediaDetailDialog = ({
             durationSeconds={shown.durationSeconds}
             hasSound
             hasSubtitles
+            // Once, then back to the picture and the words about it. A clip
+            // that keeps restarting behind everything somebody is trying to
+            // read is a clip competing with the page it belongs to.
+            repeats={false}
             fills
             onPlayingChange={setIsPreviewPlaying}
           />
         </div>
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent" />
+        {/* Only the lower part, which is all the blend into the panel needs.
+            Covering the whole picture dimmed everything drawn inside it —
+            subtitles included, since a browser draws those within the video
+            rather than over it. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-surface via-surface/50 to-transparent" />
 
         <div className="absolute right-4 top-4">
           <IconButton label="Close" onClick={onClose} className="bg-black/50 text-white">
