@@ -17,6 +17,7 @@ use tower::ServiceExt;
 
 use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
+use flux_transcoder::trickplay::TrickplayRegistry;
 
 fn ffmpeg() -> String {
     std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
@@ -71,6 +72,7 @@ fn app(name: &str) -> axum::Router {
             max_concurrent: 2,
         }),
         ffprobe: ffprobe(),
+        trickplay: TrickplayRegistry::default(),
         media_roots: Vec::new(),
     })
 }
@@ -93,7 +95,7 @@ async fn call(app: &axum::Router, request: Request<Body>) -> (StatusCode, Vec<u8
     (status, bytes)
 }
 
-fn request(body: serde_json::Value) -> Request<Body> {
+fn request(body: &serde_json::Value) -> Request<Body> {
     Request::builder()
         .method("POST")
         .uri("/trickplay")
@@ -116,7 +118,7 @@ fn body(interval: u32) -> serde_json::Value {
 async fn renders_sheets_a_browser_can_draw() {
     let app = app("renders");
 
-    let (status, bytes) = call(&app, request(body(4))).await;
+    let (status, bytes) = call(&app, request(&body(4))).await;
 
     assert_eq!(
         status,
@@ -150,7 +152,7 @@ async fn renders_sheets_a_browser_can_draw() {
 
 #[tokio::test]
 async fn the_thumbnail_shape_follows_the_source() {
-    let (status, bytes) = call(&app("shape"), request(body(4))).await;
+    let (status, bytes) = call(&app("shape"), request(&body(4))).await;
 
     assert_eq!(status, StatusCode::OK);
 
@@ -163,7 +165,7 @@ async fn the_thumbnail_shape_follows_the_source() {
 #[tokio::test]
 async fn serves_an_index_every_player_understands() {
     let app = app("index");
-    let (_, bytes) = call(&app, request(body(4))).await;
+    let (_, bytes) = call(&app, request(&body(4))).await;
     let index: serde_json::Value = serde_json::from_slice(&bytes).expect("reads the index");
     let path = index["index"].as_str().expect("names the index");
 
@@ -189,10 +191,10 @@ async fn serves_an_index_every_player_understands() {
 async fn asking_twice_reuses_the_sheets_rather_than_decoding_again() {
     let app = app("reuse");
 
-    let (_, first) = call(&app, request(body(4))).await;
+    let (_, first) = call(&app, request(&body(4))).await;
     let first: serde_json::Value = serde_json::from_slice(&first).expect("reads the index");
 
-    let (status, second) = call(&app, request(body(4))).await;
+    let (status, second) = call(&app, request(&body(4))).await;
     let second: serde_json::Value = serde_json::from_slice(&second).expect("reads the index");
 
     assert_eq!(status, StatusCode::OK);
@@ -210,10 +212,89 @@ async fn refuses_a_file_outside_the_media_roots() {
             max_concurrent: 2,
         }),
         ffprobe: ffprobe(),
+        trickplay: TrickplayRegistry::default(),
         media_roots: vec![PathBuf::from("/nowhere")],
     });
 
-    let (status, _) = call(&app, request(body(4))).await;
+    let (status, _) = call(&app, request(&body(4))).await;
 
     assert_eq!(status, StatusCode::FORBIDDEN);
+}
+
+/// An ffmpeg that records every time it is run before running the real one.
+///
+/// Counting invocations is the only way to tell "the work was shared" from
+/// "both runs happened to agree", and both are green under a weaker check.
+fn counting_ffmpeg(directory: &std::path::Path) -> (String, PathBuf) {
+    use std::os::unix::fs::PermissionsExt;
+
+    std::fs::create_dir_all(directory).expect("creates the directory");
+
+    let tally = directory.join("runs");
+    let script = directory.join("ffmpeg-counting");
+
+    std::fs::write(
+        &script,
+        format!(
+            "#!/bin/sh\necho run >> {tally}\nexec {real} \"$@\"\n",
+            tally = tally.display(),
+            real = ffmpeg(),
+        ),
+    )
+    .expect("writes the wrapper");
+
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755))
+        .expect("makes the wrapper executable");
+
+    (script.to_string_lossy().into_owned(), tally)
+}
+
+fn runs_recorded(tally: &std::path::Path) -> usize {
+    std::fs::read_to_string(tally)
+        .map(|text| text.lines().count())
+        .unwrap_or_default()
+}
+
+#[tokio::test]
+async fn asking_twice_at_once_renders_one_set_rather_than_two() {
+    // A player mounting twice is enough to reach here concurrently, and each
+    // request would otherwise decode the whole file into the same directory.
+    let root = std::env::temp_dir().join("flux-test-trickplay-concurrent");
+    let _ = std::fs::remove_dir_all(&root);
+
+    let (ffmpeg_path, tally) = counting_ffmpeg(&root.join("bin"));
+
+    let app = create_router(AppState {
+        registry: SessionRegistry::new(SessionConfig {
+            ffmpeg: ffmpeg_path,
+            cache_root: root.clone(),
+            idle_timeout: Duration::from_secs(60),
+            max_concurrent: 2,
+        }),
+        trickplay: TrickplayRegistry::default(),
+        ffprobe: ffprobe(),
+        media_roots: Vec::new(),
+    });
+
+    let (first, second) =
+        tokio::join!(call(&app, request(&body(4))), call(&app, request(&body(4))));
+
+    assert_eq!(
+        first.0,
+        StatusCode::OK,
+        "{}",
+        String::from_utf8_lossy(&first.1)
+    );
+    assert_eq!(second.0, StatusCode::OK);
+    assert_eq!(
+        runs_recorded(&tally),
+        1,
+        "ffmpeg ran more than once for one set of thumbnails"
+    );
+
+    let index: serde_json::Value = serde_json::from_slice(&first.1).expect("reads the index");
+    let other: serde_json::Value = serde_json::from_slice(&second.1).expect("reads the index");
+
+    assert_eq!(index["id"], other["id"]);
+    assert_eq!(index["sheets"], other["sheets"]);
 }

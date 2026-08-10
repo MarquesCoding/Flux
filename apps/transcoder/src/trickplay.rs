@@ -9,13 +9,16 @@
 //! every ten seconds is 720 images, and 720 requests to draw one hover is a
 //! worse trade than four sheet downloads.
 
+use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::process::Command;
+use tokio::sync::Mutex;
 
 /// Written only when every sheet is on disk.
 ///
@@ -139,10 +142,23 @@ pub fn thumbnail_count(duration_seconds: f64, interval_seconds: u32) -> u32 {
 
     let count = (duration_seconds / f64::from(interval_seconds)).ceil();
 
-    if count.is_finite() && count >= 1.0 {
-        u32::try_from(count as u64).unwrap_or(u32::MAX)
-    } else {
-        0
+    if !count.is_finite() || count < 1.0 {
+        return 0;
+    }
+
+    if count >= f64::from(u32::MAX) {
+        return u32::MAX;
+    }
+
+    // Finite, at least one and below the ceiling checked above, so the cast
+    // cannot truncate or change sign.
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "the value is bounded and positive by the checks above"
+    )]
+    {
+        count as u32
     }
 }
 
@@ -249,8 +265,11 @@ async fn list_sheets(directory: &Path) -> Vec<String> {
 
     while let Ok(Some(entry)) = entries.next_entry().await {
         let name = entry.file_name().to_string_lossy().into_owned();
+        let is_sheet = Path::new(&name)
+            .extension()
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("jpg"));
 
-        if name.ends_with(".jpg") {
+        if is_sheet {
             names.push(name);
         }
     }
@@ -260,7 +279,87 @@ async fn list_sheets(directory: &Path) -> Vec<String> {
     names
 }
 
+/// Serialises requests for the same thumbnails.
+///
+/// Rendering a feature length film takes minutes, and every caller that asks
+/// while it is running would otherwise start its own ffmpeg decoding the same
+/// file into the same directory. A player mounting twice, or two people
+/// opening the same film, is enough to do it. The completion marker cannot
+/// prevent this on its own: none of them find it, because none of them have
+/// finished.
+#[derive(Clone, Default)]
+pub struct TrickplayRegistry {
+    in_flight: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
+}
+
+impl TrickplayRegistry {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    async fn gate(&self, id: &str) -> Arc<Mutex<()>> {
+        let mut in_flight = self.in_flight.lock().await;
+
+        Arc::clone(in_flight.entry(id.to_owned()).or_default())
+    }
+
+    async fn release(&self, id: &str) {
+        let mut in_flight = self.in_flight.lock().await;
+
+        // Two is this map's reference plus the caller's own. Anything more
+        // means another request is still waiting on the gate and needs it.
+        if in_flight
+            .get(id)
+            .is_some_and(|gate| Arc::strong_count(gate) <= 2)
+        {
+            in_flight.remove(id);
+        }
+    }
+
+    /// Renders the sheets and the index, or reuses what is already there.
+    ///
+    /// Waits rather than duplicating the work when the same thumbnails are
+    /// already being rendered.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TrickplayError`] when the directory cannot be made, ffmpeg
+    /// cannot be started, it writes no sheets, or the index cannot be saved.
+    pub async fn generate(
+        &self,
+        ffmpeg: &str,
+        cache_root: &Path,
+        request: &TrickplayRequest,
+        source_width: u32,
+        source_height: u32,
+        duration_seconds: f64,
+    ) -> Result<TrickplayIndex, TrickplayError> {
+        let id = request.id();
+        let gate = self.gate(&id).await;
+        let permit = gate.lock().await;
+
+        let outcome = generate(
+            ffmpeg,
+            cache_root,
+            request,
+            source_width,
+            source_height,
+            duration_seconds,
+        )
+        .await;
+
+        drop(permit);
+        self.release(&id).await;
+
+        outcome
+    }
+}
+
 /// Renders the sheets and the index, or reuses what is already there.
+///
+/// Prefer [`TrickplayRegistry::generate`], which will not start a second
+/// ffmpeg over a file already being read.
 ///
 /// # Errors
 ///

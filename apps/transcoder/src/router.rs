@@ -13,7 +13,7 @@ use crate::capability::{detect_capabilities, Capabilities};
 use crate::probe::probe_media;
 use crate::session::{await_manifest, SessionRegistry};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
-use crate::trickplay::{directory_for, generate, TrickplayRequest};
+use crate::trickplay::{directory_for, TrickplayRegistry, TrickplayRequest};
 
 const MANIFEST_TIMEOUT: Duration = Duration::from_secs(20);
 
@@ -27,6 +27,8 @@ pub struct AppState {
     /// The service has no authentication of its own, so without this any
     /// caller that can reach the socket could read any file the process can.
     pub media_roots: Vec<PathBuf>,
+    /// Keeps one set of thumbnails from being rendered twice at once.
+    pub trickplay: TrickplayRegistry,
 }
 
 impl AppState {
@@ -340,15 +342,17 @@ async fn start_trickplay(
         return error(StatusCode::BAD_REQUEST, "That file has no video stream.");
     };
 
-    match generate(
-        &state.registry.config().ffmpeg,
-        &state.registry.config().cache_root,
-        &request,
-        video.width,
-        video.height,
-        probe.duration_seconds,
-    )
-    .await
+    match state
+        .trickplay
+        .generate(
+            &state.registry.config().ffmpeg,
+            &state.registry.config().cache_root,
+            &request,
+            video.width,
+            video.height,
+            probe.duration_seconds,
+        )
+        .await
     {
         Ok(index) => (StatusCode::OK, Json(index)).into_response(),
         Err(failure) => error(StatusCode::INTERNAL_SERVER_ERROR, &failure.to_string()),

@@ -41,6 +41,50 @@ fn fixture_dir() -> PathBuf {
     dir
 }
 
+/// A file long enough that it cannot be encoded inside a client's patience.
+///
+/// The short fixture hides an entire class of bug: ffmpeg finishes it in a
+/// couple of seconds, so anything the muxer defers until exit still appears
+/// before any timeout. A real film does not finish, and a manifest that only
+/// lands at the end never lands at all.
+fn long_source_file() -> PathBuf {
+    let path = fixture_dir().join("session-source-long.mp4");
+
+    if path.exists() {
+        return path;
+    }
+
+    let status = Command::new(ffmpeg())
+        .args(["-hide_banner", "-loglevel", "error"])
+        .args([
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=size=1280x720:rate=25",
+            "-t",
+            "120",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryslow",
+            "-pix_fmt",
+            "yuv420p",
+            "-g",
+            "50",
+        ])
+        .arg("-y")
+        .arg(&path)
+        .status()
+        .expect("runs ffmpeg");
+
+    assert!(
+        status.success(),
+        "ffmpeg could not generate the long source fixture"
+    );
+
+    path
+}
+
 /// A short real file with video and audio.
 fn source_file() -> PathBuf {
     let path = fixture_dir().join("session-source.mp4");
@@ -112,6 +156,7 @@ fn app(registry: SessionRegistry) -> axum::Router {
     create_router(AppState {
         registry,
         ffprobe: ffprobe(),
+        trickplay: flux_transcoder::trickplay::TrickplayRegistry::default(),
         media_roots: Vec::new(),
     })
 }
@@ -461,4 +506,57 @@ async fn reports_capabilities_over_http() {
             .is_some_and(|list| !list.is_empty()),
         "expected at least one verified encoder"
     );
+}
+
+#[tokio::test]
+async fn serves_a_manifest_before_the_transcode_has_finished() {
+    // Session directories are content addressed and outlive the process, so a
+    // manifest left by an earlier run would answer this test instead of the
+    // one under test.
+    let _ = std::fs::remove_dir_all(cache_root("growing"));
+
+    let app = app(registry("growing"));
+    let spec = SessionSpec {
+        input_path: long_source_file().to_string_lossy().into_owned(),
+        segment_seconds: 4,
+        video: VideoAction::Encode {
+            encoder: "libx264".into(),
+            max_bitrate_kbps: 6000,
+            max_width: 1280,
+            max_height: 720,
+            tone_map: None,
+        },
+        audio: AudioAction::Copy,
+        ..spec(VideoAction::Copy, AudioAction::Copy)
+    };
+
+    let (status, body) = start(&app, &spec).await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let id = body["id"].as_str().expect("names the session");
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/index.m3u8"))).await;
+    let manifest = String::from_utf8_lossy(&bytes);
+
+    assert_eq!(status, StatusCode::OK);
+    assert!(manifest.contains("#EXTM3U"), "{manifest}");
+    // Still encoding, so the playlist must already list what exists rather
+    // than waiting for the run to end.
+    assert!(manifest.contains(".m4s"), "{manifest}");
+    assert!(
+        !manifest.contains("#EXT-X-ENDLIST"),
+        "the transcode finished during the test, which proves nothing: {manifest}"
+    );
+
+    let (status, _) = call(
+        &app,
+        Request::builder()
+            .method("DELETE")
+            .uri(format!("/sessions/{id}"))
+            .body(Body::empty())
+            .expect("builds the request"),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::NO_CONTENT);
 }

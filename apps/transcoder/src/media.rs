@@ -66,7 +66,7 @@ impl Container {
     /// Maps an ffprobe `format_name` list onto a container, using the path to
     /// tell members of the ISO base media family apart.
     ///
-    /// Reporting every MP4 as QuickTime is not cosmetic: a client declares
+    /// Reporting every `MP4` as `QuickTime` is not cosmetic: a client declares
     /// direct play for `mp4` and not for `mov`, so the whole library would be
     /// remuxed for no reason.
     #[must_use]

@@ -421,8 +421,13 @@ impl TranscodePlan {
         args.push("hls".into());
         args.push("-hls_time".into());
         args.push(self.spec.segment_seconds.to_string());
+        // An event playlist is written as each segment lands. A vod playlist
+        // is only written when ffmpeg exits, so a feature length transcode
+        // serves no manifest at all until the whole film has been encoded —
+        // long past any sane client timeout. The playlist still gains an
+        // ENDLIST when the run finishes, so a finished session reads as VOD.
         args.push("-hls_playlist_type".into());
-        args.push("vod".into());
+        args.push("event".into());
         args.push("-hls_segment_type".into());
         args.push("fmp4".into());
         args.push("-hls_list_size".into());
@@ -541,7 +546,16 @@ mod tests {
         let args = plan(spec()).to_ffmpeg_args();
 
         assert!(args.windows(2).any(|w| w == ["-hls_list_size", "0"]));
-        assert!(args.windows(2).any(|w| w == ["-hls_playlist_type", "vod"]));
+    }
+
+    #[test]
+    fn writes_the_playlist_as_it_goes_rather_than_only_at_the_end() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(args
+            .windows(2)
+            .any(|w| w == ["-hls_playlist_type", "event"]));
+        assert!(!args.iter().any(|argument| argument == "vod"));
     }
 
     #[test]
