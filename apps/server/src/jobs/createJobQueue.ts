@@ -8,7 +8,7 @@ const { SCAN_LIBRARY_JOB, ScanLibraryJobSchema } = JobQueueModule
 
 type CreateJobQueueOptions = {
   connectionString: string
-  onScan: (libraryId: string) => Promise<void>
+  onScan: (libraryId: string, force: boolean) => Promise<void>
   onProblem?: (message: string) => void
 }
 
@@ -56,15 +56,19 @@ const createJobQueue = async ({
         continue
       }
 
-      await onScan(parsed.data.libraryId)
+      await onScan(parsed.data.libraryId, parsed.data.force)
     }
   })
 
   return {
-    enqueueScan: (libraryId) =>
+    enqueueScan: (libraryId, force = false) =>
       boss.send(
         SCAN_LIBRARY_JOB,
-        { libraryId },
+        { libraryId, force },
+        // Keyed on the library alone, so a forced scan and an ordinary one
+        // never walk the same directory at once writing the same rows. A
+        // forced scan asked for while one is already queued therefore joins
+        // that scan rather than starting a second.
         { singletonKey: libraryId, retryLimit: 2, retryBackoff: true },
       ),
 

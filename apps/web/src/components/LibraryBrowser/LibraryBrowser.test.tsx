@@ -163,10 +163,22 @@ describe('LibraryBrowser', () => {
     render(<LibraryBrowser onPlay={vi.fn()} />)
 
     await screen.findByRole('button', { name: /Arrival/ })
-    await actor.click(screen.getByRole('button', { name: /Scan/ }))
+    await actor.click(screen.getByRole('button', { name: 'Scan' }))
 
     await waitFor(() => {
-      expect(scanMock).toHaveBeenCalledWith(films.id)
+      expect(scanMock).toHaveBeenCalledWith(films.id, false)
+    })
+  })
+
+  it('offers a full rescan that probes every file again', async () => {
+    const actor = userEvent.setup()
+    render(<LibraryBrowser onPlay={vi.fn()} />)
+
+    await screen.findByRole('button', { name: /Arrival/ })
+    await actor.click(screen.getByRole('button', { name: 'Full rescan' }))
+
+    await waitFor(() => {
+      expect(scanMock).toHaveBeenCalledWith(films.id, true)
     })
   })
 

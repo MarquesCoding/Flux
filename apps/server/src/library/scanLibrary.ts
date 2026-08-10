@@ -60,6 +60,14 @@ type ScanLibraryOptions = {
    * Defaults to the filename provider alone. Plugins prepend to this list.
    */
   providers?: MetadataProvider[]
+  /**
+   * Probes every file again, even one that has not changed.
+   *
+   * The size and modification time of a file say nothing about whether Flux
+   * still reads it the same way. After a probing fix, or a plugin that names
+   * files better, the only way to pick the change up is to ask again.
+   */
+  force?: boolean
   onProblem?: (path: string, reason: string) => void
 }
 
@@ -106,12 +114,15 @@ const scanLibrary = async ({
   store,
   transcoder,
   providers = [createFilenameMetadataProvider()],
+  force = false,
   onProblem,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path))
   const stored = await store.listStored(libraryId)
 
-  const { changed, missing } = selectChanged(found, stored)
+  const { changed, missing } = force
+    ? { changed: found, missing: selectChanged(found, stored).missing }
+    : selectChanged(found, stored)
   const knownPaths = new Set(stored.map((item) => item.path))
 
   let added = 0

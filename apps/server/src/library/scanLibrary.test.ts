@@ -44,6 +44,7 @@ const harness = (options: {
   existing?: StoredItem[]
   probeImpl?: (path: string) => Promise<MediaProbe>
   providers?: MetadataProvider[]
+  force?: boolean
   onProblem?: (path: string, reason: string) => void
 }) => {
   const rows: MediaRow[] = []
@@ -94,6 +95,7 @@ const harness = (options: {
       },
       transcoder,
       ...(options.providers === undefined ? {} : { providers: options.providers }),
+      ...(options.force === undefined ? {} : { force: options.force }),
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
     })
 
@@ -298,5 +300,34 @@ describe('scanLibrary', () => {
     expect(result.failed).toBe(1)
     expect(rows).toHaveLength(0)
     expect(onProblem).toHaveBeenCalled()
+  })
+
+  it('probes every file again when forced', async () => {
+    const probeSpy = vi.fn(() => Promise.resolve(probe()))
+    const { run, rows } = harness({
+      found: [file('/a.mkv'), file('/b.mkv')],
+      existing: [stored('/a.mkv'), stored('/b.mkv')],
+      probeImpl: probeSpy,
+      force: true,
+    })
+
+    const result = await run()
+
+    expect(probeSpy).toHaveBeenCalledTimes(2)
+    expect(rows).toHaveLength(2)
+    expect(result.updated).toBe(2)
+  })
+
+  it('still removes files that disappeared when forced', async () => {
+    const { run, removedPaths } = harness({
+      found: [file('/a.mkv')],
+      existing: [stored('/a.mkv'), stored('/gone.mkv')],
+      force: true,
+    })
+
+    const result = await run()
+
+    expect(removedPaths).toEqual(['/gone.mkv'])
+    expect(result.removed).toBe(1)
   })
 })

@@ -34,6 +34,24 @@ the filename. Nothing about _playback_ is decided this way — codecs, ranges an
 stream layout all come from probing the file itself, because filenames in real
 libraries are unreliable.
 
+## Rescanning
+
+An ordinary scan only probes files whose size or modification time changed.
+That is what makes rescanning a library of thousands of files cheap enough to
+do often.
+
+It also means a change in how Flux _reads_ a file never reaches media already
+in the library, because the file on disk did not change. After upgrading to a
+release that fixes probing, or installing a metadata plugin, use a full rescan:
+
+```sh
+curl -X POST 'http://localhost:8420/api/libraries/<id>/scan?force=true'
+```
+
+The **Full rescan** button does the same thing. It probes every file again, so
+it costs roughly what the first scan of that library cost. Files that have
+disappeared are still removed either way.
+
 ## Where titles come from
 
 Flux ships one metadata provider, and it reads the filename. `Arrival (2016).mkv`

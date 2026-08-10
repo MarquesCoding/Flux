@@ -126,4 +126,22 @@ describe('scanLibrary', () => {
 
     await expect(scanLibrary(library.id)).resolves.toBe(false)
   })
+
+  it('asks for an ordinary scan by default', async () => {
+    fetchMock.mockResolvedValue(ok({ added: 0, updated: 0, removed: 0, failed: 0 }))
+
+    await scanLibrary(library.id)
+
+    expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${library.id}/scan`, { method: 'POST' })
+  })
+
+  it('asks for everything to be probed again when forced', async () => {
+    fetchMock.mockResolvedValue(ok({ added: 0, updated: 0, removed: 0, failed: 0 }))
+
+    await scanLibrary(library.id, true)
+
+    expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${library.id}/scan?force=true`, {
+      method: 'POST',
+    })
+  })
 })

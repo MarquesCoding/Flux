@@ -108,13 +108,21 @@ const ScanAccepted = z.object({ jobId: z.string(), state: z.string() }).openapi(
  * Answers 202 rather than waiting: walking and probing a real library takes
  * minutes, and an HTTP request that long will be cut off by every proxy
  * between the browser and the server while the work carries on unseen.
+ *
+ * `force=true` probes every file again instead of only those whose size or
+ * modification time changed. Nothing about a file says whether Flux still
+ * reads it the same way, so after a probing fix or a new metadata provider
+ * this is the only way to pick the change up.
  */
 const scanLibraryRoute = createRoute({
   method: 'post',
   path: '/api/libraries/{id}/scan',
   tags: ['Library'],
   summary: 'Queue a scan for new, changed and removed files',
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    query: z.object({ force: z.enum(['true', 'false']).optional() }),
+  },
   responses: {
     202: {
       description: 'The scan was queued',

@@ -57,9 +57,13 @@ const fetchLibraryItems = async (
  *
  * Answers as soon as the scan is queued, not when it finishes: a real library
  * takes minutes to walk and probe.
+ *
+ * A forced scan probes every file again rather than only those that changed on
+ * disk, which is what picks up a change in how Flux reads files.
  */
-const scanLibrary = async (libraryId: string): Promise<boolean> => {
-  const response = await fetch(`/api/libraries/${libraryId}/scan`, { method: 'POST' })
+const scanLibrary = async (libraryId: string, force = false): Promise<boolean> => {
+  const query = force ? '?force=true' : ''
+  const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, { method: 'POST' })
 
   return response.ok
 }

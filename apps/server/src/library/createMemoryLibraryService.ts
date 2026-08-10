@@ -71,10 +71,10 @@ const createMemoryLibraryService = (
 
   getMedia: (id) => Promise.resolve(state.media.find((item) => item.id === id) ?? null),
 
-  scan: (libraryId) =>
+  scan: (libraryId, force = false) =>
     Promise.resolve(
       state.libraries.some((entry) => entry.id === libraryId)
-        ? { jobId: `job-${libraryId}`, state: 'queued' }
+        ? { jobId: `job-${libraryId}${force ? '-force' : ''}`, state: 'queued' }
         : null,
     ),
 

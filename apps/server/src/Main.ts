@@ -72,8 +72,8 @@ const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL })
 // scans, and the queue calls the library's worker body to run them.
 const jobs = await createJobQueue({
   connectionString: env.DATABASE_URL,
-  onScan: async (libraryId) => {
-    await libraryService.runScan(libraryId)
+  onScan: async (libraryId, force) => {
+    await libraryService.runScan(libraryId, force)
   },
   onProblem: (message) => {
     process.stderr.write(`job queue: ${message}\n`)

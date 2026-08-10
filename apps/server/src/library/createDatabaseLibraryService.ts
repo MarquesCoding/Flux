@@ -44,7 +44,7 @@ const createDatabaseLibraryService = ({
   jobs,
   onProblem,
 }: CreateDatabaseLibraryServiceOptions): LibraryService & {
-  runScan: (libraryId: string) => Promise<void>
+  runScan: (libraryId: string, force?: boolean) => Promise<void>
 } => {
   const store = createMediaStore(db)
 
@@ -169,12 +169,12 @@ const createDatabaseLibraryService = ({
       return detail
     },
 
-    scan: async (libraryId) => {
+    scan: async (libraryId, force = false) => {
       if ((await findLibrary(libraryId)) === null) {
         return null
       }
 
-      const jobId = await jobs.enqueueScan(libraryId)
+      const jobId = await jobs.enqueueScan(libraryId, force)
 
       // pg-boss returns null when a singleton job for this library is already
       // queued. Reporting that as a failure would be wrong: the scan the
@@ -184,7 +184,7 @@ const createDatabaseLibraryService = ({
 
     readScanState: (jobId) => jobs.readState(jobId),
 
-    runScan: async (libraryId) => {
+    runScan: async (libraryId, force = false) => {
       const found = await findLibrary(libraryId)
 
       if (found === null) {
@@ -197,6 +197,7 @@ const createDatabaseLibraryService = ({
         files,
         store,
         transcoder,
+        force,
         ...(onProblem === undefined ? {} : { onProblem }),
       })
     },

@@ -11,6 +11,10 @@ const SCAN_LIBRARY_JOB = 'library.scan'
 
 const ScanLibraryJobSchema = z.object({
   libraryId: z.string().uuid(),
+  /**
+   * Whether every file should be probed again rather than only changed ones.
+   */
+  force: z.boolean().default(false),
 })
 
 type ScanLibraryJob = z.infer<typeof ScanLibraryJobSchema>
@@ -29,7 +33,7 @@ type JobState = z.infer<typeof JobStateSchema>
  * Postgres and so the queue can be swapped without touching call sites.
  */
 type JobQueue = {
-  enqueueScan: (libraryId: string) => Promise<string | null>
+  enqueueScan: (libraryId: string, force?: boolean) => Promise<string | null>
   readState: (jobId: string) => Promise<JobState>
   stop: () => Promise<void>
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { IconRefresh } from '@tabler/icons-react'
+import { IconRefresh, IconRefreshAlert } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import MediaCardModule from '@FluxUI/MediaCard'
 import SpinnerModule from '@FluxUI/Spinner'
@@ -92,7 +92,7 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
     void loadItems()
   }, [loadItems])
 
-  const rescan = async () => {
+  const rescan = async (force: boolean) => {
     if (selectedId === null) {
       return
     }
@@ -100,7 +100,7 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
     setIsScanning(true)
 
     try {
-      await scanLibrary(selectedId)
+      await scanLibrary(selectedId, force)
       await loadItems()
     } finally {
       setIsScanning(false)
@@ -152,17 +152,31 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
           ))}
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          isLoading={isScanning}
-          onClick={() => {
-            void rescan()
-          }}
-        >
-          <IconRefresh size={16} aria-hidden />
-          Scan
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            isLoading={isScanning}
+            onClick={() => {
+              void rescan(false)
+            }}
+          >
+            <IconRefresh size={16} aria-hidden />
+            Scan
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isScanning}
+            onClick={() => {
+              void rescan(true)
+            }}
+          >
+            <IconRefreshAlert size={16} aria-hidden />
+            Full rescan
+          </Button>
+        </div>
       </header>
 
       <TextField

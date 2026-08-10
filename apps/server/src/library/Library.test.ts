@@ -173,6 +173,47 @@ describe('library routes', () => {
     expect(await response.json()).toMatchObject({ state: 'queued' })
   })
 
+  it('queues an ordinary scan when force is not asked for', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/scan`, {
+      method: 'POST',
+    })
+
+    expect(await response.json()).toMatchObject({ jobId: `job-${LIBRARY_ID}` })
+  })
+
+  it('queues a forced scan when asked to reprobe everything', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/scan?force=true`, {
+      method: 'POST',
+    })
+
+    expect(response.status).toBe(202)
+    expect(await response.json()).toMatchObject({ jobId: `job-${LIBRARY_ID}-force` })
+  })
+
+  it('treats force=false as an ordinary scan', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/scan?force=false`, {
+      method: 'POST',
+    })
+
+    expect(await response.json()).toMatchObject({ jobId: `job-${LIBRARY_ID}` })
+  })
+
+  it('refuses a force value that is neither true nor false', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/scan?force=yes`, {
+      method: 'POST',
+    })
+
+    expect(response.status).toBe(400)
+  })
+
   it('reports how a queued scan is getting on', async () => {
     const { app } = build()
 

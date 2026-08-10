@@ -32,8 +32,11 @@ type LibraryService = {
    *
    * Null means there is no such library. The scan itself runs in the
    * background; callers poll rather than wait.
+   *
+   * A forced scan probes every file again rather than only those whose size
+   * or modification time changed.
    */
-  scan: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
+  scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>
   readScanState: (jobId: string) => Promise<string>
 }
 

@@ -154,7 +154,10 @@ const createApp = ({
   })
 
   app.openapi(scanLibraryRoute, async (context) => {
-    const queued = await library.scan(context.req.valid('param').id)
+    const queued = await library.scan(
+      context.req.valid('param').id,
+      context.req.valid('query').force === 'true',
+    )
 
     if (queued === null) {
       return context.json({ error: 'No such library.' }, 404)
