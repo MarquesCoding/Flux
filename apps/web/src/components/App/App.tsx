@@ -72,6 +72,14 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     setProfiles(await fetchProfiles())
   }, [])
 
+  /**
+   * Forgets who was watching on this device.
+   */
+  const forget = useCallback(() => {
+    writeCurrentProfile(null)
+    setWatchingId(null)
+  }, [])
+
   // The opening title is held for its own length rather than for however long
   // the server happens to take. A title card that flashes for 200ms on a fast
   // connection and lingers on a slow one is not a title card.
@@ -147,6 +155,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     return (
       <SignIn
         onSignedIn={() => {
+          // Signing in is a new session, so who is watching is asked again.
+          // The choice is remembered for reloads, not for whoever signs in
+          // next on the same machine.
+          forget()
           void refresh()
         }}
       />
@@ -249,6 +261,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               size="sm"
               isPill
               onClick={() => {
+                forget()
                 void signOut().then(() => refresh())
               }}
             >
