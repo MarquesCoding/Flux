@@ -1,0 +1,131 @@
+import { IconX } from '@tabler/icons-react'
+import IconButtonModule from '@FluxUI/IconButton'
+import formatDurationModule from '@FluxCore/functions/formatDuration'
+import type { StreamStatsProps } from './StreamStats.types'
+
+const { IconButton } = IconButtonModule
+const { formatDuration } = formatDurationModule
+
+/**
+ * Rounds a number of seconds for display without pretending to precision.
+ */
+const seconds = (value: number): string => `${value.toFixed(1)}s`
+
+/**
+ * Reads a plan axis as the decision plus the reason behind it.
+ */
+const axis = (kind: string, detail: string): string => `${kind} — ${detail}`
+
+type RowProps = {
+  name: string
+  children: string
+}
+
+const Row = ({ name, children }: RowProps) => (
+  <div className="flex gap-3 py-0.5">
+    <dt className="w-40 shrink-0 text-white/50">{name}</dt>
+    <dd className="min-w-0 break-words text-white">{children}</dd>
+  </div>
+)
+
+Row.displayName = 'Row'
+
+/**
+ * Everything Flux knows about what is on screen.
+ *
+ * The negotiator already records why it chose every treatment, and the media
+ * element already knows what it is managing to decode. Neither is any use
+ * locked inside a log file on the server, so this puts both in front of the
+ * person watching.
+ */
+const StreamStats = ({
+  media,
+  session,
+  detail,
+  health,
+  sessionStartSeconds,
+  onClose,
+}: StreamStatsProps) => {
+  const video = detail?.videoCodec ?? media.id
+  const audio = detail?.audioStreams[0] ?? null
+  const plan = session?.plan ?? null
+
+  return (
+    <section
+      aria-label="Stats for nerds"
+      className="pointer-events-auto max-h-full w-full max-w-lg overflow-y-auto rounded-xl bg-black/70 p-4 text-xs text-white backdrop-blur-md"
+    >
+      <header className="mb-2 flex items-center justify-between gap-4">
+        <h3 className="text-sm font-medium">Stats for nerds</h3>
+
+        <IconButton label="Close stats" size="sm" onClick={onClose}>
+          <IconX size={16} aria-hidden />
+        </IconButton>
+      </header>
+
+      <dl className="flex flex-col">
+        <Row name="Title">{media.title}</Row>
+        <Row name="Media id">{media.id}</Row>
+        <Row name="Session">{session?.sessionId ?? 'not started'}</Row>
+        <Row name="Mode">{session?.mode ?? 'deciding'}</Row>
+        <Row name="Delivery">
+          {session === null
+            ? 'none'
+            : session.delivery.kind === 'hls'
+              ? `HLS — ${session.delivery.manifestUrl}`
+              : `Direct — ${session.delivery.url}`}
+        </Row>
+        <Row name="Session starts at">{formatDuration(sessionStartSeconds)}</Row>
+
+        <Row name="Source video">
+          {detail === null
+            ? 'unknown'
+            : `${video} ${media.durationSeconds > 0 ? '' : ''}${detail.width}x${detail.height} ${detail.videoRange}`}
+        </Row>
+        <Row name="Source audio">
+          {audio === null ? 'none' : `${audio.codec} ${audio.channels}ch ${audio.language ?? ''}`}
+        </Row>
+        <Row name="Subtitles">
+          {detail === null || detail.subtitleStreams.length === 0
+            ? 'none'
+            : `${detail.subtitleStreams.length.toString()} tracks, first ${detail.subtitleStreams[0]?.format ?? ''}`}
+        </Row>
+
+        <Row name="Container plan">
+          {plan === null ? 'deciding' : axis(plan.container.kind, plan.container.reason.detail)}
+        </Row>
+        <Row name="Video plan">
+          {plan === null ? 'deciding' : axis(plan.video.kind, plan.video.reason.detail)}
+        </Row>
+        <Row name="Audio plan">
+          {plan === null ? 'deciding' : axis(plan.audio.kind, plan.audio.reason.detail)}
+        </Row>
+        <Row name="Subtitle plan">
+          {plan === null ? 'deciding' : axis(plan.subtitles.kind, plan.subtitles.reason.detail)}
+        </Row>
+
+        <Row name="Position">{formatDuration(health.positionSeconds)}</Row>
+        <Row name="Buffered ahead">{seconds(health.bufferedAheadSeconds)}</Row>
+        <Row name="Encoded so far">{seconds(health.encodedSeconds)}</Row>
+        <Row name="Presented size">
+          {health.presentedWidth === 0
+            ? 'nothing decoded yet'
+            : `${health.presentedWidth.toString()}x${health.presentedHeight.toString()}`}
+        </Row>
+        <Row name="Frames dropped">
+          {health.droppedFrames === null || health.decodedFrames === null
+            ? 'not reported'
+            : `${health.droppedFrames.toString()} of ${health.decodedFrames.toString()}`}
+        </Row>
+
+        {session === null || session.warnings.length === 0 ? null : (
+          <Row name="Warnings">{session.warnings.join(' · ')}</Row>
+        )}
+      </dl>
+    </section>
+  )
+}
+
+StreamStats.displayName = 'StreamStats'
+
+export default { StreamStats }

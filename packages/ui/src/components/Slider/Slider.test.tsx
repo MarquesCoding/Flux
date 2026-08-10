@@ -1,45 +1,45 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import SeekBarModule from './SeekBar'
+import SliderModule from './Slider'
 
-const { SeekBar } = SeekBarModule
+const { Slider } = SliderModule
 
-const seekBar = (name = 'Seek') => screen.getByRole('slider', { name })
+const slider = (name = 'Seek') => screen.getByRole('slider', { name })
 
-describe('SeekBar', () => {
+describe('Slider', () => {
   it('reports where in the media it is', () => {
-    render(<SeekBar label="Seek" position={30} duration={120} onSeek={vi.fn()} />)
+    render(<Slider label="Seek" value={30} max={120} onValueChange={vi.fn()} />)
 
-    expect(seekBar()).toHaveAttribute('aria-valuenow', '30')
-    expect(seekBar()).toHaveAttribute('max', '120')
+    expect(slider()).toHaveAttribute('aria-valuenow', '30')
+    expect(slider()).toHaveAttribute('max', '120')
   })
 
   it('seeks from the keyboard, so scrubbing does not need a pointer', async () => {
     const onSeek = vi.fn()
     const user = userEvent.setup()
-    render(<SeekBar label="Seek" position={30} duration={120} onSeek={onSeek} />)
+    render(<Slider label="Seek" value={30} max={120} onValueChange={onSeek} />)
 
-    seekBar().focus()
+    slider().focus()
     await user.keyboard('{ArrowRight}')
 
     expect(onSeek).toHaveBeenCalledWith(31)
   })
 
   it('cannot be dragged before the duration is known', () => {
-    render(<SeekBar label="Seek" position={0} duration={0} onSeek={vi.fn()} />)
+    render(<Slider label="Seek" value={0} max={0} onValueChange={vi.fn()} />)
 
-    expect(seekBar()).toBeDisabled()
+    expect(slider()).toBeDisabled()
   })
 
   it('draws no preview until the bar is hovered', () => {
     render(
-      <SeekBar
+      <Slider
         label="Seek"
-        position={30}
-        duration={120}
-        onSeek={vi.fn()}
-        renderPreview={(seconds) => <span>preview at {seconds}</span>}
+        value={30}
+        max={120}
+        onValueChange={vi.fn()}
+        renderPreview={(value) => <span>preview at {value}</span>}
       />,
     )
 
@@ -49,16 +49,16 @@ describe('SeekBar', () => {
   it('stops drawing a preview once the pointer leaves', async () => {
     const user = userEvent.setup()
     render(
-      <SeekBar
+      <Slider
         label="Seek"
-        position={30}
-        duration={120}
-        onSeek={vi.fn()}
-        renderPreview={(seconds) => <span>preview at {seconds}</span>}
+        value={30}
+        max={120}
+        onValueChange={vi.fn()}
+        renderPreview={(value) => <span>preview at {value}</span>}
       />,
     )
 
-    await user.unhover(seekBar())
+    await user.unhover(slider())
 
     expect(screen.queryByText(/preview at/)).not.toBeInTheDocument()
   })

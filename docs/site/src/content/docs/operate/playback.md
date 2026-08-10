@@ -63,3 +63,15 @@ stream starts first and previews appear when they are ready.
 
 Sheets live in the transcode cache. Deleting that directory costs nothing but
 the decoding time to rebuild it.
+
+## Stats for nerds
+
+The sliders button on the control bar opens a panel showing everything Flux
+knows about what is on screen: the session and how it is being delivered, the
+decision and reason on each of the four axes, what the source actually is, and
+what the browser is managing to do with it — buffered ahead, how much has been
+encoded, the size being decoded, and frames dropped.
+
+Frame counts are reported as _not reported_ rather than as zero where a browser
+does not keep them, because a decoder dropping frames is exactly when someone
+opens this panel and a confident zero would be a lie.

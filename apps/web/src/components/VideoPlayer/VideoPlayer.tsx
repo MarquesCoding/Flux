@@ -1,37 +1,65 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  IconAlertTriangle,
-  IconInfoCircle,
-  IconPlayerPause,
-  IconPlayerPlay,
-  IconX,
-} from '@tabler/icons-react'
+import { IconAlertTriangle, IconX } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import SpinnerModule from '@FluxUI/Spinner'
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
-import SeekBarModule from '@FluxUI/SeekBar'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
 import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
 import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
 import attachShakaModule from '@FluxWeb/playback/attachShaka'
 import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
 import captureFrameModule from '@FluxWeb/playback/captureFrame'
+import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
+import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
+import PlayerControlsModule from './components/PlayerControls/PlayerControls'
+import StreamStatsModule from './components/StreamStats/StreamStats'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
+import type { MediaDetail } from '@FluxContracts/schemas/Library'
+import type { PlaybackHealth } from './components/StreamStats/StreamStats.types'
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types'
 
 const { Button } = ButtonModule
 const { Spinner } = SpinnerModule
 const { VideoSurface } = VideoSurfaceModule
-const { formatDuration } = formatDurationModule
 const { detectFromBrowser } = detectDeviceProfileModule
-const { startPlaybackSession, stopPlaybackSession, describeWhy } = startPlaybackSessionModule
+const { startPlaybackSession, stopPlaybackSession } = startPlaybackSessionModule
 const { attachShaka } = attachShakaModule
 const { fetchTrickplay } = fetchTrickplayModule
 const { captureFrame } = captureFrameModule
-const { SeekBar } = SeekBarModule
+const { readPlaybackHealth, encodedSeconds } = readPlaybackHealthModule
+const { fetchMediaDetail } = fetchLibraryModule
 const { TrickplayPreview } = TrickplayPreviewModule
+const { PlayerControls } = PlayerControlsModule
+const { StreamStats } = StreamStatsModule
+
+/**
+ * An element that may be able to go full screen.
+ *
+ * Declared optional because the DOM types promise a fullscreen API that not
+ * every browser ships.
+ */
+type FullscreenTarget = {
+  requestFullscreen?: () => Promise<void>
+}
+
+type FullscreenOwner = {
+  exitFullscreen?: () => Promise<void>
+}
+
+const IDLE_MILLISECONDS = 2500
+
+const HEALTH_INTERVAL_MILLISECONDS = 500
+
+const EMPTY_HEALTH: PlaybackHealth = {
+  positionSeconds: 0,
+  bufferedAheadSeconds: 0,
+  encodedSeconds: 0,
+  droppedFrames: null,
+  decodedFrames: null,
+  presentedWidth: 0,
+  presentedHeight: 0,
+}
 
 /**
  * Plays a library item.
@@ -41,34 +69,23 @@ const { TrickplayPreview } = TrickplayPreviewModule
  * reason the server chose the treatment it did is always available, because
  * "why is this transcoding?" should not require reading server logs.
  */
-/**
- * How much of the current session a player could seek within.
- *
- * A transcode is delivered as a playlist that grows, so this answers what has
- * been encoded so far rather than how long the film is. Read defensively
- * because a media element that has loaded nothing yet reports no ranges at
- * all.
- */
-const encodedSeconds = (element: HTMLVideoElement): number => {
-  try {
-    const ranges = element.seekable
-
-    return ranges.length > 0 ? ranges.end(ranges.length - 1) : 0
-  } catch {
-    return 0
-  }
-}
-
 const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
   const [session, setSession] = useState<StartedSession | null>(null)
   const [state, setState] = useState<PlayerState>('starting')
   const [problem, setProblem] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [position, setPosition] = useState(0)
   const [reportedDuration, setReportedDuration] = useState(0)
-  const [showReasons, setShowReasons] = useState(false)
   const [trickplay, setTrickplay] = useState<Trickplay | null>(null)
+  const [detail, setDetail] = useState<MediaDetail | null>(null)
+  const [volume, setVolume] = useState(1)
+  const [isMuted, setIsMuted] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isShowingStats, setIsShowingStats] = useState(false)
+  const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH)
+  const [isIdle, setIsIdle] = useState(false)
   // What the current session was asked for. A transcode is produced from the
   // point it starts at, so seeking outside what has been encoded means asking
   // for a new one rather than moving within this one.
@@ -97,7 +114,6 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     setIsPlaying(false)
     setPosition(request.startSeconds)
     setReportedDuration(0)
-    setShowReasons(false)
 
     if (request.startSeconds === 0) {
       setHeldFrame(null)
@@ -185,10 +201,17 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     let abandoned = false
 
     setTrickplay(null)
+    setDetail(null)
 
     void fetchTrickplay(media.id).then((found) => {
       if (!abandoned) {
         setTrickplay(found)
+      }
+    })
+
+    void fetchMediaDetail(media.id).then((found) => {
+      if (!abandoned) {
+        setDetail(found)
       }
     })
 
@@ -197,10 +220,85 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     }
   }, [media.id])
 
+  useEffect(() => {
+    const onChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement))
+    }
+
+    document.addEventListener('fullscreenchange', onChange)
+
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    const element = videoRef.current
+
+    if (element !== null) {
+      element.volume = volume
+      element.muted = isMuted
+    }
+  }, [volume, isMuted])
+
+  useEffect(() => {
+    if (!isShowingStats) {
+      return
+    }
+
+    const sample = () => {
+      const element = videoRef.current
+
+      if (element !== null) {
+        setHealth(readPlaybackHealth(element, request.startSeconds))
+      }
+    }
+
+    sample()
+
+    const timer = setInterval(sample, HEALTH_INTERVAL_MILLISECONDS)
+
+    return () => {
+      clearInterval(timer)
+    }
+  }, [isShowingStats, request.startSeconds])
+
+  useEffect(() => {
+    if (!isPlaying) {
+      setIsIdle(false)
+
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setIsIdle(true)
+    }, IDLE_MILLISECONDS)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [isPlaying, position])
+
   // A transcode is delivered as a playlist that grows while ffmpeg encodes, so
   // the media element only knows about the part produced so far. The library
   // already knows how long the film is, and that is what a viewer should see.
   const duration = media.durationSeconds > 0 ? media.durationSeconds : reportedDuration
+
+  const togglePlay = useCallback(() => {
+    const element = videoRef.current
+
+    if (element === null) {
+      return
+    }
+
+    if (element.paused) {
+      void element.play()
+
+      return
+    }
+
+    element.pause()
+  }, [])
 
   const seek = useCallback(
     (seconds: number) => {
@@ -234,21 +332,30 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     [request, session],
   )
 
-  const toggle = useCallback(() => {
-    const element = videoRef.current
+  const toggleFullscreen = useCallback(() => {
+    const stage = stageRef.current
 
-    if (element === null) {
+    if (stage === null) {
       return
     }
 
-    if (element.paused) {
-      void element.play()
+    // Driven by what the player last heard from the fullscreenchange event
+    // rather than by reading the document: browsers disagree on whether an
+    // element that is not full screen reads as null or as absent.
+    //
+    // Read through types that admit the API might be missing. The DOM types
+    // promise a fullscreen API that not every browser actually ships.
+    const owner: FullscreenOwner = document
+    const target: FullscreenTarget = stage
+
+    if (isFullscreen) {
+      void owner.exitFullscreen?.()
 
       return
     }
 
-    element.pause()
-  }, [])
+    void target.requestFullscreen?.()
+  }, [isFullscreen])
 
   return (
     <section className="flex flex-col gap-3">
@@ -261,7 +368,16 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
         </Button>
       </header>
 
-      <div className="relative overflow-hidden rounded-lg bg-black">
+      <div
+        ref={stageRef}
+        className="relative overflow-hidden rounded-lg bg-black"
+        onPointerMove={() => {
+          setIsIdle(false)
+        }}
+        onPointerLeave={() => {
+          setIsIdle(isPlaying)
+        }}
+      >
         <VideoSurface
           label={media.title}
           videoRef={videoRef}
@@ -276,7 +392,7 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
         {heldFrame === null ? null : (
           <div
             role="presentation"
-            className="absolute inset-0 bg-black bg-contain bg-center bg-no-repeat"
+            className="pointer-events-none absolute inset-0 bg-black bg-contain bg-center bg-no-repeat"
             style={{ backgroundImage: `url(${heldFrame})` }}
           />
         )}
@@ -285,8 +401,8 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
           <div
             className={
               heldFrame === null
-                ? 'absolute inset-0 flex items-center justify-center'
-                : 'absolute bottom-3 right-3 rounded-full bg-surface/80 p-2'
+                ? 'pointer-events-none absolute inset-0 flex items-center justify-center'
+                : 'pointer-events-none absolute right-3 top-3 rounded-full bg-black/60 p-2 text-white'
             }
           >
             <Spinner
@@ -295,6 +411,59 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
             />
           </div>
         ) : null}
+
+        {isShowingStats ? (
+          <div className="pointer-events-none absolute left-3 right-3 top-3 flex justify-end">
+            <StreamStats
+              media={media}
+              session={session}
+              detail={detail}
+              health={health}
+              sessionStartSeconds={request.startSeconds}
+              onClose={() => {
+                setIsShowingStats(false)
+              }}
+            />
+          </div>
+        ) : null}
+
+        <div
+          className={`absolute inset-x-3 bottom-3 transition-opacity ${
+            isIdle && !isShowingStats ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
+          <PlayerControls
+            title={media.title}
+            isPlaying={isPlaying}
+            position={position}
+            duration={duration}
+            volume={volume}
+            isMuted={isMuted}
+            isFullscreen={isFullscreen}
+            isShowingStats={isShowingStats}
+            isDisabled={state !== 'playing'}
+            onTogglePlay={togglePlay}
+            onSeek={seek}
+            onVolumeChange={(next) => {
+              setVolume(next)
+              setIsMuted(next === 0)
+            }}
+            onToggleMute={() => {
+              setIsMuted((muted) => !muted)
+            }}
+            onToggleFullscreen={toggleFullscreen}
+            onToggleStats={() => {
+              setIsShowingStats((showing) => !showing)
+            }}
+            {...(trickplay === null
+              ? {}
+              : {
+                  renderPreview: (seconds: number) => (
+                    <TrickplayPreview trickplay={trickplay} seconds={seconds} />
+                  ),
+                })}
+          />
+        </div>
       </div>
 
       {session === null || session.warnings.length === 0 ? null : (
@@ -312,56 +481,6 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
         <p role="alert" className="text-sm text-danger">
           {problem ?? 'Playback failed.'}
         </p>
-      ) : null}
-
-      <SeekBar
-        label={`Seek through ${media.title}`}
-        position={position}
-        duration={duration}
-        onSeek={seek}
-        {...(trickplay === null
-          ? {}
-          : {
-              renderPreview: (seconds: number) => (
-                <TrickplayPreview trickplay={trickplay} seconds={seconds} />
-              ),
-            })}
-      />
-
-      <div className="flex items-center gap-3">
-        <Button size="sm" onClick={toggle} disabled={state !== 'playing'}>
-          {isPlaying ? (
-            <IconPlayerPause size={16} aria-hidden />
-          ) : (
-            <IconPlayerPlay size={16} aria-hidden />
-          )}
-          {isPlaying ? 'Pause' : 'Play'}
-        </Button>
-
-        <span className="text-sm tabular-nums text-text-muted">
-          {formatDuration(position)} / {formatDuration(duration)}
-        </span>
-
-        {session === null ? null : (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setShowReasons((shown) => !shown)
-            }}
-          >
-            <IconInfoCircle size={16} aria-hidden />
-            {session.mode}
-          </Button>
-        )}
-      </div>
-
-      {showReasons && session !== null ? (
-        <ul className="flex flex-col gap-1 rounded-md bg-surface-raised p-3 text-sm text-text-muted">
-          {describeWhy(session.plan).map((reason) => (
-            <li key={reason}>{reason}</li>
-          ))}
-        </ul>
       ) : null}
     </section>
   )

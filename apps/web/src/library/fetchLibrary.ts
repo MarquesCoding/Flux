@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import LibraryContract from '@FluxContracts/schemas/Library'
-import type { Library, MediaPage } from '@FluxContracts/schemas/Library'
+import type { Library, MediaDetail, MediaPage } from '@FluxContracts/schemas/Library'
 
-const { LibrarySchema, MediaPageSchema } = LibraryContract
+const { LibrarySchema, MediaPageSchema, MediaDetailSchema } = LibraryContract
 
 const LibraryListSchema = z.array(LibrarySchema)
 
@@ -53,6 +53,29 @@ const fetchLibraryItems = async (
 }
 
 /**
+ * Reads everything about one item, including its streams.
+ *
+ * Kept separate from the grid, which deliberately carries only enough to draw
+ * a poster. Answers with nothing rather than throwing: this detail decorates
+ * playback and must not be able to stop it.
+ */
+const fetchMediaDetail = async (mediaId: string): Promise<MediaDetail | null> => {
+  try {
+    const response = await fetch(`/api/media/${mediaId}`, {
+      headers: { accept: 'application/json' },
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    return MediaDetailSchema.parse(await response.json())
+  } catch {
+    return null
+  }
+}
+
+/**
  * Asks the server to queue a rescan.
  *
  * Answers as soon as the scan is queued, not when it finishes: a real library
@@ -70,4 +93,4 @@ const scanLibrary = async (libraryId: string, force = false): Promise<boolean> =
 
 export type { ListItemsOptions }
 
-export default { fetchLibraries, fetchLibraryItems, scanLibrary }
+export default { fetchLibraries, fetchLibraryItems, fetchMediaDetail, scanLibrary }

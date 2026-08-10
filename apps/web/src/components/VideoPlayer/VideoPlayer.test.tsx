@@ -84,6 +84,18 @@ const showingAFrame = (element: HTMLElement) => {
   captureMock.mockReturnValue('data:image/jpeg;base64,frame')
 }
 
+/**
+ * Waits for the session to have started and been attached.
+ *
+ * The spinner going away is the only thing on screen that says so once the
+ * mode moved into the stats panel.
+ */
+const settled = async () => {
+  await waitFor(() => {
+    expect(screen.queryByRole('status', { name: 'Preparing playback' })).not.toBeInTheDocument()
+  })
+}
+
 const seekableTo = (element: HTMLElement, seconds: number) => {
   Object.defineProperty(element, 'seekable', {
     configurable: true,
@@ -158,27 +170,44 @@ describe('VideoPlayer', () => {
     })
   })
 
-  it('shows the playback mode the server chose', async () => {
+  it('shows the playback mode the server chose, on request', async () => {
+    const actor = userEvent.setup()
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
-    expect(await screen.findByRole('button', { name: /Transcode/ })).toBeInTheDocument()
+    await settled()
+    await actor.click(screen.getByRole('button', { name: 'Stats for nerds' }))
+
+    expect(await screen.findByText('Transcode')).toBeInTheDocument()
   })
 
   it('explains why the stream is being converted, on request', async () => {
     const actor = userEvent.setup()
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
-    await actor.click(await screen.findByRole('button', { name: /Transcode/ }))
+    await settled()
+    await actor.click(screen.getByRole('button', { name: 'Stats for nerds' }))
 
-    expect(screen.getByText('Video: Client does not support hevc')).toBeInTheDocument()
+    expect(screen.getByText(/Client does not support hevc/)).toBeInTheDocument()
   })
 
-  it('keeps the reasons hidden until asked', async () => {
+  it('keeps the stats out of the way until asked for', async () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
-    await screen.findByRole('button', { name: /Transcode/ })
+    await settled()
 
-    expect(screen.queryByText('Video: Client does not support hevc')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Stats for nerds' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Client does not support hevc/)).not.toBeInTheDocument()
+  })
+
+  it('puts the stats away again', async () => {
+    const actor = userEvent.setup()
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+    await actor.click(screen.getByRole('button', { name: 'Stats for nerds' }))
+    await actor.click(screen.getByRole('button', { name: 'Close stats' }))
+
+    expect(screen.queryByRole('region', { name: 'Stats for nerds' })).not.toBeInTheDocument()
   })
 
   it('reports why the server refused', async () => {
@@ -244,7 +273,8 @@ describe('VideoPlayer', () => {
 
     await screen.findByLabelText('Arrival')
 
-    expect(screen.getByText('0:00 / 2:00:00')).toBeInTheDocument()
+    expect(screen.getByText('0:00')).toBeInTheDocument()
+    expect(screen.getByText('/ 2:00:00')).toBeInTheDocument()
   })
 
   it('warns when the server cannot tone map, without hiding it behind a click', async () => {
@@ -263,7 +293,7 @@ describe('VideoPlayer', () => {
   it('shows no warning banner when there is nothing to warn about', async () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
-    await screen.findByRole('button', { name: /Transcode/ })
+    await settled()
 
     expect(screen.queryByText(/cannot tone map/)).not.toBeInTheDocument()
   })
@@ -279,7 +309,7 @@ describe('VideoPlayer', () => {
     })
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
-    await screen.findByRole('button', { name: /DirectPlay/ })
+    await settled()
 
     expect(attachMock).not.toHaveBeenCalled()
   })
@@ -295,7 +325,7 @@ describe('VideoPlayer', () => {
     })
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
-    await screen.findByRole('button', { name: /DirectPlay/ })
+    await settled()
 
     expect(screen.getByLabelText('Arrival')).toHaveAttribute('src', '/api/playback/media-1/file')
   })
@@ -356,10 +386,14 @@ describe('VideoPlayer', () => {
     pending(null)
   })
 
-  it("drops the previous item's reasons when another is played", async () => {
+  it("drops the previous item's stats when another is played", async () => {
+    const actor = userEvent.setup()
     const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
-    await screen.findByRole('button', { name: /Transcode/ })
+    await settled()
+    await actor.click(screen.getByRole('button', { name: 'Stats for nerds' }))
+
+    expect(await screen.findByText('Transcode')).toBeInTheDocument()
 
     startMock.mockReturnValue(new Promise(() => undefined))
     rerender(
@@ -369,7 +403,7 @@ describe('VideoPlayer', () => {
       />,
     )
 
-    expect(screen.queryByRole('button', { name: /Transcode/ })).not.toBeInTheDocument()
+    expect(screen.queryByText('Transcode')).not.toBeInTheDocument()
   })
 
   it('seeks inside the session when the target is already encoded', async () => {
@@ -435,7 +469,7 @@ describe('VideoPlayer', () => {
     Object.defineProperty(element, 'currentTime', { value: 12, writable: true })
     fireEvent.timeUpdate(element)
 
-    expect(await screen.findByText('1:00:12 / 2:00:00')).toBeInTheDocument()
+    expect(await screen.findByText('1:00:12')).toBeInTheDocument()
   })
 
   it('seeks a direct played file in the browser rather than restarting it', async () => {
@@ -449,7 +483,7 @@ describe('VideoPlayer', () => {
     })
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
-    await screen.findByRole('button', { name: /DirectPlay/ })
+    await settled()
 
     const element = screen.getByLabelText('Arrival')
     fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
@@ -507,6 +541,52 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     expect(screen.getByRole('status', { name: 'Preparing playback' })).toBeInTheDocument()
+  })
+
+  it('mutes and unmutes the media element itself', async () => {
+    const actor = userEvent.setup()
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+    const element = screen.getByLabelText('Arrival')
+
+    await actor.click(screen.getByRole('button', { name: 'Mute' }))
+
+    expect(element).toHaveProperty('muted', true)
+
+    await actor.click(screen.getByRole('button', { name: 'Unmute' }))
+
+    expect(element).toHaveProperty('muted', false)
+  })
+
+  it('carries the volume through to the media element', async () => {
+    const actor = userEvent.setup()
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+
+    screen.getByRole('slider', { name: 'Volume' }).focus()
+    await actor.keyboard('{ArrowLeft}')
+
+    expect(screen.getByLabelText('Arrival')).toHaveProperty('volume', 0.99)
+  })
+
+  it('asks for full screen on the whole stage, not just the video', async () => {
+    const actor = userEvent.setup()
+    const request = vi.fn()
+
+    Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
+      configurable: true,
+      writable: true,
+      value: request,
+    })
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+    await actor.click(screen.getByRole('button', { name: 'Full screen' }))
+
+    expect(request).toHaveBeenCalledTimes(1)
   })
 
   it('sets a display name so devtools can identify it', () => {
