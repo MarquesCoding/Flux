@@ -63,6 +63,14 @@ const ViewerProfileSchema = z.object({
   colour: ProfileColourSchema,
   avatar: AvatarSchema,
   createdAt: z.string(),
+  /**
+   * When this was last changed.
+   *
+   * Carried so a picture can be addressed by version. Without it the address
+   * of somebody's face never changes, and a browser that has already fetched
+   * one goes on showing it however many times they replace it.
+   */
+  updatedAt: z.string(),
 })
 
 const ViewerProfileRequestSchema = z.object({
@@ -91,8 +99,13 @@ const profileInitial = (name: string): string => (name.trim()[0] ?? '?').toUpper
  * Always through Flux, whether it was drawn or uploaded: the browser should
  * not need to know which, and a self-hosted server should not send anybody
  * elsewhere to find out what its users look like.
+ *
+ * Addressed by version, so replacing a picture replaces its address. A face
+ * kept at one address is a face a browser will go on showing from its cache
+ * long after somebody has changed it.
  */
-const profileAvatarUrl = (profileId: string): string => `/api/profiles/${profileId}/avatar`
+const profileAvatarUrl = (profile: { id: string; updatedAt: string }): string =>
+  `/api/profiles/${profile.id}/avatar?v=${encodeURIComponent(profile.updatedAt)}`
 
 type Avatar = z.infer<typeof AvatarSchema>
 type AvatarStyle = z.infer<typeof AvatarStyleSchema>

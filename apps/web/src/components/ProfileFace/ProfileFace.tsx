@@ -44,7 +44,7 @@ const ProfileFace = ({ profile, pending = null, className }: ProfileFaceProps) =
     chosen === null
       ? profile.avatar.kind === 'photo' && profile.avatar.isVideo
       : pending?.type.startsWith('video/') === true
-  const source = chosen ?? profileAvatarUrl(profile.id)
+  const source = chosen ?? profileAvatarUrl(profile)
   const showsPicture = chosen !== null || profile.avatar.kind !== 'initial'
 
   return (

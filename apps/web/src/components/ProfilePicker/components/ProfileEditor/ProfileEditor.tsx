@@ -101,6 +101,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               colour,
               avatar,
               createdAt: profile?.createdAt ?? '',
+              updatedAt: profile?.updatedAt ?? '',
             }}
             pending={photo}
             className="size-20 shrink-0 rounded-3xl text-3xl"

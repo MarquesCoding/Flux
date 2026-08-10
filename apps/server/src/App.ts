@@ -626,11 +626,14 @@ const createApp = ({
       return context.json({ error: 'That profile has no picture.' }, 404)
     }
 
+    // Asked for by version, the answer can never go stale: changing a picture
+    // changes its address. Asked for without one, it is remembered for a
+    // minute at most, because then the address outlives the picture.
+    const isVersioned = context.req.query('v') !== undefined
+
     return context.body(picture.body.slice().buffer, 200, {
       'content-type': picture.contentType,
-      // Short rather than long: a picture that changes when somebody edits
-      // their profile should not be remembered for a year.
-      'cache-control': 'private, max-age=60',
+      'cache-control': isVersioned ? 'private, max-age=31536000, immutable' : 'private, max-age=60',
     })
   })
 

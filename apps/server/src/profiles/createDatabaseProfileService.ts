@@ -74,6 +74,7 @@ type ProfileRow = {
   avatarSeed: string | null
   photoPath: string | null
   createdAt: Date
+  updatedAt: Date
 }
 
 /**
@@ -112,6 +113,7 @@ const toProfile = (row: ProfileRow): ViewerProfile => ({
   colour: readColour(row.colour),
   avatar: readAvatarChoice(row),
   createdAt: row.createdAt.toISOString(),
+  updatedAt: row.updatedAt.toISOString(),
 })
 
 /**
@@ -154,6 +156,7 @@ const COLUMNS = {
   avatarSeed: viewerProfile.avatarSeed,
   photoPath: viewerProfile.photoPath,
   createdAt: viewerProfile.createdAt,
+  updatedAt: viewerProfile.updatedAt,
 }
 
 const createDatabaseProfileService = (
@@ -201,6 +204,7 @@ const createDatabaseProfileService = (
       colour: readColour(created.colour),
       avatar: { kind: 'initial' },
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
   }
 
@@ -231,6 +235,7 @@ const createDatabaseProfileService = (
         colour: created.colour,
         avatar: { kind: 'initial' },
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }
     },
 
@@ -317,6 +322,7 @@ const createDatabaseProfileService = (
                 avatarSeed: found.avatarSeed,
                 photoPath: found.photoPath,
                 createdAt: found.createdAt,
+                updatedAt: found.updatedAt,
               }),
         )
       }
