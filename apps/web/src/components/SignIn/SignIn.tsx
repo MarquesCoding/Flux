@@ -162,6 +162,8 @@ const SignIn = ({ onSignedIn }: SignInProps) => {
           <TextField
             label="Email"
             type="email"
+            size="lg"
+            isPill
             value={email}
             onValueChange={setEmail}
             autoComplete="username"
@@ -171,6 +173,8 @@ const SignIn = ({ onSignedIn }: SignInProps) => {
           <TextField
             label="Password"
             type="password"
+            size="lg"
+            isPill
             value={password}
             onValueChange={setPassword}
             autoComplete="current-password"

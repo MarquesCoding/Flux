@@ -189,3 +189,21 @@ body {
 :focus-visible {
   outline: none;
 }
+
+/*
+ * Fields a browser cannot repaint.
+ *
+ * Chrome fills a remembered field with its own pale background and dark text,
+ * which turns a dark form white the moment a password manager touches it —
+ * and the colour is not something a class can override. The inset shadow is
+ * the only thing that covers it, and the text colour has to be set through
+ * the fill property rather than through `color`.
+ */
+.flux-field:-webkit-autofill,
+.flux-field:-webkit-autofill:hover,
+.flux-field:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-text);
+  -webkit-box-shadow: 0 0 0 1000px color-mix(in oklab, var(--color-surface) 92%, white) inset;
+  caret-color: var(--color-text);
+  transition: background-color 5000s ease-in-out 0s;
+}

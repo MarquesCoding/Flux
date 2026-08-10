@@ -117,7 +117,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     }
   }, [user, readProfiles])
 
-  if (loadState === 'loading' || !isTitleOver) {
+  if (loadState === 'loading') {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
   }
 
@@ -151,6 +151,14 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         }}
       />
     )
+  }
+
+  // The opening title belongs in front of the library, not in front of the
+  // sign-in form. Somebody being asked for a password is not arriving
+  // anywhere yet, and holding them behind a title card is eight seconds
+  // between them and a field they have to fill in.
+  if (!isTitleOver) {
+    return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
   }
 
   // Between signing in and the library: who is watching. Asked once per device
