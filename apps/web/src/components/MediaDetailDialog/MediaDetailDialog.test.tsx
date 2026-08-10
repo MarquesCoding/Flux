@@ -168,7 +168,9 @@ describe('MediaDetailDialog', () => {
 
     await user.click(screen.getByRole('button', { name: 'Play' }))
 
-    expect(onPlay).toHaveBeenCalledWith(summary)
+    // From the beginning, since nobody has watched any of it. Where a viewer
+    // has, the same button says resume and names the second to start at.
+    expect(onPlay).toHaveBeenCalledWith(summary, 0)
   })
 
   it('closes on request', async () => {

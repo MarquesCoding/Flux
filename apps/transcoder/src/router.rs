@@ -193,7 +193,6 @@ fn content_type_for(name: &str) -> &'static str {
         "m4s" | "mp4" => "video/mp4",
         "jpg" | "jpeg" => "image/jpeg",
         "vtt" => "text/vtt",
-        "mp4" => "video/mp4",
         _ => "application/octet-stream",
     }
 }

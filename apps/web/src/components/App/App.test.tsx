@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AppModule from './App'
@@ -84,6 +84,27 @@ const serverState = (options: {
       return Promise.resolve(ok(options.libraries ?? []))
     }
 
+    if (input.startsWith('/api/profiles/everyone')) {
+      return Promise.resolve(
+        ok({
+          profiles: [
+            {
+              id: '00000000-0000-4000-8000-000000000001',
+              name: 'Operator',
+              colour: '#3a8ee8',
+              avatar: { kind: 'initial' },
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-01T00:00:00.000Z',
+            },
+          ],
+        }),
+      )
+    }
+
+    if (input.startsWith('/api/health')) {
+      return Promise.resolve(ok({ version: '0.0.0' }))
+    }
+
     if (input.startsWith('/api/media/')) {
       return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) })
     }
@@ -93,13 +114,36 @@ const serverState = (options: {
 }
 
 beforeEach(() => {
+  // Navigation lives in the address bar now, so each test has to start from
+  // the front door rather than wherever the last one ended up.
+  window.history.replaceState(null, '', '/')
+  vi.useFakeTimers({ shouldAdvanceTime: true })
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
 })
+
+/**
+ * Lets the opening wordmark finish holding the screen.
+ *
+ * Flux opens on its own mark rather than on a spinner, so nothing else is
+ * drawn until it has had its moment.
+ */
+const arrive = async () => {
+  // Twice: the way in has a hold of its own, and its timer is not set until
+  // the splash has finished and it has been drawn.
+  for (let pass = 0; pass < 2; pass += 1) {
+    await act(async () => {
+      vi.advanceTimersByTime(10_000)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+}
 
 describe('App routing', () => {
   it('shows a spinner while loading', () => {
@@ -125,30 +169,46 @@ describe('App routing', () => {
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/get-session', expect.anything())
   })
 
-  it('shows sign in when setup is complete but nobody is signed in', async () => {
+  it('asks who is watching when setup is complete but nobody is signed in', async () => {
     serverState({ setup: setupComplete, session: null })
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'Sign in to Flux' })).toBeInTheDocument()
+    await arrive()
+
+    expect(await screen.findByText('Who is watching?')).toBeInTheDocument()
   })
 
   it('shows the library shell when signed in', async () => {
     serverState({ setup: setupComplete, session: { user } })
     render(<App />)
 
+    await arrive()
+
     // The library owns the whole surface: the only chrome is the dock.
     expect(await screen.findByRole('navigation', { name: 'Sections' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('renders a supplied title on the account page', async () => {
-    serverState({ setup: setupComplete, session: { user } })
-    const actor = userEvent.setup()
+  it('calls the instance whatever it is configured to be called', async () => {
+    serverState({ setup: setupComplete, session: null })
     render(<App initialTitle="Living Room" />)
 
+    await arrive()
+
+    // On the way in rather than on the account page: the account page is
+    // about the person, and their own name is what belongs at the top of it.
+    expect(screen.getAllByText(/Living Room/).length).toBeGreaterThan(0)
+  })
+
+  it('puts a person\u2019s own name at the top of their account page', async () => {
+    serverState({ setup: setupComplete, session: { user } })
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App initialTitle="Living Room" />)
+
+    await arrive()
     await actor.click(await screen.findByRole('button', { name: 'Account' }))
 
-    expect(await screen.findByRole('heading', { name: 'Living Room' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Operator' })).toBeInTheDocument()
   })
 
   it('reports an unreachable server rather than assuming setup is needed', async () => {
@@ -170,27 +230,31 @@ describe('App routing', () => {
 
     await screen.findByRole('heading', { name: 'Flux is not reachable' })
 
-    expect(screen.queryByRole('heading', { name: 'Sign in to Flux' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Who is watching?')).not.toBeInTheDocument()
   })
 
-  it('signs out and returns to the sign in screen', async () => {
+  it('signs out and returns to the wall of faces', async () => {
     serverState({ setup: setupComplete, session: { user } })
-    const actor = userEvent.setup()
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App />)
 
+    await arrive()
     await actor.click(await screen.findByRole('button', { name: 'Account' }))
     await screen.findByText('admin@flux.test')
 
     serverState({ setup: setupComplete, session: null })
-    await actor.click(screen.getByRole('button', { name: 'Sign out' }))
+    await actor.click(screen.getByRole('button', { name: /Sign out/ }))
+    await arrive()
 
-    expect(await screen.findByRole('heading', { name: 'Sign in to Flux' })).toBeInTheDocument()
+    expect(await screen.findByText('Who is watching?')).toBeInTheDocument()
   })
 
   it('opens an item for a look rather than playing it straight away', async () => {
-    const actor = userEvent.setup()
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival })
     render(<App />)
+
+    await arrive()
 
     // The library groups into rows, and an item appears in more than one of
     // them, so the row has to be named for the query to mean anything.
@@ -205,9 +269,11 @@ describe('App routing', () => {
   })
 
   it('fills the page with the player once someone presses play', async () => {
-    const actor = userEvent.setup()
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival })
     render(<App />)
+
+    await arrive()
 
     // The library groups into rows, and an item appears in more than one of
     // them, so the row has to be named for the query to mean anything.

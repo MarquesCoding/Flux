@@ -694,8 +694,7 @@ describe('VideoPlayer', () => {
     await actor.click(await screen.findByRole('button', { name: 'Subtitles' }))
     await actor.click(await screen.findByRole('menuitemradio', { name: /English/ }))
 
-    expect(container.querySelector('track')).toHaveAttribute(
-      'src',
+    expect(container.querySelector('track')?.getAttribute('src')).toContain(
       '/api/media/media-1/subtitles/en',
     )
   })

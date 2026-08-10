@@ -34,8 +34,12 @@ afterEach(() => {
 })
 
 describe('subtitleTrackUrl', () => {
+  it('shifts cues to where the stream starts, since a transcode counts from zero', () => {
+    expect(subtitleTrackUrl('media-1', 'abc', 2400)).toContain('from=2400')
+  })
+
   it('addresses a track under the item it belongs to', () => {
-    expect(subtitleTrackUrl('media-1', 'abc')).toBe('/api/media/media-1/subtitles/abc')
+    expect(subtitleTrackUrl('media-1', 'abc')).toBe('/api/media/media-1/subtitles/abc?from=0')
   })
 })
 

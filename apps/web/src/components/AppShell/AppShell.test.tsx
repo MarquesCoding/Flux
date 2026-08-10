@@ -62,15 +62,21 @@ describe('AppShell', () => {
   })
 
   it('lights the page with the colour of what is being shown', () => {
-    draw({ moodColor: '#5a3c8c' })
+    const { view } = draw({ moodColor: '#5a3c8c' })
 
-    expect(screen.getByRole('presentation')).toHaveStyle({ '--color-mood': '#5a3c8c' })
+    // On the wash itself rather than the element positioning it: a custom
+    // property is not something the animation library's style type carries.
+    expect(
+      view.container
+        .querySelector<HTMLElement>('.flux-mood')
+        ?.style.getPropertyValue('--color-mood'),
+    ).toBe('#5a3c8c')
   })
 
-  it('leaves room beneath the page for the dock floating over it', () => {
+  it('leaves room beneath the page for what floats over it', () => {
     const { view } = draw()
 
-    expect(view.container.querySelector('main')).toHaveClass('pb-32')
+    expect(view.container.querySelector('main')).toHaveClass('pb-16')
   })
 
   it('has no rail down the side to collapse', () => {

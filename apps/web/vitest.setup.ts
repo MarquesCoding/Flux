@@ -59,6 +59,42 @@ if (!('PointerEvent' in globalThis)) {
   })
 }
 
+/**
+ * jsdom plays nothing, and says so by returning undefined.
+ *
+ * A browser answers `play()` with a promise, which is what everything here
+ * waits on and catches: a preview that is refused falls back to its still
+ * frame rather than failing. Filled in for the same reason as the rest —
+ * production code should not carry a guard for an environment nobody runs.
+ *
+ * Only defined where jsdom left a gap, so a test that wants to watch these
+ * can still replace them.
+ */
+if (typeof HTMLMediaElement !== 'undefined') {
+  Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+    configurable: true,
+    writable: true,
+    value: () => Promise.resolve(),
+  })
+
+  Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+    configurable: true,
+    writable: true,
+    value: () => undefined,
+  })
+
+  // A track list that can be listened to, which jsdom's cannot: the surface
+  // waits for cues arriving after the element already has its track.
+  Object.defineProperty(HTMLMediaElement.prototype, 'textTracks', {
+    configurable: true,
+    writable: true,
+    value: Object.assign([], {
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }),
+  })
+}
+
 afterEach(() => {
   cleanup()
 })

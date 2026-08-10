@@ -1,26 +1,35 @@
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import MoodBackgroundModule from './MoodBackground'
 
 const { MoodBackground } = MoodBackgroundModule
 
+/**
+ * The layer the wash is actually drawn on.
+ *
+ * Not the outer element: that one only holds a position, and the colour lives
+ * inside it on a plain element, since the animation library's style type will
+ * not carry a custom property.
+ */
+const wash = (container: HTMLElement): HTMLElement | null => container.querySelector('.flux-mood')
+
 describe('MoodBackground', () => {
   it('lights the page from the colour it is given', () => {
-    render(<MoodBackground color="rgb(120, 40, 200)" />)
+    const { container } = render(<MoodBackground color="rgb(120, 40, 200)" />)
 
-    expect(screen.getByRole('presentation')).toHaveStyle({ '--color-mood': 'rgb(120, 40, 200)' })
+    expect(wash(container)?.style.getPropertyValue('--color-mood')).toBe('rgb(120, 40, 200)')
   })
 
   it('leaves the theme to decide when nothing is on screen yet', () => {
-    render(<MoodBackground color={null} />)
+    const { container } = render(<MoodBackground color={null} />)
 
-    expect(screen.getByRole('presentation').getAttribute('style')).toBe(null)
+    expect(wash(container)?.getAttribute('style')).toBe(null)
   })
 
   it('ignores a colour that is not one', () => {
-    render(<MoodBackground color="" />)
+    const { container } = render(<MoodBackground color="" />)
 
-    expect(screen.getByRole('presentation').getAttribute('style')).toBe(null)
+    expect(wash(container)?.getAttribute('style')).toBe(null)
   })
 
   it('sets a display name so devtools can identify it', () => {
