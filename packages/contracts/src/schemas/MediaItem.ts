@@ -27,14 +27,14 @@ const AudioStreamSchema = z.object({
   index: z.number().int().nonnegative(),
   codec: AudioCodecSchema,
   channels: z.number().int().positive(),
-  language: z.string().length(3).optional(),
+  language: z.string().length(3).nullish(),
   isAtmos: z.boolean(),
 })
 
 const SubtitleStreamSchema = z.object({
   index: z.number().int().nonnegative(),
   format: SubtitleFormatSchema,
-  language: z.string().length(3).optional(),
+  language: z.string().length(3).nullish(),
   isForced: z.boolean(),
 })
 
@@ -46,7 +46,7 @@ const SubtitleStreamSchema = z.object({
 const MediaItemSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1),
-  year: z.number().int().min(1870).max(2200).optional(),
+  year: z.number().int().min(1870).max(2200).nullish(),
   container: ContainerSchema,
   durationSeconds: z.number().positive(),
   videoCodec: VideoCodecSchema,

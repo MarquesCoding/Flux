@@ -19,6 +19,7 @@ const EnvSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  TRANSCODER_URL: z.string().url().default('http://127.0.0.1:8477'),
   AUTH_RATE_LIMIT_ENABLED: z
     .enum(['true', 'false'])
     .default('true')

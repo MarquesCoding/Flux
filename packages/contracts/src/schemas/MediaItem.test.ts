@@ -32,6 +32,20 @@ describe('MediaItemSchema', () => {
     expect(result.subtitleStreams).toHaveLength(0)
   })
 
+  it('accepts a stream whose language ffprobe could not determine', () => {
+    const result = MediaItemSchema.parse({
+      ...validItem,
+      audioStreams: [{ index: 1, codec: 'aac', channels: 2, language: null, isAtmos: false }],
+      subtitleStreams: [{ index: 2, format: 'srt', language: null, isForced: false }],
+    })
+
+    expect(result.audioStreams[0]?.language).toBeNull()
+  })
+
+  it('accepts an item with no year', () => {
+    expect(MediaItemSchema.parse({ ...validItem, year: null }).year).toBeNull()
+  })
+
   it('rejects an item with no audio streams', () => {
     expect(() => MediaItemSchema.parse({ ...validItem, audioStreams: [] })).toThrow()
   })

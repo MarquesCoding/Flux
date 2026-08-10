@@ -15,6 +15,13 @@
       "when": 1786302246894,
       "tag": "0001_supreme_slyde",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786335036136,
+      "tag": "0002_perpetual_apocalypse",
+      "breakpoints": true
     }
   ]
 }

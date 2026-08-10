@@ -5,7 +5,10 @@ import describePlaybackModeModule from '@FluxContracts/functions/describePlaybac
 import suggestTrustedOriginsModule from '@FluxServer/setup/suggestTrustedOrigins'
 import type { FluxAuth } from '@FluxServer/auth/Auth'
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
+import LibraryServiceModule from '@FluxServer/library/LibraryService'
+import type { LibraryService } from '@FluxServer/library/LibraryService'
 import HealthRouteModule from './routes/HealthRoute'
+import LibraryRouteModule from './routes/LibraryRoute'
 import PlaybackExplainRouteModule from './routes/PlaybackExplainRoute'
 import SetupRouteModule from './routes/SetupRoute'
 
@@ -13,6 +16,9 @@ const { negotiatePlayback } = negotiatePlaybackModule
 const { describePlaybackMode } = describePlaybackModeModule
 const { suggestTrustedOrigins } = suggestTrustedOriginsModule
 const { healthRoute } = HealthRouteModule
+const { DEFAULT_LIMIT } = LibraryServiceModule
+const { listLibrariesRoute, createLibraryRoute, listItemsRoute, getMediaRoute, scanLibraryRoute } =
+  LibraryRouteModule
 const { playbackExplainRoute } = PlaybackExplainRouteModule
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
 
@@ -23,6 +29,7 @@ type CreateAppOptions = {
   settings: SettingsStore
   countUsers: () => Promise<number>
   promoteToAdmin: (email: string) => Promise<void>
+  library: LibraryService
 }
 
 /**
@@ -35,7 +42,7 @@ type CreateAppOptions = {
  * its own routing and documents itself through its `openAPI` plugin. It is the
  * one part of the surface Flux does not define route by route.
  */
-const createApp = ({ auth, settings, countUsers, promoteToAdmin }: CreateAppOptions) => {
+const createApp = ({ auth, settings, countUsers, promoteToAdmin, library }: CreateAppOptions) => {
   const app = new OpenAPIHono()
 
   app.on(['GET', 'POST'], '/api/auth/*', (context) => auth.handler(context.req.raw))
@@ -84,6 +91,55 @@ const createApp = ({ auth, settings, countUsers, promoteToAdmin }: CreateAppOpti
       { isComplete: true, restartRequired: previous.cookieSecure !== cookieSecure },
       200,
     )
+  })
+
+  app.openapi(listLibrariesRoute, async (context) => context.json(await library.list(), 200))
+
+  app.openapi(createLibraryRoute, async (context) => {
+    const created = await library.create(context.req.valid('json'))
+
+    if (created === null) {
+      return context.json({ error: 'That path is not a readable directory.' }, 400)
+    }
+
+    return context.json(created, 201)
+  })
+
+  app.openapi(listItemsRoute, async (context) => {
+    const { id } = context.req.valid('param')
+    const { search, limit, offset } = context.req.valid('query')
+
+    const page = await library.listItems(id, {
+      ...(search === undefined ? {} : { search }),
+      limit: limit ?? DEFAULT_LIMIT,
+      offset: offset ?? 0,
+    })
+
+    if (page === null) {
+      return context.json({ error: 'No such library.' }, 404)
+    }
+
+    return context.json(page, 200)
+  })
+
+  app.openapi(getMediaRoute, async (context) => {
+    const item = await library.getMedia(context.req.valid('param').id)
+
+    if (item === null) {
+      return context.json({ error: 'No such item.' }, 404)
+    }
+
+    return context.json(item, 200)
+  })
+
+  app.openapi(scanLibraryRoute, async (context) => {
+    const result = await library.scan(context.req.valid('param').id)
+
+    if (result === null) {
+      return context.json({ error: 'No such library.' }, 404)
+    }
+
+    return context.json(result, 200)
   })
 
   app.openapi(healthRoute, (context) =>

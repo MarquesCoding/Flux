@@ -1,0 +1,218 @@
+import { z } from 'zod'
+import { describe, expect, it } from 'vitest'
+import AppModule from '@FluxServer/App'
+import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
+import createMemoryLibraryServiceModule from './createMemoryLibraryService'
+import LibraryContract from '@FluxContracts/schemas/Library'
+import JsonValueModule from '@FluxContracts/schemas/JsonValue'
+import type { MediaDetail } from '@FluxContracts/schemas/Library'
+
+const { createApp } = AppModule
+const { createMemoryAuth } = createMemoryAuthModule
+const { createMemoryLibraryService } = createMemoryLibraryServiceModule
+
+const { MediaSummarySchema } = LibraryContract
+const { JsonValueSchema } = JsonValueModule
+
+const BASE = 'http://localhost:8420'
+const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
+const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9'
+
+const detail = (overrides: Partial<MediaDetail> = {}): MediaDetail => ({
+  id: MEDIA_ID,
+  libraryId: LIBRARY_ID,
+  title: 'Arrival',
+  year: 2016,
+  container: 'mkv',
+  durationSeconds: 7200,
+  videoCodec: 'hevc',
+  videoRange: 'HDR10',
+  width: 3840,
+  height: 2160,
+  bitrateKbps: 24000,
+  audioStreams: [{ index: 1, codec: 'truehd', channels: 8, isAtmos: true }],
+  subtitleStreams: [],
+  addedAt: '2026-08-10T00:00:00.000Z',
+  ...overrides,
+})
+
+const build = (media: MediaDetail[] = []) => {
+  const { auth, settings } = createMemoryAuth()
+  const library = createMemoryLibraryService({
+    libraries: [
+      {
+        id: LIBRARY_ID,
+        name: 'Films',
+        kind: 'movies',
+        path: '/media/films',
+        itemCount: media.length,
+        lastScannedAt: null,
+      },
+    ],
+    media,
+  })
+
+  const app = createApp({
+    auth,
+    settings,
+    countUsers: () => Promise.resolve(1),
+    promoteToAdmin: () => Promise.resolve(),
+    library,
+  })
+
+  return { app, library }
+}
+
+describe('library routes', () => {
+  it('lists libraries with their item counts', async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/libraries`)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject([{ name: 'Films', kind: 'movies', itemCount: 1 }])
+  })
+
+  it('lists the items in a library', async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items`)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({ total: 1, items: [{ title: 'Arrival', year: 2016 }] })
+  })
+
+  it('returns summaries rather than stream detail in the list', async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items`)
+    const body = z
+      .object({ items: z.array(z.record(z.string(), JsonValueSchema)) })
+      .parse(await response.json())
+
+    expect(body.items[0]).not.toHaveProperty('audioStreams')
+    expect(MediaSummarySchema.safeParse(body.items[0]).success).toBe(true)
+  })
+
+  it('searches by title', async () => {
+    const { app } = build([
+      detail(),
+      detail({ id: '11111111-1111-4111-8111-111111111111', title: 'Dune' }),
+    ])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?search=dun`)
+    const body = await response.json()
+
+    expect(body).toMatchObject({ total: 1, items: [{ title: 'Dune' }] })
+  })
+
+  it('pages through items', async () => {
+    const { app } = build([
+      detail(),
+      detail({ id: '11111111-1111-4111-8111-111111111111', title: 'Dune' }),
+    ])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?limit=1&offset=1`)
+    const body = await response.json()
+
+    expect(body).toMatchObject({ total: 2, items: [{ title: 'Dune' }] })
+  })
+
+  it('rejects an oversized page request', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?limit=5000`)
+
+    expect(response.status).toBe(400)
+  })
+
+  it('reports an unknown library', async () => {
+    const { app } = build()
+
+    const response = await app.request(
+      `${BASE}/api/libraries/00000000-0000-4000-8000-000000000000/items`,
+    )
+
+    expect(response.status).toBe(404)
+  })
+
+  it('reads one item in full', async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}`)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({
+      title: 'Arrival',
+      audioStreams: [{ codec: 'truehd', isAtmos: true }],
+    })
+  })
+
+  it('reports an unknown item', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/media/00000000-0000-4000-8000-000000000000`)
+
+    expect(response.status).toBe(404)
+  })
+
+  it('scans a library', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/scan`, {
+      method: 'POST',
+    })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ added: 0, failed: 0 })
+  })
+
+  it('reports scanning an unknown library', async () => {
+    const { app } = build()
+
+    const response = await app.request(
+      `${BASE}/api/libraries/00000000-0000-4000-8000-000000000000/scan`,
+      { method: 'POST' },
+    )
+
+    expect(response.status).toBe(404)
+  })
+
+  it('adds a library', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/libraries`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Shows', kind: 'shows', path: '/media/shows' }),
+    })
+
+    expect(response.status).toBe(201)
+    expect(await response.json()).toMatchObject({ name: 'Shows', kind: 'shows' })
+  })
+
+  it('rejects an unknown library kind', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/libraries`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Books', kind: 'books', path: '/media/books' }),
+    })
+
+    expect(response.status).toBe(400)
+  })
+
+  it('documents the library endpoints in the specification', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/openapi.json`)
+    const body = await response.json()
+
+    expect(body).toHaveProperty(['paths', '/api/libraries', 'get'])
+    expect(body).toHaveProperty(['paths', '/api/media/{id}', 'get'])
+  })
+})

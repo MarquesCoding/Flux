@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import AppModule from './App'
 import createMemoryAuthModule from './auth/createMemoryAuth'
+import createMemoryLibraryServiceModule from './library/createMemoryLibraryService'
 
 const { createApp } = AppModule
 const { createMemoryAuth } = createMemoryAuthModule
+const { createMemoryLibraryService } = createMemoryLibraryServiceModule
 
 const { auth, settings } = createMemoryAuth()
 const app = createApp({
@@ -11,6 +13,7 @@ const app = createApp({
   settings,
   countUsers: () => Promise.resolve(1),
   promoteToAdmin: () => Promise.resolve(),
+  library: createMemoryLibraryService(),
 })
 
 const deviceProfile = {

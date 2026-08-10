@@ -1,4 +1,15 @@
-import { boolean, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import {
+  bigint,
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  real,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
 
 const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -130,6 +141,46 @@ const apikey = pgTable('apikey', {
   metadata: text('metadata'),
 })
 
+const library = pgTable('library', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  kind: text('kind').notNull(),
+  path: text('path').notNull().unique(),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  lastScannedAt: timestamp('lastScannedAt'),
+})
+
+const mediaItem = pgTable(
+  'media_item',
+  {
+    id: text('id').primaryKey(),
+    libraryId: text('libraryId')
+      .notNull()
+      .references(() => library.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    title: text('title').notNull(),
+    year: integer('year'),
+    sizeBytes: bigint('sizeBytes', { mode: 'number' }).notNull(),
+    modifiedAtMs: bigint('modifiedAtMs', { mode: 'number' }).notNull(),
+    container: text('container').notNull(),
+    durationSeconds: real('durationSeconds').notNull(),
+    bitrateKbps: integer('bitrateKbps'),
+    videoCodec: text('videoCodec').notNull(),
+    videoRange: text('videoRange').notNull(),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    audioStreams: jsonb('audioStreams').notNull(),
+    subtitleStreams: jsonb('subtitleStreams').notNull(),
+    addedAt: timestamp('addedAt').notNull().defaultNow(),
+    updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('media_item_path_idx').on(table.libraryId, table.path),
+    index('media_item_library_idx').on(table.libraryId),
+    index('media_item_title_idx').on(table.title),
+  ],
+)
+
 const serverSetting = pgTable('server_setting', {
   key: text('key').primaryKey(),
   value: jsonb('value').notNull(),
@@ -149,6 +200,8 @@ const userProfile = pgTable('user_profile', {
 })
 
 export {
+  library,
+  mediaItem,
   user,
   session,
   account,
@@ -174,11 +227,13 @@ const authSchema = {
   apikey,
 }
 
-const fluxSchema = { userProfile, serverSetting }
+const fluxSchema = { userProfile, serverSetting, library, mediaItem }
 
 export default {
   authSchema,
   fluxSchema,
+  library,
+  mediaItem,
   user,
   session,
   account,

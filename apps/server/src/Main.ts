@@ -7,6 +7,9 @@ import DatabaseModule from '@FluxServer/db/Database'
 import SchemaModule from '@FluxServer/db/Schema'
 import EnvModule from '@FluxServer/env/Env'
 import createDatabaseSettingsStoreModule from '@FluxServer/settings/createDatabaseSettingsStore'
+import createDatabaseLibraryServiceModule from '@FluxServer/library/createDatabaseLibraryService'
+import createMediaFileSystemModule from '@FluxServer/library/createMediaFileSystem'
+import TranscoderClientModule from '@FluxServer/transcoder/TranscoderClient'
 
 const { createApp } = AppModule
 const { createAuth } = AuthModule
@@ -14,6 +17,9 @@ const { createDatabase } = DatabaseModule
 const { user } = SchemaModule
 const { readEnv } = EnvModule
 const { createDatabaseSettingsStore } = createDatabaseSettingsStoreModule
+const { createDatabaseLibraryService } = createDatabaseLibraryServiceModule
+const { createMediaFileSystem } = createMediaFileSystemModule
+const { createTranscoderClient } = TranscoderClientModule
 
 const env = readEnv(process.env)
 const { db, schema } = createDatabase(env.DATABASE_URL)
@@ -46,7 +52,24 @@ const promoteToAdmin = async (email: string): Promise<void> => {
   await db.update(user).set({ role: 'admin' }).where(eq(user.email, email))
 }
 
-const app = createApp({ auth, settings, countUsers, promoteToAdmin })
+const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL })
+
+const libraryService = createDatabaseLibraryService({
+  db,
+  files: createMediaFileSystem(),
+  transcoder,
+  onProblem: (path, reason) => {
+    process.stderr.write(`skipped ${path}: ${reason}\n`)
+  },
+})
+
+const app = createApp({
+  auth,
+  settings,
+  countUsers,
+  promoteToAdmin,
+  library: libraryService,
+})
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   const origin = `http://localhost:${info.port.toString()}`
