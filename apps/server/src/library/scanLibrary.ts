@@ -225,6 +225,14 @@ const scanLibrary = async ({
         .catch((error: Error) => {
           onProblem?.(path, error.message)
         })
+
+      // The clip a library page plays, made here for the same reason the
+      // thumbnails are: a wall of cards playing previews should cost nothing
+      // running, rather than half a dozen transcodes competing with whatever
+      // somebody is actually watching.
+      await transcoder.requestPreview({ inputPath: path, wait: true }).catch((error: Error) => {
+        onProblem?.(path, error.message)
+      })
     }
   }
 

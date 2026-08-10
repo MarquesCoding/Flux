@@ -38,6 +38,13 @@ type MediaPreviewProps = {
    * This only decides whether there is a way to ask for it.
    */
   hasSound?: boolean
+  /**
+   * Called when the clip has finished.
+   *
+   * A hero waits for this before moving on, so it changes item from a still
+   * picture rather than cutting away mid-shot.
+   */
+  onEnded?: () => void
 }
 
 export type { MediaPreviewProps }

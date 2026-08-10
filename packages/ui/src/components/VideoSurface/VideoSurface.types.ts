@@ -27,6 +27,10 @@ type VideoSurfaceProps = {
   onTimeUpdate?: (currentSeconds: number) => void
   onDurationChange?: (durationSeconds: number) => void
   onPlayingChange?: (isPlaying: boolean) => void
+  /**
+   * Called when the media reaches its end.
+   */
+  onEnded?: () => void
 }
 
 export type { TextTrack, VideoSurfaceProps }

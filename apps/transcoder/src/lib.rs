@@ -12,6 +12,7 @@ pub mod fingerprint;
 pub mod frame;
 pub mod media;
 pub mod monitor;
+pub mod preview;
 pub mod probe;
 pub mod queue;
 pub mod router;

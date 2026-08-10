@@ -116,6 +116,12 @@ const FingerprintSchema = z.object({
 
 const SubtitleTrackSchema = z.object({ content: z.string() })
 
+const PreviewClipSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  isReady: z.boolean(),
+})
+
 const TrickplayIndexSchema = z.object({
   id: z.string(),
   intervalSeconds: z.number(),
@@ -231,6 +237,17 @@ type Transcoder = {
     atSeconds: number
     width: number
   }) => Promise<ArrayBuffer>
+  /**
+   * Makes, or finds, the short clip a library page plays.
+   *
+   * Made once when a file is imported and served as a file afterwards, so a
+   * page full of previews costs nothing running.
+   */
+  requestPreview: (request: {
+    inputPath: string
+    wait?: boolean
+  }) => Promise<{ id: string; url: string; isReady: boolean }>
+  readPreviewFile: (id: string, name: string) => Promise<TranscoderFile | null>
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>
   stopSession: (id: string) => Promise<boolean>
@@ -415,6 +432,22 @@ const createTranscoderClient = ({
       FingerprintSchema.parse(await (await postJson('/fingerprint', request)).json()),
 
     readFrame: async (request) => (await postJson('/frame', request)).arrayBuffer(),
+
+    requestPreview: async (request) =>
+      PreviewClipSchema.parse(await (await postJson('/previews', request)).json()),
+
+    readPreviewFile: async (id, name) => {
+      const response = await call2(
+        `${origin}/previews/${encodeURIComponent(id)}/${encodeURIComponent(name)}`,
+      )
+
+      return response.ok
+        ? {
+            body: await response.arrayBuffer(),
+            contentType: response.headers.get('content-type') ?? 'video/mp4',
+          }
+        : null
+    },
 
     readMonitor: async () => (await call('/monitor')).json(),
 

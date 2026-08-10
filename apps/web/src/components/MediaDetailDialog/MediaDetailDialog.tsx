@@ -17,7 +17,7 @@ import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
-import type { MediaDetail } from '@FluxContracts/schemas/Library'
+import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types'
 
 const { Dialog } = DialogModule
@@ -64,6 +64,7 @@ const MediaDetailDialog = ({
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [lastShown, setLastShown] = useState<MediaSummary | null>(null)
   const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
@@ -72,6 +73,8 @@ const MediaDetailDialog = ({
 
       return
     }
+
+    setLastShown(media)
 
     let abandoned = false
 
@@ -90,7 +93,12 @@ const MediaDetailDialog = ({
     }
   }, [media])
 
-  if (media === null) {
+  // The last thing shown is kept so the panel has something to draw while it
+  // is leaving. Returning nothing the moment the item clears would unmount the
+  // dialog before it could animate out, which reads as it vanishing.
+  const shown = media ?? lastShown
+
+  if (shown === null) {
     return null
   }
 
@@ -101,8 +109,8 @@ const MediaDetailDialog = ({
 
   return (
     <Dialog
-      label={media.title}
-      isOpen
+      label={shown.title}
+      isOpen={media !== null}
       onClose={onClose}
       // Full screen on a phone and a panel on a desktop: a sheet with margins
       // around it wastes the only screen a phone has.
@@ -111,9 +119,9 @@ const MediaDetailDialog = ({
       <div className="relative">
         <div className="h-[42vh] min-h-[16rem] sm:h-[26rem]">
           <MediaPreview
-            mediaId={media.id}
-            backdropUrl={media.hasBackdrop ? artworkUrl(media.id, 'backdrop') : null}
-            durationSeconds={media.durationSeconds}
+            mediaId={shown.id}
+            backdropUrl={shown.hasBackdrop ? artworkUrl(shown.id, 'backdrop') : null}
+            durationSeconds={shown.durationSeconds}
             hasSound
             fills
           />
@@ -138,7 +146,7 @@ const MediaDetailDialog = ({
             transition={revealTransition(prefersReducedMotion, 'heavy')}
             className="max-w-[16ch] text-[clamp(2rem,6vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-text"
           >
-            {media.title}
+            {shown.title}
           </motion.h2>
 
           <motion.div
@@ -146,8 +154,8 @@ const MediaDetailDialog = ({
             transition={revealTransition(prefersReducedMotion)}
             className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-muted"
           >
-            {media.year === null ? null : <span className="text-text">{media.year}</span>}
-            <span>{formatDuration(media.durationSeconds)}</span>
+            {shown.year === null ? null : <span className="text-text">{shown.year}</span>}
+            <span>{formatDuration(shown.durationSeconds)}</span>
 
             {metadata?.rating === undefined || metadata.rating === null ? null : (
               <span className="flex items-center gap-1 text-text">
@@ -175,7 +183,7 @@ const MediaDetailDialog = ({
             size="lg"
             isPill
             onClick={() => {
-              onPlay(media, resumeSeconds ?? 0)
+              onPlay(shown, resumeSeconds ?? 0)
             }}
           >
             <IconPlayerPlayFilled size={18} aria-hidden />
@@ -188,7 +196,7 @@ const MediaDetailDialog = ({
               size="lg"
               isPill
               onClick={() => {
-                onPlay(media, 0)
+                onPlay(shown, 0)
               }}
             >
               <IconRotateClockwise size={18} aria-hidden />

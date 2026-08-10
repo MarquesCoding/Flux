@@ -24,6 +24,7 @@ const VideoSurface = ({
   onTimeUpdate,
   onDurationChange,
   onPlayingChange,
+  onEnded,
 }: VideoSurfaceProps) => {
   const trackId = textTrack?.id ?? null
 
@@ -67,6 +68,10 @@ const VideoSurface = ({
       }}
       onDurationChange={(event) => {
         onDurationChange?.(event.currentTarget.duration)
+      }}
+      onEnded={() => {
+        onPlayingChange?.(false)
+        onEnded?.()
       }}
       onPlay={() => {
         onPlayingChange?.(true)

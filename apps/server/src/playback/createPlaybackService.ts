@@ -27,6 +27,11 @@ const {
  */
 const TRICKPLAY_INDEX_NAME = 'thumbnails.vtt'
 
+/**
+ * The file the media service names a preview clip.
+ */
+const PREVIEW_NAME = 'preview.mp4'
+
 const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub'])
 
 /**
@@ -224,6 +229,26 @@ const createPlaybackService = ({
       return transcoder
         .readFrame({ inputPath: found.path, atSeconds: seconds, width })
         .catch(() => null)
+    },
+
+    readPreview: async (mediaId) => {
+      const found = await media.findForPlayback(mediaId)
+
+      if (found === null) {
+        return null
+      }
+
+      // Asked for without waiting: if it has not been made yet this starts it
+      // and says so, and the page carries on with the frame it already has.
+      const clip = await transcoder
+        .requestPreview({ inputPath: found.path, wait: false })
+        .catch(() => null)
+
+      if (clip === null || !clip.isReady) {
+        return null
+      }
+
+      return transcoder.readPreviewFile(clip.id, PREVIEW_NAME)
     },
 
     readTrickplayFile: (trickplayId, name) => transcoder.readTrickplayFile(trickplayId, name),

@@ -14,6 +14,10 @@ use crate::colour::{sample_colour, ColourRequest};
 use crate::fingerprint::{fingerprint, FingerprintRequest};
 use crate::frame::{take_frame, FrameRequest};
 use crate::monitor::{Monitor, Report};
+use crate::preview::{
+    directory_for as preview_directory, generate as generate_preview, is_complete as preview_ready,
+    PreviewClip, PreviewRequest,
+};
 use crate::probe::probe_media;
 use crate::queue::WorkQueue;
 use crate::session::{await_manifest, SessionRegistry};
@@ -189,6 +193,7 @@ fn content_type_for(name: &str) -> &'static str {
         "m4s" | "mp4" => "video/mp4",
         "jpg" | "jpeg" => "image/jpeg",
         "vtt" => "text/vtt",
+        "mp4" => "video/mp4",
         _ => "application/octet-stream",
     }
 }
@@ -344,6 +349,111 @@ async fn session_file(
     let Some(directory) = state.registry.touch(&id).await else {
         return error(StatusCode::NOT_FOUND, "No such session.");
     };
+
+    serve_file(&directory, &name).await
+}
+
+/// Makes the short clip a library page plays.
+///
+/// Encoded once and served as a file afterwards, so a wall of cards playing
+/// previews costs nothing running: the alternative is half a dozen transcodes
+/// competing with whatever somebody is actually watching.
+async fn start_preview(
+    State(state): State<AppState>,
+    Json(request): Json<PreviewRequest>,
+) -> Response {
+    let path = PathBuf::from(&request.input_path);
+
+    if !state.is_readable(&path) {
+        return error(
+            StatusCode::FORBIDDEN,
+            "That file is outside the media roots.",
+        );
+    }
+
+    let config = state.registry.config().clone();
+    let id = request.id();
+
+    if preview_ready(&config.cache_root, &id).await {
+        return (
+            StatusCode::OK,
+            Json(PreviewClip {
+                url: format!("/previews/{id}/{}", crate::preview::PREVIEW_NAME),
+                id,
+                is_ready: true,
+            }),
+        )
+            .into_response();
+    }
+
+    let probe = match probe_media(&state.ffprobe, &path).await {
+        Ok(probe) => probe,
+        Err(failure) => return error(StatusCode::BAD_REQUEST, &failure.to_string()),
+    };
+
+    let Some(video) = probe.video.as_ref() else {
+        return error(StatusCode::BAD_REQUEST, "That file has no video stream.");
+    };
+
+    let range = video.range;
+    let tone_mapping = detect_capabilities(&config.ffmpeg).await.tone_mapping;
+    let duration = probe.duration_seconds;
+
+    if !request.wait {
+        let queue = state.queue.clone();
+        let subject = name_of(&path);
+        let queued = request.clone();
+        let ffmpeg = config.ffmpeg.clone();
+        let cache_root = config.cache_root.clone();
+
+        tokio::spawn(async move {
+            let _ = queue
+                .run(
+                    "preview",
+                    &subject,
+                    generate_preview(&ffmpeg, &cache_root, &queued, range, tone_mapping, duration),
+                )
+                .await;
+        });
+
+        return (
+            StatusCode::ACCEPTED,
+            Json(PreviewClip {
+                url: format!("/previews/{id}/{}", crate::preview::PREVIEW_NAME),
+                id,
+                is_ready: false,
+            }),
+        )
+            .into_response();
+    }
+
+    match state
+        .queue
+        .run(
+            "preview",
+            &name_of(&path),
+            generate_preview(
+                &config.ffmpeg,
+                &config.cache_root,
+                &request,
+                range,
+                tone_mapping,
+                duration,
+            ),
+        )
+        .await
+    {
+        Ok(clip) => (StatusCode::OK, Json(clip)).into_response(),
+        Err(failure) => error(StatusCode::INTERNAL_SERVER_ERROR, &failure.to_string()),
+    }
+}
+
+/// Serves a made clip.
+async fn preview_file(
+    State(state): State<AppState>,
+    AxumPath((id, name)): AxumPath<(String, String)>,
+) -> Response {
+    let directory = preview_directory(&state.registry.config().cache_root, &id);
 
     serve_file(&directory, &name).await
 }
@@ -634,6 +744,8 @@ pub fn create_router(state: AppState) -> Router {
         .route("/colour", post(start_colour))
         .route("/fingerprint", post(start_fingerprint))
         .route("/frame", post(start_frame))
+        .route("/previews", post(start_preview))
+        .route("/previews/{id}/{name}", get(preview_file))
         .route("/subtitles", post(start_subtitle))
         .route("/trickplay", post(start_trickplay))
         .route("/trickplay/{id}/{name}", get(trickplay_file))

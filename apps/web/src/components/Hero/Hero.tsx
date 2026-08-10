@@ -61,19 +61,27 @@ const Hero = ({
     }
   }, [featured, onFeatureChange])
 
+  const showNext = useCallback(() => {
+    if (items.length > 1 && !isHeld) {
+      setIndex((current) => (current + 1) % items.length)
+    }
+  }, [items.length, isHeld])
+
+  // A backstop rather than the clock the hero runs on. The preview says when
+  // it has finished and the hero moves on then, which is what makes it change
+  // on a still frame instead of mid-shot; this only covers an item whose clip
+  // never arrives, so a hero without previews still rotates.
   useEffect(() => {
     if (items.length < 2 || rotateAfterMilliseconds <= 0 || isHeld) {
       return
     }
 
-    const timer = setTimeout(() => {
-      setIndex((current) => (current + 1) % items.length)
-    }, rotateAfterMilliseconds)
+    const timer = setTimeout(showNext, rotateAfterMilliseconds)
 
     return () => {
       clearTimeout(timer)
     }
-  }, [items.length, rotateAfterMilliseconds, isHeld, index])
+  }, [items.length, rotateAfterMilliseconds, isHeld, index, showNext])
 
   const hold = useCallback(() => {
     setIsHeld(true)
@@ -114,6 +122,7 @@ const Hero = ({
             durationSeconds={featured.durationSeconds}
             settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
             tint={featured.accentColor ?? null}
+            onEnded={showNext}
             fills
           />
         </motion.div>

@@ -387,6 +387,26 @@ const createApp = ({
     })
   })
 
+  /**
+   * The short clip a library page plays for an item.
+   *
+   * Outside the OpenAPI routes because it answers with a video or with
+   * nothing, and "nothing yet" is a normal answer rather than a fault: the
+   * clip is made in the background and the page shows a still until it exists.
+   */
+  app.get('/api/media/:mediaId/preview', async (context) => {
+    const clip = await playback.readPreview(context.req.param('mediaId')).catch(() => null)
+
+    if (clip === null) {
+      return context.json({ error: 'No preview yet.' }, 404)
+    }
+
+    return context.body(clip.body, 200, {
+      'content-type': clip.contentType,
+      'cache-control': 'public, max-age=86400',
+    })
+  })
+
   app.openapi(trickplayFileRoute, async (context) => {
     const { trickplayId, name } = context.req.valid('param')
 
