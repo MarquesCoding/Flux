@@ -81,7 +81,10 @@ const MediaPreview = ({
   // image, but never a reason to hide the still: an item whose artwork is
   // slow should show black, not a video that is not ready either.
   const [, setHasFrame] = useState(false)
-  const [isMuted, setIsMuted] = useState(!hasSound)
+  // Silent until somebody asks otherwise. Opening an item is a deliberate act
+  // but it is not a request to be talked at, and a dialog that starts making
+  // noise over whatever else is playing is a dialog people close.
+  const [isMuted, setIsMuted] = useState(true)
   // Whether the clip has ever run. The controls appear once it has and stay,
   // because a pause button that vanishes the moment it is pressed is a pause
   // button nobody can undo.
@@ -137,29 +140,15 @@ const MediaPreview = ({
       return
     }
 
-    let abandoned = false
-
     const play = async () => {
-      // Sound where it was asked for. Opening an item is a deliberate act, so
-      // a browser usually allows it; where one does not, the preview falls
-      // back to silence rather than refusing to play at all.
-      element.muted = !hasSound
+      // Muted, which is also the only way a browser will let a page start a
+      // video by itself. Sound is a thing to be turned on.
+      element.muted = true
       element.src = previewUrl(mediaId)
 
-      try {
-        await element.play()
-      } catch {
-        if (abandoned || !hasSound) {
-          return
-        }
-
-        element.muted = true
-        setIsMuted(true)
-
-        await element.play().catch(() => {
-          // The still frame is a perfectly good answer.
-        })
-      }
+      await element.play().catch(() => {
+        // The still frame is a perfectly good answer.
+      })
     }
 
     const timer = setTimeout(() => {
@@ -167,15 +156,15 @@ const MediaPreview = ({
     }, settleMilliseconds)
 
     return () => {
-      abandoned = true
       clearTimeout(timer)
       setIsPlaying(false)
       setHasStarted(false)
       setHasEnded(false)
+      setIsMuted(true)
       element.removeAttribute('src')
       element.load()
     }
-  }, [mediaId, settleMilliseconds, hasSound])
+  }, [mediaId, settleMilliseconds])
 
   // Cues sit where the picture is, not where the page fades it out. A preview
   // is masked into the surface along its bottom edge, and a subtitle placed on
