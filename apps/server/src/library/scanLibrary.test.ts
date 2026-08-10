@@ -48,6 +48,7 @@ const harness = (options: {
   const markScanned = vi.fn(() => Promise.resolve())
 
   const transcoder: Transcoder = {
+    isReachable: () => Promise.resolve(true),
     probe: options.probeImpl ?? (() => Promise.resolve(probe())),
     startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
     readSessionFile: () => Promise.resolve(null),
@@ -198,6 +199,7 @@ describe('scanLibrary', () => {
         markScanned: () => Promise.resolve(),
       },
       transcoder: {
+        isReachable: () => Promise.resolve(true),
         probe: () => Promise.reject(new Error('moov atom not found')),
         startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
         readSessionFile: () => Promise.resolve(null),

@@ -96,6 +96,7 @@ const app = createApp({
   promoteToAdmin,
   library: libraryService,
   playback: playbackService,
+  isTranscoderReachable: () => transcoder.isReachable(),
 })
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {

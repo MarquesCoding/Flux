@@ -28,6 +28,7 @@ type CreateAppOptions = {
   promoteToAdmin: (email: string) => Promise<void>
   library: LibraryService
   playback: PlaybackService
+  isTranscoderReachable?: () => Promise<boolean>
 }
 
 /**
@@ -47,6 +48,7 @@ const createApp = ({
   promoteToAdmin,
   library,
   playback,
+  isTranscoderReachable = () => Promise.resolve(false),
 }: CreateAppOptions) => {
   const app = new OpenAPIHono()
 
@@ -147,9 +149,22 @@ const createApp = ({
     return context.json(result, 200)
   })
 
-  app.openapi(healthRoute, (context) =>
-    context.json({ status: 'ok', version: SERVER_VERSION, transcoderReachable: false }, 200),
-  )
+  app.openapi(healthRoute, async (context) => {
+    const transcoderReachable = await isTranscoderReachable()
+
+    return context.json(
+      {
+        // Degraded rather than unhealthy: the library and interface still work
+        // with the media service down, but nothing will play. A health check
+        // that reported "ok" here would turn "playback spins forever" into a
+        // mystery. See ADR-0006.
+        status: transcoderReachable ? ('ok' as const) : ('degraded' as const),
+        version: SERVER_VERSION,
+        transcoderReachable,
+      },
+      200,
+    )
+  })
 
   app.openapi(explainRoute, async (context) => {
     const { mediaId } = context.req.valid('param')

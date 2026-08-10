@@ -91,6 +91,7 @@ type SessionSpec = {
  * transcoding. See ADR-0006.
  */
 type Transcoder = {
+  isReachable: () => Promise<boolean>
   probe: (path: string) => Promise<MediaProbe>
   startSession: (spec: SessionSpec) => Promise<SessionResponse>
   readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>
@@ -143,6 +144,12 @@ const createTranscoderClient = ({
     })
 
   return {
+    isReachable: async () => {
+      const response = await fetchImpl(`${baseUrl}/health`).catch(() => null)
+
+      return response !== null && response.ok
+    },
+
     probe: async (path) =>
       MediaProbeSchema.parse(await (await postJson('/probe', { path })).json()),
 

@@ -110,6 +110,7 @@ fn app(registry: SessionRegistry) -> axum::Router {
     create_router(AppState {
         registry,
         ffprobe: ffprobe(),
+        media_roots: Vec::new(),
     })
 }
 

@@ -20,11 +20,31 @@ const app = createApp({
 })
 
 describe('createApp', () => {
-  it('serves health', async () => {
+  it('reports degraded when the media service cannot be reached', async () => {
     const response = await app.request('/api/health')
 
     expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({ status: 'ok' })
+    expect(await response.json()).toMatchObject({
+      status: 'degraded',
+      transcoderReachable: false,
+    })
+  })
+
+  it('reports ok when the media service answers', async () => {
+    const { auth, settings } = createMemoryAuth()
+    const healthy = createApp({
+      auth,
+      settings,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService(),
+      playback: createMemoryPlaybackService(),
+      isTranscoderReachable: () => Promise.resolve(true),
+    })
+
+    const response = await healthy.request('/api/health')
+
+    expect(await response.json()).toMatchObject({ status: 'ok', transcoderReachable: true })
   })
 
   it('serves an OpenAPI 3.1 document', async () => {

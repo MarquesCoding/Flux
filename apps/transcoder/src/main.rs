@@ -54,6 +54,9 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
     let state = AppState {
         registry: registry.clone(),
         ffprobe,
+        media_roots: env::var("FLUX_MEDIA_ROOTS")
+            .map(|value| value.split(':').map(PathBuf::from).collect())
+            .unwrap_or_default(),
     };
 
     let router = create_router(state);
