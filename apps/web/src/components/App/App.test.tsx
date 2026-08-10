@@ -29,18 +29,63 @@ const user = {
 
 const ok = (body: JsonValue) => ({ ok: true, status: 200, json: () => Promise.resolve(body) })
 
+const aLibraryWithArrival = {
+  libraries: [
+    {
+      id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+      name: 'Films',
+      kind: 'movies',
+      path: '/media',
+      itemCount: 1,
+      lastScannedAt: null,
+    },
+  ],
+  items: {
+    total: 1,
+    items: [
+      {
+        id: '9c858901-8a57-4791-81fe-4c455b099bc9',
+        libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+        title: 'Arrival',
+        year: 2016,
+        durationSeconds: 7200,
+        width: 1920,
+        height: 1080,
+        videoCodec: 'hevc',
+        videoRange: 'HDR10',
+        addedAt: '2026-08-10T00:00:00.000Z',
+        hasPoster: false,
+        hasBackdrop: false,
+      },
+    ],
+  },
+} satisfies { libraries: JsonValue; items: JsonValue }
+
 /**
  * Routes the two endpoints the shell depends on, so tests describe server
  * state rather than call ordering.
  */
-const serverState = (options: { setup: JsonValue; session: JsonValue }) => {
+const serverState = (options: {
+  setup: JsonValue
+  session: JsonValue
+  libraries?: JsonValue
+  items?: JsonValue
+}) => {
   fetchMock.mockImplementation((input) => {
     if (input === '/api/setup/status') {
       return Promise.resolve(ok(options.setup))
     }
 
+    if (input.startsWith('/api/libraries/') && input.includes('/items')) {
+      return Promise.resolve(ok(options.items ?? { items: [], total: 0 }))
+    }
+
     if (input.startsWith('/api/libraries')) {
-      return Promise.resolve(ok([]))
+      return Promise.resolve(ok(options.libraries ?? []))
+    }
+
+    if (input.startsWith('/api/media/')) {
+      return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) })
     }
 
     return Promise.resolve(ok(options.session))
@@ -135,5 +180,31 @@ describe('App routing', () => {
     await actor.click(screen.getByRole('button', { name: 'Sign out' }))
 
     expect(await screen.findByRole('heading', { name: 'Sign in to Flux' })).toBeInTheDocument()
+  })
+
+  it('opens an item for a look rather than playing it straight away', async () => {
+    const actor = userEvent.setup()
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival })
+    render(<App />)
+
+    await actor.click(await screen.findByRole('button', { name: /Arrival/ }))
+
+    expect(await screen.findByRole('dialog', { name: 'Arrival' })).toBeInTheDocument()
+    // The dialog carries the same name, so the player is identified by the
+    // one control only it has.
+    expect(screen.queryByRole('slider', { name: /Seek through/ })).not.toBeInTheDocument()
+  })
+
+  it('fills the page with the player once someone presses play', async () => {
+    const actor = userEvent.setup()
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival })
+    render(<App />)
+
+    await actor.click(await screen.findByRole('button', { name: /Arrival/ }))
+    await actor.click(await screen.findByRole('button', { name: 'Play' }))
+
+    expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Search' })).not.toBeInTheDocument()
   })
 })

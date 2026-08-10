@@ -1,8 +1,13 @@
 import { IconPlayerPlay } from '@tabler/icons-react'
 import cnModule from '@FluxUI/cn'
-import type { MediaCardProps } from './MediaCard.types'
+import type { MediaCardProps, MediaCardShape } from './MediaCard.types'
 
 const { cn } = cnModule
+
+const SHAPE_CLASSES: Record<MediaCardShape, string> = {
+  poster: 'aspect-[2/3]',
+  wide: 'aspect-video',
+}
 
 /**
  * One item in a library grid.
@@ -19,7 +24,8 @@ const MediaCard = ({
   title,
   subtitle,
   badges = [],
-  posterUrl,
+  imageUrl,
+  shape = 'poster',
   onSelect,
   className,
 }: MediaCardProps) => {
@@ -33,8 +39,14 @@ const MediaCard = ({
         className,
       )}
     >
-      <span className="relative block aspect-[2/3] overflow-hidden rounded-lg border border-border bg-surface-raised">
-        {posterUrl === undefined ? (
+      <span
+        className={cn(
+          'relative block overflow-hidden rounded-lg border border-border bg-surface-raised',
+          'transition-transform group-hover:scale-[1.02]',
+          SHAPE_CLASSES[shape],
+        )}
+      >
+        {imageUrl === undefined ? (
           <span
             aria-hidden
             className="flex h-full w-full items-center justify-center text-4xl font-semibold text-text-muted"
@@ -42,7 +54,7 @@ const MediaCard = ({
             {title.slice(0, 1).toUpperCase()}
           </span>
         ) : (
-          <img src={posterUrl} alt="" className="h-full w-full object-cover" />
+          <img src={imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
         )}
 
         <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">

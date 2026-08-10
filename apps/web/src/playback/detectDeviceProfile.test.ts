@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import DeviceProfileModule from '@FluxContracts/schemas/DeviceProfile'
 import detectDeviceProfileModule from './detectDeviceProfile'
 
@@ -22,6 +22,10 @@ const build = (
     name: 'Browser',
     ...overrides,
   })
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('detectDeviceProfile', () => {
   it('produces a profile the server contract accepts', () => {
@@ -104,5 +108,12 @@ describe('detectDeviceProfile', () => {
 
   it('carries the client name through', () => {
     expect(build(supporting('avc1'), { name: 'Living room' }).name).toBe('Living room')
+  })
+
+  it('reports no HDR rather than failing in a browser without media queries', () => {
+    vi.stubGlobal('matchMedia', undefined)
+
+    expect(() => detectDeviceProfileModule.detectFromBrowser()).not.toThrow()
+    expect(detectDeviceProfileModule.detectFromBrowser().supportedVideoRanges).toEqual(['SDR'])
   })
 })

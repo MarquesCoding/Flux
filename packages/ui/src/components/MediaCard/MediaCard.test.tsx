@@ -50,13 +50,13 @@ describe('MediaCard', () => {
   })
 
   it('shows artwork when it exists', () => {
-    render(<MediaCard title="Arrival" subtitle="2016" posterUrl="/poster.jpg" onSelect={vi.fn()} />)
+    render(<MediaCard title="Arrival" subtitle="2016" imageUrl="/poster.jpg" onSelect={vi.fn()} />)
 
     expect(screen.getByRole('presentation', { hidden: true })).toHaveAttribute('src', '/poster.jpg')
   })
 
   it('does not announce the poster twice', () => {
-    render(<MediaCard title="Arrival" subtitle="2016" posterUrl="/poster.jpg" onSelect={vi.fn()} />)
+    render(<MediaCard title="Arrival" subtitle="2016" imageUrl="/poster.jpg" onSelect={vi.fn()} />)
 
     expect(screen.getByRole('button', { name: 'Arrival 2016' })).toBeInTheDocument()
   })

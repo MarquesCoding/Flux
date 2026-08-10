@@ -198,13 +198,19 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
             {total === 1 ? '1 item' : `${String(total)} items`}
           </p>
 
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((media) => (
               <li key={media.id}>
                 <MediaCard
                   title={media.title}
                   subtitle={describeMedia(media)}
                   badges={describeBadges(media)}
+                  shape="wide"
+                  {...(media.hasBackdrop
+                    ? { imageUrl: `/api/media/${media.id}/image/backdrop` }
+                    : media.hasPoster
+                      ? { imageUrl: `/api/media/${media.id}/image/poster` }
+                      : {})}
                   onSelect={() => {
                     onPlay(media)
                   }}

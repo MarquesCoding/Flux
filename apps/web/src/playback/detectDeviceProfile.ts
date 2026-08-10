@@ -96,6 +96,13 @@ const detectDeviceProfile = ({
 }
 
 /**
+ * Somewhere media queries can be asked, if this browser has them.
+ */
+type MediaQuerySource = {
+  matchMedia?: (query: string) => { matches: boolean }
+}
+
+/**
  * Reads the browser's real capabilities.
  *
  * Kept apart from the pure builder so the decision logic can be tested against
@@ -107,9 +114,14 @@ const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
       ? (mimeType) => window.MediaSource.isTypeSupported(mimeType)
       : () => false
 
+  // Asked through a shape that admits the answer might be missing. A browser
+  // without media queries cannot answer the question, and a capability probe
+  // that throws takes playback down with it.
+  const queries: MediaQuerySource = window
+
   return detectDeviceProfile({
     isTypeSupported,
-    supportsHdr: window.matchMedia('(dynamic-range: high)').matches,
+    supportsHdr: queries.matchMedia?.('(dynamic-range: high)').matches ?? false,
     screenWidth: Math.round(window.screen.width * window.devicePixelRatio),
     screenHeight: Math.round(window.screen.height * window.devicePixelRatio),
     name,

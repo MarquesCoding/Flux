@@ -77,7 +77,7 @@ const EMPTY_HEALTH: PlaybackHealth = {
  * reason the server chose the treatment it did is always available, because
  * "why is this transcoding?" should not require reading server logs.
  */
-const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
+const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const [session, setSession] = useState<StartedSession | null>(null)
@@ -403,10 +403,38 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     void target.requestFullscreen?.()
   }, [isFullscreen])
 
+  useEffect(() => {
+    if (!isImmersive) {
+      return
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isFullscreen) {
+        onClose()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isImmersive, isFullscreen, onClose])
+
   return (
-    <section className="flex flex-col gap-3">
-      <header className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-medium text-text">{media.title}</h2>
+    <section className={isImmersive ? 'flex h-full flex-col' : 'flex flex-col gap-3'}>
+      <header
+        className={
+          isImmersive
+            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-opacity ${
+                isIdle && !isShowingStats ? 'opacity-0' : 'opacity-100'
+              }`
+            : 'flex items-center justify-between gap-4'
+        }
+      >
+        <h2 className={isImmersive ? 'text-lg font-medium' : 'text-lg font-medium text-text'}>
+          {media.title}
+        </h2>
 
         <Button variant="ghost" size="sm" onClick={onClose}>
           <IconX size={16} aria-hidden />
@@ -416,7 +444,11 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
 
       <div
         ref={stageRef}
-        className="relative overflow-hidden rounded-lg bg-black"
+        className={
+          isImmersive
+            ? 'relative flex flex-1 items-center justify-center bg-black'
+            : 'relative overflow-hidden rounded-lg bg-black'
+        }
         onPointerMove={() => {
           setIsIdle(false)
         }}
@@ -427,6 +459,7 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
         <VideoSurface
           label={media.title}
           videoRef={videoRef}
+          className={isImmersive ? 'max-h-full w-auto max-w-full' : ''}
           {...(selectedTrack === null
             ? {}
             : {

@@ -7,6 +7,7 @@
       "@FluxServer/*": ["./apps/server/src/*"],
       "@FluxUI/Button": ["./packages/ui/src/components/Button/Button.tsx"],
       "@FluxUI/Checkbox": ["./packages/ui/src/components/Checkbox/Checkbox.tsx"],
+      "@FluxUI/Dialog": ["./packages/ui/src/components/Dialog/Dialog.tsx"],
       "@FluxUI/IconButton": ["./packages/ui/src/components/IconButton/IconButton.tsx"],
       "@FluxUI/MediaCard": ["./packages/ui/src/components/MediaCard/MediaCard.tsx"],
       "@FluxUI/OptionMenu": ["./packages/ui/src/components/OptionMenu/OptionMenu.tsx"],
