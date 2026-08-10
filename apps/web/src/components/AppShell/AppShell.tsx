@@ -80,7 +80,7 @@ const AppShell = ({
 
   return (
     <div className="relative min-h-screen text-text">
-      <MoodBackground color={moodColor ?? null} />
+      <MoodBackground color={moodColor ?? null} hasGrid={section === 'home'} />
 
       <motion.main
         key={viewKey ?? section}

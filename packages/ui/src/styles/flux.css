@@ -111,8 +111,12 @@ body {
  * a rendering artefact, where the same wash behind a regular grid reads as a
  * surface with light falling on it. Fades out down the page so it never
  * competes with what is written over it.
+ *
+ * Home only. A texture that appears everywhere stops being a texture and
+ * becomes the background, and the pages that are mostly text and numbers read
+ * better on something plain.
  */
-.flux-mood::after {
+.flux-mood--grid::after {
   content: '';
   position: absolute;
   inset: 0;

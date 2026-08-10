@@ -18,11 +18,17 @@ type MoodStyle = CSSProperties & { '--color-mood'?: string }
  * comes from whatever is on screen, which is what makes the shell feel like it
  * belongs to the thing being shown rather than to the application.
  */
-const MoodBackground = ({ color }: MoodBackgroundProps) => {
+const MoodBackground = ({ color, hasGrid = false }: MoodBackgroundProps) => {
   const style: MoodStyle =
     color === null || color === undefined || color === '' ? {} : { '--color-mood': color }
 
-  return <div role="presentation" className="flux-mood" style={style} />
+  return (
+    <div
+      role="presentation"
+      className={hasGrid ? 'flux-mood flux-mood--grid' : 'flux-mood'}
+      style={style}
+    />
+  )
 }
 
 MoodBackground.displayName = 'MoodBackground'
