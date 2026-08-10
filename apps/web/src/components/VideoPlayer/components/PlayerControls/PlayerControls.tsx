@@ -60,6 +60,7 @@ const PlayerControls = ({
       value={position}
       max={duration}
       onValueChange={onSeek}
+      tone="overlay"
       className="min-w-0 flex-1"
       {...(renderPreview === undefined ? {} : { renderPreview })}
     />
@@ -81,6 +82,7 @@ const PlayerControls = ({
         label="Volume"
         value={isMuted ? 0 : Math.round(volume * 100)}
         max={100}
+        tone="overlay"
         onValueChange={(next) => {
           onVolumeChange(next / 100)
         }}

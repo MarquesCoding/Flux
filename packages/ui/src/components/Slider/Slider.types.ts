@@ -1,5 +1,13 @@
 import type { ReactNode } from 'react'
 
+/**
+ * Where the slider is drawn.
+ *
+ * `overlay` is for sliders sitting on top of video, where theme surface
+ * colours are invisible against the picture and against each other.
+ */
+type SliderTone = 'default' | 'overlay'
+
 type SliderProps = {
   label: string
   value: number
@@ -16,7 +24,8 @@ type SliderProps = {
    * can answer with a thumbnail, a chapter name, or nothing at all.
    */
   renderPreview?: (value: number) => ReactNode
+  tone?: SliderTone
   className?: string
 }
 
-export type { SliderProps }
+export type { SliderProps, SliderTone }

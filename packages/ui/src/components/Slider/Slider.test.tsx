@@ -62,4 +62,20 @@ describe('Slider', () => {
 
     expect(screen.queryByText(/preview at/)).not.toBeInTheDocument()
   })
+
+  it('is drawn for a page by default', () => {
+    const { container } = render(
+      <Slider label="Seek" value={30} max={120} onValueChange={vi.fn()} />,
+    )
+
+    expect(container.querySelector('[data-tone="default"]')).toBeInTheDocument()
+  })
+
+  it('can be drawn for sitting on top of video, where theme surfaces vanish', () => {
+    const { container } = render(
+      <Slider label="Seek" value={30} max={120} tone="overlay" onValueChange={vi.fn()} />,
+    )
+
+    expect(container.querySelector('[data-tone="overlay"]')).toBeInTheDocument()
+  })
 })

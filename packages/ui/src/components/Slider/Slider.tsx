@@ -1,9 +1,19 @@
 import { useCallback, useRef, useState } from 'react'
 import { Slider as BaseSlider } from '@base-ui-components/react/slider'
 import cnModule from '@FluxUI/cn'
-import type { SliderProps } from './Slider.types'
+import type { SliderProps, SliderTone } from './Slider.types'
 
 const { cn } = cnModule
+
+const TRACK_CLASSES: Record<SliderTone, string> = {
+  default: 'bg-surface-raised',
+  overlay: 'bg-white/30',
+}
+
+const FILL_CLASSES: Record<SliderTone, string> = {
+  default: 'bg-accent',
+  overlay: 'bg-white',
+}
 
 /**
  * A track with a handle on it.
@@ -23,6 +33,7 @@ const Slider = ({
   step = 1,
   onValueChange,
   renderPreview,
+  tone = 'default',
   className,
 }: SliderProps) => {
   const trackRef = useRef<HTMLDivElement>(null)
@@ -50,7 +61,7 @@ const Slider = ({
   )
 
   return (
-    <div className={cn('relative w-full', className)}>
+    <div data-tone={tone} className={cn('group/slider relative w-full', className)}>
       {hover === null || renderPreview === undefined ? null : (
         <div
           className="pointer-events-none absolute bottom-full z-10 mb-2 -translate-x-1/2"
@@ -81,14 +92,19 @@ const Slider = ({
         >
           <BaseSlider.Track
             ref={trackRef}
-            className="h-1 w-full rounded-full bg-surface-raised select-none"
+            className={cn(
+              'h-1.5 w-full rounded-full select-none transition-[height]',
+              'group-hover/slider:h-2',
+              TRACK_CLASSES[tone],
+            )}
           >
-            <BaseSlider.Indicator className="rounded-full bg-accent select-none" />
+            <BaseSlider.Indicator className={cn('rounded-full select-none', FILL_CLASSES[tone])} />
             <BaseSlider.Thumb
               aria-label={label}
               className={cn(
-                'size-3 rounded-full bg-accent select-none',
+                'size-3.5 rounded-full shadow select-none',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                FILL_CLASSES[tone],
               )}
             />
           </BaseSlider.Track>

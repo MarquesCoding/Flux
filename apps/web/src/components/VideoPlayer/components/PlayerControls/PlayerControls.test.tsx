@@ -131,6 +131,32 @@ describe('PlayerControls', () => {
     expect(screen.queryByText('a thumbnail')).not.toBeInTheDocument()
   })
 
+  it('draws its sliders for sitting on top of video', () => {
+    const { container } = render(
+      <PlayerControls
+        title="Arrival"
+        isPlaying={false}
+        position={30}
+        duration={7200}
+        volume={1}
+        isMuted={false}
+        isFullscreen={false}
+        isShowingStats={false}
+        onTogglePlay={vi.fn()}
+        onSeek={vi.fn()}
+        onVolumeChange={vi.fn()}
+        onToggleMute={vi.fn()}
+        onToggleFullscreen={vi.fn()}
+        onToggleStats={vi.fn()}
+      />,
+    )
+
+    // Theme surface colours are near black, which is invisible on a dark bar
+    // over a dark picture.
+    expect(container.querySelectorAll('[data-tone="overlay"]')).toHaveLength(2)
+    expect(container.querySelector('[data-tone="default"]')).not.toBeInTheDocument()
+  })
+
   it('sets a display name so devtools can identify it', () => {
     expect(PlayerControls.displayName).toBe('PlayerControls')
   })
