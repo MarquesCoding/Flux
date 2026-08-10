@@ -36,6 +36,20 @@ as a side effect.
 When nothing needs changing, Flux sends the original file over byte ranges: no
 transcode, no remux, no segment cache, and no load on the media service at all.
 
+## Seeking a transcode
+
+A transcode only exists from the point it started, so seeking is two different
+operations depending on where you land.
+
+Inside what has already been encoded, the player moves within the current
+session and nothing is asked of the server. Beyond it, the old session is
+stopped and a new one starts at that timestamp — ffmpeg seeks the input rather
+than decoding up to it, so this takes about a second regardless of how far in
+you jump.
+
+Direct play skips all of this: the original file is served over byte ranges and
+the browser seeks it directly.
+
 ## Seek-bar previews
 
 Hovering the scrub bar shows the frame you would land on. Flux renders those

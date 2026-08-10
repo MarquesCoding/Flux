@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import VideoPlayerModule from './VideoPlayer'
@@ -65,6 +65,20 @@ const transcodingPlan: PlaybackPlan = {
 
 const media = { id: 'media-1', title: 'Arrival', durationSeconds: 7200 }
 
+/**
+ * Declares how much of the stream the element could seek within.
+ *
+ * jsdom has no media pipeline, so a growing transcode has to be described
+ * rather than produced.
+ */
+const seekableTo = (element: HTMLElement, seconds: number) => {
+  Object.defineProperty(element, 'seekable', {
+    configurable: true,
+    value: { length: 1, end: () => seconds },
+  })
+  Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 0 })
+}
+
 const startedSession: {
   sessionId: string
   delivery: { kind: 'hls'; manifestUrl: string } | { kind: 'direct'; url: string }
@@ -115,7 +129,7 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' })
+      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 0)
     })
   })
 
@@ -341,6 +355,97 @@ describe('VideoPlayer', () => {
     )
 
     expect(screen.queryByRole('button', { name: /Transcode/ })).not.toBeInTheDocument()
+  })
+
+  it('seeks inside the session when the target is already encoded', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    seekableTo(element, 600)
+
+    const bar = screen.getByRole('slider', { name: 'Seek through Arrival' })
+    fireEvent.keyDown(bar, { key: 'ArrowRight' })
+
+    await waitFor(() => {
+      expect(element).toHaveProperty('currentTime', 1)
+    })
+
+    expect(startMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('starts a new session when the target has not been encoded yet', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    seekableTo(element, 30)
+
+    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
+      target: { value: '3600' },
+    })
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 3600)
+    })
+  })
+
+  it('stops the session it is seeking away from', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    seekableTo(element, 30)
+
+    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
+      target: { value: '3600' },
+    })
+
+    await waitFor(() => {
+      expect(stopMock).toHaveBeenCalledWith('abc')
+    })
+  })
+
+  it('reports the position on the film, not inside the session', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    seekableTo(element, 30)
+
+    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
+      target: { value: '3600' },
+    })
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 3600)
+    })
+
+    Object.defineProperty(element, 'currentTime', { value: 12, writable: true })
+    fireEvent.timeUpdate(element)
+
+    expect(await screen.findByText('1:00:12 / 2:00:00')).toBeInTheDocument()
+  })
+
+  it('seeks a direct played file in the browser rather than restarting it', async () => {
+    startMock.mockResolvedValue({
+      kind: 'started',
+      session: {
+        ...startedSession,
+        mode: 'DirectPlay',
+        delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
+      },
+    })
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await screen.findByRole('button', { name: /DirectPlay/ })
+
+    const element = screen.getByLabelText('Arrival')
+    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
+      target: { value: '3600' },
+    })
+
+    await waitFor(() => {
+      expect(element).toHaveProperty('currentTime', 3600)
+    })
+
+    expect(startMock).toHaveBeenCalledTimes(1)
   })
 
   it('sets a display name so devtools can identify it', () => {

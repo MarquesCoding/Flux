@@ -39,6 +39,24 @@ const { TrickplayPreview } = TrickplayPreviewModule
  * reason the server chose the treatment it did is always available, because
  * "why is this transcoding?" should not require reading server logs.
  */
+/**
+ * How much of the current session a player could seek within.
+ *
+ * A transcode is delivered as a playlist that grows, so this answers what has
+ * been encoded so far rather than how long the film is. Read defensively
+ * because a media element that has loaded nothing yet reports no ranges at
+ * all.
+ */
+const encodedSeconds = (element: HTMLVideoElement): number => {
+  try {
+    const ranges = element.seekable
+
+    return ranges.length > 0 ? ranges.end(ranges.length - 1) : 0
+  } catch {
+    return 0
+  }
+}
+
 const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [session, setSession] = useState<StartedSession | null>(null)
@@ -49,6 +67,14 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   const [reportedDuration, setReportedDuration] = useState(0)
   const [showReasons, setShowReasons] = useState(false)
   const [trickplay, setTrickplay] = useState<Trickplay | null>(null)
+  // What the current session was asked for. A transcode is produced from the
+  // point it starts at, so seeking outside what has been encoded means asking
+  // for a new one rather than moving within this one.
+  const [request, setRequest] = useState({ mediaId: media.id, startSeconds: 0 })
+
+  if (request.mediaId !== media.id) {
+    setRequest({ mediaId: media.id, startSeconds: 0 })
+  }
 
   useEffect(() => {
     // Read through a function so the checker cannot narrow it. The effect may
@@ -62,7 +88,7 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     setState('starting')
     setProblem(null)
     setIsPlaying(false)
-    setPosition(0)
+    setPosition(request.startSeconds)
     setReportedDuration(0)
     setShowReasons(false)
 
@@ -72,7 +98,11 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     let startedId: string | null = null
 
     const run = async () => {
-      const outcome = await startPlaybackSession(media.id, detectFromBrowser())
+      const outcome = await startPlaybackSession(
+        request.mediaId,
+        detectFromBrowser(),
+        request.startSeconds,
+      )
 
       if (isAbandoned()) {
         return
@@ -109,6 +139,13 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
 
         if (!isAbandoned()) {
           setState('playing')
+
+          // A session started partway through exists because someone dragged
+          // the scrub bar. Making them press play again after every seek
+          // would be its own kind of broken.
+          if (request.startSeconds > 0) {
+            void element.play()
+          }
         }
       } catch {
         if (!isAbandoned()) {
@@ -128,7 +165,7 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
         void stopPlaybackSession(startedId)
       }
     }
-  }, [media.id])
+  }, [request])
 
   useEffect(() => {
     // Fetched alongside playback rather than before it. Rendering thumbnails
@@ -154,15 +191,36 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   // already knows how long the film is, and that is what a viewer should see.
   const duration = media.durationSeconds > 0 ? media.durationSeconds : reportedDuration
 
-  const seek = useCallback((seconds: number) => {
-    const element = videoRef.current
+  const seek = useCallback(
+    (seconds: number) => {
+      const element = videoRef.current
 
-    if (element !== null) {
-      element.currentTime = seconds
-    }
+      if (element === null) {
+        return
+      }
 
-    setPosition(seconds)
-  }, [])
+      setPosition(seconds)
+
+      // Direct play serves the original file over byte ranges, so the whole
+      // film is reachable and the browser does the work.
+      if (session?.delivery.kind === 'direct') {
+        element.currentTime = seconds
+
+        return
+      }
+
+      const withinSession = seconds - request.startSeconds
+
+      if (withinSession >= 0 && withinSession <= encodedSeconds(element)) {
+        element.currentTime = withinSession
+
+        return
+      }
+
+      setRequest({ mediaId: request.mediaId, startSeconds: Math.floor(seconds) })
+    },
+    [request, session],
+  )
 
   const toggle = useCallback(() => {
     const element = videoRef.current
@@ -195,7 +253,9 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
         <VideoSurface
           label={media.title}
           videoRef={videoRef}
-          onTimeUpdate={setPosition}
+          onTimeUpdate={(seconds) => {
+            setPosition(request.startSeconds + seconds)
+          }}
           onDurationChange={setReportedDuration}
           onPlayingChange={setIsPlaying}
         />
