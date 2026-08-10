@@ -165,13 +165,22 @@ pub fn select_tone_mapping(filters: &[String]) -> ToneMapping {
 }
 
 /// Parses filter names out of `ffmpeg -filters` output.
+///
+/// Unlike `-encoders`, this listing has no `------` separator: the legend runs
+/// straight into the filters. A filter row is recognised by its third column
+/// describing the signature, as in `V->V`, which no legend line has.
 #[must_use]
 pub fn parse_listed_filters(output: &str) -> Vec<String> {
     output
         .lines()
-        .skip_while(|line| !line.trim_start().starts_with("------"))
-        .filter_map(|line| line.split_whitespace().nth(1))
-        .map(str::to_owned)
+        .filter_map(|line| {
+            let mut columns = line.split_whitespace();
+            let _flags = columns.next()?;
+            let name = columns.next()?;
+            let signature = columns.next()?;
+
+            signature.contains("->").then(|| name.to_owned())
+        })
         .collect()
 }
 
@@ -372,14 +381,50 @@ mod tests {
         assert_eq!(select_tone_mapping(&[]), ToneMapping::Unavailable);
     }
 
-    #[test]
-    fn parses_filter_names() {
-        let output = "Filters:\n T.. = Timeline\n ------\n ... scale  V->V  Scale\n .S. tonemap V->V  Tone\n";
+    /// The real shape of `ffmpeg -filters`, legend and all.
+    ///
+    /// Written from captured output rather than invented: an earlier version
+    /// of this parser assumed a `------` separator that only `-encoders` has,
+    /// and a made-up fixture hid the mistake until it ran against a real
+    /// build.
+    const FILTERS_OUTPUT: &str = concat!(
+        "Filters:\n",
+        "  T.. = Timeline support\n",
+        "  .S. = Slice threading\n",
+        "  ..C = Command support\n",
+        "  A = Audio input/output\n",
+        "  V = Video input/output\n",
+        " ... abench            A->A       Benchmark part of a filtergraph.\n",
+        " ..C scale             V->V       Scale the input video size.\n",
+        " .S. tonemap           V->V       Conversion to/from dynamic ranges.\n",
+        " ... zscale            V->V       Apply resizing, colorspace conversion.\n",
+        " TSC overlay           VV->V      Overlay a video source on top.\n",
+    );
 
-        let names = parse_listed_filters(output);
+    #[test]
+    fn parses_filter_names_from_real_output() {
+        let names = parse_listed_filters(FILTERS_OUTPUT);
 
         assert!(names.contains(&"scale".to_owned()));
         assert!(names.contains(&"tonemap".to_owned()));
+        assert!(names.contains(&"zscale".to_owned()));
+        assert!(names.contains(&"overlay".to_owned()));
+    }
+
+    #[test]
+    fn ignores_the_legend_which_has_no_separator_to_skip_past() {
+        let names = parse_listed_filters(FILTERS_OUTPUT);
+
+        assert!(!names.iter().any(|name| name == "="));
+        assert_eq!(names.len(), 5, "expected only the filter rows: {names:?}");
+    }
+
+    #[test]
+    fn detects_tone_mapping_from_real_output() {
+        assert_eq!(
+            select_tone_mapping(&parse_listed_filters(FILTERS_OUTPUT)),
+            ToneMapping::Zscale
+        );
     }
 
     #[test]

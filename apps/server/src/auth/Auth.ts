@@ -21,6 +21,8 @@ type CreateAuthOptions = {
   database: AuthDatabase
   settings: SettingsStore
   cookieSecure: boolean
+  /// Called after a user is created, so Flux can give them a profile row.
+  onUserCreated?: (userId: string) => Promise<void>
 }
 
 const FLUX_APP_NAME = 'Flux'
@@ -38,7 +40,13 @@ const FLUX_APP_NAME = 'Flux'
  * release. Any capability reachable only by cookie is a capability native
  * clients do not have. See ADR-0004.
  */
-const createAuth = ({ env, database, settings, cookieSecure }: CreateAuthOptions) => {
+const createAuth = ({
+  env,
+  database,
+  settings,
+  cookieSecure,
+  onUserCreated,
+}: CreateAuthOptions) => {
   return betterAuth({
     appName: FLUX_APP_NAME,
     database,
@@ -60,6 +68,18 @@ const createAuth = ({ env, database, settings, cookieSecure }: CreateAuthOptions
     session: {
       expiresIn: 60 * 60 * 24 * 30,
       updateAge: 60 * 60 * 24,
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          // Every user gets a profile row the moment they exist, so nothing
+          // downstream has to cope with a user who has none. Playback
+          // preferences and request quotas both hang off it.
+          after: async (created) => {
+            await onUserCreated?.(created.id)
+          },
+        },
+      },
     },
     rateLimit: {
       enabled: env.AUTH_RATE_LIMIT_ENABLED,

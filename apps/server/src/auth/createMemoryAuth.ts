@@ -33,7 +33,9 @@ const emptyStore = () => ({
  */
 const createMemoryAuth = (
   overrides: Partial<NodeJS.ProcessEnv> = {},
-): { auth: FluxAuth; settings: SettingsStore } => {
+): { auth: FluxAuth; settings: SettingsStore; profiles: string[] } => {
+  const profiles: string[] = []
+
   const env: Env = readEnv({
     BETTER_AUTH_SECRET: TEST_SECRET,
     BETTER_AUTH_URL: 'http://localhost:8420',
@@ -53,9 +55,14 @@ const createMemoryAuth = (
     database: memoryAdapter(emptyStore()),
     settings,
     cookieSecure: env.COOKIE_SECURE,
+    onUserCreated: (userId) => {
+      profiles.push(userId)
+
+      return Promise.resolve()
+    },
   })
 
-  return { auth, settings }
+  return { auth, settings, profiles }
 }
 
 export default { createMemoryAuth, TEST_SECRET }

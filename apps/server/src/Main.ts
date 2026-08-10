@@ -15,7 +15,7 @@ import createPlaybackServiceModule from '@FluxServer/playback/createPlaybackServ
 const { createApp } = AppModule
 const { createAuth } = AuthModule
 const { createDatabase } = DatabaseModule
-const { user, mediaItem } = SchemaModule
+const { user, mediaItem, userProfile } = SchemaModule
 const { readEnv } = EnvModule
 const { createDatabaseSettingsStore } = createDatabaseSettingsStoreModule
 const { createDatabaseLibraryService } = createDatabaseLibraryServiceModule
@@ -42,6 +42,9 @@ const auth = createAuth({
   database: drizzleAdapter(db, { provider: 'pg', schema }),
   settings,
   cookieSecure: persisted.cookieSecure,
+  onUserCreated: async (userId) => {
+    await db.insert(userProfile).values({ userId }).onConflictDoNothing()
+  },
 })
 
 const countUsers = async (): Promise<number> => {

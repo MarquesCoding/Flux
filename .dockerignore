@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+target
+**/dist
+**/.turbo
+**/coverage
+.git
+.husky
+docs
+*.md
+!README.md

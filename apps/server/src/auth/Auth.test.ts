@@ -142,6 +142,14 @@ describe('createAuth', () => {
     expect(await session.text()).toContain(credentials.email)
   })
 
+  it('gives every new user a profile row', async () => {
+    const { auth, profiles } = createMemoryAuth()
+
+    await auth.handler(post('/api/auth/sign-up/email', credentials))
+
+    expect(profiles).toHaveLength(1)
+  })
+
   it('exposes a jwks endpoint for native clients to verify tokens', async () => {
     const { auth } = createMemoryAuth()
 
