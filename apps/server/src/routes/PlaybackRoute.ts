@@ -17,6 +17,13 @@ const StartRequest = z
   .object({
     deviceProfile: DeviceProfileSchema,
     startSeconds: z.number().int().nonnegative().optional(),
+    /**
+     * The audio stream to play, as the item's detail numbers them.
+     *
+     * Choosing one rules out direct play, because the original file carries
+     * every stream and leaves the choice to the browser.
+     */
+    audioStreamIndex: z.number().int().nonnegative().optional(),
   })
   .openapi('PlaybackStartRequest')
 

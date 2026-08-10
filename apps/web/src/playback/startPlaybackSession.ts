@@ -36,11 +36,16 @@ const startPlaybackSession = async (
   mediaId: string,
   deviceProfile: DeviceProfile,
   startSeconds = 0,
+  audioStreamIndex?: number,
 ): Promise<StartOutcome> => {
   const response = await fetch(`/api/playback/${mediaId}/session`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ deviceProfile, startSeconds }),
+    body: JSON.stringify({
+      deviceProfile,
+      startSeconds,
+      ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
+    }),
   }).catch(() => null)
 
   if (response === null) {

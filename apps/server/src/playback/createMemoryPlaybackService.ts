@@ -36,7 +36,7 @@ const createMemoryPlaybackService = (
     return Promise.resolve({ mode: describePlaybackMode(plan), plan })
   },
 
-  start: (mediaId, profile) => {
+  start: (mediaId, profile, _startSeconds, audioStreamIndex) => {
     const item = state.media[mediaId]
 
     if (item === undefined) {
@@ -51,7 +51,12 @@ const createMemoryPlaybackService = (
     }
 
     const plan = negotiatePlayback(item, profile)
-    const sessionId = `session-${mediaId}`
+    // The chosen track is part of what a session is, so it belongs in the
+    // identity of one: two tracks are two sessions.
+    const sessionId =
+      audioStreamIndex === undefined
+        ? `session-${mediaId}`
+        : `session-${mediaId}-audio-${audioStreamIndex.toString()}`
 
     state.sessions[sessionId] = { 'index.m3u8': '#EXTM3U\n#EXT-X-VERSION:7\n' }
 

@@ -49,12 +49,15 @@ const PlayerControls = ({
   playbackRate,
   subtitleTracks,
   selectedSubtitleId,
+  audioTracks,
+  selectedAudioIndex,
   isDisabled = false,
   onTogglePlay,
   onSeek,
   onSkip,
   onPlaybackRateChange,
   onSubtitleChange,
+  onAudioChange,
   onEditCaptions,
   onVolumeChange,
   onToggleMute,
@@ -144,6 +147,21 @@ const PlayerControls = ({
         />
       }
       groups={[
+        ...(audioTracks.length < 2
+          ? []
+          : [
+              {
+                name: 'Audio',
+                selectedId: (selectedAudioIndex ?? audioTracks[0]?.index ?? 0).toString(),
+                onSelect: (id: string) => {
+                  onAudioChange(Number(id))
+                },
+                options: audioTracks.map((track) => ({
+                  id: track.index.toString(),
+                  label: track.label,
+                })),
+              },
+            ]),
         {
           name: 'Subtitles/CC',
           selectedId: selectedSubtitleId,

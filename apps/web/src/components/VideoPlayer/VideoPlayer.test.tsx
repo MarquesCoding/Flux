@@ -17,6 +17,7 @@ const trickplayMock = vi.hoisted(() => vi.fn())
 const captureMock = vi.hoisted(() => vi.fn())
 const subtitlesMock = vi.hoisted(() => vi.fn())
 const segmentsMock = vi.hoisted(() => vi.fn())
+const detailMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
@@ -44,6 +45,10 @@ vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
 // nothing here. What it does with a frame is covered where the capture lives.
 vi.mock('@FluxWeb/playback/captureFrame', () => ({
   default: { captureFrame: captureMock },
+}))
+
+vi.mock('@FluxWeb/library/fetchLibrary', () => ({
+  default: { fetchMediaDetail: detailMock },
 }))
 
 vi.mock('@FluxWeb/playback/fetchSegments', async () => {
@@ -151,6 +156,8 @@ beforeEach(() => {
   subtitlesMock.mockResolvedValue([])
   segmentsMock.mockReset()
   segmentsMock.mockResolvedValue([])
+  detailMock.mockReset()
+  detailMock.mockResolvedValue(null)
 
   startMock.mockResolvedValue({ kind: 'started', session: startedSession })
   attachMock.mockResolvedValue(teardownMock)
@@ -180,7 +187,7 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 0)
+      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 0, undefined)
     })
   })
 
@@ -457,7 +464,7 @@ describe('VideoPlayer', () => {
     })
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 3600)
+      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 3600, undefined)
     })
   })
 
@@ -487,7 +494,7 @@ describe('VideoPlayer', () => {
     })
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 3600)
+      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 3600, undefined)
     })
 
     Object.defineProperty(element, 'currentTime', { value: 12, writable: true })
@@ -824,6 +831,44 @@ describe('VideoPlayer', () => {
     fireEvent.timeUpdate(element)
 
     expect(screen.queryByRole('button', { name: /Skip/ })).not.toBeInTheDocument()
+  })
+
+  it('restarts where it left off when a viewer picks another soundtrack', async () => {
+    const actor = userEvent.setup()
+    detailMock.mockResolvedValue({
+      id: 'media-1',
+      libraryId: 'library-1',
+      title: 'Arrival',
+      year: 2016,
+      container: 'mkv',
+      durationSeconds: 7200,
+      videoCodec: 'hevc',
+      videoRange: 'HDR10',
+      width: 1920,
+      height: 1080,
+      bitrateKbps: 12000,
+      subtitleStreams: [],
+      addedAt: '2026-08-10T00:00:00.000Z',
+      metadata: { hasPoster: false, hasBackdrop: false },
+      audioStreams: [
+        { index: 1, codec: 'aac', channels: 2, language: 'jpn', isAtmos: false },
+        { index: 2, codec: 'ac3', channels: 6, language: 'eng', isAtmos: false },
+      ],
+    })
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    await settled()
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 2400 })
+    fireEvent.timeUpdate(element)
+
+    await actor.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await actor.click(await screen.findByRole('menuitemradio', { name: /eng/ }))
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 2400, 2)
+    })
   })
 
   it('sets a display name so devtools can identify it', () => {

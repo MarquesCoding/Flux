@@ -224,9 +224,14 @@ const createApp = ({
 
   app.openapi(startRoute, async (context) => {
     const { mediaId } = context.req.valid('param')
-    const { deviceProfile, startSeconds } = context.req.valid('json')
+    const { deviceProfile, startSeconds, audioStreamIndex } = context.req.valid('json')
 
-    const outcome = await playback.start(mediaId, deviceProfile, startSeconds ?? 0)
+    const outcome = await playback.start(
+      mediaId,
+      deviceProfile,
+      startSeconds ?? 0,
+      audioStreamIndex,
+    )
 
     if (outcome.kind === 'notFound') {
       return context.json({ error: 'No such media item.' }, 404)

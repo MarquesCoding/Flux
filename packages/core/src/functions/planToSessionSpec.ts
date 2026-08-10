@@ -32,6 +32,7 @@ type SessionSpec = {
       }
   audio:
     { kind: 'copy' } | { kind: 'encode'; encoder: string; channels: number; maxBitrateKbps: number }
+  audioStreamIndex?: number
   subtitles: { kind: 'none' } | { kind: 'burnIn'; streamIndex: number; isImageBased: boolean }
 }
 
@@ -43,6 +44,13 @@ type PlanToSessionSpecOptions = {
   capabilities: Capabilities
   startSeconds: number
   segmentSeconds: number
+  /**
+   * The audio stream a viewer asked for, when they asked for one.
+   *
+   * Left out means whichever the container marks as default, which is what
+   * someone who has expressed no preference should get.
+   */
+  audioStreamIndex?: number
 }
 
 type SpecOutcome =
@@ -118,6 +126,7 @@ const planToSessionSpec = ({
   capabilities,
   startSeconds,
   segmentSeconds,
+  audioStreamIndex,
   imageSubtitleIndexes = [],
 }: PlanToSessionSpecOptions): SpecOutcome => {
   const isImageBased =
@@ -159,6 +168,7 @@ const planToSessionSpec = ({
         segmentSeconds,
         hardwareAccel: 'none',
         subtitles,
+        ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
         video: { kind: 'copy' },
         audio:
           plan.audio.kind === 'transcode'
@@ -208,6 +218,7 @@ const planToSessionSpec = ({
       segmentSeconds,
       hardwareAccel: chosen.accel,
       subtitles,
+      ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       video: {
         kind: 'encode',
         encoder: chosen.encoder,

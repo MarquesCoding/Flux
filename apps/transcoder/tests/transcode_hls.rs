@@ -169,6 +169,7 @@ fn spec(video: VideoAction, audio: AudioAction) -> SessionSpec {
         hardware_accel: HardwareAccel::None,
         video,
         audio,
+        audio_stream_index: None,
         subtitles: SubtitleAction::None,
     }
 }

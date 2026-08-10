@@ -52,7 +52,18 @@ type RangedFile = {
  */
 type PlaybackService = {
   explain: (mediaId: string, profile: DeviceProfile) => Promise<Explanation | null>
-  start: (mediaId: string, profile: DeviceProfile, startSeconds: number) => Promise<StartOutcome>
+  start: (
+    mediaId: string,
+    profile: DeviceProfile,
+    startSeconds: number,
+    /**
+     * The audio stream a viewer chose, when they chose one.
+     *
+     * Choosing one rules out direct play: the original file carries every
+     * stream and the browser picks for itself.
+     */
+    audioStreamIndex?: number,
+  ) => Promise<StartOutcome>
   readSessionFile: (sessionId: string, name: string) => Promise<SessionFile | null>
   readDirectFile: (mediaId: string, range: string | null) => Promise<RangedFile | null>
   /**

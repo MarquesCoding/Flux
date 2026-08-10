@@ -28,11 +28,14 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
       },
     ],
     selectedSubtitleId: 'off',
+    audioTracks: [],
+    selectedAudioIndex: null,
     onTogglePlay: vi.fn(),
     onSeek: vi.fn(),
     onSkip: vi.fn(),
     onPlaybackRateChange: vi.fn(),
     onSubtitleChange: vi.fn(),
+    onAudioChange: vi.fn(),
     onEditCaptions: vi.fn(),
     onVolumeChange: vi.fn(),
     onToggleMute: vi.fn(),
@@ -161,6 +164,9 @@ describe('PlayerControls', () => {
         playbackRate={1}
         subtitleTracks={[]}
         selectedSubtitleId="off"
+        audioTracks={[]}
+        selectedAudioIndex={null}
+        onAudioChange={vi.fn()}
         onTogglePlay={vi.fn()}
         onSeek={vi.fn()}
         onSkip={vi.fn()}
@@ -256,6 +262,65 @@ describe('PlayerControls', () => {
     await user.click(await screen.findByRole('menuitemradio', { name: /Caption settings/ }))
 
     expect(props.onEditCaptions).toHaveBeenCalled()
+  })
+
+  it('offers nothing to choose when a file carries one soundtrack', async () => {
+    const user = userEvent.setup()
+    draw({ audioTracks: [{ index: 1, label: 'English · 2ch · aac' }] })
+
+    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+
+    expect(screen.queryByText('Audio')).not.toBeInTheDocument()
+  })
+
+  it('offers the soundtracks when there is a choice to make', async () => {
+    const user = userEvent.setup()
+    draw({
+      audioTracks: [
+        { index: 1, label: 'Japanese · 2ch · aac' },
+        { index: 2, label: 'English · 6ch · ac3' },
+      ],
+      selectedAudioIndex: 1,
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+
+    expect(await screen.findByText('Audio')).toBeInTheDocument()
+    expect(screen.getByRole('menuitemradio', { name: /Japanese/ })).toBeChecked()
+  })
+
+  it('reports the soundtrack that was chosen by its stream number', async () => {
+    const user = userEvent.setup()
+    const props = draw({
+      audioTracks: [
+        { index: 1, label: 'Japanese · 2ch · aac' },
+        { index: 2, label: 'English · 6ch · ac3' },
+      ],
+      selectedAudioIndex: 1,
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+
+    // The subtitle column offers an English track too, so the soundtrack is
+    // identified by its full label rather than the language alone.
+    await user.click(await screen.findByRole('menuitemradio', { name: 'English · 6ch · ac3' }))
+
+    expect(props.onAudioChange).toHaveBeenCalledWith(2)
+  })
+
+  it('marks the first soundtrack until a viewer chooses otherwise', async () => {
+    const user = userEvent.setup()
+    draw({
+      audioTracks: [
+        { index: 1, label: 'Japanese · 2ch · aac' },
+        { index: 2, label: 'English · 6ch · ac3' },
+      ],
+      selectedAudioIndex: null,
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+
+    expect(await screen.findByRole('menuitemradio', { name: /Japanese/ })).toBeChecked()
   })
 
   it('sets a display name so devtools can identify it', () => {

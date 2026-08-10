@@ -95,7 +95,7 @@ const createPlaybackService = ({
       return { mode: describePlaybackMode(plan), plan }
     },
 
-    start: async (mediaId, profile, startSeconds) => {
+    start: async (mediaId, profile, startSeconds, audioStreamIndex) => {
       const found = await media.findForPlayback(mediaId)
 
       if (found === null) {
@@ -104,7 +104,10 @@ const createPlaybackService = ({
 
       const plan = negotiatePlayback(found.item, profile)
 
-      if (isDirectPlay(plan)) {
+      // A viewer who picked a track needs that track selected, which the
+      // original file cannot do: it carries every stream and the browser picks
+      // the default. Choosing one therefore means transcoding.
+      if (isDirectPlay(plan) && audioStreamIndex === undefined) {
         return {
           kind: 'started',
           session: {
@@ -127,6 +130,7 @@ const createPlaybackService = ({
         capabilities: await capabilities(),
         startSeconds,
         segmentSeconds: SEGMENT_SECONDS,
+        ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       })
 
       if (outcome.kind === 'unsupported') {

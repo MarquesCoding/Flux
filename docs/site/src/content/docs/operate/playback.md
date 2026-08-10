@@ -96,6 +96,16 @@ Nothing is demuxed out of the container, and nothing is fetched from the
 internet. A plugin that downloads subtitles writes files beside the media, and
 they then appear like any other.
 
+### Choosing a soundtrack
+
+A file carrying more than one audio stream offers them in the same menu as the
+subtitles. Picking one restarts playback where you left off rather than at the
+beginning.
+
+Choosing a track rules out direct play. The original file carries every stream
+and leaves the choice to the browser, so selecting one specifically means Flux
+has to produce a stream containing only it.
+
 ### How captions look
 
 Font, size, colour, background, opacity and edge treatment are all yours to

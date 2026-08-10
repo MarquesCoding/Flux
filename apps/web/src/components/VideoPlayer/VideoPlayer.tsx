@@ -103,10 +103,15 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
   const [captionStyle, setCaptionStyle] = useState(readCaptionStyle)
   const [isEditingCaptions, setIsEditingCaptions] = useState(false)
   const [segments, setSegments] = useState<MediaSegment[]>([])
+  const [selectedAudioIndex, setSelectedAudioIndex] = useState<number | null>(null)
   // What the current session was asked for. A transcode is produced from the
   // point it starts at, so seeking outside what has been encoded means asking
   // for a new one rather than moving within this one.
-  const [request, setRequest] = useState({ mediaId: media.id, startSeconds: 0 })
+  const [request, setRequest] = useState<{
+    mediaId: string
+    startSeconds: number
+    audioStreamIndex?: number
+  }>({ mediaId: media.id, startSeconds: 0 })
   // The frame the viewer was looking at when they dragged the scrub bar. Held
   // on screen until the new session produces one of its own, because tearing
   // the old session down blanks the media element and a black rectangle reads
@@ -146,6 +151,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
         request.mediaId,
         detectFromBrowser(),
         request.startSeconds,
+        request.audioStreamIndex,
       )
 
       if (isAbandoned()) {
@@ -222,6 +228,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
     setSubtitleTracks([])
     setSelectedSubtitleId(SUBTITLES_OFF)
     setSegments([])
+    setSelectedAudioIndex(null)
 
     void fetchTrickplay(media.id).then((found) => {
       if (!abandoned) {
@@ -371,7 +378,13 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
       }
 
       setHeldFrame(captureFrame(element, document.createElement('canvas')))
-      setRequest({ mediaId: request.mediaId, startSeconds: Math.floor(seconds) })
+      setRequest({
+        mediaId: request.mediaId,
+        startSeconds: Math.floor(seconds),
+        ...(request.audioStreamIndex === undefined
+          ? {}
+          : { audioStreamIndex: request.audioStreamIndex }),
+      })
     },
     [request, session],
   )
@@ -382,6 +395,33 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
 
   const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null
   const skippable = state === 'playing' ? skippableAt(segments, position) : null
+
+  const audioTracks = (detail?.audioStreams ?? []).map((stream) => ({
+    index: stream.index,
+    label: [stream.language ?? 'Unknown', `${stream.channels.toString()}ch`, stream.codec]
+      .filter((part) => part !== '')
+      .join(' · '),
+  }))
+
+  // Switching track means a new session, and a viewer who is forty minutes in
+  // expects to stay there rather than start again.
+  const changeAudio = useCallback(
+    (streamIndex: number) => {
+      const element = videoRef.current
+
+      if (element !== null) {
+        setHeldFrame(captureFrame(element, document.createElement('canvas')))
+      }
+
+      setSelectedAudioIndex(streamIndex)
+      setRequest({
+        mediaId: request.mediaId,
+        startSeconds: Math.floor(position),
+        audioStreamIndex: streamIndex,
+      })
+    },
+    [request.mediaId, position],
+  )
 
   const skip = useCallback(
     (delta: number) => {
@@ -581,12 +621,15 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
             playbackRate={playbackRate}
             subtitleTracks={subtitleTracks}
             selectedSubtitleId={selectedSubtitleId}
+            audioTracks={audioTracks}
+            selectedAudioIndex={selectedAudioIndex}
             isDisabled={state !== 'playing'}
             onTogglePlay={togglePlay}
             onSeek={seek}
             onSkip={skip}
             onPlaybackRateChange={setPlaybackRate}
             onSubtitleChange={setSelectedSubtitleId}
+            onAudioChange={changeAudio}
             onEditCaptions={() => {
               setIsEditingCaptions((editing) => !editing)
             }}

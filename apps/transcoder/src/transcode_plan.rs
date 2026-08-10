@@ -121,6 +121,14 @@ pub struct SessionSpec {
     pub hardware_accel: HardwareAccel,
     pub video: VideoAction,
     pub audio: AudioAction,
+    /// Which audio stream to take, as ffprobe numbers it.
+    ///
+    /// Absent means whichever the container marks as default, which is what a
+    /// viewer who has expressed no preference should get. Part of the session
+    /// key, so choosing a different language produces a different session
+    /// rather than quietly reusing the first one.
+    #[serde(default)]
+    pub audio_stream_index: Option<u32>,
     #[serde(default = "SubtitleAction::none")]
     pub subtitles: SubtitleAction,
 }
@@ -164,6 +172,7 @@ impl SessionSpec {
         hasher.update(format!("{:?}", self.hardware_accel).as_bytes());
         hasher.update(format!("{:?}", self.video).as_bytes());
         hasher.update(format!("{:?}", self.audio).as_bytes());
+        hasher.update(format!("{:?}", self.audio_stream_index).as_bytes());
         hasher.update(format!("{:?}", self.subtitles).as_bytes());
 
         let digest = hasher.finalize();
@@ -398,6 +407,16 @@ impl TranscodePlan {
             }
         }
 
+        // Mapping is explicit whenever a stream was chosen, and left to ffmpeg
+        // otherwise. Naming a stream unconditionally would break a file that
+        // has no audio at all.
+        if let Some(index) = self.spec.audio_stream_index {
+            args.push("-map".into());
+            args.push("0:v:0".into());
+            args.push("-map".into());
+            args.push(format!("0:{index}"));
+        }
+
         match &self.spec.audio {
             AudioAction::Copy => {
                 args.push("-c:a".into());
@@ -457,6 +476,7 @@ mod tests {
             hardware_accel: HardwareAccel::None,
             video: VideoAction::Copy,
             audio: AudioAction::Copy,
+            audio_stream_index: None,
             subtitles: SubtitleAction::None,
         }
     }
@@ -844,5 +864,39 @@ mod tests {
             ..spec()
         }
         .uses_hardware());
+    }
+
+    #[test]
+    fn leaves_stream_selection_to_ffmpeg_when_no_track_was_chosen() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(!args.iter().any(|argument| argument.starts_with("0:1")));
+    }
+
+    #[test]
+    fn maps_the_audio_stream_a_viewer_chose() {
+        let chosen = SessionSpec {
+            audio_stream_index: Some(3),
+            ..spec()
+        };
+
+        let args = plan(chosen).to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|w| w == ["-map", "0:3"]));
+        assert!(args.windows(2).any(|w| w == ["-map", "0:v:0"]));
+    }
+
+    #[test]
+    fn choosing_a_different_track_is_a_different_session() {
+        let first = SessionSpec {
+            audio_stream_index: Some(1),
+            ..spec()
+        };
+        let second = SessionSpec {
+            audio_stream_index: Some(2),
+            ..spec()
+        };
+
+        assert_ne!(first.session_id(), second.session_id());
     }
 }

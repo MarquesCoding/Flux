@@ -338,4 +338,58 @@ describe('trickplay', () => {
 
     expect(response.status).toBe(404)
   })
+
+  describe('audio tracks', () => {
+    it('starts an ordinary session when no track was asked for', async () => {
+      const { app } = build()
+
+      const response = await app.request(
+        post(`/api/playback/${MEDIA_ID}/session`, { deviceProfile: modestProfile }),
+      )
+      const body = StartSchema.parse(await response.json())
+
+      expect(body.sessionId).not.toContain('audio')
+    })
+
+    it('starts a different session for a different track', async () => {
+      const { app } = build()
+
+      const response = await app.request(
+        post(`/api/playback/${MEDIA_ID}/session`, {
+          deviceProfile: modestProfile,
+          audioStreamIndex: 2,
+        }),
+      )
+      const body = StartSchema.parse(await response.json())
+
+      expect(response.status).toBe(200)
+      expect(body.sessionId).toContain('audio-2')
+    })
+
+    it('refuses a track index that is not one', async () => {
+      const { app } = build()
+
+      const response = await app.request(
+        post(`/api/playback/${MEDIA_ID}/session`, {
+          deviceProfile: modestProfile,
+          audioStreamIndex: -1,
+        }),
+      )
+
+      expect(response.status).toBe(400)
+    })
+
+    it('documents the choice in the specification', async () => {
+      const { app } = build()
+      const body = await (await app.request(`${BASE}/api/openapi.json`)).json()
+
+      expect(body).toHaveProperty([
+        'components',
+        'schemas',
+        'PlaybackStartRequest',
+        'properties',
+        'audioStreamIndex',
+      ])
+    })
+  })
 })
