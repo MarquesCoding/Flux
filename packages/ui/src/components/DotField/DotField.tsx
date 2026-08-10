@@ -8,10 +8,11 @@ const { cn } = cnModule
 /**
  * How far apart dots sit by default.
  *
- * Chosen against the cost of drawing them: one element per dot means this is
- * the difference between a thousand nodes and ten thousand.
+ * Fine enough to read as a texture rather than as scattered points, and
+ * weighed against the cost of drawing them: one element per dot, so this is
+ * the difference between a couple of thousand nodes and ten thousand.
  */
-const SPACING = 40
+const SPACING = 26
 
 /**
  * How long a ripple takes to cross the field.

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
+import type { Variants } from 'motion/react'
 import {
   IconArrowLeft,
   IconArrowRight,
@@ -43,6 +44,29 @@ const { authenticateWithPasskey } = authenticateWithPasskeyModule
  * themselves.
  */
 const PER_PAGE = 10
+
+/**
+ * How the faces on a page arrive.
+ *
+ * Quick and close together: a stagger long enough to notice on four faces is
+ * a stagger long enough to annoy on ten. The delay before the first is what
+ * separates the faces from the heading above them.
+ */
+const FACES: Variants = {
+  hidden: {},
+  shown: { transition: { staggerChildren: 0.045, delayChildren: 0.05 } },
+}
+
+/**
+ * How one face arrives.
+ *
+ * Lifted and slightly small, because a portrait that grows into place reads as
+ * being dealt onto the table rather than fading up through it.
+ */
+const FACE: Variants = {
+  hidden: { opacity: 0, y: 16, scale: 0.9 },
+  shown: { opacity: 1, y: 0, scale: 1 },
+}
 
 /**
  * The face somebody picked, drawn at whatever size the moment calls for.
@@ -97,6 +121,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   const prefersReducedMotion = useReducedMotion()
 
   const move = prefersReducedMotion === true ? stillTransition : liquidSpring
+  const faceArrival = revealTransition(prefersReducedMotion)
 
   const pages = Math.max(1, Math.ceil((everyone?.length ?? 0) / PER_PAGE))
   const shown = (everyone ?? []).slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE)
@@ -196,9 +221,19 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                 {/* Held to a width rather than filling the screen: faces
                     spread across an ultrawide monitor stop being a group and
                     become a row of strangers. */}
-                <ul className="flex min-h-[13rem] w-full max-w-4xl flex-wrap items-start justify-center gap-6 sm:min-h-[15rem] sm:gap-10">
+                {/* Keyed on the page so the arrival plays again each time one
+                    is turned: faces that appear all at once read as a list
+                    being replaced, where faces that land one after another
+                    read as a page being dealt. */}
+                <motion.ul
+                  key={page}
+                  variants={FACES}
+                  initial="hidden"
+                  animate="shown"
+                  className="flex min-h-[13rem] w-full max-w-4xl flex-wrap items-start justify-center gap-6 sm:min-h-[15rem] sm:gap-10"
+                >
                   {shown.map((profile) => (
-                    <li key={profile.id}>
+                    <motion.li key={profile.id} variants={FACE} transition={faceArrival}>
                       <motion.button
                         type="button"
                         layoutId={`profile-${profile.id}`}
@@ -219,9 +254,9 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                           {profile.name}
                         </span>
                       </motion.button>
-                    </li>
+                    </motion.li>
                   ))}
-                </ul>
+                </motion.ul>
 
                 <span className={pages > 1 ? '' : 'invisible'}>
                   <IconButton
