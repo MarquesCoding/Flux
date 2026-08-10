@@ -3,12 +3,14 @@ import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
 import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
 import attachShakaModule from '@FluxWeb/playback/attachShaka'
+import frameUrlModule from '@FluxWeb/playback/frameUrl'
 import type { MediaPreviewProps } from './MediaPreview.types'
 
 const { VideoSurface } = VideoSurfaceModule
 const { detectFromBrowser } = detectDeviceProfileModule
 const { startPlaybackSession, stopPlaybackSession } = startPlaybackSessionModule
 const { attachShaka } = attachShakaModule
+const { frameUrl } = frameUrlModule
 
 /**
  * How long the dialog waits before starting anything.
@@ -35,9 +37,12 @@ const MediaPreview = ({
   durationSeconds,
   fills = false,
   settleMilliseconds = SETTLE_MILLISECONDS,
+  tint = null,
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [hasFrame, setHasFrame] = useState(false)
+  const startSeconds = Math.floor(durationSeconds * startFraction)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -46,11 +51,7 @@ const MediaPreview = ({
     let startedId: string | null = null
 
     const start = async () => {
-      const outcome = await startPlaybackSession(
-        mediaId,
-        detectFromBrowser(),
-        Math.floor(durationSeconds * startFraction),
-      )
+      const outcome = await startPlaybackSession(mediaId, detectFromBrowser(), startSeconds)
 
       if (isAbandoned() || outcome.kind === 'failed') {
         return
@@ -98,21 +99,45 @@ const MediaPreview = ({
         void stopPlaybackSession(startedId)
       }
     }
-  }, [mediaId, durationSeconds, startFraction, settleMilliseconds])
+  }, [mediaId, startSeconds, settleMilliseconds])
 
   return (
     <div
-      className={`relative overflow-hidden bg-black ${fills ? 'h-full w-full' : 'aspect-video w-full'}`}
+      // Tinted rather than black, and tinted before anything has loaded, so
+      // the hero has a presence from the first paint instead of appearing as a
+      // black band under a page that has already arrived.
+      style={tint === null ? {} : { backgroundColor: tint }}
+      className={`relative overflow-hidden ${tint === null ? 'bg-black' : ''} ${
+        fills ? 'h-full w-full' : 'aspect-video w-full'
+      }`}
     >
+      {/* The frame the video is about to start on, drawn under it. Handing
+          over from this to the playing video moves nothing on screen, where
+          cutting from a backdrop to a frame two thirds into the film is a
+          visible jump. The backdrop sits under it in turn, for the moment
+          before the frame itself arrives. */}
       {backdropUrl === null ? null : (
         <div
           role="presentation"
-          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-700 ${
-            isPlaying ? 'opacity-0' : 'opacity-100'
-          }`}
+          className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${backdropUrl})` }}
         />
       )}
+
+      {/* An image rather than a background, so its decoding can be waited on:
+          a background that appears mid-paint flashes, where this fades in when
+          it is actually there. */}
+      <img
+        src={frameUrl(mediaId, startSeconds)}
+        alt=""
+        aria-hidden
+        onLoad={() => {
+          setHasFrame(true)
+        }}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+          isPlaying || !hasFrame ? 'opacity-0' : 'opacity-100'
+        }`}
+      />
 
       <VideoSurface
         label="Preview"

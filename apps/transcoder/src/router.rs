@@ -12,8 +12,10 @@ use serde::{Deserialize, Serialize};
 use crate::capability::{detect_capabilities, Capabilities};
 use crate::colour::{sample_colour, ColourRequest};
 use crate::fingerprint::{fingerprint, FingerprintRequest};
+use crate::frame::{take_frame, FrameRequest};
 use crate::probe::probe_media;
 use crate::session::{await_manifest, SessionRegistry};
+use crate::subtitle::{extract_subtitle, SubtitleRequest};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
 use crate::trickplay::{
     directory_for, is_complete, pending_index, tile_height_for, TrickplayRegistry, TrickplayRequest,
@@ -320,6 +322,63 @@ async fn session_file(
     serve_file(&directory, &name).await
 }
 
+/// Takes a single frame out of a file.
+///
+/// Answers with the JPEG itself rather than a path, because the caller is
+/// about to put it on a page and a second round trip would defeat the point of
+/// having it early.
+async fn start_frame(State(state): State<AppState>, Json(request): Json<FrameRequest>) -> Response {
+    let path = PathBuf::from(&request.input_path);
+
+    if !state.is_readable(&path) {
+        return error(
+            StatusCode::FORBIDDEN,
+            "That file is outside the media roots.",
+        );
+    }
+
+    match take_frame(
+        &state.registry.config().ffmpeg,
+        &path,
+        request.at_seconds,
+        request.width,
+    )
+    .await
+    {
+        Ok(picture) => (
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "image/jpeg")],
+            picture,
+        )
+            .into_response(),
+        Err(failure) => error(StatusCode::BAD_REQUEST, &failure.to_string()),
+    }
+}
+
+/// Reads one subtitle track out of a container.
+///
+/// Answers with the whole track rather than a path, because a subtitle file is
+/// a few tens of kilobytes and the player wants all of it before the first cue
+/// is due.
+async fn start_subtitle(
+    State(state): State<AppState>,
+    Json(request): Json<SubtitleRequest>,
+) -> Response {
+    let path = PathBuf::from(&request.input_path);
+
+    if !state.is_readable(&path) {
+        return error(
+            StatusCode::FORBIDDEN,
+            "That file is outside the media roots.",
+        );
+    }
+
+    match extract_subtitle(&state.registry.config().ffmpeg, &path, request.stream_index).await {
+        Ok(track) => (StatusCode::OK, Json(track)).into_response(),
+        Err(failure) => error(StatusCode::BAD_REQUEST, &failure.to_string()),
+    }
+}
+
 /// Renders seek-bar previews for a file.
 ///
 /// Answers with the index rather than the images: the player fetches sheets
@@ -471,6 +530,8 @@ pub fn create_router(state: AppState) -> Router {
         .route("/sessions/{id}", axum::routing::delete(stop_session))
         .route("/colour", post(start_colour))
         .route("/fingerprint", post(start_fingerprint))
+        .route("/frame", post(start_frame))
+        .route("/subtitles", post(start_subtitle))
         .route("/trickplay", post(start_trickplay))
         .route("/trickplay/{id}/{name}", get(trickplay_file))
         .with_state(state)

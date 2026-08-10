@@ -103,6 +103,11 @@ const createMemoryPlaybackService = (
           },
     ),
 
+  readFrame: (mediaId) =>
+    Promise.resolve(
+      state.media[mediaId] === undefined ? null : new TextEncoder().encode('jpeg').buffer,
+    ),
+
   readTrickplayFile: (_, name) =>
     Promise.resolve(
       name.endsWith('.vtt')

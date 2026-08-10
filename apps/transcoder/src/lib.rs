@@ -9,9 +9,11 @@
 pub mod capability;
 pub mod colour;
 pub mod fingerprint;
+pub mod frame;
 pub mod media;
 pub mod probe;
 pub mod router;
 pub mod session;
+pub mod subtitle;
 pub mod transcode_plan;
 pub mod trickplay;

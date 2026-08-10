@@ -105,6 +105,25 @@ body {
 }
 
 /*
+ * A grid of dots over the wash.
+ *
+ * Gives the gradient something to be a gradient across: a plain wash reads as
+ * a rendering artefact, where the same wash behind a regular grid reads as a
+ * surface with light falling on it. Fades out down the page so it never
+ * competes with what is written over it.
+ */
+.flux-mood::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(currentcolor 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -1px -1px;
+  color: color-mix(in oklab, var(--color-text) 14%, transparent);
+  mask-image: linear-gradient(180deg, black 0%, transparent 85%);
+}
+
+/*
  * Glass.
  *
  * The blur alone is not what sells it. What does is the bright hairline along

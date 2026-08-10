@@ -84,6 +84,8 @@ const harness = (options: {
       }),
     readTrickplayFile: () => Promise.resolve(null),
     stopSession: () => Promise.resolve(true),
+    readSubtitle: () => Promise.resolve('WEBVTT\n'),
+    readFrame: () => Promise.resolve(new ArrayBuffer(0)),
     capabilities: () =>
       Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
   }
@@ -255,6 +257,8 @@ describe('scanLibrary', () => {
           }),
         readTrickplayFile: () => Promise.resolve(null),
         stopSession: () => Promise.resolve(true),
+        readSubtitle: () => Promise.resolve('WEBVTT\n'),
+        readFrame: () => Promise.resolve(new ArrayBuffer(0)),
         capabilities: () =>
           Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
       },

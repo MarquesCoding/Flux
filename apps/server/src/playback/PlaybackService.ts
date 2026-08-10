@@ -70,6 +70,10 @@ type PlaybackService = {
    * Renders seek-bar previews for an item, or reuses ones already on disk.
    */
   trickplay: (mediaId: string) => Promise<Trickplay | null>
+  /**
+   * Reads one frame of an item as a picture.
+   */
+  readFrame: (mediaId: string, seconds: number, width: number) => Promise<ArrayBuffer | null>
   readTrickplayFile: (trickplayId: string, name: string) => Promise<SessionFile | null>
   stop: (sessionId: string) => Promise<boolean>
 }

@@ -37,6 +37,7 @@ const {
   directFileRoute,
   trickplayRoute,
   trickplayFileRoute,
+  frameRoute,
   stopRoute,
 } = PlaybackRouteModule
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
@@ -312,6 +313,24 @@ const createApp = ({
     } catch {
       return context.json({ error: 'The thumbnails could not be rendered.' }, 500)
     }
+  })
+
+  app.openapi(frameRoute, async (context) => {
+    const { mediaId } = context.req.valid('param')
+    const { seconds, width } = context.req.valid('query')
+
+    const frame = await playback.readFrame(mediaId, seconds, width)
+
+    if (frame === null) {
+      return context.json({ error: 'No frame there.' }, 404)
+    }
+
+    // A frame is decided by the file and the position, neither of which
+    // changes, so it is worth keeping for a long time.
+    return context.body(frame, 200, {
+      'content-type': 'image/jpeg',
+      'cache-control': 'public, max-age=31536000, immutable',
+    })
   })
 
   app.openapi(trickplayFileRoute, async (context) => {

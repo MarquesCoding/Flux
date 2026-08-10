@@ -201,6 +201,18 @@ const createPlaybackService = ({
       }
     },
 
+    readFrame: async (mediaId, seconds, width) => {
+      const found = await media.findForPlayback(mediaId)
+
+      if (found === null) {
+        return null
+      }
+
+      return transcoder
+        .readFrame({ inputPath: found.path, atSeconds: seconds, width })
+        .catch(() => null)
+    },
+
     readTrickplayFile: (trickplayId, name) => transcoder.readTrickplayFile(trickplayId, name),
 
     stop: (sessionId) => transcoder.stopSession(sessionId),

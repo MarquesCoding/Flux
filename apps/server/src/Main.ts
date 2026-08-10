@@ -20,6 +20,8 @@ import createDatabaseSegmentServiceModule from '@FluxServer/segments/createDatab
 import createChapterSegmentProviderModule from '@FluxServer/segments/createChapterSegmentProvider'
 import createFingerprintSegmentProviderModule from '@FluxServer/segments/createFingerprintSegmentProvider'
 import createSidecarSubtitleServiceModule from '@FluxServer/subtitles/createSidecarSubtitleService'
+import createEmbeddedSubtitleServiceModule from '@FluxServer/subtitles/createEmbeddedSubtitleService'
+import createLayeredSubtitleServiceModule from '@FluxServer/subtitles/createLayeredSubtitleService'
 import createPlaybackServiceModule from '@FluxServer/playback/createPlaybackService'
 import createJobQueueModule from '@FluxServer/jobs/createJobQueue'
 
@@ -36,6 +38,8 @@ const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
 const { createTranscoderClient } = TranscoderClientModule
 const { createPlaybackService } = createPlaybackServiceModule
 const { createSidecarSubtitleService } = createSidecarSubtitleServiceModule
+const { createEmbeddedSubtitleService } = createEmbeddedSubtitleServiceModule
+const { createLayeredSubtitleService } = createLayeredSubtitleServiceModule
 const { createImageCache } = createImageCacheModule
 const { createDatabaseSegmentService } = createDatabaseSegmentServiceModule
 const { createDatabaseWatchProgressService } = createDatabaseWatchProgressServiceModule
@@ -192,12 +196,30 @@ const findMediaPath = async (mediaId: string): Promise<string | null> => {
   return rows[0]?.path ?? null
 }
 
-const subtitleService = createSidecarSubtitleService({
-  media: { findPath: findMediaPath },
-  onProblem: (path, reason) => {
-    process.stderr.write(`subtitles: ${path}: ${reason}\n`)
-  },
-})
+const reportSubtitleProblem = (path: string, reason: string): void => {
+  process.stderr.write(`subtitles: ${path}: ${reason}\n`)
+}
+
+// Sidecars first: a track someone put beside the file themselves is a
+// deliberate choice, where an embedded one is whatever the release shipped.
+const subtitleService = createLayeredSubtitleService([
+  createSidecarSubtitleService({
+    media: { findPath: findMediaPath },
+    onProblem: reportSubtitleProblem,
+  }),
+  createEmbeddedSubtitleService({
+    media: {
+      find: async (mediaId) => {
+        const item = await libraryService.getMedia(mediaId)
+        const path = await findMediaPath(mediaId)
+
+        return item === null || path === null ? null : { path, streams: item.subtitleStreams }
+      },
+    },
+    transcoder,
+    onProblem: reportSubtitleProblem,
+  }),
+])
 
 const segmentService = createDatabaseSegmentService(db)
 

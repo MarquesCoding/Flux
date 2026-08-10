@@ -113,6 +113,7 @@ const Hero = ({
             backdropUrl={featured.hasBackdrop ? artworkUrl(featured.id) : null}
             durationSeconds={featured.durationSeconds}
             settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
+            tint={featured.accentColor ?? null}
             fills
           />
         </motion.div>
@@ -192,9 +193,13 @@ const Hero = ({
       </motion.div>
 
       {items.length < 2 ? null : (
-        <ul className="absolute bottom-8 right-5 flex flex-col items-end gap-2 sm:right-10">
+        <ul className="absolute bottom-8 right-5 flex flex-col items-end sm:right-10">
           {items.map((item, position) => (
             <li key={item.id}>
+              {/* The bar is two pixels tall and the button around it is not:
+                  a target the height of the line it draws is a target nobody
+                  hits. The name appears on the way to it, so choosing the next
+                  item is a decision rather than a guess. */}
               <button
                 type="button"
                 aria-label={`Show ${item.title}`}
@@ -202,10 +207,26 @@ const Hero = ({
                 onClick={() => {
                   setIndex(position)
                 }}
-                className={`block h-0.5 rounded-full transition-all duration-500 ${
-                  position === index ? 'w-10 bg-text' : 'w-5 bg-text-muted/40 hover:bg-text-muted'
-                }`}
-              />
+                className="group flex items-center justify-end gap-3 py-2 pl-6"
+              >
+                <span
+                  className={`whitespace-nowrap text-xs font-medium tracking-tight transition-opacity duration-300 ${
+                    position === index
+                      ? 'text-text opacity-0 group-hover:opacity-100'
+                      : 'text-text-muted opacity-0 group-hover:opacity-100'
+                  }`}
+                >
+                  {item.title}
+                </span>
+
+                <span
+                  className={`block h-0.5 rounded-full transition-all duration-500 ${
+                    position === index
+                      ? 'w-10 bg-text'
+                      : 'w-5 bg-text-muted/40 group-hover:w-8 group-hover:bg-text-muted'
+                  }`}
+                />
+              </button>
             </li>
           ))}
         </ul>

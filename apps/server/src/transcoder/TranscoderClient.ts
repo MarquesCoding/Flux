@@ -52,6 +52,8 @@ const ProbeSubtitleSchema = z.object({
   index: z.number().int(),
   format: z.string(),
   language: z.string().nullable(),
+  title: z.string().nullable(),
+  isDefault: z.boolean(),
   isForced: z.boolean(),
   isImageBased: z.boolean(),
 })
@@ -111,6 +113,8 @@ const FingerprintSchema = z.object({
   startSeconds: z.number().nonnegative(),
   hashes: z.array(z.number()),
 })
+
+const SubtitleTrackSchema = z.object({ content: z.string() })
 
 const TrickplayIndexSchema = z.object({
   id: z.string(),
@@ -199,6 +203,18 @@ type Transcoder = {
    * Takes the colour a file feels like, for lighting a page with.
    */
   sampleColour: (request: { inputPath: string; durationSeconds?: number }) => Promise<Colour>
+  /**
+   * Reads one subtitle track out of a container as WebVTT.
+   */
+  readSubtitle: (request: { inputPath: string; streamIndex: number }) => Promise<string>
+  /**
+   * Takes one frame of a file as a JPEG.
+   */
+  readFrame: (request: {
+    inputPath: string
+    atSeconds: number
+    width: number
+  }) => Promise<ArrayBuffer>
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>
   stopSession: (id: string) => Promise<boolean>
@@ -362,6 +378,11 @@ const createTranscoderClient = ({
 
     fingerprint: async (request) =>
       FingerprintSchema.parse(await (await postJson('/fingerprint', request)).json()),
+
+    readFrame: async (request) => (await postJson('/frame', request)).arrayBuffer(),
+
+    readSubtitle: async (request) =>
+      SubtitleTrackSchema.parse(await (await postJson('/subtitles', request)).json()).content,
 
     requestTrickplay: async (request) =>
       TrickplayIndexSchema.parse(await (await postJson('/trickplay', request)).json()),
