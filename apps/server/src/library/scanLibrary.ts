@@ -1,8 +1,13 @@
 import readTitleFromPathModule from './readTitleFromPath'
+import MetadataProviderModule from './MetadataProvider'
+import createFilenameMetadataProviderModule from './createFilenameMetadataProvider'
+import type { MetadataProvider } from './MetadataProvider'
 import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient'
 import type { ScanResult } from '@FluxContracts/schemas/Library'
 
-const { isMediaFile, readTitleFromPath } = readTitleFromPathModule
+const { isMediaFile } = readTitleFromPathModule
+const { resolveMetadata } = MetadataProviderModule
+const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
 
 type ScannedFile = {
   path: string
@@ -49,6 +54,12 @@ type ScanLibraryOptions = {
   files: MediaFileSystem
   store: MediaStore
   transcoder: Transcoder
+  /**
+   * Asked in order for each file's title, first answer winning.
+   *
+   * Defaults to the filename provider alone. Plugins prepend to this list.
+   */
+  providers?: MetadataProvider[]
   onProblem?: (path: string, reason: string) => void
 }
 
@@ -94,6 +105,7 @@ const scanLibrary = async ({
   files,
   store,
   transcoder,
+  providers = [createFilenameMetadataProvider()],
   onProblem,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path))
@@ -117,7 +129,20 @@ const scanLibrary = async ({
         continue
       }
 
-      const { title, year } = readTitleFromPath(file.path)
+      const metadata = await resolveMetadata(
+        providers,
+        { path: file.path, probe },
+        (name, reason) => onProblem?.(file.path, `Metadata provider ${name} failed: ${reason}`),
+      )
+
+      if (metadata === null) {
+        failed += 1
+        onProblem?.(file.path, 'No metadata provider could name this file.')
+
+        continue
+      }
+
+      const { title, year } = metadata
 
       await store.upsert({
         libraryId,

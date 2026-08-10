@@ -23,6 +23,12 @@ type CreateAuthOptions = {
   cookieSecure: boolean
   /// Called after a user is created, so Flux can give them a profile row.
   onUserCreated?: (userId: string) => Promise<void>
+  /// Called when someone asks to reset a password.
+  ///
+  /// Given the reset URL rather than sending mail, because a self-hosted
+  /// instance usually has no mail server. The administrator hands the link
+  /// over, or reads it from the log.
+  onPasswordResetRequested?: (email: string, url: string) => Promise<void>
 }
 
 const FLUX_APP_NAME = 'Flux'
@@ -46,6 +52,7 @@ const createAuth = ({
   settings,
   cookieSecure,
   onUserCreated,
+  onPasswordResetRequested,
 }: CreateAuthOptions) => {
   return betterAuth({
     appName: FLUX_APP_NAME,
@@ -56,6 +63,13 @@ const createAuth = ({
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 10,
+      // A self-hosted server usually has no mail configured, so a reset link
+      // would go nowhere. Recovery therefore runs through the administrator,
+      // who is standing next to the machine. The alternative — no recovery at
+      // all — means one forgotten password loses the account permanently.
+      sendResetPassword: async ({ user, url }) => {
+        await onPasswordResetRequested?.(user.email, url)
+      },
     },
     advanced: {
       useSecureCookies: cookieSecure,

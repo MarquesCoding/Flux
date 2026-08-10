@@ -13,3 +13,6 @@ target/
 .DS_Store
 .idea/
 *.iml
+
+# Astro generated types
+.astro/

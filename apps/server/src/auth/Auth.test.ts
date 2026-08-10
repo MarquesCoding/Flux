@@ -150,6 +150,37 @@ describe('createAuth', () => {
     expect(profiles).toHaveLength(1)
   })
 
+  it('produces a recovery link when someone forgets their password', async () => {
+    const { auth, resetLinks } = createMemoryAuth()
+    await auth.handler(post('/api/auth/sign-up/email', credentials))
+
+    const response = await auth.handler(
+      post('/api/auth/request-password-reset', {
+        email: credentials.email,
+        redirectTo: `${BASE_URL}/reset`,
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    expect(resetLinks[0]?.email).toBe(credentials.email)
+    expect(resetLinks[0]?.url).toContain('reset-password')
+    expect((resetLinks[0]?.url ?? '').length).toBeGreaterThan(BASE_URL.length + 20)
+  })
+
+  it('does not reveal whether an address has an account', async () => {
+    const { auth, resetLinks } = createMemoryAuth()
+
+    const response = await auth.handler(
+      post('/api/auth/request-password-reset', {
+        email: 'nobody@flux.test',
+        redirectTo: `${BASE_URL}/reset`,
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    expect(resetLinks).toHaveLength(0)
+  })
+
   it('exposes a jwks endpoint for native clients to verify tokens', async () => {
     const { auth } = createMemoryAuth()
 

@@ -33,8 +33,14 @@ const emptyStore = () => ({
  */
 const createMemoryAuth = (
   overrides: Partial<NodeJS.ProcessEnv> = {},
-): { auth: FluxAuth; settings: SettingsStore; profiles: string[] } => {
+): {
+  auth: FluxAuth
+  settings: SettingsStore
+  profiles: string[]
+  resetLinks: { email: string; url: string }[]
+} => {
   const profiles: string[] = []
+  const resetLinks: { email: string; url: string }[] = []
 
   const env: Env = readEnv({
     BETTER_AUTH_SECRET: TEST_SECRET,
@@ -60,9 +66,14 @@ const createMemoryAuth = (
 
       return Promise.resolve()
     },
+    onPasswordResetRequested: (email, url) => {
+      resetLinks.push({ email, url })
+
+      return Promise.resolve()
+    },
   })
 
-  return { auth, settings, profiles }
+  return { auth, settings, profiles, resetLinks }
 }
 
 export default { createMemoryAuth, TEST_SECRET }

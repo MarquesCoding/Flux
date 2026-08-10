@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import scanLibraryModule from './scanLibrary'
 import type { MediaRow, ScannedFile, StoredItem } from './scanLibrary'
+import type { MetadataProvider } from './MetadataProvider'
 import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient'
 
 const { scanLibrary, selectChanged } = scanLibraryModule
@@ -42,6 +43,8 @@ const harness = (options: {
   found?: ScannedFile[]
   existing?: StoredItem[]
   probeImpl?: (path: string) => Promise<MediaProbe>
+  providers?: MetadataProvider[]
+  onProblem?: (path: string, reason: string) => void
 }) => {
   const rows: MediaRow[] = []
   const removedPaths: string[] = []
@@ -78,6 +81,8 @@ const harness = (options: {
         markScanned,
       },
       transcoder,
+      ...(options.providers === undefined ? {} : { providers: options.providers }),
+      ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
     })
 
   return { run, rows, removedPaths, markScanned }
@@ -241,5 +246,33 @@ describe('scanLibrary', () => {
 
     expect(await run()).toMatchObject({ removed: 0 })
     expect(removedPaths).toHaveLength(0)
+  })
+
+  it('lets a provider override the filename title', async () => {
+    const { run, rows } = harness({
+      found: [file('/media/films/arrival.2016.1080p.mkv')],
+      providers: [
+        { name: 'plugin', describe: () => Promise.resolve({ title: 'Arrival', year: 2016 }) },
+      ],
+    })
+
+    await run()
+
+    expect(rows[0]).toMatchObject({ title: 'Arrival', year: 2016 })
+  })
+
+  it('counts a file no provider can name as failed rather than storing it blank', async () => {
+    const onProblem = vi.fn()
+    const { run, rows } = harness({
+      found: [file('/media/films/arrival.mkv')],
+      providers: [{ name: 'plugin', describe: () => Promise.resolve(null) }],
+      onProblem,
+    })
+
+    const result = await run()
+
+    expect(result.failed).toBe(1)
+    expect(rows).toHaveLength(0)
+    expect(onProblem).toHaveBeenCalled()
   })
 })

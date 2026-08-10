@@ -47,6 +47,13 @@ const auth = createAuth({
   onUserCreated: async (userId) => {
     await db.insert(userProfile).values({ userId }).onConflictDoNothing()
   },
+  onPasswordResetRequested: (email, url) => {
+    // Written to the log rather than emailed. The operator of a homelab server
+    // can read their own logs; they usually cannot send mail.
+    process.stdout.write(`password reset for ${email}: ${url}\n`)
+
+    return Promise.resolve()
+  },
 })
 
 const countUsers = async (): Promise<number> => {
