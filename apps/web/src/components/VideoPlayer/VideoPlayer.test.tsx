@@ -187,7 +187,13 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 0, undefined)
+      expect(startMock).toHaveBeenCalledWith(
+        'media-1',
+        { name: 'Browser' },
+        0,
+        undefined,
+        'original',
+      )
     })
   })
 
@@ -464,7 +470,13 @@ describe('VideoPlayer', () => {
     })
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 3600, undefined)
+      expect(startMock).toHaveBeenCalledWith(
+        'media-1',
+        { name: 'Browser' },
+        3600,
+        undefined,
+        'original',
+      )
     })
   })
 
@@ -494,7 +506,13 @@ describe('VideoPlayer', () => {
     })
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 3600, undefined)
+      expect(startMock).toHaveBeenCalledWith(
+        'media-1',
+        { name: 'Browser' },
+        3600,
+        undefined,
+        'original',
+      )
     })
 
     Object.defineProperty(element, 'currentTime', { value: 12, writable: true })
@@ -867,7 +885,7 @@ describe('VideoPlayer', () => {
     await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }))
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 2400, 2)
+      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 2400, 2, 'original')
     })
   })
 

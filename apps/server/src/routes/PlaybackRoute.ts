@@ -1,10 +1,12 @@
 import { createRoute, z } from '@hono/zod-openapi'
 import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
 import DeviceProfileModule from '@FluxContracts/schemas/DeviceProfile'
+import QualityStepModule from '@FluxContracts/schemas/QualityStep'
 import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
 
 const { PlaybackPlanSchema } = PlaybackPlanModule
 const { DeviceProfileSchema } = DeviceProfileModule
+const { QualityStepIdSchema } = QualityStepModule
 const { PLAYBACK_MODES } = describePlaybackModeModule
 
 const PlaybackError = z.object({ error: z.string() }).openapi('PlaybackError')
@@ -24,6 +26,13 @@ const StartRequest = z
      * every stream and leaves the choice to the browser.
      */
     audioStreamIndex: z.number().int().nonnegative().optional(),
+    /**
+     * A quality step the viewer picked, below the device's own capability.
+     *
+     * Absent or omitted means Original: whatever device negotiation alone
+     * would decide, unchanged.
+     */
+    requestedQuality: QualityStepIdSchema.optional(),
   })
   .openapi('PlaybackStartRequest')
 

@@ -1,4 +1,5 @@
 import negotiatePlaybackModule from '@FluxCore/functions/negotiatePlayback'
+import resolveQualityStepModule from '@FluxCore/functions/resolveQualityStep'
 import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
 import planToSessionSpecModule from '@FluxCore/functions/planToSessionSpec'
 import PlaybackServiceModule from './PlaybackService'
@@ -6,6 +7,7 @@ import type { PlaybackService } from './PlaybackService'
 import type { Transcoder, TranscoderCapabilities } from '@FluxServer/transcoder/TranscoderClient'
 
 const { negotiatePlayback } = negotiatePlaybackModule
+const { resolveQualityStep } = resolveQualityStepModule
 const { describePlaybackMode } = describePlaybackModeModule
 const { planToSessionSpec } = planToSessionSpecModule
 const {
@@ -83,26 +85,28 @@ const createPlaybackService = ({
   }
 
   return {
-    explain: async (mediaId, profile) => {
+    explain: async (mediaId, profile, requestedQuality) => {
       const found = await media.findForPlayback(mediaId)
 
       if (found === null) {
         return null
       }
 
-      const plan = negotiatePlayback(found.item, profile)
+      const qualityClamp = resolveQualityStep(found.item, requestedQuality ?? 'original')
+      const plan = negotiatePlayback(found.item, profile, qualityClamp)
 
       return { mode: describePlaybackMode(plan), plan }
     },
 
-    start: async (mediaId, profile, startSeconds, audioStreamIndex) => {
+    start: async (mediaId, profile, startSeconds, audioStreamIndex, requestedQuality) => {
       const found = await media.findForPlayback(mediaId)
 
       if (found === null) {
         return { kind: 'notFound' }
       }
 
-      const plan = negotiatePlayback(found.item, profile)
+      const qualityClamp = resolveQualityStep(found.item, requestedQuality ?? 'original')
+      const plan = negotiatePlayback(found.item, profile, qualityClamp)
 
       // A viewer who picked a track needs that track selected, which the
       // original file cannot do: it carries every stream and the browser picks
