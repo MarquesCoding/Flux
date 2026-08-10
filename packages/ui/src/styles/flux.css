@@ -1,5 +1,14 @@
 @import 'tailwindcss';
 
+/*
+ * FluxUI's own sources.
+ *
+ * Automatic detection starts from the application importing this file and
+ * never reaches this package, so without this every class used only inside
+ * FluxUI is missing from the stylesheet and the component renders unstyled.
+ */
+@source '../';
+
 @theme {
   --color-surface: oklch(0.99 0 0);
   --color-surface-raised: oklch(0.97 0.002 260);
