@@ -252,6 +252,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           onPlay={(media) => {
             go({ inspecting: media.id })
           }}
+          onWatch={(media, startSeconds) => {
+            go({ playing: media.id, startSeconds })
+          }}
           onItemsLoaded={(items) => {
             setKnown((current) => {
               const next = new Map(current)

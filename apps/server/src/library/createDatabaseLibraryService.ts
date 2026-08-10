@@ -144,6 +144,7 @@ const createDatabaseLibraryService = ({
           seriesTitle: mediaItem.seriesTitle,
           seasonNumber: mediaItem.seasonNumber,
           episodeNumber: mediaItem.episodeNumber,
+          rating: mediaItem.rating,
         })
         .from(mediaItem)
         .where(filters)

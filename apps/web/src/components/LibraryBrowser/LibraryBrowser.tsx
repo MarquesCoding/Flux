@@ -24,7 +24,7 @@ const { Rail } = RailModule
 const { groupIntoRails } = groupIntoRailsModule
 const { pickFeatured } = pickFeaturedModule
 const { fetchWatchProgress, byMediaId } = watchProgressModule
-const { watchedFraction } = WatchProgressContract
+const { watchedFraction, isWorthResuming } = WatchProgressContract
 
 /**
  * How many items the hero rotates between.
@@ -55,6 +55,7 @@ const LibraryBrowser = ({
   onFeatureChange,
   onItemsLoaded,
   onPlay,
+  onWatch,
 }: LibraryBrowserProps) => {
   const [libraries, setLibraries] = useState<Library[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -228,8 +229,18 @@ const LibraryBrowser = ({
       {hasHero && items.length > 0 ? (
         <Hero
           items={pickFeatured(items, HERO_COUNT)}
-          onPlay={onPlay}
-          onInspect={onPlay}
+          onPlay={(media, startSeconds) => {
+            if (onWatch === undefined) {
+              onPlay(media)
+            } else {
+              onWatch(media, startSeconds)
+            }
+          }}
+          resumeFor={(mediaId) => {
+            const found = progress.get(mediaId)
+
+            return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
+          }}
           {...(onFeatureChange === undefined ? {} : { onFeatureChange })}
         />
       ) : null}

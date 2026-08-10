@@ -10,9 +10,8 @@ const { revealTransition, liquidSpring, settleTween, stillTransition } = revealM
  * The floating bar of places to go.
  *
  * Sits over the content rather than beside it, so the library keeps the full
- * width of a phone and the full height of a desktop. Fixed to the bottom
- * because that is where a thumb is, and centred because a bar pinned to one
- * edge of a wide screen is a long way from anything.
+ * width of a phone and the full height of a desktop. Centred, because a bar
+ * pinned to one edge of a wide screen is a long way from anything.
  *
  * Only the current place is named. An icon someone has already learned needs
  * no caption, and four captions across the bottom of every screen is a menu
@@ -32,8 +31,8 @@ const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
     <nav
       aria-label="Sections"
       className={cn(
-        'pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center',
-        'px-4 pb-[max(1rem,env(safe-area-inset-bottom))]',
+        'pointer-events-none fixed inset-x-0 top-0 z-30 flex justify-center',
+        'px-4 pt-[max(0.75rem,env(safe-area-inset-top))]',
         className,
       )}
     >
@@ -43,7 +42,7 @@ const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
         initial={
           prefersReducedMotion === true
             ? { opacity: 0 }
-            : { opacity: 0, y: 28, scaleX: 0.7, filter: 'blur(6px)' }
+            : { opacity: 0, y: -28, scaleX: 0.7, filter: 'blur(6px)' }
         }
         animate={{ opacity: 1, y: 0, scaleX: 1, filter: 'blur(0px)' }}
         transition={{

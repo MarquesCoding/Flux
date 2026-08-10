@@ -31,6 +31,10 @@ type VideoSurfaceProps = {
    * Called when the media reaches its end.
    */
   onEnded?: () => void
+  /**
+   * Whether the media starts again when it reaches the end.
+   */
+  loops?: boolean
 }
 
 export type { TextTrack, VideoSurfaceProps }

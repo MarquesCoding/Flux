@@ -78,6 +78,13 @@ const MediaPreview = ({
    * flickers with every pause, stall and buffer, and each flicker used to
    * throw the still back over a picture that was perfectly good.
    */
+  // Nobody waiting for the clip to finish means nothing to hand over to, so
+  // it runs again rather than falling back to a still. A hero passes a
+  // handler because it rotates; a dialog and a hovered card have nowhere to
+  // go, and dropping them back to a photograph after twenty four seconds
+  // reads as the preview breaking.
+  const loops = onEnded === undefined
+
   const isShowingFrame = !hasStarted || hasEnded
   const startSeconds = Math.floor(durationSeconds * startFraction)
 
@@ -184,12 +191,33 @@ const MediaPreview = ({
 
           onPlayingChange?.(playing)
         }}
+        loops={loops}
         onEnded={() => {
+          // Started again here as well as by the element's own loop: a clip
+          // that stops where nothing is waiting for it has nowhere to hand
+          // over to, and falling back to a photograph reads as the preview
+          // breaking rather than as it finishing.
+          if (loops) {
+            const element = videoRef.current
+
+            if (element !== null) {
+              element.currentTime = 0
+
+              void element.play().catch(() => {
+                // Refused; the frame underneath is a fair answer.
+              })
+            }
+
+            return
+          }
+
           // Back to the frame first, and only then is whoever owns this told:
           // a rotation that begins while the video is on screen is a cut, and
           // one that begins from the frame is a dissolve.
+          // Reaching here means somebody is waiting to be told, since a clip
+          // with nobody waiting has already started itself again above.
           setHasEnded(true)
-          onEnded?.()
+          onEnded()
         }}
       />
 

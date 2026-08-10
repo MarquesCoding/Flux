@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react'
+import { IconPlayerPlayFilled, IconStar } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
@@ -45,8 +45,8 @@ const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/bac
 const Hero = ({
   items,
   onPlay,
-  onInspect,
   onFeatureChange,
+  resumeFor,
   rotateAfterMilliseconds = ROTATE_AFTER_MILLISECONDS,
 }: HeroProps) => {
   const [index, setIndex] = useState(0)
@@ -54,6 +54,8 @@ const Hero = ({
   const prefersReducedMotion = useReducedMotion()
 
   const featured = items[index % Math.max(items.length, 1)]
+  const resume = featured === undefined ? null : (resumeFor?.(featured.id) ?? null)
+  const rating = featured?.rating ?? null
 
   useEffect(() => {
     if (featured !== undefined) {
@@ -139,16 +141,24 @@ const Hero = ({
         variants={staggerVariants}
         initial="hidden"
         animate="shown"
-        className="relative flex flex-col gap-6 px-5 pb-24 pt-24 sm:px-10 sm:pb-28"
+        className="relative flex flex-col gap-3 px-5 pb-24 pt-24 sm:px-10 sm:pb-28"
       >
-        <motion.p
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion)}
-          className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.2em] text-text-muted"
-        >
-          <span className="h-px w-8 bg-text-muted/60" />
-          Featured
-        </motion.p>
+        {featured.year === null && rating === null ? null : (
+          <motion.p
+            variants={revealVariants(prefersReducedMotion)}
+            transition={revealTransition(prefersReducedMotion)}
+            className="flex items-center gap-4 text-sm font-medium tracking-[0.2em] text-text-muted"
+          >
+            {featured.year === null ? null : <span>{featured.year}</span>}
+
+            {rating === null ? null : (
+              <span className="flex items-center gap-1.5">
+                <IconStar size={14} aria-hidden />
+                {rating.toFixed(1)}
+              </span>
+            )}
+          </motion.p>
+        )}
 
         <motion.h1
           variants={revealVariants(prefersReducedMotion)}
@@ -156,7 +166,7 @@ const Hero = ({
           // Sized against the viewport rather than in steps, so the title is
           // as large as the screen allows at every width instead of jumping
           // between three fixed sizes.
-          className="max-w-[14ch] text-[clamp(2.75rem,11vw,9rem)] font-semibold leading-[0.88] tracking-[-0.04em] text-text"
+          className="max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text"
         >
           {featured.title}
         </motion.h1>
@@ -164,39 +174,21 @@ const Hero = ({
         <motion.div
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
-          className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-text-muted"
+          className="flex flex-wrap items-center gap-3 pt-2"
         >
-          {featured.year === null ? null : <span className="text-text">{featured.year}</span>}
-          <span>{formatDuration(featured.durationSeconds)}</span>
-        </motion.div>
-
-        <motion.div
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion)}
-          className="flex flex-wrap items-center gap-3"
-        >
+          {/* One button, because there is only one thing anybody wants from a
+              hero. What it says depends on whether they have been here
+              before. */}
           <Button
             variant="glossy"
-            size="xl"
+            size="lg"
             isPill
             onClick={() => {
-              onPlay(featured)
+              onPlay(featured, resume ?? 0)
             }}
           >
-            <IconPlayerPlayFilled size={20} aria-hidden />
-            Play
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="xl"
-            isPill
-            onClick={() => {
-              onInspect(featured)
-            }}
-          >
-            <IconInfoCircle size={20} aria-hidden />
-            Details
+            <IconPlayerPlayFilled size={18} aria-hidden />
+            {resume === null ? 'Play' : `Resume from ${formatDuration(resume)}`}
           </Button>
         </motion.div>
       </motion.div>
@@ -229,10 +221,10 @@ const Hero = ({
                 </span>
 
                 <span
-                  className={`block h-0.5 rounded-full transition-all duration-500 ${
+                  className={`block h-1.5 rounded-full transition-all duration-300 ${
                     position === index
-                      ? 'w-10 bg-text'
-                      : 'w-5 bg-text-muted/40 group-hover:w-8 group-hover:bg-text-muted'
+                      ? 'w-6 bg-text'
+                      : 'w-1.5 bg-text-muted/40 group-hover:bg-text-muted'
                   }`}
                 />
               </button>

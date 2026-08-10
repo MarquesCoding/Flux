@@ -87,9 +87,9 @@ const AppShell = ({
         variants={staggerVariants}
         initial="hidden"
         animate="shown"
-        // Room for the dock, which floats over the end of the page rather than
-        // taking a strip of it.
-        className="min-h-screen pb-32"
+        // Room for the dock, which floats over the top of the page rather
+        // than taking a strip of it.
+        className="min-h-screen pb-16"
       >
         <motion.div
           variants={revealVariants(prefersReducedMotion)}

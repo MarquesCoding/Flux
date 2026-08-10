@@ -9,7 +9,72 @@
  */
 @source '../';
 
+/*
+ * The typeface.
+ *
+ * Served by Flux rather than fetched from anybody else: a self-hosted server
+ * should not tell a third party who is looking at it, and a page whose
+ * lettering depends on somebody else's uptime is a page that can arrive
+ * wrong. Only the weights the interface actually uses are carried.
+ *
+ * `swap` on purpose — text in a fallback face is readable, and text that is
+ * invisible while a font loads is not.
+ */
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/fonts/Gilroy-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/fonts/Gilroy-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/fonts/Gilroy-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/fonts/Gilroy-Semibold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/fonts/Gilroy-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/fonts/Gilroy-Extrabold.woff') format('woff');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
+  /*
+   * One name for the typeface, so replacing it — with a licensed copy, or
+   * with something else entirely — is this line rather than every component.
+   */
+  --font-sans: 'Gilroy', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
   --color-surface: oklch(0.99 0 0);
   --color-surface-raised: oklch(0.97 0.002 260);
   --color-border: oklch(0.9 0.004 260);
@@ -18,6 +83,14 @@
   --color-accent: oklch(0.58 0.17 258);
   --color-accent-contrast: oklch(0.99 0 0);
   --color-danger: oklch(0.55 0.19 27);
+
+  /*
+   * How far glass pushes what is behind it towards the page's own tone.
+   *
+   * Lightens on a light page and darkens on a dark one, so a control keeps
+   * its contrast whatever it happens to be floating over.
+   */
+  --glass-brightness: 1.35;
 
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
@@ -54,6 +127,9 @@
       --color-danger: oklch(0.68 0.19 25);
       --glass-tint: color-mix(in oklab, white 8%, transparent);
       --glass-edge: color-mix(in oklab, white 16%, transparent);
+      /* Darkens what is behind it, so white lettering holds up over a bright
+         still as well as over a dark one. */
+      --glass-brightness: 0.5;
     }
   }
 
@@ -68,10 +144,12 @@
     --color-danger: oklch(0.68 0.19 25);
     --glass-tint: color-mix(in oklab, white 8%, transparent);
     --glass-edge: color-mix(in oklab, white 16%, transparent);
+    --glass-brightness: 0.5;
   }
 }
 
 body {
+  font-family: var(--font-sans);
   background-color: var(--color-surface);
   color: var(--color-text);
 }
@@ -202,8 +280,15 @@ body {
  */
 .flux-glass {
   background: var(--glass-tint);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  /*
+   * The blur takes whatever is behind and the brightness pushes it towards
+   * the page's own end of the scale, so glass over a pale still is as
+   * readable as glass over a dark one. Adapting the backdrop rather than the
+   * lettering is what keeps one set of colours working everywhere — text that
+   * changes colour under a moving picture flickers as the picture moves.
+   */
+  backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));
+  -webkit-backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));
   border: 1px solid var(--glass-edge);
   box-shadow:
     inset 0 1px 0 0 color-mix(in oklab, white 28%, transparent),

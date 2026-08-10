@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react'
+import { IconPlayerPlayFilled, IconStar } from '@tabler/icons-react'
 import MediaCardModule from '@FluxUI/MediaCard'
-import IconButtonModule from '@FluxUI/IconButton'
+import BadgeModule from '@FluxUI/Badge'
+import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
+import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
+import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { RailCardProps } from './RailCard.types'
 
 const { MediaCard } = MediaCardModule
-const { IconButton } = IconButtonModule
+const { Badge } = BadgeModule
+const { Button } = ButtonModule
 const { liquidSpring } = revealModule
 const { formatDuration } = formatDurationModule
+const { fetchMediaDetail } = fetchLibraryModule
 const { MediaPreview } = MediaPreviewModule
 
 /**
@@ -29,6 +34,11 @@ const GROWTH = 1.35
  * How far from the edge of the window the open card must stay.
  */
 const MARGIN = 12
+
+/**
+ * How many genres are worth naming on a card.
+ */
+const GENRE_LIMIT = 3
 
 /**
  * Where a card is on screen.
@@ -81,8 +91,13 @@ const RailCard = ({
   watchedFraction,
   onPlay,
   onInspect,
+  resumeSeconds,
   hoverDelayMilliseconds = HOVER_DELAY_MILLISECONDS,
 }: RailCardProps) => {
+  // Read only once a card has actually been opened. A row of twenty cards
+  // asking the server about themselves on the way past would be twenty
+  // requests for a page nobody has stopped on.
+  const [detail, setDetail] = useState<MediaDetail | null>(null)
   const holderRef = useRef<HTMLDivElement>(null)
   const [anchor, setAnchor] = useState<Anchor | null>(null)
   const prefersReducedMotion = useReducedMotion()
@@ -105,6 +120,24 @@ const RailCard = ({
       window.removeEventListener('scroll', close, { capture: true })
     }
   }, [anchor, close])
+
+  useEffect(() => {
+    if (anchor === null || detail !== null) {
+      return
+    }
+
+    let abandoned = false
+
+    void fetchMediaDetail(media.id).then((found) => {
+      if (!abandoned) {
+        setDetail(found)
+      }
+    })
+
+    return () => {
+      abandoned = true
+    }
+  }, [anchor, detail, media.id])
 
   const open = useCallback(() => {
     const holder = holderRef.current
@@ -153,69 +186,121 @@ const RailCard = ({
         {...(watchedFraction === undefined ? {} : { watchedFraction })}
         {...(artworkUrl === undefined ? {} : { imageUrl: artworkUrl })}
         onSelect={() => {
-          onPlay(media)
+          onInspect(media)
         }}
         className="w-full"
       />
 
-      {anchor === null
-        ? null
-        : createPortal(
-            <AnimatePresence onExitComplete={close}>
-              <motion.div
-                key={media.id}
-                initial={{ opacity: 0, scale: 1 / GROWTH }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1 / GROWTH }}
-                transition={liquidSpring}
-                onPointerLeave={close}
-                style={{ left: anchor.left, top: anchor.top, width: anchor.width }}
-                className="fixed z-40 overflow-hidden rounded-2xl bg-surface-raised shadow-2xl ring-1 ring-white/10"
+      {createPortal(
+        <AnimatePresence>
+          {anchor === null ? null : (
+            <motion.div
+              key={media.id}
+              initial={{ opacity: 0, scale: 1 / GROWTH }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1 / GROWTH }}
+              transition={liquidSpring}
+              onPointerLeave={close}
+              style={{ left: anchor.left, top: anchor.top, width: anchor.width }}
+              className="fixed z-40 overflow-hidden rounded-2xl bg-surface-raised shadow-2xl ring-1 ring-white/10"
+            >
+              <div className="aspect-video w-full">
+                <MediaPreview
+                  mediaId={media.id}
+                  backdropUrl={artworkUrl ?? null}
+                  durationSeconds={media.durationSeconds}
+                  tint={media.accentColor ?? null}
+                  settleMilliseconds={0}
+                  fills
+                />
+              </div>
+
+              {/* The whole panel opens the page. Somebody who has stopped
+                    on a card and read it wants to know more about it, and
+                    making them find a small button to say so is a puzzle
+                    rather than an interface. */}
+              <button
+                type="button"
+                aria-label={`About ${media.title}`}
+                onClick={() => {
+                  onInspect(media)
+                }}
+                className="flex w-full flex-col gap-3 p-4 text-left"
               >
-                <div className="aspect-video w-full">
-                  <MediaPreview
-                    mediaId={media.id}
-                    backdropUrl={artworkUrl ?? null}
-                    durationSeconds={media.durationSeconds}
-                    tint={media.accentColor ?? null}
-                    settleMilliseconds={0}
-                    fills
-                  />
-                </div>
+                {/* The same control as everywhere else something is
+                      played. A card is not the place to invent a second shape
+                      of play button. */}
+                <Button
+                  variant="glossy"
+                  size="sm"
+                  isPill
+                  onClick={(event) => {
+                    // Inside the panel, so its press must not also read as a
+                    // press on the panel behind it.
+                    event.stopPropagation()
+                    onPlay(media, resumeSeconds ?? 0)
+                  }}
+                >
+                  <IconPlayerPlayFilled size={16} aria-hidden />
+                  {resumeSeconds === undefined
+                    ? 'Play'
+                    : `Resume from ${formatDuration(resumeSeconds)}`}
+                </Button>
 
-                <div className="flex flex-col gap-3 p-4">
-                  <div className="flex items-center gap-2">
-                    <IconButton
-                      label={`Play ${media.title}`}
-                      onClick={() => {
-                        onPlay(media)
-                      }}
-                      className="bg-text text-surface"
-                    >
-                      <IconPlayerPlayFilled size={18} aria-hidden />
-                    </IconButton>
+                <span className="flex flex-col gap-1">
+                  {detail?.metadata.seriesTitle === undefined ||
+                  detail.metadata.seriesTitle === null ? null : (
+                    <span className="text-xs uppercase tracking-[0.14em] text-text-muted">
+                      {detail.metadata.seriesTitle}
+                    </span>
+                  )}
 
-                    <IconButton
-                      label={`About ${media.title}`}
-                      onClick={() => {
-                        onInspect(media)
-                      }}
-                    >
-                      <IconInfoCircle size={18} aria-hidden />
-                    </IconButton>
-                  </div>
+                  <span className="text-sm font-medium leading-tight text-text">{media.title}</span>
+                </span>
 
-                  <p className="text-sm font-medium leading-tight text-text">{media.title}</p>
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
+                  {media.year === null ? null : <span>{media.year}</span>}
+                  <span>{formatDuration(media.durationSeconds)}</span>
 
-                  <p className="flex flex-wrap items-center gap-x-3 text-xs text-text-muted">
-                    {media.year === null ? null : <span>{media.year}</span>}
-                    <span>{formatDuration(media.durationSeconds)}</span>
-                  </p>
-                </div>
-              </motion.div>
-            </AnimatePresence>,
-            document.body,
+                  {detail?.metadata.rating === undefined ||
+                  detail.metadata.rating === null ? null : (
+                    <span className="flex items-center gap-1">
+                      <IconStar size={12} aria-hidden />
+                      {detail.metadata.rating.toFixed(1)}
+                    </span>
+                  )}
+
+                  {typeof media.seasonNumber !== 'number' ||
+                  typeof media.episodeNumber !== 'number' ? null : (
+                    <span>
+                      S{media.seasonNumber} · E{media.episodeNumber}
+                    </span>
+                  )}
+                </span>
+
+                {(detail?.metadata.genres ?? []).length === 0 ? null : (
+                  <span className="flex flex-wrap gap-1.5">
+                    {(detail?.metadata.genres ?? []).slice(0, GENRE_LIMIT).map((genre) => (
+                      <Badge key={genre} size="sm">
+                        {genre}
+                      </Badge>
+                    ))}
+                  </span>
+                )}
+
+                {detail?.metadata.overview === undefined ||
+                detail.metadata.overview === null ||
+                detail.metadata.overview === '' ? null : (
+                  <span className="line-clamp-3 text-xs leading-relaxed text-text-muted">
+                    {detail.metadata.overview}
+                  </span>
+                )}
+              </button>
+            </motion.div>
           )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   )
 }

@@ -7,8 +7,12 @@ type RailCardProps = {
    * How far through this item the viewer is, if they have started it.
    */
   watchedFraction?: number
-  onPlay: (media: MediaSummary) => void
+  onPlay: (media: MediaSummary, startSeconds: number) => void
   onInspect: (media: MediaSummary) => void
+  /**
+   * Where this viewer left it, when that is worth offering.
+   */
+  resumeSeconds?: number
   /**
    * How long a pointer must rest on the card before it opens.
    *

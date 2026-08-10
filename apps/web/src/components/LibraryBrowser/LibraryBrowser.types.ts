@@ -24,6 +24,13 @@ type LibraryBrowserProps = {
   onFeatureChange?: (media: MediaSummary) => void
   onPlay: (media: MediaSummary) => void
   /**
+   * Starts something, rather than opening the page about it.
+   *
+   * The hero's one button plays; a card opens the page. They are different
+   * intentions and deserve different callbacks.
+   */
+  onWatch?: (media: MediaSummary, startSeconds: number) => void
+  /**
    * Called with whatever this browser is showing.
    *
    * The address bar names items by identifier, and something has to turn one

@@ -38,19 +38,19 @@ afterEach(() => {
 
 describe('Hero', () => {
   it('shows nothing at all when there is nothing to feature', () => {
-    const { container } = render(<Hero items={[]} onPlay={vi.fn()} onInspect={vi.fn()} />)
+    const { container } = render(<Hero items={[]} onPlay={vi.fn()} />)
 
     expect(container).toBeEmptyDOMElement()
   })
 
   it('features the first item', () => {
-    render(<Hero items={items} onPlay={vi.fn()} onInspect={vi.fn()} />)
+    render(<Hero items={items} onPlay={vi.fn()} />)
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument()
   })
 
   it('names itself so the section can be found', () => {
-    render(<Hero items={items} onPlay={vi.fn()} onInspect={vi.fn()} />)
+    render(<Hero items={items} onPlay={vi.fn()} />)
 
     expect(screen.getByRole('region', { name: 'Featured' })).toBeInTheDocument()
   })
@@ -58,36 +58,33 @@ describe('Hero', () => {
   it('plays what is featured', async () => {
     const onPlay = vi.fn()
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    render(<Hero items={items} onPlay={onPlay} onInspect={vi.fn()} />)
+    render(<Hero items={items} onPlay={onPlay} />)
 
     await user.click(screen.getByRole('button', { name: /Play/ }))
 
-    expect(onPlay).toHaveBeenCalledWith(items[0])
+    expect(onPlay).toHaveBeenCalledWith(items[0], 0)
   })
 
-  it('opens what is featured for a closer look', async () => {
-    const onInspect = vi.fn()
+  it('carries on rather than starting again when there is somewhere to carry on from', async () => {
+    const onPlay = vi.fn()
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    render(<Hero items={items} onPlay={vi.fn()} onInspect={onInspect} />)
 
-    await user.click(screen.getByRole('button', { name: /Details/ }))
+    render(<Hero items={items} onPlay={onPlay} resumeFor={() => 620} />)
 
-    expect(onInspect).toHaveBeenCalledWith(items[0])
+    await user.click(screen.getByRole('button', { name: /Resume/ }))
+
+    expect(onPlay).toHaveBeenCalledWith(items[0], 620)
   })
 
   it('says which item is on screen, so the page can be lit by it', () => {
     const onFeatureChange = vi.fn()
-    render(
-      <Hero items={items} onPlay={vi.fn()} onInspect={vi.fn()} onFeatureChange={onFeatureChange} />,
-    )
+    render(<Hero items={items} onPlay={vi.fn()} onFeatureChange={onFeatureChange} />)
 
     expect(onFeatureChange).toHaveBeenCalledWith(items[0])
   })
 
   it('moves on after a while', () => {
-    render(
-      <Hero items={items} onPlay={vi.fn()} onInspect={vi.fn()} rotateAfterMilliseconds={100} />,
-    )
+    render(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />)
 
     act(() => {
       vi.advanceTimersByTime(150)
@@ -97,9 +94,7 @@ describe('Hero', () => {
   })
 
   it('comes back round to the beginning', async () => {
-    render(
-      <Hero items={items} onPlay={vi.fn()} onInspect={vi.fn()} rotateAfterMilliseconds={100} />,
-    )
+    render(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />)
 
     // One turn at a time: each rotation reschedules the next, and a single
     // long jump would fire the first timer and never see the ones it sets.
@@ -114,9 +109,7 @@ describe('Hero', () => {
 
   it('holds still while someone is reading it', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    render(
-      <Hero items={items} onPlay={vi.fn()} onInspect={vi.fn()} rotateAfterMilliseconds={100} />,
-    )
+    render(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />)
 
     await user.hover(screen.getByRole('region', { name: 'Featured' }))
 
@@ -128,9 +121,7 @@ describe('Hero', () => {
   })
 
   it('holds still while someone is tabbing through it', () => {
-    render(
-      <Hero items={items} onPlay={vi.fn()} onInspect={vi.fn()} rotateAfterMilliseconds={100} />,
-    )
+    render(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />)
 
     // Focusing and waiting have to be separate: the effect that cancels the
     // rotation only runs once React has flushed the focus, and doing both in
@@ -151,7 +142,7 @@ describe('Hero', () => {
       <Hero
         items={[items[0] ?? item('a', 'Arrival')]}
         onPlay={vi.fn()}
-        onInspect={vi.fn()}
+
         rotateAfterMilliseconds={100}
       />,
     )
@@ -166,7 +157,7 @@ describe('Hero', () => {
 
   it('jumps straight to an item on request', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    render(<Hero items={items} onPlay={vi.fn()} onInspect={vi.fn()} />)
+    render(<Hero items={items} onPlay={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: 'Show Sicario' }))
 

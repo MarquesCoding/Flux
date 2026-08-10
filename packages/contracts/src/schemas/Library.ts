@@ -61,6 +61,13 @@ const MediaSummarySchema = z.object({
    */
   accentColor: z.string().nullish(),
   /**
+   * What a catalogue thinks of it, out of ten.
+   *
+   * In the summary because a hero and a card both show it, and neither is
+   * worth a second request to find one number.
+   */
+  rating: z.number().nullish(),
+  /**
    * Where this sits in a series, when the path said it sits in one.
    *
    * Carried in the summary rather than only in the detail because a library is

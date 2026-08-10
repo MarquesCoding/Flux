@@ -25,7 +25,10 @@ const Badge = ({ children, tone = 'quiet', size = 'sm', className }: BadgeProps)
   <span
     className={cn(
       'inline-flex shrink-0 items-center justify-center rounded-full font-medium',
-      'uppercase tracking-[0.12em] whitespace-nowrap',
+      // Letter spacing is added after every letter including the last, which
+      // leaves a gap on the right that reads as text sitting off centre. The
+      // indent gives the same space back at the front.
+      'uppercase tracking-[0.12em] indent-[0.12em] leading-none whitespace-nowrap',
       TONE_CLASSES[tone],
       SIZE_CLASSES[size],
       className,

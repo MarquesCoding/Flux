@@ -5,8 +5,14 @@ type HeroProps = {
    * The items worth featuring, most interesting first.
    */
   items: MediaSummary[]
-  onPlay: (media: MediaSummary) => void
-  onInspect: (media: MediaSummary) => void
+  onPlay: (media: MediaSummary, startSeconds: number) => void
+  /**
+   * How far into each item this viewer already is.
+   *
+   * Decides whether the button offers to start something or to carry on with
+   * it, which is the only question a hero's one button has to answer.
+   */
+  resumeFor?: (mediaId: string) => number | null
   /**
    * Told which item is showing, so the page can be lit by its colour.
    */

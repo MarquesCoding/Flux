@@ -71,6 +71,29 @@ const { shiftWebVtt } = shiftWebVttModule
 const { JsonValueSchema } = JsonValueModule
 
 /**
+ * Reads a single byte range out of a request.
+ *
+ * Only the one form a media element actually sends. Anything else — multiple
+ * ranges, a suffix length, a nonsense pair — is answered with the whole thing,
+ * which is always a valid response to a range request.
+ */
+const readByteRange = (
+  header: string | undefined,
+  size: number,
+): { from: number; to: number } | null => {
+  const match = /^bytes=(?<from>\d+)-(?<to>\d*)$/.exec(header ?? '')
+
+  if (match?.groups === undefined) {
+    return null
+  }
+
+  const from = Number(match.groups.from)
+  const to = match.groups.to === '' ? size - 1 : Number(match.groups.to)
+
+  return from >= size || from > to ? null : { from, to: Math.min(to, size - 1) }
+}
+
+/**
  * What signing in by face carries.
  */
 const SignInBodySchema = z.object({ password: z.string().min(1) })
@@ -401,8 +424,24 @@ const createApp = ({
       return context.json({ error: 'No preview yet.' }, 404)
     }
 
-    return context.body(clip.body, 200, {
+    // Media elements ask for byte ranges, and some browsers will not play a
+    // response that cannot answer one. The clip is small enough to hold, so
+    // the range is served from what was already read rather than by reaching
+    // for the file again.
+    const range = readByteRange(context.req.header('range'), clip.body.byteLength)
+
+    if (range === null) {
+      return context.body(clip.body, 200, {
+        'content-type': clip.contentType,
+        'accept-ranges': 'bytes',
+        'cache-control': 'public, max-age=86400',
+      })
+    }
+
+    return context.body(clip.body.slice(range.from, range.to + 1), 206, {
       'content-type': clip.contentType,
+      'accept-ranges': 'bytes',
+      'content-range': `bytes ${range.from.toString()}-${range.to.toString()}/${clip.body.byteLength.toString()}`,
       'cache-control': 'public, max-age=86400',
     })
   })

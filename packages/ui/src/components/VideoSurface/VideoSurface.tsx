@@ -25,6 +25,7 @@ const VideoSurface = ({
   onDurationChange,
   onPlayingChange,
   onEnded,
+  loops = false,
 }: VideoSurfaceProps) => {
   const trackId = textTrack?.id ?? null
 
@@ -61,6 +62,7 @@ const VideoSurface = ({
       ref={videoRef}
       aria-label={label}
       playsInline
+      loop={loops}
       {...(poster === undefined ? {} : { poster })}
       className={cn('w-full bg-black', className)}
       onTimeUpdate={(event) => {
