@@ -1,8 +1,8 @@
 import { startRegistration } from '@simplewebauthn/browser'
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser'
-import PasskeyRegistrationOptionsModule from './PasskeyRegistrationOptions'
+import PasskeyOptionsModule from './PasskeyOptions'
 
-const { PasskeyRegistrationOptionsSchema } = PasskeyRegistrationOptionsModule
+const { PasskeyRegistrationOptionsSchema } = PasskeyOptionsModule
 
 type RegisterOutcome =
   { kind: 'registered' } | { kind: 'cancelled' } | { kind: 'failed'; reason: string }

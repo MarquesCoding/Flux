@@ -1,8 +1,11 @@
 import { z } from 'zod'
-import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser'
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/browser'
 import PasskeyModule from '@FluxContracts/schemas/Passkey'
 
-const { PasskeyRegistrationChallengeSchema } = PasskeyModule
+const { PasskeyRegistrationChallengeSchema, PasskeyAuthenticationChallengeSchema } = PasskeyModule
 
 /**
  * A WebAuthn registration challenge, validated and typed for the browser API.
@@ -19,4 +22,14 @@ const PasskeyRegistrationOptionsSchema = z.custom<PublicKeyCredentialCreationOpt
   { message: 'The server sent an unusable passkey registration challenge.' },
 )
 
-export default { PasskeyRegistrationOptionsSchema }
+/**
+ * A WebAuthn authentication challenge, validated and typed for the browser
+ * API. Typed with `z.custom` for the same reason as registration: the parsed
+ * value must keep every field the server sent.
+ */
+const PasskeyAuthenticationOptionsSchema = z.custom<PublicKeyCredentialRequestOptionsJSON>(
+  (value) => PasskeyAuthenticationChallengeSchema.safeParse(value).success,
+  { message: 'The server sent an unusable passkey sign-in challenge.' },
+)
+
+export default { PasskeyRegistrationOptionsSchema, PasskeyAuthenticationOptionsSchema }
