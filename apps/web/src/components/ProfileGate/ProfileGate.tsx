@@ -296,7 +296,16 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
           making room. */}
       <motion.p
         layoutId="flux-mark"
-        transition={move}
+        // Fades up on arrival, then moves under the layout animation. The
+        // initial pair is only ever used once: after that this element is
+        // being moved rather than mounted.
+        initial={{ opacity: 0, scale: prefersReducedMotion === true ? 1 : 0.94 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{
+          opacity: { duration: 0.7, ease: 'easeOut' },
+          scale: { duration: 0.7, ease: 'easeOut' },
+          layout: move,
+        }}
         className={cn(
           'bg-gradient-to-br from-text via-text to-accent bg-clip-text font-semibold',
           'tracking-[-0.05em] text-transparent',
