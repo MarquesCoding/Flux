@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { IconArrowLeft, IconArrowRight, IconKey } from '@tabler/icons-react'
+import {
+  IconArrowLeft,
+  IconArrowRight,
+  IconChevronLeft,
+  IconChevronRight,
+  IconKey,
+} from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import IconButtonModule from '@FluxUI/IconButton'
 import TextFieldModule from '@FluxUI/TextField'
@@ -27,6 +33,15 @@ const { fetchEveryone, signInAsProfile } = fetchEveryoneModule
 const { readVersion } = readVersionModule
 const { isPasskeySupported } = isPasskeySupportedModule
 const { authenticateWithPasskey } = authenticateWithPasskeyModule
+
+/**
+ * How many faces one page of the wall holds.
+ *
+ * Two rows of six on a wide screen, and fewer per row as it narrows. A
+ * household fits on one page; a server with thirty accounts on it should not
+ * make somebody read all thirty to find themselves.
+ */
+const PER_PAGE = 12
 
 /**
  * The face somebody picked, drawn at whatever size the moment calls for.
@@ -77,9 +92,13 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   // for arriving; replaying it on the way back would fade the portrait in
   // rather than letting it travel home.
   const [hasLeftWall, setHasLeftWall] = useState(false)
+  const [page, setPage] = useState(0)
   const prefersReducedMotion = useReducedMotion()
 
   const move = prefersReducedMotion === true ? stillTransition : liquidSpring
+
+  const pages = Math.max(1, Math.ceil((everyone?.length ?? 0) / PER_PAGE))
+  const shown = (everyone ?? []).slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE)
 
   useEffect(() => {
     void fetchEveryone().then(setEveryone)
@@ -153,36 +172,89 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                 Who is watching?
               </motion.h1>
 
-              <motion.ul
+              <motion.div
                 variants={revealVariants(prefersReducedMotion)}
                 transition={revealTransition(prefersReducedMotion)}
-                className="flex flex-wrap items-start justify-center gap-6 sm:gap-10"
+                className="flex w-full items-center justify-center gap-2 sm:gap-6"
               >
-                {everyone.map((profile) => (
-                  <li key={profile.id}>
-                    <motion.button
-                      type="button"
-                      layoutId={`profile-${profile.id}`}
-                      transition={move}
-                      onClick={() => {
-                        setHasLeftWall(true)
-                        setChosen(profile)
-                        setProblem(null)
-                      }}
-                      {...(prefersReducedMotion === true
-                        ? {}
-                        : { whileHover: { y: -8 }, whileTap: { scale: 0.97 } })}
-                      className="flex w-24 flex-col items-center gap-3 sm:w-32"
-                    >
-                      <Portrait profile={profile} />
+                {/* The arrows keep their space when there is only one page, so
+                    the faces do not shift sideways as somebody pages through
+                    them. */}
+                <span className={pages > 1 ? '' : 'invisible'}>
+                  <IconButton
+                    label="Previous"
+                    disabled={page === 0}
+                    onClick={() => {
+                      setPage((current) => Math.max(current - 1, 0))
+                    }}
+                  >
+                    <IconChevronLeft size={20} aria-hidden />
+                  </IconButton>
+                </span>
 
-                      <span className="w-full truncate text-center text-sm text-text-muted">
-                        {profile.name}
-                      </span>
-                    </motion.button>
-                  </li>
-                ))}
-              </motion.ul>
+                <ul className="flex min-h-[13rem] flex-wrap items-start justify-center gap-6 sm:min-h-[15rem] sm:gap-10">
+                  {shown.map((profile) => (
+                    <li key={profile.id}>
+                      <motion.button
+                        type="button"
+                        layoutId={`profile-${profile.id}`}
+                        transition={move}
+                        onClick={() => {
+                          setHasLeftWall(true)
+                          setChosen(profile)
+                          setProblem(null)
+                        }}
+                        {...(prefersReducedMotion === true
+                          ? {}
+                          : { whileHover: { y: -8 }, whileTap: { scale: 0.97 } })}
+                        className="flex w-24 flex-col items-center gap-3 sm:w-32"
+                      >
+                        <Portrait profile={profile} />
+
+                        <span className="w-full truncate text-center text-sm text-text-muted">
+                          {profile.name}
+                        </span>
+                      </motion.button>
+                    </li>
+                  ))}
+                </ul>
+
+                <span className={pages > 1 ? '' : 'invisible'}>
+                  <IconButton
+                    label="Next"
+                    disabled={page >= pages - 1}
+                    onClick={() => {
+                      setPage((current) => Math.min(current + 1, pages - 1))
+                    }}
+                  >
+                    <IconChevronRight size={20} aria-hidden />
+                  </IconButton>
+                </span>
+              </motion.div>
+
+              {pages < 2 ? null : (
+                <motion.ul
+                  variants={revealVariants(prefersReducedMotion)}
+                  transition={revealTransition(prefersReducedMotion)}
+                  className="flex items-center gap-2"
+                >
+                  {Array.from({ length: pages }, (_, at) => at).map((at) => (
+                    <li key={at}>
+                      <button
+                        type="button"
+                        aria-label={`Page ${(at + 1).toString()}`}
+                        aria-current={at === page ? 'true' : undefined}
+                        onClick={() => {
+                          setPage(at)
+                        }}
+                        className={`block h-1.5 rounded-full transition-all duration-300 ${
+                          at === page ? 'w-6 bg-text' : 'w-1.5 bg-text-muted/40 hover:bg-text-muted'
+                        }`}
+                      />
+                    </li>
+                  ))}
+                </motion.ul>
+              )}
 
               {everyone.length !== 0 ? null : (
                 <motion.p
