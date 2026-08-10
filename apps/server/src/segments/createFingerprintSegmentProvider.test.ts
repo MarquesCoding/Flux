@@ -85,6 +85,7 @@ const transcoderThat = (
       columns: 10,
       rows: 10,
       sheets: [],
+      isReady: true,
       index: '/x',
     }),
   readTrickplayFile: () => Promise.resolve(null),

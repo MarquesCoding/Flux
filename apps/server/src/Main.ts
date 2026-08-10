@@ -256,6 +256,20 @@ const app = createApp({
   subtitles: subtitleService,
   segments: segmentService,
   progress: createDatabaseWatchProgressService(db),
+  listUsers: async () => {
+    const rows = await db
+      .select({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+      })
+      .from(user)
+
+    return rows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }))
+  },
+  capabilities: () => transcoder.capabilities(),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
 })

@@ -36,7 +36,6 @@ const Checkbox = ({
           'flex size-5 items-center justify-center rounded-sm border border-border',
           'bg-surface-raised transition-colors',
           'data-[checked]:border-accent data-[checked]:bg-accent',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-0',
           'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
         )}
       >

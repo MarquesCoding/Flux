@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import { IconRefresh, IconRefreshAlert, IconSearch } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
+import revealModule from '@FluxUI/animations/reveal'
 import MediaCardModule from '@FluxUI/MediaCard'
 import SpinnerModule from '@FluxUI/Spinner'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
@@ -30,6 +32,7 @@ const { watchedFraction } = WatchProgressContract
 const HERO_COUNT = 5
 const { Spinner } = SpinnerModule
 const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
+const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { describeMedia } = describeMediaModule
 
 const PAGE_SIZE = 60
@@ -58,6 +61,7 @@ const LibraryBrowser = ({
   const [progress, setProgress] = useState(new Map<string, WatchProgress>())
   const [state, setState] = useState<BrowserState>('loading')
   const [isScanning, setIsScanning] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
     let abandoned = false
@@ -175,9 +179,23 @@ const LibraryBrowser = ({
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <motion.div
+      // Keyed on which of the two the browser is being, so moving between the
+      // library and search plays a transition. The component itself stays
+      // mounted underneath: remounting it would refetch everything and show a
+      // spinner where a transition should be.
+      key={isSearching ? 'search' : 'browse'}
+      variants={staggerVariants}
+      initial="hidden"
+      animate="shown"
+      className="flex flex-col gap-8"
+    >
       {isSearching ? (
-        <div className="flex flex-col gap-4 px-5 pt-14 sm:px-10">
+        <motion.div
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion, 'heavy')}
+          className="flex flex-col gap-4 px-5 pt-14 sm:px-10"
+        >
           <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl">Search</h1>
 
           <label className="flex items-center gap-3 border-b border-white/15 pb-3">
@@ -195,7 +213,7 @@ const LibraryBrowser = ({
               className="w-full bg-transparent text-2xl tracking-tight text-text outline-none placeholder:text-text-muted/50 sm:text-3xl"
             />
           </label>
-        </div>
+        </motion.div>
       ) : null}
 
       {hasHero && items.length > 0 ? (
@@ -277,7 +295,7 @@ const LibraryBrowser = ({
           </p>
         ) : (
           <div className="flex flex-col gap-10">
-            {groupIntoRails(items).map((rail) => (
+            {groupIntoRails(items, Date.now(), progress).map((rail) => (
               <Rail key={rail.id} title={rail.title} className="px-0">
                 {rail.items.map((media) => (
                   <li key={media.id} className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80">
@@ -315,7 +333,7 @@ const LibraryBrowser = ({
           </div>
         )}
       </section>
-    </div>
+    </motion.div>
   )
 }
 

@@ -5,6 +5,7 @@ import SchemaModule from '@FluxServer/db/Schema'
 import LibraryContract from '@FluxContracts/schemas/Library'
 import createMediaStoreModule from './createMediaStore'
 import scanLibraryModule from './scanLibrary'
+import PlaybackServiceModule from '@FluxServer/playback/PlaybackService'
 import type { FluxDatabase } from '@FluxServer/db/Database'
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { MediaFileSystem } from './scanLibrary'
@@ -16,6 +17,8 @@ import type { JobQueue } from '@FluxServer/jobs/JobQueue'
 const { library, mediaItem } = SchemaModule
 const { createMediaStore } = createMediaStoreModule
 const { scanLibrary } = scanLibraryModule
+const { TRICKPLAY_INTERVAL_SECONDS, TRICKPLAY_TILE_WIDTH, TRICKPLAY_COLUMNS, TRICKPLAY_ROWS } =
+  PlaybackServiceModule
 const { MediaDetailSchema } = LibraryContract
 
 type CreateDatabaseLibraryServiceOptions = {
@@ -244,6 +247,12 @@ const createDatabaseLibraryService = ({
         store,
         transcoder,
         force,
+        trickplay: {
+          intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
+          tileWidth: TRICKPLAY_TILE_WIDTH,
+          columns: TRICKPLAY_COLUMNS,
+          rows: TRICKPLAY_ROWS,
+        },
         ...(providers === undefined ? {} : { providers }),
         ...(onProblem === undefined ? {} : { onProblem }),
       })

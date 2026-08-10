@@ -53,11 +53,7 @@ const MediaCard = ({
         ? {}
         : { whileHover: { y: -6 }, whileTap: { scale: 0.985 } })}
       transition={revealTransition(prefersReducedMotion)}
-      className={cn(
-        'group flex w-full flex-col gap-3 rounded-2xl text-left',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-0 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
-        className,
-      )}
+      className={cn('group flex w-full flex-col gap-3 rounded-2xl text-left', className)}
     >
       <span
         className={cn(

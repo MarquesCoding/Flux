@@ -121,6 +121,7 @@ const TrickplayIndexSchema = z.object({
   rows: z.number(),
   sheets: z.array(z.string()),
   index: z.string(),
+  isReady: z.boolean(),
 })
 
 type MediaProbe = z.infer<typeof MediaProbeSchema>
@@ -140,6 +141,13 @@ type TrickplayRequest = {
   tileWidth: number
   columns: number
   rows: number
+  /**
+   * Whether the caller will wait for rendering to finish.
+   *
+   * An import waits. A player does not: a feature length film takes minutes,
+   * and seek previews are not worth delaying the film for.
+   */
+  wait?: boolean
 }
 type SessionResponse = z.infer<typeof SessionResponseSchema>
 type TranscoderCapabilities = z.infer<typeof CapabilitiesSchema>

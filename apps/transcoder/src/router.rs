@@ -15,7 +15,9 @@ use crate::fingerprint::{fingerprint, FingerprintRequest};
 use crate::probe::probe_media;
 use crate::session::{await_manifest, SessionRegistry};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
-use crate::trickplay::{directory_for, TrickplayRegistry, TrickplayRequest};
+use crate::trickplay::{
+    directory_for, is_complete, pending_index, tile_height_for, TrickplayRegistry, TrickplayRequest,
+};
 
 const MANIFEST_TIMEOUT: Duration = Duration::from_secs(20);
 
@@ -343,6 +345,33 @@ async fn start_trickplay(
     let Some(video) = probe.video.as_ref() else {
         return error(StatusCode::BAD_REQUEST, "That file has no video stream.");
     };
+
+    let config = state.registry.config();
+
+    // A caller that will not wait is told where the thumbnails will be and
+    // left to get on with playing the film. Rendering carries on behind it, so
+    // asking again a minute later finds them ready.
+    if !request.wait {
+        let id = request.id();
+
+        if !is_complete(&config.cache_root, &id).await {
+            let tile_height = tile_height_for(request.tile_width, video.width, video.height);
+            let pending = pending_index(&request, tile_height);
+            let trickplay = state.trickplay.clone();
+            let ffmpeg = config.ffmpeg.clone();
+            let cache_root = config.cache_root.clone();
+            let queued = request.clone();
+            let (width, height, duration) = (video.width, video.height, probe.duration_seconds);
+
+            tokio::spawn(async move {
+                let _ = trickplay
+                    .generate(&ffmpeg, &cache_root, &queued, width, height, duration)
+                    .await;
+            });
+
+            return (StatusCode::ACCEPTED, Json(pending)).into_response();
+        }
+    }
 
     match state
         .trickplay

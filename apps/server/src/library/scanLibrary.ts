@@ -77,6 +77,19 @@ type ScanLibraryOptions = {
    * files better, the only way to pick the change up is to ask again.
    */
   force?: boolean
+  /**
+   * What seek previews should look like.
+   *
+   * Rendered here rather than when someone presses play, because a feature
+   * length film takes minutes to draw and a viewer must never wait on it.
+   * Omitted, no previews are drawn — which is what the tests want.
+   */
+  trickplay?: {
+    intervalSeconds: number
+    tileWidth: number
+    columns: number
+    rows: number
+  }
   onProblem?: (path: string, reason: string) => void
 }
 
@@ -124,6 +137,7 @@ const scanLibrary = async ({
   transcoder,
   providers = [createFilenameMetadataProvider()],
   force = false,
+  trickplay,
   onProblem,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path))
@@ -134,6 +148,7 @@ const scanLibrary = async ({
     : selectChanged(found, stored)
   const knownPaths = new Set(stored.map((item) => item.path))
 
+  const imported: string[] = []
   let added = 0
   let updated = 0
   let failed = 0
@@ -187,6 +202,8 @@ const scanLibrary = async ({
         accentColor,
       })
 
+      imported.push(file.path)
+
       if (knownPaths.has(file.path)) {
         updated += 1
       } else {
@@ -195,6 +212,19 @@ const scanLibrary = async ({
     } catch (error) {
       failed += 1
       onProblem?.(file.path, error instanceof Error ? error.message : 'Probe failed.')
+    }
+  }
+
+  // After the rows, never before them: the library should appear as soon as
+  // it is known, and previews are worth waiting for only in the sense that
+  // they arrive without anybody sitting in front of a spinner.
+  if (trickplay !== undefined) {
+    for (const path of imported) {
+      await transcoder
+        .requestTrickplay({ inputPath: path, ...trickplay, wait: true })
+        .catch((error: Error) => {
+          onProblem?.(path, error.message)
+        })
     }
   }
 

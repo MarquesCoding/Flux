@@ -156,3 +156,13 @@ body {
     transition: none;
   }
 }
+
+/*
+ * Nothing draws a focus ring. Asked for explicitly: the rings read as browser
+ * chrome over a design that signals focus through its own hover and selection
+ * states instead.
+ */
+:focus,
+:focus-visible {
+  outline: none;
+}

@@ -28,6 +28,11 @@ const { VideoPlayer } = VideoPlayerModule
 const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
 const { SplashScreen } = SplashScreenModule
+
+/**
+ * How long the opening title stays up.
+ */
+const SPLASH_MILLISECONDS = 8_000
 const { fetchSession } = fetchSessionModule
 const { signOut } = signOutModule
 const { SetupStatusSchema } = SetupModule
@@ -50,6 +55,20 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [section, setSection] = useState<ShellSection>('home')
   const [search, setSearch] = useState('')
   const [featured, setFeatured] = useState<MediaSummary | null>(null)
+  const [isTitleOver, setIsTitleOver] = useState(false)
+
+  // The opening title is held for its own length rather than for however long
+  // the server happens to take. A title card that flashes for 200ms on a fast
+  // connection and lingers on a slow one is not a title card.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsTitleOver(true)
+    }, SPLASH_MILLISECONDS)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [])
 
   const refresh = useCallback(async () => {
     try {
@@ -75,7 +94,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     void refresh()
   }, [refresh])
 
-  if (loadState === 'loading') {
+  if (loadState === 'loading' || !isTitleOver) {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
   }
 

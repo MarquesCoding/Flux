@@ -77,9 +77,7 @@ const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
                   onSelect(item.id)
                 }}
                 className={cn(
-                  'relative flex h-12 items-center rounded-full sm:h-11',
-                  'transition-colors focus-visible:outline-none focus-visible:ring-2',
-                  'focus-visible:ring-white/70',
+                  'relative flex h-12 items-center rounded-full transition-colors sm:h-11',
                   isSelected
                     ? 'px-4 text-text'
                     : 'w-12 justify-center text-text-muted hover:text-text sm:w-11',

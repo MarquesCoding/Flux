@@ -182,7 +182,15 @@ const createPlaybackService = ({
         tileWidth: TRICKPLAY_TILE_WIDTH,
         columns: TRICKPLAY_COLUMNS,
         rows: TRICKPLAY_ROWS,
+        wait: false,
       })
+
+      // Rendering has been started but has not finished. Saying so, rather
+      // than waiting for it, is what lets the film start now and the previews
+      // appear when the player next asks.
+      if (!index.isReady) {
+        return null
+      }
 
       return {
         id: index.id,

@@ -46,7 +46,6 @@ const Button = ({
       className={cn(
         'inline-flex shrink-0 items-center justify-center font-medium',
         'transition-[filter,box-shadow,transform,opacity] duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-0',
         'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100',
         'active:scale-[0.98]',
         isPill ? 'rounded-full' : 'rounded-lg',

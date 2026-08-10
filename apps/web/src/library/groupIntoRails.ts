@@ -1,4 +1,8 @@
+import WatchProgressModule from '@FluxContracts/schemas/WatchProgress'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
+import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
+
+const { isWorthResuming } = WatchProgressModule
 
 type Rail = {
   /**
@@ -75,16 +79,41 @@ const describeSeason = (seriesTitle: string, seasonNumber: number | null | undef
  * of each series, and everything else. Rows rather than a grid because that is
  * how someone browses when they do not already know what they want.
  *
- * Nothing here invents a row it cannot fill. There is no "Continue watching"
- * because Flux does not yet know what anyone has watched, and a row that is
- * always empty teaches people to ignore rows.
+ * Nothing here invents a row it cannot fill. Continue watching appears only
+ * once there is something to continue, because a row that is always empty
+ * teaches people to ignore rows.
  */
-const groupIntoRails = (items: MediaSummary[], now = Date.now()): Rail[] => {
+const groupIntoRails = (
+  items: MediaSummary[],
+  now = Date.now(),
+  progress: Map<string, WatchProgress> = new Map(),
+): Rail[] => {
   if (items.length === 0) {
     return []
   }
 
   const rails: Rail[] = []
+
+  // What someone left half watched comes first, most recently left at the
+  // front. It is the one row that knows what a particular person was doing,
+  // which makes it the only row worth putting above everything else.
+  const resuming = items
+    .filter((media) => {
+      const found = progress.get(media.id)
+
+      return found !== undefined && isWorthResuming(found)
+    })
+    .sort((left, right) => {
+      const leftAt = Date.parse(progress.get(left.id)?.updatedAt ?? '')
+      const rightAt = Date.parse(progress.get(right.id)?.updatedAt ?? '')
+
+      return (Number.isNaN(rightAt) ? 0 : rightAt) - (Number.isNaN(leftAt) ? 0 : leftAt)
+    })
+    .slice(0, RAIL_LIMIT)
+
+  if (resuming.length > 0) {
+    rails.push({ id: 'resume', title: 'Continue watching', items: resuming })
+  }
   const recentThreshold = now - RECENT_DAYS * 24 * 60 * 60 * 1000
 
   const recent = [...items]

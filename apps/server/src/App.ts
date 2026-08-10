@@ -15,6 +15,7 @@ import PlaybackRouteModule from './routes/PlaybackRoute'
 import ImageRouteModule from '@FluxServer/routes/ImageRoute'
 import SegmentRouteModule from '@FluxServer/routes/SegmentRoute'
 import ProgressRouteModule from '@FluxServer/routes/ProgressRoute'
+import AdminRouteModule from '@FluxServer/routes/AdminRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
 
@@ -43,6 +44,7 @@ const { listSubtitlesRoute, readSubtitleRoute } = SubtitleRouteModule
 const { mediaImageRoute } = ImageRouteModule
 const { listSegmentsRoute } = SegmentRouteModule
 const { listProgressRoute, recordProgressRoute, forgetProgressRoute } = ProgressRouteModule
+const { adminOverviewRoute, adminSettingsRoute } = AdminRouteModule
 
 const SERVER_VERSION = '0.0.0'
 
@@ -56,6 +58,13 @@ type CreateAppOptions = {
   subtitles: SubtitleService
   segments: SegmentService
   progress: WatchProgressService
+  /**
+   * Everyone with an account, for the administration page.
+   */
+  listUsers?: () => Promise<
+    { id: string; name: string; email: string; role: string | null; createdAt: string }[]
+  >
+  capabilities?: () => Promise<{ ffmpegVersion: string; hardwareAccels: string[] }>
   /**
    * Reads artwork from Flux's own cache, fetching it once if needed.
    *
@@ -86,6 +95,8 @@ const createApp = ({
   subtitles,
   segments,
   progress,
+  listUsers,
+  capabilities,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
 }: CreateAppOptions) => {
@@ -327,6 +338,73 @@ const createApp = ({
 
     return session?.user.id ?? null
   }
+
+  /**
+   * Whether the viewer administers the server.
+   *
+   * Checked per request rather than trusted from the browser: an interface
+   * that hides a section is a courtesy, not a permission.
+   */
+  const isAdministrator = async (headers: Headers): Promise<boolean> => {
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    return session?.user.role === 'admin'
+  }
+
+  app.openapi(adminOverviewRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const [users, current, libraries, transcoderCapabilities] = await Promise.all([
+      listUsers?.() ?? Promise.resolve([]),
+      settings.read(),
+      library.list(),
+      capabilities?.().catch(() => null) ?? Promise.resolve(null),
+    ])
+
+    return context.json(
+      {
+        users,
+        settings: {
+          hasCatalogueKey: current.catalogueApiKey !== '',
+          trustedOrigins: current.trustedOrigins,
+          cookieSecure: current.cookieSecure,
+        },
+        transcoder: {
+          isReachable: await isTranscoderReachable(),
+          ffmpegVersion: transcoderCapabilities?.ffmpegVersion ?? null,
+          hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
+        },
+        library: {
+          libraryCount: libraries.length,
+          itemCount: libraries.reduce((total, entry) => total + entry.itemCount, 0),
+        },
+      },
+      200,
+    )
+  })
+
+  app.openapi(adminSettingsRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const patch = context.req.valid('json')
+
+    const updated = await settings.write(
+      patch.catalogueApiKey === undefined ? {} : { catalogueApiKey: patch.catalogueApiKey },
+    )
+
+    return context.json(
+      {
+        hasCatalogueKey: updated.catalogueApiKey !== '',
+        trustedOrigins: updated.trustedOrigins,
+        cookieSecure: updated.cookieSecure,
+      },
+      200,
+    )
+  })
 
   app.openapi(listProgressRoute, async (context) => {
     const viewerId = await readViewerId(context.req.raw.headers)

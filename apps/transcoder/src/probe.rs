@@ -191,6 +191,8 @@ fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
                 index: stream.index,
                 format: format.to_owned(),
                 language: language_of(stream),
+                title: title_of(stream),
+                is_default: is_default(stream),
                 is_forced: is_forced(stream),
                 is_image_based: is_image_subtitle(format),
             }
