@@ -267,3 +267,23 @@ body {
   caret-color: var(--color-text);
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/*
+ * A pointer over anything that can be pressed.
+ *
+ * Tailwind's reset stopped giving buttons one, on the reasoning that a real
+ * button on a real form does not have it. Everything here is a control on a
+ * screen people expect to click, though, so the hand comes back — and a
+ * control that cannot be used says so instead.
+ */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+label:has(> input[type='file']:not(:disabled)),
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+[role='button'][aria-disabled='true'] {
+  cursor: not-allowed;
+}
