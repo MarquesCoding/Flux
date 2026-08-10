@@ -77,9 +77,22 @@ const createPlaybackService = ({
   let cached: TranscoderCapabilities | null = null
 
   const capabilities = async (): Promise<TranscoderCapabilities> => {
-    cached ??= await transcoder.capabilities()
+    if (cached !== null) {
+      return cached
+    }
 
-    return cached
+    const found = await transcoder.capabilities()
+
+    // An empty answer is not an answer worth keeping. The media service
+    // reports what it could verify at the moment it was asked, and a service
+    // still starting, or one whose ffmpeg was being replaced underneath it,
+    // reports nothing — which would otherwise be cached for the life of the
+    // process and turn a passing problem into a permanent one.
+    if (found.encoders.length > 0) {
+      cached = found
+    }
+
+    return found
   }
 
   return {
