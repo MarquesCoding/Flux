@@ -60,6 +60,14 @@ const MediaDetailSchema = MediaItemSchema.extend({
   addedAt: z.string().datetime(),
 })
 
+/**
+ * A page of library items.
+ */
+const MediaPageSchema = z.object({
+  items: z.array(MediaSummarySchema),
+  total: z.number().int().nonnegative(),
+})
+
 const ScanResultSchema = z.object({
   added: z.number().int().nonnegative(),
   updated: z.number().int().nonnegative(),
@@ -70,6 +78,7 @@ const ScanResultSchema = z.object({
 export type LibraryKind = z.infer<typeof LibraryKindSchema>
 export type Library = z.infer<typeof LibrarySchema>
 export type MediaSummary = z.infer<typeof MediaSummarySchema>
+export type MediaPage = z.infer<typeof MediaPageSchema>
 export type MediaDetail = z.infer<typeof MediaDetailSchema>
 export type ScanResult = z.infer<typeof ScanResultSchema>
 
@@ -78,6 +87,7 @@ export default {
   LibraryKindSchema,
   LibrarySchema,
   MediaSummarySchema,
+  MediaPageSchema,
   MediaDetailSchema,
   ScanResultSchema,
 }

@@ -1,0 +1,66 @@
+import { z } from 'zod'
+import LibraryContract from '@FluxContracts/schemas/Library'
+import type { Library, MediaPage } from '@FluxContracts/schemas/Library'
+
+const { LibrarySchema, MediaPageSchema } = LibraryContract
+
+const LibraryListSchema = z.array(LibrarySchema)
+
+type ListItemsOptions = {
+  search?: string
+  limit?: number
+  offset?: number
+}
+
+/**
+ * Reads every library on this server.
+ */
+const fetchLibraries = async (): Promise<Library[]> => {
+  const response = await fetch('/api/libraries', { headers: { accept: 'application/json' } })
+
+  if (!response.ok) {
+    throw new Error(`Libraries request failed with status ${response.status.toString()}`)
+  }
+
+  return LibraryListSchema.parse(await response.json())
+}
+
+/**
+ * Reads a page of items from a library.
+ *
+ * Paging is a server concern rather than a client one: a library of tens of
+ * thousands of items must not be shipped whole to draw one screen of posters.
+ */
+const fetchLibraryItems = async (
+  libraryId: string,
+  { search, limit = 60, offset = 0 }: ListItemsOptions = {},
+): Promise<MediaPage> => {
+  const query = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+
+  if (search !== undefined && search.trim() !== '') {
+    query.set('search', search.trim())
+  }
+
+  const response = await fetch(`/api/libraries/${libraryId}/items?${query.toString()}`, {
+    headers: { accept: 'application/json' },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Items request failed with status ${response.status.toString()}`)
+  }
+
+  return MediaPageSchema.parse(await response.json())
+}
+
+/**
+ * Asks the server to rescan a library.
+ */
+const scanLibrary = async (libraryId: string): Promise<boolean> => {
+  const response = await fetch(`/api/libraries/${libraryId}/scan`, { method: 'POST' })
+
+  return response.ok
+}
+
+export type { ListItemsOptions }
+
+export default { fetchLibraries, fetchLibraryItems, scanLibrary }

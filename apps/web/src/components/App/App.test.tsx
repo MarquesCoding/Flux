@@ -34,9 +34,17 @@ const ok = (body: JsonValue) => ({ ok: true, status: 200, json: () => Promise.re
  * state rather than call ordering.
  */
 const serverState = (options: { setup: JsonValue; session: JsonValue }) => {
-  fetchMock.mockImplementation((input) =>
-    Promise.resolve(input === '/api/setup/status' ? ok(options.setup) : ok(options.session)),
-  )
+  fetchMock.mockImplementation((input) => {
+    if (input === '/api/setup/status') {
+      return Promise.resolve(ok(options.setup))
+    }
+
+    if (input.startsWith('/api/libraries')) {
+      return Promise.resolve(ok([]))
+    }
+
+    return Promise.resolve(ok(options.session))
+  })
 }
 
 beforeEach(() => {
@@ -84,7 +92,7 @@ describe('App routing', () => {
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Flux' })).toBeInTheDocument()
-    expect(screen.getByText(/Signed in as admin@flux.test/)).toBeInTheDocument()
+    expect(screen.getByText('admin@flux.test')).toBeInTheDocument()
   })
 
   it('renders a supplied title when signed in', async () => {
@@ -121,7 +129,7 @@ describe('App routing', () => {
     const actor = userEvent.setup()
     render(<App />)
 
-    await screen.findByText(/Signed in as admin@flux.test/)
+    await screen.findByText('admin@flux.test')
 
     serverState({ setup: setupComplete, session: null })
     await actor.click(screen.getByRole('button', { name: 'Sign out' }))
