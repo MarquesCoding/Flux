@@ -3,7 +3,15 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library'
 type MediaDetailDialogProps = {
   media: MediaSummary | null
   onClose: () => void
-  onPlay: (media: MediaSummary) => void
+  /**
+   * Called with where to start, which is the end of what they already watched
+   * when resuming and the beginning when starting again.
+   */
+  onPlay: (media: MediaSummary, startSeconds: number) => void
+  /**
+   * How far into this item the viewer already is, when that is worth offering.
+   */
+  resumeSeconds?: number
   /**
    * Other episodes of the same season, when this item is one.
    */

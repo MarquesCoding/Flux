@@ -1,4 +1,4 @@
-import { OpenAPIHono } from '@hono/zod-openapi'
+import { OpenAPIHono, z } from '@hono/zod-openapi'
 import { apiReference } from '@scalar/hono-api-reference'
 import suggestTrustedOriginsModule from '@FluxServer/setup/suggestTrustedOrigins'
 import type { FluxAuth } from '@FluxServer/auth/Auth'
@@ -19,8 +19,10 @@ import AdminRouteModule from '@FluxServer/routes/AdminRoute'
 import ProfileRouteModule from '@FluxServer/routes/ProfileRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
+import JsonValueModule from '@FluxContracts/schemas/JsonValue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 import drawAvatarModule from '@FluxServer/profiles/drawAvatar'
+import shiftWebVttModule from '@FluxCore/functions/shiftWebVtt'
 import type { ProfileService } from '@FluxServer/profiles/ProfileService'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 
@@ -65,6 +67,13 @@ const {
 const PROFILE_HEADER = 'x-flux-profile'
 
 const { drawAvatar, isAvatarStyle } = drawAvatarModule
+const { shiftWebVtt } = shiftWebVttModule
+const { JsonValueSchema } = JsonValueModule
+
+/**
+ * What signing in by face carries.
+ */
+const SignInBodySchema = z.object({ password: z.string().min(1) })
 
 const SERVER_VERSION = '0.0.0'
 
@@ -567,6 +576,55 @@ const createApp = ({
   })
 
   /**
+   * Everybody who could sign in.
+   *
+   * Read before anybody has signed in, because it is the way in: a wall of
+   * faces to pick from rather than a box asking for an address. Names and
+   * pictures only — an address is what somebody would need to attack an
+   * account, and it is never sent.
+   */
+  app.get('/api/profiles/everyone', async (context) => {
+    const everyone = await profiles?.listEveryone()
+
+    return context.json({ profiles: everyone ?? [] }, 200)
+  })
+
+  /**
+   * Signs somebody in by their face rather than their address.
+   *
+   * The password is still the password. What changes is only how the account
+   * is named: a profile that was picked from a wall, rather than an address
+   * typed from memory. better-auth is handed the address behind it and
+   * answers with its own cookies, which are passed straight back.
+   */
+  app.post('/api/profiles/:profileId/sign-in', async (context) => {
+    if (profiles === undefined) {
+      return context.json({ error: 'No such profile.' }, 404)
+    }
+
+    // Read as text and parsed here, because the router's own JSON reader is
+    // typed as anything and untrusted input enters through a schema.
+    const body = await context.req.text().catch(() => '')
+    const parsed = SignInBodySchema.safeParse(JsonValueSchema.parse(JSON.parse(body || 'null')))
+
+    if (!parsed.success) {
+      return context.json({ error: 'A password is required.' }, 400)
+    }
+
+    const email = await profiles.findSignInEmail(context.req.param('profileId'))
+
+    if (email === null) {
+      return context.json({ error: 'No such profile.' }, 404)
+    }
+
+    return auth.api.signInEmail({
+      body: { email, password: parsed.data.password },
+      asResponse: true,
+      headers: context.req.raw.headers,
+    })
+  })
+
+  /**
    * Draws a face that nobody has chosen yet.
    *
    * A preview, so the picker can show what each style looks like before
@@ -805,6 +863,7 @@ const createApp = ({
 
   app.openapi(readSubtitleRoute, async (context) => {
     const { mediaId, trackId } = context.req.valid('param')
+    const { from } = context.req.valid('query')
 
     const track = await subtitles.read(mediaId, trackId)
 
@@ -812,7 +871,9 @@ const createApp = ({
       return context.json({ error: 'No such track.' }, 404)
     }
 
-    return context.body(track, 200, { 'content-type': 'text/vtt; charset=utf-8' })
+    return context.body(shiftWebVtt(track, from), 200, {
+      'content-type': 'text/vtt; charset=utf-8',
+    })
   })
 
   app.openapi(stopRoute, async (context) => {

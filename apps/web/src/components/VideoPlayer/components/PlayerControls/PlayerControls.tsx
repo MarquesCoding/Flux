@@ -2,6 +2,7 @@ import {
   IconAdjustmentsHorizontal,
   IconBadgeCc,
   IconMaximize,
+  IconPictureInPicture,
   IconMinimize,
   IconPlayerPause,
   IconPlayerPlay,
@@ -62,6 +63,7 @@ const PlayerControls = ({
   onVolumeChange,
   onToggleMute,
   onToggleFullscreen,
+  onPopOut,
   onToggleStats,
   renderPreview,
 }: PlayerControlsProps) => (
@@ -140,7 +142,12 @@ const PlayerControls = ({
           onValueChange={(next) => {
             onVolumeChange(next / 100)
           }}
-          className="w-0 overflow-hidden transition-all group-hover/volume:w-20 group-focus-within/volume:w-20"
+          // The clip is what lets it slide open, and it is also what cut the
+          // handle in half at either end: the handle is centred on the track,
+          // so half of it sits outside. The padding gives that half back — but
+          // only once open, since padding on a closed control is a sliver of
+          // handle sitting next to the speaker.
+          className="w-0 overflow-hidden px-0 transition-all group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
         />
       </div>
 
@@ -218,6 +225,12 @@ const PlayerControls = ({
       >
         <IconAdjustmentsHorizontal size={20} aria-hidden />
       </IconButton>
+
+      {onPopOut === undefined ? null : (
+        <IconButton label="Pop out" onClick={onPopOut} size="md">
+          <IconPictureInPicture size={20} aria-hidden />
+        </IconButton>
+      )}
 
       <IconButton
         label={isFullscreen ? 'Exit full screen' : 'Full screen'}

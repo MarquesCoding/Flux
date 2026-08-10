@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import cnModule from '@FluxUI/cn'
 import type { VideoSurfaceProps } from './VideoSurface.types'
 
@@ -24,6 +25,36 @@ const VideoSurface = ({
   onDurationChange,
   onPlayingChange,
 }: VideoSurfaceProps) => {
+  const trackId = textTrack?.id ?? null
+
+  // `default` only means anything while the element is loading, and a track
+  // chosen from a menu arrives long after that: the browser mounts it and
+  // leaves it disabled, which reads as subtitles that do nothing. Turning it
+  // on explicitly is the only thing that shows a late track.
+  useEffect(() => {
+    const element = videoRef.current
+
+    if (element === null || trackId === null) {
+      return
+    }
+
+    const show = () => {
+      for (const track of Array.from(element.textTracks)) {
+        track.mode = 'showing'
+      }
+    }
+
+    show()
+
+    // Again once the cues have actually loaded: a track set to showing before
+    // its file arrives can be reset when it does.
+    element.textTracks.addEventListener('addtrack', show)
+
+    return () => {
+      element.textTracks.removeEventListener('addtrack', show)
+    }
+  }, [videoRef, trackId])
+
   return (
     <video
       ref={videoRef}

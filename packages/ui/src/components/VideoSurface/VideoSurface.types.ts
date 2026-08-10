@@ -1,4 +1,4 @@
-import type { Ref } from 'react'
+import type { RefObject } from 'react'
 
 /**
  * A subtitle track the browser renders itself.
@@ -16,7 +16,7 @@ type TextTrack = {
 
 type VideoSurfaceProps = {
   label: string
-  videoRef: Ref<HTMLVideoElement>
+  videoRef: RefObject<HTMLVideoElement | null>
   poster?: string
   className?: string
   /**

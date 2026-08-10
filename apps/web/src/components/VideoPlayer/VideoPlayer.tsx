@@ -102,7 +102,12 @@ const EMPTY_HEALTH: PlaybackHealth = {
  * reason the server chose the treatment it did is always available, because
  * "why is this transcoding?" should not require reading server logs.
  */
-const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) => {
+const VideoPlayer = ({
+  media,
+  isImmersive = false,
+  startSeconds = 0,
+  onClose,
+}: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const [session, setSession] = useState<StartedSession | null>(null)
@@ -137,15 +142,39 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
     mediaId: string
     startSeconds: number
     audioStreamIndex?: number
-  }>({ mediaId: media.id, startSeconds: 0 })
+  }>({ mediaId: media.id, startSeconds })
   // The frame the viewer was looking at when they dragged the scrub bar. Held
   // on screen until the new session produces one of its own, because tearing
   // the old session down blanks the media element and a black rectangle reads
   // as the video having broken rather than as a seek.
   const [heldFrame, setHeldFrame] = useState<string | null>(null)
 
+  // Offered only where the browser has a floating window of its own. Firefox
+  // has one it does not expose to a page, and Safari on a phone has none at
+  // all, so this is asked rather than assumed.
+  const canPopOut = typeof document !== 'undefined' && document.pictureInPictureEnabled === true
+
+  const popOut = useCallback(() => {
+    const element = videoRef.current
+
+    if (element === null) {
+      return
+    }
+
+    // Leaving is the same button as entering: a viewer who popped a film out
+    // and wants it back has one control, not two.
+    void (
+      document.pictureInPictureElement === element
+        ? document.exitPictureInPicture()
+        : element.requestPictureInPicture()
+    ).catch(() => {
+      // A browser may refuse — no user gesture, or a stream it will not float.
+      // Nothing to say about it that the viewer can act on.
+    })
+  }, [])
+
   if (request.mediaId !== media.id) {
-    setRequest({ mediaId: media.id, startSeconds: 0 })
+    setRequest({ mediaId: media.id, startSeconds })
   }
 
   useEffect(() => {
@@ -658,7 +687,10 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
                   id: selectedTrack.id,
                   label: selectedTrack.label,
                   language: selectedTrack.language ?? 'und',
-                  src: subtitleTrackUrl(media.id, selectedTrack.id),
+                  // Asked for as the stream sees them: a session that began
+                  // partway in is a video whose clock starts at zero, and the
+                  // cues have to be moved to match it.
+                  src: subtitleTrackUrl(media.id, selectedTrack.id, request.startSeconds),
                 },
               })}
           onTimeUpdate={(seconds) => {
@@ -780,6 +812,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
               setIsMuted((muted) => !muted)
             }}
             onToggleFullscreen={toggleFullscreen}
+            {...(canPopOut ? { onPopOut: popOut } : {})}
             onToggleStats={() => {
               setIsShowingStats((showing) => !showing)
             }}

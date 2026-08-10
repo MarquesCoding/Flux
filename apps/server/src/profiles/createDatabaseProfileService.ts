@@ -9,7 +9,7 @@ import type { FluxDatabase } from '@FluxServer/db/Database'
 import type { ProfileService } from './ProfileService'
 import type { ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 
-const { viewerProfile } = SchemaModule
+const { viewerProfile, user } = SchemaModule
 const { ProfileColourSchema, PROFILE_COLOURS } = ViewerProfileModule
 const { drawAvatar, isAvatarStyle } = drawAvatarModule
 
@@ -260,6 +260,40 @@ const createDatabaseProfileService = (
         .limit(1)
 
       return rows.length > 0
+    },
+
+    listEveryone: async () => {
+      // One face per account, the oldest profile standing for it. An account
+      // that has never been looked at has no profile row yet, so its name is
+      // taken from the account itself and a profile is made the first time
+      // somebody actually signs in as them.
+      const rows = await db
+        .select({ ...COLUMNS, userId: viewerProfile.userId })
+        .from(viewerProfile)
+        .orderBy(asc(viewerProfile.createdAt))
+
+      const seen = new Set<string>()
+      const everyone: ViewerProfile[] = []
+
+      for (const row of rows) {
+        if (!seen.has(row.userId)) {
+          seen.add(row.userId)
+          everyone.push(toProfile(row))
+        }
+      }
+
+      return everyone
+    },
+
+    findSignInEmail: async (profileId) => {
+      const rows = await db
+        .select({ email: user.email })
+        .from(viewerProfile)
+        .innerJoin(user, eq(user.id, viewerProfile.userId))
+        .where(eq(viewerProfile.id, profileId))
+        .limit(1)
+
+      return rows[0]?.email ?? null
     },
 
     readAvatar: async (profileId) => {

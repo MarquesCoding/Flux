@@ -59,6 +59,16 @@ const readSubtitleRoute = createRoute({
   summary: 'Read one subtitle track as WebVTT',
   request: {
     params: z.object({ mediaId: z.string().uuid(), trackId: z.string().min(1) }),
+    query: z.object({
+      /**
+       * Where the stream asking for this began, in seconds.
+       *
+       * A transcode that starts forty minutes in hands the browser a video
+       * whose clock starts at zero, while the file's cues still count from the
+       * beginning. Without this every line arrives forty minutes late.
+       */
+      from: z.coerce.number().nonnegative().default(0),
+    }),
   },
   responses: {
     200: { description: 'The track' },

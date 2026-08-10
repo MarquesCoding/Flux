@@ -13,6 +13,8 @@ import AdminAreaModule from '@FluxWeb/components/AdminArea/AdminArea'
 import ProfilePickerModule from '@FluxWeb/components/ProfilePicker/ProfilePicker'
 import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
 import currentProfileModule from '@FluxWeb/profiles/currentProfile'
+import watchProgressModule from '@FluxWeb/playback/watchProgress'
+import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
 import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types'
 import fetchSessionModule from '@FluxWeb/session/fetchSession'
 import signOutModule from '@FluxWeb/session/signOut'
@@ -21,6 +23,7 @@ import type { SetupStatus } from '@FluxContracts/schemas/Setup'
 import type { SessionUser } from '@FluxContracts/schemas/Session'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
+import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 import type { AppProps } from './App.types'
 
 const { Button } = ButtonModule
@@ -37,6 +40,8 @@ const { AdminArea } = AdminAreaModule
 const { ProfilePicker } = ProfilePickerModule
 const { fetchProfiles } = fetchProfilesModule
 const { readCurrentProfile, writeCurrentProfile } = currentProfileModule
+const { fetchWatchProgress, byMediaId } = watchProgressModule
+const { isWorthResuming } = WatchProgressContract
 
 /**
  * How long the opening title stays up.
@@ -59,7 +64,11 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [status, setStatus] = useState<SetupStatus | null>(null)
   const [user, setUser] = useState<SessionUser | null>(null)
   const [loadState, setLoadState] = useState<LoadState>('loading')
-  const [nowPlaying, setNowPlaying] = useState<MediaSummary | null>(null)
+  const [nowPlaying, setNowPlaying] = useState<{
+    media: MediaSummary
+    startSeconds: number
+  } | null>(null)
+  const [progress, setProgress] = useState(new Map<string, WatchProgress>())
   const [inspecting, setInspecting] = useState<MediaSummary | null>(null)
   const [section, setSection] = useState<ShellSection>('home')
   const [search, setSearch] = useState('')
@@ -75,6 +84,19 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   /**
    * Forgets who was watching on this device.
    */
+  /**
+   * Where this viewer left an item, when it is worth coming back to.
+   */
+  const resumeFor = (mediaId: string): number | null => {
+    const found = progress.get(mediaId)
+
+    return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
+  }
+
+  const readProgress = useCallback(async () => {
+    setProgress(byMediaId(await fetchWatchProgress()))
+  }, [])
+
   const forget = useCallback(() => {
     writeCurrentProfile(null)
     setWatchingId(null)
@@ -122,8 +144,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   useEffect(() => {
     if (user !== null) {
       void readProfiles()
+      void readProgress()
     }
-  }, [user, readProfiles])
+  }, [user, readProfiles, readProgress])
 
   if (loadState === 'loading') {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
@@ -203,13 +226,14 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     return (
       <main className="fixed inset-0 z-40 flex flex-col bg-black">
         <VideoPlayer
-          media={nowPlaying}
+          media={nowPlaying.media}
+          startSeconds={nowPlaying.startSeconds}
           isImmersive
           onClose={() => {
             // Back to where they came from, not out to the library: someone
             // leaving a film usually wants the page about it, whether to read
             // the rest of it or to pick the next episode.
-            setInspecting(nowPlaying)
+            setInspecting(nowPlaying.media)
             setNowPlaying(null)
           }}
         />
@@ -240,12 +264,15 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     >
       <MediaDetailDialog
         media={inspecting}
+        {...(inspecting !== null && resumeFor(inspecting.id) !== null
+          ? { resumeSeconds: resumeFor(inspecting.id) ?? 0 }
+          : {})}
         onClose={() => {
           setInspecting(null)
         }}
-        onPlay={(media) => {
+        onPlay={(media, startSeconds) => {
           setInspecting(null)
-          setNowPlaying(media)
+          setNowPlaying({ media, startSeconds })
         }}
       />
 

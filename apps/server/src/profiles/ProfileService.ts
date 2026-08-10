@@ -55,6 +55,21 @@ type ProfileService = {
    */
   readAvatar: (profileId: string) => Promise<{ body: Uint8Array; contentType: string } | null>
   /**
+   * Everybody with an account, as the way-in screen sees them.
+   *
+   * Names and faces, never addresses. This is read by somebody who has not
+   * signed in yet, so it must say who could sign in without saying anything
+   * that helps them do it.
+   */
+  listEveryone: () => Promise<ViewerProfile[]>
+  /**
+   * The address behind a profile, for signing its owner in.
+   *
+   * Never leaves the server. The way-in screen names a face, and this is what
+   * turns that into the account better-auth knows about.
+   */
+  findSignInEmail: (profileId: string) => Promise<string | null>
+  /**
    * Stores a photograph somebody uploaded for a profile.
    */
   savePhoto: (

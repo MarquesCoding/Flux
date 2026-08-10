@@ -45,6 +45,13 @@ type PlayerControlsProps = {
   onToggleMute: () => void
   onToggleFullscreen: () => void
   onToggleStats: () => void
+  /**
+   * Pops the video into the browser's own floating window.
+   *
+   * Absent where the browser has no such window, so the control is not shown
+   * at all rather than shown and inert.
+   */
+  onPopOut?: () => void
   renderPreview?: (seconds: number) => ReactNode
 }
 

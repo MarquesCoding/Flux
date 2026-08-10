@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { IconInfoCircle, IconPlayerPlayFilled, IconStar, IconX } from '@tabler/icons-react'
+import {
+  IconInfoCircle,
+  IconPlayerPlayFilled,
+  IconRotateClockwise,
+  IconStar,
+  IconX,
+} from '@tabler/icons-react'
 import DialogModule from '@FluxUI/Dialog'
 import ButtonModule from '@FluxUI/Button'
 import IconButtonModule from '@FluxUI/IconButton'
@@ -52,6 +58,7 @@ const MediaDetailDialog = ({
   media,
   onClose,
   onPlay,
+  resumeSeconds,
   siblings = [],
   onSelectSibling,
 }: MediaDetailDialogProps) => {
@@ -159,17 +166,34 @@ const MediaDetailDialog = ({
 
       <div className="flex flex-col gap-8 p-5 pb-10 sm:p-8">
         <div className="flex flex-wrap items-center gap-3">
+          {/* Resuming is the offer, not the alternative: somebody who left a
+              film an hour in came back to carry on, and starting again is the
+              rarer thing they should still be able to say. */}
           <Button
             variant="glossy"
             size="lg"
             isPill
             onClick={() => {
-              onPlay(media)
+              onPlay(media, resumeSeconds ?? 0)
             }}
           >
             <IconPlayerPlayFilled size={18} aria-hidden />
-            Play
+            {resumeSeconds === undefined ? 'Play' : `Resume from ${formatDuration(resumeSeconds)}`}
           </Button>
+
+          {resumeSeconds === undefined ? null : (
+            <Button
+              variant="secondary"
+              size="lg"
+              isPill
+              onClick={() => {
+                onPlay(media, 0)
+              }}
+            >
+              <IconRotateClockwise size={18} aria-hidden />
+              Start again
+            </Button>
+          )}
 
           <ul className="flex flex-wrap items-center gap-2">
             {genres.map((label) => (

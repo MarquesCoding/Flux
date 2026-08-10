@@ -46,8 +46,8 @@ const fetchSubtitleTracks = async (mediaId: string): Promise<SubtitleTrack[]> =>
 /**
  * Where a track is served from.
  */
-const subtitleTrackUrl = (mediaId: string, trackId: string): string =>
-  `/api/media/${mediaId}/subtitles/${trackId}`
+const subtitleTrackUrl = (mediaId: string, trackId: string, fromSeconds = 0): string =>
+  `/api/media/${mediaId}/subtitles/${trackId}?from=${Math.max(0, Math.floor(fromSeconds)).toString()}`
 
 /**
  * Picks the track to show before anyone has chosen one.
