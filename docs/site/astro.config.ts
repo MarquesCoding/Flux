@@ -1,7 +1,10 @@
 import starlight from '@astrojs/starlight'
 import { defineConfig } from 'astro/config'
 
+const site = process.env.FLUX_DOCS_SITE
+
 export default defineConfig({
+  site: site === undefined || site === '' ? 'http://localhost:4321' : site,
   integrations: [
     starlight({
       title: 'Flux',
