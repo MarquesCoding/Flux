@@ -52,7 +52,9 @@ const createMediaStore = (db: FluxDatabase): MediaStore => ({
       audioStreams: row.probe.audioStreams,
       subtitleStreams: row.probe.subtitleStreams,
       chapters: row.probe.chapters,
-      seriesTitle: row.episode.seriesTitle,
+      // What the catalogue calls the show wins over what the path suggested:
+      // one is a name, the other is a folder somebody happened to choose.
+      seriesTitle: row.metadata.seriesTitle ?? row.episode.seriesTitle,
       seasonNumber: row.episode.seasonNumber,
       episodeNumber: row.episode.episodeNumber,
       overview: row.metadata.overview ?? null,

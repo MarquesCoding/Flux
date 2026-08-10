@@ -735,9 +735,13 @@ const VideoPlayer = ({
         ref={stageRef}
         // The pointer goes with the controls: a cursor sitting over a film is
         // as much of an intrusion as a bar of buttons is.
+        // `min-h-0` is what keeps the controls on screen. A flex child will
+        // not shrink below the size of its content by default, so a tall video
+        // grows the stage past the bottom of the window and takes the controls
+        // — which sit inside it — with it.
         className={`${
           isImmersive
-            ? 'relative flex flex-1 items-center justify-center bg-black'
+            ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black'
             : 'relative overflow-hidden rounded-lg bg-black'
         } ${isIdle && !isShowingStats && !isEditingCaptions ? 'cursor-none' : 'cursor-default'}`}
         onPointerMove={() => {
@@ -751,7 +755,7 @@ const VideoPlayer = ({
         <VideoSurface
           label={media.title}
           videoRef={videoRef}
-          className={isImmersive ? 'max-h-full w-auto max-w-full' : ''}
+          className={isImmersive ? 'max-h-full max-w-full object-contain' : ''}
           {...(selectedTrack === null
             ? {}
             : {

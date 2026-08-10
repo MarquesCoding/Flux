@@ -9,6 +9,7 @@ import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import RailModule from '@FluxUI/Rail'
 import HeroModule from '@FluxWeb/components/Hero/Hero'
 import groupIntoRailsModule from '@FluxWeb/library/groupIntoRails'
+import pickFeaturedModule from '@FluxWeb/library/pickFeatured'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
 import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
 import describeMediaModule from './describeMedia'
@@ -21,6 +22,7 @@ const { RailCard } = RailCardModule
 const { Hero } = HeroModule
 const { Rail } = RailModule
 const { groupIntoRails } = groupIntoRailsModule
+const { pickFeatured } = pickFeaturedModule
 const { fetchWatchProgress, byMediaId } = watchProgressModule
 const { watchedFraction } = WatchProgressContract
 
@@ -225,7 +227,7 @@ const LibraryBrowser = ({
 
       {hasHero && items.length > 0 ? (
         <Hero
-          items={items.slice(0, HERO_COUNT)}
+          items={pickFeatured(items, HERO_COUNT)}
           onPlay={onPlay}
           onInspect={onPlay}
           {...(onFeatureChange === undefined ? {} : { onFeatureChange })}
