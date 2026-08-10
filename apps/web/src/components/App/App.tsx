@@ -3,6 +3,7 @@ import ButtonModule from '@FluxUI/Button'
 import SpinnerModule from '@FluxUI/Spinner'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
 import SignInModule from '@FluxWeb/components/SignIn/SignIn'
+import TwoFactorSetupModule from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup'
 import fetchSessionModule from '@FluxWeb/session/fetchSession'
 import signOutModule from '@FluxWeb/session/signOut'
 import SetupModule from '@FluxContracts/schemas/Setup'
@@ -14,6 +15,7 @@ const { Button } = ButtonModule
 const { Spinner } = SpinnerModule
 const { SetupWizard } = SetupWizardModule
 const { SignIn } = SignInModule
+const { TwoFactorSetup } = TwoFactorSetupModule
 const { fetchSession } = fetchSessionModule
 const { signOut } = signOutModule
 const { SetupStatusSchema } = SetupModule
@@ -113,6 +115,13 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       </header>
 
       <p className="text-text-muted">Signed in as {user.email}. The library lands here next.</p>
+
+      <TwoFactorSetup
+        isEnabled={user.twoFactorEnabled === true}
+        onChanged={() => {
+          void refresh()
+        }}
+      />
     </main>
   )
 }
