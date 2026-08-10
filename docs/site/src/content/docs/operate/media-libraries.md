@@ -58,6 +58,17 @@ Flux ships one metadata provider, and it reads the filename. `Arrival (2016).mkv
 becomes _Arrival_, 2016. Scene-release noise — resolutions, codecs, group tags —
 is stripped.
 
+Set `CATALOGUE_API_KEY` and a richer provider takes over: overview, tagline,
+genres, cast, rating, poster and backdrop, searched by title and year — or by
+series name for anything that looks like an episode. The filename reader stays
+behind it, so a catalogue that is unconfigured, down, or simply ignorant of a
+file leaves you with the name on disk rather than a blank entry.
+
+Artwork is fetched once and cached in `IMAGE_CACHE_DIR`, then served by Flux.
+A browser drawing your library therefore never talks to the catalogue, which is
+the point of self-hosting, and your covers do not vanish when a third party
+reorganises its URLs.
+
 That is deliberately the floor rather than the ceiling. Richer metadata means
 talking to a third-party service, and which service that is should be your
 choice, not a decision baked into the server. Providers are an extension point:

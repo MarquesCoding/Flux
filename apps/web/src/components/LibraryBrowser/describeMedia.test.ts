@@ -15,6 +15,8 @@ const media = (overrides: Partial<MediaSummary> = {}): MediaSummary => ({
   videoCodec: 'h264',
   videoRange: 'SDR',
   addedAt: '2026-08-10T00:00:00.000Z',
+  hasPoster: false,
+  hasBackdrop: false,
   ...overrides,
 })
 

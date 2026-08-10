@@ -38,6 +38,13 @@ type LibraryService = {
    */
   scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>
   readScanState: (jobId: string) => Promise<string>
+  /**
+   * Where an item's artwork lives at the catalogue it came from.
+   *
+   * Answers with nothing when the item has none, which is every item until a
+   * metadata provider has been configured.
+   */
+  readArtworkUrl: (mediaId: string, kind: 'poster' | 'backdrop') => Promise<string | null>
 }
 
 const DEFAULT_LIMIT = 60

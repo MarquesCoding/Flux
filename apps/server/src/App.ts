@@ -10,6 +10,7 @@ import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
 import HealthRouteModule from './routes/HealthRoute'
 import LibraryRouteModule from './routes/LibraryRoute'
 import PlaybackRouteModule from './routes/PlaybackRoute'
+import ImageRouteModule from '@FluxServer/routes/ImageRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
 
@@ -35,6 +36,7 @@ const {
 } = PlaybackRouteModule
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
 const { listSubtitlesRoute, readSubtitleRoute } = SubtitleRouteModule
+const { mediaImageRoute } = ImageRouteModule
 
 const SERVER_VERSION = '0.0.0'
 
@@ -46,6 +48,13 @@ type CreateAppOptions = {
   library: LibraryService
   playback: PlaybackService
   subtitles: SubtitleService
+  /**
+   * Reads artwork from Flux's own cache, fetching it once if needed.
+   *
+   * Optional because an instance with no metadata provider configured has no
+   * artwork to serve.
+   */
+  readImage?: (url: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>
   isTranscoderReachable?: () => Promise<boolean>
 }
 
@@ -67,6 +76,7 @@ const createApp = ({
   library,
   playback,
   subtitles,
+  readImage,
   isTranscoderReachable = () => Promise.resolve(false),
 }: CreateAppOptions) => {
   const app = new OpenAPIHono()
@@ -288,6 +298,29 @@ const createApp = ({
     }
 
     return context.body(file.body, 200, { 'content-type': file.contentType })
+  })
+
+  app.openapi(mediaImageRoute, async (context) => {
+    const { mediaId, kind } = context.req.valid('param')
+
+    const url = await library.readArtworkUrl(mediaId, kind)
+
+    if (url === null || readImage === undefined) {
+      return context.json({ error: 'No artwork for that item.' }, 404)
+    }
+
+    const image = await readImage(url)
+
+    if (image === null) {
+      return context.json({ error: 'That artwork could not be read.' }, 404)
+    }
+
+    return context.body(image.body, 200, {
+      'content-type': image.contentType,
+      // Artwork for an item never changes without the item changing, so this
+      // is worth keeping out of the network entirely.
+      'cache-control': 'public, max-age=604800, immutable',
+    })
   })
 
   app.openapi(listSubtitlesRoute, async (context) => {

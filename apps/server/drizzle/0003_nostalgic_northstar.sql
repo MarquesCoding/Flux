@@ -1,0 +1,12 @@
+ALTER TABLE "media_item" ADD COLUMN "seriesTitle" text;--> statement-breakpoint
+ALTER TABLE "media_item" ADD COLUMN "seasonNumber" integer;--> statement-breakpoint
+ALTER TABLE "media_item" ADD COLUMN "episodeNumber" integer;--> statement-breakpoint
+ALTER TABLE "media_item" ADD COLUMN "overview" text;--> statement-breakpoint
+ALTER TABLE "media_item" ADD COLUMN "tagline" text;--> statement-breakpoint
+ALTER TABLE "media_item" ADD COLUMN "genres" jsonb;--> statement-breakpoint
+ALTER TABLE "media_item" ADD COLUMN "castMembers" jsonb;--> statement-breakpoint
+ALTER TABLE "media_item" ADD COLUMN "rating" real;--> statement-breakpoint
+ALTER TABLE "media_item" ADD COLUMN "posterUrl" text;--> statement-breakpoint
+ALTER TABLE "media_item" ADD COLUMN "backdropUrl" text;--> statement-breakpoint
+ALTER TABLE "media_item" ADD COLUMN "externalId" text;--> statement-breakpoint
+CREATE INDEX "media_item_series_idx" ON "media_item" USING btree ("seriesTitle","seasonNumber");

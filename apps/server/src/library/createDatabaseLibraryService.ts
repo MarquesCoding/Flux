@@ -8,6 +8,7 @@ import scanLibraryModule from './scanLibrary'
 import type { FluxDatabase } from '@FluxServer/db/Database'
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { MediaFileSystem } from './scanLibrary'
+import type { MetadataProvider } from './MetadataProvider'
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
 import type { LibraryService } from './LibraryService'
 import type { JobQueue } from '@FluxServer/jobs/JobQueue'
@@ -22,6 +23,13 @@ type CreateDatabaseLibraryServiceOptions = {
   files: MediaFileSystem
   transcoder: Transcoder
   jobs: JobQueue
+  /**
+   * Asked in order for each file's metadata, first answer winning.
+   *
+   * Left out entirely means the filename reader alone, which is what an
+   * instance with no catalogue configured runs on.
+   */
+  providers?: MetadataProvider[]
   onProblem?: (path: string, reason: string) => void
 }
 
@@ -42,6 +50,7 @@ const createDatabaseLibraryService = ({
   files,
   transcoder,
   jobs,
+  providers,
   onProblem,
 }: CreateDatabaseLibraryServiceOptions): LibraryService & {
   runScan: (libraryId: string, force?: boolean) => Promise<void>
@@ -126,6 +135,8 @@ const createDatabaseLibraryService = ({
           videoCodec: mediaItem.videoCodec,
           videoRange: mediaItem.videoRange,
           addedAt: mediaItem.addedAt,
+          posterUrl: mediaItem.posterUrl,
+          backdropUrl: mediaItem.backdropUrl,
         })
         .from(mediaItem)
         .where(filters)
@@ -133,9 +144,11 @@ const createDatabaseLibraryService = ({
         .limit(options.limit)
         .offset(options.offset)
 
-      const items = rows.map((row) => ({
+      const items = rows.map(({ posterUrl, backdropUrl, ...row }) => ({
         ...row,
         addedAt: row.addedAt.toISOString(),
+        hasPoster: posterUrl !== null,
+        hasBackdrop: backdropUrl !== null,
       })) satisfies MediaSummary[]
 
       return { items, total: totals?.total ?? 0 }
@@ -164,9 +177,37 @@ const createDatabaseLibraryService = ({
         audioStreams: row.audioStreams,
         subtitleStreams: row.subtitleStreams,
         addedAt: row.addedAt.toISOString(),
+        metadata: {
+          overview: row.overview,
+          tagline: row.tagline,
+          genres: row.genres,
+          cast: row.castMembers,
+          rating: row.rating,
+          hasPoster: row.posterUrl !== null,
+          hasBackdrop: row.backdropUrl !== null,
+          seriesTitle: row.seriesTitle,
+          seasonNumber: row.seasonNumber,
+          episodeNumber: row.episodeNumber,
+        },
       })
 
       return detail
+    },
+
+    readArtworkUrl: async (mediaId, kind) => {
+      const rows = await db
+        .select({ poster: mediaItem.posterUrl, backdrop: mediaItem.backdropUrl })
+        .from(mediaItem)
+        .where(eq(mediaItem.id, mediaId))
+        .limit(1)
+
+      const row = rows[0]
+
+      if (row === undefined) {
+        return null
+      }
+
+      return (kind === 'poster' ? row.poster : row.backdrop) ?? null
     },
 
     scan: async (libraryId, force = false) => {
@@ -198,6 +239,7 @@ const createDatabaseLibraryService = ({
         store,
         transcoder,
         force,
+        ...(providers === undefined ? {} : { providers }),
         ...(onProblem === undefined ? {} : { onProblem }),
       })
     },

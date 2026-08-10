@@ -44,6 +44,7 @@ const detail: MediaDetail = {
   audioStreams: [{ index: 1, codec: 'aac', channels: 6, language: 'eng', isAtmos: false }],
   subtitleStreams: [{ index: 2, format: 'srt', language: 'eng', isForced: false }],
   addedAt: '2026-01-01T00:00:00.000Z',
+  metadata: { hasPoster: false, hasBackdrop: false },
 }
 
 const health: PlaybackHealth = {

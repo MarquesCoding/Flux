@@ -64,6 +64,8 @@ const createMemoryLibraryService = (
       videoCodec: item.videoCodec,
       videoRange: item.videoRange,
       addedAt: item.addedAt,
+      hasPoster: item.metadata.hasPoster,
+      hasBackdrop: item.metadata.hasBackdrop,
     }))
 
     return Promise.resolve({ items, total: matching.length })
@@ -79,6 +81,13 @@ const createMemoryLibraryService = (
     ),
 
   readScanState: () => Promise.resolve('completed'),
+
+  readArtworkUrl: (mediaId, kind) =>
+    Promise.resolve(
+      state.media.some((item) => item.id === mediaId)
+        ? `https://images.test/${kind}/${mediaId}.jpg`
+        : null,
+    ),
 })
 
 export type { MemoryState }

@@ -4,6 +4,14 @@ const ServerSettingsSchema = z.object({
   trustedOrigins: z.array(z.string().url()),
   cookieSecure: z.boolean(),
   setupCompletedAt: z.string().datetime().nullable(),
+  /**
+   * The key a metadata provider talks to its catalogue with.
+   *
+   * Empty by default. Looking up what is in someone's library means telling a
+   * third party about it, which is a decision the operator makes deliberately
+   * rather than one Flux makes for them.
+   */
+  catalogueApiKey: z.string().default(''),
 })
 
 type ServerSettings = z.infer<typeof ServerSettingsSchema>

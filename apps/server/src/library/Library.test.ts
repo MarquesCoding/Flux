@@ -37,6 +37,7 @@ const detail = (overrides: Partial<MediaDetail> = {}): MediaDetail => ({
   audioStreams: [{ index: 1, codec: 'truehd', channels: 8, isAtmos: true }],
   subtitleStreams: [],
   addedAt: '2026-08-10T00:00:00.000Z',
+  metadata: { hasPoster: false, hasBackdrop: false },
   ...overrides,
 })
 
@@ -278,5 +279,53 @@ describe('library routes', () => {
 
     expect(body).toHaveProperty(['paths', '/api/libraries', 'get'])
     expect(body).toHaveProperty(['paths', '/api/media/{id}', 'get'])
+  })
+
+  it('serves artwork from Flux rather than sending the browser to a catalogue', async () => {
+    const { auth, settings } = createMemoryAuth()
+    const app = createApp({
+      auth,
+      settings,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService({
+        libraries: [
+          {
+            id: LIBRARY_ID,
+            name: 'Films',
+            kind: 'movies',
+            path: '/media',
+            itemCount: 1,
+            lastScannedAt: null,
+          },
+        ],
+        media: [detail()],
+      }),
+      playback: createMemoryPlaybackService(),
+      subtitles: createMemorySubtitleService(),
+      readImage: () => Promise.resolve({ body: new ArrayBuffer(8), contentType: 'image/jpeg' }),
+    })
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/image/poster`)
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('image/jpeg')
+    expect(response.headers.get('cache-control')).toContain('immutable')
+  })
+
+  it('reports no artwork rather than serving a blank image', async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/image/poster`)
+
+    expect(response.status).toBe(404)
+  })
+
+  it('refuses to serve artwork of a kind it does not have', async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/image/something-else`)
+
+    expect(response.status).toBe(400)
   })
 })

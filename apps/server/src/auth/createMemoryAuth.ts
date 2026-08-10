@@ -54,6 +54,7 @@ const createMemoryAuth = (
     trustedOrigins: env.TRUSTED_ORIGINS,
     cookieSecure: env.COOKIE_SECURE,
     setupCompletedAt: null,
+    catalogueApiKey: '',
   })
 
   const auth = createAuth({

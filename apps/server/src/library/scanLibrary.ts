@@ -1,13 +1,16 @@
 import readTitleFromPathModule from './readTitleFromPath'
 import MetadataProviderModule from './MetadataProvider'
 import createFilenameMetadataProviderModule from './createFilenameMetadataProvider'
-import type { MetadataProvider } from './MetadataProvider'
+import readEpisodeFromPathModule from './readEpisodeFromPath'
+import type { Metadata, MetadataProvider } from './MetadataProvider'
+import type { EpisodeNumbering } from './readEpisodeFromPath'
 import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient'
 import type { ScanResult } from '@FluxContracts/schemas/Library'
 
 const { isMediaFile } = readTitleFromPathModule
 const { resolveMetadata } = MetadataProviderModule
 const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
+const { readEpisodeFromPath } = readEpisodeFromPathModule
 
 type ScannedFile = {
   path: string
@@ -29,6 +32,8 @@ type MediaRow = {
   sizeBytes: number
   modifiedAtMs: number
   probe: MediaProbe
+  metadata: Metadata
+  episode: EpisodeNumbering
 }
 
 /**
@@ -140,9 +145,11 @@ const scanLibrary = async ({
         continue
       }
 
+      const episode = readEpisodeFromPath(file.path)
+
       const metadata = await resolveMetadata(
         providers,
-        { path: file.path, probe },
+        { path: file.path, probe, episode },
         (name, reason) => onProblem?.(file.path, `Metadata provider ${name} failed: ${reason}`),
       )
 
@@ -163,6 +170,8 @@ const scanLibrary = async ({
         sizeBytes: file.sizeBytes,
         modifiedAtMs: file.modifiedAtMs,
         probe,
+        metadata,
+        episode,
       })
 
       if (knownPaths.has(file.path)) {

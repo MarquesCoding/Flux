@@ -22,6 +22,13 @@
       "when": 1786335036136,
       "tag": "0002_perpetual_apocalypse",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786370323392,
+      "tag": "0003_nostalgic_northstar",
+      "breakpoints": true
     }
   ]
 }

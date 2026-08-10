@@ -40,6 +40,8 @@ const arrival: MediaSummary = {
   videoCodec: 'hevc',
   videoRange: 'HDR10',
   addedAt: '2026-08-10T00:00:00.000Z',
+  hasPoster: false,
+  hasBackdrop: false,
 }
 
 beforeEach(() => {

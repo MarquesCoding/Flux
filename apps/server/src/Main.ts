@@ -8,8 +8,11 @@ import SchemaModule from '@FluxServer/db/Schema'
 import EnvModule from '@FluxServer/env/Env'
 import createDatabaseSettingsStoreModule from '@FluxServer/settings/createDatabaseSettingsStore'
 import createDatabaseLibraryServiceModule from '@FluxServer/library/createDatabaseLibraryService'
+import createCatalogueMetadataProviderModule from '@FluxServer/library/createCatalogueMetadataProvider'
+import createFilenameMetadataProviderModule from '@FluxServer/library/createFilenameMetadataProvider'
 import createMediaFileSystemModule from '@FluxServer/library/createMediaFileSystem'
 import TranscoderClientModule from '@FluxServer/transcoder/TranscoderClient'
+import createImageCacheModule from '@FluxServer/images/createImageCache'
 import createSidecarSubtitleServiceModule from '@FluxServer/subtitles/createSidecarSubtitleService'
 import createPlaybackServiceModule from '@FluxServer/playback/createPlaybackService'
 import createJobQueueModule from '@FluxServer/jobs/createJobQueue'
@@ -22,9 +25,12 @@ const { readEnv } = EnvModule
 const { createDatabaseSettingsStore } = createDatabaseSettingsStoreModule
 const { createDatabaseLibraryService } = createDatabaseLibraryServiceModule
 const { createMediaFileSystem } = createMediaFileSystemModule
+const { createCatalogueMetadataProvider } = createCatalogueMetadataProviderModule
+const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
 const { createTranscoderClient } = TranscoderClientModule
 const { createPlaybackService } = createPlaybackServiceModule
 const { createSidecarSubtitleService } = createSidecarSubtitleServiceModule
+const { createImageCache } = createImageCacheModule
 const { createJobQueue } = createJobQueueModule
 
 const env = readEnv(process.env)
@@ -36,6 +42,7 @@ const settings = createDatabaseSettingsStore({
     trustedOrigins: env.TRUSTED_ORIGINS,
     cookieSecure: env.COOKIE_SECURE,
     setupCompletedAt: null,
+    catalogueApiKey: env.CATALOGUE_API_KEY,
   },
 })
 
@@ -82,11 +89,22 @@ const jobs = await createJobQueue({
   },
 })
 
+const catalogueProvider = createCatalogueMetadataProvider({
+  readApiKey: async () => (await settings.read()).catalogueApiKey,
+  onProblem: (reason) => {
+    process.stderr.write(`catalogue: ${reason}\n`)
+  },
+})
+
 const libraryService = createDatabaseLibraryService({
   db,
   files: createMediaFileSystem(),
   transcoder,
   jobs,
+  // The catalogue first, the filename reader behind it. A catalogue that is
+  // unconfigured, down or simply ignorant of a file falls through to the name
+  // on disk rather than leaving the item blank.
+  providers: [catalogueProvider, createFilenameMetadataProvider()],
   onProblem: (path, reason) => {
     process.stderr.write(`skipped ${path}: ${reason}\n`)
   },
@@ -106,6 +124,13 @@ const subtitleService = createSidecarSubtitleService({
   media: { findPath: findMediaPath },
   onProblem: (path, reason) => {
     process.stderr.write(`subtitles: ${path}: ${reason}\n`)
+  },
+})
+
+const images = createImageCache({
+  directory: env.IMAGE_CACHE_DIR,
+  onProblem: (url, reason) => {
+    process.stderr.write(`artwork ${url}: ${reason}\n`)
   },
 })
 
@@ -143,6 +168,7 @@ const app = createApp({
   library: libraryService,
   playback: playbackService,
   subtitles: subtitleService,
+  readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
 })
 

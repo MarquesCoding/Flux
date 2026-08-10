@@ -47,6 +47,14 @@ const MediaSummarySchema = z.object({
   videoCodec: z.string(),
   videoRange: z.string(),
   addedAt: z.string().datetime(),
+  /**
+   * Whether artwork exists, rather than where it lives.
+   *
+   * The address is the server's own, derived from the item's id, so a grid
+   * needs only to know whether to ask for it.
+   */
+  hasPoster: z.boolean().default(false),
+  hasBackdrop: z.boolean().default(false),
 })
 
 /**
@@ -55,9 +63,36 @@ const MediaSummarySchema = z.object({
  * Structurally a superset of `MediaItem`, so it can be handed to
  * `negotiatePlayback` without conversion.
  */
+const CastMemberSchema = z.object({
+  name: z.string(),
+  role: z.string(),
+  imageUrl: z.string().nullable(),
+})
+
+/**
+ * What a catalogue knows about an item, when one has been consulted.
+ *
+ * Every field is optional because the built-in provider reads filenames and
+ * knows none of them. A viewer sees what is actually known rather than a page
+ * of empty labels.
+ */
+const MediaMetadataSchema = z.object({
+  overview: z.string().nullish(),
+  tagline: z.string().nullish(),
+  genres: z.array(z.string()).nullish(),
+  cast: z.array(CastMemberSchema).nullish(),
+  rating: z.number().nullish(),
+  hasPoster: z.boolean(),
+  hasBackdrop: z.boolean(),
+  seriesTitle: z.string().nullish(),
+  seasonNumber: z.number().int().nullish(),
+  episodeNumber: z.number().int().nullish(),
+})
+
 const MediaDetailSchema = MediaItemSchema.extend({
   libraryId: z.string().uuid(),
   addedAt: z.string().datetime(),
+  metadata: MediaMetadataSchema,
 })
 
 /**
@@ -80,6 +115,8 @@ export type Library = z.infer<typeof LibrarySchema>
 export type MediaSummary = z.infer<typeof MediaSummarySchema>
 export type MediaPage = z.infer<typeof MediaPageSchema>
 export type MediaDetail = z.infer<typeof MediaDetailSchema>
+export type MediaMetadata = z.infer<typeof MediaMetadataSchema>
+export type CastMember = z.infer<typeof CastMemberSchema>
 export type ScanResult = z.infer<typeof ScanResultSchema>
 
 export default {
@@ -89,5 +126,7 @@ export default {
   MediaSummarySchema,
   MediaPageSchema,
   MediaDetailSchema,
+  MediaMetadataSchema,
+  CastMemberSchema,
   ScanResultSchema,
 }

@@ -3,13 +3,41 @@ import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient'
 type MediaFacts = {
   path: string
   probe: MediaProbe
+  /**
+   * What the path says about where this file sits in a series, when it says
+   * anything. A provider searching a catalogue needs to know whether it is
+   * looking for a film or an episode.
+   */
+  episode?: {
+    seriesTitle: string | null
+    seasonNumber: number | null
+    episodeNumber: number | null
+  }
+}
+
+type CastMember = {
+  name: string
+  role: string
+  imageUrl: string | null
 }
 
 type Metadata = {
   title: string
   year: number | null
   overview?: string
+  tagline?: string
+  genres?: string[]
+  cast?: CastMember[]
+  /**
+   * Out of ten, as the catalogues that supply it report.
+   */
+  rating?: number
   posterUrl?: string
+  backdropUrl?: string
+  /**
+   * How the provider names this item, so a later lookup can skip searching.
+   */
+  externalId?: string
 }
 
 /**
@@ -54,6 +82,6 @@ const resolveMetadata = async (
   return null
 }
 
-export type { MediaFacts, Metadata, MetadataProvider }
+export type { CastMember, MediaFacts, Metadata, MetadataProvider }
 
 export default { resolveMetadata }
