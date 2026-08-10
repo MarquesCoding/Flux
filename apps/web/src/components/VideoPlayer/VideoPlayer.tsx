@@ -10,10 +10,12 @@ import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
 import captureFrameModule from '@FluxWeb/playback/captureFrame'
 import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
+import captionStyleModule from '@FluxWeb/playback/captionStyle'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
 import PlayerControlsModule from './components/PlayerControls/PlayerControls'
 import StreamStatsModule from './components/StreamStats/StreamStats'
+import CaptionSettingsModule from './components/CaptionSettings/CaptionSettings'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
@@ -36,6 +38,8 @@ const { fetchMediaDetail } = fetchLibraryModule
 const { TrickplayPreview } = TrickplayPreviewModule
 const { PlayerControls } = PlayerControlsModule
 const { StreamStats } = StreamStatsModule
+const { CaptionSettings } = CaptionSettingsModule
+const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
 
 /**
  * An element that may be able to go full screen.
@@ -93,6 +97,8 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   const [playbackRate, setPlaybackRate] = useState(1)
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([])
   const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF)
+  const [captionStyle, setCaptionStyle] = useState(readCaptionStyle)
+  const [isEditingCaptions, setIsEditingCaptions] = useState(false)
   // What the current session was asked for. A transcode is produced from the
   // point it starts at, so seeking outside what has been encoded means asking
   // for a new one rather than moving within this one.
@@ -359,6 +365,10 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     [request, session],
   )
 
+  useEffect(() => {
+    saveCaptionStyle(captionStyle)
+  }, [captionStyle])
+
   const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null
 
   const skip = useCallback(
@@ -458,6 +468,26 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
           </div>
         ) : null}
 
+        {/* Applied as a stylesheet because ::cue cannot be reached from an
+            inline style: the cues live in a shadow tree the page cannot
+            address any other way. */}
+        <style>{`::cue { ${toCueCss(captionStyle)} }`}</style>
+
+        {isEditingCaptions ? (
+          <div className="pointer-events-none absolute inset-x-3 top-3 flex justify-end">
+            <CaptionSettings
+              style={captionStyle}
+              onChange={setCaptionStyle}
+              onReset={() => {
+                setCaptionStyle(DEFAULT_CAPTION_STYLE)
+              }}
+              onClose={() => {
+                setIsEditingCaptions(false)
+              }}
+            />
+          </div>
+        ) : null}
+
         {isShowingStats ? (
           <div className="pointer-events-none absolute left-3 right-3 top-3 flex justify-end">
             <StreamStats
@@ -496,6 +526,9 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
             onSkip={skip}
             onPlaybackRateChange={setPlaybackRate}
             onSubtitleChange={setSelectedSubtitleId}
+            onEditCaptions={() => {
+              setIsEditingCaptions((editing) => !editing)
+            }}
             onVolumeChange={(next) => {
               setVolume(next)
               setIsMuted(next === 0)

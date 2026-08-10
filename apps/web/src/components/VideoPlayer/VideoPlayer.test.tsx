@@ -701,6 +701,39 @@ describe('VideoPlayer', () => {
     })
   })
 
+  it('opens the caption settings from the subtitles menu', async () => {
+    const actor = userEvent.setup()
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+    await actor.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await actor.click(await screen.findByRole('menuitemradio', { name: /Caption settings/ }))
+
+    expect(await screen.findByRole('region', { name: 'Caption settings' })).toBeInTheDocument()
+  })
+
+  it('remembers caption settings for the next film', async () => {
+    const actor = userEvent.setup()
+    const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+    await actor.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await actor.click(await screen.findByRole('menuitemradio', { name: /Caption settings/ }))
+    await actor.click(await screen.findByRole('button', { name: 'Caption edge' }))
+    await actor.click(await screen.findByRole('menuitemradio', { name: 'Drop shadow' }))
+
+    unmount()
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+    await actor.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await actor.click(await screen.findByRole('menuitemradio', { name: /Caption settings/ }))
+
+    expect(await screen.findByRole('button', { name: 'Caption edge' })).toHaveTextContent(
+      'Drop shadow',
+    )
+  })
+
   it('sets a display name so devtools can identify it', () => {
     expect(VideoPlayer.displayName).toBe('VideoPlayer')
   })

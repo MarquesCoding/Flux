@@ -33,6 +33,7 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
     onSkip: vi.fn(),
     onPlaybackRateChange: vi.fn(),
     onSubtitleChange: vi.fn(),
+    onEditCaptions: vi.fn(),
     onVolumeChange: vi.fn(),
     onToggleMute: vi.fn(),
     onToggleFullscreen: vi.fn(),
@@ -165,6 +166,7 @@ describe('PlayerControls', () => {
         onSkip={vi.fn()}
         onPlaybackRateChange={vi.fn()}
         onSubtitleChange={vi.fn()}
+        onEditCaptions={vi.fn()}
         onVolumeChange={vi.fn()}
         onToggleMute={vi.fn()}
         onToggleFullscreen={vi.fn()}
@@ -234,10 +236,26 @@ describe('PlayerControls', () => {
     expect(props.onSubtitleChange).toHaveBeenCalledWith('en')
   })
 
-  it('offers nothing to choose when a film has no subtitles beside it', () => {
+  it('still offers caption appearance when a film has no subtitles beside it', async () => {
+    const user = userEvent.setup()
     draw({ subtitleTracks: [] })
 
-    expect(screen.getByRole('button', { name: 'Subtitles' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+
+    expect(
+      await screen.findByRole('menuitemradio', { name: /Caption settings/ }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('menuitemradio', { name: /English/ })).not.toBeInTheDocument()
+  })
+
+  it('opens the caption settings on request', async () => {
+    const user = userEvent.setup()
+    const props = draw()
+
+    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await user.click(await screen.findByRole('menuitemradio', { name: /Caption settings/ }))
+
+    expect(props.onEditCaptions).toHaveBeenCalled()
   })
 
   it('sets a display name so devtools can identify it', () => {

@@ -55,6 +55,7 @@ const PlayerControls = ({
   onSkip,
   onPlaybackRateChange,
   onSubtitleChange,
+  onEditCaptions,
   onVolumeChange,
   onToggleMute,
   onToggleFullscreen,
@@ -134,7 +135,7 @@ const PlayerControls = ({
 
     <OptionMenu
       label="Subtitles"
-      isDisabled={subtitleTracks.length === 0}
+      isDisabled={false}
       trigger={
         <IconBadgeCc
           size={22}
@@ -155,6 +156,12 @@ const PlayerControls = ({
               ...(track.format === '' ? {} : { detail: track.format.toUpperCase() }),
             })),
           ],
+        },
+        {
+          name: 'Appearance',
+          selectedId: '',
+          onSelect: onEditCaptions,
+          options: [{ id: 'style', label: 'Caption settings…' }],
         },
       ]}
     />

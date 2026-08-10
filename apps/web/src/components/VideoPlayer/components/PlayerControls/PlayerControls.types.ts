@@ -29,6 +29,7 @@ type PlayerControlsProps = {
   onSkip: (seconds: number) => void
   onPlaybackRateChange: (rate: number) => void
   onSubtitleChange: (trackId: string) => void
+  onEditCaptions: () => void
   onVolumeChange: (volume: number) => void
   onToggleMute: () => void
   onToggleFullscreen: () => void

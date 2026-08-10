@@ -95,3 +95,13 @@ playback request. They are the burn-in case instead.
 Nothing is demuxed out of the container, and nothing is fetched from the
 internet. A plugin that downloads subtitles writes files beside the media, and
 they then appear like any other.
+
+### How captions look
+
+Font, size, colour, background, opacity and edge treatment are all yours to
+set, from the subtitles menu. The preview in the panel is drawn with the same
+properties the cues get, so what you choose is what appears.
+
+The settings live in the browser rather than on your account, because captions
+are read at arm's length on a laptop and across a room on a television, and the
+right size differs per screen rather than per person.
