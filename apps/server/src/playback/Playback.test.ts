@@ -18,9 +18,13 @@ const ExplainSchema = z.object({ mode: z.string(), plan: PlaybackPlanSchema })
 
 const StartSchema = z.object({
   sessionId: z.string(),
-  manifestUrl: z.string(),
+  delivery: z.union([
+    z.object({ kind: z.literal('hls'), manifestUrl: z.string() }),
+    z.object({ kind: z.literal('direct'), url: z.string() }),
+  ]),
   mode: z.string(),
   plan: PlaybackPlanSchema,
+  warnings: z.array(z.string()),
 })
 
 const BASE = 'http://localhost:8420'
@@ -174,8 +178,10 @@ describe('playback sessions', () => {
     const body = StartSchema.parse(await response.json())
 
     expect(response.status).toBe(200)
-    expect(body.manifestUrl).toContain('/api/playback/session/')
-    expect(body.manifestUrl).toContain('index.m3u8')
+    expect(body.delivery.kind).toBe('hls')
+    expect(body.delivery.kind === 'hls' && body.delivery.manifestUrl).toContain(
+      '/api/playback/session/',
+    )
   })
 
   it('reports the mode and plan alongside the session', async () => {
@@ -201,7 +207,8 @@ describe('playback sessions', () => {
       ).json(),
     )
 
-    const manifest = await app.request(`${BASE}${started.manifestUrl}`)
+    const manifestUrl = started.delivery.kind === 'hls' ? started.delivery.manifestUrl : ''
+    const manifest = await app.request(`${BASE}${manifestUrl}`)
 
     expect(manifest.status).toBe(200)
     expect(manifest.headers.get('content-type')).toContain('mpegurl')

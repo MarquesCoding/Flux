@@ -5,9 +5,14 @@ import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan'
 
 const { PlaybackPlanSchema } = PlaybackPlanModule
 
+const DeliverySchema = z.union([
+  z.object({ kind: z.literal('hls'), manifestUrl: z.string().min(1) }),
+  z.object({ kind: z.literal('direct'), url: z.string().min(1) }),
+])
+
 const StartedSessionSchema = z.object({
   sessionId: z.string().min(1),
-  manifestUrl: z.string().min(1),
+  delivery: DeliverySchema,
   mode: z.string(),
   plan: PlaybackPlanSchema,
   warnings: z.array(z.string()).default([]),
@@ -105,4 +110,9 @@ const describeWhy = (plan: PlaybackPlan): string[] => {
 
 export type { StartedSession, StartOutcome }
 
-export default { startPlaybackSession, stopPlaybackSession, describeWhy, StartedSessionSchema }
+export default {
+  startPlaybackSession,
+  stopPlaybackSession,
+  describeWhy,
+  StartedSessionSchema,
+}

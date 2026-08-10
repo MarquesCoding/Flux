@@ -90,6 +90,7 @@ const playbackService = createPlaybackService({
   },
   transcoder,
   sessionUrlPrefix: '/api/playback/session',
+  directUrlPrefix: '/api/playback',
 })
 
 const app = createApp({

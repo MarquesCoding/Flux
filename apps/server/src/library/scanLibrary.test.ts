@@ -52,6 +52,7 @@ const harness = (options: {
     probe: options.probeImpl ?? (() => Promise.resolve(probe())),
     startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
     readSessionFile: () => Promise.resolve(null),
+    readFile: () => Promise.resolve(null),
     stopSession: () => Promise.resolve(true),
     capabilities: () =>
       Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
@@ -203,6 +204,7 @@ describe('scanLibrary', () => {
         probe: () => Promise.reject(new Error('moov atom not found')),
         startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
         readSessionFile: () => Promise.resolve(null),
+        readFile: () => Promise.resolve(null),
         stopSession: () => Promise.resolve(true),
         capabilities: () =>
           Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),

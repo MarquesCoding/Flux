@@ -59,7 +59,10 @@ const createMemoryPlaybackService = (
       kind: 'started' as const,
       session: {
         sessionId,
-        manifestUrl: `/api/playback/session/${sessionId}/index.m3u8`,
+        delivery: {
+          kind: 'hls' as const,
+          manifestUrl: `/api/playback/session/${sessionId}/index.m3u8`,
+        },
         mode: describePlaybackMode(plan),
         plan,
         warnings: [],
@@ -81,6 +84,18 @@ const createMemoryPlaybackService = (
         : 'application/octet-stream',
     })
   },
+
+  readDirectFile: (mediaId) =>
+    Promise.resolve(
+      state.media[mediaId] === undefined
+        ? null
+        : {
+            body: new TextEncoder().encode('film').buffer,
+            contentType: 'video/mp4',
+            status: 200,
+            contentRange: null,
+          },
+    ),
 
   stop: (sessionId) => {
     if (state.sessions[sessionId] === undefined) {

@@ -76,7 +76,17 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
       }
 
       try {
-        teardown = await attachShaka({ element, manifestUrl: outcome.session.manifestUrl })
+        // Direct play needs no media engine at all: the browser can read the
+        // original file over byte ranges. Loading Shaka for it would download
+        // a decoder to do nothing.
+        if (outcome.session.delivery.kind === 'direct') {
+          element.src = outcome.session.delivery.url
+        } else {
+          teardown = await attachShaka({
+            element,
+            manifestUrl: outcome.session.delivery.manifestUrl,
+          })
+        }
 
         if (!isAbandoned()) {
           setState('playing')

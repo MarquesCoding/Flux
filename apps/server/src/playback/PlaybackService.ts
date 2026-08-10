@@ -7,9 +7,18 @@ type Explanation = {
   plan: PlaybackPlan
 }
 
+/**
+ * How the bytes reach the client.
+ *
+ * Direct play is the cheapest delivery there is: the original file over byte
+ * ranges, with no transcode, no remux and no segment cache. Modelling it as a
+ * separate delivery rather than a flag keeps the client from having to guess.
+ */
+type Delivery = { kind: 'hls'; manifestUrl: string } | { kind: 'direct'; url: string }
+
 type StartedSession = Explanation & {
   sessionId: string
-  manifestUrl: string
+  delivery: Delivery
   /// Things the viewer should know that are not failures, such as a server
   /// that cannot tone map the HDR source it is about to convert.
   warnings: string[]
@@ -26,6 +35,14 @@ type SessionFile = {
   contentType: string
 }
 
+/// A byte range answer from the media service.
+type RangedFile = {
+  body: ArrayBuffer
+  contentType: string
+  status: number
+  contentRange: string | null
+}
+
 /**
  * Playback as the HTTP layer sees it.
  *
@@ -37,11 +54,20 @@ type PlaybackService = {
   explain: (mediaId: string, profile: DeviceProfile) => Promise<Explanation | null>
   start: (mediaId: string, profile: DeviceProfile, startSeconds: number) => Promise<StartOutcome>
   readSessionFile: (sessionId: string, name: string) => Promise<SessionFile | null>
+  readDirectFile: (mediaId: string, range: string | null) => Promise<RangedFile | null>
   stop: (sessionId: string) => Promise<boolean>
 }
 
 const SEGMENT_SECONDS = 4
 
-export type { Explanation, PlaybackService, SessionFile, StartOutcome, StartedSession }
+export type {
+  Delivery,
+  Explanation,
+  PlaybackService,
+  RangedFile,
+  SessionFile,
+  StartOutcome,
+  StartedSession,
+}
 
 export default { SEGMENT_SECONDS }

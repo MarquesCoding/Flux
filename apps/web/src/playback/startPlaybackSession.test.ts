@@ -50,9 +50,10 @@ const profile: DeviceProfile = {
 
 const started = {
   sessionId: 'abc',
-  manifestUrl: '/api/playback/session/abc/index.m3u8',
+  delivery: { kind: 'hls', manifestUrl: '/api/playback/session/abc/index.m3u8' },
   mode: 'DirectPlay',
   plan,
+  warnings: [],
 }
 
 beforeEach(() => {
@@ -103,6 +104,23 @@ describe('startPlaybackSession', () => {
     await expect(startPlaybackSession('media-1', profile)).resolves.toMatchObject({
       kind: 'failed',
       reason: 'Could not reach the server.',
+    })
+  })
+
+  it('accepts a direct delivery', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          ...started,
+          delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
+        }),
+    })
+
+    await expect(startPlaybackSession('media-1', profile)).resolves.toMatchObject({
+      kind: 'started',
+      session: { delivery: { kind: 'direct' } },
     })
   })
 

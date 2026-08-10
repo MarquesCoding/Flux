@@ -20,10 +20,17 @@ const StartRequest = z
   })
   .openapi('PlaybackStartRequest')
 
+const DeliverySchema = z
+  .union([
+    z.object({ kind: z.literal('hls'), manifestUrl: z.string() }),
+    z.object({ kind: z.literal('direct'), url: z.string() }),
+  ])
+  .openapi('PlaybackDelivery')
+
 const StartResponse = z
   .object({
     sessionId: z.string(),
-    manifestUrl: z.string(),
+    delivery: DeliverySchema,
     mode: z.enum(PLAYBACK_MODES),
     plan: PlaybackPlanSchema,
     warnings: z.array(z.string()),
@@ -125,4 +132,27 @@ const stopRoute = createRoute({
   },
 })
 
-export default { explainRoute, startRoute, sessionFileRoute, stopRoute }
+/**
+ * Serves the original file for direct play, honouring byte ranges.
+ *
+ * Proxied through the server rather than exposed directly, for the same reason
+ * segments are: the media service has no authentication and would read any
+ * path it is given.
+ */
+const directFileRoute = createRoute({
+  method: 'get',
+  path: '/api/playback/{mediaId}/file',
+  tags: ['Playback'],
+  summary: 'Stream the original file for direct play',
+  request: { params: z.object({ mediaId: z.string().uuid() }) },
+  responses: {
+    200: { description: 'The whole file' },
+    206: { description: 'The requested byte range' },
+    404: {
+      description: 'No such media item',
+      content: { 'application/json': { schema: PlaybackError } },
+    },
+  },
+})
+
+export default { explainRoute, startRoute, sessionFileRoute, directFileRoute, stopRoute }

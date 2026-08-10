@@ -16,7 +16,8 @@ const { healthRoute } = HealthRouteModule
 const { DEFAULT_LIMIT } = LibraryServiceModule
 const { listLibrariesRoute, createLibraryRoute, listItemsRoute, getMediaRoute, scanLibraryRoute } =
   LibraryRouteModule
-const { explainRoute, startRoute, sessionFileRoute, stopRoute } = PlaybackRouteModule
+const { explainRoute, startRoute, sessionFileRoute, directFileRoute, stopRoute } =
+  PlaybackRouteModule
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
 
 const SERVER_VERSION = '0.0.0'
@@ -210,6 +211,28 @@ const createApp = ({
     }
 
     return context.body(file.body, 200, { 'content-type': file.contentType })
+  })
+
+  app.openapi(directFileRoute, async (context) => {
+    const { mediaId } = context.req.valid('param')
+    const range = context.req.header('range') ?? null
+
+    const file = await playback.readDirectFile(mediaId, range)
+
+    if (file === null) {
+      return context.json({ error: 'No such media item.' }, 404)
+    }
+
+    const headers: Record<string, string> = {
+      'content-type': file.contentType,
+      'accept-ranges': 'bytes',
+    }
+
+    if (file.contentRange !== null) {
+      headers['content-range'] = file.contentRange
+    }
+
+    return context.body(file.body, file.status === 206 ? 206 : 200, headers)
   })
 
   app.openapi(stopRoute, async (context) => {

@@ -95,6 +95,7 @@ type Transcoder = {
   probe: (path: string) => Promise<MediaProbe>
   startSession: (spec: SessionSpec) => Promise<SessionResponse>
   readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>
+  readFile: (path: string, range: string | null) => Promise<TranscoderRangedFile | null>
   stopSession: (id: string) => Promise<boolean>
   capabilities: () => Promise<TranscoderCapabilities>
 }
@@ -102,6 +103,11 @@ type Transcoder = {
 type TranscoderFile = {
   body: ArrayBuffer
   contentType: string
+}
+
+type TranscoderRangedFile = TranscoderFile & {
+  status: number
+  contentRange: string | null
 }
 
 type CreateTranscoderClientOptions = {
@@ -171,6 +177,23 @@ const createTranscoderClient = ({
       }
     },
 
+    readFile: async (path, range) => {
+      const response = await fetchImpl(`${baseUrl}/file?path=${encodeURIComponent(path)}`, {
+        headers: range === null ? {} : { range },
+      })
+
+      if (!response.ok) {
+        return null
+      }
+
+      return {
+        body: await response.arrayBuffer(),
+        contentType: response.headers.get('content-type') ?? 'application/octet-stream',
+        status: response.status,
+        contentRange: response.headers.get('content-range'),
+      }
+    },
+
     stopSession: async (id) => {
       const response = await fetchImpl(`${baseUrl}/sessions/${id}`, { method: 'DELETE' })
 
@@ -188,6 +211,7 @@ export type {
   Transcoder,
   TranscoderCapabilities,
   TranscoderFile,
+  TranscoderRangedFile,
 }
 
 export default { createTranscoderClient, TranscoderError, MediaProbeSchema }

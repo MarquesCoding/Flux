@@ -18,6 +18,18 @@ const { SEGMENT_SECONDS } = PlaybackServiceModule
  */
 const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub'])
 
+/**
+ * Whether a plan asks for nothing to be changed.
+ *
+ * Every axis passing through means the file can be sent as it is, which is
+ * cheaper than even a remux and puts no load on the media service at all.
+ */
+const isDirectPlay = (plan: Parameters<typeof describePlaybackMode>[0]): boolean =>
+  plan.container.kind === 'passthrough' &&
+  plan.video.kind === 'passthrough' &&
+  plan.audio.kind === 'passthrough' &&
+  plan.subtitles.kind !== 'burnIn'
+
 type MediaLookup = {
   findForPlayback: (
     mediaId: string,
@@ -28,6 +40,7 @@ type CreatePlaybackServiceOptions = {
   media: MediaLookup
   transcoder: Transcoder
   sessionUrlPrefix: string
+  directUrlPrefix: string
 }
 
 /**
@@ -40,6 +53,7 @@ const createPlaybackService = ({
   media,
   transcoder,
   sessionUrlPrefix,
+  directUrlPrefix,
 }: CreatePlaybackServiceOptions): PlaybackService => {
   let cached: TranscoderCapabilities | null = null
 
@@ -71,6 +85,19 @@ const createPlaybackService = ({
 
       const plan = negotiatePlayback(found.item, profile)
 
+      if (isDirectPlay(plan)) {
+        return {
+          kind: 'started',
+          session: {
+            sessionId: `direct-${mediaId}`,
+            delivery: { kind: 'direct', url: `${directUrlPrefix}/${mediaId}/file` },
+            mode: describePlaybackMode(plan),
+            plan,
+            warnings: [],
+          },
+        }
+      }
+
       const outcome = planToSessionSpec({
         plan,
         inputPath: found.path,
@@ -94,7 +121,10 @@ const createPlaybackService = ({
           kind: 'started',
           session: {
             sessionId: session.id,
-            manifestUrl: `${sessionUrlPrefix}/${session.id}/index.m3u8`,
+            delivery: {
+              kind: 'hls',
+              manifestUrl: `${sessionUrlPrefix}/${session.id}/index.m3u8`,
+            },
             mode: describePlaybackMode(plan),
             plan,
             warnings: outcome.warnings,
@@ -109,6 +139,12 @@ const createPlaybackService = ({
     },
 
     readSessionFile: async (sessionId, name) => transcoder.readSessionFile(sessionId, name),
+
+    readDirectFile: async (mediaId, range) => {
+      const found = await media.findForPlayback(mediaId)
+
+      return found === null ? null : transcoder.readFile(found.path, range)
+    },
 
     stop: (sessionId) => transcoder.stopSession(sessionId),
   }

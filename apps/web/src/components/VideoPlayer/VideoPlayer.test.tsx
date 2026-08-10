@@ -55,13 +55,13 @@ const media = { id: 'media-1', title: 'Arrival' }
 
 const startedSession: {
   sessionId: string
-  manifestUrl: string
+  delivery: { kind: 'hls'; manifestUrl: string } | { kind: 'direct'; url: string }
   mode: string
   plan: PlaybackPlan
   warnings: string[]
 } = {
   sessionId: 'abc',
-  manifestUrl: '/api/playback/session/abc/index.m3u8',
+  delivery: { kind: 'hls', manifestUrl: '/api/playback/session/abc/index.m3u8' },
   mode: 'Transcode',
   plan: transcodingPlan,
   warnings: [],
@@ -223,6 +223,38 @@ describe('VideoPlayer', () => {
     await screen.findByRole('button', { name: /Transcode/ })
 
     expect(screen.queryByText(/cannot tone map/)).not.toBeInTheDocument()
+  })
+
+  it('plays a direct file without loading a media engine', async () => {
+    startMock.mockResolvedValue({
+      kind: 'started',
+      session: {
+        ...startedSession,
+        mode: 'DirectPlay',
+        delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
+      },
+    })
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await screen.findByRole('button', { name: /DirectPlay/ })
+
+    expect(attachMock).not.toHaveBeenCalled()
+  })
+
+  it('points the video element at the direct file', async () => {
+    startMock.mockResolvedValue({
+      kind: 'started',
+      session: {
+        ...startedSession,
+        mode: 'DirectPlay',
+        delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
+      },
+    })
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await screen.findByRole('button', { name: /DirectPlay/ })
+
+    expect(screen.getByLabelText('Arrival')).toHaveAttribute('src', '/api/playback/media-1/file')
   })
 
   it('sets a display name so devtools can identify it', () => {
