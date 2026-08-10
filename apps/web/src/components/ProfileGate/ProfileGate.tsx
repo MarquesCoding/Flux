@@ -493,12 +493,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                   transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
                   className="flex w-full flex-col gap-4"
                 >
-                  <TwoFactorChallenge
-                    onVerified={onSignedIn}
-                    onCancel={() => {
-                      setNeedsCode(false)
-                    }}
-                  />
+                  <TwoFactorChallenge onVerified={onSignedIn} />
                 </motion.div>
               ) : (
                 <motion.form
