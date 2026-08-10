@@ -19,7 +19,10 @@ const EnvSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
-  TRANSCODER_URL: z.string().url().default('http://127.0.0.1:8477'),
+  // Either `unix:/path/to.sock` or an `http://` address. A socket is the
+  // default because the media service has no authentication of its own and
+  // should not be reachable from the network. See ADR-0006.
+  TRANSCODER_URL: z.string().min(1).default('unix:/run/flux-transcoder.sock'),
   AUTH_RATE_LIMIT_ENABLED: z
     .enum(['true', 'false'])
     .default('true')

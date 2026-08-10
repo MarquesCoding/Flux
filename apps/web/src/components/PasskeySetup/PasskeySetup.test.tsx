@@ -8,6 +8,7 @@ const { PasskeySetup } = PasskeySetupModule
 const registerPasskeyMock = vi.hoisted(() => vi.fn())
 const listPasskeysMock = vi.hoisted(() => vi.fn())
 const deletePasskeyMock = vi.hoisted(() => vi.fn())
+const renamePasskeyMock = vi.hoisted(() => vi.fn())
 const describeUnavailabilityMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/passkeys/registerPasskey', () => ({
@@ -15,7 +16,11 @@ vi.mock('@FluxWeb/passkeys/registerPasskey', () => ({
 }))
 
 vi.mock('@FluxWeb/passkeys/listPasskeys', () => ({
-  default: { listPasskeys: listPasskeysMock, deletePasskey: deletePasskeyMock },
+  default: {
+    listPasskeys: listPasskeysMock,
+    deletePasskey: deletePasskeyMock,
+    renamePasskey: renamePasskeyMock,
+  },
 }))
 
 vi.mock('@FluxWeb/passkeys/isPasskeySupported', () => ({
@@ -25,10 +30,16 @@ vi.mock('@FluxWeb/passkeys/isPasskeySupported', () => ({
   },
 }))
 
+/** The rename form and the add form share a label, so take the first. */
+const nameField = () =>
+  screen.getAllByLabelText('Passkey name')[0] ?? screen.getByLabelText('Passkey name')
+
 beforeEach(() => {
   registerPasskeyMock.mockReset()
   listPasskeysMock.mockReset()
   deletePasskeyMock.mockReset()
+  renamePasskeyMock.mockReset()
+  renamePasskeyMock.mockResolvedValue(true)
   describeUnavailabilityMock.mockReset()
 
   registerPasskeyMock.mockResolvedValue({ kind: 'registered' })
@@ -123,6 +134,36 @@ describe('PasskeySetup when available', () => {
     await actor.click(screen.getByRole('button', { name: /Add a passkey/ }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The server said no.')
+  })
+
+  it('renames a passkey', async () => {
+    listPasskeysMock.mockResolvedValue([{ id: 'pk_1', name: 'Laptop' }])
+    const actor = userEvent.setup()
+    render(<PasskeySetup />)
+
+    await screen.findByText('Laptop')
+    await actor.click(screen.getByRole('button', { name: /Rename/ }))
+    await actor.clear(nameField())
+    await actor.type(nameField(), 'Old laptop')
+    await actor.click(screen.getByRole('button', { name: /Save/ }))
+
+    await waitFor(() => {
+      expect(renamePasskeyMock).toHaveBeenCalledWith('pk_1', 'Old laptop')
+    })
+  })
+
+  it('refuses to save an empty passkey name', async () => {
+    listPasskeysMock.mockResolvedValue([{ id: 'pk_1', name: 'Laptop' }])
+    const actor = userEvent.setup()
+    render(<PasskeySetup />)
+
+    await screen.findByText('Laptop')
+    await actor.click(screen.getByRole('button', { name: /Rename/ }))
+    await actor.clear(nameField())
+    await actor.click(screen.getByRole('button', { name: /Save/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Give the passkey a name')
+    expect(renamePasskeyMock).not.toHaveBeenCalled()
   })
 
   it('removes a passkey', async () => {

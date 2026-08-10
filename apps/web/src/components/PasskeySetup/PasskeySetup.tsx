@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { IconKey, IconTrash } from '@tabler/icons-react'
+import { IconCheck, IconKey, IconPencil, IconTrash } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import SpinnerModule from '@FluxUI/Spinner'
 import TextFieldModule from '@FluxUI/TextField'
@@ -14,7 +14,7 @@ const { Spinner } = SpinnerModule
 const { TextField } = TextFieldModule
 const { describePasskeyUnavailability } = isPasskeySupportedModule
 const { registerPasskey } = registerPasskeyModule
-const { listPasskeys, deletePasskey } = listPasskeysModule
+const { listPasskeys, deletePasskey, renamePasskey } = listPasskeysModule
 
 const DEFAULT_NAME = 'This device'
 
@@ -32,6 +32,8 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
   const [name, setName] = useState(DEFAULT_NAME)
   const [isAdding, setIsAdding] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
 
   const unavailable = describePasskeyUnavailability()
 
@@ -74,6 +76,28 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
     }
   }
 
+  const rename = async (passkey: Passkey) => {
+    setMessage(null)
+
+    const next = renameValue.trim()
+
+    if (next === '') {
+      setMessage('Give the passkey a name.')
+
+      return
+    }
+
+    if (!(await renamePasskey(passkey.id, next))) {
+      setMessage('That passkey could not be renamed.')
+
+      return
+    }
+
+    setRenamingId(null)
+    await refresh()
+    onChanged?.()
+  }
+
   const remove = async (passkey: Passkey) => {
     setMessage(null)
 
@@ -111,21 +135,71 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
               key={passkey.id}
               className="flex items-center justify-between gap-3 rounded-md bg-surface-raised px-3 py-2"
             >
-              <span className="flex items-center gap-2 text-sm text-text">
-                <IconKey size={16} aria-hidden />
-                {passkey.name ?? 'Unnamed passkey'}
-              </span>
+              {renamingId === passkey.id ? (
+                <form
+                  noValidate
+                  className="flex w-full items-end gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void rename(passkey)
+                  }}
+                >
+                  <TextField
+                    label="Passkey name"
+                    value={renameValue}
+                    onValueChange={setRenameValue}
+                    className="flex-1"
+                  />
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  void remove(passkey)
-                }}
-              >
-                <IconTrash size={16} aria-hidden />
-                Remove
-              </Button>
+                  <Button type="submit" size="sm">
+                    <IconCheck size={16} aria-hidden />
+                    Save
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setRenamingId(null)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </form>
+              ) : (
+                <>
+                  <span className="flex items-center gap-2 text-sm text-text">
+                    <IconKey size={16} aria-hidden />
+                    {passkey.name ?? 'Unnamed passkey'}
+                  </span>
+
+                  <span className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setRenamingId(passkey.id)
+                        setRenameValue(passkey.name ?? '')
+                      }}
+                    >
+                      <IconPencil size={16} aria-hidden />
+                      Rename
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        void remove(passkey)
+                      }}
+                    >
+                      <IconTrash size={16} aria-hidden />
+                      Remove
+                    </Button>
+                  </span>
+                </>
+              )}
             </li>
           ))}
         </ul>

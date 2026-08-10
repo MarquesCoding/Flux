@@ -31,4 +31,20 @@ const deletePasskey = async (id: string): Promise<boolean> => {
   return response.ok
 }
 
-export default { listPasskeys, deletePasskey }
+/**
+ * Renames a registered passkey.
+ *
+ * A list of identically named keys is useless when the time comes to remove
+ * the one from a device you no longer have.
+ */
+const renamePasskey = async (id: string, name: string): Promise<boolean> => {
+  const response = await fetch('/api/auth/passkey/update-passkey', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id, name }),
+  })
+
+  return response.ok
+}
+
+export default { listPasskeys, deletePasskey, renamePasskey }

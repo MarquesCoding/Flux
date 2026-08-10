@@ -85,6 +85,9 @@ importers:
       pg:
         specifier: ^8.23.0
         version: 8.23.0
+      undici:
+        specifier: ^8.10.0
+        version: 8.10.0
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -5002,7 +5005,6 @@ packages:
       {
         integrity: sha512-vf81av2EIcb03jRpeeZBhrPT3PMyggXnZA9k4sxGBxpr/H6v0iEL6b51T2Kwz5YNrQG/yDYoadgBW+oW40LeoA==,
       }
-    engines: { node: '>=18' }
 
   shebang-command@2.0.0:
     resolution:
@@ -5409,6 +5411,13 @@ packages:
       {
         integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==,
       }
+
+  undici@8.10.0:
+    resolution:
+      {
+        integrity: sha512-HvltHd7avK13QIw/oLe4qoOLyoVSoafqJ2jYOrtMRBkbYT31eiBQ8O0ehRKZiEZCMEyLFQNIADpgCWC5fALvYQ==,
+      }
+    engines: { node: '>=22.19.0' }
 
   unicorn-magic@0.1.0:
     resolution:
@@ -8566,6 +8575,8 @@ snapshots:
   typescript@5.9.3: {}
 
   undici-types@6.21.0: {}
+
+  undici@8.10.0: {}
 
   unicorn-magic@0.1.0: {}
 

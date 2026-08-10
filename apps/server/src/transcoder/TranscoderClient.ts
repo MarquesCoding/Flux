@@ -1,4 +1,32 @@
+import { Agent, fetch as undiciFetch } from 'undici'
 import { z } from 'zod'
+import JsonValueModule from '@FluxContracts/schemas/JsonValue'
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+
+const { JsonValueSchema } = JsonValueModule
+
+/**
+ * The part of a response Flux uses.
+ *
+ * Structural rather than the global `Response`, because a Unix socket request
+ * goes through undici and returns undici's own type. Both satisfy this, so no
+ * assertion is needed to treat them alike.
+ */
+type HttpResponse = {
+  ok: boolean
+  status: number
+  headers: { get: (name: string) => string | null }
+  json: () => Promise<JsonValue>
+  arrayBuffer: () => Promise<ArrayBuffer>
+}
+
+type HttpRequestInit = {
+  method?: string
+  headers?: Record<string, string>
+  body?: string
+}
+
+type FetchLike = (url: string, init?: HttpRequestInit) => Promise<HttpResponse>
 
 const ProbeVideoSchema = z.object({
   index: z.number().int(),
@@ -111,8 +139,63 @@ type TranscoderRangedFile = TranscoderFile & {
 }
 
 type CreateTranscoderClientOptions = {
+  /**
+   * Where the media service listens.
+   *
+   * `unix:/run/flux-transcoder.sock` uses a Unix socket, which is what a
+   * single-box deployment does: no port to expose, no chance of another
+   * process on the network reaching a service that has no authentication of
+   * its own. An `http://` address is used when the media service runs
+   * elsewhere. See ADR-0006.
+   */
   baseUrl: string
-  fetchImpl?: typeof fetch
+  fetchImpl?: FetchLike
+}
+
+const UNIX_PREFIX = 'unix:'
+
+/**
+ * Splits a socket URL into the path to connect to and the URL to request.
+ *
+ * Undici needs a real origin even over a socket, so requests are addressed to
+ * a placeholder host that the dispatcher ignores.
+ */
+const readSocketPath = (baseUrl: string): string | null =>
+  baseUrl.startsWith(UNIX_PREFIX) ? baseUrl.slice(UNIX_PREFIX.length) : null
+
+/**
+ * Builds a fetch bound to a Unix socket.
+ */
+/**
+ * Narrows any response to the shape Flux uses.
+ *
+ * The body is parsed through the JSON contract rather than trusted, which also
+ * types it: `Response.json()` is `unknown`, and casting it would be exactly
+ * the thing the standards forbid.
+ */
+const narrow = <TBody>(response: {
+  ok: boolean
+  status: number
+  headers: { get: (name: string) => string | null }
+  json: () => Promise<TBody>
+  arrayBuffer: () => Promise<ArrayBuffer>
+}): HttpResponse => ({
+  ok: response.ok,
+  status: response.status,
+  headers: { get: (name) => response.headers.get(name) },
+  json: async () => JsonValueSchema.parse(await response.json()),
+  arrayBuffer: () => response.arrayBuffer(),
+})
+
+/**
+ * The ordinary network fetch, narrowed to what Flux uses.
+ */
+const httpFetch: FetchLike = async (url, init) => narrow(await fetch(url, init))
+
+const createSocketFetch = (socketPath: string): FetchLike => {
+  const agent = new Agent({ connect: { socketPath } })
+
+  return async (url, init) => narrow(await undiciFetch(url, { ...init, dispatcher: agent }))
 }
 
 class TranscoderError extends Error {
@@ -130,10 +213,13 @@ class TranscoderError extends Error {
  */
 const createTranscoderClient = ({
   baseUrl,
-  fetchImpl = fetch,
+  fetchImpl,
 }: CreateTranscoderClientOptions): Transcoder => {
-  const call = async (path: string, init?: RequestInit): Promise<Response> => {
-    const response = await fetchImpl(`${baseUrl}${path}`, init)
+  const socketPath = readSocketPath(baseUrl)
+  const origin = socketPath === null ? baseUrl : 'http://transcoder.local'
+  const call2 = fetchImpl ?? (socketPath === null ? httpFetch : createSocketFetch(socketPath))
+  const call = async (path: string, init?: HttpRequestInit): Promise<HttpResponse> => {
+    const response = await call2(`${origin}${path}`, init)
 
     if (!response.ok) {
       throw new TranscoderError(`The media service rejected ${path}.`, response.status)
@@ -142,7 +228,7 @@ const createTranscoderClient = ({
     return response
   }
 
-  const postJson = (path: string, body: object): Promise<Response> =>
+  const postJson = (path: string, body: object): Promise<HttpResponse> =>
     call(path, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -151,7 +237,7 @@ const createTranscoderClient = ({
 
   return {
     isReachable: async () => {
-      const response = await fetchImpl(`${baseUrl}/health`).catch(() => null)
+      const response = await call2(`${origin}/health`).catch(() => null)
 
       return response !== null && response.ok
     },
@@ -163,8 +249,8 @@ const createTranscoderClient = ({
       SessionResponseSchema.parse(await (await postJson('/sessions', spec)).json()),
 
     readSessionFile: async (sessionId, name) => {
-      const response = await fetchImpl(
-        `${baseUrl}/sessions/${encodeURIComponent(sessionId)}/${encodeURIComponent(name)}`,
+      const response = await call2(
+        `${origin}/sessions/${encodeURIComponent(sessionId)}/${encodeURIComponent(name)}`,
       )
 
       if (!response.ok) {
@@ -178,7 +264,7 @@ const createTranscoderClient = ({
     },
 
     readFile: async (path, range) => {
-      const response = await fetchImpl(`${baseUrl}/file?path=${encodeURIComponent(path)}`, {
+      const response = await call2(`${origin}/file?path=${encodeURIComponent(path)}`, {
         headers: range === null ? {} : { range },
       })
 
@@ -195,7 +281,7 @@ const createTranscoderClient = ({
     },
 
     stopSession: async (id) => {
-      const response = await fetchImpl(`${baseUrl}/sessions/${id}`, { method: 'DELETE' })
+      const response = await call2(`${origin}/sessions/${id}`, { method: 'DELETE' })
 
       return response.ok
     },
@@ -205,6 +291,8 @@ const createTranscoderClient = ({
 }
 
 export type {
+  FetchLike,
+  HttpResponse,
   MediaProbe,
   SessionResponse,
   SessionSpec,
@@ -214,4 +302,4 @@ export type {
   TranscoderRangedFile,
 }
 
-export default { createTranscoderClient, TranscoderError, MediaProbeSchema }
+export default { createTranscoderClient, readSocketPath, TranscoderError, MediaProbeSchema }
