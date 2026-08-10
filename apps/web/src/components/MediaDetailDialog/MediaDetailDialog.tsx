@@ -65,6 +65,7 @@ const MediaDetailDialog = ({
   const [detail, setDetail] = useState<MediaDetail | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [lastShown, setLastShown] = useState<MediaSummary | null>(null)
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
@@ -124,6 +125,7 @@ const MediaDetailDialog = ({
             durationSeconds={shown.durationSeconds}
             hasSound
             fills
+            onPlayingChange={setIsPreviewPlaying}
           />
         </div>
 
@@ -135,11 +137,16 @@ const MediaDetailDialog = ({
           </IconButton>
         </div>
 
+        {/* Everything written over the picture steps back once the picture is
+            moving. It is there to describe a still, and a still is exactly
+            what it stops being. */}
         <motion.div
           variants={staggerVariants}
           initial="hidden"
           animate="shown"
-          className="absolute inset-x-0 bottom-0 flex flex-col gap-4 p-5 sm:p-8"
+          className={`absolute inset-x-0 bottom-0 flex flex-col gap-4 p-5 transition-opacity duration-700 sm:p-8 ${
+            isPreviewPlaying ? 'pointer-events-none opacity-0' : 'opacity-100'
+          }`}
         >
           <motion.h2
             variants={revealVariants(prefersReducedMotion)}
@@ -169,6 +176,14 @@ const MediaDetailDialog = ({
                 Season {season}, episode {metadata.episodeNumber}
               </span>
             )}
+
+            {/* With the year and the runtime, because a genre is another fact
+                about the item rather than another thing to press. */}
+            {genres.map((label) => (
+              <Badge key={label} size="sm">
+                {label}
+              </Badge>
+            ))}
           </motion.div>
         </motion.div>
       </div>
@@ -203,14 +218,6 @@ const MediaDetailDialog = ({
               Start again
             </Button>
           )}
-
-          <ul className="flex flex-wrap items-center gap-2">
-            {genres.map((label) => (
-              <li key={label}>
-                <Badge size="md">{label}</Badge>
-              </li>
-            ))}
-          </ul>
         </div>
 
         <section className="flex flex-col gap-3">

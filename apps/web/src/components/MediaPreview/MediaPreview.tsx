@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { IconVolume, IconVolumeOff } from '@tabler/icons-react'
+import {
+  IconPlayerPauseFilled,
+  IconPlayerPlayFilled,
+  IconVolume,
+  IconVolumeOff,
+} from '@tabler/icons-react'
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import IconButtonModule from '@FluxUI/IconButton'
 import frameUrlModule from '@FluxWeb/playback/frameUrl'
@@ -49,11 +54,16 @@ const MediaPreview = ({
   tint = null,
   hasSound = false,
   onEnded,
+  onPlayingChange,
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [hasFrame, setHasFrame] = useState(false)
   const [isMuted, setIsMuted] = useState(!hasSound)
+  // Whether the clip has ever run. The controls appear once it has and stay,
+  // because a pause button that vanishes the moment it is pressed is a pause
+  // button nobody can undo.
+  const [hasStarted, setHasStarted] = useState(false)
   const startSeconds = Math.floor(durationSeconds * startFraction)
 
   useEffect(() => {
@@ -147,7 +157,15 @@ const MediaPreview = ({
         // flag kept beside it. Tracking it separately meant the two could
         // disagree — and when they did, the still came back over a clip that
         // was still running, which is the one state that must be impossible.
-        onPlayingChange={setIsPlaying}
+        onPlayingChange={(playing) => {
+          setIsPlaying(playing)
+
+          if (playing) {
+            setHasStarted(true)
+          }
+
+          onPlayingChange?.(playing)
+        }}
         onEnded={() => {
           // The element has already said it stopped, so the still is back by
           // the time this runs: a rotation that begins while the video is
@@ -157,10 +175,36 @@ const MediaPreview = ({
         }}
       />
 
-      {/* Offered only once there is something to listen to. A speaker over a
-          still frame is a control that does nothing. */}
-      {!hasSound || !isPlaying ? null : (
-        <div className="absolute bottom-4 right-4 z-10">
+      {/* Offered only once there is something to control. A preview that
+          cannot be stopped is a page that will not stop talking. */}
+      {!hasSound || !hasStarted ? null : (
+        <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
+          <IconButton
+            label={isPlaying ? 'Pause the preview' : 'Play the preview'}
+            onClick={() => {
+              const element = videoRef.current
+
+              if (element === null) {
+                return
+              }
+
+              if (element.paused) {
+                void element.play().catch(() => {
+                  // Refused, which the still frame already reflects.
+                })
+              } else {
+                element.pause()
+              }
+            }}
+            className="bg-black/50 text-white backdrop-blur"
+          >
+            {isPlaying ? (
+              <IconPlayerPauseFilled size={18} aria-hidden />
+            ) : (
+              <IconPlayerPlayFilled size={18} aria-hidden />
+            )}
+          </IconButton>
+
           <IconButton
             label={isMuted ? 'Turn sound on' : 'Turn sound off'}
             onClick={() => {

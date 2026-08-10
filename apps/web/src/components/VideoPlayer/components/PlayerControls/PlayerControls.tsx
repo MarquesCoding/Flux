@@ -2,8 +2,11 @@ import {
   IconAdjustmentsHorizontal,
   IconBadgeCc,
   IconMaximize,
+  IconMinus,
   IconPictureInPicture,
   IconMinimize,
+  IconPlus,
+  IconRefresh,
   IconPlayerPause,
   IconPlayerPlay,
   IconRotate,
@@ -30,6 +33,14 @@ const { SUBTITLES_OFF } = fetchSubtitlesModule
  * Formats a rate the way a viewer reads it, not the way a float prints.
  */
 const rateLabel = (rate: number): string => `${rate.toString()}x`
+
+/**
+ * How far one press moves the subtitles.
+ *
+ * A quarter of a second is about the smallest gap anybody can see, and small
+ * enough that overshooting costs one press back.
+ */
+const SUBTITLE_STEP_SECONDS = 0.25
 
 /**
  * The bar that sits over the bottom of the video.
@@ -65,6 +76,8 @@ const PlayerControls = ({
   onToggleFullscreen,
   onPopOut,
   onToggleStats,
+  subtitleOffsetSeconds = 0,
+  onSubtitleOffsetChange,
   renderPreview,
 }: PlayerControlsProps) => (
   <div className="flux-glass flex flex-col gap-1 rounded-2xl px-3 py-2 text-white sm:px-4">
@@ -197,6 +210,54 @@ const PlayerControls = ({
             options: [{ id: 'style', label: 'Caption settings…' }],
           },
         ]}
+        {...(selectedSubtitleId === SUBTITLES_OFF || onSubtitleOffsetChange === undefined
+          ? {}
+          : {
+              footer: (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="flex flex-col">
+                    Timing
+                    <span className="text-xs text-white/50">
+                      {subtitleOffsetSeconds === 0
+                        ? 'In time'
+                        : `${subtitleOffsetSeconds > 0 ? '+' : ''}${subtitleOffsetSeconds.toFixed(2)}s`}
+                    </span>
+                  </span>
+
+                  <span className="flex items-center gap-1">
+                    <IconButton
+                      label="Subtitles earlier"
+                      size="sm"
+                      onClick={() => {
+                        onSubtitleOffsetChange(subtitleOffsetSeconds - SUBTITLE_STEP_SECONDS)
+                      }}
+                    >
+                      <IconMinus size={16} aria-hidden />
+                    </IconButton>
+
+                    <IconButton
+                      label="Subtitles in time"
+                      size="sm"
+                      onClick={() => {
+                        onSubtitleOffsetChange(0)
+                      }}
+                    >
+                      <IconRefresh size={16} aria-hidden />
+                    </IconButton>
+
+                    <IconButton
+                      label="Subtitles later"
+                      size="sm"
+                      onClick={() => {
+                        onSubtitleOffsetChange(subtitleOffsetSeconds + SUBTITLE_STEP_SECONDS)
+                      }}
+                    >
+                      <IconPlus size={16} aria-hidden />
+                    </IconButton>
+                  </span>
+                </div>
+              ),
+            })}
       />
 
       <OptionMenu

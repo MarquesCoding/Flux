@@ -45,6 +45,14 @@ type MediaPreviewProps = {
    * picture rather than cutting away mid-shot.
    */
   onEnded?: () => void
+  /**
+   * Called as the clip starts and stops.
+   *
+   * What is over a preview belongs to the still, not to the film: a page that
+   * keeps its titles up once the picture is moving is a page arguing with
+   * itself.
+   */
+  onPlayingChange?: (isPlaying: boolean) => void
 }
 
 export type { MediaPreviewProps }

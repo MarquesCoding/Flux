@@ -141,6 +141,12 @@ const VideoPlayer = ({
   const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF)
   const [captionStyle, setCaptionStyle] = useState(readCaptionStyle)
   const [isEditingCaptions, setIsEditingCaptions] = useState(false)
+  // How far the subtitles have been nudged, and how far that nudge has already
+  // been applied to the cues on screen. Both are needed: the cues are moved by
+  // the difference, because a track carries its own times and there is nothing
+  // to reapply an absolute offset to.
+  const [subtitleOffset, setSubtitleOffset] = useState(0)
+  const appliedOffsetRef = useRef(0)
   const [segments, setSegments] = useState<MediaSegment[]>([])
   const [selectedAudioIndex, setSelectedAudioIndex] = useState<number | null>(null)
   // What the current session was asked for. A transcode is produced from the
@@ -218,6 +224,40 @@ const VideoPlayer = ({
     },
     [],
   )
+
+  // Nudging the subtitles moves the cues themselves rather than asking the
+  // server for the file again: the browser already holds them, and a viewer
+  // pressing a button twice a second should not be waiting on a round trip
+  // each time.
+  useEffect(() => {
+    const element = videoRef.current
+
+    if (element === null) {
+      return
+    }
+
+    const shift = subtitleOffset - appliedOffsetRef.current
+
+    if (shift === 0) {
+      return
+    }
+
+    let moved = false
+
+    for (const track of Array.from(element.textTracks)) {
+      for (const cue of Array.from(track.cues ?? [])) {
+        // Never before the beginning: a cue dragged past zero would stack up
+        // on the first frame with every other cue that went with it.
+        cue.startTime = Math.max(0, cue.startTime + shift)
+        cue.endTime = Math.max(0, cue.endTime + shift)
+        moved = true
+      }
+    }
+
+    if (moved) {
+      appliedOffsetRef.current = subtitleOffset
+    }
+  }, [subtitleOffset, selectedSubtitleId, position])
 
   // The window can be closed from its own controls as well as from ours, so
   // the page listens rather than assuming it is the only thing that ends this.
@@ -908,6 +948,8 @@ const VideoPlayer = ({
             onToggleStats={() => {
               setIsShowingStats((showing) => !showing)
             }}
+            subtitleOffsetSeconds={subtitleOffset}
+            onSubtitleOffsetChange={setSubtitleOffset}
             {...(trickplay === null
               ? {}
               : {
