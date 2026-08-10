@@ -20,6 +20,7 @@ import ProfileRouteModule from '@FluxServer/routes/ProfileRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+import drawAvatarModule from '@FluxServer/profiles/drawAvatar'
 import type { ProfileService } from '@FluxServer/profiles/ProfileService'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 
@@ -62,6 +63,8 @@ const {
  * The header a browser names the watching profile in.
  */
 const PROFILE_HEADER = 'x-flux-profile'
+
+const { drawAvatar, isAvatarStyle } = drawAvatarModule
 
 const SERVER_VERSION = '0.0.0'
 
@@ -463,8 +466,14 @@ const createApp = ({
       return context.json({ error: 'Nobody is signed in.' }, 401)
     }
 
+    const { name, colour, avatar } = context.req.valid('json')
+
     try {
-      const created = await profiles.create(account.id, context.req.valid('json'))
+      const created = await profiles.create(account.id, {
+        name,
+        colour,
+        ...(avatar === undefined ? {} : { avatar }),
+      })
 
       return context.json(created, 201)
     } catch (error) {
@@ -482,11 +491,13 @@ const createApp = ({
       return context.json({ error: 'Nobody is signed in.' }, 401)
     }
 
-    const changed = await profiles.rename(
-      account.id,
-      context.req.valid('param').profileId,
-      context.req.valid('json'),
-    )
+    const { name, colour, avatar } = context.req.valid('json')
+
+    const changed = await profiles.rename(account.id, context.req.valid('param').profileId, {
+      name,
+      colour,
+      ...(avatar === undefined ? {} : { avatar }),
+    })
 
     return changed
       ? context.body(null, 204)
@@ -530,6 +541,75 @@ const createApp = ({
     }
 
     return context.json(outcome.profile, 200)
+  })
+
+  /**
+   * A profile's picture.
+   *
+   * Outside the OpenAPI routes because it answers with an image whose type
+   * depends on what the profile wears. Not behind a session either: a picture
+   * of somebody's initial is not a secret, and the identifier needed to ask
+   * for one is already only known to whoever can list them.
+   */
+  app.get('/api/profiles/:profileId/avatar', async (context) => {
+    const picture = await profiles?.readAvatar(context.req.param('profileId'))
+
+    if (picture === undefined || picture === null) {
+      return context.json({ error: 'That profile has no picture.' }, 404)
+    }
+
+    return context.body(picture.body.slice().buffer, 200, {
+      'content-type': picture.contentType,
+      // Short rather than long: a picture that changes when somebody edits
+      // their profile should not be remembered for a year.
+      'cache-control': 'private, max-age=60',
+    })
+  })
+
+  /**
+   * Draws a face that nobody has chosen yet.
+   *
+   * A preview, so the picker can show what each style looks like before
+   * anything is saved. Drawn from a style and a seed, which is all a drawn
+   * avatar ever is.
+   */
+  app.get('/api/profiles/avatars/:style', (context) => {
+    const style = context.req.param('style')
+    const seed = context.req.query('seed') ?? 'flux'
+
+    if (!isAvatarStyle(style)) {
+      return context.json({ error: 'No such style.' }, 404)
+    }
+
+    return context.body(drawAvatar(style, seed), 200, {
+      'content-type': 'image/svg+xml',
+      // The same style and seed always draw the same face, so this is worth
+      // keeping for as long as a browser will.
+      'cache-control': 'public, max-age=86400',
+    })
+  })
+
+  /**
+   * Uploads a photograph for a profile.
+   *
+   * The body is the picture itself rather than a form: there is one file and
+   * no other fields, and multipart parsing to find it would be ceremony.
+   */
+  app.put('/api/profiles/:profileId/photo', async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null || profiles === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const saved = await profiles.savePhoto(account.id, context.req.param('profileId'), {
+      body: new Uint8Array(await context.req.arrayBuffer()),
+      contentType: context.req.header('content-type') ?? '',
+    })
+
+    return saved
+      ? context.body(null, 204)
+      : context.json({ error: 'That picture could not be used.' }, 400)
   })
 
   app.openapi(adminOverviewRoute, async (context) => {

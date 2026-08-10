@@ -1,21 +1,27 @@
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { IconPlus, IconTrash } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
+import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react'
 import IconButtonModule from '@FluxUI/IconButton'
-import TextFieldModule from '@FluxUI/TextField'
 import revealModule from '@FluxUI/animations/reveal'
 import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
 import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
-import type { ProfileColour } from '@FluxContracts/schemas/ViewerProfile'
+import ProfileEditorModule from './components/ProfileEditor/ProfileEditor'
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import type { ProfilePickerProps } from './ProfilePicker.types'
 
-const { Button } = ButtonModule
 const { IconButton } = IconButtonModule
-const { TextField } = TextFieldModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { PROFILE_COLOURS, profileInitial } = ViewerProfileModule
-const { createProfile, removeProfile } = fetchProfilesModule
+const { profileInitial, profileAvatarUrl } = ViewerProfileModule
+
+/**
+ * How many people may share one account.
+ *
+ * Matches what the server will accept, so the offer to add somebody
+ * disappears rather than failing when it is taken up.
+ */
+const PROFILE_LIMIT = 6
+const { removeProfile } = fetchProfilesModule
+const { ProfileEditor } = ProfileEditorModule
 
 /**
  * Who is watching.
@@ -35,10 +41,10 @@ const ProfilePicker = ({
   onChanged,
   isEditable = false,
 }: ProfilePickerProps) => {
-  const [isAdding, setIsAdding] = useState(false)
-  const [name, setName] = useState('')
-  const [colour, setColour] = useState<ProfileColour>(PROFILE_COLOURS[0])
-  const [isSaving, setIsSaving] = useState(false)
+  // Null means nothing is being edited; a profile means that one is; and the
+  // string means a new one is being made. Three states in one, because they
+  // are three states of the same screen.
+  const [editing, setEditing] = useState<ViewerProfile | 'new' | null>(null)
   const prefersReducedMotion = useReducedMotion()
 
   return (
@@ -75,10 +81,20 @@ const ProfilePicker = ({
               className="flex w-24 flex-col items-center gap-3 sm:w-32"
             >
               <span
-                style={{ backgroundColor: profile.colour }}
-                className="flex aspect-square w-full items-center justify-center rounded-3xl text-4xl font-semibold text-black/80 shadow-lg sm:text-5xl"
+                style={{
+                  backgroundColor: profile.avatar.kind === 'initial' ? profile.colour : undefined,
+                }}
+                className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-3xl bg-white/5 text-4xl font-semibold text-black/80 shadow-lg sm:text-5xl"
               >
-                {profileInitial(profile.name)}
+                {profile.avatar.kind === 'initial' ? (
+                  profileInitial(profile.name)
+                ) : (
+                  <img
+                    src={profileAvatarUrl(profile.id)}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                )}
               </span>
 
               <span className="w-full truncate text-center text-sm text-text-muted">
@@ -86,28 +102,40 @@ const ProfilePicker = ({
               </span>
             </motion.button>
 
-            {!isEditable || profiles.length < 2 ? null : (
-              <span className="absolute -right-2 -top-2">
+            {!isEditable ? null : (
+              <span className="absolute -right-2 -top-2 flex gap-1">
                 <IconButton
-                  label={`Remove ${profile.name}`}
+                  label={`Edit ${profile.name}`}
                   onClick={() => {
-                    void removeProfile(profile.id).then(onChanged)
+                    setEditing(profile)
                   }}
                   className="bg-surface-raised"
                 >
-                  <IconTrash size={16} aria-hidden />
+                  <IconPencil size={16} aria-hidden />
                 </IconButton>
+
+                {profiles.length < 2 ? null : (
+                  <IconButton
+                    label={`Remove ${profile.name}`}
+                    onClick={() => {
+                      void removeProfile(profile.id).then(onChanged)
+                    }}
+                    className="bg-surface-raised"
+                  >
+                    <IconTrash size={16} aria-hidden />
+                  </IconButton>
+                )}
               </span>
             )}
           </li>
         ))}
 
-        {!isEditable || profiles.length >= PROFILE_COLOURS.length ? null : (
+        {!isEditable || profiles.length >= PROFILE_LIMIT ? null : (
           <li>
             <button
               type="button"
               onClick={() => {
-                setIsAdding(true)
+                setEditing('new')
               }}
               className="flex w-24 flex-col items-center gap-3 sm:w-32"
             >
@@ -121,71 +149,22 @@ const ProfilePicker = ({
         )}
       </motion.ul>
 
-      {!isAdding ? null : (
+      {editing === null ? null : (
         <motion.div
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
-          className="flex w-full max-w-sm flex-col gap-4"
+          className="flex w-full justify-center"
         >
-          <TextField label="Name" value={name} onValueChange={setName} placeholder="Their name" />
-
-          <fieldset className="flex flex-col gap-2">
-            <legend className="text-xs uppercase tracking-[0.16em] text-text-muted">Colour</legend>
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              {PROFILE_COLOURS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  aria-label={`Use ${option}`}
-                  aria-pressed={option === colour}
-                  onClick={() => {
-                    setColour(option)
-                  }}
-                  style={{ backgroundColor: option }}
-                  className={`size-9 rounded-full transition-transform ${
-                    option === colour ? 'scale-110 ring-2 ring-text' : 'hover:scale-105'
-                  }`}
-                />
-              ))}
-            </div>
-          </fieldset>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="glossy"
-              size="sm"
-              isPill
-              isLoading={isSaving}
-              disabled={name.trim() === ''}
-              onClick={() => {
-                setIsSaving(true)
-
-                void createProfile(name.trim(), colour).then((added) => {
-                  setIsSaving(false)
-
-                  if (added) {
-                    setName('')
-                    setIsAdding(false)
-                    onChanged()
-                  }
-                })
-              }}
-            >
-              Add
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              isPill
-              onClick={() => {
-                setIsAdding(false)
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
+          <ProfileEditor
+            profile={editing === 'new' ? null : editing}
+            onSaved={() => {
+              setEditing(null)
+              onChanged()
+            }}
+            onCancel={() => {
+              setEditing(null)
+            }}
+          />
         </motion.div>
       )}
     </motion.div>

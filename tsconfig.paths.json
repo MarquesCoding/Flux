@@ -11,6 +11,7 @@
       "@FluxUI/Dialog": ["./packages/ui/src/components/Dialog/Dialog.tsx"],
       "@FluxUI/Dock": ["./packages/ui/src/components/Dock/Dock.tsx"],
       "@FluxUI/Dock.types": ["./packages/ui/src/components/Dock/Dock.types.ts"],
+      "@FluxUI/FilePicker": ["./packages/ui/src/components/FilePicker/FilePicker.tsx"],
       "@FluxUI/GlassPanel": ["./packages/ui/src/components/GlassPanel/GlassPanel.tsx"],
       "@FluxUI/IconButton": ["./packages/ui/src/components/IconButton/IconButton.tsx"],
       "@FluxUI/MediaCard": ["./packages/ui/src/components/MediaCard/MediaCard.tsx"],

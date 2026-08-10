@@ -1,8 +1,12 @@
-import type { ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
+import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 
 type ProfileRequest = {
   name: string
   colour: ProfileColour
+  /**
+   * Absent to keep whatever the profile already wears.
+   */
+  avatar?: Avatar
 }
 
 /**
@@ -42,6 +46,22 @@ type ProfileService = {
    * anything.
    */
   moveTo: (profileId: string, newOwnerId: string) => Promise<boolean>
+  /**
+   * Reads a profile's picture, drawing it if it is a drawn one.
+   *
+   * Answers with the bytes and what they are, so the route can serve either an
+   * uploaded photograph or a generated face without knowing which it asked
+   * for.
+   */
+  readAvatar: (profileId: string) => Promise<{ body: Uint8Array; contentType: string } | null>
+  /**
+   * Stores a photograph somebody uploaded for a profile.
+   */
+  savePhoto: (
+    userId: string,
+    profileId: string,
+    photo: { body: Uint8Array; contentType: string },
+  ) => Promise<boolean>
 }
 
 export type { ProfileRequest, ProfileService }

@@ -85,10 +85,8 @@ body {
  * than dragging the light along with it.
  */
 .flux-mood {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: -1;
-  pointer-events: none;
   background:
     radial-gradient(
       70rem 45rem at 15% -10%,
@@ -101,7 +99,6 @@ body {
       transparent 65%
     ),
     linear-gradient(180deg, transparent 0%, var(--color-surface) 65%);
-  transition: background 700ms ease;
 }
 
 /*
@@ -172,12 +169,6 @@ body {
 
 .flux-rail::-webkit-scrollbar {
   display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .flux-mood {
-    transition: none;
-  }
 }
 
 /*

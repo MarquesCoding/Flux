@@ -173,6 +173,19 @@ const viewerProfile = pgTable(
      * The colour this profile is drawn in, as a hex string.
      */
     colour: text('colour').notNull(),
+    /**
+     * Which drawn avatar this profile wears, if it wears one.
+     *
+     * The style and the seed rather than the picture: a few bytes that
+     * regenerate the same face every time, where a stored image would be
+     * kilobytes of something reproducible.
+     */
+    avatarStyle: text('avatarStyle'),
+    avatarSeed: text('avatarSeed'),
+    /**
+     * Where an uploaded photograph was put, when somebody used their own.
+     */
+    photoPath: text('photoPath'),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },

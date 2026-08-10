@@ -19,16 +19,50 @@ const ProfileColourSchema = z.enum(PROFILE_COLOURS)
  */
 const NAME_MAX = 24
 
+/**
+ * The drawn avatar styles a profile may wear.
+ *
+ * Named here so the browser can offer them without asking the server what
+ * exists. Which library draws them is the server's business.
+ */
+const AVATAR_STYLES = [
+  'adventurer',
+  'lorelei',
+  'notionists',
+  'bottts',
+  'funEmoji',
+  'thumbs',
+] as const
+
+const AvatarStyleSchema = z.enum(AVATAR_STYLES)
+
+/**
+ * What a profile is drawn with.
+ *
+ * A letter on a colour by default, because nobody uploads a photograph for a
+ * profile they made in four seconds.
+ */
+const AvatarSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('initial') }),
+  z.object({ kind: z.literal('drawn'), style: AvatarStyleSchema, seed: z.string().min(1).max(64) }),
+  z.object({ kind: z.literal('photo') }),
+])
+
 const ViewerProfileSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(NAME_MAX),
   colour: ProfileColourSchema,
+  avatar: AvatarSchema,
   createdAt: z.string(),
 })
 
 const ViewerProfileRequestSchema = z.object({
   name: z.string().trim().min(1).max(NAME_MAX),
   colour: ProfileColourSchema,
+  /**
+   * Left out to keep whatever the profile already wears.
+   */
+  avatar: AvatarSchema.optional(),
 })
 
 const ViewerProfileListSchema = z.object({ profiles: z.array(ViewerProfileSchema) })
@@ -42,11 +76,22 @@ const ViewerProfileListSchema = z.object({ profiles: z.array(ViewerProfileSchema
  */
 const profileInitial = (name: string): string => (name.trim()[0] ?? '?').toUpperCase()
 
+/**
+ * Where a profile's picture is served from.
+ *
+ * Always through Flux, whether it was drawn or uploaded: the browser should
+ * not need to know which, and a self-hosted server should not send anybody
+ * elsewhere to find out what its users look like.
+ */
+const profileAvatarUrl = (profileId: string): string => `/api/profiles/${profileId}/avatar`
+
+type Avatar = z.infer<typeof AvatarSchema>
+type AvatarStyle = z.infer<typeof AvatarStyleSchema>
 type ViewerProfile = z.infer<typeof ViewerProfileSchema>
 type ViewerProfileRequest = z.infer<typeof ViewerProfileRequestSchema>
 type ProfileColour = z.infer<typeof ProfileColourSchema>
 
-export type { ProfileColour, ViewerProfile, ViewerProfileRequest }
+export type { Avatar, AvatarStyle, ProfileColour, ViewerProfile, ViewerProfileRequest }
 
 export default {
   ViewerProfileSchema,
@@ -54,6 +99,10 @@ export default {
   ViewerProfileListSchema,
   ProfileColourSchema,
   PROFILE_COLOURS,
+  AvatarSchema,
+  AvatarStyleSchema,
+  AVATAR_STYLES,
   NAME_MAX,
   profileInitial,
+  profileAvatarUrl,
 }

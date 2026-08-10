@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import { z } from 'zod'
 import { serve } from '@hono/node-server'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -105,7 +106,7 @@ const promoteToAdmin = async (email: string): Promise<void> => {
   await db.update(user).set({ role: 'admin' }).where(eq(user.email, email))
 }
 
-const profileService = createDatabaseProfileService(db)
+const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR, 'profiles'))
 
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL })
 
