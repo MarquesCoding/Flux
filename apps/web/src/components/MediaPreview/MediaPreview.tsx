@@ -36,7 +36,7 @@ const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`
  * corner. A preview is masked into the page along that edge, so a cue on the
  * last line is drawn underneath the very gradient that hides it.
  */
-const CUE_LINE = 50
+const CUE_LINE = 38
 
 /**
  * A glimpse of what an item looks like.
@@ -198,12 +198,27 @@ const MediaPreview = ({
       }
     }
 
-    lift()
+    // Cues arrive after the track does, so lifting once on mount lifts
+    // nothing. Every moment a cue changes is a moment there are cues to move,
+    // which makes this the one event that can be relied on.
+    const watch = () => {
+      lift()
 
-    element.textTracks.addEventListener('addtrack', lift)
+      for (const track of Array.from(element.textTracks)) {
+        track.addEventListener('cuechange', lift)
+      }
+    }
+
+    watch()
+
+    element.textTracks.addEventListener('addtrack', watch)
 
     return () => {
-      element.textTracks.removeEventListener('addtrack', lift)
+      element.textTracks.removeEventListener('addtrack', watch)
+
+      for (const track of Array.from(element.textTracks)) {
+        track.removeEventListener('cuechange', lift)
+      }
     }
   }, [subtitles])
 
