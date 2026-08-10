@@ -21,7 +21,17 @@ const probe = (): MediaProbe => ({
     bitrateKbps: 12000,
     bitDepth: 10,
   },
-  audioStreams: [{ index: 1, codec: 'eac3', channels: 6, language: 'eng', isAtmos: true }],
+  audioStreams: [
+    {
+      index: 1,
+      codec: 'eac3',
+      channels: 6,
+      language: 'eng',
+      title: null,
+      isDefault: true,
+      isAtmos: true,
+    },
+  ],
   subtitleStreams: [],
   chapters: [],
 })

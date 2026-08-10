@@ -69,4 +69,76 @@ describe('createTranscoderClient', () => {
 
     await expect(client.isReachable()).resolves.toBe(false)
   })
+
+  it('carries every audio stream detail through, rather than dropping what it forgot to declare', async () => {
+    // A schema that omits a field silently strips it, so the field reaches
+    // nothing downstream and the loss shows up as a wrong label rather than an
+    // error.
+    const client = createTranscoderClient({
+      baseUrl: 'http://127.0.0.1:8477',
+      fetchImpl: () =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          json: () =>
+            Promise.resolve({
+              container: 'mkv',
+              durationSeconds: 1200,
+              bitrateKbps: 4000,
+              video: null,
+              subtitleStreams: [],
+              chapters: [],
+              audioStreams: [
+                {
+                  index: 3,
+                  codec: 'aac',
+                  channels: 2,
+                  language: null,
+                  title: "Director's Commentary",
+                  isDefault: true,
+                  isAtmos: false,
+                },
+              ],
+            }),
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+        }),
+    })
+
+    const probe = await client.probe('/media/film.mkv')
+
+    expect(probe.audioStreams[0]).toMatchObject({
+      title: "Director's Commentary",
+      isDefault: true,
+    })
+  })
+
+  it('reads a probe from an older service that says nothing about titles', async () => {
+    const client = createTranscoderClient({
+      baseUrl: 'http://127.0.0.1:8477',
+      fetchImpl: () =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          json: () =>
+            Promise.resolve({
+              container: 'mkv',
+              durationSeconds: 1200,
+              bitrateKbps: 4000,
+              video: null,
+              subtitleStreams: [],
+              chapters: [],
+              audioStreams: [
+                { index: 1, codec: 'aac', channels: 2, language: 'eng', isAtmos: false },
+              ],
+            }),
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+        }),
+    })
+
+    const probe = await client.probe('/media/film.mkv')
+
+    expect(probe.audioStreams[0]).toMatchObject({ title: null, isDefault: false })
+  })
 })

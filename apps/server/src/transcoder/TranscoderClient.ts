@@ -43,6 +43,8 @@ const ProbeAudioSchema = z.object({
   codec: z.string(),
   channels: z.number().int(),
   language: z.string().nullable(),
+  title: z.string().nullable().default(null),
+  isDefault: z.boolean().default(false),
   isAtmos: z.boolean(),
 })
 
