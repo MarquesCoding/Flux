@@ -36,7 +36,10 @@ const SignInRequestSchema = z.object({
  * factor is presented.
  */
 const SignInResponseSchema = z.union([
-  z.object({ twoFactorRedirect: z.literal(true) }),
+  z.object({
+    twoFactorRedirect: z.literal(true),
+    twoFactorMethods: z.array(z.string()).optional(),
+  }),
   z.object({
     redirect: z.boolean().optional(),
     token: z.string().optional(),
