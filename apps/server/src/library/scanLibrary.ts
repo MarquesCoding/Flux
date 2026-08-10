@@ -34,6 +34,10 @@ type MediaRow = {
   probe: MediaProbe
   metadata: Metadata
   episode: EpisodeNumbering
+  /**
+   * The colour this item lights a page with, when one could be taken.
+   */
+  accentColor: string | null
 }
 
 /**
@@ -162,6 +166,14 @@ const scanLibrary = async ({
 
       const { title, year } = metadata
 
+      // Taken during the scan because it costs one seek and a single frame,
+      // and because asking for it while someone is browsing would mean
+      // spawning ffmpeg to draw a page.
+      const accentColor = await transcoder
+        .sampleColour({ inputPath: file.path, durationSeconds: probe.durationSeconds })
+        .then((colour) => colour.hex)
+        .catch(() => null)
+
       await store.upsert({
         libraryId,
         path: file.path,
@@ -172,6 +184,7 @@ const scanLibrary = async ({
         probe,
         metadata,
         episode,
+        accentColor,
       })
 
       if (knownPaths.has(file.path)) {

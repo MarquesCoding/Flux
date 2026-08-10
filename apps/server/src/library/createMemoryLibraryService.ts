@@ -66,6 +66,7 @@ const createMemoryLibraryService = (
       addedAt: item.addedAt,
       hasPoster: item.metadata.hasPoster,
       hasBackdrop: item.metadata.hasBackdrop,
+      accentColor: item.metadata.accentColor ?? null,
     }))
 
     return Promise.resolve({ items, total: matching.length })

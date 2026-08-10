@@ -137,6 +137,7 @@ const createDatabaseLibraryService = ({
           addedAt: mediaItem.addedAt,
           posterUrl: mediaItem.posterUrl,
           backdropUrl: mediaItem.backdropUrl,
+          accentColor: mediaItem.accentColor,
         })
         .from(mediaItem)
         .where(filters)
@@ -185,6 +186,7 @@ const createDatabaseLibraryService = ({
           rating: row.rating,
           hasPoster: row.posterUrl !== null,
           hasBackdrop: row.backdropUrl !== null,
+          accentColor: row.accentColor,
           seriesTitle: row.seriesTitle,
           seasonNumber: row.seasonNumber,
           episodeNumber: row.episodeNumber,

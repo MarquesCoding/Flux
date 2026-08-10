@@ -43,6 +43,13 @@
       "when": 1786372190897,
       "tag": "0005_fixed_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786381651284,
+      "tag": "0006_odd_carlie_cooper",
+      "breakpoints": true
     }
   ]
 }

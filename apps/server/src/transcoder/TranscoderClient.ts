@@ -99,6 +99,13 @@ const CapabilitiesSchema = z.object({
   hardwareAccels: z.array(z.string()),
 })
 
+const ColourSchema = z.object({
+  red: z.number().int().min(0).max(255),
+  green: z.number().int().min(0).max(255),
+  blue: z.number().int().min(0).max(255),
+  hex: z.string(),
+})
+
 const FingerprintSchema = z.object({
   framesPerSecond: z.number().positive(),
   startSeconds: z.number().nonnegative(),
@@ -118,6 +125,7 @@ const TrickplayIndexSchema = z.object({
 
 type MediaProbe = z.infer<typeof MediaProbeSchema>
 type Fingerprint = z.infer<typeof FingerprintSchema>
+type Colour = z.infer<typeof ColourSchema>
 
 type FingerprintRequest = {
   inputPath: string
@@ -179,6 +187,10 @@ type Transcoder = {
    * media.
    */
   fingerprint: (request: FingerprintRequest) => Promise<Fingerprint>
+  /**
+   * Takes the colour a file feels like, for lighting a page with.
+   */
+  sampleColour: (request: { inputPath: string; durationSeconds?: number }) => Promise<Colour>
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>
   stopSession: (id: string) => Promise<boolean>
@@ -337,6 +349,9 @@ const createTranscoderClient = ({
       }
     },
 
+    sampleColour: async (request) =>
+      ColourSchema.parse(await (await postJson('/colour', request)).json()),
+
     fingerprint: async (request) =>
       FingerprintSchema.parse(await (await postJson('/fingerprint', request)).json()),
 
@@ -380,6 +395,7 @@ export type {
   TrickplayRequest,
   Fingerprint,
   FingerprintRequest,
+  Colour,
   TranscoderFile,
   TranscoderRangedFile,
 }
