@@ -145,7 +145,7 @@ describe('SignIn', () => {
   })
 
   it('does not treat a two factor challenge as a successful sign in', async () => {
-    respondWith({ twoFactorRedirect: true })
+    respondWith({ twoFactorRedirect: true, twoFactorMethods: ['totp'] })
     const onSignedIn = vi.fn()
     const actor = userEvent.setup()
     render(<SignIn onSignedIn={onSignedIn} />)
@@ -153,8 +153,34 @@ describe('SignIn', () => {
     await fill(actor)
     await actor.click(screen.getByRole('button', { name: /Sign in/ }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/second factor/)
+    await screen.findByRole('heading', { name: 'Two-factor authentication' })
+
     expect(onSignedIn).not.toHaveBeenCalled()
+  })
+
+  it('prompts for a second factor when the account has one', async () => {
+    respondWith({ twoFactorRedirect: true, twoFactorMethods: ['totp'] })
+    const actor = userEvent.setup()
+    render(<SignIn onSignedIn={vi.fn()} />)
+
+    await fill(actor)
+    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+
+    expect(await screen.findByLabelText('Authenticator code')).toBeInTheDocument()
+  })
+
+  it('returns to the password form when the challenge is abandoned', async () => {
+    respondWith({ twoFactorRedirect: true, twoFactorMethods: ['totp'] })
+    const actor = userEvent.setup()
+    render(<SignIn onSignedIn={vi.fn()} />)
+
+    await fill(actor)
+    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await screen.findByLabelText('Authenticator code')
+    await actor.click(screen.getByRole('button', { name: 'Back to sign in' }))
+
+    expect(screen.getByRole('heading', { name: 'Sign in to Flux' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Password')).toHaveValue('')
   })
 
   it('reports an unreachable server rather than failing silently', async () => {

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ButtonModule from '@FluxUI/Button'
+import TwoFactorChallengeModule from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge'
 import TextFieldModule from '@FluxUI/TextField'
 import SessionModule from '@FluxContracts/schemas/Session'
 import type { SignInErrors, SignInProps } from './SignIn.types'
@@ -7,6 +8,7 @@ import type { SignInErrors, SignInProps } from './SignIn.types'
 const { Button } = ButtonModule
 const { TextField } = TextFieldModule
 const { SignInResponseSchema } = SessionModule
+const { TwoFactorChallenge } = TwoFactorChallengeModule
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -22,6 +24,7 @@ const SignIn = ({ onSignedIn }: SignInProps) => {
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<SignInErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [needsSecondFactor, setNeedsSecondFactor] = useState(false)
 
   const submit = async () => {
     const found: SignInErrors = {}
@@ -58,10 +61,7 @@ const SignIn = ({ onSignedIn }: SignInProps) => {
       const body = SignInResponseSchema.parse(await response.json())
 
       if ('twoFactorRedirect' in body) {
-        setErrors({
-          submit:
-            'This account requires a second factor, which this client cannot yet prompt for. Sign in from a client that supports it.',
-        })
+        setNeedsSecondFactor(true)
 
         return
       }
@@ -72,6 +72,18 @@ const SignIn = ({ onSignedIn }: SignInProps) => {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (needsSecondFactor) {
+    return (
+      <TwoFactorChallenge
+        onVerified={onSignedIn}
+        onCancel={() => {
+          setNeedsSecondFactor(false)
+          setPassword('')
+        }}
+      />
+    )
   }
 
   return (
