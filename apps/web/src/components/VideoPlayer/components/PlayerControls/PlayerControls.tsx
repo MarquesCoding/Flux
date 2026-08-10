@@ -4,17 +4,28 @@ import {
   IconMinimize,
   IconPlayerPause,
   IconPlayerPlay,
+  IconRotate,
+  IconRotateClockwise,
   IconVolume,
   IconVolumeOff,
 } from '@tabler/icons-react'
 import IconButtonModule from '@FluxUI/IconButton'
 import SliderModule from '@FluxUI/Slider'
+import OptionMenuModule from '@FluxUI/OptionMenu'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
+import PlayerControlsTypes from './PlayerControls.types'
 import type { PlayerControlsProps } from './PlayerControls.types'
 
 const { IconButton } = IconButtonModule
 const { Slider } = SliderModule
+const { OptionMenu } = OptionMenuModule
 const { formatDuration } = formatDurationModule
+const { SKIP_SECONDS, PLAYBACK_RATES } = PlayerControlsTypes
+
+/**
+ * Formats a rate the way a viewer reads it, not the way a float prints.
+ */
+const rateLabel = (rate: number): string => `${rate.toString()}x`
 
 /**
  * The bar that sits over the bottom of the video.
@@ -32,9 +43,12 @@ const PlayerControls = ({
   isMuted,
   isFullscreen,
   isShowingStats,
+  playbackRate,
   isDisabled = false,
   onTogglePlay,
   onSeek,
+  onSkip,
+  onPlaybackRateChange,
   onVolumeChange,
   onToggleMute,
   onToggleFullscreen,
@@ -42,6 +56,17 @@ const PlayerControls = ({
   renderPreview,
 }: PlayerControlsProps) => (
   <div className="flex items-center gap-3 rounded-xl bg-black/45 px-3 py-2 text-white backdrop-blur-md">
+    <IconButton
+      label={`Back ${SKIP_SECONDS.toString()} seconds`}
+      onClick={() => {
+        onSkip(-SKIP_SECONDS)
+      }}
+      disabled={isDisabled}
+      size="md"
+    >
+      <IconRotate size={22} aria-hidden />
+    </IconButton>
+
     <IconButton
       label={isPlaying ? 'Pause' : 'Play'}
       onClick={onTogglePlay}
@@ -53,6 +78,17 @@ const PlayerControls = ({
       ) : (
         <IconPlayerPlay size={22} fill="currentColor" aria-hidden />
       )}
+    </IconButton>
+
+    <IconButton
+      label={`Forward ${SKIP_SECONDS.toString()} seconds`}
+      onClick={() => {
+        onSkip(SKIP_SECONDS)
+      }}
+      disabled={isDisabled}
+      size="md"
+    >
+      <IconRotateClockwise size={22} aria-hidden />
     </IconButton>
 
     <Slider
@@ -89,6 +125,24 @@ const PlayerControls = ({
         className="w-0 overflow-hidden transition-all group-hover/volume:w-20 group-focus-within/volume:w-20"
       />
     </div>
+
+    <OptionMenu
+      label="Playback speed"
+      trigger={<span className="text-sm font-medium">{rateLabel(playbackRate)}</span>}
+      groups={[
+        {
+          name: 'Playback Speed',
+          selectedId: playbackRate.toString(),
+          onSelect: (id) => {
+            onPlaybackRateChange(Number(id))
+          },
+          options: PLAYBACK_RATES.map((rate) => ({
+            id: rate.toString(),
+            label: rateLabel(rate),
+          })),
+        },
+      ]}
+    />
 
     <IconButton label="Stats for nerds" isActive={isShowingStats} onClick={onToggleStats} size="md">
       <IconAdjustmentsHorizontal size={20} aria-hidden />

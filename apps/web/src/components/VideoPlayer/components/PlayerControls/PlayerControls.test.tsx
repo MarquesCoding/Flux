@@ -16,8 +16,11 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
     isMuted: false,
     isFullscreen: false,
     isShowingStats: false,
+    playbackRate: 1,
     onTogglePlay: vi.fn(),
     onSeek: vi.fn(),
+    onSkip: vi.fn(),
+    onPlaybackRateChange: vi.fn(),
     onVolumeChange: vi.fn(),
     onToggleMute: vi.fn(),
     onToggleFullscreen: vi.fn(),
@@ -142,8 +145,11 @@ describe('PlayerControls', () => {
         isMuted={false}
         isFullscreen={false}
         isShowingStats={false}
+        playbackRate={1}
         onTogglePlay={vi.fn()}
         onSeek={vi.fn()}
+        onSkip={vi.fn()}
+        onPlaybackRateChange={vi.fn()}
         onVolumeChange={vi.fn()}
         onToggleMute={vi.fn()}
         onToggleFullscreen={vi.fn()}
@@ -155,6 +161,42 @@ describe('PlayerControls', () => {
     // over a dark picture.
     expect(container.querySelectorAll('[data-tone="overlay"]')).toHaveLength(2)
     expect(container.querySelector('[data-tone="default"]')).not.toBeInTheDocument()
+  })
+
+  it('offers a jump back and a jump forward', async () => {
+    const user = userEvent.setup()
+    const props = draw()
+
+    await user.click(screen.getByRole('button', { name: 'Back 10 seconds' }))
+    await user.click(screen.getByRole('button', { name: 'Forward 10 seconds' }))
+
+    expect(props.onSkip).toHaveBeenNthCalledWith(1, -10)
+    expect(props.onSkip).toHaveBeenNthCalledWith(2, 10)
+  })
+
+  it('shows the speed it is playing at', () => {
+    draw({ playbackRate: 1.5 })
+
+    expect(screen.getByRole('button', { name: 'Playback speed' })).toHaveTextContent('1.5x')
+  })
+
+  it('reports a change of speed as a number', async () => {
+    const user = userEvent.setup()
+    const props = draw()
+
+    await user.click(screen.getByRole('button', { name: 'Playback speed' }))
+    await user.click(await screen.findByRole('menuitemradio', { name: '0.5x' }))
+
+    expect(props.onPlaybackRateChange).toHaveBeenCalledWith(0.5)
+  })
+
+  it('marks the speed already in force', async () => {
+    const user = userEvent.setup()
+    draw({ playbackRate: 2 })
+
+    await user.click(screen.getByRole('button', { name: 'Playback speed' }))
+
+    expect(await screen.findByRole('menuitemradio', { name: '2x' })).toBeChecked()
   })
 
   it('sets a display name so devtools can identify it', () => {

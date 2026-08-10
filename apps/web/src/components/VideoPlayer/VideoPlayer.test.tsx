@@ -265,7 +265,7 @@ describe('VideoPlayer', () => {
     startMock.mockReturnValue(new Promise(() => undefined))
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
-    expect(screen.getByRole('button', { name: /Play/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Play' })).toBeDisabled()
   })
 
   it('shows a running position against the length of the film', async () => {
@@ -587,6 +587,44 @@ describe('VideoPlayer', () => {
     await actor.click(screen.getByRole('button', { name: 'Full screen' }))
 
     expect(request).toHaveBeenCalledTimes(1)
+  })
+
+  it('jumps back and forward without leaving the session when it can', async () => {
+    const actor = userEvent.setup()
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    seekableTo(element, 600)
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 60 })
+    fireEvent.timeUpdate(element)
+
+    await actor.click(screen.getByRole('button', { name: 'Forward 10 seconds' }))
+
+    expect(element).toHaveProperty('currentTime', 70)
+    expect(startMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('never jumps back past the start of the film', async () => {
+    const actor = userEvent.setup()
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    seekableTo(element, 600)
+
+    await actor.click(screen.getByRole('button', { name: 'Back 10 seconds' }))
+
+    expect(element).toHaveProperty('currentTime', 0)
+  })
+
+  it('carries the chosen speed through to the media element', async () => {
+    const actor = userEvent.setup()
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+    await actor.click(screen.getByRole('button', { name: 'Playback speed' }))
+    await actor.click(await screen.findByRole('menuitemradio', { name: '1.5x' }))
+
+    expect(screen.getByLabelText('Arrival')).toHaveProperty('playbackRate', 1.5)
   })
 
   it('sets a display name so devtools can identify it', () => {

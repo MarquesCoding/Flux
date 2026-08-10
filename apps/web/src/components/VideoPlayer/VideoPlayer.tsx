@@ -86,6 +86,7 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   const [isShowingStats, setIsShowingStats] = useState(false)
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH)
   const [isIdle, setIsIdle] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState(1)
   // What the current session was asked for. A transcode is produced from the
   // point it starts at, so seeking outside what has been encoded means asking
   // for a new one rather than moving within this one.
@@ -242,6 +243,17 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   }, [volume, isMuted])
 
   useEffect(() => {
+    const element = videoRef.current
+
+    if (element !== null) {
+      element.playbackRate = playbackRate
+    }
+    // Reapplied when the session changes: a new media element source resets
+    // the rate, and a viewer who chose half speed did not mean until the next
+    // seek.
+  }, [playbackRate, session])
+
+  useEffect(() => {
     if (!isShowingStats) {
       return
     }
@@ -330,6 +342,13 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
       setRequest({ mediaId: request.mediaId, startSeconds: Math.floor(seconds) })
     },
     [request, session],
+  )
+
+  const skip = useCallback(
+    (delta: number) => {
+      seek(Math.min(Math.max(position + delta, 0), duration))
+    },
+    [seek, position, duration],
   )
 
   const toggleFullscreen = useCallback(() => {
@@ -441,9 +460,12 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
             isMuted={isMuted}
             isFullscreen={isFullscreen}
             isShowingStats={isShowingStats}
+            playbackRate={playbackRate}
             isDisabled={state !== 'playing'}
             onTogglePlay={togglePlay}
             onSeek={seek}
+            onSkip={skip}
+            onPlaybackRateChange={setPlaybackRate}
             onVolumeChange={(next) => {
               setVolume(next)
               setIsMuted(next === 0)

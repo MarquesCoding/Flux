@@ -9,6 +9,7 @@
       "@FluxUI/Checkbox": ["./packages/ui/src/components/Checkbox/Checkbox.tsx"],
       "@FluxUI/IconButton": ["./packages/ui/src/components/IconButton/IconButton.tsx"],
       "@FluxUI/MediaCard": ["./packages/ui/src/components/MediaCard/MediaCard.tsx"],
+      "@FluxUI/OptionMenu": ["./packages/ui/src/components/OptionMenu/OptionMenu.tsx"],
       "@FluxUI/QrCode": ["./packages/ui/src/components/QrCode/QrCode.tsx"],
       "@FluxUI/Slider": ["./packages/ui/src/components/Slider/Slider.tsx"],
       "@FluxUI/Spinner": ["./packages/ui/src/components/Spinner/Spinner.tsx"],

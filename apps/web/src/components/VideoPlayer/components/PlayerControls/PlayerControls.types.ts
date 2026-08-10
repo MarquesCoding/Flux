@@ -1,5 +1,15 @@
 import type { ReactNode } from 'react'
 
+/**
+ * How far the skip buttons jump.
+ *
+ * Ten seconds is the convention every player has settled on: long enough to
+ * clear a moment you missed, short enough to press twice without thinking.
+ */
+const SKIP_SECONDS = 10
+
+const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
+
 type PlayerControlsProps = {
   title: string
   isPlaying: boolean
@@ -9,9 +19,12 @@ type PlayerControlsProps = {
   isMuted: boolean
   isFullscreen: boolean
   isShowingStats: boolean
+  playbackRate: number
   isDisabled?: boolean
   onTogglePlay: () => void
   onSeek: (seconds: number) => void
+  onSkip: (seconds: number) => void
+  onPlaybackRateChange: (rate: number) => void
   onVolumeChange: (volume: number) => void
   onToggleMute: () => void
   onToggleFullscreen: () => void
@@ -20,3 +33,5 @@ type PlayerControlsProps = {
 }
 
 export type { PlayerControlsProps }
+
+export default { SKIP_SECONDS, PLAYBACK_RATES }
