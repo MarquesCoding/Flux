@@ -3,15 +3,14 @@ import { motion, useReducedMotion } from 'motion/react'
 import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react'
 import IconButtonModule from '@FluxUI/IconButton'
 import revealModule from '@FluxUI/animations/reveal'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
 import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
+import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
 import ProfileEditorModule from './components/ProfileEditor/ProfileEditor'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import type { ProfilePickerProps } from './ProfilePicker.types'
 
 const { IconButton } = IconButtonModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { profileInitial, profileAvatarUrl } = ViewerProfileModule
 
 /**
  * How many people may share one account.
@@ -21,6 +20,7 @@ const { profileInitial, profileAvatarUrl } = ViewerProfileModule
  */
 const PROFILE_LIMIT = 6
 const { removeProfile } = fetchProfilesModule
+const { ProfileFace } = ProfileFaceModule
 const { ProfileEditor } = ProfileEditorModule
 
 /**
@@ -80,22 +80,10 @@ const ProfilePicker = ({
               transition={revealTransition(prefersReducedMotion)}
               className="flex w-24 flex-col items-center gap-3 sm:w-32"
             >
-              <span
-                style={{
-                  backgroundColor: profile.avatar.kind === 'initial' ? profile.colour : undefined,
-                }}
-                className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-3xl bg-white/5 text-4xl font-semibold text-black/80 shadow-lg sm:text-5xl"
-              >
-                {profile.avatar.kind === 'initial' ? (
-                  profileInitial(profile.name)
-                ) : (
-                  <img
-                    src={profileAvatarUrl(profile.id)}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                )}
-              </span>
+              <ProfileFace
+                profile={profile}
+                className="aspect-square w-full rounded-3xl text-4xl shadow-lg sm:text-5xl"
+              />
 
               <span className="w-full truncate text-center text-sm text-text-muted">
                 {profile.name}

@@ -5,8 +5,8 @@ import ButtonModule from '@FluxUI/Button'
 import BadgeModule from '@FluxUI/Badge'
 import TabBarModule from '@FluxUI/TabBar'
 import revealModule from '@FluxUI/animations/reveal'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
 import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
+import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
 import ProfileEditorModule from '@FluxWeb/components/ProfilePicker/components/ProfileEditor/ProfileEditor'
 import TwoFactorSetupModule from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup'
 import PasskeySetupModule from '@FluxWeb/components/PasskeySetup/PasskeySetup'
@@ -17,8 +17,8 @@ const { Button } = ButtonModule
 const { Badge } = BadgeModule
 const { TabBar } = TabBarModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { profileInitial, profileAvatarUrl } = ViewerProfileModule
 const { fetchProfiles } = fetchProfilesModule
+const { ProfileFace } = ProfileFaceModule
 const { ProfileEditor } = ProfileEditorModule
 const { TwoFactorSetup } = TwoFactorSetupModule
 const { PasskeySetup } = PasskeySetupModule
@@ -69,22 +69,14 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
         className="flex flex-wrap items-end justify-between gap-6"
       >
         <div className="flex items-center gap-5">
-          <span
-            style={{
-              backgroundColor: profile?.avatar.kind === 'initial' ? profile.colour : undefined,
-            }}
-            className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-white/5 text-3xl font-semibold text-black/80 shadow-xl sm:size-24"
-          >
-            {profile === null || profile.avatar.kind === 'initial' ? (
-              profileInitial(profile?.name ?? user.name)
-            ) : (
-              <img
-                src={profileAvatarUrl(profile.id)}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            )}
-          </span>
+          {profile === null ? (
+            <span className="size-20 shrink-0 rounded-3xl bg-white/5 sm:size-24" />
+          ) : (
+            <ProfileFace
+              profile={profile}
+              className="size-20 shrink-0 rounded-3xl text-3xl shadow-xl sm:size-24"
+            />
+          )}
 
           <div className="flex flex-col gap-1">
             <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">

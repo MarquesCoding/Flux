@@ -5,23 +5,25 @@ import TextFieldModule from '@FluxUI/TextField'
 import FilePickerModule from '@FluxUI/FilePicker'
 import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
 import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
+import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
 import type { Avatar, AvatarStyle, ProfileColour } from '@FluxContracts/schemas/ViewerProfile'
 import type { ProfileEditorProps } from './ProfileEditor.types'
 
 const { Button } = ButtonModule
 const { TextField } = TextFieldModule
 const { FilePicker } = FilePickerModule
-const { PROFILE_COLOURS, AVATAR_STYLES, profileInitial, profileAvatarUrl } = ViewerProfileModule
+const { PROFILE_COLOURS, AVATAR_STYLES, profileInitial } = ViewerProfileModule
 const { createProfile, saveProfile, uploadProfilePhoto } = fetchProfilesModule
+const { ProfileFace } = ProfileFaceModule
 
 /**
- * What a photograph may be.
+ * What a picture may be.
  *
- * Raster formats only, matching what the server will keep: an uploaded SVG is
- * a document that can carry script, and a picture of somebody's face has no
+ * Raster and video, matching what the server will keep. No SVG: it is a
+ * document that can carry script, and a picture of somebody's face has no
  * reason to be one.
  */
-const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif'
+const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/webm,video/mp4'
 
 /**
  * Where a drawn face is previewed from.
@@ -56,7 +58,8 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
   const save = async () => {
     setIsSaving(true)
 
-    const chosen: Avatar = photo === null ? avatar : { kind: 'photo' }
+    const chosen: Avatar =
+      photo === null ? avatar : { kind: 'photo', isVideo: photo.type.startsWith('video/') }
 
     const saved =
       profile === null
@@ -79,24 +82,30 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
   return (
     <div className="flex w-full max-w-lg flex-col gap-6">
       <div className="flex items-center gap-5">
-        <span
-          style={{ backgroundColor: colour }}
-          className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-3xl text-3xl font-semibold text-black/80"
-        >
-          {photo !== null ? (
-            <img src={URL.createObjectURL(photo)} alt="" className="h-full w-full object-cover" />
-          ) : avatar.kind === 'drawn' ? (
+        {avatar.kind === 'drawn' && photo === null ? (
+          <span
+            style={{ backgroundColor: colour }}
+            className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-3xl"
+          >
             <img
               src={previewUrl(avatar.style, seed)}
               alt=""
               className="h-full w-full object-cover"
             />
-          ) : avatar.kind === 'photo' && profile !== null ? (
-            <img src={profileAvatarUrl(profile.id)} alt="" className="h-full w-full object-cover" />
-          ) : (
-            profileInitial(trimmed === '' ? '?' : trimmed)
-          )}
-        </span>
+          </span>
+        ) : (
+          <ProfileFace
+            profile={{
+              id: profile?.id ?? '',
+              name: trimmed === '' ? '?' : trimmed,
+              colour,
+              avatar,
+              createdAt: profile?.createdAt ?? '',
+            }}
+            pending={photo}
+            className="size-20 shrink-0 rounded-3xl text-3xl"
+          />
+        )}
 
         <TextField
           label="Name"

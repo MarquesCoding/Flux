@@ -45,7 +45,16 @@ const AvatarStyleSchema = z.enum(AVATAR_STYLES)
 const AvatarSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('initial') }),
   z.object({ kind: z.literal('drawn'), style: AvatarStyleSchema, seed: z.string().min(1).max(64) }),
-  z.object({ kind: z.literal('photo') }),
+  z.object({
+    kind: z.literal('photo'),
+    /**
+     * Whether the picture moves and needs a video element to play it.
+     *
+     * A GIF is still a picture as far as a browser is concerned; a WebM is
+     * not, and drawing one in an image tag shows nothing at all.
+     */
+    isVideo: z.boolean().default(false),
+  }),
 ])
 
 const ViewerProfileSchema = z.object({

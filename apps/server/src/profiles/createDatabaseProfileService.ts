@@ -24,14 +24,26 @@ const PHOTO_TYPES: Record<string, string> = {
   'image/png': '.png',
   'image/webp': '.webp',
   'image/avif': '.avif',
+  // Pictures that move. A GIF is one a browser draws like any other; a WebM
+  // is a video, and needs an element that can play it.
+  'image/gif': '.gif',
+  'video/webm': '.webm',
+  'video/mp4': '.mp4',
 }
 
 /**
- * How large a profile photograph may be.
- *
- * Two megabytes is a generous photograph of a face at any size this is drawn.
+ * The formats that are video rather than picture.
  */
-const PHOTO_MAX_BYTES = 2 * 1024 * 1024
+const MOVING_FORMATS = new Set(['.webm', '.mp4'])
+
+/**
+ * How large a profile picture may be.
+ *
+ * Generous for a photograph, and enough for a few seconds of something
+ * moving at the size a portrait is drawn. Anything larger is a video somebody
+ * meant to watch rather than a face.
+ */
+const PHOTO_MAX_BYTES = 6 * 1024 * 1024
 
 /**
  * The same mapping read the other way, for serving what was stored.
@@ -84,7 +96,7 @@ const readColour = (stored: string): ProfileColour => {
  */
 const readAvatarChoice = (row: ProfileRow): ViewerProfile['avatar'] => {
   if (row.photoPath !== null) {
-    return { kind: 'photo' }
+    return { kind: 'photo', isVideo: MOVING_FORMATS.has(extname(row.photoPath)) }
   }
 
   if (row.avatarStyle !== null && row.avatarSeed !== null && isAvatarStyle(row.avatarStyle)) {

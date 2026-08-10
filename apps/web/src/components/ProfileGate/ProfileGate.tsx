@@ -15,9 +15,10 @@ import TextFieldModule from '@FluxUI/TextField'
 import MoodBackgroundModule from '@FluxUI/MoodBackground'
 import SpinnerModule from '@FluxUI/Spinner'
 import revealModule from '@FluxUI/animations/reveal'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
 import fetchEveryoneModule from '@FluxWeb/profiles/fetchEveryone'
+import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
 import readVersionModule from '@FluxWeb/session/readVersion'
+import TwoFactorChallengeModule from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge'
 import isPasskeySupportedModule from '@FluxWeb/passkeys/isPasskeySupported'
 import authenticateWithPasskeyModule from '@FluxWeb/passkeys/authenticateWithPasskey'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
@@ -31,9 +32,10 @@ const { MoodBackground } = MoodBackgroundModule
 const { Spinner } = SpinnerModule
 const { revealVariants, revealTransition, staggerVariants, liquidSpring, stillTransition } =
   revealModule
-const { profileInitial, profileAvatarUrl } = ViewerProfileModule
+const { ProfileFace } = ProfileFaceModule
 const { fetchEveryone, signInAsProfile } = fetchEveryoneModule
 const { readVersion } = readVersionModule
+const { TwoFactorChallenge } = TwoFactorChallengeModule
 const { isPasskeySupported } = isPasskeySupportedModule
 const { authenticateWithPasskey } = authenticateWithPasskeyModule
 
@@ -101,18 +103,12 @@ const FACE: Variants = {
  * interface should say so.
  */
 const Portrait = ({ profile, isLarge = false }: { profile: ViewerProfile; isLarge?: boolean }) => (
-  <span
-    style={{ backgroundColor: profile.avatar.kind === 'initial' ? profile.colour : undefined }}
-    className={`flex items-center justify-center overflow-hidden rounded-3xl bg-white/5 font-semibold text-black/80 shadow-xl ${
+  <ProfileFace
+    profile={profile}
+    className={`rounded-3xl shadow-xl ${
       isLarge ? 'size-32 text-5xl sm:size-36' : 'aspect-square w-full text-4xl sm:text-5xl'
     }`}
-  >
-    {profile.avatar.kind === 'initial' ? (
-      profileInitial(profile.name)
-    ) : (
-      <img src={profileAvatarUrl(profile.id)} alt="" className="h-full w-full object-cover" />
-    )}
-  </span>
+  />
 )
 
 Portrait.displayName = 'Portrait'
@@ -154,6 +150,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   // is not an arrival — the portrait is travelling home, and faces dealing
   // themselves out around it would fade the one thing that should not fade.
   const [isReturning, setIsReturning] = useState(false)
+  const [needsCode, setNeedsCode] = useState(false)
   const facesRef = useRef(new Map<string, HTMLButtonElement>())
   const prefersReducedMotion = useReducedMotion()
 
@@ -222,6 +219,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
         setChosen(null)
         setPassword('')
         setProblem(null)
+        setNeedsCode(false)
       }
     }
 
@@ -257,6 +255,16 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
 
     if (outcome.kind === 'signedIn') {
       onSignedIn()
+
+      return
+    }
+
+    // A right password on an account with a second factor is a step, not an
+    // arrival: the code comes next, and the portrait stays where it is so it
+    // is plainly the same person being asked.
+    if (outcome.kind === 'needsCode') {
+      setNeedsCode(true)
+      setPassword('')
 
       return
     }
@@ -478,55 +486,71 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                 {chosen.name}
               </motion.h1>
 
-              <motion.form
-                noValidate
-                initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.14, duration: 0.35, ease: [0.2, 0, 0, 1] }}
-                className="flex w-full flex-col gap-4"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  void submit()
-                }}
-              >
-                <TextField
-                  label="Password"
-                  type="password"
-                  size="lg"
-                  isPill
-                  value={password}
-                  onValueChange={setPassword}
-                  autoComplete="current-password"
-                  {...(problem === null ? {} : { error: problem })}
-                />
-
-                <Button
-                  type="submit"
-                  variant="glossy"
-                  size="lg"
-                  isPill
-                  isLoading={isSubmitting}
-                  disabled={password === ''}
+              {needsCode ? (
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+                  className="flex w-full flex-col gap-4"
                 >
-                  Watch
-                  <IconArrowRight size={18} aria-hidden />
-                </Button>
-
-                {!isPasskeySupported() ? null : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    isPill
-                    isLoading={isUsingPasskey}
-                    onClick={() => {
-                      void signInWithPasskey()
+                  <TwoFactorChallenge
+                    onVerified={onSignedIn}
+                    onCancel={() => {
+                      setNeedsCode(false)
                     }}
+                  />
+                </motion.div>
+              ) : (
+                <motion.form
+                  noValidate
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.14, duration: 0.35, ease: [0.2, 0, 0, 1] }}
+                  className="flex w-full flex-col gap-4"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void submit()
+                  }}
+                >
+                  <TextField
+                    label="Password"
+                    type="password"
+                    size="lg"
+                    isPill
+                    value={password}
+                    onValueChange={setPassword}
+                    autoComplete="current-password"
+                    {...(problem === null ? {} : { error: problem })}
+                  />
+
+                  <Button
+                    type="submit"
+                    variant="glossy"
+                    size="lg"
+                    isPill
+                    isLoading={isSubmitting}
+                    disabled={password === ''}
                   >
-                    <IconKey size={16} aria-hidden />
-                    Use a passkey instead
+                    Watch
+                    <IconArrowRight size={18} aria-hidden />
                   </Button>
-                )}
-              </motion.form>
+
+                  {!isPasskeySupported() ? null : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      isPill
+                      isLoading={isUsingPasskey}
+                      onClick={() => {
+                        void signInWithPasskey()
+                      }}
+                    >
+                      <IconKey size={16} aria-hidden />
+                      Use a passkey instead
+                    </Button>
+                  )}
+                </motion.form>
+              )}
 
               <motion.div
                 initial={{ opacity: 0 }}
@@ -540,6 +564,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                     setChosen(null)
                     setPassword('')
                     setProblem(null)
+                    setNeedsCode(false)
                   }}
                 >
                   <IconArrowLeft size={18} aria-hidden />

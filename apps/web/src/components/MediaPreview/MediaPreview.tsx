@@ -37,7 +37,7 @@ const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`
  * blended into the page there, so a cue on the last line is drawn underneath
  * the very gradient that hides it.
  */
-const CUE_LINE = 62
+const CUE_LINE = 80
 
 /**
  * A glimpse of what an item looks like.
