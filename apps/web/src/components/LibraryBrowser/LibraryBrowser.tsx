@@ -3,7 +3,6 @@ import { IconRefresh, IconRefreshAlert } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import MediaCardModule from '@FluxUI/MediaCard'
 import SpinnerModule from '@FluxUI/Spinner'
-import TextFieldModule from '@FluxUI/TextField'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import describeMediaModule from './describeMedia'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
@@ -12,7 +11,6 @@ import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
 const { Button } = ButtonModule
 const { MediaCard } = MediaCardModule
 const { Spinner } = SpinnerModule
-const { TextField } = TextFieldModule
 const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
 const { describeMedia, describeBadges } = describeMediaModule
 
@@ -26,12 +24,11 @@ const SEARCH_DEBOUNCE_MS = 250
  * browser: the client only ever holds one page, so filtering here would search
  * the page rather than the library and quietly lie about the results.
  */
-const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
+const LibraryBrowser = ({ search = '', onPlay }: LibraryBrowserProps) => {
   const [libraries, setLibraries] = useState<Library[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [items, setItems] = useState<MediaSummary[]>([])
   const [total, setTotal] = useState(0)
-  const [search, setSearch] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
   const [state, setState] = useState<BrowserState>('loading')
   const [isScanning, setIsScanning] = useState(false)
@@ -178,13 +175,6 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
           </Button>
         </div>
       </header>
-
-      <TextField
-        label="Search"
-        value={search}
-        onValueChange={setSearch}
-        placeholder="Search by title"
-      />
 
       {items.length === 0 ? (
         <p className="text-text-muted">

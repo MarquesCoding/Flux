@@ -8,6 +8,8 @@ import PasskeySetupModule from '@FluxWeb/components/PasskeySetup/PasskeySetup'
 import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
 import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
 import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
+import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
+import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types'
 import fetchSessionModule from '@FluxWeb/session/fetchSession'
 import signOutModule from '@FluxWeb/session/signOut'
 import SetupModule from '@FluxContracts/schemas/Setup'
@@ -25,6 +27,7 @@ const { PasskeySetup } = PasskeySetupModule
 const { LibraryBrowser } = LibraryBrowserModule
 const { VideoPlayer } = VideoPlayerModule
 const { MediaDetailDialog } = MediaDetailDialogModule
+const { AppShell } = AppShellModule
 const { fetchSession } = fetchSessionModule
 const { signOut } = signOutModule
 const { SetupStatusSchema } = SetupModule
@@ -44,7 +47,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [nowPlaying, setNowPlaying] = useState<MediaSummary | null>(null)
   const [inspecting, setInspecting] = useState<MediaSummary | null>(null)
-  const [showSettings, setShowSettings] = useState(false)
+  const [section, setSection] = useState<ShellSection>('home')
+  const [search, setSearch] = useState('')
 
   const refresh = useCallback(async () => {
     try {
@@ -128,35 +132,33 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   }
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <header className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-text">{initialTitle}</h1>
-
-        <div className="flex items-center gap-2">
-          <span className="hidden text-sm text-text-muted sm:inline">{user.email}</span>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setShowSettings((shown) => !shown)
-            }}
-          >
-            {showSettings ? 'Back to library' : 'Security'}
-          </Button>
+    <AppShell
+      section={section}
+      onSectionChange={setSection}
+      search={search}
+      onSearchChange={setSearch}
+      // The page takes its colour from whatever the viewer is looking at, and
+      // falls back to the theme when they are looking at a list.
+      moodColor={inspecting?.accentColor ?? null}
+      isAdministrator={user.role === 'admin'}
+      brandName={initialTitle}
+      account={
+        <>
+          <span className="hidden text-sm text-text-muted lg:inline">{user.email}</span>
 
           <Button
             variant="ghost"
             size="sm"
+            isPill
             onClick={() => {
               void signOut().then(() => refresh())
             }}
           >
             Sign out
           </Button>
-        </div>
-      </header>
-
+        </>
+      }
+    >
       <MediaDetailDialog
         media={inspecting}
         onClose={() => {
@@ -168,8 +170,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         }}
       />
 
-      {showSettings ? (
-        <div className="flex flex-col gap-4">
+      {section === 'account' ? (
+        <div className="flex flex-col gap-4 p-6">
           <TwoFactorSetup
             isEnabled={user.twoFactorEnabled === true}
             onChanged={() => {
@@ -180,9 +182,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           <PasskeySetup />
         </div>
       ) : (
-        <LibraryBrowser onPlay={setInspecting} />
+        <LibraryBrowser search={search} onPlay={setInspecting} />
       )}
-    </main>
+    </AppShell>
   )
 }
 

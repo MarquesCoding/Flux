@@ -136,7 +136,11 @@ describe('App routing', () => {
     serverState({ setup: setupComplete, session: { user } })
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'Flux' })).toBeInTheDocument()
+    // The shell names itself in the sidebar rather than as a page heading: a
+    // heading that vanishes when the rail is collapsed would leave the page
+    // without one.
+    expect(await screen.findByText('Flux')).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Sections' })).toBeInTheDocument()
     expect(screen.getByText('admin@flux.test')).toBeInTheDocument()
   })
 
@@ -144,7 +148,7 @@ describe('App routing', () => {
     serverState({ setup: setupComplete, session: { user } })
     render(<App initialTitle="Living Room" />)
 
-    expect(await screen.findByRole('heading', { name: 'Living Room' })).toBeInTheDocument()
+    expect(await screen.findByText('Living Room')).toBeInTheDocument()
   })
 
   it('reports an unreachable server rather than assuming setup is needed', async () => {

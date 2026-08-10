@@ -98,29 +98,29 @@ describe('LibraryBrowser', () => {
   })
 
   it('asks the server to search rather than filtering the page it holds', async () => {
-    const actor = userEvent.setup()
-    render(<LibraryBrowser onPlay={vi.fn()} />)
+    const { rerender } = render(<LibraryBrowser onPlay={vi.fn()} />)
 
     await screen.findByRole('button', { name: /Arrival/ })
-    await actor.type(screen.getByLabelText('Search'), 'dune')
+
+    rerender(<LibraryBrowser search="dune" onPlay={vi.fn()} />)
 
     await waitFor(() => {
       expect(fetchItemsMock).toHaveBeenCalledWith(
         films.id,
-        expect.objectContaining({
-          search: 'dune',
-        }),
+        expect.objectContaining({ search: 'dune' }),
       )
     })
   })
 
   it('does not send a request for every keystroke', async () => {
-    const actor = userEvent.setup()
-    render(<LibraryBrowser onPlay={vi.fn()} />)
+    const { rerender } = render(<LibraryBrowser onPlay={vi.fn()} />)
 
     await screen.findByRole('button', { name: /Arrival/ })
     fetchItemsMock.mockClear()
-    await actor.type(screen.getByLabelText('Search'), 'dune')
+
+    for (const partial of ['d', 'du', 'dun', 'dune']) {
+      rerender(<LibraryBrowser search={partial} onPlay={vi.fn()} />)
+    }
 
     await waitFor(() => {
       expect(fetchItemsMock).toHaveBeenCalled()
@@ -130,12 +130,12 @@ describe('LibraryBrowser', () => {
   })
 
   it('says when a search matches nothing', async () => {
-    const actor = userEvent.setup()
-    render(<LibraryBrowser onPlay={vi.fn()} />)
+    const { rerender } = render(<LibraryBrowser onPlay={vi.fn()} />)
 
     await screen.findByRole('button', { name: /Arrival/ })
     fetchItemsMock.mockResolvedValue({ items: [], total: 0 })
-    await actor.type(screen.getByLabelText('Search'), 'zzz')
+
+    rerender(<LibraryBrowser search="zzz" onPlay={vi.fn()} />)
 
     expect(await screen.findByText(/Nothing matches/)).toBeInTheDocument()
   })

@@ -16,6 +16,7 @@
       "@FluxUI/QrCode": ["./packages/ui/src/components/QrCode/QrCode.tsx"],
       "@FluxUI/Rail": ["./packages/ui/src/components/Rail/Rail.tsx"],
       "@FluxUI/SideNav": ["./packages/ui/src/components/SideNav/SideNav.tsx"],
+      "@FluxUI/SideNav.types": ["./packages/ui/src/components/SideNav/SideNav.types.ts"],
       "@FluxUI/Slider": ["./packages/ui/src/components/Slider/Slider.tsx"],
       "@FluxUI/Spinner": ["./packages/ui/src/components/Spinner/Spinner.tsx"],
       "@FluxUI/TextField": ["./packages/ui/src/components/TextField/TextField.tsx"],
