@@ -8,6 +8,7 @@ import {
   IconChevronRight,
   IconKey,
 } from '@tabler/icons-react'
+import cnModule from '@FluxUI/cn'
 import ButtonModule from '@FluxUI/Button'
 import IconButtonModule from '@FluxUI/IconButton'
 import TextFieldModule from '@FluxUI/TextField'
@@ -22,6 +23,7 @@ import authenticateWithPasskeyModule from '@FluxWeb/passkeys/authenticateWithPas
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import type { ProfileGateProps } from './ProfileGate.types'
 
+const { cn } = cnModule
 const { Button } = ButtonModule
 const { IconButton } = IconButtonModule
 const { TextField } = TextFieldModule
@@ -51,6 +53,15 @@ const PER_PAGE = 10
  * Five is a row at the width the wall is held to, so up and down move between
  * rows rather than to the ends.
  */
+/**
+ * How long the wordmark holds the screen on its own.
+ *
+ * Long enough to be read as a title rather than as something that flashed,
+ * short enough that nobody waiting to watch something resents it. It is also
+ * the least the faces need to arrive, so the two rarely wait on each other.
+ */
+const TITLE_MILLISECONDS = 1100
+
 const ARROWS: Record<string, number | undefined> = {
   ArrowRight: 1,
   ArrowLeft: -1,
@@ -135,6 +146,14 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   // or enter is the browser activating a button rather than this component
   // reimplementing what a button already does.
   const [at, setAt] = useState(0)
+  // Whether the wordmark has finished holding the screen. Not a loading
+  // screen: the mark does not wait for anything, it simply arrives first and
+  // then moves aside.
+  const [isTitleOver, setIsTitleOver] = useState(false)
+  // Whether the faces should skip their arrival. Coming back from a password
+  // is not an arrival — the portrait is travelling home, and faces dealing
+  // themselves out around it would fade the one thing that should not fade.
+  const [isReturning, setIsReturning] = useState(false)
   const facesRef = useRef(new Map<string, HTMLButtonElement>())
   const prefersReducedMotion = useReducedMotion()
 
@@ -147,6 +166,14 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   useEffect(() => {
     void fetchEveryone().then(setEveryone)
     void readVersion().then(setVersion)
+
+    const timer = setTimeout(() => {
+      setIsTitleOver(true)
+    }, TITLE_MILLISECONDS)
+
+    return () => {
+      clearTimeout(timer)
+    }
   }, [])
 
   // Arrows move through the faces, and the page follows: somebody holding a
@@ -164,6 +191,8 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
       }
 
       event.preventDefault()
+
+      setIsReturning(false)
 
       setAt((current) => {
         const next = Math.min(Math.max(current + step, 0), everyone.length - 1)
@@ -189,6 +218,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        setIsReturning(true)
         setChosen(null)
         setPassword('')
         setProblem(null)
@@ -257,10 +287,28 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   }
 
   return (
-    <main className="relative flex min-h-svh flex-col items-center justify-center px-6 py-16">
+    <main className="relative flex min-h-svh flex-col items-center justify-center gap-8 px-6 py-16">
       <MoodBackground color={chosen?.colour ?? null} hasGrid isDrifting />
 
-      {everyone === null ? (
+      {/* The one mark, in both places. It opens the screen on its own and
+          then moves to sit above the question — a layout animation rather
+          than two elements, so it is plainly the same thing arriving and then
+          making room. */}
+      <motion.p
+        layoutId="flux-mark"
+        transition={move}
+        className={cn(
+          'bg-gradient-to-br from-text via-text to-accent bg-clip-text font-semibold',
+          'tracking-[-0.05em] text-transparent',
+          isTitleOver
+            ? 'text-[clamp(1.75rem,4vw,2.5rem)]'
+            : 'absolute text-[clamp(3rem,12vw,7rem)]',
+        )}
+      >
+        {name}
+      </motion.p>
+
+      {!isTitleOver ? null : everyone === null ? (
         <Spinner label="Reading who is here" size="lg" />
       ) : (
         <div className="flex w-full flex-col items-center">
@@ -275,7 +323,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
               <motion.h1
                 variants={revealVariants(prefersReducedMotion)}
                 transition={revealTransition(prefersReducedMotion, 'heavy')}
-                className="text-[clamp(2rem,7vw,4rem)] font-semibold tracking-[-0.04em] text-text"
+                className="text-[clamp(1.75rem,5vw,3rem)] font-semibold tracking-[-0.04em] text-text"
               >
                 Who is watching?
               </motion.h1>
@@ -293,6 +341,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                     label="Previous"
                     disabled={page === 0}
                     onClick={() => {
+                      setIsReturning(false)
                       setPage((current) => Math.max(current - 1, 0))
                     }}
                   >
@@ -310,7 +359,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                 <motion.ul
                   key={page}
                   variants={FACES}
-                  initial="hidden"
+                  initial={isReturning ? false : 'hidden'}
                   animate="shown"
                   className="flex min-h-[13rem] w-full max-w-4xl flex-wrap items-start justify-center gap-6 sm:min-h-[15rem] sm:gap-10"
                 >
@@ -358,6 +407,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                     label="Next"
                     disabled={page >= pages - 1}
                     onClick={() => {
+                      setIsReturning(false)
                       setPage((current) => Math.min(current + 1, pages - 1))
                     }}
                   >
@@ -379,6 +429,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                         aria-label={`Page ${(at + 1).toString()}`}
                         aria-current={at === page ? 'true' : undefined}
                         onClick={() => {
+                          setIsReturning(false)
                           setPage(at)
                         }}
                         className={`block h-1.5 rounded-full transition-all duration-300 ${
@@ -476,6 +527,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                 <IconButton
                   label="Somebody else"
                   onClick={() => {
+                    setIsReturning(true)
                     setChosen(null)
                     setPassword('')
                     setProblem(null)
@@ -491,8 +543,8 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
 
       <motion.p
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
+        animate={{ opacity: isTitleOver ? 1 : 0 }}
+        transition={{ duration: 0.4 }}
         className="absolute bottom-8 text-xs tracking-[0.2em] text-text-muted/60"
       >
         © {name} · {version ?? '…'}
