@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import type { Variants } from 'motion/react'
 import {
@@ -44,6 +44,19 @@ const { authenticateWithPasskey } = authenticateWithPasskeyModule
  * themselves.
  */
 const PER_PAGE = 10
+
+/**
+ * How far each arrow moves through the faces.
+ *
+ * Five is a row at the width the wall is held to, so up and down move between
+ * rows rather than to the ends.
+ */
+const ARROWS: Record<string, number | undefined> = {
+  ArrowRight: 1,
+  ArrowLeft: -1,
+  ArrowDown: 5,
+  ArrowUp: -5,
+}
 
 /**
  * How the faces on a page arrive.
@@ -118,6 +131,11 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   // rather than letting it travel home.
   const [hasLeftWall, setHasLeftWall] = useState(false)
   const [page, setPage] = useState(0)
+  // Which face the keyboard is on. Real focus follows it, so pressing space
+  // or enter is the browser activating a button rather than this component
+  // reimplementing what a button already does.
+  const [at, setAt] = useState(0)
+  const facesRef = useRef(new Map<string, HTMLButtonElement>())
   const prefersReducedMotion = useReducedMotion()
 
   const move = prefersReducedMotion === true ? stillTransition : liquidSpring
@@ -130,6 +148,70 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
     void fetchEveryone().then(setEveryone)
     void readVersion().then(setVersion)
   }, [])
+
+  // Arrows move through the faces, and the page follows: somebody holding a
+  // remote control should never have to find the paging buttons.
+  useEffect(() => {
+    if (everyone === null || chosen !== null) {
+      return
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const step = ARROWS[event.key]
+
+      if (step === undefined || everyone.length === 0) {
+        return
+      }
+
+      event.preventDefault()
+
+      setAt((current) => {
+        const next = Math.min(Math.max(current + step, 0), everyone.length - 1)
+
+        setPage(Math.floor(next / PER_PAGE))
+
+        return next
+      })
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [everyone, chosen])
+
+  // Escape is what everyone tries when they have picked the wrong person.
+  useEffect(() => {
+    if (chosen === null) {
+      return
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setChosen(null)
+        setPassword('')
+        setProblem(null)
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [chosen])
+
+  // Focus follows the arrows rather than being drawn separately, so the
+  // browser's own behaviour applies: space and enter press the face, and a
+  // screen reader announces whichever one the keyboard is on.
+  useEffect(() => {
+    if (chosen !== null) {
+      return
+    }
+
+    facesRef.current.get(everyone?.[at]?.id ?? '')?.focus()
+  }, [at, page, chosen, everyone])
 
   const submit = async () => {
     if (chosen === null) {
@@ -236,8 +318,21 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                     <motion.li key={profile.id} variants={FACE} transition={faceArrival}>
                       <motion.button
                         type="button"
+                        ref={(element) => {
+                          if (element === null) {
+                            facesRef.current.delete(profile.id)
+                          } else {
+                            facesRef.current.set(profile.id, element)
+                          }
+                        }}
                         layoutId={`profile-${profile.id}`}
                         transition={move}
+                        onFocus={() => {
+                          // Pointer and keyboard agree on where they are, so
+                          // clicking one face and then pressing an arrow
+                          // continues from there rather than jumping back.
+                          setAt(everyone.findIndex((one) => one.id === profile.id))
+                        }}
                         onClick={() => {
                           setHasLeftWall(true)
                           setChosen(profile)
