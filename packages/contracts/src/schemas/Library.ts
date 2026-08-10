@@ -60,6 +60,16 @@ const MediaSummarySchema = z.object({
    * itself rather than from artwork that may not exist.
    */
   accentColor: z.string().nullish(),
+  /**
+   * Where this sits in a series, when the path said it sits in one.
+   *
+   * Carried in the summary rather than only in the detail because a library is
+   * grouped by it: a row per season needs to know which items belong to which
+   * without asking about every item first.
+   */
+  seriesTitle: z.string().nullish(),
+  seasonNumber: z.number().int().nullish(),
+  episodeNumber: z.number().int().nullish(),
 })
 
 /**

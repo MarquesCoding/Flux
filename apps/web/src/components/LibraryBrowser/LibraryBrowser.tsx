@@ -4,7 +4,9 @@ import ButtonModule from '@FluxUI/Button'
 import MediaCardModule from '@FluxUI/MediaCard'
 import SpinnerModule from '@FluxUI/Spinner'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
+import RailModule from '@FluxUI/Rail'
 import HeroModule from '@FluxWeb/components/Hero/Hero'
+import groupIntoRailsModule from '@FluxWeb/library/groupIntoRails'
 import describeMediaModule from './describeMedia'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
@@ -12,6 +14,8 @@ import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
 const { Button } = ButtonModule
 const { MediaCard } = MediaCardModule
 const { Hero } = HeroModule
+const { Rail } = RailModule
+const { groupIntoRails } = groupIntoRailsModule
 
 /**
  * How many items the hero rotates between.
@@ -159,6 +163,12 @@ const LibraryBrowser = ({
       <section className="flex flex-col gap-5 px-6">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2">
+            {total === 0 ? null : (
+              <span className="mr-1 text-sm text-text-muted">
+                {total === 1 ? '1 item' : `${String(total)} items`}
+              </span>
+            )}
+
             {libraries.map((entry) => (
               <Button
                 key={entry.id}
@@ -207,33 +217,31 @@ const LibraryBrowser = ({
               : `Nothing matches “${appliedSearch}”.`}
           </p>
         ) : (
-          <>
-            <p className="text-sm text-text-muted">
-              {total === 1 ? '1 item' : `${String(total)} items`}
-            </p>
-
-            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {items.map((media) => (
-                <li key={media.id}>
-                  <MediaCard
-                    title={media.title}
-                    subtitle={describeMedia(media)}
-                    badges={describeBadges(media)}
-                    shape="wide"
-                    {...(media.hasBackdrop
-                      ? { imageUrl: `/api/media/${media.id}/image/backdrop` }
-                      : media.hasPoster
-                        ? { imageUrl: `/api/media/${media.id}/image/poster` }
-                        : {})}
-                    onSelect={() => {
-                      onPlay(media)
-                    }}
-                    className="w-full"
-                  />
-                </li>
-              ))}
-            </ul>
-          </>
+          <div className="flex flex-col gap-10">
+            {groupIntoRails(items).map((rail) => (
+              <Rail key={rail.id} title={rail.title}>
+                {rail.items.map((media) => (
+                  <li key={media.id} className="w-64 shrink-0 snap-start sm:w-72 lg:w-80">
+                    <MediaCard
+                      title={media.title}
+                      subtitle={describeMedia(media)}
+                      badges={describeBadges(media)}
+                      shape="wide"
+                      {...(media.hasBackdrop
+                        ? { imageUrl: `/api/media/${media.id}/image/backdrop` }
+                        : media.hasPoster
+                          ? { imageUrl: `/api/media/${media.id}/image/poster` }
+                          : {})}
+                      onSelect={() => {
+                        onPlay(media)
+                      }}
+                      className="w-full"
+                    />
+                  </li>
+                ))}
+              </Rail>
+            ))}
+          </div>
         )}
       </section>
     </div>

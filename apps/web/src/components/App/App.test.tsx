@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AppModule from './App'
@@ -191,7 +191,11 @@ describe('App routing', () => {
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival })
     render(<App />)
 
-    await actor.click(await screen.findByRole('button', { name: /Arrival/ }))
+    // The library groups into rows, and an item appears in more than one of
+    // them, so the row has to be named for the query to mean anything.
+    const rail = await screen.findByRole('region', { name: 'Recently added' })
+
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }))
 
     expect(await screen.findByRole('dialog', { name: 'Arrival' })).toBeInTheDocument()
     // The dialog carries the same name, so the player is identified by the
@@ -204,7 +208,11 @@ describe('App routing', () => {
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival })
     render(<App />)
 
-    await actor.click(await screen.findByRole('button', { name: /Arrival/ }))
+    // The library groups into rows, and an item appears in more than one of
+    // them, so the row has to be named for the query to mean anything.
+    const rail = await screen.findByRole('region', { name: 'Recently added' })
+
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }))
     await actor.click(await screen.findByRole('button', { name: 'Play' }))
 
     expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument()

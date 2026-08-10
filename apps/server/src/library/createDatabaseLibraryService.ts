@@ -138,6 +138,9 @@ const createDatabaseLibraryService = ({
           posterUrl: mediaItem.posterUrl,
           backdropUrl: mediaItem.backdropUrl,
           accentColor: mediaItem.accentColor,
+          seriesTitle: mediaItem.seriesTitle,
+          seasonNumber: mediaItem.seasonNumber,
+          episodeNumber: mediaItem.episodeNumber,
         })
         .from(mediaItem)
         .where(filters)
