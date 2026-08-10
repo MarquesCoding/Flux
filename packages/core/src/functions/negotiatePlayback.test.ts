@@ -15,7 +15,9 @@ const media: MediaItem = {
   width: 3840,
   height: 2160,
   bitrateKbps: 24000,
-  audioStreams: [{ index: 1, codec: 'truehd', channels: 8, language: 'eng', isAtmos: true }],
+  audioStreams: [
+    { index: 1, codec: 'truehd', channels: 8, language: 'eng', isDefault: true, isAtmos: true },
+  ],
   subtitleStreams: [],
 }
 

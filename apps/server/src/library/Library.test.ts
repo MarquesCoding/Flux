@@ -36,7 +36,7 @@ const detail = (overrides: Partial<MediaDetail> = {}): MediaDetail => ({
   width: 3840,
   height: 2160,
   bitrateKbps: 24000,
-  audioStreams: [{ index: 1, codec: 'truehd', channels: 8, isAtmos: true }],
+  audioStreams: [{ index: 1, codec: 'truehd', channels: 8, isDefault: true, isAtmos: true }],
   subtitleStreams: [],
   addedAt: '2026-08-10T00:00:00.000Z',
   metadata: { hasPoster: false, hasBackdrop: false },

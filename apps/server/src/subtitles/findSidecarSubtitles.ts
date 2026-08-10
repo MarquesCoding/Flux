@@ -1,3 +1,7 @@
+import describeTrackModule from '@FluxCore/functions/describeTrack'
+
+const { describeLanguage, readLanguage } = describeTrackModule
+
 /**
  * Subtitle formats Flux can turn into something a browser renders.
  *
@@ -18,93 +22,6 @@ const SUBTITLE_DIRECTORIES = new Set(['subs', 'subtitles'])
 const FORCED_MARKERS = new Set(['forced'])
 
 const HEARING_IMPAIRED_MARKERS = new Set(['sdh', 'cc', 'hi'])
-
-/**
- * Language names seen beside media, mapped to the codes a browser wants.
- *
- * Only the common ones: anything unrecognised is carried through as written,
- * because a wrong guess is worse than an honest label.
- */
-const LANGUAGE_CODES: Record<string, string> = {
-  english: 'en',
-  eng: 'en',
-  en: 'en',
-  french: 'fr',
-  fre: 'fr',
-  fra: 'fr',
-  fr: 'fr',
-  german: 'de',
-  ger: 'de',
-  deu: 'de',
-  de: 'de',
-  spanish: 'es',
-  spa: 'es',
-  es: 'es',
-  italian: 'it',
-  ita: 'it',
-  it: 'it',
-  japanese: 'ja',
-  jpn: 'ja',
-  ja: 'ja',
-  korean: 'ko',
-  kor: 'ko',
-  ko: 'ko',
-  dutch: 'nl',
-  dut: 'nl',
-  nld: 'nl',
-  nl: 'nl',
-  portuguese: 'pt',
-  por: 'pt',
-  pt: 'pt',
-  russian: 'ru',
-  rus: 'ru',
-  ru: 'ru',
-  chinese: 'zh',
-  chi: 'zh',
-  zho: 'zh',
-  zh: 'zh',
-  polish: 'pl',
-  pol: 'pl',
-  pl: 'pl',
-  swedish: 'sv',
-  swe: 'sv',
-  sv: 'sv',
-  danish: 'da',
-  dan: 'da',
-  da: 'da',
-  norwegian: 'no',
-  nor: 'no',
-  no: 'no',
-  finnish: 'fi',
-  fin: 'fi',
-  fi: 'fi',
-  arabic: 'ar',
-  ara: 'ar',
-  ar: 'ar',
-}
-
-/**
- * How a language is written for a viewer to read.
- */
-const LANGUAGE_NAMES: Record<string, string> = {
-  en: 'English',
-  fr: 'Français',
-  de: 'Deutsch',
-  es: 'Español',
-  it: 'Italiano',
-  ja: '日本語',
-  ko: '한국어',
-  nl: 'Nederlands',
-  pt: 'Português',
-  ru: 'Русский',
-  zh: '中文',
-  pl: 'Polski',
-  sv: 'Svenska',
-  da: 'Dansk',
-  no: 'Norsk',
-  fi: 'Suomi',
-  ar: 'العربية',
-}
 
 type SidecarFile = {
   path: string
@@ -161,7 +78,7 @@ const describeTags = (
     }
 
     if (language === null && lowered !== '') {
-      language = LANGUAGE_CODES[lowered] ?? lowered
+      language = readLanguage(lowered)
     }
   }
 
@@ -176,7 +93,7 @@ const describeLabel = (
   isForced: boolean,
   isHearingImpaired: boolean,
 ): string => {
-  const base = language === null ? 'Unknown' : (LANGUAGE_NAMES[language] ?? language.toUpperCase())
+  const base = describeLanguage(language) ?? 'Unknown'
   const notes = [isForced ? 'forced' : '', isHearingImpaired ? 'SDH' : ''].filter(
     (note) => note !== '',
   )
@@ -242,5 +159,4 @@ export default {
   splitName,
   SUBTITLE_EXTENSIONS,
   SUBTITLE_DIRECTORIES,
-  LANGUAGE_NAMES,
 }

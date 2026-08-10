@@ -27,14 +27,32 @@ const AudioStreamSchema = z.object({
   index: z.number().int().nonnegative(),
   codec: AudioCodecSchema,
   channels: z.number().int().positive(),
-  language: z.string().length(3).nullish(),
+  /**
+   * Whatever the file called the language.
+   *
+   * Deliberately unconstrained. Files carry two-letter codes, three-letter
+   * codes, both competing three-letter standards, the language written out,
+   * and `und`. Demanding one shape rejects real media over a label.
+   */
+  language: z.string().nullish(),
+  /**
+   * What the file calls this track, when it says.
+   *
+   * Often the only thing telling two tracks of one language apart.
+   */
+  title: z.string().nullish(),
+  isDefault: z.boolean().default(false),
   isAtmos: z.boolean(),
 })
 
 const SubtitleStreamSchema = z.object({
   index: z.number().int().nonnegative(),
   format: SubtitleFormatSchema,
-  language: z.string().length(3).nullish(),
+  /**
+   * Unconstrained for the same reason audio languages are: a real file labels
+   * its tracks however whoever made it felt like.
+   */
+  language: z.string().nullish(),
   isForced: z.boolean(),
 })
 

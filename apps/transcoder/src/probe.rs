@@ -117,6 +117,25 @@ fn language_of(stream: &FfprobeStream) -> Option<String> {
         .cloned()
 }
 
+/// What a stream calls itself, if it says.
+fn title_of(stream: &FfprobeStream) -> Option<String> {
+    stream
+        .tags
+        .iter()
+        .find(|(key, _)| key.eq_ignore_ascii_case("title"))
+        .map(|(_, value)| value.clone())
+        .filter(|value| !value.trim().is_empty())
+}
+
+/// Whether the container marks a stream as the one to use.
+fn is_default(stream: &FfprobeStream) -> bool {
+    stream
+        .disposition
+        .as_ref()
+        .and_then(|disposition| disposition.get("default"))
+        .is_some_and(|flag| *flag == 1)
+}
+
 fn is_forced(stream: &FfprobeStream) -> bool {
     stream
         .disposition
@@ -155,6 +174,8 @@ fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
             codec: audio_codec(stream.codec_name.as_deref().unwrap_or_default()),
             channels: stream.channels.unwrap_or(2),
             language: language_of(stream),
+            title: title_of(stream),
+            is_default: is_default(stream),
             is_atmos: is_atmos(stream),
         })
         .collect();
@@ -386,6 +407,66 @@ mod tests {
 
         assert!(probe.video.is_none());
         assert_eq!(probe.audio_streams.len(), 1);
+    }
+
+    #[test]
+    fn reads_what_a_track_calls_itself() {
+        let json = r#"{
+            "streams": [{
+                "index": 1,
+                "codec_type": "audio",
+                "codec_name": "ac3",
+                "channels": 6,
+                "tags": {"language": "eng", "title": "Director's Commentary"},
+                "disposition": {"default": 0}
+            }],
+            "format": {"format_name": "matroska,webm"}
+        }"#;
+
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
+
+        assert_eq!(
+            probe.audio_streams[0].title.as_deref(),
+            Some("Director's Commentary")
+        );
+        assert!(!probe.audio_streams[0].is_default);
+    }
+
+    #[test]
+    fn notices_the_track_a_container_marks_as_default() {
+        let json = r#"{
+            "streams": [{
+                "index": 1,
+                "codec_type": "audio",
+                "codec_name": "aac",
+                "channels": 2,
+                "disposition": {"default": 1}
+            }],
+            "format": {"format_name": "matroska,webm"}
+        }"#;
+
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
+
+        assert!(probe.audio_streams[0].is_default);
+        assert!(probe.audio_streams[0].title.is_none());
+    }
+
+    #[test]
+    fn ignores_a_title_that_is_only_whitespace() {
+        let json = r#"{
+            "streams": [{
+                "index": 1,
+                "codec_type": "audio",
+                "codec_name": "aac",
+                "channels": 2,
+                "tags": {"title": "   "}
+            }],
+            "format": {"format_name": "matroska,webm"}
+        }"#;
+
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
+
+        assert!(probe.audio_streams[0].title.is_none());
     }
 
     #[test]

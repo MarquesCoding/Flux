@@ -12,6 +12,7 @@ import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import captionStyleModule from '@FluxWeb/playback/captionStyle'
 import fetchSegmentsModule from '@FluxWeb/playback/fetchSegments'
+import describeTrackModule from '@FluxCore/functions/describeTrack'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
 import PlayerControlsModule from './components/PlayerControls/PlayerControls'
@@ -43,6 +44,7 @@ const { StreamStats } = StreamStatsModule
 const { CaptionSettings } = CaptionSettingsModule
 const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
 const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
+const { describeAudioTrack } = describeTrackModule
 
 /**
  * An element that may be able to go full screen.
@@ -396,11 +398,20 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
   const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null
   const skippable = state === 'playing' ? skippableAt(segments, position) : null
 
-  const audioTracks = (detail?.audioStreams ?? []).map((stream) => ({
+  const audioTracks = (detail?.audioStreams ?? []).map((stream, position) => ({
     index: stream.index,
-    label: [stream.language ?? 'Unknown', `${stream.channels.toString()}ch`, stream.codec]
-      .filter((part) => part !== '')
-      .join(' · '),
+    label: describeAudioTrack(
+      {
+        index: stream.index,
+        codec: stream.codec,
+        channels: stream.channels,
+        language: stream.language,
+        title: stream.title,
+        isAtmos: stream.isAtmos,
+        isDefault: stream.isDefault,
+      },
+      position + 1,
+    ),
   }))
 
   // Switching track means a new session, and a viewer who is forty minutes in

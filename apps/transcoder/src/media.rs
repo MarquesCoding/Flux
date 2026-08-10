@@ -124,6 +124,13 @@ pub struct AudioStream {
     pub codec: String,
     pub channels: u8,
     pub language: Option<String>,
+    /// What the file calls this track.
+    ///
+    /// Often the only thing distinguishing two streams of the same language:
+    /// "Commentary" and "Director's Cut" carry no language of their own.
+    pub title: Option<String>,
+    /// Whether the container marks this as the track to play.
+    pub is_default: bool,
     pub is_atmos: bool,
 }
 

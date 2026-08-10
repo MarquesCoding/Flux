@@ -851,8 +851,8 @@ describe('VideoPlayer', () => {
       addedAt: '2026-08-10T00:00:00.000Z',
       metadata: { hasPoster: false, hasBackdrop: false },
       audioStreams: [
-        { index: 1, codec: 'aac', channels: 2, language: 'jpn', isAtmos: false },
-        { index: 2, codec: 'ac3', channels: 6, language: 'eng', isAtmos: false },
+        { index: 1, codec: 'aac', channels: 2, language: 'jpn', isDefault: true, isAtmos: false },
+        { index: 2, codec: 'ac3', channels: 6, language: 'eng', isDefault: false, isAtmos: false },
       ],
     })
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
@@ -864,7 +864,7 @@ describe('VideoPlayer', () => {
     fireEvent.timeUpdate(element)
 
     await actor.click(screen.getByRole('button', { name: 'Subtitles' }))
-    await actor.click(await screen.findByRole('menuitemradio', { name: /eng/ }))
+    await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }))
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 2400, 2)
