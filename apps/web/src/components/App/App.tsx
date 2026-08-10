@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import ButtonModule from '@FluxUI/Button'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
-import SignInModule from '@FluxWeb/components/SignIn/SignIn'
 import TwoFactorSetupModule from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup'
 import PasskeySetupModule from '@FluxWeb/components/PasskeySetup/PasskeySetup'
 import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
@@ -10,9 +9,8 @@ import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/Media
 import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
 import SplashScreenModule from '@FluxUI/SplashScreen'
 import AdminAreaModule from '@FluxWeb/components/AdminArea/AdminArea'
-import ProfilePickerModule from '@FluxWeb/components/ProfilePicker/ProfilePicker'
-import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
-import currentProfileModule from '@FluxWeb/profiles/currentProfile'
+import ProfileGateModule from '@FluxWeb/components/ProfileGate/ProfileGate'
+import usePlaceModule from '@FluxWeb/navigation/usePlace'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
 import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
 import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types'
@@ -22,13 +20,11 @@ import SetupModule from '@FluxContracts/schemas/Setup'
 import type { SetupStatus } from '@FluxContracts/schemas/Setup'
 import type { SessionUser } from '@FluxContracts/schemas/Session'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 import type { AppProps } from './App.types'
 
 const { Button } = ButtonModule
 const { SetupWizard } = SetupWizardModule
-const { SignIn } = SignInModule
 const { TwoFactorSetup } = TwoFactorSetupModule
 const { PasskeySetup } = PasskeySetupModule
 const { LibraryBrowser } = LibraryBrowserModule
@@ -37,9 +33,8 @@ const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
 const { SplashScreen } = SplashScreenModule
 const { AdminArea } = AdminAreaModule
-const { ProfilePicker } = ProfilePickerModule
-const { fetchProfiles } = fetchProfilesModule
-const { readCurrentProfile, writeCurrentProfile } = currentProfileModule
+const { ProfileGate } = ProfileGateModule
+const { usePlace } = usePlaceModule
 const { fetchWatchProgress, byMediaId } = watchProgressModule
 const { isWorthResuming } = WatchProgressContract
 
@@ -64,22 +59,17 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [status, setStatus] = useState<SetupStatus | null>(null)
   const [user, setUser] = useState<SessionUser | null>(null)
   const [loadState, setLoadState] = useState<LoadState>('loading')
-  const [nowPlaying, setNowPlaying] = useState<{
-    media: MediaSummary
-    startSeconds: number
-  } | null>(null)
   const [progress, setProgress] = useState(new Map<string, WatchProgress>())
-  const [inspecting, setInspecting] = useState<MediaSummary | null>(null)
-  const [section, setSection] = useState<ShellSection>('home')
-  const [search, setSearch] = useState('')
   const [featured, setFeatured] = useState<MediaSummary | null>(null)
   const [isTitleOver, setIsTitleOver] = useState(false)
-  const [profiles, setProfiles] = useState<ViewerProfile[] | null>(null)
-  const [watchingId, setWatchingId] = useState<string | null>(readCurrentProfile())
+  // Everything the library has shown, so an address naming an item can be
+  // turned back into one without asking the server a second time.
+  const [known, setKnown] = useState(new Map<string, MediaSummary>())
+  const { place, go, replace } = usePlace()
 
-  const readProfiles = useCallback(async () => {
-    setProfiles(await fetchProfiles())
-  }, [])
+  const section: ShellSection = place.section
+  const inspecting = place.inspecting === null ? null : (known.get(place.inspecting) ?? null)
+  const playing = place.playing === null ? null : (known.get(place.playing) ?? null)
 
   /**
    * Forgets who was watching on this device.
@@ -95,11 +85,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
   const readProgress = useCallback(async () => {
     setProgress(byMediaId(await fetchWatchProgress()))
-  }, [])
-
-  const forget = useCallback(() => {
-    writeCurrentProfile(null)
-    setWatchingId(null)
   }, [])
 
   // The opening title is held for its own length rather than for however long
@@ -143,10 +128,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   // be a request that can only ever answer with nobody.
   useEffect(() => {
     if (user !== null) {
-      void readProfiles()
       void readProgress()
     }
-  }, [user, readProfiles, readProgress])
+  }, [user, readProgress])
 
   if (loadState === 'loading') {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
@@ -176,12 +160,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
   if (user === null) {
     return (
-      <SignIn
+      <ProfileGate
+        name={initialTitle}
         onSignedIn={() => {
-          // Signing in is a new session, so who is watching is asked again.
-          // The choice is remembered for reloads, not for whoever signs in
-          // next on the same machine.
-          forget()
           void refresh()
         }}
       />
@@ -196,45 +177,22 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
   }
 
-  // Between signing in and the library: who is watching. Asked once per device
-  // and remembered, because a household shares an account and does not share a
-  // continue watching row.
-  if (profiles === null) {
-    return <SplashScreen name={initialTitle} label="Loading profiles" />
-  }
-
-  if (watchingId === null || !profiles.some((profile) => profile.id === watchingId)) {
-    return (
-      <ProfilePicker
-        profiles={profiles}
-        onChoose={(profile) => {
-          writeCurrentProfile(profile.id)
-          setWatchingId(profile.id)
-        }}
-        onChanged={() => {
-          void readProfiles()
-        }}
-        isEditable
-      />
-    )
-  }
-
   // Watching is not a thing that happens inside a library page. The player
   // takes the whole viewport so nothing else competes with it, and escape or
   // closing puts the library back exactly where it was.
-  if (nowPlaying !== null) {
+  if (playing !== null) {
     return (
       <main className="fixed inset-0 z-40 flex flex-col bg-black">
         <VideoPlayer
-          media={nowPlaying.media}
-          startSeconds={nowPlaying.startSeconds}
+          media={playing}
+          startSeconds={place.startSeconds}
           isImmersive
           onClose={() => {
             // Back to where they came from, not out to the library: someone
             // leaving a film usually wants the page about it, whether to read
             // the rest of it or to pick the next episode.
-            setInspecting(nowPlaying.media)
-            setNowPlaying(null)
+            go({ playing: null, startSeconds: 0, inspecting: playing.id })
+            void readProgress()
           }}
         />
       </main>
@@ -248,11 +206,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         // Leaving search abandons the search. Carrying the term out with them
         // leaves home showing a filtered library and no hero, which reads as
         // the page having broken.
-        if (next !== 'search') {
-          setSearch('')
-        }
-
-        setSection(next)
+        go({ section: next, search: next === 'search' ? place.search : '' })
       }}
       // Home and search draw the same library, so moving between them keeps
       // the page rather than fetching it all over again.
@@ -268,11 +222,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           ? { resumeSeconds: resumeFor(inspecting.id) ?? 0 }
           : {})}
         onClose={() => {
-          setInspecting(null)
+          go({ inspecting: null })
         }}
         onPlay={(media, startSeconds) => {
-          setInspecting(null)
-          setNowPlaying({ media, startSeconds })
+          go({ inspecting: null, playing: media.id, startSeconds })
         }}
       />
 
@@ -288,7 +241,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               size="sm"
               isPill
               onClick={() => {
-                forget()
                 void signOut().then(() => refresh())
               }}
             >
@@ -309,14 +261,31 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         </div>
       ) : (
         <LibraryBrowser
-          search={search}
-          onPlay={setInspecting}
+          search={place.search}
+          onPlay={(media) => {
+            go({ inspecting: media.id })
+          }}
+          onItemsLoaded={(items) => {
+            setKnown((current) => {
+              const next = new Map(current)
+
+              for (const item of items) {
+                next.set(item.id, item)
+              }
+
+              return next
+            })
+          }}
           // Only the home section opens with a hero. Films and series are
           // places someone arrived at looking for something, and a screen of
           // artwork between them and the list is in the way.
-          hasHero={section === 'home' && search === ''}
+          hasHero={section === 'home' && place.search === ''}
           isSearching={section === 'search'}
-          onSearchChange={setSearch}
+          onSearchChange={(next) => {
+            // Replaced rather than pushed: a search box would otherwise fill
+            // the history with one entry per letter typed.
+            replace({ search: next })
+          }}
           onFeatureChange={setFeatured}
         />
       )}

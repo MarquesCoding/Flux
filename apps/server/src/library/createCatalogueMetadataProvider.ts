@@ -15,6 +15,15 @@ const { JsonValueSchema } = JsonValueModule
  */
 const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3'
 
+/**
+ * Whether a credential is the newer kind.
+ *
+ * The newer one is a signed token in three dot-separated parts; the older is a
+ * plain string of hexadecimal. Telling them apart by shape means an operator
+ * never has to know which they were given.
+ */
+const isAccessToken = (key: string): boolean => key.split('.').length === 3 && key.startsWith('ey')
+
 const DEFAULT_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p'
 
 /**
@@ -68,6 +77,7 @@ const DetailResponseSchema = z.object({
 
 type Fetcher = (
   url: string,
+  headers?: Record<string, string>,
 ) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>
 
 type CreateCatalogueMetadataProviderOptions = {
@@ -122,8 +132,8 @@ const createCatalogueMetadataProvider = ({
 }: CreateCatalogueMetadataProviderOptions): MetadataProvider => {
   const call: Fetcher =
     fetchImpl ??
-    (async (url: string) => {
-      const response = await fetch(url)
+    (async (url: string, headers?: Record<string, string>) => {
+      const response = await fetch(url, headers === undefined ? {} : { headers })
 
       return {
         ok: response.ok,
@@ -135,8 +145,17 @@ const createCatalogueMetadataProvider = ({
     })
 
   const request = async (path: string, key: string, query: Record<string, string>) => {
-    const parameters = new URLSearchParams({ api_key: key, ...query })
-    const response = await call(`${baseUrl}${path}?${parameters.toString()}`)
+    // The catalogue issues two kinds of credential and does not accept them
+    // the same way: the older one is a key in the query string, and the newer
+    // one is a token in a header. Somebody pasting either should get their
+    // posters, rather than a silent four hundred and one.
+    const isToken = isAccessToken(key)
+    const parameters = new URLSearchParams(isToken ? query : { api_key: key, ...query })
+
+    const response = await call(
+      `${baseUrl}${path}?${parameters.toString()}`,
+      isToken ? { authorization: `Bearer ${key}` } : undefined,
+    )
 
     if (!response.ok) {
       onProblem?.(`The catalogue answered ${response.status.toString()} for ${path}.`)

@@ -51,6 +51,7 @@ const LibraryBrowser = ({
   isSearching = false,
   onSearchChange,
   onFeatureChange,
+  onItemsLoaded,
   onPlay,
 }: LibraryBrowserProps) => {
   const [libraries, setLibraries] = useState<Library[]>([])
@@ -62,6 +63,12 @@ const LibraryBrowser = ({
   const [state, setState] = useState<BrowserState>('loading')
   const [isScanning, setIsScanning] = useState(false)
   const prefersReducedMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (items.length > 0) {
+      onItemsLoaded?.(items)
+    }
+  }, [items, onItemsLoaded])
 
   useEffect(() => {
     let abandoned = false

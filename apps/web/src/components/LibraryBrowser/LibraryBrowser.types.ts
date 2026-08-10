@@ -23,6 +23,14 @@ type LibraryBrowserProps = {
    */
   onFeatureChange?: (media: MediaSummary) => void
   onPlay: (media: MediaSummary) => void
+  /**
+   * Called with whatever this browser is showing.
+   *
+   * The address bar names items by identifier, and something has to turn one
+   * back into an item. The library already has them all, so it says so rather
+   * than every other part of the application asking the server again.
+   */
+  onItemsLoaded?: (items: MediaSummary[]) => void
 }
 
 type BrowserState = 'loading' | 'ready' | 'unreachable'

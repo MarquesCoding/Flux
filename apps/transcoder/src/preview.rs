@@ -38,6 +38,20 @@ const DEFAULT_SECONDS: u32 = 24;
 /// The opening of anything is a distributor's logo on black.
 const DEFAULT_POSITION: f64 = 0.2;
 
+/// How wide a preview is.
+///
+/// Full height rather than a thumbnail. A preview fills a hero across the
+/// whole width of a desktop, and anything smaller is visibly soft there — the
+/// clip is made once and kept, so the few extra seconds and megabytes buy a
+/// picture that does not look worse than the film it is advertising.
+const DEFAULT_WIDTH: u32 = 1920;
+
+/// How hard the encoder tries.
+///
+/// Low enough that a still from the clip stands next to a still from the file
+/// without embarrassing itself.
+const QUALITY: &str = "20";
+
 /// What a caller asks for.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -60,7 +74,7 @@ const fn default_seconds() -> u32 {
 }
 
 const fn default_width() -> u32 {
-    854
+    DEFAULT_WIDTH
 }
 
 /// Where a preview ended up.
@@ -160,7 +174,9 @@ pub fn preview_arguments(
         }
     }
 
-    filters.push(format!("scale={}:-2", request.width));
+    // Never scaled up: a film shot at 720 gains nothing from being stretched
+    // to a preview twice its size, and the encoder would spend the effort.
+    filters.push(format!("scale='min({width},iw)':-2", width = request.width));
 
     vec![
         "-hide_banner".to_owned(),
@@ -180,7 +196,7 @@ pub fn preview_arguments(
         "-preset".to_owned(),
         "veryfast".to_owned(),
         "-crf".to_owned(),
-        "26".to_owned(),
+        QUALITY.to_owned(),
         "-profile:v".to_owned(),
         "high".to_owned(),
         "-pix_fmt".to_owned(),
@@ -274,7 +290,7 @@ mod tests {
             input_path: "/media/film.mkv".to_owned(),
             at_seconds: None,
             duration_seconds: 24,
-            width: 854,
+            width: 1920,
             wait: false,
         }
     }
@@ -334,7 +350,7 @@ mod tests {
             .expect("filters");
 
         assert!(!filters.contains("tonemap"));
-        assert!(filters.contains("scale=854:-2"));
+        assert!(filters.contains("scale='min(1920,iw)':-2"));
     }
 
     #[test]
