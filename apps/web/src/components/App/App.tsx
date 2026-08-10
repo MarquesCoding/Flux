@@ -4,6 +4,7 @@ import SpinnerModule from '@FluxUI/Spinner'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
 import SignInModule from '@FluxWeb/components/SignIn/SignIn'
 import TwoFactorSetupModule from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup'
+import PasskeySetupModule from '@FluxWeb/components/PasskeySetup/PasskeySetup'
 import fetchSessionModule from '@FluxWeb/session/fetchSession'
 import signOutModule from '@FluxWeb/session/signOut'
 import SetupModule from '@FluxContracts/schemas/Setup'
@@ -16,6 +17,7 @@ const { Spinner } = SpinnerModule
 const { SetupWizard } = SetupWizardModule
 const { SignIn } = SignInModule
 const { TwoFactorSetup } = TwoFactorSetupModule
+const { PasskeySetup } = PasskeySetupModule
 const { fetchSession } = fetchSessionModule
 const { signOut } = signOutModule
 const { SetupStatusSchema } = SetupModule
@@ -122,6 +124,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           void refresh()
         }}
       />
+
+      <PasskeySetup />
     </main>
   )
 }

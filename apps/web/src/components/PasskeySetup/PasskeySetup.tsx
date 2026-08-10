@@ -1,0 +1,163 @@
+import { useCallback, useEffect, useState } from 'react'
+import { IconKey, IconTrash } from '@tabler/icons-react'
+import ButtonModule from '@FluxUI/Button'
+import SpinnerModule from '@FluxUI/Spinner'
+import TextFieldModule from '@FluxUI/TextField'
+import isPasskeySupportedModule from '@FluxWeb/passkeys/isPasskeySupported'
+import registerPasskeyModule from '@FluxWeb/passkeys/registerPasskey'
+import listPasskeysModule from '@FluxWeb/passkeys/listPasskeys'
+import type { Passkey } from '@FluxContracts/schemas/Passkey'
+import type { PasskeySetupProps } from './PasskeySetup.types'
+
+const { Button } = ButtonModule
+const { Spinner } = SpinnerModule
+const { TextField } = TextFieldModule
+const { describePasskeyUnavailability } = isPasskeySupportedModule
+const { registerPasskey } = registerPasskeyModule
+const { listPasskeys, deletePasskey } = listPasskeysModule
+
+const DEFAULT_NAME = 'This device'
+
+/**
+ * Passkey enrollment and removal.
+ *
+ * Passkeys need a secure context, so an instance reached over plain HTTP on a
+ * LAN address cannot use them. That is a common self-hosted setup, so the
+ * unavailable case is explained rather than presented as a button that fails
+ * when pressed.
+ */
+const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
+  const [passkeys, setPasskeys] = useState<Passkey[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [name, setName] = useState(DEFAULT_NAME)
+  const [isAdding, setIsAdding] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+
+  const unavailable = describePasskeyUnavailability()
+
+  const refresh = useCallback(async () => {
+    try {
+      setPasskeys(await listPasskeys())
+    } catch {
+      setMessage('Could not load your passkeys.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  const add = async () => {
+    setMessage(null)
+    setIsAdding(true)
+
+    try {
+      const outcome = await registerPasskey(name.trim() === '' ? DEFAULT_NAME : name.trim())
+
+      if (outcome.kind === 'failed') {
+        setMessage(outcome.reason)
+
+        return
+      }
+
+      if (outcome.kind === 'cancelled') {
+        return
+      }
+
+      setName(DEFAULT_NAME)
+      await refresh()
+      onChanged?.()
+    } finally {
+      setIsAdding(false)
+    }
+  }
+
+  const remove = async (passkey: Passkey) => {
+    setMessage(null)
+
+    if (!(await deletePasskey(passkey.id))) {
+      setMessage('That passkey could not be removed.')
+
+      return
+    }
+
+    await refresh()
+    onChanged?.()
+  }
+
+  return (
+    <section className="flex flex-col gap-4 rounded-lg border border-border p-5">
+      <header className="flex flex-col gap-1">
+        <h2 className="text-lg font-medium text-text">Passkeys</h2>
+        <p className="text-sm text-text-muted">Sign in with your device instead of a password.</p>
+      </header>
+
+      {message === null ? null : (
+        <p role="alert" className="text-sm text-danger">
+          {message}
+        </p>
+      )}
+
+      {isLoading ? (
+        <Spinner label="Loading passkeys" />
+      ) : passkeys.length === 0 ? (
+        <p className="text-sm text-text-muted">No passkeys yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {passkeys.map((passkey) => (
+            <li
+              key={passkey.id}
+              className="flex items-center justify-between gap-3 rounded-md bg-surface-raised px-3 py-2"
+            >
+              <span className="flex items-center gap-2 text-sm text-text">
+                <IconKey size={16} aria-hidden />
+                {passkey.name ?? 'Unnamed passkey'}
+              </span>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  void remove(passkey)
+                }}
+              >
+                <IconTrash size={16} aria-hidden />
+                Remove
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {unavailable === null ? (
+        <form
+          noValidate
+          className="flex flex-col gap-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void add()
+          }}
+        >
+          <TextField
+            label="Passkey name"
+            value={name}
+            onValueChange={setName}
+            description="Something you will recognise later, such as the device you are on."
+          />
+
+          <Button type="submit" isLoading={isAdding}>
+            Add a passkey
+          </Button>
+        </form>
+      ) : (
+        <p className="text-sm text-text-muted">{unavailable}</p>
+      )}
+    </section>
+  )
+}
+
+PasskeySetup.displayName = 'PasskeySetup'
+
+export default { PasskeySetup }
