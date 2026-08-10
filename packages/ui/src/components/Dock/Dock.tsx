@@ -30,7 +30,21 @@ const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
         className,
       )}
     >
-      <ul className="flux-glass pointer-events-auto flex items-center gap-1 rounded-full p-1.5">
+      {/* Arrives after the page rather than with it: the dock is an offer, and
+          an offer that lands before the thing it is about competes with it. */}
+      <motion.ul
+        initial={
+          prefersReducedMotion === true
+            ? { opacity: 0 }
+            : { opacity: 0, y: 28, scaleX: 0.7, filter: 'blur(6px)' }
+        }
+        animate={{ opacity: 1, y: 0, scaleX: 1, filter: 'blur(0px)' }}
+        transition={{
+          ...revealTransition(prefersReducedMotion, 'heavy'),
+          delay: prefersReducedMotion === true ? 0 : 0.35,
+        }}
+        className="flux-glass pointer-events-auto flex items-center gap-1 rounded-full p-1.5"
+      >
         {items.map((item) => {
           const isSelected = item.id === selectedId
 
@@ -63,7 +77,7 @@ const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
             </li>
           )
         })}
-      </ul>
+      </motion.ul>
     </nav>
   )
 }

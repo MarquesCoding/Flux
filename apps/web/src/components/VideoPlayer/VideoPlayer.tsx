@@ -99,6 +99,10 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
   const [isShowingStats, setIsShowingStats] = useState(false)
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH)
   const [isIdle, setIsIdle] = useState(false)
+  // Bumped by anything a viewer actually did. Playback position is not that:
+  // it changes several times a second, and a timer restarted by it never
+  // expires, so the controls would sit there for the whole film.
+  const [activity, setActivity] = useState(0)
   const [playbackRate, setPlaybackRate] = useState(1)
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([])
   const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF)
@@ -330,7 +334,26 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
     return () => {
       clearTimeout(timer)
     }
-  }, [isPlaying, position])
+  }, [isPlaying, activity])
+
+  useEffect(() => {
+    if (!isImmersive) {
+      return
+    }
+
+    // A viewer driving from the keyboard is not idle either, and the pointer
+    // never moves to say so.
+    const onKeyDown = () => {
+      setIsIdle(false)
+      setActivity((count) => count + 1)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isImmersive])
 
   // A transcode is delivered as a playlist that grows while ffmpeg encodes, so
   // the media element only knows about the part produced so far. The library
@@ -507,13 +530,16 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
 
       <div
         ref={stageRef}
-        className={
+        // The pointer goes with the controls: a cursor sitting over a film is
+        // as much of an intrusion as a bar of buttons is.
+        className={`${
           isImmersive
             ? 'relative flex flex-1 items-center justify-center bg-black'
             : 'relative overflow-hidden rounded-lg bg-black'
-        }
+        } ${isIdle && !isShowingStats && !isEditingCaptions ? 'cursor-none' : 'cursor-default'}`}
         onPointerMove={() => {
           setIsIdle(false)
+          setActivity((count) => count + 1)
         }}
         onPointerLeave={() => {
           setIsIdle(isPlaying)

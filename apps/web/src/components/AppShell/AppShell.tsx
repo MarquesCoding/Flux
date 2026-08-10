@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { IconHome, IconSearch, IconSettings, IconUserCircle } from '@tabler/icons-react'
 import { motion, useReducedMotion } from 'motion/react'
 import DockModule from '@FluxUI/Dock'
@@ -45,6 +46,26 @@ const AppShell = ({
   isAdministrator = false,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (section === 'home') {
+      return
+    }
+
+    // Escape is what everyone tries to get out of a place they have wandered
+    // into. Home is where it lets them out.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onSectionChange('home')
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [section, onSectionChange])
 
   const sections: ShellSection[] = isAdministrator
     ? ['home', 'search', 'account', 'admin']

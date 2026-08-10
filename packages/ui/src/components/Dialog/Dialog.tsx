@@ -5,6 +5,38 @@ import type { DialogProps } from './Dialog.types'
 const { cn } = cnModule
 
 /**
+ * How the panel arrives and leaves.
+ *
+ * Driven by the state attributes Base UI sets rather than by a presence
+ * wrapper, because Base UI already holds the element mounted until its
+ * transition has finished. Anything animating this from the outside would be
+ * racing it.
+ *
+ * A phone gets a sheet rising from the bottom edge, which is where a thumb
+ * expects to have summoned it from. A desktop gets a panel settling into the
+ * middle, since it has no edge the pointer came from.
+ */
+const POPUP_MOTION = [
+  'transition-[opacity,transform] duration-300 ease-out',
+  'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
+  // Each width animates the property the other is using for layout: a phone
+  // slides, and a desktop is already translated to sit in the middle, so it
+  // scales instead.
+  'max-sm:data-[starting-style]:translate-y-8 max-sm:data-[ending-style]:translate-y-8',
+  'sm:data-[starting-style]:scale-[0.97] sm:data-[ending-style]:scale-[0.97]',
+  'motion-reduce:transition-opacity',
+  'motion-reduce:max-sm:data-[starting-style]:translate-y-0',
+  'motion-reduce:max-sm:data-[ending-style]:translate-y-0',
+  'motion-reduce:sm:data-[starting-style]:scale-100',
+  'motion-reduce:sm:data-[ending-style]:scale-100',
+].join(' ')
+
+const BACKDROP_MOTION = [
+  'transition-opacity duration-300 ease-out',
+  'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
+].join(' ')
+
+/**
  * A panel over the page.
  *
  * Built on the Base UI dialog so focus is trapped and restored, escape closes,
@@ -21,14 +53,18 @@ const Dialog = ({ label, isOpen, onClose, children, className }: DialogProps) =>
     }}
   >
     <BaseDialog.Portal>
-      <BaseDialog.Backdrop className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
+      <BaseDialog.Backdrop
+        className={cn('fixed inset-0 z-40 bg-black/70 backdrop-blur-sm', BACKDROP_MOTION)}
+      />
 
       <BaseDialog.Popup
         aria-label={label}
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(56rem,92vw)] -translate-x-1/2',
-          '-translate-y-1/2 overflow-y-auto rounded-2xl border border-border',
-          'bg-surface text-text shadow-2xl',
+          'fixed inset-x-0 bottom-0 top-0 z-50 overflow-y-auto bg-surface text-text',
+          'sm:inset-x-auto sm:inset-y-auto sm:left-1/2 sm:top-1/2 sm:max-h-[90vh]',
+          'sm:w-[min(56rem,92vw)] sm:-translate-x-1/2 sm:-translate-y-1/2',
+          'sm:rounded-2xl sm:border sm:border-border sm:shadow-2xl',
+          POPUP_MOTION,
           className,
         )}
       >

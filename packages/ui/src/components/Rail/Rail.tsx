@@ -105,7 +105,12 @@ const Rail = ({ title, children, action, className }: RailProps) => {
       <ul
         ref={trackRef}
         onScroll={measure}
-        className="flux-rail flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-2"
+        // Scrolling sideways clips vertically too — a browser will not give one
+        // axis a scrollbar and leave the other free — so a card that lifts on
+        // hover loses its top edge and its shadow. The padding is the room it
+        // lifts into; the negative margin gives that space back to the page so
+        // rows are not pushed apart by it.
+        className="flux-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
       >
         {children}
       </ul>

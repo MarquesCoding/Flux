@@ -43,4 +43,45 @@ describe('Dialog', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(Dialog.displayName).toBe('Dialog')
   })
+
+  it('arrives and leaves rather than appearing and vanishing', () => {
+    render(
+      <Dialog label="Arrival" isOpen onClose={vi.fn()}>
+        <p>Details</p>
+      </Dialog>,
+    )
+
+    // Driven by the state attributes the dialog sets on itself, because it
+    // already holds the element mounted until the transition finishes —
+    // anything animating it from outside would be racing that.
+    const panel = screen.getByRole('dialog', { name: 'Arrival' })
+
+    expect(panel.className).toContain('data-[starting-style]:opacity-0')
+    expect(panel.className).toContain('data-[ending-style]:opacity-0')
+  })
+
+  it('rises from the edge a thumb summoned it from, and settles in place on a desktop', () => {
+    render(
+      <Dialog label="Arrival" isOpen onClose={vi.fn()}>
+        <p>Details</p>
+      </Dialog>,
+    )
+
+    const panel = screen.getByRole('dialog', { name: 'Arrival' })
+
+    expect(panel.className).toContain('max-sm:data-[starting-style]:translate-y-8')
+    expect(panel.className).toContain('sm:data-[starting-style]:scale-[0.97]')
+  })
+
+  it('drops the movement, but not the fade, when movement is unwelcome', () => {
+    render(
+      <Dialog label="Arrival" isOpen onClose={vi.fn()}>
+        <p>Details</p>
+      </Dialog>,
+    )
+
+    expect(screen.getByRole('dialog', { name: 'Arrival' }).className).toContain(
+      'motion-reduce:transition-opacity',
+    )
+  })
 })
