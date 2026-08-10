@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useReducedMotion,
+} from 'motion/react'
 import { IconPlayerPlayFilled, IconStar } from '@tabler/icons-react'
 import MediaCardModule from '@FluxUI/MediaCard'
 import BadgeModule from '@FluxUI/Badge'
@@ -39,6 +46,23 @@ const MARGIN = 12
  * How many genres are worth naming on a card.
  */
 const GENRE_LIMIT = 3
+
+/**
+ * How far the open card leans towards the pointer, in degrees.
+ *
+ * Small on purpose. Enough that the panel feels like an object being looked
+ * at rather than a picture stuck to the glass, and not so much that reading it
+ * means fighting perspective.
+ */
+const TILT = 7
+
+/**
+ * How the lean settles.
+ *
+ * Soft and slow to arrive, so the panel follows the pointer rather than
+ * tracking it exactly — a card that mirrors every twitch reads as nervous.
+ */
+const LEAN = { stiffness: 150, damping: 18, mass: 0.6 } as const
 
 /**
  * Where a card is on screen.
@@ -99,6 +123,15 @@ const RailCard = ({
   // requests for a page nobody has stopped on.
   const [detail, setDetail] = useState<MediaDetail | null>(null)
   const holderRef = useRef<HTMLDivElement>(null)
+  // Where the pointer is over the card, from -0.5 at one edge to 0.5 at the
+  // other. Motion values rather than state: this changes on every mouse move,
+  // and re-rendering a panel with a video in it that often would be absurd.
+  const towardsX = useMotionValue(0)
+  const towardsY = useMotionValue(0)
+  const leanX = useSpring(towardsX, LEAN)
+  const leanY = useSpring(towardsY, LEAN)
+  const rotateY = useTransform(leanX, (along) => along * TILT)
+  const rotateX = useTransform(leanY, (down) => down * -TILT)
   const [anchor, setAnchor] = useState<Anchor | null>(null)
   const prefersReducedMotion = useReducedMotion()
 
@@ -177,7 +210,23 @@ const RailCard = ({
         cancel()
         timerRef.current = setTimeout(open, hoverDelayMilliseconds)
       }}
-      onPointerLeave={cancel}
+      onPointerLeave={() => {
+        cancel()
+        towardsX.set(0)
+        towardsY.set(0)
+      }}
+      onPointerMove={(event) => {
+        const holder = holderRef.current
+
+        if (holder === null || prefersReducedMotion === true) {
+          return
+        }
+
+        const box = holder.getBoundingClientRect()
+
+        towardsX.set((event.clientX - box.left) / box.width - 0.5)
+        towardsY.set((event.clientY - box.top) / box.height - 0.5)
+      }}
     >
       <MediaCard
         title={media.title}
@@ -201,7 +250,16 @@ const RailCard = ({
               exit={{ opacity: 0, scale: 1 / GROWTH }}
               transition={liquidSpring}
               onPointerLeave={close}
-              style={{ left: anchor.left, top: anchor.top, width: anchor.width }}
+              style={{
+                left: anchor.left,
+                top: anchor.top,
+                width: anchor.width,
+                // Perspective on the panel itself, so leaning towards the
+                // pointer reads as depth rather than as a squash.
+                transformPerspective: 900,
+                rotateX,
+                rotateY,
+              }}
               className="fixed z-40 overflow-hidden rounded-2xl bg-surface-raised shadow-2xl ring-1 ring-white/10"
             >
               <div className="aspect-video w-full">

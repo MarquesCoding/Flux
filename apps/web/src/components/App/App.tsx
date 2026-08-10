@@ -9,6 +9,7 @@ import AdminAreaModule from '@FluxWeb/components/AdminArea/AdminArea'
 import AccountAreaModule from '@FluxWeb/components/AccountArea/AccountArea'
 import ProfileGateModule from '@FluxWeb/components/ProfileGate/ProfileGate'
 import usePlaceModule from '@FluxWeb/navigation/usePlace'
+import pickFeaturedModule from '@FluxWeb/library/pickFeatured'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
 import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
 import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types'
@@ -31,6 +32,7 @@ const { AdminArea } = AdminAreaModule
 const { AccountArea } = AccountAreaModule
 const { ProfileGate } = ProfileGateModule
 const { usePlace } = usePlaceModule
+const { findSiblings } = pickFeaturedModule
 const { fetchWatchProgress, byMediaId } = watchProgressModule
 const { isWorthResuming } = WatchProgressContract
 
@@ -78,6 +80,25 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
     return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
   }
+
+  /**
+   * Keeps what the library has shown, so an address naming an item can be
+   * turned back into one.
+   *
+   * Stable, because a callback rebuilt on every render is a callback that
+   * makes anything depending on it run again.
+   */
+  const rememberItems = useCallback((items: MediaSummary[]) => {
+    setKnown((current) => {
+      const next = new Map(current)
+
+      for (const item of items) {
+        next.set(item.id, item)
+      }
+
+      return next
+    })
+  }, [])
 
   const readProgress = useCallback(async () => {
     setProgress(byMediaId(await fetchWatchProgress()))
@@ -219,6 +240,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     >
       <MediaDetailDialog
         media={inspecting}
+        siblings={inspecting === null ? [] : findSiblings([...known.values()], inspecting)}
+        onSelectSibling={(sibling) => {
+          go({ inspecting: sibling.id })
+        }}
         {...(inspecting !== null && resumeFor(inspecting.id) !== null
           ? { resumeSeconds: resumeFor(inspecting.id) ?? 0 }
           : {})}
@@ -255,17 +280,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           onWatch={(media, startSeconds) => {
             go({ playing: media.id, startSeconds })
           }}
-          onItemsLoaded={(items) => {
-            setKnown((current) => {
-              const next = new Map(current)
-
-              for (const item of items) {
-                next.set(item.id, item)
-              }
-
-              return next
-            })
-          }}
+          onItemsLoaded={rememberItems}
           // Only the home section opens with a hero. Films and series are
           // places someone arrived at looking for something, and a screen of
           // artwork between them and the list is in the way.

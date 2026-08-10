@@ -104,7 +104,10 @@ const Hero = ({
       onPointerLeave={release}
       onFocusCapture={hold}
       onBlurCapture={release}
-      className="relative flex min-h-[88svh] flex-col justify-end overflow-hidden"
+      // The whole screen, so nothing of the library shows until somebody asks
+      // for it by scrolling. A row of cards peeking under a hero turns an
+      // opening shot into a header.
+      className="relative flex min-h-svh flex-col justify-end overflow-hidden"
     >
       {/* The picture crossfades under the text rather than cutting, so a
           rotation reads as one screen changing its mind rather than as two
@@ -194,7 +197,7 @@ const Hero = ({
       </motion.div>
 
       {items.length < 2 ? null : (
-        <ul className="absolute bottom-8 right-5 flex flex-col items-end sm:right-10">
+        <ul className="absolute bottom-8 right-5 flex items-center gap-2 sm:right-10">
           {items.map((item, position) => (
             <li key={item.id}>
               {/* The bar is two pixels tall and the button around it is not:
@@ -208,15 +211,12 @@ const Hero = ({
                 onClick={() => {
                   setIndex(position)
                 }}
-                className="group flex items-center justify-end gap-3 py-2 pl-6"
+                className="group relative flex items-center px-0.5 py-2"
               >
-                <span
-                  className={`whitespace-nowrap text-xs font-medium tracking-tight transition-opacity duration-300 ${
-                    position === index
-                      ? 'text-text opacity-0 group-hover:opacity-100'
-                      : 'text-text-muted opacity-0 group-hover:opacity-100'
-                  }`}
-                >
+                {/* Lifted out of the flow: an invisible label still takes its
+                    full width, which pushed the markers as far apart as the
+                    titles are long. */}
+                <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap text-xs font-medium tracking-tight text-text opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                   {item.title}
                 </span>
 

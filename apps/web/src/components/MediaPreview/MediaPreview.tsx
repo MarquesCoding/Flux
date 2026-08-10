@@ -63,7 +63,10 @@ const MediaPreview = ({
   // pausing is not one of them, because a paused video is still a frame of the
   // film and covering it with a still is covering a picture with a picture.
   const [hasEnded, setHasEnded] = useState(false)
-  const [hasFrame, setHasFrame] = useState(false)
+  // Whether the picture has arrived. Kept so nothing can flash a half drawn
+  // image, but never a reason to hide the still: an item whose artwork is
+  // slow should show black, not a video that is not ready either.
+  const [, setHasFrame] = useState(false)
   const [isMuted, setIsMuted] = useState(!hasSound)
   // Whether the clip has ever run. The controls appear once it has and stay,
   // because a pause button that vanishes the moment it is pressed is a pause
@@ -145,29 +148,19 @@ const MediaPreview = ({
         fills ? 'h-full w-full' : 'aspect-video w-full'
       }`}
     >
-      {/* The backdrop sits underneath, for the moment before the frame
-          itself arrives. */}
-      {backdropUrl === null ? null : (
-        <div
-          role="presentation"
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${backdropUrl})` }}
-        />
-      )}
-
-      {/* The frame the clip begins on, drawn under it. Handing over from this
-          to the playing clip moves nothing on screen, and returning to it when
-          the clip ends means a rotation leaves on a picture. An image rather
-          than a background, so its decoding can be waited on. */}
+      {/* The item's own artwork, which is what it should look like when it is
+          not playing. A frame pulled out of the file is the fallback for an
+          item a catalogue has never heard of — good enough to stand in, but
+          not what anybody chose to represent the thing. */}
       <img
-        src={frameUrl(mediaId, startSeconds)}
+        src={backdropUrl ?? frameUrl(mediaId, startSeconds)}
         alt=""
         aria-hidden
         onLoad={() => {
           setHasFrame(true)
         }}
         className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-          isShowingFrame && hasFrame ? 'opacity-100' : 'opacity-0'
+          isShowingFrame ? 'opacity-100' : 'opacity-0'
         }`}
       />
 

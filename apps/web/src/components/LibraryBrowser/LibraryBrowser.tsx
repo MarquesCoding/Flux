@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { IconRefresh, IconRefreshAlert, IconSearch } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
@@ -67,11 +67,19 @@ const LibraryBrowser = ({
   const [isScanning, setIsScanning] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
+  // Held in a ref rather than depended upon. A caller that passes a fresh
+  // function every render — which is what an inline arrow is — would
+  // otherwise make this effect run on every render, and the state it sets
+  // renders again: an update loop that never settles.
+  const reportItems = useRef(onItemsLoaded)
+
+  reportItems.current = onItemsLoaded
+
   useEffect(() => {
     if (items.length > 0) {
-      onItemsLoaded?.(items)
+      reportItems.current?.(items)
     }
-  }, [items, onItemsLoaded])
+  }, [items])
 
   useEffect(() => {
     let abandoned = false

@@ -62,4 +62,28 @@ const pickFeatured = (items: MediaSummary[], limit: number): MediaSummary[] => {
   return featured.slice(0, limit)
 }
 
-export default { pickFeatured, isEarlier }
+/**
+ * The other episodes of the same season.
+ *
+ * In broadcast order and without the one being read about, because a list of
+ * what to watch next that includes what is already open is a list with a hole
+ * in it.
+ */
+const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] => {
+  const series = of.seriesTitle ?? null
+
+  if (series === null) {
+    return []
+  }
+
+  return items
+    .filter(
+      (item) =>
+        item.id !== of.id &&
+        item.seriesTitle === series &&
+        (item.seasonNumber ?? null) === (of.seasonNumber ?? null),
+    )
+    .sort((left, right) => (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0))
+}
+
+export default { pickFeatured, isEarlier, findSiblings }
