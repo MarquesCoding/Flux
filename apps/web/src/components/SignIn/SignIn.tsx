@@ -1,14 +1,19 @@
 import { useState } from 'react'
+import { IconKey } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import TwoFactorChallengeModule from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge'
 import TextFieldModule from '@FluxUI/TextField'
 import SessionModule from '@FluxContracts/schemas/Session'
+import isPasskeySupportedModule from '@FluxWeb/passkeys/isPasskeySupported'
+import authenticateWithPasskeyModule from '@FluxWeb/passkeys/authenticateWithPasskey'
 import type { SignInErrors, SignInProps } from './SignIn.types'
 
 const { Button } = ButtonModule
 const { TextField } = TextFieldModule
 const { SignInResponseSchema } = SessionModule
 const { TwoFactorChallenge } = TwoFactorChallengeModule
+const { isPasskeySupported } = isPasskeySupportedModule
+const { authenticateWithPasskey } = authenticateWithPasskeyModule
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -25,6 +30,32 @@ const SignIn = ({ onSignedIn }: SignInProps) => {
   const [errors, setErrors] = useState<SignInErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [needsSecondFactor, setNeedsSecondFactor] = useState(false)
+  const [isUsingPasskey, setIsUsingPasskey] = useState(false)
+
+  const passkeysAvailable = isPasskeySupported()
+
+  const signInWithPasskey = async () => {
+    setErrors({})
+    setIsUsingPasskey(true)
+
+    try {
+      const outcome = await authenticateWithPasskey()
+
+      if (outcome.kind === 'failed') {
+        setErrors({ submit: outcome.reason })
+
+        return
+      }
+
+      if (outcome.kind === 'cancelled') {
+        return
+      }
+
+      onSignedIn()
+    } finally {
+      setIsUsingPasskey(false)
+    }
+  }
 
   const submit = async () => {
     const found: SignInErrors = {}
@@ -128,6 +159,23 @@ const SignIn = ({ onSignedIn }: SignInProps) => {
           Sign in
         </Button>
       </form>
+
+      {passkeysAvailable ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-center text-sm text-text-muted">or</p>
+
+          <Button
+            variant="secondary"
+            isLoading={isUsingPasskey}
+            onClick={() => {
+              void signInWithPasskey()
+            }}
+          >
+            <IconKey size={16} aria-hidden />
+            Sign in with a passkey
+          </Button>
+        </div>
+      ) : null}
     </main>
   )
 }

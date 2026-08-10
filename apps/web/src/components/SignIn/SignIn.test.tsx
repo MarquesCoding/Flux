@@ -4,6 +4,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import SignInModule from './SignIn'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
+const isPasskeySupportedMock = vi.hoisted(() => vi.fn())
+const authenticateWithPasskeyMock = vi.hoisted(() => vi.fn())
+
+vi.mock('@FluxWeb/passkeys/isPasskeySupported', () => ({
+  default: {
+    isPasskeySupported: isPasskeySupportedMock,
+    describePasskeyUnavailability: () => null,
+  },
+}))
+
+vi.mock('@FluxWeb/passkeys/authenticateWithPasskey', () => ({
+  default: { authenticateWithPasskey: authenticateWithPasskeyMock },
+}))
+
 const { SignIn } = SignInModule
 
 type JsonRequestInit = Omit<RequestInit, 'body'> & { body?: string }
@@ -28,6 +42,10 @@ const respondWith = (body: JsonValue, ok = true, status = 200) => {
 
 beforeEach(() => {
   fetchMock.mockReset()
+  isPasskeySupportedMock.mockReset()
+  authenticateWithPasskeyMock.mockReset()
+  isPasskeySupportedMock.mockReturnValue(true)
+  authenticateWithPasskeyMock.mockResolvedValue({ kind: 'signedIn' })
   respondWith({ redirect: false, token: 'abc', user })
   vi.stubGlobal('fetch', fetchMock)
 })
@@ -61,7 +79,7 @@ describe('SignIn', () => {
     render(<SignIn onSignedIn={vi.fn()} />)
 
     await actor.type(screen.getByLabelText('Email'), 'nope')
-    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await actor.click(screen.getByRole('button', { name: 'Sign in' }))
 
     expect(fetchMock).not.toHaveBeenCalled()
     expect(screen.getByText('Enter a valid email address.')).toBeInTheDocument()
@@ -72,7 +90,7 @@ describe('SignIn', () => {
     render(<SignIn onSignedIn={vi.fn()} />)
 
     await actor.type(screen.getByLabelText('Email'), 'admin@flux.test')
-    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await actor.click(screen.getByRole('button', { name: 'Sign in' }))
 
     expect(fetchMock).not.toHaveBeenCalled()
     expect(screen.getByText('Enter your password.')).toBeInTheDocument()
@@ -83,7 +101,7 @@ describe('SignIn', () => {
     render(<SignIn onSignedIn={vi.fn()} />)
 
     await fill(actor)
-    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await actor.click(screen.getByRole('button', { name: 'Sign in' }))
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith('/api/auth/sign-in/email', expect.anything())
@@ -96,7 +114,7 @@ describe('SignIn', () => {
     render(<SignIn onSignedIn={onSignedIn} />)
 
     await fill(actor)
-    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await actor.click(screen.getByRole('button', { name: 'Sign in' }))
 
     await waitFor(() => {
       expect(onSignedIn).toHaveBeenCalledOnce()
@@ -122,7 +140,7 @@ describe('SignIn', () => {
     render(<SignIn onSignedIn={vi.fn()} />)
 
     await fill(actor)
-    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await actor.click(screen.getByRole('button', { name: 'Sign in' }))
 
     const alert = await screen.findByRole('alert')
 
@@ -137,7 +155,7 @@ describe('SignIn', () => {
     render(<SignIn onSignedIn={onSignedIn} />)
 
     await fill(actor)
-    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await actor.click(screen.getByRole('button', { name: 'Sign in' }))
 
     await screen.findByRole('alert')
 
@@ -151,7 +169,7 @@ describe('SignIn', () => {
     render(<SignIn onSignedIn={onSignedIn} />)
 
     await fill(actor)
-    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await actor.click(screen.getByRole('button', { name: 'Sign in' }))
 
     await screen.findByRole('heading', { name: 'Two-factor authentication' })
 
@@ -164,7 +182,7 @@ describe('SignIn', () => {
     render(<SignIn onSignedIn={vi.fn()} />)
 
     await fill(actor)
-    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await actor.click(screen.getByRole('button', { name: 'Sign in' }))
 
     expect(await screen.findByLabelText('Authenticator code')).toBeInTheDocument()
   })
@@ -175,7 +193,7 @@ describe('SignIn', () => {
     render(<SignIn onSignedIn={vi.fn()} />)
 
     await fill(actor)
-    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await actor.click(screen.getByRole('button', { name: 'Sign in' }))
     await screen.findByLabelText('Authenticator code')
     await actor.click(screen.getByRole('button', { name: 'Back to sign in' }))
 
@@ -189,12 +207,66 @@ describe('SignIn', () => {
     render(<SignIn onSignedIn={vi.fn()} />)
 
     await fill(actor)
-    await actor.click(screen.getByRole('button', { name: /Sign in/ }))
+    await actor.click(screen.getByRole('button', { name: 'Sign in' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/Could not reach the server/)
   })
 
   it('sets a display name so devtools can identify it', () => {
     expect(SignIn.displayName).toBe('SignIn')
+  })
+
+  it('offers passkey sign in when the browser supports it', () => {
+    render(<SignIn onSignedIn={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: /Sign in with a passkey/ })).toBeInTheDocument()
+  })
+
+  it('hides passkey sign in when it cannot work here', () => {
+    isPasskeySupportedMock.mockReturnValue(false)
+    render(<SignIn onSignedIn={vi.fn()} />)
+
+    expect(screen.queryByRole('button', { name: /Sign in with a passkey/ })).not.toBeInTheDocument()
+  })
+
+  it('signs in with a passkey without an email or password', async () => {
+    const onSignedIn = vi.fn()
+    const actor = userEvent.setup()
+    render(<SignIn onSignedIn={onSignedIn} />)
+
+    await actor.click(screen.getByRole('button', { name: /Sign in with a passkey/ }))
+
+    await waitFor(() => {
+      expect(onSignedIn).toHaveBeenCalledOnce()
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('says nothing when the passkey prompt is dismissed', async () => {
+    authenticateWithPasskeyMock.mockResolvedValue({ kind: 'cancelled' })
+    const onSignedIn = vi.fn()
+    const actor = userEvent.setup()
+    render(<SignIn onSignedIn={onSignedIn} />)
+
+    await actor.click(screen.getByRole('button', { name: /Sign in with a passkey/ }))
+
+    await waitFor(() => {
+      expect(authenticateWithPasskeyMock).toHaveBeenCalledOnce()
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(onSignedIn).not.toHaveBeenCalled()
+  })
+
+  it('reports a passkey failure', async () => {
+    authenticateWithPasskeyMock.mockResolvedValue({
+      kind: 'failed',
+      reason: 'That passkey was not accepted.',
+    })
+    const actor = userEvent.setup()
+    render(<SignIn onSignedIn={vi.fn()} />)
+
+    await actor.click(screen.getByRole('button', { name: /Sign in with a passkey/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('That passkey was not accepted.')
   })
 })
