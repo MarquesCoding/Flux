@@ -30,12 +30,15 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
     selectedSubtitleId: 'off',
     audioTracks: [],
     selectedAudioIndex: null,
+    availableQualitySteps: [],
+    selectedQuality: 'original',
     onTogglePlay: vi.fn(),
     onSeek: vi.fn(),
     onSkip: vi.fn(),
     onPlaybackRateChange: vi.fn(),
     onSubtitleChange: vi.fn(),
     onAudioChange: vi.fn(),
+    onQualityChange: vi.fn(),
     onEditCaptions: vi.fn(),
     onVolumeChange: vi.fn(),
     onToggleMute: vi.fn(),
@@ -166,7 +169,10 @@ describe('PlayerControls', () => {
         selectedSubtitleId="off"
         audioTracks={[]}
         selectedAudioIndex={null}
+        availableQualitySteps={[]}
+        selectedQuality="original"
         onAudioChange={vi.fn()}
+        onQualityChange={vi.fn()}
         onTogglePlay={vi.fn()}
         onSeek={vi.fn()}
         onSkip={vi.fn()}
@@ -321,6 +327,58 @@ describe('PlayerControls', () => {
     await user.click(screen.getByRole('button', { name: 'Subtitles' }))
 
     expect(await screen.findByRole('menuitemradio', { name: /Japanese/ })).toBeChecked()
+  })
+
+  it('offers no quality menu when there is nothing below Original', () => {
+    draw({ availableQualitySteps: [] })
+
+    expect(screen.queryByRole('button', { name: 'Quality' })).not.toBeInTheDocument()
+  })
+
+  it('shows Original as the quality by default', () => {
+    draw({ availableQualitySteps: ['720p', '480p'] })
+
+    expect(screen.getByRole('button', { name: 'Quality' })).toHaveTextContent('Original')
+  })
+
+  it('offers every available step alongside Original', async () => {
+    const user = userEvent.setup()
+    draw({ availableQualitySteps: ['720p', '480p'] })
+
+    await user.click(screen.getByRole('button', { name: 'Quality' }))
+
+    expect(await screen.findByRole('menuitemradio', { name: 'Original' })).toBeChecked()
+    expect(screen.getByRole('menuitemradio', { name: /720p/ })).toBeInTheDocument()
+    expect(screen.getByRole('menuitemradio', { name: /480p/ })).toBeInTheDocument()
+  })
+
+  it('shows a step bitrate as a detail', async () => {
+    const user = userEvent.setup()
+    draw({ availableQualitySteps: ['720p'] })
+
+    await user.click(screen.getByRole('button', { name: 'Quality' }))
+
+    expect(await screen.findByRole('menuitemradio', { name: /720p/ })).toHaveTextContent('2.5 Mbps')
+  })
+
+  it('reports the step that was chosen', async () => {
+    const user = userEvent.setup()
+    const props = draw({ availableQualitySteps: ['720p', '480p'] })
+
+    await user.click(screen.getByRole('button', { name: 'Quality' }))
+    await user.click(await screen.findByRole('menuitemradio', { name: /720p/ }))
+
+    expect(props.onQualityChange).toHaveBeenCalledWith('720p')
+  })
+
+  it('can be switched back to Original', async () => {
+    const user = userEvent.setup()
+    const props = draw({ availableQualitySteps: ['720p'], selectedQuality: '720p' })
+
+    await user.click(screen.getByRole('button', { name: 'Quality' }))
+    await user.click(await screen.findByRole('menuitemradio', { name: 'Original' }))
+
+    expect(props.onQualityChange).toHaveBeenCalledWith('original')
   })
 
   it('sets a display name so devtools can identify it', () => {

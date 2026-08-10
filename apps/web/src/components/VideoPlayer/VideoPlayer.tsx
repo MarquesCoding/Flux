@@ -11,8 +11,10 @@ import captureFrameModule from '@FluxWeb/playback/captureFrame'
 import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import captionStyleModule from '@FluxWeb/playback/captionStyle'
+import qualityPreferenceModule from '@FluxWeb/playback/qualityPreference'
 import fetchSegmentsModule from '@FluxWeb/playback/fetchSegments'
 import describeTrackModule from '@FluxCore/functions/describeTrack'
+import listAvailableQualityStepsModule from '@FluxCore/functions/listAvailableQualitySteps'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
 import PlayerControlsModule from './components/PlayerControls/PlayerControls'
@@ -24,6 +26,7 @@ import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
 import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
 import type { PlaybackHealth } from './components/StreamStats/StreamStats.types'
+import type { QualityPreference } from '@FluxWeb/playback/qualityPreference'
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types'
 
 const { Button } = ButtonModule
@@ -43,8 +46,10 @@ const { PlayerControls } = PlayerControlsModule
 const { StreamStats } = StreamStatsModule
 const { CaptionSettings } = CaptionSettingsModule
 const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
+const { readQualityPreference, saveQualityPreference } = qualityPreferenceModule
 const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
 const { describeAudioTrack } = describeTrackModule
+const { listAvailableQualitySteps } = listAvailableQualityStepsModule
 
 /**
  * An element that may be able to go full screen.
@@ -113,7 +118,8 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
     mediaId: string
     startSeconds: number
     audioStreamIndex?: number
-  }>({ mediaId: media.id, startSeconds: 0 })
+    requestedQuality: QualityPreference
+  }>({ mediaId: media.id, startSeconds: 0, requestedQuality: readQualityPreference() })
   // The frame the viewer was looking at when they dragged the scrub bar. Held
   // on screen until the new session produces one of its own, because tearing
   // the old session down blanks the media element and a black rectangle reads
@@ -121,7 +127,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
   const [heldFrame, setHeldFrame] = useState<string | null>(null)
 
   if (request.mediaId !== media.id) {
-    setRequest({ mediaId: media.id, startSeconds: 0 })
+    setRequest({ mediaId: media.id, startSeconds: 0, requestedQuality: request.requestedQuality })
   }
 
   useEffect(() => {
@@ -154,6 +160,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
         detectFromBrowser(),
         request.startSeconds,
         request.audioStreamIndex,
+        request.requestedQuality,
       )
 
       if (isAbandoned()) {
@@ -383,6 +390,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
       setRequest({
         mediaId: request.mediaId,
         startSeconds: Math.floor(seconds),
+        requestedQuality: request.requestedQuality,
         ...(request.audioStreamIndex === undefined
           ? {}
           : { audioStreamIndex: request.audioStreamIndex }),
@@ -396,6 +404,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
   }, [captionStyle])
 
   const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null
+  const availableQualitySteps = detail === null ? [] : listAvailableQualitySteps(detail)
   const skippable = state === 'playing' ? skippableAt(segments, position) : null
 
   const audioTracks = (detail?.audioStreams ?? []).map((stream, position) => ({
@@ -429,9 +438,33 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
         mediaId: request.mediaId,
         startSeconds: Math.floor(position),
         audioStreamIndex: streamIndex,
+        requestedQuality: request.requestedQuality,
       })
     },
-    [request.mediaId, position],
+    [request.mediaId, request.requestedQuality, position],
+  )
+
+  // A different quality is a different transcode, so — like changing the
+  // audio track — it means a new session rather than adjusting this one.
+  const changeQuality = useCallback(
+    (quality: QualityPreference) => {
+      const element = videoRef.current
+
+      if (element !== null) {
+        setHeldFrame(captureFrame(element, document.createElement('canvas')))
+      }
+
+      saveQualityPreference(quality)
+      setRequest({
+        mediaId: request.mediaId,
+        startSeconds: Math.floor(position),
+        requestedQuality: quality,
+        ...(request.audioStreamIndex === undefined
+          ? {}
+          : { audioStreamIndex: request.audioStreamIndex }),
+      })
+    },
+    [request.mediaId, request.audioStreamIndex, position],
   )
 
   const skip = useCallback(
@@ -522,7 +555,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
         <VideoSurface
           label={media.title}
           videoRef={videoRef}
-          className={isImmersive ? 'max-h-full w-auto max-w-full' : ''}
+          className={isImmersive ? 'h-full w-full object-contain' : ''}
           {...(selectedTrack === null
             ? {}
             : {
@@ -634,6 +667,8 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
             selectedSubtitleId={selectedSubtitleId}
             audioTracks={audioTracks}
             selectedAudioIndex={selectedAudioIndex}
+            availableQualitySteps={availableQualitySteps}
+            selectedQuality={request.requestedQuality}
             isDisabled={state !== 'playing'}
             onTogglePlay={togglePlay}
             onSeek={seek}
@@ -641,6 +676,7 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
             onPlaybackRateChange={setPlaybackRate}
             onSubtitleChange={setSelectedSubtitleId}
             onAudioChange={changeAudio}
+            onQualityChange={changeQuality}
             onEditCaptions={() => {
               setIsEditingCaptions((editing) => !editing)
             }}
