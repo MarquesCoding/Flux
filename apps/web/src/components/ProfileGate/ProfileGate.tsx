@@ -37,11 +37,12 @@ const { authenticateWithPasskey } = authenticateWithPasskeyModule
 /**
  * How many faces one page of the wall holds.
  *
- * Two rows of six on a wide screen, and fewer per row as it narrows. A
- * household fits on one page; a server with thirty accounts on it should not
- * make somebody read all thirty to find themselves.
+ * Ten, which fills two even rows of five at the width the wall is held to. A
+ * household fits on one page and never sees the controls; a server with thirty
+ * accounts on it should not ask somebody to read all thirty to find
+ * themselves.
  */
-const PER_PAGE = 12
+const PER_PAGE = 10
 
 /**
  * The face somebody picked, drawn at whatever size the moment calls for.
@@ -192,7 +193,10 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                   </IconButton>
                 </span>
 
-                <ul className="flex min-h-[13rem] flex-wrap items-start justify-center gap-6 sm:min-h-[15rem] sm:gap-10">
+                {/* Held to a width rather than filling the screen: faces
+                    spread across an ultrawide monitor stop being a group and
+                    become a row of strangers. */}
+                <ul className="flex min-h-[13rem] w-full max-w-4xl flex-wrap items-start justify-center gap-6 sm:min-h-[15rem] sm:gap-10">
                   {shown.map((profile) => (
                     <li key={profile.id}>
                       <motion.button
