@@ -60,7 +60,7 @@ describe('Hero', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<Hero items={items} onPlay={onPlay} onInspect={vi.fn()} />)
 
-    await user.click(screen.getByRole('button', { name: /Watch now/ }))
+    await user.click(screen.getByRole('button', { name: /Play/ }))
 
     expect(onPlay).toHaveBeenCalledWith(items[0])
   })
@@ -70,7 +70,7 @@ describe('Hero', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<Hero items={items} onPlay={vi.fn()} onInspect={onInspect} />)
 
-    await user.click(screen.getByRole('button', { name: /More info/ }))
+    await user.click(screen.getByRole('button', { name: /Details/ }))
 
     expect(onInspect).toHaveBeenCalledWith(items[0])
   })
@@ -96,7 +96,7 @@ describe('Hero', () => {
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument()
   })
 
-  it('comes back round to the beginning', () => {
+  it('comes back round to the beginning', async () => {
     render(
       <Hero items={items} onPlay={vi.fn()} onInspect={vi.fn()} rotateAfterMilliseconds={100} />,
     )
@@ -109,7 +109,7 @@ describe('Hero', () => {
       })
     }
 
-    expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Arrival' })).toBeInTheDocument()
   })
 
   it('holds still while someone is reading it', async () => {
@@ -136,7 +136,7 @@ describe('Hero', () => {
     // rotation only runs once React has flushed the focus, and doing both in
     // one go lets the timer fire first.
     act(() => {
-      screen.getByRole('button', { name: /Watch now/ }).focus()
+      screen.getByRole('button', { name: /Play/ }).focus()
     })
 
     act(() => {
@@ -170,7 +170,7 @@ describe('Hero', () => {
 
     await user.click(screen.getByRole('button', { name: 'Show Sicario' }))
 
-    expect(screen.getByRole('heading', { name: 'Sicario' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Sicario' })).toBeInTheDocument()
   })
 
   it('sets a display name so devtools can identify it', () => {

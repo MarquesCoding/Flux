@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
+import { MotionGlobalConfig } from 'motion/react'
 
 /**
  * jsdom has no layout, and therefore no ResizeObserver.
@@ -30,6 +31,17 @@ class LayoutlessResizeObserver implements ResizeObserver {
 if (!('ResizeObserver' in globalThis)) {
   globalThis.ResizeObserver = LayoutlessResizeObserver
 }
+
+/**
+ * Motion animates on frames jsdom never paints.
+ *
+ * Without this, anything waiting for an animation to finish — a presence that
+ * holds the outgoing element until it has left — waits forever, and the test
+ * asserts on a screen frozen mid-transition. Skipping animations makes them
+ * settle instantly, so tests describe what ends up on screen rather than how
+ * long it took to get there.
+ */
+MotionGlobalConfig.skipAnimations = true
 
 afterEach(() => {
   cleanup()

@@ -1,28 +1,27 @@
 import { useCallback, useEffect, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
+import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
 import type { HeroProps } from './Hero.types'
 
 const { Button } = ButtonModule
+const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { formatDuration } = formatDurationModule
 const { MediaPreview } = MediaPreviewModule
 
 /**
  * How long an item holds the screen before the next one takes it.
- *
- * Long enough to read a synopsis, short enough that a library of hundreds does
- * not show the same three films every evening.
  */
 const ROTATE_AFTER_MILLISECONDS = 14_000
 
 /**
  * How long the hero waits before starting a preview.
  *
- * Longer than the dialog's wait: arriving at a home page is not the same as
- * choosing something, and a page that starts transcoding the moment it loads
- * is a page that transcodes for nobody.
+ * Arriving at a home page is not the same as choosing something, and a page
+ * that starts transcoding the moment it loads transcodes for nobody.
  */
 const PREVIEW_SETTLE_MILLISECONDS = 2500
 
@@ -34,10 +33,14 @@ const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/bac
 /**
  * The screen the library opens with.
  *
- * One item at a time, full bleed, with the artwork giving way to a muted
- * preview once someone has stayed long enough to be interested. Rotates
- * between a handful, and stops rotating the moment a viewer reaches for it —
- * a carousel that moves while being read is a carousel nobody reads.
+ * Editorial rather than catalogue: the title is set at a size a poster would
+ * use and allowed to overlap the picture, the supporting detail is a thin
+ * column beside it, and the composition is deliberately off centre. A frame
+ * with everything neatly stacked in the middle is a frame nobody looks at
+ * twice.
+ *
+ * Everything is sized in viewport units so a phone gets the same composition
+ * rather than a squeezed version of a desktop one.
  */
 const Hero = ({
   items,
@@ -48,6 +51,7 @@ const Hero = ({
 }: HeroProps) => {
   const [index, setIndex] = useState(0)
   const [isHeld, setIsHeld] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
 
   const featured = items[index % Math.max(items.length, 1)]
 
@@ -90,41 +94,80 @@ const Hero = ({
       onPointerLeave={release}
       onFocusCapture={hold}
       onBlurCapture={release}
-      className="relative -mt-[4.25rem] flex h-[82vh] min-h-[32rem] flex-col justify-end overflow-hidden"
+      className="relative flex min-h-[88svh] flex-col justify-end overflow-hidden"
     >
-      <div className="absolute inset-0">
-        <MediaPreview
+      {/* The picture crossfades under the text rather than cutting, so a
+          rotation reads as one screen changing its mind rather than as two
+          screens swapping. */}
+      <AnimatePresence initial={false} mode="popLayout">
+        <motion.div
           key={featured.id}
-          mediaId={featured.id}
-          backdropUrl={featured.hasBackdrop ? artworkUrl(featured.id) : null}
-          durationSeconds={featured.durationSeconds}
-          settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
-          fills
-        />
-      </div>
+          initial={{ opacity: 0, scale: prefersReducedMotion === true ? 1 : 1.06 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: prefersReducedMotion === true ? 0.2 : 1.1, ease: 'easeOut' }}
+          className="absolute inset-0"
+        >
+          <MediaPreview
+            mediaId={featured.id}
+            backdropUrl={featured.hasBackdrop ? artworkUrl(featured.id) : null}
+            durationSeconds={featured.durationSeconds}
+            settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
+            fills
+          />
+        </motion.div>
+      </AnimatePresence>
 
-      {/* Two scrims rather than one: a wash from the bottom so the text has
-          something to sit on, and one from the left so it stays legible over a
-          bright shot without dimming the whole picture. */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-surface/70 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-surface/90 via-surface/30 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-surface/85 via-transparent to-transparent" />
 
-      <div className="relative flex max-w-2xl flex-col gap-5 p-6 pb-14 sm:p-10 sm:pb-16">
-        <div className="flex flex-col gap-3">
-          <h1 className="text-4xl font-semibold tracking-tight text-text drop-shadow-lg sm:text-6xl">
-            {featured.title}
-          </h1>
+      {/* Keyed rather than held in a presence: waiting for the old text to
+          leave before the new arrives leaves a beat with no title at all, and
+          the picture crossfading underneath already carries the change. */}
+      <motion.div
+        key={featured.id}
+        variants={staggerVariants}
+        initial="hidden"
+        animate="shown"
+        className="relative flex flex-col gap-6 px-5 pb-24 pt-24 sm:px-10 sm:pb-28"
+      >
+        <motion.p
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion)}
+          className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.2em] text-text-muted"
+        >
+          <span className="h-px w-8 bg-text-muted/60" />
+          Featured
+        </motion.p>
 
-          <p className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
-            {featured.year === null ? null : <span>{featured.year}</span>}
-            <span>{formatDuration(featured.durationSeconds)}</span>
-            <span className="rounded-full border border-white/15 px-2 py-0.5 text-xs uppercase tracking-wide">
-              {featured.videoRange === 'SDR' ? `${featured.height}p` : featured.videoRange}
-            </span>
-          </p>
-        </div>
+        <motion.h1
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion, 'heavy')}
+          // Sized against the viewport rather than in steps, so the title is
+          // as large as the screen allows at every width instead of jumping
+          // between three fixed sizes.
+          className="max-w-[14ch] text-[clamp(2.75rem,11vw,9rem)] font-semibold leading-[0.88] tracking-[-0.04em] text-text"
+        >
+          {featured.title}
+        </motion.h1>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <motion.div
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion)}
+          className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-text-muted"
+        >
+          {featured.year === null ? null : <span className="text-text">{featured.year}</span>}
+          <span>{formatDuration(featured.durationSeconds)}</span>
+          <span className="rounded-full border border-white/20 px-2.5 py-0.5 text-xs uppercase tracking-widest">
+            {featured.videoRange === 'SDR' ? `${featured.height}p` : featured.videoRange}
+          </span>
+        </motion.div>
+
+        <motion.div
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion)}
+          className="flex flex-wrap items-center gap-3"
+        >
           <Button
             variant="glossy"
             size="xl"
@@ -134,7 +177,7 @@ const Hero = ({
             }}
           >
             <IconPlayerPlayFilled size={20} aria-hidden />
-            Watch now
+            Play
           </Button>
 
           <Button
@@ -146,13 +189,13 @@ const Hero = ({
             }}
           >
             <IconInfoCircle size={20} aria-hidden />
-            More info
+            Details
           </Button>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {items.length < 2 ? null : (
-        <ul className="absolute bottom-6 right-6 flex items-center gap-2">
+        <ul className="absolute bottom-8 right-5 flex flex-col items-end gap-2 sm:right-10">
           {items.map((item, position) => (
             <li key={item.id}>
               <button
@@ -162,8 +205,8 @@ const Hero = ({
                 onClick={() => {
                   setIndex(position)
                 }}
-                className={`h-1.5 rounded-full transition-all ${
-                  position === index ? 'w-8 bg-white' : 'w-4 bg-white/40 hover:bg-white/70'
+                className={`block h-0.5 rounded-full transition-all duration-500 ${
+                  position === index ? 'w-10 bg-text' : 'w-5 bg-text-muted/40 hover:bg-text-muted'
                 }`}
               />
             </li>
