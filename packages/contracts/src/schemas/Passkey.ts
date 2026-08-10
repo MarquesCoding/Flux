@@ -32,6 +32,26 @@ const PasskeyRegistrationChallengeSchema = z.object({
   pubKeyCredParams: z.array(z.object({ alg: z.number(), type: z.literal('public-key') })).min(1),
 })
 
+/**
+ * The fields of a WebAuthn authentication challenge that Flux checks before
+ * asking the authenticator to sign.
+ *
+ * better-auth issues no `allowCredentials`, so sign-in relies on discoverable
+ * credentials: the user picks an account from their device rather than typing
+ * an email first.
+ */
+const PasskeyAuthenticationChallengeSchema = z.object({
+  challenge: z.string().min(1),
+  rpId: z.string().optional(),
+  timeout: z.number().optional(),
+  userVerification: z.string().optional(),
+})
+
 export type Passkey = z.infer<typeof PasskeySchema>
 
-export default { PasskeySchema, PasskeyListSchema, PasskeyRegistrationChallengeSchema }
+export default {
+  PasskeySchema,
+  PasskeyListSchema,
+  PasskeyRegistrationChallengeSchema,
+  PasskeyAuthenticationChallengeSchema,
+}
