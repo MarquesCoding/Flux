@@ -34,8 +34,7 @@ const createMediaStore = (db: FluxDatabase): MediaStore => ({
       return
     }
 
-    const values = {
-      id: randomUUID(),
+    const changeable = {
       libraryId: row.libraryId,
       path: row.path,
       title: row.title,
@@ -71,25 +70,15 @@ const createMediaStore = (db: FluxDatabase): MediaStore => ({
 
     await db
       .insert(mediaItem)
-      .values(values)
+      .values({ id: randomUUID(), ...changeable })
+      // Everything the scan just worked out, not a subset of it. This clause
+      // was written when a row was only what a probe said, and it never
+      // learned about metadata — so an item that already existed could never
+      // gain a poster, a synopsis or a cast, and a catalogue key added after
+      // the first scan appeared to do nothing at all.
       .onConflictDoUpdate({
         target: [mediaItem.libraryId, mediaItem.path],
-        set: {
-          title: values.title,
-          year: values.year,
-          sizeBytes: values.sizeBytes,
-          modifiedAtMs: values.modifiedAtMs,
-          container: values.container,
-          durationSeconds: values.durationSeconds,
-          bitrateKbps: values.bitrateKbps,
-          videoCodec: values.videoCodec,
-          videoRange: values.videoRange,
-          width: values.width,
-          height: values.height,
-          audioStreams: values.audioStreams,
-          subtitleStreams: values.subtitleStreams,
-          updatedAt: values.updatedAt,
-        },
+        set: changeable,
       })
   },
 
