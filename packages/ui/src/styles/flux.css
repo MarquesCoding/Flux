@@ -279,7 +279,7 @@ body {
 .flux-dots {
   display: grid;
   overflow: hidden;
-  mask-image: linear-gradient(180deg, black 0%, transparent 85%);
+  mask-image: linear-gradient(180deg, black 0%, transparent 92%);
 }
 
 .flux-dot {
@@ -290,7 +290,12 @@ body {
   border-radius: 50%;
   background: currentcolor;
   color: var(--color-text);
-  opacity: 0.08;
+  /*
+   * Visible at rest. The grid is the texture and the ripple is something that
+   * happens to it — dots too faint to see between waves leave the screen
+   * looking empty until one arrives.
+   */
+  opacity: 0.18;
 }
 
 /*
@@ -326,12 +331,12 @@ body {
   0%,
   88%,
   100% {
-    opacity: 0.08;
+    opacity: 0.18;
     transform: scale(1);
   }
   94% {
-    opacity: 0.85;
-    transform: scale(1.9);
+    opacity: 0.9;
+    transform: scale(2);
   }
 }
 
