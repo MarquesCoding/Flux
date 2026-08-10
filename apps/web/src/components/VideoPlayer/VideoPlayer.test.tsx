@@ -12,6 +12,7 @@ const stopMock = vi.hoisted(() => vi.fn())
 const attachMock = vi.hoisted(() => vi.fn())
 const teardownMock = vi.hoisted(() => vi.fn())
 const trickplayMock = vi.hoisted(() => vi.fn())
+const captureMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
@@ -33,6 +34,12 @@ vi.mock('@FluxWeb/playback/attachShaka', () => ({
 
 vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
   default: { detectFromBrowser: () => ({ name: 'Browser' }) },
+}))
+
+// jsdom has no 2d context, so a real capture can only ever answer with
+// nothing here. What it does with a frame is covered where the capture lives.
+vi.mock('@FluxWeb/playback/captureFrame', () => ({
+  default: { captureFrame: captureMock },
 }))
 
 vi.mock('@FluxWeb/playback/fetchTrickplay', async () => {
@@ -71,6 +78,12 @@ const media = { id: 'media-1', title: 'Arrival', durationSeconds: 7200 }
  * jsdom has no media pipeline, so a growing transcode has to be described
  * rather than produced.
  */
+const showingAFrame = (element: HTMLElement) => {
+  Object.defineProperty(element, 'videoWidth', { configurable: true, value: 1920 })
+  Object.defineProperty(element, 'videoHeight', { configurable: true, value: 1080 })
+  captureMock.mockReturnValue('data:image/jpeg;base64,frame')
+}
+
 const seekableTo = (element: HTMLElement, seconds: number) => {
   Object.defineProperty(element, 'seekable', {
     configurable: true,
@@ -100,6 +113,8 @@ beforeEach(() => {
   teardownMock.mockReset()
   trickplayMock.mockReset()
   trickplayMock.mockResolvedValue(null)
+  captureMock.mockReset()
+  captureMock.mockReturnValue(null)
 
   startMock.mockResolvedValue({ kind: 'started', session: startedSession })
   attachMock.mockResolvedValue(teardownMock)
@@ -446,6 +461,52 @@ describe('VideoPlayer', () => {
     })
 
     expect(startMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('holds the last frame rather than blanking while a seek restarts', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    seekableTo(element, 30)
+    showingAFrame(element)
+    startMock.mockReturnValue(new Promise(() => undefined))
+
+    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
+      target: { value: '3600' },
+    })
+
+    // The centred spinner is what covers the video. While a frame is held, the
+    // wait has to be reported without hiding what it is waiting on.
+    expect(await screen.findByRole('status', { name: 'Seeking' })).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Preparing playback' })).not.toBeInTheDocument()
+  })
+
+  it('lets the new session replace the held frame once it is playing', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    const element = await screen.findByLabelText('Arrival')
+    seekableTo(element, 30)
+    showingAFrame(element)
+    startMock.mockReturnValue(new Promise(() => undefined))
+
+    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
+      target: { value: '3600' },
+    })
+
+    await screen.findByRole('status', { name: 'Seeking' })
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 2 })
+    fireEvent.timeUpdate(element)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('status', { name: 'Seeking' })).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows the full spinner when there is no frame to hold', () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    expect(screen.getByRole('status', { name: 'Preparing playback' })).toBeInTheDocument()
   })
 
   it('sets a display name so devtools can identify it', () => {

@@ -15,6 +15,7 @@ import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
 import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
 import attachShakaModule from '@FluxWeb/playback/attachShaka'
 import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
+import captureFrameModule from '@FluxWeb/playback/captureFrame'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
@@ -28,6 +29,7 @@ const { detectFromBrowser } = detectDeviceProfileModule
 const { startPlaybackSession, stopPlaybackSession, describeWhy } = startPlaybackSessionModule
 const { attachShaka } = attachShakaModule
 const { fetchTrickplay } = fetchTrickplayModule
+const { captureFrame } = captureFrameModule
 const { SeekBar } = SeekBarModule
 const { TrickplayPreview } = TrickplayPreviewModule
 
@@ -71,6 +73,11 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   // point it starts at, so seeking outside what has been encoded means asking
   // for a new one rather than moving within this one.
   const [request, setRequest] = useState({ mediaId: media.id, startSeconds: 0 })
+  // The frame the viewer was looking at when they dragged the scrub bar. Held
+  // on screen until the new session produces one of its own, because tearing
+  // the old session down blanks the media element and a black rectangle reads
+  // as the video having broken rather than as a seek.
+  const [heldFrame, setHeldFrame] = useState<string | null>(null)
 
   if (request.mediaId !== media.id) {
     setRequest({ mediaId: media.id, startSeconds: 0 })
@@ -91,6 +98,10 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     setPosition(request.startSeconds)
     setReportedDuration(0)
     setShowReasons(false)
+
+    if (request.startSeconds === 0) {
+      setHeldFrame(null)
+    }
 
     const controller = new AbortController()
     const isAbandoned = () => controller.signal.aborted
@@ -217,6 +228,7 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
         return
       }
 
+      setHeldFrame(captureFrame(element, document.createElement('canvas')))
       setRequest({ mediaId: request.mediaId, startSeconds: Math.floor(seconds) })
     },
     [request, session],
@@ -255,14 +267,32 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
           videoRef={videoRef}
           onTimeUpdate={(seconds) => {
             setPosition(request.startSeconds + seconds)
+            setHeldFrame(null)
           }}
           onDurationChange={setReportedDuration}
           onPlayingChange={setIsPlaying}
         />
 
+        {heldFrame === null ? null : (
+          <div
+            role="presentation"
+            className="absolute inset-0 bg-black bg-contain bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${heldFrame})` }}
+          />
+        )}
+
         {state === 'starting' ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Spinner label="Preparing playback" size="lg" />
+          <div
+            className={
+              heldFrame === null
+                ? 'absolute inset-0 flex items-center justify-center'
+                : 'absolute bottom-3 right-3 rounded-full bg-surface/80 p-2'
+            }
+          >
+            <Spinner
+              label={heldFrame === null ? 'Preparing playback' : 'Seeking'}
+              size={heldFrame === null ? 'lg' : 'sm'}
+            />
           </div>
         ) : null}
       </div>
