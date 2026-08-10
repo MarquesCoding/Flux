@@ -56,6 +56,18 @@ const harness = (options: {
     startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
     readSessionFile: () => Promise.resolve(null),
     readFile: () => Promise.resolve(null),
+    requestTrickplay: () =>
+      Promise.resolve({
+        id: 'thumbs',
+        intervalSeconds: 10,
+        tileWidth: 320,
+        tileHeight: 180,
+        columns: 10,
+        rows: 10,
+        sheets: [],
+        index: '/trickplay/thumbs/thumbnails.vtt',
+      }),
+    readTrickplayFile: () => Promise.resolve(null),
     stopSession: () => Promise.resolve(true),
     capabilities: () =>
       Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
@@ -210,6 +222,18 @@ describe('scanLibrary', () => {
         startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
         readSessionFile: () => Promise.resolve(null),
         readFile: () => Promise.resolve(null),
+        requestTrickplay: () =>
+          Promise.resolve({
+            id: 'thumbs',
+            intervalSeconds: 10,
+            tileWidth: 320,
+            tileHeight: 180,
+            columns: 10,
+            rows: 10,
+            sheets: [],
+            index: '/trickplay/thumbs/thumbnails.vtt',
+          }),
+        readTrickplayFile: () => Promise.resolve(null),
         stopSession: () => Promise.resolve(true),
         capabilities: () =>
           Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),

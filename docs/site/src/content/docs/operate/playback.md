@@ -35,3 +35,17 @@ as a side effect.
 
 When nothing needs changing, Flux sends the original file over byte ranges: no
 transcode, no remux, no segment cache, and no load on the media service at all.
+
+## Seek-bar previews
+
+Hovering the scrub bar shows the frame you would land on. Flux renders those
+thumbnails by decoding the file once, every ten seconds of runtime, into tiled
+JPEG sheets indexed with WebVTT.
+
+The first request for a long film takes a while, because it reads the whole
+file. The result is content addressed, so every later request — including after
+a restart — reuses what is already on disk. Playback never waits for it: the
+stream starts first and previews appear when they are ready.
+
+Sheets live in the transcode cache. Deleting that directory costs nothing but
+the decoding time to rebuild it.

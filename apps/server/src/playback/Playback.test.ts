@@ -286,3 +286,50 @@ describe('playback sessions', () => {
     expect(response.status).toBe(200)
   })
 })
+
+describe('trickplay', () => {
+  it('reports where the seek-bar previews live', async () => {
+    const { app } = build()
+
+    const response = await app.request(post(`/api/playback/${MEDIA_ID}/trickplay`, {}))
+
+    const body = z
+      .object({ url: z.string(), tileWidth: z.number(), tileHeight: z.number() })
+      .parse(await response.json())
+
+    expect(response.status).toBe(200)
+    expect(body.url).toContain('.vtt')
+    expect(body).toMatchObject({ tileWidth: 320, tileHeight: 180 })
+  })
+
+  it('refuses previews for an item that does not exist', async () => {
+    const { app } = build()
+
+    const response = await app.request(post(`/api/playback/${MISSING_ID}/trickplay`, {}))
+
+    expect(response.status).toBe(404)
+  })
+
+  it('serves the index the url points at', async () => {
+    const { app } = build()
+
+    const started = await app.request(post(`/api/playback/${MEDIA_ID}/trickplay`, {}))
+    const { url } = z.object({ url: z.string() }).parse(await started.json())
+
+    const response = await app.request(new Request(`${BASE}${url}`))
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('text/vtt')
+    expect(await response.text()).toContain('WEBVTT')
+  })
+
+  it('answers with a not found rather than an empty body for a missing sheet', async () => {
+    const { app } = build()
+
+    const response = await app.request(
+      new Request(`${BASE}/api/playback/trickplay/thumbs/sheet-999.jpg`),
+    )
+
+    expect(response.status).toBe(404)
+  })
+})

@@ -12,3 +12,4 @@ pub mod probe;
 pub mod router;
 pub mod session;
 pub mod transcode_plan;
+pub mod trickplay;

@@ -33,3 +33,18 @@ Until a metadata provider plugin is installed, titles and years are read from
 the filename. Nothing about _playback_ is decided this way — codecs, ranges and
 stream layout all come from probing the file itself, because filenames in real
 libraries are unreliable.
+
+## Where titles come from
+
+Flux ships one metadata provider, and it reads the filename. `Arrival (2016).mkv`
+becomes _Arrival_, 2016. Scene-release noise — resolutions, codecs, group tags —
+is stripped.
+
+That is deliberately the floor rather than the ceiling. Richer metadata means
+talking to a third-party service, and which service that is should be your
+choice, not a decision baked into the server. Providers are an extension point:
+a plugin registers one, providers are asked in order, and the first answer wins,
+so a plugin overrides the built-in reader without replacing it.
+
+A provider that fails is skipped rather than failing the scan. A metadata
+service being down must not make your library unreadable.

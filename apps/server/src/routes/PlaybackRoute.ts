@@ -155,4 +155,74 @@ const directFileRoute = createRoute({
   },
 })
 
-export default { explainRoute, startRoute, sessionFileRoute, directFileRoute, stopRoute }
+const TrickplayResponse = z
+  .object({
+    id: z.string(),
+    url: z.string(),
+    intervalSeconds: z.number(),
+    tileWidth: z.number(),
+    tileHeight: z.number(),
+  })
+  .openapi('TrickplayResponse')
+
+/**
+ * Renders seek-bar previews for an item.
+ *
+ * Answers with the index rather than the images. Generating them decodes the
+ * whole file, so the first call on a long film takes a while; the result is
+ * content addressed and every later call reuses it.
+ */
+const trickplayRoute = createRoute({
+  method: 'post',
+  path: '/api/playback/{mediaId}/trickplay',
+  tags: ['Playback'],
+  summary: 'Render seek-bar preview thumbnails',
+  request: { params: z.object({ mediaId: z.string().uuid() }) },
+  responses: {
+    200: {
+      description: 'Where to find the thumbnails',
+      content: { 'application/json': { schema: TrickplayResponse } },
+    },
+    404: {
+      description: 'No such media item',
+      content: { 'application/json': { schema: PlaybackError } },
+    },
+    500: {
+      description: 'The thumbnails could not be rendered',
+      content: { 'application/json': { schema: PlaybackError } },
+    },
+  },
+})
+
+/**
+ * Serves an index or a sheet.
+ *
+ * Cue payloads inside the index name sheets relatively, so they resolve
+ * against this path without rewriting the index.
+ */
+const trickplayFileRoute = createRoute({
+  method: 'get',
+  path: '/api/playback/trickplay/{trickplayId}/{name}',
+  tags: ['Playback'],
+  summary: 'Read a thumbnail index or sheet',
+  request: {
+    params: z.object({ trickplayId: z.string().min(1), name: z.string().min(1) }),
+  },
+  responses: {
+    200: { description: 'The index or sheet' },
+    404: {
+      description: 'No such thumbnails',
+      content: { 'application/json': { schema: PlaybackError } },
+    },
+  },
+})
+
+export default {
+  explainRoute,
+  startRoute,
+  sessionFileRoute,
+  directFileRoute,
+  trickplayRoute,
+  trickplayFileRoute,
+  stopRoute,
+}

@@ -55,10 +55,43 @@ type PlaybackService = {
   start: (mediaId: string, profile: DeviceProfile, startSeconds: number) => Promise<StartOutcome>
   readSessionFile: (sessionId: string, name: string) => Promise<SessionFile | null>
   readDirectFile: (mediaId: string, range: string | null) => Promise<RangedFile | null>
+  /**
+   * Renders seek-bar previews for an item, or reuses ones already on disk.
+   */
+  trickplay: (mediaId: string) => Promise<Trickplay | null>
+  readTrickplayFile: (trickplayId: string, name: string) => Promise<SessionFile | null>
   stop: (sessionId: string) => Promise<boolean>
 }
 
+/**
+ * Seek-bar previews as a client sees them.
+ *
+ * The URL points at the WebVTT index rather than the images: cue payloads are
+ * relative to it, so a player fetches only the sheets covering the part of the
+ * timeline being scrubbed.
+ */
+type Trickplay = {
+  id: string
+  url: string
+  intervalSeconds: number
+  tileWidth: number
+  tileHeight: number
+}
+
 const SEGMENT_SECONDS = 4
+
+/**
+ * Seconds between preview thumbnails.
+ *
+ * Ten is where Jellyfin and Plex sit. Finer sampling multiplies both decode
+ * time and sheet size for a difference a viewer dragging a scrub bar cannot
+ * perceive.
+ */
+const TRICKPLAY_INTERVAL_SECONDS = 10
+
+const TRICKPLAY_TILE_WIDTH = 320
+const TRICKPLAY_COLUMNS = 10
+const TRICKPLAY_ROWS = 10
 
 export type {
   Delivery,
@@ -68,6 +101,13 @@ export type {
   SessionFile,
   StartOutcome,
   StartedSession,
+  Trickplay,
 }
 
-export default { SEGMENT_SECONDS }
+export default {
+  SEGMENT_SECONDS,
+  TRICKPLAY_INTERVAL_SECONDS,
+  TRICKPLAY_TILE_WIDTH,
+  TRICKPLAY_COLUMNS,
+  TRICKPLAY_ROWS,
+}

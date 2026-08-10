@@ -88,7 +88,27 @@ const CapabilitiesSchema = z.object({
   hardwareAccels: z.array(z.string()),
 })
 
+const TrickplayIndexSchema = z.object({
+  id: z.string(),
+  intervalSeconds: z.number(),
+  tileWidth: z.number(),
+  tileHeight: z.number(),
+  columns: z.number(),
+  rows: z.number(),
+  sheets: z.array(z.string()),
+  index: z.string(),
+})
+
 type MediaProbe = z.infer<typeof MediaProbeSchema>
+type TrickplayIndex = z.infer<typeof TrickplayIndexSchema>
+
+type TrickplayRequest = {
+  inputPath: string
+  intervalSeconds: number
+  tileWidth: number
+  columns: number
+  rows: number
+}
 type SessionResponse = z.infer<typeof SessionResponseSchema>
 type TranscoderCapabilities = z.infer<typeof CapabilitiesSchema>
 
@@ -124,6 +144,11 @@ type Transcoder = {
   startSession: (spec: SessionSpec) => Promise<SessionResponse>
   readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>
   readFile: (path: string, range: string | null) => Promise<TranscoderRangedFile | null>
+  /**
+   * Renders seek-bar previews, or reuses ones already on disk.
+   */
+  requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>
+  readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>
   stopSession: (id: string) => Promise<boolean>
   capabilities: () => Promise<TranscoderCapabilities>
 }
@@ -280,6 +305,24 @@ const createTranscoderClient = ({
       }
     },
 
+    requestTrickplay: async (request) =>
+      TrickplayIndexSchema.parse(await (await postJson('/trickplay', request)).json()),
+
+    readTrickplayFile: async (id, name) => {
+      const response = await call2(
+        `${origin}/trickplay/${encodeURIComponent(id)}/${encodeURIComponent(name)}`,
+      )
+
+      if (!response.ok) {
+        return null
+      }
+
+      return {
+        body: await response.arrayBuffer(),
+        contentType: response.headers.get('content-type') ?? 'application/octet-stream',
+      }
+    },
+
     stopSession: async (id) => {
       const response = await call2(`${origin}/sessions/${id}`, { method: 'DELETE' })
 
@@ -298,6 +341,8 @@ export type {
   SessionSpec,
   Transcoder,
   TranscoderCapabilities,
+  TrickplayIndex,
+  TrickplayRequest,
   TranscoderFile,
   TranscoderRangedFile,
 }

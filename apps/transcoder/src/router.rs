@@ -13,6 +13,7 @@ use crate::capability::{detect_capabilities, Capabilities};
 use crate::probe::probe_media;
 use crate::session::{await_manifest, SessionRegistry};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
+use crate::trickplay::{directory_for, generate, TrickplayRequest};
 
 const MANIFEST_TIMEOUT: Duration = Duration::from_secs(20);
 
@@ -152,6 +153,8 @@ fn content_type_for(name: &str) -> &'static str {
     match extension.as_str() {
         "m3u8" => "application/vnd.apple.mpegurl",
         "m4s" | "mp4" => "video/mp4",
+        "jpg" | "jpeg" => "image/jpeg",
+        "vtt" => "text/vtt",
         _ => "application/octet-stream",
     }
 }
@@ -311,6 +314,58 @@ async fn session_file(
     serve_file(&directory, &name).await
 }
 
+/// Renders seek-bar previews for a file.
+///
+/// Answers with the index rather than the images: the player fetches sheets
+/// only for the part of the timeline the viewer actually hovers over.
+async fn start_trickplay(
+    State(state): State<AppState>,
+    Json(request): Json<TrickplayRequest>,
+) -> Response {
+    let path = PathBuf::from(&request.input_path);
+
+    if !state.is_readable(&path) {
+        return error(
+            StatusCode::FORBIDDEN,
+            "That file is outside the media roots.",
+        );
+    }
+
+    let probe = match probe_media(&state.ffprobe, &path).await {
+        Ok(probe) => probe,
+        Err(failure) => return error(StatusCode::BAD_REQUEST, &failure.to_string()),
+    };
+
+    let Some(video) = probe.video.as_ref() else {
+        return error(StatusCode::BAD_REQUEST, "That file has no video stream.");
+    };
+
+    match generate(
+        &state.registry.config().ffmpeg,
+        &state.registry.config().cache_root,
+        &request,
+        video.width,
+        video.height,
+        probe.duration_seconds,
+    )
+    .await
+    {
+        Ok(index) => (StatusCode::OK, Json(index)).into_response(),
+        Err(failure) => error(StatusCode::INTERNAL_SERVER_ERROR, &failure.to_string()),
+    }
+}
+
+async fn trickplay_file(
+    State(state): State<AppState>,
+    AxumPath((id, name)): AxumPath<(String, String)>,
+) -> Response {
+    serve_file(
+        &directory_for(&state.registry.config().cache_root, &id),
+        &name,
+    )
+    .await
+}
+
 async fn stop_session(State(state): State<AppState>, AxumPath(id): AxumPath<String>) -> Response {
     if state.registry.stop(&id).await {
         return (StatusCode::NO_CONTENT, Body::empty()).into_response();
@@ -332,6 +387,8 @@ pub fn create_router(state: AppState) -> Router {
         .route("/sessions", post(start_session))
         .route("/sessions/{id}/{name}", get(session_file))
         .route("/sessions/{id}", axum::routing::delete(stop_session))
+        .route("/trickplay", post(start_trickplay))
+        .route("/trickplay/{id}/{name}", get(trickplay_file))
         .with_state(state)
 }
 

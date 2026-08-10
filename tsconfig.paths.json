@@ -5,18 +5,19 @@
       "@FluxCore/*": ["./packages/core/src/*"],
       "@FluxSDK/*": ["./packages/plugin-sdk/src/*"],
       "@FluxServer/*": ["./apps/server/src/*"],
-      "@FluxWeb/*": ["./apps/web/src/*"],
-      "@FluxUI/cn": ["./packages/ui/src/functions/cn.ts"],
-      "@FluxUI/tokens": ["./packages/ui/src/tokens/tokens.ts"],
-      "@FluxUI/lazyFlux": ["./packages/ui/src/lazyFlux.ts"],
-      "@FluxUI/animations/spin": ["./packages/ui/src/animations/spin.ts"],
       "@FluxUI/Button": ["./packages/ui/src/components/Button/Button.tsx"],
       "@FluxUI/Checkbox": ["./packages/ui/src/components/Checkbox/Checkbox.tsx"],
       "@FluxUI/MediaCard": ["./packages/ui/src/components/MediaCard/MediaCard.tsx"],
       "@FluxUI/QrCode": ["./packages/ui/src/components/QrCode/QrCode.tsx"],
+      "@FluxUI/SeekBar": ["./packages/ui/src/components/SeekBar/SeekBar.tsx"],
       "@FluxUI/Spinner": ["./packages/ui/src/components/Spinner/Spinner.tsx"],
       "@FluxUI/TextField": ["./packages/ui/src/components/TextField/TextField.tsx"],
-      "@FluxUI/VideoSurface": ["./packages/ui/src/components/VideoSurface/VideoSurface.tsx"]
+      "@FluxUI/VideoSurface": ["./packages/ui/src/components/VideoSurface/VideoSurface.tsx"],
+      "@FluxUI/animations/spin": ["./packages/ui/src/animations/spin.ts"],
+      "@FluxUI/cn": ["./packages/ui/src/functions/cn.ts"],
+      "@FluxUI/lazyFlux": ["./packages/ui/src/lazyFlux.ts"],
+      "@FluxUI/tokens": ["./packages/ui/src/tokens/tokens.ts"],
+      "@FluxWeb/*": ["./apps/web/src/*"]
     }
   }
 }

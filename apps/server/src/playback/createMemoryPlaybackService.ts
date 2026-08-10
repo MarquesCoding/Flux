@@ -85,6 +85,26 @@ const createMemoryPlaybackService = (
     })
   },
 
+  trickplay: (mediaId) =>
+    Promise.resolve(
+      state.media[mediaId] === undefined
+        ? null
+        : {
+            id: 'thumbs',
+            url: '/api/playback/trickplay/thumbs/thumbnails.vtt',
+            intervalSeconds: 10,
+            tileWidth: 320,
+            tileHeight: 180,
+          },
+    ),
+
+  readTrickplayFile: (_, name) =>
+    Promise.resolve(
+      name.endsWith('.vtt')
+        ? { body: new TextEncoder().encode('WEBVTT\n\n').buffer, contentType: 'text/vtt' }
+        : null,
+    ),
+
   readDirectFile: (mediaId) =>
     Promise.resolve(
       state.media[mediaId] === undefined

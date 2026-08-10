@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import VideoPlayerModule from './VideoPlayer'
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
+import type TrickplayModule from '@FluxWeb/playback/fetchTrickplay'
 
 const { VideoPlayer } = VideoPlayerModule
 
@@ -10,6 +11,7 @@ const startMock = vi.hoisted(() => vi.fn())
 const stopMock = vi.hoisted(() => vi.fn())
 const attachMock = vi.hoisted(() => vi.fn())
 const teardownMock = vi.hoisted(() => vi.fn())
+const trickplayMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
@@ -32,6 +34,16 @@ vi.mock('@FluxWeb/playback/attachShaka', () => ({
 vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
   default: { detectFromBrowser: () => ({ name: 'Browser' }) },
 }))
+
+vi.mock('@FluxWeb/playback/fetchTrickplay', async () => {
+  const actual = await vi.importActual<{ default: typeof TrickplayModule }>(
+    '@FluxWeb/playback/fetchTrickplay',
+  )
+
+  return {
+    default: { ...actual.default, fetchTrickplay: trickplayMock },
+  }
+})
 
 const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' }
 
@@ -72,6 +84,8 @@ beforeEach(() => {
   stopMock.mockReset()
   attachMock.mockReset()
   teardownMock.mockReset()
+  trickplayMock.mockReset()
+  trickplayMock.mockResolvedValue(null)
 
   startMock.mockResolvedValue({ kind: 'started', session: startedSession })
   attachMock.mockResolvedValue(teardownMock)
@@ -255,6 +269,20 @@ describe('VideoPlayer', () => {
     await screen.findByRole('button', { name: /DirectPlay/ })
 
     expect(screen.getByLabelText('Arrival')).toHaveAttribute('src', '/api/playback/media-1/file')
+  })
+
+  it('offers a seek bar named after the item', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument()
+  })
+
+  it('plays on without previews when the server cannot render them', async () => {
+    trickplayMock.mockResolvedValue(null)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /Preview at/ })).not.toBeInTheDocument()
   })
 
   it('sets a display name so devtools can identify it', () => {

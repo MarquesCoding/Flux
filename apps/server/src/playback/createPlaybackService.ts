@@ -8,7 +8,13 @@ import type { Transcoder, TranscoderCapabilities } from '@FluxServer/transcoder/
 const { negotiatePlayback } = negotiatePlaybackModule
 const { describePlaybackMode } = describePlaybackModeModule
 const { planToSessionSpec } = planToSessionSpecModule
-const { SEGMENT_SECONDS } = PlaybackServiceModule
+const {
+  SEGMENT_SECONDS,
+  TRICKPLAY_INTERVAL_SECONDS,
+  TRICKPLAY_TILE_WIDTH,
+  TRICKPLAY_COLUMNS,
+  TRICKPLAY_ROWS,
+} = PlaybackServiceModule
 
 /**
  * Subtitle formats that are pictures rather than text.
@@ -16,6 +22,11 @@ const { SEGMENT_SECONDS } = PlaybackServiceModule
  * These cannot be converted, so burning them in means compositing a second
  * video stream rather than drawing text.
  */
+/**
+ * The file the media service names its index.
+ */
+const TRICKPLAY_INDEX_NAME = 'thumbnails.vtt'
+
 const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub'])
 
 /**
@@ -41,6 +52,13 @@ type CreatePlaybackServiceOptions = {
   transcoder: Transcoder
   sessionUrlPrefix: string
   directUrlPrefix: string
+  /**
+   * Where seek-bar previews are served from.
+   *
+   * Proxied like segments are, because the media service reads any path it is
+   * given and has no authentication of its own.
+   */
+  trickplayUrlPrefix: string
 }
 
 /**
@@ -54,6 +72,7 @@ const createPlaybackService = ({
   transcoder,
   sessionUrlPrefix,
   directUrlPrefix,
+  trickplayUrlPrefix,
 }: CreatePlaybackServiceOptions): PlaybackService => {
   let cached: TranscoderCapabilities | null = null
 
@@ -145,6 +164,32 @@ const createPlaybackService = ({
 
       return found === null ? null : transcoder.readFile(found.path, range)
     },
+
+    trickplay: async (mediaId) => {
+      const found = await media.findForPlayback(mediaId)
+
+      if (found === null) {
+        return null
+      }
+
+      const index = await transcoder.requestTrickplay({
+        inputPath: found.path,
+        intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
+        tileWidth: TRICKPLAY_TILE_WIDTH,
+        columns: TRICKPLAY_COLUMNS,
+        rows: TRICKPLAY_ROWS,
+      })
+
+      return {
+        id: index.id,
+        url: `${trickplayUrlPrefix}/${index.id}/${TRICKPLAY_INDEX_NAME}`,
+        intervalSeconds: index.intervalSeconds,
+        tileWidth: index.tileWidth,
+        tileHeight: index.tileHeight,
+      }
+    },
+
+    readTrickplayFile: (trickplayId, name) => transcoder.readTrickplayFile(trickplayId, name),
 
     stop: (sessionId) => transcoder.stopSession(sessionId),
   }

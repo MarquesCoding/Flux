@@ -22,8 +22,15 @@ const {
   scanLibraryRoute,
   scanStateRoute,
 } = LibraryRouteModule
-const { explainRoute, startRoute, sessionFileRoute, directFileRoute, stopRoute } =
-  PlaybackRouteModule
+const {
+  explainRoute,
+  startRoute,
+  sessionFileRoute,
+  directFileRoute,
+  trickplayRoute,
+  trickplayFileRoute,
+  stopRoute,
+} = PlaybackRouteModule
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
 
 const SERVER_VERSION = '0.0.0'
@@ -245,6 +252,34 @@ const createApp = ({
     }
 
     return context.body(file.body, file.status === 206 ? 206 : 200, headers)
+  })
+
+  app.openapi(trickplayRoute, async (context) => {
+    const { mediaId } = context.req.valid('param')
+
+    try {
+      const thumbnails = await playback.trickplay(mediaId)
+
+      if (thumbnails === null) {
+        return context.json({ error: 'No such media item.' }, 404)
+      }
+
+      return context.json(thumbnails, 200)
+    } catch {
+      return context.json({ error: 'The thumbnails could not be rendered.' }, 500)
+    }
+  })
+
+  app.openapi(trickplayFileRoute, async (context) => {
+    const { trickplayId, name } = context.req.valid('param')
+
+    const file = await playback.readTrickplayFile(trickplayId, name)
+
+    if (file === null) {
+      return context.json({ error: 'No such thumbnails.' }, 404)
+    }
+
+    return context.body(file.body, 200, { 'content-type': file.contentType })
   })
 
   app.openapi(stopRoute, async (context) => {

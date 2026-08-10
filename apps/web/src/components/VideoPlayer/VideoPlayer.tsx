@@ -9,10 +9,14 @@ import {
 import ButtonModule from '@FluxUI/Button'
 import SpinnerModule from '@FluxUI/Spinner'
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
+import SeekBarModule from '@FluxUI/SeekBar'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
 import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
 import attachShakaModule from '@FluxWeb/playback/attachShaka'
+import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
+import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
+import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types'
 
@@ -23,6 +27,9 @@ const { formatDuration } = formatDurationModule
 const { detectFromBrowser } = detectDeviceProfileModule
 const { startPlaybackSession, stopPlaybackSession, describeWhy } = startPlaybackSessionModule
 const { attachShaka } = attachShakaModule
+const { fetchTrickplay } = fetchTrickplayModule
+const { SeekBar } = SeekBarModule
+const { TrickplayPreview } = TrickplayPreviewModule
 
 /**
  * Plays a library item.
@@ -41,6 +48,7 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(0)
   const [showReasons, setShowReasons] = useState(false)
+  const [trickplay, setTrickplay] = useState<Trickplay | null>(null)
 
   useEffect(() => {
     // Read through a function so the checker cannot narrow it. The effect may
@@ -111,6 +119,33 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     }
   }, [media.id])
 
+  useEffect(() => {
+    // Fetched alongside playback rather than before it. Rendering thumbnails
+    // decodes the whole file, which on a long film takes longer than starting
+    // the stream; making playback wait for previews would be the wrong trade.
+    let abandoned = false
+
+    void fetchTrickplay(media.id).then((found) => {
+      if (!abandoned) {
+        setTrickplay(found)
+      }
+    })
+
+    return () => {
+      abandoned = true
+    }
+  }, [media.id])
+
+  const seek = useCallback((seconds: number) => {
+    const element = videoRef.current
+
+    if (element !== null) {
+      element.currentTime = seconds
+    }
+
+    setPosition(seconds)
+  }, [])
+
   const toggle = useCallback(() => {
     const element = videoRef.current
 
@@ -170,6 +205,20 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
           {problem ?? 'Playback failed.'}
         </p>
       ) : null}
+
+      <SeekBar
+        label={`Seek through ${media.title}`}
+        position={position}
+        duration={duration}
+        onSeek={seek}
+        {...(trickplay === null
+          ? {}
+          : {
+              renderPreview: (seconds: number) => (
+                <TrickplayPreview trickplay={trickplay} seconds={seconds} />
+              ),
+            })}
+      />
 
       <div className="flex items-center gap-3">
         <Button size="sm" onClick={toggle} disabled={state !== 'playing'}>
