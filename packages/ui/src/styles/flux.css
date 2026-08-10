@@ -113,34 +113,52 @@ body {
  * its own box and one sized to the screen has nowhere to travel.
  */
 .flux-mood--drift {
+  /*
+   * Only a little larger than the screen. The wider the layer, the further
+   * the light can wander off the edge — enough room to move, not enough to
+   * leave.
+   */
   background-size:
-    170% 170%,
-    170% 170%,
+    135% 135%,
+    135% 135%,
     100% 100%;
-  background-position:
-    0% 0%,
-    100% 0%,
-    0% 0%;
-  animation: flux-mood-drift 42s ease-in-out infinite alternate;
+  background-repeat: no-repeat;
+  animation: flux-mood-drift 28s ease-in-out infinite alternate;
 }
 
+/*
+ * Every position stays well inside the layer, so both lit areas remain on
+ * screen throughout: a wash that wanders off the edge leaves the page flat.
+ */
 @keyframes flux-mood-drift {
   0% {
     background-position:
-      0% 0%,
-      100% 0%,
+      30% 30%,
+      70% 35%,
+      0% 0%;
+  }
+  25% {
+    background-position:
+      55% 40%,
+      45% 55%,
       0% 0%;
   }
   50% {
     background-position:
-      40% 45%,
-      55% 30%,
+      65% 60%,
+      35% 40%,
+      0% 0%;
+  }
+  75% {
+    background-position:
+      40% 65%,
+      60% 65%,
       0% 0%;
   }
   100% {
     background-position:
-      15% 80%,
-      85% 60%,
+      35% 45%,
+      65% 30%,
       0% 0%;
   }
 }
@@ -172,77 +190,27 @@ body {
   background-position: -1px -1px;
   color: color-mix(in oklab, var(--color-text) 14%, transparent);
   mask-image: linear-gradient(180deg, black 0%, transparent 85%);
+  animation: flux-grid-breathe 11s ease-in-out infinite alternate;
 }
 
 /*
- * A swell of light travelling over the grid.
+ * The grid brightening and dimming as a whole.
  *
- * The dots themselves are one painted layer and cannot be lit individually
- * without drawing thousands of elements. A soft circle passing over them
- * brightens whichever it happens to cover, which is the same effect for none
- * of the cost. Three of them at different sizes, speeds and delays, so they
- * never line up into a single pulse.
+ * A property of the light rather than a thing moving across it: anything with
+ * an edge reads as an object somebody put there, which is not what a texture
+ * should ever look like.
  */
-.flux-wave {
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    color-mix(in oklab, var(--color-text) 22%, transparent),
-    transparent 65%
-  );
-  mix-blend-mode: plus-lighter;
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-.flux-wave--one {
-  width: 26rem;
-  height: 26rem;
-  top: 8%;
-  left: 12%;
-  animation: flux-wave-swell 19s ease-in-out infinite;
-}
-
-.flux-wave--two {
-  width: 34rem;
-  height: 34rem;
-  top: 34%;
-  left: 58%;
-  animation: flux-wave-swell 27s ease-in-out infinite 6s;
-}
-
-.flux-wave--three {
-  width: 20rem;
-  height: 20rem;
-  top: 62%;
-  left: 28%;
-  animation: flux-wave-swell 23s ease-in-out infinite 13s;
-}
-
-@keyframes flux-wave-swell {
-  0%,
+@keyframes flux-grid-breathe {
+  0% {
+    opacity: 0.55;
+  }
   100% {
-    opacity: 0;
-    transform: translate3d(0, 0, 0) scale(0.4);
-  }
-  35% {
-    opacity: 0.9;
-  }
-  50% {
-    transform: translate3d(6vw, -4vh, 0) scale(1.25);
-  }
-  70% {
-    opacity: 0.5;
-  }
-  99% {
-    opacity: 0;
-    transform: translate3d(12vw, -9vh, 0) scale(1.6);
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flux-wave {
+  .flux-mood--grid::after {
     animation: none;
   }
 }
@@ -343,77 +311,27 @@ body {
   background-position: -1px -1px;
   color: color-mix(in oklab, var(--color-text) 14%, transparent);
   mask-image: linear-gradient(180deg, black 0%, transparent 85%);
+  animation: flux-grid-breathe 11s ease-in-out infinite alternate;
 }
 
 /*
- * A swell of light travelling over the grid.
+ * The grid brightening and dimming as a whole.
  *
- * The dots themselves are one painted layer and cannot be lit individually
- * without drawing thousands of elements. A soft circle passing over them
- * brightens whichever it happens to cover, which is the same effect for none
- * of the cost. Three of them at different sizes, speeds and delays, so they
- * never line up into a single pulse.
+ * A property of the light rather than a thing moving across it: anything with
+ * an edge reads as an object somebody put there, which is not what a texture
+ * should ever look like.
  */
-.flux-wave {
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    color-mix(in oklab, var(--color-text) 22%, transparent),
-    transparent 65%
-  );
-  mix-blend-mode: plus-lighter;
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-.flux-wave--one {
-  width: 26rem;
-  height: 26rem;
-  top: 8%;
-  left: 12%;
-  animation: flux-wave-swell 19s ease-in-out infinite;
-}
-
-.flux-wave--two {
-  width: 34rem;
-  height: 34rem;
-  top: 34%;
-  left: 58%;
-  animation: flux-wave-swell 27s ease-in-out infinite 6s;
-}
-
-.flux-wave--three {
-  width: 20rem;
-  height: 20rem;
-  top: 62%;
-  left: 28%;
-  animation: flux-wave-swell 23s ease-in-out infinite 13s;
-}
-
-@keyframes flux-wave-swell {
-  0%,
+@keyframes flux-grid-breathe {
+  0% {
+    opacity: 0.55;
+  }
   100% {
-    opacity: 0;
-    transform: translate3d(0, 0, 0) scale(0.4);
-  }
-  35% {
-    opacity: 0.9;
-  }
-  50% {
-    transform: translate3d(6vw, -4vh, 0) scale(1.25);
-  }
-  70% {
-    opacity: 0.5;
-  }
-  99% {
-    opacity: 0;
-    transform: translate3d(12vw, -9vh, 0) scale(1.6);
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flux-wave {
+  .flux-mood--grid::after {
     animation: none;
   }
 }

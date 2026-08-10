@@ -53,18 +53,7 @@ const MoodBackground = ({ color, hasGrid = false, isDrifting = false }: MoodBack
             ]
               .filter((name) => name !== '')
               .join(' ')}
-          >
-            {/* Slow swells of light passing over the grid, offset from each
-                other so they never line up into a pulse. The grid is drawn by
-                the layer beneath; these only change how brightly it is lit. */}
-            {!hasGrid ? null : (
-              <>
-                <span role="presentation" className="flux-wave flux-wave--one" />
-                <span role="presentation" className="flux-wave flux-wave--two" />
-                <span role="presentation" className="flux-wave flux-wave--three" />
-              </>
-            )}
-          </div>
+          />
         </motion.div>
       </AnimatePresence>
     </div>
