@@ -14,6 +14,7 @@ const probe: MediaProbe = {
   video: null,
   audioStreams: [],
   subtitleStreams: [],
+  chapters: [],
 }
 
 const facts = (path: string): MediaFacts => ({ path, probe })

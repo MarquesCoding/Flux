@@ -23,6 +23,7 @@ const probe = (): MediaProbe => ({
   },
   audioStreams: [{ index: 1, codec: 'eac3', channels: 6, language: 'eng', isAtmos: true }],
   subtitleStreams: [],
+  chapters: [],
 })
 
 const file = (path: string, overrides: Partial<ScannedFile> = {}): ScannedFile => ({

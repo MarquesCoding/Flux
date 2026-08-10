@@ -67,6 +67,15 @@ const MediaProbeSchema = z.object({
   bitrateKbps: z.number().int().nullable(),
   video: ProbeVideoSchema.nullable(),
   audioStreams: z.array(ProbeAudioSchema),
+  chapters: z
+    .array(
+      z.object({
+        title: z.string().nullable(),
+        startSeconds: z.number(),
+        endSeconds: z.number(),
+      }),
+    )
+    .default([]),
   subtitleStreams: z.array(ProbeSubtitleSchema),
 })
 

@@ -90,6 +90,19 @@ impl Container {
     }
 }
 
+/// A named point in a file.
+///
+/// Containers carry these for scene selection, and a release that names one
+/// "Intro" or "Opening" has already done the work of finding it. Reading them
+/// costs nothing beyond the probe that was happening anyway.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Chapter {
+    pub title: Option<String>,
+    pub start_seconds: f64,
+    pub end_seconds: f64,
+}
+
 /// A video stream as Flux models it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -137,6 +150,8 @@ pub struct MediaProbe {
     pub video: Option<VideoStream>,
     pub audio_streams: Vec<AudioStream>,
     pub subtitle_streams: Vec<SubtitleStream>,
+    #[serde(default)]
+    pub chapters: Vec<Chapter>,
 }
 
 /// Maps an ffmpeg subtitle codec name onto the Flux subtitle format names

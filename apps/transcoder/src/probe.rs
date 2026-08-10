@@ -4,6 +4,7 @@ use serde::Deserialize;
 use thiserror::Error;
 use tokio::process::Command;
 
+use crate::media::Chapter;
 use crate::media::{
     audio_codec, bit_depth_from_pix_fmt, is_image_subtitle, subtitle_format, video_codec,
     AudioStream, Container, MediaProbe, SubtitleStream, VideoRange, VideoStream,
@@ -25,6 +26,16 @@ struct FfprobeOutput {
     #[serde(default)]
     streams: Vec<FfprobeStream>,
     format: Option<FfprobeFormat>,
+    #[serde(default)]
+    chapters: Vec<FfprobeChapter>,
+}
+
+#[derive(Debug, Deserialize)]
+struct FfprobeChapter {
+    start_time: Option<String>,
+    end_time: Option<String>,
+    #[serde(default)]
+    tags: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -178,6 +189,24 @@ fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
         video,
         audio_streams,
         subtitle_streams,
+        chapters: output
+            .chapters
+            .iter()
+            .filter_map(|chapter| {
+                let start = chapter.start_time.as_ref()?.parse::<f64>().ok()?;
+                let end = chapter.end_time.as_ref()?.parse::<f64>().ok()?;
+
+                Some(Chapter {
+                    title: chapter
+                        .tags
+                        .iter()
+                        .find(|(key, _)| key.eq_ignore_ascii_case("title"))
+                        .map(|(_, value)| value.clone()),
+                    start_seconds: start,
+                    end_seconds: end,
+                })
+            })
+            .collect(),
     }
 }
 
@@ -217,6 +246,7 @@ pub async fn probe_media(ffprobe: &str, path: &Path) -> Result<MediaProbe, Probe
             "json",
             "-show_format",
             "-show_streams",
+            "-show_chapters",
         ])
         .arg(path)
         .output()
@@ -356,6 +386,60 @@ mod tests {
 
         assert!(probe.video.is_none());
         assert_eq!(probe.audio_streams.len(), 1);
+    }
+
+    #[test]
+    fn reads_chapters_a_container_names() {
+        let json = r#"{
+            "streams": [],
+            "format": {"format_name": "matroska,webm", "duration": "1440.0"},
+            "chapters": [
+                {"start_time": "0.000000", "end_time": "90.000000", "tags": {"title": "Intro"}},
+                {"start_time": "90.000000", "end_time": "1400.000000", "tags": {"title": "Episode"}}
+            ]
+        }"#;
+
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
+
+        assert_eq!(probe.chapters.len(), 2);
+        assert_eq!(probe.chapters[0].title.as_deref(), Some("Intro"));
+        assert!((probe.chapters[0].end_seconds - 90.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn reads_a_chapter_with_no_title() {
+        let json = r#"{
+            "streams": [],
+            "format": {"format_name": "matroska,webm"},
+            "chapters": [{"start_time": "0.0", "end_time": "10.0", "tags": {}}]
+        }"#;
+
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
+
+        assert_eq!(probe.chapters.len(), 1);
+        assert!(probe.chapters[0].title.is_none());
+    }
+
+    #[test]
+    fn skips_a_chapter_with_no_usable_times() {
+        let json = r#"{
+            "streams": [],
+            "format": {"format_name": "matroska,webm"},
+            "chapters": [{"tags": {"title": "Broken"}}]
+        }"#;
+
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
+
+        assert!(probe.chapters.is_empty());
+    }
+
+    #[test]
+    fn reports_no_chapters_for_a_file_that_has_none() {
+        let json = r#"{"streams": [], "format": {"format_name": "matroska,webm"}}"#;
+
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
+
+        assert!(probe.chapters.is_empty());
     }
 
     #[test]
