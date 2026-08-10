@@ -9,6 +9,7 @@ import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
 import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
 import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
 import SplashScreenModule from '@FluxUI/SplashScreen'
+import AdminAreaModule from '@FluxWeb/components/AdminArea/AdminArea'
 import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types'
 import fetchSessionModule from '@FluxWeb/session/fetchSession'
 import signOutModule from '@FluxWeb/session/signOut'
@@ -28,6 +29,7 @@ const { VideoPlayer } = VideoPlayerModule
 const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
 const { SplashScreen } = SplashScreenModule
+const { AdminArea } = AdminAreaModule
 
 /**
  * How long the opening title stays up.
@@ -183,7 +185,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         }}
       />
 
-      {section === 'account' ? (
+      {section === 'admin' ? (
+        <AdminArea />
+      ) : section === 'account' ? (
         <div className="flex flex-col gap-4 p-5 pt-12 sm:p-10">
           <header className="flex items-center justify-between gap-4">
             <h1 className="text-3xl font-semibold tracking-tight">{initialTitle}</h1>
