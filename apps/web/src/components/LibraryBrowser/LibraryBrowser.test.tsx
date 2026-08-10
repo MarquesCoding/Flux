@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import LibraryBrowserModule from './LibraryBrowser'
@@ -9,12 +9,14 @@ const { LibraryBrowser } = LibraryBrowserModule
 const fetchLibrariesMock = vi.hoisted(() => vi.fn())
 const fetchItemsMock = vi.hoisted(() => vi.fn())
 const scanMock = vi.hoisted(() => vi.fn())
+const createLibraryMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
   default: {
     fetchLibraries: fetchLibrariesMock,
     fetchLibraryItems: fetchItemsMock,
     scanLibrary: scanMock,
+    createLibrary: createLibraryMock,
   },
 }))
 
@@ -48,6 +50,7 @@ beforeEach(() => {
   fetchLibrariesMock.mockReset()
   fetchItemsMock.mockReset()
   scanMock.mockReset()
+  createLibraryMock.mockReset()
 
   fetchLibrariesMock.mockResolvedValue([films])
   fetchItemsMock.mockResolvedValue({ items: [arrival], total: 1 })
@@ -189,6 +192,25 @@ describe('LibraryBrowser', () => {
     render(<LibraryBrowser onPlay={vi.fn()} />)
 
     expect(await screen.findByRole('heading', { name: 'No libraries yet' })).toBeInTheDocument()
+  })
+
+  it('adds and selects a library created from the empty state', async () => {
+    fetchLibrariesMock.mockResolvedValue([])
+    createLibraryMock.mockResolvedValue(shows)
+    const actor = userEvent.setup()
+    render(<LibraryBrowser onPlay={vi.fn()} />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Add library' }))
+
+    const dialog = screen.getByRole('dialog', { name: 'Add a library' })
+
+    await actor.type(within(dialog).getByLabelText('Name'), 'Shows')
+    await actor.type(within(dialog).getByLabelText('Path'), '/media/shows')
+    await actor.click(within(dialog).getByRole('button', { name: 'Add library' }))
+
+    await waitFor(() => {
+      expect(fetchItemsMock).toHaveBeenCalledWith(shows.id, expect.anything())
+    })
   })
 
   it('says when an empty library needs scanning', async () => {

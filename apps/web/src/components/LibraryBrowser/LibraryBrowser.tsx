@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { IconRefresh, IconRefreshAlert } from '@tabler/icons-react'
+import { IconPlus, IconRefresh, IconRefreshAlert } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import MediaCardModule from '@FluxUI/MediaCard'
 import SpinnerModule from '@FluxUI/Spinner'
 import TextFieldModule from '@FluxUI/TextField'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import describeMediaModule from './describeMedia'
+import AddLibraryDialogModule from './components/AddLibraryDialog/AddLibraryDialog'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
 
@@ -15,6 +16,7 @@ const { Spinner } = SpinnerModule
 const { TextField } = TextFieldModule
 const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
 const { describeMedia, describeBadges } = describeMediaModule
+const { AddLibraryDialog } = AddLibraryDialogModule
 
 const PAGE_SIZE = 60
 const SEARCH_DEBOUNCE_MS = 250
@@ -35,6 +37,7 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
   const [appliedSearch, setAppliedSearch] = useState('')
   const [state, setState] = useState<BrowserState>('loading')
   const [isScanning, setIsScanning] = useState(false)
+  const [isAddOpen, setIsAddOpen] = useState(false)
 
   useEffect(() => {
     let abandoned = false
@@ -92,6 +95,12 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
     void loadItems()
   }, [loadItems])
 
+  const onLibraryCreated = (library: Library) => {
+    setLibraries((current) => [...current, library])
+    setSelectedId(library.id)
+    setIsAddOpen(false)
+  }
+
   const rescan = async (force: boolean) => {
     if (selectedId === null) {
       return
@@ -125,11 +134,31 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
 
   if (libraries.length === 0) {
     return (
-      <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-medium text-text">No libraries yet</h2>
-        <p className="text-text-muted">
-          Add a library pointing at a folder of media, then scan it to see your films here.
-        </p>
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-lg font-medium text-text">No libraries yet</h2>
+          <p className="text-text-muted">
+            Add a library pointing at a folder of media, then scan it to see your films here.
+          </p>
+        </div>
+
+        <Button
+          size="sm"
+          onClick={() => {
+            setIsAddOpen(true)
+          }}
+        >
+          <IconPlus size={16} aria-hidden />
+          Add library
+        </Button>
+
+        <AddLibraryDialog
+          isOpen={isAddOpen}
+          onClose={() => {
+            setIsAddOpen(false)
+          }}
+          onCreated={onLibraryCreated}
+        />
       </section>
     )
   }
@@ -150,6 +179,17 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
               {entry.name}
             </Button>
           ))}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setIsAddOpen(true)
+            }}
+          >
+            <IconPlus size={16} aria-hidden />
+            Add library
+          </Button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -221,6 +261,14 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
           </ul>
         </>
       )}
+
+      <AddLibraryDialog
+        isOpen={isAddOpen}
+        onClose={() => {
+          setIsAddOpen(false)
+        }}
+        onCreated={onLibraryCreated}
+      />
     </section>
   )
 }

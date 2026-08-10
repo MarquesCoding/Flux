@@ -1,15 +1,22 @@
 import { z } from 'zod'
 import LibraryContract from '@FluxContracts/schemas/Library'
-import type { Library, MediaDetail, MediaPage } from '@FluxContracts/schemas/Library'
+import type { Library, LibraryKind, MediaDetail, MediaPage } from '@FluxContracts/schemas/Library'
 
 const { LibrarySchema, MediaPageSchema, MediaDetailSchema } = LibraryContract
 
 const LibraryListSchema = z.array(LibrarySchema)
+const ErrorBodySchema = z.object({ error: z.string() })
 
 type ListItemsOptions = {
   search?: string
   limit?: number
   offset?: number
+}
+
+type CreateLibraryInput = {
+  name: string
+  kind: LibraryKind
+  path: string
 }
 
 /**
@@ -23,6 +30,32 @@ const fetchLibraries = async (): Promise<Library[]> => {
   }
 
   return LibraryListSchema.parse(await response.json())
+}
+
+/**
+ * Adds a library root.
+ *
+ * Surfaces the server's own message on failure — it is the side that checked
+ * the path is a readable directory — rather than a generic status code.
+ */
+const createLibrary = async (input: CreateLibraryInput): Promise<Library> => {
+  const response = await fetch('/api/libraries', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    const parsed = ErrorBodySchema.safeParse(await response.json().catch(() => null))
+
+    throw new Error(
+      parsed.success
+        ? parsed.data.error
+        : `Library request failed with status ${response.status.toString()}`,
+    )
+  }
+
+  return LibrarySchema.parse(await response.json())
 }
 
 /**
@@ -91,6 +124,6 @@ const scanLibrary = async (libraryId: string, force = false): Promise<boolean> =
   return response.ok
 }
 
-export type { ListItemsOptions }
+export type { ListItemsOptions, CreateLibraryInput }
 
-export default { fetchLibraries, fetchLibraryItems, fetchMediaDetail, scanLibrary }
+export default { fetchLibraries, createLibrary, fetchLibraryItems, fetchMediaDetail, scanLibrary }
