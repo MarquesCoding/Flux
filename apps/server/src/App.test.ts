@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest'
 import AppModule from './App'
 import createMemoryAuthModule from './auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from './library/createMemoryLibraryService'
+import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from './playback/createMemoryPlaybackService'
 
 const { createApp } = AppModule
 const { createMemoryAuth } = createMemoryAuthModule
 const { createMemoryLibraryService } = createMemoryLibraryServiceModule
 const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
+const { createMemorySubtitleService } = createMemorySubtitleServiceModule
 
 const { auth, settings } = createMemoryAuth()
 const app = createApp({
@@ -16,6 +18,7 @@ const app = createApp({
   countUsers: () => Promise.resolve(1),
   promoteToAdmin: () => Promise.resolve(),
   library: createMemoryLibraryService(),
+  subtitles: createMemorySubtitleService(),
   playback: createMemoryPlaybackService(),
 })
 
@@ -38,6 +41,7 @@ describe('createApp', () => {
       countUsers: () => Promise.resolve(1),
       promoteToAdmin: () => Promise.resolve(),
       library: createMemoryLibraryService(),
+      subtitles: createMemorySubtitleService(),
       playback: createMemoryPlaybackService(),
       isTranscoderReachable: () => Promise.resolve(true),
     })

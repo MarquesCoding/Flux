@@ -75,3 +75,23 @@ encoded, the size being decoded, and frames dropped.
 Frame counts are reported as _not reported_ rather than as zero where a browser
 does not keep them, because a decoder dropping frames is exactly when someone
 opens this panel and a confident zero would be a lie.
+
+## Subtitles
+
+Flux plays the subtitle files sitting next to your media — what Jellyfin calls
+external subtitles. `Arrival (2016).en.srt`, `Arrival (2016).fr.forced.srt` and
+a `Subs/English.srt` are all found, with the language, forced and SDH flags
+read from the filename.
+
+SubRip, WebVTT and Advanced SubStation are supported. Everything is converted
+to WebVTT on the way out because that is the only format a browser renders; an
+ASS script keeps its dialogue and loses its own fonts, colours and positioning,
+since captions are styled to the viewer's preference instead.
+
+Picture-based tracks — `.sup`, `.idx`/`.sub` — are ignored. Turning those into
+text means character recognition, which is not something to do inside a
+playback request. They are the burn-in case instead.
+
+Nothing is demuxed out of the container, and nothing is fetched from the
+internet. A plugin that downloads subtitles writes files beside the media, and
+they then appear like any other.

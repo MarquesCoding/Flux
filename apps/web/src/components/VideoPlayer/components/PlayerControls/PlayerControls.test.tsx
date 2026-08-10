@@ -17,10 +17,22 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
     isFullscreen: false,
     isShowingStats: false,
     playbackRate: 1,
+    subtitleTracks: [
+      {
+        id: 'en',
+        language: 'en',
+        label: 'English',
+        format: 'srt',
+        isForced: false,
+        isHearingImpaired: false,
+      },
+    ],
+    selectedSubtitleId: 'off',
     onTogglePlay: vi.fn(),
     onSeek: vi.fn(),
     onSkip: vi.fn(),
     onPlaybackRateChange: vi.fn(),
+    onSubtitleChange: vi.fn(),
     onVolumeChange: vi.fn(),
     onToggleMute: vi.fn(),
     onToggleFullscreen: vi.fn(),
@@ -146,10 +158,13 @@ describe('PlayerControls', () => {
         isFullscreen={false}
         isShowingStats={false}
         playbackRate={1}
+        subtitleTracks={[]}
+        selectedSubtitleId="off"
         onTogglePlay={vi.fn()}
         onSeek={vi.fn()}
         onSkip={vi.fn()}
         onPlaybackRateChange={vi.fn()}
+        onSubtitleChange={vi.fn()}
         onVolumeChange={vi.fn()}
         onToggleMute={vi.fn()}
         onToggleFullscreen={vi.fn()}
@@ -197,6 +212,32 @@ describe('PlayerControls', () => {
     await user.click(screen.getByRole('button', { name: 'Playback speed' }))
 
     expect(await screen.findByRole('menuitemradio', { name: '2x' })).toBeChecked()
+  })
+
+  it('offers every track plus a way to turn captions off', async () => {
+    const user = userEvent.setup()
+    draw()
+
+    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+
+    expect(await screen.findByRole('menuitemradio', { name: 'Off' })).toBeChecked()
+    expect(screen.getByRole('menuitemradio', { name: /English/ })).toBeInTheDocument()
+  })
+
+  it('reports the track that was chosen', async () => {
+    const user = userEvent.setup()
+    const props = draw()
+
+    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await user.click(await screen.findByRole('menuitemradio', { name: /English/ }))
+
+    expect(props.onSubtitleChange).toHaveBeenCalledWith('en')
+  })
+
+  it('offers nothing to choose when a film has no subtitles beside it', () => {
+    draw({ subtitleTracks: [] })
+
+    expect(screen.getByRole('button', { name: 'Subtitles' })).toBeDisabled()
   })
 
   it('sets a display name so devtools can identify it', () => {

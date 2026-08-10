@@ -78,4 +78,53 @@ describe('VideoSurface', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(VideoSurface.displayName).toBe('VideoSurface')
   })
+
+  it('shows no captions until a track is chosen', () => {
+    const { container } = render(<VideoSurface label="Arrival" videoRef={{ current: null }} />)
+
+    expect(container.querySelector('track')).not.toBeInTheDocument()
+  })
+
+  it('renders the chosen track for the browser to display itself', () => {
+    const { container } = render(
+      <VideoSurface
+        label="Arrival"
+        videoRef={{ current: null }}
+        textTrack={{
+          id: 'en',
+          label: 'English',
+          language: 'en',
+          src: '/api/media/1/subtitles/en',
+        }}
+      />,
+    )
+
+    const track = container.querySelector('track')
+
+    expect(track).toHaveAttribute('src', '/api/media/1/subtitles/en')
+    expect(track).toHaveAttribute('srclang', 'en')
+    expect(track).toHaveAttribute('label', 'English')
+    expect(track).toHaveAttribute('kind', 'subtitles')
+  })
+
+  it('shows only one track at a time, so captions cannot stack', () => {
+    const { container, rerender } = render(
+      <VideoSurface
+        label="Arrival"
+        videoRef={{ current: null }}
+        textTrack={{ id: 'en', label: 'English', language: 'en', src: '/en.vtt' }}
+      />,
+    )
+
+    rerender(
+      <VideoSurface
+        label="Arrival"
+        videoRef={{ current: null }}
+        textTrack={{ id: 'fr', label: 'Français', language: 'fr', src: '/fr.vtt' }}
+      />,
+    )
+
+    expect(container.querySelectorAll('track')).toHaveLength(1)
+    expect(container.querySelector('track')).toHaveAttribute('src', '/fr.vtt')
+  })
 })

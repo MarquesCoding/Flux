@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
 
 /**
  * How far the skip buttons jump.
@@ -20,11 +21,14 @@ type PlayerControlsProps = {
   isFullscreen: boolean
   isShowingStats: boolean
   playbackRate: number
+  subtitleTracks: SubtitleTrack[]
+  selectedSubtitleId: string
   isDisabled?: boolean
   onTogglePlay: () => void
   onSeek: (seconds: number) => void
   onSkip: (seconds: number) => void
   onPlaybackRateChange: (rate: number) => void
+  onSubtitleChange: (trackId: string) => void
   onVolumeChange: (volume: number) => void
   onToggleMute: () => void
   onToggleFullscreen: () => void

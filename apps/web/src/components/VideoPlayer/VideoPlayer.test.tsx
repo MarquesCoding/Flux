@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import VideoPlayerModule from './VideoPlayer'
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
 import type TrickplayModule from '@FluxWeb/playback/fetchTrickplay'
+import type SubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 
 const { VideoPlayer } = VideoPlayerModule
 
@@ -13,6 +14,7 @@ const attachMock = vi.hoisted(() => vi.fn())
 const teardownMock = vi.hoisted(() => vi.fn())
 const trickplayMock = vi.hoisted(() => vi.fn())
 const captureMock = vi.hoisted(() => vi.fn())
+const subtitlesMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
@@ -41,6 +43,14 @@ vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
 vi.mock('@FluxWeb/playback/captureFrame', () => ({
   default: { captureFrame: captureMock },
 }))
+
+vi.mock('@FluxWeb/playback/fetchSubtitles', async () => {
+  const actual = await vi.importActual<{ default: typeof SubtitlesModule }>(
+    '@FluxWeb/playback/fetchSubtitles',
+  )
+
+  return { default: { ...actual.default, fetchSubtitleTracks: subtitlesMock } }
+})
 
 vi.mock('@FluxWeb/playback/fetchTrickplay', async () => {
   const actual = await vi.importActual<{ default: typeof TrickplayModule }>(
@@ -127,6 +137,8 @@ beforeEach(() => {
   trickplayMock.mockResolvedValue(null)
   captureMock.mockReset()
   captureMock.mockReturnValue(null)
+  subtitlesMock.mockReset()
+  subtitlesMock.mockResolvedValue([])
 
   startMock.mockResolvedValue({ kind: 'started', session: startedSession })
   attachMock.mockResolvedValue(teardownMock)
@@ -625,6 +637,68 @@ describe('VideoPlayer', () => {
     await actor.click(await screen.findByRole('menuitemradio', { name: '1.5x' }))
 
     expect(screen.getByLabelText('Arrival')).toHaveProperty('playbackRate', 1.5)
+  })
+
+  it('shows no captions until a track is chosen', async () => {
+    subtitlesMock.mockResolvedValue([
+      {
+        id: 'en',
+        language: 'en',
+        label: 'English',
+        format: 'srt',
+        isForced: false,
+        isHearingImpaired: false,
+      },
+    ])
+    const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+
+    expect(container.querySelector('track')).not.toBeInTheDocument()
+  })
+
+  it('renders the track a viewer chooses', async () => {
+    const actor = userEvent.setup()
+    subtitlesMock.mockResolvedValue([
+      {
+        id: 'en',
+        language: 'en',
+        label: 'English',
+        format: 'srt',
+        isForced: false,
+        isHearingImpaired: false,
+      },
+    ])
+    const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+    await actor.click(await screen.findByRole('button', { name: 'Subtitles' }))
+    await actor.click(await screen.findByRole('menuitemradio', { name: /English/ }))
+
+    expect(container.querySelector('track')).toHaveAttribute(
+      'src',
+      '/api/media/media-1/subtitles/en',
+    )
+  })
+
+  it('shows a forced track without being asked', async () => {
+    subtitlesMock.mockResolvedValue([
+      {
+        id: 'fr',
+        language: 'fr',
+        label: 'Français (forced)',
+        format: 'srt',
+        isForced: true,
+        isHearingImpaired: false,
+      },
+    ])
+    const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await settled()
+
+    await waitFor(() => {
+      expect(container.querySelector('track')).toHaveAttribute('srclang', 'fr')
+    })
   })
 
   it('sets a display name so devtools can identify it', () => {

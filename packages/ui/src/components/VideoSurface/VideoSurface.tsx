@@ -19,6 +19,7 @@ const VideoSurface = ({
   videoRef,
   poster,
   className,
+  textTrack,
   onTimeUpdate,
   onDurationChange,
   onPlayingChange,
@@ -42,7 +43,18 @@ const VideoSurface = ({
       onPause={() => {
         onPlayingChange?.(false)
       }}
-    />
+    >
+      {textTrack === undefined ? null : (
+        <track
+          key={textTrack.id}
+          kind="subtitles"
+          default
+          src={textTrack.src}
+          label={textTrack.label}
+          srcLang={textTrack.language}
+        />
+      )}
+    </video>
   )
 }
 

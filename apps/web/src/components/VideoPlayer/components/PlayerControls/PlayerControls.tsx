@@ -1,5 +1,6 @@
 import {
   IconAdjustmentsHorizontal,
+  IconBadgeCc,
   IconMaximize,
   IconMinimize,
   IconPlayerPause,
@@ -13,6 +14,7 @@ import IconButtonModule from '@FluxUI/IconButton'
 import SliderModule from '@FluxUI/Slider'
 import OptionMenuModule from '@FluxUI/OptionMenu'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
+import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import PlayerControlsTypes from './PlayerControls.types'
 import type { PlayerControlsProps } from './PlayerControls.types'
 
@@ -21,6 +23,7 @@ const { Slider } = SliderModule
 const { OptionMenu } = OptionMenuModule
 const { formatDuration } = formatDurationModule
 const { SKIP_SECONDS, PLAYBACK_RATES } = PlayerControlsTypes
+const { SUBTITLES_OFF } = fetchSubtitlesModule
 
 /**
  * Formats a rate the way a viewer reads it, not the way a float prints.
@@ -44,11 +47,14 @@ const PlayerControls = ({
   isFullscreen,
   isShowingStats,
   playbackRate,
+  subtitleTracks,
+  selectedSubtitleId,
   isDisabled = false,
   onTogglePlay,
   onSeek,
   onSkip,
   onPlaybackRateChange,
+  onSubtitleChange,
   onVolumeChange,
   onToggleMute,
   onToggleFullscreen,
@@ -125,6 +131,33 @@ const PlayerControls = ({
         className="w-0 overflow-hidden transition-all group-hover/volume:w-20 group-focus-within/volume:w-20"
       />
     </div>
+
+    <OptionMenu
+      label="Subtitles"
+      isDisabled={subtitleTracks.length === 0}
+      trigger={
+        <IconBadgeCc
+          size={22}
+          className={selectedSubtitleId === SUBTITLES_OFF ? 'opacity-60' : ''}
+          aria-hidden
+        />
+      }
+      groups={[
+        {
+          name: 'Subtitles/CC',
+          selectedId: selectedSubtitleId,
+          onSelect: onSubtitleChange,
+          options: [
+            { id: SUBTITLES_OFF, label: 'Off' },
+            ...subtitleTracks.map((track) => ({
+              id: track.id,
+              label: track.label,
+              ...(track.format === '' ? {} : { detail: track.format.toUpperCase() }),
+            })),
+          ],
+        },
+      ]}
+    />
 
     <OptionMenu
       label="Playback speed"

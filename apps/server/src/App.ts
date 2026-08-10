@@ -5,10 +5,12 @@ import type { FluxAuth } from '@FluxServer/auth/Auth'
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
 import LibraryServiceModule from '@FluxServer/library/LibraryService'
 import type { LibraryService } from '@FluxServer/library/LibraryService'
+import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService'
 import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
 import HealthRouteModule from './routes/HealthRoute'
 import LibraryRouteModule from './routes/LibraryRoute'
 import PlaybackRouteModule from './routes/PlaybackRoute'
+import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
 
 const { suggestTrustedOrigins } = suggestTrustedOriginsModule
@@ -32,6 +34,7 @@ const {
   stopRoute,
 } = PlaybackRouteModule
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
+const { listSubtitlesRoute, readSubtitleRoute } = SubtitleRouteModule
 
 const SERVER_VERSION = '0.0.0'
 
@@ -42,6 +45,7 @@ type CreateAppOptions = {
   promoteToAdmin: (email: string) => Promise<void>
   library: LibraryService
   playback: PlaybackService
+  subtitles: SubtitleService
   isTranscoderReachable?: () => Promise<boolean>
 }
 
@@ -62,6 +66,7 @@ const createApp = ({
   promoteToAdmin,
   library,
   playback,
+  subtitles,
   isTranscoderReachable = () => Promise.resolve(false),
 }: CreateAppOptions) => {
   const app = new OpenAPIHono()
@@ -283,6 +288,28 @@ const createApp = ({
     }
 
     return context.body(file.body, 200, { 'content-type': file.contentType })
+  })
+
+  app.openapi(listSubtitlesRoute, async (context) => {
+    const tracks = await subtitles.list(context.req.valid('param').mediaId)
+
+    if (tracks === null) {
+      return context.json({ error: 'No such media item.' }, 404)
+    }
+
+    return context.json({ tracks }, 200)
+  })
+
+  app.openapi(readSubtitleRoute, async (context) => {
+    const { mediaId, trackId } = context.req.valid('param')
+
+    const track = await subtitles.read(mediaId, trackId)
+
+    if (track === null) {
+      return context.json({ error: 'No such track.' }, 404)
+    }
+
+    return context.body(track, 200, { 'content-type': 'text/vtt; charset=utf-8' })
   })
 
   app.openapi(stopRoute, async (context) => {

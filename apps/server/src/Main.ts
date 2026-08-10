@@ -10,6 +10,7 @@ import createDatabaseSettingsStoreModule from '@FluxServer/settings/createDataba
 import createDatabaseLibraryServiceModule from '@FluxServer/library/createDatabaseLibraryService'
 import createMediaFileSystemModule from '@FluxServer/library/createMediaFileSystem'
 import TranscoderClientModule from '@FluxServer/transcoder/TranscoderClient'
+import createSidecarSubtitleServiceModule from '@FluxServer/subtitles/createSidecarSubtitleService'
 import createPlaybackServiceModule from '@FluxServer/playback/createPlaybackService'
 import createJobQueueModule from '@FluxServer/jobs/createJobQueue'
 
@@ -23,6 +24,7 @@ const { createDatabaseLibraryService } = createDatabaseLibraryServiceModule
 const { createMediaFileSystem } = createMediaFileSystemModule
 const { createTranscoderClient } = TranscoderClientModule
 const { createPlaybackService } = createPlaybackServiceModule
+const { createSidecarSubtitleService } = createSidecarSubtitleServiceModule
 const { createJobQueue } = createJobQueueModule
 
 const env = readEnv(process.env)
@@ -90,6 +92,23 @@ const libraryService = createDatabaseLibraryService({
   },
 })
 
+const findMediaPath = async (mediaId: string): Promise<string | null> => {
+  const rows = await db
+    .select({ path: mediaItem.path })
+    .from(mediaItem)
+    .where(eq(mediaItem.id, mediaId))
+    .limit(1)
+
+  return rows[0]?.path ?? null
+}
+
+const subtitleService = createSidecarSubtitleService({
+  media: { findPath: findMediaPath },
+  onProblem: (path, reason) => {
+    process.stderr.write(`subtitles: ${path}: ${reason}\n`)
+  },
+})
+
 const playbackService = createPlaybackService({
   media: {
     findForPlayback: async (mediaId) => {
@@ -123,6 +142,7 @@ const app = createApp({
   promoteToAdmin,
   library: libraryService,
   playback: playbackService,
+  subtitles: subtitleService,
   isTranscoderReachable: () => transcoder.isReachable(),
 })
 

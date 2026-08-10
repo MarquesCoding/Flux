@@ -9,6 +9,7 @@ import attachShakaModule from '@FluxWeb/playback/attachShaka'
 import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
 import captureFrameModule from '@FluxWeb/playback/captureFrame'
 import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
+import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
 import PlayerControlsModule from './components/PlayerControls/PlayerControls'
@@ -16,6 +17,7 @@ import StreamStatsModule from './components/StreamStats/StreamStats'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
+import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
 import type { PlaybackHealth } from './components/StreamStats/StreamStats.types'
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types'
 
@@ -28,6 +30,8 @@ const { attachShaka } = attachShakaModule
 const { fetchTrickplay } = fetchTrickplayModule
 const { captureFrame } = captureFrameModule
 const { readPlaybackHealth, encodedSeconds } = readPlaybackHealthModule
+const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, SUBTITLES_OFF } =
+  fetchSubtitlesModule
 const { fetchMediaDetail } = fetchLibraryModule
 const { TrickplayPreview } = TrickplayPreviewModule
 const { PlayerControls } = PlayerControlsModule
@@ -87,6 +91,8 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH)
   const [isIdle, setIsIdle] = useState(false)
   const [playbackRate, setPlaybackRate] = useState(1)
+  const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([])
+  const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF)
   // What the current session was asked for. A transcode is produced from the
   // point it starts at, so seeking outside what has been encoded means asking
   // for a new one rather than moving within this one.
@@ -203,6 +209,8 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
 
     setTrickplay(null)
     setDetail(null)
+    setSubtitleTracks([])
+    setSelectedSubtitleId(SUBTITLES_OFF)
 
     void fetchTrickplay(media.id).then((found) => {
       if (!abandoned) {
@@ -213,6 +221,13 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     void fetchMediaDetail(media.id).then((found) => {
       if (!abandoned) {
         setDetail(found)
+      }
+    })
+
+    void fetchSubtitleTracks(media.id).then((found) => {
+      if (!abandoned) {
+        setSubtitleTracks(found)
+        setSelectedSubtitleId(defaultTrackId(found))
       }
     })
 
@@ -344,6 +359,8 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     [request, session],
   )
 
+  const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null
+
   const skip = useCallback(
     (delta: number) => {
       seek(Math.min(Math.max(position + delta, 0), duration))
@@ -400,6 +417,16 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
         <VideoSurface
           label={media.title}
           videoRef={videoRef}
+          {...(selectedTrack === null
+            ? {}
+            : {
+                textTrack: {
+                  id: selectedTrack.id,
+                  label: selectedTrack.label,
+                  language: selectedTrack.language ?? 'und',
+                  src: subtitleTrackUrl(media.id, selectedTrack.id),
+                },
+              })}
           onTimeUpdate={(seconds) => {
             setPosition(request.startSeconds + seconds)
             setHeldFrame(null)
@@ -461,11 +488,14 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
             isFullscreen={isFullscreen}
             isShowingStats={isShowingStats}
             playbackRate={playbackRate}
+            subtitleTracks={subtitleTracks}
+            selectedSubtitleId={selectedSubtitleId}
             isDisabled={state !== 'playing'}
             onTogglePlay={togglePlay}
             onSeek={seek}
             onSkip={skip}
             onPlaybackRateChange={setPlaybackRate}
+            onSubtitleChange={setSelectedSubtitleId}
             onVolumeChange={(next) => {
               setVolume(next)
               setIsMuted(next === 0)
