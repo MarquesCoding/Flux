@@ -86,17 +86,6 @@ describe('LibraryBrowser', () => {
     expect(cardIn('Recently added', 'Arrival')).toBeInTheDocument()
   })
 
-  it('shows resolution and range badges', async () => {
-    render(<LibraryBrowser onPlay={vi.fn()} />)
-
-    await screen.findByRole('region', { name: 'Recently added' })
-
-    const card = cardIn('Recently added', 'Arrival')
-
-    expect(within(card).getByText('4K')).toBeInTheDocument()
-    expect(within(card).getByText('HDR10')).toBeInTheDocument()
-  })
-
   it('reports how many items there are', async () => {
     render(<LibraryBrowser onPlay={vi.fn()} />)
 

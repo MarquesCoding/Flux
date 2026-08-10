@@ -10,7 +10,6 @@ import MediaCardModule from '@FluxUI/MediaCard'
 import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import describeMediaModule from '@FluxWeb/components/LibraryBrowser/describeMedia'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types'
@@ -24,7 +23,6 @@ const { MediaCard } = MediaCardModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { formatDuration } = formatDurationModule
 const { fetchMediaDetail } = fetchLibraryModule
-const { describeBadges } = describeMediaModule
 const { MediaPreview } = MediaPreviewModule
 
 /**
@@ -174,7 +172,7 @@ const MediaDetailDialog = ({
           </Button>
 
           <ul className="flex flex-wrap items-center gap-2">
-            {[...genres, ...describeBadges(media)].map((label) => (
+            {genres.map((label) => (
               <li key={label}>
                 <Badge size="md">{label}</Badge>
               </li>

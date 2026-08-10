@@ -135,7 +135,16 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   return (
     <AppShell
       section={section}
-      onSectionChange={setSection}
+      onSectionChange={(next) => {
+        // Leaving search abandons the search. Carrying the term out with them
+        // leaves home showing a filtered library and no hero, which reads as
+        // the page having broken.
+        if (next !== 'search') {
+          setSearch('')
+        }
+
+        setSection(next)
+      }}
       // Home and search draw the same library, so moving between them keeps
       // the page rather than fetching it all over again.
       viewKey={section === 'home' || section === 'search' ? 'library' : section}

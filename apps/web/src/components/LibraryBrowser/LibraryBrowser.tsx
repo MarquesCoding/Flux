@@ -30,7 +30,7 @@ const { watchedFraction } = WatchProgressContract
 const HERO_COUNT = 5
 const { Spinner } = SpinnerModule
 const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
-const { describeMedia, describeBadges } = describeMediaModule
+const { describeMedia } = describeMediaModule
 
 const PAGE_SIZE = 60
 const SEARCH_DEBOUNCE_MS = 250
@@ -284,7 +284,6 @@ const LibraryBrowser = ({
                     <MediaCard
                       title={media.title}
                       subtitle={describeMedia(media)}
-                      badges={describeBadges(media)}
                       shape="wide"
                       {...(progress.has(media.id)
                         ? {

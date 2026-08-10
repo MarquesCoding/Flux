@@ -30,16 +30,15 @@ const heavySpring: Transition = {
 /**
  * The spring a moving highlight travels on.
  *
- * Slack enough to overshoot and settle back, which is what makes one object
- * sliding between positions read as liquid rather than as a box being moved.
- * Wrong for anything carrying text: the overshoot that looks alive under a
- * highlight looks like a wobble under a word.
+ * Damped just short of springing back, so the highlight flows to its new place
+ * and stops there. A slacker spring reads as bouncy rather than as liquid, and
+ * a bar that wobbles every time it is used gets tiring quickly.
  */
 const liquidSpring: Transition = {
   type: 'spring',
-  stiffness: 420,
-  damping: 24,
-  mass: 1.15,
+  stiffness: 380,
+  damping: 34,
+  mass: 1,
 }
 
 /**

@@ -158,9 +158,6 @@ const Hero = ({
         >
           {featured.year === null ? null : <span className="text-text">{featured.year}</span>}
           <span>{formatDuration(featured.durationSeconds)}</span>
-          <span className="rounded-full border border-white/20 px-2.5 py-0.5 text-xs uppercase tracking-widest">
-            {featured.videoRange === 'SDR' ? `${featured.height}p` : featured.videoRange}
-          </span>
         </motion.div>
 
         <motion.div
