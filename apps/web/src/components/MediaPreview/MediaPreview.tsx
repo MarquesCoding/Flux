@@ -32,11 +32,12 @@ const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`
 /**
  * How far down the picture a subtitle sits, as a percentage.
  *
- * Well clear of the fade along the bottom edge and of the controls in the
- * corner. A preview is masked into the page along that edge, so a cue on the
- * last line is drawn underneath the very gradient that hides it.
+ * Low enough to read as subtitles rather than as a caption across the middle,
+ * and high enough to clear the fade along the bottom edge. A preview is
+ * blended into the page there, so a cue on the last line is drawn underneath
+ * the very gradient that hides it.
  */
-const CUE_LINE = 38
+const CUE_LINE = 62
 
 /**
  * A glimpse of what an item looks like.
