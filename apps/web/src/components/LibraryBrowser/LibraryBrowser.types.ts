@@ -8,6 +8,14 @@ type LibraryBrowserProps = {
    * boxes searching the same library would be one too many.
    */
   search?: string
+  /**
+   * Whether to open with a featured item filling the screen.
+   */
+  hasHero?: boolean
+  /**
+   * Told which item the hero is showing, so the page can be lit by it.
+   */
+  onFeatureChange?: (media: MediaSummary) => void
   onPlay: (media: MediaSummary) => void
 }
 

@@ -12,7 +12,7 @@ vi.mock('@FluxWeb/library/fetchLibrary', () => ({
   default: { fetchMediaDetail: detailMock },
 }))
 
-vi.mock('./components/MediaPreview/MediaPreview', () => ({
+vi.mock('@FluxWeb/components/MediaPreview/MediaPreview', () => ({
   default: { MediaPreview: () => <div>preview</div> },
 }))
 

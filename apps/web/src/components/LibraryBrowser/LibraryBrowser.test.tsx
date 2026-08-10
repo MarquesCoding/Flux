@@ -204,4 +204,36 @@ describe('LibraryBrowser', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded')
   })
+
+  it('opens with a featured item when asked for a hero', async () => {
+    render(<LibraryBrowser hasHero onPlay={vi.fn()} />)
+
+    expect(await screen.findByRole('region', { name: 'Featured' })).toBeInTheDocument()
+  })
+
+  it('shows no hero where someone came looking for something specific', async () => {
+    render(<LibraryBrowser onPlay={vi.fn()} />)
+
+    await screen.findByRole('button', { name: /Arrival/ })
+
+    expect(screen.queryByRole('region', { name: 'Featured' })).not.toBeInTheDocument()
+  })
+
+  it('shows no hero over an empty library', async () => {
+    fetchItemsMock.mockResolvedValue({ items: [], total: 0 })
+    render(<LibraryBrowser hasHero onPlay={vi.fn()} />)
+
+    await screen.findByText(/This library is empty/)
+
+    expect(screen.queryByRole('region', { name: 'Featured' })).not.toBeInTheDocument()
+  })
+
+  it('says which item the hero is showing, so the page can be lit by it', async () => {
+    const onFeatureChange = vi.fn()
+    render(<LibraryBrowser hasHero onFeatureChange={onFeatureChange} onPlay={vi.fn()} />)
+
+    await screen.findByRole('region', { name: 'Featured' })
+
+    expect(onFeatureChange).toHaveBeenCalledWith(expect.objectContaining({ title: 'Arrival' }))
+  })
 })

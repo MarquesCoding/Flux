@@ -4,12 +4,21 @@ import ButtonModule from '@FluxUI/Button'
 import MediaCardModule from '@FluxUI/MediaCard'
 import SpinnerModule from '@FluxUI/Spinner'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
+import HeroModule from '@FluxWeb/components/Hero/Hero'
 import describeMediaModule from './describeMedia'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
 
 const { Button } = ButtonModule
 const { MediaCard } = MediaCardModule
+const { Hero } = HeroModule
+
+/**
+ * How many items the hero rotates between.
+ *
+ * A handful: a carousel of thirty is a carousel nobody reaches the end of.
+ */
+const HERO_COUNT = 5
 const { Spinner } = SpinnerModule
 const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
 const { describeMedia, describeBadges } = describeMediaModule
@@ -24,7 +33,12 @@ const SEARCH_DEBOUNCE_MS = 250
  * browser: the client only ever holds one page, so filtering here would search
  * the page rather than the library and quietly lie about the results.
  */
-const LibraryBrowser = ({ search = '', onPlay }: LibraryBrowserProps) => {
+const LibraryBrowser = ({
+  search = '',
+  hasHero = false,
+  onFeatureChange,
+  onPlay,
+}: LibraryBrowserProps) => {
   const [libraries, setLibraries] = useState<Library[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [items, setItems] = useState<MediaSummary[]>([])
@@ -132,86 +146,97 @@ const LibraryBrowser = ({ search = '', onPlay }: LibraryBrowserProps) => {
   }
 
   return (
-    <section className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          {libraries.map((entry) => (
+    <div className="flex flex-col gap-8">
+      {hasHero && items.length > 0 ? (
+        <Hero
+          items={items.slice(0, HERO_COUNT)}
+          onPlay={onPlay}
+          onInspect={onPlay}
+          {...(onFeatureChange === undefined ? {} : { onFeatureChange })}
+        />
+      ) : null}
+
+      <section className="flex flex-col gap-5 px-6">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {libraries.map((entry) => (
+              <Button
+                key={entry.id}
+                size="sm"
+                variant={entry.id === selectedId ? 'primary' : 'secondary'}
+                onClick={() => {
+                  setSelectedId(entry.id)
+                }}
+              >
+                {entry.name}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
             <Button
-              key={entry.id}
+              variant="ghost"
               size="sm"
-              variant={entry.id === selectedId ? 'primary' : 'secondary'}
+              isLoading={isScanning}
               onClick={() => {
-                setSelectedId(entry.id)
+                void rescan(false)
               }}
             >
-              {entry.name}
+              <IconRefresh size={16} aria-hidden />
+              Scan
             </Button>
-          ))}
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            isLoading={isScanning}
-            onClick={() => {
-              void rescan(false)
-            }}
-          >
-            <IconRefresh size={16} aria-hidden />
-            Scan
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isScanning}
+              onClick={() => {
+                void rescan(true)
+              }}
+            >
+              <IconRefreshAlert size={16} aria-hidden />
+              Full rescan
+            </Button>
+          </div>
+        </header>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={isScanning}
-            onClick={() => {
-              void rescan(true)
-            }}
-          >
-            <IconRefreshAlert size={16} aria-hidden />
-            Full rescan
-          </Button>
-        </div>
-      </header>
-
-      {items.length === 0 ? (
-        <p className="text-text-muted">
-          {appliedSearch === ''
-            ? 'This library is empty. Scan it to find your media.'
-            : `Nothing matches “${appliedSearch}”.`}
-        </p>
-      ) : (
-        <>
-          <p className="text-sm text-text-muted">
-            {total === 1 ? '1 item' : `${String(total)} items`}
+        {items.length === 0 ? (
+          <p className="text-text-muted">
+            {appliedSearch === ''
+              ? 'This library is empty. Scan it to find your media.'
+              : `Nothing matches “${appliedSearch}”.`}
           </p>
+        ) : (
+          <>
+            <p className="text-sm text-text-muted">
+              {total === 1 ? '1 item' : `${String(total)} items`}
+            </p>
 
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {items.map((media) => (
-              <li key={media.id}>
-                <MediaCard
-                  title={media.title}
-                  subtitle={describeMedia(media)}
-                  badges={describeBadges(media)}
-                  shape="wide"
-                  {...(media.hasBackdrop
-                    ? { imageUrl: `/api/media/${media.id}/image/backdrop` }
-                    : media.hasPoster
-                      ? { imageUrl: `/api/media/${media.id}/image/poster` }
-                      : {})}
-                  onSelect={() => {
-                    onPlay(media)
-                  }}
-                  className="w-full"
-                />
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </section>
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {items.map((media) => (
+                <li key={media.id}>
+                  <MediaCard
+                    title={media.title}
+                    subtitle={describeMedia(media)}
+                    badges={describeBadges(media)}
+                    shape="wide"
+                    {...(media.hasBackdrop
+                      ? { imageUrl: `/api/media/${media.id}/image/backdrop` }
+                      : media.hasPoster
+                        ? { imageUrl: `/api/media/${media.id}/image/poster` }
+                        : {})}
+                    onSelect={() => {
+                      onPlay(media)
+                    }}
+                    className="w-full"
+                  />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
+    </div>
   )
 }
 

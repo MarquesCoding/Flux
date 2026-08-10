@@ -49,6 +49,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [inspecting, setInspecting] = useState<MediaSummary | null>(null)
   const [section, setSection] = useState<ShellSection>('home')
   const [search, setSearch] = useState('')
+  const [featured, setFeatured] = useState<MediaSummary | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -137,9 +138,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       onSectionChange={setSection}
       search={search}
       onSearchChange={setSearch}
-      // The page takes its colour from whatever the viewer is looking at, and
-      // falls back to the theme when they are looking at a list.
-      moodColor={inspecting?.accentColor ?? null}
+      // The page takes its colour from whatever the viewer is looking at:
+      // what they have opened, or failing that what the hero is showing.
+      moodColor={inspecting?.accentColor ?? featured?.accentColor ?? null}
       isAdministrator={user.role === 'admin'}
       brandName={initialTitle}
       account={
@@ -182,7 +183,15 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           <PasskeySetup />
         </div>
       ) : (
-        <LibraryBrowser search={search} onPlay={setInspecting} />
+        <LibraryBrowser
+          search={search}
+          onPlay={setInspecting}
+          // Only the home section opens with a hero. Films and series are
+          // places someone arrived at looking for something, and a screen of
+          // artwork between them and the list is in the way.
+          hasHero={section === 'home' && search === ''}
+          onFeatureChange={setFeatured}
+        />
       )}
     </AppShell>
   )

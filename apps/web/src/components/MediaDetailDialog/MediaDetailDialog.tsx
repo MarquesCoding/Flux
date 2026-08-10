@@ -8,7 +8,7 @@ import MediaCardModule from '@FluxUI/MediaCard'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import describeMediaModule from '@FluxWeb/components/LibraryBrowser/describeMedia'
-import MediaPreviewModule from './components/MediaPreview/MediaPreview'
+import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types'
 

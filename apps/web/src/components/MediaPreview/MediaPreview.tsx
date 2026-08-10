@@ -33,6 +33,8 @@ const MediaPreview = ({
   backdropUrl,
   startFraction = 0.2,
   durationSeconds,
+  fills = false,
+  settleMilliseconds = SETTLE_MILLISECONDS,
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -85,7 +87,7 @@ const MediaPreview = ({
 
     const timer = setTimeout(() => {
       void start()
-    }, SETTLE_MILLISECONDS)
+    }, settleMilliseconds)
 
     return () => {
       controller.abort()
@@ -96,10 +98,12 @@ const MediaPreview = ({
         void stopPlaybackSession(startedId)
       }
     }
-  }, [mediaId, durationSeconds, startFraction])
+  }, [mediaId, durationSeconds, startFraction, settleMilliseconds])
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden bg-black">
+    <div
+      className={`relative overflow-hidden bg-black ${fills ? 'h-full w-full' : 'aspect-video w-full'}`}
+    >
       {backdropUrl === null ? null : (
         <div
           role="presentation"
@@ -118,7 +122,9 @@ const MediaPreview = ({
         }`}
       />
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-surface to-transparent" />
+      {fills ? null : (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-surface to-transparent" />
+      )}
     </div>
   )
 }
