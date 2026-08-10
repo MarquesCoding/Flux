@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import ButtonModule from '@FluxUI/Button'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
-import TwoFactorSetupModule from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup'
-import PasskeySetupModule from '@FluxWeb/components/PasskeySetup/PasskeySetup'
 import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
 import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
 import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
 import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
 import SplashScreenModule from '@FluxUI/SplashScreen'
 import AdminAreaModule from '@FluxWeb/components/AdminArea/AdminArea'
+import AccountAreaModule from '@FluxWeb/components/AccountArea/AccountArea'
 import ProfileGateModule from '@FluxWeb/components/ProfileGate/ProfileGate'
 import usePlaceModule from '@FluxWeb/navigation/usePlace'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
@@ -23,16 +21,14 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 import type { AppProps } from './App.types'
 
-const { Button } = ButtonModule
 const { SetupWizard } = SetupWizardModule
-const { TwoFactorSetup } = TwoFactorSetupModule
-const { PasskeySetup } = PasskeySetupModule
 const { LibraryBrowser } = LibraryBrowserModule
 const { VideoPlayer } = VideoPlayerModule
 const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
 const { SplashScreen } = SplashScreenModule
 const { AdminArea } = AdminAreaModule
+const { AccountArea } = AccountAreaModule
 const { ProfileGate } = ProfileGateModule
 const { usePlace } = usePlaceModule
 const { fetchWatchProgress, byMediaId } = watchProgressModule
@@ -237,33 +233,19 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       {section === 'admin' ? (
         <AdminArea />
       ) : section === 'account' ? (
-        <div className="flex flex-col gap-4 p-5 pt-12 sm:p-10">
-          <header className="flex items-center justify-between gap-4">
-            <h1 className="text-3xl font-semibold tracking-tight">{initialTitle}</h1>
+        <AccountArea
+          user={user}
+          onChanged={() => {
+            void refresh()
+          }}
+          onSignOut={() => {
+            void signOut().then(() => {
+              go({ section: 'home', search: '', inspecting: null, playing: null, startSeconds: 0 })
 
-            <Button
-              variant="secondary"
-              size="sm"
-              isPill
-              onClick={() => {
-                void signOut().then(() => refresh())
-              }}
-            >
-              Sign out
-            </Button>
-          </header>
-
-          <p className="text-sm text-text-muted">{user.email}</p>
-
-          <TwoFactorSetup
-            isEnabled={user.twoFactorEnabled === true}
-            onChanged={() => {
-              void refresh()
-            }}
-          />
-
-          <PasskeySetup />
-        </div>
+              return refresh()
+            })
+          }}
+        />
       ) : (
         <LibraryBrowser
           search={place.search}
