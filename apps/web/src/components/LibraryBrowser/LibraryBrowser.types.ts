@@ -13,6 +13,12 @@ type LibraryBrowserProps = {
    */
   hasHero?: boolean
   /**
+   * Whether this is the search section, which leads with the field itself
+   * rather than with the library.
+   */
+  isSearching?: boolean
+  onSearchChange?: (search: string) => void
+  /**
    * Told which item the hero is showing, so the page can be lit by it.
    */
   onFeatureChange?: (media: MediaSummary) => void

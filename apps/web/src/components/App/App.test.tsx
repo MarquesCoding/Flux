@@ -136,19 +136,19 @@ describe('App routing', () => {
     serverState({ setup: setupComplete, session: { user } })
     render(<App />)
 
-    // The shell names itself in the sidebar rather than as a page heading: a
-    // heading that vanishes when the rail is collapsed would leave the page
-    // without one.
-    expect(await screen.findByText('Flux')).toBeInTheDocument()
-    expect(screen.getByRole('navigation', { name: 'Sections' })).toBeInTheDocument()
-    expect(screen.getByText('admin@flux.test')).toBeInTheDocument()
+    // The library owns the whole surface: the only chrome is the dock.
+    expect(await screen.findByRole('navigation', { name: 'Sections' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('renders a supplied title when signed in', async () => {
+  it('renders a supplied title on the account page', async () => {
     serverState({ setup: setupComplete, session: { user } })
+    const actor = userEvent.setup()
     render(<App initialTitle="Living Room" />)
 
-    expect(await screen.findByText('Living Room')).toBeInTheDocument()
+    await actor.click(await screen.findByRole('button', { name: 'Account' }))
+
+    expect(await screen.findByRole('heading', { name: 'Living Room' })).toBeInTheDocument()
   })
 
   it('reports an unreachable server rather than assuming setup is needed', async () => {
@@ -178,6 +178,7 @@ describe('App routing', () => {
     const actor = userEvent.setup()
     render(<App />)
 
+    await actor.click(await screen.findByRole('button', { name: 'Account' }))
     await screen.findByText('admin@flux.test')
 
     serverState({ setup: setupComplete, session: null })

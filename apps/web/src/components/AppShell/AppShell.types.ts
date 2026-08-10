@@ -1,21 +1,18 @@
 import type { ReactNode } from 'react'
 
 /**
- * The sections the sidebar offers.
+ * The places the dock can take a viewer.
  *
- * A closed set rather than free strings, so a section can never be navigated
- * to without something knowing how to draw it.
+ * Deliberately few. A dock with eight icons is a menu, and a menu belongs
+ * behind one of them rather than across the bottom of every screen.
  */
-const SHELL_SECTIONS = ['home', 'films', 'series', 'account', 'admin'] as const
+const SHELL_SECTIONS = ['home', 'search', 'account', 'admin'] as const
 
 type ShellSection = (typeof SHELL_SECTIONS)[number]
 
 type AppShellProps = {
   section: ShellSection
   onSectionChange: (section: ShellSection) => void
-  search: string
-  onSearchChange: (search: string) => void
-  account: ReactNode
   children: ReactNode
   /**
    * The colour the page is lit with, taken from whatever is being shown.
@@ -26,10 +23,6 @@ type AppShellProps = {
    * everyone else rather than shown and refused.
    */
   isAdministrator?: boolean
-  /**
-   * The name the shell carries, which an operator may have renamed.
-   */
-  brandName?: string
 }
 
 export type { AppShellProps, ShellSection }

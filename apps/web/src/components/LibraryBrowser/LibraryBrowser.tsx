@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { IconRefresh, IconRefreshAlert } from '@tabler/icons-react'
+import { IconRefresh, IconRefreshAlert, IconSearch } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import MediaCardModule from '@FluxUI/MediaCard'
 import SpinnerModule from '@FluxUI/Spinner'
@@ -40,6 +40,8 @@ const SEARCH_DEBOUNCE_MS = 250
 const LibraryBrowser = ({
   search = '',
   hasHero = false,
+  isSearching = false,
+  onSearchChange,
   onFeatureChange,
   onPlay,
 }: LibraryBrowserProps) => {
@@ -151,6 +153,28 @@ const LibraryBrowser = ({
 
   return (
     <div className="flex flex-col gap-8">
+      {isSearching ? (
+        <div className="flex flex-col gap-4 px-5 pt-14 sm:px-10">
+          <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl">Search</h1>
+
+          <label className="flex items-center gap-3 border-b border-white/15 pb-3">
+            <IconSearch size={28} className="shrink-0 text-text-muted" aria-hidden />
+            <span className="sr-only">Search the library</span>
+
+            <input
+              type="search"
+              autoFocus
+              value={search}
+              placeholder="Everything you own"
+              onChange={(event) => {
+                onSearchChange?.(event.target.value)
+              }}
+              className="w-full bg-transparent text-2xl tracking-tight text-text outline-none placeholder:text-text-muted/50 sm:text-3xl"
+            />
+          </label>
+        </div>
+      ) : null}
+
       {hasHero && items.length > 0 ? (
         <Hero
           items={items.slice(0, HERO_COUNT)}

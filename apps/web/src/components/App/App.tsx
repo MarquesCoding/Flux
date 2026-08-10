@@ -136,29 +136,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     <AppShell
       section={section}
       onSectionChange={setSection}
-      search={search}
-      onSearchChange={setSearch}
       // The page takes its colour from whatever the viewer is looking at:
       // what they have opened, or failing that what the hero is showing.
       moodColor={inspecting?.accentColor ?? featured?.accentColor ?? null}
       isAdministrator={user.role === 'admin'}
-      brandName={initialTitle}
-      account={
-        <>
-          <span className="hidden text-sm text-text-muted lg:inline">{user.email}</span>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            isPill
-            onClick={() => {
-              void signOut().then(() => refresh())
-            }}
-          >
-            Sign out
-          </Button>
-        </>
-      }
     >
       <MediaDetailDialog
         media={inspecting}
@@ -172,7 +153,24 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       />
 
       {section === 'account' ? (
-        <div className="flex flex-col gap-4 p-6">
+        <div className="flex flex-col gap-4 p-5 pt-12 sm:p-10">
+          <header className="flex items-center justify-between gap-4">
+            <h1 className="text-3xl font-semibold tracking-tight">{initialTitle}</h1>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              isPill
+              onClick={() => {
+                void signOut().then(() => refresh())
+              }}
+            >
+              Sign out
+            </Button>
+          </header>
+
+          <p className="text-sm text-text-muted">{user.email}</p>
+
           <TwoFactorSetup
             isEnabled={user.twoFactorEnabled === true}
             onChanged={() => {
@@ -190,6 +188,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           // places someone arrived at looking for something, and a screen of
           // artwork between them and the list is in the way.
           hasHero={section === 'home' && search === ''}
+          isSearching={section === 'search'}
+          onSearchChange={setSearch}
           onFeatureChange={setFeatured}
         />
       )}
