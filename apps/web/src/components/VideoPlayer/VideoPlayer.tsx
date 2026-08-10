@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconAlertTriangle, IconPlayerTrackNext, IconX } from '@tabler/icons-react'
+import {
+  IconAlertTriangle,
+  IconPictureInPicture,
+  IconPlayerTrackNext,
+  IconX,
+} from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import SpinnerModule from '@FluxUI/Spinner'
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
@@ -161,6 +166,7 @@ const VideoPlayer = ({
   // back. Held in a ref rather than in state because nothing on screen
   // depends on it.
   const poppedRef = useRef<PoppedOut | null>(null)
+  const [isPoppedOut, setIsPoppedOut] = useState(false)
 
   const popOut = useCallback(() => {
     const element = videoRef.current
@@ -174,6 +180,7 @@ const VideoPlayer = ({
     if (document.pictureInPictureElement !== null) {
       poppedRef.current?.stop()
       poppedRef.current = null
+      setIsPoppedOut(false)
 
       void document.exitPictureInPicture().catch(() => {
         // Already gone, which is the outcome that was wanted.
@@ -192,6 +199,7 @@ const VideoPlayer = ({
 
       if (withCaptions !== null) {
         poppedRef.current = withCaptions
+        setIsPoppedOut(true)
 
         return
       }
@@ -210,6 +218,32 @@ const VideoPlayer = ({
     },
     [],
   )
+
+  // The window can be closed from its own controls as well as from ours, so
+  // the page listens rather than assuming it is the only thing that ends this.
+  useEffect(() => {
+    const onLeave = () => {
+      poppedRef.current?.stop()
+      poppedRef.current = null
+      setIsPoppedOut(false)
+    }
+
+    const onEnter = () => {
+      setIsPoppedOut(true)
+    }
+
+    const element = videoRef.current
+
+    element?.addEventListener('enterpictureinpicture', onEnter)
+    element?.addEventListener('leavepictureinpicture', onLeave)
+    document.addEventListener('leavepictureinpicture', onLeave)
+
+    return () => {
+      element?.removeEventListener('enterpictureinpicture', onEnter)
+      element?.removeEventListener('leavepictureinpicture', onLeave)
+      document.removeEventListener('leavepictureinpicture', onLeave)
+    }
+  }, [])
 
   if (request.mediaId !== media.id) {
     setRequest({ mediaId: media.id, startSeconds })
@@ -738,6 +772,22 @@ const VideoPlayer = ({
           onDurationChange={setReportedDuration}
           onPlayingChange={setIsPlaying}
         />
+
+        {/* While the film is floating in its own window the page shows that
+            rather than the same picture twice. The video itself keeps
+            rendering underneath, because the floating copy is drawn from it —
+            it is covered, not stopped. */}
+        {!isPoppedOut ? null : (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
+            <IconPictureInPicture size={32} className="text-text-muted" aria-hidden />
+
+            <p className="text-sm text-text-muted">Playing in a floating window</p>
+
+            <Button variant="secondary" size="sm" isPill onClick={popOut}>
+              Bring it back
+            </Button>
+          </div>
+        )}
 
         {heldFrame === null ? null : (
           <div
