@@ -21,7 +21,7 @@ const OptionMenu = ({ label, trigger, groups, isDisabled = false, className }: O
       className={cn(
         'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
         'text-current transition-colors hover:bg-white/15',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-0',
         'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}

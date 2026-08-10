@@ -103,7 +103,7 @@ const Slider = ({
               aria-label={label}
               className={cn(
                 'size-3.5 rounded-full shadow select-none',
-                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-0',
                 FILL_CLASSES[tone],
               )}
             />

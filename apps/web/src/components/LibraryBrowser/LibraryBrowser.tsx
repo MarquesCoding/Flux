@@ -7,8 +7,11 @@ import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import RailModule from '@FluxUI/Rail'
 import HeroModule from '@FluxWeb/components/Hero/Hero'
 import groupIntoRailsModule from '@FluxWeb/library/groupIntoRails'
+import watchProgressModule from '@FluxWeb/playback/watchProgress'
+import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
 import describeMediaModule from './describeMedia'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
+import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
 
 const { Button } = ButtonModule
@@ -16,6 +19,8 @@ const { MediaCard } = MediaCardModule
 const { Hero } = HeroModule
 const { Rail } = RailModule
 const { groupIntoRails } = groupIntoRailsModule
+const { fetchWatchProgress, byMediaId } = watchProgressModule
+const { watchedFraction } = WatchProgressContract
 
 /**
  * How many items the hero rotates between.
@@ -50,6 +55,7 @@ const LibraryBrowser = ({
   const [items, setItems] = useState<MediaSummary[]>([])
   const [total, setTotal] = useState(0)
   const [appliedSearch, setAppliedSearch] = useState('')
+  const [progress, setProgress] = useState(new Map<string, WatchProgress>())
   const [state, setState] = useState<BrowserState>('loading')
   const [isScanning, setIsScanning] = useState(false)
 
@@ -71,6 +77,23 @@ const LibraryBrowser = ({
           setState('unreachable')
         }
       })
+
+    return () => {
+      abandoned = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let abandoned = false
+
+    // Fetched once for the whole library rather than per card: a page of
+    // hundreds would otherwise open hundreds of connections to draw hundreds
+    // of thin bars.
+    void fetchWatchProgress().then((found) => {
+      if (!abandoned) {
+        setProgress(byMediaId(found))
+      }
+    })
 
     return () => {
       abandoned = true
@@ -256,23 +279,26 @@ const LibraryBrowser = ({
           <div className="flex flex-col gap-10">
             {groupIntoRails(items).map((rail) => (
               <Rail key={rail.id} title={rail.title} className="px-0">
-                {rail.items.map((media, position) => (
-                  <li
-                    key={media.id}
-                    // The first card of a row is larger, so a row has a shape
-                    // rather than being a queue.
-                    className={
-                      position === 0
-                        ? 'w-[85vw] shrink-0 snap-start sm:w-[28rem] lg:w-[34rem]'
-                        : 'w-[62vw] shrink-0 snap-start sm:w-64 lg:w-72'
-                    }
-                  >
+                {rail.items.map((media) => (
+                  <li key={media.id} className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80">
                     <MediaCard
                       title={media.title}
                       subtitle={describeMedia(media)}
                       badges={describeBadges(media)}
                       shape="wide"
-                      emphasis={position === 0 ? 'lead' : 'standard'}
+                      {...(progress.has(media.id)
+                        ? {
+                            watchedFraction: watchedFraction(
+                              progress.get(media.id) ?? {
+                                mediaId: media.id,
+                                positionSeconds: 0,
+                                durationSeconds: media.durationSeconds,
+                                isFinished: false,
+                                updatedAt: media.addedAt,
+                              },
+                            ),
+                          }
+                        : {})}
                       {...(media.hasBackdrop
                         ? { imageUrl: `/api/media/${media.id}/image/backdrop` }
                         : media.hasPoster

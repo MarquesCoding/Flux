@@ -1,10 +1,10 @@
-import { motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import cnModule from '@FluxUI/cn'
 import revealModule from '@FluxUI/animations/reveal'
 import type { DockProps } from './Dock.types'
 
 const { cn } = cnModule
-const { revealTransition } = revealModule
+const { revealTransition, liquidSpring, settleTween, stillTransition } = revealModule
 
 /**
  * The floating bar of places to go.
@@ -14,12 +14,19 @@ const { revealTransition } = revealModule
  * because that is where a thumb is, and centred because a bar pinned to one
  * edge of a wide screen is a long way from anything.
  *
- * The selected item is marked by a pill that slides between them rather than
- * by each item colouring itself: one object moving reads as one control with a
- * position, where several fading reads as several controls agreeing.
+ * Only the current place is named. An icon someone has already learned needs
+ * no caption, and four captions across the bottom of every screen is a menu
+ * pretending to be a dock — but the place you are standing is worth stating,
+ * and the label sliding open as it becomes current is what makes the dock read
+ * as one control rather than four.
  */
 const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
   const prefersReducedMotion = useReducedMotion()
+  // The highlight and the label want opposite things: the highlight should
+  // overshoot and settle, and the label should not move a millimetre further
+  // than it has to.
+  const highlight = prefersReducedMotion === true ? stillTransition : liquidSpring
+  const label = prefersReducedMotion === true ? stillTransition : settleTween
 
   return (
     <nav
@@ -53,27 +60,50 @@ const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
               {isSelected ? (
                 <motion.span
                   layoutId="dock-selection"
-                  transition={revealTransition(prefersReducedMotion)}
+                  transition={highlight}
                   className="absolute inset-0 rounded-full bg-white/15"
                 />
               ) : null}
 
-              <button
+              <motion.button
                 type="button"
+                // Deliberately not a layout animation: that resizes by
+                // scaling, which stretches the word inside it. Animating the
+                // label's width instead resizes the button without touching
+                // the text.
                 aria-label={item.label}
                 aria-current={isSelected ? 'page' : undefined}
                 onClick={() => {
                   onSelect(item.id)
                 }}
                 className={cn(
-                  'relative flex size-12 items-center justify-center rounded-full',
-                  'transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
-                  'focus-visible:outline-accent sm:size-11',
-                  isSelected ? 'text-text' : 'text-text-muted hover:text-text',
+                  'relative flex h-12 items-center rounded-full sm:h-11',
+                  'transition-colors focus-visible:outline-none focus-visible:ring-2',
+                  'focus-visible:ring-white/70',
+                  isSelected
+                    ? 'px-4 text-text'
+                    : 'w-12 justify-center text-text-muted hover:text-text sm:w-11',
                 )}
               >
-                {item.icon}
-              </button>
+                <span className="flex shrink-0 items-center">{item.icon}</span>
+
+                <AnimatePresence initial={false}>
+                  {isSelected ? (
+                    <motion.span
+                      // The label slides open rather than appearing: a word
+                      // that pops into a bar makes the bar jump, where a word
+                      // that unrolls makes the bar grow.
+                      initial={{ opacity: 0, width: 0, marginLeft: 0 }}
+                      animate={{ opacity: 1, width: 'auto', marginLeft: 8 }}
+                      exit={{ opacity: 0, width: 0, marginLeft: 0 }}
+                      transition={label}
+                      className="overflow-hidden whitespace-nowrap text-sm font-medium"
+                    >
+                      {item.label}
+                    </motion.span>
+                  ) : null}
+                </AnimatePresence>
+              </motion.button>
             </li>
           )
         })}

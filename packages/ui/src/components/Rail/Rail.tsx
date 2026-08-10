@@ -102,18 +102,33 @@ const Rail = ({ title, children, action, className }: RailProps) => {
         </div>
       </header>
 
-      <ul
-        ref={trackRef}
-        onScroll={measure}
-        // Scrolling sideways clips vertically too — a browser will not give one
-        // axis a scrollbar and leave the other free — so a card that lifts on
-        // hover loses its top edge and its shadow. The padding is the room it
-        // lifts into; the negative margin gives that space back to the page so
-        // rows are not pushed apart by it.
-        className="flux-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
+      {/* The row is masked at whichever end it continues past, so cards fade
+          out rather than being sliced off by an edge that is not there. */}
+      <div
+        className={cn(
+          'relative',
+          reach.start && reach.end
+            ? '[mask-image:linear-gradient(to_right,transparent,black_3rem,black_calc(100%-3rem),transparent)]'
+            : reach.start
+              ? '[mask-image:linear-gradient(to_right,transparent,black_3rem)]'
+              : reach.end
+                ? '[mask-image:linear-gradient(to_right,black_calc(100%-3rem),transparent)]'
+                : '',
+        )}
       >
-        {children}
-      </ul>
+        <ul
+          ref={trackRef}
+          onScroll={measure}
+          // Scrolling sideways clips vertically too — a browser will not give one
+          // axis a scrollbar and leave the other free — so a card that lifts on
+          // hover loses its top edge and its shadow. The padding is the room it
+          // lifts into; the negative margin gives that space back to the page so
+          // rows are not pushed apart by it.
+          className="flux-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
+        >
+          {children}
+        </ul>
+      </div>
     </section>
   )
 }

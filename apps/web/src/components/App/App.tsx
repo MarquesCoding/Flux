@@ -121,6 +121,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           media={nowPlaying}
           isImmersive
           onClose={() => {
+            // Back to where they came from, not out to the library: someone
+            // leaving a film usually wants the page about it, whether to read
+            // the rest of it or to pick the next episode.
+            setInspecting(nowPlaying)
             setNowPlaying(null)
           }}
         />
@@ -132,6 +136,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     <AppShell
       section={section}
       onSectionChange={setSection}
+      // Home and search draw the same library, so moving between them keeps
+      // the page rather than fetching it all over again.
+      viewKey={section === 'home' || section === 'search' ? 'library' : section}
       // The page takes its colour from whatever the viewer is looking at:
       // what they have opened, or failing that what the hero is showing.
       moodColor={inspecting?.accentColor ?? featured?.accentColor ?? null}

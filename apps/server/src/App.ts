@@ -7,12 +7,14 @@ import LibraryServiceModule from '@FluxServer/library/LibraryService'
 import type { LibraryService } from '@FluxServer/library/LibraryService'
 import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService'
 import type { SegmentService } from '@FluxServer/segments/SegmentService'
+import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService'
 import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
 import HealthRouteModule from './routes/HealthRoute'
 import LibraryRouteModule from './routes/LibraryRoute'
 import PlaybackRouteModule from './routes/PlaybackRoute'
 import ImageRouteModule from '@FluxServer/routes/ImageRoute'
 import SegmentRouteModule from '@FluxServer/routes/SegmentRoute'
+import ProgressRouteModule from '@FluxServer/routes/ProgressRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
 
@@ -40,6 +42,7 @@ const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
 const { listSubtitlesRoute, readSubtitleRoute } = SubtitleRouteModule
 const { mediaImageRoute } = ImageRouteModule
 const { listSegmentsRoute } = SegmentRouteModule
+const { listProgressRoute, recordProgressRoute, forgetProgressRoute } = ProgressRouteModule
 
 const SERVER_VERSION = '0.0.0'
 
@@ -52,6 +55,7 @@ type CreateAppOptions = {
   playback: PlaybackService
   subtitles: SubtitleService
   segments: SegmentService
+  progress: WatchProgressService
   /**
    * Reads artwork from Flux's own cache, fetching it once if needed.
    *
@@ -81,6 +85,7 @@ const createApp = ({
   playback,
   subtitles,
   segments,
+  progress,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
 }: CreateAppOptions) => {
@@ -308,6 +313,61 @@ const createApp = ({
     }
 
     return context.body(file.body, 200, { 'content-type': file.contentType })
+  })
+
+  /**
+   * Who is asking.
+   *
+   * Progress belongs to a person, so these are the first routes that need to
+   * know who that is. better-auth owns the session, and asking it is cheaper
+   * than Flux keeping a second idea of who is signed in.
+   */
+  const readViewerId = async (headers: Headers): Promise<string | null> => {
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    return session?.user.id ?? null
+  }
+
+  app.openapi(listProgressRoute, async (context) => {
+    const viewerId = await readViewerId(context.req.raw.headers)
+
+    if (viewerId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    return context.json({ progress: await progress.list(viewerId) }, 200)
+  })
+
+  app.openapi(recordProgressRoute, async (context) => {
+    const viewerId = await readViewerId(context.req.raw.headers)
+
+    if (viewerId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const { mediaId } = context.req.valid('param')
+
+    if ((await library.getMedia(mediaId)) === null) {
+      return context.json({ error: 'No such media item.' }, 404)
+    }
+
+    const report = context.req.valid('json')
+
+    await progress.record(viewerId, { mediaId, ...report })
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(forgetProgressRoute, async (context) => {
+    const viewerId = await readViewerId(context.req.raw.headers)
+
+    if (viewerId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    await progress.forget(viewerId, context.req.valid('param').mediaId)
+
+    return context.body(null, 204)
   })
 
   app.openapi(listSegmentsRoute, async (context) => {

@@ -42,6 +42,7 @@ const AppShell = ({
   section,
   onSectionChange,
   children,
+  viewKey,
   moodColor,
   isAdministrator = false,
 }: AppShellProps) => {
@@ -82,7 +83,7 @@ const AppShell = ({
       <MoodBackground color={moodColor ?? null} />
 
       <motion.main
-        key={section}
+        key={viewKey ?? section}
         variants={staggerVariants}
         initial="hidden"
         animate="shown"

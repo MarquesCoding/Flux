@@ -28,6 +28,32 @@ const heavySpring: Transition = {
 }
 
 /**
+ * The spring a moving highlight travels on.
+ *
+ * Slack enough to overshoot and settle back, which is what makes one object
+ * sliding between positions read as liquid rather than as a box being moved.
+ * Wrong for anything carrying text: the overshoot that looks alive under a
+ * highlight looks like a wobble under a word.
+ */
+const liquidSpring: Transition = {
+  type: 'spring',
+  stiffness: 420,
+  damping: 24,
+  mass: 1.15,
+}
+
+/**
+ * How something containing text changes size.
+ *
+ * A tween rather than a spring, because a spring overshoots and text that
+ * overshoots is text that jitters. This arrives and stops.
+ */
+const settleTween: Transition = {
+  duration: 0.32,
+  ease: [0.2, 0, 0, 1],
+}
+
+/**
  * What a reduced-motion preference gets instead.
  *
  * Not "no animation": an element that snaps into place is harder to follow
@@ -105,6 +131,8 @@ const revealTransition = (
 export default {
   spring,
   heavySpring,
+  liquidSpring,
+  settleTween,
   stillTransition,
   riseVariants,
   fadeVariants,

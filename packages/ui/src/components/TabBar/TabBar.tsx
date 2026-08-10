@@ -35,7 +35,7 @@ const TabBar = ({ tabs, selectedId, onSelect, label, className }: TabBarProps) =
                 }}
                 className={cn(
                   'text-xl font-semibold tracking-tight transition-colors sm:text-2xl',
-                  'focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-0 focus-visible:rounded-md',
                   isSelected ? 'text-text' : 'text-text-muted/60 hover:text-text-muted',
                 )}
               >

@@ -12,6 +12,7 @@ import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import captionStyleModule from '@FluxWeb/playback/captionStyle'
 import fetchSegmentsModule from '@FluxWeb/playback/fetchSegments'
+import watchProgressModule from '@FluxWeb/playback/watchProgress'
 import describeTrackModule from '@FluxCore/functions/describeTrack'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
@@ -45,6 +46,7 @@ const { CaptionSettings } = CaptionSettingsModule
 const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
 const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
 const { describeAudioTrack } = describeTrackModule
+const { reportWatchProgress, REPORT_EVERY_MILLISECONDS } = watchProgressModule
 
 /**
  * An element that may be able to go full screen.
@@ -61,6 +63,24 @@ type FullscreenOwner = {
 }
 
 const IDLE_MILLISECONDS = 2500
+
+/**
+ * How far the arrow keys move, and how far the longer jump does.
+ *
+ * Two sizes because scrubbing is two different jobs: nudging past a moment you
+ * missed, and skipping a scene.
+ */
+const SKIP_SECONDS = 10
+
+const JUMP_SECONDS = 30
+
+/**
+ * How close to the end counts as finished.
+ *
+ * Credits run for minutes, and someone who stops during them has watched the
+ * film. Offering to resume it would be offering them the credits.
+ */
+const FINISHED_WITHIN_SECONDS = 90
 
 const HEALTH_INTERVAL_MILLISECONDS = 500
 
@@ -336,25 +356,6 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
     }
   }, [isPlaying, activity])
 
-  useEffect(() => {
-    if (!isImmersive) {
-      return
-    }
-
-    // A viewer driving from the keyboard is not idle either, and the pointer
-    // never moves to say so.
-    const onKeyDown = () => {
-      setIsIdle(false)
-      setActivity((count) => count + 1)
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [isImmersive])
-
   // A transcode is delivered as a playlist that grows while ffmpeg encodes, so
   // the media element only knows about the part produced so far. The library
   // already knows how long the film is, and that is what a viewer should see.
@@ -457,6 +458,39 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
     [request.mediaId, position],
   )
 
+  useEffect(() => {
+    if (state !== 'playing' || duration <= 0) {
+      return
+    }
+
+    // Reported on a timer rather than on every position change: a timeupdate
+    // fires several times a second, and a bookmark does not need that.
+    const report = () => {
+      const element = videoRef.current
+
+      if (element === null) {
+        return
+      }
+
+      const at = request.startSeconds + element.currentTime
+
+      void reportWatchProgress(media.id, {
+        positionSeconds: at,
+        durationSeconds: duration,
+        isFinished: at >= duration - FINISHED_WITHIN_SECONDS,
+      })
+    }
+
+    const timer = setInterval(report, REPORT_EVERY_MILLISECONDS)
+
+    // Also on the way out, so closing a film records where it was left rather
+    // than losing up to a whole interval of it.
+    return () => {
+      clearInterval(timer)
+      report()
+    }
+  }, [state, duration, media.id, request.startSeconds])
+
   const skip = useCallback(
     (delta: number) => {
       seek(Math.min(Math.max(position + delta, 0), duration))
@@ -488,6 +522,74 @@ const VideoPlayer = ({ media, isImmersive = false, onClose }: VideoPlayerProps) 
 
     void target.requestFullscreen?.()
   }, [isFullscreen])
+
+  useEffect(() => {
+    if (!isImmersive) {
+      return
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      // A viewer driving from the keyboard is not idle either, and the pointer
+      // never moves to say so.
+      setIsIdle(false)
+      setActivity((count) => count + 1)
+
+      const target = event.target
+
+      // Anything typed into a field belongs to that field. Space in a search
+      // box is a space, not a pause.
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return
+      }
+
+      const shortcuts: Record<string, () => void> = {
+        ' ': togglePlay,
+        k: togglePlay,
+        ArrowLeft: () => {
+          skip(-SKIP_SECONDS)
+        },
+        ArrowRight: () => {
+          skip(SKIP_SECONDS)
+        },
+        j: () => {
+          skip(-JUMP_SECONDS)
+        },
+        l: () => {
+          skip(JUMP_SECONDS)
+        },
+        f: toggleFullscreen,
+        m: () => {
+          setIsMuted((muted) => !muted)
+        },
+        c: () => {
+          setSelectedSubtitleId((current) =>
+            current === SUBTITLES_OFF ? (subtitleTracks[0]?.id ?? SUBTITLES_OFF) : SUBTITLES_OFF,
+          )
+        },
+      }
+
+      const act = shortcuts[event.key.length === 1 ? event.key.toLowerCase() : event.key]
+
+      if (act === undefined) {
+        return
+      }
+
+      // Space scrolls a page and arrows move a scrollbar. Neither is what
+      // someone watching a film meant.
+      event.preventDefault()
+      act()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isImmersive, togglePlay, skip, toggleFullscreen, subtitleTracks])
 
   useEffect(() => {
     if (!isImmersive) {

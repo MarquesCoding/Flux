@@ -23,6 +23,14 @@ type MediaCardProps = {
   imageUrl?: string
   shape?: MediaCardShape
   emphasis?: MediaCardEmphasis
+  /**
+   * How far through this item the viewer is, between nothing and everything.
+   *
+   * Drawn as a line across the foot of the artwork. Absent means unwatched,
+   * which is different from nought: a bar sitting at zero on every unwatched
+   * item is a row of noise.
+   */
+  watchedFraction?: number
   onSelect: () => void
   className?: string
 }

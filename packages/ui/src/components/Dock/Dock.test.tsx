@@ -45,8 +45,10 @@ describe('Dock', () => {
   it('keeps a thumb sized target on a phone', () => {
     render(<Dock items={items} selectedId="home" onSelect={vi.fn()} />)
 
-    // Three rem on a phone, slightly tighter once there is a pointer.
-    expect(screen.getByRole('button', { name: 'Home' })).toHaveClass('size-12')
+    // Three rem tall on a phone, slightly tighter once there is a pointer.
+    // The current item is wider than it is tall, because it carries its name.
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveClass('h-12')
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveClass('w-12')
   })
 
   it('sets a display name so devtools can identify it', () => {

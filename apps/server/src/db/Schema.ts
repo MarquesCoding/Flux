@@ -150,6 +150,34 @@ const library = pgTable('library', {
   lastScannedAt: timestamp('lastScannedAt'),
 })
 
+const watchProgress = pgTable(
+  'watch_progress',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    mediaItemId: text('mediaItemId')
+      .notNull()
+      .references(() => mediaItem.id, { onDelete: 'cascade' }),
+    positionSeconds: real('positionSeconds').notNull(),
+    durationSeconds: real('durationSeconds').notNull(),
+    /**
+     * Whether this was watched to the end.
+     *
+     * Recorded rather than inferred from the position, because someone who
+     * stops two minutes from the end has finished it and someone who skips to
+     * the last frame has not.
+     */
+    isFinished: boolean('isFinished').notNull().default(false),
+    updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('watch_progress_viewer_idx').on(table.userId, table.mediaItemId),
+    index('watch_progress_recent_idx').on(table.userId, table.updatedAt),
+  ],
+)
+
 const mediaSegment = pgTable(
   'media_segment',
   {
@@ -236,6 +264,7 @@ export {
   library,
   mediaItem,
   mediaSegment,
+  watchProgress,
   user,
   session,
   account,
@@ -269,6 +298,7 @@ export default {
   library,
   mediaItem,
   mediaSegment,
+  watchProgress,
   user,
   session,
   account,

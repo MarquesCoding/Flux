@@ -36,6 +36,7 @@ const MediaCard = ({
   imageUrl,
   shape = 'poster',
   emphasis = 'standard',
+  watchedFraction,
   onSelect,
   className,
 }: MediaCardProps) => {
@@ -54,7 +55,7 @@ const MediaCard = ({
       transition={revealTransition(prefersReducedMotion)}
       className={cn(
         'group flex w-full flex-col gap-3 rounded-2xl text-left',
-        'focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-0 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
         className,
       )}
     >
@@ -96,6 +97,15 @@ const MediaCard = ({
                 {badge}
               </Badge>
             ))}
+          </span>
+        )}
+
+        {watchedFraction === undefined ? null : (
+          <span className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
+            <span
+              className="block h-full bg-accent"
+              style={{ width: `${(Math.min(Math.max(watchedFraction, 0), 1) * 100).toString()}%` }}
+            />
           </span>
         )}
 

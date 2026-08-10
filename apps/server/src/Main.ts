@@ -15,6 +15,7 @@ import createMediaFileSystemModule from '@FluxServer/library/createMediaFileSyst
 import TranscoderClientModule from '@FluxServer/transcoder/TranscoderClient'
 import createImageCacheModule from '@FluxServer/images/createImageCache'
 import detectLibrarySegmentsModule from '@FluxServer/segments/detectLibrarySegments'
+import createDatabaseWatchProgressServiceModule from '@FluxServer/progress/createDatabaseWatchProgressService'
 import createDatabaseSegmentServiceModule from '@FluxServer/segments/createDatabaseSegmentService'
 import createChapterSegmentProviderModule from '@FluxServer/segments/createChapterSegmentProvider'
 import createFingerprintSegmentProviderModule from '@FluxServer/segments/createFingerprintSegmentProvider'
@@ -37,6 +38,7 @@ const { createPlaybackService } = createPlaybackServiceModule
 const { createSidecarSubtitleService } = createSidecarSubtitleServiceModule
 const { createImageCache } = createImageCacheModule
 const { createDatabaseSegmentService } = createDatabaseSegmentServiceModule
+const { createDatabaseWatchProgressService } = createDatabaseWatchProgressServiceModule
 const { detectLibrarySegments } = detectLibrarySegmentsModule
 
 /**
@@ -253,6 +255,7 @@ const app = createApp({
   playback: playbackService,
   subtitles: subtitleService,
   segments: segmentService,
+  progress: createDatabaseWatchProgressService(db),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
 })
