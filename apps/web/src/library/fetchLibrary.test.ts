@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import fetchLibraryModule from './fetchLibrary'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
-const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
+const { fetchLibraries, createLibrary, fetchLibraryItems, scanLibrary } = fetchLibraryModule
 
 type FetchLike = (
   input: string,
@@ -61,6 +61,43 @@ describe('fetchLibraries', () => {
     fetchMock.mockResolvedValue(ok([{ name: 'Films' }]))
 
     await expect(fetchLibraries()).rejects.toThrow()
+  })
+})
+
+describe('createLibrary', () => {
+  const input = { name: 'Films', kind: 'movies' as const, path: '/media/films' }
+
+  it('returns the created library', async () => {
+    fetchMock.mockResolvedValue(ok(library))
+
+    await expect(createLibrary(input)).resolves.toMatchObject({ name: 'Films' })
+  })
+
+  it('sends the request body as json', async () => {
+    fetchMock.mockResolvedValue(ok(library))
+
+    await createLibrary(input)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/libraries',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify(input) }),
+    )
+  })
+
+  it('surfaces the server error message', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ error: 'The path is not a readable directory.' }),
+    })
+
+    await expect(createLibrary(input)).rejects.toThrow('The path is not a readable directory.')
+  })
+
+  it('falls back to the status code when there is no error message', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve(null) })
+
+    await expect(createLibrary(input)).rejects.toThrow(/500/)
   })
 })
 
