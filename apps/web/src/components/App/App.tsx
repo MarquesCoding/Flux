@@ -163,6 +163,11 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       <ProfileGate
         name={initialTitle}
         onSignedIn={() => {
+          // Home, whatever address they arrived on. Somebody signing in has
+          // just started; dropping them into the admin page or a half watched
+          // film because that is where the last person was is not where they
+          // meant to go.
+          go({ section: 'home', search: '', inspecting: null, playing: null, startSeconds: 0 })
           void refresh()
         }}
       />
