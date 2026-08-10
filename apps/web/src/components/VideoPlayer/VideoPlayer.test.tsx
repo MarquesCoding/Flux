@@ -63,7 +63,7 @@ const transcodingPlan: PlaybackPlan = {
   subtitles: { kind: 'none', reason },
 }
 
-const media = { id: 'media-1', title: 'Arrival' }
+const media = { id: 'media-1', title: 'Arrival', durationSeconds: 7200 }
 
 const startedSession: {
   sessionId: string
@@ -210,12 +210,12 @@ describe('VideoPlayer', () => {
     expect(screen.getByRole('button', { name: /Play/ })).toBeDisabled()
   })
 
-  it('shows a running position and duration', async () => {
+  it('shows a running position against the length of the film', async () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await screen.findByLabelText('Arrival')
 
-    expect(screen.getByText('0:00 / 0:00')).toBeInTheDocument()
+    expect(screen.getByText('0:00 / 2:00:00')).toBeInTheDocument()
   })
 
   it('warns when the server cannot tone map, without hiding it behind a click', async () => {
@@ -283,6 +283,64 @@ describe('VideoPlayer', () => {
 
     expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: /Preview at/ })).not.toBeInTheDocument()
+  })
+
+  it("drops the previous item's thumbnails when another is played", async () => {
+    trickplayMock.mockResolvedValue({
+      width: 320,
+      height: 180,
+      thumbnails: [
+        {
+          startSeconds: 0,
+          endSeconds: 10,
+          sheetUrl: 'http://localhost/first.jpg',
+          x: 0,
+          y: 0,
+          width: 320,
+          height: 180,
+        },
+      ],
+    })
+
+    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await screen.findByRole('slider', { name: 'Seek through Arrival' })
+
+    let pending: (value: null) => void = () => undefined
+    trickplayMock.mockReturnValue(
+      new Promise<null>((resolve) => {
+        pending = resolve
+      }),
+    )
+
+    rerender(
+      <VideoPlayer
+        media={{ id: 'media-2', title: 'Dune', durationSeconds: 600 }}
+        onClose={vi.fn()}
+      />,
+    )
+
+    await screen.findByRole('slider', { name: 'Seek through Dune' })
+
+    expect(screen.queryByRole('img', { name: /Preview at/ })).not.toBeInTheDocument()
+
+    pending(null)
+  })
+
+  it("drops the previous item's reasons when another is played", async () => {
+    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+    await screen.findByRole('button', { name: /Transcode/ })
+
+    startMock.mockReturnValue(new Promise(() => undefined))
+    rerender(
+      <VideoPlayer
+        media={{ id: 'media-2', title: 'Dune', durationSeconds: 600 }}
+        onClose={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: /Transcode/ })).not.toBeInTheDocument()
   })
 
   it('sets a display name so devtools can identify it', () => {

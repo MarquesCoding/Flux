@@ -46,7 +46,7 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
   const [problem, setProblem] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [position, setPosition] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const [reportedDuration, setReportedDuration] = useState(0)
   const [showReasons, setShowReasons] = useState(false)
   const [trickplay, setTrickplay] = useState<Trickplay | null>(null)
 
@@ -55,6 +55,17 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     // be cleaned up while an await is in flight, so every guard after an await
     // is live; narrowing would mark them dead and the lint would demand their
     // removal.
+    // Every piece of state below describes the item that was playing a moment
+    // ago. Left alone it would be shown against the new one until the server
+    // answers, which reads as the player getting the film wrong.
+    setSession(null)
+    setState('starting')
+    setProblem(null)
+    setIsPlaying(false)
+    setPosition(0)
+    setReportedDuration(0)
+    setShowReasons(false)
+
     const controller = new AbortController()
     const isAbandoned = () => controller.signal.aborted
     let teardown: (() => Promise<void>) | null = null
@@ -125,6 +136,8 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
     // the stream; making playback wait for previews would be the wrong trade.
     let abandoned = false
 
+    setTrickplay(null)
+
     void fetchTrickplay(media.id).then((found) => {
       if (!abandoned) {
         setTrickplay(found)
@@ -135,6 +148,11 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
       abandoned = true
     }
   }, [media.id])
+
+  // A transcode is delivered as a playlist that grows while ffmpeg encodes, so
+  // the media element only knows about the part produced so far. The library
+  // already knows how long the film is, and that is what a viewer should see.
+  const duration = media.durationSeconds > 0 ? media.durationSeconds : reportedDuration
 
   const seek = useCallback((seconds: number) => {
     const element = videoRef.current
@@ -178,7 +196,7 @@ const VideoPlayer = ({ media, onClose }: VideoPlayerProps) => {
           label={media.title}
           videoRef={videoRef}
           onTimeUpdate={setPosition}
-          onDurationChange={setDuration}
+          onDurationChange={setReportedDuration}
           onPlayingChange={setIsPlaying}
         />
 
