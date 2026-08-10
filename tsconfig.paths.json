@@ -14,7 +14,8 @@
       "@FluxUI/Checkbox": ["./packages/ui/src/components/Checkbox/Checkbox.tsx"],
       "@FluxUI/QrCode": ["./packages/ui/src/components/QrCode/QrCode.tsx"],
       "@FluxUI/Spinner": ["./packages/ui/src/components/Spinner/Spinner.tsx"],
-      "@FluxUI/TextField": ["./packages/ui/src/components/TextField/TextField.tsx"]
+      "@FluxUI/TextField": ["./packages/ui/src/components/TextField/TextField.tsx"],
+      "@FluxUI/VideoSurface": ["./packages/ui/src/components/VideoSurface/VideoSurface.tsx"]
     }
   }
 }
