@@ -34,7 +34,7 @@ const { ProfileGate } = ProfileGateModule
 const { usePlace } = usePlaceModule
 const { findSiblings } = pickFeaturedModule
 const { fetchWatchProgress, byMediaId } = watchProgressModule
-const { isWorthResuming } = WatchProgressContract
+const { isWorthResuming, watchedFraction } = WatchProgressContract
 
 /**
  * How long the opening title stays up.
@@ -241,6 +241,11 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       <MediaDetailDialog
         media={inspecting}
         siblings={inspecting === null ? [] : findSiblings([...known.values()], inspecting)}
+        watchedFractionFor={(mediaId) => {
+          const found = progress.get(mediaId)
+
+          return found === undefined ? undefined : watchedFraction(found)
+        }}
         onSelectSibling={(sibling) => {
           go({ inspecting: sibling.id })
         }}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import {
   IconInfoCircle,
@@ -59,6 +59,7 @@ const MediaDetailDialog = ({
   onClose,
   onPlay,
   resumeSeconds,
+  watchedFractionFor,
   siblings = [],
   onSelectSibling,
 }: MediaDetailDialogProps) => {
@@ -66,6 +67,7 @@ const MediaDetailDialog = ({
   const [isLoading, setIsLoading] = useState(false)
   const [lastShown, setLastShown] = useState<MediaSummary | null>(null)
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false)
+  const topRef = useRef<HTMLDivElement>(null)
   const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
@@ -76,6 +78,10 @@ const MediaDetailDialog = ({
     }
 
     setLastShown(media)
+
+    // Back to the top on the way in, and again when one episode leads to
+    // another: arriving at a new page halfway down it is arriving lost.
+    topRef.current?.scrollIntoView({ block: 'start' })
 
     let abandoned = false
 
@@ -117,13 +123,14 @@ const MediaDetailDialog = ({
       // around it wastes the only screen a phone has.
       className="h-full w-full max-w-none rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:w-[min(60rem,94vw)] sm:rounded-3xl"
     >
-      <div className="relative">
+      <div ref={topRef} className="relative">
         <div className="h-[42vh] min-h-[16rem] sm:h-[26rem]">
           <MediaPreview
             mediaId={shown.id}
             backdropUrl={shown.hasBackdrop ? artworkUrl(shown.id, 'backdrop') : null}
             durationSeconds={shown.durationSeconds}
             hasSound
+            hasSubtitles
             fills
             onPlayingChange={setIsPreviewPlaying}
           />
@@ -301,6 +308,9 @@ const MediaDetailDialog = ({
                     title={sibling.title}
                     subtitle={formatDuration(sibling.durationSeconds)}
                     shape="wide"
+                    {...(watchedFractionFor?.(sibling.id) === undefined
+                      ? {}
+                      : { watchedFraction: watchedFractionFor(sibling.id) ?? 0 })}
                     {...(sibling.hasBackdrop
                       ? { imageUrl: artworkUrl(sibling.id, 'backdrop') }
                       : {})}

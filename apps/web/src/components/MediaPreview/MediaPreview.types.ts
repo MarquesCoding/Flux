@@ -39,6 +39,14 @@ type MediaPreviewProps = {
    */
   hasSound?: boolean
   /**
+   * Whether the clip carries the subtitles a viewer would get on pressing
+   * play.
+   *
+   * A preview of a film in a language somebody does not read is a preview of
+   * nothing.
+   */
+  hasSubtitles?: boolean
+  /**
    * Called when the clip has finished.
    *
    * A hero waits for this before moving on, so it changes item from a still

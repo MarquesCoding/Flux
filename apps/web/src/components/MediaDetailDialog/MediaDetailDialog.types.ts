@@ -13,6 +13,10 @@ type MediaDetailDialogProps = {
    */
   resumeSeconds?: number
   /**
+   * How far through each item this viewer is, for the episodes listed below.
+   */
+  watchedFractionFor?: (mediaId: string) => number | undefined
+  /**
    * Other episodes of the same season, when this item is one.
    */
   siblings?: MediaSummary[]

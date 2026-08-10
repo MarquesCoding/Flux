@@ -59,6 +59,30 @@ const subtitleTrackUrl = (mediaId: string, trackId: string, fromSeconds = 0): st
 const defaultTrackId = (tracks: SubtitleTrack[]): string =>
   tracks.find((track) => track.isForced)?.id ?? SUBTITLES_OFF
 
+/**
+ * The track a preview should carry.
+ *
+ * Different question from the player's default, which stays off until asked:
+ * a preview is decoration, and decoration in a language somebody cannot read
+ * is decoration wasted. The browser's own language wins where the file has
+ * it, and the first track stands in where it does not.
+ */
+const previewTrack = (tracks: SubtitleTrack[], language: string): SubtitleTrack | null => {
+  const spoken = language.split('-')[0]?.toLowerCase() ?? ''
+
+  return (
+    tracks.find((track) => (track.language ?? '').toLowerCase().startsWith(spoken)) ??
+    tracks[0] ??
+    null
+  )
+}
+
 export type { SubtitleTrack }
 
-export default { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, SUBTITLES_OFF }
+export default {
+  fetchSubtitleTracks,
+  subtitleTrackUrl,
+  defaultTrackId,
+  previewTrack,
+  SUBTITLES_OFF,
+}

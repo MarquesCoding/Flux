@@ -8,11 +8,13 @@ import {
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import IconButtonModule from '@FluxUI/IconButton'
 import frameUrlModule from '@FluxWeb/playback/frameUrl'
+import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import type { MediaPreviewProps } from './MediaPreview.types'
 
 const { VideoSurface } = VideoSurfaceModule
 const { IconButton } = IconButtonModule
 const { frameUrl } = frameUrlModule
+const { fetchSubtitleTracks, subtitleTrackUrl, previewTrack } = fetchSubtitlesModule
 
 /**
  * How long the page waits before starting anything.
@@ -53,6 +55,7 @@ const MediaPreview = ({
   settleMilliseconds = SETTLE_MILLISECONDS,
   tint = null,
   hasSound = false,
+  hasSubtitles = false,
   onEnded,
   onPlayingChange,
 }: MediaPreviewProps) => {
@@ -72,6 +75,11 @@ const MediaPreview = ({
   // because a pause button that vanishes the moment it is pressed is a pause
   // button nobody can undo.
   const [hasStarted, setHasStarted] = useState(false)
+  // The track to draw over the clip, once it is known. A preview of a film in
+  // a language somebody does not speak is a preview of nothing, so the
+  // subtitles a viewer would get if they pressed play are the subtitles they
+  // get while deciding whether to.
+  const [subtitles, setSubtitles] = useState<{ id: string; language: string } | null>(null)
 
   /**
    * Whether the frame is the thing being shown.
@@ -90,6 +98,26 @@ const MediaPreview = ({
 
   const isShowingFrame = !hasStarted || hasEnded
   const startSeconds = Math.floor(durationSeconds * startFraction)
+
+  useEffect(() => {
+    if (!hasSubtitles) {
+      return
+    }
+
+    let abandoned = false
+
+    void fetchSubtitleTracks(mediaId).then((tracks) => {
+      const chosen = previewTrack(tracks, navigator.language)
+
+      if (!abandoned && chosen !== null) {
+        setSubtitles({ id: chosen.id, language: chosen.language ?? 'und' })
+      }
+    })
+
+    return () => {
+      abandoned = true
+    }
+  }, [mediaId, hasSubtitles])
 
   useEffect(() => {
     const element = videoRef.current
@@ -184,6 +212,19 @@ const MediaPreview = ({
 
           onPlayingChange?.(playing)
         }}
+        {...(subtitles === null
+          ? {}
+          : {
+              textTrack: {
+                id: subtitles.id,
+                label: 'Subtitles',
+                language: subtitles.language,
+                // Shifted to where the clip starts, since a preview begins a
+                // fifth of the way into the film and the cues count from its
+                // beginning.
+                src: subtitleTrackUrl(mediaId, subtitles.id, startSeconds),
+              },
+            })}
         loops={loops}
         onEnded={() => {
           // Started again here as well as by the element's own loop: a clip
