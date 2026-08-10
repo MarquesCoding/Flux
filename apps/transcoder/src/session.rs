@@ -319,7 +319,7 @@ impl SessionRegistry {
     pub async fn stop_all(&self) {
         let mut sessions = self.sessions.lock().await;
 
-        for (_, session) in sessions.iter_mut() {
+        for session in sessions.values_mut() {
             session.stop();
         }
 
