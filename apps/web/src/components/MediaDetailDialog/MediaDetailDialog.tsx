@@ -114,6 +114,7 @@ const MediaDetailDialog = ({
             mediaId={media.id}
             backdropUrl={media.hasBackdrop ? artworkUrl(media.id, 'backdrop') : null}
             durationSeconds={media.durationSeconds}
+            hasSound
             fills
           />
         </div>

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { IconVolume, IconVolumeOff } from '@tabler/icons-react'
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
+import IconButtonModule from '@FluxUI/IconButton'
 import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
 import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
 import attachShakaModule from '@FluxWeb/playback/attachShaka'
@@ -7,6 +9,7 @@ import frameUrlModule from '@FluxWeb/playback/frameUrl'
 import type { MediaPreviewProps } from './MediaPreview.types'
 
 const { VideoSurface } = VideoSurfaceModule
+const { IconButton } = IconButtonModule
 const { detectFromBrowser } = detectDeviceProfileModule
 const { startPlaybackSession, stopPlaybackSession } = startPlaybackSessionModule
 const { attachShaka } = attachShakaModule
@@ -38,10 +41,12 @@ const MediaPreview = ({
   fills = false,
   settleMilliseconds = SETTLE_MILLISECONDS,
   tint = null,
+  hasSound = false,
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [hasFrame, setHasFrame] = useState(false)
+  const [isMuted, setIsMuted] = useState(true)
   const startSeconds = Math.floor(durationSeconds * startFraction)
 
   useEffect(() => {
@@ -146,6 +151,31 @@ const MediaPreview = ({
           isPlaying ? 'opacity-100' : 'opacity-0'
         }`}
       />
+
+      {/* Offered only once there is something to listen to. A speaker on a
+          still frame is a control that does nothing. */}
+      {!hasSound || !isPlaying ? null : (
+        <div className="absolute bottom-4 right-4">
+          <IconButton
+            label={isMuted ? 'Turn sound on' : 'Turn sound off'}
+            onClick={() => {
+              const element = videoRef.current
+
+              if (element !== null) {
+                element.muted = !isMuted
+                setIsMuted(!isMuted)
+              }
+            }}
+            className="bg-black/50 text-white backdrop-blur"
+          >
+            {isMuted ? (
+              <IconVolumeOff size={18} aria-hidden />
+            ) : (
+              <IconVolume size={18} aria-hidden />
+            )}
+          </IconButton>
+        </div>
+      )}
 
       {fills ? null : (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-surface to-transparent" />

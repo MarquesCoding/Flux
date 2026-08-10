@@ -31,12 +31,13 @@ type MediaPreviewProps = {
    */
   tint?: string | null
   /**
-   * Whether audio should be allowed once it plays.
+   * Whether the preview offers to turn its sound on.
    *
-   * Off everywhere by default: a page that starts talking is a page people
-   * learn to close.
+   * It always starts silent — a page that begins talking on its own is a page
+   * people learn to close, and browsers refuse to autoplay with sound anyway.
+   * This only decides whether there is a way to ask for it.
    */
-  isMuted?: boolean
+  hasSound?: boolean
 }
 
 export type { MediaPreviewProps }
