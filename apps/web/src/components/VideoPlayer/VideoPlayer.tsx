@@ -7,6 +7,7 @@ import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
 import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
 import attachShakaModule from '@FluxWeb/playback/attachShaka'
 import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
+import popOutWithCaptionsModule from '@FluxWeb/playback/popOutWithCaptions'
 import captureFrameModule from '@FluxWeb/playback/captureFrame'
 import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
@@ -20,6 +21,7 @@ import PlayerControlsModule from './components/PlayerControls/PlayerControls'
 import StreamStatsModule from './components/StreamStats/StreamStats'
 import CaptionSettingsModule from './components/CaptionSettings/CaptionSettings'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
+import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
@@ -34,6 +36,7 @@ const { detectFromBrowser } = detectDeviceProfileModule
 const { startPlaybackSession, stopPlaybackSession } = startPlaybackSessionModule
 const { attachShaka } = attachShakaModule
 const { fetchTrickplay } = fetchTrickplayModule
+const { popOutWithCaptions } = popOutWithCaptionsModule
 const { captureFrame } = captureFrameModule
 const { readPlaybackHealth, encodedSeconds } = readPlaybackHealthModule
 const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, SUBTITLES_OFF } =
@@ -154,6 +157,11 @@ const VideoPlayer = ({
   // all, so this is asked rather than assumed.
   const canPopOut = typeof document !== 'undefined' && document.pictureInPictureEnabled === true
 
+  // What is currently floating with its captions drawn in, so it can be put
+  // back. Held in a ref rather than in state because nothing on screen
+  // depends on it.
+  const poppedRef = useRef<PoppedOut | null>(null)
+
   const popOut = useCallback(() => {
     const element = videoRef.current
 
@@ -163,15 +171,45 @@ const VideoPlayer = ({
 
     // Leaving is the same button as entering: a viewer who popped a film out
     // and wants it back has one control, not two.
-    void (
-      document.pictureInPictureElement === element
-        ? document.exitPictureInPicture()
-        : element.requestPictureInPicture()
-    ).catch(() => {
-      // A browser may refuse — no user gesture, or a stream it will not float.
-      // Nothing to say about it that the viewer can act on.
-    })
+    if (document.pictureInPictureElement !== null) {
+      poppedRef.current?.stop()
+      poppedRef.current = null
+
+      void document.exitPictureInPicture().catch(() => {
+        // Already gone, which is the outcome that was wanted.
+      })
+
+      return
+    }
+
+    void (async () => {
+      // With subtitles on, the film is redrawn into a canvas along with its
+      // cues and that is what floats: a browser's own window shows the video
+      // and nothing layered over it, so captions would simply disappear.
+      const withCaptions = Array.from(element.textTracks).some((track) => track.mode !== 'disabled')
+        ? await popOutWithCaptions(element)
+        : null
+
+      if (withCaptions !== null) {
+        poppedRef.current = withCaptions
+
+        return
+      }
+
+      await element.requestPictureInPicture().catch(() => {
+        // A browser may refuse — no gesture, or a stream it will not float.
+        // Nothing to say about it that the viewer can act on.
+      })
+    })()
   }, [])
+
+  useEffect(
+    () => () => {
+      poppedRef.current?.stop()
+      poppedRef.current = null
+    },
+    [],
+  )
 
   if (request.mediaId !== media.id) {
     setRequest({ mediaId: media.id, startSeconds })
