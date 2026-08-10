@@ -11,6 +11,8 @@ type ToneMapping = 'zscale' | 'libplacebo' | 'unavailable'
 type Capabilities = {
   encoders: VerifiedEncoder[]
   toneMapping?: ToneMapping
+  canBurnTextSubtitles?: boolean
+  canBurnImageSubtitles?: boolean
 }
 
 type SessionSpec = {
@@ -30,12 +32,14 @@ type SessionSpec = {
       }
   audio:
     { kind: 'copy' } | { kind: 'encode'; encoder: string; channels: number; maxBitrateKbps: number }
+  subtitles: { kind: 'none' } | { kind: 'burnIn'; streamIndex: number; isImageBased: boolean }
 }
 
 type PlanToSessionSpecOptions = {
   plan: PlaybackPlan
   inputPath: string
   sourceRange: string
+  imageSubtitleIndexes?: number[]
   capabilities: Capabilities
   startSeconds: number
   segmentSeconds: number
@@ -114,19 +118,47 @@ const planToSessionSpec = ({
   capabilities,
   startSeconds,
   segmentSeconds,
+  imageSubtitleIndexes = [],
 }: PlanToSessionSpecOptions): SpecOutcome => {
-  const mustBurnIn = plan.subtitles.kind === 'burnIn'
+  const isImageBased =
+    plan.subtitles.kind === 'burnIn' && imageSubtitleIndexes.includes(plan.subtitles.streamIndex)
+
+  const canBurn = isImageBased
+    ? capabilities.canBurnImageSubtitles !== false
+    : capabilities.canBurnTextSubtitles !== false
+
+  // Dropping the subtitles is better than refusing to play. Someone who wanted
+  // them will notice they are missing; a player that will not start tells them
+  // nothing at all.
+  const subtitleWarnings =
+    plan.subtitles.kind === 'burnIn' && !canBurn
+      ? [
+          `This server cannot burn in ${isImageBased ? 'image' : 'text'} subtitles, so they will not appear. Its FFmpeg build is missing the ${isImageBased ? 'overlay' : 'subtitles'} filter.`,
+        ]
+      : []
+
+  const mustBurnIn = plan.subtitles.kind === 'burnIn' && canBurn
+
+  const subtitles: SessionSpec['subtitles'] =
+    plan.subtitles.kind === 'burnIn' && canBurn
+      ? {
+          kind: 'burnIn',
+          streamIndex: plan.subtitles.streamIndex,
+          isImageBased,
+        }
+      : { kind: 'none' }
   const needsVideoEncode = plan.video.kind === 'transcode' || mustBurnIn
 
   if (!needsVideoEncode) {
     return {
       kind: 'ok',
-      warnings: [],
+      warnings: subtitleWarnings,
       spec: {
         inputPath,
         startSeconds,
         segmentSeconds,
         hardwareAccel: 'none',
+        subtitles,
         video: { kind: 'copy' },
         audio:
           plan.audio.kind === 'transcode'
@@ -169,12 +201,13 @@ const planToSessionSpec = ({
 
   return {
     kind: 'ok',
-    warnings: mapping.warnings,
+    warnings: [...mapping.warnings, ...subtitleWarnings],
     spec: {
       inputPath,
       startSeconds,
       segmentSeconds,
       hardwareAccel: chosen.accel,
+      subtitles,
       video: {
         kind: 'encode',
         encoder: chosen.encoder,

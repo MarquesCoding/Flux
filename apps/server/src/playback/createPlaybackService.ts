@@ -10,6 +10,14 @@ const { describePlaybackMode } = describePlaybackModeModule
 const { planToSessionSpec } = planToSessionSpecModule
 const { SEGMENT_SECONDS } = PlaybackServiceModule
 
+/**
+ * Subtitle formats that are pictures rather than text.
+ *
+ * These cannot be converted, so burning them in means compositing a second
+ * video stream rather than drawing text.
+ */
+const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub'])
+
 type MediaLookup = {
   findForPlayback: (
     mediaId: string,
@@ -67,6 +75,9 @@ const createPlaybackService = ({
         plan,
         inputPath: found.path,
         sourceRange: found.item.videoRange,
+        imageSubtitleIndexes: found.item.subtitleStreams
+          .filter((stream) => IMAGE_SUBTITLE_FORMATS.has(stream.format))
+          .map((stream) => stream.index),
         capabilities: await capabilities(),
         startSeconds,
         segmentSeconds: SEGMENT_SECONDS,

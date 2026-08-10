@@ -21,7 +21,9 @@ use tower::ServiceExt;
 
 use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
-use flux_transcoder::transcode_plan::{AudioAction, HardwareAccel, SessionSpec, VideoAction};
+use flux_transcoder::transcode_plan::{
+    AudioAction, HardwareAccel, SessionSpec, SubtitleAction, VideoAction,
+};
 
 fn ffmpeg() -> String {
     std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
@@ -122,6 +124,7 @@ fn spec(video: VideoAction, audio: AudioAction) -> SessionSpec {
         hardware_accel: HardwareAccel::None,
         video,
         audio,
+        subtitles: SubtitleAction::None,
     }
 }
 

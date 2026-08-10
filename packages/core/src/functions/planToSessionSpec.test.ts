@@ -17,6 +17,8 @@ const directPlay: PlaybackPlan = {
 
 const capabilities: Capabilities = {
   toneMapping: 'zscale',
+  canBurnTextSubtitles: true,
+  canBurnImageSubtitles: true,
   encoders: [
     { codec: 'h264', encoder: 'h264_videotoolbox', accel: 'videotoolbox' },
     { codec: 'h264', encoder: 'libx264', accel: 'none' },
@@ -26,6 +28,8 @@ const capabilities: Capabilities = {
 
 const softwareOnly: Capabilities = {
   toneMapping: 'zscale',
+  canBurnTextSubtitles: true,
+  canBurnImageSubtitles: true,
   encoders: [{ codec: 'h264', encoder: 'libx264', accel: 'none' }],
 }
 
@@ -199,6 +203,37 @@ describe('planToSessionSpec', () => {
     const outcome = build({ ...directPlay, video: transcodeVideo }, capabilities, 'SDR')
 
     expect(outcome.kind === 'ok' && outcome.warnings).toEqual([])
+  })
+
+  it('warns and drops subtitles rather than refusing to play', () => {
+    const outcome = build(
+      { ...directPlay, subtitles: { kind: 'burnIn', streamIndex: 2, reason } },
+      { ...capabilities, canBurnTextSubtitles: false },
+    )
+
+    expect(outcome).toMatchObject({ kind: 'ok', spec: { subtitles: { kind: 'none' } } })
+    expect(outcome.kind === 'ok' && outcome.warnings[0]).toMatch(/cannot burn in text subtitles/)
+  })
+
+  it('does not encode the video when the subtitles it would burn cannot be drawn', () => {
+    const outcome = build(
+      { ...directPlay, subtitles: { kind: 'burnIn', streamIndex: 2, reason } },
+      { ...capabilities, canBurnTextSubtitles: false },
+    )
+
+    expect(outcome).toMatchObject({ kind: 'ok', spec: { video: { kind: 'copy' } } })
+  })
+
+  it('burns in subtitles when the server can', () => {
+    const outcome = build({
+      ...directPlay,
+      subtitles: { kind: 'burnIn', streamIndex: 2, reason },
+    })
+
+    expect(outcome).toMatchObject({
+      kind: 'ok',
+      spec: { subtitles: { kind: 'burnIn', streamIndex: 2, isImageBased: false } },
+    })
   })
 
   it('reports when the machine cannot encode at all', () => {

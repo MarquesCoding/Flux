@@ -134,6 +134,13 @@ pub struct Capabilities {
     pub hardware_accels: Vec<HardwareAccel>,
     /// How, or whether, this build can convert HDR to SDR.
     pub tone_mapping: ToneMapping,
+    /// Whether text subtitles can be drawn onto frames.
+    ///
+    /// Needs the `subtitles` filter, which needs libass. Bitmap subtitles use
+    /// `overlay` instead and are reported separately, because a build can
+    /// manage one and not the other.
+    pub can_burn_text_subtitles: bool,
+    pub can_burn_image_subtitles: bool,
 }
 
 /// Chooses a tone mapping route from the filters a build actually has.
@@ -292,6 +299,8 @@ pub async fn detect_capabilities(ffmpeg: &str) -> Capabilities {
         encoders,
         hardware_accels,
         tone_mapping: select_tone_mapping(&filters),
+        can_burn_text_subtitles: filters.iter().any(|filter| filter == "subtitles"),
+        can_burn_image_subtitles: filters.iter().any(|filter| filter == "overlay"),
     }
 }
 
@@ -327,6 +336,8 @@ mod tests {
             encoders,
             hardware_accels: Vec::new(),
             tone_mapping: ToneMapping::Unavailable,
+            can_burn_text_subtitles: false,
+            can_burn_image_subtitles: false,
         }
     }
 

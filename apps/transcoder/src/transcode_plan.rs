@@ -85,6 +85,26 @@ pub enum AudioAction {
     },
 }
 
+/// How a subtitle stream is delivered.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum SubtitleAction {
+    /// Nothing to do: no subtitles, or the client renders them itself.
+    None,
+    /// Draw the subtitles onto the frames.
+    ///
+    /// Required when the client cannot render the format, and unavoidable for
+    /// bitmap formats, which cannot be converted to text at all.
+    BurnIn {
+        stream_index: u32,
+        is_image_based: bool,
+    },
+}
+
 /// Everything that decides what bytes come out, and therefore everything the
 /// session cache is keyed on.
 ///
@@ -101,6 +121,31 @@ pub struct SessionSpec {
     pub hardware_accel: HardwareAccel,
     pub video: VideoAction,
     pub audio: AudioAction,
+    #[serde(default = "SubtitleAction::none")]
+    pub subtitles: SubtitleAction,
+}
+
+impl SubtitleAction {
+    #[must_use]
+    fn none() -> Self {
+        Self::None
+    }
+
+    /// Whether drawing these subtitles needs a filter graph rather than a
+    /// simple filter chain.
+    ///
+    /// Bitmap subtitles are a second video stream that has to be composited,
+    /// which `-vf` cannot express.
+    #[must_use]
+    pub fn needs_filter_graph(&self) -> bool {
+        matches!(
+            self,
+            Self::BurnIn {
+                is_image_based: true,
+                ..
+            }
+        )
+    }
 }
 
 impl SessionSpec {
@@ -119,6 +164,7 @@ impl SessionSpec {
         hasher.update(format!("{:?}", self.hardware_accel).as_bytes());
         hasher.update(format!("{:?}", self.video).as_bytes());
         hasher.update(format!("{:?}", self.audio).as_bytes());
+        hasher.update(format!("{:?}", self.subtitles).as_bytes());
 
         let digest = hasher.finalize();
         let mut id = String::with_capacity(32);
@@ -188,6 +234,18 @@ tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv",
     }
 }
 
+/// Escapes a path for use inside the `subtitles` filter.
+///
+/// The filter's own parser treats colons and backslashes as syntax, so a file
+/// under a path containing either would otherwise be read as a malformed
+/// filter rather than a filename.
+#[must_use]
+pub fn escape_filter_path(path: &str) -> String {
+    path.replace('\\', "\\\\")
+        .replace(':', "\\:")
+        .replace('\'', "\\'")
+}
+
 /// Builds a scale filter that shrinks but never enlarges.
 ///
 /// `force_original_aspect_ratio=decrease` alone still scales *up* when the
@@ -226,16 +284,28 @@ pub fn video_filter_chain(
     max_width: u32,
     max_height: u32,
     tone_map: Option<ToneMapping>,
+    text_subtitles: Option<(&str, u32)>,
 ) -> String {
-    let mapping = tone_map.and_then(tone_map_filter);
+    let mut steps: Vec<String> = Vec::new();
 
-    match mapping {
-        None => format!("{},format=yuv420p", scale_filter(max_width, max_height)),
-        Some(filter) => format!(
-            "{filter},{},format=yuv420p",
-            scale_filter(max_width, max_height)
-        ),
+    if let Some(filter) = tone_map.and_then(tone_map_filter) {
+        steps.push(filter.to_owned());
     }
+
+    steps.push(scale_filter(max_width, max_height));
+
+    // Drawn after scaling so the text is rendered at output resolution rather
+    // than scaled along with the picture, which would soften it.
+    if let Some((path, index)) = text_subtitles {
+        steps.push(format!(
+            "subtitles='{}':si={index}",
+            escape_filter_path(path)
+        ));
+    }
+
+    steps.push("format=yuv420p".to_owned());
+
+    steps.join(",")
 }
 
 /// A fully resolved transcode instruction.
@@ -296,8 +366,35 @@ impl TranscodePlan {
                 args.push(encoder.clone());
                 args.push("-b:v".into());
                 args.push(format!("{max_bitrate_kbps}k"));
-                args.push("-vf".into());
-                args.push(video_filter_chain(*max_width, *max_height, *tone_map));
+                let text_burn_in = match &self.spec.subtitles {
+                    SubtitleAction::BurnIn {
+                        stream_index,
+                        is_image_based: false,
+                    } => Some((self.spec.input_path.as_str(), *stream_index)),
+                    _ => None,
+                };
+
+                let chain = video_filter_chain(*max_width, *max_height, *tone_map, text_burn_in);
+
+                if let SubtitleAction::BurnIn {
+                    stream_index,
+                    is_image_based: true,
+                } = &self.spec.subtitles
+                {
+                    // Bitmap subtitles are a second video stream, so they have
+                    // to be composited in a filter graph rather than a chain.
+                    args.push("-filter_complex".into());
+                    args.push(format!(
+                        "[0:v]{chain}[base];[base][0:s:{stream_index}]overlay[v]"
+                    ));
+                    args.push("-map".into());
+                    args.push("[v]".into());
+                    args.push("-map".into());
+                    args.push("0:a?".into());
+                } else {
+                    args.push("-vf".into());
+                    args.push(chain);
+                }
             }
         }
 
@@ -343,7 +440,8 @@ impl TranscodePlan {
 #[cfg(test)]
 mod tests {
     use super::{
-        software_equivalent, AudioAction, HardwareAccel, SessionSpec, TranscodePlan, VideoAction,
+        software_equivalent, AudioAction, HardwareAccel, SessionSpec, SubtitleAction,
+        TranscodePlan, VideoAction,
     };
 
     fn spec() -> SessionSpec {
@@ -354,6 +452,7 @@ mod tests {
             hardware_accel: HardwareAccel::None,
             video: VideoAction::Copy,
             audio: AudioAction::Copy,
+            subtitles: SubtitleAction::None,
         }
     }
 
@@ -486,7 +585,7 @@ mod tests {
     fn tone_maps_before_scaling_to_keep_highlight_detail() {
         use super::{video_filter_chain, ToneMapping};
 
-        let chain = video_filter_chain(1920, 1080, Some(ToneMapping::Zscale));
+        let chain = video_filter_chain(1920, 1080, Some(ToneMapping::Zscale), None);
         let map = chain.find("tonemap=").expect("maps");
         let scale = chain.find("scale=w=").expect("scales");
 
@@ -497,7 +596,7 @@ mod tests {
     fn omits_tone_mapping_when_it_is_not_needed() {
         use super::video_filter_chain;
 
-        let chain = video_filter_chain(1920, 1080, None);
+        let chain = video_filter_chain(1920, 1080, None, None);
 
         assert!(
             !chain.contains("tonemap"),
@@ -527,6 +626,107 @@ mod tests {
         use super::scale_filter;
 
         assert!(scale_filter(1280, 720).contains("force_original_aspect_ratio=decrease"));
+    }
+
+    #[test]
+    fn draws_text_subtitles_after_scaling() {
+        use super::video_filter_chain;
+
+        let chain = video_filter_chain(1920, 1080, None, Some(("/media/film.mkv", 2)));
+        let scale = chain.find("scale=w=").expect("scales");
+        let subs = chain.find("subtitles=").expect("draws subtitles");
+
+        assert!(
+            scale < subs,
+            "subtitles must be drawn at output size: {chain}"
+        );
+        assert!(chain.contains("si=2"));
+    }
+
+    #[test]
+    fn escapes_a_path_the_filter_parser_would_misread() {
+        use super::escape_filter_path;
+
+        assert_eq!(
+            escape_filter_path("/media/C:/film.mkv"),
+            "/media/C\\:/film.mkv"
+        );
+    }
+
+    #[test]
+    fn composites_bitmap_subtitles_in_a_filter_graph() {
+        let args = plan(SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "libx264".into(),
+                max_bitrate_kbps: 4000,
+                max_width: 1920,
+                max_height: 1080,
+                tone_map: None,
+            },
+            subtitles: SubtitleAction::BurnIn {
+                stream_index: 2,
+                is_image_based: true,
+            },
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        assert!(args.iter().any(|a| a == "-filter_complex"));
+        assert!(args.iter().any(|a| a.contains("[0:s:2]overlay")));
+        assert!(
+            !args.iter().any(|a| a == "-vf"),
+            "a graph replaces the chain"
+        );
+    }
+
+    #[test]
+    fn uses_a_plain_chain_for_text_subtitles() {
+        let args = plan(SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "libx264".into(),
+                max_bitrate_kbps: 4000,
+                max_width: 1920,
+                max_height: 1080,
+                tone_map: None,
+            },
+            subtitles: SubtitleAction::BurnIn {
+                stream_index: 3,
+                is_image_based: false,
+            },
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        assert!(args.iter().any(|a| a == "-vf"));
+        assert!(args.iter().any(|a| a.contains("subtitles=")));
+    }
+
+    #[test]
+    fn burning_in_different_subtitles_is_a_different_session() {
+        let with_subs = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                stream_index: 2,
+                is_image_based: false,
+            },
+            ..spec()
+        };
+
+        assert_ne!(spec().session_id(), with_subs.session_id());
+    }
+
+    #[test]
+    fn reports_when_subtitles_need_a_filter_graph() {
+        assert!(SubtitleAction::BurnIn {
+            stream_index: 0,
+            is_image_based: true
+        }
+        .needs_filter_graph());
+        assert!(!SubtitleAction::BurnIn {
+            stream_index: 0,
+            is_image_based: false
+        }
+        .needs_filter_graph());
+        assert!(!SubtitleAction::None.needs_filter_graph());
     }
 
     #[test]
