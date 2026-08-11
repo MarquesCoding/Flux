@@ -19,6 +19,7 @@ import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import captionStyleModule from '@FluxWeb/playback/captionStyle'
 import fetchSegmentsModule from '@FluxWeb/playback/fetchSegments'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
+import playbackPreferencesModule from '@FluxWeb/playback/playbackPreferences'
 import describeTrackModule from '@FluxCore/functions/describeTrack'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
@@ -44,7 +45,7 @@ const { fetchTrickplay } = fetchTrickplayModule
 const { popOutWithCaptions } = popOutWithCaptionsModule
 const { captureFrame } = captureFrameModule
 const { readPlaybackHealth, encodedSeconds } = readPlaybackHealthModule
-const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, SUBTITLES_OFF } =
+const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, trackForLanguage, SUBTITLES_OFF } =
   fetchSubtitlesModule
 const { fetchMediaDetail } = fetchLibraryModule
 const { TrickplayPreview } = TrickplayPreviewModule
@@ -55,6 +56,7 @@ const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = 
 const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
 const { describeAudioTrack } = describeTrackModule
 const { reportWatchProgress, REPORT_EVERY_MILLISECONDS } = watchProgressModule
+const { readPlaybackPreferences, writePlaybackPreferences } = playbackPreferencesModule
 
 /**
  * An element that may be able to go full screen.
@@ -92,6 +94,19 @@ const FINISHED_WITHIN_SECONDS = 90
 
 const HEALTH_INTERVAL_MILLISECONDS = 500
 
+/**
+ * How long to wait before asking a stalled stream again.
+ */
+const START_RETRY_MILLISECONDS = 1500
+
+/**
+ * How many times that is worth doing.
+ *
+ * A few seconds of trying, and then the picture is somebody else's problem:
+ * a player that retries forever is a player that hides a broken file.
+ */
+const START_ATTEMPTS = 4
+
 const EMPTY_HEALTH: PlaybackHealth = {
   positionSeconds: 0,
   bufferedAheadSeconds: 0,
@@ -115,9 +130,14 @@ const VideoPlayer = ({
   isImmersive = false,
   startSeconds = 0,
   onClose,
+  onProgress,
+  onEnded,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
+  // Keeps the nudges at a stream that has not started from outliving the
+  // session they belong to.
+  const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [session, setSession] = useState<StartedSession | null>(null)
   const [state, setState] = useState<PlayerState>('starting')
   const [problem, setProblem] = useState<string | null>(null)
@@ -126,8 +146,11 @@ const VideoPlayer = ({
   const [reportedDuration, setReportedDuration] = useState(0)
   const [trickplay, setTrickplay] = useState<Trickplay | null>(null)
   const [detail, setDetail] = useState<MediaDetail | null>(null)
-  const [volume, setVolume] = useState(1)
-  const [isMuted, setIsMuted] = useState(false)
+  // How this device was left, rather than how a fresh element starts. Somebody
+  // who turned a film down does not expect the next episode to open at full
+  // volume, and somebody watching in silence does not expect to be shouted at.
+  const [volume, setVolume] = useState(() => readPlaybackPreferences().volume)
+  const [isMuted, setIsMuted] = useState(() => readPlaybackPreferences().isMuted)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isShowingStats, setIsShowingStats] = useState(false)
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH)
@@ -285,6 +308,46 @@ const VideoPlayer = ({
     }
   }, [])
 
+  /**
+   * Gets a stream running, and keeps trying for as long as that is sensible.
+   *
+   * A transcode is delivered as a playlist that is still being written, so
+   * asking to play it the instant it is attached can find nothing there yet.
+   * The element answers that by sitting at nothing rather than by failing,
+   * which is the state a viewer used to escape by dragging the scrub bar —
+   * seeking made the element ask again, and asking again was all it needed.
+   */
+  const start = useCallback((element: HTMLVideoElement) => {
+    let attempts = 0
+
+    const attempt = () => {
+      void element.play().catch(() => {
+        // Refused rather than unready: a browser that will not autoplay wants
+        // a gesture, and the play button is right there.
+      })
+    }
+
+    attempt()
+
+    clearInterval(startTimerRef.current ?? undefined)
+
+    startTimerRef.current = setInterval(() => {
+      attempts += 1
+
+      if (attempts > START_ATTEMPTS || element.readyState > 0 || !element.paused) {
+        clearInterval(startTimerRef.current ?? undefined)
+        startTimerRef.current = null
+
+        return
+      }
+
+      // Nothing has arrived yet. Asking the element to load again is what a
+      // seek was doing by accident.
+      element.load()
+      attempt()
+    }, START_RETRY_MILLISECONDS)
+  }, [])
+
   if (request.mediaId !== media.id) {
     setRequest({ mediaId: media.id, startSeconds })
   }
@@ -357,12 +420,10 @@ const VideoPlayer = ({
         if (!isAbandoned()) {
           setState('playing')
 
-          // A session started partway through exists because someone dragged
-          // the scrub bar. Making them press play again after every seek
-          // would be its own kind of broken.
-          if (request.startSeconds > 0) {
-            void element.play()
-          }
+          // Navigating to a film is asking to watch it. Nobody arrives at a
+          // player and wants a still picture with a play button over it, and
+          // a seek is not a request to stop either.
+          start(element)
         }
       } catch {
         if (!isAbandoned()) {
@@ -376,13 +437,15 @@ const VideoPlayer = ({
 
     return () => {
       controller.abort()
+      clearInterval(startTimerRef.current ?? undefined)
+      startTimerRef.current = null
       void teardown?.()
 
       if (startedId !== null) {
         void stopPlaybackSession(startedId)
       }
     }
-  }, [request])
+  }, [request, start])
 
   useEffect(() => {
     // Fetched alongside playback rather than before it. Rendering thumbnails
@@ -416,10 +479,26 @@ const VideoPlayer = ({
     })
 
     void fetchSubtitleTracks(media.id).then((found) => {
-      if (!abandoned) {
-        setSubtitleTracks(found)
-        setSelectedSubtitleId(defaultTrackId(found))
+      if (abandoned) {
+        return
       }
+
+      setSubtitleTracks(found)
+
+      // What this viewer was last reading, in this file's own terms. A choice
+      // made on one episode is a choice about a language, so it survives into
+      // the next one rather than lapsing back to nothing every time.
+      const remembered = readPlaybackPreferences().subtitleLanguage
+
+      if (remembered === SUBTITLES_OFF) {
+        setSelectedSubtitleId(SUBTITLES_OFF)
+
+        return
+      }
+
+      const continuing = trackForLanguage(found, remembered)
+
+      setSelectedSubtitleId(continuing === null ? defaultTrackId(found) : continuing.id)
     })
 
     return () => {
@@ -446,6 +525,8 @@ const VideoPlayer = ({
       element.volume = volume
       element.muted = isMuted
     }
+
+    writePlaybackPreferences({ volume, isMuted })
   }, [volume, isMuted])
 
   useEffect(() => {
@@ -561,6 +642,27 @@ const VideoPlayer = ({
   }, [captionStyle])
 
   const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null
+
+  /**
+   * Takes a viewer at their word about subtitles.
+   *
+   * Their choice is kept as a language, which is the part of it that means
+   * anything to the next episode. Turning them off is kept too, and kept
+   * distinctly from never having said: one is an instruction, the other is
+   * only silence.
+   */
+  const chooseSubtitle = useCallback(
+    (trackId: string) => {
+      setSelectedSubtitleId(trackId)
+
+      const chosen = subtitleTracks.find((track) => track.id === trackId) ?? null
+
+      writePlaybackPreferences({
+        subtitleLanguage: trackId === SUBTITLES_OFF ? SUBTITLES_OFF : (chosen?.language ?? null),
+      })
+    },
+    [subtitleTracks],
+  )
   const skippable = state === 'playing' ? skippableAt(segments, position) : null
 
   const audioTracks = (detail?.audioStreams ?? []).map((stream, position) => ({
@@ -810,11 +912,21 @@ const VideoPlayer = ({
                 },
               })}
           onTimeUpdate={(seconds) => {
-            setPosition(request.startSeconds + seconds)
+            const at = request.startSeconds + seconds
+
+            setPosition(at)
             setHeldFrame(null)
+            onProgress?.(at, duration)
           }}
           onDurationChange={setReportedDuration}
           onPlayingChange={setIsPlaying}
+          onEnded={() => {
+            // Watched to the end, said before anything else happens: whoever
+            // owns the player may put another episode on, and it should not
+            // then be told the previous one stopped partway through.
+            onProgress?.(duration, duration)
+            onEnded?.()
+          }}
         />
 
         {/* While the film is floating in its own window the page shows that
@@ -931,7 +1043,7 @@ const VideoPlayer = ({
             onSeek={seek}
             onSkip={skip}
             onPlaybackRateChange={setPlaybackRate}
-            onSubtitleChange={setSelectedSubtitleId}
+            onSubtitleChange={chooseSubtitle}
             onAudioChange={changeAudio}
             onEditCaptions={() => {
               setIsEditingCaptions((editing) => !editing)
