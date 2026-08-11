@@ -359,6 +359,51 @@ const VideoPlayer = ({
     return watchCastState(element, setCastState)
   }, [])
 
+  // Coming back from a device. Handing one the stream meant letting go of the
+  // media engine, and a browser that cannot play this format on its own — most
+  // of them, for HLS — is left with a black picture when the cast ends. So the
+  // engine is fetched again and put back where the film had got to.
+  const wasCastingRef = useRef(false)
+
+  useEffect(() => {
+    if (castState === 'connected') {
+      wasCastingRef.current = true
+
+      return
+    }
+
+    if (!wasCastingRef.current || castState === 'connecting') {
+      return
+    }
+
+    wasCastingRef.current = false
+
+    const element = videoRef.current
+
+    if (element === null || session === null || session.delivery.kind !== 'hls') {
+      return
+    }
+
+    const at = element.currentTime
+
+    void attachShaka({ element, manifestUrl: session.delivery.manifestUrl }).then((teardown) => {
+      releaseRef.current = teardown
+      element.currentTime = at
+      start(element)
+    })
+  }, [castState, session])
+
+  // Whatever engine is attached when this leaves, released. The one the page
+  // started with is torn down by the effect that made it; one fetched again
+  // after a cast ended is not that one.
+  useEffect(
+    () => () => {
+      void releaseRef.current?.()
+      releaseRef.current = null
+    },
+    [],
+  )
+
   // The window can be closed from its own controls as well as from ours, so
   // the page listens rather than assuming it is the only thing that ends this.
   useEffect(() => {
@@ -566,6 +611,7 @@ const VideoPlayer = ({
       clearInterval(startTimerRef.current ?? undefined)
       startTimerRef.current = null
       void teardown?.()
+      releaseRef.current = null
 
       if (startedId !== null) {
         void stopPlaybackSession(startedId)
