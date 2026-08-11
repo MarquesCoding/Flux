@@ -37,10 +37,6 @@ const { findSiblings, nextEpisode } = pickFeaturedModule
 const { fetchWatchProgress, byMediaId } = watchProgressModule
 const { isWorthResuming, watchedFraction, FINISHED_WITHIN_SECONDS } = WatchProgressContract
 
-/**
- * How long the opening title stays up.
- */
-const SPLASH_MILLISECONDS = 8_000
 const { fetchSession } = fetchSessionModule
 const { signOut } = signOutModule
 const { SetupStatusSchema } = SetupModule
@@ -66,7 +62,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   // where it had been an hour ago.
   const reportedRef = useRef(new Map<string, WatchProgress>())
   const [featured, setFeatured] = useState<MediaSummary | null>(null)
-  const [isTitleOver, setIsTitleOver] = useState(false)
   // Everything the library has shown, so an address naming an item can be
   // turned back into one without asking the server a second time.
   const [known, setKnown] = useState(new Map<string, MediaSummary>())
@@ -128,19 +123,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     }
 
     setProgress(merged)
-  }, [])
-
-  // The opening title is held for its own length rather than for however long
-  // the server happens to take. A title card that flashes for 200ms on a fast
-  // connection and lingers on a slow one is not a title card.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsTitleOver(true)
-    }, SPLASH_MILLISECONDS)
-
-    return () => {
-      clearTimeout(timer)
-    }
   }, [])
 
   const refresh = useCallback(async () => {
@@ -215,14 +197,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         }}
       />
     )
-  }
-
-  // The opening title belongs in front of the library, not in front of the
-  // sign-in form. Somebody being asked for a password is not arriving
-  // anywhere yet, and holding them behind a title card is eight seconds
-  // between them and a field they have to fill in.
-  if (!isTitleOver) {
-    return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
   }
 
   // Watching is not a thing that happens inside a library page. The player

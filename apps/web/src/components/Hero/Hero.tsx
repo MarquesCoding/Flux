@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { IconPlayerPlayFilled, IconStar } from '@tabler/icons-react'
+import { IconInfoCircle, IconPlayerPlayFilled, IconStar } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
@@ -45,6 +46,7 @@ const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/bac
 const Hero = ({
   items,
   onPlay,
+  onInspect,
   onFeatureChange,
   resumeFor,
   rotateAfterMilliseconds = ROTATE_AFTER_MILLISECONDS,
@@ -62,6 +64,34 @@ const Hero = ({
       onFeatureChange?.(featured)
     }
   }, [featured, onFeatureChange])
+
+  // Said in one voice and in one order, so the line can be built from
+  // whatever is actually known about this item rather than from four
+  // conditionals in the middle of the markup.
+  const facts: { key: string; said: ReactNode }[] = [
+    ...(typeof featured?.episodeNumber === 'number'
+      ? [{ key: 'episode', said: <span className="tabular-nums">EP{featured.episodeNumber}</span> }]
+      : []),
+    ...(typeof featured?.seasonNumber === 'number'
+      ? [{ key: 'season', said: <span className="tabular-nums">S{featured.seasonNumber}</span> }]
+      : []),
+    ...(rating === null
+      ? []
+      : [
+          {
+            key: 'rating',
+            said: (
+              <span className="flex items-center gap-1.5 tabular-nums">
+                <IconStar size={14} aria-hidden />
+                {rating.toFixed(1)}
+              </span>
+            ),
+          },
+        ]),
+    ...(featured?.year === null || featured?.year === undefined
+      ? []
+      : [{ key: 'year', said: <span className="tabular-nums">{featured.year}</span> }]),
+  ]
 
   const showNext = useCallback(() => {
     if (items.length > 1 && !isHeld) {
@@ -149,20 +179,17 @@ const Hero = ({
         // heights.
         className="relative flex flex-col gap-3 px-5 pb-8 pt-24 sm:px-10"
       >
-        {featured.year === null && rating === null ? null : (
+        {/* The episode above the show, small and set in capitals: it is what
+            is being offered, and the show underneath is what makes it
+            recognisable. A film has nothing here, since its own name is the
+            title below. */}
+        {featured.seriesTitle === null || featured.seriesTitle === undefined ? null : (
           <motion.p
             variants={revealVariants(prefersReducedMotion)}
             transition={revealTransition(prefersReducedMotion)}
-            className="flex items-center gap-4 text-sm font-medium tracking-[0.2em] text-text-muted"
+            className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted"
           >
-            {featured.year === null ? null : <span>{featured.year}</span>}
-
-            {rating === null ? null : (
-              <span className="flex items-center gap-1.5">
-                <IconStar size={14} aria-hidden />
-                {rating.toFixed(1)}
-              </span>
-            )}
+            {featured.title}
           </motion.p>
         )}
 
@@ -174,29 +201,25 @@ const Hero = ({
           // between three fixed sizes.
           className="max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text"
         >
-          {/* The show rather than the episode. Somebody meeting a series on a
-              home page is being introduced to the series, and "Promise" is
-              not the name of anything they have heard of. */}
           {featured.seriesTitle ?? featured.title}
         </motion.h1>
 
-        {/* The episode, under the show it belongs to. The show is what
-            somebody recognises and the episode is what they are being offered,
-            so both are worth saying — in that order and at that weight. */}
-        {featured.seriesTitle === null || featured.seriesTitle === undefined ? null : (
+        {/* Everything that places it, on one line and in one voice: where it
+            sits in the series, what it scored, and when it was made. Separated
+            by dots rather than by space alone, so four facts read as a list
+            rather than as a row of unrelated numbers. */}
+        {facts.length === 0 ? null : (
           <motion.p
             variants={revealVariants(prefersReducedMotion)}
             transition={revealTransition(prefersReducedMotion)}
-            className="flex flex-wrap items-center gap-2 text-base font-medium text-text-muted sm:text-lg"
+            className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-text-muted"
           >
-            {typeof featured.seasonNumber !== 'number' ||
-            typeof featured.episodeNumber !== 'number' ? null : (
-              <span className="tabular-nums">
-                S{featured.seasonNumber} · E{featured.episodeNumber}
+            {facts.map((fact, at) => (
+              <span key={fact.key} className="flex items-center gap-2">
+                {at === 0 ? null : <span aria-hidden>·</span>}
+                {fact.said}
               </span>
-            )}
-
-            <span className="text-text">{featured.title}</span>
+            ))}
           </motion.p>
         )}
 
@@ -219,6 +242,22 @@ const Hero = ({
             <IconPlayerPlayFilled size={18} aria-hidden />
             {resume === null ? 'Play' : `Resume from ${formatDuration(resume)}`}
           </Button>
+
+          {/* Two things worth offering: watch it, or find out what it is. A
+              hero that only plays makes somebody guess before committing. */}
+          {onInspect === undefined ? null : (
+            <Button
+              variant="secondary"
+              size="lg"
+              isPill
+              onClick={() => {
+                onInspect(featured)
+              }}
+            >
+              <IconInfoCircle size={18} aria-hidden />
+              More info
+            </Button>
+          )}
         </motion.div>
       </motion.div>
 

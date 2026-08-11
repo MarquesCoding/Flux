@@ -254,6 +254,7 @@ const LibraryBrowser = ({
             }
           }}
           resumeFor={resumeFor}
+          onInspect={onPlay}
           {...(onFeatureChange === undefined ? {} : { onFeatureChange })}
         />
       ) : null}
@@ -351,7 +352,19 @@ const LibraryBrowser = ({
                       {...(resumeFor(media.id) === null
                         ? {}
                         : { resumeSeconds: Math.floor(resumeFor(media.id) ?? 0) })}
-                      onPlay={onPlay}
+                      // Playing plays and reading opens the page. They were
+                      // both wired to the same handler, so the play button on
+                      // a card opened the page about the film instead of
+                      // starting it.
+                      onPlay={(media, startSeconds) => {
+                        if (onWatch === undefined) {
+                          onPlay(media)
+
+                          return
+                        }
+
+                        onWatch(media, startSeconds)
+                      }}
                       onInspect={onPlay}
                     />
                   </li>

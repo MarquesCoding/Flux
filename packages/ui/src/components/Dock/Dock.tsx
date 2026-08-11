@@ -25,7 +25,7 @@ type Box = { left: number; top: number; width: number; height: number }
  * and the label sliding open as it becomes current is what makes the dock read
  * as one control rather than four.
  */
-const Dock = ({ items, selectedId, onSelect, isCompact = false, className }: DockProps) => {
+const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
   const prefersReducedMotion = useReducedMotion()
   const listRef = useRef<HTMLUListElement>(null)
   const itemsRef = useRef(new Map<string, HTMLLIElement>())
@@ -78,7 +78,7 @@ const Dock = ({ items, selectedId, onSelect, isCompact = false, className }: Doc
     return () => {
       observer.disconnect()
     }
-  }, [measure, items.length, isCompact])
+  }, [measure, items.length])
   // The highlight and the label want opposite things: the highlight should
   // overshoot and settle, and the label should not move a millimetre further
   // than it has to.
@@ -156,7 +156,7 @@ const Dock = ({ items, selectedId, onSelect, isCompact = false, className }: Doc
                 }}
                 className={cn(
                   'relative flex h-12 items-center rounded-full transition-colors sm:h-11',
-                  isSelected && !isCompact
+                  isSelected
                     ? 'px-4 text-text'
                     : 'w-12 justify-center text-text-muted hover:text-text sm:w-11',
                 )}
@@ -164,7 +164,7 @@ const Dock = ({ items, selectedId, onSelect, isCompact = false, className }: Doc
                 <span className="flex shrink-0 items-center">{item.icon}</span>
 
                 <AnimatePresence initial={false}>
-                  {isSelected && !isCompact ? (
+                  {isSelected ? (
                     <motion.span
                       // The label slides open rather than appearing: a word
                       // that pops into a bar makes the bar jump, where a word

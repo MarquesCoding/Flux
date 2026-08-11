@@ -8,7 +8,7 @@ import {
   useTransform,
   useReducedMotion,
 } from 'motion/react'
-import { IconPlayerPlayFilled, IconStar } from '@tabler/icons-react'
+import { IconInfoCircle, IconPlayerPlayFilled, IconStar } from '@tabler/icons-react'
 import MediaCardModule from '@FluxUI/MediaCard'
 import BadgeModule from '@FluxUI/Badge'
 import ButtonModule from '@FluxUI/Button'
@@ -285,25 +285,41 @@ const RailCard = ({
                 }}
                 className="flex w-full flex-col gap-3 p-4 text-left"
               >
-                {/* The same control as everywhere else something is
-                      played. A card is not the place to invent a second shape
-                      of play button. */}
-                <Button
-                  variant="glossy"
-                  size="sm"
-                  isPill
-                  onClick={(event) => {
-                    // Inside the panel, so its press must not also read as a
-                    // press on the panel behind it.
-                    event.stopPropagation()
-                    onPlay(media, resumeSeconds ?? 0)
-                  }}
-                >
-                  <IconPlayerPlayFilled size={16} aria-hidden />
-                  {resumeSeconds === undefined
-                    ? 'Play'
-                    : `Resume from ${formatDuration(resumeSeconds)}`}
-                </Button>
+                {/* Two things somebody might want, said plainly rather than
+                    left to be guessed at: watch it, or read about it first.
+                    The same controls as everywhere else — a card is not the
+                    place to invent a second shape of play button. */}
+                <span className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="glossy"
+                    size="sm"
+                    isPill
+                    onClick={(event) => {
+                      // Inside the panel, so its press must not also read as a
+                      // press on the panel behind it.
+                      event.stopPropagation()
+                      onPlay(media, resumeSeconds ?? 0)
+                    }}
+                  >
+                    <IconPlayerPlayFilled size={16} aria-hidden />
+                    {resumeSeconds === undefined
+                      ? 'Play'
+                      : `Resume from ${formatDuration(resumeSeconds)}`}
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    isPill
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onInspect(media)
+                    }}
+                  >
+                    <IconInfoCircle size={16} aria-hidden />
+                    More info
+                  </Button>
+                </span>
 
                 <span className="flex flex-col gap-1">
                   {detail?.metadata.seriesTitle === undefined ||
