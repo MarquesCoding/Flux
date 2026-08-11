@@ -19,6 +19,7 @@ import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
 import MediaFactsModule from '@FluxWeb/components/MediaFacts/MediaFacts'
+import CastGridModule from './components/CastGrid/CastGrid'
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types'
 
@@ -33,6 +34,7 @@ const { formatDuration } = formatDurationModule
 const { fetchMediaDetail } = fetchLibraryModule
 const { MediaPreview } = MediaPreviewModule
 const { MediaFacts } = MediaFactsModule
+const { CastGrid } = CastGridModule
 
 /**
  * How many faces stand in for a cast that has not arrived.
@@ -294,71 +296,80 @@ const MediaDetailDialog = ({
           )}
         </div>
 
-        <section className="flex flex-col gap-3">
-          <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
-            Synopsis
-          </h3>
-
-          {isLoading ? (
-            <div aria-hidden className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-[92%]" />
-              <Skeleton className="h-4 w-[70%]" />
-            </div>
-          ) : typeof metadata?.overview === 'string' && metadata.overview !== '' ? (
-            <p className="max-w-prose text-[0.95rem] leading-relaxed text-text">
-              {metadata.overview}
-            </p>
-          ) : (
-            <p className="flex items-center gap-2 text-sm text-text-muted">
-              <IconInfoCircle size={16} aria-hidden />
-              No synopsis yet. Configure a metadata provider and rescan to fill this in.
-            </p>
+        {/* The poster beside the words rather than nowhere at all. The
+            picture at the top of this page is a frame of the film, chosen by
+            nobody; the poster is what somebody designed to say what this is,
+            and a page about an item that never shows it is missing the one
+            image made for the purpose. */}
+        <section className="flex flex-col gap-5 sm:flex-row sm:gap-8">
+          {!shown.hasPoster ? null : (
+            <span className="w-32 shrink-0 overflow-hidden rounded-xl bg-surface-raised shadow-lg ring-1 ring-white/10 sm:w-44">
+              <img
+                src={artworkUrl(shown.id, 'poster')}
+                alt=""
+                loading="lazy"
+                className="aspect-[2/3] h-full w-full object-cover"
+              />
+            </span>
           )}
+
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
+              Synopsis
+            </h3>
+
+            {isLoading ? (
+              <div aria-hidden className="flex flex-col gap-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-[92%]" />
+                <Skeleton className="h-4 w-[70%]" />
+              </div>
+            ) : typeof metadata?.overview === 'string' && metadata.overview !== '' ? (
+              <p className="max-w-prose text-[0.95rem] leading-relaxed text-text">
+                {metadata.overview}
+              </p>
+            ) : (
+              <p className="flex items-center gap-2 text-sm text-text-muted">
+                <IconInfoCircle size={16} aria-hidden />
+                No synopsis yet. Configure a metadata provider and rescan to fill this in.
+              </p>
+            )}
+          </div>
         </section>
 
         <section className="flex flex-col gap-3">
-          <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">Cast</h3>
-
           {isLoading ? (
-            <ul aria-hidden className="flex gap-4 overflow-hidden">
-              {Array.from({ length: CAST_PLACEHOLDERS }, (_, index) => index).map((index) => (
-                <li key={index} className="flex w-20 shrink-0 flex-col items-center gap-2">
-                  <Skeleton className="size-20 rounded-full" />
-                  <Skeleton className="h-3 w-16" />
-                  <Skeleton className="h-3 w-12" />
-                </li>
-              ))}
-            </ul>
-          ) : cast.length === 0 ? (
-            <p className="flex items-center gap-2 text-sm text-text-muted">
-              <IconInfoCircle size={16} aria-hidden />
-              Nobody is credited yet. A metadata provider supplies the cast.
-            </p>
-          ) : (
-            <ul className="flux-rail flex gap-4 overflow-x-auto pb-2">
-              {cast.map((member) => (
-                <li key={member.name} className="flex w-24 shrink-0 flex-col items-center gap-2">
-                  <span className="size-20 overflow-hidden rounded-full bg-surface-raised ring-1 ring-white/10">
-                    {member.imageUrl === null ? null : (
-                      <img
-                        src={member.imageUrl}
-                        alt=""
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </span>
+            <>
+              <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
+                Cast
+              </h3>
 
-                  <span className="text-center text-xs font-medium leading-tight text-text">
-                    {member.name}
-                  </span>
-                  <span className="text-center text-[0.7rem] leading-tight text-text-muted">
-                    {member.role}
-                  </span>
-                </li>
-              ))}
-            </ul>
+              <ul
+                aria-hidden
+                className="grid grid-cols-3 gap-x-4 gap-y-6 sm:grid-cols-4 lg:grid-cols-6"
+              >
+                {Array.from({ length: CAST_PLACEHOLDERS }, (_, index) => index).map((index) => (
+                  <li key={index} className="flex flex-col items-center gap-3">
+                    <Skeleton className="aspect-[2/3] w-full rounded-xl" />
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-3 w-12" />
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : cast.length === 0 ? (
+            <>
+              <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
+                Cast
+              </h3>
+
+              <p className="flex items-center gap-2 text-sm text-text-muted">
+                <IconInfoCircle size={16} aria-hidden />
+                Nobody is credited yet. A metadata provider supplies the cast.
+              </p>
+            </>
+          ) : (
+            <CastGrid members={cast} />
           )}
         </section>
 
