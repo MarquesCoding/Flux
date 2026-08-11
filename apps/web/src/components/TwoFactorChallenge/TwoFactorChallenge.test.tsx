@@ -29,14 +29,14 @@ afterEach(() => {
 
 describe('TwoFactorChallenge', () => {
   it('asks for an authenticator code first', () => {
-    render(<TwoFactorChallenge onVerified={vi.fn()} onCancel={vi.fn()} />)
+    render(<TwoFactorChallenge onVerified={vi.fn()} />)
 
     expect(screen.getByLabelText('Authenticator code')).toBeInTheDocument()
   })
 
   it('rejects a code that is not six digits without contacting the server', async () => {
     const actor = userEvent.setup()
-    render(<TwoFactorChallenge onVerified={vi.fn()} onCancel={vi.fn()} />)
+    render(<TwoFactorChallenge onVerified={vi.fn()} />)
 
     await actor.type(screen.getByLabelText('Authenticator code'), '123')
     await actor.click(screen.getByRole('button', { name: 'Verify' }))
@@ -47,7 +47,7 @@ describe('TwoFactorChallenge', () => {
 
   it('posts a valid code to the totp endpoint', async () => {
     const actor = userEvent.setup()
-    render(<TwoFactorChallenge onVerified={vi.fn()} onCancel={vi.fn()} />)
+    render(<TwoFactorChallenge onVerified={vi.fn()} />)
 
     await actor.type(screen.getByLabelText('Authenticator code'), '123456')
     await actor.click(screen.getByRole('button', { name: 'Verify' }))
@@ -60,7 +60,7 @@ describe('TwoFactorChallenge', () => {
   it('reports success to its parent', async () => {
     const onVerified = vi.fn()
     const actor = userEvent.setup()
-    render(<TwoFactorChallenge onVerified={onVerified} onCancel={vi.fn()} />)
+    render(<TwoFactorChallenge onVerified={onVerified} />)
 
     await actor.type(screen.getByLabelText('Authenticator code'), '123456')
     await actor.click(screen.getByRole('button', { name: 'Verify' }))
@@ -74,7 +74,7 @@ describe('TwoFactorChallenge', () => {
     respondWith(false)
     const onVerified = vi.fn()
     const actor = userEvent.setup()
-    render(<TwoFactorChallenge onVerified={onVerified} onCancel={vi.fn()} />)
+    render(<TwoFactorChallenge onVerified={onVerified} />)
 
     await actor.type(screen.getByLabelText('Authenticator code'), '123456')
     await actor.click(screen.getByRole('button', { name: 'Verify' }))
@@ -85,7 +85,7 @@ describe('TwoFactorChallenge', () => {
 
   it('switches to backup codes', async () => {
     const actor = userEvent.setup()
-    render(<TwoFactorChallenge onVerified={vi.fn()} onCancel={vi.fn()} />)
+    render(<TwoFactorChallenge onVerified={vi.fn()} />)
 
     await actor.click(screen.getByRole('button', { name: /Use a backup code/ }))
 
@@ -94,7 +94,7 @@ describe('TwoFactorChallenge', () => {
 
   it('posts a backup code to the backup endpoint', async () => {
     const actor = userEvent.setup()
-    render(<TwoFactorChallenge onVerified={vi.fn()} onCancel={vi.fn()} />)
+    render(<TwoFactorChallenge onVerified={vi.fn()} />)
 
     await actor.click(screen.getByRole('button', { name: /Use a backup code/ }))
     await actor.type(screen.getByLabelText('Backup code'), 'abcd-efgh')
@@ -110,7 +110,7 @@ describe('TwoFactorChallenge', () => {
 
   it('does not apply the six digit rule to backup codes', async () => {
     const actor = userEvent.setup()
-    render(<TwoFactorChallenge onVerified={vi.fn()} onCancel={vi.fn()} />)
+    render(<TwoFactorChallenge onVerified={vi.fn()} />)
 
     await actor.click(screen.getByRole('button', { name: /Use a backup code/ }))
     await actor.type(screen.getByLabelText('Backup code'), 'abcd-efgh')
@@ -123,7 +123,7 @@ describe('TwoFactorChallenge', () => {
 
   it('clears a typed code when switching modes', async () => {
     const actor = userEvent.setup()
-    render(<TwoFactorChallenge onVerified={vi.fn()} onCancel={vi.fn()} />)
+    render(<TwoFactorChallenge onVerified={vi.fn()} />)
 
     await actor.type(screen.getByLabelText('Authenticator code'), '123456')
     await actor.click(screen.getByRole('button', { name: /Use a backup code/ }))
@@ -131,20 +131,16 @@ describe('TwoFactorChallenge', () => {
     expect(screen.getByLabelText('Backup code')).toHaveValue('')
   })
 
-  it('can be abandoned', async () => {
-    const onCancel = vi.fn()
-    const actor = userEvent.setup()
-    render(<TwoFactorChallenge onVerified={vi.fn()} onCancel={onCancel} />)
+  it('brings no way out of its own, since the screen around it has one', () => {
+    render(<TwoFactorChallenge onVerified={vi.fn()} />)
 
-    await actor.click(screen.getByRole('button', { name: 'Back to sign in' }))
-
-    expect(onCancel).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('button', { name: /Back to sign in/ })).not.toBeInTheDocument()
   })
 
   it('reports an unreachable server rather than failing silently', async () => {
     fetchMock.mockRejectedValue(new Error('offline'))
     const actor = userEvent.setup()
-    render(<TwoFactorChallenge onVerified={vi.fn()} onCancel={vi.fn()} />)
+    render(<TwoFactorChallenge onVerified={vi.fn()} />)
 
     await actor.type(screen.getByLabelText('Authenticator code'), '123456')
     await actor.click(screen.getByRole('button', { name: 'Verify' }))

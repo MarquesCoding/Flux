@@ -326,4 +326,30 @@ describe('PlayerControls', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(PlayerControls.displayName).toBe('PlayerControls')
   })
+
+  it('gives the scrub bar a line of its own, so a phone can aim at it', () => {
+    draw()
+
+    const scrub = screen.getByRole('slider', { name: 'Seek through Arrival' })
+    const play = screen.getByRole('button', { name: 'Play' })
+
+    // Squeezed in beside ten controls, a scrub bar on a phone is too short to
+    // hit, so the two live on different rows.
+    const scrubRow = scrub.closest('[data-tone]')?.parentElement
+    const controlRow = play.parentElement
+
+    expect(scrubRow).not.toBe(controlRow)
+    expect(scrubRow).not.toBeNull()
+  })
+
+  it("leaves volume to a phone's own buttons", () => {
+    draw()
+
+    // Present for a pointer, out of the way on a touch screen, which has
+    // hardware keys for exactly this.
+    const volumeGroup = screen.getByRole('button', { name: 'Mute' }).parentElement
+
+    expect(volumeGroup?.className).toContain('hidden')
+    expect(volumeGroup?.className).toContain('sm:flex')
+  })
 })

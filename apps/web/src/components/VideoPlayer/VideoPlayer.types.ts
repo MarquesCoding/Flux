@@ -9,6 +9,14 @@ type VideoPlayerProps = {
    * own height, rather than sitting in a page's flow beneath a heading.
    */
   isImmersive?: boolean
+  /**
+   * Where to begin, in seconds.
+   *
+   * Somebody resuming a film has already watched the first hour of it, and a
+   * player that starts at zero regardless is a player that loses their place
+   * every time they close it.
+   */
+  startSeconds?: number
   onClose: () => void
 }
 

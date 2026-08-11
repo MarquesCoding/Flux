@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import AppModule from './App'
 import createMemoryAuthModule from './auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from './library/createMemoryLibraryService'
+import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
 import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from './playback/createMemoryPlaybackService'
@@ -12,6 +13,7 @@ const { createMemoryLibraryService } = createMemoryLibraryServiceModule
 const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
 const { createMemorySegmentService } = createMemorySegmentServiceModule
+const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
 
 const { auth, settings } = createMemoryAuth()
 const app = createApp({
@@ -22,6 +24,7 @@ const app = createApp({
   library: createMemoryLibraryService(),
   subtitles: createMemorySubtitleService(),
   segments: createMemorySegmentService(),
+  progress: createMemoryWatchProgressService(),
   playback: createMemoryPlaybackService(),
 })
 
@@ -46,6 +49,7 @@ describe('createApp', () => {
       library: createMemoryLibraryService(),
       subtitles: createMemorySubtitleService(),
       segments: createMemorySegmentService(),
+      progress: createMemoryWatchProgressService(),
       playback: createMemoryPlaybackService(),
       isTranscoderReachable: () => Promise.resolve(true),
     })

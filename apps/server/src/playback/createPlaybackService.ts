@@ -27,6 +27,11 @@ const {
  */
 const TRICKPLAY_INDEX_NAME = 'thumbnails.vtt'
 
+/**
+ * The file the media service names a preview clip.
+ */
+const PREVIEW_NAME = 'preview.mp4'
+
 const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub'])
 
 /**
@@ -77,9 +82,22 @@ const createPlaybackService = ({
   let cached: TranscoderCapabilities | null = null
 
   const capabilities = async (): Promise<TranscoderCapabilities> => {
-    cached ??= await transcoder.capabilities()
+    if (cached !== null) {
+      return cached
+    }
 
-    return cached
+    const found = await transcoder.capabilities()
+
+    // An empty answer is not an answer worth keeping. The media service
+    // reports what it could verify at the moment it was asked, and a service
+    // still starting, or one whose ffmpeg was being replaced underneath it,
+    // reports nothing — which would otherwise be cached for the life of the
+    // process and turn a passing problem into a permanent one.
+    if (found.encoders.length > 0) {
+      cached = found
+    }
+
+    return found
   }
 
   return {
@@ -182,7 +200,15 @@ const createPlaybackService = ({
         tileWidth: TRICKPLAY_TILE_WIDTH,
         columns: TRICKPLAY_COLUMNS,
         rows: TRICKPLAY_ROWS,
+        wait: false,
       })
+
+      // Rendering has been started but has not finished. Saying so, rather
+      // than waiting for it, is what lets the film start now and the previews
+      // appear when the player next asks.
+      if (!index.isReady) {
+        return null
+      }
 
       return {
         id: index.id,
@@ -191,6 +217,38 @@ const createPlaybackService = ({
         tileWidth: index.tileWidth,
         tileHeight: index.tileHeight,
       }
+    },
+
+    readFrame: async (mediaId, seconds, width) => {
+      const found = await media.findForPlayback(mediaId)
+
+      if (found === null) {
+        return null
+      }
+
+      return transcoder
+        .readFrame({ inputPath: found.path, atSeconds: seconds, width })
+        .catch(() => null)
+    },
+
+    readPreview: async (mediaId) => {
+      const found = await media.findForPlayback(mediaId)
+
+      if (found === null) {
+        return null
+      }
+
+      // Asked for without waiting: if it has not been made yet this starts it
+      // and says so, and the page carries on with the frame it already has.
+      const clip = await transcoder
+        .requestPreview({ inputPath: found.path, wait: false })
+        .catch(() => null)
+
+      if (clip === null || !clip.isReady) {
+        return null
+      }
+
+      return transcoder.readPreviewFile(clip.id, PREVIEW_NAME)
     },
 
     readTrickplayFile: (trickplayId, name) => transcoder.readTrickplayFile(trickplayId, name),

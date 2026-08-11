@@ -150,6 +150,83 @@ const library = pgTable('library', {
   lastScannedAt: timestamp('lastScannedAt'),
 })
 
+/**
+ * One viewer within an account.
+ *
+ * A household shares an account and does not share a taste: what one person
+ * half watched is noise on somebody else's home page. Progress is recorded
+ * against a profile rather than against the account for that reason.
+ *
+ * Deliberately not a login. These are not security boundaries — anyone holding
+ * the account can pick any of them — they are a way of keeping several
+ * people's viewing apart, which is what a household actually needs.
+ */
+const viewerProfile = pgTable(
+  'viewer_profile',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    /**
+     * The colour this profile is drawn in, as a hex string.
+     */
+    colour: text('colour').notNull(),
+    /**
+     * Which drawn avatar this profile wears, if it wears one.
+     *
+     * The style and the seed rather than the picture: a few bytes that
+     * regenerate the same face every time, where a stored image would be
+     * kilobytes of something reproducible.
+     */
+    avatarStyle: text('avatarStyle'),
+    avatarSeed: text('avatarSeed'),
+    /**
+     * Where an uploaded photograph was put, when somebody used their own.
+     */
+    photoPath: text('photoPath'),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+    updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  },
+  (table) => [index('viewer_profile_user_idx').on(table.userId)],
+)
+
+const watchProgress = pgTable(
+  'watch_progress',
+  {
+    id: text('id').primaryKey(),
+    /**
+     * Which person this belongs to, rather than which account.
+     *
+     * Keyed on the profile so that promoting one to an account of its own is a
+     * change of owner and nothing else: the viewing follows the person, which
+     * is the whole point of being able to move them out.
+     */
+    profileId: text('profileId')
+      .notNull()
+      .references(() => viewerProfile.id, { onDelete: 'cascade' }),
+    mediaItemId: text('mediaItemId')
+      .notNull()
+      .references(() => mediaItem.id, { onDelete: 'cascade' }),
+    positionSeconds: real('positionSeconds').notNull(),
+    durationSeconds: real('durationSeconds').notNull(),
+    /**
+     * Whether this was watched to the end.
+     *
+     * Recorded rather than inferred from the position, because someone who
+     * stops two minutes from the end has finished it and someone who skips to
+     * the last frame has not.
+     */
+    isFinished: boolean('isFinished').notNull().default(false),
+    updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('watch_progress_profile_idx').on(table.profileId, table.mediaItemId),
+    index('watch_progress_recent_idx').on(table.profileId, table.updatedAt),
+  ],
+)
+
 const mediaSegment = pgTable(
   'media_segment',
   {
@@ -202,6 +279,7 @@ const mediaItem = pgTable(
     posterUrl: text('posterUrl'),
     backdropUrl: text('backdropUrl'),
     externalId: text('externalId'),
+    accentColor: text('accentColor'),
     addedAt: timestamp('addedAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
@@ -235,6 +313,7 @@ export {
   library,
   mediaItem,
   mediaSegment,
+  watchProgress,
   user,
   session,
   account,
@@ -246,6 +325,7 @@ export {
   serverSetting,
   apikey,
   userProfile,
+  viewerProfile,
 }
 
 const authSchema = {
@@ -260,7 +340,7 @@ const authSchema = {
   apikey,
 }
 
-const fluxSchema = { userProfile, serverSetting, library, mediaItem }
+const fluxSchema = { userProfile, viewerProfile, serverSetting, library, mediaItem }
 
 export default {
   authSchema,
@@ -268,6 +348,7 @@ export default {
   library,
   mediaItem,
   mediaSegment,
+  watchProgress,
   user,
   session,
   account,
@@ -279,4 +360,5 @@ export default {
   serverSetting,
   apikey,
   userProfile,
+  viewerProfile,
 }

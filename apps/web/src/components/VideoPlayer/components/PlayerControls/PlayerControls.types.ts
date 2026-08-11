@@ -45,6 +45,22 @@ type PlayerControlsProps = {
   onToggleMute: () => void
   onToggleFullscreen: () => void
   onToggleStats: () => void
+  /**
+   * How far the subtitles have been nudged, in seconds.
+   *
+   * Positive means later. A file's cues are often a second or two out from
+   * the release they were written for, and no amount of care at import time
+   * fixes a mismatch that only exists between two particular files.
+   */
+  subtitleOffsetSeconds?: number
+  onSubtitleOffsetChange?: (seconds: number) => void
+  /**
+   * Pops the video into the browser's own floating window.
+   *
+   * Absent where the browser has no such window, so the control is not shown
+   * at all rather than shown and inert.
+   */
+  onPopOut?: () => void
   renderPreview?: (seconds: number) => ReactNode
 }
 

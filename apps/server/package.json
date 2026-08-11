@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/Main.ts",
+    "dev": "tsx watch --env-file-if-exists=../../.env src/Main.ts",
     "build": "tsc --build",
     "start": "node dist/Main.js",
     "test": "vitest run",
@@ -16,6 +16,8 @@
   "dependencies": {
     "@better-auth/api-key": "^1.6.26",
     "@better-auth/passkey": "^1.6.26",
+    "@dicebear/collection": "^9.4.2",
+    "@dicebear/core": "^9.4.3",
     "@flux/contracts": "workspace:*",
     "@flux/core": "workspace:*",
     "@flux/plugin-sdk": "workspace:*",

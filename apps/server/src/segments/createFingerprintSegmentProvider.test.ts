@@ -74,6 +74,7 @@ const transcoderThat = (
   startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
   readSessionFile: () => Promise.resolve(null),
   readFile: () => Promise.resolve(null),
+  sampleColour: () => Promise.resolve({ red: 90, green: 60, blue: 140, hex: '#5a3c8c' }),
   fingerprint: (request) => Promise.resolve(fingerprint(request.inputPath)),
   requestTrickplay: () =>
     Promise.resolve({
@@ -84,10 +85,17 @@ const transcoderThat = (
       columns: 10,
       rows: 10,
       sheets: [],
+      isReady: true,
       index: '/x',
     }),
   readTrickplayFile: () => Promise.resolve(null),
   stopSession: () => Promise.resolve(true),
+  readSubtitle: () => Promise.resolve('WEBVTT\n'),
+  readFrame: () => Promise.resolve(new ArrayBuffer(0)),
+  requestPreview: () => Promise.resolve({ id: 'p', url: '/p', isReady: true }),
+  readPreviewFile: () => Promise.resolve(null),
+  readMonitor: () => Promise.resolve({}),
+  openMonitorStream: () => Promise.resolve(null),
   capabilities: () => Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
 })
 
