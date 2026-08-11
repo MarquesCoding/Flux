@@ -275,8 +275,6 @@ describe('profiles over HTTP', () => {
     const cookie = await signedIn(app);
     const [profile] = await read(app, cookie);
 
-    // Only the database knows which address is behind a profile, so the
-    // double is told the one this account was made with.
     named(profiles, profile?.id ?? '');
 
     const response = await app.request(`${BASE}/api/profiles/${profile?.id ?? ''}/sign-in`, {

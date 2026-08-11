@@ -84,11 +84,6 @@ const createPlaybackService = ({
 
     const found = await transcoder.capabilities();
 
-    // An empty answer is not an answer worth keeping. The media service
-    // reports what it could verify at the moment it was asked, and a service
-    // still starting, or one whose ffmpeg was being replaced underneath it,
-    // reports nothing — which would otherwise be cached for the life of the
-    // process and turn a passing problem into a permanent one.
     if (found.encoders.length > 0) {
       cached = found;
     }
@@ -120,9 +115,6 @@ const createPlaybackService = ({
       const qualityClamp = resolveQualityStep(found.item, requestedQuality ?? 'original');
       const plan = negotiatePlayback(found.item, profile, qualityClamp);
 
-      // A viewer who picked a track needs that track selected, which the
-      // original file cannot do: it carries every stream and the browser picks
-      // the default. Choosing one therefore means transcoding.
       if (isDirectPlay(plan) && audioStreamIndex === undefined) {
         return {
           kind: 'started',
@@ -201,9 +193,6 @@ const createPlaybackService = ({
         wait: false,
       });
 
-      // Rendering has been started but has not finished. Saying so, rather
-      // than waiting for it, is what lets the film start now and the previews
-      // appear when the player next asks.
       if (!index.isReady) {
         return null;
       }
@@ -236,8 +225,6 @@ const createPlaybackService = ({
         return null;
       }
 
-      // Asked for without waiting: if it has not been made yet this starts it
-      // and says so, and the page carries on with the frame it already has.
       const clip = await transcoder
         .requestPreview({ inputPath: found.path, wait: false })
         .catch(() => null);

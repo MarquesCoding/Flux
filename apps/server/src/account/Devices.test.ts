@@ -140,9 +140,6 @@ describe('devices over HTTP', () => {
       await app.request(`${BASE}/api/account/devices`, { headers: { cookie, origin: BASE } })
     ).text();
 
-    // The identifier travels and the token does not: a page listing everywhere
-    // an account is signed in must not be a page that can sign in as any of
-    // them.
     expect(body).not.toContain(cookie.split('=')[1] ?? 'nothing');
     expect(body).not.toContain('token');
   });
@@ -156,8 +153,6 @@ describe('devices over HTTP', () => {
       headers: { cookie, origin: BASE },
     });
 
-    // Whether it was already gone or never existed, what the asker wanted is
-    // now true.
     expect(response.status).toBe(204);
   });
 

@@ -66,8 +66,6 @@ describe('readLights', () => {
 
     const lights = readLights(document.createElement('img'));
 
-    // The corners are read in the order they are written down: top left, top
-    // right, bottom left, bottom right, and then the middle.
     expect(lights[0]?.at).toBe(ZONES[0]?.at);
     expect(lights[1]?.at).toBe(ZONES[1]?.at);
   });

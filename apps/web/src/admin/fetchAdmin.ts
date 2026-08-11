@@ -121,8 +121,6 @@ const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
   const source = new EventSource('/api/admin/monitor/stream', { withCredentials: true });
 
   source.onmessage = (event: MessageEvent<string>) => {
-    // Parsed through the schema like every other body: an event stream is
-    // still input, and this one arrives without even a status code to check.
     const parsed = MonitorSchema.safeParse(JSON.parse(event.data));
 
     if (parsed.success) {

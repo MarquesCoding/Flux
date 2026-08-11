@@ -23,19 +23,7 @@ const SUBTITLES_OFF = 'off';
 const PreferencesSchema = z.object({
   volume: z.number().min(0).max(1).default(1),
   isMuted: z.boolean().default(false),
-  /**
-   * Absent when nobody has expressed a preference, which is not the same as
-   * having turned subtitles off: the first is "decide for me", the second is
-   * an instruction.
-   */
   subtitleLanguage: z.string().nullable().default(null),
-  /**
-   * Whether the clock counts down rather than up.
-   *
-   * Kept on the device like the rest of it: how somebody reads a running time
-   * is a habit, and a habit that has to be re-expressed every film is not one
-   * the interface is respecting.
-   */
   showsRemaining: z.boolean().default(false),
 });
 
@@ -84,10 +72,7 @@ const writePlaybackPreferences = (change: Partial<PlaybackPreferences>): void =>
       STORAGE_KEY,
       JSON.stringify({ ...readPlaybackPreferences(), ...change }),
     );
-  } catch {
-    // The setting lasts for this session instead of for this device, which is
-    // a smaller loss than refusing to play anything.
-  }
+  } catch {}
 };
 
 export type { PlaybackPreferences };

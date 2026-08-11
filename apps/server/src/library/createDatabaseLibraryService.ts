@@ -95,8 +95,6 @@ const createDatabaseLibraryService = ({
     return rows[0] ?? null;
   };
 
-  // Named, so the two show readings can ask it the same question the routes
-  // ask rather than repeating the query that answers it.
   const service: DatabaseLibraryService = {
     list: async () => {
       const rows = await db
@@ -152,8 +150,6 @@ const createDatabaseLibraryService = ({
         ...(options.search === undefined || options.search.trim() === ''
           ? []
           : [ilike(mediaItem.title, `%${options.search}%`)]),
-        // A programme is a file that belongs to a series and a film is one
-        // that does not, which is the only difference the library can see.
         ...(options.kind === undefined
           ? []
           : [
@@ -161,14 +157,9 @@ const createDatabaseLibraryService = ({
                 ? isNotNull(mediaItem.seriesTitle)
                 : isNull(mediaItem.seriesTitle),
             ]),
-        // Asked of the column rather than of every row in turn: the genres are
-        // stored as JSON, and Postgres can answer whether a list contains
-        // something without the server reading the list.
         ...(options.genre === undefined || options.genre === ''
           ? []
           : [sql`${mediaItem.genres} @> ${JSON.stringify([options.genre])}::jsonb`]),
-        // An empty list of names is a question with no answer, and `in ()` is
-        // not something a database will take kindly to being asked.
         ...(options.ids === undefined
           ? []
           : options.ids.length === 0
@@ -220,10 +211,6 @@ const createDatabaseLibraryService = ({
       return { items, total: totals?.total ?? 0 };
     },
 
-    // Every episode of every series in one read, grouped here rather than by
-    // the database: a show is a thing this application recognises, not a thing
-    // Postgres has been told about, and the alternative is a query that knows
-    // how titles become identifiers.
     listShows: async (libraryId) => {
       const page = await service.listItems(libraryId, {
         kind: 'shows',
@@ -307,9 +294,6 @@ const createDatabaseLibraryService = ({
 
       const jobId = await jobs.enqueueScan(libraryId, force);
 
-      // pg-boss returns null when a singleton job for this library is already
-      // queued. Reporting that as a failure would be wrong: the scan the
-      // caller asked for is going to happen.
       return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
 

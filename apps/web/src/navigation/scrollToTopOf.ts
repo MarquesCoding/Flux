@@ -31,7 +31,6 @@ const scrollToTopOf = (from: HTMLElement | null, isSmooth = true): void => {
     holder = holder.parentElement;
   }
 
-  // Nothing between here and the document scrolls, so the document does.
   window.scrollTo({ top: 0, behavior: isSmooth ? 'smooth' : 'auto' });
 };
 

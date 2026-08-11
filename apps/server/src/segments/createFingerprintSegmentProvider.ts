@@ -84,9 +84,6 @@ const createFingerprintSegmentProvider = ({
           error instanceof Error ? error.message : 'Could not be listened to.',
         );
       } finally {
-        // The decode is the expensive part, so this is where the season's
-        // slowness actually lives — comparing the fingerprints afterwards is
-        // fast enough not to be worth reporting.
         onItemDone?.();
       }
     }
@@ -95,8 +92,6 @@ const createFingerprintSegmentProvider = ({
       return found;
     }
 
-    // Every range each episode was found to share with any other. An episode
-    // whose candidates disagree with each other has nothing worth trusting.
     const candidates = new Map<string, Range[]>();
 
     for (let left = 0; left < fingerprints.length; left += 1) {
@@ -123,7 +118,6 @@ const createFingerprintSegmentProvider = ({
     }
 
     for (const [mediaId, ranges] of candidates) {
-      // A range one pair found is a coincidence until something else agrees.
       if (ranges.length < 2) {
         continue;
       }

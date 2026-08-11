@@ -63,8 +63,6 @@ const SearchArea = ({
   const [isReading, setIsReading] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
-  // Stable, so telling the page what was found cannot start the search that
-  // found it all over again.
   const reportItems = useRef(onItemsLoaded);
 
   reportItems.current = onItemsLoaded;
@@ -101,8 +99,6 @@ const SearchArea = ({
     reportItems.current?.(found);
   }, [libraryIds, search, kind, genre]);
 
-  // Waited out rather than asked on every keystroke, and asked again whenever
-  // the question changes.
   useEffect(() => {
     const timer = setTimeout(() => {
       void read();
@@ -113,9 +109,6 @@ const SearchArea = ({
     };
   }, [read]);
 
-  // The genres worth offering are the ones the library has. Collected from an
-  // unfiltered look at it, so choosing one does not remove the others from the
-  // row somebody is choosing from.
   useEffect(() => {
     if (libraryIds.length === 0) {
       return;
@@ -210,9 +203,6 @@ const SearchArea = ({
                   isPill
                   variant={named === genre ? 'glossy' : 'ghost'}
                   onClick={() => {
-                    // Pressing the one already chosen is how somebody takes it
-                    // off again, which is what a pressed button looks like it
-                    // should do.
                     setGenre(named === genre ? null : named);
                   }}
                 >

@@ -51,8 +51,6 @@ const createMemoryPlaybackService = (
 
     const qualityClamp = resolveQualityStep(item, requestedQuality ?? 'original');
     const plan = negotiatePlayback(item, profile, qualityClamp);
-    // The chosen track is part of what a session is, so it belongs in the
-    // identity of one: two tracks are two sessions.
     const sessionId =
       audioStreamIndex === undefined
         ? `session-${mediaId}`

@@ -196,8 +196,6 @@ describe('PlayerControls', () => {
       />,
     );
 
-    // Theme surface colours are near black, which is invisible on a dark bar
-    // over a dark picture.
     expect(container.querySelectorAll('[data-tone="overlay"]')).toHaveLength(2);
     expect(container.querySelector('[data-tone="default"]')).not.toBeInTheDocument();
   });
@@ -412,7 +410,6 @@ describe('PlayerControls', () => {
   it('offers nowhere to cast when there is nowhere to cast to', () => {
     draw({ onCast: vi.fn() });
 
-    // A picker that opens an empty list is a button that has wasted a press.
     expect(screen.queryByRole('button', { name: /device/i })).not.toBeInTheDocument();
   });
 
@@ -456,8 +453,6 @@ describe('PlayerControls', () => {
     const scrub = screen.getByRole('slider', { name: 'Seek through Arrival' });
     const play = screen.getByRole('button', { name: 'Play' });
 
-    // Squeezed in beside ten controls, a scrub bar on a phone is too short to
-    // hit, so the two live on different rows.
     const scrubRow = scrub.closest('[data-tone]')?.parentElement;
     const controlRow = play.parentElement;
 
@@ -468,10 +463,6 @@ describe('PlayerControls', () => {
   it("leaves volume to a phone's own buttons", () => {
     draw();
 
-    // Present for a pointer, out of the way on a touch screen, which has
-    // hardware keys for exactly this. Asked for by shape rather than by
-    // parentage: a control's immediate parent is whatever wraps it for a
-    // tooltip, and the group is the box around the pair.
     const volumeGroup = screen.getByRole('button', { name: 'Mute' }).closest('div');
 
     expect(volumeGroup?.className).toContain('hidden');

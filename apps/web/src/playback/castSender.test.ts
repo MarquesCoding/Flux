@@ -83,8 +83,6 @@ const page = () => {
 };
 
 beforeEach(() => {
-  // The loading is remembered on the page, which is what "once per page"
-  // means — so each test gets its own page.
   vi.unstubAllGlobals();
 });
 

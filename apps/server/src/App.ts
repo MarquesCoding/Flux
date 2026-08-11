@@ -252,8 +252,6 @@ const createApp = ({
       ...(search === undefined ? {} : { search }),
       ...(kind === undefined ? {} : { kind }),
       ...(genre === undefined ? {} : { genre }),
-      // Split here rather than in the schema: a query string carries one
-      // value, and the shape the library wants is a list.
       ...(ids === undefined ? {} : { ids: ids.split(',').filter((named) => named.trim() !== '') }),
       ...(order === undefined ? {} : { order }),
       limit: limit ?? DEFAULT_LIMIT,
@@ -333,10 +331,6 @@ const createApp = ({
 
     return context.json(
       {
-        // Degraded rather than unhealthy: the library and interface still work
-        // with the media service down, but nothing will play. A health check
-        // that reported "ok" here would turn "playback spins forever" into a
-        // mystery. See ADR-0006.
         status: transcoderReachable ? ('ok' as const) : ('degraded' as const),
         version: SERVER_VERSION,
         transcoderReachable,
@@ -446,21 +440,12 @@ const createApp = ({
       return context.json({ error: 'No frame there.' }, 404);
     }
 
-    // A frame is decided by the file and the position, neither of which
-    // changes, so it is worth keeping for a long time.
     return context.body(frame, 200, {
       'content-type': 'image/jpeg',
       'cache-control': 'public, max-age=31536000, immutable',
     });
   });
 
-  /**
-   * The short clip a library page plays for an item.
-   *
-   * Outside the OpenAPI routes because it answers with a video or with
-   * nothing, and "nothing yet" is a normal answer rather than a fault: the
-   * clip is made in the background and the page shows a still until it exists.
-   */
   app.get('/api/media/:mediaId/preview', async (context) => {
     const clip = await playback.readPreview(context.req.param('mediaId')).catch(() => null);
 
@@ -468,10 +453,6 @@ const createApp = ({
       return context.json({ error: 'No preview yet.' }, 404);
     }
 
-    // Media elements ask for byte ranges, and some browsers will not play a
-    // response that cannot answer one. The clip is small enough to hold, so
-    // the range is served from what was already read rather than by reaching
-    // for the file again.
     const range = readByteRange(context.req.header('range'), clip.body.byteLength);
 
     if (range === null) {
@@ -564,8 +545,6 @@ const createApp = ({
       return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    // Asked for a default first, so an account that has never thought about
-    // profiles still answers with the one it is really using.
     await profiles.ensureDefault(account.id, account.name);
 
     return context.json({ profiles: await profiles.list(account.id) }, 200);
@@ -655,14 +634,6 @@ const createApp = ({
     return context.json(outcome.profile, 200);
   });
 
-  /**
-   * A profile's picture.
-   *
-   * Outside the OpenAPI routes because it answers with an image whose type
-   * depends on what the profile wears. Not behind a session either: a picture
-   * of somebody's initial is not a secret, and the identifier needed to ask
-   * for one is already only known to whoever can list them.
-   */
   app.get('/api/profiles/:profileId/avatar', async (context) => {
     const picture = await profiles?.readAvatar(context.req.param('profileId'));
 
@@ -670,9 +641,6 @@ const createApp = ({
       return context.json({ error: 'That profile has no picture.' }, 404);
     }
 
-    // Asked for by version, the answer can never go stale: changing a picture
-    // changes its address. Asked for without one, it is remembered for a
-    // minute at most, because then the address outlives the picture.
     const isVersioned = context.req.query('v') !== undefined;
 
     return context.body(picture.body.slice().buffer, 200, {
@@ -681,35 +649,17 @@ const createApp = ({
     });
   });
 
-  /**
-   * Everybody who could sign in.
-   *
-   * Read before anybody has signed in, because it is the way in: a wall of
-   * faces to pick from rather than a box asking for an address. Names and
-   * pictures only — an address is what somebody would need to attack an
-   * account, and it is never sent.
-   */
   app.get('/api/profiles/everyone', async (context) => {
     const everyone = await profiles?.listEveryone();
 
     return context.json({ profiles: everyone ?? [] }, 200);
   });
 
-  /**
-   * Signs somebody in by their face rather than their address.
-   *
-   * The password is still the password. What changes is only how the account
-   * is named: a profile that was picked from a wall, rather than an address
-   * typed from memory. better-auth is handed the address behind it and
-   * answers with its own cookies, which are passed straight back.
-   */
   app.post('/api/profiles/:profileId/sign-in', async (context) => {
     if (profiles === undefined) {
       return context.json({ error: 'No such profile.' }, 404);
     }
 
-    // Read as text and parsed here, because the router's own JSON reader is
-    // typed as anything and untrusted input enters through a schema.
     const body = await context.req.text().catch(() => '');
     const parsed = SignInBodySchema.safeParse(JsonValueSchema.parse(JSON.parse(body || 'null')));
 
@@ -730,13 +680,6 @@ const createApp = ({
     });
   });
 
-  /**
-   * Draws a face that nobody has chosen yet.
-   *
-   * A preview, so the picker can show what each style looks like before
-   * anything is saved. Drawn from a style and a seed, which is all a drawn
-   * avatar ever is.
-   */
   app.get('/api/profiles/avatars/:style', (context) => {
     const style = context.req.param('style');
     const seed = context.req.query('seed') ?? 'flux';
@@ -747,18 +690,10 @@ const createApp = ({
 
     return context.body(drawAvatar(style, seed), 200, {
       'content-type': 'image/svg+xml',
-      // The same style and seed always draw the same face, so this is worth
-      // keeping for as long as a browser will.
       'cache-control': 'public, max-age=86400',
     });
   });
 
-  /**
-   * Uploads a photograph for a profile.
-   *
-   * The body is the picture itself rather than a form: there is one file and
-   * no other fields, and multipart parsing to find it would be ceremony.
-   */
   app.put('/api/profiles/:profileId/photo', async (context) => {
     const account = await readAccount(context.req.raw.headers);
 
@@ -831,13 +766,6 @@ const createApp = ({
     );
   });
 
-  /**
-   * Everywhere this account is signed in.
-   *
-   * A self-hosted server is shared with a household, and a household loses
-   * track of what is signed in where — a television at a friend's, a phone
-   * that was replaced, a browser on a machine at work.
-   */
   app.openapi(listDevicesRoute, async (context) => {
     const headers = context.req.raw.headers;
     const session = await auth.api.getSession({ headers }).catch(() => null);
@@ -856,8 +784,6 @@ const createApp = ({
           address: one.ipAddress ?? null,
           signedInAt: one.createdAt.toISOString(),
           expiresAt: one.expiresAt.toISOString(),
-          // Compared by token rather than by identifier, because the token is
-          // the thing this browser is actually holding.
           isCurrent: one.token === session.session.token,
         })),
       },
@@ -865,13 +791,6 @@ const createApp = ({
     );
   });
 
-  /**
-   * Ends one of them.
-   *
-   * Asked for by identifier and matched here against the sessions this account
-   * holds, so the token — which is what a browser signs in with — never
-   * travels to a page that lists them.
-   */
   app.openapi(endDeviceRoute, async (context) => {
     const headers = context.req.raw.headers;
     const session = await auth.api.getSession({ headers }).catch(() => null);
@@ -889,18 +808,9 @@ const createApp = ({
         .catch(() => undefined);
     }
 
-    // The same answer either way: whether it was already gone or never
-    // existed, what the asker wanted is now true.
     return context.body(null, 204);
   });
 
-  /**
-   * Ends all of them but this one.
-   *
-   * What somebody wants after losing a laptop. It deliberately spares the
-   * session asking: being signed out of the page you are using to sign
-   * everything else out is its own small disaster.
-   */
   app.openapi(endOtherDevicesRoute, async (context) => {
     const headers = context.req.raw.headers;
     const session = await auth.api.getSession({ headers }).catch(() => null);
@@ -914,14 +824,6 @@ const createApp = ({
     return context.body(null, 204);
   });
 
-  /**
-   * What the media service is doing at this moment.
-   *
-   * Outside the OpenAPI routes, like the stream below it. The reading's type
-   * is recursive by nature — it is whatever the media service measured — and
-   * describing it in a schema would freeze a monitoring surface that should be
-   * free to grow a field without breaking the page that reads it.
-   */
   app.get('/api/admin/monitor', async (context) => {
     if (!(await isAdministrator(context.req.raw.headers))) {
       return context.json({ error: 'That is for administrators.' }, 403);
@@ -938,13 +840,6 @@ const createApp = ({
     });
   });
 
-  /**
-   * The same reading, over and over, for a page that wants to watch.
-   *
-   * Outside the OpenAPI routes because an event stream is not a JSON response
-   * and describing it as one would be a lie in the schema. The body is passed
-   * through untouched from the media service.
-   */
   app.get('/api/admin/monitor/stream', async (context) => {
     if (!(await isAdministrator(context.req.raw.headers))) {
       return context.json({ error: 'That is for administrators.' }, 403);
@@ -1074,8 +969,6 @@ const createApp = ({
 
     return context.body(image.body, 200, {
       'content-type': image.contentType,
-      // Artwork for an item never changes without the item changing, so this
-      // is worth keeping out of the network entirely.
       'cache-control': 'public, max-age=604800, immutable',
     });
   });

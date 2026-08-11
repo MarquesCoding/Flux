@@ -32,9 +32,6 @@ const POPUP_MOTION = [
   'data-[side=bottom]:data-[starting-style]:-translate-y-1',
   'data-[side=left]:data-[starting-style]:translate-x-1',
   'data-[side=right]:data-[starting-style]:-translate-x-1',
-  // Nothing that moves, for somebody who has asked for nothing to move. The
-  // name still fades, because appearing instantly out of nowhere is its own
-  // kind of jolt.
   'motion-reduce:transition-opacity',
   'motion-reduce:data-[starting-style]:scale-100 motion-reduce:data-[ending-style]:scale-100',
   'motion-reduce:data-[starting-style]:translate-x-0 motion-reduce:data-[starting-style]:translate-y-0',
@@ -62,9 +59,6 @@ const Tooltip = ({ label, children, side = 'top', isDisabled = false }: TooltipP
   return (
     <BaseTooltip.Provider delay={DELAY_MILLISECONDS}>
       <BaseTooltip.Root>
-        {/* The control itself is the trigger, rather than a wrapper around
-            it. A wrapper that takes up no space has no position either, and
-            the panel hung off it opened in the corner of the page. */}
         <BaseTooltip.Trigger render={children} />
 
         <BaseTooltip.Portal>

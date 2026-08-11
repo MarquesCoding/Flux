@@ -4,32 +4,11 @@ const DeviceError = z.object({ error: z.string() }).openapi('DeviceError');
 
 const DeviceSchema = z
   .object({
-    /**
-     * What the session is called on the server.
-     *
-     * The identifier and never the token. A token is what a browser signs in
-     * with, so a page listing everywhere an account is signed in must not be
-     * a page that hands out the means to be any of them — ending one is asked
-     * for by identifier, and the server matches it against sessions the
-     * asker already owns.
-     */
     id: z.string(),
-    /**
-     * What it appears to be, read from what the browser said about itself.
-     */
     name: z.string(),
-    /**
-     * Where it signed in from, as the server saw it.
-     */
     address: z.string().nullable(),
     signedInAt: z.string(),
     expiresAt: z.string(),
-    /**
-     * Whether this is the one asking.
-     *
-     * Marked rather than hidden: somebody looking at a list of their own
-     * devices wants to know which one they are holding.
-     */
     isCurrent: z.boolean(),
   })
   .openapi('Device');

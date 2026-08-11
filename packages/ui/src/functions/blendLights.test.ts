@@ -31,9 +31,6 @@ describe('blendLights', () => {
   });
 
   it('takes a light it has no previous colour for as it is', () => {
-    // Nothing to move from, so the answer is where it was going. Easing up
-    // from a colour that was never there would be a wash sliding in from
-    // nowhere.
     expect(blendLights([], [{ color: 'rgb(1 2 3)' }], 0.2)).toEqual([{ color: 'rgb(1 2 3)' }]);
   });
 

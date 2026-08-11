@@ -44,10 +44,6 @@ const edgeStyle = (edge: CaptionStyle['edgeStyle'], opacity: number): string => 
 
 const CaptionStyleSchema = z.object({
   fontFamily: z.enum(['sans', 'serif', 'mono', 'casual']).default('sans'),
-  /**
-   * As a percentage of the player's own caption size, so captions scale with
-   * the video rather than with the page.
-   */
   fontScale: z.number().min(50).max(300).default(100),
   color: z.string().default('#ffffff'),
   opacity: z.number().min(0.1).max(1).default(1),
@@ -163,9 +159,7 @@ const readCaptionStyle = (): CaptionStyle => {
 const saveCaptionStyle = (style: CaptionStyle): void => {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(style));
-  } catch {
-    // A browser refusing storage is not a reason to stop showing captions.
-  }
+  } catch {}
 };
 
 export type { CaptionStyle, CueDeclarations };

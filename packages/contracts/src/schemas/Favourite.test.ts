@@ -20,8 +20,6 @@ describe('FavouriteSchema', () => {
   });
 
   it('carries no copy of what the item is', () => {
-    // A second description of an item is a second thing to disagree with the
-    // library about.
     expect(Object.keys(FavouriteSchema.parse(kept))).toEqual(['mediaId', 'keptAt']);
   });
 });

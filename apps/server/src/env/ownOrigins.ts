@@ -52,10 +52,6 @@ const portsIn = (origins: string[], fallback: number): number[] => {
 const ownOrigins = (configured: string[], fallbackPort: number): string[] => {
   const ports = portsIn(configured, fallbackPort);
 
-  // Both schemes. A home server is read over plain HTTP most of the time and
-  // over TLS whenever a certificate exists — which it must, for casting, since
-  // browsers only offer that over a secure connection. Trusting one scheme
-  // means being refused the moment a certificate appears.
   return ownAddresses().flatMap((address) =>
     ports.flatMap((port) => [
       `http://${address}:${port.toString()}`,

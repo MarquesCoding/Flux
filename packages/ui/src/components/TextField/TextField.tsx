@@ -74,10 +74,6 @@ const TextField = ({
           }}
           autoFocus={hasFocusOnMount}
           className={cn(
-            // `flux-field` carries the one thing Tailwind cannot: a browser
-            // painting its own pale background over an autofilled field, which
-            // turns a dark form white the moment somebody's password manager
-            // touches it.
             'flux-field text-text',
             'transition-colors placeholder:text-text-muted',
             'disabled:cursor-not-allowed disabled:opacity-50',

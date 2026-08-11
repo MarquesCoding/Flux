@@ -225,9 +225,6 @@ const scanLibrary = async ({
     }
   }
 
-  // After the rows, never before them: the library should appear as soon as
-  // it is known, and previews are worth waiting for only in the sense that
-  // they arrive without anybody sitting in front of a spinner.
   if (trickplay !== undefined) {
     let previewed = 0;
 
@@ -240,10 +237,6 @@ const scanLibrary = async ({
           onProblem?.(path, error.message);
         });
 
-      // The clip a library page plays, made here for the same reason the
-      // thumbnails are: a wall of cards playing previews should cost nothing
-      // running, rather than half a dozen transcodes competing with whatever
-      // somebody is actually watching.
       await transcoder.requestPreview({ inputPath: path, wait: true }).catch((error: Error) => {
         onProblem?.(path, error.message);
       });

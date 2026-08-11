@@ -20,8 +20,6 @@ const Sparkline = ({ values, ceiling, label, className }: SparklineProps) => {
     >
       {values.map((value, index) => (
         <span
-          // Readings have no identity of their own — they are a position in a
-          // window that slides — so the position is the key.
           key={index}
           style={{ height: `${(Math.min(Math.max(value / highest, 0), 1) * 100).toString()}%` }}
           className="min-h-px w-full flex-1 rounded-sm bg-accent/70"

@@ -214,10 +214,6 @@ describe('createAuth', () => {
   });
 
   it('allows a redirect to an address this machine actually answers on', async () => {
-    // Nobody configured this one. A self-hosted server is reached from the
-    // sofa at whatever address the router handed out, and being refused there
-    // with nothing but a failed sign-in is the most tedious way for this to
-    // appear broken.
     const [own] = ownAddresses();
 
     if (own === undefined) {

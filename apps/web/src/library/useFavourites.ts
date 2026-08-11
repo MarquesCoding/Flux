@@ -20,9 +20,6 @@ type Favourites = {
  */
 const useFavourites = (): Favourites => {
   const [kept, setKept] = useState<Set<string>>(new Set());
-  // What this viewer has changed since the page opened. The list is read once
-  // on the way in, and a heart pressed before that read lands would otherwise
-  // be undone by an answer that was already stale when it was asked for.
   const changedRef = useRef(new Map<string, boolean>());
 
   useEffect(() => {

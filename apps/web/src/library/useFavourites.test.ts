@@ -46,9 +46,6 @@ describe('useFavourites', () => {
       await Promise.resolve();
     });
 
-    // Filled while the request is still in the air: keeping something is not a
-    // transaction, and a heart that waits for a round trip feels broken on a
-    // connection that is merely slow.
     await waitFor(() => {
       expect(result.current.isKept('media-1')).toBe(true);
     });

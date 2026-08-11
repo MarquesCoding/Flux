@@ -89,9 +89,6 @@ const readLights = (source: CanvasImageSource): MoodLight[] => {
         continue;
       }
 
-      // Pushed away from grey before it is used. The average of a region is
-      // duller than the region looks, and a page lit by five averages is a page
-      // lit by five browns.
       const lift = (channel: number): number => {
         const average = (red + green + blue) / (counted * 3);
         const own = channel / counted;
@@ -107,9 +104,6 @@ const readLights = (source: CanvasImageSource): MoodLight[] => {
 
     return lights;
   } catch {
-    // A frame that cannot be read — a video that has not decoded one yet, or a
-    // picture from somewhere that will not allow it. Either way the page keeps
-    // the light it already had.
     return [];
   }
 };

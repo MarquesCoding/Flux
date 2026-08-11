@@ -443,10 +443,6 @@ describe('scanLibrary', () => {
 
     await run();
 
-    // Probing both files finishes its own phase at 2 of 2. A bar that
-    // stopped reading progress there would look done while ffmpeg was still
-    // generating trickplay and a preview clip for each — a second phase,
-    // counted from zero rather than tacked onto the first.
     expect(onProgress).toHaveBeenCalledWith('probing', 2, 2);
     expect(onProgress).toHaveBeenCalledWith('previews', 0, 2);
     expect(onProgress).toHaveBeenLastCalledWith('previews', 2, 2);

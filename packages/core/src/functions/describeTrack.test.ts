@@ -81,8 +81,6 @@ describe('describeAudioTrack', () => {
   });
 
   it('counts tracks the way a viewer does, not the way a container does', () => {
-    // Stream 3 of a container is the second audio track, and nobody watching
-    // knows what stream 3 is.
     expect(describeAudioTrack(track({ index: 3, language: 'und' }), 2)).toContain('Track 2');
   });
 

@@ -73,8 +73,6 @@ const BrowseArea = ({
   const prefersReducedMotion = useReducedMotion();
   const page = PAGES[kind];
 
-  // Stable, so telling the page what was found cannot start the read that
-  // found it all over again.
   const reportItems = useRef(onItemsLoaded);
 
   reportItems.current = onItemsLoaded;

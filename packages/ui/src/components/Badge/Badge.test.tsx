@@ -12,7 +12,6 @@ describe('Badge', () => {
   it('is not something anyone can press', () => {
     render(<Badge>4K</Badge>);
 
-    // A badge that looks pressable is a badge people press.
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 

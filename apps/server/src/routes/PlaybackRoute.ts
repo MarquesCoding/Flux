@@ -14,19 +14,7 @@ const StartRequest = z
   .object({
     deviceProfile: DeviceProfileSchema,
     startSeconds: z.number().int().nonnegative().optional(),
-    /**
-     * The audio stream to play, as the item's detail numbers them.
-     *
-     * Choosing one rules out direct play, because the original file carries
-     * every stream and leaves the choice to the browser.
-     */
     audioStreamIndex: z.number().int().nonnegative().optional(),
-    /**
-     * A quality step the viewer picked, below the device's own capability.
-     *
-     * Absent or omitted means Original: whatever device negotiation alone
-     * would decide, unchanged.
-     */
     requestedQuality: QualityStepIdSchema.optional(),
   })
   .openapi('PlaybackStartRequest');

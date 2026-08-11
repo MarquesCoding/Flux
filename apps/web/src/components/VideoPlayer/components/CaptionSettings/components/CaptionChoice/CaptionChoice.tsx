@@ -23,9 +23,6 @@ const CaptionChoice = ({ label, options, selectedId, onSelect }: CaptionChoicePr
           key={option.id}
           size="sm"
           isPill
-          // Said rather than only shown. A row of these is a set of choices
-          // where one is in force, and a reader who cannot see which is filled
-          // deserves to be told which is pressed.
           aria-pressed={option.id === selectedId}
           variant={option.id === selectedId ? 'glossy' : 'ghost'}
           onClick={() => {

@@ -92,9 +92,6 @@ const groupIntoRails = (
 
   const rails: Rail[] = [];
 
-  // What someone left half watched comes first, most recently left at the
-  // front. It is the one row that knows what a particular person was doing,
-  // which makes it the only row worth putting above everything else.
   const resuming = items
     .filter((media) => {
       const found = progress.get(media.id);
@@ -114,9 +111,6 @@ const groupIntoRails = (
   }
   const recentThreshold = now - RECENT_DAYS * 24 * 60 * 60 * 1000;
 
-  // One card per programme rather than one per episode. A series that arrived
-  // whole would otherwise fill this row with twelve pictures of itself, which
-  // says less than one picture of it does.
   const seenSeries = new Set<string>();
 
   const recent = [...items]

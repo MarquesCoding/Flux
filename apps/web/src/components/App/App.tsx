@@ -55,24 +55,11 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
-  // What this session has said and not yet seen come back. The server is told
-  // on a timer and again on the way out, neither of which a read waits for, so
-  // a read that lands in between would put the old position back on the card —
-  // which is why watching something and closing it sometimes left the bar
-  // where it had been an hour ago.
   const reportedRef = useRef(new Map<string, WatchProgress>());
   const [, setFeatured] = useState<MediaSummary | null>(null);
-  // What the page is lit by, read from whatever is on screen rather than
-  // decided when the file was imported.
   const [moodLights, setMoodLights] = useState<MoodLight[]>([]);
   const favourites = useFavourites();
-  // Which series is being read about. Held as the summary rather than the
-  // identifier alone, because the dialog opens on what the shelf already knew
-  // and fetches the episodes itself.
   const [openShow, setOpenShow] = useState<ShowSummary | null>(null);
-  // Who is watching, for the face on the account button. Read here rather than
-  // in the shell: the shell draws a frame and should not be the thing that
-  // knows how profiles work.
   const [watcher, setWatcher] = useState<ViewerProfile | null>(null);
 
   useEffect(() => {
@@ -88,14 +75,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       setWatcher(people.find((person) => person.id === chosen) ?? null);
     });
   }, [user]);
-  // Everything the library has shown, so an address naming an item can be
-  // turned back into one without asking the server a second time.
   const [known, setKnown] = useState(new Map<string, MediaSummary>());
   const { place, go, replace } = usePlace();
   const prefersReducedMotion = useReducedMotion();
 
-  // A series named in the address is a series that should be open, so a reload
-  // or a link somebody sent lands on the programme rather than on the shelf.
   useEffect(() => {
     if (place.show === null) {
       setOpenShow(null);
@@ -175,9 +158,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     for (const [mediaId, mine] of reportedRef.current) {
       const theirs = fromServer.get(mediaId);
 
-      // Caught up: what came back is what was sent, so this copy stops
-      // standing in for it. Compared rather than trusted to be larger,
-      // because rewinding is a smaller number and still the right one.
       if (theirs !== undefined && Math.abs(theirs.positionSeconds - mine.positionSeconds) <= 1) {
         reportedRef.current.delete(mediaId);
 
@@ -214,8 +194,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     void refresh();
   }, [refresh]);
 
-  // Read once there is somebody to read them for. Asking before sign-in would
-  // be a request that can only ever answer with nobody.
   useEffect(() => {
     if (user !== null) {
       void readProgress();
@@ -253,10 +231,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       <ProfileGate
         name={initialTitle}
         onSignedIn={() => {
-          // Home, whatever address they arrived on. Somebody signing in has
-          // just started; dropping them into the admin page or a half watched
-          // film because that is where the last person was is not where they
-          // meant to go.
           go({ section: 'home', search: '', inspecting: null, playing: null, startSeconds: 0 });
           void refresh();
         }}
@@ -264,16 +238,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     );
   }
 
-  // Watching is not a thing that happens inside a library page. The player
-  // takes the whole viewport so nothing else competes with it, and escape or
-  // closing puts the library back exactly where it was.
   if (playing !== null) {
     return (
-      // The player does not appear, it takes over: the picture swells out of
-      // the page behind it and the page darkens under it, which is the same
-      // move whether it was opened from a dialog or landed on by refreshing
-      // an address. A screen that simply exists where another one was reads
-      // as a page having been replaced rather than as a film starting.
       <motion.main
         initial={{ opacity: 0, scale: prefersReducedMotion === true ? 1 : 1.04 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -284,9 +250,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           media={playing}
           startSeconds={place.startSeconds}
           isImmersive
-          // The whole season in order, and nothing at all for a film: a list
-          // of one episode is a button that opens onto what is already
-          // playing.
           episodes={
             playing.seriesTitle === null || playing.seriesTitle === undefined
               ? []
@@ -302,9 +265,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
             return found === undefined ? undefined : watchedFraction(found);
           }}
-          // Kept here as it happens rather than read back afterwards: the
-          // server is told on a timer, and a card that waits for that round
-          // trip shows the wrong place every time somebody closes a film.
           onProgress={(positionSeconds, durationSeconds) => {
             const entry = {
               mediaId: playing.id,
@@ -324,9 +284,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               return next;
             });
           }}
-          // One episode runs into the next, which is the whole point of a
-          // season. A film has nothing after it, so the player closes back to
-          // the page about it.
           onEnded={() => {
             const following = nextEpisode([...known.values()], playing);
 
@@ -339,9 +296,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             go({ playing: following.id, startSeconds: 0, inspecting: null });
           }}
           onClose={() => {
-            // Back to where they came from, not out to the library: someone
-            // leaving a film usually wants the page about it, whether to read
-            // the rest of it or to pick the next episode.
             go({ playing: null, startSeconds: 0, inspecting: playing.id });
             void readProgress();
           }}
@@ -354,21 +308,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     <AppShell
       section={section}
       onSectionChange={(next) => {
-        // Leaving search abandons the search. Carrying the term out with them
-        // leaves home showing a filtered library and no hero, which reads as
-        // the page having broken.
         go({ section: next, search: next === 'search' ? place.search : '' });
       }}
-      // The page takes its light from whatever the viewer is looking at, read
-      // out of the picture itself — and only where there is something to look
-      // at. A page of results or an account form has nothing to spill onto it,
-      // so it goes back to the house colour rather than keeping the light of a
-      // film the viewer has navigated away from.
       moodLights={section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
-      // Something at random, opened as its own page rather than played
-      // outright: being thrown into a film nobody chose is a worse surprise
-      // than being shown one and asked.
       onSurprise={() => {
         void pickAnything().then((found) => {
           if (found === null) {
@@ -420,8 +363,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         {...(openShow === null
           ? {}
           : {
-              // Reached from a programme, so it leads back to the programme
-              // rather than out to whatever shelf that was opened from.
               onBack: () => {
                 go({ inspecting: null });
               },
@@ -484,8 +425,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         <SearchArea
           search={place.search}
           onSearchChange={(next) => {
-            // Replaced rather than pushed: a search box would otherwise fill
-            // the history with one entry per letter typed.
             replace({ search: next });
           }}
           onPlay={(media, startSeconds) => {
@@ -516,8 +455,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             go({ playing: media.id, startSeconds });
           }}
           onItemsLoaded={rememberItems}
-          // The only section left that draws the library is home, and home
-          // opens with a hero. Searching has a page of its own now.
           hasHero
           onFeatureChange={setFeatured}
           onPalette={setMoodLights}
@@ -525,8 +462,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             const series = media.seriesTitle ?? '';
 
             if (series !== '') {
-              // Named rather than looked up: the address is the question, and
-              // whoever answers it fetches the programme.
               go({ show: showSlug(series) });
             }
           }}

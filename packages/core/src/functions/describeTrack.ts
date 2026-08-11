@@ -213,8 +213,6 @@ const describeAudioTrack = (track: AudioTrackFacts, position: number): string =>
   const language = describeLanguage(track.language);
   const title = track.title?.trim() ?? '';
 
-  // A title usually already says the language, so repeating it reads as a
-  // stutter: "English · English Commentary".
   const saysLanguage = language !== null && title.toLowerCase().includes(language.toLowerCase());
 
   const named =

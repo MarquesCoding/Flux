@@ -63,8 +63,6 @@ const auth = createAuth({
     await db.insert(userProfile).values({ userId }).onConflictDoNothing();
   },
   onPasswordResetRequested: (email, url) => {
-    // Written to the log rather than emailed. The operator of a homelab server
-    // can read their own logs; they usually cannot send mail.
     process.stdout.write(`password reset for ${email}: ${url}\n`);
 
     return Promise.resolve();
@@ -85,16 +83,11 @@ const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR
 
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL });
 
-// The queue and the library know about each other: the library enqueues
-// scans, and the queue calls the library's worker body to run them.
 const jobs = await createJobQueue({
   connectionString: env.DATABASE_URL,
   onScan: async (libraryId, force, jobId) => {
     await libraryService.runScan(libraryId, force, jobId);
 
-    // Detection runs after the scan rather than inside it. Walking a directory
-    // takes seconds; listening to a season takes minutes, and a library should
-    // be browsable long before its intros are known.
     const marked = await detectLibrarySegments({
       libraryId,
       providers: segmentProviders,
@@ -125,8 +118,6 @@ const jobs = await createJobQueue({
             durationSeconds: row.durationSeconds,
             bitrateKbps: row.bitrateKbps,
             video: null,
-            // Only the chapters matter here. Detection reads names a release
-            // wrote; nothing else about the streams is consulted.
             audioStreams: [],
             subtitleStreams: [],
             chapters: ChapterListSchema.catch([]).parse(row.chapters),
@@ -162,9 +153,6 @@ const libraryService = createDatabaseLibraryService({
   files: createMediaFileSystem(),
   transcoder,
   jobs,
-  // The catalogue first, the filename reader behind it. A catalogue that is
-  // unconfigured, down or simply ignorant of a file falls through to the name
-  // on disk rather than leaving the item blank.
   providers: [catalogueProvider, createFilenameMetadataProvider()],
   onProblem: (path, reason) => {
     process.stderr.write(`skipped ${path}: ${reason}\n`);
@@ -185,8 +173,6 @@ const reportSubtitleProblem = (path: string, reason: string): void => {
   process.stderr.write(`subtitles: ${path}: ${reason}\n`);
 };
 
-// Sidecars first: a track someone put beside the file themselves is a
-// deliberate choice, where an embedded one is whatever the release shipped.
 const subtitleService = createLayeredSubtitleService([
   createSidecarSubtitleService({
     media: { findPath: findMediaPath },
@@ -208,8 +194,6 @@ const subtitleService = createLayeredSubtitleService([
 
 const segmentService = createDatabaseSegmentService(db);
 
-// Chapters first: where a release named its own intro there is nothing to
-// detect, and listening to a whole season to rediscover it would be absurd.
 const segmentProviders = [
   createChapterSegmentProvider(),
   createFingerprintSegmentProvider({
@@ -283,9 +267,6 @@ const app = createApp({
       return { kind: 'missing' };
     }
 
-    // better-auth owns how a password becomes a credential, so the account is
-    // made through it rather than by writing rows. A duplicate address is the
-    // ordinary failure here and reads as a conflict rather than as a fault.
     const created = await auth.api
       .signUpEmail({ body: { email, password, name: found.name } })
       .catch(() => null);

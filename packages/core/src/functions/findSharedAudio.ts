@@ -166,8 +166,6 @@ const proposeOffsets = (left: number[], right: number[]): number[] => {
     if (seen === undefined) {
       positions.set(key, [index]);
     } else if (seen.length < 64) {
-      // A hash appearing everywhere is silence or a drone, and says nothing
-      // about alignment. Capping keeps one such hash from dominating.
       seen.push(index);
     }
   }

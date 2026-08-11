@@ -102,8 +102,6 @@ beforeEach(() => {
     vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(DETAIL) }),
   );
 
-  // A desktop, which jsdom does not describe itself as: a pointer that can
-  // rest on something, and nobody asking for less motion.
   vi.stubGlobal(
     'matchMedia',
     vi.fn().mockImplementation((query: string) => ({

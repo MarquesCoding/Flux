@@ -50,8 +50,6 @@ const describeDevice = (userAgent: string | null | undefined): string => {
   )?.named;
 
   if (browser === undefined && system === undefined) {
-    // Something signed in without saying what it was. Better to admit that
-    // than to invent a name for it.
     return said.trim() === '' ? 'Unknown device' : said.slice(0, KEPT);
   }
 

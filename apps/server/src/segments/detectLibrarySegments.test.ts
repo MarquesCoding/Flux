@@ -157,9 +157,6 @@ describe('detectLibrarySegments', () => {
       onProgress,
     });
 
-    // Two seasons, five episodes: a bar counting seasons would say "0 of 2"
-    // then "1 of 2" then stop, the same whichever season went first. Counted
-    // by episode it grows by however many that season actually had.
     expect(onProgress).toHaveBeenCalledWith(0, 5);
     expect(onProgress).toHaveBeenLastCalledWith(5, 5);
     expect(onProgress).toHaveBeenCalledTimes(3);
@@ -182,9 +179,6 @@ describe('detectLibrarySegments', () => {
       onProgress,
     });
 
-    // One season of three: without per-episode reporting this would only
-    // ever be called at 0 and 3. With it, every episode in between shows up
-    // too, in the order the provider actually finished them.
     expect(onProgress).toHaveBeenCalledWith(0, 3);
     expect(onProgress).toHaveBeenCalledWith(1, 3);
     expect(onProgress).toHaveBeenCalledWith(2, 3);

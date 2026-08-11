@@ -67,8 +67,6 @@ const watchCastState = (
       onChange(element.webkitCurrentPlaybackTargetIsWireless === true ? 'connected' : 'available');
     };
 
-    // Availability is announced rather than asked for, and the announcement
-    // carries whether anything is out there.
     const onAvailability = () => {
       look();
     };
@@ -108,11 +106,6 @@ const watchCastState = (
 
     void remote
       .watchAvailability(() => {
-        // Only ever a reveal, never a hiding. A browser feeding a media engine
-        // reports nothing available whatever is on the network, because it
-        // cannot remote what it is decoding — and casting works anyway, since
-        // handing over stops it decoding first. A control that disappears for
-        // that reason is a control nobody can find.
         onChange('available');
       })
       .then((watch) => {
@@ -120,10 +113,7 @@ const watchCastState = (
           void remote.cancelWatchAvailability(watch);
         });
       })
-      .catch(() => {
-        // A browser that has the interface but will not use it here — inside a
-        // frame, say. Nothing to offer, and nothing to put right.
-      });
+      .catch(() => {});
 
     said(remote.state);
 
@@ -186,8 +176,6 @@ const promptForDevice = async (element: HTMLVideoElement): Promise<PromptOutcome
   } catch (error) {
     const named = error instanceof Error ? error.name : '';
 
-    // Closing a picker is a decision. Everything else is the browser declining
-    // to show one, which is worth passing on.
     return named === 'AbortError' || named === 'NotAllowedError' ? 'dismissed' : 'refused';
   }
 };

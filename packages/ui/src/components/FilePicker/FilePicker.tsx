@@ -47,9 +47,6 @@ const FilePicker = ({
             onPick(file);
           }
 
-          // Cleared so that choosing the same file twice in a row still
-          // counts as a change. A browser reports nothing when the value has
-          // not moved, which reads as the second attempt being ignored.
           event.target.value = '';
         }}
       />

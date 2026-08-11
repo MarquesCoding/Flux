@@ -17,8 +17,6 @@ const pictureOf = (container: HTMLElement) => container.querySelector('img, vide
 const createObjectURL = vi.fn().mockReturnValue('blob:chosen');
 const revokeObjectURL = vi.fn();
 
-// Defined rather than stubbed: jsdom has neither, and replacing the whole URL
-// object would take its parser with it.
 Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL });
 Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL });
 

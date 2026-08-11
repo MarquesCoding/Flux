@@ -85,8 +85,6 @@ const DeviceList = () => {
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="truncate text-sm font-medium text-text">{device.name}</span>
 
-                  {/* Marked rather than hidden: somebody looking at their own
-                      devices wants to know which one they are holding. */}
                   {!device.isCurrent ? null : <Badge size="sm">This one</Badge>}
                 </span>
 
@@ -96,9 +94,6 @@ const DeviceList = () => {
                 </span>
               </span>
 
-              {/* The one being used has no button. Signing yourself out of the
-                  page you are signing things out from is its own small
-                  disaster, and there is already a sign-out below. */}
               {device.isCurrent ? null : (
                 <Button
                   variant="ghost"

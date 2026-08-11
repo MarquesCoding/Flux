@@ -47,12 +47,6 @@ const AvatarSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('drawn'), style: AvatarStyleSchema, seed: z.string().min(1).max(64) }),
   z.object({
     kind: z.literal('photo'),
-    /**
-     * Whether the picture moves and needs a video element to play it.
-     *
-     * A GIF is still a picture as far as a browser is concerned; a WebM is
-     * not, and drawing one in an image tag shows nothing at all.
-     */
     isVideo: z.boolean().default(false),
   }),
 ]);
@@ -63,22 +57,12 @@ const ViewerProfileSchema = z.object({
   colour: ProfileColourSchema,
   avatar: AvatarSchema,
   createdAt: z.string(),
-  /**
-   * When this was last changed.
-   *
-   * Carried so a picture can be addressed by version. Without it the address
-   * of somebody's face never changes, and a browser that has already fetched
-   * one goes on showing it however many times they replace it.
-   */
   updatedAt: z.string(),
 });
 
 const ViewerProfileRequestSchema = z.object({
   name: z.string().trim().min(1).max(NAME_MAX),
   colour: ProfileColourSchema,
-  /**
-   * Left out to keep whatever the profile already wears.
-   */
   avatar: AvatarSchema.optional(),
 });
 

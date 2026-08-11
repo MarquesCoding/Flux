@@ -52,8 +52,6 @@ describe('handOverToDevice', () => {
       release,
     });
 
-    // A device fetches the stream itself, which cannot happen while an engine
-    // here is feeding the same element.
     expect(release).toHaveBeenCalled();
   });
 
@@ -86,8 +84,6 @@ describe('handOverToDevice', () => {
       release,
     });
 
-    // Nothing torn down, so a viewer who cannot cast is left watching what
-    // they were watching.
     expect(shown).toBe(false);
     expect(release).not.toHaveBeenCalled();
   });
@@ -113,8 +109,6 @@ describe('handOverToDevice', () => {
       },
     });
 
-    // An engine feeding this element re-attaches itself the moment anything
-    // else is assigned, so the order is the whole point.
     expect(order).toEqual(['released', 'pointed']);
   });
 });

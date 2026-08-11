@@ -79,8 +79,6 @@ const ShowDialog = ({
       setDetail(found);
       setIsLoading(false);
 
-      // Opened at the season being watched rather than at the first, since
-      // somebody in the middle of a programme is asking about the middle.
       const carryingOn = found === null ? null : pickUpFrom(found, { resumeFor, isFinished });
 
       setChosenSeason(carryingOn?.episode.seasonNumber ?? null);
@@ -178,8 +176,6 @@ const ShowDialog = ({
       </div>
 
       <div className="flex flex-col gap-8 p-5 pb-10 sm:p-8">
-        {/* One button, whatever the viewer's history: carry on, start the next
-            one, or begin. Which of those it is says so on the button. */}
         <div className="flex flex-wrap items-center gap-3">
           {carryingOn === null ? (
             <Button variant="glossy" size="lg" isPill isLoading disabled>
@@ -224,9 +220,6 @@ const ShowDialog = ({
               Episodes
             </h3>
 
-            {/* One season at a time. A programme with nine of them is a dialog
-                nobody reaches the end of, and the one being watched is the one
-                worth opening at. */}
             {seasons.length < 2 ? null : (
               <ul className="flux-rail flex items-center gap-2 overflow-x-auto">
                 {seasons.map((one) => (

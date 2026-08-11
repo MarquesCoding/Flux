@@ -78,8 +78,6 @@ const brightnessAt = (phase: number): number => {
     return 0;
   }
 
-  // A curve rather than a triangle: the front should arrive faster than it
-  // leaves, which is what makes it read as travelling in a direction.
   const along = phase / WINDOW;
 
   return Math.sin(along * Math.PI) ** 2;
@@ -166,8 +164,6 @@ const DotField = ({
 
         xs[index] = x;
         ys[index] = y;
-        // The same fade the rest of the page uses, so the grid dies out
-        // rather than stopping at an edge.
         fades[index] = Math.max(0, 1 - y / (height * FADE_BY));
 
         for (const [at, origin] of origins.entries()) {
@@ -211,7 +207,6 @@ const DotField = ({
           const delay = row[index] ?? 0;
           const phase = ((elapsed - delay) / seconds) % 1;
 
-          // A ripple has not reached this dot yet on its first pass.
           if (phase >= 0) {
             lift = Math.max(lift, brightnessAt(phase));
           }
@@ -229,8 +224,6 @@ const DotField = ({
         }
 
         const alpha = ((level + 0.5) / LEVELS) * LIT;
-        // The brightest dots are drawn larger as well, which is what gives the
-        // front its weight.
         const size = 1.2 + (level / LEVELS) * 1.1;
 
         context.globalAlpha = alpha;
@@ -254,7 +247,6 @@ const DotField = ({
     lay();
 
     if (prefersReducedMotion === true) {
-      // Still a grid, just a still one.
       draw(0);
     } else {
       frame = requestAnimationFrame(tick);

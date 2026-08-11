@@ -56,8 +56,6 @@ const loadCastSender = (
 
       context.setOptions({
         receiverApplicationId: RECEIVER,
-        // Only sessions this page started, so a cast begun in another tab of
-        // something else is not quietly taken over.
         autoJoinPolicy: chromecast.AutoJoinPolicy.ORIGIN_SCOPED,
       });
 
@@ -134,8 +132,6 @@ const castStream = async (
 
     return true;
   } catch {
-    // A receiver that would not take it — a format it cannot play, or an
-    // address it cannot reach. Either way the film stays here.
     return false;
   }
 };

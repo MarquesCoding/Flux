@@ -40,8 +40,6 @@ describe('hasFinePointer', () => {
   });
 
   it('declines where the browser cannot answer at all', () => {
-    // A document being rendered on a server, or in a test. Nothing should be
-    // drawn hovered before anything has been drawn.
     vi.stubGlobal('matchMedia', undefined);
 
     expect(hasFinePointer()).toBe(false);

@@ -90,8 +90,6 @@ describe('liftCues', () => {
   });
 
   it('leaves alone a cue with no position to set', () => {
-    // A cue from a format that carries pictures rather than words has neither
-    // a line nor anything to snap it to.
     const film = videoWith([]);
     film.track.cues.push({ text: 'A picture of words' });
 
@@ -120,8 +118,6 @@ describe('liftCues', () => {
 
     liftCues(film.element, () => CUE_LINE_CLEAR).apply();
 
-    // Off and on again, which is what makes a browser lay out a cue it has
-    // already drawn.
     expect(modes).toEqual(['hidden', 'showing']);
   });
 

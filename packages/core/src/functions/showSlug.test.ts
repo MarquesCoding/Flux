@@ -7,8 +7,6 @@ describe('showSlug', () => {
   });
 
   it('treats a title said two ways as one show', () => {
-    // Somebody looking at a shelf would say these are the same programme, and
-    // a library that disagrees splits a series in half.
     expect(showSlug('a sign of affection!')).toBe(showSlug('A Sign of Affection'));
   });
 

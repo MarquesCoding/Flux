@@ -31,10 +31,6 @@ const PageDots = ({ count, selectedIndex, onSelect, labels, label, className }: 
             <Button
               variant="bare"
               size="none"
-              // Named for what pressing it does rather than for what it points
-              // at: the caption above says which thing this is, and a button
-              // whose whole name is a film title does not say that it is a way
-              // of getting there.
               aria-label={`Show ${named ?? `page ${(index + 1).toString()}`}`}
               aria-current={selectedIndex === index ? 'true' : undefined}
               onClick={() => {

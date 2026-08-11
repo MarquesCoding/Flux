@@ -58,8 +58,6 @@ const shiftWebVtt = (content: string, seconds: number): string => {
     const timing = TIMING.exec(line);
 
     if (timing === null) {
-      // Everything that is not a timing line belongs to whatever cue it is
-      // part of, so it goes wherever that cue went.
       if (!isDropping) {
         kept.push(line);
       }
@@ -76,8 +74,6 @@ const shiftWebVtt = (content: string, seconds: number): string => {
     if (!isDropping) {
       kept.push(`${writeTimestamp(start)} --> ${writeTimestamp(end)}${settings}`);
     } else if (kept.at(-1) === '') {
-      // A dropped cue leaves the blank line that preceded it behind, which
-      // would stack up into a file of nothing but gaps.
       kept.pop();
     }
   }

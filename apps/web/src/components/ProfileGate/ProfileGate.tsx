@@ -124,22 +124,10 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUsingPasskey, setIsUsingPasskey] = useState(false);
   const [version, setVersion] = useState<string | null>(null);
-  // Whether the wall has been left and come back to. Its arrival animation is
-  // for arriving; replaying it on the way back would fade the portrait in
-  // rather than letting it travel home.
   const [hasLeftWall, setHasLeftWall] = useState(false);
   const [page, setPage] = useState(0);
-  // Which face the keyboard is on. Real focus follows it, so pressing space
-  // or enter is the browser activating a button rather than this component
-  // reimplementing what a button already does.
   const [at, setAt] = useState(0);
-  // Whether the wordmark has finished holding the screen. Not a loading
-  // screen: the mark does not wait for anything, it simply arrives first and
-  // then moves aside.
   const [isTitleOver, setIsTitleOver] = useState(false);
-  // Whether the faces should skip their arrival. Coming back from a password
-  // is not an arrival — the portrait is travelling home, and faces dealing
-  // themselves out around it would fade the one thing that should not fade.
   const [isReturning, setIsReturning] = useState(false);
   const [needsCode, setNeedsCode] = useState(false);
   const facesRef = useRef(new Map<string, HTMLButtonElement>());
@@ -164,8 +152,6 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
     };
   }, []);
 
-  // Arrows move through the faces, and the page follows: somebody holding a
-  // remote control should never have to find the paging buttons.
   useEffect(() => {
     if (everyone === null || chosen !== null) {
       return;
@@ -198,7 +184,6 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
     };
   }, [everyone, chosen]);
 
-  // Escape is what everyone tries when they have picked the wrong person.
   useEffect(() => {
     if (chosen === null) {
       return;
@@ -221,9 +206,6 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
     };
   }, [chosen]);
 
-  // Focus follows the arrows rather than being drawn separately, so the
-  // browser's own behaviour applies: space and enter press the face, and a
-  // screen reader announces whichever one the keyboard is on.
   useEffect(() => {
     if (chosen !== null) {
       return;
@@ -250,9 +232,6 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
       return;
     }
 
-    // A right password on an account with a second factor is a step, not an
-    // arrival: the code comes next, and the portrait stays where it is so it
-    // is plainly the same person being asked.
     if (outcome.kind === 'needsCode') {
       setNeedsCode(true);
       setPassword('');
@@ -293,15 +272,8 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
         isDrifting
       />
 
-      {/* The one mark, in both places. It opens the screen on its own and
-          then moves to sit above the question — a layout animation rather
-          than two elements, so it is plainly the same thing arriving and then
-          making room. */}
       <motion.p
         layoutId="flux-mark"
-        // Fades up on arrival, then moves under the layout animation. The
-        // initial pair is only ever used once: after that this element is
-        // being moved rather than mounted.
         initial={{ opacity: 0, scale: prefersReducedMotion === true ? 1 : 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{
@@ -345,9 +317,6 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                 transition={revealTransition(prefersReducedMotion)}
                 className="flex w-full items-center justify-center gap-2 sm:gap-6"
               >
-                {/* The arrows keep their space when there is only one page, so
-                    the faces do not shift sideways as somebody pages through
-                    them. */}
                 <span className={pages > 1 ? '' : 'invisible'}>
                   <Button
                     isIconOnly
@@ -363,13 +332,6 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                   </Button>
                 </span>
 
-                {/* Held to a width rather than filling the screen: faces
-                    spread across an ultrawide monitor stop being a group and
-                    become a row of strangers. */}
-                {/* Keyed on the page so the arrival plays again each time one
-                    is turned: faces that appear all at once read as a list
-                    being replaced, where faces that land one after another
-                    read as a page being dealt. */}
                 <motion.ul
                   key={page}
                   variants={FACES}
@@ -391,9 +353,6 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                         layoutId={`profile-${profile.id}`}
                         transition={move}
                         onFocus={() => {
-                          // Pointer and keyboard agree on where they are, so
-                          // clicking one face and then pressing an arrow
-                          // continues from there rather than jumping back.
                           setAt(everyone.findIndex((one) => one.id === profile.id));
                         }}
                         onClick={() => {
@@ -459,9 +418,6 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
             </motion.div>
           ) : (
             <div key="password" className="flex w-full max-w-sm flex-col items-center gap-6">
-              {/* Neither side fades this: it is the same portrait moved, and
-                  a shared layout animation only reads as one object travelling
-                  if nothing is changing its opacity underneath. */}
               <motion.span layoutId={`profile-${chosen.id}`} transition={move}>
                 <Portrait profile={chosen} isLarge />
               </motion.span>

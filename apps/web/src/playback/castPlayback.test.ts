@@ -114,9 +114,6 @@ describe('watchCastState', () => {
   });
 
   it('keeps offering somewhere to send it even when the browser reports none', () => {
-    // A browser feeding a media engine says nothing is available whatever is
-    // on the network, because it cannot remote what it is decoding. Casting
-    // works anyway, since handing over stops it decoding first.
     const { element } = standard('disconnected', false);
     const said: CastState[] = [];
 
@@ -176,8 +173,6 @@ describe('promptForDevice', () => {
   });
 
   it('says when the browser declined to open one at all', async () => {
-    // What a browser does over a plain connection, which is exactly how a
-    // server has to be read for a television to fetch anything from it.
     const { element, remote } = standard('disconnected');
     const refused = new Error('not supported');
 

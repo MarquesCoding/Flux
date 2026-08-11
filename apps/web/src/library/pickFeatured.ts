@@ -40,9 +40,6 @@ const pickFeatured = (items: MediaSummary[], limit: number): MediaSummary[] => {
 
     if (standing === undefined) {
       shows.set(series, item);
-      // The place is claimed now and filled in later, so a show appears where
-      // its first file did rather than being pushed to the end by an episode
-      // that happened to be listed sooner.
       featured.push(item);
 
       continue;

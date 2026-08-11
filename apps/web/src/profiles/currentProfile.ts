@@ -19,8 +19,6 @@ const readCurrentProfile = (): string | null => {
   try {
     return window.localStorage.getItem(STORAGE_KEY);
   } catch {
-    // A browser refusing storage is a browser in private mode, not a broken
-    // one. Everything still works; it just asks who is watching each time.
     return null;
   }
 };
@@ -35,10 +33,7 @@ const writeCurrentProfile = (profileId: string | null): void => {
     } else {
       window.localStorage.setItem(STORAGE_KEY, profileId);
     }
-  } catch {
-    // Nothing to do. The choice lasts for this session instead of for this
-    // device, which is a smaller loss than refusing to let anybody watch.
-  }
+  } catch {}
 };
 
 /**

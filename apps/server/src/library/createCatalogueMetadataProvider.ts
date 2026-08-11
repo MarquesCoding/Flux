@@ -180,17 +180,11 @@ const createCatalogueMetadataProvider = ({
       return {
         ok: response.ok,
         status: response.status,
-        // Parsed by a schema at the call site, so the body arriving as any
-        // shape at all is expected rather than a hole in the typing.
         json: async (): Promise<JsonValue> => JsonValueSchema.parse(await response.json()),
       };
     });
 
   const request = async (path: string, key: string, query: Record<string, string>) => {
-    // The catalogue issues two kinds of credential and does not accept them
-    // the same way: the older one is a key in the query string, and the newer
-    // one is a token in a header. Somebody pasting either should get their
-    // posters, rather than a silent four hundred and one.
     const isToken = isAccessToken(key);
     const parameters = new URLSearchParams(isToken ? query : { api_key: key, ...query });
 
@@ -225,9 +219,6 @@ const createCatalogueMetadataProvider = ({
         ? (facts.episode?.seriesTitle ?? fromFilename.title)
         : fromFilename.title;
 
-      // The tail shared by both a known id and a freshly searched one: fetch
-      // the episode underneath it, cross-check its title, and shape whatever
-      // is left into what a caller actually wants.
       const describeFrom = async (
         detail: z.infer<typeof DetailResponseSchema>,
       ): Promise<Metadata | null> => {
@@ -240,9 +231,6 @@ const createCatalogueMetadataProvider = ({
 
         const poster = imageUrl(imageBaseUrl, detail.poster_path, 'w500');
 
-        // An episode is named by the episode, illustrated by its own still, and
-        // described by its own synopsis — falling back to the series for
-        // whichever of those the catalogue does not have.
         const episode = isEpisode
           ? EpisodeResponseSchema.safeParse(
               await request(
@@ -253,12 +241,6 @@ const createCatalogueMetadataProvider = ({
             )
           : null;
 
-        // A second check, past the series title: two shows can share a name, or
-        // neither search result may have matched exactly, and either way the
-        // wrong series answers with a real episode at this season and number —
-        // just not the one the filename already named. Refusing here falls
-        // back to what the filename said, rather than keeping a confident
-        // answer about the wrong show.
         const knownEpisodeTitle = facts.episode?.episodeTitle ?? null;
         const catalogueEpisodeName =
           episode?.success === true && episode.data.name !== undefined && episode.data.name !== ''
@@ -292,8 +274,6 @@ const createCatalogueMetadataProvider = ({
 
         return {
           title: isEpisode ? (episodeName ?? seriesName) : seriesName,
-          // The show is what a series of files belongs to, and what a shelf
-          // groups them under.
           ...(isEpisode ? { seriesTitle: seriesName } : {}),
           year: readYear(detail.release_date ?? detail.first_air_date),
           externalId: detail.id.toString(),
@@ -311,10 +291,6 @@ const createCatalogueMetadataProvider = ({
         };
       };
 
-      // A rescan asking about something already matched skips search
-      // entirely and goes straight to what a provider already said this
-      // was — the same search that risks a mismatch does not run again on
-      // every rescan for the rest of this item's life.
       if (
         facts.knownExternalId !== undefined &&
         facts.knownExternalId !== null &&
@@ -331,10 +307,6 @@ const createCatalogueMetadataProvider = ({
         if (detail.success) {
           return describeFrom(detail.data);
         }
-
-        // The id no longer resolves — removed from the catalogue, or merged
-        // into another. Falls through to search rather than giving up, the
-        // same as an item that has never been matched before.
       }
 
       const seriesYear = facts.episode?.seriesYear ?? null;
@@ -356,10 +328,6 @@ const createCatalogueMetadataProvider = ({
       const results = SearchResponseSchema.safeParse(searched);
       const candidates = results.success ? results.data.results : [];
 
-      // The catalogue sorts by popularity, not by which title matches best —
-      // searching "Ted" can rank "Ted Lasso" above "Ted" itself. An exact
-      // title is trusted over the ranking whenever the search actually found
-      // one, and only falls back to "whatever came first" when it did not.
       const wanted = normalizeTitle(searchTitle);
       const exact = candidates.find(
         (entry) => normalizeTitle(entry.title ?? entry.name ?? '') === wanted,
@@ -379,8 +347,6 @@ const createCatalogueMetadataProvider = ({
       const detail = DetailResponseSchema.safeParse(detailed);
 
       if (!detail.success) {
-        // The search found something even if the details did not arrive, so
-        // answer with what is known rather than falling through to a filename.
         return {
           title: first.title ?? first.name ?? searchTitle,
           year: readYear(first.release_date ?? first.first_air_date),

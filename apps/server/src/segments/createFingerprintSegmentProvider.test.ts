@@ -120,7 +120,6 @@ describe('createFingerprintSegmentProvider', () => {
 
     const found = await provider.detect([candidate(1), candidate(2), candidate(3), candidate(4)]);
 
-    // Each episode's cold open is five seconds longer than the last.
     expect(found.get('media-1')?.[0]?.startSeconds).toBeCloseTo(5, 0);
     expect(found.get('media-3')?.[0]?.startSeconds).toBeCloseTo(15, 0);
   });

@@ -43,9 +43,6 @@ describe('readEpisodeFromPath', () => {
     ).toMatchObject({ seasonNumber: 2, episodeNumber: 5 });
   });
 
-  // The name in the file wins, because a folder is what somebody happened to
-  // sort by and a filename is what the release actually calls itself. The
-  // folder is still there for a file that names nothing.
   it('takes the series name from the filename, ahead of the folder above it', () => {
     expect(
       readEpisodeFromPath('/media/tv/Another Show (2019)/Season 3/Another.Show.s03e07.mkv')

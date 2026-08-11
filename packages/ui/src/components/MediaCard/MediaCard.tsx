@@ -42,9 +42,6 @@ const MediaCard = ({
 }: MediaCardProps) => {
   const prefersReducedMotion = useReducedMotion();
   const isLead = emphasis === 'lead';
-  // Whether lifting towards a pointer means anything here. A finger reports a
-  // hover as it lands and goes on reporting it once it has gone, so a card on
-  // a phone would rise on being tapped and stay risen.
   const [canHover, setCanHover] = useState(false);
 
   useEffect(() => {
@@ -55,8 +52,6 @@ const MediaCard = ({
     <motion.button
       type="button"
       onClick={onSelect}
-      // Spread rather than passed as undefined: with exact optional property
-      // types, an absent prop and a prop set to nothing are different things.
       {...(prefersReducedMotion === true || isStill || !canHover
         ? {}
         : { whileHover: { y: -6 }, whileTap: { scale: 0.985 } })}
@@ -131,9 +126,6 @@ const MediaCard = ({
 
       {isLead ? null : (
         <span className="flex flex-col gap-0.5 px-0.5">
-          {/* What is being offered, over what makes it recognisable. Small and
-              in capitals so it reads as a label rather than as a second
-              title. */}
           {eyebrow === undefined ? null : (
             <span className="line-clamp-1 text-[0.65rem] uppercase tracking-[0.16em] text-text-muted">
               {eyebrow}

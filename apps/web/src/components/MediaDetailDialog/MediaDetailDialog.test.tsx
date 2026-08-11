@@ -111,9 +111,6 @@ describe('MediaDetailDialog', () => {
     detailMock.mockReturnValue(new Promise(() => undefined));
     render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
-    // Content that lands in a space already the right size does not shove the
-    // rest of the panel down the page. Searched from the document rather than
-    // the render container, because a dialog is drawn in a portal.
     expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
   });
 
@@ -127,12 +124,9 @@ describe('MediaDetailDialog', () => {
       />,
     );
 
-    // Said the way every other card and the hero say it, rather than in a
-    // sentence of its own.
     expect(await screen.findByText('EP5')).toBeInTheDocument();
     expect(screen.getByText('S2')).toBeInTheDocument();
 
-    // The show is the heading and the episode is the line above it.
     expect(screen.getByRole('heading', { name: 'Story of Us' })).toBeInTheDocument();
   });
 
@@ -178,8 +172,6 @@ describe('MediaDetailDialog', () => {
 
     await user.click(screen.getByRole('button', { name: 'Play' }));
 
-    // From the beginning, since nobody has watched any of it. Where a viewer
-    // has, the same button says resume and names the second to start at.
     expect(onPlay).toHaveBeenCalledWith(summary, 0);
   });
 

@@ -34,8 +34,6 @@ describe('Rail', () => {
   it('offers nowhere to go before anything overflows', () => {
     render(<Rail title="Recently added">{items}</Rail>);
 
-    // One page is no pages: markers that cannot take you anywhere are marks on
-    // a screen.
     expect(screen.queryByRole('button', { name: /Show page/ })).not.toBeInTheDocument();
   });
 
@@ -48,9 +46,6 @@ describe('Rail', () => {
       fireEvent.scroll(track);
     }
 
-    // Three thousand across a thousand-wide window, turned eight hundred and
-    // fifty at a time: the screenful showing and three more turns to reach the
-    // end of it.
     expect(screen.getAllByRole('button', { name: /Show page/ })).toHaveLength(4);
     expect(screen.getByRole('button', { name: 'Show page 1' })).toHaveAttribute(
       'aria-current',

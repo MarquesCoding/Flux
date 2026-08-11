@@ -18,8 +18,6 @@ describe('ownAddresses', () => {
   });
 
   it('leaves out the address that means this machine', () => {
-    // Already trusted by name, and offering it as a network address is how a
-    // television ends up fetching from itself.
     expect(ownAddresses()).not.toContain('127.0.0.1');
   });
 });
@@ -53,14 +51,10 @@ describe('ownOrigins', () => {
   });
 
   it('trusts either scheme, since a certificate can appear at any time', () => {
-    // Casting is offered by browsers only over a secure connection, so a home
-    // server grows a certificate the moment somebody wants to use it.
     expect(ownOrigins([], 8420)).toContain('https://192.168.1.165:8420');
   });
 
   it('trusts only addresses this machine actually holds', () => {
-    // A different thing from trusting the network: somebody else's laptop
-    // cannot borrow this by asking.
     expect(ownOrigins([], 8420)).toEqual([
       'http://192.168.1.165:8420',
       'https://192.168.1.165:8420',
