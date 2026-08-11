@@ -1,10 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { and, desc, eq } from 'drizzle-orm'
-import SchemaModule from '@FluxServer/db/Schema'
+import { watchProgress } from '@FluxServer/db/Schema'
 import type { FluxDatabase } from '@FluxServer/db/Database'
 import type { WatchProgressService } from './WatchProgressService'
-
-const { watchProgress } = SchemaModule
 
 /**
  * How many resumable items are worth carrying to a browser.
@@ -67,4 +65,4 @@ const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressServ
   },
 })
 
-export default { createDatabaseWatchProgressService, LIMIT }
+export { createDatabaseWatchProgressService, LIMIT }

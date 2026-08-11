@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import SpinnerModule from '@FluxUI/Spinner'
-import revealModule from '@FluxUI/animations/reveal'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import MediaGridModule from '@FluxWeb/components/MediaGrid/MediaGrid'
+import { Spinner } from '@FluxUI/Spinner'
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
+import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary'
+import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { BrowseAreaProps, BrowseKind } from './BrowseArea.types'
-
-const { Spinner } = SpinnerModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
-const { MediaGrid } = MediaGridModule
 
 /**
  * How many items a browse page holds at once.
@@ -172,4 +167,4 @@ const BrowseArea = ({
 
 BrowseArea.displayName = 'BrowseArea'
 
-export default { BrowseArea }
+export { BrowseArea }

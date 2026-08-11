@@ -2,13 +2,18 @@ import { randomUUID } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 import { z } from 'zod'
 import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
-import SchemaModule from '@FluxServer/db/Schema'
-import LibraryContract from '@FluxContracts/schemas/Library'
-import JsonValueModule from '@FluxContracts/schemas/JsonValue'
-import createMediaStoreModule from './createMediaStore'
-import groupIntoShowsModule from './groupIntoShows'
-import scanLibraryModule from './scanLibrary'
-import PlaybackServiceModule from '@FluxServer/playback/PlaybackService'
+import { library, mediaItem } from '@FluxServer/db/Schema'
+import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library'
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
+import { createMediaStore } from './createMediaStore'
+import { groupIntoShows, buildShowDetail } from './groupIntoShows'
+import { scanLibrary } from './scanLibrary'
+import {
+  TRICKPLAY_INTERVAL_SECONDS,
+  TRICKPLAY_TILE_WIDTH,
+  TRICKPLAY_COLUMNS,
+  TRICKPLAY_ROWS,
+} from '@FluxServer/playback/PlaybackService'
 import type { FluxDatabase } from '@FluxServer/db/Database'
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { MediaFileSystem } from './scanLibrary'
@@ -26,14 +31,7 @@ type DatabaseLibraryService = LibraryService & {
 import type { JobQueue } from '@FluxServer/jobs/JobQueue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
-const { library, mediaItem } = SchemaModule
-
-const { JsonValueSchema } = JsonValueModule
-
 const GenresSchema = z.array(z.string())
-const { createMediaStore } = createMediaStoreModule
-const { groupIntoShows, buildShowDetail } = groupIntoShowsModule
-
 /**
  * How many episodes are read to build a series.
  *
@@ -41,11 +39,6 @@ const { groupIntoShows, buildShowDetail } = groupIntoShowsModule
  * and no series anybody owns has this many episodes.
  */
 const EVERY_EPISODE = 2000
-const { scanLibrary } = scanLibraryModule
-const { TRICKPLAY_INTERVAL_SECONDS, TRICKPLAY_TILE_WIDTH, TRICKPLAY_COLUMNS, TRICKPLAY_ROWS } =
-  PlaybackServiceModule
-const { MediaDetailSchema } = LibraryContract
-
 type CreateDatabaseLibraryServiceOptions = {
   db: FluxDatabase
   files: MediaFileSystem
@@ -123,7 +116,7 @@ const createDatabaseLibraryService = ({
       return rows.map((row) => ({
         id: row.id,
         name: row.name,
-        kind: LibraryContract.LibraryKindSchema.parse(row.kind),
+        kind: LibraryKindSchema.parse(row.kind),
         path: row.path,
         itemCount: row.itemCount,
         lastScannedAt: toIso(row.lastScannedAt),
@@ -379,4 +372,4 @@ const createDatabaseLibraryService = ({
   return service
 }
 
-export default { createDatabaseLibraryService }
+export { createDatabaseLibraryService }

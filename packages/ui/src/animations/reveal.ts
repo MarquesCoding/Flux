@@ -127,7 +127,7 @@ const revealTransition = (
   return weight === 'heavy' ? heavySpring : spring
 }
 
-export default {
+export {
   spring,
   heavySpring,
   liquidSpring,

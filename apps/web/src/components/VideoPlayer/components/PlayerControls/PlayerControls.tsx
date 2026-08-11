@@ -24,26 +24,16 @@ import {
   IconVolume,
   IconVolumeOff,
 } from '@tabler/icons-react'
-import IconButtonModule from '@FluxUI/IconButton'
-import SliderModule from '@FluxUI/Slider'
-import SettingsMenuModule from '@FluxUI/SettingsMenu'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
-import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
-import QualityStepModule from '@FluxContracts/schemas/QualityStep'
-import CaptionSettingsModule from '@FluxWeb/components/VideoPlayer/components/CaptionSettings/CaptionSettings'
-import EpisodeMenuModule from '@FluxWeb/components/VideoPlayer/components/EpisodeMenu/EpisodeMenu'
-import PlayerControlsTypes from './PlayerControls.types'
+import { IconButton } from '@FluxUI/IconButton'
+import { Slider } from '@FluxUI/Slider'
+import { SettingsMenu } from '@FluxUI/SettingsMenu'
+import { formatDuration } from '@FluxCore/functions/formatDuration'
+import { SUBTITLES_OFF } from '@FluxWeb/playback/fetchSubtitles'
+import { QUALITY_STEPS } from '@FluxContracts/schemas/QualityStep'
+import { CaptionSettings } from '@FluxWeb/components/VideoPlayer/components/CaptionSettings/CaptionSettings'
+import { EpisodeMenu } from '@FluxWeb/components/VideoPlayer/components/EpisodeMenu/EpisodeMenu'
+import { SKIP_SECONDS, PLAYBACK_RATES } from './PlayerControls.types'
 import type { PlayerControlsProps } from './PlayerControls.types'
-
-const { IconButton } = IconButtonModule
-const { Slider } = SliderModule
-const { SettingsMenu } = SettingsMenuModule
-const { CaptionSettings } = CaptionSettingsModule
-const { EpisodeMenu } = EpisodeMenuModule
-const { formatDuration } = formatDurationModule
-const { SKIP_SECONDS, PLAYBACK_RATES } = PlayerControlsTypes
-const { SUBTITLES_OFF } = fetchSubtitlesModule
-const { QUALITY_STEPS } = QualityStepModule
 
 /**
  * Formats a rate the way a viewer reads it, not the way a float prints.
@@ -458,4 +448,4 @@ const PlayerControls = ({
 
 PlayerControls.displayName = 'PlayerControls'
 
-export default { PlayerControls }
+export { PlayerControls }

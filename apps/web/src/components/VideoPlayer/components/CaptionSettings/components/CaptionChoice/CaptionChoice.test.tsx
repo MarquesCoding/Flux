@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import CaptionChoiceModule from './CaptionChoice'
-
-const { CaptionChoice } = CaptionChoiceModule
+import { CaptionChoice } from './CaptionChoice'
 
 const options = [
   { id: 'sans', label: 'Sans serif' },

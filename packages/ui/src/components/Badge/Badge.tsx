@@ -1,7 +1,5 @@
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { BadgeProps, BadgeSize, BadgeTone } from './Badge.types'
-
-const { cn } = cnModule
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
   quiet: 'border border-white/15 bg-white/[0.06] text-text-muted backdrop-blur-md',
@@ -40,4 +38,4 @@ const Badge = ({ children, tone = 'quiet', size = 'sm', className }: BadgeProps)
 
 Badge.displayName = 'Badge'
 
-export default { Badge }
+export { Badge }

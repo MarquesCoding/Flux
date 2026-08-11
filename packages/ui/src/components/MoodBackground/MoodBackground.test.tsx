@@ -1,8 +1,6 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import MoodBackgroundModule from './MoodBackground'
-
-const { MoodBackground } = MoodBackgroundModule
+import { MoodBackground } from './MoodBackground'
 
 /**
  * The lights themselves, one per colour the page was given.

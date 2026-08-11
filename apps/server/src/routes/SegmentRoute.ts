@@ -1,7 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi'
-import MediaSegmentModule from '@FluxContracts/schemas/MediaSegment'
-
-const { SEGMENT_KINDS, SEGMENT_SOURCES } = MediaSegmentModule
+import { SEGMENT_KINDS, SEGMENT_SOURCES } from '@FluxContracts/schemas/MediaSegment'
 
 const SegmentError = z.object({ error: z.string() }).openapi('SegmentError')
 
@@ -41,4 +39,4 @@ const listSegmentsRoute = createRoute({
   },
 })
 
-export default { listSegmentsRoute }
+export { listSegmentsRoute }

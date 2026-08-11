@@ -81,4 +81,4 @@ const dropFavouriteRoute = createRoute({
   },
 })
 
-export default { listFavouritesRoute, keepFavouriteRoute, dropFavouriteRoute }
+export { listFavouritesRoute, keepFavouriteRoute, dropFavouriteRoute }

@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import NotificationBellModule from './NotificationBell'
-
-const { NotificationBell } = NotificationBellModule
+import { NotificationBell } from './NotificationBell'
 
 describe('NotificationBell', () => {
   it('offers a way to look, whether or not anything has happened', () => {

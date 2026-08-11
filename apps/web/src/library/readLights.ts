@@ -114,4 +114,4 @@ const readLights = (source: CanvasImageSource): MoodLight[] => {
   }
 }
 
-export default { readLights, READ_AT, ZONES }
+export { readLights, READ_AT, ZONES }

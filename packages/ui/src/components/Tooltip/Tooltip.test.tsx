@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import TooltipModule from './Tooltip'
-
-const { Tooltip } = TooltipModule
+import { Tooltip } from './Tooltip'
 
 describe('Tooltip', () => {
   it('says nothing until a pointer rests on the control', () => {

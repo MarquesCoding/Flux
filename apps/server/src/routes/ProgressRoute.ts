@@ -89,4 +89,4 @@ const forgetProgressRoute = createRoute({
   },
 })
 
-export default { listProgressRoute, recordProgressRoute, forgetProgressRoute }
+export { listProgressRoute, recordProgressRoute, forgetProgressRoute }

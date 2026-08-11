@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import validateSetupFormModule from './validateSetupForm'
-
-const { validateSetupForm, parseOrigins } = validateSetupFormModule
+import { validateSetupForm, parseOrigins } from './validateSetupForm'
 
 const valid = {
   name: 'Operator',

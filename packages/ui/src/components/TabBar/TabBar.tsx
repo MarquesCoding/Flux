@@ -1,10 +1,7 @@
 import { motion, useReducedMotion } from 'motion/react'
-import cnModule from '@FluxUI/cn'
-import revealModule from '@FluxUI/animations/reveal'
+import { cn } from '@FluxUI/cn'
+import { revealTransition } from '@FluxUI/animations/reveal'
 import type { TabBarProps } from './TabBar.types'
-
-const { cn } = cnModule
-const { revealTransition } = revealModule
 
 /**
  * Words across the top that filter what is beneath them.
@@ -58,4 +55,4 @@ const TabBar = ({ tabs, selectedId, onSelect, label, className }: TabBarProps) =
 
 TabBar.displayName = 'TabBar'
 
-export default { TabBar }
+export { TabBar }

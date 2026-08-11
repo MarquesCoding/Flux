@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fetchTrickplayModule from './fetchTrickplay'
-
-const { fetchTrickplay, parseTrickplayIndex, thumbnailAt, readTimestamp } = fetchTrickplayModule
+import { fetchTrickplay, parseTrickplayIndex, thumbnailAt, readTimestamp } from './fetchTrickplay'
 
 const INDEX_URL = '/api/playback/trickplay/thumbs/thumbnails.vtt'
 

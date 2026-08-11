@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import formatBytesModule from './formatBytes'
-
-const { formatBytes } = formatBytesModule
+import { formatBytes } from './formatBytes'
 
 describe('formatBytes', () => {
   it('says bytes as bytes', () => {

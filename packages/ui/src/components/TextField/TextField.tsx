@@ -1,8 +1,6 @@
 import { useId } from 'react'
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { TextFieldProps } from './TextField.types'
-
-const { cn } = cnModule
 
 /**
  * A labelled single-line text input.
@@ -87,4 +85,4 @@ const TextField = ({
 
 TextField.displayName = 'TextField'
 
-export default { TextField }
+export { TextField }

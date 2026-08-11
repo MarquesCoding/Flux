@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import ownOriginsModule from './ownOrigins'
-
-const { ownOrigins, ownAddresses, portsIn } = ownOriginsModule
+import { ownOrigins, ownAddresses, portsIn } from './ownOrigins'
 
 vi.mock('node:os', () => ({
   networkInterfaces: () => ({

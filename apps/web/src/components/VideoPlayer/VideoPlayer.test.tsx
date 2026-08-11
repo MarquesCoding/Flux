@@ -1,13 +1,11 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import VideoPlayerModule from './VideoPlayer'
+import { VideoPlayer } from './VideoPlayer'
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
-import type TrickplayModule from '@FluxWeb/playback/fetchTrickplay'
-import type SubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
-import type SegmentsModule from '@FluxWeb/playback/fetchSegments'
-
-const { VideoPlayer } = VideoPlayerModule
+import type * as SegmentsModule from '@FluxWeb/playback/fetchSegments'
+import type * as SubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
+import type * as TrickplayModule from '@FluxWeb/playback/fetchTrickplay'
 
 const startMock = vi.hoisted(() => vi.fn())
 const stopMock = vi.hoisted(() => vi.fn())
@@ -21,59 +19,52 @@ const detailMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
-    default: { describeWhy: (plan: PlaybackPlan) => string[] }
+    describeWhy: (plan: PlaybackPlan) => string[]
   }>('@FluxWeb/playback/startPlaybackSession')
 
   return {
-    default: {
-      startPlaybackSession: startMock,
-      stopPlaybackSession: stopMock,
-      describeWhy: actual.default.describeWhy,
-    },
+    startPlaybackSession: startMock,
+    stopPlaybackSession: stopMock,
+    describeWhy: actual.describeWhy,
   }
 })
 
 vi.mock('@FluxWeb/playback/attachShaka', () => ({
-  default: { attachShaka: attachMock },
+  attachShaka: attachMock,
 }))
 
 vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
-  default: { detectFromBrowser: () => ({ name: 'Browser' }) },
+  detectFromBrowser: () => ({ name: 'Browser' }),
 }))
 
 // jsdom has no 2d context, so a real capture can only ever answer with
 // nothing here. What it does with a frame is covered where the capture lives.
 vi.mock('@FluxWeb/playback/captureFrame', () => ({
-  default: { captureFrame: captureMock },
+  captureFrame: captureMock,
 }))
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
-  default: { fetchMediaDetail: detailMock },
+  fetchMediaDetail: detailMock,
 }))
 
 vi.mock('@FluxWeb/playback/fetchSegments', async () => {
-  const actual = await vi.importActual<{ default: typeof SegmentsModule }>(
-    '@FluxWeb/playback/fetchSegments',
-  )
+  const actual = await vi.importActual<typeof SegmentsModule>('@FluxWeb/playback/fetchSegments')
 
-  return { default: { ...actual.default, fetchSegments: segmentsMock } }
+  return { ...actual, fetchSegments: segmentsMock }
 })
 
 vi.mock('@FluxWeb/playback/fetchSubtitles', async () => {
-  const actual = await vi.importActual<{ default: typeof SubtitlesModule }>(
-    '@FluxWeb/playback/fetchSubtitles',
-  )
+  const actual = await vi.importActual<typeof SubtitlesModule>('@FluxWeb/playback/fetchSubtitles')
 
-  return { default: { ...actual.default, fetchSubtitleTracks: subtitlesMock } }
+  return { ...actual, fetchSubtitleTracks: subtitlesMock }
 })
 
 vi.mock('@FluxWeb/playback/fetchTrickplay', async () => {
-  const actual = await vi.importActual<{ default: typeof TrickplayModule }>(
-    '@FluxWeb/playback/fetchTrickplay',
-  )
+  const actual = await vi.importActual<typeof TrickplayModule>('@FluxWeb/playback/fetchTrickplay')
 
   return {
-    default: { ...actual.default, fetchTrickplay: trickplayMock },
+    ...actual,
+    fetchTrickplay: trickplayMock,
   }
 })
 

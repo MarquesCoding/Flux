@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import readVersionModule from './readVersion'
+import { readVersion, describeVersion, LOCAL } from './readVersion'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { readVersion, describeVersion, LOCAL } = readVersionModule
 
 const fetchMock = vi.fn()
 

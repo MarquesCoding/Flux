@@ -54,4 +54,4 @@ type AppShellProps = {
 
 export type { AppShellProps, ShellSection }
 
-export default { SHELL_SECTIONS, BROWSE_SECTIONS }
+export { SHELL_SECTIONS, BROWSE_SECTIONS }

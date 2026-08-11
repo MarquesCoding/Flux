@@ -1,8 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import usePlaceModule from './usePlace'
-
-const { usePlace } = usePlaceModule
+import { usePlace } from './usePlace'
 
 const addressNow = (): string => `${window.location.pathname}${window.location.search}`
 

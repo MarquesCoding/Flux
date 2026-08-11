@@ -1,10 +1,7 @@
 import { useState } from 'react'
-import ButtonModule from '@FluxUI/Button'
-import TextFieldModule from '@FluxUI/TextField'
+import { Button } from '@FluxUI/Button'
+import { TextField } from '@FluxUI/TextField'
 import type { ChallengeMode, TwoFactorChallengeProps } from './TwoFactorChallenge.types'
-
-const { Button } = ButtonModule
-const { TextField } = TextFieldModule
 
 const TOTP_LENGTH = 6
 
@@ -122,4 +119,4 @@ const TwoFactorChallenge = ({ onVerified }: TwoFactorChallengeProps) => {
 
 TwoFactorChallenge.displayName = 'TwoFactorChallenge'
 
-export default { TwoFactorChallenge }
+export { TwoFactorChallenge }

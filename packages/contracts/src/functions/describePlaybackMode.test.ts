@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
-import describePlaybackModeModule from './describePlaybackMode'
-
-const { describePlaybackMode } = describePlaybackModeModule
+import { describePlaybackMode } from './describePlaybackMode'
 
 const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' }
 

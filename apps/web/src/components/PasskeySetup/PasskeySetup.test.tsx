@@ -1,9 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import PasskeySetupModule from './PasskeySetup'
-
-const { PasskeySetup } = PasskeySetupModule
+import { PasskeySetup } from './PasskeySetup'
 
 const registerPasskeyMock = vi.hoisted(() => vi.fn())
 const listPasskeysMock = vi.hoisted(() => vi.fn())
@@ -12,22 +10,18 @@ const renamePasskeyMock = vi.hoisted(() => vi.fn())
 const describeUnavailabilityMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/passkeys/registerPasskey', () => ({
-  default: { registerPasskey: registerPasskeyMock },
+  registerPasskey: registerPasskeyMock,
 }))
 
 vi.mock('@FluxWeb/passkeys/listPasskeys', () => ({
-  default: {
-    listPasskeys: listPasskeysMock,
-    deletePasskey: deletePasskeyMock,
-    renamePasskey: renamePasskeyMock,
-  },
+  listPasskeys: listPasskeysMock,
+  deletePasskey: deletePasskeyMock,
+  renamePasskey: renamePasskeyMock,
 }))
 
 vi.mock('@FluxWeb/passkeys/isPasskeySupported', () => ({
-  default: {
-    isPasskeySupported: () => describeUnavailabilityMock() === null,
-    describePasskeyUnavailability: describeUnavailabilityMock,
-  },
+  isPasskeySupported: () => describeUnavailabilityMock() === null,
+  describePasskeyUnavailability: describeUnavailabilityMock,
 }))
 
 /** The rename form and the add form share a label, so take the first. */

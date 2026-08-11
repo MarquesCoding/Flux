@@ -94,4 +94,4 @@ const adminSettingsRoute = createRoute({
   },
 })
 
-export default { adminOverviewRoute, adminSettingsRoute }
+export { adminOverviewRoute, adminSettingsRoute }

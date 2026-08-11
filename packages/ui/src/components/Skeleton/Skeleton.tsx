@@ -1,7 +1,5 @@
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { SkeletonProps } from './Skeleton.types'
-
-const { cn } = cnModule
 
 /**
  * The shape of something that has not arrived yet.
@@ -28,4 +26,4 @@ const Skeleton = ({ label, className }: SkeletonProps) => (
 
 Skeleton.displayName = 'Skeleton'
 
-export default { Skeleton }
+export { Skeleton }

@@ -1,11 +1,9 @@
 import { z } from 'zod'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import startPlaybackSessionModule from './startPlaybackSession'
+import { startPlaybackSession, stopPlaybackSession, describeWhy } from './startPlaybackSession'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile'
-
-const { startPlaybackSession, stopPlaybackSession, describeWhy } = startPlaybackSessionModule
 
 type JsonRequestInit = Omit<RequestInit, 'body'> & { body?: string }
 

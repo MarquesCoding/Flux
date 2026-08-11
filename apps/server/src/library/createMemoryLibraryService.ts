@@ -1,9 +1,7 @@
 import { randomUUID } from 'node:crypto'
-import groupIntoShowsModule from './groupIntoShows'
+import { groupIntoShows, buildShowDetail } from './groupIntoShows'
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { LibraryService } from './LibraryService'
-
-const { groupIntoShows, buildShowDetail } = groupIntoShowsModule
 
 /**
  * What a browser is told about an item, from everything held about it.
@@ -157,4 +155,4 @@ const createMemoryLibraryService = (
 
 export type { MemoryState }
 
-export default { createMemoryLibraryService }
+export { createMemoryLibraryService }

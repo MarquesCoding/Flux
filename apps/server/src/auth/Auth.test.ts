@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import createMemoryAuthModule from './createMemoryAuth'
-import ownOriginsModule from '@FluxServer/env/ownOrigins'
-
-const { createMemoryAuth } = createMemoryAuthModule
-const { ownAddresses } = ownOriginsModule
+import { createMemoryAuth } from './createMemoryAuth'
+import { ownAddresses } from '@FluxServer/env/ownOrigins'
 
 const BASE_URL = 'http://localhost:8420'
 

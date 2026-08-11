@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import readTotpSecretModule from './readTotpSecret'
-
-const { readTotpSecret, formatTotpSecret } = readTotpSecretModule
+import { readTotpSecret, formatTotpSecret } from './readTotpSecret'
 
 describe('readTotpSecret', () => {
   it('extracts the secret from an otpauth uri', () => {

@@ -1,10 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import scanLibraryModule from './scanLibrary'
+import { scanLibrary, selectChanged } from './scanLibrary'
 import type { MediaRow, ScanPhase, ScannedFile, StoredItem } from './scanLibrary'
 import type { MetadataProvider } from './MetadataProvider'
 import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient'
-
-const { scanLibrary, selectChanged } = scanLibraryModule
 
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
 

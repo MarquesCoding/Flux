@@ -41,4 +41,4 @@ const createLayeredSubtitleService = (sources: SubtitleService[]): SubtitleServi
   },
 })
 
-export default { createLayeredSubtitleService }
+export { createLayeredSubtitleService }

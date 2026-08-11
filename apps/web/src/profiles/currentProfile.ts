@@ -53,4 +53,4 @@ const profileHeaders = (): Record<string, string> => {
   return profileId === null ? {} : { [PROFILE_HEADER]: profileId }
 }
 
-export default { readCurrentProfile, writeCurrentProfile, profileHeaders, STORAGE_KEY }
+export { readCurrentProfile, writeCurrentProfile, profileHeaders, STORAGE_KEY }

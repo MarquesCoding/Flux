@@ -8,38 +8,28 @@ import {
   IconChevronRight,
   IconKey,
 } from '@tabler/icons-react'
-import cnModule from '@FluxUI/cn'
-import ButtonModule from '@FluxUI/Button'
-import IconButtonModule from '@FluxUI/IconButton'
-import TextFieldModule from '@FluxUI/TextField'
-import MoodBackgroundModule from '@FluxUI/MoodBackground'
-import PageDotsModule from '@FluxUI/PageDots'
-import SpinnerModule from '@FluxUI/Spinner'
-import revealModule from '@FluxUI/animations/reveal'
-import fetchEveryoneModule from '@FluxWeb/profiles/fetchEveryone'
-import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
-import readVersionModule from '@FluxWeb/session/readVersion'
-import TwoFactorChallengeModule from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge'
-import isPasskeySupportedModule from '@FluxWeb/passkeys/isPasskeySupported'
-import authenticateWithPasskeyModule from '@FluxWeb/passkeys/authenticateWithPasskey'
+import { cn } from '@FluxUI/cn'
+import { Button } from '@FluxUI/Button'
+import { IconButton } from '@FluxUI/IconButton'
+import { TextField } from '@FluxUI/TextField'
+import { MoodBackground } from '@FluxUI/MoodBackground'
+import { PageDots } from '@FluxUI/PageDots'
+import { Spinner } from '@FluxUI/Spinner'
+import {
+  revealVariants,
+  revealTransition,
+  staggerVariants,
+  liquidSpring,
+  stillTransition,
+} from '@FluxUI/animations/reveal'
+import { fetchEveryone, signInAsProfile } from '@FluxWeb/profiles/fetchEveryone'
+import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace'
+import { readVersion } from '@FluxWeb/session/readVersion'
+import { TwoFactorChallenge } from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge'
+import { isPasskeySupported } from '@FluxWeb/passkeys/isPasskeySupported'
+import { authenticateWithPasskey } from '@FluxWeb/passkeys/authenticateWithPasskey'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import type { ProfileGateProps } from './ProfileGate.types'
-
-const { cn } = cnModule
-const { Button } = ButtonModule
-const { IconButton } = IconButtonModule
-const { TextField } = TextFieldModule
-const { MoodBackground } = MoodBackgroundModule
-const { PageDots } = PageDotsModule
-const { Spinner } = SpinnerModule
-const { revealVariants, revealTransition, staggerVariants, liquidSpring, stillTransition } =
-  revealModule
-const { ProfileFace } = ProfileFaceModule
-const { fetchEveryone, signInAsProfile } = fetchEveryoneModule
-const { readVersion } = readVersionModule
-const { TwoFactorChallenge } = TwoFactorChallengeModule
-const { isPasskeySupported } = isPasskeySupportedModule
-const { authenticateWithPasskey } = authenticateWithPasskeyModule
 
 /**
  * How many faces one page of the wall holds.
@@ -580,4 +570,4 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
 
 ProfileGate.displayName = 'ProfileGate'
 
-export default { ProfileGate }
+export { ProfileGate }

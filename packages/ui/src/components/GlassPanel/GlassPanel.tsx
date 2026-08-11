@@ -1,7 +1,5 @@
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { GlassElevation, GlassPanelProps } from './GlassPanel.types'
-
-const { cn } = cnModule
 
 const ELEVATION_CLASSES: Record<GlassElevation, string> = {
   floating: 'flux-glass',
@@ -30,4 +28,4 @@ const GlassPanel = ({
 
 GlassPanel.displayName = 'GlassPanel'
 
-export default { GlassPanel }
+export { GlassPanel }

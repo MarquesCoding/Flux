@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import validateAddLibraryFormModule from './validateAddLibraryForm'
-
-const { validateAddLibraryForm } = validateAddLibraryFormModule
+import { validateAddLibraryForm } from './validateAddLibraryForm'
 
 describe('validateAddLibraryForm', () => {
   it('accepts a name and a path', () => {

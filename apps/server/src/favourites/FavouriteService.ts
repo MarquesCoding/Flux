@@ -17,5 +17,3 @@ type FavouriteService = {
 }
 
 export type { FavouriteService }
-
-export default {}

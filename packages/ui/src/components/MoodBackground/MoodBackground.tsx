@@ -1,11 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useReducedMotion } from 'motion/react'
-import DotFieldModule from '@FluxUI/DotField'
-import blendLightsModule from '@FluxUI/blendLights'
+import { DotField } from '@FluxUI/DotField'
+import { blendLights } from '@FluxUI/blendLights'
 import type { MoodBackgroundProps, MoodLight } from './MoodBackground.types'
-
-const { DotField } = DotFieldModule
-const { blendLights } = blendLightsModule
 
 /**
  * Where a light sits when it has not said, how large it is, and how much of it
@@ -187,4 +184,4 @@ const MoodBackground = ({
 
 MoodBackground.displayName = 'MoodBackground'
 
-export default { MoodBackground }
+export { MoodBackground }

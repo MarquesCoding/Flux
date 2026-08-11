@@ -1,14 +1,10 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
-import toWebVttModule from '@FluxCore/functions/toWebVtt'
-import findSidecarSubtitlesModule from './findSidecarSubtitles'
-import SubtitleServiceModule from './SubtitleService'
+import { toWebVtt } from '@FluxCore/functions/toWebVtt'
+import { findSidecarSubtitles, SUBTITLE_DIRECTORIES } from './findSidecarSubtitles'
+import { trackId } from './SubtitleService'
 import type { SubtitleService, SubtitleTrack } from './SubtitleService'
 import type { SidecarFile } from './findSidecarSubtitles'
-
-const { toWebVtt } = toWebVttModule
-const { findSidecarSubtitles, SUBTITLE_DIRECTORIES } = findSidecarSubtitlesModule
-const { trackId } = SubtitleServiceModule
 
 type MediaPathLookup = {
   findPath: (mediaId: string) => Promise<string | null>
@@ -132,4 +128,4 @@ const createSidecarSubtitleService = ({
 
 export type { CreateSidecarSubtitleServiceOptions, MediaPathLookup }
 
-export default { createSidecarSubtitleService, listFiles, findSubtitleDirectories }
+export { createSidecarSubtitleService, listFiles, findSubtitleDirectories }

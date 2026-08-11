@@ -1,9 +1,6 @@
-import formatDurationModule from '@FluxCore/functions/formatDuration'
-import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
+import { formatDuration } from '@FluxCore/functions/formatDuration'
+import { thumbnailAt } from '@FluxWeb/playback/fetchTrickplay'
 import type { TrickplayPreviewProps } from './TrickplayPreview.types'
-
-const { formatDuration } = formatDurationModule
-const { thumbnailAt } = fetchTrickplayModule
 
 /**
  * The frame under the pointer while scrubbing.
@@ -48,4 +45,4 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
 
 TrickplayPreview.displayName = 'TrickplayPreview'
 
-export default { TrickplayPreview }
+export { TrickplayPreview }

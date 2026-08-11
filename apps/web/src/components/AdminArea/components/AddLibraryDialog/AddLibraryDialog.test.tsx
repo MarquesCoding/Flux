@@ -1,15 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import AddLibraryDialogModule from './AddLibraryDialog'
+import { AddLibraryDialog } from './AddLibraryDialog'
 import type { Library } from '@FluxContracts/schemas/Library'
-
-const { AddLibraryDialog } = AddLibraryDialogModule
 
 const createLibraryMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
-  default: { createLibrary: createLibraryMock },
+  createLibrary: createLibraryMock,
 }))
 
 const films: Library = {

@@ -1,7 +1,5 @@
-import fetchLibraryModule from './fetchLibrary'
+import { readScanState } from './fetchLibrary'
 import type { ScanProgress, ScanState } from './fetchLibrary'
-
-const { readScanState } = fetchLibraryModule
 
 const TERMINAL_STATES: ReadonlySet<ScanState> = new Set(['completed', 'failed', 'unknown'])
 const POLL_INTERVAL_MS = 800
@@ -32,4 +30,4 @@ const waitForScanCompletion = async (
   }
 }
 
-export default { waitForScanCompletion }
+export { waitForScanCompletion }

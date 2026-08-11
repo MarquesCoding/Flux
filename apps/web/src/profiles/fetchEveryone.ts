@@ -1,8 +1,6 @@
 import { z } from 'zod'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
+import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { ViewerProfileListSchema } = ViewerProfileModule
 
 /**
  * What better-auth answers with when a password is right but not enough.
@@ -68,4 +66,4 @@ const signInAsProfile = async (
     : { kind: 'signedIn' }
 }
 
-export default { fetchEveryone, signInAsProfile }
+export { fetchEveryone, signInAsProfile }

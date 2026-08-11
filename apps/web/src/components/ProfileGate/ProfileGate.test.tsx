@@ -1,10 +1,8 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import ProfileGateModule from './ProfileGate'
+import { ProfileGate } from './ProfileGate'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { ProfileGate } = ProfileGateModule
 
 const profileOf = (name: string, at: number): ViewerProfile => ({
   id: `00000000-0000-4000-8000-${at.toString().padStart(12, '0')}`,

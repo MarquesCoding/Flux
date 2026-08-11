@@ -1,10 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import AppShellModule from './AppShell'
+import { AppShell } from './AppShell'
 import type { AppShellProps } from './AppShell.types'
-
-const { AppShell } = AppShellModule
 
 const draw = (overrides: Partial<AppShellProps> = {}) => {
   const props: AppShellProps = {

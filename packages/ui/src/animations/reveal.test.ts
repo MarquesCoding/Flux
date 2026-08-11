@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import revealModule from './reveal'
-
-const { revealVariants, revealTransition, riseVariants, fadeVariants, staggerVariants } =
-  revealModule
+import {
+  revealVariants,
+  revealTransition,
+  riseVariants,
+  fadeVariants,
+  staggerVariants,
+} from './reveal'
 
 describe('revealVariants', () => {
   it('lifts content into place by default', () => {

@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import ButtonModule from './Button'
-
-const { Button } = ButtonModule
+import { Button } from './Button'
 
 describe('Button', () => {
   it('renders its children as an accessible button', () => {

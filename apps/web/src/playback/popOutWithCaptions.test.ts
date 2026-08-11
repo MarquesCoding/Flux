@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import popOutWithCaptionsModule from './popOutWithCaptions'
-
-const { popOutWithCaptions, currentLines } = popOutWithCaptionsModule
+import { popOutWithCaptions, currentLines } from './popOutWithCaptions'
 
 /**
  * A video with the cues a browser would say are showing.

@@ -1,19 +1,12 @@
 import { useState } from 'react'
-import ButtonModule from '@FluxUI/Button'
-import DialogModule from '@FluxUI/Dialog'
-import TextFieldModule from '@FluxUI/TextField'
-import LibraryContract from '@FluxContracts/schemas/Library'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import validateAddLibraryFormModule from './validateAddLibraryForm'
+import { Button } from '@FluxUI/Button'
+import { Dialog } from '@FluxUI/Dialog'
+import { TextField } from '@FluxUI/TextField'
+import { LIBRARY_KINDS } from '@FluxContracts/schemas/Library'
+import { createLibrary } from '@FluxWeb/library/fetchLibrary'
+import { validateAddLibraryForm } from './validateAddLibraryForm'
 import type { LibraryKind } from '@FluxContracts/schemas/Library'
 import type { AddLibraryDialogProps, AddLibraryFormErrors } from './AddLibraryDialog.types'
-
-const { Button } = ButtonModule
-const { Dialog } = DialogModule
-const { TextField } = TextFieldModule
-const { LIBRARY_KINDS } = LibraryContract
-const { createLibrary } = fetchLibraryModule
-const { validateAddLibraryForm } = validateAddLibraryFormModule
 
 const KIND_LABELS: Record<LibraryKind, string> = {
   movies: 'Movies',
@@ -142,4 +135,4 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
 
 AddLibraryDialog.displayName = 'AddLibraryDialog'
 
-export default { AddLibraryDialog }
+export { AddLibraryDialog }

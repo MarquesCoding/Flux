@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { IconDeviceTv, IconLogout } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import BadgeModule from '@FluxUI/Badge'
-import SpinnerModule from '@FluxUI/Spinner'
-import fetchDevicesModule from '@FluxWeb/account/fetchDevices'
+import { Button } from '@FluxUI/Button'
+import { Badge } from '@FluxUI/Badge'
+import { Spinner } from '@FluxUI/Spinner'
+import { fetchDevices, endDevice, endOtherDevices } from '@FluxWeb/account/fetchDevices'
 import type { Device } from '@FluxWeb/account/fetchDevices'
-
-const { Button } = ButtonModule
-const { Badge } = BadgeModule
-const { Spinner } = SpinnerModule
-const { fetchDevices, endDevice, endOtherDevices } = fetchDevicesModule
 
 /**
  * Says when something happened, the way somebody would.
@@ -126,4 +121,4 @@ const DeviceList = () => {
 
 DeviceList.displayName = 'DeviceList'
 
-export default { DeviceList }
+export { DeviceList }

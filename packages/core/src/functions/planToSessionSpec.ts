@@ -240,4 +240,4 @@ const planToSessionSpec = ({
 
 export type { Capabilities, SessionSpec, SpecOutcome, ToneMapping, VerifiedEncoder }
 
-export default { planToSessionSpec, selectEncoder, planToneMapping, AUDIO_ENCODER }
+export { planToSessionSpec, selectEncoder, planToneMapping, AUDIO_ENCODER }

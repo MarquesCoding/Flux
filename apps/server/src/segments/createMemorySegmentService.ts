@@ -25,4 +25,4 @@ const createMemorySegmentService = (
 
 export type { MemoryState }
 
-export default { createMemorySegmentService }
+export { createMemorySegmentService }

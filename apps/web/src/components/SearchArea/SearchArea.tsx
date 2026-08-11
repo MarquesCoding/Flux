@@ -1,19 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { IconSearch, IconX } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import SpinnerModule from '@FluxUI/Spinner'
-import revealModule from '@FluxUI/animations/reveal'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import MediaGridModule from '@FluxWeb/components/MediaGrid/MediaGrid'
+import { Button } from '@FluxUI/Button'
+import { Spinner } from '@FluxUI/Spinner'
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
+import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary'
+import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { SearchAreaProps, SearchKind } from './SearchArea.types'
-
-const { Button } = ButtonModule
-const { Spinner } = SpinnerModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
-const { MediaGrid } = MediaGridModule
 
 /**
  * How long to wait after a keystroke before asking the server.
@@ -272,4 +266,4 @@ const SearchArea = ({
 
 SearchArea.displayName = 'SearchArea'
 
-export default { SearchArea }
+export { SearchArea }

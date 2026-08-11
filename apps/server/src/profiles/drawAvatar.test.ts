@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import drawAvatarModule from './drawAvatar'
-
-const { drawAvatar, isAvatarStyle, AVATAR_STYLES } = drawAvatarModule
+import { drawAvatar, isAvatarStyle, AVATAR_STYLES } from './drawAvatar'
 
 describe('isAvatarStyle', () => {
   it('recognises every style on offer', () => {

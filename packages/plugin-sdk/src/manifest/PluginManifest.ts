@@ -1,7 +1,5 @@
 import { z } from 'zod'
-import JsonValueModule from '@FluxContracts/schemas/JsonValue'
-
-const { JsonObjectSchema } = JsonValueModule
+import { JsonObjectSchema } from '@FluxContracts/schemas/JsonValue'
 
 const SEMVER_RANGE = /^[\^~]?\d+(\.\d+)?(\.\d+)?(\s*-\s*\d+(\.\d+)?(\.\d+)?)?$/
 
@@ -76,4 +74,4 @@ export type ExtensionPoint = z.infer<typeof ExtensionPointSchema>
 export type Capability = z.infer<typeof CapabilitySchema>
 export type PluginManifest = z.infer<typeof PluginManifestSchema>
 
-export default { PluginManifestSchema, CapabilitySchema, ExtensionPointSchema }
+export { PluginManifestSchema, CapabilitySchema, ExtensionPointSchema }

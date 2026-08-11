@@ -1,16 +1,13 @@
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react'
-import IconButtonModule from '@FluxUI/IconButton'
-import revealModule from '@FluxUI/animations/reveal'
-import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
-import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
-import ProfileEditorModule from './components/ProfileEditor/ProfileEditor'
+import { IconButton } from '@FluxUI/IconButton'
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
+import { removeProfile } from '@FluxWeb/profiles/fetchProfiles'
+import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace'
+import { ProfileEditor } from './components/ProfileEditor/ProfileEditor'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import type { ProfilePickerProps } from './ProfilePicker.types'
-
-const { IconButton } = IconButtonModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
 
 /**
  * How many people may share one account.
@@ -19,10 +16,6 @@ const { revealVariants, revealTransition, staggerVariants } = revealModule
  * disappears rather than failing when it is taken up.
  */
 const PROFILE_LIMIT = 6
-const { removeProfile } = fetchProfilesModule
-const { ProfileFace } = ProfileFaceModule
-const { ProfileEditor } = ProfileEditorModule
-
 /**
  * Who is watching.
  *
@@ -161,4 +154,4 @@ const ProfilePicker = ({
 
 ProfilePicker.displayName = 'ProfilePicker'
 
-export default { ProfilePicker }
+export { ProfilePicker }

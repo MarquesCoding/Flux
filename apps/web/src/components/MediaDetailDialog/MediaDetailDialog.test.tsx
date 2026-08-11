@@ -1,19 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import MediaDetailDialogModule from './MediaDetailDialog'
+import { MediaDetailDialog } from './MediaDetailDialog'
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { MediaDetailDialog } = MediaDetailDialogModule
 
 const detailMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
-  default: { fetchMediaDetail: detailMock },
+  fetchMediaDetail: detailMock,
 }))
 
 vi.mock('@FluxWeb/components/MediaPreview/MediaPreview', () => ({
-  default: { MediaPreview: () => <div>preview</div> },
+  MediaPreview: () => <div>preview</div>,
 }))
 
 const summary: MediaSummary = {

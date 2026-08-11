@@ -33,4 +33,4 @@ const SETTINGS_KEY = 'server'
 
 export type { ServerSettings, SettingsStore }
 
-export default { ServerSettingsSchema, SETTINGS_KEY }
+export { ServerSettingsSchema, SETTINGS_KEY }

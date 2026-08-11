@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import PopoverPanelModule from './PopoverPanel'
-
-const { PopoverPanel } = PopoverPanelModule
+import { PopoverPanel } from './PopoverPanel'
 
 const draw = (props: Partial<Parameters<typeof PopoverPanel>[0]> = {}) =>
   render(

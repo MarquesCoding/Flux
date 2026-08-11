@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem'
-import resolveQualityStepModule from './resolveQualityStep'
-
-const { resolveQualityStep } = resolveQualityStepModule
+import { resolveQualityStep } from './resolveQualityStep'
 
 const media: MediaItem = {
   id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',

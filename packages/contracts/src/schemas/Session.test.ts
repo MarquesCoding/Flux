@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import SessionModule from './Session'
-
-const { GetSessionResponseSchema, SignInResponseSchema } = SessionModule
+import { GetSessionResponseSchema, SignInResponseSchema } from './Session'
 
 const user = {
   id: 'usr_1',

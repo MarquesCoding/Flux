@@ -38,7 +38,7 @@ export type SetupAdmin = z.infer<typeof SetupAdminSchema>
 export type SetupRequest = z.infer<typeof SetupRequestSchema>
 export type SetupResult = z.infer<typeof SetupResultSchema>
 
-export default {
+export {
   SetupStatusSchema,
   SetupAdminSchema,
   SetupRequestSchema,

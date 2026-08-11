@@ -49,4 +49,4 @@ const SplashScreen = ({ name = 'Flux', label = 'Loading' }: SplashScreenProps) =
 
 SplashScreen.displayName = 'SplashScreen'
 
-export default { SplashScreen }
+export { SplashScreen }

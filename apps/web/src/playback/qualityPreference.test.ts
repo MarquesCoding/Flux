@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import qualityPreferenceModule from './qualityPreference'
-
-const { readQualityPreference, saveQualityPreference, DEFAULT_QUALITY_PREFERENCE } =
-  qualityPreferenceModule
+import {
+  readQualityPreference,
+  saveQualityPreference,
+  DEFAULT_QUALITY_PREFERENCE,
+} from './qualityPreference'
 
 afterEach(() => {
   vi.unstubAllGlobals()

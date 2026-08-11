@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import PageDotsModule from '@FluxUI/PageDots'
+import { PageDots } from '@FluxUI/PageDots'
 import type { CastGridProps } from './CastGrid.types'
-
-const { PageDots } = PageDotsModule
 
 /**
  * How wide a face wants to be, and how much air goes between two of them.
@@ -128,4 +126,4 @@ const CastGrid = ({ members }: CastGridProps) => {
 
 CastGrid.displayName = 'CastGrid'
 
-export default { CastGrid, FACE_WIDTH, LEAST_PER_PAGE }
+export { CastGrid, FACE_WIDTH, LEAST_PER_PAGE }

@@ -138,7 +138,7 @@ export type {
   Trickplay,
 }
 
-export default {
+export {
   SEGMENT_SECONDS,
   TRICKPLAY_INTERVAL_SECONDS,
   TRICKPLAY_TILE_WIDTH,

@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import scrollToTopOfModule from './scrollToTopOf'
-
-const { scrollToTopOf } = scrollToTopOfModule
+import { scrollToTopOf } from './scrollToTopOf'
 
 /**
  * jsdom lays nothing out, so a panel that scrolls has to be described.

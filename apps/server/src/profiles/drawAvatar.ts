@@ -44,4 +44,4 @@ const drawAvatar = (style: AvatarStyle, seed: string): string => AVATAR_STYLES[s
 
 export type { AvatarStyle }
 
-export default { drawAvatar, isAvatarStyle, AVATAR_STYLES }
+export { drawAvatar, isAvatarStyle, AVATAR_STYLES }

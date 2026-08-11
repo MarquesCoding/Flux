@@ -1,13 +1,11 @@
 import { z } from 'zod'
-import MediaItemModule from './MediaItem'
-
-const {
+import {
   ContainerSchema,
   VideoCodecSchema,
   AudioCodecSchema,
   SubtitleFormatSchema,
   VideoRangeSchema,
-} = MediaItemModule
+} from './MediaItem'
 
 const DirectPlayProfileSchema = z.object({
   container: ContainerSchema,
@@ -45,4 +43,4 @@ export type DirectPlayProfile = z.infer<typeof DirectPlayProfileSchema>
 export type TranscodingProfile = z.infer<typeof TranscodingProfileSchema>
 export type DeviceProfile = z.infer<typeof DeviceProfileSchema>
 
-export default { DeviceProfileSchema, DirectPlayProfileSchema, TranscodingProfileSchema }
+export { DeviceProfileSchema, DirectPlayProfileSchema, TranscodingProfileSchema }

@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import ScanProgressBarModule from './ScanProgressBar'
-
-const { ScanProgressBar } = ScanProgressBarModule
+import { ScanProgressBar } from './ScanProgressBar'
 
 describe('ScanProgressBar', () => {
   it('names the phase it is in', () => {

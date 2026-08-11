@@ -43,4 +43,4 @@ const StatStrip = ({ stats }: StatStripProps) => (
 
 StatStrip.displayName = 'StatStrip'
 
-export default { StatStrip }
+export { StatStrip }

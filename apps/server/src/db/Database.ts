@@ -1,8 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
-import SchemaModule from '@FluxServer/db/Schema'
-
-const { authSchema, fluxSchema } = SchemaModule
+import { authSchema, fluxSchema } from '@FluxServer/db/Schema'
 
 const schema = { ...authSchema, ...fluxSchema }
 
@@ -23,4 +21,4 @@ const createDatabase = (databaseUrl: string) => {
 
 export type { FluxDatabase }
 
-export default { createDatabase, schema }
+export { createDatabase, schema }

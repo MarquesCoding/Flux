@@ -93,4 +93,4 @@ const CUE_LINE_CLEAR = 92
  */
 const CUE_LINE_ABOVE_CONTROLS = 80
 
-export default { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS }
+export { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS }

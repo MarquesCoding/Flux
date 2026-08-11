@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import formatDurationModule from './formatDuration'
-
-const { formatDuration } = formatDurationModule
+import { formatDuration } from './formatDuration'
 
 describe('formatDuration', () => {
   it('formats a duration under a minute', () => {

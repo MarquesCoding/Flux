@@ -194,4 +194,4 @@ const promptForDevice = async (element: HTMLVideoElement): Promise<PromptOutcome
 
 export type { PromptOutcome }
 
-export default { isReachableOrigin, absoluteStreamUrl, watchCastState, promptForDevice, OWN_NAMES }
+export { isReachableOrigin, absoluteStreamUrl, watchCastState, promptForDevice, OWN_NAMES }

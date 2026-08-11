@@ -1,9 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import AppModule from './components/App/App'
+import { App } from './components/App/App'
 import './styles/main.css'
-
-const { App } = AppModule
 
 const container = document.querySelector('#root')
 

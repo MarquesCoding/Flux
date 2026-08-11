@@ -36,7 +36,7 @@ type SegmentSource = z.infer<typeof SegmentSourceSchema>
 
 export type { MediaSegment, SegmentKind, SegmentSource }
 
-export default {
+export {
   MediaSegmentSchema,
   SegmentKindSchema,
   SegmentSourceSchema,

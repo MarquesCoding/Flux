@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import PluginManifestModule from './PluginManifest'
-
-const { PluginManifestSchema } = PluginManifestModule
+import { PluginManifestSchema } from './PluginManifest'
 
 const validManifest = {
   id: 'tmdb-metadata',

@@ -1,14 +1,10 @@
 import { memoryAdapter } from 'better-auth/adapters/memory'
-import AuthModule from './Auth'
+import { createAuth } from './Auth'
 import type { FluxAuth } from './Auth'
-import EnvModule from '@FluxServer/env/Env'
+import { readEnv } from '@FluxServer/env/Env'
 import type { Env } from '@FluxServer/env/Env'
-import createMemorySettingsStoreModule from '@FluxServer/settings/createMemorySettingsStore'
+import { createMemorySettingsStore } from '@FluxServer/settings/createMemorySettingsStore'
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
-
-const { createAuth } = AuthModule
-const { readEnv } = EnvModule
-const { createMemorySettingsStore } = createMemorySettingsStoreModule
 
 const TEST_SECRET = 'flux-test-secret-value-at-least-32-chars'
 
@@ -77,4 +73,4 @@ const createMemoryAuth = (
   return { auth, settings, profiles, resetLinks }
 }
 
-export default { createMemoryAuth, TEST_SECRET }
+export { createMemoryAuth, TEST_SECRET }

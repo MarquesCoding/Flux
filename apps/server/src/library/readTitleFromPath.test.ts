@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import readTitleFromPathModule from './readTitleFromPath'
-
-const { isMediaFile, readTitleFromPath } = readTitleFromPathModule
+import { isMediaFile, readTitleFromPath } from './readTitleFromPath'
 
 describe('isMediaFile', () => {
   it('accepts the containers Flux plays', () => {

@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import SkeletonModule from './Skeleton'
-
-const { Skeleton } = SkeletonModule
+import { Skeleton } from './Skeleton'
 
 describe('Skeleton', () => {
   it('says nothing to a screen reader by default', () => {

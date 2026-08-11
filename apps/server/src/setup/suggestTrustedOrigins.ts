@@ -22,4 +22,4 @@ const suggestTrustedOrigins = (detectedOrigin: string): string[] => {
   return [...new Set(suggestions)]
 }
 
-export default { suggestTrustedOrigins, WEB_DEV_PORT }
+export { suggestTrustedOrigins, WEB_DEV_PORT }

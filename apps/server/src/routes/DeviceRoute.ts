@@ -99,4 +99,4 @@ const endOtherDevicesRoute = createRoute({
   },
 })
 
-export default { listDevicesRoute, endDeviceRoute, endOtherDevicesRoute }
+export { listDevicesRoute, endDeviceRoute, endOtherDevicesRoute }

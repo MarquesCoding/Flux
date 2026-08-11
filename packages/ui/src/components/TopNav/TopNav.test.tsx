@@ -1,9 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import TopNavModule from './TopNav'
-
-const { TopNav } = TopNavModule
+import { TopNav } from './TopNav'
 
 const items = [
   { id: 'home', label: 'Home', icon: <span data-testid="home-icon" /> },

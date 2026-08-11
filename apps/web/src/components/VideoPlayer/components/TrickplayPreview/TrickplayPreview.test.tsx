@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import TrickplayPreviewModule from './TrickplayPreview'
+import { TrickplayPreview } from './TrickplayPreview'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
-
-const { TrickplayPreview } = TrickplayPreviewModule
 
 const trickplay: Trickplay = {
   width: 320,

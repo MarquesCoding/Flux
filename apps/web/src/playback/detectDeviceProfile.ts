@@ -1,7 +1,5 @@
-import DeviceProfileModule from '@FluxContracts/schemas/DeviceProfile'
+import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile'
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile'
-
-const { DeviceProfileSchema } = DeviceProfileModule
 
 type CodecProbe = (mimeType: string) => boolean
 
@@ -130,4 +128,4 @@ const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
 
 export type { CodecProbe, DetectDeviceProfileOptions }
 
-export default { detectDeviceProfile, detectFromBrowser, VIDEO_PROBES, AUDIO_PROBES }
+export { detectDeviceProfile, detectFromBrowser, VIDEO_PROBES, AUDIO_PROBES }

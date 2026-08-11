@@ -1,13 +1,11 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import HeroModule from './Hero'
+import { Hero } from './Hero'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 
-const { Hero } = HeroModule
-
 vi.mock('@FluxWeb/components/MediaPreview/MediaPreview', () => ({
-  default: { MediaPreview: () => <div>preview</div> },
+  MediaPreview: () => <div>preview</div>,
 }))
 
 const item = (id: string, title: string): MediaSummary => ({

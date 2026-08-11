@@ -5,20 +5,17 @@ import {
   IconVolume,
   IconVolumeOff,
 } from '@tabler/icons-react'
-import VideoSurfaceModule from '@FluxUI/VideoSurface'
-import IconButtonModule from '@FluxUI/IconButton'
-import frameUrlModule from '@FluxWeb/playback/frameUrl'
-import readLightsModule from '@FluxWeb/library/readLights'
-import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
-import liftCuesModule from '@FluxWeb/playback/liftCues'
+import { VideoSurface } from '@FluxUI/VideoSurface'
+import { IconButton } from '@FluxUI/IconButton'
+import { frameUrl } from '@FluxWeb/playback/frameUrl'
+import { readLights } from '@FluxWeb/library/readLights'
+import {
+  fetchSubtitleTracks,
+  subtitleTrackUrl,
+  previewTrack,
+} from '@FluxWeb/playback/fetchSubtitles'
+import { liftCues } from '@FluxWeb/playback/liftCues'
 import type { MediaPreviewProps } from './MediaPreview.types'
-
-const { VideoSurface } = VideoSurfaceModule
-const { IconButton } = IconButtonModule
-const { frameUrl } = frameUrlModule
-const { readLights } = readLightsModule
-const { fetchSubtitleTracks, subtitleTrackUrl, previewTrack } = fetchSubtitlesModule
-const { liftCues } = liftCuesModule
 
 /**
  * How long the page waits before starting anything.
@@ -387,4 +384,4 @@ const MediaPreview = ({
 
 MediaPreview.displayName = 'MediaPreview'
 
-export default { MediaPreview }
+export { MediaPreview }

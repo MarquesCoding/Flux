@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toDataURL } from 'qrcode'
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { QrCodeProps } from './QrCode.types'
-
-const { cn } = cnModule
 
 const DEFAULT_SIZE = 192
 
@@ -63,4 +61,4 @@ const QrCode = ({ value, label, size = DEFAULT_SIZE, className }: QrCodeProps) =
 
 QrCode.displayName = 'QrCode'
 
-export default { QrCode }
+export { QrCode }

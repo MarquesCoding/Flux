@@ -1,6 +1,4 @@
-import castPlaybackModule from '@FluxWeb/playback/castPlayback'
-
-const { absoluteStreamUrl } = castPlaybackModule
+import { absoluteStreamUrl } from '@FluxWeb/playback/castPlayback'
 
 type HandOverOptions = {
   element: HTMLVideoElement
@@ -57,4 +55,4 @@ const handOverToDevice = async ({
   return true
 }
 
-export default { handOverToDevice }
+export { handOverToDevice }

@@ -306,7 +306,7 @@ const agreeRange = (candidates: Range[], toleranceSeconds = 4): Range | null => 
 
 export type { CompareOptions, Range, SharedAudio }
 
-export default {
+export {
   findSharedAudio,
   proposeOffsets,
   agreeRange,

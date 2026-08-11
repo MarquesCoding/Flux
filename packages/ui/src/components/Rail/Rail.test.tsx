@@ -1,9 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import RailModule from './Rail'
-
-const { Rail } = RailModule
+import { Rail } from './Rail'
 
 /**
  * jsdom lays nothing out, so how much a row overflows has to be described.

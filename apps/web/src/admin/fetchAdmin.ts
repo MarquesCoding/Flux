@@ -151,4 +151,4 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
 
 export type { AdminOverview, Job, Monitor }
 
-export default { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey }
+export { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey }

@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
-import createCatalogueMetadataProviderModule from './createCatalogueMetadataProvider'
+import {
+  createCatalogueMetadataProvider,
+  readYear,
+  imageUrl,
+} from './createCatalogueMetadataProvider'
 import type { Fetcher } from './createCatalogueMetadataProvider'
 import type { MediaFacts } from './MetadataProvider'
 import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { createCatalogueMetadataProvider, readYear, imageUrl } =
-  createCatalogueMetadataProviderModule
 
 const probe: MediaProbe = {
   container: 'mkv',

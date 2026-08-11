@@ -1,11 +1,8 @@
 import { eq } from 'drizzle-orm'
-import SchemaModule from '@FluxServer/db/Schema'
-import ServerSettingsModule from './ServerSettings'
+import { serverSetting } from '@FluxServer/db/Schema'
+import { ServerSettingsSchema, SETTINGS_KEY } from './ServerSettings'
 import type { ServerSettings, SettingsStore } from './ServerSettings'
 import type { FluxDatabase } from '@FluxServer/db/Database'
-
-const { serverSetting } = SchemaModule
-const { ServerSettingsSchema, SETTINGS_KEY } = ServerSettingsModule
 
 type CreateDatabaseSettingsStoreOptions = {
   db: FluxDatabase
@@ -59,4 +56,4 @@ const createDatabaseSettingsStore = ({
   return { read, write }
 }
 
-export default { createDatabaseSettingsStore }
+export { createDatabaseSettingsStore }

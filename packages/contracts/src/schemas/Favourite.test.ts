@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import FavouriteContract from './Favourite'
-
-const { FavouriteSchema, FavouriteListSchema } = FavouriteContract
+import { FavouriteSchema, FavouriteListSchema } from './Favourite'
 
 const kept = {
   mediaId: '9c858901-8a57-4791-81fe-4c455b099bc9',

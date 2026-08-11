@@ -1,13 +1,8 @@
-import ButtonModule from '@FluxUI/Button'
-import SliderModule from '@FluxUI/Slider'
-import CaptionChoiceModule from './components/CaptionChoice/CaptionChoice'
-import captionStyleModule from '@FluxWeb/playback/captionStyle'
+import { Button } from '@FluxUI/Button'
+import { Slider } from '@FluxUI/Slider'
+import { CaptionChoice } from './components/CaptionChoice/CaptionChoice'
+import { toCueDeclarations } from '@FluxWeb/playback/captionStyle'
 import type { CaptionSettingsProps } from './CaptionSettings.types'
-
-const { Button } = ButtonModule
-const { Slider } = SliderModule
-const { CaptionChoice } = CaptionChoiceModule
-const { toCueDeclarations } = captionStyleModule
 
 const FONTS = [
   { id: 'sans', label: 'Sans serif' },
@@ -129,4 +124,4 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
 
 CaptionSettings.displayName = 'CaptionSettings'
 
-export default { CaptionSettings }
+export { CaptionSettings }

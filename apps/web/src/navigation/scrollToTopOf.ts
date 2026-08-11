@@ -35,4 +35,4 @@ const scrollToTopOf = (from: HTMLElement | null, isSmooth = true): void => {
   window.scrollTo({ top: 0, behavior: isSmooth ? 'smooth' : 'auto' })
 }
 
-export default { scrollToTopOf }
+export { scrollToTopOf }

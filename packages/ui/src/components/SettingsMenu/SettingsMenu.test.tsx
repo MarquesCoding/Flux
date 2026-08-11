@@ -1,10 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import SettingsMenuModule from './SettingsMenu'
+import { SettingsMenu } from './SettingsMenu'
 import type { SettingsRow } from './SettingsMenu.types'
-
-const { SettingsMenu } = SettingsMenuModule
 
 const SPEED: SettingsRow = {
   kind: 'choice',

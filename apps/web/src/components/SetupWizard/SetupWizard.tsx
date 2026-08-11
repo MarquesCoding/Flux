@@ -1,15 +1,10 @@
 import { useState } from 'react'
 import { IconLock, IconLockOpen } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import CheckboxModule from '@FluxUI/Checkbox'
-import TextFieldModule from '@FluxUI/TextField'
-import validateSetupFormModule from './validateSetupForm'
+import { Button } from '@FluxUI/Button'
+import { Checkbox } from '@FluxUI/Checkbox'
+import { TextField } from '@FluxUI/TextField'
+import { validateSetupForm, parseOrigins } from './validateSetupForm'
 import type { SetupFormErrors, SetupWizardProps } from './SetupWizard.types'
-
-const { Button } = ButtonModule
-const { Checkbox } = CheckboxModule
-const { TextField } = TextFieldModule
-const { validateSetupForm, parseOrigins } = validateSetupFormModule
 
 /**
  * First-run setup.
@@ -158,4 +153,4 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
 
 SetupWizard.displayName = 'SetupWizard'
 
-export default { SetupWizard }
+export { SetupWizard }

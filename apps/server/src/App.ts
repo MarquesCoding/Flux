@@ -1,39 +1,17 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi'
 import { apiReference } from '@scalar/hono-api-reference'
-import suggestTrustedOriginsModule from '@FluxServer/setup/suggestTrustedOrigins'
+import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins'
 import type { FluxAuth } from '@FluxServer/auth/Auth'
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
-import LibraryServiceModule from '@FluxServer/library/LibraryService'
+import { DEFAULT_LIMIT } from '@FluxServer/library/LibraryService'
 import type { LibraryService } from '@FluxServer/library/LibraryService'
 import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService'
 import type { SegmentService } from '@FluxServer/segments/SegmentService'
 import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService'
 import type { FavouriteService } from '@FluxServer/favourites/FavouriteService'
 import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
-import HealthRouteModule from './routes/HealthRoute'
-import LibraryRouteModule from './routes/LibraryRoute'
-import PlaybackRouteModule from './routes/PlaybackRoute'
-import ImageRouteModule from '@FluxServer/routes/ImageRoute'
-import SegmentRouteModule from '@FluxServer/routes/SegmentRoute'
-import ProgressRouteModule from '@FluxServer/routes/ProgressRoute'
-import FavouriteRouteModule from '@FluxServer/routes/FavouriteRoute'
-import AdminRouteModule from '@FluxServer/routes/AdminRoute'
-import DeviceRouteModule from '@FluxServer/routes/DeviceRoute'
-import describeDeviceModule from '@FluxServer/account/describeDevice'
-import ProfileRouteModule from '@FluxServer/routes/ProfileRoute'
-import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
-import SetupRouteModule from './routes/SetupRoute'
-import JsonValueModule from '@FluxContracts/schemas/JsonValue'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-import drawAvatarModule from '@FluxServer/profiles/drawAvatar'
-import shiftWebVttModule from '@FluxCore/functions/shiftWebVtt'
-import type { ProfileService } from '@FluxServer/profiles/ProfileService'
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { suggestTrustedOrigins } = suggestTrustedOriginsModule
-const { healthRoute } = HealthRouteModule
-const { DEFAULT_LIMIT } = LibraryServiceModule
-const {
+import { healthRoute } from './routes/HealthRoute'
+import {
   listLibrariesRoute,
   createLibraryRoute,
   listItemsRoute,
@@ -43,8 +21,8 @@ const {
   resetLibraryRoute,
   listShowsRoute,
   getShowRoute,
-} = LibraryRouteModule
-const {
+} from './routes/LibraryRoute'
+import {
   explainRoute,
   startRoute,
   sessionFileRoute,
@@ -53,32 +31,46 @@ const {
   trickplayFileRoute,
   frameRoute,
   stopRoute,
-} = PlaybackRouteModule
-const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
-const { listSubtitlesRoute, readSubtitleRoute } = SubtitleRouteModule
-const { mediaImageRoute } = ImageRouteModule
-const { listSegmentsRoute } = SegmentRouteModule
-const { listProgressRoute, recordProgressRoute, forgetProgressRoute } = ProgressRouteModule
-const { listFavouritesRoute, keepFavouriteRoute, dropFavouriteRoute } = FavouriteRouteModule
-const { adminOverviewRoute, adminSettingsRoute } = AdminRouteModule
-const { listDevicesRoute, endDeviceRoute, endOtherDevicesRoute } = DeviceRouteModule
-const { describeDevice } = describeDeviceModule
-const {
+} from './routes/PlaybackRoute'
+import { mediaImageRoute } from '@FluxServer/routes/ImageRoute'
+import { listSegmentsRoute } from '@FluxServer/routes/SegmentRoute'
+import {
+  listProgressRoute,
+  recordProgressRoute,
+  forgetProgressRoute,
+} from '@FluxServer/routes/ProgressRoute'
+import {
+  listFavouritesRoute,
+  keepFavouriteRoute,
+  dropFavouriteRoute,
+} from '@FluxServer/routes/FavouriteRoute'
+import { adminOverviewRoute, adminSettingsRoute } from '@FluxServer/routes/AdminRoute'
+import {
+  listDevicesRoute,
+  endDeviceRoute,
+  endOtherDevicesRoute,
+} from '@FluxServer/routes/DeviceRoute'
+import { describeDevice } from '@FluxServer/account/describeDevice'
+import {
   listProfilesRoute,
   createProfileRoute,
   updateProfileRoute,
   deleteProfileRoute,
   promoteProfileRoute,
-} = ProfileRouteModule
+} from '@FluxServer/routes/ProfileRoute'
+import { listSubtitlesRoute, readSubtitleRoute } from '@FluxServer/routes/SubtitleRoute'
+import { setupStatusRoute, setupCompleteRoute } from './routes/SetupRoute'
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+import { drawAvatar, isAvatarStyle } from '@FluxServer/profiles/drawAvatar'
+import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt'
+import type { ProfileService } from '@FluxServer/profiles/ProfileService'
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 
 /**
  * The header a browser names the watching profile in.
  */
 const PROFILE_HEADER = 'x-flux-profile'
-
-const { drawAvatar, isAvatarStyle } = drawAvatarModule
-const { shiftWebVtt } = shiftWebVttModule
-const { JsonValueSchema } = JsonValueModule
 
 /**
  * Reads a single byte range out of a request.
@@ -1140,4 +1132,4 @@ const createApp = ({
 
 export type { CreateAppOptions }
 
-export default { createApp, SERVER_VERSION }
+export { createApp, SERVER_VERSION }

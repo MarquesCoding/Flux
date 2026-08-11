@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import captionStyleModule from './captionStyle'
-
-const { toCueCss, withOpacity, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } =
-  captionStyleModule
+import {
+  toCueCss,
+  withOpacity,
+  readCaptionStyle,
+  saveCaptionStyle,
+  DEFAULT_CAPTION_STYLE,
+} from './captionStyle'
 
 afterEach(() => {
   vi.unstubAllGlobals()

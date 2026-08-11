@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import createMemoryWatchProgressServiceModule from './createMemoryWatchProgressService'
-
-const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
+import { createMemoryWatchProgressService } from './createMemoryWatchProgressService'
 
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9'
 const OTHER_ID = '00000000-0000-4000-8000-000000000001'

@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import findSidecarSubtitlesModule from './findSidecarSubtitles'
+import {
+  findSidecarSubtitles,
+  describeTags,
+  describeLabel,
+  splitName,
+} from './findSidecarSubtitles'
 import type { SidecarFile } from './findSidecarSubtitles'
-
-const { findSidecarSubtitles, describeTags, describeLabel, splitName } = findSidecarSubtitlesModule
 
 const file = (name: string): SidecarFile => ({ path: `/media/films/${name}`, name })
 

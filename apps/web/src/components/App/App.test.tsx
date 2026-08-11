@@ -1,10 +1,8 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import AppModule from './App'
+import { App } from './App'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { App } = AppModule
 
 type FetchLike = (
   input: string,

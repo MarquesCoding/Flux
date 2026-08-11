@@ -1,7 +1,5 @@
 import { z } from 'zod'
-import SessionModule from './Session'
-
-const { SessionUserSchema } = SessionModule
+import { SessionUserSchema } from './Session'
 
 /**
  * What better-auth returns when two-factor is first enabled.
@@ -30,8 +28,4 @@ export type TwoFactorEnableResponse = z.infer<typeof TwoFactorEnableResponseSche
 export type TwoFactorVerifyResponse = z.infer<typeof TwoFactorVerifyResponseSchema>
 export type TwoFactorMethod = z.infer<typeof TwoFactorMethodSchema>
 
-export default {
-  TwoFactorEnableResponseSchema,
-  TwoFactorVerifyResponseSchema,
-  TwoFactorMethodSchema,
-}
+export { TwoFactorEnableResponseSchema, TwoFactorVerifyResponseSchema, TwoFactorMethodSchema }

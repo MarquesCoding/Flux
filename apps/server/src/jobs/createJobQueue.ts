@@ -1,10 +1,8 @@
 import { PgBoss } from 'pg-boss'
 import type { Job } from 'pg-boss'
-import JobQueueModule from './JobQueue'
+import { SCAN_LIBRARY_JOB, ScanLibraryJobSchema } from './JobQueue'
 import type { JobProgress, JobQueue, JobState } from './JobQueue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { SCAN_LIBRARY_JOB, ScanLibraryJobSchema } = JobQueueModule
 
 type CreateJobQueueOptions = {
   connectionString: string
@@ -115,4 +113,4 @@ const createJobQueue = async ({
   }
 }
 
-export default { createJobQueue, PG_BOSS_STATES }
+export { createJobQueue, PG_BOSS_STATES }

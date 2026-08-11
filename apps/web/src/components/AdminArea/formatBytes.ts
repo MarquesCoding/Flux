@@ -18,4 +18,4 @@ const formatBytes = (bytes: number): string => {
   return `${value < 10 && step > 0 ? value.toFixed(1) : Math.round(value).toString()} ${UNITS[step] ?? 'B'}`
 }
 
-export default { formatBytes }
+export { formatBytes }

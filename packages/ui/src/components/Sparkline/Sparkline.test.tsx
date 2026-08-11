@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import SparklineModule from './Sparkline'
-
-const { Sparkline } = SparklineModule
+import { Sparkline } from './Sparkline'
 
 const columnsOf = (): HTMLElement[] =>
   Array.from(screen.getByRole('img').children).filter(

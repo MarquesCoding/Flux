@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import readLocationModule from './readLocation'
+import { readLocation, writeLocation } from './readLocation'
 import type { Place } from './readLocation'
-
-const { readLocation, writeLocation } = readLocationModule
 
 /**
  * Where the application is, kept in the address bar.
@@ -71,4 +69,4 @@ const usePlace = (): {
   }
 }
 
-export default { usePlace }
+export { usePlace }

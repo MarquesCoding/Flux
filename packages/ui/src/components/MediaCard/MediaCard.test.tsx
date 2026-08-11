@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import MediaCardModule from './MediaCard'
-
-const { MediaCard } = MediaCardModule
+import { MediaCard } from './MediaCard'
 
 describe('MediaCard', () => {
   it('is a single button covering the whole tile', async () => {

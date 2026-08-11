@@ -1,7 +1,5 @@
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { PageDotsProps } from './PageDots.types'
-
-const { cn } = cnModule
 
 /**
  * Which of several things is showing, and a way to any of the others.
@@ -66,4 +64,4 @@ const PageDots = ({ count, selectedIndex, onSelect, labels, label, className }: 
 
 PageDots.displayName = 'PageDots'
 
-export default { PageDots }
+export { PageDots }

@@ -1,8 +1,6 @@
-import showSlugModule from '@FluxCore/functions/showSlug'
+import { showSlug } from '@FluxCore/functions/showSlug'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show'
-
-const { showSlug } = showSlugModule
 
 /**
  * Reads a timestamp, treating anything unreadable as long ago.
@@ -140,4 +138,4 @@ const buildShowDetail = (items: MediaSummary[], showId: string): ShowDetail | nu
   }
 }
 
-export default { groupIntoShows, buildShowDetail, describeShow, inBroadcastOrder }
+export { groupIntoShows, buildShowDetail, describeShow, inBroadcastOrder }

@@ -1,10 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { and, desc, eq } from 'drizzle-orm'
-import SchemaModule from '@FluxServer/db/Schema'
+import { favourite } from '@FluxServer/db/Schema'
 import type { FluxDatabase } from '@FluxServer/db/Database'
 import type { FavouriteService } from './FavouriteService'
-
-const { favourite } = SchemaModule
 
 /**
  * How many kept items are worth carrying to a browser.
@@ -55,4 +53,4 @@ const createDatabaseFavouriteService = (db: FluxDatabase): FavouriteService => (
   },
 })
 
-export default { createDatabaseFavouriteService, LIMIT }
+export { createDatabaseFavouriteService, LIMIT }

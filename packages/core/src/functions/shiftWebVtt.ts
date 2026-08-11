@@ -85,4 +85,4 @@ const shiftWebVtt = (content: string, seconds: number): string => {
   return kept.join('\n')
 }
 
-export default { shiftWebVtt, readTimestamp, writeTimestamp }
+export { shiftWebVtt, readTimestamp, writeTimestamp }

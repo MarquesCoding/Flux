@@ -1,9 +1,6 @@
-import describeTrackModule from '@FluxCore/functions/describeTrack'
-import SubtitleServiceModule from './SubtitleService'
+import { describeLanguage, readLanguage } from '@FluxCore/functions/describeTrack'
+import { trackId } from './SubtitleService'
 import type { SubtitleService, SubtitleTrack } from './SubtitleService'
-
-const { describeLanguage, readLanguage } = describeTrackModule
-const { trackId } = SubtitleServiceModule
 
 /**
  * Marks a title puts on a track that carries more than dialogue.
@@ -155,4 +152,4 @@ const createEmbeddedSubtitleService = ({
 
 export type { CreateEmbeddedSubtitleServiceOptions, EmbeddedLookup, EmbeddedStream }
 
-export default { createEmbeddedSubtitleService, describeSubtitle, marksHearingImpaired }
+export { createEmbeddedSubtitleService, describeSubtitle, marksHearingImpaired }

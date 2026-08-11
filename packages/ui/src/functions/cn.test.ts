@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import cnModule from './cn'
-
-const { cn } = cnModule
+import { cn } from './cn'
 
 describe('cn', () => {
   it('joins plain class names', () => {

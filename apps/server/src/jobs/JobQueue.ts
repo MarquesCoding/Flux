@@ -61,4 +61,4 @@ type JobQueue = {
 
 export type { JobProgress, JobQueue, JobState, ScanLibraryJob }
 
-export default { SCAN_LIBRARY_JOB, ScanLibraryJobSchema, JobStateSchema }
+export { SCAN_LIBRARY_JOB, ScanLibraryJobSchema, JobStateSchema }

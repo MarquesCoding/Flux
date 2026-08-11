@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import readPlaybackHealthModule from './readPlaybackHealth'
-
-const { readPlaybackHealth, encodedSeconds, bufferedAhead } = readPlaybackHealthModule
+import { readPlaybackHealth, encodedSeconds, bufferedAhead } from './readPlaybackHealth'
 
 type Range = { start: number; end: number }
 

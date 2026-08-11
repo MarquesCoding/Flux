@@ -149,7 +149,7 @@ const toWebVtt = (source: string, format: string): string => {
   return fromSubRip(source)
 }
 
-export default {
+export {
   toWebVtt,
   fromSubRip,
   fromAdvancedSubStation,

@@ -2,9 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { IconPlayerPlay } from '@tabler/icons-react'
-import IconButtonModule from './IconButton'
-
-const { IconButton } = IconButtonModule
+import { IconButton } from './IconButton'
 
 describe('IconButton', () => {
   it('names itself for anyone who cannot see the icon', () => {

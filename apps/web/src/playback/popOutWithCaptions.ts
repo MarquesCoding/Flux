@@ -200,4 +200,4 @@ const popOutWithCaptions = async (video: HTMLVideoElement): Promise<PoppedOut | 
 
 export type { PoppedOut }
 
-export default { popOutWithCaptions, currentLines }
+export { popOutWithCaptions, currentLines }

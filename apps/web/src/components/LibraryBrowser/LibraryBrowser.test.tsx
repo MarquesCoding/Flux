@@ -1,19 +1,15 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import LibraryBrowserModule from './LibraryBrowser'
+import { LibraryBrowser } from './LibraryBrowser'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { LibraryBrowser } = LibraryBrowserModule
 
 const fetchLibrariesMock = vi.hoisted(() => vi.fn())
 const fetchItemsMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
-  default: {
-    fetchLibraries: fetchLibrariesMock,
-    fetchLibraryItems: fetchItemsMock,
-  },
+  fetchLibraries: fetchLibrariesMock,
+  fetchLibraryItems: fetchItemsMock,
 }))
 
 const films: Library = {

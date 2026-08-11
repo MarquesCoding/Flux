@@ -1,11 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import JsonValueModule from '@FluxContracts/schemas/JsonValue'
-import fetchAdminModule from './fetchAdmin'
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
+import { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey } from './fetchAdmin'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 import type { Monitor } from './fetchAdmin'
-
-const { JsonValueSchema } = JsonValueModule
-const { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey } = fetchAdminModule
 
 type Answer = { ok: boolean; json: () => Promise<JsonValue> }
 

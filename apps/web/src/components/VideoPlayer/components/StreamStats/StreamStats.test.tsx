@@ -1,12 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import StreamStatsModule from './StreamStats'
+import { StreamStats } from './StreamStats'
 import type { PlaybackHealth, StreamStatsProps } from './StreamStats.types'
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
-
-const { StreamStats } = StreamStatsModule
 
 const reason: Reason = {
   code: 'VideoCodecNotSupported',

@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import TextFieldModule from './TextField'
-
-const { TextField } = TextFieldModule
+import { TextField } from './TextField'
 
 const Harness = ({ label = 'Email' }: { label?: string }) => {
   const [value, setValue] = useState('')

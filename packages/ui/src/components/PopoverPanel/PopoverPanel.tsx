@@ -1,10 +1,7 @@
 import { Popover } from '@base-ui-components/react/popover'
-import cnModule from '@FluxUI/cn'
-import TooltipModule from '@FluxUI/Tooltip'
+import { cn } from '@FluxUI/cn'
+import { Tooltip } from '@FluxUI/Tooltip'
 import type { PopoverPanelProps } from './PopoverPanel.types'
-
-const { cn } = cnModule
-const { Tooltip } = TooltipModule
 
 /**
  * A panel of glass hung off a control.
@@ -71,4 +68,4 @@ const PopoverPanel = ({
 
 PopoverPanel.displayName = 'PopoverPanel'
 
-export default { PopoverPanel }
+export { PopoverPanel }

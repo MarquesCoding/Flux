@@ -1,22 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import revealModule from '@FluxUI/animations/reveal'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
-import cnModule from '@FluxUI/cn'
-import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
-import MediaFactsModule from '@FluxWeb/components/MediaFacts/MediaFacts'
-import PageDotsModule from '@FluxUI/PageDots'
+import { Button } from '@FluxUI/Button'
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
+import { formatDuration } from '@FluxCore/functions/formatDuration'
+import { cn } from '@FluxUI/cn'
+import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview'
+import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts'
+import { PageDots } from '@FluxUI/PageDots'
 import type { HeroProps } from './Hero.types'
-
-const { Button } = ButtonModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { formatDuration } = formatDurationModule
-const { MediaPreview } = MediaPreviewModule
-const { MediaFacts } = MediaFactsModule
-const { PageDots } = PageDotsModule
-const { cn } = cnModule
 
 /**
  * How much scrolling the hero holds on to before the page moves on.
@@ -331,4 +323,4 @@ const Hero = ({
 
 Hero.displayName = 'Hero'
 
-export default { Hero }
+export { Hero }

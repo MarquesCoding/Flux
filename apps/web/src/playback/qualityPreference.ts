@@ -1,7 +1,5 @@
 import { z } from 'zod'
-import QualityStepModule from '@FluxContracts/schemas/QualityStep'
-
-const { QUALITY_STEP_IDS } = QualityStepModule
+import { QUALITY_STEP_IDS } from '@FluxContracts/schemas/QualityStep'
 
 const QualityPreferenceSchema = z.enum(['original', ...QUALITY_STEP_IDS])
 
@@ -50,7 +48,7 @@ const saveQualityPreference = (preference: QualityPreference): void => {
 
 export type { QualityPreference }
 
-export default {
+export {
   QualityPreferenceSchema,
   DEFAULT_QUALITY_PREFERENCE,
   STORAGE_KEY,

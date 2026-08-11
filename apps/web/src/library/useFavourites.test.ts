@@ -1,17 +1,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import useFavouritesModule from './useFavourites'
-
-const { useFavourites } = useFavouritesModule
+import { useFavourites } from './useFavourites'
 
 const fetchFavourites = vi.fn<() => Promise<string[]>>()
 const setFavourite = vi.fn<(mediaId: string, isKept: boolean) => Promise<boolean>>()
 
 vi.mock('@FluxWeb/library/fetchFavourites', () => ({
-  default: {
-    fetchFavourites: () => fetchFavourites(),
-    setFavourite: (mediaId: string, isKept: boolean) => setFavourite(mediaId, isKept),
-  },
+  fetchFavourites: () => fetchFavourites(),
+  setFavourite: (mediaId: string, isKept: boolean) => setFavourite(mediaId, isKept),
 }))
 
 beforeEach(() => {

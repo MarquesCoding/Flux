@@ -63,4 +63,4 @@ const endOtherDevices = async (): Promise<boolean> => {
 
 export type { Device }
 
-export default { fetchDevices, endDevice, endOtherDevices }
+export { fetchDevices, endDevice, endOtherDevices }

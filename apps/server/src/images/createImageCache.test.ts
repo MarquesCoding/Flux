@@ -2,10 +2,8 @@ import { mkdtemp, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import createImageCacheModule from './createImageCache'
+import { createImageCache } from './createImageCache'
 import type { ImageFetcher } from './createImageCache'
-
-const { createImageCache } = createImageCacheModule
 
 const POSTER = 'https://images.test/w500/poster.jpg'
 

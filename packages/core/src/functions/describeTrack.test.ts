@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import describeTrackModule from './describeTrack'
+import {
+  describeAudioTrack,
+  describeLanguage,
+  describeChannels,
+  readLanguage,
+} from './describeTrack'
 import type { AudioTrackFacts } from './describeTrack'
-
-const { describeAudioTrack, describeLanguage, describeChannels, readLanguage } = describeTrackModule
 
 const track = (overrides: Partial<AudioTrackFacts> = {}): AudioTrackFacts => ({
   index: 1,

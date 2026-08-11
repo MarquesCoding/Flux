@@ -234,7 +234,7 @@ const describeAudioTrack = (track: AudioTrackFacts, position: number): string =>
 
 export type { AudioTrackFacts }
 
-export default {
+export {
   describeAudioTrack,
   describeLanguage,
   describeChannels,

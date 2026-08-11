@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import groupIntoRailsModule from './groupIntoRails'
+import { groupIntoRails, describeSeason, inBroadcastOrder } from './groupIntoRails'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { groupIntoRails, describeSeason, inBroadcastOrder } = groupIntoRailsModule
 
 const NOW = Date.parse('2026-08-10T00:00:00.000Z')
 

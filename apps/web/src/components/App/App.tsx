@@ -3,68 +3,43 @@ import type { ShowSummary } from '@FluxContracts/schemas/Show'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
-import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
-import SearchAreaModule from '@FluxWeb/components/SearchArea/SearchArea'
-import BrowseAreaModule from '@FluxWeb/components/BrowseArea/BrowseArea'
-import ShowDialogModule from '@FluxWeb/components/ShowDialog/ShowDialog'
-import fetchShowsModule from '@FluxWeb/library/fetchShows'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import showSlugModule from '@FluxCore/functions/showSlug'
-import useFavouritesModule from '@FluxWeb/library/useFavourites'
-import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
-import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
-import currentProfileModule from '@FluxWeb/profiles/currentProfile'
-import pickAnythingModule from '@FluxWeb/library/pickAnything'
-import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
-import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
-import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
-import SplashScreenModule from '@FluxUI/SplashScreen'
-import AdminAreaModule from '@FluxWeb/components/AdminArea/AdminArea'
-import AccountAreaModule from '@FluxWeb/components/AccountArea/AccountArea'
-import ProfileGateModule from '@FluxWeb/components/ProfileGate/ProfileGate'
-import usePlaceModule from '@FluxWeb/navigation/usePlace'
-import pickFeaturedModule from '@FluxWeb/library/pickFeatured'
-import watchProgressModule from '@FluxWeb/playback/watchProgress'
-import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
+import { SetupWizard } from '@FluxWeb/components/SetupWizard/SetupWizard'
+import { LibraryBrowser } from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
+import { SearchArea } from '@FluxWeb/components/SearchArea/SearchArea'
+import { BrowseArea } from '@FluxWeb/components/BrowseArea/BrowseArea'
+import { ShowDialog } from '@FluxWeb/components/ShowDialog/ShowDialog'
+import { fetchShows } from '@FluxWeb/library/fetchShows'
+import { fetchLibraries } from '@FluxWeb/library/fetchLibrary'
+import { showSlug } from '@FluxCore/functions/showSlug'
+import { useFavourites } from '@FluxWeb/library/useFavourites'
+import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace'
+import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles'
+import { readCurrentProfile } from '@FluxWeb/profiles/currentProfile'
+import { pickAnything } from '@FluxWeb/library/pickAnything'
+import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer'
+import { MediaDetailDialog } from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
+import { AppShell } from '@FluxWeb/components/AppShell/AppShell'
+import { SplashScreen } from '@FluxUI/SplashScreen'
+import { AdminArea } from '@FluxWeb/components/AdminArea/AdminArea'
+import { AccountArea } from '@FluxWeb/components/AccountArea/AccountArea'
+import { ProfileGate } from '@FluxWeb/components/ProfileGate/ProfileGate'
+import { usePlace } from '@FluxWeb/navigation/usePlace'
+import { findSiblings, nextEpisode } from '@FluxWeb/library/pickFeatured'
+import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress'
+import {
+  isWorthResuming,
+  watchedFraction,
+  FINISHED_WITHIN_SECONDS,
+} from '@FluxContracts/schemas/WatchProgress'
 import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types'
-import fetchSessionModule from '@FluxWeb/session/fetchSession'
-import signOutModule from '@FluxWeb/session/signOut'
-import SetupModule from '@FluxContracts/schemas/Setup'
+import { fetchSession } from '@FluxWeb/session/fetchSession'
+import { signOut } from '@FluxWeb/session/signOut'
+import { SetupStatusSchema } from '@FluxContracts/schemas/Setup'
 import type { SetupStatus } from '@FluxContracts/schemas/Setup'
 import type { SessionUser } from '@FluxContracts/schemas/Session'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 import type { AppProps } from './App.types'
-
-const { SetupWizard } = SetupWizardModule
-const { LibraryBrowser } = LibraryBrowserModule
-const { SearchArea } = SearchAreaModule
-const { BrowseArea } = BrowseAreaModule
-const { ShowDialog } = ShowDialogModule
-const { fetchShows } = fetchShowsModule
-const { fetchLibraries } = fetchLibraryModule
-const { showSlug } = showSlugModule
-const { useFavourites } = useFavouritesModule
-const { ProfileFace } = ProfileFaceModule
-const { fetchProfiles } = fetchProfilesModule
-const { readCurrentProfile } = currentProfileModule
-const { pickAnything } = pickAnythingModule
-const { VideoPlayer } = VideoPlayerModule
-const { MediaDetailDialog } = MediaDetailDialogModule
-const { AppShell } = AppShellModule
-const { SplashScreen } = SplashScreenModule
-const { AdminArea } = AdminAreaModule
-const { AccountArea } = AccountAreaModule
-const { ProfileGate } = ProfileGateModule
-const { usePlace } = usePlaceModule
-const { findSiblings, nextEpisode } = pickFeaturedModule
-const { fetchWatchProgress, byMediaId } = watchProgressModule
-const { isWorthResuming, watchedFraction, FINISHED_WITHIN_SECONDS } = WatchProgressContract
-
-const { fetchSession } = fetchSessionModule
-const { signOut } = signOutModule
-const { SetupStatusSchema } = SetupModule
 
 type LoadState = 'loading' | 'ready' | 'unreachable'
 
@@ -567,4 +542,4 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
 App.displayName = 'App'
 
-export default { App }
+export { App }

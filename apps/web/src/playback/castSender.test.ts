@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import castSenderModule from './castSender'
+import { loadCastSender, castStateOf, castStream, SENDER_URL, RECEIVER } from './castSender'
 import type {
   CastCarrier,
   CastConnectionState,
@@ -9,8 +9,6 @@ import type {
   CastSession,
   ScriptHost,
 } from './castSender.types'
-
-const { loadCastSender, castStateOf, castStream, SENDER_URL, RECEIVER } = castSenderModule
 
 /**
  * The library as it presents itself once it has loaded: a global it installs,

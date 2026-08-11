@@ -1,21 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import AppModule from './App'
-import createMemoryAuthModule from './auth/createMemoryAuth'
-import createMemoryLibraryServiceModule from './library/createMemoryLibraryService'
-import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
-import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
-import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
-import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
-import createMemoryPlaybackServiceModule from './playback/createMemoryPlaybackService'
-
-const { createApp } = AppModule
-const { createMemoryAuth } = createMemoryAuthModule
-const { createMemoryLibraryService } = createMemoryLibraryServiceModule
-const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
-const { createMemorySubtitleService } = createMemorySubtitleServiceModule
-const { createMemorySegmentService } = createMemorySegmentServiceModule
-const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
-const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
+import { createApp } from './App'
+import { createMemoryAuth } from './auth/createMemoryAuth'
+import { createMemoryLibraryService } from './library/createMemoryLibraryService'
+import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService'
+import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService'
+import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService'
+import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService'
+import { createMemoryPlaybackService } from './playback/createMemoryPlaybackService'
 
 const { auth, settings } = createMemoryAuth()
 const app = createApp({

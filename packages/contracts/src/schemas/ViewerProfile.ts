@@ -115,7 +115,7 @@ type ProfileColour = z.infer<typeof ProfileColourSchema>
 
 export type { Avatar, AvatarStyle, ProfileColour, ViewerProfile, ViewerProfileRequest }
 
-export default {
+export {
   ViewerProfileSchema,
   ViewerProfileRequestSchema,
   ViewerProfileListSchema,

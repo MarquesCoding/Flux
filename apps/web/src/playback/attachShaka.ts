@@ -61,4 +61,4 @@ const attachShaka = async ({
 
 export type { AttachOptions, ShakaModule, ShakaPlayer }
 
-export default { attachShaka, loadShakaPlayer }
+export { attachShaka, loadShakaPlayer }

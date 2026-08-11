@@ -117,4 +117,4 @@ type PlayerControlsProps = {
 
 export type { AudioTrack, PlayerControlsProps }
 
-export default { SKIP_SECONDS, PLAYBACK_RATES }
+export { SKIP_SECONDS, PLAYBACK_RATES }

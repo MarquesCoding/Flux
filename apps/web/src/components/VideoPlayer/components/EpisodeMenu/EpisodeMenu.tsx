@@ -1,13 +1,9 @@
 import { useState } from 'react'
 import { IconArticle, IconArticleFilled } from '@tabler/icons-react'
-import PopoverPanelModule from '@FluxUI/PopoverPanel'
-import MediaCardModule from '@FluxUI/MediaCard'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
+import { PopoverPanel } from '@FluxUI/PopoverPanel'
+import { MediaCard } from '@FluxUI/MediaCard'
+import { formatDuration } from '@FluxCore/functions/formatDuration'
 import type { EpisodeMenuProps } from './EpisodeMenu.types'
-
-const { PopoverPanel } = PopoverPanelModule
-const { MediaCard } = MediaCardModule
-const { formatDuration } = formatDurationModule
 
 /**
  * Where an episode's picture comes from.
@@ -100,4 +96,4 @@ const EpisodeMenu = ({
 
 EpisodeMenu.displayName = 'EpisodeMenu'
 
-export default { EpisodeMenu }
+export { EpisodeMenu }

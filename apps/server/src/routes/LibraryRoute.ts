@@ -1,15 +1,19 @@
 import { createRoute, z } from '@hono/zod-openapi'
-import LibraryModule from '@FluxContracts/schemas/Library'
-import ShowModule from '@FluxContracts/schemas/Show'
-
-const { LibrarySchema, MediaSummarySchema, MediaDetailSchema, LIBRARY_KINDS } = LibraryModule
+import {
+  LibrarySchema,
+  MediaSummarySchema,
+  MediaDetailSchema,
+  LIBRARY_KINDS,
+} from '@FluxContracts/schemas/Library'
+import {
+  ShowListSchema as ShowListContract,
+  ShowDetailSchema as ShowDetailContract,
+} from '@FluxContracts/schemas/Show'
 
 const Library = LibrarySchema.openapi('Library')
 const MediaSummary = MediaSummarySchema.openapi('MediaSummary')
 const MediaDetail = MediaDetailSchema.openapi('MediaDetail')
 const NotFound = z.object({ error: z.string() }).openapi('LibraryNotFound')
-
-const { ShowListSchema: ShowListContract, ShowDetailSchema: ShowDetailContract } = ShowModule
 
 const ShowListSchema = ShowListContract.openapi('ShowList')
 const ShowDetailSchema = ShowDetailContract.openapi('ShowDetail')
@@ -259,7 +263,7 @@ const resetLibraryRoute = createRoute({
   },
 })
 
-export default {
+export {
   listLibrariesRoute,
   createLibraryRoute,
   listItemsRoute,

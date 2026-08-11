@@ -14,29 +14,18 @@ import {
   IconInfoCircle,
   IconPlayerPlayFilled,
 } from '@tabler/icons-react'
-import MediaCardModule from '@FluxUI/MediaCard'
-import BadgeModule from '@FluxUI/Badge'
-import ButtonModule from '@FluxUI/Button'
-import IconButtonModule from '@FluxUI/IconButton'
-import revealModule from '@FluxUI/animations/reveal'
-import hasFinePointerModule from '@FluxUI/hasFinePointer'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
-import MediaFactsModule from '@FluxWeb/components/MediaFacts/MediaFacts'
+import { MediaCard } from '@FluxUI/MediaCard'
+import { Badge } from '@FluxUI/Badge'
+import { Button } from '@FluxUI/Button'
+import { IconButton } from '@FluxUI/IconButton'
+import { liquidSpring } from '@FluxUI/animations/reveal'
+import { hasFinePointer } from '@FluxUI/hasFinePointer'
+import { formatDuration } from '@FluxCore/functions/formatDuration'
+import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary'
+import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview'
+import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { RailCardProps } from './RailCard.types'
-
-const { MediaCard } = MediaCardModule
-const { Badge } = BadgeModule
-const { Button } = ButtonModule
-const { IconButton } = IconButtonModule
-const { liquidSpring } = revealModule
-const { hasFinePointer } = hasFinePointerModule
-const { formatDuration } = formatDurationModule
-const { fetchMediaDetail } = fetchLibraryModule
-const { MediaPreview } = MediaPreviewModule
-const { MediaFacts } = MediaFactsModule
 
 /**
  * How long a pointer rests before a card opens.
@@ -489,4 +478,4 @@ const RailCard = ({
 
 RailCard.displayName = 'RailCard'
 
-export default { RailCard }
+export { RailCard }

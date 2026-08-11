@@ -9,35 +9,21 @@ import {
   IconRotateClockwise,
   IconX,
 } from '@tabler/icons-react'
-import DialogModule from '@FluxUI/Dialog'
-import ButtonModule from '@FluxUI/Button'
-import IconButtonModule from '@FluxUI/IconButton'
-import BadgeModule from '@FluxUI/Badge'
-import SkeletonModule from '@FluxUI/Skeleton'
-import MediaCardModule from '@FluxUI/MediaCard'
-import revealModule from '@FluxUI/animations/reveal'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
-import MediaFactsModule from '@FluxWeb/components/MediaFacts/MediaFacts'
-import scrollToTopOfModule from '@FluxWeb/navigation/scrollToTopOf'
-import CastGridModule from './components/CastGrid/CastGrid'
+import { Dialog } from '@FluxUI/Dialog'
+import { Button } from '@FluxUI/Button'
+import { IconButton } from '@FluxUI/IconButton'
+import { Badge } from '@FluxUI/Badge'
+import { Skeleton } from '@FluxUI/Skeleton'
+import { MediaCard } from '@FluxUI/MediaCard'
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
+import { formatDuration } from '@FluxCore/functions/formatDuration'
+import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary'
+import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview'
+import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts'
+import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf'
+import { CastGrid } from './components/CastGrid/CastGrid'
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types'
-
-const { Dialog } = DialogModule
-const { Button } = ButtonModule
-const { IconButton } = IconButtonModule
-const { Badge } = BadgeModule
-const { Skeleton } = SkeletonModule
-const { MediaCard } = MediaCardModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { formatDuration } = formatDurationModule
-const { fetchMediaDetail } = fetchLibraryModule
-const { MediaPreview } = MediaPreviewModule
-const { MediaFacts } = MediaFactsModule
-const { scrollToTopOf } = scrollToTopOfModule
-const { CastGrid } = CastGridModule
 
 /**
  * How many faces stand in for a cast that has not arrived.
@@ -441,4 +427,4 @@ const MediaDetailDialog = ({
 
 MediaDetailDialog.displayName = 'MediaDetailDialog'
 
-export default { MediaDetailDialog }
+export { MediaDetailDialog }

@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import liftCuesModule from './liftCues'
-
-const { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } = liftCuesModule
+import { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } from './liftCues'
 
 /**
  * A cue as a browser hands one over.

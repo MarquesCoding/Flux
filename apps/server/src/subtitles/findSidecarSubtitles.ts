@@ -1,6 +1,4 @@
-import describeTrackModule from '@FluxCore/functions/describeTrack'
-
-const { describeLanguage, readLanguage } = describeTrackModule
+import { describeLanguage, readLanguage } from '@FluxCore/functions/describeTrack'
 
 /**
  * Subtitle formats Flux can turn into something a browser renders.
@@ -152,7 +150,7 @@ const findSidecarSubtitles = (
 
 export type { SidecarFile, SidecarSubtitle }
 
-export default {
+export {
   findSidecarSubtitles,
   describeTags,
   describeLabel,

@@ -1,8 +1,6 @@
 import { startAuthentication } from '@simplewebauthn/browser'
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser'
-import PasskeyOptionsModule from './PasskeyOptions'
-
-const { PasskeyAuthenticationOptionsSchema } = PasskeyOptionsModule
+import { PasskeyAuthenticationOptionsSchema } from './PasskeyOptions'
 
 type AuthenticateOutcome =
   { kind: 'signedIn' } | { kind: 'cancelled' } | { kind: 'failed'; reason: string }
@@ -61,4 +59,4 @@ const authenticateWithPasskey = async (): Promise<AuthenticateOutcome> => {
 
 export type { AuthenticateOutcome }
 
-export default { authenticateWithPasskey }
+export { authenticateWithPasskey }

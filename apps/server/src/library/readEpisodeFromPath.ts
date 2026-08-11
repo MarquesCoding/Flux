@@ -1,6 +1,4 @@
-import readTitleFromPathModule from './readTitleFromPath'
-
-const { findYear } = readTitleFromPathModule
+import { findYear } from './readTitleFromPath'
 
 /**
  * The shapes an episode number is written in.
@@ -170,4 +168,4 @@ const isSameSeason = (left: EpisodeNumbering, right: EpisodeNumbering): boolean 
 
 export type { EpisodeNumbering }
 
-export default { readEpisodeFromPath, readSeasonDirectory, isSameSeason, tidy }
+export { readEpisodeFromPath, readSeasonDirectory, isSameSeason, tidy }

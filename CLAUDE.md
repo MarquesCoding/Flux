@@ -18,8 +18,9 @@ reference, not a substitute for reading it.
 3. **No `../` imports.** Use `@FluxUI/*`, `@FluxContracts/*`, `@FluxCore/*`,
    `@FluxSDK/*`.
 4. **No `index.ts` / `index.tsx`.** No barrel files, ever.
-5. **`export default { ComponentName }`**, one member per file, filename matches
-   the member. Set `displayName` on every component.
+5. **`export { ComponentName }`** — named exports only, no default exports and
+   no module objects. One member per file, filename matches the member. Set
+   `displayName` on every component.
 6. **No comments.** TSDoc on functions only. Rust `///` and `// SAFETY:` on
    `unsafe` blocks. Lint directives with a reason. Nothing else — no `TODO`, no
    commented-out code, no section banners.

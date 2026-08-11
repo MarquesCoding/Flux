@@ -1,16 +1,11 @@
-import readTitleFromPathModule from './readTitleFromPath'
-import MetadataProviderModule from './MetadataProvider'
-import createFilenameMetadataProviderModule from './createFilenameMetadataProvider'
-import readEpisodeFromPathModule from './readEpisodeFromPath'
+import { isMediaFile } from './readTitleFromPath'
+import { resolveMetadata } from './MetadataProvider'
+import { createFilenameMetadataProvider } from './createFilenameMetadataProvider'
+import { readEpisodeFromPath } from './readEpisodeFromPath'
 import type { Metadata, MetadataProvider } from './MetadataProvider'
 import type { EpisodeNumbering } from './readEpisodeFromPath'
 import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient'
 import type { ScanResult } from '@FluxContracts/schemas/Library'
-
-const { isMediaFile } = readTitleFromPathModule
-const { resolveMetadata } = MetadataProviderModule
-const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
-const { readEpisodeFromPath } = readEpisodeFromPathModule
 
 type ScannedFile = {
   path: string
@@ -267,4 +262,4 @@ const scanLibrary = async ({
 
 export type { MediaFileSystem, MediaRow, MediaStore, ScanPhase, ScannedFile, StoredItem }
 
-export default { scanLibrary, selectChanged, SCAN_PHASES }
+export { scanLibrary, selectChanged, SCAN_PHASES }

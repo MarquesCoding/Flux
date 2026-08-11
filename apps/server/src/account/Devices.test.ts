@@ -1,25 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import AppModule from '@FluxServer/App'
-import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
-import createMemoryLibraryServiceModule from '@FluxServer/library/createMemoryLibraryService'
-import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
-import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
-import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
-import createMemoryProfileServiceModule from '@FluxServer/profiles/createMemoryProfileService'
-import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
-import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
+import { createApp } from '@FluxServer/App'
+import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth'
+import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService'
+import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService'
+import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService'
+import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService'
+import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService'
+import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService'
+import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
-
-const { createApp } = AppModule
-const { createMemoryAuth } = createMemoryAuthModule
-const { createMemoryLibraryService } = createMemoryLibraryServiceModule
-const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
-const { createMemorySegmentService } = createMemorySegmentServiceModule
-const { createMemorySubtitleService } = createMemorySubtitleServiceModule
-const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
-const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
-const { createMemoryProfileService } = createMemoryProfileServiceModule
 
 const BASE = 'http://localhost:8420'
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9'

@@ -1,7 +1,5 @@
-import readTitleFromPathModule from './readTitleFromPath'
+import { readTitleFromPath } from './readTitleFromPath'
 import type { MetadataProvider } from './MetadataProvider'
-
-const { readTitleFromPath } = readTitleFromPathModule
 
 /**
  * The provider Flux ships with.
@@ -14,4 +12,4 @@ const createFilenameMetadataProvider = (): MetadataProvider => ({
   describe: (facts) => Promise.resolve(readTitleFromPath(facts.path)),
 })
 
-export default { createFilenameMetadataProvider }
+export { createFilenameMetadataProvider }

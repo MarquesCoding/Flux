@@ -128,4 +128,4 @@ const writeLocation = (place: Place): string => {
 
 export type { Place }
 
-export default { readLocation, writeLocation, SECTIONS, HOME }
+export { readLocation, writeLocation, SECTIONS, HOME }

@@ -1,13 +1,11 @@
 import { z } from 'zod'
-import MediaItemModule from './MediaItem'
-
-const {
+import {
   ContainerSchema,
   VideoCodecSchema,
   AudioCodecSchema,
   SubtitleFormatSchema,
   VideoRangeSchema,
-} = MediaItemModule
+} from './MediaItem'
 
 const ReasonCodeSchema = z.enum([
   'ClientSupportsSource',
@@ -94,7 +92,7 @@ export type AudioDecision = z.infer<typeof AudioDecisionSchema>
 export type SubtitleDecision = z.infer<typeof SubtitleDecisionSchema>
 export type PlaybackPlan = z.infer<typeof PlaybackPlanSchema>
 
-export default {
+export {
   PlaybackPlanSchema,
   ReasonCodeSchema,
   ReasonSchema,

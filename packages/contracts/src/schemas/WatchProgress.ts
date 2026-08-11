@@ -55,7 +55,7 @@ const watchedFraction = (progress: WatchProgress): number => {
 
 export type { WatchProgress }
 
-export default {
+export {
   WatchProgressSchema,
   WatchProgressListSchema,
   isWorthResuming,

@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import currentProfileModule from './currentProfile'
-
-const { readCurrentProfile, writeCurrentProfile, profileHeaders, STORAGE_KEY } =
-  currentProfileModule
+import {
+  readCurrentProfile,
+  writeCurrentProfile,
+  profileHeaders,
+  STORAGE_KEY,
+} from './currentProfile'
 
 beforeEach(() => {
   window.localStorage.clear()

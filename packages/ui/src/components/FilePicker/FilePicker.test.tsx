@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import FilePickerModule from './FilePicker'
-
-const { FilePicker } = FilePickerModule
+import { FilePicker } from './FilePicker'
 
 const fileOf = (name: string) => new File(['a picture'], name, { type: 'image/webp' })
 
