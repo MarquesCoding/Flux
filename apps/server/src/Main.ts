@@ -377,6 +377,7 @@ const libraryService = createDatabaseLibraryService({
   transcoder,
   jobs,
   providers: [catalogueProvider, createFilenameMetadataProvider()],
+  atOnce: env.MEDIA_JOBS,
   onProblem: (path, reason) => {
     process.stderr.write(`skipped ${path}: ${reason}\n`);
   },
@@ -421,6 +422,7 @@ const segmentProviders = [
   createChapterSegmentProvider(),
   createFingerprintSegmentProvider({
     transcoder,
+    atOnce: env.MEDIA_JOBS,
     onProblem: (path, reason) => {
       process.stderr.write(`segments ${path}: ${reason}\n`);
     },

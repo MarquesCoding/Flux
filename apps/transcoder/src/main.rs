@@ -56,16 +56,16 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
         ffprobe,
         trickplay: flux_transcoder::trickplay::TrickplayRegistry::new(),
         monitor: flux_transcoder::monitor::Monitor::new(flux_transcoder::monitor::Journal::new()),
-        queue: flux_transcoder::queue::WorkQueue::new(
-            env::var("FLUX_BACKGROUND_JOBS")
-                .ok()
-                .and_then(|value| value.parse().ok())
-                .unwrap_or(1),
-        ),
+        queue: flux_transcoder::queue::WorkQueue::new(background_jobs()),
         media_roots: env::var("FLUX_MEDIA_ROOTS")
             .map(|value| value.split(':').map(PathBuf::from).collect())
             .unwrap_or_default(),
     };
+
+    eprintln!(
+        "flux-transcoder running {} background jobs at once",
+        background_jobs()
+    );
 
     let router = create_router(state);
 
@@ -105,6 +105,29 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
     }
 
     registry.stop_all().await;
+}
+
+/// The most background jobs to run at once, unless told otherwise.
+///
+/// Each is an ffmpeg process that will happily take every core it is given, so
+/// the useful number is well below the core count: half of them leaves a
+/// machine responsive while a library is worked through, and the ceiling keeps
+/// a big server from running out of memory rather than out of time.
+///
+/// One — which is what this was — leaves most of a machine idle for hours.
+fn background_jobs() -> usize {
+    const CEILING: usize = 4;
+
+    if let Some(asked) = env::var("FLUX_BACKGROUND_JOBS")
+        .ok()
+        .and_then(|value| value.parse().ok())
+    {
+        return asked;
+    }
+
+    let cores = std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+
+    (cores / 2).clamp(1, CEILING)
 }
 
 #[tokio::main]

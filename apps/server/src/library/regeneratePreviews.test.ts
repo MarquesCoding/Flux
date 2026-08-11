@@ -217,4 +217,59 @@ describe('regeneratePreviews', () => {
 
     expect(problems).toEqual(['/media/a.mkv: ffmpeg failed']);
   });
+
+  it('renders several at once when told it may', async () => {
+    let running = 0;
+    let most = 0;
+    const items = Array.from({ length: 6 }, () => ({ path: '/a.mkv', audioStreams: [] }));
+    const { store } = harness(items);
+
+    const transcoder = stubTranscoder(async () => {
+      running += 1;
+      most = Math.max(most, running);
+
+      await new Promise((resolve) => setTimeout(resolve, 2));
+
+      running -= 1;
+
+      return { id: 'p', url: '/p', isReady: true };
+    });
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      store,
+      transcoder,
+      defaultAudioLanguage: null,
+      atOnce: 3,
+    });
+
+    expect(most).toBe(3);
+  });
+
+  it('renders one at a time when not told otherwise', async () => {
+    let running = 0;
+    let most = 0;
+    const items = Array.from({ length: 4 }, () => ({ path: '/a.mkv', audioStreams: [] }));
+    const { store } = harness(items);
+
+    const transcoder = stubTranscoder(async () => {
+      running += 1;
+      most = Math.max(most, running);
+
+      await new Promise((resolve) => setTimeout(resolve, 2));
+
+      running -= 1;
+
+      return { id: 'p', url: '/p', isReady: true };
+    });
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      store,
+      transcoder,
+      defaultAudioLanguage: null,
+    });
+
+    expect(most).toBe(1);
+  });
 });

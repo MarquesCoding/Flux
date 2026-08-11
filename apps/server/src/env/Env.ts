@@ -1,4 +1,19 @@
+import { cpus } from 'node:os';
 import { z } from 'zod';
+
+/**
+ * How many files the media service is asked about at once.
+ *
+ * Each one is an ffmpeg process willing to take every core it is given, so the
+ * useful number is well below the core count: half of them, and never more
+ * than four, leaves the machine responsive while a library is being worked
+ * through. One at a time — which is what this used to be, by omission — leaves
+ * most of a machine idle for hours.
+ *
+ * The media service enforces its own limit as well. This is how many are
+ * offered; that is how many are accepted.
+ */
+const DEFAULT_MEDIA_JOBS = Math.max(1, Math.min(4, Math.floor(cpus().length / 2)));
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -20,6 +35,7 @@ const EnvSchema = z.object({
     .default('false')
     .transform((value) => value === 'true'),
   TRANSCODER_URL: z.string().min(1).default('unix:/run/flux-transcoder.sock'),
+  MEDIA_JOBS: z.coerce.number().int().positive().default(DEFAULT_MEDIA_JOBS),
   CATALOGUE_API_KEY: z.string().default(''),
   IMAGE_CACHE_DIR: z.string().default('/cache/images'),
   AUTH_RATE_LIMIT_ENABLED: z
