@@ -68,6 +68,14 @@ const AppShell = ({
     }
   }, [section, onSectionChange])
 
+  // A new section starts at the top of itself. Arriving at search from halfway
+  // down the library and landing halfway down the results is a page that has
+  // kept somebody else's place, and it drags the dock's highlight across a
+  // page moving underneath it.
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [section])
+
   const sections: ShellSection[] = isAdministrator
     ? ['home', 'search', 'account', 'admin']
     : ['home', 'search', 'account']

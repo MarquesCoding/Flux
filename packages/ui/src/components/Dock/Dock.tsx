@@ -39,6 +39,12 @@ const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
       {/* Arrives after the page rather than with it: the dock is an offer, and
           an offer that lands before the thing it is about competes with it. */}
       <motion.ul
+        // The dock is measured against itself rather than against the page.
+        // The highlight travels from one item to the next as a shared layout,
+        // and a shared layout inside a fixed element is otherwise measured in
+        // page coordinates — so changing section from halfway down a scrolled
+        // page sent the pill in from wherever the page had been.
+        layoutRoot
         initial={
           prefersReducedMotion === true
             ? { opacity: 0 }
