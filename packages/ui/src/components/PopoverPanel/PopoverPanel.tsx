@@ -17,10 +17,15 @@ const PopoverPanel = ({
   trigger,
   children,
   heading,
+  isOpen,
+  onOpenChange,
   isDisabled = false,
   className,
 }: PopoverPanelProps) => (
-  <Popover.Root>
+  <Popover.Root
+    {...(isOpen === undefined ? {} : { open: isOpen })}
+    {...(onOpenChange === undefined ? {} : { onOpenChange })}
+  >
     <Popover.Trigger
       aria-label={label}
       title={label}
