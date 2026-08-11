@@ -344,6 +344,24 @@ and say what it is for.
 control in an app is how design systems die; a second component owning the same
 element is how they rot.
 
+### Base UI owns behaviour; FluxUI owns appearance
+
+If Base UI ships a primitive for what you are building, build on it. Roles,
+keyboard handling, focus management and ARIA wiring are a contract with the
+browser and with assistive technology, and hand-rolling them produces something
+that looks right and is subtly wrong — a `div` with a bar in it instead of a
+meter, a button with `role="switch"` that a keyboard cannot toggle.
+
+**Only `packages/ui` imports Base UI.** An app that imports it directly has
+reached past the layer whose whole job is to be the one place a control is
+decided. If FluxUI lacks the component, add it to FluxUI.
+
+Judgement still applies. A primitive earns its place by doing something for you:
+`Field` was worth adopting because it owns label, description, error and the
+wiring between them. `FilePicker`'s `<label>` was not, because there the label
+_is_ the mechanism that opens the file browser, and wrapping it in a `Field.Root`
+would add a DOM node to satisfy a library rather than a reader.
+
 ### A look is a variant, not a class at the call site
 
 `className` on a FluxUI component is for _where a thing sits_ — width, margin,

@@ -3,6 +3,7 @@ import { Popover } from '@base-ui/react/popover';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
+import { Switch } from '@FluxUI/Switch';
 import { cn } from '@FluxUI/cn';
 import { Tooltip } from '@FluxUI/Tooltip';
 import type {
@@ -140,32 +141,15 @@ const SettingsMenu = ({
 
                       if (row.kind === 'toggle') {
                         return (
-                          <Button
+                          <Switch
                             key={row.id}
-                            variant="bare"
-                            size="none"
-                            role="switch"
-                            aria-checked={row.isOn}
-                            onClick={row.onToggle}
+                            label={row.label}
+                            isOn={row.isOn}
+                            onToggle={row.onToggle}
+                            icon={row.icon}
+                            tone="overlay"
                             className={cn(ROW, 'shrink-0 hover:bg-white/10')}
-                          >
-                            <span className="shrink-0 text-white/80">{row.icon}</span>
-                            <span className="flex-1 truncate">{row.label}</span>
-
-                            <span
-                              className={cn(
-                                'flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors',
-                                row.isOn ? 'bg-white' : 'bg-white/25',
-                              )}
-                            >
-                              <span
-                                className={cn(
-                                  'size-4 rounded-full transition-transform',
-                                  row.isOn ? 'translate-x-4 bg-black' : 'bg-white',
-                                )}
-                              />
-                            </span>
-                          </Button>
+                          />
                         );
                       }
 
