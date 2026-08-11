@@ -10,7 +10,15 @@ const HEARING_IMPAIRED_MARKERS = ['sdh', 'cc', 'hearing', 'hard of hearing'];
 /**
  * Formats that carry pictures of words rather than words.
  */
-const IMAGE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub']);
+/**
+ * The formats that cannot be handed to a browser as text.
+ *
+ * The picture ones because they are pictures, and `unknown` because that is
+ * the transcoder saying it did not recognise the codec: offering it as a text
+ * track means converting bytes nobody has identified and showing whatever
+ * falls out.
+ */
+const NOT_TEXT = new Set(['pgs', 'vobsub', 'dvbsub', 'unknown']);
 
 /**
  * One subtitle stream, as the container describes it.
@@ -98,7 +106,7 @@ const createEmbeddedSubtitleService = ({
       return null;
     }
 
-    const streams = found.streams.filter((stream) => !IMAGE_FORMATS.has(stream.format));
+    const streams = found.streams.filter((stream) => !NOT_TEXT.has(stream.format));
 
     return { path: found.path, streams };
   };
