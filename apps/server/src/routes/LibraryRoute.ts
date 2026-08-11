@@ -15,6 +15,14 @@ const Library = LibrarySchema.openapi('Library');
 const MediaSummary = MediaSummarySchema.openapi('MediaSummary');
 const MediaDetail = MediaDetailSchema.openapi('MediaDetail');
 const NotFound = z.object({ error: z.string() }).openapi('LibraryNotFound');
+/**
+ * What every route that changes a library answers to somebody who may not.
+ *
+ * Adding, editing, scanning, resetting and regenerating all reshape what the
+ * whole household sees, so they are administrator work rather than viewer
+ * work — and reset deletes every row a library has.
+ */
+const Forbidden = z.object({ error: z.string() }).openapi('LibraryForbidden');
 
 const ShowListSchema = ShowListContract.openapi('ShowList');
 const ShowDetailSchema = ShowDetailContract.openapi('ShowDetail');
@@ -57,6 +65,10 @@ const createLibraryRoute = createRoute({
       description: 'The path is not a readable directory',
       content: { 'application/json': { schema: NotFound } },
     },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: Forbidden } },
+    },
   },
 });
 
@@ -81,6 +93,10 @@ const updateLibraryRoute = createRoute({
     404: {
       description: 'No such library',
       content: { 'application/json': { schema: NotFound } },
+    },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: Forbidden } },
     },
   },
 });
@@ -192,6 +208,10 @@ const scanLibraryRoute = createRoute({
       description: 'No such library',
       content: { 'application/json': { schema: NotFound } },
     },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: Forbidden } },
+    },
   },
 });
 
@@ -280,6 +300,10 @@ const resetLibraryRoute = createRoute({
       description: 'No such library',
       content: { 'application/json': { schema: NotFound } },
     },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: Forbidden } },
+    },
   },
 });
 
@@ -304,6 +328,10 @@ const regeneratePreviewsRoute = createRoute({
     404: {
       description: 'No such library',
       content: { 'application/json': { schema: NotFound } },
+    },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: Forbidden } },
     },
   },
 });

@@ -101,6 +101,7 @@ import { drawAvatar, isAvatarStyle } from '@FluxServer/profiles/drawAvatar';
 import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt';
 import type { ProfileService } from '@FluxServer/profiles/ProfileService';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import { createSessionGate } from '@FluxServer/auth/createSessionGate';
 
 /**
  * The header a browser names the watching profile in.
@@ -244,6 +245,23 @@ const createApp = ({
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
+  app.use('/api/*', createSessionGate(auth));
+
+  /**
+   * Whether the viewer administers the server.
+   *
+   * Checked per request rather than trusted from the browser: an interface
+   * that hides a section is a courtesy, not a permission.
+   *
+   * Declared above the routes that ask it, so that reading down this file
+   * shows what a route requires before it shows what the route does.
+   */
+  const isAdministrator = async (headers: Headers): Promise<boolean> => {
+    const session = await auth.api.getSession({ headers }).catch(() => null);
+
+    return session?.user.role === 'admin';
+  };
+
   app.on(['GET', 'POST'], '/api/auth/*', (context) => auth.handler(context.req.raw));
 
   app.openapi(setupStatusRoute, async (context) => {
@@ -295,6 +313,10 @@ const createApp = ({
   app.openapi(listLibrariesRoute, async (context) => context.json(await library.list(), 200));
 
   app.openapi(createLibraryRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const created = await library.create(context.req.valid('json'));
 
     if (created === null) {
@@ -305,6 +327,10 @@ const createApp = ({
   });
 
   app.openapi(updateLibraryRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const updated = await library.update(context.req.valid('param').id, context.req.valid('json'));
 
     if (updated === null) {
@@ -367,6 +393,10 @@ const createApp = ({
   });
 
   app.openapi(scanLibraryRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const queued = await library.scan(
       context.req.valid('param').id,
       context.req.valid('query').force === 'true',
@@ -387,6 +417,10 @@ const createApp = ({
   });
 
   app.openapi(resetLibraryRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const reset = await library.reset(context.req.valid('param').id);
 
     if (reset === null) {
@@ -397,6 +431,10 @@ const createApp = ({
   });
 
   app.openapi(regeneratePreviewsRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const queued = await library.regeneratePreviews(context.req.valid('param').id);
 
     if (queued === null) {
@@ -612,18 +650,6 @@ const createApp = ({
     }
 
     return (await profiles.ensureDefault(viewer.id, viewer.name)).id;
-  };
-
-  /**
-   * Whether the viewer administers the server.
-   *
-   * Checked per request rather than trusted from the browser: an interface
-   * that hides a section is a courtesy, not a permission.
-   */
-  const isAdministrator = async (headers: Headers): Promise<boolean> => {
-    const session = await auth.api.getSession({ headers }).catch(() => null);
-
-    return session?.user.role === 'admin';
   };
 
   /**
