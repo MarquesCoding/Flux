@@ -18,6 +18,7 @@
       "@FluxUI/MediaCard": ["./packages/ui/src/components/MediaCard/MediaCard.tsx"],
       "@FluxUI/Meter": ["./packages/ui/src/components/Meter/Meter.tsx"],
       "@FluxUI/MoodBackground": ["./packages/ui/src/components/MoodBackground/MoodBackground.tsx"],
+      "@FluxUI/SettingsMenu": ["./packages/ui/src/components/SettingsMenu/SettingsMenu.tsx"],
       "@FluxUI/OptionMenu": ["./packages/ui/src/components/OptionMenu/OptionMenu.tsx"],
       "@FluxUI/QrCode": ["./packages/ui/src/components/QrCode/QrCode.tsx"],
       "@FluxUI/Rail": ["./packages/ui/src/components/Rail/Rail.tsx"],

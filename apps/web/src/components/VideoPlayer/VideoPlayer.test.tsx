@@ -212,7 +212,8 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await settled()
-    await actor.click(screen.getByRole('button', { name: 'Stats for nerds' }))
+    await actor.click(screen.getByRole('button', { name: 'Settings' }))
+    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }))
 
     expect(await screen.findByText('Transcode')).toBeInTheDocument()
   })
@@ -222,7 +223,8 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await settled()
-    await actor.click(screen.getByRole('button', { name: 'Stats for nerds' }))
+    await actor.click(screen.getByRole('button', { name: 'Settings' }))
+    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }))
 
     expect(screen.getByText(/Client does not support hevc/)).toBeInTheDocument()
   })
@@ -241,7 +243,8 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await settled()
-    await actor.click(screen.getByRole('button', { name: 'Stats for nerds' }))
+    await actor.click(screen.getByRole('button', { name: 'Settings' }))
+    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }))
     await actor.click(screen.getByRole('button', { name: 'Close stats' }))
 
     expect(screen.queryByRole('region', { name: 'Stats for nerds' })).not.toBeInTheDocument()
@@ -428,7 +431,8 @@ describe('VideoPlayer', () => {
     const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await settled()
-    await actor.click(screen.getByRole('button', { name: 'Stats for nerds' }))
+    await actor.click(screen.getByRole('button', { name: 'Settings' }))
+    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }))
 
     expect(await screen.findByText('Transcode')).toBeInTheDocument()
 
@@ -670,7 +674,8 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await settled()
-    await actor.click(screen.getByRole('button', { name: 'Playback speed' }))
+    await actor.click(screen.getByRole('button', { name: 'Settings' }))
+    await actor.click(await screen.findByRole('button', { name: /Playback speed/ }))
     await actor.click(await screen.findByRole('menuitemradio', { name: '1.5x' }))
 
     expect(screen.getByLabelText('Arrival')).toHaveProperty('playbackRate', 1.5)
@@ -709,7 +714,8 @@ describe('VideoPlayer', () => {
     const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await settled()
-    await actor.click(await screen.findByRole('button', { name: 'Subtitles' }))
+    await actor.click(await screen.findByRole('button', { name: 'Settings' }))
+    await actor.click(await screen.findByRole('button', { name: /Subtitles\/CC/ }))
     await actor.click(await screen.findByRole('menuitemradio', { name: /English/ }))
 
     expect(container.querySelector('track')?.getAttribute('src')).toContain(
@@ -742,8 +748,8 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await settled()
-    await actor.click(screen.getByRole('button', { name: 'Subtitles' }))
-    await actor.click(await screen.findByRole('menuitemradio', { name: /Caption settings/ }))
+    await actor.click(screen.getByRole('button', { name: 'Settings' }))
+    await actor.click(await screen.findByRole('button', { name: /Caption settings/ }))
 
     expect(await screen.findByRole('region', { name: 'Caption settings' })).toBeInTheDocument()
   })
@@ -753,8 +759,8 @@ describe('VideoPlayer', () => {
     const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await settled()
-    await actor.click(screen.getByRole('button', { name: 'Subtitles' }))
-    await actor.click(await screen.findByRole('menuitemradio', { name: /Caption settings/ }))
+    await actor.click(screen.getByRole('button', { name: 'Settings' }))
+    await actor.click(await screen.findByRole('button', { name: /Caption settings/ }))
     await actor.click(await screen.findByRole('button', { name: 'Caption edge' }))
     await actor.click(await screen.findByRole('menuitemradio', { name: 'Drop shadow' }))
 
@@ -762,8 +768,8 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
 
     await settled()
-    await actor.click(screen.getByRole('button', { name: 'Subtitles' }))
-    await actor.click(await screen.findByRole('menuitemradio', { name: /Caption settings/ }))
+    await actor.click(screen.getByRole('button', { name: 'Settings' }))
+    await actor.click(await screen.findByRole('button', { name: /Caption settings/ }))
 
     expect(await screen.findByRole('button', { name: 'Caption edge' })).toHaveTextContent(
       'Drop shadow',
@@ -880,7 +886,8 @@ describe('VideoPlayer', () => {
     Object.defineProperty(element, 'currentTime', { configurable: true, value: 2400 })
     fireEvent.timeUpdate(element)
 
-    await actor.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await actor.click(screen.getByRole('button', { name: 'Settings' }))
+    await actor.click(await screen.findByRole('button', { name: /Audio track/ }))
     await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }))
 
     await waitFor(() => {
