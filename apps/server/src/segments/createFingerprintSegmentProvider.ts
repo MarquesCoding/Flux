@@ -44,6 +44,11 @@ type CreateFingerprintSegmentProviderOptions = {
 /**
  * Segments found by listening to a season.
  *
+ * Asks whether the media service is there before starting rather than
+ * discovering it a file at a time. A season of twelve against a service that
+ * has gone away is twelve failures, twelve error lines and twelve waits for a
+ * connection that will not open, when one question answers it for all of them.
+ *
  * Every pair of episodes is compared, and the longest stretch of audio they
  * have in common is a candidate intro: two episodes of one series share their
  * theme tune and nothing else of any length. A range several pairs independently
@@ -66,6 +71,10 @@ const createFingerprintSegmentProvider = ({
 
     if (group.length < MIN_EPISODES) {
       return found;
+    }
+
+    if (!(await transcoder.isReachable())) {
+      throw new Error('The media service is not answering, so nothing can be listened to.');
     }
 
     const considered = group.slice(0, MAX_EPISODES);
