@@ -17,13 +17,18 @@ const { cn } = cnModule
  * middle, since it has no edge the pointer came from.
  */
 const POPUP_MOTION = [
-  'transition-[opacity,transform] duration-300 ease-out',
+  // Out of the way quickly and in with a settle: arriving is worth watching
+  // and leaving is not. The curve decelerates hard rather than easing evenly,
+  // which is what makes a panel look like it has weight instead of like a
+  // rectangle whose opacity is being changed.
+  'transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+  'data-[ending-style]:duration-150 data-[ending-style]:ease-in',
   'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
   // Each width animates the property the other is using for layout: a phone
   // slides, and a desktop is already translated to sit in the middle, so it
   // scales instead.
-  'max-sm:data-[starting-style]:translate-y-8 max-sm:data-[ending-style]:translate-y-8',
-  'sm:data-[starting-style]:scale-[0.97] sm:data-[ending-style]:scale-[0.97]',
+  'max-sm:data-[starting-style]:translate-y-10 max-sm:data-[ending-style]:translate-y-6',
+  'sm:data-[starting-style]:scale-[0.92] sm:data-[ending-style]:scale-[0.98]',
   'motion-reduce:transition-opacity',
   'motion-reduce:max-sm:data-[starting-style]:translate-y-0',
   'motion-reduce:max-sm:data-[ending-style]:translate-y-0',
@@ -32,7 +37,9 @@ const POPUP_MOTION = [
 ].join(' ')
 
 const BACKDROP_MOTION = [
-  'transition-opacity duration-300 ease-out',
+  // Ahead of the panel on the way in and behind it on the way out, so the page
+  // is already dimmed when the panel lands and still dim while it leaves.
+  'transition-opacity duration-200 ease-out data-[ending-style]:duration-200',
   'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
 ].join(' ')
 
