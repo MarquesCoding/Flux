@@ -4,11 +4,21 @@ import JobQueueModule from './JobQueue'
 import type { JobProgress, JobQueue, JobState } from './JobQueue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
-const { SCAN_LIBRARY_JOB, ScanLibraryJobSchema } = JobQueueModule
+const {
+  SCAN_LIBRARY_JOB,
+  ScanLibraryJobSchema,
+  REGENERATE_PREVIEWS_JOB,
+  RegeneratePreviewsJobSchema,
+} = JobQueueModule
 
 type CreateJobQueueOptions = {
   connectionString: string
   onScan: (libraryId: string, force: boolean, jobId: string) => Promise<void>
+  onRegeneratePreviews: (
+    libraryId: string,
+    defaultAudioLanguage: string | null,
+    jobId: string,
+  ) => Promise<void>
   onProblem?: (message: string) => void
 }
 
@@ -44,6 +54,7 @@ const PG_BOSS_STATES: Record<string, JobState> = {
 const createJobQueue = async ({
   connectionString,
   onScan,
+  onRegeneratePreviews,
   onProblem,
 }: CreateJobQueueOptions): Promise<JobQueue> => {
   const boss = new PgBoss({ connectionString, schema: 'flux_jobs' })
@@ -60,6 +71,7 @@ const createJobQueue = async ({
 
   await boss.start()
   await boss.createQueue(SCAN_LIBRARY_JOB)
+  await boss.createQueue(REGENERATE_PREVIEWS_JOB)
 
   await boss.work(SCAN_LIBRARY_JOB, async (jobs: Job<JsonValue>[]) => {
     for (const job of jobs) {
@@ -72,6 +84,20 @@ const createJobQueue = async ({
       }
 
       await onScan(parsed.data.libraryId, parsed.data.force, job.id)
+    }
+  })
+
+  await boss.work(REGENERATE_PREVIEWS_JOB, async (jobs: Job<JsonValue>[]) => {
+    for (const job of jobs) {
+      const parsed = RegeneratePreviewsJobSchema.safeParse(job.data)
+
+      if (!parsed.success) {
+        onProblem?.('A preview regeneration job carried data Flux could not read.')
+
+        continue
+      }
+
+      await onRegeneratePreviews(parsed.data.libraryId, parsed.data.defaultAudioLanguage, job.id)
     }
   })
 
@@ -97,10 +123,30 @@ const createJobQueue = async ({
         },
       ),
 
-    readState: async (jobId) => {
-      const job = await boss.getJobById(SCAN_LIBRARY_JOB, jobId)
+    enqueueRegeneratePreviews: (libraryId, defaultAudioLanguage) =>
+      boss.send(
+        REGENERATE_PREVIEWS_JOB,
+        { libraryId, defaultAudioLanguage },
+        {
+          // Singleton for the same reason a scan is: two regenerations racing
+          // over the same library would both be rendering the same clips.
+          singletonKey: libraryId,
+          retryLimit: 2,
+          retryBackoff: true,
+          expireInSeconds: SCAN_EXPIRES_AFTER_SECONDS,
+        },
+      ),
 
-      return job === null ? 'unknown' : (PG_BOSS_STATES[job.state] ?? 'unknown')
+    readState: async (jobId) => {
+      const scan = await boss.getJobById(SCAN_LIBRARY_JOB, jobId)
+
+      if (scan !== null) {
+        return PG_BOSS_STATES[scan.state] ?? 'unknown'
+      }
+
+      const regeneration = await boss.getJobById(REGENERATE_PREVIEWS_JOB, jobId)
+
+      return regeneration === null ? 'unknown' : (PG_BOSS_STATES[regeneration.state] ?? 'unknown')
     },
 
     readProgress: (jobId) => progressByJobId.get(jobId) ?? null,

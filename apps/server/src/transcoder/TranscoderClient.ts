@@ -246,6 +246,13 @@ type Transcoder = {
   requestPreview: (request: {
     inputPath: string
     wait?: boolean
+    /**
+     * Which audio stream the clip should carry, when one was chosen for it.
+     *
+     * Left out means whichever ffmpeg would pick on its own — the same as a
+     * file with no forced language.
+     */
+    audioStreamIndex?: number
   }) => Promise<{ id: string; url: string; isReady: boolean }>
   readPreviewFile: (id: string, name: string) => Promise<TranscoderFile | null>
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>

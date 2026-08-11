@@ -2,6 +2,7 @@ import readTitleFromPathModule from './readTitleFromPath'
 import MetadataProviderModule from './MetadataProvider'
 import createFilenameMetadataProviderModule from './createFilenameMetadataProvider'
 import readEpisodeFromPathModule from './readEpisodeFromPath'
+import selectAudioStreamModule from '@FluxCore/functions/describeTrack'
 import type { Metadata, MetadataProvider } from './MetadataProvider'
 import type { EpisodeNumbering } from './readEpisodeFromPath'
 import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient'
@@ -11,6 +12,7 @@ const { isMediaFile } = readTitleFromPathModule
 const { resolveMetadata } = MetadataProviderModule
 const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
 const { readEpisodeFromPath } = readEpisodeFromPathModule
+const { selectAudioStream } = selectAudioStreamModule
 
 type ScannedFile = {
   path: string
@@ -106,6 +108,14 @@ type ScanLibraryOptions = {
    * one's total, since they are different work with different sizes.
    */
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void
+  /**
+   * The language a preview clip's audio should prefer, when the library
+   * forces one.
+   *
+   * Left out or null means the preview carries whichever stream ffmpeg would
+   * pick on its own — unchanged from a library with no forced language.
+   */
+  defaultAudioLanguage?: string | null
 }
 
 const SCAN_PHASES = ['probing', 'previews'] as const
@@ -159,6 +169,7 @@ const scanLibrary = async ({
   trickplay,
   onProblem,
   onProgress,
+  defaultAudioLanguage,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path))
   const stored = await store.listStored(libraryId)
@@ -169,7 +180,7 @@ const scanLibrary = async ({
   const knownPaths = new Set(stored.map((item) => item.path))
   const storedByPath = new Map(stored.map((item) => [item.path, item]))
 
-  const imported: string[] = []
+  const imported: { path: string; probe: MediaProbe }[] = []
   let added = 0
   let updated = 0
   let failed = 0
@@ -227,7 +238,7 @@ const scanLibrary = async ({
         accentColor,
       })
 
-      imported.push(file.path)
+      imported.push({ path: file.path, probe })
 
       if (knownPaths.has(file.path)) {
         updated += 1
@@ -251,20 +262,36 @@ const scanLibrary = async ({
 
     onProgress?.('previews', previewed, imported.length)
 
-    for (const path of imported) {
+    for (const { path, probe } of imported) {
       await transcoder
         .requestTrickplay({ inputPath: path, ...trickplay, wait: true })
         .catch((error: Error) => {
           onProblem?.(path, error.message)
         })
 
+      // Left out entirely when no language is forced, so a preview carries
+      // whichever stream ffmpeg would have picked on its own — unchanged from
+      // today. Chosen with the same rule negotiation uses for playback, so a
+      // library page and the film itself never disagree about which track
+      // this file plays in.
+      const audioStreamIndex =
+        defaultAudioLanguage === undefined || defaultAudioLanguage === null
+          ? undefined
+          : selectAudioStream(probe.audioStreams, defaultAudioLanguage)?.index
+
       // The clip a library page plays, made here for the same reason the
       // thumbnails are: a wall of cards playing previews should cost nothing
       // running, rather than half a dozen transcodes competing with whatever
       // somebody is actually watching.
-      await transcoder.requestPreview({ inputPath: path, wait: true }).catch((error: Error) => {
-        onProblem?.(path, error.message)
-      })
+      await transcoder
+        .requestPreview({
+          inputPath: path,
+          wait: true,
+          ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
+        })
+        .catch((error: Error) => {
+          onProblem?.(path, error.message)
+        })
 
       previewed += 1
       onProgress?.('previews', previewed, imported.length)

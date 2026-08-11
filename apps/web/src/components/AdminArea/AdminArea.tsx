@@ -26,6 +26,7 @@ import StatStripModule from './components/StatStrip/StatStrip'
 import AddLibraryDialogModule from './components/AddLibraryDialog/AddLibraryDialog'
 import ScanProgressBarModule from './components/ScanProgressBar/ScanProgressBar'
 import ResetLibrariesDialogModule from './components/ResetLibrariesDialog/ResetLibrariesDialog'
+import LibrarySettingsDialogModule from './components/LibrarySettingsDialog/LibrarySettingsDialog'
 import formatBytesModule from './formatBytes'
 import type { Library } from '@FluxContracts/schemas/Library'
 import type { AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin'
@@ -38,12 +39,13 @@ const { TabBar } = TabBarModule
 const { TextField } = TextFieldModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey } = fetchAdminModule
-const { fetchLibraries, scanLibrary, resetLibrary } = fetchLibraryModule
+const { fetchLibraries, scanLibrary, resetLibrary, regenerateLibraryPreviews } = fetchLibraryModule
 const { waitForScanCompletion } = waitForScanCompletionModule
 const { StatStrip } = StatStripModule
 const { AddLibraryDialog } = AddLibraryDialogModule
 const { ScanProgressBar } = ScanProgressBarModule
 const { ResetLibrariesDialog } = ResetLibrariesDialogModule
+const { LibrarySettingsDialog } = LibrarySettingsDialogModule
 const { formatBytes } = formatBytesModule
 
 /**
@@ -121,12 +123,25 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
   const [libraries, setLibraries] = useState<Library[]>([])
   const [isAddingLibrary, setIsAddingLibrary] = useState(false)
   const [scanProgress, setScanProgress] = useState<
-    ReadonlyMap<string, { phase: string | null; processed: number | null; total: number | null }>
+    ReadonlyMap<
+      string,
+      {
+        kind: 'scan' | 'regeneratePreviews'
+        phase: string | null
+        processed: number | null
+        total: number | null
+      }
+    >
   >(new Map())
   const [isScanningAll, setIsScanningAll] = useState(false)
   const [isConfirmingReset, setIsConfirmingReset] = useState(false)
   const [isResettingAll, setIsResettingAll] = useState(false)
+  const [settingsLibraryId, setSettingsLibraryId] = useState<string | null>(null)
   const prefersReducedMotion = useReducedMotion()
+
+  const onLibraryUpdated = (updated: Library) => {
+    setLibraries((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+  }
 
   const onLibraryCreated = (library: Library) => {
     setLibraries((current) => [...current, library])
@@ -135,11 +150,12 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
 
   const trackProgress = (
     libraryId: string,
+    kind: 'scan' | 'regeneratePreviews',
     phase: string | null,
     processed: number | null,
     total: number | null,
   ) => {
-    setScanProgress((current) => new Map(current).set(libraryId, { phase, processed, total }))
+    setScanProgress((current) => new Map(current).set(libraryId, { kind, phase, processed, total }))
   }
 
   const untrackProgress = (libraryId: string) => {
@@ -152,14 +168,14 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
   }
 
   const rescan = async (libraryId: string) => {
-    trackProgress(libraryId, null, null, null)
+    trackProgress(libraryId, 'scan', null, null, null)
 
     try {
       const job = await scanLibrary(libraryId)
 
       if (job !== null) {
         await waitForScanCompletion(job.jobId, (progress) => {
-          trackProgress(libraryId, progress.phase, progress.processed, progress.total)
+          trackProgress(libraryId, 'scan', progress.phase, progress.processed, progress.total)
         })
       }
 
@@ -173,7 +189,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     setIsScanningAll(true)
 
     for (const library of libraries) {
-      trackProgress(library.id, null, null, null)
+      trackProgress(library.id, 'scan', null, null, null)
     }
 
     try {
@@ -183,7 +199,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
 
           if (job !== null) {
             await waitForScanCompletion(job.jobId, (progress) => {
-              trackProgress(library.id, progress.phase, progress.processed, progress.total)
+              trackProgress(library.id, 'scan', progress.phase, progress.processed, progress.total)
             })
           }
 
@@ -203,7 +219,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     setIsResettingAll(true)
 
     for (const library of libraries) {
-      trackProgress(library.id, null, null, null)
+      trackProgress(library.id, 'scan', null, null, null)
     }
 
     try {
@@ -213,7 +229,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
 
           if (job !== null) {
             await waitForScanCompletion(job.jobId, (progress) => {
-              trackProgress(library.id, progress.phase, progress.processed, progress.total)
+              trackProgress(library.id, 'scan', progress.phase, progress.processed, progress.total)
             })
           }
 
@@ -225,6 +241,28 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     } finally {
       setIsResettingAll(false)
       setScanProgress(new Map())
+    }
+  }
+
+  const regeneratePreviews = async (libraryId: string) => {
+    trackProgress(libraryId, 'regeneratePreviews', null, null, null)
+
+    try {
+      const job = await regenerateLibraryPreviews(libraryId)
+
+      if (job !== null) {
+        await waitForScanCompletion(job.jobId, (progress) => {
+          trackProgress(
+            libraryId,
+            'regeneratePreviews',
+            progress.phase,
+            progress.processed,
+            progress.total,
+          )
+        })
+      }
+    } finally {
+      untrackProgress(libraryId)
     }
   }
 
@@ -590,7 +628,16 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                         >
                           <div className="flex min-w-0 flex-col gap-0.5">
                             <span className="flex items-center gap-2 text-sm text-text">
-                              {library.name}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto rounded-none bg-transparent p-0 text-sm text-text hover:bg-transparent hover:underline"
+                                onClick={() => {
+                                  setSettingsLibraryId(library.id)
+                                }}
+                              >
+                                {library.name}
+                              </Button>
                               <Badge size="sm">{library.kind}</Badge>
                             </span>
 
@@ -617,7 +664,11 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                               </Button>
                             ) : (
                               <ScanProgressBar
-                                label={`Scanning ${library.name}`}
+                                label={
+                                  progress.kind === 'scan'
+                                    ? `Scanning ${library.name}`
+                                    : `Regenerating previews for ${library.name}`
+                                }
                                 phase={progress.phase}
                                 processed={progress.processed}
                                 total={progress.total}
@@ -646,6 +697,19 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                   }}
                   onConfirm={() => {
                     void resetAll()
+                  }}
+                />
+
+                <LibrarySettingsDialog
+                  key={settingsLibraryId ?? 'none'}
+                  library={libraries.find((entry) => entry.id === settingsLibraryId) ?? null}
+                  isOpen={settingsLibraryId !== null}
+                  onClose={() => {
+                    setSettingsLibraryId(null)
+                  }}
+                  onUpdated={onLibraryUpdated}
+                  onRegenerate={(libraryId) => {
+                    void regeneratePreviews(libraryId)
                   }}
                 />
               </div>

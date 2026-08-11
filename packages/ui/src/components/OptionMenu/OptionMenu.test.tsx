@@ -55,6 +55,14 @@ describe('OptionMenu', () => {
     expect(onSelect).toHaveBeenCalledWith('2')
   })
 
+  it('closes once a choice is made', async () => {
+    const user = await open([speed()])
+
+    await user.click(await screen.findByRole('menuitemradio', { name: '2x' }))
+
+    expect(screen.queryByRole('menuitemradio', { name: '2x' })).not.toBeInTheDocument()
+  })
+
   it('offers two lists side by side when a decision has two parts', async () => {
     await open([
       {

@@ -38,6 +38,8 @@ const aLibraryWithArrival = {
       path: '/media',
       itemCount: 1,
       lastScannedAt: null,
+
+      defaultAudioLanguage: null,
     },
   ],
   items: {

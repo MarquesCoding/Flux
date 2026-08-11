@@ -31,7 +31,7 @@ import createJobQueueModule from '@FluxServer/jobs/createJobQueue'
 const { createApp } = AppModule
 const { createAuth } = AuthModule
 const { createDatabase } = DatabaseModule
-const { user, mediaItem, userProfile, viewerProfile } = SchemaModule
+const { user, library, mediaItem, userProfile, viewerProfile } = SchemaModule
 const { readEnv } = EnvModule
 const { createDatabaseSettingsStore } = createDatabaseSettingsStoreModule
 const { createDatabaseLibraryService } = createDatabaseLibraryServiceModule
@@ -170,6 +170,9 @@ const jobs = await createJobQueue({
       process.stdout.write(`marked segments on ${marked.toString()} item(s)\n`)
     }
   },
+  onRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {
+    await libraryService.runRegeneratePreviews(libraryId, defaultAudioLanguage, jobId)
+  },
   onProblem: (message) => {
     process.stderr.write(`job queue: ${message}\n`)
   },
@@ -262,14 +265,17 @@ const playbackService = createPlaybackService({
       }
 
       const rows = await db
-        .select({ path: mediaItem.path })
+        .select({ path: mediaItem.path, defaultAudioLanguage: library.defaultAudioLanguage })
         .from(mediaItem)
+        .innerJoin(library, eq(library.id, mediaItem.libraryId))
         .where(eq(mediaItem.id, mediaId))
         .limit(1)
 
-      const path = rows[0]?.path
+      const row = rows[0]
 
-      return path === undefined ? null : { item, path }
+      return row === undefined
+        ? null
+        : { item, path: row.path, defaultAudioLanguage: row.defaultAudioLanguage }
     },
   },
   transcoder,

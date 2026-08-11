@@ -60,10 +60,12 @@ const harness = (options: {
   onProblem?: (path: string, reason: string) => void
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void
   trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number }
+  defaultAudioLanguage?: string | null
 }) => {
   const rows: MediaRow[] = []
   const removedPaths: string[] = []
   const markScanned = vi.fn(() => Promise.resolve())
+  const previewRequests: { inputPath: string; audioStreamIndex?: number }[] = []
 
   const transcoder: Transcoder = {
     isReachable: () => Promise.resolve(true),
@@ -89,7 +91,11 @@ const harness = (options: {
     stopSession: () => Promise.resolve(true),
     readSubtitle: () => Promise.resolve('WEBVTT\n'),
     readFrame: () => Promise.resolve(new ArrayBuffer(0)),
-    requestPreview: () => Promise.resolve({ id: 'p', url: '/p', isReady: true }),
+    requestPreview: (request) => {
+      previewRequests.push(request)
+
+      return Promise.resolve({ id: 'p', url: '/p', isReady: true })
+    },
     readPreviewFile: () => Promise.resolve(null),
     readMonitor: () => Promise.resolve({}),
     openMonitorStream: () => Promise.resolve(null),
@@ -117,6 +123,9 @@ const harness = (options: {
         markScanned,
       },
       transcoder,
+      ...(options.defaultAudioLanguage === undefined
+        ? {}
+        : { defaultAudioLanguage: options.defaultAudioLanguage }),
       ...(options.providers === undefined ? {} : { providers: options.providers }),
       ...(options.force === undefined ? {} : { force: options.force }),
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
@@ -124,7 +133,7 @@ const harness = (options: {
       ...(options.trickplay === undefined ? {} : { trickplay: options.trickplay }),
     })
 
-  return { run, rows, removedPaths, markScanned }
+  return { run, rows, removedPaths, markScanned, previewRequests }
 }
 
 describe('selectChanged', () => {
@@ -454,5 +463,70 @@ describe('scanLibrary', () => {
     expect(onProgress).toHaveBeenCalledWith('probing', 2, 2)
     expect(onProgress).toHaveBeenCalledWith('previews', 0, 2)
     expect(onProgress).toHaveBeenLastCalledWith('previews', 2, 2)
+  })
+
+  describe('forced audio language', () => {
+    const multilingual = (): Promise<MediaProbe> =>
+      Promise.resolve({
+        ...probe(),
+        audioStreams: [
+          {
+            index: 1,
+            codec: 'eac3',
+            channels: 6,
+            language: 'deu',
+            title: null,
+            isDefault: true,
+            isAtmos: false,
+          },
+          {
+            index: 2,
+            codec: 'aac',
+            channels: 2,
+            language: 'eng',
+            title: null,
+            isDefault: false,
+            isAtmos: false,
+          },
+        ],
+      })
+
+    it('asks the preview for the stream matching the forced language', async () => {
+      const { run, previewRequests } = harness({
+        found: [file('/media/films/Arrival (2016).mkv')],
+        probeImpl: multilingual,
+        trickplay: { intervalSeconds: 10, tileWidth: 320, columns: 10, rows: 10 },
+        defaultAudioLanguage: 'en',
+      })
+
+      await run()
+
+      expect(previewRequests).toMatchObject([{ audioStreamIndex: 2 }])
+    })
+
+    it('leaves the request untouched when no language is forced', async () => {
+      const { run, previewRequests } = harness({
+        found: [file('/media/films/Arrival (2016).mkv')],
+        probeImpl: multilingual,
+        trickplay: { intervalSeconds: 10, tileWidth: 320, columns: 10, rows: 10 },
+      })
+
+      await run()
+
+      expect(previewRequests[0]).not.toHaveProperty('audioStreamIndex')
+    })
+
+    it('falls back to the default stream when the file has no matching language', async () => {
+      const { run, previewRequests } = harness({
+        found: [file('/media/films/Arrival (2016).mkv')],
+        probeImpl: multilingual,
+        trickplay: { intervalSeconds: 10, tileWidth: 320, columns: 10, rows: 10 },
+        defaultAudioLanguage: 'fr',
+      })
+
+      await run()
+
+      expect(previewRequests).toMatchObject([{ audioStreamIndex: 1 }])
+    })
   })
 })

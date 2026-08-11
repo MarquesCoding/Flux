@@ -56,6 +56,7 @@ const build = (media: MediaDetail[] = []) => {
         path: '/media/films',
         itemCount: media.length,
         lastScannedAt: null,
+        defaultAudioLanguage: null,
       },
     ],
     media,
@@ -85,6 +86,55 @@ describe('library routes', () => {
 
     expect(response.status).toBe(200)
     expect(body).toMatchObject([{ name: 'Films', kind: 'movies', itemCount: 1 }])
+  })
+
+  it("changes a library's forced default audio language", async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ defaultAudioLanguage: 'de' }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({ id: LIBRARY_ID, defaultAudioLanguage: 'de' })
+  })
+
+  it('answers 404 when changing settings for a library that does not exist', async () => {
+    const { app } = build([])
+
+    const response = await app.request(`${BASE}/api/libraries/${crypto.randomUUID()}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ defaultAudioLanguage: 'de' }),
+    })
+
+    expect(response.status).toBe(404)
+  })
+
+  it('queues preview regeneration rather than a full rescan', async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/regenerate-previews`, {
+      method: 'POST',
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(202)
+    expect(body).toMatchObject({ state: 'queued' })
+  })
+
+  it('answers 404 when regenerating previews for a library that does not exist', async () => {
+    const { app } = build([])
+
+    const response = await app.request(
+      `${BASE}/api/libraries/${crypto.randomUUID()}/regenerate-previews`,
+      { method: 'POST' },
+    )
+
+    expect(response.status).toBe(404)
   })
 
   it('lists the items in a library', async () => {
@@ -328,6 +378,7 @@ describe('library routes', () => {
             path: '/media',
             itemCount: 1,
             lastScannedAt: null,
+            defaultAudioLanguage: null,
           },
         ],
         media: [detail()],

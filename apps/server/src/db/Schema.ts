@@ -148,6 +148,7 @@ const library = pgTable('library', {
   path: text('path').notNull().unique(),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   lastScannedAt: timestamp('lastScannedAt'),
+  defaultAudioLanguage: text('defaultAudioLanguage'),
 })
 
 /**

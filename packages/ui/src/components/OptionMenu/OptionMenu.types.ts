@@ -34,6 +34,22 @@ type OptionMenuProps = {
   footer?: ReactNode
   isDisabled?: boolean
   className?: string
+  /**
+   * Which edge of the trigger the popup lines up with.
+   *
+   * `end` suits a small icon trigger at the corner of a bar — the player's
+   * settings gear. `start` suits a full-width control such as a form field,
+   * where the popup should hang directly under it rather than off to one
+   * side.
+   */
+  align?: 'start' | 'center' | 'end'
+  /**
+   * Widens the popup to at least the trigger's own width.
+   *
+   * A form field expects the menu under it to answer for at least as much
+   * space as the field claims; an icon trigger does not.
+   */
+  matchTriggerWidth?: boolean
 }
 
 export type { MenuGroup, MenuOption, OptionMenuProps }

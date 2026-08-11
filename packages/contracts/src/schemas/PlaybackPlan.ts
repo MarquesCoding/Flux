@@ -49,9 +49,22 @@ const VideoDecisionSchema = z.discriminatedUnion('kind', [
 ])
 
 const AudioDecisionSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('passthrough'), reason: ReasonSchema }),
+  z.object({
+    kind: z.literal('passthrough'),
+    /**
+     * Which of the source's audio streams was chosen, when it has one.
+     *
+     * Carried here rather than left implicit so a caller can tell whether the
+     * container's own default track was picked or whether Flux picked another
+     * one for it — the difference that decides whether a direct file serve can
+     * honour the choice or a remux is needed to select it. See ADR-0011.
+     */
+    streamIndex: z.number().int().nullable(),
+    reason: ReasonSchema,
+  }),
   z.object({
     kind: z.literal('transcode'),
+    streamIndex: z.number().int().nullable(),
     codec: AudioCodecSchema,
     channels: z.number().int().positive(),
     maxBitrateKbps: z.number().int().positive(),

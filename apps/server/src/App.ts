@@ -32,11 +32,13 @@ const { DEFAULT_LIMIT } = LibraryServiceModule
 const {
   listLibrariesRoute,
   createLibraryRoute,
+  updateLibraryRoute,
   listItemsRoute,
   getMediaRoute,
   scanLibraryRoute,
   scanStateRoute,
   resetLibraryRoute,
+  regeneratePreviewsRoute,
 } = LibraryRouteModule
 const {
   explainRoute,
@@ -241,6 +243,16 @@ const createApp = ({
     return context.json(created, 201)
   })
 
+  app.openapi(updateLibraryRoute, async (context) => {
+    const updated = await library.update(context.req.valid('param').id, context.req.valid('json'))
+
+    if (updated === null) {
+      return context.json({ error: 'No such library.' }, 404)
+    }
+
+    return context.json(updated, 200)
+  })
+
   app.openapi(listItemsRoute, async (context) => {
     const { id } = context.req.valid('param')
     const { search, limit, offset } = context.req.valid('query')
@@ -296,6 +308,16 @@ const createApp = ({
     }
 
     return context.json(reset, 202)
+  })
+
+  app.openapi(regeneratePreviewsRoute, async (context) => {
+    const queued = await library.regeneratePreviews(context.req.valid('param').id)
+
+    if (queued === null) {
+      return context.json({ error: 'No such library.' }, 404)
+    }
+
+    return context.json(queued, 202)
   })
 
   app.openapi(healthRoute, async (context) => {

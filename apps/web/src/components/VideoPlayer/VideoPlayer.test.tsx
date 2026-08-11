@@ -91,7 +91,7 @@ const transcodingPlan: PlaybackPlan = {
     maxHeight: 1080,
     reason: { code: 'VideoCodecNotSupported', detail: 'Client does not support hevc' },
   },
-  audio: { kind: 'passthrough', reason },
+  audio: { kind: 'passthrough', streamIndex: 1, reason },
   subtitles: { kind: 'none', reason },
 }
 
