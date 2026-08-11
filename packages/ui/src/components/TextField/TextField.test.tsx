@@ -86,4 +86,64 @@ describe('TextField', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(TextField.displayName).toBe('TextField');
   });
+
+  describe('wearing no box', () => {
+    it('keeps the label for a reader even when the page does not show it', () => {
+      render(<TextField label="Search" value="" onValueChange={vi.fn()} isBare isLabelHidden />);
+
+      expect(screen.getByLabelText('Search')).toBeInTheDocument();
+      expect(screen.getByText('Search')).toHaveClass('sr-only');
+    });
+
+    it('drops the border and the fixed height it would otherwise have', () => {
+      render(<TextField label="Search" value="" onValueChange={vi.fn()} isBare size="xl" />);
+
+      const input = screen.getByLabelText('Search');
+
+      expect(input).toHaveClass('bg-transparent');
+      expect(input).not.toHaveClass('h-16');
+    });
+
+    it('still reports what was typed', async () => {
+      const onValueChange = vi.fn();
+      const user = userEvent.setup();
+      render(<TextField label="Search" value="" onValueChange={onValueChange} isBare />);
+
+      await user.type(screen.getByLabelText('Search'), 'a');
+
+      expect(onValueChange).toHaveBeenCalledWith('a');
+    });
+  });
+
+  it('announces itself as a search box when it is one', () => {
+    render(<TextField label="Search" value="" onValueChange={vi.fn()} type="search" />);
+
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toBeInTheDocument();
+  });
+
+  it('takes focus on mount for a field that is the whole point of the page', () => {
+    render(<TextField label="Search" value="" onValueChange={vi.fn()} hasFocusOnMount />);
+
+    expect(screen.getByLabelText('Search')).toHaveFocus();
+  });
+
+  it('leaves focus alone otherwise', () => {
+    render(<TextField label="Email" value="" onValueChange={vi.fn()} />);
+
+    expect(screen.getByLabelText('Email')).not.toHaveFocus();
+  });
+
+  it('shows an icon beside the field without stealing its label', () => {
+    render(
+      <TextField
+        label="Search"
+        value=""
+        onValueChange={vi.fn()}
+        icon={<span data-testid="glass" aria-hidden />}
+      />,
+    );
+
+    expect(screen.getByTestId('glass')).toBeInTheDocument();
+    expect(screen.getByLabelText('Search')).toBeInTheDocument();
+  });
 });
