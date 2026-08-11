@@ -34,6 +34,10 @@ type MediaRow = {
   probe: MediaProbe
   metadata: Metadata
   episode: EpisodeNumbering
+  /**
+   * The colour this item lights a page with, when one could be taken.
+   */
+  accentColor: string | null
 }
 
 /**
@@ -73,6 +77,19 @@ type ScanLibraryOptions = {
    * files better, the only way to pick the change up is to ask again.
    */
   force?: boolean
+  /**
+   * What seek previews should look like.
+   *
+   * Rendered here rather than when someone presses play, because a feature
+   * length film takes minutes to draw and a viewer must never wait on it.
+   * Omitted, no previews are drawn — which is what the tests want.
+   */
+  trickplay?: {
+    intervalSeconds: number
+    tileWidth: number
+    columns: number
+    rows: number
+  }
   onProblem?: (path: string, reason: string) => void
 }
 
@@ -120,6 +137,7 @@ const scanLibrary = async ({
   transcoder,
   providers = [createFilenameMetadataProvider()],
   force = false,
+  trickplay,
   onProblem,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path))
@@ -130,6 +148,7 @@ const scanLibrary = async ({
     : selectChanged(found, stored)
   const knownPaths = new Set(stored.map((item) => item.path))
 
+  const imported: string[] = []
   let added = 0
   let updated = 0
   let failed = 0
@@ -162,6 +181,14 @@ const scanLibrary = async ({
 
       const { title, year } = metadata
 
+      // Taken during the scan because it costs one seek and a single frame,
+      // and because asking for it while someone is browsing would mean
+      // spawning ffmpeg to draw a page.
+      const accentColor = await transcoder
+        .sampleColour({ inputPath: file.path, durationSeconds: probe.durationSeconds })
+        .then((colour) => colour.hex)
+        .catch(() => null)
+
       await store.upsert({
         libraryId,
         path: file.path,
@@ -172,7 +199,10 @@ const scanLibrary = async ({
         probe,
         metadata,
         episode,
+        accentColor,
       })
+
+      imported.push(file.path)
 
       if (knownPaths.has(file.path)) {
         updated += 1
@@ -182,6 +212,27 @@ const scanLibrary = async ({
     } catch (error) {
       failed += 1
       onProblem?.(file.path, error instanceof Error ? error.message : 'Probe failed.')
+    }
+  }
+
+  // After the rows, never before them: the library should appear as soon as
+  // it is known, and previews are worth waiting for only in the sense that
+  // they arrive without anybody sitting in front of a spinner.
+  if (trickplay !== undefined) {
+    for (const path of imported) {
+      await transcoder
+        .requestTrickplay({ inputPath: path, ...trickplay, wait: true })
+        .catch((error: Error) => {
+          onProblem?.(path, error.message)
+        })
+
+      // The clip a library page plays, made here for the same reason the
+      // thumbnails are: a wall of cards playing previews should cost nothing
+      // running, rather than half a dozen transcodes competing with whatever
+      // somebody is actually watching.
+      await transcoder.requestPreview({ inputPath: path, wait: true }).catch((error: Error) => {
+        onProblem?.(path, error.message)
+      })
     }
   }
 

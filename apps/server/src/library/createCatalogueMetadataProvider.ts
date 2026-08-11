@@ -15,6 +15,15 @@ const { JsonValueSchema } = JsonValueModule
  */
 const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3'
 
+/**
+ * Whether a credential is the newer kind.
+ *
+ * The newer one is a signed token in three dot-separated parts; the older is a
+ * plain string of hexadecimal. Telling them apart by shape means an operator
+ * never has to know which they were given.
+ */
+const isAccessToken = (key: string): boolean => key.split('.').length === 3 && key.startsWith('ey')
+
 const DEFAULT_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p'
 
 /**
@@ -38,6 +47,20 @@ const SearchResultSchema = z.object({
 })
 
 const SearchResponseSchema = z.object({ results: z.array(SearchResultSchema).default([]) })
+
+/**
+ * What the catalogue says about one episode.
+ *
+ * Asked for separately, because a series entry names the series: without this
+ * every episode of a show would be called the same thing, which is exactly
+ * what a list of episodes must not be.
+ */
+const EpisodeResponseSchema = z.object({
+  name: z.string().optional(),
+  overview: z.string().optional(),
+  still_path: z.string().nullish(),
+  vote_average: z.number().optional(),
+})
 
 const DetailResponseSchema = z.object({
   id: z.number(),
@@ -68,6 +91,7 @@ const DetailResponseSchema = z.object({
 
 type Fetcher = (
   url: string,
+  headers?: Record<string, string>,
 ) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>
 
 type CreateCatalogueMetadataProviderOptions = {
@@ -122,8 +146,8 @@ const createCatalogueMetadataProvider = ({
 }: CreateCatalogueMetadataProviderOptions): MetadataProvider => {
   const call: Fetcher =
     fetchImpl ??
-    (async (url: string) => {
-      const response = await fetch(url)
+    (async (url: string, headers?: Record<string, string>) => {
+      const response = await fetch(url, headers === undefined ? {} : { headers })
 
       return {
         ok: response.ok,
@@ -135,8 +159,17 @@ const createCatalogueMetadataProvider = ({
     })
 
   const request = async (path: string, key: string, query: Record<string, string>) => {
-    const parameters = new URLSearchParams({ api_key: key, ...query })
-    const response = await call(`${baseUrl}${path}?${parameters.toString()}`)
+    // The catalogue issues two kinds of credential and does not accept them
+    // the same way: the older one is a key in the query string, and the newer
+    // one is a token in a header. Somebody pasting either should get their
+    // posters, rather than a silent four hundred and one.
+    const isToken = isAccessToken(key)
+    const parameters = new URLSearchParams(isToken ? query : { api_key: key, ...query })
+
+    const response = await call(
+      `${baseUrl}${path}?${parameters.toString()}`,
+      isToken ? { authorization: `Bearer ${key}` } : undefined,
+    )
 
     if (!response.ok) {
       onProblem?.(`The catalogue answered ${response.status.toString()} for ${path}.`)
@@ -207,15 +240,45 @@ const createCatalogueMetadataProvider = ({
         })) ?? []
 
       const poster = imageUrl(imageBaseUrl, found.poster_path, 'w500')
-      const backdrop = imageUrl(imageBaseUrl, found.backdrop_path, 'w1280')
+
+      // An episode is named by the episode, illustrated by its own still, and
+      // described by its own synopsis — falling back to the series for
+      // whichever of those the catalogue does not have.
+      const episode = isEpisode
+        ? EpisodeResponseSchema.safeParse(
+            await request(
+              `/tv/${first.id.toString()}/season/${(facts.episode?.seasonNumber ?? 1).toString()}/episode/${episodeNumber.toString()}`,
+              key,
+              {},
+            ),
+          )
+        : null
+
+      const still =
+        episode?.success === true ? imageUrl(imageBaseUrl, episode.data.still_path, 'w780') : null
+      const backdrop = still ?? imageUrl(imageBaseUrl, found.backdrop_path, 'w1280')
+
+      const seriesName = found.title ?? found.name ?? searchTitle
+      const episodeName =
+        episode?.success === true && episode.data.name !== undefined && episode.data.name !== ''
+          ? episode.data.name
+          : (facts.episode?.episodeTitle ?? null)
+
+      const overview =
+        episode?.success === true &&
+        episode.data.overview !== undefined &&
+        episode.data.overview !== ''
+          ? episode.data.overview
+          : found.overview
 
       const metadata: Metadata = {
-        title: found.title ?? found.name ?? searchTitle,
+        title: isEpisode ? (episodeName ?? seriesName) : seriesName,
+        // The show is what a series of files belongs to, and what a shelf
+        // groups them under.
+        ...(isEpisode ? { seriesTitle: seriesName } : {}),
         year: readYear(found.release_date ?? found.first_air_date),
         externalId: found.id.toString(),
-        ...(found.overview === undefined || found.overview === ''
-          ? {}
-          : { overview: found.overview }),
+        ...(overview === undefined || overview === '' ? {} : { overview }),
         ...(found.tagline === undefined || found.tagline === '' ? {} : { tagline: found.tagline }),
         ...(found.genres.length === 0 ? {} : { genres: found.genres.map((genre) => genre.name) }),
         ...(cast.length === 0 ? {} : { cast }),

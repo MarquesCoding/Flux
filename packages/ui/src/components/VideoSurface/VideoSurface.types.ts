@@ -1,4 +1,4 @@
-import type { Ref } from 'react'
+import type { RefObject } from 'react'
 
 /**
  * A subtitle track the browser renders itself.
@@ -16,7 +16,7 @@ type TextTrack = {
 
 type VideoSurfaceProps = {
   label: string
-  videoRef: Ref<HTMLVideoElement>
+  videoRef: RefObject<HTMLVideoElement | null>
   poster?: string
   className?: string
   /**
@@ -27,6 +27,14 @@ type VideoSurfaceProps = {
   onTimeUpdate?: (currentSeconds: number) => void
   onDurationChange?: (durationSeconds: number) => void
   onPlayingChange?: (isPlaying: boolean) => void
+  /**
+   * Called when the media reaches its end.
+   */
+  onEnded?: () => void
+  /**
+   * Whether the media starts again when it reaches the end.
+   */
+  loops?: boolean
 }
 
 export type { TextTrack, VideoSurfaceProps }

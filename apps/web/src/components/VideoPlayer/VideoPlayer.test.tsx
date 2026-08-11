@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import VideoPlayerModule from './VideoPlayer'
@@ -712,8 +712,7 @@ describe('VideoPlayer', () => {
     await actor.click(await screen.findByRole('button', { name: 'Subtitles' }))
     await actor.click(await screen.findByRole('menuitemradio', { name: /English/ }))
 
-    expect(container.querySelector('track')).toHaveAttribute(
-      'src',
+    expect(container.querySelector('track')?.getAttribute('src')).toContain(
       '/api/media/media-1/subtitles/en',
     )
   })
@@ -891,5 +890,59 @@ describe('VideoPlayer', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(VideoPlayer.displayName).toBe('VideoPlayer')
+  })
+
+  it('fades the controls away once a viewer has left them alone', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
+    try {
+      render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
+
+      const element = await screen.findByLabelText('Arrival')
+
+      fireEvent.play(element)
+
+      // Playback carries on, which moves the position several times a second.
+      // That must not count as a viewer being present, or the controls would
+      // never leave for the whole film.
+      for (const seconds of [1, 2, 3, 4]) {
+        Object.defineProperty(element, 'currentTime', { configurable: true, value: seconds })
+        fireEvent.timeUpdate(element)
+      }
+
+      act(() => {
+        vi.advanceTimersByTime(4000)
+      })
+
+      expect(screen.getByLabelText('Arrival').parentElement?.className).toContain('cursor-none')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('brings the controls and the pointer back when the viewer moves', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
+    try {
+      render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
+
+      const element = await screen.findByLabelText('Arrival')
+
+      fireEvent.play(element)
+
+      act(() => {
+        vi.advanceTimersByTime(4000)
+      })
+
+      const stage = screen.getByLabelText('Arrival').parentElement
+
+      if (stage !== null) {
+        fireEvent.pointerMove(stage)
+      }
+
+      expect(stage?.className).toContain('cursor-default')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

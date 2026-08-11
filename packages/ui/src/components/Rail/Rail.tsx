@@ -1,0 +1,138 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+import cnModule from '@FluxUI/cn'
+import IconButtonModule from '@FluxUI/IconButton'
+import type { RailProps } from './Rail.types'
+
+const { cn } = cnModule
+const { IconButton } = IconButtonModule
+
+/**
+ * How much of the visible width one press moves.
+ *
+ * Not the whole width: leaving a card partly visible tells a viewer the row
+ * carried on, where a clean page turn loses their place in it.
+ */
+const SCROLL_FRACTION = 0.85
+
+/**
+ * A horizontally scrolling row of items.
+ *
+ * Rows rather than a grid because a library is browsed by mood, not by index:
+ * a viewer skims along a theme until something catches them.
+ *
+ * Scrolling is a real overflow rather than a transform, so a trackpad, a touch
+ * screen and a keyboard all work without being taught to. The arrows exist for
+ * a mouse, which has none of those.
+ */
+const Rail = ({ title, children, action, className }: RailProps) => {
+  const trackRef = useRef<HTMLUListElement>(null)
+  const [reach, setReach] = useState({ start: false, end: false })
+
+  const measure = useCallback(() => {
+    const track = trackRef.current
+
+    if (track === null) {
+      return
+    }
+
+    setReach({
+      start: track.scrollLeft > 8,
+      end: track.scrollLeft + track.clientWidth < track.scrollWidth - 8,
+    })
+  }, [])
+
+  useEffect(() => {
+    measure()
+
+    const track = trackRef.current
+
+    if (track === null) {
+      return
+    }
+
+    const observer = new ResizeObserver(measure)
+
+    observer.observe(track)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [measure, children])
+
+  const scrollBy = (direction: 1 | -1) => {
+    const track = trackRef.current
+
+    if (track !== null) {
+      track.scrollBy({ left: direction * track.clientWidth * SCROLL_FRACTION, behavior: 'smooth' })
+    }
+  }
+
+  return (
+    <section className={cn('group/rail flex flex-col gap-3', className)} aria-label={title}>
+      <header className="flex items-end justify-between gap-4 px-1">
+        <h2 className="text-lg font-semibold tracking-tight text-text">{title}</h2>
+
+        <div className="flex items-center gap-2">
+          {action}
+
+          <span className="hidden items-center gap-1 md:flex">
+            <IconButton
+              label={`Scroll ${title} left`}
+              size="sm"
+              disabled={!reach.start}
+              onClick={() => {
+                scrollBy(-1)
+              }}
+            >
+              <IconChevronLeft size={18} aria-hidden />
+            </IconButton>
+
+            <IconButton
+              label={`Scroll ${title} right`}
+              size="sm"
+              disabled={!reach.end}
+              onClick={() => {
+                scrollBy(1)
+              }}
+            >
+              <IconChevronRight size={18} aria-hidden />
+            </IconButton>
+          </span>
+        </div>
+      </header>
+
+      {/* The row is masked at whichever end it continues past, so cards fade
+          out rather than being sliced off by an edge that is not there. */}
+      <div
+        className={cn(
+          'relative',
+          reach.start && reach.end
+            ? '[mask-image:linear-gradient(to_right,transparent,black_3rem,black_calc(100%-3rem),transparent)]'
+            : reach.start
+              ? '[mask-image:linear-gradient(to_right,transparent,black_3rem)]'
+              : reach.end
+                ? '[mask-image:linear-gradient(to_right,black_calc(100%-3rem),transparent)]'
+                : '',
+        )}
+      >
+        <ul
+          ref={trackRef}
+          onScroll={measure}
+          // Scrolling sideways clips vertically too — a browser will not give one
+          // axis a scrollbar and leave the other free — so a card that lifts on
+          // hover loses its top edge and its shadow. The padding is the room it
+          // lifts into; the negative margin gives that space back to the page so
+          // rows are not pushed apart by it.
+          className="flux-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
+        >
+          {children}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+Rail.displayName = 'Rail'
+
+export default { Rail }
