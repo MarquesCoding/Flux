@@ -1,9 +1,11 @@
 import negotiatePlaybackModule from '@FluxCore/functions/negotiatePlayback'
+import resolveQualityStepModule from '@FluxCore/functions/resolveQualityStep'
 import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem'
 import type { PlaybackService } from './PlaybackService'
 
 const { negotiatePlayback } = negotiatePlaybackModule
+const { resolveQualityStep } = resolveQualityStepModule
 const { describePlaybackMode } = describePlaybackModeModule
 
 type MemoryPlaybackState = {
@@ -24,19 +26,20 @@ const createMemoryPlaybackService = (
 ): PlaybackService & { state: MemoryPlaybackState } => ({
   state,
 
-  explain: (mediaId, profile) => {
+  explain: (mediaId, profile, requestedQuality) => {
     const item = state.media[mediaId]
 
     if (item === undefined) {
       return Promise.resolve(null)
     }
 
-    const plan = negotiatePlayback(item, profile)
+    const qualityClamp = resolveQualityStep(item, requestedQuality ?? 'original')
+    const plan = negotiatePlayback(item, profile, qualityClamp)
 
     return Promise.resolve({ mode: describePlaybackMode(plan), plan })
   },
 
-  start: (mediaId, profile, _startSeconds, audioStreamIndex) => {
+  start: (mediaId, profile, _startSeconds, audioStreamIndex, requestedQuality) => {
     const item = state.media[mediaId]
 
     if (item === undefined) {
@@ -50,7 +53,8 @@ const createMemoryPlaybackService = (
       })
     }
 
-    const plan = negotiatePlayback(item, profile)
+    const qualityClamp = resolveQualityStep(item, requestedQuality ?? 'original')
+    const plan = negotiatePlayback(item, profile, qualityClamp)
     // The chosen track is part of what a session is, so it belongs in the
     // identity of one: two tracks are two sessions.
     const sessionId =

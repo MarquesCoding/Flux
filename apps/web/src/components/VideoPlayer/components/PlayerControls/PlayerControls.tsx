@@ -19,6 +19,7 @@ import SliderModule from '@FluxUI/Slider'
 import OptionMenuModule from '@FluxUI/OptionMenu'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
+import QualityStepModule from '@FluxContracts/schemas/QualityStep'
 import PlayerControlsTypes from './PlayerControls.types'
 import type { PlayerControlsProps } from './PlayerControls.types'
 
@@ -28,11 +29,21 @@ const { OptionMenu } = OptionMenuModule
 const { formatDuration } = formatDurationModule
 const { SKIP_SECONDS, PLAYBACK_RATES } = PlayerControlsTypes
 const { SUBTITLES_OFF } = fetchSubtitlesModule
+const { QUALITY_STEPS } = QualityStepModule
 
 /**
  * Formats a rate the way a viewer reads it, not the way a float prints.
  */
 const rateLabel = (rate: number): string => `${rate.toString()}x`
+
+/**
+ * Formats a step's bitrate for the menu, the way a viewer judges it rather
+ * than the way the ladder stores it.
+ */
+const bitrateDetail = (maxVideoBitrateKbps: number): string =>
+  maxVideoBitrateKbps >= 1000
+    ? `${(maxVideoBitrateKbps / 1000).toFixed(1)} Mbps`
+    : `${maxVideoBitrateKbps.toString()} kbps`
 
 /**
  * How far one press moves the subtitles.
@@ -63,6 +74,8 @@ const PlayerControls = ({
   selectedSubtitleId,
   audioTracks,
   selectedAudioIndex,
+  availableQualitySteps,
+  selectedQuality,
   isDisabled = false,
   onTogglePlay,
   onSeek,
@@ -70,6 +83,7 @@ const PlayerControls = ({
   onPlaybackRateChange,
   onSubtitleChange,
   onAudioChange,
+  onQualityChange,
   onEditCaptions,
   onVolumeChange,
   onToggleMute,
@@ -279,6 +293,43 @@ const PlayerControls = ({
           },
         ]}
       />
+
+      {availableQualitySteps.length === 0 ? null : (
+        <OptionMenu
+          label="Quality"
+          trigger={
+            <span className="text-sm font-medium">
+              {selectedQuality === 'original'
+                ? 'Original'
+                : (QUALITY_STEPS.find((step) => step.id === selectedQuality)?.label ??
+                  selectedQuality)}
+            </span>
+          }
+          groups={[
+            {
+              name: 'Quality',
+              selectedId: selectedQuality,
+              onSelect: (id) => {
+                onQualityChange(availableQualitySteps.find((step) => step === id) ?? 'original')
+              },
+              options: [
+                { id: 'original', label: 'Original' },
+                ...availableQualitySteps.map((id) => {
+                  const step = QUALITY_STEPS.find((entry) => entry.id === id)
+
+                  return {
+                    id,
+                    label: step?.label ?? id,
+                    ...(step === undefined
+                      ? {}
+                      : { detail: bitrateDetail(step.maxVideoBitrateKbps) }),
+                  }
+                }),
+              ],
+            },
+          ]}
+        />
+      )}
 
       <IconButton
         label="Stats for nerds"
