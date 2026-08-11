@@ -2,12 +2,12 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminAreaModule from './AdminArea'
-import type { Monitor } from '@FluxWeb/admin/fetchAdmin'
+import type { AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin'
 import type { Library } from '@FluxContracts/schemas/Library'
 
 const { AdminArea } = AdminAreaModule
 
-const OVERVIEW = {
+const OVERVIEW: AdminOverview = {
   users: [
     {
       id: 'abc',
@@ -320,13 +320,13 @@ describe('AdminArea', () => {
     })
   })
 
-  it('offers a full rescan that probes every file again', async () => {
+  it('offers to scan every library at once, forcing a fresh probe of each', async () => {
     const actor = userEvent.setup()
 
     render(<AdminArea />)
 
     await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
-    await actor.click(screen.getByRole('button', { name: 'Full rescan' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan all libraries' }))
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
