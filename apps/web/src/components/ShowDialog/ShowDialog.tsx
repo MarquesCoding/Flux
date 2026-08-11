@@ -12,6 +12,8 @@ import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
 import { pickUpFrom } from './pickUpFrom';
 import { EpisodeRow } from './components/EpisodeRow/EpisodeRow';
+import { MissingRow } from './components/MissingRow/MissingRow';
+import { findGaps } from '@FluxCore/functions/findGaps';
 import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { ShowDialogProps } from './ShowDialog.types';
 
@@ -104,6 +106,26 @@ const ShowDialog = ({
   const season = seasons.find((one) => one.seasonNumber === chosenSeason) ??
     seasons[0] ?? { seasonNumber: null, episodes: [] };
   const carryingOn = detail === null ? null : pickUpFrom(detail, { resumeFor, isFinished });
+  const gaps = detail === null ? null : findGaps(detail);
+  const missingHere = gaps?.episodes.get(season.seasonNumber ?? -1) ?? [];
+
+  const inOrder = [
+    ...season.episodes.map((episode) => ({
+      key: episode.id,
+      at: episode.episodeNumber ?? 0,
+      episode,
+    })),
+    ...missingHere.map((number) => ({
+      key: `missing-${number.toString()}`,
+      at: number,
+      episode: null,
+    })),
+  ].sort((left, right) => left.at - right.at);
+
+  const chooseFrom = [
+    ...seasons.map((one) => ({ seasonNumber: one.seasonNumber, isMissing: false as const })),
+    ...(gaps?.seasons ?? []).map((number) => ({ seasonNumber: number, isMissing: true as const })),
+  ].sort((left, right) => (left.seasonNumber ?? Infinity) - (right.seasonNumber ?? Infinity));
 
   return (
     <Dialog
@@ -214,23 +236,34 @@ const ShowDialog = ({
               Episodes
             </h3>
 
-            {seasons.length < 2 ? null : (
+            {seasons.length < 2 && (gaps?.seasons ?? []).length === 0 ? null : (
               <ul className="flux-rail flex items-center gap-2 overflow-x-auto">
-                {seasons.map((one) => (
-                  <li key={one.seasonNumber ?? 'specials'}>
-                    <Button
-                      size="sm"
-                      isPill
-                      aria-pressed={one.seasonNumber === season.seasonNumber}
-                      variant={one.seasonNumber === season.seasonNumber ? 'glossy' : 'ghost'}
-                      onClick={() => {
-                        setChosenSeason(one.seasonNumber);
-                      }}
-                    >
-                      {nameSeason(one.seasonNumber)}
-                    </Button>
-                  </li>
-                ))}
+                {chooseFrom.map((one) =>
+                  one.isMissing ? (
+                    <li key={`missing-${one.seasonNumber.toString()}`}>
+                      <Badge
+                        size="sm"
+                        className="border border-dashed border-white/20 bg-transparent text-text-muted"
+                      >
+                        {nameSeason(one.seasonNumber)} missing
+                      </Badge>
+                    </li>
+                  ) : (
+                    <li key={one.seasonNumber ?? 'specials'}>
+                      <Button
+                        size="sm"
+                        isPill
+                        aria-pressed={one.seasonNumber === season.seasonNumber}
+                        variant={one.seasonNumber === season.seasonNumber ? 'glossy' : 'ghost'}
+                        onClick={() => {
+                          setChosenSeason(one.seasonNumber);
+                        }}
+                      >
+                        {nameSeason(one.seasonNumber)}
+                      </Button>
+                    </li>
+                  ),
+                )}
               </ul>
             )}
           </header>
@@ -243,19 +276,23 @@ const ShowDialog = ({
             </p>
           ) : (
             <ul className="flex flex-col divide-y divide-white/5">
-              {season.episodes.map((episode) => (
-                <li key={episode.id}>
-                  <EpisodeRow
-                    episode={episode}
-                    onPlay={onPlay}
-                    {...(onInspect === undefined ? {} : { onInspect })}
-                    {...(watchedFractionFor?.(episode.id) === undefined
-                      ? {}
-                      : { watchedFraction: watchedFractionFor(episode.id) ?? 0 })}
-                    {...(resumeFor === undefined || resumeFor(episode.id) === null
-                      ? {}
-                      : { resumeSeconds: Math.floor(resumeFor(episode.id) ?? 0) })}
-                  />
+              {inOrder.map(({ key, at, episode }) => (
+                <li key={key}>
+                  {episode === null ? (
+                    <MissingRow episodeNumber={at} />
+                  ) : (
+                    <EpisodeRow
+                      episode={episode}
+                      onPlay={onPlay}
+                      {...(onInspect === undefined ? {} : { onInspect })}
+                      {...(watchedFractionFor?.(episode.id) === undefined
+                        ? {}
+                        : { watchedFraction: watchedFractionFor(episode.id) ?? 0 })}
+                      {...(resumeFor === undefined || resumeFor(episode.id) === null
+                        ? {}
+                        : { resumeSeconds: Math.floor(resumeFor(episode.id) ?? 0) })}
+                    />
+                  )}
                 </li>
               ))}
             </ul>
