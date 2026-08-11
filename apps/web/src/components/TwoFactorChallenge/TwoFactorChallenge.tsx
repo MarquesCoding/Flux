@@ -19,8 +19,12 @@ const ENDPOINTS: Record<ChallengeMode, string> = {
  * better-auth issues a short-lived two-factor cookie alongside the
  * `twoFactorRedirect` response, and this request completes the sign-in against
  * it. No session exists until a code is accepted.
+ *
+ * Carries no layout of its own: it appears under a portrait on the way in,
+ * where the screen has already said who is being asked and offers its own way
+ * back. A component that brings a page with it can only ever be a page.
  */
-const TwoFactorChallenge = ({ onVerified, onCancel }: TwoFactorChallengeProps) => {
+const TwoFactorChallenge = ({ onVerified }: TwoFactorChallengeProps) => {
   const [mode, setMode] = useState<ChallengeMode>('totp')
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -70,55 +74,49 @@ const TwoFactorChallenge = ({ onVerified, onCancel }: TwoFactorChallengeProps) =
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-text">Two-factor authentication</h1>
-        <p className="text-text-muted">
-          {isTotp
-            ? 'Enter the current code from your authenticator app.'
-            : 'Enter one of the backup codes you saved. Each can be used once.'}
-        </p>
-      </header>
+    <form
+      noValidate
+      className="flex w-full flex-col gap-4"
+      onSubmit={(event) => {
+        event.preventDefault()
+        void submit()
+      }}
+    >
+      <p className="text-center text-sm text-text-muted">
+        {isTotp
+          ? 'Enter the current code from your authenticator app.'
+          : 'Enter one of the backup codes you saved. Each can be used once.'}
+      </p>
 
-      <form
-        noValidate
-        className="flex flex-col gap-4"
-        onSubmit={(event) => {
-          event.preventDefault()
-          void submit()
+      <TextField
+        label={isTotp ? 'Authenticator code' : 'Backup code'}
+        value={code}
+        onValueChange={setCode}
+        autoComplete="one-time-code"
+        placeholder={isTotp ? '123456' : ''}
+        size="lg"
+        isPill
+        {...(error === null ? {} : { error })}
+      />
+
+      <Button type="submit" variant="glossy" size="lg" isPill isLoading={isSubmitting}>
+        Verify
+      </Button>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        isPill
+        onClick={() => {
+          setMode(isTotp ? 'backup' : 'totp')
+          setCode('')
+          setError(null)
         }}
       >
-        <TextField
-          label={isTotp ? 'Authenticator code' : 'Backup code'}
-          value={code}
-          onValueChange={setCode}
-          autoComplete="one-time-code"
-          placeholder={isTotp ? '123456' : ''}
-          {...(error === null ? {} : { error })}
-        />
-
-        <Button type="submit" isLoading={isSubmitting}>
-          Verify
-        </Button>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setMode(isTotp ? 'backup' : 'totp')
-            setCode('')
-            setError(null)
-          }}
-        >
-          {isTotp ? 'Use a backup code instead' : 'Use my authenticator app instead'}
-        </Button>
-
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-          Back to sign in
-        </Button>
-      </form>
-    </main>
+        {isTotp ? 'Use a backup code instead' : 'Use my authenticator app instead'}
+      </Button>
+    </form>
   )
 }
 

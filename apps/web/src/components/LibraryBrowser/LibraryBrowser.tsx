@@ -1,22 +1,41 @@
-import { useCallback, useEffect, useState } from 'react'
-import { IconPlus, IconRefresh, IconRefreshAlert } from '@tabler/icons-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
+import { IconSearch } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
-import MediaCardModule from '@FluxUI/MediaCard'
+import revealModule from '@FluxUI/animations/reveal'
+import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
 import SpinnerModule from '@FluxUI/Spinner'
-import TextFieldModule from '@FluxUI/TextField'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
+import RailModule from '@FluxUI/Rail'
+import HeroModule from '@FluxWeb/components/Hero/Hero'
+import groupIntoRailsModule from '@FluxWeb/library/groupIntoRails'
+import pickFeaturedModule from '@FluxWeb/library/pickFeatured'
+import watchProgressModule from '@FluxWeb/playback/watchProgress'
+import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
 import describeMediaModule from './describeMedia'
-import AddLibraryDialogModule from './components/AddLibraryDialog/AddLibraryDialog'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
+import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
 
 const { Button } = ButtonModule
-const { MediaCard } = MediaCardModule
+const { RailCard } = RailCardModule
+const { Hero } = HeroModule
+const { Rail } = RailModule
+const { groupIntoRails } = groupIntoRailsModule
+const { pickFeatured } = pickFeaturedModule
+const { fetchWatchProgress, byMediaId } = watchProgressModule
+const { watchedFraction, isWorthResuming } = WatchProgressContract
+
+/**
+ * How many items the hero rotates between.
+ *
+ * A handful: a carousel of thirty is a carousel nobody reaches the end of.
+ */
+const HERO_COUNT = 5
 const { Spinner } = SpinnerModule
-const { TextField } = TextFieldModule
-const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
-const { describeMedia, describeBadges } = describeMediaModule
-const { AddLibraryDialog } = AddLibraryDialogModule
+const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
+const { revealVariants, revealTransition, staggerVariants } = revealModule
+const { describeMedia } = describeMediaModule
 
 const PAGE_SIZE = 60
 const SEARCH_DEBOUNCE_MS = 250
@@ -28,16 +47,38 @@ const SEARCH_DEBOUNCE_MS = 250
  * browser: the client only ever holds one page, so filtering here would search
  * the page rather than the library and quietly lie about the results.
  */
-const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
+const LibraryBrowser = ({
+  search = '',
+  hasHero = false,
+  isSearching = false,
+  onSearchChange,
+  onFeatureChange,
+  onItemsLoaded,
+  onPlay,
+  onWatch,
+}: LibraryBrowserProps) => {
   const [libraries, setLibraries] = useState<Library[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [items, setItems] = useState<MediaSummary[]>([])
   const [total, setTotal] = useState(0)
-  const [search, setSearch] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
+  const [progress, setProgress] = useState(new Map<string, WatchProgress>())
   const [state, setState] = useState<BrowserState>('loading')
-  const [isScanning, setIsScanning] = useState(false)
-  const [isAddOpen, setIsAddOpen] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
+
+  // Held in a ref rather than depended upon. A caller that passes a fresh
+  // function every render — which is what an inline arrow is — would
+  // otherwise make this effect run on every render, and the state it sets
+  // renders again: an update loop that never settles.
+  const reportItems = useRef(onItemsLoaded)
+
+  reportItems.current = onItemsLoaded
+
+  useEffect(() => {
+    if (items.length > 0) {
+      reportItems.current?.(items)
+    }
+  }, [items])
 
   useEffect(() => {
     let abandoned = false
@@ -57,6 +98,23 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
           setState('unreachable')
         }
       })
+
+    return () => {
+      abandoned = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let abandoned = false
+
+    // Fetched once for the whole library rather than per card: a page of
+    // hundreds would otherwise open hundreds of connections to draw hundreds
+    // of thin bars.
+    void fetchWatchProgress().then((found) => {
+      if (!abandoned) {
+        setProgress(byMediaId(found))
+      }
+    })
 
     return () => {
       abandoned = true
@@ -95,27 +153,6 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
     void loadItems()
   }, [loadItems])
 
-  const onLibraryCreated = (library: Library) => {
-    setLibraries((current) => [...current, library])
-    setSelectedId(library.id)
-    setIsAddOpen(false)
-  }
-
-  const rescan = async (force: boolean) => {
-    if (selectedId === null) {
-      return
-    }
-
-    setIsScanning(true)
-
-    try {
-      await scanLibrary(selectedId, force)
-      await loadItems()
-    } finally {
-      setIsScanning(false)
-    }
-  }
-
   if (state === 'loading') {
     return (
       <div className="flex justify-center p-12">
@@ -134,142 +171,136 @@ const LibraryBrowser = ({ onPlay }: LibraryBrowserProps) => {
 
   if (libraries.length === 0) {
     return (
-      <section className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-medium text-text">No libraries yet</h2>
-          <p className="text-text-muted">
-            Add a library pointing at a folder of media, then scan it to see your films here.
-          </p>
-        </div>
-
-        <Button
-          size="sm"
-          onClick={() => {
-            setIsAddOpen(true)
-          }}
-        >
-          <IconPlus size={16} aria-hidden />
-          Add library
-        </Button>
-
-        <AddLibraryDialog
-          isOpen={isAddOpen}
-          onClose={() => {
-            setIsAddOpen(false)
-          }}
-          onCreated={onLibraryCreated}
-        />
+      <section className="flex flex-col gap-2">
+        <h2 className="text-lg font-medium text-text">No libraries yet</h2>
+        <p className="text-text-muted">
+          Add a library pointing at a folder of media, then scan it to see your films here.
+        </p>
       </section>
     )
   }
 
   return (
-    <section className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          {libraries.map((entry) => (
-            <Button
-              key={entry.id}
-              size="sm"
-              variant={entry.id === selectedId ? 'primary' : 'secondary'}
-              onClick={() => {
-                setSelectedId(entry.id)
+    <motion.div
+      // Keyed on which of the two the browser is being, so moving between the
+      // library and search plays a transition. The component itself stays
+      // mounted underneath: remounting it would refetch everything and show a
+      // spinner where a transition should be.
+      key={isSearching ? 'search' : 'browse'}
+      variants={staggerVariants}
+      initial="hidden"
+      animate="shown"
+      className="flex flex-col gap-8"
+    >
+      {isSearching ? (
+        <motion.div
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion, 'heavy')}
+          className="flex flex-col gap-4 px-5 pt-14 sm:px-10"
+        >
+          <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl">Search</h1>
+
+          <label className="flex items-center gap-3 border-b border-white/15 pb-3">
+            <IconSearch size={28} className="shrink-0 text-text-muted" aria-hidden />
+            <span className="sr-only">Search the library</span>
+
+            <input
+              type="search"
+              autoFocus
+              value={search}
+              placeholder="Everything you own"
+              onChange={(event) => {
+                onSearchChange?.(event.target.value)
               }}
-            >
-              {entry.name}
-            </Button>
-          ))}
+              className="w-full bg-transparent text-2xl tracking-tight text-text outline-none placeholder:text-text-muted/50 sm:text-3xl"
+            />
+          </label>
+        </motion.div>
+      ) : null}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setIsAddOpen(true)
-            }}
-          >
-            <IconPlus size={16} aria-hidden />
-            Add library
-          </Button>
-        </div>
+      {hasHero && items.length > 0 ? (
+        <Hero
+          items={pickFeatured(items, HERO_COUNT)}
+          onPlay={(media, startSeconds) => {
+            if (onWatch === undefined) {
+              onPlay(media)
+            } else {
+              onWatch(media, startSeconds)
+            }
+          }}
+          resumeFor={(mediaId) => {
+            const found = progress.get(mediaId)
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            isLoading={isScanning}
-            onClick={() => {
-              void rescan(false)
-            }}
-          >
-            <IconRefresh size={16} aria-hidden />
-            Scan
-          </Button>
+            return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
+          }}
+          {...(onFeatureChange === undefined ? {} : { onFeatureChange })}
+        />
+      ) : null}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={isScanning}
-            onClick={() => {
-              void rescan(true)
-            }}
-          >
-            <IconRefreshAlert size={16} aria-hidden />
-            Full rescan
-          </Button>
-        </div>
-      </header>
+      <section className="flex flex-col gap-5 px-5 sm:px-10">
+        <header className="flux-rail flex items-center gap-3 overflow-x-auto pb-1">
+          <div className="flex shrink-0 items-center gap-2">
+            {total === 0 ? null : (
+              <span className="mr-1 text-sm text-text-muted">
+                {total === 1 ? '1 item' : `${String(total)} items`}
+              </span>
+            )}
 
-      <TextField
-        label="Search"
-        value={search}
-        onValueChange={setSearch}
-        placeholder="Search by title"
-      />
-
-      {items.length === 0 ? (
-        <p className="text-text-muted">
-          {appliedSearch === ''
-            ? 'This library is empty. Scan it to find your media.'
-            : `Nothing matches “${appliedSearch}”.`}
-        </p>
-      ) : (
-        <>
-          <p className="text-sm text-text-muted">
-            {total === 1 ? '1 item' : `${String(total)} items`}
-          </p>
-
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {items.map((media) => (
-              <li key={media.id}>
-                <MediaCard
-                  title={media.title}
-                  subtitle={describeMedia(media)}
-                  badges={describeBadges(media)}
-                  shape="wide"
-                  {...(media.hasBackdrop
-                    ? { imageUrl: `/api/media/${media.id}/image/backdrop` }
-                    : media.hasPoster
-                      ? { imageUrl: `/api/media/${media.id}/image/poster` }
-                      : {})}
-                  onSelect={() => {
-                    onPlay(media)
-                  }}
-                  className="w-full"
-                />
-              </li>
+            {libraries.map((entry) => (
+              <Button
+                key={entry.id}
+                size="sm"
+                isPill
+                variant={entry.id === selectedId ? 'glossy' : 'secondary'}
+                onClick={() => {
+                  setSelectedId(entry.id)
+                }}
+              >
+                {entry.name}
+              </Button>
             ))}
-          </ul>
-        </>
-      )}
+          </div>
+        </header>
 
-      <AddLibraryDialog
-        isOpen={isAddOpen}
-        onClose={() => {
-          setIsAddOpen(false)
-        }}
-        onCreated={onLibraryCreated}
-      />
-    </section>
+        {items.length === 0 ? (
+          <p className="text-text-muted">
+            {appliedSearch === ''
+              ? 'This library is empty. Scan it to find your media.'
+              : `Nothing matches “${appliedSearch}”.`}
+          </p>
+        ) : (
+          <div className="flex flex-col gap-10">
+            {groupIntoRails(items, Date.now(), progress).map((rail) => (
+              <Rail key={rail.id} title={rail.title} className="px-0">
+                {rail.items.map((media) => (
+                  <li key={media.id} className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80">
+                    <RailCard
+                      media={media}
+                      subtitle={describeMedia(media)}
+                      {...(progress.has(media.id)
+                        ? {
+                            watchedFraction: watchedFraction(
+                              progress.get(media.id) ?? {
+                                mediaId: media.id,
+                                positionSeconds: 0,
+                                durationSeconds: media.durationSeconds,
+                                isFinished: false,
+                                updatedAt: media.addedAt,
+                              },
+                            ),
+                          }
+                        : {})}
+                      onPlay={onPlay}
+                      onInspect={onPlay}
+                    />
+                  </li>
+                ))}
+              </Rail>
+            ))}
+          </div>
+        )}
+      </section>
+    </motion.div>
   )
 }
 
