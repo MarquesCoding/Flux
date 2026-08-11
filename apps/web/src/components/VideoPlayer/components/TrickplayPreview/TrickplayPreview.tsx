@@ -19,9 +19,11 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
   }
 
   return (
-    // The same glass as the bar it hangs over, so a frame of the film sits in
-    // the interface rather than on top of it.
-    <figure className="flux-glass overflow-hidden rounded-2xl p-1 text-white">
+    // Built like the bar it hangs over, down to the padding, the corner and
+    // the way the time is set: the frame under the pointer belongs to the
+    // controls somebody is already using rather than to a tooltip that
+    // happens to be nearby.
+    <figure className="flux-glass flex flex-col gap-1 rounded-2xl px-3 py-2 text-white">
       <div
         role="img"
         aria-label={`Preview at ${formatDuration(seconds)}`}
@@ -34,7 +36,7 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
         }}
       />
 
-      <figcaption className="px-2 pb-0.5 pt-1.5 text-center text-xs font-medium tabular-nums text-white/80">
+      <figcaption className="text-center text-xs tabular-nums sm:text-sm">
         {formatDuration(seconds)}
       </figcaption>
     </figure>
