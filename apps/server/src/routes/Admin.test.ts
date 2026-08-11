@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
+import { signUpForTest } from '@FluxServer/auth/signUpForTest';
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
 import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
@@ -63,15 +64,8 @@ const build = () => {
   return { app, settings, store };
 };
 
-const signedIn = async (app: ReturnType<typeof build>['app']): Promise<string> => {
-  const response = await app.request(`${BASE}/api/auth/sign-up/email`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', origin: BASE },
-    body: JSON.stringify(CREDENTIALS),
-  });
-
-  return response.headers.getSetCookie()[0]?.split(';')[0] ?? '';
-};
+const signedIn = (app: ReturnType<typeof build>['app']): Promise<string> =>
+  signUpForTest(app, CREDENTIALS);
 
 /**
  * Signs up and promotes that account to admin.
@@ -100,7 +94,7 @@ describe('administration over HTTP', () => {
 
     const response = await app.request(`${BASE}/api/admin/overview`);
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
   it('tells an ordinary account nothing either, whatever its interface hides', async () => {
@@ -158,7 +152,7 @@ describe('administration over HTTP', () => {
 
     const response = await app.request(`${BASE}/api/admin/sessions`);
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
   it('tells an ordinary account nothing about who is streaming either', async () => {
@@ -179,7 +173,7 @@ describe('administration over HTTP', () => {
       method: 'DELETE',
     });
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
   it('will not let an ordinary account stop a session', async () => {
@@ -201,7 +195,7 @@ describe('administration over HTTP', () => {
       method: 'POST',
     });
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
   it('will not let an ordinary account pause a stream', async () => {
@@ -223,7 +217,7 @@ describe('administration over HTTP', () => {
       method: 'POST',
     });
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
   it('will not let an ordinary account resume a stream', async () => {
@@ -243,7 +237,7 @@ describe('administration over HTTP', () => {
 
     const response = await app.request(`${BASE}/api/admin/jobs/definitions`);
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
   it('will not let an ordinary account list runnable jobs', async () => {
@@ -266,7 +260,7 @@ describe('administration over HTTP', () => {
       body: JSON.stringify({ libraryId: LIBRARY.id }),
     });
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
   it('will not run a job kind it does not know', async () => {
@@ -435,7 +429,7 @@ describe('administration over HTTP', () => {
 
     const response = await app.request(`${BASE}/api/admin/jobs/schedules`);
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
   it('will not let an ordinary account list job schedules', async () => {
@@ -476,7 +470,7 @@ describe('administration over HTTP', () => {
       body: JSON.stringify({ trigger: { kind: 'startup' } }),
     });
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
   it('will not add a trigger to a job kind it does not know', async () => {

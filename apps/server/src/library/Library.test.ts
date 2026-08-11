@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
+import { signedInApp } from '@FluxServer/auth/signUpForTest';
 import { createMemoryLibraryService } from './createMemoryLibraryService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
@@ -58,7 +59,7 @@ const episodeOf = ({
   });
 
 const build = (media: MediaDetail[] = []) => {
-  const { auth, settings } = createMemoryAuth();
+  const { auth, settings, store } = createMemoryAuth();
   const library = createMemoryLibraryService({
     libraries: [
       {
@@ -87,7 +88,7 @@ const build = (media: MediaDetail[] = []) => {
     playback: createMemoryPlaybackService(),
   });
 
-  return { app, library };
+  return { app: signedInApp(app, { store, isAdministrator: true }), library };
 };
 
 describe('library routes', () => {
@@ -492,33 +493,36 @@ describe('library routes', () => {
   });
 
   it('serves artwork from Flux rather than sending the browser to a catalogue', async () => {
-    const { auth, settings } = createMemoryAuth();
-    const app = createApp({
-      auth,
-      settings,
-      countUsers: () => Promise.resolve(1),
-      promoteToAdmin: () => Promise.resolve(),
-      library: createMemoryLibraryService({
-        libraries: [
-          {
-            id: LIBRARY_ID,
-            name: 'Films',
-            kind: 'movies',
-            path: '/media',
-            itemCount: 1,
-            lastScannedAt: null,
-            defaultAudioLanguage: null,
-          },
-        ],
-        media: [detail()],
+    const { auth, settings, store } = createMemoryAuth();
+    const app = signedInApp(
+      createApp({
+        auth,
+        settings,
+        countUsers: () => Promise.resolve(1),
+        promoteToAdmin: () => Promise.resolve(),
+        library: createMemoryLibraryService({
+          libraries: [
+            {
+              id: LIBRARY_ID,
+              name: 'Films',
+              kind: 'movies',
+              path: '/media',
+              itemCount: 1,
+              lastScannedAt: null,
+              defaultAudioLanguage: null,
+            },
+          ],
+          media: [detail()],
+        }),
+        playback: createMemoryPlaybackService(),
+        subtitles: createMemorySubtitleService(),
+        segments: createMemorySegmentService(),
+        progress: createMemoryWatchProgressService(),
+        favourites: createMemoryFavouriteService(),
+        readImage: () => Promise.resolve({ body: new ArrayBuffer(8), contentType: 'image/jpeg' }),
       }),
-      playback: createMemoryPlaybackService(),
-      subtitles: createMemorySubtitleService(),
-      segments: createMemorySegmentService(),
-      progress: createMemoryWatchProgressService(),
-      favourites: createMemoryFavouriteService(),
-      readImage: () => Promise.resolve({ body: new ArrayBuffer(8), contentType: 'image/jpeg' }),
-    });
+      { store },
+    );
 
     const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/image/poster`);
 

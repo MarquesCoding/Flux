@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
+import { signedInApp } from '@FluxServer/auth/signUpForTest';
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
@@ -89,7 +90,7 @@ const modestMedia: MediaItem = {
 };
 
 const build = (options: { unsupported?: boolean } = {}) => {
-  const { auth, settings } = createMemoryAuth();
+  const { auth, settings, store } = createMemoryAuth();
   const playback = createMemoryPlaybackService({
     media: { [MEDIA_ID]: hdrMedia, [MODEST_MEDIA_ID]: modestMedia },
     sessions: {},
@@ -109,7 +110,7 @@ const build = (options: { unsupported?: boolean } = {}) => {
     playback,
   });
 
-  return { app, playback };
+  return { app: signedInApp(app, { store, isAdministrator: true }), playback };
 };
 
 const post = (path: string, body: object) =>
