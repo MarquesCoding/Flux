@@ -33,11 +33,17 @@ const EpisodeMenu = ({
   playingId,
   onSelect,
   watchedFractionFor,
+  onOpenChange,
   isDisabled = false,
 }: EpisodeMenuProps) => {
   // Closed by picking something. A list that navigates should not still be
   // sitting over what it navigated to.
   const [isOpen, setIsOpen] = useState(false)
+
+  const show = (next: boolean) => {
+    setIsOpen(next)
+    onOpenChange?.(next)
+  }
 
   // A film has no season to list. The button is not drawn at all rather than
   // drawn and disabled: a control that can never do anything is furniture.
@@ -53,7 +59,7 @@ const EpisodeMenu = ({
       heading={headingOf(playing?.seasonNumber)}
       isDisabled={isDisabled}
       isOpen={isOpen}
-      onOpenChange={setIsOpen}
+      onOpenChange={show}
       trigger={<IconArticle size={20} aria-hidden />}
       className="w-80 sm:w-96 mb-7.5"
     >
@@ -77,7 +83,7 @@ const EpisodeMenu = ({
                 {...(episode.hasBackdrop ? { imageUrl: artworkUrl(episode.id) } : {})}
                 isStill
                 onSelect={() => {
-                  setIsOpen(false)
+                  show(false)
                   onSelect(episode)
                 }}
                 className={episode.id === playingId ? 'opacity-60' : ''}

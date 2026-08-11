@@ -66,6 +66,7 @@ const SettingsMenu = ({
   label,
   trigger,
   rows,
+  onOpenChange,
   isDisabled = false,
   className,
 }: SettingsMenuProps) => {
@@ -96,6 +97,8 @@ const SettingsMenu = ({
         if (!isOpen) {
           close()
         }
+
+        onOpenChange?.(isOpen)
       }}
     >
       <Popover.Trigger

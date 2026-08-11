@@ -98,6 +98,7 @@ const PlayerControls = ({
   episodes = [],
   onSelectEpisode,
   watchedFractionFor,
+  onMenuOpenChange,
   isShowingRemaining,
   onToggleTimeDisplay,
   captionStyle,
@@ -210,6 +211,7 @@ const PlayerControls = ({
 
       {onSelectEpisode === undefined ? null : (
         <EpisodeMenu
+          {...(onMenuOpenChange === undefined ? {} : { onOpenChange: onMenuOpenChange })}
           episodes={episodes}
           playingId={playingId}
           onSelect={onSelectEpisode}
@@ -245,6 +247,7 @@ const PlayerControls = ({
           setting is doing anyway. */}
       <SettingsMenu
         label="Settings"
+        {...(onMenuOpenChange === undefined ? {} : { onOpenChange: onMenuOpenChange })}
         isDisabled={isDisabled}
         trigger={<IconSettings size={20} aria-hidden />}
         rows={[
