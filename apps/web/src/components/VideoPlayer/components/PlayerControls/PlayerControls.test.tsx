@@ -408,6 +408,43 @@ describe('PlayerControls', () => {
     expect(props.onQualityChange).toHaveBeenCalledWith('original')
   })
 
+  it('offers nowhere to cast when there is nowhere to cast to', () => {
+    draw({ onCast: vi.fn() })
+
+    // A picker that opens an empty list is a button that has wasted a press.
+    expect(screen.queryByRole('button', { name: /device/i })).not.toBeInTheDocument()
+  })
+
+  it('offers to cast once the browser has found somewhere', () => {
+    draw({ onCast: vi.fn(), castState: 'available' })
+
+    expect(screen.getByRole('button', { name: /Play on a device/ })).toBeInTheDocument()
+  })
+
+  it('hands it over on request', async () => {
+    const user = userEvent.setup()
+    const props = draw({ onCast: vi.fn(), castState: 'available' })
+
+    await user.click(screen.getByRole('button', { name: /Play on a device/ }))
+
+    expect(props.onCast).toHaveBeenCalledTimes(1)
+  })
+
+  it('says when the film is already playing somewhere else', () => {
+    draw({ onCast: vi.fn(), castState: 'connected' })
+
+    expect(screen.getByRole('button', { name: 'Playing on another device' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('waits rather than asking twice while a device is being reached', () => {
+    draw({ onCast: vi.fn(), castState: 'connecting' })
+
+    expect(screen.getByRole('button', { name: /Play on a device/ })).toBeDisabled()
+  })
+
   it('sets a display name so devtools can identify it', () => {
     expect(PlayerControls.displayName).toBe('PlayerControls')
   })
