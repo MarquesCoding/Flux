@@ -116,6 +116,37 @@ const readYear = (date: string | undefined): number | null => {
 }
 
 /**
+ * A title stripped to the words in it, for comparing two spellings of the
+ * same thing rather than two exact strings.
+ */
+const normalizeTitle = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+/**
+ * Whether two titles have a real word in common.
+ *
+ * Wording between a release and a catalogue drifts — "Marvel's Daredevil"
+ * against "Daredevil" — so exact equality would refuse matches that are
+ * plainly right. A word under four letters agrees by accident too often to
+ * count as agreement at all.
+ */
+const shareASignificantWord = (left: string, right: string): boolean => {
+  const wordsOf = (value: string): Set<string> =>
+    new Set(
+      normalizeTitle(value)
+        .split(' ')
+        .filter((word) => word.length >= 4),
+    )
+
+  const leftWords = wordsOf(left)
+
+  return [...wordsOf(right)].some((word) => leftWords.has(word))
+}
+
+/**
  * Builds an image address at a sensible width.
  *
  * Catalogues serve originals at print resolution. A poster is drawn a few
@@ -197,9 +228,126 @@ const createCatalogueMetadataProvider = ({
         ? (facts.episode?.seriesTitle ?? fromFilename.title)
         : fromFilename.title
 
+      // The tail shared by both a known id and a freshly searched one: fetch
+      // the episode underneath it, cross-check its title, and shape whatever
+      // is left into what a caller actually wants.
+      const describeFrom = async (
+        detail: z.infer<typeof DetailResponseSchema>,
+      ): Promise<Metadata | null> => {
+        const cast: CastMember[] =
+          detail.credits?.cast.slice(0, CAST_LIMIT).map((member) => ({
+            name: member.name,
+            role: member.character ?? '',
+            imageUrl: imageUrl(imageBaseUrl, member.profile_path, 'w185'),
+          })) ?? []
+
+        const poster = imageUrl(imageBaseUrl, detail.poster_path, 'w500')
+
+        // An episode is named by the episode, illustrated by its own still, and
+        // described by its own synopsis — falling back to the series for
+        // whichever of those the catalogue does not have.
+        const episode = isEpisode
+          ? EpisodeResponseSchema.safeParse(
+              await request(
+                `/tv/${detail.id.toString()}/season/${(facts.episode?.seasonNumber ?? 1).toString()}/episode/${episodeNumber.toString()}`,
+                key,
+                {},
+              ),
+            )
+          : null
+
+        // A second check, past the series title: two shows can share a name, or
+        // neither search result may have matched exactly, and either way the
+        // wrong series answers with a real episode at this season and number —
+        // just not the one the filename already named. Refusing here falls
+        // back to what the filename said, rather than keeping a confident
+        // answer about the wrong show.
+        const knownEpisodeTitle = facts.episode?.episodeTitle ?? null
+        const catalogueEpisodeName =
+          episode?.success === true && episode.data.name !== undefined && episode.data.name !== ''
+            ? episode.data.name
+            : null
+
+        if (
+          isEpisode &&
+          knownEpisodeTitle !== null &&
+          catalogueEpisodeName !== null &&
+          !shareASignificantWord(knownEpisodeTitle, catalogueEpisodeName)
+        ) {
+          return null
+        }
+
+        const still =
+          episode?.success === true ? imageUrl(imageBaseUrl, episode.data.still_path, 'w780') : null
+        const backdrop = still ?? imageUrl(imageBaseUrl, detail.backdrop_path, 'w1280')
+
+        const seriesName = detail.title ?? detail.name ?? searchTitle
+        const episodeName = catalogueEpisodeName ?? knownEpisodeTitle
+
+        const overview =
+          episode?.success === true &&
+          episode.data.overview !== undefined &&
+          episode.data.overview !== ''
+            ? episode.data.overview
+            : detail.overview
+
+        return {
+          title: isEpisode ? (episodeName ?? seriesName) : seriesName,
+          // The show is what a series of files belongs to, and what a shelf
+          // groups them under.
+          ...(isEpisode ? { seriesTitle: seriesName } : {}),
+          year: readYear(detail.release_date ?? detail.first_air_date),
+          externalId: detail.id.toString(),
+          ...(overview === undefined || overview === '' ? {} : { overview }),
+          ...(detail.tagline === undefined || detail.tagline === ''
+            ? {}
+            : { tagline: detail.tagline }),
+          ...(detail.genres.length === 0
+            ? {}
+            : { genres: detail.genres.map((genre) => genre.name) }),
+          ...(cast.length === 0 ? {} : { cast }),
+          ...(detail.vote_average === undefined ? {} : { rating: detail.vote_average }),
+          ...(poster === null ? {} : { posterUrl: poster }),
+          ...(backdrop === null ? {} : { backdropUrl: backdrop }),
+        }
+      }
+
+      // A rescan asking about something already matched skips search
+      // entirely and goes straight to what a provider already said this
+      // was — the same search that risks a mismatch does not run again on
+      // every rescan for the rest of this item's life.
+      if (
+        facts.knownExternalId !== undefined &&
+        facts.knownExternalId !== null &&
+        facts.knownExternalId !== ''
+      ) {
+        const detailed = await request(
+          `${isEpisode ? '/tv' : '/movie'}/${facts.knownExternalId}`,
+          key,
+          { append_to_response: 'credits' },
+        )
+
+        const detail = DetailResponseSchema.safeParse(detailed)
+
+        if (detail.success) {
+          return describeFrom(detail.data)
+        }
+
+        // The id no longer resolves — removed from the catalogue, or merged
+        // into another. Falls through to search rather than giving up, the
+        // same as an item that has never been matched before.
+      }
+
+      const seriesYear = facts.episode?.seriesYear ?? null
       const searched = await request(isEpisode ? '/search/tv' : '/search/movie', key, {
         query: searchTitle,
-        ...(fromFilename.year === null || isEpisode ? {} : { year: fromFilename.year.toString() }),
+        ...(isEpisode
+          ? seriesYear === null
+            ? {}
+            : { first_air_date_year: seriesYear.toString() }
+          : fromFilename.year === null
+            ? {}
+            : { year: fromFilename.year.toString() }),
       })
 
       if (searched === null) {
@@ -207,7 +355,17 @@ const createCatalogueMetadataProvider = ({
       }
 
       const results = SearchResponseSchema.safeParse(searched)
-      const first = results.success ? results.data.results[0] : undefined
+      const candidates = results.success ? results.data.results : []
+
+      // The catalogue sorts by popularity, not by which title matches best —
+      // searching "Ted" can rank "Ted Lasso" above "Ted" itself. An exact
+      // title is trusted over the ranking whenever the search actually found
+      // one, and only falls back to "whatever came first" when it did not.
+      const wanted = normalizeTitle(searchTitle)
+      const exact = candidates.find(
+        (entry) => normalizeTitle(entry.title ?? entry.name ?? '') === wanted,
+      )
+      const first = exact ?? candidates[0]
 
       if (first === undefined) {
         return null
@@ -231,63 +389,7 @@ const createCatalogueMetadataProvider = ({
         }
       }
 
-      const found = detail.data
-      const cast: CastMember[] =
-        found.credits?.cast.slice(0, CAST_LIMIT).map((member) => ({
-          name: member.name,
-          role: member.character ?? '',
-          imageUrl: imageUrl(imageBaseUrl, member.profile_path, 'w185'),
-        })) ?? []
-
-      const poster = imageUrl(imageBaseUrl, found.poster_path, 'w500')
-
-      // An episode is named by the episode, illustrated by its own still, and
-      // described by its own synopsis — falling back to the series for
-      // whichever of those the catalogue does not have.
-      const episode = isEpisode
-        ? EpisodeResponseSchema.safeParse(
-            await request(
-              `/tv/${first.id.toString()}/season/${(facts.episode?.seasonNumber ?? 1).toString()}/episode/${episodeNumber.toString()}`,
-              key,
-              {},
-            ),
-          )
-        : null
-
-      const still =
-        episode?.success === true ? imageUrl(imageBaseUrl, episode.data.still_path, 'w780') : null
-      const backdrop = still ?? imageUrl(imageBaseUrl, found.backdrop_path, 'w1280')
-
-      const seriesName = found.title ?? found.name ?? searchTitle
-      const episodeName =
-        episode?.success === true && episode.data.name !== undefined && episode.data.name !== ''
-          ? episode.data.name
-          : (facts.episode?.episodeTitle ?? null)
-
-      const overview =
-        episode?.success === true &&
-        episode.data.overview !== undefined &&
-        episode.data.overview !== ''
-          ? episode.data.overview
-          : found.overview
-
-      const metadata: Metadata = {
-        title: isEpisode ? (episodeName ?? seriesName) : seriesName,
-        // The show is what a series of files belongs to, and what a shelf
-        // groups them under.
-        ...(isEpisode ? { seriesTitle: seriesName } : {}),
-        year: readYear(found.release_date ?? found.first_air_date),
-        externalId: found.id.toString(),
-        ...(overview === undefined || overview === '' ? {} : { overview }),
-        ...(found.tagline === undefined || found.tagline === '' ? {} : { tagline: found.tagline }),
-        ...(found.genres.length === 0 ? {} : { genres: found.genres.map((genre) => genre.name) }),
-        ...(cast.length === 0 ? {} : { cast }),
-        ...(found.vote_average === undefined ? {} : { rating: found.vote_average }),
-        ...(poster === null ? {} : { posterUrl: poster }),
-        ...(backdrop === null ? {} : { backdropUrl: backdrop }),
-      }
-
-      return metadata
+      return describeFrom(detail.data)
     },
   }
 }

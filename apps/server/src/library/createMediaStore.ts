@@ -13,13 +13,16 @@ const { mediaItem, library } = SchemaModule
  * row rather than duplicating it, and so a scan interrupted halfway can simply
  * be run again.
  */
-const createMediaStore = (db: FluxDatabase): MediaStore => ({
+const createMediaStore = (
+  db: FluxDatabase,
+): MediaStore & { clear: (libraryId: string) => Promise<number> } => ({
   listStored: async (libraryId) => {
     const rows = await db
       .select({
         path: mediaItem.path,
         sizeBytes: mediaItem.sizeBytes,
         modifiedAtMs: mediaItem.modifiedAtMs,
+        externalId: mediaItem.externalId,
       })
       .from(mediaItem)
       .where(eq(mediaItem.libraryId, libraryId))
@@ -96,6 +99,17 @@ const createMediaStore = (db: FluxDatabase): MediaStore => ({
 
   markScanned: async (libraryId) => {
     await db.update(library).set({ lastScannedAt: new Date() }).where(eq(library.id, libraryId))
+  },
+
+  // Watch progress and segments cascade with the item they belong to, so a
+  // clear leaves nothing behind for a rebuilt item to inherit by accident.
+  clear: async (libraryId) => {
+    const removed = await db
+      .delete(mediaItem)
+      .where(eq(mediaItem.libraryId, libraryId))
+      .returning({ id: mediaItem.id })
+
+    return removed.length
   },
 })
 

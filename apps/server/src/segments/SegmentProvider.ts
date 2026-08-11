@@ -21,7 +21,16 @@ type SegmentCandidate = {
  */
 type SegmentProvider = {
   name: string
-  detect: (group: SegmentCandidate[]) => Promise<Map<string, MediaSegment[]>>
+  /**
+   * `onItemDone`, if a provider calls it, is told once for every item in the
+   * group it has finished with — not what it found, just that one more is
+   * behind it. Optional because a provider that answers instantly, like
+   * chapters, has nothing worth reporting mid-flight.
+   */
+  detect: (
+    group: SegmentCandidate[],
+    onItemDone?: () => void,
+  ) => Promise<Map<string, MediaSegment[]>>
 }
 
 /**
@@ -97,6 +106,7 @@ const resolveSegments = async (
   providers: SegmentProvider[],
   group: SegmentCandidate[],
   onProblem?: (provider: string, reason: string) => void,
+  onItemDone?: () => void,
 ): Promise<Map<string, MediaSegment[]>> => {
   const resolved = new Map<string, MediaSegment[]>()
   const durations = new Map(group.map((item) => [item.mediaId, item.durationSeconds]))
@@ -105,7 +115,7 @@ const resolveSegments = async (
     let found: Map<string, MediaSegment[]>
 
     try {
-      found = await provider.detect(group)
+      found = await provider.detect(group, onItemDone)
     } catch (error) {
       onProblem?.(provider.name, error instanceof Error ? error.message : 'Detection failed.')
 

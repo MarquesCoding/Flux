@@ -89,6 +89,28 @@ const stripExtension = (fileName: string): string => {
 }
 
 /**
+ * Finds a release year in a piece of text, bracketed or bare.
+ *
+ * Shared between reading a title out of a filename and reading one out of a
+ * series' folder name — "Ted (2024)" says which "Ted" exactly the same way
+ * whether it names a file or a directory.
+ */
+const findYear = (text: string): { year: number; index: number } | null => {
+  const matches = [...text.matchAll(/(?<open>[([])?\b(?<year>19\d{2}|20\d{2})\b\)?]?/g)]
+
+  // A title can contain a year: "Blade Runner 2049 (2017)". A bracketed year
+  // is the release year by convention, and failing that the last one is, since
+  // the title comes first. Taking the first match reads 2049 as the year and
+  // truncates the title.
+  const yearMatch =
+    matches.find((match) => match.groups?.open !== undefined) ?? matches[matches.length - 1]
+
+  return yearMatch?.groups?.year === undefined
+    ? null
+    : { year: Number(yearMatch.groups.year), index: yearMatch.index }
+}
+
+/**
  * Reads a display title and year out of a filename.
  *
  * A best effort only. Filenames in real libraries are unreliable, which is why
@@ -99,18 +121,9 @@ const readTitleFromPath = (filePath: string): { title: string; year: number | nu
   const fileName = filePath.split('/').pop() ?? filePath
   const base = stripExtension(fileName)
 
-  const matches = [...base.matchAll(/(?<open>[([])?\b(?<year>19\d{2}|20\d{2})\b\)?]?/g)]
-
-  // A title can contain a year: "Blade Runner 2049 (2017)". A bracketed year
-  // is the release year by convention, and failing that the last one is, since
-  // the title comes first. Taking the first match reads 2049 as the year and
-  // truncates the title.
-  const yearMatch =
-    matches.find((match) => match.groups?.open !== undefined) ?? matches[matches.length - 1]
-
-  const year = yearMatch?.groups?.year === undefined ? null : Number(yearMatch.groups.year)
-
-  const beforeYear = yearMatch === undefined ? base : base.slice(0, yearMatch.index)
+  const found = findYear(base)
+  const year = found?.year ?? null
+  const beforeYear = found === null ? base : base.slice(0, found.index)
 
   const words = beforeYear
     .replace(/[[\]()_.]+/g, ' ')
@@ -123,4 +136,4 @@ const readTitleFromPath = (filePath: string): { title: string; year: number | nu
   return { title: title.length > 0 ? title : stripExtension(fileName), year }
 }
 
-export default { isMediaFile, readTitleFromPath, MEDIA_EXTENSIONS }
+export default { isMediaFile, readTitleFromPath, findYear, MEDIA_EXTENSIONS }

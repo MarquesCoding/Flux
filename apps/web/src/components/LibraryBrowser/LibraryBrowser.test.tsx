@@ -8,13 +8,11 @@ const { LibraryBrowser } = LibraryBrowserModule
 
 const fetchLibrariesMock = vi.hoisted(() => vi.fn())
 const fetchItemsMock = vi.hoisted(() => vi.fn())
-const scanMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
   default: {
     fetchLibraries: fetchLibrariesMock,
     fetchLibraryItems: fetchItemsMock,
-    scanLibrary: scanMock,
   },
 }))
 
@@ -59,11 +57,9 @@ const arrival: MediaSummary = {
 beforeEach(() => {
   fetchLibrariesMock.mockReset()
   fetchItemsMock.mockReset()
-  scanMock.mockReset()
 
   fetchLibrariesMock.mockResolvedValue([films])
   fetchItemsMock.mockResolvedValue({ items: [arrival], total: 1 })
-  scanMock.mockResolvedValue(true)
 })
 
 afterEach(() => {
@@ -163,30 +159,6 @@ describe('LibraryBrowser', () => {
 
     await waitFor(() => {
       expect(fetchItemsMock).toHaveBeenCalledWith(films.id, expect.objectContaining({ limit: 60 }))
-    })
-  })
-
-  it('rescans on request and reloads', async () => {
-    const actor = userEvent.setup()
-    render(<LibraryBrowser onPlay={vi.fn()} />)
-
-    await screen.findByRole('region', { name: 'Recently added' })
-    await actor.click(screen.getByRole('button', { name: 'Scan' }))
-
-    await waitFor(() => {
-      expect(scanMock).toHaveBeenCalledWith(films.id, false)
-    })
-  })
-
-  it('offers a full rescan that probes every file again', async () => {
-    const actor = userEvent.setup()
-    render(<LibraryBrowser onPlay={vi.fn()} />)
-
-    await screen.findByRole('region', { name: 'Recently added' })
-    await actor.click(screen.getByRole('button', { name: 'Full rescan' }))
-
-    await waitFor(() => {
-      expect(scanMock).toHaveBeenCalledWith(films.id, true)
     })
   })
 

@@ -40,6 +40,7 @@ const {
   getMediaRoute,
   scanLibraryRoute,
   scanStateRoute,
+  resetLibraryRoute,
 } = LibraryRouteModule
 const {
   explainRoute,
@@ -297,8 +298,19 @@ const createApp = ({
 
   app.openapi(scanStateRoute, async (context) => {
     const { jobId } = context.req.valid('param')
+    const { state, phase, processed, total } = await library.readScanState(jobId)
 
-    return context.json({ jobId, state: await library.readScanState(jobId) }, 200)
+    return context.json({ jobId, state, phase, processed, total }, 200)
+  })
+
+  app.openapi(resetLibraryRoute, async (context) => {
+    const reset = await library.reset(context.req.valid('param').id)
+
+    if (reset === null) {
+      return context.json({ error: 'No such library.' }, 404)
+    }
+
+    return context.json(reset, 202)
   })
 
   app.openapi(healthRoute, async (context) => {

@@ -116,8 +116,8 @@ const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL })
 // scans, and the queue calls the library's worker body to run them.
 const jobs = await createJobQueue({
   connectionString: env.DATABASE_URL,
-  onScan: async (libraryId, force) => {
-    await libraryService.runScan(libraryId, force)
+  onScan: async (libraryId, force, jobId) => {
+    await libraryService.runScan(libraryId, force, jobId)
 
     // Detection runs after the scan rather than inside it. Walking a directory
     // takes seconds; listening to a season takes minutes, and a library should
@@ -162,6 +162,9 @@ const jobs = await createJobQueue({
       },
       onProblem: (provider, reason) => {
         process.stderr.write(`segments: ${provider}: ${reason}\n`)
+      },
+      onProgress: (processed, total) => {
+        jobs.reportProgress(jobId, 'segments', processed, total)
       },
     })
 

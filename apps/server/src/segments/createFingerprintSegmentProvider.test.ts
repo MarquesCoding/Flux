@@ -192,6 +192,46 @@ describe('createFingerprintSegmentProvider', () => {
     expect(found.has('media-2')).toBe(false)
   })
 
+  it('reports each episode as its audio is decoded, not just when the season is done', async () => {
+    const onItemDone = vi.fn()
+    const provider = createFingerprintSegmentProvider({
+      transcoder: transcoderThat(season({ episodes: 4 })),
+    })
+
+    await provider.detect([candidate(1), candidate(2), candidate(3), candidate(4)], onItemDone)
+
+    expect(onItemDone).toHaveBeenCalledTimes(4)
+  })
+
+  it('still reports an episode that could not be listened to', async () => {
+    const onItemDone = vi.fn()
+    const answers = season({ episodes: 4 })
+    const provider = createFingerprintSegmentProvider({
+      transcoder: transcoderThat((path) => {
+        if (path.endsWith('2.mkv')) {
+          throw new Error('That file has no audio to fingerprint')
+        }
+
+        return answers(path)
+      }),
+    })
+
+    await provider.detect([candidate(1), candidate(2), candidate(3), candidate(4)], onItemDone)
+
+    expect(onItemDone).toHaveBeenCalledTimes(4)
+  })
+
+  it('reports nothing for a season too small to fingerprint at all', async () => {
+    const onItemDone = vi.fn()
+    const provider = createFingerprintSegmentProvider({
+      transcoder: transcoderThat(season({ episodes: 2 })),
+    })
+
+    await provider.detect([candidate(1), candidate(2)], onItemDone)
+
+    expect(onItemDone).not.toHaveBeenCalled()
+  })
+
   it('never compares more episodes than it needs to', async () => {
     const seen: string[] = []
     const answers = season({ episodes: 12 })

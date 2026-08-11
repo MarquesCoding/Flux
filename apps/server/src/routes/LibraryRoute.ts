@@ -115,6 +115,24 @@ const getMediaRoute = createRoute({
 const ScanAccepted = z.object({ jobId: z.string(), state: z.string() }).openapi('ScanAccepted')
 
 /**
+ * How far a scan has got.
+ *
+ * `phase` names what it is doing right now — probing files, then generating
+ * trickplay and previews — since a single number cannot mean both. Null
+ * rather than zero until a phase has counted its files: a scan sitting at 0
+ * of 0 reads as finished, not as not yet started.
+ */
+const ScanState = z
+  .object({
+    jobId: z.string(),
+    state: z.string(),
+    phase: z.string().nullable(),
+    processed: z.number().int().nonnegative().nullable(),
+    total: z.number().int().nonnegative().nullable(),
+  })
+  .openapi('ScanState')
+
+/**
  * Queues a scan.
  *
  * Answers 202 rather than waiting: walking and probing a real library takes
@@ -156,7 +174,33 @@ const scanStateRoute = createRoute({
   responses: {
     200: {
       description: 'The state of the scan',
+      content: { 'application/json': { schema: ScanState } },
+    },
+  },
+})
+
+/**
+ * Deletes every item in a library, then queues a scan to repopulate it from
+ * nothing.
+ *
+ * A rebuild, not a rescan: an ordinary scan reconciles against what the
+ * database already believes, and an operator reaching for this wants no part
+ * of that history kept.
+ */
+const resetLibraryRoute = createRoute({
+  method: 'post',
+  path: '/api/libraries/{id}/reset',
+  tags: ['Library'],
+  summary: 'Delete every item in a library and queue a scan to repopulate it from nothing',
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    202: {
+      description: 'The library was cleared and a scan was queued',
       content: { 'application/json': { schema: ScanAccepted } },
+    },
+    404: {
+      description: 'No such library',
+      content: { 'application/json': { schema: NotFound } },
     },
   },
 })
@@ -168,4 +212,5 @@ export default {
   getMediaRoute,
   scanLibraryRoute,
   scanStateRoute,
+  resetLibraryRoute,
 }

@@ -2,7 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import fetchLibraryModule from './fetchLibrary'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
-const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
+const {
+  fetchLibraries,
+  createLibrary,
+  fetchLibraryItems,
+  scanLibrary,
+  readScanState,
+  resetLibrary,
+} = fetchLibraryModule
 
 type FetchLike = (
   input: string,
@@ -64,6 +71,43 @@ describe('fetchLibraries', () => {
   })
 })
 
+describe('createLibrary', () => {
+  const input = { name: 'Films', kind: 'movies' as const, path: '/media/films' }
+
+  it('returns the created library', async () => {
+    fetchMock.mockResolvedValue(ok(library))
+
+    await expect(createLibrary(input)).resolves.toMatchObject({ name: 'Films' })
+  })
+
+  it('sends the request body as json', async () => {
+    fetchMock.mockResolvedValue(ok(library))
+
+    await createLibrary(input)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/libraries',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify(input) }),
+    )
+  })
+
+  it('surfaces the server error message', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ error: 'The path is not a readable directory.' }),
+    })
+
+    await expect(createLibrary(input)).rejects.toThrow('The path is not a readable directory.')
+  })
+
+  it('falls back to the status code when there is no error message', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve(null) })
+
+    await expect(createLibrary(input)).rejects.toThrow(/500/)
+  })
+})
+
 describe('fetchLibraryItems', () => {
   it('returns a page of items', async () => {
     fetchMock.mockResolvedValue(ok({ items: [summary], total: 1 }))
@@ -115,20 +159,20 @@ describe('fetchLibraryItems', () => {
 })
 
 describe('scanLibrary', () => {
-  it('reports success', async () => {
-    fetchMock.mockResolvedValue(ok({ added: 1, updated: 0, removed: 0, failed: 0 }))
+  it('returns the queued job', async () => {
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }))
 
-    await expect(scanLibrary(library.id)).resolves.toBe(true)
+    await expect(scanLibrary(library.id)).resolves.toEqual({ jobId: 'job-1', state: 'queued' })
   })
 
   it('reports failure without throwing', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) })
 
-    await expect(scanLibrary(library.id)).resolves.toBe(false)
+    await expect(scanLibrary(library.id)).resolves.toBeNull()
   })
 
   it('asks for an ordinary scan by default', async () => {
-    fetchMock.mockResolvedValue(ok({ added: 0, updated: 0, removed: 0, failed: 0 }))
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }))
 
     await scanLibrary(library.id)
 
@@ -136,11 +180,63 @@ describe('scanLibrary', () => {
   })
 
   it('asks for everything to be probed again when forced', async () => {
-    fetchMock.mockResolvedValue(ok({ added: 0, updated: 0, removed: 0, failed: 0 }))
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }))
 
     await scanLibrary(library.id, true)
 
     expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${library.id}/scan?force=true`, {
+      method: 'POST',
+    })
+  })
+})
+
+describe('readScanState', () => {
+  it('returns the state, phase and progress of a queued scan', async () => {
+    fetchMock.mockResolvedValue(
+      ok({ jobId: 'job-1', state: 'running', phase: 'probing', processed: 4, total: 10 }),
+    )
+
+    await expect(readScanState('job-1')).resolves.toEqual({
+      jobId: 'job-1',
+      state: 'running',
+      phase: 'probing',
+      processed: 4,
+      total: 10,
+    })
+  })
+
+  it('reports unknown rather than throwing when the server errors', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) })
+
+    await expect(readScanState('job-1')).resolves.toEqual({
+      jobId: 'job-1',
+      state: 'unknown',
+      phase: null,
+      processed: null,
+      total: null,
+    })
+  })
+})
+
+describe('resetLibrary', () => {
+  it('returns the queued rebuild job', async () => {
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }))
+
+    await expect(resetLibrary(library.id)).resolves.toEqual({ jobId: 'job-1', state: 'queued' })
+  })
+
+  it('reports failure without throwing', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) })
+
+    await expect(resetLibrary(library.id)).resolves.toBeNull()
+  })
+
+  it('posts to the reset endpoint for the library', async () => {
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }))
+
+    await resetLibrary(library.id)
+
+    expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${library.id}/reset`, {
       method: 'POST',
     })
   })
