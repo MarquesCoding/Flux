@@ -105,8 +105,8 @@ const createJobQueue = async ({
 
     readProgress: (jobId) => progressByJobId.get(jobId) ?? null,
 
-    reportProgress: (jobId, processed, total) => {
-      progressByJobId.set(jobId, { processed, total })
+    reportProgress: (jobId, phase, processed, total) => {
+      progressByJobId.set(jobId, { phase, processed, total })
     },
 
     stop: async () => {

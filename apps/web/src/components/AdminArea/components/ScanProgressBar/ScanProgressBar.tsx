@@ -4,27 +4,41 @@ import type { ScanProgressBarProps } from './ScanProgressBar.types'
 const { cn } = cnModule
 
 /**
+ * What the server calls a phase, in words an operator reads.
+ */
+const PHASE_LABELS: Record<string, string> = {
+  probing: 'Probing',
+  previews: 'Generating previews',
+  segments: 'Finding intros',
+}
+
+/**
  * How far through a scan actually is.
  *
- * Filled by a real fraction once the walk has counted its files, rather than
- * an animation standing in for one: an operator watching a library of ten
- * thousand files wants to know it is nearly there, not just that it is still
- * going.
+ * Filled by a real fraction once the current phase has counted its files,
+ * rather than an animation standing in for one. Labelled with the phase
+ * itself so a bar that reaches the end of probing and starts again at zero
+ * reads as moving on to the next stage, not as stalled.
  */
-const ScanProgressBar = ({ label, processed, total }: ScanProgressBarProps) => {
+const ScanProgressBar = ({ label, phase, processed, total }: ScanProgressBarProps) => {
   const isKnown = processed !== null && total !== null && total > 0
   const fraction = isKnown ? Math.min(processed / total, 1) : 0
+  const phaseLabel = phase === null ? null : (PHASE_LABELS[phase] ?? phase)
 
   return (
     <div
       role="progressbar"
-      aria-label={label}
+      aria-label={phaseLabel === null ? label : `${label}: ${phaseLabel}`}
       {...(isKnown
         ? { 'aria-valuenow': processed, 'aria-valuemin': 0, 'aria-valuemax': total }
         : {})}
-      className="flex w-32 shrink-0 items-center gap-2"
+      className="flex shrink-0 items-center gap-2"
     >
-      <span className="block h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+      {phaseLabel === null ? null : (
+        <span className="shrink-0 text-xs text-text-muted">{phaseLabel}</span>
+      )}
+
+      <span className="block h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-white/10">
         <span
           style={isKnown ? { width: `${(fraction * 100).toString()}%` } : undefined}
           className={cn(

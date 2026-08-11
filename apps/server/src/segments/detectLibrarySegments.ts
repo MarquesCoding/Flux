@@ -19,7 +19,11 @@ type DetectLibrarySegmentsOptions = {
   segments: SegmentService
   listCandidates: (libraryId: string) => Promise<GroupedCandidate[]>
   onProblem?: (provider: string, reason: string) => void
-  onProgress?: (message: string) => void
+  /**
+   * Told after every season, how many of the library's seasons have been
+   * looked at.
+   */
+  onProgress?: (processed: number, total: number) => void
 }
 
 /**
@@ -61,17 +65,22 @@ const detectLibrarySegments = async ({
   onProgress,
 }: DetectLibrarySegmentsOptions): Promise<number> => {
   const groups = groupBySeason(await listCandidates(libraryId))
+  const total = groups.size
+  let processed = 0
   let marked = 0
 
-  for (const [key, group] of groups) {
-    onProgress?.(`Looking at ${key} (${group.length.toString()} items).`)
+  onProgress?.(processed, total)
 
+  for (const [, group] of groups) {
     const found = await resolveSegments(providers, group, onProblem)
 
     for (const [mediaId, detected] of found) {
       await segments.replace(mediaId, detected)
       marked += 1
     }
+
+    processed += 1
+    onProgress?.(processed, total)
   }
 
   return marked

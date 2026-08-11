@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import scanLibraryModule from './scanLibrary'
-import type { MediaRow, ScannedFile, StoredItem } from './scanLibrary'
+import type { MediaRow, ScanPhase, ScannedFile, StoredItem } from './scanLibrary'
 import type { MetadataProvider } from './MetadataProvider'
 import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient'
 
@@ -57,7 +57,8 @@ const harness = (options: {
   providers?: MetadataProvider[]
   force?: boolean
   onProblem?: (path: string, reason: string) => void
-  onProgress?: (processed: number, total: number) => void
+  onProgress?: (phase: ScanPhase, processed: number, total: number) => void
+  trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number }
 }) => {
   const rows: MediaRow[] = []
   const removedPaths: string[] = []
@@ -119,6 +120,7 @@ const harness = (options: {
       ...(options.force === undefined ? {} : { force: options.force }),
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
       ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
+      ...(options.trickplay === undefined ? {} : { trickplay: options.trickplay }),
     })
 
   return { run, rows, removedPaths, markScanned }
@@ -363,7 +365,7 @@ describe('scanLibrary', () => {
     expect(result.removed).toBe(1)
   })
 
-  it('reports progress against the files it is actually walking, not everything on disk', async () => {
+  it('reports probing progress against the files it is actually walking, not everything on disk', async () => {
     const onProgress = vi.fn()
     const { run } = harness({
       found: [file('/a.mkv'), file('/b.mkv')],
@@ -373,8 +375,8 @@ describe('scanLibrary', () => {
 
     await run()
 
-    expect(onProgress).toHaveBeenCalledWith(0, 1)
-    expect(onProgress).toHaveBeenCalledWith(1, 1)
+    expect(onProgress).toHaveBeenCalledWith('probing', 0, 1)
+    expect(onProgress).toHaveBeenCalledWith('probing', 1, 1)
     expect(onProgress).toHaveBeenCalledTimes(2)
   })
 
@@ -389,6 +391,25 @@ describe('scanLibrary', () => {
 
     await run()
 
-    expect(onProgress).toHaveBeenLastCalledWith(2, 2)
+    expect(onProgress).toHaveBeenLastCalledWith('probing', 2, 2)
+  })
+
+  it('moves on to a fresh previews phase rather than stopping once every file is probed', async () => {
+    const onProgress = vi.fn()
+    const { run } = harness({
+      found: [file('/a.mkv'), file('/b.mkv')],
+      onProgress,
+      trickplay: { intervalSeconds: 10, tileWidth: 320, columns: 10, rows: 10 },
+    })
+
+    await run()
+
+    // Probing both files finishes its own phase at 2 of 2. A bar that
+    // stopped reading progress there would look done while ffmpeg was still
+    // generating trickplay and a preview clip for each — a second phase,
+    // counted from zero rather than tacked onto the first.
+    expect(onProgress).toHaveBeenCalledWith('probing', 2, 2)
+    expect(onProgress).toHaveBeenCalledWith('previews', 0, 2)
+    expect(onProgress).toHaveBeenLastCalledWith('previews', 2, 2)
   })
 })

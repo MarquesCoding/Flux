@@ -12,6 +12,7 @@ const ScanJobSchema = z.object({ jobId: z.string(), state: ScanStateSchema })
 const ScanProgressSchema = z.object({
   jobId: z.string(),
   state: ScanStateSchema,
+  phase: z.string().nullable(),
   processed: z.number().int().nonnegative().nullable(),
   total: z.number().int().nonnegative().nullable(),
 })
@@ -155,7 +156,7 @@ const readScanState = async (jobId: string): Promise<ScanProgress> => {
   })
 
   if (!response.ok) {
-    return { jobId, state: 'unknown', processed: null, total: null }
+    return { jobId, state: 'unknown', phase: null, processed: null, total: null }
   }
 
   return ScanProgressSchema.parse(await response.json())

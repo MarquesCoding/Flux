@@ -121,7 +121,13 @@ const respondWith =
       return Promise.resolve({
         ok: true,
         json: () =>
-          Promise.resolve({ jobId: 'scan-job', state: 'completed', processed: 1, total: 1 }),
+          Promise.resolve({
+            jobId: 'scan-job',
+            state: 'completed',
+            phase: 'previews',
+            processed: 1,
+            total: 1,
+          }),
       })
     }
 
@@ -399,8 +405,14 @@ describe('AdminArea', () => {
           json: () =>
             Promise.resolve(
               readings === 1
-                ? { jobId: 'scan-job', state: 'running', processed: 3, total: 10 }
-                : { jobId: 'scan-job', state: 'completed', processed: 10, total: 10 },
+                ? { jobId: 'scan-job', state: 'running', phase: 'probing', processed: 3, total: 10 }
+                : {
+                    jobId: 'scan-job',
+                    state: 'completed',
+                    phase: 'previews',
+                    processed: 10,
+                    total: 10,
+                  },
             ),
         })
       }
@@ -414,6 +426,58 @@ describe('AdminArea', () => {
     await actor.click(screen.getByRole('button', { name: 'Scan' }))
 
     expect(await screen.findByText('3/10')).toBeInTheDocument()
+    expect(screen.getByText('Probing')).toBeInTheDocument()
+
+    await vi.advanceTimersByTimeAsync(1000)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Scan' })).toBeInTheDocument()
+    })
+
+    vi.useRealTimers()
+  })
+
+  it('moves the label on to the next stage once probing finishes', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
+    const scanUrl = `/api/libraries/${MOVIES_LIBRARY_ID}/scan`
+    let readings = 0
+
+    fetchMock.mockImplementation((input: string, init?: RequestInit) => {
+      if (input === scanUrl) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ jobId: 'scan-job', state: 'queued' }),
+        })
+      }
+
+      if (input.includes('/scans/')) {
+        readings += 1
+
+        const reading =
+          readings === 1
+            ? { jobId: 'scan-job', state: 'running', phase: 'probing', processed: 1, total: 1 }
+            : readings === 2
+              ? { jobId: 'scan-job', state: 'running', phase: 'previews', processed: 0, total: 1 }
+              : { jobId: 'scan-job', state: 'completed', phase: 'previews', processed: 1, total: 1 }
+
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(reading) })
+      }
+
+      return respondWith()(input, init)
+    })
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan' }))
+
+    expect(await screen.findByText('Probing')).toBeInTheDocument()
+
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect(await screen.findByText('Generating previews')).toBeInTheDocument()
 
     await vi.advanceTimersByTimeAsync(1000)
 

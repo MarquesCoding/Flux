@@ -103,15 +103,18 @@ const getMediaRoute = createRoute({
 const ScanAccepted = z.object({ jobId: z.string(), state: z.string() }).openapi('ScanAccepted')
 
 /**
- * How many of a scan's files have been probed.
+ * How far a scan has got.
  *
- * Null rather than zero until the walk has counted its files: a scan sitting
- * at 0 of 0 reads as finished, not as not yet started.
+ * `phase` names what it is doing right now — probing files, then generating
+ * trickplay and previews — since a single number cannot mean both. Null
+ * rather than zero until a phase has counted its files: a scan sitting at 0
+ * of 0 reads as finished, not as not yet started.
  */
 const ScanState = z
   .object({
     jobId: z.string(),
     state: z.string(),
+    phase: z.string().nullable(),
     processed: z.number().int().nonnegative().nullable(),
     total: z.number().int().nonnegative().nullable(),
   })
