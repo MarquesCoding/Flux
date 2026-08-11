@@ -71,9 +71,11 @@ const MediaDetailDialog = ({
   const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
+    // Nothing is thrown away on the way out. The panel is still on screen
+    // while it leaves, and clearing what is written on it the moment the item
+    // clears empties the thing being watched leave. Opening the next item
+    // clears it below, before anything of that item is drawn.
     if (media === null) {
-      setDetail(null)
-
       return
     }
 
