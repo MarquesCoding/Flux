@@ -266,6 +266,8 @@ export type {
   ScanProgress,
 }
 
+export { ScanJobSchema }
+
 export default {
   fetchLibraries,
   createLibrary,

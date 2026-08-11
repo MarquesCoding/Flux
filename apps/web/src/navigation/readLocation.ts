@@ -43,6 +43,21 @@ type Place = {
    * Where to start what is being watched, in seconds.
    */
   startSeconds: number
+  /**
+   * Which panel of the admin page is open, when the section is admin.
+   *
+   * Kept in the address for the same reason everything else here is: a
+   * reload of the admin page should land on the panel somebody was looking
+   * at, not reset to the first one.
+   */
+  adminPanel: string | null
+  /**
+   * Which job's schedule page is open, when the section is admin.
+   *
+   * Its own field rather than folded into `inspecting` — that is for a media
+   * item, and a job kind is not one.
+   */
+  adminJob: string | null
 }
 
 const HOME: Place = {
@@ -51,6 +66,8 @@ const HOME: Place = {
   inspecting: null,
   playing: null,
   startSeconds: 0,
+  adminPanel: null,
+  adminJob: null,
 }
 
 /**
@@ -80,6 +97,8 @@ const readLocation = (url: string): Place => {
     inspecting: first === 'media' && second !== '' ? second : query.get('item'),
     playing: watching,
     startSeconds: Number.isFinite(started) && started > 0 ? started : 0,
+    adminPanel: query.get('panel'),
+    adminJob: query.get('job'),
   }
 }
 
@@ -105,6 +124,14 @@ const writeLocation = (place: Place): string => {
 
   if (place.inspecting !== null) {
     query.set('item', place.inspecting)
+  }
+
+  if (place.section === 'admin' && place.adminPanel !== null) {
+    query.set('panel', place.adminPanel)
+  }
+
+  if (place.section === 'admin' && place.adminJob !== null) {
+    query.set('job', place.adminJob)
   }
 
   const rest = query.toString()

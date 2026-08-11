@@ -1,5 +1,11 @@
 import { createRoute, z } from '@hono/zod-openapi'
 import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
+import JobDefinitionsModule from '@FluxServer/jobs/jobDefinitions'
+import ScheduleTriggerModule from '@FluxServer/jobs/scheduleTrigger'
+import { ScanAccepted } from './LibraryRoute'
+
+const { JobRunRequestSchema } = JobDefinitionsModule
+const { ScheduleTriggerSchema } = ScheduleTriggerModule
 
 const { PlaybackPlanSchema } = PlaybackPlanModule
 
@@ -233,6 +239,180 @@ const adminSettingsRoute = createRoute({
   },
 })
 
+/**
+ * A job an admin can start on demand, as the picker sees it.
+ */
+const AdminJobDefinitionSchema = z
+  .object({
+    kind: z.string(),
+    label: z.string(),
+    description: z.string(),
+    needsLibrary: z.boolean(),
+    destructive: z.boolean(),
+  })
+  .openapi('AdminJobDefinition')
+
+/**
+ * Every job kind the Work tab's picker can offer.
+ */
+const adminJobDefinitionsRoute = createRoute({
+  method: 'get',
+  path: '/api/admin/jobs/definitions',
+  tags: ['Admin'],
+  summary: 'List the jobs an admin can start on demand',
+  responses: {
+    200: {
+      description: 'Every runnable job',
+      content: {
+        'application/json': {
+          schema: z.object({ definitions: z.array(AdminJobDefinitionSchema) }),
+        },
+      },
+    },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+})
+
+const AdminJobRunRequestSchema = JobRunRequestSchema.openapi('AdminJobRunRequest')
+
+/**
+ * Starts a job of the given kind against a library, from the Work tab.
+ *
+ * Additive to the per-library scan/reset/regenerate-previews routes rather
+ * than a replacement for them — those stay exactly as they are for the
+ * Libraries panel's own buttons. This is the admin-gated, kind-generic
+ * entry point the job picker needs instead.
+ */
+const adminRunJobRoute = createRoute({
+  method: 'post',
+  path: '/api/admin/jobs/{kind}/run',
+  tags: ['Admin'],
+  summary: 'Start a job on demand',
+  request: {
+    params: z.object({ kind: z.string().min(1) }),
+    body: { content: { 'application/json': { schema: AdminJobRunRequestSchema } } },
+  },
+  responses: {
+    202: {
+      description: 'The job was queued',
+      content: { 'application/json': { schema: ScanAccepted } },
+    },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+    404: {
+      description: 'No such job kind or library',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+})
+
+const AdminJobTriggerSchema = z
+  .object({
+    id: z.string(),
+    trigger: ScheduleTriggerSchema,
+  })
+  .openapi('AdminJobTrigger')
+
+/**
+ * What makes a job run on its own, as the picker sees it.
+ */
+const AdminJobScheduleSchema = z
+  .object({
+    kind: z.string(),
+    triggers: z.array(AdminJobTriggerSchema),
+  })
+  .openapi('AdminJobSchedule')
+
+/**
+ * Every job's current triggers, alongside `adminJobDefinitionsRoute`'s
+ * catalogue of what each job is — kept as a separate request rather than
+ * folded into the definitions themselves, since a schedule changes far more
+ * often than what jobs exist.
+ */
+const adminJobSchedulesRoute = createRoute({
+  method: 'get',
+  path: '/api/admin/jobs/schedules',
+  tags: ['Admin'],
+  summary: 'List what makes each job run on its own',
+  responses: {
+    200: {
+      description: 'Every job and its triggers',
+      content: {
+        'application/json': { schema: z.object({ schedules: z.array(AdminJobScheduleSchema) }) },
+      },
+    },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+})
+
+const AdminAddTriggerRequestSchema = z
+  .object({ trigger: ScheduleTriggerSchema })
+  .openapi('AdminAddTriggerRequest')
+
+/**
+ * Adds one trigger to a job.
+ *
+ * Additive rather than a setting that replaces what is there, because a job
+ * holds a list: "nightly, and again whenever the server comes up" is two
+ * triggers, and adding the second must not silently drop the first.
+ */
+const adminAddJobTriggerRoute = createRoute({
+  method: 'post',
+  path: '/api/admin/jobs/{kind}/triggers',
+  tags: ['Admin'],
+  summary: 'Add a trigger to a job',
+  request: {
+    params: z.object({ kind: z.string().min(1) }),
+    body: { content: { 'application/json': { schema: AdminAddTriggerRequestSchema } } },
+  },
+  responses: {
+    201: {
+      description: 'The trigger was added',
+      content: { 'application/json': { schema: AdminJobTriggerSchema } },
+    },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+    404: {
+      description: 'No such job kind',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+})
+
+/**
+ * Removes one trigger from a job.
+ */
+const adminRemoveJobTriggerRoute = createRoute({
+  method: 'delete',
+  path: '/api/admin/jobs/{kind}/triggers/{triggerId}',
+  tags: ['Admin'],
+  summary: 'Remove a trigger from a job',
+  request: {
+    params: z.object({ kind: z.string().min(1), triggerId: z.string().min(1) }),
+  },
+  responses: {
+    204: { description: 'The trigger was removed' },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+    404: {
+      description: 'No such trigger',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+})
+
 export default {
   adminOverviewRoute,
   adminSettingsRoute,
@@ -240,4 +420,9 @@ export default {
   adminStopSessionRoute,
   adminPauseSessionRoute,
   adminResumeSessionRoute,
+  adminJobDefinitionsRoute,
+  adminRunJobRoute,
+  adminJobSchedulesRoute,
+  adminAddJobTriggerRoute,
+  adminRemoveJobTriggerRoute,
 }

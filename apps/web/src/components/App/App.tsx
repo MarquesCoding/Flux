@@ -396,7 +396,16 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       />
 
       {section === 'admin' ? (
-        <AdminArea />
+        <AdminArea
+          initialPanel={place.adminPanel}
+          onPanelChange={(panel) => {
+            replace({ adminPanel: panel })
+          }}
+          initialJob={place.adminJob}
+          onJobChange={(kind) => {
+            replace({ adminJob: kind })
+          }}
+        />
       ) : section === 'account' ? (
         <AccountArea
           user={user}
