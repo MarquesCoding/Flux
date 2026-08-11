@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { IconMenu2 } from '@tabler/icons-react'
-import { cn } from '@FluxUI/cn'
-import { Tooltip } from '@FluxUI/Tooltip'
-import { PopoverPanel } from '@FluxUI/PopoverPanel'
-import type { TopNavProps } from './TopNav.types'
+import { useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { IconMenu2 } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { cn } from '@FluxUI/cn';
+import { Tooltip } from '@FluxUI/Tooltip';
+import { PopoverPanel } from '@FluxUI/PopoverPanel';
+import type { TopNavProps } from './TopNav.types';
 
 /**
  * The bar across the top, as two things rather than one.
@@ -23,10 +24,10 @@ import type { TopNavProps } from './TopNav.types'
  * so nothing shifts about except the badge itself.
  */
 const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }: TopNavProps) => {
-  const prefersReducedMotion = useReducedMotion()
+  const prefersReducedMotion = useReducedMotion();
   // Closed when a place is chosen: a menu still sitting over the page it
   // navigated to is a menu somebody has to dismiss to see what they asked for.
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <header
@@ -59,12 +60,13 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
             <ul className="flex w-52 flex-col gap-0.5 py-1">
               {items.map((item) => (
                 <li key={item.id}>
-                  <button
-                    type="button"
+                  <Button
+                    variant="bare"
+                    size="none"
                     aria-current={item.id === selectedId ? 'page' : undefined}
                     onClick={() => {
-                      setIsMenuOpen(false)
-                      onSelect(item.id)
+                      setIsMenuOpen(false);
+                      onSelect(item.id);
                     }}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
@@ -77,7 +79,7 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                       <span className="flex shrink-0 items-center">{item.icon}</span>
                     )}
                     {item.label}
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -86,7 +88,7 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
 
         <ul className="flux-glass pointer-events-auto hidden min-w-0 items-center gap-0.5 overflow-x-auto rounded-full p-1 sm:flex sm:justify-self-center [&::-webkit-scrollbar]:hidden">
           {items.map((item) => {
-            const isCurrent = item.id === selectedId
+            const isCurrent = item.id === selectedId;
 
             return (
               <li key={item.id} className="shrink-0">
@@ -95,12 +97,13 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                     its icon, and a tooltip repeating it is the same word
                     twice. */}
                 <Tooltip label={item.label} side="bottom" isDisabled={isCurrent}>
-                  <button
-                    type="button"
+                  <Button
+                    variant="bare"
+                    size="none"
                     aria-label={item.label}
                     aria-current={isCurrent ? 'page' : undefined}
                     onClick={() => {
-                      onSelect(item.id)
+                      onSelect(item.id);
                     }}
                     className={cn(
                       // The same height as a tool, so the two capsules are the
@@ -148,10 +151,10 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                         </motion.span>
                       )}
                     </AnimatePresence>
-                  </button>
+                  </Button>
                 </Tooltip>
               </li>
-            )
+            );
           })}
         </ul>
 
@@ -159,8 +162,9 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
           {actions.map((action) =>
             action.control === undefined ? (
               <Tooltip key={action.id} label={action.label} side="bottom">
-                <button
-                  type="button"
+                <Button
+                  variant="bare"
+                  size="none"
                   aria-label={action.label}
                   aria-current={action.isCurrent === true ? 'page' : undefined}
                   onClick={action.onSelect}
@@ -176,7 +180,7 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                   {action.badge === undefined ? null : (
                     <span className="absolute -right-0.5 -top-0.5">{action.badge}</span>
                   )}
-                </button>
+                </Button>
               </Tooltip>
             ) : (
               <div key={action.id} className="flex items-center">
@@ -187,9 +191,9 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
         </div>
       </nav>
     </header>
-  )
-}
+  );
+};
 
-TopNav.displayName = 'TopNav'
+TopNav.displayName = 'TopNav';
 
-export { TopNav }
+export { TopNav };

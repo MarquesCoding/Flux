@@ -1,35 +1,34 @@
-import { useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import type { Variants } from 'motion/react'
+import { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import type { Variants } from 'motion/react';
 import {
   IconArrowLeft,
   IconArrowRight,
   IconChevronLeft,
   IconChevronRight,
   IconKey,
-} from '@tabler/icons-react'
-import { cn } from '@FluxUI/cn'
-import { Button } from '@FluxUI/Button'
-import { IconButton } from '@FluxUI/IconButton'
-import { TextField } from '@FluxUI/TextField'
-import { MoodBackground } from '@FluxUI/MoodBackground'
-import { PageDots } from '@FluxUI/PageDots'
-import { Spinner } from '@FluxUI/Spinner'
+} from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { cn } from '@FluxUI/cn';
+import { TextField } from '@FluxUI/TextField';
+import { MoodBackground } from '@FluxUI/MoodBackground';
+import { PageDots } from '@FluxUI/PageDots';
+import { Spinner } from '@FluxUI/Spinner';
 import {
   revealVariants,
   revealTransition,
   staggerVariants,
   liquidSpring,
   stillTransition,
-} from '@FluxUI/animations/reveal'
-import { fetchEveryone, signInAsProfile } from '@FluxWeb/profiles/fetchEveryone'
-import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace'
-import { readVersion } from '@FluxWeb/session/readVersion'
-import { TwoFactorChallenge } from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge'
-import { isPasskeySupported } from '@FluxWeb/passkeys/isPasskeySupported'
-import { authenticateWithPasskey } from '@FluxWeb/passkeys/authenticateWithPasskey'
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-import type { ProfileGateProps } from './ProfileGate.types'
+} from '@FluxUI/animations/reveal';
+import { fetchEveryone, signInAsProfile } from '@FluxWeb/profiles/fetchEveryone';
+import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
+import { readVersion } from '@FluxWeb/session/readVersion';
+import { TwoFactorChallenge } from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge';
+import { isPasskeySupported } from '@FluxWeb/passkeys/isPasskeySupported';
+import { authenticateWithPasskey } from '@FluxWeb/passkeys/authenticateWithPasskey';
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { ProfileGateProps } from './ProfileGate.types';
 
 /**
  * How many faces one page of the wall holds.
@@ -39,7 +38,7 @@ import type { ProfileGateProps } from './ProfileGate.types'
  * accounts on it should not ask somebody to read all thirty to find
  * themselves.
  */
-const PER_PAGE = 10
+const PER_PAGE = 10;
 
 /**
  * How far each arrow moves through the faces.
@@ -54,14 +53,14 @@ const PER_PAGE = 10
  * short enough that nobody waiting to watch something resents it. It is also
  * the least the faces need to arrive, so the two rarely wait on each other.
  */
-const TITLE_MILLISECONDS = 1100
+const TITLE_MILLISECONDS = 1100;
 
 const ARROWS: Record<string, number | undefined> = {
   ArrowRight: 1,
   ArrowLeft: -1,
   ArrowDown: 5,
   ArrowUp: -5,
-}
+};
 
 /**
  * How the faces on a page arrive.
@@ -73,7 +72,7 @@ const ARROWS: Record<string, number | undefined> = {
 const FACES: Variants = {
   hidden: {},
   shown: { transition: { staggerChildren: 0.045, delayChildren: 0.05 } },
-}
+};
 
 /**
  * How one face arrives.
@@ -84,7 +83,7 @@ const FACES: Variants = {
 const FACE: Variants = {
   hidden: { opacity: 0, y: 16, scale: 0.9 },
   shown: { opacity: 1, y: 0, scale: 1 },
-}
+};
 
 /**
  * The face somebody picked, drawn at whatever size the moment calls for.
@@ -101,9 +100,9 @@ const Portrait = ({ profile, isLarge = false }: { profile: ViewerProfile; isLarg
       isLarge ? 'size-32 text-5xl sm:size-36' : 'aspect-square w-full text-4xl sm:text-5xl'
     }`}
   />
-)
+);
 
-Portrait.displayName = 'Portrait'
+Portrait.displayName = 'Portrait';
 
 /**
  * The way in.
@@ -118,173 +117,173 @@ Portrait.displayName = 'Portrait'
  * so the two screens read as one screen paying attention to somebody.
  */
 const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
-  const [everyone, setEveryone] = useState<ViewerProfile[] | null>(null)
-  const [chosen, setChosen] = useState<ViewerProfile | null>(null)
-  const [password, setPassword] = useState('')
-  const [problem, setProblem] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isUsingPasskey, setIsUsingPasskey] = useState(false)
-  const [version, setVersion] = useState<string | null>(null)
+  const [everyone, setEveryone] = useState<ViewerProfile[] | null>(null);
+  const [chosen, setChosen] = useState<ViewerProfile | null>(null);
+  const [password, setPassword] = useState('');
+  const [problem, setProblem] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUsingPasskey, setIsUsingPasskey] = useState(false);
+  const [version, setVersion] = useState<string | null>(null);
   // Whether the wall has been left and come back to. Its arrival animation is
   // for arriving; replaying it on the way back would fade the portrait in
   // rather than letting it travel home.
-  const [hasLeftWall, setHasLeftWall] = useState(false)
-  const [page, setPage] = useState(0)
+  const [hasLeftWall, setHasLeftWall] = useState(false);
+  const [page, setPage] = useState(0);
   // Which face the keyboard is on. Real focus follows it, so pressing space
   // or enter is the browser activating a button rather than this component
   // reimplementing what a button already does.
-  const [at, setAt] = useState(0)
+  const [at, setAt] = useState(0);
   // Whether the wordmark has finished holding the screen. Not a loading
   // screen: the mark does not wait for anything, it simply arrives first and
   // then moves aside.
-  const [isTitleOver, setIsTitleOver] = useState(false)
+  const [isTitleOver, setIsTitleOver] = useState(false);
   // Whether the faces should skip their arrival. Coming back from a password
   // is not an arrival — the portrait is travelling home, and faces dealing
   // themselves out around it would fade the one thing that should not fade.
-  const [isReturning, setIsReturning] = useState(false)
-  const [needsCode, setNeedsCode] = useState(false)
-  const facesRef = useRef(new Map<string, HTMLButtonElement>())
-  const prefersReducedMotion = useReducedMotion()
+  const [isReturning, setIsReturning] = useState(false);
+  const [needsCode, setNeedsCode] = useState(false);
+  const facesRef = useRef(new Map<string, HTMLButtonElement>());
+  const prefersReducedMotion = useReducedMotion();
 
-  const move = prefersReducedMotion === true ? stillTransition : liquidSpring
-  const faceArrival = revealTransition(prefersReducedMotion)
+  const move = prefersReducedMotion === true ? stillTransition : liquidSpring;
+  const faceArrival = revealTransition(prefersReducedMotion);
 
-  const pages = Math.max(1, Math.ceil((everyone?.length ?? 0) / PER_PAGE))
-  const shown = (everyone ?? []).slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE)
+  const pages = Math.max(1, Math.ceil((everyone?.length ?? 0) / PER_PAGE));
+  const shown = (everyone ?? []).slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
 
   useEffect(() => {
-    void fetchEveryone().then(setEveryone)
-    void readVersion().then(setVersion)
+    void fetchEveryone().then(setEveryone);
+    void readVersion().then(setVersion);
 
     const timer = setTimeout(() => {
-      setIsTitleOver(true)
-    }, TITLE_MILLISECONDS)
+      setIsTitleOver(true);
+    }, TITLE_MILLISECONDS);
 
     return () => {
-      clearTimeout(timer)
-    }
-  }, [])
+      clearTimeout(timer);
+    };
+  }, []);
 
   // Arrows move through the faces, and the page follows: somebody holding a
   // remote control should never have to find the paging buttons.
   useEffect(() => {
     if (everyone === null || chosen !== null) {
-      return
+      return;
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      const step = ARROWS[event.key]
+      const step = ARROWS[event.key];
 
       if (step === undefined || everyone.length === 0) {
-        return
+        return;
       }
 
-      event.preventDefault()
+      event.preventDefault();
 
-      setIsReturning(false)
+      setIsReturning(false);
 
       setAt((current) => {
-        const next = Math.min(Math.max(current + step, 0), everyone.length - 1)
+        const next = Math.min(Math.max(current + step, 0), everyone.length - 1);
 
-        setPage(Math.floor(next / PER_PAGE))
+        setPage(Math.floor(next / PER_PAGE));
 
-        return next
-      })
-    }
+        return next;
+      });
+    };
 
-    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [everyone, chosen])
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [everyone, chosen]);
 
   // Escape is what everyone tries when they have picked the wrong person.
   useEffect(() => {
     if (chosen === null) {
-      return
+      return;
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsReturning(true)
-        setChosen(null)
-        setPassword('')
-        setProblem(null)
-        setNeedsCode(false)
+        setIsReturning(true);
+        setChosen(null);
+        setPassword('');
+        setProblem(null);
+        setNeedsCode(false);
       }
-    }
+    };
 
-    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [chosen])
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [chosen]);
 
   // Focus follows the arrows rather than being drawn separately, so the
   // browser's own behaviour applies: space and enter press the face, and a
   // screen reader announces whichever one the keyboard is on.
   useEffect(() => {
     if (chosen !== null) {
-      return
+      return;
     }
 
-    facesRef.current.get(everyone?.[at]?.id ?? '')?.focus()
-  }, [at, page, chosen, everyone])
+    facesRef.current.get(everyone?.[at]?.id ?? '')?.focus();
+  }, [at, page, chosen, everyone]);
 
   const submit = async () => {
     if (chosen === null) {
-      return
+      return;
     }
 
-    setIsSubmitting(true)
-    setProblem(null)
+    setIsSubmitting(true);
+    setProblem(null);
 
-    const outcome = await signInAsProfile(chosen.id, password)
+    const outcome = await signInAsProfile(chosen.id, password);
 
-    setIsSubmitting(false)
+    setIsSubmitting(false);
 
     if (outcome.kind === 'signedIn') {
-      onSignedIn()
+      onSignedIn();
 
-      return
+      return;
     }
 
     // A right password on an account with a second factor is a step, not an
     // arrival: the code comes next, and the portrait stays where it is so it
     // is plainly the same person being asked.
     if (outcome.kind === 'needsCode') {
-      setNeedsCode(true)
-      setPassword('')
+      setNeedsCode(true);
+      setPassword('');
 
-      return
+      return;
     }
 
-    setProblem(outcome.reason)
-    setPassword('')
-  }
+    setProblem(outcome.reason);
+    setPassword('');
+  };
 
   const signInWithPasskey = async () => {
-    setIsUsingPasskey(true)
-    setProblem(null)
+    setIsUsingPasskey(true);
+    setProblem(null);
 
     try {
-      const outcome = await authenticateWithPasskey()
+      const outcome = await authenticateWithPasskey();
 
       if (outcome.kind === 'failed') {
-        setProblem(outcome.reason)
+        setProblem(outcome.reason);
 
-        return
+        return;
       }
 
       if (outcome.kind !== 'cancelled') {
-        onSignedIn()
+        onSignedIn();
       }
     } finally {
-      setIsUsingPasskey(false)
+      setIsUsingPasskey(false);
     }
-  }
+  };
 
   return (
     <main className="relative flex min-h-svh flex-col items-center justify-center gap-8 px-6 py-16">
@@ -350,16 +349,18 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                     the faces do not shift sideways as somebody pages through
                     them. */}
                 <span className={pages > 1 ? '' : 'invisible'}>
-                  <IconButton
+                  <Button
+                    isIconOnly
+                    variant="ghost"
                     label="Previous"
                     disabled={page === 0}
                     onClick={() => {
-                      setIsReturning(false)
-                      setPage((current) => Math.max(current - 1, 0))
+                      setIsReturning(false);
+                      setPage((current) => Math.max(current - 1, 0));
                     }}
                   >
                     <IconChevronLeft size={20} aria-hidden />
-                  </IconButton>
+                  </Button>
                 </span>
 
                 {/* Held to a width rather than filling the screen: faces
@@ -382,9 +383,9 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                         type="button"
                         ref={(element) => {
                           if (element === null) {
-                            facesRef.current.delete(profile.id)
+                            facesRef.current.delete(profile.id);
                           } else {
-                            facesRef.current.set(profile.id, element)
+                            facesRef.current.set(profile.id, element);
                           }
                         }}
                         layoutId={`profile-${profile.id}`}
@@ -393,12 +394,12 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                           // Pointer and keyboard agree on where they are, so
                           // clicking one face and then pressing an arrow
                           // continues from there rather than jumping back.
-                          setAt(everyone.findIndex((one) => one.id === profile.id))
+                          setAt(everyone.findIndex((one) => one.id === profile.id));
                         }}
                         onClick={() => {
-                          setHasLeftWall(true)
-                          setChosen(profile)
-                          setProblem(null)
+                          setHasLeftWall(true);
+                          setChosen(profile);
+                          setProblem(null);
                         }}
                         {...(prefersReducedMotion === true
                           ? {}
@@ -416,16 +417,18 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                 </motion.ul>
 
                 <span className={pages > 1 ? '' : 'invisible'}>
-                  <IconButton
+                  <Button
+                    isIconOnly
+                    variant="ghost"
                     label="Next"
                     disabled={page >= pages - 1}
                     onClick={() => {
-                      setIsReturning(false)
-                      setPage((current) => Math.min(current + 1, pages - 1))
+                      setIsReturning(false);
+                      setPage((current) => Math.min(current + 1, pages - 1));
                     }}
                   >
                     <IconChevronRight size={20} aria-hidden />
-                  </IconButton>
+                  </Button>
                 </span>
               </motion.div>
 
@@ -438,8 +441,8 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                   selectedIndex={page}
                   label="Pages of people"
                   onSelect={(at) => {
-                    setIsReturning(false)
-                    setPage(at)
+                    setIsReturning(false);
+                    setPage(at);
                   }}
                 />
               </motion.div>
@@ -489,8 +492,8 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                   transition={{ delay: 0.14, duration: 0.35, ease: [0.2, 0, 0, 1] }}
                   className="flex w-full flex-col gap-4"
                   onSubmit={(event) => {
-                    event.preventDefault()
-                    void submit()
+                    event.preventDefault();
+                    void submit();
                   }}
                 >
                   <TextField
@@ -523,7 +526,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                       isPill
                       isLoading={isUsingPasskey}
                       onClick={() => {
-                        void signInWithPasskey()
+                        void signInWithPasskey();
                       }}
                     >
                       <IconKey size={16} aria-hidden />
@@ -538,18 +541,20 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                <IconButton
+                <Button
+                  isIconOnly
+                  variant="ghost"
                   label="Somebody else"
                   onClick={() => {
-                    setIsReturning(true)
-                    setChosen(null)
-                    setPassword('')
-                    setProblem(null)
-                    setNeedsCode(false)
+                    setIsReturning(true);
+                    setChosen(null);
+                    setPassword('');
+                    setProblem(null);
+                    setNeedsCode(false);
                   }}
                 >
                   <IconArrowLeft size={18} aria-hidden />
-                </IconButton>
+                </Button>
               </motion.div>
             </div>
           )}
@@ -565,9 +570,9 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
         © {name} · {version ?? '…'}
       </motion.p>
     </main>
-  )
-}
+  );
+};
 
-ProfileGate.displayName = 'ProfileGate'
+ProfileGate.displayName = 'ProfileGate';
 
-export { ProfileGate }
+export { ProfileGate };

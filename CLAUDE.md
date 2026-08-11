@@ -26,8 +26,11 @@ reference, not a substitute for reading it.
    commented-out code, no section banners.
 7. **No `any`, no `unknown`, no `as` assertions.** `as const` and `satisfies`
    are fine. Untrusted input enters through a Zod schema.
-8. **No raw interactive HTML** (`<button>`, `<input>`, `<select>`, …) outside
-   `packages/ui`. Use FluxUI.
+8. **One FluxUI component owns each interactive element.** `<button>` lives in
+   `Button`, text inputs in `TextField`, `<input type="file">` in `FilePicker`,
+   `<dialog>` in `Dialog` — and nowhere else, including elsewhere in FluxUI.
+   Every other control composes one of those; there is no `IconButton`. ESLint
+   enforces it.
 9. **No raw SVG anywhere.** Icons come from `@tabler/icons-react`.
 10. **Every function and component has a co-located Vitest test.**
 11. **Conventional Commits.**

@@ -1,25 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { IconInfoCircle, IconPlayerPlayFilled, IconX } from '@tabler/icons-react'
-import { Dialog } from '@FluxUI/Dialog'
-import { Button } from '@FluxUI/Button'
-import { IconButton } from '@FluxUI/IconButton'
-import { Badge } from '@FluxUI/Badge'
-import { Spinner } from '@FluxUI/Spinner'
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
-import { formatDuration } from '@FluxCore/functions/formatDuration'
-import { fetchShow } from '@FluxWeb/library/fetchShows'
-import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview'
-import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf'
-import { pickUpFrom } from './pickUpFrom'
-import { EpisodeRow } from './components/EpisodeRow/EpisodeRow'
-import type { ShowDetail } from '@FluxContracts/schemas/Show'
-import type { ShowDialogProps } from './ShowDialog.types'
+import { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { IconInfoCircle, IconPlayerPlayFilled, IconX } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { Dialog } from '@FluxUI/Dialog';
+import { Badge } from '@FluxUI/Badge';
+import { Spinner } from '@FluxUI/Spinner';
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { fetchShow } from '@FluxWeb/library/fetchShows';
+import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
+import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
+import { pickUpFrom } from './pickUpFrom';
+import { EpisodeRow } from './components/EpisodeRow/EpisodeRow';
+import type { ShowDetail } from '@FluxContracts/schemas/Show';
+import type { ShowDialogProps } from './ShowDialog.types';
 
 /**
  * Where the artwork of a show comes from.
  */
-const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`
+const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
 /**
  * Names a season the way somebody would say it.
@@ -29,7 +28,7 @@ const nameSeason = (seasonNumber: number | null): string =>
     ? 'Specials'
     : seasonNumber === 0
       ? 'Specials'
-      : `Season ${seasonNumber.toString()}`
+      : `Season ${seasonNumber.toString()}`;
 
 /**
  * A series, and everywhere you could go in it.
@@ -54,59 +53,59 @@ const ShowDialog = ({
   resumeFor,
   isFinished,
 }: ShowDialogProps) => {
-  const [detail, setDetail] = useState<ShowDetail | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [lastShown, setLastShown] = useState(show)
-  const [chosenSeason, setChosenSeason] = useState<number | null>(null)
-  const topRef = useRef<HTMLDivElement>(null)
-  const prefersReducedMotion = useReducedMotion()
+  const [detail, setDetail] = useState<ShowDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastShown, setLastShown] = useState(show);
+  const [chosenSeason, setChosenSeason] = useState<number | null>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (show === null) {
-      return
+      return;
     }
 
-    setLastShown(show)
-    setDetail(null)
-    setIsLoading(true)
+    setLastShown(show);
+    setDetail(null);
+    setIsLoading(true);
 
-    let abandoned = false
+    let abandoned = false;
 
     void fetchShow(show.libraryId, show.id).then((found) => {
       if (abandoned) {
-        return
+        return;
       }
 
-      setDetail(found)
-      setIsLoading(false)
+      setDetail(found);
+      setIsLoading(false);
 
       // Opened at the season being watched rather than at the first, since
       // somebody in the middle of a programme is asking about the middle.
-      const carryingOn = found === null ? null : pickUpFrom(found, { resumeFor, isFinished })
+      const carryingOn = found === null ? null : pickUpFrom(found, { resumeFor, isFinished });
 
-      setChosenSeason(carryingOn?.episode.seasonNumber ?? null)
-    })
+      setChosenSeason(carryingOn?.episode.seasonNumber ?? null);
+    });
 
     const returning = requestAnimationFrame(() => {
-      scrollToTopOf(topRef.current, prefersReducedMotion !== true)
-    })
+      scrollToTopOf(topRef.current, prefersReducedMotion !== true);
+    });
 
     return () => {
-      abandoned = true
-      cancelAnimationFrame(returning)
-    }
-  }, [show, prefersReducedMotion])
+      abandoned = true;
+      cancelAnimationFrame(returning);
+    };
+  }, [show, prefersReducedMotion]);
 
-  const shown = show ?? lastShown
+  const shown = show ?? lastShown;
 
   if (shown === null) {
-    return null
+    return null;
   }
 
-  const seasons = detail?.seasons ?? []
+  const seasons = detail?.seasons ?? [];
   const season = seasons.find((one) => one.seasonNumber === chosenSeason) ??
-    seasons[0] ?? { seasonNumber: null, episodes: [] }
-  const carryingOn = detail === null ? null : pickUpFrom(detail, { resumeFor, isFinished })
+    seasons[0] ?? { seasonNumber: null, episodes: [] };
+  const carryingOn = detail === null ? null : pickUpFrom(detail, { resumeFor, isFinished });
 
   return (
     <Dialog
@@ -129,9 +128,15 @@ const ShowDialog = ({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-surface via-surface/80 to-transparent" />
 
         <div className="absolute right-4 top-4">
-          <IconButton label="Close" onClick={onClose} className="bg-black/50 text-white">
+          <Button
+            isIconOnly
+            variant="ghost"
+            label="Close"
+            onClick={onClose}
+            className="bg-black/50 text-white"
+          >
             <IconX size={20} aria-hidden />
-          </IconButton>
+          </Button>
         </div>
 
         <motion.div
@@ -186,7 +191,7 @@ const ShowDialog = ({
               size="lg"
               isPill
               onClick={() => {
-                onPlay(carryingOn.episode, carryingOn.startSeconds)
+                onPlay(carryingOn.episode, carryingOn.startSeconds);
               }}
             >
               <IconPlayerPlayFilled size={18} aria-hidden />
@@ -204,7 +209,7 @@ const ShowDialog = ({
               size="lg"
               isPill
               onClick={() => {
-                onInspect(carryingOn.episode)
+                onInspect(carryingOn.episode);
               }}
             >
               <IconInfoCircle size={18} aria-hidden />
@@ -232,7 +237,7 @@ const ShowDialog = ({
                       aria-pressed={one.seasonNumber === season.seasonNumber}
                       variant={one.seasonNumber === season.seasonNumber ? 'glossy' : 'ghost'}
                       onClick={() => {
-                        setChosenSeason(one.seasonNumber)
+                        setChosenSeason(one.seasonNumber);
                       }}
                     >
                       {nameSeason(one.seasonNumber)}
@@ -271,9 +276,9 @@ const ShowDialog = ({
         </section>
       </div>
     </Dialog>
-  )
-}
+  );
+};
 
-ShowDialog.displayName = 'ShowDialog'
+ShowDialog.displayName = 'ShowDialog';
 
-export { ShowDialog }
+export { ShowDialog };

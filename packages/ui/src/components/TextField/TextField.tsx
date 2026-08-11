@@ -1,6 +1,6 @@
-import { useId } from 'react'
-import { cn } from '@FluxUI/cn'
-import type { TextFieldProps } from './TextField.types'
+import { useId } from 'react';
+import { cn } from '@FluxUI/cn';
+import type { TextFieldProps } from './TextField.types';
 
 /**
  * A labelled single-line text input.
@@ -22,22 +22,29 @@ const TextField = ({
   autoComplete,
   isPill = false,
   size = 'md',
+  isBare = false,
+  isLabelHidden = false,
+  icon,
+  hasFocusOnMount = false,
   className,
 }: TextFieldProps) => {
-  const inputId = useId()
-  const descriptionId = useId()
-  const errorId = useId()
+  const inputId = useId();
+  const descriptionId = useId();
+  const errorId = useId();
 
   const describedBy = [
     description === undefined ? null : descriptionId,
     error === undefined ? null : errorId,
   ]
     .filter((id) => id !== null)
-    .join(' ')
+    .join(' ');
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <label htmlFor={inputId} className="text-sm font-medium text-text">
+      <label
+        htmlFor={inputId}
+        className={cn('text-sm font-medium text-text', isLabelHidden ? 'sr-only' : '')}
+      >
         {label}
       </label>
 
@@ -47,32 +54,49 @@ const TextField = ({
         </p>
       )}
 
-      <input
-        id={inputId}
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        required={required}
-        disabled={disabled}
-        aria-invalid={error !== undefined}
-        aria-describedby={describedBy === '' ? undefined : describedBy}
-        {...(autoComplete === undefined ? {} : { autoComplete })}
-        onChange={(event) => {
-          onValueChange(event.target.value)
-        }}
-        className={cn(
-          // `flux-field` carries the one thing Tailwind cannot: a browser
-          // painting its own pale background over an autofilled field, which
-          // turns a dark form white the moment somebody's password manager
-          // touches it.
-          'flux-field border border-white/10 bg-white/[0.04] text-text backdrop-blur-xl',
-          'transition-colors placeholder:text-text-muted hover:border-white/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          size === 'lg' ? 'h-14 px-5 text-base' : 'h-10 px-3 text-sm',
-          isPill ? 'rounded-full' : 'rounded-xl',
-          error === undefined ? '' : 'border-danger',
-        )}
-      />
+      <span
+        className={cn('flex items-center gap-3', isBare ? 'border-b border-white/15 pb-3' : '')}
+      >
+        {icon === undefined ? null : <span className="shrink-0 text-text-muted">{icon}</span>}
+
+        <input
+          id={inputId}
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          required={required}
+          disabled={disabled}
+          aria-invalid={error !== undefined}
+          aria-describedby={describedBy === '' ? undefined : describedBy}
+          {...(autoComplete === undefined ? {} : { autoComplete })}
+          onChange={(event) => {
+            onValueChange(event.target.value);
+          }}
+          autoFocus={hasFocusOnMount}
+          className={cn(
+            // `flux-field` carries the one thing Tailwind cannot: a browser
+            // painting its own pale background over an autofilled field, which
+            // turns a dark form white the moment somebody's password manager
+            // touches it.
+            'flux-field text-text',
+            'transition-colors placeholder:text-text-muted',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            isBare
+              ? 'w-full bg-transparent outline-none'
+              : 'border border-white/10 bg-white/[0.04] backdrop-blur-xl hover:border-white/20',
+            isBare
+              ? ''
+              : size === 'lg'
+                ? 'h-14 px-5 text-base'
+                : size === 'xl'
+                  ? 'h-16 px-6 text-lg'
+                  : 'h-10 px-3 text-sm',
+            isBare && size === 'xl' ? 'text-2xl tracking-tight sm:text-3xl' : '',
+            isBare ? '' : isPill ? 'rounded-full' : 'rounded-xl',
+            error === undefined ? '' : 'border-danger',
+          )}
+        />
+      </span>
 
       {error === undefined ? null : (
         <p id={errorId} role="alert" className="text-sm text-danger">
@@ -80,9 +104,9 @@ const TextField = ({
         </p>
       )}
     </div>
-  )
-}
+  );
+};
 
-TextField.displayName = 'TextField'
+TextField.displayName = 'TextField';
 
-export { TextField }
+export { TextField };

@@ -1,18 +1,18 @@
-import { IconX } from '@tabler/icons-react'
-import { IconButton } from '@FluxUI/IconButton'
-import { formatDuration } from '@FluxCore/functions/formatDuration'
-import type { AudioDecision, VideoDecision } from '@FluxContracts/schemas/PlaybackPlan'
-import type { StreamStatsProps } from './StreamStats.types'
+import { Button } from '@FluxUI/Button';
+import { IconX } from '@tabler/icons-react';
+import { formatDuration } from '@FluxCore/functions/formatDuration';
+import type { AudioDecision, VideoDecision } from '@FluxContracts/schemas/PlaybackPlan';
+import type { StreamStatsProps } from './StreamStats.types';
 
 /**
  * Rounds a number of seconds for display without pretending to precision.
  */
-const seconds = (value: number): string => `${value.toFixed(1)}s`
+const seconds = (value: number): string => `${value.toFixed(1)}s`;
 
 /**
  * Reads a plan axis as the decision plus the reason behind it.
  */
-const axis = (kind: string, detail: string): string => `${kind} — ${detail}`
+const axis = (kind: string, detail: string): string => `${kind} — ${detail}`;
 
 /**
  * Reads the video axis with the resolution/bitrate ceiling actually being
@@ -25,26 +25,26 @@ const axis = (kind: string, detail: string): string => `${kind} — ${detail}`
 const videoAxis = (video: VideoDecision): string =>
   video.kind === 'passthrough'
     ? axis(video.kind, video.reason.detail)
-    : `${axis(video.kind, video.reason.detail)} (${video.maxWidth.toString()}x${video.maxHeight.toString()} @ ${video.maxBitrateKbps.toString()}kbps)`
+    : `${axis(video.kind, video.reason.detail)} (${video.maxWidth.toString()}x${video.maxHeight.toString()} @ ${video.maxBitrateKbps.toString()}kbps)`;
 
 const audioAxis = (audio: AudioDecision): string =>
   audio.kind === 'passthrough'
     ? axis(audio.kind, audio.reason.detail)
-    : `${axis(audio.kind, audio.reason.detail)} (${audio.maxBitrateKbps.toString()}kbps)`
+    : `${axis(audio.kind, audio.reason.detail)} (${audio.maxBitrateKbps.toString()}kbps)`;
 
 type RowProps = {
-  name: string
-  children: string
-}
+  name: string;
+  children: string;
+};
 
 const Row = ({ name, children }: RowProps) => (
   <div className="flex gap-3 rounded-md px-1 py-1 transition-colors hover:bg-white/5">
     <dt className="w-40 shrink-0 text-white/50">{name}</dt>
     <dd className="min-w-0 break-words font-medium tabular-nums text-white">{children}</dd>
   </div>
-)
+);
 
-Row.displayName = 'Row'
+Row.displayName = 'Row';
 
 /**
  * Everything Flux knows about what is on screen.
@@ -62,9 +62,9 @@ const StreamStats = ({
   sessionStartSeconds,
   onClose,
 }: StreamStatsProps) => {
-  const video = detail?.videoCodec ?? media.id
-  const audio = detail?.audioStreams[0] ?? null
-  const plan = session?.plan ?? null
+  const video = detail?.videoCodec ?? media.id;
+  const audio = detail?.audioStreams[0] ?? null;
+  const plan = session?.plan ?? null;
 
   return (
     <section
@@ -76,9 +76,9 @@ const StreamStats = ({
       <header className="mb-3 flex items-center justify-between gap-4 border-b border-white/10 pb-2">
         <h3 className="text-sm font-medium tracking-tight">Stats for nerds</h3>
 
-        <IconButton label="Close stats" size="sm" onClick={onClose}>
+        <Button isIconOnly variant="ghost" label="Close stats" size="sm" onClick={onClose}>
           <IconX size={16} aria-hidden />
-        </IconButton>
+        </Button>
       </header>
 
       <dl className="flex flex-col">
@@ -137,9 +137,9 @@ const StreamStats = ({
         )}
       </dl>
     </section>
-  )
-}
+  );
+};
 
-StreamStats.displayName = 'StreamStats'
+StreamStats.displayName = 'StreamStats';
 
-export { StreamStats }
+export { StreamStats };
