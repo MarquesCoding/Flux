@@ -237,7 +237,6 @@ const Hero = ({
                 backdropUrl={featured.hasBackdrop ? artworkUrl(featured.id) : null}
                 durationSeconds={featured.durationSeconds}
                 settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
-                tint={featured.accentColor ?? null}
                 onEnded={showNext}
                 {...(onPalette === undefined ? {} : { onPalette })}
                 fills

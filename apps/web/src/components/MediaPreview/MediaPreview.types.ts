@@ -24,14 +24,6 @@ type MediaPreviewProps = {
   startFraction?: number
   durationSeconds: number
   /**
-   * The colour to hold while nothing has been drawn yet.
-   *
-   * Black is what an empty video element is, and a black rectangle where a
-   * picture is about to be reads as broken. A shade taken from the film reads
-   * as the picture arriving.
-   */
-  tint?: string | null
-  /**
    * Whether the preview offers to turn its sound on.
    *
    * It always starts silent — a page that begins talking on its own is a page

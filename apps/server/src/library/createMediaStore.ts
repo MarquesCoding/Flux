@@ -64,7 +64,6 @@ const createMediaStore = (db: FluxDatabase): MediaStore => ({
       posterUrl: row.metadata.posterUrl ?? null,
       backdropUrl: row.metadata.backdropUrl ?? null,
       externalId: row.metadata.externalId ?? null,
-      accentColor: row.accentColor,
       updatedAt: new Date(),
     }
 

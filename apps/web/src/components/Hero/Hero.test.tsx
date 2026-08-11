@@ -23,7 +23,6 @@ const item = (id: string, title: string): MediaSummary => ({
   addedAt: '2026-08-10T00:00:00.000Z',
   hasPoster: false,
   hasBackdrop: true,
-  accentColor: '#5a3c8c',
 })
 
 const items = [item('a', 'Arrival'), item('b', 'Dune'), item('c', 'Sicario')]

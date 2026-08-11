@@ -1,6 +1,6 @@
 //! The background work the media service does when nobody is waiting.
 //!
-//! Thumbnails, colour sampling and fingerprinting all read whole files, and
+//! Thumbnails, trickplay sheets and fingerprinting all read whole files, and
 //! all of them are worth doing eventually rather than now. Left unmanaged they
 //! compete with the one thing that is urgent — the film somebody is watching —
 //! and the machine loses. Everything of that kind goes through this queue, so
@@ -43,7 +43,7 @@ pub enum JobState {
 #[serde(rename_all = "camelCase")]
 pub struct Job {
     pub id: u64,
-    /// What kind of work this is: thumbnails, colour, fingerprint.
+    /// What kind of work this is: thumbnails, trickplay, fingerprint.
     pub kind: String,
     /// What it is being done to, in a form a person recognises.
     pub subject: String,
@@ -304,7 +304,7 @@ mod tests {
     async fn counts_what_is_waiting_and_what_is_running() {
         let queue = WorkQueue::new(2);
 
-        let outcome: Result<(), String> = queue.run("colour", "a.mkv", async { Ok(()) }).await;
+        let outcome: Result<(), String> = queue.run("trickplay", "a.mkv", async { Ok(()) }).await;
 
         assert!(outcome.is_ok());
 

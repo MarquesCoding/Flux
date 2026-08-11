@@ -77,7 +77,6 @@ const MediaPreview = ({
   durationSeconds,
   fills = false,
   settleMilliseconds = SETTLE_MILLISECONDS,
-  tint = null,
   hasSound = false,
   hasSubtitles = false,
   repeats,
@@ -231,11 +230,9 @@ const MediaPreview = ({
 
   return (
     <div
-      // Tinted rather than black, and tinted before anything has loaded, so
-      // the hero has a presence from the first paint instead of appearing as a
-      // black band under a page that has already arrived.
-      style={tint === null ? {} : { backgroundColor: tint }}
-      className={`relative overflow-hidden ${tint === null ? 'bg-black' : ''} ${
+      // Black under whatever is being shown, so a still that has not arrived
+      // yet is a dark frame rather than a hole through to the page.
+      className={`relative overflow-hidden bg-black ${
         fills ? 'h-full w-full' : 'aspect-video w-full'
       }`}
     >

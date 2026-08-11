@@ -56,11 +56,6 @@ const MediaSummarySchema = z.object({
   hasPoster: z.boolean().default(false),
   hasBackdrop: z.boolean().default(false),
   /**
-   * The colour this item lights a page with, taken from a frame of the film
-   * itself rather than from artwork that may not exist.
-   */
-  accentColor: z.string().nullish(),
-  /**
    * What a catalogue thinks of it, out of ten.
    *
    * In the summary because a hero and a card both show it, and neither is
@@ -114,7 +109,6 @@ const MediaMetadataSchema = z.object({
   rating: z.number().nullish(),
   hasPoster: z.boolean(),
   hasBackdrop: z.boolean(),
-  accentColor: z.string().nullish(),
   seriesTitle: z.string().nullish(),
   seasonNumber: z.number().int().nullish(),
   episodeNumber: z.number().int().nullish(),

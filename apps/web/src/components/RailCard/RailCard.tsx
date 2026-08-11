@@ -322,7 +322,6 @@ const RailCard = ({
                   mediaId={media.id}
                   backdropUrl={artworkUrl ?? null}
                   durationSeconds={media.durationSeconds}
-                  tint={media.accentColor ?? null}
                   settleMilliseconds={0}
                   fills
                 />

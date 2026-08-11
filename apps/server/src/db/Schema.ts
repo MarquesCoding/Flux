@@ -279,7 +279,6 @@ const mediaItem = pgTable(
     posterUrl: text('posterUrl'),
     backdropUrl: text('backdropUrl'),
     externalId: text('externalId'),
-    accentColor: text('accentColor'),
     addedAt: timestamp('addedAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
