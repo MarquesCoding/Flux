@@ -1,5 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi'
 import LibraryModule from '@FluxContracts/schemas/Library'
+import ShowModule from '@FluxContracts/schemas/Show'
 
 const { LibrarySchema, MediaSummarySchema, MediaDetailSchema, LIBRARY_KINDS } = LibraryModule
 
@@ -7,6 +8,11 @@ const Library = LibrarySchema.openapi('Library')
 const MediaSummary = MediaSummarySchema.openapi('MediaSummary')
 const MediaDetail = MediaDetailSchema.openapi('MediaDetail')
 const NotFound = z.object({ error: z.string() }).openapi('LibraryNotFound')
+
+const { ShowListSchema: ShowListContract, ShowDetailSchema: ShowDetailContract } = ShowModule
+
+const ShowListSchema = ShowListContract.openapi('ShowList')
+const ShowDetailSchema = ShowDetailContract.openapi('ShowDetail')
 
 const CreateLibraryRequest = z
   .object({
@@ -187,6 +193,54 @@ const scanStateRoute = createRoute({
  * database already believes, and an operator reaching for this wants no part
  * of that history kept.
  */
+/**
+ * Lists the series in a library.
+ *
+ * A show is every item naming the same series, so this is a reading of the
+ * library rather than a table in it — and it is read here rather than in a
+ * browser because a page holds the first sixty things it was sent.
+ */
+const listShowsRoute = createRoute({
+  method: 'get',
+  path: '/api/libraries/{id}/shows',
+  tags: ['Library'],
+  summary: 'List the series in a library',
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: {
+      description: 'The series, most recent arrival first',
+      content: { 'application/json': { schema: ShowListSchema } },
+    },
+    404: {
+      description: 'No such library',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+})
+
+/**
+ * Everything the library holds about one series.
+ */
+const getShowRoute = createRoute({
+  method: 'get',
+  path: '/api/libraries/{id}/shows/{showId}',
+  tags: ['Library'],
+  summary: 'Read one series and its episodes',
+  request: {
+    params: z.object({ id: z.string().uuid(), showId: z.string().min(1) }),
+  },
+  responses: {
+    200: {
+      description: 'The series, season by season',
+      content: { 'application/json': { schema: ShowDetailSchema } },
+    },
+    404: {
+      description: 'No such library or series',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+})
+
 const resetLibraryRoute = createRoute({
   method: 'post',
   path: '/api/libraries/{id}/reset',
@@ -213,4 +267,6 @@ export default {
   scanLibraryRoute,
   scanStateRoute,
   resetLibraryRoute,
+  listShowsRoute,
+  getShowRoute,
 }

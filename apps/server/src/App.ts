@@ -41,6 +41,8 @@ const {
   scanLibraryRoute,
   scanStateRoute,
   resetLibraryRoute,
+  listShowsRoute,
+  getShowRoute,
 } = LibraryRouteModule
 const {
   explainRoute,
@@ -271,6 +273,27 @@ const createApp = ({
     }
 
     return context.json(page, 200)
+  })
+
+  app.openapi(listShowsRoute, async (context) => {
+    const shows = await library.listShows(context.req.valid('param').id)
+
+    if (shows === null) {
+      return context.json({ error: 'No such library.' }, 404)
+    }
+
+    return context.json({ shows }, 200)
+  })
+
+  app.openapi(getShowRoute, async (context) => {
+    const { id, showId } = context.req.valid('param')
+    const show = await library.getShow(id, showId)
+
+    if (show === null) {
+      return context.json({ error: 'No such series.' }, 404)
+    }
+
+    return context.json(show, 200)
   })
 
   app.openapi(getMediaRoute, async (context) => {

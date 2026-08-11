@@ -1,4 +1,5 @@
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
+import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show'
 
 type ListItemsOptions = {
   search?: string
@@ -35,6 +36,19 @@ type ListItemsOptions = {
   offset: number
 }
 
+/**
+ * What the library can be asked about series rather than about files.
+ *
+ * A show is not stored anywhere: it is every item naming the same series. The
+ * grouping is done here rather than in a browser because a page holds the
+ * first sixty things it was sent, and a series with ninety episodes would
+ * otherwise report itself as having thirty.
+ */
+type ShowService = {
+  listShows: (libraryId: string) => Promise<ShowSummary[] | null>
+  getShow: (libraryId: string, showId: string) => Promise<ShowDetail | null>
+}
+
 type CreateLibraryInput = {
   name: string
   kind: Library['kind']
@@ -48,7 +62,7 @@ type CreateLibraryInput = {
  * without Postgres and so a future plugin-provided library source can satisfy
  * the same shape.
  */
-type LibraryService = {
+type LibraryService = ShowService & {
   list: () => Promise<Library[]>
   create: (input: CreateLibraryInput) => Promise<Library | null>
   listItems: (
