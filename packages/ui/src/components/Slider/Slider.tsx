@@ -37,7 +37,8 @@ const Slider = ({
   className,
 }: SliderProps) => {
   const trackRef = useRef<HTMLDivElement>(null)
-  const [hover, setHover] = useState<{ value: number; ratio: number } | null>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
+  const [hover, setHover] = useState<{ value: number; ratio: number; left: number } | null>(null)
 
   const track = useCallback(
     (clientX: number) => {
@@ -55,7 +56,13 @@ const Slider = ({
 
       const ratio = Math.min(Math.max((clientX - box.left) / box.width, 0), 1)
 
-      setHover({ value: ratio * max, ratio })
+      // Kept inside the track's own width. A preview centred on the pointer
+      // runs off the side of the window at either end of a film, which is
+      // where the first and last frames are — the two people scrub to most.
+      const half = (previewRef.current?.offsetWidth ?? 0) / 2
+      const left = Math.min(Math.max(ratio * box.width, half), Math.max(box.width - half, half))
+
+      setHover({ value: ratio * max, ratio, left })
     },
     [max],
   )
@@ -64,8 +71,9 @@ const Slider = ({
     <div data-tone={tone} className={cn('group/slider relative w-full', className)}>
       {hover === null || renderPreview === undefined ? null : (
         <div
+          ref={previewRef}
           className="pointer-events-none absolute bottom-full z-10 mb-2 -translate-x-1/2"
-          style={{ left: `${(hover.ratio * 100).toString()}%` }}
+          style={{ left: `${hover.left.toString()}px` }}
         >
           {renderPreview(hover.value)}
         </div>
