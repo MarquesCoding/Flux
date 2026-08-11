@@ -213,7 +213,7 @@ const VideoPlayer = ({
   // on screen until the new session produces one of its own, because tearing
   // the old session down blanks the media element and a black rectangle reads
   // as the video having broken rather than as a seek.
-  const [heldFrame, setHeldFrame] = useState<string | null>(null)
+  const [heldFrame, setHeldFrame] = useState<{ url: string; isItemChange: boolean } | null>(null)
 
   // Offered only where the browser has a floating window of its own. Firefox
   // has one it does not expose to a page, and Safari on a phone has none at
@@ -377,6 +377,21 @@ const VideoPlayer = ({
     }, START_RETRY_MILLISECONDS)
   }, [])
 
+  /**
+   * Keeps whatever is on screen on screen.
+   *
+   * Tearing a session down blanks the media element, so without this the
+   * picture goes black between one stream and the next — which reads as the
+   * player breaking rather than as a seek, or as the following episode.
+   */
+  const hold = useCallback((element: HTMLVideoElement | null, isItemChange = false) => {
+    const url = element === null ? null : captureFrame(element, document.createElement('canvas'))
+
+    if (url !== null) {
+      setHeldFrame({ url, isItemChange })
+    }
+  }, [])
+
   // The last frame of the episode being left, kept up while the next one is
   // asked for. Tearing a session down blanks the element, and a black
   // rectangle between two episodes reads as the player breaking rather than
@@ -388,9 +403,9 @@ const VideoPlayer = ({
     const element = videoRef.current
 
     if (element !== null && element.readyState > 1) {
-      setHeldFrame(captureFrame(element, document.createElement('canvas')))
+      hold(element, true)
     }
-  }, [media.id])
+  }, [media.id, hold])
 
   if (request.mediaId !== media.id) {
     setRequest({
@@ -670,7 +685,7 @@ const VideoPlayer = ({
         return
       }
 
-      setHeldFrame(captureFrame(element, document.createElement('canvas')))
+      hold(element)
       setRequest({
         mediaId: request.mediaId,
         startSeconds: Math.floor(seconds),
@@ -735,9 +750,7 @@ const VideoPlayer = ({
     (streamIndex: number) => {
       const element = videoRef.current
 
-      if (element !== null) {
-        setHeldFrame(captureFrame(element, document.createElement('canvas')))
-      }
+      hold(element)
 
       setSelectedAudioIndex(streamIndex)
       setRequest({
@@ -756,9 +769,7 @@ const VideoPlayer = ({
     (quality: QualityPreference) => {
       const element = videoRef.current
 
-      if (element !== null) {
-        setHeldFrame(captureFrame(element, document.createElement('canvas')))
-      }
+      hold(element)
 
       saveQualityPreference(quality)
       setRequest({
@@ -1101,7 +1112,7 @@ const VideoPlayer = ({
           <div
             role="presentation"
             className="pointer-events-none absolute inset-0 bg-black bg-contain bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${heldFrame})` }}
+            style={{ backgroundImage: `url(${heldFrame.url})` }}
           />
         )}
 
@@ -1113,8 +1124,18 @@ const VideoPlayer = ({
                 : 'pointer-events-none absolute right-3 top-3 rounded-full bg-black/60 p-2 text-white'
             }
           >
+            {/* A held frame means something is already on screen, so this is
+                the small one in the corner. What it says depends on what is
+                being waited for: the same picture moving again, or a
+                different one arriving. */}
             <Spinner
-              label={heldFrame === null ? 'Preparing playback' : 'Seeking'}
+              label={
+                heldFrame === null
+                  ? 'Preparing playback'
+                  : heldFrame.isItemChange
+                    ? 'Loading the next episode'
+                    : 'Seeking'
+              }
               size={heldFrame === null ? 'lg' : 'sm'}
             />
           </div>

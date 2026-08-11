@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
 import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
@@ -59,6 +59,12 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [user, setUser] = useState<SessionUser | null>(null)
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [progress, setProgress] = useState(new Map<string, WatchProgress>())
+  // What this session has said and not yet seen come back. The server is told
+  // on a timer and again on the way out, neither of which a read waits for, so
+  // a read that lands in between would put the old position back on the card —
+  // which is why watching something and closing it sometimes left the bar
+  // where it had been an hour ago.
+  const reportedRef = useRef(new Map<string, WatchProgress>())
   const [featured, setFeatured] = useState<MediaSummary | null>(null)
   const [isTitleOver, setIsTitleOver] = useState(false)
   // Everything the library has shown, so an address naming an item can be
@@ -103,7 +109,25 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   }, [])
 
   const readProgress = useCallback(async () => {
-    setProgress(byMediaId(await fetchWatchProgress()))
+    const fromServer = byMediaId(await fetchWatchProgress())
+    const merged = new Map(fromServer)
+
+    for (const [mediaId, mine] of reportedRef.current) {
+      const theirs = fromServer.get(mediaId)
+
+      // Caught up: what came back is what was sent, so this copy stops
+      // standing in for it. Compared rather than trusted to be larger,
+      // because rewinding is a smaller number and still the right one.
+      if (theirs !== undefined && Math.abs(theirs.positionSeconds - mine.positionSeconds) <= 1) {
+        reportedRef.current.delete(mediaId)
+
+        continue
+      }
+
+      merged.set(mediaId, mine)
+    }
+
+    setProgress(merged)
   }, [])
 
   // The opening title is held for its own length rather than for however long
@@ -243,16 +267,20 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           // server is told on a timer, and a card that waits for that round
           // trip shows the wrong place every time somebody closes a film.
           onProgress={(positionSeconds, durationSeconds) => {
+            const entry = {
+              mediaId: playing.id,
+              positionSeconds,
+              durationSeconds,
+              isFinished: positionSeconds >= durationSeconds - FINISHED_WITHIN_SECONDS,
+              updatedAt: new Date().toISOString(),
+            }
+
+            reportedRef.current.set(playing.id, entry)
+
             setProgress((current) => {
               const next = new Map(current)
 
-              next.set(playing.id, {
-                mediaId: playing.id,
-                positionSeconds,
-                durationSeconds,
-                isFinished: positionSeconds >= durationSeconds - FINISHED_WITHIN_SECONDS,
-                updatedAt: new Date().toISOString(),
-              })
+              next.set(playing.id, entry)
 
               return next
             })
