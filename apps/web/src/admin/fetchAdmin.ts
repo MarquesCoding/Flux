@@ -174,6 +174,41 @@ type JobSchedule = z.infer<typeof JobScheduleSchema>;
  */
 type OverviewOutcome = { overview: AdminOverview | null; problem: string | null };
 
+const RunningScansSchema = z.object({
+  scans: z.array(
+    z.object({
+      jobId: z.string(),
+      kind: z.string(),
+      libraryId: z.string().nullable(),
+      phase: z.string().nullable(),
+      processed: z.number().nullable(),
+      total: z.number().nullable(),
+    }),
+  ),
+});
+
+type RunningScan = z.infer<typeof RunningScansSchema>['scans'][number];
+
+/**
+ * What the server is working on right now.
+ *
+ * Asked when the page opens, because a scan started before a reload is still
+ * running and the browser that started it no longer remembers its job id.
+ */
+const fetchRunningScans = async (): Promise<RunningScan[]> => {
+  const response = await fetch('/api/libraries/scans', { credentials: 'same-origin' }).catch(
+    () => null,
+  );
+
+  if (response === null || !response.ok) {
+    return [];
+  }
+
+  const parsed = RunningScansSchema.safeParse(await response.json().catch(() => null));
+
+  return parsed.success ? parsed.data.scans : [];
+};
+
 const fetchAdminOverview = async (): Promise<OverviewOutcome> => {
   const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
     () => null,
@@ -413,6 +448,7 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
 
 export type {
   OverviewOutcome,
+  RunningScan,
   ActiveSession,
   AdminOverview,
   Job,
@@ -425,6 +461,7 @@ export type {
 
 export {
   fetchAdminOverview,
+  fetchRunningScans,
   fetchMonitor,
   watchMonitor,
   saveCatalogueKey,

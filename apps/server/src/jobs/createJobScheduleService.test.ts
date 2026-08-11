@@ -7,6 +7,7 @@ const stubJobQueue = (overrides: Partial<JobQueue> = {}): JobQueue => ({
   enqueue: () => Promise.resolve(null),
   readState: () => Promise.resolve('unknown'),
   readProgress: () => null,
+  listRunning: () => [],
   reportProgress: () => {},
   setSchedule: () => Promise.resolve(),
   clearSchedule: () => Promise.resolve(),

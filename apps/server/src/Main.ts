@@ -535,6 +535,7 @@ const app = createApp({
   monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
+  listRunningJobs: () => jobs.listRunning(),
 });
 
 const seededKinds = await seedDefaultJobTriggers({ schedules, settings });
