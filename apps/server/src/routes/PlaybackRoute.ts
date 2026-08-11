@@ -211,6 +211,33 @@ const trickplayRoute = createRoute({
 })
 
 /**
+ * Serves the frame a preview is going to start from.
+ *
+ * A still rather than the backdrop, because it is the one picture that can be
+ * replaced by the playing video without anything appearing to jump.
+ */
+const frameRoute = createRoute({
+  method: 'get',
+  path: '/api/playback/{mediaId}/frame',
+  tags: ['Playback'],
+  summary: 'Read a single frame as a picture',
+  request: {
+    params: z.object({ mediaId: z.string().uuid() }),
+    query: z.object({
+      seconds: z.coerce.number().int().nonnegative().default(0),
+      width: z.coerce.number().int().positive().max(3840).default(1280),
+    }),
+  },
+  responses: {
+    200: { description: 'The frame' },
+    404: {
+      description: 'No such media item, or no frame there',
+      content: { 'application/json': { schema: PlaybackError } },
+    },
+  },
+})
+
+/**
  * Serves an index or a sheet.
  *
  * Cue payloads inside the index name sheets relatively, so they resolve
@@ -240,5 +267,6 @@ export default {
   directFileRoute,
   trickplayRoute,
   trickplayFileRoute,
+  frameRoute,
   stopRoute,
 }

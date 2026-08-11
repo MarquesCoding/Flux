@@ -1,9 +1,18 @@
 import { createRef } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import VideoSurfaceModule from './VideoSurface'
 
 const { VideoSurface } = VideoSurfaceModule
+
+beforeEach(() => {
+  // jsdom hands back a track list that cannot be listened to, and the surface
+  // listens for cues arriving after the element already has its track.
+  Object.defineProperty(HTMLMediaElement.prototype, 'textTracks', {
+    configurable: true,
+    value: Object.assign([], { addEventListener: vi.fn(), removeEventListener: vi.fn() }),
+  })
+})
 
 describe('VideoSurface', () => {
   it('exposes the video element by its accessible name', () => {

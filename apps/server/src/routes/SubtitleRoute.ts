@@ -18,11 +18,15 @@ const SubtitleListSchema = z
   .openapi('SubtitleList')
 
 /**
- * Lists the subtitle files sitting beside an item.
+ * Lists the subtitle tracks an item has.
  *
- * Only tracks that already exist as text on disk. Flux does not demux
- * subtitles out of a container, and a plugin that downloads them writes files
- * here rather than being read through.
+ * Text tracks from both places they live: files sitting beside the video, and
+ * streams inside the container itself. Which one a track came from is not
+ * something a viewer should have to think about, so the list does not say.
+ *
+ * Picture based tracks are absent by design. They hold images rather than
+ * characters, so they are burned into the video instead, which playback
+ * negotiation decides.
  */
 const listSubtitlesRoute = createRoute({
   method: 'get',
@@ -55,6 +59,16 @@ const readSubtitleRoute = createRoute({
   summary: 'Read one subtitle track as WebVTT',
   request: {
     params: z.object({ mediaId: z.string().uuid(), trackId: z.string().min(1) }),
+    query: z.object({
+      /**
+       * Where the stream asking for this began, in seconds.
+       *
+       * A transcode that starts forty minutes in hands the browser a video
+       * whose clock starts at zero, while the file's cues still count from the
+       * beginning. Without this every line arrives forty minutes late.
+       */
+      from: z.coerce.number().nonnegative().default(0),
+    }),
   },
   responses: {
     200: { description: 'The track' },

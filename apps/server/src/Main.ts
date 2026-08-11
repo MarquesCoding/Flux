@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import { z } from 'zod'
 import { serve } from '@hono/node-server'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -15,17 +16,22 @@ import createMediaFileSystemModule from '@FluxServer/library/createMediaFileSyst
 import TranscoderClientModule from '@FluxServer/transcoder/TranscoderClient'
 import createImageCacheModule from '@FluxServer/images/createImageCache'
 import detectLibrarySegmentsModule from '@FluxServer/segments/detectLibrarySegments'
+import createDatabaseWatchProgressServiceModule from '@FluxServer/progress/createDatabaseWatchProgressService'
 import createDatabaseSegmentServiceModule from '@FluxServer/segments/createDatabaseSegmentService'
 import createChapterSegmentProviderModule from '@FluxServer/segments/createChapterSegmentProvider'
 import createFingerprintSegmentProviderModule from '@FluxServer/segments/createFingerprintSegmentProvider'
 import createSidecarSubtitleServiceModule from '@FluxServer/subtitles/createSidecarSubtitleService'
+import createDatabaseProfileServiceModule from '@FluxServer/profiles/createDatabaseProfileService'
+import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
+import createEmbeddedSubtitleServiceModule from '@FluxServer/subtitles/createEmbeddedSubtitleService'
+import createLayeredSubtitleServiceModule from '@FluxServer/subtitles/createLayeredSubtitleService'
 import createPlaybackServiceModule from '@FluxServer/playback/createPlaybackService'
 import createJobQueueModule from '@FluxServer/jobs/createJobQueue'
 
 const { createApp } = AppModule
 const { createAuth } = AuthModule
 const { createDatabase } = DatabaseModule
-const { user, mediaItem, userProfile } = SchemaModule
+const { user, mediaItem, userProfile, viewerProfile } = SchemaModule
 const { readEnv } = EnvModule
 const { createDatabaseSettingsStore } = createDatabaseSettingsStoreModule
 const { createDatabaseLibraryService } = createDatabaseLibraryServiceModule
@@ -35,8 +41,13 @@ const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
 const { createTranscoderClient } = TranscoderClientModule
 const { createPlaybackService } = createPlaybackServiceModule
 const { createSidecarSubtitleService } = createSidecarSubtitleServiceModule
+const { createDatabaseProfileService } = createDatabaseProfileServiceModule
+const { ViewerProfileSchema } = ViewerProfileModule
+const { createEmbeddedSubtitleService } = createEmbeddedSubtitleServiceModule
+const { createLayeredSubtitleService } = createLayeredSubtitleServiceModule
 const { createImageCache } = createImageCacheModule
 const { createDatabaseSegmentService } = createDatabaseSegmentServiceModule
+const { createDatabaseWatchProgressService } = createDatabaseWatchProgressServiceModule
 const { detectLibrarySegments } = detectLibrarySegmentsModule
 
 /**
@@ -94,6 +105,8 @@ const countUsers = async (): Promise<number> => {
 const promoteToAdmin = async (email: string): Promise<void> => {
   await db.update(user).set({ role: 'admin' }).where(eq(user.email, email))
 }
+
+const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR, 'profiles'))
 
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL })
 
@@ -190,12 +203,30 @@ const findMediaPath = async (mediaId: string): Promise<string | null> => {
   return rows[0]?.path ?? null
 }
 
-const subtitleService = createSidecarSubtitleService({
-  media: { findPath: findMediaPath },
-  onProblem: (path, reason) => {
-    process.stderr.write(`subtitles: ${path}: ${reason}\n`)
-  },
-})
+const reportSubtitleProblem = (path: string, reason: string): void => {
+  process.stderr.write(`subtitles: ${path}: ${reason}\n`)
+}
+
+// Sidecars first: a track someone put beside the file themselves is a
+// deliberate choice, where an embedded one is whatever the release shipped.
+const subtitleService = createLayeredSubtitleService([
+  createSidecarSubtitleService({
+    media: { findPath: findMediaPath },
+    onProblem: reportSubtitleProblem,
+  }),
+  createEmbeddedSubtitleService({
+    media: {
+      find: async (mediaId) => {
+        const item = await libraryService.getMedia(mediaId)
+        const path = await findMediaPath(mediaId)
+
+        return item === null || path === null ? null : { path, streams: item.subtitleStreams }
+      },
+    },
+    transcoder,
+    onProblem: reportSubtitleProblem,
+  }),
+])
 
 const segmentService = createDatabaseSegmentService(db)
 
@@ -253,6 +284,65 @@ const app = createApp({
   playback: playbackService,
   subtitles: subtitleService,
   segments: segmentService,
+  progress: createDatabaseWatchProgressService(db),
+  profiles: profileService,
+  promoteProfile: async ({ profileId, email, password }) => {
+    const rows = await db
+      .select({
+        id: viewerProfile.id,
+        name: viewerProfile.name,
+        colour: viewerProfile.colour,
+        createdAt: viewerProfile.createdAt,
+      })
+      .from(viewerProfile)
+      .where(eq(viewerProfile.id, profileId))
+      .limit(1)
+
+    const found = rows[0]
+
+    if (found === undefined) {
+      return { kind: 'missing' }
+    }
+
+    // better-auth owns how a password becomes a credential, so the account is
+    // made through it rather than by writing rows. A duplicate address is the
+    // ordinary failure here and reads as a conflict rather than as a fault.
+    const created = await auth.api
+      .signUpEmail({ body: { email, password, name: found.name } })
+      .catch(() => null)
+
+    if (created === null) {
+      return { kind: 'taken' }
+    }
+
+    await profileService.moveTo(profileId, created.user.id)
+
+    return {
+      kind: 'promoted',
+      profile: ViewerProfileSchema.parse({
+        id: found.id,
+        name: found.name,
+        colour: found.colour,
+        createdAt: found.createdAt.toISOString(),
+      }),
+    }
+  },
+  listUsers: async () => {
+    const rows = await db
+      .select({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+      })
+      .from(user)
+
+    return rows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }))
+  },
+  capabilities: () => transcoder.capabilities(),
+  monitor: () => transcoder.readMonitor(),
+  monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
 })

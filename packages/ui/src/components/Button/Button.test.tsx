@@ -72,4 +72,32 @@ describe('Button', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(Button.displayName).toBe('Button')
   })
+
+  it('offers a glossy treatment for the controls that matter most', () => {
+    render(<Button variant="glossy">Play</Button>)
+
+    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('flux-gloss')
+  })
+
+  it('rounds fully when asked for a pill', () => {
+    render(<Button isPill>Play</Button>)
+
+    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('rounded-full')
+  })
+
+  it('is a rounded box otherwise', () => {
+    render(<Button>Save</Button>)
+
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('rounded-lg')
+  })
+
+  it('offers a size for a hero control', () => {
+    render(
+      <Button size="xl" variant="glossy">
+        Watch now
+      </Button>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Watch now' })).toHaveClass('h-14')
+  })
 })

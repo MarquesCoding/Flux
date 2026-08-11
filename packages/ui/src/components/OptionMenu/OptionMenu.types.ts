@@ -23,6 +23,15 @@ type OptionMenuProps = {
   label: string
   trigger: ReactNode
   groups: MenuGroup[]
+  /**
+   * A control that lives under the lists and does not close the menu.
+   *
+   * For the settings somebody adjusts by feel rather than picks once —
+   * nudging subtitles into time means pressing a button, watching, and
+   * pressing it again, which a menu that closes on every press makes
+   * impossible.
+   */
+  footer?: ReactNode
   isDisabled?: boolean
   className?: string
 }
