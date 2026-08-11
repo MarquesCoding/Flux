@@ -209,6 +209,24 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           media={playing}
           startSeconds={place.startSeconds}
           isImmersive
+          // The whole season in order, and nothing at all for a film: a list
+          // of one episode is a button that opens onto what is already
+          // playing.
+          episodes={
+            playing.seriesTitle === null || playing.seriesTitle === undefined
+              ? []
+              : [playing, ...findSiblings([...known.values()], playing)].sort(
+                  (left, right) => (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0),
+                )
+          }
+          onSelectEpisode={(episode) => {
+            go({ playing: episode.id, startSeconds: Math.floor(resumeFor(episode.id) ?? 0) })
+          }}
+          watchedFractionFor={(mediaId) => {
+            const found = progress.get(mediaId)
+
+            return found === undefined ? undefined : watchedFraction(found)
+          }}
           // Kept here as it happens rather than read back afterwards: the
           // server is told on a timer, and a card that waits for that round
           // trip shows the wrong place every time somebody closes a film.

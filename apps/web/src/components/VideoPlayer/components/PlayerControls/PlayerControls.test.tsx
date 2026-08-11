@@ -41,6 +41,7 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
     onSubtitleChange: vi.fn(),
     onAudioChange: vi.fn(),
     onQualityChange: vi.fn(),
+    playingId: 'media-1',
     captionStyle: DEFAULT_CAPTION_STYLE,
     onCaptionStyleChange: vi.fn(),
     onCaptionStyleReset: vi.fn(),
@@ -183,6 +184,7 @@ describe('PlayerControls', () => {
         onSkip={vi.fn()}
         onPlaybackRateChange={vi.fn()}
         onSubtitleChange={vi.fn()}
+        playingId="media-1"
         captionStyle={DEFAULT_CAPTION_STYLE}
         onCaptionStyleChange={vi.fn()}
         onCaptionStyleReset={vi.fn()}
