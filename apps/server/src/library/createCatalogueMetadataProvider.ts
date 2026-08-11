@@ -276,8 +276,24 @@ const createCatalogueMetadataProvider = ({
         ? (facts.episode?.seriesTitle ?? fromFilename.title)
         : fromFilename.title;
 
+      /**
+       * Turns a catalogue entry into metadata.
+       *
+       * `isTheRightSeries` says whether the series itself is beyond doubt —
+       * matched by name exactly, or reached by the id it was matched to
+       * before. When it is, an episode addressed by season and number needs no
+       * second opinion, and a title that disagrees with the filename means a
+       * translated release rather than a wrong match: `Affetto` and
+       * `To Affection` are the same episode, and refusing the whole entry over
+       * it loses the artwork, the overview and the id along with the name.
+       *
+       * When the series was only the best of several guesses, the episode
+       * title is the one piece of evidence available for whether the guess was
+       * right, and a disagreement is still grounds to refuse.
+       */
       const describeFrom = async (
         detail: z.infer<typeof DetailResponseSchema>,
+        isTheRightSeries = false,
       ): Promise<Metadata | null> => {
         const cast: CastMember[] =
           detail.credits?.cast.slice(0, CAST_LIMIT).map((member) => ({
@@ -306,6 +322,7 @@ const createCatalogueMetadataProvider = ({
 
         if (
           isEpisode &&
+          !isTheRightSeries &&
           knownEpisodeTitle !== null &&
           catalogueEpisodeName !== null &&
           !shareASignificantWord(knownEpisodeTitle, catalogueEpisodeName)
@@ -362,7 +379,7 @@ const createCatalogueMetadataProvider = ({
         const detail = DetailResponseSchema.safeParse(detailed);
 
         if (detail.success) {
-          return describeFrom(detail.data);
+          return describeFrom(detail.data, true);
         }
       }
 
@@ -411,7 +428,7 @@ const createCatalogueMetadataProvider = ({
         };
       }
 
-      return describeFrom(detail.data);
+      return describeFrom(detail.data, exact !== undefined);
     },
 
     describeSeries: async (externalId) => {
