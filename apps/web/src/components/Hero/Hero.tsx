@@ -144,7 +144,10 @@ const Hero = ({
         variants={staggerVariants}
         initial="hidden"
         animate="shown"
-        className="relative flex flex-col gap-3 px-5 pb-24 pt-24 sm:px-10 sm:pb-28"
+        // On the same line as the markers opposite it, so the foot of the
+        // picture reads as one row rather than as two things at different
+        // heights.
+        className="relative flex flex-col gap-3 px-5 pb-8 pt-24 sm:px-10"
       >
         {featured.year === null && rating === null ? null : (
           <motion.p
@@ -171,7 +174,10 @@ const Hero = ({
           // between three fixed sizes.
           className="max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text"
         >
-          {featured.title}
+          {/* The show rather than the episode. Somebody meeting a series on a
+              home page is being introduced to the series, and "Promise" is
+              not the name of anything they have heard of. */}
+          {featured.seriesTitle ?? featured.title}
         </motion.h1>
 
         <motion.div

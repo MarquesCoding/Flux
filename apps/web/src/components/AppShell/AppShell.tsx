@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { IconHome, IconSearch, IconSettings, IconUserCircle } from '@tabler/icons-react'
 import { motion, useReducedMotion } from 'motion/react'
 import DockModule from '@FluxUI/Dock'
@@ -27,6 +27,16 @@ const SECTION_LABELS: Record<ShellSection, string> = {
 }
 
 /**
+ * How far down the page counts as reading rather than arriving.
+ */
+const COMPACT_AFTER_PIXELS = 120
+
+/**
+ * How much movement counts as a decision rather than a nudge.
+ */
+const SCROLL_STEP_PIXELS = 8
+
+/**
  * The frame everything is drawn inside.
  *
  * There is no chrome down the side and none across the top: the library gets
@@ -47,6 +57,7 @@ const AppShell = ({
   isAdministrator = false,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion()
+  const [isCompact, setIsCompact] = useState(false)
 
   useEffect(() => {
     if (section === 'home') {
@@ -67,6 +78,33 @@ const AppShell = ({
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [section, onSectionChange])
+
+  // Reading takes the words off the dock; going somewhere brings them back.
+  // Scrolling down is somebody getting on with the page, and scrolling up is
+  // somebody looking for the way out of it — which is what the dock is.
+  useEffect(() => {
+    let last = window.scrollY
+
+    const onScroll = () => {
+      const at = window.scrollY
+      const isPast = at > COMPACT_AFTER_PIXELS
+      const isGoingDown = at > last
+
+      // A threshold rather than any movement at all: a page nudged by a
+      // pixel is not a change of mind, and a dock that reacted to one would
+      // flutter its way down the page.
+      if (Math.abs(at - last) > SCROLL_STEP_PIXELS || !isPast) {
+        setIsCompact(isPast && isGoingDown)
+        last = at
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+    }
+  }, [])
 
   // A new section starts at the top of itself. Arriving at search from halfway
   // down the library and landing halfway down the results is a page that has
@@ -109,6 +147,7 @@ const AppShell = ({
 
       <Dock
         items={items}
+        isCompact={isCompact}
         selectedId={section}
         onSelect={(id) => {
           const chosen = sections.find((candidate) => candidate === id)

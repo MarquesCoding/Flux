@@ -63,6 +63,15 @@ const LibraryBrowser = ({
   const [total, setTotal] = useState(0)
   const [appliedSearch, setAppliedSearch] = useState('')
   const [progress, setProgress] = useState(new Map<string, WatchProgress>())
+
+  /**
+   * Where this viewer left something, when it is worth coming back to.
+   */
+  const resumeFor = (mediaId: string): number | null => {
+    const found = progress.get(mediaId)
+
+    return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
+  }
   const [state, setState] = useState<BrowserState>('loading')
   const [isScanning, setIsScanning] = useState(false)
   const prefersReducedMotion = useReducedMotion()
@@ -244,11 +253,7 @@ const LibraryBrowser = ({
               onWatch(media, startSeconds)
             }
           }}
-          resumeFor={(mediaId) => {
-            const found = progress.get(mediaId)
-
-            return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
-          }}
+          resumeFor={resumeFor}
           {...(onFeatureChange === undefined ? {} : { onFeatureChange })}
         />
       ) : null}
@@ -343,6 +348,9 @@ const LibraryBrowser = ({
                             ),
                           }
                         : {})}
+                      {...(resumeFor(media.id) === null
+                        ? {}
+                        : { resumeSeconds: Math.floor(resumeFor(media.id) ?? 0) })}
                       onPlay={onPlay}
                       onInspect={onPlay}
                     />
