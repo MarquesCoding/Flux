@@ -101,11 +101,7 @@ const Slider = ({
             <BaseSlider.Indicator className={cn('rounded-full select-none', FILL_CLASSES[tone])} />
             <BaseSlider.Thumb
               aria-label={label}
-              className={cn(
-                'size-3.5 rounded-full shadow select-none',
-                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                FILL_CLASSES[tone],
-              )}
+              className={cn('size-3.5 rounded-full shadow select-none', FILL_CLASSES[tone])}
             />
           </BaseSlider.Track>
         </BaseSlider.Control>

@@ -16,6 +16,8 @@ use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
+use flux_transcoder::monitor::{Journal, Monitor};
+use flux_transcoder::queue::WorkQueue;
 use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
 use flux_transcoder::trickplay::TrickplayRegistry;
@@ -85,6 +87,8 @@ fn app() -> axum::Router {
             max_concurrent: 2,
         }),
         trickplay: TrickplayRegistry::default(),
+        monitor: Monitor::new(Journal::new()),
+        queue: WorkQueue::new(1),
         ffprobe: ffprobe(),
         media_roots: Vec::new(),
     })
@@ -176,6 +180,8 @@ async fn refuses_a_file_outside_the_media_roots() {
             max_concurrent: 2,
         }),
         trickplay: TrickplayRegistry::default(),
+        monitor: Monitor::new(Journal::new()),
+        queue: WorkQueue::new(1),
         ffprobe: ffprobe(),
         media_roots: vec![PathBuf::from("/nowhere")],
     });

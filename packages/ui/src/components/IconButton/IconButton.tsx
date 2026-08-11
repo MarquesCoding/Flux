@@ -33,7 +33,6 @@ const IconButton = ({
     className={cn(
       'inline-flex shrink-0 items-center justify-center rounded-full',
       'text-current transition-colors hover:bg-white/15',
-      'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
       'disabled:cursor-not-allowed disabled:opacity-50',
       isActive ? 'bg-white/20' : '',
       SIZE_CLASSES[size],

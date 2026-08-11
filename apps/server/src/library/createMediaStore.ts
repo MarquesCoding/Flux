@@ -34,8 +34,7 @@ const createMediaStore = (db: FluxDatabase): MediaStore => ({
       return
     }
 
-    const values = {
-      id: randomUUID(),
+    const changeable = {
       libraryId: row.libraryId,
       path: row.path,
       title: row.title,
@@ -52,7 +51,9 @@ const createMediaStore = (db: FluxDatabase): MediaStore => ({
       audioStreams: row.probe.audioStreams,
       subtitleStreams: row.probe.subtitleStreams,
       chapters: row.probe.chapters,
-      seriesTitle: row.episode.seriesTitle,
+      // What the catalogue calls the show wins over what the path suggested:
+      // one is a name, the other is a folder somebody happened to choose.
+      seriesTitle: row.metadata.seriesTitle ?? row.episode.seriesTitle,
       seasonNumber: row.episode.seasonNumber,
       episodeNumber: row.episode.episodeNumber,
       overview: row.metadata.overview ?? null,
@@ -63,42 +64,21 @@ const createMediaStore = (db: FluxDatabase): MediaStore => ({
       posterUrl: row.metadata.posterUrl ?? null,
       backdropUrl: row.metadata.backdropUrl ?? null,
       externalId: row.metadata.externalId ?? null,
+      accentColor: row.accentColor,
       updatedAt: new Date(),
     }
 
     await db
       .insert(mediaItem)
-      .values(values)
+      .values({ id: randomUUID(), ...changeable })
+      // Everything the scan just worked out, not a subset of it. This clause
+      // was written when a row was only what a probe said, and it never
+      // learned about metadata — so an item that already existed could never
+      // gain a poster, a synopsis or a cast, and a catalogue key added after
+      // the first scan appeared to do nothing at all.
       .onConflictDoUpdate({
         target: [mediaItem.libraryId, mediaItem.path],
-        set: {
-          title: values.title,
-          year: values.year,
-          sizeBytes: values.sizeBytes,
-          modifiedAtMs: values.modifiedAtMs,
-          container: values.container,
-          durationSeconds: values.durationSeconds,
-          bitrateKbps: values.bitrateKbps,
-          videoCodec: values.videoCodec,
-          videoRange: values.videoRange,
-          width: values.width,
-          height: values.height,
-          audioStreams: values.audioStreams,
-          subtitleStreams: values.subtitleStreams,
-          chapters: values.chapters,
-          seriesTitle: values.seriesTitle,
-          seasonNumber: values.seasonNumber,
-          episodeNumber: values.episodeNumber,
-          overview: values.overview,
-          tagline: values.tagline,
-          genres: values.genres,
-          castMembers: values.castMembers,
-          rating: values.rating,
-          posterUrl: values.posterUrl,
-          backdropUrl: values.backdropUrl,
-          externalId: values.externalId,
-          updatedAt: values.updatedAt,
-        },
+        set: changeable,
       })
   },
 

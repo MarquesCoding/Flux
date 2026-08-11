@@ -53,6 +53,14 @@ const SubtitleStreamSchema = z.object({
    * its tracks however whoever made it felt like.
    */
   language: z.string().nullish(),
+  /**
+   * What the container calls this track.
+   *
+   * Often the only thing telling two tracks of one language apart, and often
+   * better than anything Flux could name them: a release that labels a track
+   * "Signs & Songs" has already said what it is.
+   */
+  title: z.string().nullish(),
   isForced: z.boolean(),
 })
 

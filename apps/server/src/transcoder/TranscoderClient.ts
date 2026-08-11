@@ -52,6 +52,8 @@ const ProbeSubtitleSchema = z.object({
   index: z.number().int(),
   format: z.string(),
   language: z.string().nullable(),
+  title: z.string().nullable(),
+  isDefault: z.boolean(),
   isForced: z.boolean(),
   isImageBased: z.boolean(),
 })
@@ -99,10 +101,25 @@ const CapabilitiesSchema = z.object({
   hardwareAccels: z.array(z.string()),
 })
 
+const ColourSchema = z.object({
+  red: z.number().int().min(0).max(255),
+  green: z.number().int().min(0).max(255),
+  blue: z.number().int().min(0).max(255),
+  hex: z.string(),
+})
+
 const FingerprintSchema = z.object({
   framesPerSecond: z.number().positive(),
   startSeconds: z.number().nonnegative(),
   hashes: z.array(z.number()),
+})
+
+const SubtitleTrackSchema = z.object({ content: z.string() })
+
+const PreviewClipSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  isReady: z.boolean(),
 })
 
 const TrickplayIndexSchema = z.object({
@@ -114,10 +131,12 @@ const TrickplayIndexSchema = z.object({
   rows: z.number(),
   sheets: z.array(z.string()),
   index: z.string(),
+  isReady: z.boolean(),
 })
 
 type MediaProbe = z.infer<typeof MediaProbeSchema>
 type Fingerprint = z.infer<typeof FingerprintSchema>
+type Colour = z.infer<typeof ColourSchema>
 
 type FingerprintRequest = {
   inputPath: string
@@ -132,6 +151,13 @@ type TrickplayRequest = {
   tileWidth: number
   columns: number
   rows: number
+  /**
+   * Whether the caller will wait for rendering to finish.
+   *
+   * An import waits. A player does not: a feature length film takes minutes,
+   * and seek previews are not worth delaying the film for.
+   */
+  wait?: boolean
 }
 type SessionResponse = z.infer<typeof SessionResponseSchema>
 type TranscoderCapabilities = z.infer<typeof CapabilitiesSchema>
@@ -179,6 +205,49 @@ type Transcoder = {
    * media.
    */
   fingerprint: (request: FingerprintRequest) => Promise<Fingerprint>
+  /**
+   * Takes the colour a file feels like, for lighting a page with.
+   */
+  sampleColour: (request: { inputPath: string; durationSeconds?: number }) => Promise<Colour>
+  /**
+   * Reads one subtitle track out of a container as WebVTT.
+   */
+  readSubtitle: (request: { inputPath: string; streamIndex: number }) => Promise<string>
+  /**
+   * Reads what the media service is doing right now.
+   *
+   * Left as parsed JSON rather than given a schema of its own: this is a
+   * live reading for a person to look at, not something Flux makes decisions
+   * from, and a monitoring endpoint that stops working because it grew a
+   * field is worse than one that shows an unexpected one.
+   */
+  readMonitor: () => Promise<JsonValue>
+  /**
+   * Opens the stream of readings, for a page that wants to watch.
+   *
+   * Null when the media service cannot be reached, so a monitoring page can
+   * say so rather than hanging on a connection that will never open.
+   */
+  openMonitorStream: () => Promise<ReadableStream<Uint8Array> | null>
+  /**
+   * Takes one frame of a file as a JPEG.
+   */
+  readFrame: (request: {
+    inputPath: string
+    atSeconds: number
+    width: number
+  }) => Promise<ArrayBuffer>
+  /**
+   * Makes, or finds, the short clip a library page plays.
+   *
+   * Made once when a file is imported and served as a file afterwards, so a
+   * page full of previews costs nothing running.
+   */
+  requestPreview: (request: {
+    inputPath: string
+    wait?: boolean
+  }) => Promise<{ id: string; url: string; isReady: boolean }>
+  readPreviewFile: (id: string, name: string) => Promise<TranscoderFile | null>
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>
   stopSession: (id: string) => Promise<boolean>
@@ -255,6 +324,23 @@ const createSocketFetch = (socketPath: string): FetchLike => {
   return async (url, init) => narrow(await undiciFetch(url, { ...init, dispatcher: agent }))
 }
 
+/**
+ * Opens a response whose body is read as it arrives.
+ *
+ * Separate from the narrowed fetch every other call uses, because that one
+ * reads a whole body before returning it — which is right for a probe and
+ * wrong for a stream that never ends.
+ */
+const createStreamFetch =
+  (socketPath: string | null) =>
+  async (url: string): Promise<{ ok: boolean; body: ReadableStream<Uint8Array> | null }> => {
+    if (socketPath === null) {
+      return fetch(url)
+    }
+
+    return undiciFetch(url, { dispatcher: new Agent({ connect: { socketPath } }) })
+  }
+
 class TranscoderError extends Error {
   constructor(
     message: string,
@@ -284,6 +370,8 @@ const createTranscoderClient = ({
 
     return response
   }
+
+  const streamFrom = createStreamFetch(socketPath)
 
   const postJson = (path: string, body: object): Promise<HttpResponse> =>
     call(path, {
@@ -337,8 +425,40 @@ const createTranscoderClient = ({
       }
     },
 
+    sampleColour: async (request) =>
+      ColourSchema.parse(await (await postJson('/colour', request)).json()),
+
     fingerprint: async (request) =>
       FingerprintSchema.parse(await (await postJson('/fingerprint', request)).json()),
+
+    readFrame: async (request) => (await postJson('/frame', request)).arrayBuffer(),
+
+    requestPreview: async (request) =>
+      PreviewClipSchema.parse(await (await postJson('/previews', request)).json()),
+
+    readPreviewFile: async (id, name) => {
+      const response = await call2(
+        `${origin}/previews/${encodeURIComponent(id)}/${encodeURIComponent(name)}`,
+      )
+
+      return response.ok
+        ? {
+            body: await response.arrayBuffer(),
+            contentType: response.headers.get('content-type') ?? 'video/mp4',
+          }
+        : null
+    },
+
+    readMonitor: async () => (await call('/monitor')).json(),
+
+    openMonitorStream: async () => {
+      const response = await streamFrom(`${origin}/monitor/stream`).catch(() => null)
+
+      return response === null || !response.ok ? null : response.body
+    },
+
+    readSubtitle: async (request) =>
+      SubtitleTrackSchema.parse(await (await postJson('/subtitles', request)).json()).content,
 
     requestTrickplay: async (request) =>
       TrickplayIndexSchema.parse(await (await postJson('/trickplay', request)).json()),
@@ -380,6 +500,7 @@ export type {
   TrickplayRequest,
   Fingerprint,
   FingerprintRequest,
+  Colour,
   TranscoderFile,
   TranscoderRangedFile,
 }
