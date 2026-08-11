@@ -133,6 +133,37 @@ pub struct SessionSpec {
     pub subtitles: SubtitleAction,
 }
 
+impl SessionSpec {
+    /// What this session is being asked to do, in one line for a log.
+    ///
+    /// A transcode that fails is read about after the fact, and "which file,
+    /// to what, on what encoder" is the first question anybody asks.
+    #[must_use]
+    pub fn summary(&self) -> String {
+        let video = match &self.video {
+            VideoAction::Copy => "video=copy".to_owned(),
+            VideoAction::Encode { encoder, .. } => format!("video={encoder}"),
+        };
+
+        let audio = match &self.audio {
+            AudioAction::Copy => "audio=copy".to_owned(),
+            AudioAction::Encode {
+                encoder, channels, ..
+            } => format!("audio={encoder}/{channels}ch"),
+        };
+
+        let subtitles = match &self.subtitles {
+            SubtitleAction::None => "subs=none",
+            SubtitleAction::BurnIn { .. } => "subs=burnIn",
+        };
+
+        format!(
+            "{video} {audio} {subtitles} accel={:?} from={}s",
+            self.hardware_accel, self.start_seconds
+        )
+    }
+}
+
 impl SubtitleAction {
     #[must_use]
     fn none() -> Self {
