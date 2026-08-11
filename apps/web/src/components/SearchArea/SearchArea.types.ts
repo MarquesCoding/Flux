@@ -25,6 +25,8 @@ type SearchAreaProps = {
   onItemsLoaded?: (items: MediaSummary[]) => void
   watchedFractionFor?: (mediaId: string) => number | undefined
   resumeFor?: (mediaId: string) => number | null
+  isKept?: (mediaId: string) => boolean
+  onToggleKept?: (media: MediaSummary) => void
 }
 
 export type { SearchAreaProps, SearchKind }

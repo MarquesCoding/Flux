@@ -20,6 +20,14 @@ type RailCardProps = {
    * way past.
    */
   hoverDelayMilliseconds?: number
+  /**
+   * Whether this viewer has kept this item.
+   *
+   * Left out where there is nobody to keep it for — a card drawn in a test or
+   * a preview — and the heart is not drawn at all.
+   */
+  isKept?: boolean
+  onToggleKept?: (media: MediaSummary) => void
 }
 
 export type { RailCardProps }

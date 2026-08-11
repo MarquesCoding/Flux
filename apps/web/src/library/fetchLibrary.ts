@@ -13,6 +13,12 @@ type ListItemsOptions = {
    */
   kind?: 'films' | 'shows'
   genre?: string
+  /**
+   * Particular items, named outright — for a page built from a list kept
+   * elsewhere, such as what this viewer has favourited.
+   */
+  ids?: string[]
+  order?: 'title' | 'newest'
   limit?: number
   offset?: number
 }
@@ -38,7 +44,7 @@ const fetchLibraries = async (): Promise<Library[]> => {
  */
 const fetchLibraryItems = async (
   libraryId: string,
-  { search, kind, genre, limit = 60, offset = 0 }: ListItemsOptions = {},
+  { search, kind, genre, ids, order, limit = 60, offset = 0 }: ListItemsOptions = {},
 ): Promise<MediaPage> => {
   const query = new URLSearchParams({ limit: String(limit), offset: String(offset) })
 
@@ -55,6 +61,14 @@ const fetchLibraryItems = async (
 
   if (genre !== undefined && genre !== '') {
     query.set('genre', genre)
+  }
+
+  if (ids !== undefined) {
+    query.set('ids', ids.join(','))
+  }
+
+  if (order !== undefined) {
+    query.set('order', order)
   }
 
   const response = await fetch(`/api/libraries/${libraryId}/items?${query.toString()}`, {

@@ -65,6 +65,7 @@ const createMemoryLibraryService = (
         (item) =>
           options.genre === undefined || (item.metadata.genres ?? []).includes(options.genre),
       )
+      .filter((item) => options.ids === undefined || options.ids.includes(item.id))
 
     const items = matching.slice(options.offset, options.offset + options.limit).map((item) => ({
       id: item.id,

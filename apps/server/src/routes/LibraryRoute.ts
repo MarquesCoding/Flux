@@ -67,6 +67,13 @@ const listItemsRoute = createRoute({
        */
       kind: z.enum(['films', 'shows']).optional(),
       genre: z.string().optional(),
+      /**
+       * Particular items, named outright and separated by commas. For a page
+       * built from a list kept elsewhere, such as what a viewer has
+       * favourited.
+       */
+      ids: z.string().optional(),
+      order: z.enum(['title', 'newest']).optional(),
       limit: z.coerce.number().int().positive().max(200).optional(),
       offset: z.coerce.number().int().nonnegative().optional(),
     }),

@@ -5,8 +5,7 @@ import ButtonModule from '@FluxUI/Button'
 import SpinnerModule from '@FluxUI/Spinner'
 import revealModule from '@FluxUI/animations/reveal'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import describeMediaModule from '@FluxWeb/components/LibraryBrowser/describeMedia'
-import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
+import MediaGridModule from '@FluxWeb/components/MediaGrid/MediaGrid'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { SearchAreaProps, SearchKind } from './SearchArea.types'
 
@@ -14,8 +13,7 @@ const { Button } = ButtonModule
 const { Spinner } = SpinnerModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
-const { describeMedia } = describeMediaModule
-const { RailCard } = RailCardModule
+const { MediaGrid } = MediaGridModule
 
 /**
  * How long to wait after a keystroke before asking the server.
@@ -58,6 +56,8 @@ const SearchArea = ({
   onItemsLoaded,
   watchedFractionFor,
   resumeFor,
+  isKept,
+  onToggleKept,
 }: SearchAreaProps) => {
   const [libraryIds, setLibraryIds] = useState<string[]>([])
   const [items, setItems] = useState<MediaSummary[]>([])
@@ -255,24 +255,15 @@ const SearchArea = ({
               : 'This library has nothing in it yet. Scanning one from the home page is where things come from.'}
           </p>
         ) : (
-          <ul className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {items.map((media) => (
-              <li key={media.id}>
-                <RailCard
-                  media={media}
-                  subtitle={describeMedia(media)}
-                  {...(watchedFractionFor?.(media.id) === undefined
-                    ? {}
-                    : { watchedFraction: watchedFractionFor(media.id) ?? 0 })}
-                  {...(resumeFor?.(media.id) === null || resumeFor === undefined
-                    ? {}
-                    : { resumeSeconds: Math.floor(resumeFor(media.id) ?? 0) })}
-                  onPlay={onPlay}
-                  onInspect={onInspect}
-                />
-              </li>
-            ))}
-          </ul>
+          <MediaGrid
+            items={items}
+            onPlay={onPlay}
+            onInspect={onInspect}
+            {...(watchedFractionFor === undefined ? {} : { watchedFractionFor })}
+            {...(resumeFor === undefined ? {} : { resumeFor })}
+            {...(isKept === undefined ? {} : { isKept })}
+            {...(onToggleKept === undefined ? {} : { onToggleKept })}
+          />
         )}
       </motion.section>
     </motion.div>

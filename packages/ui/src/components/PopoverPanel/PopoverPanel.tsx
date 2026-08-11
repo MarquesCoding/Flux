@@ -19,6 +19,7 @@ const PopoverPanel = ({
   heading,
   isOpen,
   onOpenChange,
+  side = 'top',
   isDisabled = false,
   className,
 }: PopoverPanelProps) => (
@@ -41,7 +42,7 @@ const PopoverPanel = ({
 
     <Popover.Portal>
       <Popover.Positioner
-        side="top"
+        side={side}
         sideOffset={12}
         align="end"
         collisionPadding={12}

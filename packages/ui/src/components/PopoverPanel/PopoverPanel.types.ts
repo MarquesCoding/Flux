@@ -19,6 +19,14 @@ type PopoverPanelProps = {
    */
   isOpen?: boolean
   onOpenChange?: (isOpen: boolean) => void
+  /**
+   * Which way the panel hangs.
+   *
+   * Above by default, because the first of these belonged to a bar along the
+   * bottom of a player. A control in a bar along the top of a page needs the
+   * other one.
+   */
+  side?: 'top' | 'bottom'
   isDisabled?: boolean
   className?: string
 }

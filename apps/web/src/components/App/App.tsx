@@ -4,6 +4,8 @@ import { motion, useReducedMotion } from 'motion/react'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
 import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
 import SearchAreaModule from '@FluxWeb/components/SearchArea/SearchArea'
+import BrowseAreaModule from '@FluxWeb/components/BrowseArea/BrowseArea'
+import useFavouritesModule from '@FluxWeb/library/useFavourites'
 import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
 import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
 import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
@@ -28,6 +30,8 @@ import type { AppProps } from './App.types'
 const { SetupWizard } = SetupWizardModule
 const { LibraryBrowser } = LibraryBrowserModule
 const { SearchArea } = SearchAreaModule
+const { BrowseArea } = BrowseAreaModule
+const { useFavourites } = useFavouritesModule
 const { VideoPlayer } = VideoPlayerModule
 const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
@@ -68,6 +72,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   // What the page is lit by, read from whatever is on screen rather than
   // decided when the file was imported.
   const [moodLights, setMoodLights] = useState<MoodLight[]>([])
+  const favourites = useFavourites()
   // Everything the library has shown, so an address naming an item can be
   // turned back into one without asking the server a second time.
   const [known, setKnown] = useState(new Map<string, MediaSummary>())
@@ -322,6 +327,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         {...(inspecting !== null && resumeFor(inspecting.id) !== null
           ? { resumeSeconds: resumeFor(inspecting.id) ?? 0 }
           : {})}
+        isKept={inspecting !== null && favourites.isKept(inspecting.id)}
+        onToggleKept={(media) => {
+          favourites.toggle(media.id)
+        }}
         onClose={() => {
           go({ inspecting: null })
         }}
@@ -346,6 +355,31 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             })
           }}
         />
+      ) : section === 'shows' ||
+        section === 'films' ||
+        section === 'new' ||
+        section === 'favourites' ? (
+        <BrowseArea
+          kind={section}
+          favourites={[...favourites.kept]}
+          onPlay={(media, startSeconds) => {
+            go({ playing: media.id, startSeconds: Math.floor(startSeconds) })
+          }}
+          onInspect={(media) => {
+            go({ inspecting: media.id })
+          }}
+          onItemsLoaded={rememberItems}
+          watchedFractionFor={(mediaId) => {
+            const found = progress.get(mediaId)
+
+            return found === undefined ? undefined : watchedFraction(found)
+          }}
+          resumeFor={resumeFor}
+          isKept={favourites.isKept}
+          onToggleKept={(media) => {
+            favourites.toggle(media.id)
+          }}
+        />
       ) : section === 'search' ? (
         <SearchArea
           search={place.search}
@@ -367,6 +401,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             return found === undefined ? undefined : watchedFraction(found)
           }}
           resumeFor={resumeFor}
+          isKept={favourites.isKept}
+          onToggleKept={(media) => {
+            favourites.toggle(media.id)
+          }}
         />
       ) : (
         <LibraryBrowser
@@ -383,6 +421,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           hasHero
           onFeatureChange={setFeatured}
           onPalette={setMoodLights}
+          isKept={favourites.isKept}
+          onToggleKept={(media) => {
+            favourites.toggle(media.id)
+          }}
         />
       )}
     </AppShell>

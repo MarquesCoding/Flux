@@ -251,12 +251,16 @@ const createApp = ({
 
   app.openapi(listItemsRoute, async (context) => {
     const { id } = context.req.valid('param')
-    const { search, kind, genre, limit, offset } = context.req.valid('query')
+    const { search, kind, genre, ids, order, limit, offset } = context.req.valid('query')
 
     const page = await library.listItems(id, {
       ...(search === undefined ? {} : { search }),
       ...(kind === undefined ? {} : { kind }),
       ...(genre === undefined ? {} : { genre }),
+      // Split here rather than in the schema: a query string carries one
+      // value, and the shape the library wants is a list.
+      ...(ids === undefined ? {} : { ids: ids.split(',').filter((named) => named.trim() !== '') }),
+      ...(order === undefined ? {} : { order }),
       limit: limit ?? DEFAULT_LIMIT,
       offset: offset ?? 0,
     })

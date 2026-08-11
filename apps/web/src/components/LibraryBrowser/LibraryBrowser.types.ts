@@ -39,6 +39,11 @@ type LibraryBrowserProps = {
    * than every other part of the application asking the server again.
    */
   onItemsLoaded?: (items: MediaSummary[]) => void
+  /**
+   * Whether this viewer has kept each item, and how they say otherwise.
+   */
+  isKept?: (mediaId: string) => boolean
+  onToggleKept?: (media: MediaSummary) => void
 }
 
 type BrowserState = 'loading' | 'ready' | 'unreachable'

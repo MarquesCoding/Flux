@@ -8,10 +8,17 @@ import {
   useTransform,
   useReducedMotion,
 } from 'motion/react'
-import { IconInfoCircle, IconPlayerPlayFilled, IconStar } from '@tabler/icons-react'
+import {
+  IconHeart,
+  IconHeartFilled,
+  IconInfoCircle,
+  IconPlayerPlayFilled,
+  IconStar,
+} from '@tabler/icons-react'
 import MediaCardModule from '@FluxUI/MediaCard'
 import BadgeModule from '@FluxUI/Badge'
 import ButtonModule from '@FluxUI/Button'
+import IconButtonModule from '@FluxUI/IconButton'
 import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
@@ -22,6 +29,7 @@ import type { RailCardProps } from './RailCard.types'
 const { MediaCard } = MediaCardModule
 const { Badge } = BadgeModule
 const { Button } = ButtonModule
+const { IconButton } = IconButtonModule
 const { liquidSpring } = revealModule
 const { formatDuration } = formatDurationModule
 const { fetchMediaDetail } = fetchLibraryModule
@@ -132,6 +140,8 @@ const RailCard = ({
   onInspect,
   resumeSeconds,
   hoverDelayMilliseconds = HOVER_DELAY_MILLISECONDS,
+  isKept = false,
+  onToggleKept,
 }: RailCardProps) => {
   // Read only once a card has actually been opened. A row of twenty cards
   // asking the server about themselves on the way past would be twenty
@@ -423,6 +433,26 @@ const RailCard = ({
                     <IconInfoCircle size={16} aria-hidden />
                     More info
                   </Button>
+
+                  {/* Kept or not, in the place a viewer has already stopped
+                      to read. A heart on every poster in a row would be a row
+                      of hearts; here it is one decision about one thing. */}
+                  {onToggleKept === undefined ? null : (
+                    <IconButton
+                      label={isKept ? `Stop keeping ${media.title}` : `Keep ${media.title}`}
+                      isActive={isKept}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onToggleKept(media)
+                      }}
+                    >
+                      {isKept ? (
+                        <IconHeartFilled size={18} aria-hidden />
+                      ) : (
+                        <IconHeart size={18} aria-hidden />
+                      )}
+                    </IconButton>
+                  )}
                 </span>
               </button>
             </motion.div>

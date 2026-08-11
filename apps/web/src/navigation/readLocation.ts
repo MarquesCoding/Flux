@@ -7,7 +7,16 @@ import { z } from 'zod'
  * or kept from an older version cannot put the application into a section it
  * does not have.
  */
-const SECTIONS = ['home', 'search', 'account', 'admin'] as const
+const SECTIONS = [
+  'home',
+  'shows',
+  'films',
+  'new',
+  'favourites',
+  'search',
+  'account',
+  'admin',
+] as const
 
 const SectionSchema = z.enum(SECTIONS)
 

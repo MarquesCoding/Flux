@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 import { z } from 'zod'
-import { and, asc, eq, ilike, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import SchemaModule from '@FluxServer/db/Schema'
 import LibraryContract from '@FluxContracts/schemas/Library'
 import JsonValueModule from '@FluxContracts/schemas/JsonValue'
@@ -156,6 +156,13 @@ const createDatabaseLibraryService = ({
         ...(options.genre === undefined || options.genre === ''
           ? []
           : [sql`${mediaItem.genres} @> ${JSON.stringify([options.genre])}::jsonb`]),
+        // An empty list of names is a question with no answer, and `in ()` is
+        // not something a database will take kindly to being asked.
+        ...(options.ids === undefined
+          ? []
+          : options.ids.length === 0
+            ? [sql`false`]
+            : [inArray(mediaItem.id, options.ids)]),
       ]
 
       const filters = and(...asked)
@@ -187,7 +194,7 @@ const createDatabaseLibraryService = ({
         })
         .from(mediaItem)
         .where(filters)
-        .orderBy(asc(mediaItem.title))
+        .orderBy(options.order === 'newest' ? desc(mediaItem.addedAt) : asc(mediaItem.title))
         .limit(options.limit)
         .offset(options.offset)
 

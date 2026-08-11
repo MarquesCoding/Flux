@@ -53,6 +53,8 @@ const LibraryBrowser = ({
   onFeatureChange,
   onPalette,
   onItemsLoaded,
+  isKept,
+  onToggleKept,
   onPlay,
   onWatch,
 }: LibraryBrowserProps) => {
@@ -338,6 +340,8 @@ const LibraryBrowser = ({
                         onWatch(media, startSeconds)
                       }}
                       onInspect={onPlay}
+                      {...(isKept === undefined ? {} : { isKept: isKept(media.id) })}
+                      {...(onToggleKept === undefined ? {} : { onToggleKept })}
                     />
                   </li>
                 ))}

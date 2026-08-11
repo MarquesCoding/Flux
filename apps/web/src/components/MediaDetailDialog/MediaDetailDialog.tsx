@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import {
+  IconHeart,
+  IconHeartFilled,
   IconInfoCircle,
   IconPlayerPlayFilled,
   IconRotateClockwise,
@@ -62,6 +64,8 @@ const MediaDetailDialog = ({
   watchedFractionFor,
   siblings = [],
   onSelectSibling,
+  isKept = false,
+  onToggleKept,
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -252,6 +256,27 @@ const MediaDetailDialog = ({
             >
               <IconRotateClockwise size={18} aria-hidden />
               Start again
+            </Button>
+          )}
+
+          {/* Kept, on the page about the thing. This is where somebody decides
+              what they think of an item, which is the moment they want to say
+              so. */}
+          {onToggleKept === undefined ? null : (
+            <Button
+              variant={isKept ? 'glossy' : 'secondary'}
+              size="lg"
+              isPill
+              onClick={() => {
+                onToggleKept(shown)
+              }}
+            >
+              {isKept ? (
+                <IconHeartFilled size={18} aria-hidden />
+              ) : (
+                <IconHeart size={18} aria-hidden />
+              )}
+              {isKept ? 'Kept' : 'Keep'}
             </Button>
           )}
         </div>
