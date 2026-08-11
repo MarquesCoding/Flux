@@ -20,8 +20,12 @@ type DetectLibrarySegmentsOptions = {
   listCandidates: (libraryId: string) => Promise<GroupedCandidate[]>
   onProblem?: (provider: string, reason: string) => void
   /**
-   * Told after every season, how many of the library's seasons have been
+   * Told after every season, how many of the library's episodes have been
    * looked at.
+   *
+   * Counted in episodes rather than seasons: a library's few seasons say
+   * nothing about how much listening is left, and a season of one and a
+   * season of twenty should not look like equal steps.
    */
   onProgress?: (processed: number, total: number) => void
 }
@@ -65,7 +69,7 @@ const detectLibrarySegments = async ({
   onProgress,
 }: DetectLibrarySegmentsOptions): Promise<number> => {
   const groups = groupBySeason(await listCandidates(libraryId))
-  const total = groups.size
+  const total = [...groups.values()].reduce((sum, group) => sum + group.length, 0)
   let processed = 0
   let marked = 0
 
@@ -79,7 +83,7 @@ const detectLibrarySegments = async ({
       marked += 1
     }
 
-    processed += 1
+    processed += group.length
     onProgress?.(processed, total)
   }
 
