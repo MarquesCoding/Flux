@@ -334,6 +334,19 @@ const VideoPlayer = ({
       element?.removeEventListener('enterpictureinpicture', onEnter)
       element?.removeEventListener('leavepictureinpicture', onLeave)
       document.removeEventListener('leavepictureinpicture', onLeave)
+
+      // Leaving the player takes the floating window with it. The copy that
+      // floats is an element on the document rather than in this tree, so
+      // nothing else would ever remove it: pressing escape closed the page
+      // and left the film playing in the corner of the screen.
+      poppedRef.current?.stop()
+      poppedRef.current = null
+
+      if (document.pictureInPictureEnabled === true && document.pictureInPictureElement !== null) {
+        void document.exitPictureInPicture().catch(() => {
+          // Already gone, which is the outcome that was wanted.
+        })
+      }
     }
   }, [])
 
