@@ -91,7 +91,18 @@ type ScanLibraryOptions = {
     rows: number
   }
   onProblem?: (path: string, reason: string) => void
+  /**
+   * Told after every file, changed or not, how far the current stage is —
+   * probing files, then generating trickplay and previews for what was
+   * imported. Each stage counts from zero rather than continuing the last
+   * one's total, since they are different work with different sizes.
+   */
+  onProgress?: (phase: ScanPhase, processed: number, total: number) => void
 }
+
+const SCAN_PHASES = ['probing', 'previews'] as const
+
+type ScanPhase = (typeof SCAN_PHASES)[number]
 
 /**
  * Decides which files need probing.
@@ -139,6 +150,7 @@ const scanLibrary = async ({
   force = false,
   trickplay,
   onProblem,
+  onProgress,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path))
   const stored = await store.listStored(libraryId)
@@ -152,6 +164,9 @@ const scanLibrary = async ({
   let added = 0
   let updated = 0
   let failed = 0
+  let probed = 0
+
+  onProgress?.('probing', probed, changed.length)
 
   for (const file of changed) {
     try {
@@ -212,6 +227,9 @@ const scanLibrary = async ({
     } catch (error) {
       failed += 1
       onProblem?.(file.path, error instanceof Error ? error.message : 'Probe failed.')
+    } finally {
+      probed += 1
+      onProgress?.('probing', probed, changed.length)
     }
   }
 
@@ -219,6 +237,10 @@ const scanLibrary = async ({
   // it is known, and previews are worth waiting for only in the sense that
   // they arrive without anybody sitting in front of a spinner.
   if (trickplay !== undefined) {
+    let previewed = 0
+
+    onProgress?.('previews', previewed, imported.length)
+
     for (const path of imported) {
       await transcoder
         .requestTrickplay({ inputPath: path, ...trickplay, wait: true })
@@ -233,6 +255,9 @@ const scanLibrary = async ({
       await transcoder.requestPreview({ inputPath: path, wait: true }).catch((error: Error) => {
         onProblem?.(path, error.message)
       })
+
+      previewed += 1
+      onProgress?.('previews', previewed, imported.length)
     }
   }
 
@@ -243,6 +268,6 @@ const scanLibrary = async ({
   return { added, updated, removed, failed }
 }
 
-export type { MediaFileSystem, MediaRow, MediaStore, ScannedFile, StoredItem }
+export type { MediaFileSystem, MediaRow, MediaStore, ScanPhase, ScannedFile, StoredItem }
 
-export default { scanLibrary, selectChanged }
+export default { scanLibrary, selectChanged, SCAN_PHASES }

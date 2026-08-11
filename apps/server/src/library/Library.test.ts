@@ -252,6 +252,31 @@ describe('library routes', () => {
     expect(response.status).toBe(404)
   })
 
+  it('clears a library and queues a scan to repopulate it', async () => {
+    const { app, library } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/reset`, {
+      method: 'POST',
+    })
+
+    expect(response.status).toBe(202)
+    expect(await response.json()).toMatchObject({ state: 'queued' })
+
+    const items = await library.listItems(LIBRARY_ID, { limit: 60, offset: 0 })
+    expect(items?.items).toHaveLength(0)
+  })
+
+  it('reports resetting an unknown library', async () => {
+    const { app } = build()
+
+    const response = await app.request(
+      `${BASE}/api/libraries/00000000-0000-4000-8000-000000000000/reset`,
+      { method: 'POST' },
+    )
+
+    expect(response.status).toBe(404)
+  })
+
   it('adds a library', async () => {
     const { app } = build()
 

@@ -1,15 +1,36 @@
 import { z } from 'zod'
 import LibraryContract from '@FluxContracts/schemas/Library'
-import type { Library, MediaDetail, MediaPage } from '@FluxContracts/schemas/Library'
+import type { Library, LibraryKind, MediaDetail, MediaPage } from '@FluxContracts/schemas/Library'
 
 const { LibrarySchema, MediaPageSchema, MediaDetailSchema } = LibraryContract
 
 const LibraryListSchema = z.array(LibrarySchema)
+const ErrorBodySchema = z.object({ error: z.string() })
+
+const ScanStateSchema = z.enum(['queued', 'running', 'completed', 'failed', 'unknown'])
+const ScanJobSchema = z.object({ jobId: z.string(), state: ScanStateSchema })
+const ScanProgressSchema = z.object({
+  jobId: z.string(),
+  state: ScanStateSchema,
+  phase: z.string().nullable(),
+  processed: z.number().int().nonnegative().nullable(),
+  total: z.number().int().nonnegative().nullable(),
+})
+
+type ScanState = z.infer<typeof ScanStateSchema>
+type ScanJob = z.infer<typeof ScanJobSchema>
+type ScanProgress = z.infer<typeof ScanProgressSchema>
 
 type ListItemsOptions = {
   search?: string
   limit?: number
   offset?: number
+}
+
+type CreateLibraryInput = {
+  name: string
+  kind: LibraryKind
+  path: string
 }
 
 /**
@@ -23,6 +44,32 @@ const fetchLibraries = async (): Promise<Library[]> => {
   }
 
   return LibraryListSchema.parse(await response.json())
+}
+
+/**
+ * Adds a library root.
+ *
+ * Surfaces the server's own message on failure — it is the side that checked
+ * the path is a readable directory — rather than a generic status code.
+ */
+const createLibrary = async (input: CreateLibraryInput): Promise<Library> => {
+  const response = await fetch('/api/libraries', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    const parsed = ErrorBodySchema.safeParse(await response.json().catch(() => null))
+
+    throw new Error(
+      parsed.success
+        ? parsed.data.error
+        : `Library request failed with status ${response.status.toString()}`,
+    )
+  }
+
+  return LibrarySchema.parse(await response.json())
 }
 
 /**
@@ -79,18 +126,68 @@ const fetchMediaDetail = async (mediaId: string): Promise<MediaDetail | null> =>
  * Asks the server to queue a rescan.
  *
  * Answers as soon as the scan is queued, not when it finishes: a real library
- * takes minutes to walk and probe.
+ * takes minutes to walk and probe. Returns the job so a caller that wants to
+ * know when the walk is actually done can poll `readScanState`.
  *
  * A forced scan probes every file again rather than only those that changed on
  * disk, which is what picks up a change in how Flux reads files.
  */
-const scanLibrary = async (libraryId: string, force = false): Promise<boolean> => {
+const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | null> => {
   const query = force ? '?force=true' : ''
   const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, { method: 'POST' })
 
-  return response.ok
+  if (!response.ok) {
+    return null
+  }
+
+  return ScanJobSchema.parse(await response.json())
 }
 
-export type { ListItemsOptions }
+/**
+ * Reads how a queued scan is getting on.
+ *
+ * A scan the server no longer knows about — restarted since, or the id was
+ * never real — is reported as `unknown` rather than thrown on, since that is
+ * itself a terminal answer: whatever was watching it should stop.
+ */
+const readScanState = async (jobId: string): Promise<ScanProgress> => {
+  const response = await fetch(`/api/libraries/scans/${jobId}`, {
+    headers: { accept: 'application/json' },
+  })
 
-export default { fetchLibraries, fetchLibraryItems, fetchMediaDetail, scanLibrary }
+  if (!response.ok) {
+    return { jobId, state: 'unknown', phase: null, processed: null, total: null }
+  }
+
+  return ScanProgressSchema.parse(await response.json())
+}
+
+/**
+ * Deletes every item in a library, then queues a scan to repopulate it from
+ * nothing.
+ *
+ * A rebuild rather than a rescan: nothing already in the database is kept or
+ * reconciled against, which is the point of reaching for this instead of an
+ * ordinary — even forced — scan.
+ */
+const resetLibrary = async (libraryId: string): Promise<ScanJob | null> => {
+  const response = await fetch(`/api/libraries/${libraryId}/reset`, { method: 'POST' })
+
+  if (!response.ok) {
+    return null
+  }
+
+  return ScanJobSchema.parse(await response.json())
+}
+
+export type { ListItemsOptions, CreateLibraryInput, ScanJob, ScanState, ScanProgress }
+
+export default {
+  fetchLibraries,
+  createLibrary,
+  fetchLibraryItems,
+  fetchMediaDetail,
+  scanLibrary,
+  readScanState,
+  resetLibrary,
+}

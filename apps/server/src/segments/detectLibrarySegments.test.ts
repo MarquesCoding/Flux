@@ -49,6 +49,21 @@ const providerThat = (
   detect: (group) => Promise.resolve(detect(group)),
 })
 
+/**
+ * A provider that reports each item as it finishes with it, the way
+ * fingerprinting does.
+ */
+const providerThatTicks = (name = 'fingerprint'): SegmentProvider => ({
+  name,
+  detect: (group, onItemDone) => {
+    group.forEach(() => {
+      onItemDone?.()
+    })
+
+    return Promise.resolve(new Map())
+  },
+})
+
 describe('groupBySeason', () => {
   it('puts one season together', () => {
     const groups = groupBySeason([
@@ -124,6 +139,87 @@ describe('detectLibrarySegments', () => {
     })
 
     expect(seen.sort()).toEqual([1, 2])
+  })
+
+  it('reports progress in episodes rather than seasons, so an uneven season does not look like an equal step', async () => {
+    const onProgress = vi.fn()
+    const segments = createMemorySegmentService()
+
+    await detectLibrarySegments({
+      libraryId: LIBRARY_ID,
+      providers: [providerThat(() => new Map())],
+      segments,
+      listCandidates: () =>
+        Promise.resolve([
+          episode('a', 'Some Show', 1),
+          episode('b', 'Some Show', 1),
+          episode('c', 'Some Show', 2),
+          episode('d', 'Some Show', 2),
+          episode('e', 'Some Show', 2),
+        ]),
+      onProgress,
+    })
+
+    // Two seasons, five episodes: a bar counting seasons would say "0 of 2"
+    // then "1 of 2" then stop, the same whichever season went first. Counted
+    // by episode it grows by however many that season actually had.
+    expect(onProgress).toHaveBeenCalledWith(0, 5)
+    expect(onProgress).toHaveBeenLastCalledWith(5, 5)
+    expect(onProgress).toHaveBeenCalledTimes(3)
+  })
+
+  it('moves the bar as a provider reports each episode, not just once per season', async () => {
+    const onProgress = vi.fn()
+    const segments = createMemorySegmentService()
+
+    await detectLibrarySegments({
+      libraryId: LIBRARY_ID,
+      providers: [providerThatTicks()],
+      segments,
+      listCandidates: () =>
+        Promise.resolve([
+          episode('a', 'Some Show', 1),
+          episode('b', 'Some Show', 1),
+          episode('c', 'Some Show', 1),
+        ]),
+      onProgress,
+    })
+
+    // One season of three: without per-episode reporting this would only
+    // ever be called at 0 and 3. With it, every episode in between shows up
+    // too, in the order the provider actually finished them.
+    expect(onProgress).toHaveBeenCalledWith(0, 3)
+    expect(onProgress).toHaveBeenCalledWith(1, 3)
+    expect(onProgress).toHaveBeenCalledWith(2, 3)
+    expect(onProgress).toHaveBeenLastCalledWith(3, 3)
+  })
+
+  it('never lets a provider push progress past what a season could actually contain', async () => {
+    const onProgress = vi.fn()
+    const segments = createMemorySegmentService()
+
+    const overReporting: SegmentProvider = {
+      name: 'overzealous',
+      detect: (group, onItemDone) => {
+        for (let count = 0; count < group.length + 5; count += 1) {
+          onItemDone?.()
+        }
+
+        return Promise.resolve(new Map())
+      },
+    }
+
+    await detectLibrarySegments({
+      libraryId: LIBRARY_ID,
+      providers: [overReporting],
+      segments,
+      listCandidates: () => Promise.resolve([episode('a', 'Some Show', 1)]),
+      onProgress,
+    })
+
+    for (const call of onProgress.mock.calls) {
+      expect(call[0]).toBeLessThanOrEqual(1)
+    }
   })
 
   it('replaces what was known rather than adding to it', async () => {
