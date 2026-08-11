@@ -17,6 +17,7 @@ import TranscoderClientModule from '@FluxServer/transcoder/TranscoderClient'
 import createImageCacheModule from '@FluxServer/images/createImageCache'
 import detectLibrarySegmentsModule from '@FluxServer/segments/detectLibrarySegments'
 import createDatabaseWatchProgressServiceModule from '@FluxServer/progress/createDatabaseWatchProgressService'
+import createDatabaseFavouriteServiceModule from '@FluxServer/favourites/createDatabaseFavouriteService'
 import createDatabaseSegmentServiceModule from '@FluxServer/segments/createDatabaseSegmentService'
 import createChapterSegmentProviderModule from '@FluxServer/segments/createChapterSegmentProvider'
 import createFingerprintSegmentProviderModule from '@FluxServer/segments/createFingerprintSegmentProvider'
@@ -48,6 +49,7 @@ const { createLayeredSubtitleService } = createLayeredSubtitleServiceModule
 const { createImageCache } = createImageCacheModule
 const { createDatabaseSegmentService } = createDatabaseSegmentServiceModule
 const { createDatabaseWatchProgressService } = createDatabaseWatchProgressServiceModule
+const { createDatabaseFavouriteService } = createDatabaseFavouriteServiceModule
 const { detectLibrarySegments } = detectLibrarySegmentsModule
 
 /**
@@ -285,6 +287,7 @@ const app = createApp({
   subtitles: subtitleService,
   segments: segmentService,
   progress: createDatabaseWatchProgressService(db),
+  favourites: createDatabaseFavouriteService(db),
   profiles: profileService,
   promoteProfile: async ({ profileId, email, password }) => {
     const rows = await db

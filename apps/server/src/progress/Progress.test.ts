@@ -8,6 +8,7 @@ import createMemorySegmentServiceModule from '@FluxServer/segments/createMemoryS
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryProfileServiceModule from '@FluxServer/profiles/createMemoryProfileService'
 import createMemoryWatchProgressServiceModule from './createMemoryWatchProgressService'
+import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
 
 const { createApp } = AppModule
@@ -17,6 +18,7 @@ const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySegmentService } = createMemorySegmentServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
 const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
+const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
 const { createMemoryProfileService } = createMemoryProfileServiceModule
 
 const BASE = 'http://localhost:8420'
@@ -80,6 +82,7 @@ const build = () => {
     subtitles: createMemorySubtitleService({}),
     profiles: createMemoryProfileService(),
     progress,
+    favourites: createMemoryFavouriteService(),
   })
 
   return { app, progress }

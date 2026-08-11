@@ -8,6 +8,7 @@ import type { LibraryService } from '@FluxServer/library/LibraryService'
 import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService'
 import type { SegmentService } from '@FluxServer/segments/SegmentService'
 import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService'
+import type { FavouriteService } from '@FluxServer/favourites/FavouriteService'
 import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
 import HealthRouteModule from './routes/HealthRoute'
 import LibraryRouteModule from './routes/LibraryRoute'
@@ -15,6 +16,7 @@ import PlaybackRouteModule from './routes/PlaybackRoute'
 import ImageRouteModule from '@FluxServer/routes/ImageRoute'
 import SegmentRouteModule from '@FluxServer/routes/SegmentRoute'
 import ProgressRouteModule from '@FluxServer/routes/ProgressRoute'
+import FavouriteRouteModule from '@FluxServer/routes/FavouriteRoute'
 import AdminRouteModule from '@FluxServer/routes/AdminRoute'
 import DeviceRouteModule from '@FluxServer/routes/DeviceRoute'
 import describeDeviceModule from '@FluxServer/account/describeDevice'
@@ -54,6 +56,7 @@ const { listSubtitlesRoute, readSubtitleRoute } = SubtitleRouteModule
 const { mediaImageRoute } = ImageRouteModule
 const { listSegmentsRoute } = SegmentRouteModule
 const { listProgressRoute, recordProgressRoute, forgetProgressRoute } = ProgressRouteModule
+const { listFavouritesRoute, keepFavouriteRoute, dropFavouriteRoute } = FavouriteRouteModule
 const { adminOverviewRoute, adminSettingsRoute } = AdminRouteModule
 const { listDevicesRoute, endDeviceRoute, endOtherDevicesRoute } = DeviceRouteModule
 const { describeDevice } = describeDeviceModule
@@ -114,6 +117,7 @@ type CreateAppOptions = {
   subtitles: SubtitleService
   segments: SegmentService
   progress: WatchProgressService
+  favourites: FavouriteService
   /**
    * The people using each account.
    */
@@ -173,6 +177,7 @@ const createApp = ({
   subtitles,
   segments,
   progress,
+  favourites,
   profiles,
   promoteProfile,
   listUsers,
@@ -965,6 +970,46 @@ const createApp = ({
     }
 
     await progress.forget(profileId, context.req.valid('param').mediaId)
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(listFavouritesRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers)
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    return context.json({ favourites: await favourites.list(profileId) }, 200)
+  })
+
+  app.openapi(keepFavouriteRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers)
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const { mediaId } = context.req.valid('param')
+
+    if ((await library.getMedia(mediaId)) === null) {
+      return context.json({ error: 'No such media item.' }, 404)
+    }
+
+    await favourites.keep(profileId, mediaId)
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(dropFavouriteRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers)
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    await favourites.drop(profileId, context.req.valid('param').mediaId)
 
     return context.body(null, 204)
   })

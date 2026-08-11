@@ -227,6 +227,28 @@ const watchProgress = pgTable(
   ],
 )
 
+const favourite = pgTable(
+  'favourite',
+  {
+    id: text('id').primaryKey(),
+    /**
+     * Which person kept it, rather than which account. A household sharing one
+     * login does not share a taste in films.
+     */
+    profileId: text('profileId')
+      .notNull()
+      .references(() => viewerProfile.id, { onDelete: 'cascade' }),
+    mediaItemId: text('mediaItemId')
+      .notNull()
+      .references(() => mediaItem.id, { onDelete: 'cascade' }),
+    keptAt: timestamp('keptAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('favourite_profile_idx').on(table.profileId, table.mediaItemId),
+    index('favourite_recent_idx').on(table.profileId, table.keptAt),
+  ],
+)
+
 const mediaSegment = pgTable(
   'media_segment',
   {
@@ -313,6 +335,7 @@ export {
   mediaItem,
   mediaSegment,
   watchProgress,
+  favourite,
   user,
   session,
   account,
@@ -348,6 +371,7 @@ export default {
   mediaItem,
   mediaSegment,
   watchProgress,
+  favourite,
   user,
   session,
   account,

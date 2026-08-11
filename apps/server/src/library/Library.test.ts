@@ -4,6 +4,7 @@ import AppModule from '@FluxServer/App'
 import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from './createMemoryLibraryService'
 import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
+import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
 import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
@@ -18,6 +19,7 @@ const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
 const { createMemorySegmentService } = createMemorySegmentServiceModule
 const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
+const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
 
 const { MediaSummarySchema } = LibraryContract
 const { JsonValueSchema } = JsonValueModule
@@ -70,6 +72,7 @@ const build = (media: MediaDetail[] = []) => {
     subtitles: createMemorySubtitleService(),
     segments: createMemorySegmentService(),
     progress: createMemoryWatchProgressService(),
+    favourites: createMemoryFavouriteService(),
     playback: createMemoryPlaybackService(),
   })
 
@@ -311,6 +314,7 @@ describe('library routes', () => {
       subtitles: createMemorySubtitleService(),
       segments: createMemorySegmentService(),
       progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
       readImage: () => Promise.resolve({ body: new ArrayBuffer(8), contentType: 'image/jpeg' }),
     })
 
