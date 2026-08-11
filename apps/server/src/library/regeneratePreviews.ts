@@ -1,3 +1,4 @@
+import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
 import { selectAudioStream } from '@FluxCore/functions/describeTrack';
 import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
@@ -23,6 +24,10 @@ type RegeneratePreviewsOptions = {
    * The language previews should prefer, when the library forces one.
    */
   defaultAudioLanguage: string | null;
+  /**
+   * How many files to render at once. One is the safe answer and the slow one.
+   */
+  atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (processed: number, total: number) => void;
 };
@@ -44,6 +49,7 @@ const regeneratePreviews = async ({
   store,
   transcoder,
   defaultAudioLanguage,
+  atOnce = 1,
   onProblem,
   onProgress,
 }: RegeneratePreviewsOptions): Promise<void> => {
@@ -52,7 +58,7 @@ const regeneratePreviews = async ({
 
   onProgress?.(processed, items.length);
 
-  for (const item of items) {
+  await mapWithLimit(items, atOnce, async (item) => {
     const audioStreamIndex =
       defaultAudioLanguage === null
         ? undefined
@@ -77,7 +83,7 @@ const regeneratePreviews = async ({
 
     processed += 1;
     onProgress?.(processed, items.length);
-  }
+  });
 };
 
 export type { PreviewStore };

@@ -1,3 +1,4 @@
+import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
 import { findSharedAudio, agreeRange } from '@FluxCore/functions/findSharedAudio';
 import { INTRO_BOUNDS } from './SegmentProvider';
 import type { SegmentCandidate, SegmentProvider } from './SegmentProvider';
@@ -32,6 +33,11 @@ const MAX_EPISODES = 8;
 
 type CreateFingerprintSegmentProviderOptions = {
   transcoder: Transcoder;
+  /**
+   * How many episodes to listen to at once. A season is compared as a whole,
+   * so this is where the waiting is.
+   */
+  atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
 };
 
@@ -50,6 +56,7 @@ type CreateFingerprintSegmentProviderOptions = {
  */
 const createFingerprintSegmentProvider = ({
   transcoder,
+  atOnce = 1,
   onProblem,
 }: CreateFingerprintSegmentProviderOptions): SegmentProvider => ({
   name: 'fingerprint',
@@ -63,9 +70,7 @@ const createFingerprintSegmentProvider = ({
 
     const considered = group.slice(0, MAX_EPISODES);
 
-    const fingerprints: { mediaId: string; hashes: number[]; framesPerSecond: number }[] = [];
-
-    for (const item of considered) {
+    const listened = await mapWithLimit(considered, atOnce, async (item) => {
       try {
         const printed = await transcoder.fingerprint({
           inputPath: item.path,
@@ -73,20 +78,26 @@ const createFingerprintSegmentProvider = ({
           durationSeconds: Math.min(WINDOW_SECONDS, Math.floor(item.durationSeconds)),
         });
 
-        fingerprints.push({
+        return {
           mediaId: item.mediaId,
           hashes: printed.hashes,
           framesPerSecond: printed.framesPerSecond,
-        });
+        };
       } catch (error) {
         onProblem?.(
           item.path,
           error instanceof Error ? error.message : 'Could not be listened to.',
         );
+
+        return null;
       } finally {
         onItemDone?.();
       }
-    }
+    });
+
+    const fingerprints = listened.filter(
+      (one): one is { mediaId: string; hashes: number[]; framesPerSecond: number } => one !== null,
+    );
 
     if (fingerprints.length < MIN_EPISODES) {
       return found;

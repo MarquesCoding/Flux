@@ -40,6 +40,10 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 const GenresSchema = z.array(z.string());
 type CreateDatabaseLibraryServiceOptions = {
+  /**
+   * How many files to have the media service working on at once.
+   */
+  atOnce?: number;
   db: FluxDatabase;
   files: MediaFileSystem;
   transcoder: Transcoder;
@@ -107,6 +111,7 @@ const createDatabaseLibraryService = ({
   transcoder,
   jobs,
   providers,
+  atOnce = 1,
   onProblem,
 }: CreateDatabaseLibraryServiceOptions): DatabaseLibraryService => {
   const store = createMediaStore(db);
@@ -477,6 +482,7 @@ const createDatabaseLibraryService = ({
     runRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {
       await regeneratePreviews({
         libraryId,
+        atOnce,
         store: {
           listOutstanding: (id) => listOutstandingFor(db, id, REGENERATE_PREVIEWS_JOB),
           markComplete: (mediaItemId) => markJobComplete(db, mediaItemId, REGENERATE_PREVIEWS_JOB),
@@ -496,6 +502,7 @@ const createDatabaseLibraryService = ({
     runRegenerateTrickplay: async (libraryId, jobId) => {
       await generateTrickplay({
         libraryId,
+        atOnce,
         store: {
           listOutstanding: (id) => listOutstandingFor(db, id, REGENERATE_TRICKPLAY_JOB),
           markComplete: (mediaItemId) => markJobComplete(db, mediaItemId, REGENERATE_TRICKPLAY_JOB),
