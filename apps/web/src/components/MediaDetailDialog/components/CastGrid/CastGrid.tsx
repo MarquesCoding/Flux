@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
-import IconButtonModule from '@FluxUI/IconButton'
+import PageDotsModule from '@FluxUI/PageDots'
 import type { CastGridProps } from './CastGrid.types'
 
-const { IconButton } = IconButtonModule
+const { PageDots } = PageDotsModule
 
 /**
  * How wide a face wants to be, and how much air goes between two of them.
@@ -78,37 +77,9 @@ const CastGrid = ({ members }: CastGridProps) => {
           )}
         </h3>
 
-        {/* Only where there is somewhere to go. Two arrows that never do
-            anything are two things to try. */}
-        {pages === 1 ? null : (
-          <span className="flex items-center gap-1">
-            <IconButton
-              label="Earlier in the cast"
-              size="sm"
-              disabled={at === 0}
-              onClick={() => {
-                setPage(at - 1)
-              }}
-            >
-              <IconChevronLeft size={18} aria-hidden />
-            </IconButton>
-
-            <span className="px-1 text-xs tabular-nums text-text-muted">
-              {at + 1} / {pages}
-            </span>
-
-            <IconButton
-              label="Further into the cast"
-              size="sm"
-              disabled={at === pages - 1}
-              onClick={() => {
-                setPage(at + 1)
-              }}
-            >
-              <IconChevronRight size={18} aria-hidden />
-            </IconButton>
-          </span>
-        )}
+        {/* The same markers the hero and the wall of faces use: how much
+            there is, where you are in it, and a press to anywhere else. */}
+        <PageDots count={pages} selectedIndex={at} label="Cast pages" onSelect={setPage} />
       </header>
 
       <div ref={trackRef}>

@@ -7,6 +7,7 @@ import formatDurationModule from '@FluxCore/functions/formatDuration'
 import cnModule from '@FluxUI/cn'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
 import MediaFactsModule from '@FluxWeb/components/MediaFacts/MediaFacts'
+import PageDotsModule from '@FluxUI/PageDots'
 import type { HeroProps } from './Hero.types'
 
 const { Button } = ButtonModule
@@ -14,6 +15,7 @@ const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { formatDuration } = formatDurationModule
 const { MediaPreview } = MediaPreviewModule
 const { MediaFacts } = MediaFactsModule
+const { PageDots } = PageDotsModule
 const { cn } = cnModule
 
 /**
@@ -309,42 +311,14 @@ const Hero = ({
             </motion.div>
           </motion.div>
 
-          {items.length < 2 ? null : (
-            <ul className="absolute bottom-8 right-5 flex items-center gap-2 sm:right-10">
-              {items.map((item, position) => (
-                <li key={item.id}>
-                  {/* The bar is two pixels tall and the button around it is not:
-                  a target the height of the line it draws is a target nobody
-                  hits. The name appears on the way to it, so choosing the next
-                  item is a decision rather than a guess. */}
-                  <button
-                    type="button"
-                    aria-label={`Show ${item.title}`}
-                    aria-current={position === index ? 'true' : undefined}
-                    onClick={() => {
-                      setIndex(position)
-                    }}
-                    className="group relative flex items-center px-0.5 py-2"
-                  >
-                    {/* Lifted out of the flow: an invisible label still takes its
-                    full width, which pushed the markers as far apart as the
-                    titles are long. */}
-                    <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap text-xs font-medium tracking-tight text-text opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                      {item.title}
-                    </span>
-
-                    <span
-                      className={`block h-1.5 rounded-full transition-all duration-300 ${
-                        position === index
-                          ? 'w-6 bg-text'
-                          : 'w-1.5 bg-text-muted/40 group-hover:bg-text-muted'
-                      }`}
-                    />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <PageDots
+            count={items.length}
+            selectedIndex={index}
+            labels={items.map((item) => item.title)}
+            label="Featured items"
+            onSelect={setIndex}
+            className="absolute bottom-8 right-5 sm:right-10"
+          />
         </motion.section>
       </div>
     </div>
