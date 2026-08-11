@@ -32,6 +32,14 @@ type MediaCardProps = {
    */
   watchedFraction?: number
   onSelect: () => void
+  /**
+   * Whether the card stays where it is put.
+   *
+   * A card in a row lifts towards the pointer, which is what makes a row feel
+   * like a shelf. A card in a list inside a panel is a line of a list, and a
+   * line that jumps when the pointer crosses it makes the list look unstable.
+   */
+  isStill?: boolean
   className?: string
 }
 

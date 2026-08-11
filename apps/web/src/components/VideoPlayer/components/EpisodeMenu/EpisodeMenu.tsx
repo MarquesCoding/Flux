@@ -1,4 +1,5 @@
-import { IconListNumbers } from '@tabler/icons-react'
+import { useState } from 'react'
+import { IconArticle } from '@tabler/icons-react'
 import PopoverPanelModule from '@FluxUI/PopoverPanel'
 import MediaCardModule from '@FluxUI/MediaCard'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
@@ -34,6 +35,10 @@ const EpisodeMenu = ({
   watchedFractionFor,
   isDisabled = false,
 }: EpisodeMenuProps) => {
+  // Closed by picking something. A list that navigates should not still be
+  // sitting over what it navigated to.
+  const [isOpen, setIsOpen] = useState(false)
+
   // A film has no season to list. The button is not drawn at all rather than
   // drawn and disabled: a control that can never do anything is furniture.
   if (episodes.length === 0) {
@@ -47,7 +52,9 @@ const EpisodeMenu = ({
       label="Episodes"
       heading={headingOf(playing?.seasonNumber)}
       isDisabled={isDisabled}
-      trigger={<IconListNumbers size={20} aria-hidden />}
+      isOpen={isOpen}
+      onOpenChange={setIsOpen}
+      trigger={<IconArticle size={20} aria-hidden />}
       className="w-80 sm:w-96"
     >
       <ul className="flex flex-col gap-3">
@@ -68,10 +75,12 @@ const EpisodeMenu = ({
                   ? {}
                   : { watchedFraction: watchedFractionFor(episode.id) ?? 0 })}
                 {...(episode.hasBackdrop ? { imageUrl: artworkUrl(episode.id) } : {})}
+                isStill
                 onSelect={() => {
+                  setIsOpen(false)
                   onSelect(episode)
                 }}
-                className={episode.id === playingId ? 'ring-2 ring-white/70' : ''}
+                className={episode.id === playingId ? 'opacity-60' : ''}
               />
             </span>
           </li>
