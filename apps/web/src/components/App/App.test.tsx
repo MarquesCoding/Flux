@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AppModule from './App'
@@ -285,5 +285,43 @@ describe('App routing', () => {
     expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'Search' })).not.toBeInTheDocument()
+  })
+
+  it('keeps a position it has just seen, rather than the one the server still believes', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const arrival = aLibraryWithArrival.items.items[0]
+
+    // The server is a step behind: it answers with nothing while the player is
+    // reporting, which is the race that used to blank a progress bar the
+    // moment a film was closed.
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival })
+    render(<App />)
+
+    await arrive()
+
+    const rail = await screen.findByRole('region', { name: 'Recently added' })
+
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }))
+    await actor.click(await screen.findByRole('button', { name: 'Play' }))
+
+    const player = await screen.findByLabelText('Arrival')
+
+    Object.defineProperty(player, 'currentTime', { configurable: true, value: 1800 })
+
+    await act(async () => {
+      player.dispatchEvent(new Event('timeupdate'))
+      await Promise.resolve()
+    })
+
+    await actor.click(screen.getByRole('button', { name: 'Close' }))
+
+    // Back on the page about it, offering to resume rather than to start over.
+    expect(arrival?.id).toBeDefined()
+
+    // Half an hour in, which is what the player last said rather than what the
+    // server had on file.
+    await waitFor(() => {
+      expect(screen.getByText(/Resume from 30:00/)).toBeInTheDocument()
+    })
   })
 })

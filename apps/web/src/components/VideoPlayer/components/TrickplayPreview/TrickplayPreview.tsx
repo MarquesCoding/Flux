@@ -19,11 +19,15 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
   }
 
   return (
-    <figure className="overflow-hidden rounded-md border border-border bg-surface-raised shadow-lg">
+    // Built like the bar it hangs over, down to the padding, the corner and
+    // the way the time is set: the frame under the pointer belongs to the
+    // controls somebody is already using rather than to a tooltip that
+    // happens to be nearby.
+    <figure className="flux-glass flux-glass--film flex flex-col gap-1 rounded-3xl px-2 py-2 mb-2 text-white">
       <div
         role="img"
         aria-label={`Preview at ${formatDuration(seconds)}`}
-        className="bg-black bg-no-repeat"
+        className="rounded-xl bg-black bg-no-repeat"
         style={{
           width: `${thumbnail.width.toString()}px`,
           height: `${thumbnail.height.toString()}px`,
@@ -32,9 +36,7 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
         }}
       />
 
-      <figcaption className="px-2 py-1 text-center text-xs tabular-nums text-text-muted">
-        {formatDuration(seconds)}
-      </figcaption>
+      <figcaption className="text-center text-md mt-2">{formatDuration(seconds)}</figcaption>
     </figure>
   )
 }

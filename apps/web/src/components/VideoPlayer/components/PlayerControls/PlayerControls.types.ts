@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import type { MediaSummary } from '@FluxContracts/schemas/Library'
+import type { CaptionStyle } from '@FluxWeb/playback/captionStyle'
 import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
 import type { QualityPreference } from '@FluxWeb/playback/qualityPreference'
 import type { QualityStepId } from '@FluxContracts/schemas/QualityStep'
@@ -45,7 +47,37 @@ type PlayerControlsProps = {
   onSubtitleChange: (trackId: string) => void
   onAudioChange: (streamIndex: number) => void
   onQualityChange: (quality: QualityPreference) => void
-  onEditCaptions: () => void
+  /**
+   * How captions are drawn, and how to change it.
+   *
+   * Carried through the bar because the settings panel is where it is edited:
+   * a page inside the panel is one less thing floating over the film.
+   */
+  /**
+   * The season this belongs to, in order, or nothing for a film.
+   */
+  episodes?: MediaSummary[]
+  /**
+   * Which item is on screen, so the list can say "you are here".
+   */
+  playingId: string
+  onSelectEpisode?: (episode: MediaSummary) => void
+  watchedFractionFor?: (mediaId: string) => number | undefined
+  /**
+   * Whether the clock counts down to the end rather than up from the start.
+   */
+  /**
+   * Says when a menu on the bar is open.
+   *
+   * The player keeps the controls up while one is, since a bar that fades out
+   * from under an open menu takes the menu with it.
+   */
+  onMenuOpenChange?: (isOpen: boolean) => void
+  isShowingRemaining: boolean
+  onToggleTimeDisplay: () => void
+  captionStyle: CaptionStyle
+  onCaptionStyleChange: (style: CaptionStyle) => void
+  onCaptionStyleReset: () => void
   onVolumeChange: (volume: number) => void
   onToggleMute: () => void
   onToggleFullscreen: () => void

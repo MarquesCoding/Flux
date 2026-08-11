@@ -38,6 +38,7 @@ const MediaCard = ({
   emphasis = 'standard',
   watchedFraction,
   onSelect,
+  isStill = false,
   className,
 }: MediaCardProps) => {
   const prefersReducedMotion = useReducedMotion()
@@ -49,7 +50,7 @@ const MediaCard = ({
       onClick={onSelect}
       // Spread rather than passed as undefined: with exact optional property
       // types, an absent prop and a prop set to nothing are different things.
-      {...(prefersReducedMotion === true
+      {...(prefersReducedMotion === true || isStill
         ? {}
         : { whileHover: { y: -6 }, whileTap: { scale: 0.985 } })}
       transition={revealTransition(prefersReducedMotion)}
