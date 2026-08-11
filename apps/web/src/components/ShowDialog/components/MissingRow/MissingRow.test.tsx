@@ -27,6 +27,35 @@ describe('MissingRow', () => {
     expect(screen.getByText('12')).toBeInTheDocument();
   });
 
+  it('calls the episode what the catalogue calls it, when it said', () => {
+    render(<MissingRow episodeNumber={3} title="Someone Is Thinking of Someone" />);
+
+    expect(screen.getByText('Someone Is Thinking of Someone')).toBeInTheDocument();
+  });
+
+  it('falls back to the number when nothing named it', () => {
+    render(<MissingRow episodeNumber={3} />);
+
+    expect(screen.getByText('Episode 3')).toBeInTheDocument();
+  });
+
+  it("shows the catalogue's still, so the gap is a picture rather than a blank", () => {
+    render(
+      <MissingRow episodeNumber={3} title="An episode" stillUrl="https://example.com/a.jpg" />,
+    );
+
+    expect(screen.getByRole('presentation', { hidden: true })).toHaveAttribute(
+      'src',
+      'https://example.com/a.jpg',
+    );
+  });
+
+  it('draws no picture when the catalogue had none', () => {
+    const { container } = render(<MissingRow episodeNumber={3} title="An episode" />);
+
+    expect(container.querySelector('img')).toBeNull();
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(MissingRow.displayName).toBe('MissingRow');
   });

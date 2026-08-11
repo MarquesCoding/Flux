@@ -71,7 +71,20 @@ type Metadata = {
  * What a catalogue says a whole series contains.
  */
 type SeriesShape = {
-  seasons: { seasonNumber: number; episodeCount: number }[];
+  seasons: {
+    seasonNumber: number;
+    episodeCount: number;
+    /**
+     * What each episode is called and what it looks like, so one nobody holds
+     * can still be read about.
+     */
+    episodes: {
+      episodeNumber: number;
+      title: string;
+      stillUrl: string | null;
+      overview: string | null;
+    }[];
+  }[];
 };
 
 type MetadataProvider = {
