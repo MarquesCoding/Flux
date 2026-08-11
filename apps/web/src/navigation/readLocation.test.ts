@@ -53,6 +53,22 @@ describe('readLocation', () => {
   it('lands on home rather than failing on an address that is not one', () => {
     expect(readLocation('not an address')).toEqual(HOME)
   })
+
+  it('reads which admin panel was open', () => {
+    expect(at('/admin?panel=work').adminPanel).toBe('work')
+  })
+
+  it('has no admin panel when the address does not name one', () => {
+    expect(at('/admin').adminPanel).toBeNull()
+  })
+
+  it('reads which job schedule page was open', () => {
+    expect(at('/admin?panel=work&job=library.scan').adminJob).toBe('library.scan')
+  })
+
+  it('has no admin job when the address does not name one', () => {
+    expect(at('/admin').adminJob).toBeNull()
+  })
 })
 
 describe('writeLocation', () => {
@@ -95,8 +111,30 @@ describe('writeLocation', () => {
       inspecting: 'abc',
       playing: null,
       startSeconds: 0,
+      adminPanel: null,
+      adminJob: null,
     } as const
 
     expect(readLocation(`http://flux.local${writeLocation(place)}`)).toEqual(place)
+  })
+
+  it('writes which admin panel is open', () => {
+    expect(writeLocation({ ...HOME, section: 'admin', adminPanel: 'work' })).toBe(
+      '/admin?panel=work',
+    )
+  })
+
+  it('leaves the panel out of any other section, since only admin has one', () => {
+    expect(writeLocation({ ...HOME, section: 'home', adminPanel: 'work' })).toBe('/')
+  })
+
+  it('writes which job schedule page is open', () => {
+    expect(writeLocation({ ...HOME, section: 'admin', adminJob: 'library.scan' })).toBe(
+      '/admin?job=library.scan',
+    )
+  })
+
+  it('leaves the job out of any other section', () => {
+    expect(writeLocation({ ...HOME, section: 'home', adminJob: 'library.scan' })).toBe('/')
   })
 })

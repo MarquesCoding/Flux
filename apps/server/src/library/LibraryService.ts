@@ -94,6 +94,20 @@ type LibraryService = {
    */
   regeneratePreviews: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
   /**
+   * Queues regeneration of every scrubbing thumbnail sheet, without a full
+   * rescan.
+   *
+   * Null means there is no such library.
+   */
+  regenerateTrickplay: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
+  /**
+   * Queues intro/outro (segment) detection against already-scanned media,
+   * without a full rescan.
+   *
+   * Null means there is no such library.
+   */
+  detectSegments: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
+  /**
    * How a queued scan is getting on.
    *
    * `phase`/`processed`/`total` are null until the scan has reported

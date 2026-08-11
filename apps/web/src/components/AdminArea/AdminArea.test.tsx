@@ -1,12 +1,15 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { z } from 'zod'
 import AdminAreaModule from './AdminArea'
+import scanCoordinatorModule from './scanCoordinator'
 import type { AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin'
 import type { Library } from '@FluxContracts/schemas/Library'
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
 
 const { AdminArea } = AdminAreaModule
+const { resetForTests: resetScanCoordinator } = scanCoordinatorModule
 
 const OVERVIEW: AdminOverview = {
   users: [
@@ -157,6 +160,44 @@ const FAKE_PLAN: PlaybackPlan = {
   subtitles: { kind: 'none', reason: planReason },
 }
 
+const JOB_DEFINITIONS = [
+  {
+    kind: 'library.scan',
+    label: 'Scan for changes',
+    description: 'Finds new, changed and removed files.',
+    needsLibrary: true,
+    destructive: false,
+  },
+  {
+    kind: 'library.regeneratePreviews',
+    label: 'Regenerate previews',
+    description: "Rebuilds preview clips using the library's forced audio language.",
+    needsLibrary: true,
+    destructive: false,
+  },
+  {
+    kind: 'library.regenerateTrickplay',
+    label: 'Regenerate thumbnails',
+    description: 'Rebuilds scrubbing thumbnail sheets for every item.',
+    needsLibrary: true,
+    destructive: false,
+  },
+  {
+    kind: 'library.detectSegments',
+    label: 'Detect intros and outros',
+    description: 'Finds skippable segments using chapters and audio fingerprints.',
+    needsLibrary: true,
+    destructive: false,
+  },
+  {
+    kind: 'library.reset',
+    label: 'Reset and rebuild',
+    description: 'Deletes everything in the library, then scans it from nothing.',
+    needsLibrary: true,
+    destructive: true,
+  },
+]
+
 const respondWith =
   (overview: typeof OVERVIEW = OVERVIEW, sessions: readonly FakeSession[] = []) =>
   (input: string, init?: RequestInit) => {
@@ -164,6 +205,41 @@ const respondWith =
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve(init?.method === 'DELETE' ? {} : sessions),
+      })
+    }
+
+    if (input.includes('/api/admin/jobs/definitions')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ definitions: JOB_DEFINITIONS }),
+      })
+    }
+
+    if (input.includes('/api/admin/jobs/schedules')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ schedules: [] }),
+      })
+    }
+
+    if (input.includes('/triggers')) {
+      // Echoes the trigger back with an id, the way the server does, so the
+      // page has something real to list without a second request.
+      const sent = z
+        .object({ trigger: z.unknown() })
+        .safeParse(JSON.parse(typeof init?.body === 'string' ? init.body : '{}'))
+
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({ id: 'trigger-1', trigger: sent.success ? sent.data.trigger : null }),
+      })
+    }
+
+    if (input.includes('/api/admin/jobs/')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ jobId: 'admin-job', state: 'queued' }),
       })
     }
 
@@ -230,6 +306,11 @@ beforeEach(() => {
   FakeEventSource.last = null
   fetchMock.mockReset()
   fetchMock.mockImplementation(respondWith())
+  // A scan a previous test left deliberately mid-flight, to inspect its
+  // progress bar, would otherwise still be "running" as far as the next
+  // test's freshly rendered page is concerned — this module is a singleton
+  // for the whole page, not scoped to one render.
+  resetScanCoordinator()
 
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('EventSource', FakeEventSource)
@@ -303,9 +384,32 @@ describe('AdminArea', () => {
 
     render(<AdminArea />)
 
-    await actor.click(await screen.findByRole('button', { name: 'Work' }))
+    await actor.click(await screen.findByRole('button', { name: 'Jobs' }))
 
     expect(screen.getByText('Parasite (2019).mkv')).toBeInTheDocument()
+  })
+
+  it('opens on the panel the address named, so a reload lands back where it was', async () => {
+    render(<AdminArea initialPanel="jobs" />)
+
+    expect(await screen.findByText('Background work')).toBeInTheDocument()
+  })
+
+  it('falls back to the first panel when the address names one it does not have', async () => {
+    render(<AdminArea initialPanel="not-a-real-panel" />)
+
+    expect(await screen.findByText('Last minute')).toBeInTheDocument()
+  })
+
+  it('tells the address when the panel changes, so a reload can return to it', async () => {
+    const actor = userEvent.setup()
+    const onPanelChange = vi.fn()
+
+    render(<AdminArea onPanelChange={onPanelChange} />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Jobs' }))
+
+    expect(onPanelChange).toHaveBeenCalledWith('jobs')
   })
 
   it('says why a job failed rather than only that it did', async () => {
@@ -313,9 +417,151 @@ describe('AdminArea', () => {
 
     render(<AdminArea />)
 
-    await actor.click(await screen.findByRole('button', { name: 'Work' }))
+    await actor.click(await screen.findByRole('button', { name: 'Jobs' }))
 
     expect(screen.getByText('no such encoder')).toBeInTheDocument()
+  })
+
+  it('lets an admin start any job on demand from the Work tab', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Jobs' }))
+
+    expect(await screen.findByText('Scan for changes')).toBeInTheDocument()
+    expect(screen.getByText('Reset and rebuild')).toBeInTheDocument()
+
+    await actor.click(screen.getByRole('button', { name: 'Run Scan for changes' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/jobs/library.scan/run',
+        expect.objectContaining({ method: 'POST' }),
+      )
+    })
+  })
+
+  it('runs a library job against every library at once from the Work tab', async () => {
+    fetchMock.mockImplementation((input: string, init?: RequestInit) =>
+      input === '/api/libraries'
+        ? Promise.resolve({ ok: true, json: () => Promise.resolve(TWO_LIBRARIES) })
+        : respondWith()(input, init),
+    )
+
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Jobs' }))
+    await actor.click(await screen.findByRole('button', { name: 'Run Scan for changes' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/jobs/library.scan/run',
+        expect.objectContaining({
+          body: JSON.stringify({ libraryId: MOVIES_LIBRARY_ID }),
+        }),
+      )
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/jobs/library.scan/run',
+        expect.objectContaining({
+          body: JSON.stringify({ libraryId: SHOWS_LIBRARY_ID }),
+        }),
+      )
+    })
+  })
+
+  it('asks for confirmation before running Reset and rebuild from the Work tab', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Jobs' }))
+    await actor.click(await screen.findByRole('button', { name: 'Run Reset and rebuild' }))
+
+    expect(await screen.findByRole('heading', { name: 'Reset and rebuild?' })).toBeInTheDocument()
+
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      '/api/admin/jobs/library.reset/run',
+      expect.anything(),
+    )
+  })
+
+  it('opens a job schedule page by pressing into its row, not its Run button', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Jobs' }))
+    await actor.click(
+      await screen.findByRole('button', { name: 'View schedule for Scan for changes' }),
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Scan for changes' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Run Scan for changes' })).not.toBeInTheDocument()
+  })
+
+  it('adds a trigger to a job from its own schedule page', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Jobs' }))
+    await actor.click(
+      await screen.findByRole('button', { name: 'View schedule for Scan for changes' }),
+    )
+    await actor.click(await screen.findByRole('button', { name: 'Add trigger' }))
+    await actor.click(await screen.findByRole('button', { name: 'Add' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/jobs/library.scan/triggers',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ trigger: { kind: 'daily', hour: 3, minute: 0 } }),
+        }),
+      )
+    })
+
+    expect(await screen.findByText('Daily at 03:00')).toBeInTheDocument()
+  })
+
+  it('removes a trigger from a job schedule page', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Jobs' }))
+    await actor.click(
+      await screen.findByRole('button', { name: 'View schedule for Scan for changes' }),
+    )
+    await actor.click(await screen.findByRole('button', { name: 'Add trigger' }))
+    await actor.click(await screen.findByRole('button', { name: 'Add' }))
+    await actor.click(await screen.findByRole('button', { name: 'Remove Daily at 03:00' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/jobs/library.scan/triggers/trigger-1',
+        expect.objectContaining({ method: 'DELETE' }),
+      )
+    })
+
+    expect(screen.queryByText('Daily at 03:00')).toBeNull()
+  })
+
+  it('returns to the job list when Back is pressed on a schedule page', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Jobs' }))
+    await actor.click(
+      await screen.findByRole('button', { name: 'View schedule for Scan for changes' }),
+    )
+    await actor.click(await screen.findByRole('button', { name: 'Back' }))
+
+    expect(await screen.findByRole('button', { name: 'Run Scan for changes' })).toBeInTheDocument()
   })
 
   it('shows what the server has been saying', async () => {

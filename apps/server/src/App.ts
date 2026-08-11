@@ -26,6 +26,12 @@ import describeDeviceModule from '@FluxServer/account/describeDevice'
 import ProfileRouteModule from '@FluxServer/routes/ProfileRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
+import JobDefinitionsModule from '@FluxServer/jobs/jobDefinitions'
+import JobQueueModule from '@FluxServer/jobs/JobQueue'
+import createMemoryMaintenanceServiceModule from '@FluxServer/maintenance/createMemoryMaintenanceService'
+import type { MaintenanceService } from '@FluxServer/maintenance/MaintenanceService'
+import createMemoryJobScheduleServiceModule from '@FluxServer/jobs/createMemoryJobScheduleService'
+import type { JobScheduleService } from '@FluxServer/jobs/JobScheduleService'
 import JsonValueModule from '@FluxContracts/schemas/JsonValue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 import drawAvatarModule from '@FluxServer/profiles/drawAvatar'
@@ -71,11 +77,28 @@ const {
   adminStopSessionRoute,
   adminPauseSessionRoute,
   adminResumeSessionRoute,
+  adminJobDefinitionsRoute,
+  adminRunJobRoute,
+  adminJobSchedulesRoute,
+  adminAddJobTriggerRoute,
+  adminRemoveJobTriggerRoute,
 } = AdminRouteModule
+const { JOB_DEFINITIONS, RESET_LIBRARY_JOB } = JobDefinitionsModule
+const {
+  SCAN_LIBRARY_JOB,
+  REGENERATE_PREVIEWS_JOB,
+  REGENERATE_TRICKPLAY_JOB,
+  DETECT_SEGMENTS_JOB,
+  CLEANUP_IMAGE_CACHE_JOB,
+  CLEANUP_SESSIONS_JOB,
+  CHECK_CATALOGUE_CONNECTIVITY_JOB,
+} = JobQueueModule
 const { listDevicesRoute, endDeviceRoute, endOtherDevicesRoute } = DeviceRouteModule
 const { describeDevice } = describeDeviceModule
 const { presenceHeartbeatRoute, presenceStopWatchingRoute } = PresenceRouteModule
 const { createPresenceService } = PresenceServiceModule
+const { createMemoryMaintenanceService } = createMemoryMaintenanceServiceModule
+const { createMemoryJobScheduleService } = createMemoryJobScheduleServiceModule
 const {
   listProfilesRoute,
   createProfileRoute,
@@ -130,6 +153,21 @@ type CreateAppOptions = {
   promoteToAdmin: (email: string) => Promise<void>
   library: LibraryService
   playback: PlaybackService
+  /**
+   * Server-wide upkeep an admin can start on demand — cache cleanup, session
+   * cleanup, catalogue connectivity.
+   *
+   * Optional for the same reason `presence` is: most tests exercise routes
+   * that never touch it, and a memory implementation is made when none is
+   * given.
+   */
+  maintenance?: MaintenanceService
+  /**
+   * How often each job runs on its own.
+   *
+   * Optional for the same reason `maintenance` is.
+   */
+  schedules?: JobScheduleService
   /**
    * Who has the app open right now.
    *
@@ -197,6 +235,8 @@ const createApp = ({
   promoteToAdmin,
   library,
   playback,
+  maintenance = createMemoryMaintenanceService(),
+  schedules = createMemoryJobScheduleService(),
   presence = createPresenceService(),
   subtitles,
   segments,
@@ -930,6 +970,99 @@ const createApp = ({
 
     if (!presence.resume(context.req.valid('param').clientId)) {
       return context.json({ error: 'That tab is not open.' }, 404)
+    }
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(adminJobDefinitionsRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    return context.json({ definitions: JOB_DEFINITIONS }, 200)
+  })
+
+  app.openapi(adminRunJobRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const { kind } = context.req.valid('param')
+    const { libraryId, force } = context.req.valid('json')
+
+    const maintenanceRunners: Record<string, () => Promise<{ jobId: string; state: string }>> = {
+      [CLEANUP_IMAGE_CACHE_JOB]: () => maintenance.cleanupImageCache(),
+      [CLEANUP_SESSIONS_JOB]: () => maintenance.cleanupSessions(),
+      [CHECK_CATALOGUE_CONNECTIVITY_JOB]: () => maintenance.checkCatalogueConnectivity(),
+    }
+
+    const maintenanceRunner = maintenanceRunners[kind]
+
+    if (maintenanceRunner !== undefined) {
+      return context.json(await maintenanceRunner(), 202)
+    }
+
+    if (libraryId === undefined) {
+      return context.json({ error: 'That job needs a library.' }, 404)
+    }
+
+    const libraryRunners: Record<string, () => Promise<{ jobId: string; state: string } | null>> = {
+      [SCAN_LIBRARY_JOB]: () => library.scan(libraryId, force ?? false),
+      [REGENERATE_PREVIEWS_JOB]: () => library.regeneratePreviews(libraryId),
+      [REGENERATE_TRICKPLAY_JOB]: () => library.regenerateTrickplay(libraryId),
+      [DETECT_SEGMENTS_JOB]: () => library.detectSegments(libraryId),
+      [RESET_LIBRARY_JOB]: () => library.reset(libraryId),
+    }
+
+    const runner = libraryRunners[kind]
+
+    if (runner === undefined) {
+      return context.json({ error: 'No such job kind.' }, 404)
+    }
+
+    const queued = await runner()
+
+    if (queued === null) {
+      return context.json({ error: 'No such library.' }, 404)
+    }
+
+    return context.json(queued, 202)
+  })
+
+  app.openapi(adminJobSchedulesRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    return context.json({ schedules: await schedules.list() }, 200)
+  })
+
+  app.openapi(adminAddJobTriggerRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const { kind } = context.req.valid('param')
+    const { trigger } = context.req.valid('json')
+    const added = await schedules.add(kind, trigger)
+
+    if (added === null) {
+      return context.json({ error: 'No such job kind.' }, 404)
+    }
+
+    return context.json(added, 201)
+  })
+
+  app.openapi(adminRemoveJobTriggerRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const { kind, triggerId } = context.req.valid('param')
+
+    if (!(await schedules.remove(kind, triggerId))) {
+      return context.json({ error: 'No such trigger.' }, 404)
     }
 
     return context.body(null, 204)

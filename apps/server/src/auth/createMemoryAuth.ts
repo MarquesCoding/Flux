@@ -12,7 +12,25 @@ const { createMemorySettingsStore } = createMemorySettingsStoreModule
 
 const TEST_SECRET = 'flux-test-secret-value-at-least-32-chars'
 
-const emptyStore = () => ({
+/**
+ * A signed-up user, as the memory adapter stores it.
+ *
+ * Typed with `role` rather than left to inference, so a test can promote a
+ * user to admin (`store.user[0].role = 'admin'`) without a cast.
+ */
+type MemoryUserRow = { id: string; role?: string }
+
+const emptyStore = (): {
+  user: MemoryUserRow[]
+  session: never[]
+  account: never[]
+  verification: never[]
+  twoFactor: never[]
+  passkey: never[]
+  deviceCode: never[]
+  jwks: never[]
+  apikey: never[]
+} => ({
   user: [],
   session: [],
   account: [],
@@ -38,9 +56,18 @@ const createMemoryAuth = (
   settings: SettingsStore
   profiles: string[]
   resetLinks: { email: string; url: string }[]
+  /**
+   * The raw in-memory rows behind `auth`.
+   *
+   * Exposed so a test can promote a signed-up user to admin directly
+   * (`store.user[0].role = 'admin'`) without a real database to run
+   * `promoteToAdmin` against.
+   */
+  store: ReturnType<typeof emptyStore>
 } => {
   const profiles: string[] = []
   const resetLinks: { email: string; url: string }[] = []
+  const store = emptyStore()
 
   const env: Env = readEnv({
     BETTER_AUTH_SECRET: TEST_SECRET,
@@ -55,11 +82,12 @@ const createMemoryAuth = (
     cookieSecure: env.COOKIE_SECURE,
     setupCompletedAt: null,
     catalogueApiKey: '',
+    seededJobTriggerKinds: [],
   })
 
   const auth = createAuth({
     env,
-    database: memoryAdapter(emptyStore()),
+    database: memoryAdapter(store),
     settings,
     cookieSecure: env.COOKIE_SECURE,
     onUserCreated: (userId) => {
@@ -74,7 +102,7 @@ const createMemoryAuth = (
     },
   })
 
-  return { auth, settings, profiles, resetLinks }
+  return { auth, settings, profiles, resetLinks, store }
 }
 
 export default { createMemoryAuth, TEST_SECRET }

@@ -25,6 +25,7 @@ const episode = (
   mediaId: string,
   seriesTitle: string | null,
   seasonNumber: number | null,
+  isComplete = false,
 ): GroupedCandidate => ({
   mediaId,
   path: `/media/${mediaId}.mkv`,
@@ -32,6 +33,7 @@ const episode = (
   durationSeconds: 1440,
   seriesTitle,
   seasonNumber,
+  isComplete,
 })
 
 const intro: MediaSegment = {
@@ -109,6 +111,7 @@ describe('detectLibrarySegments', () => {
       libraryId: LIBRARY_ID,
       providers: [providerThat(() => new Map([['a', [intro]]]))],
       segments,
+      markComplete: () => Promise.resolve(),
       listCandidates: () => Promise.resolve([episode('a', 'Some Show', 1)]),
     })
 
@@ -130,6 +133,7 @@ describe('detectLibrarySegments', () => {
         }),
       ],
       segments,
+      markComplete: () => Promise.resolve(),
       listCandidates: () =>
         Promise.resolve([
           episode('a', 'Some Show', 1),
@@ -149,6 +153,7 @@ describe('detectLibrarySegments', () => {
       libraryId: LIBRARY_ID,
       providers: [providerThat(() => new Map())],
       segments,
+      markComplete: () => Promise.resolve(),
       listCandidates: () =>
         Promise.resolve([
           episode('a', 'Some Show', 1),
@@ -176,6 +181,7 @@ describe('detectLibrarySegments', () => {
       libraryId: LIBRARY_ID,
       providers: [providerThatTicks()],
       segments,
+      markComplete: () => Promise.resolve(),
       listCandidates: () =>
         Promise.resolve([
           episode('a', 'Some Show', 1),
@@ -213,6 +219,7 @@ describe('detectLibrarySegments', () => {
       libraryId: LIBRARY_ID,
       providers: [overReporting],
       segments,
+      markComplete: () => Promise.resolve(),
       listCandidates: () => Promise.resolve([episode('a', 'Some Show', 1)]),
       onProgress,
     })
@@ -229,6 +236,7 @@ describe('detectLibrarySegments', () => {
       libraryId: LIBRARY_ID,
       providers: [providerThat(() => new Map([['a', [intro]]]))],
       segments,
+      markComplete: () => Promise.resolve(),
       listCandidates: () => Promise.resolve([episode('a', 'Some Show', 1)]),
     })
 
@@ -251,6 +259,7 @@ describe('detectLibrarySegments', () => {
         ),
       ],
       segments,
+      markComplete: () => Promise.resolve(),
       listCandidates: () => Promise.resolve([episode('a', 'Some Show', 1)]),
     })
 
@@ -271,6 +280,7 @@ describe('detectLibrarySegments', () => {
         providerThat(() => new Map([['a', [intro]]])),
       ],
       segments,
+      markComplete: () => Promise.resolve(),
       listCandidates: () => Promise.resolve([episode('a', 'Some Show', 1)]),
       onProblem,
     })
@@ -293,11 +303,103 @@ describe('detectLibrarySegments', () => {
         ),
       ],
       segments,
+      markComplete: () => Promise.resolve(),
       listCandidates: () => Promise.resolve([episode('a', 'Some Show', 1)]),
     })
 
     expect(marked).toBe(0)
     await expect(segments.list('a')).resolves.toEqual([])
+  })
+
+  it('leaves a season alone once every episode in it has been listened to', async () => {
+    const seen: string[][] = []
+    const segments = createMemorySegmentService()
+
+    await detectLibrarySegments({
+      libraryId: LIBRARY_ID,
+      providers: [
+        providerThat((group) => {
+          seen.push(group.map((candidate) => candidate.mediaId))
+
+          return new Map()
+        }),
+      ],
+      segments,
+      markComplete: () => Promise.resolve(),
+      listCandidates: () =>
+        Promise.resolve([
+          episode('a', 'Some Show', 1, true),
+          episode('b', 'Some Show', 1, true),
+          episode('c', 'Other Show', 1, false),
+        ]),
+    })
+
+    expect(seen).toEqual([['c']])
+  })
+
+  it('brings a whole season back through when one episode in it is new', async () => {
+    const seen: string[][] = []
+    const segments = createMemorySegmentService()
+
+    await detectLibrarySegments({
+      libraryId: LIBRARY_ID,
+      providers: [
+        providerThat((group) => {
+          seen.push(group.map((candidate) => candidate.mediaId))
+
+          return new Map()
+        }),
+      ],
+      segments,
+      markComplete: () => Promise.resolve(),
+      listCandidates: () =>
+        Promise.resolve([episode('a', 'Some Show', 1, true), episode('b', 'Some Show', 1, false)]),
+    })
+
+    // Fingerprinting 'b' on its own would have nothing to compare it against,
+    // so the season it belongs to is what goes through, not the episode.
+    expect(seen).toEqual([['a', 'b']])
+  })
+
+  it('marks every episode of a season it looked at, not only the ones with a segment', async () => {
+    const completed: string[] = []
+    const segments = createMemorySegmentService()
+
+    await detectLibrarySegments({
+      libraryId: LIBRARY_ID,
+      providers: [providerThat(() => new Map([['a', [intro]]]))],
+      segments,
+      markComplete: (mediaId) => {
+        completed.push(mediaId)
+
+        return Promise.resolve()
+      },
+      listCandidates: () =>
+        Promise.resolve([episode('a', 'Some Show', 1), episode('b', 'Some Show', 1)]),
+    })
+
+    expect(completed).toEqual(['a', 'b'])
+  })
+
+  it('counts only the outstanding seasons toward progress', async () => {
+    const onProgress = vi.fn()
+    const segments = createMemorySegmentService()
+
+    await detectLibrarySegments({
+      libraryId: LIBRARY_ID,
+      providers: [providerThat(() => new Map())],
+      segments,
+      markComplete: () => Promise.resolve(),
+      listCandidates: () =>
+        Promise.resolve([
+          episode('a', 'Some Show', 1, true),
+          episode('b', 'Some Show', 1, true),
+          episode('c', 'Other Show', 1, false),
+        ]),
+      onProgress,
+    })
+
+    expect(onProgress).toHaveBeenLastCalledWith(1, 1)
   })
 
   it('records nothing for a library with nothing in it', async () => {
@@ -308,6 +410,7 @@ describe('detectLibrarySegments', () => {
         libraryId: LIBRARY_ID,
         providers: [providerThat(() => new Map())],
         segments,
+        markComplete: () => Promise.resolve(),
         listCandidates: () => Promise.resolve([]),
       }),
     ).resolves.toBe(0)

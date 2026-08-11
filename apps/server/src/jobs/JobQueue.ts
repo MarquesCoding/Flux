@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
 /**
  * The jobs Flux runs in the background.
@@ -38,6 +39,74 @@ const RegeneratePreviewsJobSchema = z.object({
 type RegeneratePreviewsJob = z.infer<typeof RegeneratePreviewsJobSchema>
 
 /**
+ * Re-renders every scrubbing thumbnail sheet for a library's already-scanned
+ * media, without a full rescan.
+ *
+ * Separate from `library.regeneratePreviews` on purpose — a tile sheet and a
+ * scrub clip are different renders with different reasons to redo them, and
+ * an admin picking one from the Work tab should not have to run the other.
+ */
+const REGENERATE_TRICKPLAY_JOB = 'library.regenerateTrickplay'
+
+const RegenerateTrickplayJobSchema = z.object({
+  libraryId: z.string().uuid(),
+})
+
+type RegenerateTrickplayJob = z.infer<typeof RegenerateTrickplayJobSchema>
+
+/**
+ * Finds intros, outros and other skippable segments across a library's
+ * already-scanned media, without a full rescan.
+ *
+ * An ordinary scan already runs this once for whatever it just imported —
+ * this is for redoing it on demand, such as after a segment provider was
+ * reconfigured.
+ */
+const DETECT_SEGMENTS_JOB = 'library.detectSegments'
+
+const DetectSegmentsJobSchema = z.object({
+  libraryId: z.string().uuid(),
+})
+
+type DetectSegmentsJob = z.infer<typeof DetectSegmentsJobSchema>
+
+/**
+ * Deletes cached artwork and profile photo files nothing in the database
+ * references any more.
+ *
+ * Not library-scoped — the cache is one directory shared by every library,
+ * and a profile photo belongs to an account, not a library.
+ */
+const CLEANUP_IMAGE_CACHE_JOB = 'server.cleanupImageCache'
+
+/**
+ * Clears out expired sign-in sessions and device-authorization codes.
+ *
+ * Not library-scoped — sessions and device codes belong to accounts, not
+ * libraries.
+ */
+const CLEANUP_SESSIONS_JOB = 'server.cleanupSessions'
+
+/**
+ * Verifies the configured catalogue key can actually reach the catalogue.
+ *
+ * Not library-scoped — one key serves every library's metadata matching.
+ */
+const CHECK_CATALOGUE_CONNECTIVITY_JOB = 'server.checkCatalogueConnectivity'
+
+/**
+ * The queue a schedule for a library-scoped kind actually fires on.
+ *
+ * A schedule cannot target `library.scan` itself — pg-boss sends the same
+ * fixed payload every time it fires, and a library-scoped job needs a
+ * `libraryId` decided at the moment it runs, against whatever libraries
+ * exist then, not whatever existed when the schedule was set. This queue's
+ * handler is the thing that actually enumerates libraries and enqueues the
+ * real job once per library — see `Main.ts`.
+ */
+const scheduleTriggerKind = (kind: string): string => `${kind}.scheduled`
+
+/**
  * Where a queued job has got to.
  */
 const JobStateSchema = z.enum(['queued', 'running', 'completed', 'failed', 'unknown'])
@@ -64,15 +133,17 @@ type JobProgress = {
  * Postgres and so the queue can be swapped without touching call sites.
  */
 type JobQueue = {
-  enqueueScan: (libraryId: string, force?: boolean) => Promise<string | null>
   /**
-   * Queues a preview regeneration and reports the job.
+   * Queues work of the given kind, reporting its job id.
    *
-   * Null means one is already queued for this library.
+   * Null means one is already queued under the same `singletonKey`. `kind`
+   * must be one registered as a handler when the queue was created — see
+   * `createJobQueue`.
    */
-  enqueueRegeneratePreviews: (
-    libraryId: string,
-    defaultAudioLanguage: string | null,
+  enqueue: (
+    kind: string,
+    payload: { [key: string]: JsonValue },
+    singletonKey?: string,
   ) => Promise<string | null>
   readState: (jobId: string) => Promise<JobState>
   /**
@@ -83,15 +154,45 @@ type JobQueue = {
    */
   readProgress: (jobId: string) => JobProgress | null
   reportProgress: (jobId: string, phase: string, processed: number, total: number) => void
+  /**
+   * Sets one of the schedules a queue name runs on.
+   *
+   * Keyed rather than one-per-queue because a job may have several triggers —
+   * nightly and hourly are two schedules on the same queue, told apart by
+   * their key. `queueName` must be one registered as a handler, the same as
+   * `enqueue` — a schedule fires by sending to that queue.
+   */
+  setSchedule: (queueName: string, key: string, cron: string) => Promise<void>
+  clearSchedule: (queueName: string, key: string) => Promise<void>
+  /**
+   * Every schedule currently set, across every queue name.
+   */
+  listSchedules: () => Promise<{ queueName: string; key: string; cron: string }[]>
   stop: () => Promise<void>
 }
 
-export type { JobProgress, JobQueue, JobState, RegeneratePreviewsJob, ScanLibraryJob }
+export type {
+  DetectSegmentsJob,
+  JobProgress,
+  JobQueue,
+  JobState,
+  RegeneratePreviewsJob,
+  RegenerateTrickplayJob,
+  ScanLibraryJob,
+}
 
 export default {
   SCAN_LIBRARY_JOB,
   ScanLibraryJobSchema,
   REGENERATE_PREVIEWS_JOB,
   RegeneratePreviewsJobSchema,
+  REGENERATE_TRICKPLAY_JOB,
+  RegenerateTrickplayJobSchema,
+  DETECT_SEGMENTS_JOB,
+  DetectSegmentsJobSchema,
+  CLEANUP_IMAGE_CACHE_JOB,
+  CLEANUP_SESSIONS_JOB,
+  CHECK_CATALOGUE_CONNECTIVITY_JOB,
+  scheduleTriggerKind,
   JobStateSchema,
 }

@@ -263,6 +263,8 @@ const regeneratePreviewsRoute = createRoute({
   },
 })
 
+export { ScanAccepted }
+
 export default {
   listLibrariesRoute,
   createLibraryRoute,

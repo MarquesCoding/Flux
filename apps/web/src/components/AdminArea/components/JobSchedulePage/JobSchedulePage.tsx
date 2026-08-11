@@ -1,0 +1,105 @@
+import { useState } from 'react'
+import { IconArrowLeft, IconPlus, IconX } from '@tabler/icons-react'
+import ButtonModule from '@FluxUI/Button'
+import AddTriggerDialogModule from '@FluxWeb/components/AdminArea/components/AddTriggerDialog/AddTriggerDialog'
+import describeTriggerModule from '@FluxWeb/admin/describeTrigger'
+import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin'
+import type { JobSchedulePageProps } from './JobSchedulePage.types'
+
+const { Button } = ButtonModule
+const { AddTriggerDialog } = AddTriggerDialogModule
+const { describeTrigger } = describeTriggerModule
+
+/**
+ * What makes one job run on its own, Jellyfin's scheduled-tasks page style —
+ * its own screen reached by pressing into a job, rather than a control
+ * squeezed into its row in the list.
+ *
+ * A list of triggers rather than one cadence, because "nightly, and again
+ * whenever the server comes up" is two triggers, and a single setting that
+ * has to mean both is a setting that cannot.
+ */
+const JobSchedulePage = ({
+  definition,
+  triggers,
+  onAdd,
+  onRemove,
+  onClose,
+}: JobSchedulePageProps) => {
+  const [isAdding, setIsAdding] = useState(false)
+
+  const add = (trigger: ScheduleTrigger) => {
+    setIsAdding(false)
+    onAdd(trigger)
+  }
+
+  return (
+    <div className="flex flex-col gap-6 p-5">
+      <Button variant="ghost" size="sm" isPill className="w-fit" onClick={onClose}>
+        <IconArrowLeft size={16} aria-hidden />
+        Back
+      </Button>
+
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-medium text-text">{definition.label}</h2>
+        <p className="text-sm text-text-muted">{definition.description}</p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xs uppercase tracking-[0.16em] text-text-muted">Triggers</h3>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            isPill
+            onClick={() => {
+              setIsAdding(true)
+            }}
+          >
+            <IconPlus size={16} aria-hidden />
+            Add trigger
+          </Button>
+        </div>
+
+        {triggers.length === 0 ? (
+          <p className="rounded-xl border border-white/10 px-4 py-3 text-sm text-text-muted">
+            No triggers. This only runs when you press Run.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-white/5 overflow-hidden rounded-xl border border-white/10">
+            {triggers.map((entry) => (
+              <li key={entry.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <span className="text-sm text-text">{describeTrigger(entry.trigger)}</span>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  isPill
+                  aria-label={`Remove ${describeTrigger(entry.trigger)}`}
+                  onClick={() => {
+                    onRemove(entry.id)
+                  }}
+                >
+                  <IconX size={16} aria-hidden />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <AddTriggerDialog
+        isOpen={isAdding}
+        onAdd={add}
+        onClose={() => {
+          setIsAdding(false)
+        }}
+      />
+    </div>
+  )
+}
+
+JobSchedulePage.displayName = 'JobSchedulePage'
+
+export default { JobSchedulePage }

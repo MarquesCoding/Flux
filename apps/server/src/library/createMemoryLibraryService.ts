@@ -135,6 +135,20 @@ const createMemoryLibraryService = (
         : null,
     ),
 
+  regenerateTrickplay: (libraryId) =>
+    Promise.resolve(
+      state.libraries.some((entry) => entry.id === libraryId)
+        ? { jobId: `regenerate-trickplay-${libraryId}`, state: 'queued' }
+        : null,
+    ),
+
+  detectSegments: (libraryId) =>
+    Promise.resolve(
+      state.libraries.some((entry) => entry.id === libraryId)
+        ? { jobId: `detect-segments-${libraryId}`, state: 'queued' }
+        : null,
+    ),
+
   readScanState: () =>
     Promise.resolve({ state: 'completed', phase: null, processed: null, total: null }),
 

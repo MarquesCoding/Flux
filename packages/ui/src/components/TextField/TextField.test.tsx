@@ -75,6 +75,27 @@ describe('TextField', () => {
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password')
   })
 
+  it('bounds a number field to the range given', () => {
+    render(
+      <TextField label="Minutes" value="" onValueChange={vi.fn()} type="number" min={1} max={59} />,
+    )
+
+    const input = screen.getByLabelText('Minutes')
+
+    expect(input).toHaveAttribute('type', 'number')
+    expect(input).toHaveAttribute('min', '1')
+    expect(input).toHaveAttribute('max', '59')
+  })
+
+  it('draws a time field against a dark surface', () => {
+    render(<TextField label="Time" value="03:00" onValueChange={vi.fn()} type="time" />)
+
+    const input = screen.getByLabelText('Time')
+
+    expect(input).toHaveAttribute('type', 'time')
+    expect(input.className).toContain('[color-scheme:dark]')
+  })
+
   it('does not accept input when disabled', async () => {
     const onValueChange = vi.fn()
     const user = userEvent.setup()

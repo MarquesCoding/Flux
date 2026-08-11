@@ -12,6 +12,16 @@ const ServerSettingsSchema = z.object({
    * rather than one Flux makes for them.
    */
   catalogueApiKey: z.string().default(''),
+  /**
+   * The job kinds whose default triggers have already been installed.
+   *
+   * Recorded per kind rather than as one "defaults done" flag so that a job
+   * added in a later version still gets its own defaults on the next boot,
+   * while a kind whose triggers the operator deleted stays deleted — a
+   * schedule that comes back after being removed is worse than no default
+   * at all.
+   */
+  seededJobTriggerKinds: z.array(z.string()).default([]),
 })
 
 type ServerSettings = z.infer<typeof ServerSettingsSchema>

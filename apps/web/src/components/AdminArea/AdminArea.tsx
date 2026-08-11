@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
   IconActivity,
@@ -21,16 +21,26 @@ import TextFieldModule from '@FluxUI/TextField'
 import revealModule from '@FluxUI/animations/reveal'
 import fetchAdminModule from '@FluxWeb/admin/fetchAdmin'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import waitForScanCompletionModule from '@FluxWeb/library/waitForScanCompletion'
 import StatStripModule from './components/StatStrip/StatStrip'
 import AddLibraryDialogModule from './components/AddLibraryDialog/AddLibraryDialog'
 import ScanProgressBarModule from './components/ScanProgressBar/ScanProgressBar'
 import ResetLibrariesDialogModule from './components/ResetLibrariesDialog/ResetLibrariesDialog'
 import LibrarySettingsDialogModule from './components/LibrarySettingsDialog/LibrarySettingsDialog'
 import SessionCardModule from './components/SessionCard/SessionCard'
+import JobRunnerModule from './components/JobRunner/JobRunner'
+import JobSchedulePageModule from './components/JobSchedulePage/JobSchedulePage'
+import scanCoordinatorModule from './scanCoordinator'
 import formatBytesModule from './formatBytes'
 import type { Library } from '@FluxContracts/schemas/Library'
-import type { ActiveSession, AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin'
+import type {
+  ActiveSession,
+  AdminOverview,
+  Job,
+  JobDefinition,
+  JobTrigger,
+  Monitor,
+  ScheduleTrigger,
+} from '@FluxWeb/admin/fetchAdmin'
 import type { AdminAreaProps } from './AdminArea.types'
 
 const { Sparkline } = SparklineModule
@@ -48,15 +58,30 @@ const {
   stopSession,
   pauseSession,
   resumeSession,
+  fetchJobDefinitions,
+  fetchJobSchedules,
+  addJobTrigger,
+  removeJobTrigger,
 } = fetchAdminModule
-const { fetchLibraries, scanLibrary, resetLibrary, regenerateLibraryPreviews } = fetchLibraryModule
-const { waitForScanCompletion } = waitForScanCompletionModule
+const { fetchLibraries } = fetchLibraryModule
 const { StatStrip } = StatStripModule
 const { AddLibraryDialog } = AddLibraryDialogModule
 const { ScanProgressBar } = ScanProgressBarModule
 const { ResetLibrariesDialog } = ResetLibrariesDialogModule
 const { LibrarySettingsDialog } = LibrarySettingsDialogModule
 const { SessionCard } = SessionCardModule
+const { JobRunner } = JobRunnerModule
+const { JobSchedulePage } = JobSchedulePageModule
+const {
+  subscribe: subscribeToScans,
+  getSnapshot: getScanSnapshot,
+  startScan,
+  startScanAll,
+  startResetAll,
+  startRegeneratePreviews,
+  runDefinedJob,
+  runDefinedJobAll,
+} = scanCoordinatorModule
 const { formatBytes } = formatBytesModule
 
 /**
@@ -75,7 +100,7 @@ const SESSIONS_POLL_MILLISECONDS = 5000
 
 const PANELS = [
   { id: 'activity', label: 'Activity' },
-  { id: 'work', label: 'Work' },
+  { id: 'jobs', label: 'Jobs' },
   { id: 'events', label: 'Events' },
   { id: 'libraries', label: 'Libraries' },
   { id: 'settings', label: 'Settings' },
@@ -106,6 +131,16 @@ const describeElapsed = (job: Job, now: number): string => {
 }
 
 const atTime = (ms: number): string => new Date(ms).toLocaleTimeString()
+
+/**
+ * Every job's triggers, keyed by kind.
+ *
+ * Read back from the server rather than reasoned about locally whenever a
+ * write failed: after a failure the page has no idea what actually landed,
+ * and guessing is how a schedule page starts lying about what is set.
+ */
+const readJobSchedules = async (): Promise<Map<string, JobTrigger[]>> =>
+  new Map((await fetchJobSchedules()).map((entry) => [entry.kind, entry.triggers]))
 
 type SessionGroup = { key: string; label: string; sessions: ActiveSession[] }
 
@@ -156,29 +191,36 @@ const shortVersion = (reported: string | null): string => {
  * Readings arrive over an event stream and a minute of them is kept, because
  * one number says nothing about whether it is climbing.
  */
-const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
+const AdminArea = ({
+  historyLength = HISTORY_LENGTH,
+  initialPanel,
+  onPanelChange,
+  initialJob,
+  onJobChange,
+}: AdminAreaProps) => {
   const [overview, setOverview] = useState<AdminOverview | null>(null)
   const [monitor, setMonitor] = useState<Monitor | null>(null)
   const [history, setHistory] = useState<number[]>([])
-  const [panel, setPanel] = useState<PanelId>('activity')
+  const [panel, setPanel] = useState<PanelId>(
+    () => PANELS.find((candidate) => candidate.id === initialPanel)?.id ?? 'activity',
+  )
+  const [viewingJobKind, setViewingJobKind] = useState<string | null>(initialJob ?? null)
   const [catalogueKey, setCatalogueKey] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [libraries, setLibraries] = useState<Library[]>([])
+  const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([])
+  const [jobSchedules, setJobSchedules] = useState<Map<string, JobTrigger[]>>(new Map())
   const [isAddingLibrary, setIsAddingLibrary] = useState(false)
-  const [scanProgress, setScanProgress] = useState<
-    ReadonlyMap<
-      string,
-      {
-        kind: 'scan' | 'regeneratePreviews'
-        phase: string | null
-        processed: number | null
-        total: number | null
-      }
-    >
-  >(new Map())
-  const [isScanningAll, setIsScanningAll] = useState(false)
+  // Lives outside this component on purpose — see scanCoordinator.ts. The
+  // admin page unmounts every time an operator looks at another section, and
+  // a scan started before that has to still be here, still counting, when
+  // they come back.
+  const {
+    progress: scanProgress,
+    isScanningAll,
+    isResettingAll,
+  } = useSyncExternalStore(subscribeToScans, getScanSnapshot)
   const [isConfirmingReset, setIsConfirmingReset] = useState(false)
-  const [isResettingAll, setIsResettingAll] = useState(false)
   const [settingsLibraryId, setSettingsLibraryId] = useState<string | null>(null)
   const [sessions, setSessions] = useState<ActiveSession[]>([])
   const [busyClientId, setBusyClientId] = useState<string | null>(null)
@@ -193,122 +235,74 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     setIsAddingLibrary(false)
   }
 
-  const trackProgress = (
-    libraryId: string,
-    kind: 'scan' | 'regeneratePreviews',
-    phase: string | null,
-    processed: number | null,
-    total: number | null,
-  ) => {
-    setScanProgress((current) => new Map(current).set(libraryId, { kind, phase, processed, total }))
-  }
-
-  const untrackProgress = (libraryId: string) => {
-    setScanProgress((current) => {
-      const next = new Map(current)
-      next.delete(libraryId)
-
-      return next
-    })
-  }
-
   const rescan = async (libraryId: string) => {
-    trackProgress(libraryId, 'scan', null, null, null)
-
-    try {
-      const job = await scanLibrary(libraryId)
-
-      if (job !== null) {
-        await waitForScanCompletion(job.jobId, (progress) => {
-          trackProgress(libraryId, 'scan', progress.phase, progress.processed, progress.total)
-        })
-      }
-
-      setLibraries(await fetchLibraries())
-    } finally {
-      untrackProgress(libraryId)
-    }
+    await startScan(libraryId)
+    setLibraries(await fetchLibraries())
   }
 
   const rescanAll = async () => {
-    setIsScanningAll(true)
-
-    for (const library of libraries) {
-      trackProgress(library.id, 'scan', null, null, null)
-    }
-
-    try {
-      await Promise.all(
-        libraries.map(async (library) => {
-          const job = await scanLibrary(library.id, true)
-
-          if (job !== null) {
-            await waitForScanCompletion(job.jobId, (progress) => {
-              trackProgress(library.id, 'scan', progress.phase, progress.processed, progress.total)
-            })
-          }
-
-          untrackProgress(library.id)
-        }),
-      )
-
-      setLibraries(await fetchLibraries())
-    } finally {
-      setIsScanningAll(false)
-      setScanProgress(new Map())
-    }
+    await startScanAll(libraries)
+    setLibraries(await fetchLibraries())
   }
 
   const resetAll = async () => {
     setIsConfirmingReset(false)
-    setIsResettingAll(true)
-
-    for (const library of libraries) {
-      trackProgress(library.id, 'scan', null, null, null)
-    }
-
-    try {
-      await Promise.all(
-        libraries.map(async (library) => {
-          const job = await resetLibrary(library.id)
-
-          if (job !== null) {
-            await waitForScanCompletion(job.jobId, (progress) => {
-              trackProgress(library.id, 'scan', progress.phase, progress.processed, progress.total)
-            })
-          }
-
-          untrackProgress(library.id)
-        }),
-      )
-
-      setLibraries(await fetchLibraries())
-    } finally {
-      setIsResettingAll(false)
-      setScanProgress(new Map())
-    }
+    await startResetAll(libraries)
+    setLibraries(await fetchLibraries())
   }
 
   const regeneratePreviews = async (libraryId: string) => {
-    trackProgress(libraryId, 'regeneratePreviews', null, null, null)
+    await startRegeneratePreviews(libraryId)
+  }
 
-    try {
-      const job = await regenerateLibraryPreviews(libraryId)
+  const runJob = async (kind: string) => {
+    const definition = jobDefinitions.find((candidate) => candidate.kind === kind)
 
-      if (job !== null) {
-        await waitForScanCompletion(job.jobId, (progress) => {
-          trackProgress(
-            libraryId,
-            'regeneratePreviews',
-            progress.phase,
-            progress.processed,
-            progress.total,
-          )
-        })
-      }
-    } finally {
-      untrackProgress(libraryId)
+    if (definition?.needsLibrary === true) {
+      await runDefinedJobAll(kind, libraries)
+    } else {
+      await runDefinedJob(kind)
     }
+
+    setLibraries(await fetchLibraries())
+  }
+
+  // Written straight into the map rather than re-fetched: the server answers
+  // with the trigger it stored, id and all, so there is nothing left to ask
+  // it. A failure is the only reason to go back and read the truth.
+  const addTrigger = async (kind: string, trigger: ScheduleTrigger) => {
+    const added = await addJobTrigger(kind, trigger)
+
+    if (added === null) {
+      setJobSchedules(await readJobSchedules())
+
+      return
+    }
+
+    setJobSchedules((current) => new Map(current).set(kind, [...(current.get(kind) ?? []), added]))
+  }
+
+  const removeTrigger = async (kind: string, triggerId: string) => {
+    setJobSchedules((current) =>
+      new Map(current).set(
+        kind,
+        (current.get(kind) ?? []).filter((entry) => entry.id !== triggerId),
+      ),
+    )
+
+    if (!(await removeJobTrigger(kind, triggerId))) {
+      setJobSchedules(await readJobSchedules())
+    }
+  }
+
+  const openJobSchedule = (kind: string) => {
+    setViewingJobKind(kind)
+    onJobChange?.(kind)
+  }
+
+  const closeJobSchedule = () => {
+    setViewingJobKind(null)
+    onJobChange?.(null)
   }
 
   const stopStream = async (clientId: string) => {
@@ -349,6 +343,8 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     void fetchMonitor().then(setMonitor)
     void fetchLibraries().then(setLibraries)
     void fetchActiveSessions().then(setSessions)
+    void fetchJobDefinitions().then(setJobDefinitions)
+    void readJobSchedules().then(setJobSchedules)
   }, [])
 
   useEffect(() => {
@@ -381,6 +377,10 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
 
   const failures = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'failed').length
   const conversions = resources?.children ?? []
+  const viewingJobDefinition =
+    viewingJobKind === null
+      ? null
+      : (jobDefinitions.find((definition) => definition.kind === viewingJobKind) ?? null)
 
   return (
     <motion.div
@@ -429,6 +429,9 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
 
             if (found !== undefined) {
               setPanel(found.id)
+              onPanelChange?.(found.id)
+              setViewingJobKind(null)
+              onJobChange?.(null)
             }
           }}
           label="What to look at"
@@ -603,50 +606,82 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
               </>
             ) : null}
 
-            {panel === 'work' ? (
+            {panel === 'jobs' ? (
               <div className="flex flex-col">
-                <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-white/10 px-5 py-3">
-                  <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
-                    Background work
-                  </h2>
-
-                  <span className="text-xs text-text-muted">
-                    {monitor === null
-                      ? '—'
-                      : `${monitor.queue.running.toString()} running · ${monitor.queue.queued.toString()} waiting · ${monitor.queue.concurrency.toString()} at a time${
-                          failures === 0 ? '' : ` · ${failures.toString()} failed`
-                        }`}
-                  </span>
-                </header>
-
-                {monitor === null || monitor.queue.jobs.length === 0 ? (
-                  <p className="p-5 text-sm text-text-muted">Nothing queued.</p>
+                {viewingJobDefinition !== null ? (
+                  <JobSchedulePage
+                    definition={viewingJobDefinition}
+                    triggers={jobSchedules.get(viewingJobDefinition.kind) ?? []}
+                    onAdd={(trigger) => {
+                      void addTrigger(viewingJobDefinition.kind, trigger)
+                    }}
+                    onRemove={(triggerId) => {
+                      void removeTrigger(viewingJobDefinition.kind, triggerId)
+                    }}
+                    onClose={closeJobSchedule}
+                  />
                 ) : (
-                  <ul className="max-h-96 divide-y divide-white/5 overflow-y-auto">
-                    {monitor.queue.jobs.map((job) => (
-                      <li key={job.id} className="flex items-center gap-3 px-5 py-2.5 text-sm">
-                        <Badge size="sm" tone={JOB_TONES[job.state]}>
-                          {job.state}
-                        </Badge>
+                  <>
+                    <header className="border-b border-white/10 px-5 py-3">
+                      <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
+                        Server Jobs
+                      </h2>
+                    </header>
 
-                        <span className="w-24 shrink-0 text-text-muted">{job.kind}</span>
+                    <JobRunner
+                      definitions={jobDefinitions}
+                      libraries={libraries}
+                      progress={scanProgress}
+                      onRun={(kind) => {
+                        void runJob(kind)
+                      }}
+                      onOpenSchedule={openJobSchedule}
+                    />
 
-                        <span className="min-w-0 flex-1 truncate text-text" title={job.subject}>
-                          {job.subject}
-                        </span>
+                    <header className="flex flex-wrap items-baseline justify-between gap-3 border-y border-white/10 px-5 py-3">
+                      <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
+                        Background work
+                      </h2>
 
-                        {job.detail === null ? null : (
-                          <span className="hidden max-w-64 truncate text-xs text-danger sm:block">
-                            {job.detail}
-                          </span>
-                        )}
+                      <span className="text-xs text-text-muted">
+                        {monitor === null
+                          ? '—'
+                          : `${monitor.queue.running.toString()} running · ${monitor.queue.queued.toString()} waiting · ${monitor.queue.concurrency.toString()} at a time${
+                              failures === 0 ? '' : ` · ${failures.toString()} failed`
+                            }`}
+                      </span>
+                    </header>
 
-                        <span className="shrink-0 tabular-nums text-text-muted">
-                          {describeElapsed(job, now)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                    {monitor === null || monitor.queue.jobs.length === 0 ? (
+                      <p className="p-5 text-sm text-text-muted">Nothing queued.</p>
+                    ) : (
+                      <ul className="max-h-96 divide-y divide-white/5 overflow-y-auto">
+                        {monitor.queue.jobs.map((job) => (
+                          <li key={job.id} className="flex items-center gap-3 px-5 py-2.5 text-sm">
+                            <Badge size="sm" tone={JOB_TONES[job.state]}>
+                              {job.state}
+                            </Badge>
+
+                            <span className="w-24 shrink-0 text-text-muted">{job.kind}</span>
+
+                            <span className="min-w-0 flex-1 truncate text-text" title={job.subject}>
+                              {job.subject}
+                            </span>
+
+                            {job.detail === null ? null : (
+                              <span className="hidden max-w-64 truncate text-xs text-danger sm:block">
+                                {job.detail}
+                              </span>
+                            )}
+
+                            <span className="shrink-0 tabular-nums text-text-muted">
+                              {describeElapsed(job, now)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
                 )}
               </div>
             ) : null}

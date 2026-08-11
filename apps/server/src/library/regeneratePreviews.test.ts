@@ -35,9 +35,16 @@ const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcode
 
 const harness = (items: { path: string; audioStreams: AudioStream[] }[]) => {
   const previewRequests: { inputPath: string; audioStreamIndex?: number }[] = []
+  const completed: string[] = []
+  const withIds = items.map((item, index) => ({ id: `item-${index.toString()}`, ...item }))
 
   const store: PreviewStore = {
-    listForRegeneration: (libraryId) => Promise.resolve(libraryId === LIBRARY_ID ? items : []),
+    listOutstanding: (libraryId) => Promise.resolve(libraryId === LIBRARY_ID ? withIds : []),
+    markComplete: (mediaItemId) => {
+      completed.push(mediaItemId)
+
+      return Promise.resolve()
+    },
   }
 
   const transcoder = stubTranscoder((request) => {
@@ -46,10 +53,70 @@ const harness = (items: { path: string; audioStreams: AudioStream[] }[]) => {
     return Promise.resolve({ id: 'p', url: '/p', isReady: true })
   })
 
-  return { store, transcoder, previewRequests }
+  return { store, transcoder, previewRequests, completed }
 }
 
 describe('regeneratePreviews', () => {
+  it('marks an item done once its preview has been rendered', async () => {
+    const { store, transcoder, completed } = harness([
+      { path: '/media/a.mkv', audioStreams: multilingual },
+      { path: '/media/b.mkv', audioStreams: multilingual },
+    ])
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      store,
+      transcoder,
+      defaultAudioLanguage: null,
+    })
+
+    expect(completed).toEqual(['item-0', 'item-1'])
+  })
+
+  it('does not mark an item whose render failed, so the next run tries again', async () => {
+    const completed: string[] = []
+    const store: PreviewStore = {
+      listOutstanding: () =>
+        Promise.resolve([
+          { id: 'a', path: '/media/a.mkv', audioStreams: multilingual },
+          { id: 'b', path: '/media/b.mkv', audioStreams: multilingual },
+        ]),
+      markComplete: (mediaItemId) => {
+        completed.push(mediaItemId)
+
+        return Promise.resolve()
+      },
+    }
+    const transcoder = stubTranscoder((request) =>
+      request.inputPath === '/media/a.mkv'
+        ? Promise.reject(new Error('ffmpeg failed'))
+        : Promise.resolve({ id: 'p', url: '/p', isReady: true }),
+    )
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      store,
+      transcoder,
+      defaultAudioLanguage: null,
+      onProblem: () => {},
+    })
+
+    expect(completed).toEqual(['b'])
+  })
+
+  it('does nothing at all when a library has nothing outstanding', async () => {
+    const { store, transcoder, previewRequests } = harness([])
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      store,
+      transcoder,
+      defaultAudioLanguage: null,
+    })
+
+    expect(previewRequests).toEqual([])
+  })
+
   it('re-requests a preview for every stored item', async () => {
     const { store, transcoder, previewRequests } = harness([
       { path: '/media/a.mkv', audioStreams: multilingual },
@@ -122,12 +189,18 @@ describe('regeneratePreviews', () => {
   })
 
   it('reports a problem for a file that failed rather than stopping the rest', async () => {
+    const completed: string[] = []
     const store: PreviewStore = {
-      listForRegeneration: () =>
+      listOutstanding: () =>
         Promise.resolve([
-          { path: '/media/a.mkv', audioStreams: multilingual },
-          { path: '/media/b.mkv', audioStreams: multilingual },
+          { id: 'a', path: '/media/a.mkv', audioStreams: multilingual },
+          { id: 'b', path: '/media/b.mkv', audioStreams: multilingual },
         ]),
+      markComplete: (mediaItemId) => {
+        completed.push(mediaItemId)
+
+        return Promise.resolve()
+      },
     }
     const transcoder = stubTranscoder((request) =>
       request.inputPath === '/media/a.mkv'

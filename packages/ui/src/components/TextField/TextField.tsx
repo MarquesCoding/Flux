@@ -21,6 +21,8 @@ const TextField = ({
   placeholder,
   required = false,
   disabled = false,
+  min,
+  max,
   autoComplete,
   isPill = false,
   size = 'md',
@@ -59,6 +61,8 @@ const TextField = ({
         aria-invalid={error !== undefined}
         aria-describedby={describedBy === '' ? undefined : describedBy}
         {...(autoComplete === undefined ? {} : { autoComplete })}
+        {...(min === undefined ? {} : { min })}
+        {...(max === undefined ? {} : { max })}
         onChange={(event) => {
           onValueChange(event.target.value)
         }}
@@ -71,6 +75,9 @@ const TextField = ({
           'transition-colors placeholder:text-text-muted hover:border-white/20',
           'disabled:cursor-not-allowed disabled:opacity-50',
           size === 'lg' ? 'h-14 px-5 text-base' : 'h-10 px-3 text-sm',
+          // A time field draws its own clock button, which the browser paints
+          // for a light page unless told the surface underneath is dark.
+          type === 'time' ? '[color-scheme:dark]' : '',
           isPill ? 'rounded-full' : 'rounded-xl',
           error === undefined ? '' : 'border-danger',
         )}

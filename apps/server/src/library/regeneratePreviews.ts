@@ -8,9 +8,13 @@ const { selectAudioStream } = selectAudioStreamModule
  * The library table, as regeneration sees it.
  */
 type PreviewStore = {
-  listForRegeneration: (
+  /**
+   * The items still without a preview, rather than all of them.
+   */
+  listOutstanding: (
     libraryId: string,
-  ) => Promise<{ path: string; audioStreams: AudioStream[] }[]>
+  ) => Promise<{ id: string; path: string; audioStreams: AudioStream[] }[]>
+  markComplete: (mediaItemId: string) => Promise<void>
 }
 
 type RegeneratePreviewsOptions = {
@@ -26,13 +30,16 @@ type RegeneratePreviewsOptions = {
 }
 
 /**
- * Re-renders every preview clip in a library against its current forced
- * audio language, without touching anything else a scan would.
+ * Renders the preview clips a library is still missing.
  *
- * Deliberately narrow: an admin changing "Force Default Audio Track" wants
- * previews caught up, not every file re-probed, re-matched against a
- * catalogue and re-sampled for colour. That work already ran; this reuses
- * it, at a fraction of the resource cost of a forced rescan.
+ * Only what is outstanding: an item is done with when a clip has been made
+ * for it, and stays done until the file changes or the library's forced audio
+ * language does. A run over a library that is already complete costs one
+ * query and nothing else, which is what makes putting this on a nightly
+ * schedule reasonable.
+ *
+ * A render that fails is deliberately not marked, so the next run picks it up
+ * again rather than leaving an item without a preview forever.
  */
 const regeneratePreviews = async ({
   libraryId,
@@ -42,7 +49,7 @@ const regeneratePreviews = async ({
   onProblem,
   onProgress,
 }: RegeneratePreviewsOptions): Promise<void> => {
-  const items = await store.listForRegeneration(libraryId)
+  const items = await store.listOutstanding(libraryId)
   let processed = 0
 
   onProgress?.(processed, items.length)
@@ -53,15 +60,22 @@ const regeneratePreviews = async ({
         ? undefined
         : selectAudioStream(item.audioStreams, defaultAudioLanguage)?.index
 
-    await transcoder
+    const rendered = await transcoder
       .requestPreview({
         inputPath: item.path,
         wait: true,
         ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       })
+      .then(() => true)
       .catch((error: Error) => {
         onProblem?.(item.path, error.message)
+
+        return false
       })
+
+    if (rendered) {
+      await store.markComplete(item.id)
+    }
 
     processed += 1
     onProgress?.(processed, items.length)
