@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   IconAlertTriangle,
   IconPictureInPicture,
@@ -6,6 +6,7 @@ import {
   IconX,
 } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
+import IconButtonModule from '@FluxUI/IconButton'
 import SpinnerModule from '@FluxUI/Spinner'
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
@@ -20,13 +21,14 @@ import captionStyleModule from '@FluxWeb/playback/captionStyle'
 import qualityPreferenceModule from '@FluxWeb/playback/qualityPreference'
 import fetchSegmentsModule from '@FluxWeb/playback/fetchSegments'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
+import playbackPreferencesModule from '@FluxWeb/playback/playbackPreferences'
+import liftCuesModule from '@FluxWeb/playback/liftCues'
 import describeTrackModule from '@FluxCore/functions/describeTrack'
 import listAvailableQualityStepsModule from '@FluxCore/functions/listAvailableQualitySteps'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
 import PlayerControlsModule from './components/PlayerControls/PlayerControls'
 import StreamStatsModule from './components/StreamStats/StreamStats'
-import CaptionSettingsModule from './components/CaptionSettings/CaptionSettings'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
@@ -38,6 +40,7 @@ import type { QualityPreference } from '@FluxWeb/playback/qualityPreference'
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types'
 
 const { Button } = ButtonModule
+const { IconButton } = IconButtonModule
 const { Spinner } = SpinnerModule
 const { VideoSurface } = VideoSurfaceModule
 const { detectFromBrowser } = detectDeviceProfileModule
@@ -47,19 +50,20 @@ const { fetchTrickplay } = fetchTrickplayModule
 const { popOutWithCaptions } = popOutWithCaptionsModule
 const { captureFrame } = captureFrameModule
 const { readPlaybackHealth, encodedSeconds } = readPlaybackHealthModule
-const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, SUBTITLES_OFF } =
+const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, trackForLanguage, SUBTITLES_OFF } =
   fetchSubtitlesModule
 const { fetchMediaDetail } = fetchLibraryModule
 const { TrickplayPreview } = TrickplayPreviewModule
 const { PlayerControls } = PlayerControlsModule
 const { StreamStats } = StreamStatsModule
-const { CaptionSettings } = CaptionSettingsModule
 const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
 const { readQualityPreference, saveQualityPreference } = qualityPreferenceModule
 const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
 const { describeAudioTrack } = describeTrackModule
 const { listAvailableQualitySteps } = listAvailableQualityStepsModule
 const { reportWatchProgress, REPORT_EVERY_MILLISECONDS } = watchProgressModule
+const { readPlaybackPreferences, writePlaybackPreferences } = playbackPreferencesModule
+const { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } = liftCuesModule
 
 /**
  * An element that may be able to go full screen.
@@ -78,13 +82,12 @@ type FullscreenOwner = {
 const IDLE_MILLISECONDS = 2500
 
 /**
- * How far the arrow keys move, and how far the longer jump does.
+ * How far a jump moves.
  *
- * Two sizes because scrubbing is two different jobs: nudging past a moment you
- * missed, and skipping a scene.
+ * The arrows step a frame at a time, which is for looking at something. This
+ * is for getting past it: thirty seconds is a scene, and the buttons on the
+ * bar do ten.
  */
-const SKIP_SECONDS = 10
-
 const JUMP_SECONDS = 30
 
 /**
@@ -96,6 +99,37 @@ const JUMP_SECONDS = 30
 const FINISHED_WITHIN_SECONDS = 90
 
 const HEALTH_INTERVAL_MILLISECONDS = 500
+
+/**
+ * How long to let a change settle before asking for the cue again.
+ *
+ * Long enough that dragging a slider is one redraw at the end rather than
+ * thirty on the way, short enough that letting go and looking at the result
+ * feels like the same action.
+ */
+const REDRAW_AFTER_MILLISECONDS = 150
+
+/**
+ * How long a frame lasts until the film says otherwise.
+ *
+ * Twenty five a second, which is wrong for most things and close enough for
+ * all of them: it is only used for the first press, before two frames have
+ * gone past to be measured.
+ */
+const DEFAULT_FRAME_SECONDS = 1 / 25
+
+/**
+ * How long to wait before asking a stalled stream again.
+ */
+const START_RETRY_MILLISECONDS = 1500
+
+/**
+ * How many times that is worth doing.
+ *
+ * A few seconds of trying, and then the picture is somebody else's problem:
+ * a player that retries forever is a player that hides a broken file.
+ */
+const START_ATTEMPTS = 4
 
 const EMPTY_HEALTH: PlaybackHealth = {
   positionSeconds: 0,
@@ -120,9 +154,21 @@ const VideoPlayer = ({
   isImmersive = false,
   startSeconds = 0,
   onClose,
+  onProgress,
+  onEnded,
+  episodes = [],
+  onSelectEpisode,
+  watchedFractionFor,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
+  // Keeps the nudges at a stream that has not started from outliving the
+  // session they belong to.
+  const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // How long one frame lasts, measured from the film itself. Nothing in the
+  // library reports a frame rate — ffprobe knows, but the browser is the one
+  // being asked to land on a frame, so the browser is asked.
+  const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS)
   const [session, setSession] = useState<StartedSession | null>(null)
   const [state, setState] = useState<PlayerState>('starting')
   const [problem, setProblem] = useState<string | null>(null)
@@ -131,12 +177,27 @@ const VideoPlayer = ({
   const [reportedDuration, setReportedDuration] = useState(0)
   const [trickplay, setTrickplay] = useState<Trickplay | null>(null)
   const [detail, setDetail] = useState<MediaDetail | null>(null)
-  const [volume, setVolume] = useState(1)
-  const [isMuted, setIsMuted] = useState(false)
+  // How this device was left, rather than how a fresh element starts. Somebody
+  // who turned a film down does not expect the next episode to open at full
+  // volume, and somebody watching in silence does not expect to be shouted at.
+  const [volume, setVolume] = useState(() => readPlaybackPreferences().volume)
+  const [isMuted, setIsMuted] = useState(() => readPlaybackPreferences().isMuted)
+  // Counting down or counting up. A habit rather than a setting, which is why
+  // it is remembered rather than asked again every film.
+  const [isShowingRemaining, setIsShowingRemaining] = useState(
+    () => readPlaybackPreferences().showsRemaining,
+  )
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isShowingStats, setIsShowingStats] = useState(false)
+  // Whether a menu on the bar is open. The bar stays up while one is: fading
+  // out from under an open menu takes the menu with it, and somebody reading a
+  // list of episodes has not stopped using the player.
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH)
   const [isIdle, setIsIdle] = useState(false)
+  // Where the pointer was last seen, so a move that did not move can be told
+  // from one that did.
+  const pointRef = useRef<{ x: number; y: number } | null>(null)
   // Bumped by anything a viewer actually did. Playback position is not that:
   // it changes several times a second, and a timer restarted by it never
   // expires, so the controls would sit there for the whole film.
@@ -145,7 +206,6 @@ const VideoPlayer = ({
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([])
   const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF)
   const [captionStyle, setCaptionStyle] = useState(readCaptionStyle)
-  const [isEditingCaptions, setIsEditingCaptions] = useState(false)
   // How far the subtitles have been nudged, and how far that nudge has already
   // been applied to the cues on screen. Both are needed: the cues are moved by
   // the difference, because a track carries its own times and there is nothing
@@ -162,12 +222,21 @@ const VideoPlayer = ({
     startSeconds: number
     audioStreamIndex?: number
     requestedQuality: QualityPreference
-  }>({ mediaId: media.id, startSeconds, requestedQuality: readQualityPreference() })
+    // Whole seconds, always. A position read back from the server is a
+    // fraction of one — nobody stops a film on a second boundary — and the
+    // contract asks for an integer, so resuming used to be answered with a
+    // validation error the player could only report as "playback could not be
+    // started".
+  }>({
+    mediaId: media.id,
+    startSeconds: Math.floor(startSeconds),
+    requestedQuality: readQualityPreference(),
+  })
   // The frame the viewer was looking at when they dragged the scrub bar. Held
   // on screen until the new session produces one of its own, because tearing
   // the old session down blanks the media element and a black rectangle reads
   // as the video having broken rather than as a seek.
-  const [heldFrame, setHeldFrame] = useState<string | null>(null)
+  const [heldFrame, setHeldFrame] = useState<{ url: string; isItemChange: boolean } | null>(null)
 
   // Offered only where the browser has a floating window of its own. Firefox
   // has one it does not expose to a page, and Safari on a phone has none at
@@ -288,11 +357,98 @@ const VideoPlayer = ({
       element?.removeEventListener('enterpictureinpicture', onEnter)
       element?.removeEventListener('leavepictureinpicture', onLeave)
       document.removeEventListener('leavepictureinpicture', onLeave)
+
+      // Leaving the player takes the floating window with it. The copy that
+      // floats is an element on the document rather than in this tree, so
+      // nothing else would ever remove it: pressing escape closed the page
+      // and left the film playing in the corner of the screen.
+      poppedRef.current?.stop()
+      poppedRef.current = null
+
+      if (document.pictureInPictureEnabled === true && document.pictureInPictureElement !== null) {
+        void document.exitPictureInPicture().catch(() => {
+          // Already gone, which is the outcome that was wanted.
+        })
+      }
     }
   }, [])
 
+  /**
+   * Gets a stream running, and keeps trying for as long as that is sensible.
+   *
+   * A transcode is delivered as a playlist that is still being written, so
+   * asking to play it the instant it is attached can find nothing there yet.
+   * The element answers that by sitting at nothing rather than by failing,
+   * which is the state a viewer used to escape by dragging the scrub bar —
+   * seeking made the element ask again, and asking again was all it needed.
+   */
+  const start = useCallback((element: HTMLVideoElement) => {
+    let attempts = 0
+
+    const attempt = () => {
+      void element.play().catch(() => {
+        // Refused rather than unready: a browser that will not autoplay wants
+        // a gesture, and the play button is right there.
+      })
+    }
+
+    attempt()
+
+    clearInterval(startTimerRef.current ?? undefined)
+
+    startTimerRef.current = setInterval(() => {
+      attempts += 1
+
+      if (attempts > START_ATTEMPTS || element.readyState > 0 || !element.paused) {
+        clearInterval(startTimerRef.current ?? undefined)
+        startTimerRef.current = null
+
+        return
+      }
+
+      // Nothing has arrived yet. Asking the element to load again is what a
+      // seek was doing by accident.
+      element.load()
+      attempt()
+    }, START_RETRY_MILLISECONDS)
+  }, [])
+
+  /**
+   * Keeps whatever is on screen on screen.
+   *
+   * Tearing a session down blanks the media element, so without this the
+   * picture goes black between one stream and the next — which reads as the
+   * player breaking rather than as a seek, or as the following episode.
+   */
+  const hold = useCallback((element: HTMLVideoElement | null, isItemChange = false) => {
+    const url = element === null ? null : captureFrame(element, document.createElement('canvas'))
+
+    if (url !== null) {
+      setHeldFrame({ url, isItemChange })
+    }
+  }, [])
+
+  // The last frame of the episode being left, kept up while the next one is
+  // asked for. Tearing a session down blanks the element, and a black
+  // rectangle between two episodes reads as the player breaking rather than
+  // as one thing following another.
+  //
+  // A layout effect because it has to happen before the session's own cleanup
+  // clears the element out from under it.
+  useLayoutEffect(() => {
+    const element = videoRef.current
+
+    if (element !== null && element.readyState > 1) {
+      hold(element, true)
+    }
+  }, [media.id, hold])
+
   if (request.mediaId !== media.id) {
-    setRequest({ mediaId: media.id, startSeconds, requestedQuality: request.requestedQuality })
+    setRequest({
+      mediaId: media.id,
+      startSeconds: Math.floor(startSeconds),
+      requestedQuality: request.requestedQuality,
+    })
   }
 
   useEffect(() => {
@@ -309,10 +465,6 @@ const VideoPlayer = ({
     setIsPlaying(false)
     setPosition(request.startSeconds)
     setReportedDuration(0)
-
-    if (request.startSeconds === 0) {
-      setHeldFrame(null)
-    }
 
     const controller = new AbortController()
     const isAbandoned = () => controller.signal.aborted
@@ -364,12 +516,10 @@ const VideoPlayer = ({
         if (!isAbandoned()) {
           setState('playing')
 
-          // A session started partway through exists because someone dragged
-          // the scrub bar. Making them press play again after every seek
-          // would be its own kind of broken.
-          if (request.startSeconds > 0) {
-            void element.play()
-          }
+          // Navigating to a film is asking to watch it. Nobody arrives at a
+          // player and wants a still picture with a play button over it, and
+          // a seek is not a request to stop either.
+          start(element)
         }
       } catch {
         if (!isAbandoned()) {
@@ -383,13 +533,15 @@ const VideoPlayer = ({
 
     return () => {
       controller.abort()
+      clearInterval(startTimerRef.current ?? undefined)
+      startTimerRef.current = null
       void teardown?.()
 
       if (startedId !== null) {
         void stopPlaybackSession(startedId)
       }
     }
-  }, [request])
+  }, [request, start])
 
   useEffect(() => {
     // Fetched alongside playback rather than before it. Rendering thumbnails
@@ -423,10 +575,26 @@ const VideoPlayer = ({
     })
 
     void fetchSubtitleTracks(media.id).then((found) => {
-      if (!abandoned) {
-        setSubtitleTracks(found)
-        setSelectedSubtitleId(defaultTrackId(found))
+      if (abandoned) {
+        return
       }
+
+      setSubtitleTracks(found)
+
+      // What this viewer was last reading, in this file's own terms. A choice
+      // made on one episode is a choice about a language, so it survives into
+      // the next one rather than lapsing back to nothing every time.
+      const remembered = readPlaybackPreferences().subtitleLanguage
+
+      if (remembered === SUBTITLES_OFF) {
+        setSelectedSubtitleId(SUBTITLES_OFF)
+
+        return
+      }
+
+      const continuing = trackForLanguage(found, remembered)
+
+      setSelectedSubtitleId(continuing === null ? defaultTrackId(found) : continuing.id)
     })
 
     return () => {
@@ -453,6 +621,8 @@ const VideoPlayer = ({
       element.volume = volume
       element.muted = isMuted
     }
+
+    writePlaybackPreferences({ volume, isMuted })
   }, [volume, isMuted])
 
   useEffect(() => {
@@ -551,7 +721,7 @@ const VideoPlayer = ({
         return
       }
 
-      setHeldFrame(captureFrame(element, document.createElement('canvas')))
+      hold(element)
       setRequest({
         mediaId: request.mediaId,
         startSeconds: Math.floor(seconds),
@@ -569,6 +739,28 @@ const VideoPlayer = ({
   }, [captionStyle])
 
   const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null
+
+  /**
+   * Takes a viewer at their word about subtitles.
+   *
+   * Their choice is kept as a language, which is the part of it that means
+   * anything to the next episode. Turning them off is kept too, and kept
+   * distinctly from never having said: one is an instruction, the other is
+   * only silence.
+   */
+  const chooseSubtitle = useCallback(
+    (trackId: string) => {
+      setSelectedSubtitleId(trackId)
+
+      const chosen = subtitleTracks.find((track) => track.id === trackId) ?? null
+
+      writePlaybackPreferences({
+        subtitleLanguage: trackId === SUBTITLES_OFF ? SUBTITLES_OFF : (chosen?.language ?? null),
+      })
+    },
+    [subtitleTracks],
+  )
+
   const availableQualitySteps = detail === null ? [] : listAvailableQualitySteps(detail)
   const skippable = state === 'playing' ? skippableAt(segments, position) : null
 
@@ -594,9 +786,7 @@ const VideoPlayer = ({
     (streamIndex: number) => {
       const element = videoRef.current
 
-      if (element !== null) {
-        setHeldFrame(captureFrame(element, document.createElement('canvas')))
-      }
+      hold(element)
 
       setSelectedAudioIndex(streamIndex)
       setRequest({
@@ -615,9 +805,7 @@ const VideoPlayer = ({
     (quality: QualityPreference) => {
       const element = videoRef.current
 
-      if (element !== null) {
-        setHeldFrame(captureFrame(element, document.createElement('canvas')))
-      }
+      hold(element)
 
       saveQualityPreference(quality)
       setRequest({
@@ -665,6 +853,31 @@ const VideoPlayer = ({
     }
   }, [state, duration, media.id, request.startSeconds])
 
+  /**
+   * Moves by a single frame of the film.
+   *
+   * Done to the element rather than through a seek, because one frame is
+   * always inside what has already been decoded: asking the server for a new
+   * session to move a fortieth of a second would throw away the stream to
+   * land on the next picture in it.
+   */
+  const stepFrame = useCallback((direction: number) => {
+    const element = videoRef.current
+
+    if (element === null) {
+      return
+    }
+
+    // Stepping is something done to a still picture. A frame examined while
+    // the film is running has gone by before it can be looked at.
+    element.pause()
+
+    const at = element.currentTime + direction * frameSecondsRef.current
+    const last = Number.isFinite(element.duration) ? element.duration : at
+
+    element.currentTime = Math.min(Math.max(at, 0), last)
+  }, [])
+
   const skip = useCallback(
     (delta: number) => {
       seek(Math.min(Math.max(position + delta, 0), duration))
@@ -697,6 +910,108 @@ const VideoPlayer = ({
     void target.requestFullscreen?.()
   }, [isFullscreen])
 
+  // Subtitles sit above the bar while the bar is up, and drop back down when
+  // it goes. A browser lifts cues over its own controls and knows nothing
+  // about ours, so the line somebody is reading was sitting underneath them.
+  //
+  // Read through a ref rather than listed as a dependency: the cues are moved
+  // as they change, and rebuilding the listeners every time the bar fades
+  // would drop the ones that are on screen at that moment.
+  // Whether the controls are on screen, which is what the cues have to clear.
+  const isBarUp = !isIdle || isShowingStats || isMenuOpen
+  const isBarUpRef = useRef(isBarUp)
+  const cuesRef = useRef<{ stop: () => void; apply: () => void } | null>(null)
+
+  isBarUpRef.current = isBarUp
+
+  useEffect(() => {
+    const element = videoRef.current
+
+    if (element === null || selectedSubtitleId === SUBTITLES_OFF) {
+      return
+    }
+
+    const lifted = liftCues(element, () =>
+      isBarUpRef.current ? CUE_LINE_ABOVE_CONTROLS : CUE_LINE_CLEAR,
+    )
+
+    cuesRef.current = lifted
+
+    return () => {
+      cuesRef.current = null
+      lifted.stop()
+    }
+  }, [selectedSubtitleId, session])
+
+  // The bar appearing or going, and the way captions are drawn, both change
+  // what is already on screen rather than only what comes next. A browser lays
+  // a cue out when it appears and does not look at it again, so both need the
+  // cue asking for afresh — otherwise a setting appears to do nothing until
+  // somebody says the next line.
+  //
+  // Once things have settled rather than on every change. Asking for the cue
+  // afresh takes it off screen and puts it back, which is invisible on its own
+  // and a flicker when it happens on every step of a slider being dragged
+  // through a colour.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      cuesRef.current?.apply()
+    }, REDRAW_AFTER_MILLISECONDS)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [isBarUp, captionStyle])
+
+  // What one frame of this film is worth, taken from the film. Two consecutive
+  // frames are enough: the gap between the moments they cover is the frame
+  // duration, which is the only number that makes an arrow key land on the
+  // next picture rather than near it.
+  useEffect(() => {
+    const element = videoRef.current
+
+    if (element === null || !('requestVideoFrameCallback' in element)) {
+      return
+    }
+
+    let handle = 0
+    let previous: number | null = null
+
+    const measure = (_now: number, metadata: { mediaTime: number }) => {
+      if (previous !== null) {
+        const gap = metadata.mediaTime - previous
+
+        // A gap of nothing is the same frame reported twice, and a gap of a
+        // second is a stall rather than a frame rate.
+        if (gap > 0 && gap < 1) {
+          frameSecondsRef.current = gap
+
+          return
+        }
+      }
+
+      previous = metadata.mediaTime
+      handle = element.requestVideoFrameCallback(measure)
+    }
+
+    handle = element.requestVideoFrameCallback(measure)
+
+    return () => {
+      element.cancelVideoFrameCallback(handle)
+    }
+  }, [session])
+
+  // Focus lands on the film itself when the player opens. The shortcuts listen
+  // on the window either way, but focus left behind on whatever was pressed to
+  // get here means the browser's own handling of space and the arrows fires
+  // first — which is why they appeared to do nothing until the picture had
+  // been clicked on.
+  useEffect(() => {
+    if (isImmersive) {
+      stageRef.current?.focus({ preventScroll: true })
+    }
+  }, [isImmersive, media.id])
+
   useEffect(() => {
     if (!isImmersive) {
       return
@@ -724,10 +1039,10 @@ const VideoPlayer = ({
         ' ': togglePlay,
         k: togglePlay,
         ArrowLeft: () => {
-          skip(-SKIP_SECONDS)
+          stepFrame(-1)
         },
         ArrowRight: () => {
-          skip(SKIP_SECONDS)
+          stepFrame(1)
         },
         j: () => {
           skip(-JUMP_SECONDS)
@@ -763,7 +1078,7 @@ const VideoPlayer = ({
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isImmersive, togglePlay, skip, toggleFullscreen, subtitleTracks])
+  }, [isImmersive, togglePlay, stepFrame, toggleFullscreen, subtitleTracks])
 
   useEffect(() => {
     if (!isImmersive) {
@@ -784,12 +1099,38 @@ const VideoPlayer = ({
   }, [isImmersive, isFullscreen, onClose])
 
   return (
-    <section className={isImmersive ? 'flex h-full flex-col' : 'flex flex-col gap-3'}>
+    // The whole player is the surface, not just the picture. The title and the
+    // way out sit above the film rather than inside it, so watching for the
+    // pointer on the picture alone faded the controls out from under anybody
+    // reaching for them.
+    <section
+      className={isImmersive ? 'relative flex h-full flex-col' : 'flex flex-col gap-3'}
+      onPointerMove={(event) => {
+        // Only a pointer that actually moved counts. Hiding the cursor makes a
+        // browser emit another move at the same coordinates, which woke the
+        // bar, which showed the cursor, which hid it again — the flicker was
+        // the interface arguing with itself.
+        const last = pointRef.current
+
+        if (last !== null && last.x === event.clientX && last.y === event.clientY) {
+          return
+        }
+
+        pointRef.current = { x: event.clientX, y: event.clientY }
+
+        setIsIdle(false)
+        setActivity((count) => count + 1)
+      }}
+      onPointerLeave={() => {
+        pointRef.current = null
+        setIsIdle(isPlaying)
+      }}
+    >
       <header
         className={
           isImmersive
-            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-opacity ${
-                isIdle && !isShowingStats ? 'opacity-0' : 'opacity-100'
+            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-transform duration-500 ease-out ${
+                isBarUp ? 'translate-y-0' : '-translate-y-full'
               }`
             : 'flex items-center justify-between gap-4'
         }
@@ -798,14 +1139,20 @@ const VideoPlayer = ({
           {media.title}
         </h2>
 
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <IconX size={16} aria-hidden />
-          Close
-        </Button>
+        {/* The same glass as the bar at the bottom, and no word on it: an X
+            in the corner of a film needs no label, and the one it had made the
+            corner of the picture look like a page. */}
+        <IconButton label="Close" onClick={onClose} size="md" className="flux-glass text-white">
+          <IconX size={20} aria-hidden />
+        </IconButton>
       </header>
 
       <div
         ref={stageRef}
+        // Focusable, and focused on arrival, so the shortcuts work without
+        // being clicked on first. A viewer who has just navigated to a film
+        // has already said what they want to interact with.
+        tabIndex={-1}
         // The pointer goes with the controls: a cursor sitting over a film is
         // as much of an intrusion as a bar of buttons is.
         // `min-h-0` is what keeps the controls on screen. A flex child will
@@ -816,14 +1163,7 @@ const VideoPlayer = ({
           isImmersive
             ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black'
             : 'relative overflow-hidden rounded-lg bg-black'
-        } ${isIdle && !isShowingStats && !isEditingCaptions ? 'cursor-none' : 'cursor-default'}`}
-        onPointerMove={() => {
-          setIsIdle(false)
-          setActivity((count) => count + 1)
-        }}
-        onPointerLeave={() => {
-          setIsIdle(isPlaying)
-        }}
+        } ${isIdle && !isShowingStats && !isMenuOpen ? 'cursor-none' : 'cursor-default'} outline-none`}
       >
         <VideoSurface
           label={media.title}
@@ -843,11 +1183,21 @@ const VideoPlayer = ({
                 },
               })}
           onTimeUpdate={(seconds) => {
-            setPosition(request.startSeconds + seconds)
+            const at = request.startSeconds + seconds
+
+            setPosition(at)
             setHeldFrame(null)
+            onProgress?.(at, duration)
           }}
           onDurationChange={setReportedDuration}
           onPlayingChange={setIsPlaying}
+          onEnded={() => {
+            // Watched to the end, said before anything else happens: whoever
+            // owns the player may put another episode on, and it should not
+            // then be told the previous one stopped partway through.
+            onProgress?.(duration, duration)
+            onEnded?.()
+          }}
         />
 
         {/* While the film is floating in its own window the page shows that
@@ -870,7 +1220,7 @@ const VideoPlayer = ({
           <div
             role="presentation"
             className="pointer-events-none absolute inset-0 bg-black bg-contain bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${heldFrame})` }}
+            style={{ backgroundImage: `url(${heldFrame.url})` }}
           />
         )}
 
@@ -882,8 +1232,18 @@ const VideoPlayer = ({
                 : 'pointer-events-none absolute right-3 top-3 rounded-full bg-black/60 p-2 text-white'
             }
           >
+            {/* A held frame means something is already on screen, so this is
+                the small one in the corner. What it says depends on what is
+                being waited for: the same picture moving again, or a
+                different one arriving. */}
             <Spinner
-              label={heldFrame === null ? 'Preparing playback' : 'Seeking'}
+              label={
+                heldFrame === null
+                  ? 'Preparing playback'
+                  : heldFrame.isItemChange
+                    ? 'Loading the next episode'
+                    : 'Seeking'
+              }
               size={heldFrame === null ? 'lg' : 'sm'}
             />
           </div>
@@ -894,23 +1254,10 @@ const VideoPlayer = ({
             address any other way. */}
         <style>{`::cue { ${toCueCss(captionStyle)} }`}</style>
 
-        {isEditingCaptions ? (
-          <div className="pointer-events-none absolute inset-x-3 top-3 flex justify-end">
-            <CaptionSettings
-              style={captionStyle}
-              onChange={setCaptionStyle}
-              onReset={() => {
-                setCaptionStyle(DEFAULT_CAPTION_STYLE)
-              }}
-              onClose={() => {
-                setIsEditingCaptions(false)
-              }}
-            />
-          </div>
-        ) : null}
-
+        {/* Under the title rather than opposite it: these are notes about what
+            is playing, and they belong beside its name. */}
         {isShowingStats ? (
-          <div className="pointer-events-none absolute left-3 right-3 top-3 flex justify-end">
+          <div className="pointer-events-none absolute inset-x-3 top-16 flex justify-start">
             <StreamStats
               media={media}
               session={session}
@@ -941,12 +1288,21 @@ const VideoPlayer = ({
         )}
 
         <div
-          className={`absolute inset-x-3 bottom-3 transition-opacity ${
-            isIdle && !isShowingStats ? 'opacity-0' : 'opacity-100'
+          // Pushed out of the picture rather than faded. Fading glass means
+          // fading a backdrop filter, and a filter does not fade the way a
+          // colour does — it goes at its own pace, which reads as the bar
+          // changing shade on its way out. Sliding it away moves it without
+          // touching how it is drawn.
+          className={`absolute inset-x-3 bottom-3 transition-transform duration-500 ease-out ${
+            isBarUp ? 'translate-y-0' : 'translate-y-[calc(100%+1.5rem)]'
           }`}
         >
           <PlayerControls
             title={media.title}
+            playingId={media.id}
+            episodes={episodes}
+            {...(onSelectEpisode === undefined ? {} : { onSelectEpisode })}
+            {...(watchedFractionFor === undefined ? {} : { watchedFractionFor })}
             isPlaying={isPlaying}
             position={position}
             duration={duration}
@@ -966,11 +1322,22 @@ const VideoPlayer = ({
             onSeek={seek}
             onSkip={skip}
             onPlaybackRateChange={setPlaybackRate}
-            onSubtitleChange={setSelectedSubtitleId}
+            onSubtitleChange={chooseSubtitle}
             onAudioChange={changeAudio}
             onQualityChange={changeQuality}
-            onEditCaptions={() => {
-              setIsEditingCaptions((editing) => !editing)
+            onMenuOpenChange={setIsMenuOpen}
+            isShowingRemaining={isShowingRemaining}
+            onToggleTimeDisplay={() => {
+              setIsShowingRemaining((showing) => {
+                writePlaybackPreferences({ showsRemaining: !showing })
+
+                return !showing
+              })
+            }}
+            captionStyle={captionStyle}
+            onCaptionStyleChange={setCaptionStyle}
+            onCaptionStyleReset={() => {
+              setCaptionStyle(DEFAULT_CAPTION_STYLE)
             }}
             onVolumeChange={(next) => {
               setVolume(next)

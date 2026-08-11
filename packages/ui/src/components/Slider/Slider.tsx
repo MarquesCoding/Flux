@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { Slider as BaseSlider } from '@base-ui-components/react/slider'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import cnModule from '@FluxUI/cn'
 import type { SliderProps, SliderTone } from './Slider.types'
 
@@ -36,8 +37,10 @@ const Slider = ({
   tone = 'default',
   className,
 }: SliderProps) => {
+  const prefersReducedMotion = useReducedMotion()
   const trackRef = useRef<HTMLDivElement>(null)
-  const [hover, setHover] = useState<{ value: number; ratio: number } | null>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
+  const [hover, setHover] = useState<{ value: number; ratio: number; left: number } | null>(null)
 
   const track = useCallback(
     (clientX: number) => {
@@ -55,21 +58,46 @@ const Slider = ({
 
       const ratio = Math.min(Math.max((clientX - box.left) / box.width, 0), 1)
 
-      setHover({ value: ratio * max, ratio })
+      // Kept inside the track's own width. A preview centred on the pointer
+      // runs off the side of the window at either end of a film, which is
+      // where the first and last frames are — the two people scrub to most.
+      const half = (previewRef.current?.offsetWidth ?? 0) / 2
+      const left = Math.min(Math.max(ratio * box.width, half), Math.max(box.width - half, half))
+
+      setHover({ value: ratio * max, ratio, left })
     },
     [max],
   )
 
   return (
     <div data-tone={tone} className={cn('group/slider relative w-full', className)}>
-      {hover === null || renderPreview === undefined ? null : (
-        <div
-          className="pointer-events-none absolute bottom-full z-10 mb-2 -translate-x-1/2"
-          style={{ left: `${(hover.ratio * 100).toString()}%` }}
-        >
-          {renderPreview(hover.value)}
-        </div>
-      )}
+      {/* Rises into place and sinks away rather than appearing and vanishing:
+          a frame of the film that blinks in and out under the pointer reads as
+          a fault. It moves along the track without animating, because a
+          preview that eased towards the pointer would always be behind it. */}
+      <AnimatePresence>
+        {hover === null || renderPreview === undefined ? null : (
+          <motion.div
+            ref={previewRef}
+            initial={{
+              opacity: 0,
+              y: prefersReducedMotion === true ? 0 : 6,
+              scale: prefersReducedMotion === true ? 1 : 0.96,
+            }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{
+              opacity: 0,
+              y: prefersReducedMotion === true ? 0 : 6,
+              scale: prefersReducedMotion === true ? 1 : 0.96,
+            }}
+            transition={{ duration: prefersReducedMotion === true ? 0 : 0.16, ease: 'easeOut' }}
+            className="pointer-events-none absolute bottom-full z-10 mb-2 -translate-x-1/2"
+            style={{ left: `${hover.left.toString()}px` }}
+          >
+            {renderPreview(hover.value)}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <BaseSlider.Root
         value={value}
@@ -92,11 +120,10 @@ const Slider = ({
         >
           <BaseSlider.Track
             ref={trackRef}
-            className={cn(
-              'h-1.5 w-full rounded-full select-none transition-[height]',
-              'group-hover/slider:h-2',
-              TRACK_CLASSES[tone],
-            )}
+            // One height, always. A track that thickens under the pointer
+            // moves everything on the bar by two pixels at the exact moment
+            // somebody is trying to aim at it.
+            className={cn('h-1.5 w-full rounded-full select-none', TRACK_CLASSES[tone])}
           >
             <BaseSlider.Indicator className={cn('rounded-full select-none', FILL_CLASSES[tone])} />
             <BaseSlider.Thumb

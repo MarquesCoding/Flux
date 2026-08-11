@@ -23,6 +23,20 @@ describe('withOpacity', () => {
   })
 })
 
+describe('edgeStyle', () => {
+  it('fades the edge with the lettering, so turning the text down turns it down', () => {
+    const solid = toCueCss({ ...DEFAULT_CAPTION_STYLE, opacity: 1 })
+    const faint = toCueCss({ ...DEFAULT_CAPTION_STYLE, opacity: 0.4 })
+
+    expect(solid).toContain('rgba(0, 0, 0, 1.00)')
+    expect(faint).toContain('rgba(0, 0, 0, 0.40)')
+  })
+
+  it('draws no edge where none was asked for', () => {
+    expect(toCueCss({ ...DEFAULT_CAPTION_STYLE, edgeStyle: 'none' })).toContain('text-shadow: none')
+  })
+})
+
 describe('toCueCss', () => {
   it('sets the appearance of the text a browser draws', () => {
     const css = toCueCss(DEFAULT_CAPTION_STYLE)
@@ -39,7 +53,9 @@ describe('toCueCss', () => {
   })
 
   it('draws an outline by default, which reads on a busy scene', () => {
-    expect(toCueCss(DEFAULT_CAPTION_STYLE)).toContain('text-shadow: -1px -1px 0 #000')
+    expect(toCueCss(DEFAULT_CAPTION_STYLE)).toContain(
+      'text-shadow: -1px -1px 0 rgba(0, 0, 0, 1.00)',
+    )
   })
 
   it('draws no edge when asked for none', () => {

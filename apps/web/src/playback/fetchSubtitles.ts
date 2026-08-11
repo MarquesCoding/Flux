@@ -60,6 +60,31 @@ const defaultTrackId = (tracks: SubtitleTrack[]): string =>
   tracks.find((track) => track.isForced)?.id ?? SUBTITLES_OFF
 
 /**
+ * The track that continues what a viewer was already reading.
+ *
+ * A track is named from the file it lives in, so the identifier that means
+ * "English" for one episode means nothing for the next. What somebody chose
+ * was a language, and matching on that is what carries a choice from one
+ * episode into the following one.
+ *
+ * Answers with nothing when the language was never chosen, or when this file
+ * has nothing in it — a viewer who asked for English and got a Hungarian
+ * track because it was the only one would rightly call that broken.
+ */
+const trackForLanguage = (
+  tracks: SubtitleTrack[],
+  language: string | null,
+): SubtitleTrack | null => {
+  if (language === null || language === '') {
+    return null
+  }
+
+  const spoken = language.split('-')[0]?.toLowerCase() ?? ''
+
+  return tracks.find((track) => (track.language ?? '').toLowerCase().startsWith(spoken)) ?? null
+}
+
+/**
  * The track a preview should carry.
  *
  * Different question from the player's default, which stays off until asked:
@@ -84,5 +109,6 @@ export default {
   subtitleTrackUrl,
   defaultTrackId,
   previewTrack,
+  trackForLanguage,
   SUBTITLES_OFF,
 }
