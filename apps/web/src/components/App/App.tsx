@@ -10,6 +10,7 @@ import BrowseAreaModule from '@FluxWeb/components/BrowseArea/BrowseArea'
 import ShowDialogModule from '@FluxWeb/components/ShowDialog/ShowDialog'
 import fetchShowsModule from '@FluxWeb/library/fetchShows'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
+import showSlugModule from '@FluxCore/functions/showSlug'
 import useFavouritesModule from '@FluxWeb/library/useFavourites'
 import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
 import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
@@ -43,6 +44,7 @@ const { BrowseArea } = BrowseAreaModule
 const { ShowDialog } = ShowDialogModule
 const { fetchShows } = fetchShowsModule
 const { fetchLibraries } = fetchLibraryModule
+const { showSlug } = showSlugModule
 const { useFavourites } = useFavouritesModule
 const { ProfileFace } = ProfileFaceModule
 const { fetchProfiles } = fetchProfilesModule
@@ -544,9 +546,14 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           hasHero
           onFeatureChange={setFeatured}
           onPalette={setMoodLights}
-          onOpenShow={(show) => {
-            setOpenShow(show)
-            go({ show: show.id })
+          onOpenShow={(media) => {
+            const series = media.seriesTitle ?? ''
+
+            if (series !== '') {
+              // Named rather than looked up: the address is the question, and
+              // whoever answers it fetches the programme.
+              go({ show: showSlug(series) })
+            }
           }}
           isKept={favourites.isKept}
           onToggleKept={(media) => {

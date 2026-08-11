@@ -3,8 +3,6 @@ import { motion } from 'motion/react'
 import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
 import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
-import ShowCardModule from '@FluxWeb/components/ShowCard/ShowCard'
-import fetchShowsModule from '@FluxWeb/library/fetchShows'
 import SpinnerModule from '@FluxUI/Spinner'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import RailModule from '@FluxUI/Rail'
@@ -15,13 +13,10 @@ import watchProgressModule from '@FluxWeb/playback/watchProgress'
 import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
-import type { ShowSummary } from '@FluxContracts/schemas/Show'
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
 
 const { Button } = ButtonModule
 const { RailCard } = RailCardModule
-const { ShowCard } = ShowCardModule
-const { fetchShows } = fetchShowsModule
 const { Hero } = HeroModule
 const { Rail } = RailModule
 const { groupIntoRails } = groupIntoRailsModule
@@ -77,9 +72,6 @@ const LibraryBrowser = ({
     return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
   }
   const [state, setState] = useState<BrowserState>('loading')
-  // The series in this library, read as series rather than assembled from
-  // whichever episodes this page happens to be holding.
-  const [shows, setShows] = useState<ShowSummary[]>([])
 
   // Held in a ref rather than depended upon. A caller that passes a fresh
   // function every render — which is what an inline arrow is — would
@@ -163,28 +155,6 @@ const LibraryBrowser = ({
       setState('unreachable')
     }
   }, [selectedId, appliedSearch])
-
-  // The series, read once per library rather than per keystroke: a shelf of
-  // programmes does not change because somebody typed.
-  useEffect(() => {
-    if (selectedId === null) {
-      setShows([])
-
-      return
-    }
-
-    let abandoned = false
-
-    void fetchShows(selectedId).then((found) => {
-      if (!abandoned) {
-        setShows(found)
-      }
-    })
-
-    return () => {
-      abandoned = true
-    }
-  }, [selectedId])
 
   useEffect(() => {
     void loadItems()
@@ -278,19 +248,6 @@ const LibraryBrowser = ({
           </p>
         ) : (
           <div className="flex flex-col gap-10">
-            {/* One card per programme, above the seasons. A viewer who wants
-                an episode still has every season below; this is for the one
-                who wants the programme. */}
-            {shows.length === 0 || onOpenShow === undefined ? null : (
-              <Rail title="Shows" className="px-0">
-                {shows.map((show) => (
-                  <li key={show.id} className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80">
-                    <ShowCard show={show} onSelect={onOpenShow} />
-                  </li>
-                ))}
-              </Rail>
-            )}
-
             {groupIntoRails(items, Date.now(), progress).map((rail) => (
               <Rail key={rail.id} title={rail.title} className="px-0">
                 {rail.items.map((media) => (
@@ -327,6 +284,7 @@ const LibraryBrowser = ({
                         onWatch(media, startSeconds)
                       }}
                       onInspect={onPlay}
+                      {...(onOpenShow === undefined ? {} : { onOpenShow })}
                       {...(isKept === undefined ? {} : { isKept: isKept(media.id) })}
                       {...(onToggleKept === undefined ? {} : { onToggleKept })}
                     />
