@@ -1,4 +1,4 @@
-import { cn } from '@FluxUI/cn';
+import { ProgressBar } from '@FluxUI/ProgressBar';
 import type { ScanProgressBarProps } from './ScanProgressBar.types';
 
 /**
@@ -20,38 +20,29 @@ const PHASE_LABELS: Record<string, string> = {
  */
 const ScanProgressBar = ({ label, phase, processed, total }: ScanProgressBarProps) => {
   const isKnown = processed !== null && total !== null && total > 0;
-  const fraction = isKnown ? Math.min(processed / total, 1) : 0;
   const phaseLabel = phase === null ? null : (PHASE_LABELS[phase] ?? phase);
 
   return (
-    <div
-      role="progressbar"
-      aria-label={phaseLabel === null ? label : `${label}: ${phaseLabel}`}
+    <ProgressBar
+      label={phaseLabel === null ? label : `${label}: ${phaseLabel}`}
+      value={isKnown ? processed : null}
+      {...(isKnown ? { max: total } : {})}
       {...(isKnown
-        ? { 'aria-valuenow': processed, 'aria-valuemin': 0, 'aria-valuemax': total }
+        ? {
+            readout: (
+              <span className="shrink-0 text-xs tabular-nums text-text-muted">
+                {processed}/{total}
+              </span>
+            ),
+          }
         : {})}
-      className="flex shrink-0 items-center gap-2"
     >
       {phaseLabel === null ? null : (
-        <span className="shrink-0 text-xs text-text-muted">{phaseLabel}</span>
-      )}
-
-      <span className="block h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-white/10">
-        <span
-          style={isKnown ? { width: `${(fraction * 100).toString()}%` } : undefined}
-          className={cn(
-            'block h-full rounded-full bg-accent',
-            isKnown ? 'transition-[width] duration-300' : 'w-full animate-pulse',
-          )}
-        />
-      </span>
-
-      {isKnown ? (
-        <span className="shrink-0 text-xs tabular-nums text-text-muted">
-          {processed}/{total}
+        <span aria-hidden className="shrink-0 text-xs text-text-muted">
+          {phaseLabel}
         </span>
-      ) : null}
-    </div>
+      )}
+    </ProgressBar>
   );
 };
 

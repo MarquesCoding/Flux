@@ -20,6 +20,10 @@
       "@FluxUI/MoodBackground": ["./packages/ui/src/components/MoodBackground/MoodBackground.tsx"],
       "@FluxUI/PageDots": ["./packages/ui/src/components/PageDots/PageDots.tsx"],
       "@FluxUI/PopoverPanel": ["./packages/ui/src/components/PopoverPanel/PopoverPanel.tsx"],
+      "@FluxUI/ProgressBar": ["./packages/ui/src/components/ProgressBar/ProgressBar.tsx"],
+      "@FluxUI/ProgressBar.types": [
+        "./packages/ui/src/components/ProgressBar/ProgressBar.types.ts"
+      ],
       "@FluxUI/QrCode": ["./packages/ui/src/components/QrCode/QrCode.tsx"],
       "@FluxUI/Rail": ["./packages/ui/src/components/Rail/Rail.tsx"],
       "@FluxUI/SettingsMenu": ["./packages/ui/src/components/SettingsMenu/SettingsMenu.tsx"],
@@ -28,6 +32,8 @@
       "@FluxUI/Sparkline": ["./packages/ui/src/components/Sparkline/Sparkline.tsx"],
       "@FluxUI/Spinner": ["./packages/ui/src/components/Spinner/Spinner.tsx"],
       "@FluxUI/SplashScreen": ["./packages/ui/src/components/SplashScreen/SplashScreen.tsx"],
+      "@FluxUI/Switch": ["./packages/ui/src/components/Switch/Switch.tsx"],
+      "@FluxUI/Switch.types": ["./packages/ui/src/components/Switch/Switch.types.ts"],
       "@FluxUI/TabBar": ["./packages/ui/src/components/TabBar/TabBar.tsx"],
       "@FluxUI/TextField": ["./packages/ui/src/components/TextField/TextField.tsx"],
       "@FluxUI/Tooltip": ["./packages/ui/src/components/Tooltip/Tooltip.tsx"],
