@@ -170,7 +170,7 @@ body {
   background-repeat: no-repeat;
   background-size: 150% 150%;
   background-position: 50% 50%;
-  transition: background 1200ms linear;
+  transition: background 300ms linear;
 }
 
 /*

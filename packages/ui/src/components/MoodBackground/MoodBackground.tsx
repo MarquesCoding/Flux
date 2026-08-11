@@ -42,8 +42,9 @@ const DRIFTS = ['34s', '46s', '58s', '41s', '52s'] as const
  * The lights change in place rather than being swapped for new ones. A frame
  * of a film is read several times a second, and a page that crossfaded two
  * whole layers at that rate would spend its life halfway between two washes.
- * Each gradient keeps its shape and only its colours move, which is a thing
- * the browser can carry smoothly on its own.
+ * What arrives here has already been eased towards the picture by whatever is
+ * reading it; the short transition on each gradient only covers the gap
+ * between one reading and the next.
  */
 const MoodBackground = ({
   lights = [],
