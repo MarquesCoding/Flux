@@ -10,6 +10,7 @@ import useFavouritesModule from '@FluxWeb/library/useFavourites'
 import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
 import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
 import currentProfileModule from '@FluxWeb/profiles/currentProfile'
+import pickAnythingModule from '@FluxWeb/library/pickAnything'
 import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
 import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
 import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
@@ -39,6 +40,7 @@ const { useFavourites } = useFavouritesModule
 const { ProfileFace } = ProfileFaceModule
 const { fetchProfiles } = fetchProfilesModule
 const { readCurrentProfile } = currentProfileModule
+const { pickAnything } = pickAnythingModule
 const { VideoPlayer } = VideoPlayerModule
 const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
@@ -337,6 +339,19 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       // film the viewer has navigated away from.
       moodLights={section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
+      // Something at random, opened as its own page rather than played
+      // outright: being thrown into a film nobody chose is a worse surprise
+      // than being shown one and asked.
+      onSurprise={() => {
+        void pickAnything().then((found) => {
+          if (found === null) {
+            return
+          }
+
+          rememberItems([found])
+          go({ inspecting: found.id })
+        })
+      }}
       {...(watcher === null
         ? {}
         : { avatar: <ProfileFace profile={watcher} className="size-7 rounded-full text-xs" /> })}

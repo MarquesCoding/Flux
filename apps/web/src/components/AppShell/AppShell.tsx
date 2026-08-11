@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import {
   IconClock,
+  IconDice5,
   IconHeart,
   IconHome,
   IconMovie,
@@ -68,6 +69,7 @@ const AppShell = ({
   moodLights = [],
   isAdministrator = false,
   avatar,
+  onSurprise,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion()
 
@@ -134,6 +136,16 @@ const AppShell = ({
         onSectionChange('search')
       },
     },
+    ...(onSurprise === undefined
+      ? []
+      : [
+          {
+            id: 'surprise',
+            label: 'Watch something at random',
+            icon: <IconDice5 size={20} aria-hidden />,
+            onSelect: onSurprise,
+          },
+        ]),
     {
       id: 'notifications',
       label: 'Notifications',

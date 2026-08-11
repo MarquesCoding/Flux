@@ -43,6 +43,13 @@ type AppShellProps = {
    * The face to draw on the account button, when this viewer has one.
    */
   avatar?: ReactNode
+  /**
+   * Opens something chosen at random.
+   *
+   * Left out where there is nothing to choose from, and the control is not
+   * drawn at all rather than drawn and refusing.
+   */
+  onSurprise?: () => void
 }
 
 export type { AppShellProps, ShellSection }
