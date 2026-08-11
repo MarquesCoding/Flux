@@ -339,6 +339,78 @@ const jobTrigger = pgTable(
   (table) => [index('job_trigger_kind_idx').on(table.kind)],
 );
 
+/**
+ * A named set of capabilities the operator defined.
+ *
+ * Roles are made at runtime rather than fixed in code, which is why they live
+ * here instead of in better-auth: its access control expects roles declared
+ * statically, and an operator inventing "Housemate" on a Tuesday cannot be.
+ * better-auth stays the authentication layer; Flux owns what a role means.
+ *
+ * `position` orders roles against each other, and the order is what makes
+ * managing them safe. Without it, "may manage roles" quietly means "may make
+ * myself an administrator".
+ */
+const role = pgTable(
+  'role',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    description: text('description').notNull().default(''),
+    position: integer('position').notNull().default(0),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('role_name_idx').on(table.name)],
+);
+
+const rolePermission = pgTable(
+  'role_permission',
+  {
+    roleId: text('roleId')
+      .notNull()
+      .references(() => role.id, { onDelete: 'cascade' }),
+    permission: text('permission').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.roleId, table.permission] })],
+);
+
+const userRole = pgTable(
+  'user_role',
+  {
+    userId: text('userId')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    roleId: text('roleId')
+      .notNull()
+      .references(() => role.id, { onDelete: 'cascade' }),
+    grantedAt: timestamp('grantedAt').notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.roleId] }),
+    index('user_role_role_idx').on(table.roleId),
+  ],
+);
+
+/**
+ * What was said about one account in particular.
+ *
+ * For the exception that does not justify a role of its own. `effect` is
+ * `allow` or `deny`, and deny wins over every grant anywhere — see
+ * `resolvePermissions`, which is where that rule is actually applied.
+ */
+const userPermissionOverride = pgTable(
+  'user_permission_override',
+  {
+    userId: text('userId')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    permission: text('permission').notNull(),
+    effect: text('effect').notNull(),
+    grantedAt: timestamp('grantedAt').notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.permission] })],
+);
+
 const userProfile = pgTable('user_profile', {
   userId: text('userId')
     .primaryKey()
@@ -387,4 +459,8 @@ export {
   apikey,
   userProfile,
   viewerProfile,
+  role,
+  rolePermission,
+  userRole,
+  userPermissionOverride,
 };
