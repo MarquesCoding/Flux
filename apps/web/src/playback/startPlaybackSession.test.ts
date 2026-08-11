@@ -19,6 +19,7 @@ const fetchMock = vi.fn<FetchLike>()
 const SentBodySchema = z.object({
   deviceProfile: z.object({ name: z.string() }),
   startSeconds: z.number(),
+  requestedQuality: z.string().optional(),
 })
 
 const sentBody = () => SentBodySchema.parse(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'))
@@ -83,6 +84,18 @@ describe('startPlaybackSession', () => {
     await startPlaybackSession('media-1', profile, 120)
 
     expect(sentBody()).toMatchObject({ startSeconds: 120 })
+  })
+
+  it('sends the requested quality when it is not Original', async () => {
+    await startPlaybackSession('media-1', profile, 0, undefined, '720p')
+
+    expect(sentBody().requestedQuality).toBe('720p')
+  })
+
+  it('omits the requested quality for Original', async () => {
+    await startPlaybackSession('media-1', profile, 0, undefined, 'original')
+
+    expect(sentBody().requestedQuality).toBeUndefined()
   })
 
   it('reports the server reason when it refuses', async () => {

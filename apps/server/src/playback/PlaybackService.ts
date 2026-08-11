@@ -1,6 +1,7 @@
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile'
 import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan'
 import type { PlaybackMode } from '@FluxContracts/functions/describePlaybackMode'
+import type { QualityStepId } from '@FluxContracts/schemas/QualityStep'
 
 type Explanation = {
   mode: PlaybackMode
@@ -51,7 +52,17 @@ type RangedFile = {
  * authentication of its own, and would happily transcode any path it is given.
  */
 type PlaybackService = {
-  explain: (mediaId: string, profile: DeviceProfile) => Promise<Explanation | null>
+  explain: (
+    mediaId: string,
+    profile: DeviceProfile,
+    /**
+     * A quality step the viewer picked, below the device's own capability.
+     *
+     * `undefined` or `'original'` means whatever device negotiation alone
+     * would decide, unchanged.
+     */
+    requestedQuality?: QualityStepId,
+  ) => Promise<Explanation | null>
   start: (
     mediaId: string,
     profile: DeviceProfile,
@@ -63,6 +74,7 @@ type PlaybackService = {
      * stream and the browser picks for itself.
      */
     audioStreamIndex?: number,
+    requestedQuality?: QualityStepId,
   ) => Promise<StartOutcome>
   readSessionFile: (sessionId: string, name: string) => Promise<SessionFile | null>
   readDirectFile: (mediaId: string, range: string | null) => Promise<RangedFile | null>
@@ -70,6 +82,17 @@ type PlaybackService = {
    * Renders seek-bar previews for an item, or reuses ones already on disk.
    */
   trickplay: (mediaId: string) => Promise<Trickplay | null>
+  /**
+   * Reads one frame of an item as a picture.
+   */
+  readFrame: (mediaId: string, seconds: number, width: number) => Promise<ArrayBuffer | null>
+  /**
+   * The short clip a library page plays for an item.
+   *
+   * Null while it is still being made: a page shows the still frame it
+   * already has rather than waiting for something decorative.
+   */
+  readPreview: (mediaId: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>
   readTrickplayFile: (trickplayId: string, name: string) => Promise<SessionFile | null>
   stop: (sessionId: string) => Promise<boolean>
 }

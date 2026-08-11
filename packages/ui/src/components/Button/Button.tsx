@@ -7,15 +7,18 @@ const { Spinner } = SpinnerModule
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: 'bg-accent text-accent-contrast hover:opacity-90',
-  secondary: 'bg-surface-raised text-text border border-border hover:bg-surface',
-  ghost: 'bg-transparent text-text hover:bg-surface-raised',
-  danger: 'bg-danger text-accent-contrast hover:opacity-90',
+  glossy:
+    'flux-gloss bg-white text-black hover:brightness-105 hover:shadow-[0_10px_30px_-6px_rgba(255,255,255,0.35)]',
+  secondary: 'flux-glass text-text hover:brightness-125',
+  ghost: 'bg-transparent text-text hover:bg-white/10',
+  danger: 'flux-gloss bg-danger text-accent-contrast hover:brightness-110',
 }
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
   sm: 'h-8 px-3 text-sm gap-1.5',
   md: 'h-10 px-4 text-base gap-2',
   lg: 'h-12 px-6 text-lg gap-2.5',
+  xl: 'h-14 px-8 text-lg gap-3 font-semibold',
 }
 
 /**
@@ -27,6 +30,7 @@ const Button = ({
   variant = 'primary',
   size = 'md',
   isLoading = false,
+  isPill = false,
   className,
   disabled,
   type = 'button',
@@ -40,16 +44,18 @@ const Button = ({
       disabled={isDisabled}
       aria-busy={isLoading}
       className={cn(
-        'inline-flex items-center justify-center rounded-md font-medium',
-        'transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2',
-        'focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex shrink-0 items-center justify-center font-medium',
+        'transition-[filter,box-shadow,transform,opacity] duration-200',
+        'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100',
+        'active:scale-[0.98]',
+        isPill ? 'rounded-full' : 'rounded-lg',
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],
         className,
       )}
       {...rest}
     >
-      {isLoading ? <Spinner size={size === 'lg' ? 'md' : 'sm'} label="Loading" /> : null}
+      {isLoading ? <Spinner size={size === 'sm' ? 'sm' : 'md'} label="Loading" /> : null}
       {children}
     </button>
   )

@@ -1,4 +1,4 @@
-import { OpenAPIHono } from '@hono/zod-openapi'
+import { OpenAPIHono, z } from '@hono/zod-openapi'
 import { apiReference } from '@scalar/hono-api-reference'
 import suggestTrustedOriginsModule from '@FluxServer/setup/suggestTrustedOrigins'
 import type { FluxAuth } from '@FluxServer/auth/Auth'
@@ -7,14 +7,24 @@ import LibraryServiceModule from '@FluxServer/library/LibraryService'
 import type { LibraryService } from '@FluxServer/library/LibraryService'
 import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService'
 import type { SegmentService } from '@FluxServer/segments/SegmentService'
+import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService'
 import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
 import HealthRouteModule from './routes/HealthRoute'
 import LibraryRouteModule from './routes/LibraryRoute'
 import PlaybackRouteModule from './routes/PlaybackRoute'
 import ImageRouteModule from '@FluxServer/routes/ImageRoute'
 import SegmentRouteModule from '@FluxServer/routes/SegmentRoute'
+import ProgressRouteModule from '@FluxServer/routes/ProgressRoute'
+import AdminRouteModule from '@FluxServer/routes/AdminRoute'
+import ProfileRouteModule from '@FluxServer/routes/ProfileRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
+import JsonValueModule from '@FluxContracts/schemas/JsonValue'
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+import drawAvatarModule from '@FluxServer/profiles/drawAvatar'
+import shiftWebVttModule from '@FluxCore/functions/shiftWebVtt'
+import type { ProfileService } from '@FluxServer/profiles/ProfileService'
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 
 const { suggestTrustedOrigins } = suggestTrustedOriginsModule
 const { healthRoute } = HealthRouteModule
@@ -34,12 +44,59 @@ const {
   directFileRoute,
   trickplayRoute,
   trickplayFileRoute,
+  frameRoute,
   stopRoute,
 } = PlaybackRouteModule
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
 const { listSubtitlesRoute, readSubtitleRoute } = SubtitleRouteModule
 const { mediaImageRoute } = ImageRouteModule
 const { listSegmentsRoute } = SegmentRouteModule
+const { listProgressRoute, recordProgressRoute, forgetProgressRoute } = ProgressRouteModule
+const { adminOverviewRoute, adminSettingsRoute } = AdminRouteModule
+const {
+  listProfilesRoute,
+  createProfileRoute,
+  updateProfileRoute,
+  deleteProfileRoute,
+  promoteProfileRoute,
+} = ProfileRouteModule
+
+/**
+ * The header a browser names the watching profile in.
+ */
+const PROFILE_HEADER = 'x-flux-profile'
+
+const { drawAvatar, isAvatarStyle } = drawAvatarModule
+const { shiftWebVtt } = shiftWebVttModule
+const { JsonValueSchema } = JsonValueModule
+
+/**
+ * Reads a single byte range out of a request.
+ *
+ * Only the one form a media element actually sends. Anything else — multiple
+ * ranges, a suffix length, a nonsense pair — is answered with the whole thing,
+ * which is always a valid response to a range request.
+ */
+const readByteRange = (
+  header: string | undefined,
+  size: number,
+): { from: number; to: number } | null => {
+  const match = /^bytes=(?<from>\d+)-(?<to>\d*)$/.exec(header ?? '')
+
+  if (match?.groups === undefined) {
+    return null
+  }
+
+  const from = Number(match.groups.from)
+  const to = match.groups.to === '' ? size - 1 : Number(match.groups.to)
+
+  return from >= size || from > to ? null : { from, to: Math.min(to, size - 1) }
+}
+
+/**
+ * What signing in by face carries.
+ */
+const SignInBodySchema = z.object({ password: z.string().min(1) })
 
 const SERVER_VERSION = '0.0.0'
 
@@ -52,6 +109,36 @@ type CreateAppOptions = {
   playback: PlaybackService
   subtitles: SubtitleService
   segments: SegmentService
+  progress: WatchProgressService
+  /**
+   * The people using each account.
+   */
+  profiles?: ProfileService
+  /**
+   * Gives a profile an account of its own.
+   *
+   * Passed in rather than done here, because making an account is better-auth's
+   * business and it owns how a password becomes a credential.
+   */
+  promoteProfile?: (request: {
+    profileId: string
+    email: string
+    password: string
+  }) => Promise<
+    { kind: 'promoted'; profile: ViewerProfile } | { kind: 'taken' } | { kind: 'missing' }
+  >
+  /**
+   * Everyone with an account, for the administration page.
+   */
+  listUsers?: () => Promise<
+    { id: string; name: string; email: string; role: string | null; createdAt: string }[]
+  >
+  capabilities?: () => Promise<{ ffmpegVersion: string; hardwareAccels: string[] }>
+  /**
+   * What the media service is doing right now.
+   */
+  monitor?: () => Promise<JsonValue>
+  monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>
   /**
    * Reads artwork from Flux's own cache, fetching it once if needed.
    *
@@ -81,6 +168,13 @@ const createApp = ({
   playback,
   subtitles,
   segments,
+  progress,
+  profiles,
+  promoteProfile,
+  listUsers,
+  capabilities,
+  monitor,
+  monitorStream,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
 }: CreateAppOptions) => {
@@ -211,9 +305,9 @@ const createApp = ({
 
   app.openapi(explainRoute, async (context) => {
     const { mediaId } = context.req.valid('param')
-    const { deviceProfile } = context.req.valid('json')
+    const { deviceProfile, requestedQuality } = context.req.valid('json')
 
-    const explanation = await playback.explain(mediaId, deviceProfile)
+    const explanation = await playback.explain(mediaId, deviceProfile, requestedQuality)
 
     if (explanation === null) {
       return context.json({ error: 'No such media item.' }, 404)
@@ -224,13 +318,15 @@ const createApp = ({
 
   app.openapi(startRoute, async (context) => {
     const { mediaId } = context.req.valid('param')
-    const { deviceProfile, startSeconds, audioStreamIndex } = context.req.valid('json')
+    const { deviceProfile, startSeconds, audioStreamIndex, requestedQuality } =
+      context.req.valid('json')
 
     const outcome = await playback.start(
       mediaId,
       deviceProfile,
       startSeconds ?? 0,
       audioStreamIndex,
+      requestedQuality,
     )
 
     if (outcome.kind === 'notFound') {
@@ -298,6 +394,60 @@ const createApp = ({
     }
   })
 
+  app.openapi(frameRoute, async (context) => {
+    const { mediaId } = context.req.valid('param')
+    const { seconds, width } = context.req.valid('query')
+
+    const frame = await playback.readFrame(mediaId, seconds, width)
+
+    if (frame === null) {
+      return context.json({ error: 'No frame there.' }, 404)
+    }
+
+    // A frame is decided by the file and the position, neither of which
+    // changes, so it is worth keeping for a long time.
+    return context.body(frame, 200, {
+      'content-type': 'image/jpeg',
+      'cache-control': 'public, max-age=31536000, immutable',
+    })
+  })
+
+  /**
+   * The short clip a library page plays for an item.
+   *
+   * Outside the OpenAPI routes because it answers with a video or with
+   * nothing, and "nothing yet" is a normal answer rather than a fault: the
+   * clip is made in the background and the page shows a still until it exists.
+   */
+  app.get('/api/media/:mediaId/preview', async (context) => {
+    const clip = await playback.readPreview(context.req.param('mediaId')).catch(() => null)
+
+    if (clip === null) {
+      return context.json({ error: 'No preview yet.' }, 404)
+    }
+
+    // Media elements ask for byte ranges, and some browsers will not play a
+    // response that cannot answer one. The clip is small enough to hold, so
+    // the range is served from what was already read rather than by reaching
+    // for the file again.
+    const range = readByteRange(context.req.header('range'), clip.body.byteLength)
+
+    if (range === null) {
+      return context.body(clip.body, 200, {
+        'content-type': clip.contentType,
+        'accept-ranges': 'bytes',
+        'cache-control': 'public, max-age=86400',
+      })
+    }
+
+    return context.body(clip.body.slice(range.from, range.to + 1), 206, {
+      'content-type': clip.contentType,
+      'accept-ranges': 'bytes',
+      'content-range': `bytes ${range.from.toString()}-${range.to.toString()}/${clip.body.byteLength.toString()}`,
+      'cache-control': 'public, max-age=86400',
+    })
+  })
+
   app.openapi(trickplayFileRoute, async (context) => {
     const { trickplayId, name } = context.req.valid('param')
 
@@ -308,6 +458,428 @@ const createApp = ({
     }
 
     return context.body(file.body, 200, { 'content-type': file.contentType })
+  })
+
+  /**
+   * Who is asking.
+   *
+   * Progress belongs to a person, so these are the first routes that need to
+   * know who that is. better-auth owns the session, and asking it is cheaper
+   * than Flux keeping a second idea of who is signed in.
+   */
+  /**
+   * Which person on this account is watching.
+   *
+   * Named by a header the browser sets from whoever was picked. The identifier
+   * is not a secret — it sits in local storage — so it is checked against the
+   * account on every request rather than trusted. An unrecognised one falls
+   * back to the account's default profile rather than failing: somebody whose
+   * profile was removed on another device should carry on watching, not meet
+   * an error.
+   */
+  const readProfileId = async (headers: Headers): Promise<string | null> => {
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+    const viewer = session?.user
+
+    if (viewer === undefined || profiles === undefined) {
+      return null
+    }
+
+    const named = headers.get(PROFILE_HEADER)
+
+    if (named !== null && (await profiles.belongsTo(viewer.id, named))) {
+      return named
+    }
+
+    return (await profiles.ensureDefault(viewer.id, viewer.name)).id
+  }
+
+  /**
+   * Whether the viewer administers the server.
+   *
+   * Checked per request rather than trusted from the browser: an interface
+   * that hides a section is a courtesy, not a permission.
+   */
+  const isAdministrator = async (headers: Headers): Promise<boolean> => {
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    return session?.user.role === 'admin'
+  }
+
+  /**
+   * Who is signed in, for the routes that act on their own account.
+   */
+  const readAccount = async (headers: Headers) => {
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    return session?.user ?? null
+  }
+
+  app.openapi(listProfilesRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null || profiles === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    // Asked for a default first, so an account that has never thought about
+    // profiles still answers with the one it is really using.
+    await profiles.ensureDefault(account.id, account.name)
+
+    return context.json({ profiles: await profiles.list(account.id) }, 200)
+  })
+
+  app.openapi(createProfileRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null || profiles === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const { name, colour, avatar } = context.req.valid('json')
+
+    try {
+      const created = await profiles.create(account.id, {
+        name,
+        colour,
+        ...(avatar === undefined ? {} : { avatar }),
+      })
+
+      return context.json(created, 201)
+    } catch (error) {
+      return context.json(
+        { error: error instanceof Error ? error.message : 'That profile could not be added.' },
+        409,
+      )
+    }
+  })
+
+  app.openapi(updateProfileRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null || profiles === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const { name, colour, avatar } = context.req.valid('json')
+
+    const changed = await profiles.rename(account.id, context.req.valid('param').profileId, {
+      name,
+      colour,
+      ...(avatar === undefined ? {} : { avatar }),
+    })
+
+    return changed
+      ? context.body(null, 204)
+      : context.json({ error: 'No such profile on this account.' }, 404)
+  })
+
+  app.openapi(deleteProfileRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null || profiles === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const removed = await profiles.remove(account.id, context.req.valid('param').profileId)
+
+    return removed
+      ? context.body(null, 204)
+      : context.json({ error: 'No such profile, or it is the only one left.' }, 404)
+  })
+
+  app.openapi(promoteProfileRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    if (profiles === undefined || promoteProfile === undefined) {
+      return context.json({ error: 'No such profile.' }, 404)
+    }
+
+    const { profileId } = context.req.valid('param')
+    const { email, password } = context.req.valid('json')
+
+    const outcome = await promoteProfile({ profileId, email, password })
+
+    if (outcome.kind === 'taken') {
+      return context.json({ error: 'That address already has an account.' }, 409)
+    }
+
+    if (outcome.kind === 'missing') {
+      return context.json({ error: 'No such profile.' }, 404)
+    }
+
+    return context.json(outcome.profile, 200)
+  })
+
+  /**
+   * A profile's picture.
+   *
+   * Outside the OpenAPI routes because it answers with an image whose type
+   * depends on what the profile wears. Not behind a session either: a picture
+   * of somebody's initial is not a secret, and the identifier needed to ask
+   * for one is already only known to whoever can list them.
+   */
+  app.get('/api/profiles/:profileId/avatar', async (context) => {
+    const picture = await profiles?.readAvatar(context.req.param('profileId'))
+
+    if (picture === undefined || picture === null) {
+      return context.json({ error: 'That profile has no picture.' }, 404)
+    }
+
+    // Asked for by version, the answer can never go stale: changing a picture
+    // changes its address. Asked for without one, it is remembered for a
+    // minute at most, because then the address outlives the picture.
+    const isVersioned = context.req.query('v') !== undefined
+
+    return context.body(picture.body.slice().buffer, 200, {
+      'content-type': picture.contentType,
+      'cache-control': isVersioned ? 'private, max-age=31536000, immutable' : 'private, max-age=60',
+    })
+  })
+
+  /**
+   * Everybody who could sign in.
+   *
+   * Read before anybody has signed in, because it is the way in: a wall of
+   * faces to pick from rather than a box asking for an address. Names and
+   * pictures only — an address is what somebody would need to attack an
+   * account, and it is never sent.
+   */
+  app.get('/api/profiles/everyone', async (context) => {
+    const everyone = await profiles?.listEveryone()
+
+    return context.json({ profiles: everyone ?? [] }, 200)
+  })
+
+  /**
+   * Signs somebody in by their face rather than their address.
+   *
+   * The password is still the password. What changes is only how the account
+   * is named: a profile that was picked from a wall, rather than an address
+   * typed from memory. better-auth is handed the address behind it and
+   * answers with its own cookies, which are passed straight back.
+   */
+  app.post('/api/profiles/:profileId/sign-in', async (context) => {
+    if (profiles === undefined) {
+      return context.json({ error: 'No such profile.' }, 404)
+    }
+
+    // Read as text and parsed here, because the router's own JSON reader is
+    // typed as anything and untrusted input enters through a schema.
+    const body = await context.req.text().catch(() => '')
+    const parsed = SignInBodySchema.safeParse(JsonValueSchema.parse(JSON.parse(body || 'null')))
+
+    if (!parsed.success) {
+      return context.json({ error: 'A password is required.' }, 400)
+    }
+
+    const email = await profiles.findSignInEmail(context.req.param('profileId'))
+
+    if (email === null) {
+      return context.json({ error: 'No such profile.' }, 404)
+    }
+
+    return auth.api.signInEmail({
+      body: { email, password: parsed.data.password },
+      asResponse: true,
+      headers: context.req.raw.headers,
+    })
+  })
+
+  /**
+   * Draws a face that nobody has chosen yet.
+   *
+   * A preview, so the picker can show what each style looks like before
+   * anything is saved. Drawn from a style and a seed, which is all a drawn
+   * avatar ever is.
+   */
+  app.get('/api/profiles/avatars/:style', (context) => {
+    const style = context.req.param('style')
+    const seed = context.req.query('seed') ?? 'flux'
+
+    if (!isAvatarStyle(style)) {
+      return context.json({ error: 'No such style.' }, 404)
+    }
+
+    return context.body(drawAvatar(style, seed), 200, {
+      'content-type': 'image/svg+xml',
+      // The same style and seed always draw the same face, so this is worth
+      // keeping for as long as a browser will.
+      'cache-control': 'public, max-age=86400',
+    })
+  })
+
+  /**
+   * Uploads a photograph for a profile.
+   *
+   * The body is the picture itself rather than a form: there is one file and
+   * no other fields, and multipart parsing to find it would be ceremony.
+   */
+  app.put('/api/profiles/:profileId/photo', async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null || profiles === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const saved = await profiles.savePhoto(account.id, context.req.param('profileId'), {
+      body: new Uint8Array(await context.req.arrayBuffer()),
+      contentType: context.req.header('content-type') ?? '',
+    })
+
+    return saved
+      ? context.body(null, 204)
+      : context.json({ error: 'That picture could not be used.' }, 400)
+  })
+
+  app.openapi(adminOverviewRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const [users, current, libraries, transcoderCapabilities] = await Promise.all([
+      listUsers?.() ?? Promise.resolve([]),
+      settings.read(),
+      library.list(),
+      capabilities?.().catch(() => null) ?? Promise.resolve(null),
+    ])
+
+    return context.json(
+      {
+        users,
+        settings: {
+          hasCatalogueKey: current.catalogueApiKey !== '',
+          trustedOrigins: current.trustedOrigins,
+          cookieSecure: current.cookieSecure,
+        },
+        transcoder: {
+          isReachable: await isTranscoderReachable(),
+          ffmpegVersion: transcoderCapabilities?.ffmpegVersion ?? null,
+          hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
+        },
+        library: {
+          libraryCount: libraries.length,
+          itemCount: libraries.reduce((total, entry) => total + entry.itemCount, 0),
+        },
+      },
+      200,
+    )
+  })
+
+  app.openapi(adminSettingsRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const patch = context.req.valid('json')
+
+    const updated = await settings.write(
+      patch.catalogueApiKey === undefined ? {} : { catalogueApiKey: patch.catalogueApiKey },
+    )
+
+    return context.json(
+      {
+        hasCatalogueKey: updated.catalogueApiKey !== '',
+        trustedOrigins: updated.trustedOrigins,
+        cookieSecure: updated.cookieSecure,
+      },
+      200,
+    )
+  })
+
+  /**
+   * What the media service is doing at this moment.
+   *
+   * Outside the OpenAPI routes, like the stream below it. The reading's type
+   * is recursive by nature — it is whatever the media service measured — and
+   * describing it in a schema would freeze a monitoring surface that should be
+   * free to grow a field without breaking the page that reads it.
+   */
+  app.get('/api/admin/monitor', async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const reading = await monitor?.().catch(() => null)
+
+    if (reading === null || reading === undefined) {
+      return context.json({ error: 'The media service did not answer.' }, 503)
+    }
+
+    return new Response(JSON.stringify(reading), {
+      headers: { 'content-type': 'application/json' },
+    })
+  })
+
+  /**
+   * The same reading, over and over, for a page that wants to watch.
+   *
+   * Outside the OpenAPI routes because an event stream is not a JSON response
+   * and describing it as one would be a lie in the schema. The body is passed
+   * through untouched from the media service.
+   */
+  app.get('/api/admin/monitor/stream', async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const stream = await monitorStream?.().catch(() => null)
+
+    if (stream === null || stream === undefined) {
+      return context.json({ error: 'The media service did not answer.' }, 503)
+    }
+
+    return new Response(stream, {
+      headers: {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      },
+    })
+  })
+
+  app.openapi(listProgressRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers)
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    return context.json({ progress: await progress.list(profileId) }, 200)
+  })
+
+  app.openapi(recordProgressRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers)
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const { mediaId } = context.req.valid('param')
+
+    if ((await library.getMedia(mediaId)) === null) {
+      return context.json({ error: 'No such media item.' }, 404)
+    }
+
+    const report = context.req.valid('json')
+
+    await progress.record(profileId, { mediaId, ...report })
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(forgetProgressRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers)
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    await progress.forget(profileId, context.req.valid('param').mediaId)
+
+    return context.body(null, 204)
   })
 
   app.openapi(listSegmentsRoute, async (context) => {
@@ -355,6 +927,7 @@ const createApp = ({
 
   app.openapi(readSubtitleRoute, async (context) => {
     const { mediaId, trackId } = context.req.valid('param')
+    const { from } = context.req.valid('query')
 
     const track = await subtitles.read(mediaId, trackId)
 
@@ -362,7 +935,9 @@ const createApp = ({
       return context.json({ error: 'No such track.' }, 404)
     }
 
-    return context.body(track, 200, { 'content-type': 'text/vtt; charset=utf-8' })
+    return context.body(shiftWebVtt(track, from), 200, {
+      'content-type': 'text/vtt; charset=utf-8',
+    })
   })
 
   app.openapi(stopRoute, async (context) => {

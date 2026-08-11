@@ -162,4 +162,97 @@ describe('negotiatePlayback', () => {
     expect(plan.audio.reason.detail).not.toBe('')
     expect(plan.subtitles.reason.detail).not.toBe('')
   })
+
+  describe('quality clamp', () => {
+    it('leaves the plan untouched when there is no clamp', () => {
+      const plan = negotiatePlayback(media, profile, null)
+
+      expect(plan.video.kind).toBe('passthrough')
+    })
+
+    it('forces a resolution transcode below what the device alone would require', () => {
+      const plan = negotiatePlayback(media, profile, {
+        maxWidth: 1280,
+        maxHeight: 720,
+        maxVideoBitrateKbps: 2500,
+        maxAudioBitrateKbps: null,
+      })
+
+      expect(plan.video).toMatchObject({
+        kind: 'transcode',
+        maxWidth: 1280,
+        maxHeight: 720,
+        maxBitrateKbps: 2500,
+      })
+      expect(plan.video.reason.code).toBe('UserForcedTranscode')
+    })
+
+    it('attributes the transcode to the device, not the clamp, when the device is the tighter limit', () => {
+      const weak: DeviceProfile = { ...profile, maxWidth: 640, maxHeight: 360, maxBitrateKbps: 700 }
+
+      const plan = negotiatePlayback(media, weak, {
+        maxWidth: 1280,
+        maxHeight: 720,
+        maxVideoBitrateKbps: 2500,
+        maxAudioBitrateKbps: null,
+      })
+
+      expect(plan.video.reason.code).not.toBe('UserForcedTranscode')
+    })
+
+    it('never loosens the effective limit beyond the device profile', () => {
+      const weak: DeviceProfile = { ...profile, maxWidth: 640, maxHeight: 360, maxBitrateKbps: 700 }
+
+      const plan = negotiatePlayback(media, weak, {
+        maxWidth: 2560,
+        maxHeight: 1440,
+        maxVideoBitrateKbps: 8000,
+        maxAudioBitrateKbps: null,
+      })
+
+      expect(plan.video).toMatchObject({ maxWidth: 640, maxHeight: 360, maxBitrateKbps: 700 })
+    })
+
+    it('leaves audio alone when the clamp does not compress it', () => {
+      const plan = negotiatePlayback(media, profile, {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        maxVideoBitrateKbps: 4500,
+        maxAudioBitrateKbps: null,
+      })
+
+      expect(plan.audio.kind).toBe('passthrough')
+    })
+
+    it('forces audio compression when the clamp asks for it', () => {
+      const plan = negotiatePlayback(media, profile, {
+        maxWidth: 854,
+        maxHeight: 480,
+        maxVideoBitrateKbps: 1000,
+        maxAudioBitrateKbps: 128,
+      })
+
+      expect(plan.audio).toMatchObject({ kind: 'transcode', maxBitrateKbps: 128 })
+      expect(plan.audio.reason.code).toBe('UserForcedTranscode')
+    })
+
+    it('uses the compressed bitrate even when audio must transcode for another reason', () => {
+      const noTrueHd: DeviceProfile = {
+        ...profile,
+        directPlayProfiles: [
+          { container: 'mkv', videoCodecs: ['hevc', 'h264'], audioCodecs: ['aac'] },
+        ],
+      }
+
+      const plan = negotiatePlayback(media, noTrueHd, {
+        maxWidth: 854,
+        maxHeight: 480,
+        maxVideoBitrateKbps: 1000,
+        maxAudioBitrateKbps: 128,
+      })
+
+      expect(plan.audio).toMatchObject({ kind: 'transcode', maxBitrateKbps: 128 })
+      expect(plan.audio.reason.code).toBe('AudioCodecNotSupported')
+    })
+  })
 })
