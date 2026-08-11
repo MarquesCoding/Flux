@@ -79,10 +79,21 @@ const SettingsMenu = ({
       </Popover.Trigger>
 
       <Popover.Portal>
-        <Popover.Positioner sideOffset={8} align="end" className="z-50">
+        {/* Above the bar and pinned to its own button, with room kept at the
+            edges: a panel that opens past the side of the window is a panel
+            with half its answers off screen. */}
+        <Popover.Positioner
+          side="top"
+          sideOffset={12}
+          align="end"
+          collisionPadding={12}
+          className="z-50"
+        >
           <Popover.Popup
             aria-label={label}
-            className="flex max-h-[70vh] w-72 flex-col overflow-y-auto rounded-2xl bg-neutral-900/95 p-2 text-white shadow-xl backdrop-blur-md"
+            // The same glass as the bar it belongs to, rather than a dark
+            // rectangle sitting on top of one.
+            className="flux-glass flex max-h-[70vh] w-80 flex-col overflow-y-auto rounded-2xl p-2 text-white"
           >
             {opened === null ? (
               rows.map((row) => {
@@ -99,7 +110,7 @@ const SettingsMenu = ({
                       className={cn(ROW, 'hover:bg-white/10')}
                     >
                       <span className="shrink-0 text-white/80">{row.icon}</span>
-                      <span className="flex-1">{row.label}</span>
+                      <span className="flex-1 truncate">{row.label}</span>
 
                       <span
                         className={cn(
@@ -123,10 +134,10 @@ const SettingsMenu = ({
                     <div key={row.id} className={cn(ROW, 'cursor-default')}>
                       <span className="shrink-0 text-white/80">{row.icon}</span>
 
-                      <span className="flex flex-1 flex-col">
-                        {row.label}
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="truncate">{row.label}</span>
                         {answer === null ? null : (
-                          <span className="text-xs text-white/50">{answer}</span>
+                          <span className="truncate text-xs text-white/60">{answer}</span>
                         )}
                       </span>
 
@@ -151,11 +162,16 @@ const SettingsMenu = ({
                     className={cn(ROW, 'hover:bg-white/10')}
                   >
                     <span className="shrink-0 text-white/80">{row.icon}</span>
-                    <span className="flex-1">{row.label}</span>
+                    <span className="shrink-0">{row.label}</span>
 
-                    <span className="flex shrink-0 items-center gap-1 text-white/50">
-                      {answer}
-                      <IconChevronRight size={16} aria-hidden />
+                    {/* The answer gives way first. A track called "English ·
+                        Dialogues [Forced]" would otherwise push the name of
+                        the setting off its own row. */}
+                    <span className="flex min-w-0 flex-1 items-center justify-end gap-1 text-white/60">
+                      <span className="truncate" title={answer ?? undefined}>
+                        {answer}
+                      </span>
+                      <IconChevronRight size={16} className="shrink-0" aria-hidden />
                     </span>
                   </button>
                 )
@@ -194,10 +210,10 @@ const SettingsMenu = ({
                       ) : null}
                     </span>
 
-                    <span className="flex flex-1 flex-col">
-                      {choice.label}
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate">{choice.label}</span>
                       {choice.detail === undefined ? null : (
-                        <span className="text-xs text-white/50">{choice.detail}</span>
+                        <span className="truncate text-xs text-white/60">{choice.detail}</span>
                       )}
                     </span>
                   </button>
