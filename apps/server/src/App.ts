@@ -137,6 +137,28 @@ const SignInBodySchema = z.object({ password: z.string().min(1) });
 
 const SERVER_VERSION = '0.0.0';
 
+/**
+ * How long the admin page waits on the media service before drawing without it.
+ */
+const OVERVIEW_PATIENCE_MILLISECONDS = 5_000;
+
+/**
+ * An answer, or the given one if it takes too long.
+ *
+ * A page describing the server must not be held open by the part of the server
+ * it is describing. A media service that has stopped answering is something to
+ * report, not something to wait for.
+ */
+const within = async <Answer>(work: Promise<Answer>, fallback: Answer): Promise<Answer> =>
+  Promise.race([
+    work,
+    new Promise<Answer>((resolve) => {
+      setTimeout(() => {
+        resolve(fallback);
+      }, OVERVIEW_PATIENCE_MILLISECONDS).unref();
+    }),
+  ]);
+
 type CreateAppOptions = {
   auth: FluxAuth;
   settings: SettingsStore;
@@ -813,11 +835,12 @@ const createApp = ({
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
-    const [users, current, libraries, transcoderCapabilities] = await Promise.all([
+    const [users, current, libraries, transcoderCapabilities, isReachable] = await Promise.all([
       listUsers?.() ?? Promise.resolve([]),
       settings.read(),
       library.list(),
-      capabilities?.().catch(() => null) ?? Promise.resolve(null),
+      within(capabilities?.().catch(() => null) ?? Promise.resolve(null), null),
+      within(isTranscoderReachable(), false),
     ]);
 
     return context.json(
@@ -829,7 +852,7 @@ const createApp = ({
           cookieSecure: current.cookieSecure,
         },
         transcoder: {
-          isReachable: await isTranscoderReachable(),
+          isReachable,
           ffmpegVersion: transcoderCapabilities?.ffmpegVersion ?? null,
           hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
         },
