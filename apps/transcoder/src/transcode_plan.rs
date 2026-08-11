@@ -100,7 +100,14 @@ pub enum SubtitleAction {
     /// Required when the client cannot render the format, and unavoidable for
     /// bitmap formats, which cannot be converted to text at all.
     BurnIn {
-        stream_index: u32,
+        /// Which subtitle stream, counting only the subtitle streams.
+        ///
+        /// Not the stream's index in the container: both the `subtitles`
+        /// filter's `si=` and the `[0:s:N]` specifier count subtitles alone, so
+        /// a file whose only subtitles sit at container index 2 wants nought
+        /// here. Passing the container index produced a filtergraph that
+        /// matched no streams and a film that would not play.
+        subtitle_index: u32,
         is_image_based: bool,
     },
 }
@@ -406,22 +413,22 @@ impl TranscodePlan {
                 args.push(format!("{max_bitrate_kbps}k"));
                 let text_burn_in = match &self.spec.subtitles {
                     SubtitleAction::BurnIn {
-                        stream_index,
+                        subtitle_index,
                         is_image_based: false,
-                    } => Some((self.spec.input_path.as_str(), *stream_index)),
+                    } => Some((self.spec.input_path.as_str(), *subtitle_index)),
                     _ => None,
                 };
 
                 let chain = video_filter_chain(*max_width, *max_height, *tone_map, text_burn_in);
 
                 if let SubtitleAction::BurnIn {
-                    stream_index,
+                    subtitle_index,
                     is_image_based: true,
                 } = &self.spec.subtitles
                 {
                     args.push("-filter_complex".into());
                     args.push(format!(
-                        "[0:v]{chain}[base];[base][0:s:{stream_index}]overlay[v]"
+                        "[0:v]{chain}[base];[base][0:s:{subtitle_index}]overlay[v]"
                     ));
                     args.push("-map".into());
                     args.push("[v]".into());
@@ -717,7 +724,7 @@ mod tests {
                 tone_map: None,
             },
             subtitles: SubtitleAction::BurnIn {
-                stream_index: 2,
+                subtitle_index: 2,
                 is_image_based: true,
             },
             ..spec()
@@ -743,7 +750,7 @@ mod tests {
                 tone_map: None,
             },
             subtitles: SubtitleAction::BurnIn {
-                stream_index: 3,
+                subtitle_index: 3,
                 is_image_based: false,
             },
             ..spec()
@@ -758,7 +765,7 @@ mod tests {
     fn burning_in_different_subtitles_is_a_different_session() {
         let with_subs = SessionSpec {
             subtitles: SubtitleAction::BurnIn {
-                stream_index: 2,
+                subtitle_index: 2,
                 is_image_based: false,
             },
             ..spec()
@@ -770,12 +777,12 @@ mod tests {
     #[test]
     fn reports_when_subtitles_need_a_filter_graph() {
         assert!(SubtitleAction::BurnIn {
-            stream_index: 0,
+            subtitle_index: 0,
             is_image_based: true
         }
         .needs_filter_graph());
         assert!(!SubtitleAction::BurnIn {
-            stream_index: 0,
+            subtitle_index: 0,
             is_image_based: false
         }
         .needs_filter_graph());
