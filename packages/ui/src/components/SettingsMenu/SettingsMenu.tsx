@@ -130,7 +130,7 @@ const SettingsMenu = ({
             aria-label={label}
             // The same glass as the bar it belongs to, rather than a dark
             // rectangle sitting on top of one.
-            className="flux-glass flux-glass--film flex w-80 flex-col overflow-hidden rounded-2xl p-2 text-white"
+            className="flux-glass flex w-80 flex-col overflow-hidden rounded-2xl p-2 text-white"
           >
             <AnimatePresence initial={false} mode="wait">
               <motion.div
