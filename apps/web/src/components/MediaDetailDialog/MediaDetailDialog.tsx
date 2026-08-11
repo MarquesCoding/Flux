@@ -66,6 +66,10 @@ const MediaDetailDialog = ({
   const [detail, setDetail] = useState<MediaDetail | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [lastShown, setLastShown] = useState<MediaSummary | null>(null)
+  const heldRef = useRef<{ resume: number | undefined; siblings: MediaSummary[] }>({
+    resume: undefined,
+    siblings: [],
+  })
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false)
   const topRef = useRef<HTMLDivElement>(null)
   const prefersReducedMotion = useReducedMotion()
@@ -102,10 +106,25 @@ const MediaDetailDialog = ({
     }
   }, [media])
 
+  // Everything the panel says about the item is held the same way. These are
+  // worked out from the item being inspected, so they empty at the moment it
+  // clears — leaving a panel that changes its mind about how far the viewer
+  // got and what else there is to watch, on its way out.
+  //
+  // Kept in a hand rather than in state: the list of what else there is is
+  // built afresh by whatever renders this, so remembering it through a state
+  // update would be a new list every time, and a new list every time is a
+  // render that asks for another one.
+  if (media !== null) {
+    heldRef.current = { resume: resumeSeconds, siblings }
+  }
+
   // The last thing shown is kept so the panel has something to draw while it
   // is leaving. Returning nothing the moment the item clears would unmount the
   // dialog before it could animate out, which reads as it vanishing.
   const shown = media ?? lastShown
+  const shownResume = media === null ? heldRef.current.resume : resumeSeconds
+  const shownSiblings = media === null ? heldRef.current.siblings : siblings
 
   if (shown === null) {
     return null
@@ -215,14 +234,14 @@ const MediaDetailDialog = ({
             size="lg"
             isPill
             onClick={() => {
-              onPlay(shown, resumeSeconds ?? 0)
+              onPlay(shown, shownResume ?? 0)
             }}
           >
             <IconPlayerPlayFilled size={18} aria-hidden />
-            {resumeSeconds === undefined ? 'Play' : `Resume from ${formatDuration(resumeSeconds)}`}
+            {shownResume === undefined ? 'Play' : `Resume from ${formatDuration(shownResume)}`}
           </Button>
 
-          {resumeSeconds === undefined ? null : (
+          {shownResume === undefined ? null : (
             <Button
               variant="secondary"
               size="lg"
@@ -305,14 +324,14 @@ const MediaDetailDialog = ({
           )}
         </section>
 
-        {siblings.length === 0 ? null : (
+        {shownSiblings.length === 0 ? null : (
           <section className="flex flex-col gap-3">
             <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
               {season === null ? 'More from this series' : `More from season ${season.toString()}`}
             </h3>
 
             <ul className="flux-rail flex gap-4 overflow-x-auto pb-2">
-              {siblings.map((sibling) => (
+              {shownSiblings.map((sibling) => (
                 <li key={sibling.id} className="w-56 shrink-0 sm:w-64">
                   <MediaCard
                     title={sibling.title}
