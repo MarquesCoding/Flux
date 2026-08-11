@@ -1498,7 +1498,7 @@ const VideoPlayer = ({
           // changing shade on its way out. Sliding it away moves it without
           // touching how it is drawn.
           className={`absolute inset-x-3 bottom-3 transition-transform duration-500 ease-out ${
-            isBarUp ? 'translate-y-0' : 'translate-y-[calc(100%+1.5rem)]'
+            isBarUp ? 'translate-y-0' : 'translate-y-[calc(100%_+_1.5rem)]'
           }`}
         >
           <PlayerControls
@@ -1552,6 +1552,7 @@ const VideoPlayer = ({
             }}
             onToggleFullscreen={toggleFullscreen}
             {...(canPopOut ? { onPopOut: popOut } : {})}
+            isPoppedOut={isPoppedOut}
             onToggleStats={() => {
               setIsShowingStats((showing) => !showing)
             }}

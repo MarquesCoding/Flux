@@ -900,8 +900,7 @@ describe('VideoPlayer', () => {
     await settled()
     await actor.click(screen.getByRole('button', { name: 'Settings' }))
     await actor.click(await screen.findByRole('button', { name: /Caption settings/ }))
-    await actor.click(await screen.findByRole('button', { name: 'Caption edge' }))
-    await actor.click(await screen.findByRole('menuitemradio', { name: 'Drop shadow' }))
+    await actor.click(await screen.findByRole('button', { name: 'Drop shadow' }))
 
     unmount()
     render(<VideoPlayer media={media} onClose={vi.fn()} />)
@@ -910,8 +909,11 @@ describe('VideoPlayer', () => {
     await actor.click(screen.getByRole('button', { name: 'Settings' }))
     await actor.click(await screen.findByRole('button', { name: /Caption settings/ }))
 
-    expect(await screen.findByRole('button', { name: 'Caption edge' })).toHaveTextContent(
-      'Drop shadow',
+    // Chosen rather than merely present: every edge is on screen now, and what
+    // says which one is in force is which of them is pressed.
+    expect(await screen.findByRole('button', { name: 'Drop shadow' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     )
   })
 

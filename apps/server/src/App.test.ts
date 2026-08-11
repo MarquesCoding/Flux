@@ -3,6 +3,7 @@ import AppModule from './App'
 import createMemoryAuthModule from './auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from './library/createMemoryLibraryService'
 import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
+import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
 import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from './playback/createMemoryPlaybackService'
@@ -14,6 +15,7 @@ const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
 const { createMemorySegmentService } = createMemorySegmentServiceModule
 const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
+const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
 
 const { auth, settings } = createMemoryAuth()
 const app = createApp({
@@ -25,6 +27,7 @@ const app = createApp({
   subtitles: createMemorySubtitleService(),
   segments: createMemorySegmentService(),
   progress: createMemoryWatchProgressService(),
+  favourites: createMemoryFavouriteService(),
   playback: createMemoryPlaybackService(),
 })
 
@@ -50,6 +53,7 @@ describe('createApp', () => {
       subtitles: createMemorySubtitleService(),
       segments: createMemorySegmentService(),
       progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
       playback: createMemoryPlaybackService(),
       isTranscoderReachable: () => Promise.resolve(true),
     })

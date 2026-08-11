@@ -1,7 +1,9 @@
 import cnModule from '@FluxUI/cn'
+import TooltipModule from '@FluxUI/Tooltip'
 import type { IconButtonProps, IconButtonSize } from './IconButton.types'
 
 const { cn } = cnModule
+const { Tooltip } = TooltipModule
 
 const SIZE_CLASSES: Record<IconButtonSize, string> = {
   sm: 'size-8',
@@ -15,6 +17,12 @@ const SIZE_CLASSES: Record<IconButtonSize, string> = {
  * Separate from `Button` because the two have different shapes and different
  * accessibility needs: this one is square, has no text to read, and therefore
  * insists on a label.
+ *
+ * That label is also shown to whoever rests a pointer on it. A row of glyphs
+ * is learnable but not guessable, and the name is already written down — the
+ * only question was whether anybody but a screen reader got to hear it. The
+ * browser's own tooltip is not used: it takes about a second to appear, cannot
+ * be styled to match anything, and sits wherever the pointer happens to be.
  */
 const IconButton = ({
   label,
@@ -23,25 +31,27 @@ const IconButton = ({
   isActive = false,
   className,
   type = 'button',
+  hasTooltip = true,
   ...rest
 }: IconButtonProps) => (
-  <button
-    type={type}
-    aria-label={label}
-    aria-pressed={isActive}
-    title={label}
-    className={cn(
-      'inline-flex shrink-0 items-center justify-center rounded-full',
-      'text-current transition-colors hover:bg-white/15',
-      'disabled:cursor-not-allowed disabled:opacity-50',
-      isActive ? 'bg-white/20' : '',
-      SIZE_CLASSES[size],
-      className,
-    )}
-    {...rest}
-  >
-    {children}
-  </button>
+  <Tooltip label={label} isDisabled={!hasTooltip}>
+    <button
+      type={type}
+      aria-label={label}
+      aria-pressed={isActive}
+      className={cn(
+        'inline-flex shrink-0 items-center justify-center rounded-full',
+        'text-current transition-colors hover:bg-white/15',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        isActive ? 'bg-white/20' : '',
+        SIZE_CLASSES[size],
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+    </button>
+  </Tooltip>
 )
 
 IconButton.displayName = 'IconButton'

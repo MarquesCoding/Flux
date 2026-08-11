@@ -21,7 +21,6 @@ const media = (overrides: Partial<MediaSummary> = {}): MediaSummary => ({
   addedAt: daysAgo(1),
   hasPoster: false,
   hasBackdrop: false,
-  accentColor: null,
   seriesTitle: null,
   seasonNumber: null,
   episodeNumber: null,

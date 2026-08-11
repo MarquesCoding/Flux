@@ -65,6 +65,27 @@ const createMemoryLibraryService = (
     const matching = state.media
       .filter((item) => item.libraryId === libraryId)
       .filter((item) => search === '' || item.title.toLowerCase().includes(search))
+      // A programme belongs to a series and a film does not, which is the only
+      // difference a library can see.
+      .filter(
+        (item) =>
+          options.kind === undefined ||
+          (options.kind === 'shows'
+            ? (item.metadata.seriesTitle ?? null) !== null
+            : (item.metadata.seriesTitle ?? null) === null),
+      )
+      .filter(
+        (item) =>
+          options.genre === undefined || (item.metadata.genres ?? []).includes(options.genre),
+      )
+      .filter((item) => options.ids === undefined || options.ids.includes(item.id))
+      // The same order the database answers in, so what the routes are proved
+      // to do here is what they do against a real one.
+      .sort((left, right) =>
+        options.order === 'newest'
+          ? right.addedAt.localeCompare(left.addedAt)
+          : left.title.localeCompare(right.title),
+      )
 
     const items = matching.slice(options.offset, options.offset + options.limit).map((item) => ({
       id: item.id,
@@ -79,10 +100,10 @@ const createMemoryLibraryService = (
       addedAt: item.addedAt,
       hasPoster: item.metadata.hasPoster,
       hasBackdrop: item.metadata.hasBackdrop,
-      accentColor: item.metadata.accentColor ?? null,
       seriesTitle: item.metadata.seriesTitle ?? null,
       seasonNumber: item.metadata.seasonNumber ?? null,
       episodeNumber: item.metadata.episodeNumber ?? null,
+      genres: item.metadata.genres ?? null,
     }))
 
     return Promise.resolve({ items, total: matching.length })

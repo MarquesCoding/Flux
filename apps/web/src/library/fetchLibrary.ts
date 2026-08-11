@@ -23,6 +23,17 @@ type ScanProgress = z.infer<typeof ScanProgressSchema>
 
 type ListItemsOptions = {
   search?: string
+  /**
+   * Films or programmes, told apart by whether a file belongs to a series.
+   */
+  kind?: 'films' | 'shows'
+  genre?: string
+  /**
+   * Particular items, named outright — for a page built from a list kept
+   * elsewhere, such as what this viewer has favourited.
+   */
+  ids?: string[]
+  order?: 'title' | 'newest'
   limit?: number
   offset?: number
 }
@@ -108,12 +119,31 @@ const updateLibrary = async (libraryId: string, input: UpdateLibraryInput): Prom
  */
 const fetchLibraryItems = async (
   libraryId: string,
-  { search, limit = 60, offset = 0 }: ListItemsOptions = {},
+  { search, kind, genre, ids, order, limit = 60, offset = 0 }: ListItemsOptions = {},
 ): Promise<MediaPage> => {
   const query = new URLSearchParams({ limit: String(limit), offset: String(offset) })
 
   if (search !== undefined && search.trim() !== '') {
     query.set('search', search.trim())
+  }
+
+  // Asked of the server rather than sifted here: a library is longer than a
+  // page of it, and filtering what happened to arrive would answer with
+  // whatever the first sixty items were.
+  if (kind !== undefined) {
+    query.set('kind', kind)
+  }
+
+  if (genre !== undefined && genre !== '') {
+    query.set('genre', genre)
+  }
+
+  if (ids !== undefined) {
+    query.set('ids', ids.join(','))
+  }
+
+  if (order !== undefined) {
+    query.set('order', order)
   }
 
   const response = await fetch(`/api/libraries/${libraryId}/items?${query.toString()}`, {

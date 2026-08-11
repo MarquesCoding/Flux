@@ -73,7 +73,7 @@ describe('LibraryBrowser', () => {
     fetchLibrariesMock.mockReturnValue(new Promise(() => undefined))
     render(<LibraryBrowser onPlay={vi.fn()} />)
 
-    expect(screen.getByRole('status', { name: 'Loading your library' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Reading your library' })).toBeInTheDocument()
   })
 
   it('lists the items in the first library', async () => {

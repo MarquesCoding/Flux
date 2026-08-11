@@ -431,8 +431,10 @@ describe('PlayerControls', () => {
     draw()
 
     // Present for a pointer, out of the way on a touch screen, which has
-    // hardware keys for exactly this.
-    const volumeGroup = screen.getByRole('button', { name: 'Mute' }).parentElement
+    // hardware keys for exactly this. Asked for by shape rather than by
+    // parentage: a control's immediate parent is whatever wraps it for a
+    // tooltip, and the group is the box around the pair.
+    const volumeGroup = screen.getByRole('button', { name: 'Mute' }).closest('div')
 
     expect(volumeGroup?.className).toContain('hidden')
     expect(volumeGroup?.className).toContain('sm:flex')

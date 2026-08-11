@@ -8,6 +8,7 @@ import type { LibraryService } from '@FluxServer/library/LibraryService'
 import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService'
 import type { SegmentService } from '@FluxServer/segments/SegmentService'
 import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService'
+import type { FavouriteService } from '@FluxServer/favourites/FavouriteService'
 import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
 import PresenceServiceModule from '@FluxServer/presence/PresenceService'
 import type { PresenceService } from '@FluxServer/presence/PresenceService'
@@ -18,7 +19,10 @@ import PresenceRouteModule from '@FluxServer/routes/PresenceRoute'
 import ImageRouteModule from '@FluxServer/routes/ImageRoute'
 import SegmentRouteModule from '@FluxServer/routes/SegmentRoute'
 import ProgressRouteModule from '@FluxServer/routes/ProgressRoute'
+import FavouriteRouteModule from '@FluxServer/routes/FavouriteRoute'
 import AdminRouteModule from '@FluxServer/routes/AdminRoute'
+import DeviceRouteModule from '@FluxServer/routes/DeviceRoute'
+import describeDeviceModule from '@FluxServer/account/describeDevice'
 import ProfileRouteModule from '@FluxServer/routes/ProfileRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
@@ -59,6 +63,7 @@ const { listSubtitlesRoute, readSubtitleRoute } = SubtitleRouteModule
 const { mediaImageRoute } = ImageRouteModule
 const { listSegmentsRoute } = SegmentRouteModule
 const { listProgressRoute, recordProgressRoute, forgetProgressRoute } = ProgressRouteModule
+const { listFavouritesRoute, keepFavouriteRoute, dropFavouriteRoute } = FavouriteRouteModule
 const {
   adminOverviewRoute,
   adminSettingsRoute,
@@ -67,6 +72,8 @@ const {
   adminPauseSessionRoute,
   adminResumeSessionRoute,
 } = AdminRouteModule
+const { listDevicesRoute, endDeviceRoute, endOtherDevicesRoute } = DeviceRouteModule
+const { describeDevice } = describeDeviceModule
 const { presenceHeartbeatRoute, presenceStopWatchingRoute } = PresenceRouteModule
 const { createPresenceService } = PresenceServiceModule
 const {
@@ -133,6 +140,7 @@ type CreateAppOptions = {
   subtitles: SubtitleService
   segments: SegmentService
   progress: WatchProgressService
+  favourites: FavouriteService
   /**
    * The people using each account.
    */
@@ -193,6 +201,7 @@ const createApp = ({
   subtitles,
   segments,
   progress,
+  favourites,
   profiles,
   promoteProfile,
   listUsers,
@@ -276,10 +285,16 @@ const createApp = ({
 
   app.openapi(listItemsRoute, async (context) => {
     const { id } = context.req.valid('param')
-    const { search, limit, offset } = context.req.valid('query')
+    const { search, kind, genre, ids, order, limit, offset } = context.req.valid('query')
 
     const page = await library.listItems(id, {
       ...(search === undefined ? {} : { search }),
+      ...(kind === undefined ? {} : { kind }),
+      ...(genre === undefined ? {} : { genre }),
+      // Split here rather than in the schema: a query string carries one
+      // value, and the shape the library wants is a list.
+      ...(ids === undefined ? {} : { ids: ids.split(',').filter((named) => named.trim() !== '') }),
+      ...(order === undefined ? {} : { order }),
       limit: limit ?? DEFAULT_LIMIT,
       offset: offset ?? 0,
     })
@@ -921,6 +936,87 @@ const createApp = ({
   })
 
   /**
+   * Everywhere this account is signed in.
+   *
+   * A self-hosted server is shared with a household, and a household loses
+   * track of what is signed in where — a television at a friend's, a phone
+   * that was replaced, a browser on a machine at work.
+   */
+  app.openapi(listDevicesRoute, async (context) => {
+    const headers = context.req.raw.headers
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    if (session === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const held = await auth.api.listSessions({ headers }).catch(() => [])
+
+    return context.json(
+      {
+        devices: held.map((one) => ({
+          id: one.id,
+          name: describeDevice(one.userAgent),
+          address: one.ipAddress ?? null,
+          signedInAt: one.createdAt.toISOString(),
+          expiresAt: one.expiresAt.toISOString(),
+          // Compared by token rather than by identifier, because the token is
+          // the thing this browser is actually holding.
+          isCurrent: one.token === session.session.token,
+        })),
+      },
+      200,
+    )
+  })
+
+  /**
+   * Ends one of them.
+   *
+   * Asked for by identifier and matched here against the sessions this account
+   * holds, so the token — which is what a browser signs in with — never
+   * travels to a page that lists them.
+   */
+  app.openapi(endDeviceRoute, async (context) => {
+    const headers = context.req.raw.headers
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    if (session === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const held = await auth.api.listSessions({ headers }).catch(() => [])
+    const asked = held.find((one) => one.id === context.req.valid('param').id)
+
+    if (asked !== undefined) {
+      await auth.api.revokeSession({ headers, body: { token: asked.token } }).catch(() => undefined)
+    }
+
+    // The same answer either way: whether it was already gone or never
+    // existed, what the asker wanted is now true.
+    return context.body(null, 204)
+  })
+
+  /**
+   * Ends all of them but this one.
+   *
+   * What somebody wants after losing a laptop. It deliberately spares the
+   * session asking: being signed out of the page you are using to sign
+   * everything else out is its own small disaster.
+   */
+  app.openapi(endOtherDevicesRoute, async (context) => {
+    const headers = context.req.raw.headers
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    if (session === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    await auth.api.revokeOtherSessions({ headers }).catch(() => undefined)
+
+    return context.body(null, 204)
+  })
+
+  /**
    * What the media service is doing at this moment.
    *
    * Outside the OpenAPI routes, like the stream below it. The reading's type
@@ -1009,6 +1105,46 @@ const createApp = ({
     }
 
     await progress.forget(profileId, context.req.valid('param').mediaId)
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(listFavouritesRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers)
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    return context.json({ favourites: await favourites.list(profileId) }, 200)
+  })
+
+  app.openapi(keepFavouriteRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers)
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const { mediaId } = context.req.valid('param')
+
+    if ((await library.getMedia(mediaId)) === null) {
+      return context.json({ error: 'No such media item.' }, 404)
+    }
+
+    await favourites.keep(profileId, mediaId)
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(dropFavouriteRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers)
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    await favourites.drop(profileId, context.req.valid('param').mediaId)
 
     return context.body(null, 204)
   })

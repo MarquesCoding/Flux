@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import cnModule from '@FluxUI/cn'
-import IconButtonModule from '@FluxUI/IconButton'
+import PageDotsModule from '@FluxUI/PageDots'
 import type { RailProps } from './Rail.types'
 
 const { cn } = cnModule
-const { IconButton } = IconButtonModule
+const { PageDots } = PageDotsModule
 
 /**
- * How much of the visible width one press moves.
+ * How much of the visible width one page is.
  *
- * Not the whole width: leaving a card partly visible tells a viewer the row
- * carried on, where a clean page turn loses their place in it.
+ * Not quite the whole of it: leaving a card partly visible tells a viewer the
+ * row carried on, where a clean page turn loses their place in it.
  */
 const SCROLL_FRACTION = 0.85
 
@@ -22,12 +21,16 @@ const SCROLL_FRACTION = 0.85
  * a viewer skims along a theme until something catches them.
  *
  * Scrolling is a real overflow rather than a transform, so a trackpad, a touch
- * screen and a keyboard all work without being taught to. The arrows exist for
- * a mouse, which has none of those.
+ * screen and a keyboard all work without being taught to. The markers exist
+ * for a mouse, which has none of those, and they are told where they are by
+ * whatever else did the scrolling.
  */
 const Rail = ({ title, children, action, className }: RailProps) => {
   const trackRef = useRef<HTMLUListElement>(null)
-  const [reach, setReach] = useState({ start: false, end: false })
+  // How many screenfuls the row is, and which one is being looked at. Worked
+  // out from the scroller rather than from the number of items, because how
+  // many fit is a question about this window rather than about this row.
+  const [pages, setPages] = useState({ count: 1, at: 0 })
 
   const measure = useCallback(() => {
     const track = trackRef.current
@@ -36,9 +39,12 @@ const Rail = ({ title, children, action, className }: RailProps) => {
       return
     }
 
-    setReach({
-      start: track.scrollLeft > 8,
-      end: track.scrollLeft + track.clientWidth < track.scrollWidth - 8,
+    const step = Math.max(1, track.clientWidth * SCROLL_FRACTION)
+    const beyond = Math.max(0, track.scrollWidth - track.clientWidth)
+
+    setPages({
+      count: Math.max(1, Math.ceil(beyond / step) + 1),
+      at: Math.round(track.scrollLeft / step),
     })
   }, [])
 
@@ -60,11 +66,11 @@ const Rail = ({ title, children, action, className }: RailProps) => {
     }
   }, [measure, children])
 
-  const scrollBy = (direction: 1 | -1) => {
+  const scrollTo = (page: number) => {
     const track = trackRef.current
 
     if (track !== null) {
-      track.scrollBy({ left: direction * track.clientWidth * SCROLL_FRACTION, behavior: 'smooth' })
+      track.scrollTo({ left: page * track.clientWidth * SCROLL_FRACTION, behavior: 'smooth' })
     }
   }
 
@@ -76,46 +82,20 @@ const Rail = ({ title, children, action, className }: RailProps) => {
         <div className="flex items-center gap-2">
           {action}
 
-          <span className="hidden items-center gap-1 md:flex">
-            <IconButton
-              label={`Scroll ${title} left`}
-              size="sm"
-              disabled={!reach.start}
-              onClick={() => {
-                scrollBy(-1)
-              }}
-            >
-              <IconChevronLeft size={18} aria-hidden />
-            </IconButton>
-
-            <IconButton
-              label={`Scroll ${title} right`}
-              size="sm"
-              disabled={!reach.end}
-              onClick={() => {
-                scrollBy(1)
-              }}
-            >
-              <IconChevronRight size={18} aria-hidden />
-            </IconButton>
-          </span>
+          {/* The same markers as everywhere else, rather than two arrows.
+              They say how much row there is as well as where in it you are,
+              and reaching the far end is one press instead of six. */}
+          <PageDots
+            count={pages.count}
+            selectedIndex={pages.at}
+            label={`Pages of ${title}`}
+            onSelect={scrollTo}
+            className="hidden md:flex"
+          />
         </div>
       </header>
 
-      {/* The row is masked at whichever end it continues past, so cards fade
-          out rather than being sliced off by an edge that is not there. */}
-      <div
-        className={cn(
-          'relative',
-          reach.start && reach.end
-            ? '[mask-image:linear-gradient(to_right,transparent,black_3rem,black_calc(100%-3rem),transparent)]'
-            : reach.start
-              ? '[mask-image:linear-gradient(to_right,transparent,black_3rem)]'
-              : reach.end
-                ? '[mask-image:linear-gradient(to_right,black_calc(100%-3rem),transparent)]'
-                : '',
-        )}
-      >
+      <div className="relative">
         <ul
           ref={trackRef}
           onScroll={measure}

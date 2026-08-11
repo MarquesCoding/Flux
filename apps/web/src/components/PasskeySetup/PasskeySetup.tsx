@@ -125,7 +125,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
       )}
 
       {isLoading ? (
-        <Spinner label="Loading passkeys" />
+        <Spinner label="Reading your passkeys" />
       ) : passkeys.length === 0 ? (
         <p className="text-sm text-text-muted">No passkeys yet.</p>
       ) : (

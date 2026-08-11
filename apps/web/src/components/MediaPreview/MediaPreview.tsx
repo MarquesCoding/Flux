@@ -8,6 +8,7 @@ import {
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import IconButtonModule from '@FluxUI/IconButton'
 import frameUrlModule from '@FluxWeb/playback/frameUrl'
+import readLightsModule from '@FluxWeb/library/readLights'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import liftCuesModule from '@FluxWeb/playback/liftCues'
 import type { MediaPreviewProps } from './MediaPreview.types'
@@ -15,6 +16,7 @@ import type { MediaPreviewProps } from './MediaPreview.types'
 const { VideoSurface } = VideoSurfaceModule
 const { IconButton } = IconButtonModule
 const { frameUrl } = frameUrlModule
+const { readLights } = readLightsModule
 const { fetchSubtitleTracks, subtitleTrackUrl, previewTrack } = fetchSubtitlesModule
 const { liftCues } = liftCuesModule
 
@@ -42,6 +44,16 @@ const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`
 const CUE_LINE = 80
 
 /**
+ * How often to look at what is showing.
+ *
+ * The cost is a draw of a twenty-four pixel square and a read of it, which is
+ * small enough to do several times a second and still be nothing next to
+ * painting the clip itself. Looking often is what lets the room follow a scene;
+ * it is not what decides how fast the room changes.
+ */
+const LOOK_EVERY_MILLISECONDS = 200
+
+/**
  * A glimpse of what an item looks like.
  *
  * The clip is a file made when the item was imported, not a stream produced on
@@ -65,14 +77,16 @@ const MediaPreview = ({
   durationSeconds,
   fills = false,
   settleMilliseconds = SETTLE_MILLISECONDS,
-  tint = null,
   hasSound = false,
   hasSubtitles = false,
   repeats,
   onEnded,
   onPlayingChange,
+  onPalette,
+  actions,
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const stillRef = useRef<HTMLImageElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   // Whether the clip has finished. Together with whether it has started, this
   // is the only thing that decides which of the two pictures is on top —
@@ -182,13 +196,44 @@ const MediaPreview = ({
     return liftCues(element, () => CUE_LINE).stop
   }, [subtitles])
 
+  // The light the page is under, read from whatever this is showing: the clip
+  // as it runs, and the still while it is not. Read corner by corner, so what
+  // lands on the left of the page came from the left of the picture.
+  useEffect(() => {
+    if (onPalette === undefined) {
+      return
+    }
+
+    const look = () => {
+      const element = videoRef.current
+      const still = stillRef.current
+
+      const found =
+        element !== null && !isShowingFrame && element.readyState > 1
+          ? readLights(element)
+          : still !== null && still.complete
+            ? readLights(still)
+            : []
+
+      if (found.length > 0) {
+        onPalette(found)
+      }
+    }
+
+    look()
+
+    const timer = setInterval(look, LOOK_EVERY_MILLISECONDS)
+
+    return () => {
+      clearInterval(timer)
+    }
+  }, [onPalette, isShowingFrame, mediaId])
+
   return (
     <div
-      // Tinted rather than black, and tinted before anything has loaded, so
-      // the hero has a presence from the first paint instead of appearing as a
-      // black band under a page that has already arrived.
-      style={tint === null ? {} : { backgroundColor: tint }}
-      className={`relative overflow-hidden ${tint === null ? 'bg-black' : ''} ${
+      // Black under whatever is being shown, so a still that has not arrived
+      // yet is a dark frame rather than a hole through to the page.
+      className={`relative overflow-hidden bg-black ${
         fills ? 'h-full w-full' : 'aspect-video w-full'
       }`}
     >
@@ -197,6 +242,8 @@ const MediaPreview = ({
           item a catalogue has never heard of — good enough to stand in, but
           not what anybody chose to represent the thing. */}
       <img
+        ref={stillRef}
+        crossOrigin="anonymous"
         src={backdropUrl ?? frameUrl(mediaId, startSeconds)}
         alt=""
         aria-hidden
@@ -272,53 +319,62 @@ const MediaPreview = ({
       />
 
       {/* Offered only once there is something to control. A preview that
-          cannot be stopped is a page that will not stop talking. */}
-      {!hasSound || !hasStarted ? null : (
+          cannot be stopped is a page that will not stop talking. Anything the
+          caller wants said about the item itself sits in the same cluster:
+          these are all things done to what is on screen, and a second cluster
+          somewhere else is a second place to look. */}
+      {actions === undefined && (!hasSound || !hasStarted) ? null : (
         <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
-          <IconButton
-            label={isPlaying ? 'Pause the preview' : 'Play the preview'}
-            onClick={() => {
-              const element = videoRef.current
+          {actions}
 
-              if (element === null) {
-                return
-              }
+          {!hasSound || !hasStarted ? null : (
+            <>
+              <IconButton
+                label={isPlaying ? 'Pause the preview' : 'Play the preview'}
+                onClick={() => {
+                  const element = videoRef.current
 
-              if (element.paused) {
-                void element.play().catch(() => {
-                  // Refused, which the still frame already reflects.
-                })
-              } else {
-                element.pause()
-              }
-            }}
-            className="bg-black/50 text-white backdrop-blur"
-          >
-            {isPlaying ? (
-              <IconPlayerPauseFilled size={18} aria-hidden />
-            ) : (
-              <IconPlayerPlayFilled size={18} aria-hidden />
-            )}
-          </IconButton>
+                  if (element === null) {
+                    return
+                  }
 
-          <IconButton
-            label={isMuted ? 'Turn sound on' : 'Turn sound off'}
-            onClick={() => {
-              const element = videoRef.current
+                  if (element.paused) {
+                    void element.play().catch(() => {
+                      // Refused, which the still frame already reflects.
+                    })
+                  } else {
+                    element.pause()
+                  }
+                }}
+                className="bg-black/50 text-white backdrop-blur"
+              >
+                {isPlaying ? (
+                  <IconPlayerPauseFilled size={18} aria-hidden />
+                ) : (
+                  <IconPlayerPlayFilled size={18} aria-hidden />
+                )}
+              </IconButton>
 
-              if (element !== null) {
-                element.muted = !isMuted
-                setIsMuted(!isMuted)
-              }
-            }}
-            className="bg-black/50 text-white backdrop-blur"
-          >
-            {isMuted ? (
-              <IconVolumeOff size={18} aria-hidden />
-            ) : (
-              <IconVolume size={18} aria-hidden />
-            )}
-          </IconButton>
+              <IconButton
+                label={isMuted ? 'Turn sound on' : 'Turn sound off'}
+                onClick={() => {
+                  const element = videoRef.current
+
+                  if (element !== null) {
+                    element.muted = !isMuted
+                    setIsMuted(!isMuted)
+                  }
+                }}
+                className="bg-black/50 text-white backdrop-blur"
+              >
+                {isMuted ? (
+                  <IconVolumeOff size={18} aria-hidden />
+                ) : (
+                  <IconVolume size={18} aria-hidden />
+                )}
+              </IconButton>
+            </>
+          )}
         </div>
       )}
 

@@ -1,5 +1,5 @@
 {
-  "id": "f50307a9-6f2f-4254-9124-487026a60020",
+  "id": "fdf00c8f-07df-42a1-8760-6ccde8eddc23",
   "prevId": "c393458d-dfcc-4555-b2a1-755908e5e5ac",
   "version": "7",
   "dialect": "postgresql",
@@ -410,12 +410,6 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
-        },
-        "defaultAudioLanguage": {
-          "name": "defaultAudioLanguage",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -600,12 +594,6 @@
         },
         "externalId": {
           "name": "externalId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "accentColor": {
-          "name": "accentColor",
           "type": "text",
           "primaryKey": false,
           "notNull": false

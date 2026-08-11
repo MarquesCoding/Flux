@@ -45,7 +45,7 @@ const Button = ({
       aria-busy={isLoading}
       className={cn(
         'inline-flex shrink-0 items-center justify-center font-medium',
-        'transition-[filter,box-shadow,transform,opacity] duration-200',
+        'transition-[filter,box-shadow,transform,translate,scale,opacity] duration-200',
         'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100',
         'active:scale-[0.98]',
         isPill ? 'rounded-full' : 'rounded-lg',
@@ -55,7 +55,9 @@ const Button = ({
       )}
       {...rest}
     >
-      {isLoading ? <Spinner size={size === 'sm' ? 'sm' : 'md'} label="Loading" /> : null}
+      {/* Named for what a button does rather than for what a page does: this
+          turns while the thing the button asked for is happening. */}
+      {isLoading ? <Spinner size={size === 'sm' ? 'sm' : 'md'} label="Working" /> : null}
       {children}
     </button>
   )

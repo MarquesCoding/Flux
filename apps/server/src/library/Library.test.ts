@@ -4,6 +4,7 @@ import AppModule from '@FluxServer/App'
 import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from './createMemoryLibraryService'
 import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
+import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
 import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
@@ -18,6 +19,7 @@ const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
 const { createMemorySegmentService } = createMemorySegmentServiceModule
 const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
+const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
 
 const { MediaSummarySchema } = LibraryContract
 const { JsonValueSchema } = JsonValueModule
@@ -71,6 +73,7 @@ const build = (media: MediaDetail[] = []) => {
     subtitles: createMemorySubtitleService(),
     segments: createMemorySegmentService(),
     progress: createMemoryWatchProgressService(),
+    favourites: createMemoryFavouriteService(),
     playback: createMemoryPlaybackService(),
   })
 
@@ -157,6 +160,47 @@ describe('library routes', () => {
 
     expect(body.items[0]).not.toHaveProperty('audioStreams')
     expect(MediaSummarySchema.safeParse(body.items[0]).success).toBe(true)
+  })
+
+  it('answers with particular items when they are named outright', async () => {
+    const { app } = build([
+      detail(),
+      detail({ id: '11111111-1111-4111-8111-111111111111', title: 'Dune' }),
+    ])
+
+    const response = await app.request(
+      `${BASE}/api/libraries/${LIBRARY_ID}/items?ids=11111111-1111-4111-8111-111111111111`,
+    )
+
+    expect(await response.json()).toMatchObject({ items: [{ title: 'Dune' }] })
+  })
+
+  it('answers with nothing where the list of names is empty', async () => {
+    // A page of favourites belonging to somebody who has kept nothing asks
+    // this, and the honest answer is nothing rather than everything.
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?ids=`)
+
+    expect(await response.json()).toMatchObject({ items: [] })
+  })
+
+  it('answers newest first when asked to', async () => {
+    const { app } = build([
+      detail({ title: 'Older', addedAt: '2020-01-01T00:00:00.000Z' }),
+      detail({
+        id: '11111111-1111-4111-8111-111111111111',
+        title: 'Newer',
+        addedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    ])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?order=newest`)
+    const body = z
+      .object({ items: z.array(z.object({ title: z.string() })) })
+      .parse(await response.json())
+
+    expect(body.items.map((item) => item.title)).toEqual(['Newer', 'Older'])
   })
 
   it('searches by title', async () => {
@@ -387,6 +431,7 @@ describe('library routes', () => {
       subtitles: createMemorySubtitleService(),
       segments: createMemorySegmentService(),
       progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
       readImage: () => Promise.resolve({ body: new ArrayBuffer(8), contentType: 'image/jpeg' }),
     })
 
