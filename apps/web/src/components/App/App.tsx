@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
 import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
 import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
@@ -64,6 +65,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   // turned back into one without asking the server a second time.
   const [known, setKnown] = useState(new Map<string, MediaSummary>())
   const { place, go, replace } = usePlace()
+  const prefersReducedMotion = useReducedMotion()
 
   const section: ShellSection = place.section
   const inspecting = place.inspecting === null ? null : (known.get(place.inspecting) ?? null)
@@ -204,7 +206,17 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   // closing puts the library back exactly where it was.
   if (playing !== null) {
     return (
-      <main className="fixed inset-0 z-40 flex flex-col bg-black">
+      // The player does not appear, it takes over: the picture swells out of
+      // the page behind it and the page darkens under it, which is the same
+      // move whether it was opened from a dialog or landed on by refreshing
+      // an address. A screen that simply exists where another one was reads
+      // as a page having been replaced rather than as a film starting.
+      <motion.main
+        initial={{ opacity: 0, scale: prefersReducedMotion === true ? 1 : 1.04 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: prefersReducedMotion === true ? 0.15 : 0.45, ease: [0.2, 0, 0, 1] }}
+        className="fixed inset-0 z-40 flex flex-col bg-black"
+      >
         <VideoPlayer
           media={playing}
           startSeconds={place.startSeconds}
@@ -267,7 +279,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             void readProgress()
           }}
         />
-      </main>
+      </motion.main>
     )
   }
 
