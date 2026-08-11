@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import useFavouritesModule from './useFavourites'
 
 const { useFavourites } = useFavouritesModule
@@ -17,10 +17,6 @@ vi.mock('@FluxWeb/library/fetchFavourites', () => ({
 beforeEach(() => {
   fetchFavourites.mockReset().mockResolvedValue([])
   setFavourite.mockReset().mockResolvedValue(true)
-})
-
-afterEach(() => {
-  vi.restoreAllMocks()
 })
 
 describe('useFavourites', () => {

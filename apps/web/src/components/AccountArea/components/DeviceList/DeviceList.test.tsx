@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DeviceListModule from './DeviceList'
 import type { Device } from '@FluxWeb/account/fetchDevices'
 
@@ -32,10 +32,6 @@ beforeEach(() => {
   fetchDevices.mockReset().mockResolvedValue([])
   endDevice.mockReset().mockResolvedValue(true)
   endOtherDevices.mockReset().mockResolvedValue(true)
-})
-
-afterEach(() => {
-  vi.restoreAllMocks()
 })
 
 describe('DeviceList', () => {

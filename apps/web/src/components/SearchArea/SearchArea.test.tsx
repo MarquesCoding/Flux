@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SearchAreaModule from './SearchArea'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 
@@ -41,10 +41,6 @@ beforeEach(() => {
   fetchLibraryItems
     .mockReset()
     .mockResolvedValue({ items: [item('a', 'Arrival', ['Science fiction'])], total: 1 })
-})
-
-afterEach(() => {
-  vi.restoreAllMocks()
 })
 
 describe('SearchArea', () => {

@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BrowseAreaModule from './BrowseArea'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 
@@ -37,10 +37,6 @@ const item = (id: string, title: string): MediaSummary => ({
 beforeEach(() => {
   fetchLibraries.mockReset().mockResolvedValue([{ id: 'library-1' }])
   fetchLibraryItems.mockReset().mockResolvedValue({ items: [item('a', 'Arrival')], total: 1 })
-})
-
-afterEach(() => {
-  vi.restoreAllMocks()
 })
 
 describe('BrowseArea', () => {
