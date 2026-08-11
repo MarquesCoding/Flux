@@ -1,27 +1,22 @@
-import readTitleFromPathModule from './readTitleFromPath'
-import MetadataProviderModule from './MetadataProvider'
-import createFilenameMetadataProviderModule from './createFilenameMetadataProvider'
-import readEpisodeFromPathModule from './readEpisodeFromPath'
-import type { Metadata, MetadataProvider } from './MetadataProvider'
-import type { EpisodeNumbering } from './readEpisodeFromPath'
-import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient'
-import type { ScanResult } from '@FluxContracts/schemas/Library'
-
-const { isMediaFile } = readTitleFromPathModule
-const { resolveMetadata } = MetadataProviderModule
-const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
-const { readEpisodeFromPath } = readEpisodeFromPathModule
+import { isMediaFile } from './readTitleFromPath';
+import { resolveMetadata } from './MetadataProvider';
+import { createFilenameMetadataProvider } from './createFilenameMetadataProvider';
+import { readEpisodeFromPath } from './readEpisodeFromPath';
+import type { Metadata, MetadataProvider } from './MetadataProvider';
+import type { EpisodeNumbering } from './readEpisodeFromPath';
+import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import type { ScanResult } from '@FluxContracts/schemas/Library';
 
 type ScannedFile = {
-  path: string
-  sizeBytes: number
-  modifiedAtMs: number
-}
+  path: string;
+  sizeBytes: number;
+  modifiedAtMs: number;
+};
 
 type StoredItem = {
-  path: string
-  sizeBytes: number
-  modifiedAtMs: number
+  path: string;
+  sizeBytes: number;
+  modifiedAtMs: number;
   /**
    * What a provider previously said this item's id was, there.
    *
@@ -29,50 +24,50 @@ type StoredItem = {
    * than searching for it again by name — the same search that risks matching
    * the wrong thing in the first place.
    */
-  externalId: string | null
-}
+  externalId: string | null;
+};
 
 type MediaRow = {
-  libraryId: string
-  path: string
-  title: string
-  year: number | null
-  sizeBytes: number
-  modifiedAtMs: number
-  probe: MediaProbe
-  metadata: Metadata
-  episode: EpisodeNumbering
-}
+  libraryId: string;
+  path: string;
+  title: string;
+  year: number | null;
+  sizeBytes: number;
+  modifiedAtMs: number;
+  probe: MediaProbe;
+  metadata: Metadata;
+  episode: EpisodeNumbering;
+};
 
 /**
  * The filesystem as the scanner sees it.
  */
 type MediaFileSystem = {
-  listFiles: (root: string) => Promise<ScannedFile[]>
-}
+  listFiles: (root: string) => Promise<ScannedFile[]>;
+};
 
 /**
  * The library tables as the scanner sees them.
  */
 type MediaStore = {
-  listStored: (libraryId: string) => Promise<StoredItem[]>
-  upsert: (row: MediaRow) => Promise<void>
-  removeByPaths: (libraryId: string, paths: string[]) => Promise<number>
-  markScanned: (libraryId: string) => Promise<void>
-}
+  listStored: (libraryId: string) => Promise<StoredItem[]>;
+  upsert: (row: MediaRow) => Promise<void>;
+  removeByPaths: (libraryId: string, paths: string[]) => Promise<number>;
+  markScanned: (libraryId: string) => Promise<void>;
+};
 
 type ScanLibraryOptions = {
-  libraryId: string
-  root: string
-  files: MediaFileSystem
-  store: MediaStore
-  transcoder: Transcoder
+  libraryId: string;
+  root: string;
+  files: MediaFileSystem;
+  store: MediaStore;
+  transcoder: Transcoder;
   /**
    * Asked in order for each file's title, first answer winning.
    *
    * Defaults to the filename provider alone. Plugins prepend to this list.
    */
-  providers?: MetadataProvider[]
+  providers?: MetadataProvider[];
   /**
    * Probes every file again, even one that has not changed.
    *
@@ -80,13 +75,13 @@ type ScanLibraryOptions = {
    * still reads it the same way. After a probing fix, or a plugin that names
    * files better, the only way to pick the change up is to ask again.
    */
-  force?: boolean
-  onProblem?: (path: string, reason: string) => void
+  force?: boolean;
+  onProblem?: (path: string, reason: string) => void;
   /**
    * Told after every file how far probing has got.
    */
-  onProgress?: (phase: ScanPhase, processed: number, total: number) => void
-}
+  onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
+};
 
 /**
  * Bringing the database in line with the filesystem is all this does.
@@ -98,9 +93,9 @@ type ScanLibraryOptions = {
  * each working from what is outstanding rather than from what was just
  * imported, and the scan job runs them in turn. See `mediaItemJob`.
  */
-const SCAN_PHASES = ['probing'] as const
+const SCAN_PHASES = ['probing'] as const;
 
-type ScanPhase = (typeof SCAN_PHASES)[number]
+type ScanPhase = (typeof SCAN_PHASES)[number];
 
 /**
  * Decides which files need probing.
@@ -113,23 +108,23 @@ const selectChanged = (
   found: ScannedFile[],
   stored: StoredItem[],
 ): { changed: ScannedFile[]; missing: string[] } => {
-  const storedByPath = new Map(stored.map((item) => [item.path, item]))
-  const foundPaths = new Set(found.map((file) => file.path))
+  const storedByPath = new Map(stored.map((item) => [item.path, item]));
+  const foundPaths = new Set(found.map((file) => file.path));
 
   const changed = found.filter((file) => {
-    const existing = storedByPath.get(file.path)
+    const existing = storedByPath.get(file.path);
 
     return (
       existing === undefined ||
       existing.sizeBytes !== file.sizeBytes ||
       existing.modifiedAtMs !== file.modifiedAtMs
-    )
-  })
+    );
+  });
 
-  const missing = stored.map((item) => item.path).filter((path) => !foundPaths.has(path))
+  const missing = stored.map((item) => item.path).filter((path) => !foundPaths.has(path));
 
-  return { changed, missing }
-}
+  return { changed, missing };
+};
 
 /**
  * Walks a library root and brings the database in line with it.
@@ -149,50 +144,50 @@ const scanLibrary = async ({
   onProblem,
   onProgress,
 }: ScanLibraryOptions): Promise<ScanResult> => {
-  const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path))
-  const stored = await store.listStored(libraryId)
+  const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path));
+  const stored = await store.listStored(libraryId);
 
   const { changed, missing } = force
     ? { changed: found, missing: selectChanged(found, stored).missing }
-    : selectChanged(found, stored)
-  const knownPaths = new Set(stored.map((item) => item.path))
-  const storedByPath = new Map(stored.map((item) => [item.path, item]))
+    : selectChanged(found, stored);
+  const knownPaths = new Set(stored.map((item) => item.path));
+  const storedByPath = new Map(stored.map((item) => [item.path, item]));
 
-  let added = 0
-  let updated = 0
-  let failed = 0
-  let probed = 0
+  let added = 0;
+  let updated = 0;
+  let failed = 0;
+  let probed = 0;
 
-  onProgress?.('probing', probed, changed.length)
+  onProgress?.('probing', probed, changed.length);
 
   for (const file of changed) {
     try {
-      const probe = await transcoder.probe(file.path)
+      const probe = await transcoder.probe(file.path);
 
       if (probe.video === null) {
-        failed += 1
-        onProblem?.(file.path, 'No video stream.')
+        failed += 1;
+        onProblem?.(file.path, 'No video stream.');
 
-        continue
+        continue;
       }
 
-      const episode = readEpisodeFromPath(file.path)
-      const knownExternalId = storedByPath.get(file.path)?.externalId ?? null
+      const episode = readEpisodeFromPath(file.path);
+      const knownExternalId = storedByPath.get(file.path)?.externalId ?? null;
 
       const metadata = await resolveMetadata(
         providers,
         { path: file.path, probe, episode, knownExternalId },
         (name, reason) => onProblem?.(file.path, `Metadata provider ${name} failed: ${reason}`),
-      )
+      );
 
       if (metadata === null) {
-        failed += 1
-        onProblem?.(file.path, 'No metadata provider could name this file.')
+        failed += 1;
+        onProblem?.(file.path, 'No metadata provider could name this file.');
 
-        continue
+        continue;
       }
 
-      const { title, year } = metadata
+      const { title, year } = metadata;
 
       await store.upsert({
         libraryId,
@@ -204,29 +199,29 @@ const scanLibrary = async ({
         probe,
         metadata,
         episode,
-      })
+      });
 
       if (knownPaths.has(file.path)) {
-        updated += 1
+        updated += 1;
       } else {
-        added += 1
+        added += 1;
       }
     } catch (error) {
-      failed += 1
-      onProblem?.(file.path, error instanceof Error ? error.message : 'Probe failed.')
+      failed += 1;
+      onProblem?.(file.path, error instanceof Error ? error.message : 'Probe failed.');
     } finally {
-      probed += 1
-      onProgress?.('probing', probed, changed.length)
+      probed += 1;
+      onProgress?.('probing', probed, changed.length);
     }
   }
 
-  const removed = missing.length === 0 ? 0 : await store.removeByPaths(libraryId, missing)
+  const removed = missing.length === 0 ? 0 : await store.removeByPaths(libraryId, missing);
 
-  await store.markScanned(libraryId)
+  await store.markScanned(libraryId);
 
-  return { added, updated, removed, failed }
-}
+  return { added, updated, removed, failed };
+};
 
-export type { MediaFileSystem, MediaRow, MediaStore, ScanPhase, ScannedFile, StoredItem }
+export type { MediaFileSystem, MediaRow, MediaStore, ScanPhase, ScannedFile, StoredItem };
 
-export default { scanLibrary, selectChanged, SCAN_PHASES }
+export { scanLibrary, selectChanged, SCAN_PHASES };

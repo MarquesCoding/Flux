@@ -1,9 +1,9 @@
-import type { ActiveSession } from '@FluxWeb/admin/fetchAdmin'
+import type { ActiveSession } from '@FluxWeb/admin/fetchAdmin';
 
 type SessionStatsDialogProps = {
-  session: ActiveSession
-  isOpen: boolean
-  onClose: () => void
-}
+  session: ActiveSession;
+  isOpen: boolean;
+  onClose: () => void;
+};
 
-export type { SessionStatsDialogProps }
+export type { SessionStatsDialogProps };

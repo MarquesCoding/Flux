@@ -1,41 +1,33 @@
-import { useState } from 'react'
-import { IconSelector } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import DialogModule from '@FluxUI/Dialog'
-import OptionMenuModule from '@FluxUI/OptionMenu'
-import describeTrackModule from '@FluxCore/functions/describeTrack'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import type { Library } from '@FluxContracts/schemas/Library'
-import type { LibrarySettingsDialogProps } from './LibrarySettingsDialog.types'
-
-const { Button } = ButtonModule
-const { Dialog } = DialogModule
-const { OptionMenu } = OptionMenuModule
-const { readLanguage, LANGUAGE_NAMES } = describeTrackModule
-const { updateLibrary } = fetchLibraryModule
+import { useState } from 'react';
+import { IconSelector } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { Dialog } from '@FluxUI/Dialog';
+import { OptionMenu } from '@FluxUI/OptionMenu';
+import { readLanguage, LANGUAGE_NAMES } from '@FluxCore/functions/describeTrack';
+import { updateLibrary } from '@FluxWeb/library/fetchLibrary';
+import type { Library } from '@FluxContracts/schemas/Library';
+import type { LibrarySettingsDialogProps } from './LibrarySettingsDialog.types';
 
 /**
  * Stands in for "no forced language" in the menu, which otherwise only deals
  * in language codes.
  */
-const NONE_ID = 'none'
+const NONE_ID = 'none';
 
-type LanguageOption = { id: string; label: string; detail?: string }
+type LanguageOption = { id: string; label: string; detail?: string };
 
 /**
  * The language picker's options, with the browser's own language pinned to
  * the top when it is one Flux recognises.
  */
 const buildLanguageOptions = (): LanguageOption[] => {
-  // `navigator.language` carries a region subtag ("en-US") that readLanguage's
-  // lookup table has no entry for — only the primary subtag ("en") does.
   const primarySubtag =
-    typeof navigator === 'undefined' ? null : (navigator.language.split('-')[0] ?? null)
-  const browserLanguage = readLanguage(primarySubtag)
-  const entries = Object.entries(LANGUAGE_NAMES).sort((a, b) => a[1].localeCompare(b[1]))
-  const browserEntry = entries.find(([code]) => code === browserLanguage)
-  const rest = entries.filter(([code]) => code !== browserLanguage)
-  const ordered = browserEntry === undefined ? rest : [browserEntry, ...rest]
+    typeof navigator === 'undefined' ? null : (navigator.language.split('-')[0] ?? null);
+  const browserLanguage = readLanguage(primarySubtag);
+  const entries = Object.entries(LANGUAGE_NAMES).sort((a, b) => a[1].localeCompare(b[1]));
+  const browserEntry = entries.find(([code]) => code === browserLanguage);
+  const rest = entries.filter(([code]) => code !== browserLanguage);
+  const ordered = browserEntry === undefined ? rest : [browserEntry, ...rest];
 
   return [
     { id: NONE_ID, label: "Each file's own default" },
@@ -44,8 +36,8 @@ const buildLanguageOptions = (): LanguageOption[] => {
       label,
       ...(code === browserLanguage ? { detail: 'Your browser' } : {}),
     })),
-  ]
-}
+  ];
+};
 
 /**
  * A library's settings, opened from clicking its name.
@@ -64,75 +56,71 @@ const LibrarySettingsDialog = ({
   onUpdated,
   onRegenerate,
 }: LibrarySettingsDialogProps) => {
-  const languageOptions = buildLanguageOptions()
+  const languageOptions = buildLanguageOptions();
 
-  const [selected, setSelected] = useState(library?.defaultAudioLanguage ?? NONE_ID)
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [confirming, setConfirming] = useState<{ saved: Library; label: string } | null>(null)
+  const [selected, setSelected] = useState(library?.defaultAudioLanguage ?? NONE_ID);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<{ saved: Library; label: string } | null>(null);
 
   const reset = () => {
-    setSelected(library?.defaultAudioLanguage ?? NONE_ID)
-    setError(null)
-    setConfirming(null)
-  }
+    setSelected(library?.defaultAudioLanguage ?? NONE_ID);
+    setError(null);
+    setConfirming(null);
+  };
 
   const close = () => {
-    reset()
-    onClose()
-  }
+    reset();
+    onClose();
+  };
 
   const finish = (updated: Library) => {
-    onUpdated(updated)
-    reset()
-    onClose()
-  }
+    onUpdated(updated);
+    reset();
+    onClose();
+  };
 
   const save = async () => {
     if (library === null) {
-      return
+      return;
     }
 
-    setIsSaving(true)
-    setError(null)
+    setIsSaving(true);
+    setError(null);
 
     try {
-      const defaultAudioLanguage = selected === NONE_ID ? null : selected
-      const changed = defaultAudioLanguage !== (library.defaultAudioLanguage ?? null)
-      const updated = await updateLibrary(library.id, { defaultAudioLanguage })
+      const defaultAudioLanguage = selected === NONE_ID ? null : selected;
+      const changed = defaultAudioLanguage !== (library.defaultAudioLanguage ?? null);
+      const updated = await updateLibrary(library.id, { defaultAudioLanguage });
 
       if (changed && library.itemCount > 0) {
-        const label = languageOptions.find((option) => option.id === selected)?.label ?? selected
+        const label = languageOptions.find((option) => option.id === selected)?.label ?? selected;
 
-        setConfirming({ saved: updated, label })
+        setConfirming({ saved: updated, label });
       } else {
-        finish(updated)
+        finish(updated);
       }
     } catch (thrown) {
-      setError(thrown instanceof Error ? thrown.message : 'The library could not be updated.')
+      setError(thrown instanceof Error ? thrown.message : 'The library could not be updated.');
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const regenerate = () => {
     if (confirming === null) {
-      return
+      return;
     }
 
-    // Fire-and-forget: the caller tracks and shows progress next to the
-    // library itself, the same way it already does for a scan, so this
-    // dialog closes right away rather than blocking on a job that can take a
-    // while to finish.
-    onRegenerate(confirming.saved.id)
-    finish(confirming.saved)
-  }
+    onRegenerate(confirming.saved.id);
+    finish(confirming.saved);
+  };
 
   if (library === null) {
-    return null
+    return null;
   }
 
-  const selectedLabel = languageOptions.find((option) => option.id === selected)?.label ?? selected
+  const selectedLabel = languageOptions.find((option) => option.id === selected)?.label ?? selected;
 
   return (
     <Dialog label={`${library.name} settings`} isOpen={isOpen} onClose={close}>
@@ -187,7 +175,7 @@ const LibrarySettingsDialog = ({
                 isPill
                 isLoading={isSaving}
                 onClick={() => {
-                  void save()
+                  void save();
                 }}
               >
                 Save
@@ -207,7 +195,7 @@ const LibrarySettingsDialog = ({
                 variant="ghost"
                 isPill
                 onClick={() => {
-                  finish(confirming.saved)
+                  finish(confirming.saved);
                 }}
               >
                 Not now
@@ -221,9 +209,9 @@ const LibrarySettingsDialog = ({
         )}
       </div>
     </Dialog>
-  )
-}
+  );
+};
 
-LibrarySettingsDialog.displayName = 'LibrarySettingsDialog'
+LibrarySettingsDialog.displayName = 'LibrarySettingsDialog';
 
-export default { LibrarySettingsDialog }
+export { LibrarySettingsDialog };

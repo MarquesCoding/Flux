@@ -1,9 +1,7 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import TrickplayPreviewModule from './TrickplayPreview'
-import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
-
-const { TrickplayPreview } = TrickplayPreviewModule
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { TrickplayPreview } from './TrickplayPreview';
+import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay';
 
 const trickplay: Trickplay = {
   width: 320,
@@ -28,26 +26,26 @@ const trickplay: Trickplay = {
       height: 180,
     },
   ],
-}
+};
 
 describe('TrickplayPreview', () => {
   it('shows the moment being hovered', () => {
-    render(<TrickplayPreview trickplay={trickplay} seconds={12} />)
+    render(<TrickplayPreview trickplay={trickplay} seconds={12} />);
 
-    expect(screen.getByText('0:12')).toBeInTheDocument()
-  })
+    expect(screen.getByText('0:12')).toBeInTheDocument();
+  });
 
   it('offsets the sheet to the frame covering that moment', () => {
-    render(<TrickplayPreview trickplay={trickplay} seconds={12} />)
+    render(<TrickplayPreview trickplay={trickplay} seconds={12} />);
 
     expect(screen.getByRole('img', { name: 'Preview at 0:12' })).toHaveStyle({
       backgroundPosition: '-320px -0px',
-    })
-  })
+    });
+  });
 
   it('draws nothing when there are no thumbnails', () => {
-    render(<TrickplayPreview trickplay={{ ...trickplay, thumbnails: [] }} seconds={12} />)
+    render(<TrickplayPreview trickplay={{ ...trickplay, thumbnails: [] }} seconds={12} />);
 
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
-  })
-})
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+});

@@ -149,8 +149,6 @@ async fn fingerprints_a_real_file() {
 async fn two_encodes_of_the_same_theme_fingerprint_alike() {
     let app = app();
 
-    // Same opening, different dialogue, different bitrate — which is what two
-    // episodes of one series actually look like.
     let first = hashes(&app, &episode("fp-one.m4a", 11, "128k")).await;
     let second = hashes(&app, &episode("fp-two.m4a", 23, "96k")).await;
 

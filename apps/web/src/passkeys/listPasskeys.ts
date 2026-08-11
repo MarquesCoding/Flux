@@ -1,7 +1,5 @@
-import PasskeyModule from '@FluxContracts/schemas/Passkey'
-import type { Passkey } from '@FluxContracts/schemas/Passkey'
-
-const { PasskeyListSchema } = PasskeyModule
+import { PasskeyListSchema } from '@FluxContracts/schemas/Passkey';
+import type { Passkey } from '@FluxContracts/schemas/Passkey';
 
 /**
  * Lists the passkeys registered to the signed-in user.
@@ -9,14 +7,14 @@ const { PasskeyListSchema } = PasskeyModule
 const listPasskeys = async (): Promise<Passkey[]> => {
   const response = await fetch('/api/auth/passkey/list-user-passkeys', {
     headers: { accept: 'application/json' },
-  })
+  });
 
   if (!response.ok) {
-    throw new Error(`Passkey list failed with status ${response.status.toString()}`)
+    throw new Error(`Passkey list failed with status ${response.status.toString()}`);
   }
 
-  return PasskeyListSchema.parse(await response.json())
-}
+  return PasskeyListSchema.parse(await response.json());
+};
 
 /**
  * Removes a registered passkey.
@@ -26,10 +24,10 @@ const deletePasskey = async (id: string): Promise<boolean> => {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ id }),
-  })
+  });
 
-  return response.ok
-}
+  return response.ok;
+};
 
 /**
  * Renames a registered passkey.
@@ -42,9 +40,9 @@ const renamePasskey = async (id: string, name: string): Promise<boolean> => {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ id, name }),
-  })
+  });
 
-  return response.ok
-}
+  return response.ok;
+};
 
-export default { listPasskeys, deletePasskey, renamePasskey }
+export { listPasskeys, deletePasskey, renamePasskey };

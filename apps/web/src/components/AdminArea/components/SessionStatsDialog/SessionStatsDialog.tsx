@@ -1,26 +1,26 @@
-import { IconX } from '@tabler/icons-react'
-import DialogModule from '@FluxUI/Dialog'
-import IconButtonModule from '@FluxUI/IconButton'
-import describePlaybackAxisModule from '@FluxCore/functions/describePlaybackAxis'
-import type { SessionStatsDialogProps } from './SessionStatsDialog.types'
-
-const { Dialog } = DialogModule
-const { IconButton } = IconButtonModule
-const { describeAxis, describeVideoAxis, describeAudioAxis } = describePlaybackAxisModule
+import { IconX } from '@tabler/icons-react';
+import { Dialog } from '@FluxUI/Dialog';
+import { Button } from '@FluxUI/Button';
+import {
+  describeAxis,
+  describeVideoAxis,
+  describeAudioAxis,
+} from '@FluxCore/functions/describePlaybackAxis';
+import type { SessionStatsDialogProps } from './SessionStatsDialog.types';
 
 type RowProps = {
-  name: string
-  children: string
-}
+  name: string;
+  children: string;
+};
 
 const Row = ({ name, children }: RowProps) => (
   <div className="flex gap-3 rounded-md px-1 py-1.5 text-sm">
     <dt className="w-32 shrink-0 text-text-muted">{name}</dt>
     <dd className="min-w-0 break-words font-medium text-text">{children}</dd>
   </div>
-)
+);
 
-Row.displayName = 'Row'
+Row.displayName = 'Row';
 
 /**
  * What an admin can see about one tab's stream.
@@ -31,7 +31,7 @@ Row.displayName = 'Row'
  * admin page's own poll takes to catch up after that.
  */
 const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProps) => {
-  const { playback } = session
+  const { playback } = session;
 
   return (
     <Dialog label="Stream stats" isOpen={isOpen} onClose={onClose}>
@@ -39,9 +39,9 @@ const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProp
         <header className="flex items-center justify-between gap-4">
           <h2 className="text-lg font-medium text-text">Stream stats</h2>
 
-          <IconButton label="Close" size="sm" onClick={onClose}>
+          <Button isIconOnly variant="ghost" label="Close" size="sm" onClick={onClose}>
             <IconX size={18} aria-hidden />
-          </IconButton>
+          </Button>
         </header>
 
         <dl className="flex flex-col divide-y divide-white/5">
@@ -67,9 +67,6 @@ const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProp
               </Row>
               <Row name="Started">{new Date(playback.startedAt).toLocaleTimeString()}</Row>
 
-              {/* Every axis is negotiated independently, so "transcoding" can
-                  mean anything from a plain remux to converting every stream
-                  — this is why, axis by axis, in the negotiator's own words. */}
               <Row name="Container">
                 {describeAxis(playback.plan.container.kind, playback.plan.container.reason.detail)}
               </Row>
@@ -96,9 +93,9 @@ const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProp
         </dl>
       </div>
     </Dialog>
-  )
-}
+  );
+};
 
-SessionStatsDialog.displayName = 'SessionStatsDialog'
+SessionStatsDialog.displayName = 'SessionStatsDialog';
 
-export default { SessionStatsDialog }
+export { SessionStatsDialog };

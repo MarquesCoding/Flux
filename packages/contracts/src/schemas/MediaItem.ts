@@ -1,8 +1,8 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
-const VideoRangeSchema = z.enum(['SDR', 'HDR10', 'HDR10Plus', 'HLG', 'DolbyVision'])
+const VideoRangeSchema = z.enum(['SDR', 'HDR10', 'HDR10Plus', 'HLG', 'DolbyVision']);
 
-const VideoCodecSchema = z.enum(['h264', 'hevc', 'av1', 'vp9', 'vp8', 'mpeg2', 'vc1'])
+const VideoCodecSchema = z.enum(['h264', 'hevc', 'av1', 'vp9', 'vp8', 'mpeg2', 'vc1']);
 
 const AudioCodecSchema = z.enum([
   'aac',
@@ -17,52 +17,29 @@ const AudioCodecSchema = z.enum([
   'dts',
   'dtshd',
   'pcm',
-])
+]);
 
-const ContainerSchema = z.enum(['mp4', 'mkv', 'webm', 'ts', 'm2ts', 'mov', 'avi'])
+const ContainerSchema = z.enum(['mp4', 'mkv', 'webm', 'ts', 'm2ts', 'mov', 'avi']);
 
-const SubtitleFormatSchema = z.enum(['srt', 'webvtt', 'ass', 'ssa', 'vobsub', 'pgs', 'dvbsub'])
+const SubtitleFormatSchema = z.enum(['srt', 'webvtt', 'ass', 'ssa', 'vobsub', 'pgs', 'dvbsub']);
 
 const AudioStreamSchema = z.object({
   index: z.number().int().nonnegative(),
   codec: AudioCodecSchema,
   channels: z.number().int().positive(),
-  /**
-   * Whatever the file called the language.
-   *
-   * Deliberately unconstrained. Files carry two-letter codes, three-letter
-   * codes, both competing three-letter standards, the language written out,
-   * and `und`. Demanding one shape rejects real media over a label.
-   */
   language: z.string().nullish(),
-  /**
-   * What the file calls this track, when it says.
-   *
-   * Often the only thing telling two tracks of one language apart.
-   */
   title: z.string().nullish(),
   isDefault: z.boolean().default(false),
   isAtmos: z.boolean(),
-})
+});
 
 const SubtitleStreamSchema = z.object({
   index: z.number().int().nonnegative(),
   format: SubtitleFormatSchema,
-  /**
-   * Unconstrained for the same reason audio languages are: a real file labels
-   * its tracks however whoever made it felt like.
-   */
   language: z.string().nullish(),
-  /**
-   * What the container calls this track.
-   *
-   * Often the only thing telling two tracks of one language apart, and often
-   * better than anything Flux could name them: a release that labels a track
-   * "Signs & Songs" has already said what it is.
-   */
   title: z.string().nullish(),
   isForced: z.boolean(),
-})
+});
 
 /**
  * A single playable media file with the stream details the playback negotiator
@@ -82,18 +59,18 @@ const MediaItemSchema = z.object({
   bitrateKbps: z.number().int().positive(),
   audioStreams: z.array(AudioStreamSchema).min(1),
   subtitleStreams: z.array(SubtitleStreamSchema),
-})
+});
 
-export type VideoRange = z.infer<typeof VideoRangeSchema>
-export type VideoCodec = z.infer<typeof VideoCodecSchema>
-export type AudioCodec = z.infer<typeof AudioCodecSchema>
-export type Container = z.infer<typeof ContainerSchema>
-export type SubtitleFormat = z.infer<typeof SubtitleFormatSchema>
-export type AudioStream = z.infer<typeof AudioStreamSchema>
-export type SubtitleStream = z.infer<typeof SubtitleStreamSchema>
-export type MediaItem = z.infer<typeof MediaItemSchema>
+export type VideoRange = z.infer<typeof VideoRangeSchema>;
+export type VideoCodec = z.infer<typeof VideoCodecSchema>;
+export type AudioCodec = z.infer<typeof AudioCodecSchema>;
+export type Container = z.infer<typeof ContainerSchema>;
+export type SubtitleFormat = z.infer<typeof SubtitleFormatSchema>;
+export type AudioStream = z.infer<typeof AudioStreamSchema>;
+export type SubtitleStream = z.infer<typeof SubtitleStreamSchema>;
+export type MediaItem = z.infer<typeof MediaItemSchema>;
 
-export default {
+export {
   MediaItemSchema,
   VideoRangeSchema,
   VideoCodecSchema,
@@ -102,4 +79,4 @@ export default {
   SubtitleFormatSchema,
   AudioStreamSchema,
   SubtitleStreamSchema,
-}
+};

@@ -1,26 +1,24 @@
-import { z } from 'zod'
-import MediaItemModule from './MediaItem'
-
-const {
+import { z } from 'zod';
+import {
   ContainerSchema,
   VideoCodecSchema,
   AudioCodecSchema,
   SubtitleFormatSchema,
   VideoRangeSchema,
-} = MediaItemModule
+} from './MediaItem';
 
 const DirectPlayProfileSchema = z.object({
   container: ContainerSchema,
   videoCodecs: z.array(VideoCodecSchema).min(1),
   audioCodecs: z.array(AudioCodecSchema).min(1),
-})
+});
 
 const TranscodingProfileSchema = z.object({
   container: ContainerSchema,
   videoCodec: VideoCodecSchema,
   audioCodec: AudioCodecSchema,
   protocol: z.enum(['hls', 'dash', 'http']),
-})
+});
 
 /**
  * A client's declared playback capabilities. Clients may submit their own
@@ -39,10 +37,10 @@ const DeviceProfileSchema = z.object({
   supportedSubtitleFormats: z.array(SubtitleFormatSchema),
   directPlayProfiles: z.array(DirectPlayProfileSchema).min(1),
   transcodingProfiles: z.array(TranscodingProfileSchema).min(1),
-})
+});
 
-export type DirectPlayProfile = z.infer<typeof DirectPlayProfileSchema>
-export type TranscodingProfile = z.infer<typeof TranscodingProfileSchema>
-export type DeviceProfile = z.infer<typeof DeviceProfileSchema>
+export type DirectPlayProfile = z.infer<typeof DirectPlayProfileSchema>;
+export type TranscodingProfile = z.infer<typeof TranscodingProfileSchema>;
+export type DeviceProfile = z.infer<typeof DeviceProfileSchema>;
 
-export default { DeviceProfileSchema, DirectPlayProfileSchema, TranscodingProfileSchema }
+export { DeviceProfileSchema, DirectPlayProfileSchema, TranscodingProfileSchema };

@@ -1,4 +1,4 @@
-import type { Transition, Variants } from 'motion/react'
+import type { Transition, Variants } from 'motion/react';
 
 /**
  * The spring everything moves on.
@@ -12,7 +12,7 @@ const spring: Transition = {
   stiffness: 320,
   damping: 34,
   mass: 0.9,
-}
+};
 
 /**
  * A gentler spring for anything large.
@@ -25,7 +25,7 @@ const heavySpring: Transition = {
   stiffness: 180,
   damping: 30,
   mass: 1.1,
-}
+};
 
 /**
  * The spring a moving highlight travels on.
@@ -39,7 +39,7 @@ const liquidSpring: Transition = {
   stiffness: 380,
   damping: 34,
   mass: 1,
-}
+};
 
 /**
  * How something containing text changes size.
@@ -50,7 +50,7 @@ const liquidSpring: Transition = {
 const settleTween: Transition = {
   duration: 0.32,
   ease: [0.2, 0, 0, 1],
-}
+};
 
 /**
  * What a reduced-motion preference gets instead.
@@ -58,12 +58,12 @@ const settleTween: Transition = {
  * Not "no animation": an element that snaps into place is harder to follow
  * than one that fades. What is removed is the movement, not the transition.
  */
-const stillTransition: Transition = { duration: 0.18, ease: 'easeOut' }
+const stillTransition: Transition = { duration: 0.18, ease: 'easeOut' };
 
 /**
  * How far something travels as it arrives.
  */
-const RISE = 18
+const RISE = 18;
 
 /**
  * Text and blocks arriving from below.
@@ -76,7 +76,7 @@ const riseVariants: Variants = {
   hidden: { opacity: 0, y: RISE },
   shown: { opacity: 1, y: 0 },
   gone: { opacity: 0, y: -RISE },
-}
+};
 
 /**
  * The same, without the movement.
@@ -85,7 +85,7 @@ const fadeVariants: Variants = {
   hidden: { opacity: 0 },
   shown: { opacity: 1 },
   gone: { opacity: 0 },
-}
+};
 
 /**
  * A container whose children arrive one after another.
@@ -102,7 +102,7 @@ const staggerVariants: Variants = {
   gone: {
     transition: { staggerChildren: 0.03, staggerDirection: -1 },
   },
-}
+};
 
 /**
  * Picks the variants to animate with.
@@ -111,7 +111,7 @@ const staggerVariants: Variants = {
  * once at the call site rather than being guessed at in every component.
  */
 const revealVariants = (prefersReducedMotion: boolean | null): Variants =>
-  prefersReducedMotion === true ? fadeVariants : riseVariants
+  prefersReducedMotion === true ? fadeVariants : riseVariants;
 
 /**
  * Picks the transition to move on.
@@ -121,13 +121,13 @@ const revealTransition = (
   weight: 'light' | 'heavy' = 'light',
 ): Transition => {
   if (prefersReducedMotion === true) {
-    return stillTransition
+    return stillTransition;
   }
 
-  return weight === 'heavy' ? heavySpring : spring
-}
+  return weight === 'heavy' ? heavySpring : spring;
+};
 
-export default {
+export {
   spring,
   heavySpring,
   liquidSpring,
@@ -139,4 +139,4 @@ export default {
   revealVariants,
   revealTransition,
   RISE,
-}
+};

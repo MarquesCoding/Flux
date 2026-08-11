@@ -1,7 +1,8 @@
-import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
+import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
 
 type ListItemsOptions = {
-  search?: string
+  search?: string;
   /**
    * Whether to answer with films or with episodes.
    *
@@ -9,11 +10,11 @@ type ListItemsOptions = {
    * the library actually knows: a folder of films and a folder of programmes
    * are the same shape on disk.
    */
-  kind?: 'films' | 'shows'
+  kind?: 'films' | 'shows';
   /**
    * A genre the item must carry, as a catalogue named it.
    */
-  genre?: string
+  genre?: string;
   /**
    * Particular items, named outright.
    *
@@ -22,7 +23,7 @@ type ListItemsOptions = {
    * for them by name beats reading the library and sifting it, which answers
    * with whatever the first page happened to hold.
    */
-  ids?: string[]
+  ids?: string[];
   /**
    * What order to answer in.
    *
@@ -30,20 +31,33 @@ type ListItemsOptions = {
    * as a list rather than as a heap. Newest first is for the page that is
    * about newness.
    */
-  order?: 'title' | 'newest'
-  limit: number
-  offset: number
-}
+  order?: 'title' | 'newest';
+  limit: number;
+  offset: number;
+};
+
+/**
+ * What the library can be asked about series rather than about files.
+ *
+ * A show is not stored anywhere: it is every item naming the same series. The
+ * grouping is done here rather than in a browser because a page holds the
+ * first sixty things it was sent, and a series with ninety episodes would
+ * otherwise report itself as having thirty.
+ */
+type ShowService = {
+  listShows: (libraryId: string) => Promise<ShowSummary[] | null>;
+  getShow: (libraryId: string, showId: string) => Promise<ShowDetail | null>;
+};
 
 type CreateLibraryInput = {
-  name: string
-  kind: Library['kind']
-  path: string
-}
+  name: string;
+  kind: Library['kind'];
+  path: string;
+};
 
 type UpdateLibraryInput = {
-  defaultAudioLanguage: string | null
-}
+  defaultAudioLanguage: string | null;
+};
 
 /**
  * The library as the HTTP layer sees it.
@@ -52,21 +66,21 @@ type UpdateLibraryInput = {
  * without Postgres and so a future plugin-provided library source can satisfy
  * the same shape.
  */
-type LibraryService = {
-  list: () => Promise<Library[]>
-  create: (input: CreateLibraryInput) => Promise<Library | null>
+type LibraryService = ShowService & {
+  list: () => Promise<Library[]>;
+  create: (input: CreateLibraryInput) => Promise<Library | null>;
   /**
    * Changes a library's settings, such as which language its audio track
    * selection should prefer.
    *
    * Null means there is no such library.
    */
-  update: (libraryId: string, input: UpdateLibraryInput) => Promise<Library | null>
+  update: (libraryId: string, input: UpdateLibraryInput) => Promise<Library | null>;
   listItems: (
     libraryId: string,
     options: ListItemsOptions,
-  ) => Promise<{ items: MediaSummary[]; total: number } | null>
-  getMedia: (id: string) => Promise<MediaDetail | null>
+  ) => Promise<{ items: MediaSummary[]; total: number } | null>;
+  getMedia: (id: string) => Promise<MediaDetail | null>;
   /**
    * Queues a scan and reports the job.
    *
@@ -76,7 +90,7 @@ type LibraryService = {
    * A forced scan probes every file again rather than only those whose size
    * or modification time changed.
    */
-  scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>
+  scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>;
   /**
    * Deletes every item in a library, then queues a scan to repopulate it
    * from nothing.
@@ -85,28 +99,28 @@ type LibraryService = {
    * operator reaching for this wants a clean rebuild, not a delta against
    * whatever the database currently believes.
    */
-  reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
+  reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   /**
    * Queues preview regeneration against the library's current forced audio
    * language, without a full rescan.
    *
    * Null means there is no such library.
    */
-  regeneratePreviews: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
+  regeneratePreviews: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   /**
    * Queues regeneration of every scrubbing thumbnail sheet, without a full
    * rescan.
    *
    * Null means there is no such library.
    */
-  regenerateTrickplay: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
+  regenerateTrickplay: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   /**
    * Queues intro/outro (segment) detection against already-scanned media,
    * without a full rescan.
    *
    * Null means there is no such library.
    */
-  detectSegments: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
+  detectSegments: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   /**
    * How a queued scan is getting on.
    *
@@ -115,22 +129,22 @@ type LibraryService = {
    * tracked them at all.
    */
   readScanState: (jobId: string) => Promise<{
-    state: string
-    phase: string | null
-    processed: number | null
-    total: number | null
-  }>
+    state: string;
+    phase: string | null;
+    processed: number | null;
+    total: number | null;
+  }>;
   /**
    * Where an item's artwork lives at the catalogue it came from.
    *
    * Answers with nothing when the item has none, which is every item until a
    * metadata provider has been configured.
    */
-  readArtworkUrl: (mediaId: string, kind: 'poster' | 'backdrop') => Promise<string | null>
-}
+  readArtworkUrl: (mediaId: string, kind: 'poster' | 'backdrop') => Promise<string | null>;
+};
 
-const DEFAULT_LIMIT = 60
+const DEFAULT_LIMIT = 60;
 
-export type { CreateLibraryInput, LibraryService, ListItemsOptions, UpdateLibraryInput }
+export type { CreateLibraryInput, LibraryService, ListItemsOptions, UpdateLibraryInput };
 
-export default { DEFAULT_LIMIT }
+export { DEFAULT_LIMIT };

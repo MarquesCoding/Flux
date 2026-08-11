@@ -53,8 +53,8 @@ binaries. Same principle, same enforcement.
 in an import specifier.
 
 ```ts
-import Button from '@FluxUI/Button' // correct
-import Button from '../../ui/Button/Button' // banned
+import Button from '@FluxUI/Button'; // correct
+import Button from '../../ui/Button/Button'; // banned
 ```
 
 Same-directory relative imports (`./Button.types`) are permitted, because a
@@ -117,8 +117,7 @@ barrel.
 
 ## 5. Exports
 
-**Every component and function file default-exports an object naming its
-member:**
+**Every component and function file exports its members by name:**
 
 ```tsx
 const Button = (props: ButtonProps) => {
@@ -127,69 +126,57 @@ const Button = (props: ButtonProps) => {
 
 Button.displayName = 'Button'
 
-export default { Button }
+export { Button }
 ```
 
-Consumption — **import the module, then destructure at the top of the file**:
+Consumption — **import what is used, and nothing else**:
 
 ```tsx
-import ButtonModule from '@FluxUI/Button'
-
-const { Button } = ButtonModule
+import { Button } from '@FluxUI/Button';
 
 const MediaCard = (props: MediaCardProps) => {
-  return <Button variant="primary">Play</Button>
-}
+  return <Button variant="primary">Play</Button>;
+};
 ```
 
-This is the house style and it is not optional. Using the module object inline
-(`<ButtonModule.Button />`) works but reads badly and is inconsistent with the
-rest of the codebase. Destructuring once at module scope keeps JSX identical to
-a conventional named import.
+No default exports, and no module objects. A file exports the thing it is named
+after; a caller names the thing it needs. Nothing has to be unwrapped at the top
+of a file before it can be used, and nothing has to be renamed to avoid a
+collision between two modules called the same.
 
-Type-only exports (`export type { ButtonProps }`) are permitted alongside the
-default export, because they are erased at runtime and are not members.
+Type-only exports (`export type { ButtonProps }`) sit alongside the value
+exports and are erased at runtime.
 
-One exported runtime member per file. The file name matches the member name.
+One exported runtime member per file, with the file named after it. Constants
+that belong to that member — a delay, a limit, a list of options it is built
+from — may be exported beside it where tests or callers genuinely need them.
 
-### The one tooling exception
+### What this replaces
 
-`apps/server/src/db/Schema.ts` additionally exports each table as a named
-export. **drizzle-kit discovers tables by scanning a module's named exports**;
-given only a default-exported object it reports `0 tables` and generates an
-empty migration — silently, with no error.
+Until August 2026 every file default-exported an object naming its member, and
+every caller imported the module and destructured it. That form was chosen to
+make the exported surface explicit; in practice it cost more than it bought.
 
-This is the same class of exception as `// SAFETY:` in section 6: a rule that
-fights the toolchain is a rule that gets worked around badly. The file keeps its
-default export as well, and application code imports through the default. The
-named exports exist for drizzle-kit alone.
+**What the change buys.** React Fast Refresh works again: a component inside an
+object literal cannot be tracked, so every edit remounted the subtree and lost
+local state — a player forgot its position on each keystroke. `React.lazy` works
+directly, so the `lazyFlux` helper that existed only to unwrap a default is
+gone. `displayName` remains required, but for its own sake rather than to repair
+a name the convention had erased.
 
-Do not extend this exception to other files without the same kind of hard
-tooling requirement.
+**What it costs.** A single sweeping change to every file in the repository,
+which is a large diff and a bad day for anybody rebasing across it. That cost is
+paid once.
 
-### Known costs of this rule, and required mitigations
+This rule is enforced: `import/no-default-export` is on in oxlint, with an
+exception for the config files that tooling insists on reading a default from.
 
-This form was chosen deliberately. Its consequences are managed, not ignored.
+### The tooling note that survives it
 
-**React DevTools.** A component inside an object literal has no inferred name.
-`displayName` is therefore **mandatory** on every component and is lint-enforced.
-With it set, DevTools displays correctly.
-
-**`React.lazy`.** A lazy import cannot find a component default. Use the
-`lazyFlux` helper in `@FluxUI/lazyFlux`, never `React.lazy` directly:
-
-```ts
-const Settings = lazyFlux(() => import('@FluxUI/Settings'), 'Settings')
-```
-
-**Vite Fast Refresh.** React Fast Refresh cannot track a component wrapped in an
-object literal, so editing a component remounts its subtree and loses local state
-instead of hot-patching in place. There is no mitigation. This is an accepted
-cost of the export convention; do not file it as a bug.
-
-**Tree-shaking.** Not materially affected. Because rule 4 forbids barrels and
-each file exports exactly one member, there is nothing else in the module for a
-bundler to eliminate.
+`apps/server/src/db/Schema.ts` exports each table by name because drizzle-kit
+discovers tables by scanning a module's named exports; given anything else it
+reports `0 tables` and generates an empty migration, silently. Under this rule
+that file is no longer an exception — it is simply the rule applied.
 
 ---
 
@@ -212,6 +199,27 @@ Everything else — explanatory comments, section banners, commented-out code,
 `TODO`, `FIXME` — is rejected. If code needs explanation, the explanation belongs
 in a name, a type, or a TSDoc block. If work is outstanding, it belongs in an
 issue where it can be tracked, not in a comment where it cannot.
+
+### How this is enforced
+
+Two checks, because no one linter reads every language here.
+
+`flux/no-comments` in `tools/eslint/noComments.ts` covers TypeScript. It fails
+on any comment that is not one of the exceptions above, and removes it under
+`--fix`. TSDoc counts only when it sits on a declaration: a `/** */` block
+floating inside a function body is prose in a costume, and is rejected as prose.
+A third slash means `/// <reference>` and nothing else: `/// prose` is Rust
+syntax in the wrong language, and is rejected too.
+
+`tools/comments/checkComments.ts` covers Rust and CSS, which ESLint cannot see
+at all. It parses rather than pattern-matches, so a `//` inside a string literal
+stays where it is. Both run under `pnpm lint`, which runs on every commit.
+
+The rule also fails a lint directive that does not say why, after `--`.
+
+This is a rule that was written down and then ignored for a year, by people and
+by coding agents alike. Documentation does not enforce itself; a failing build
+does.
 
 ---
 
@@ -269,7 +277,7 @@ Untrusted data enters through a Zod schema, which produces a concrete type
 without any annotation being written:
 
 ```ts
-const item = MediaItemSchema.parse(JSON.parse(body))
+const item = MediaItemSchema.parse(JSON.parse(body));
 ```
 
 `JSON.parse` returns `any`, but no `any` token appears in the source and the
@@ -284,12 +292,12 @@ narrows it without a cast:
 
 ```ts
 try {
-  await startSession(plan)
+  await startSession(plan);
 } catch (error) {
   if (error instanceof TranscodeError) {
-    return failure(error.code)
+    return failure(error.code);
   }
-  throw error
+  throw error;
 }
 ```
 
@@ -300,17 +308,98 @@ try {
 
 ## 9. UI components
 
-**Raw HTML form and interactive elements are banned in application code.** No
-`<button>`, `<input>`, `<select>`, `<checkbox>`, `<textarea>`, `<a>` used as a
-control, or `<dialog>`. Use the FluxUI equivalent.
-
-FluxUI itself is the only place these primitives appear, because that is where
-they are wrapped. See ADR-0013.
+**Raw HTML form and interactive elements are banned outside the one FluxUI
+component that owns each of them.** No `<button>`, `<input>`, `<select>`,
+`<textarea>`, `<a>` used as a control, or `<dialog>` — not in application code,
+and not in other FluxUI components either.
 
 Structural elements — `<div>`, `<span>`, `<section>`, `<ul>` — are fine.
 
-**If FluxUI lacks a component you need, add it to FluxUI.** Do not work around
-its absence locally. A one-off raw control in an app is how design systems die.
+### One component owns each primitive
+
+| Primitive                                           | Owned by     | Everything else       |
+| --------------------------------------------------- | ------------ | --------------------- |
+| `<button>`                                          | `Button`     | composes `Button`     |
+| `<input type="text\|email\|password\|url\|search">` | `TextField`  | composes `TextField`  |
+| `<input type="file">`                               | `FilePicker` | composes `FilePicker` |
+| `<dialog>`, focus trapping                          | `Dialog`     | composes `Dialog`     |
+
+**A control that is not one of those is a shape of one of those.** An icon
+button is `Button` with an icon and a label. A search box is `TextField` wearing
+no box. A row of page markers, a bar of places, a menu of settings: all
+`Button`, painted differently.
+
+There is no `IconButton`, and there should be no equivalent of one for any other
+primitive. A second component wrapping the same element is a second set of focus
+behaviour, disabled behaviour and keyboard behaviour — written slightly
+differently, drifting apart from the first, and each fixed separately when
+either turns out to be wrong.
+
+### Widening a component rather than escaping it
+
+When a control needs something the owning component does not offer, **add it to
+that component**. `Button` carries `variant="bare"` and `size="none"` for
+exactly this: the controls FluxUI builds out of it need a button's behaviour and
+none of its skin.
+
+`bare` and `none` are for a control that supplies its own shape: a card that is
+one big press target, an episode row, the clock in the player. They say _this
+one is painted by its caller_ — not _this one is exempt_. A control that wants a
+skin FluxUI does not have wants a variant that ought to exist by name; add it,
+and say what it is for.
+
+**If FluxUI lacks a component you need, add it to FluxUI.** A one-off raw
+control in an app is how design systems die; a second component owning the same
+element is how they rot.
+
+### Base UI owns behaviour; FluxUI owns appearance
+
+If Base UI ships a primitive for what you are building, build on it. Roles,
+keyboard handling, focus management and ARIA wiring are a contract with the
+browser and with assistive technology, and hand-rolling them produces something
+that looks right and is subtly wrong — a `div` with a bar in it instead of a
+meter, a button with `role="switch"` that a keyboard cannot toggle.
+
+**Only `packages/ui` imports Base UI.** An app that imports it directly has
+reached past the layer whose whole job is to be the one place a control is
+decided. If FluxUI lacks the component, add it to FluxUI.
+
+Judgement still applies. A primitive earns its place by doing something for you:
+`Field` was worth adopting because it owns label, description, error and the
+wiring between them. `FilePicker`'s `<label>` was not, because there the label
+_is_ the mechanism that opens the file browser, and wrapping it in a `Field.Root`
+would add a DOM node to satisfy a library rather than a reader.
+
+### A look is a variant, not a class at the call site
+
+`className` on a FluxUI component is for _where a thing sits_ — width, margin,
+grid placement. It is not for what the thing looks like.
+
+Four call sites once wrote `className="bg-black/50 text-white backdrop-blur"` on
+a `Button`. That is one look, described four times, in raw colours no theme can
+reach. It is now `variant="overlay"`, painted from `--color-scrim` and
+`--color-on-scrim`.
+
+When a control needs a look the component does not offer:
+
+1. Name the look — what is it _for_, not what colour is it. `overlay` is for a
+   control on artwork; `link` is text that leads somewhere.
+2. Add it to the component's variant list, in tokens rather than literal
+   colours.
+3. Use it everywhere that look appears.
+
+A theme can only move what is named. `bg-black/50` at a call site is invisible
+to it, and every one of those is a place a future theme will be wrong.
+
+### How this is enforced
+
+ESLint fails the build on `<button>`, `<input>`, `<select>`, `<textarea>` and
+`<dialog>` anywhere in the repo. The exceptions are listed by filename in
+`eslint.config.ts`: the three components that own those elements, and test files,
+where a raw element stands in for an arbitrary caller-supplied child.
+
+Adding a filename to that list is not how you satisfy the rule. The list grows
+only when a new primitive gets an owner.
 
 ---
 

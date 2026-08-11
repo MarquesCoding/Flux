@@ -1,4 +1,4 @@
-import { createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi';
 
 const HealthResponseSchema = z
   .object({
@@ -6,7 +6,7 @@ const HealthResponseSchema = z
     version: z.string(),
     transcoderReachable: z.boolean(),
   })
-  .openapi('HealthResponse')
+  .openapi('HealthResponse');
 
 /**
  * Liveness and readiness for the container health check.
@@ -26,6 +26,6 @@ const healthRoute = createRoute({
       content: { 'application/json': { schema: HealthResponseSchema } },
     },
   },
-})
+});
 
-export default { healthRoute, HealthResponseSchema }
+export { healthRoute, HealthResponseSchema };

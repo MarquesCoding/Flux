@@ -1,4 +1,4 @@
-type QueuedJob = { jobId: string; state: string }
+type QueuedJob = { jobId: string; state: string };
 
 /**
  * The server-wide upkeep an admin can start on demand, as the HTTP layer
@@ -15,17 +15,17 @@ type MaintenanceService = {
    * Queues removal of cached artwork and profile photo files nothing in the
    * database references any more.
    */
-  cleanupImageCache: () => Promise<QueuedJob>
+  cleanupImageCache: () => Promise<QueuedJob>;
   /**
    * Queues clearing out expired sign-in sessions and device-authorization
    * codes.
    */
-  cleanupSessions: () => Promise<QueuedJob>
+  cleanupSessions: () => Promise<QueuedJob>;
   /**
    * Queues a check that the configured catalogue key can actually reach the
    * catalogue.
    */
-  checkCatalogueConnectivity: () => Promise<QueuedJob>
-}
+  checkCatalogueConnectivity: () => Promise<QueuedJob>;
+};
 
-export type { MaintenanceService, QueuedJob }
+export type { MaintenanceService, QueuedJob };

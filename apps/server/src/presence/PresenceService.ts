@@ -1,38 +1,38 @@
-import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan'
+import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
 
 /**
  * What a tab is doing, once it has started watching something.
  */
 type PresencePlayback = {
-  mediaId: string
-  mediaTitle: string
-  hasPoster: boolean
-  hasBackdrop: boolean
-  mode: 'direct' | 'transcode'
+  mediaId: string;
+  mediaTitle: string;
+  hasPoster: boolean;
+  hasBackdrop: boolean;
+  mode: 'direct' | 'transcode';
   /**
    * What was negotiated for this session, axis by axis — the same plan the
    * viewer's own player can explain itself from, for an admin looking at
    * this stream to see exactly the same thing.
    */
-  plan: PlaybackPlan
+  plan: PlaybackPlan;
   /**
    * The transcoder's own session id, when this is a transcode.
    *
    * Needed to stop the underlying ffmpeg process on an admin Stop — direct
    * play has nothing running server-side to stop.
    */
-  transcoderSessionId: string | null
-  isPlaying: boolean
-  pausedByAdmin: boolean
-  startedAt: number
+  transcoderSessionId: string | null;
+  isPlaying: boolean;
+  pausedByAdmin: boolean;
+  startedAt: number;
   /**
    * What the viewer's own player last reported about itself, for an admin
    * looking at this stream to see. Null until the first heartbeat carrying
    * it arrives — up to `HEARTBEAT_INTERVAL_MILLISECONDS` after playback
    * starts, the same client-side constant `VideoPlayer` heartbeats on.
    */
-  health: PresencePlaybackHealth | null
-}
+  health: PresencePlaybackHealth | null;
+};
 
 /**
  * What a viewer's player reports about how the stream is actually running.
@@ -46,12 +46,12 @@ type PresencePlaybackHealth = {
    * progress bar needs. Absolute, on the media's own timeline, not relative
    * to where this session began.
    */
-  positionSeconds: number
-  durationSeconds: number
-  bufferedAheadSeconds: number
-  presentedWidth: number
-  presentedHeight: number
-}
+  positionSeconds: number;
+  durationSeconds: number;
+  bufferedAheadSeconds: number;
+  presentedWidth: number;
+  presentedHeight: number;
+};
 
 /**
  * One open tab.
@@ -60,24 +60,24 @@ type PresencePlaybackHealth = {
  * timeout, because the connection itself is the liveness signal.
  */
 type PresenceEntry = {
-  clientId: string
-  profileId: string | null
-  profileName: string | null
-  deviceLabel: string
-  connectedAt: number
-  playback: PresencePlayback | null
-}
+  clientId: string;
+  profileId: string | null;
+  profileName: string | null;
+  deviceLabel: string;
+  connectedAt: number;
+  playback: PresencePlayback | null;
+};
 
 /**
  * A control message pushed down a tab's own presence connection.
  */
 type PresenceControlEvent =
-  { kind: 'stopped'; reason: string } | { kind: 'paused'; reason: string } | { kind: 'resumed' }
+  { kind: 'stopped'; reason: string } | { kind: 'paused'; reason: string } | { kind: 'resumed' };
 
 type PresenceStartPlaybackInput = Omit<
   PresencePlayback,
   'isPlaying' | 'pausedByAdmin' | 'startedAt' | 'health'
->
+>;
 
 /**
  * Who has the app open right now, and what they are watching.
@@ -101,24 +101,28 @@ type PresenceService = {
     profileName: string | null,
     deviceLabel: string,
     send: (event: PresenceControlEvent) => void,
-  ) => void
-  disconnect: (clientId: string) => void
-  startPlayback: (clientId: string, playback: PresenceStartPlaybackInput) => void
-  stopPlayback: (clientId: string) => void
-  heartbeatPlayback: (clientId: string, isPlaying: boolean, health?: PresencePlaybackHealth) => void
-  list: () => PresenceEntry[]
+  ) => void;
+  disconnect: (clientId: string) => void;
+  startPlayback: (clientId: string, playback: PresenceStartPlaybackInput) => void;
+  stopPlayback: (clientId: string) => void;
+  heartbeatPlayback: (
+    clientId: string,
+    isPlaying: boolean,
+    health?: PresencePlaybackHealth,
+  ) => void;
+  list: () => PresenceEntry[];
   /**
    * Pushes a pause to a tab and marks it paused-by-admin.
    *
    * `false` when the tab is not connected or nothing is playing there.
    */
-  pause: (clientId: string, reason: string) => boolean
+  pause: (clientId: string, reason: string) => boolean;
   /**
    * Pushes a resume and clears paused-by-admin.
    *
    * `false` when the tab is not connected.
    */
-  resume: (clientId: string) => boolean
+  resume: (clientId: string) => boolean;
   /**
    * Pushes a stop and clears the tab's playback.
    *
@@ -126,13 +130,13 @@ type PresenceService = {
    * stopping the underlying transcode, if any — this only updates presence
    * and notifies the viewer.
    */
-  stop: (clientId: string, reason: string) => boolean
-}
+  stop: (clientId: string, reason: string) => boolean;
+};
 
 type Connection = {
-  entry: PresenceEntry
-  send: (event: PresenceControlEvent) => void
-}
+  entry: PresenceEntry;
+  send: (event: PresenceControlEvent) => void;
+};
 
 /**
  * Presence held in memory.
@@ -142,7 +146,7 @@ type Connection = {
  * already has. See ADR-0006.
  */
 const createPresenceService = (): PresenceService => {
-  const connections = new Map<string, Connection>()
+  const connections = new Map<string, Connection>();
 
   return {
     connect: (clientId, profileId, profileName, deviceLabel, send) => {
@@ -156,18 +160,18 @@ const createPresenceService = (): PresenceService => {
           playback: null,
         },
         send,
-      })
+      });
     },
 
     disconnect: (clientId) => {
-      connections.delete(clientId)
+      connections.delete(clientId);
     },
 
     startPlayback: (clientId, playback) => {
-      const connection = connections.get(clientId)
+      const connection = connections.get(clientId);
 
       if (connection === undefined) {
-        return
+        return;
       }
 
       connection.entry.playback = {
@@ -176,25 +180,25 @@ const createPresenceService = (): PresenceService => {
         pausedByAdmin: false,
         startedAt: Date.now(),
         health: null,
-      }
+      };
     },
 
     stopPlayback: (clientId) => {
-      const connection = connections.get(clientId)
+      const connection = connections.get(clientId);
 
       if (connection !== undefined) {
-        connection.entry.playback = null
+        connection.entry.playback = null;
       }
     },
 
     heartbeatPlayback: (clientId, isPlaying, health) => {
-      const playback = connections.get(clientId)?.entry.playback
+      const playback = connections.get(clientId)?.entry.playback;
 
       if (playback !== null && playback !== undefined) {
-        playback.isPlaying = isPlaying
+        playback.isPlaying = isPlaying;
 
         if (health !== undefined) {
-          playback.health = health
+          playback.health = health;
         }
       }
     },
@@ -202,50 +206,50 @@ const createPresenceService = (): PresenceService => {
     list: () => Array.from(connections.values(), (connection) => connection.entry),
 
     pause: (clientId, reason) => {
-      const connection = connections.get(clientId)
+      const connection = connections.get(clientId);
 
       if (connection === undefined || connection.entry.playback === null) {
-        return false
+        return false;
       }
 
-      connection.entry.playback.isPlaying = false
-      connection.entry.playback.pausedByAdmin = true
-      connection.send({ kind: 'paused', reason })
+      connection.entry.playback.isPlaying = false;
+      connection.entry.playback.pausedByAdmin = true;
+      connection.send({ kind: 'paused', reason });
 
-      return true
+      return true;
     },
 
     resume: (clientId) => {
-      const connection = connections.get(clientId)
+      const connection = connections.get(clientId);
 
       if (connection === undefined) {
-        return false
+        return false;
       }
 
       if (connection.entry.playback !== null) {
-        connection.entry.playback.pausedByAdmin = false
-        connection.entry.playback.isPlaying = true
+        connection.entry.playback.pausedByAdmin = false;
+        connection.entry.playback.isPlaying = true;
       }
 
-      connection.send({ kind: 'resumed' })
+      connection.send({ kind: 'resumed' });
 
-      return true
+      return true;
     },
 
     stop: (clientId, reason) => {
-      const connection = connections.get(clientId)
+      const connection = connections.get(clientId);
 
       if (connection === undefined) {
-        return false
+        return false;
       }
 
-      connection.entry.playback = null
-      connection.send({ kind: 'stopped', reason })
+      connection.entry.playback = null;
+      connection.send({ kind: 'stopped', reason });
 
-      return true
+      return true;
     },
-  }
-}
+  };
+};
 
 export type {
   PresenceControlEvent,
@@ -253,6 +257,6 @@ export type {
   PresencePlayback,
   PresencePlaybackHealth,
   PresenceService,
-}
+};
 
-export default { createPresenceService }
+export { createPresenceService };

@@ -1,10 +1,7 @@
-import createJobScheduleServiceModule from './createJobScheduleService'
-import createMemoryJobTriggerStoreModule from './createMemoryJobTriggerStore'
-import type { JobQueue } from './JobQueue'
-import type { JobScheduleService } from './JobScheduleService'
-
-const { createJobScheduleService } = createJobScheduleServiceModule
-const { createMemoryJobTriggerStore } = createMemoryJobTriggerStoreModule
+import { createJobScheduleService } from './createJobScheduleService';
+import { createMemoryJobTriggerStore } from './createMemoryJobTriggerStore';
+import type { JobQueue } from './JobQueue';
+import type { JobScheduleService } from './JobScheduleService';
 
 /**
  * A queue that accepts schedules and forgets them, so the real schedule
@@ -23,7 +20,7 @@ const createInertJobQueue = (): JobQueue => ({
   clearSchedule: () => Promise.resolve(),
   listSchedules: () => Promise.resolve([]),
   stop: () => Promise.resolve(),
-})
+});
 
 /**
  * Triggers held in memory, for testing the admin routes without Postgres.
@@ -33,6 +30,6 @@ const createInertJobQueue = (): JobQueue => ({
  * server runs.
  */
 const createMemoryJobScheduleService = (): JobScheduleService =>
-  createJobScheduleService({ store: createMemoryJobTriggerStore(), jobs: createInertJobQueue() })
+  createJobScheduleService({ store: createMemoryJobTriggerStore(), jobs: createInertJobQueue() });
 
-export default { createMemoryJobScheduleService }
+export { createMemoryJobScheduleService };

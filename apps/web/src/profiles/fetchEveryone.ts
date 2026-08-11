@@ -1,13 +1,11 @@
-import { z } from 'zod'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { ViewerProfileListSchema } = ViewerProfileModule
+import { z } from 'zod';
+import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 /**
  * What better-auth answers with when a password is right but not enough.
  */
-const TwoFactorPendingSchema = z.object({ twoFactorRedirect: z.literal(true) })
+const TwoFactorPendingSchema = z.object({ twoFactorRedirect: z.literal(true) });
 
 /**
  * Everybody who could sign in here.
@@ -20,17 +18,17 @@ const fetchEveryone = async (): Promise<ViewerProfile[]> => {
   try {
     const response = await fetch('/api/profiles/everyone', {
       headers: { accept: 'application/json' },
-    })
+    });
 
     if (!response.ok) {
-      return []
+      return [];
     }
 
-    return ViewerProfileListSchema.parse(await response.json()).profiles
+    return ViewerProfileListSchema.parse(await response.json()).profiles;
   } catch {
-    return []
+    return [];
   }
-}
+};
 
 /**
  * Signs somebody in by the face they picked.
@@ -46,26 +44,21 @@ const signInAsProfile = async (
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ password }),
-  }).catch(() => null)
+  }).catch(() => null);
 
   if (response === null) {
-    return { kind: 'refused', reason: 'Flux could not be reached.' }
+    return { kind: 'refused', reason: 'Flux could not be reached.' };
   }
 
   if (!response.ok) {
-    return { kind: 'refused', reason: 'That password is not right.' }
+    return { kind: 'refused', reason: 'That password is not right.' };
   }
 
-  // A right password is not always a session. An account with a second factor
-  // gets a short-lived cookie and a redirect instead, and is not signed in
-  // until a code is accepted.
-  // Read as text and parsed here rather than through the router's own reader,
-  // which is typed as anything: untrusted input enters through a schema.
-  const body = await response.text().catch(() => '')
+  const body = await response.text().catch(() => '');
 
   return TwoFactorPendingSchema.safeParse(JSON.parse(body === '' ? 'null' : body)).success
     ? { kind: 'needsCode' }
-    : { kind: 'signedIn' }
-}
+    : { kind: 'signedIn' };
+};
 
-export default { fetchEveryone, signInAsProfile }
+export { fetchEveryone, signInAsProfile };

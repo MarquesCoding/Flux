@@ -156,9 +156,6 @@ impl Monitor {
 
         let own = Pid::from_u32(std::process::id());
 
-        // Every ffmpeg this process started, found by parentage rather than by
-        // name: another ffmpeg somebody is running in a terminal is not the
-        // media service's doing and should not appear as its cost.
         let children: Vec<ProcessUse> = system
             .processes()
             .values()

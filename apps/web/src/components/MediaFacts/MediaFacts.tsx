@@ -1,9 +1,7 @@
-import { IconStar } from '@tabler/icons-react'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
-import type { ReactNode } from 'react'
-import type { MediaFactsProps } from './MediaFacts.types'
-
-const { formatDuration } = formatDurationModule
+import { IconStar } from '@tabler/icons-react';
+import { formatDuration } from '@FluxCore/functions/formatDuration';
+import type { ReactNode } from 'react';
+import type { MediaFactsProps } from './MediaFacts.types';
 
 /**
  * Everything that places an item, on one line.
@@ -21,7 +19,7 @@ const { formatDuration } = formatDurationModule
  * worse than a shorter line.
  */
 const MediaFacts = ({ media, className, hasRuntime = false }: MediaFactsProps) => {
-  const rating = media.rating ?? null
+  const rating = media.rating ?? null;
 
   const facts: { key: string; said: ReactNode }[] = [
     ...(typeof media.episodeNumber === 'number'
@@ -54,10 +52,10 @@ const MediaFacts = ({ media, className, hasRuntime = false }: MediaFactsProps) =
           },
         ]
       : []),
-  ]
+  ];
 
   if (facts.length === 0) {
-    return null
+    return null;
   }
 
   return (
@@ -69,9 +67,9 @@ const MediaFacts = ({ media, className, hasRuntime = false }: MediaFactsProps) =
         </span>
       ))}
     </span>
-  )
-}
+  );
+};
 
-MediaFacts.displayName = 'MediaFacts'
+MediaFacts.displayName = 'MediaFacts';
 
-export default { MediaFacts }
+export { MediaFacts };

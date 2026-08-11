@@ -1,55 +1,51 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import ScanProgressBarModule from './ScanProgressBar'
-
-const { ScanProgressBar } = ScanProgressBarModule
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { ScanProgressBar } from './ScanProgressBar';
 
 describe('ScanProgressBar', () => {
   it('names the phase it is in', () => {
-    render(<ScanProgressBar label="Scanning Movies" phase="probing" processed={4} total={10} />)
+    render(<ScanProgressBar label="Scanning Movies" phase="probing" processed={4} total={10} />);
 
-    expect(screen.getByText('Probing')).toBeInTheDocument()
+    expect(screen.getByText('Probing')).toBeInTheDocument();
     expect(
       screen.getByRole('progressbar', { name: 'Scanning Movies: Probing' }),
-    ).toBeInTheDocument()
-  })
+    ).toBeInTheDocument();
+  });
 
   it('reports how far through the current phase it is', () => {
-    render(<ScanProgressBar label="Scanning Movies" phase="probing" processed={4} total={10} />)
+    render(<ScanProgressBar label="Scanning Movies" phase="probing" processed={4} total={10} />);
 
-    const bar = screen.getByRole('progressbar', { name: 'Scanning Movies: Probing' })
+    const bar = screen.getByRole('progressbar', { name: 'Scanning Movies: Probing' });
 
-    expect(bar).toHaveAttribute('aria-valuenow', '4')
-    expect(bar).toHaveAttribute('aria-valuemax', '10')
-    expect(screen.getByText('4/10')).toBeInTheDocument()
-  })
+    expect(bar).toHaveAttribute('aria-valuenow', '4');
+    expect(bar).toHaveAttribute('aria-valuemax', '10');
+    expect(screen.getByText('4/10')).toBeInTheDocument();
+  });
 
   it('reads an unrecognised phase name as-is, rather than hiding it', () => {
     render(
       <ScanProgressBar label="Scanning Movies" phase="detecting" processed={null} total={null} />,
-    )
+    );
 
-    expect(screen.getByText('detecting')).toBeInTheDocument()
-  })
+    expect(screen.getByText('detecting')).toBeInTheDocument();
+  });
 
   it('names a stage with nothing to do, rather than going blank and pulsing', () => {
-    render(<ScanProgressBar label="Scanning Movies" phase="trickplay" processed={0} total={0} />)
+    render(<ScanProgressBar label="Scanning Movies" phase="trickplay" processed={0} total={0} />);
 
-    // A stage that finds nothing outstanding has succeeded, and used to draw
-    // an unlabelled pulsing bar — indistinguishable from a job that had hung.
     expect(
       screen.getByRole('progressbar', { name: 'Scanning Movies: Generating thumbnails' }),
-    ).toBeInTheDocument()
-    expect(screen.getByText('Generating thumbnails')).toBeInTheDocument()
-    expect(screen.queryByText(/\//)).not.toBeInTheDocument()
-  })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Generating thumbnails')).toBeInTheDocument();
+    expect(screen.queryByText(/\//)).not.toBeInTheDocument();
+  });
 
   it('has no phase or numeric value before the scan has reported anything', () => {
-    render(<ScanProgressBar label="Scanning Movies" phase={null} processed={null} total={null} />)
+    render(<ScanProgressBar label="Scanning Movies" phase={null} processed={null} total={null} />);
 
-    const bar = screen.getByRole('progressbar', { name: 'Scanning Movies' })
+    const bar = screen.getByRole('progressbar', { name: 'Scanning Movies' });
 
-    expect(bar).not.toHaveAttribute('aria-valuenow')
-    expect(screen.queryByText(/\//)).not.toBeInTheDocument()
-  })
-})
+    expect(bar).not.toHaveAttribute('aria-valuenow');
+    expect(screen.queryByText(/\//)).not.toBeInTheDocument();
+  });
+});

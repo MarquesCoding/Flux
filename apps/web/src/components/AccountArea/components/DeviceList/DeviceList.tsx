@@ -1,26 +1,21 @@
-import { useCallback, useEffect, useState } from 'react'
-import { IconDeviceTv, IconLogout } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import BadgeModule from '@FluxUI/Badge'
-import SpinnerModule from '@FluxUI/Spinner'
-import fetchDevicesModule from '@FluxWeb/account/fetchDevices'
-import type { Device } from '@FluxWeb/account/fetchDevices'
-
-const { Button } = ButtonModule
-const { Badge } = BadgeModule
-const { Spinner } = SpinnerModule
-const { fetchDevices, endDevice, endOtherDevices } = fetchDevicesModule
+import { useCallback, useEffect, useState } from 'react';
+import { IconDeviceTv, IconLogout } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { Badge } from '@FluxUI/Badge';
+import { Spinner } from '@FluxUI/Spinner';
+import { fetchDevices, endDevice, endOtherDevices } from '@FluxWeb/account/fetchDevices';
+import type { Device } from '@FluxWeb/account/fetchDevices';
 
 /**
  * Says when something happened, the way somebody would.
  */
 const said = (when: string): string => {
-  const at = new Date(when)
+  const at = new Date(when);
 
   return Number.isNaN(at.getTime())
     ? 'at some point'
-    : at.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-}
+    : at.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+};
 
 /**
  * Everywhere this account is signed in.
@@ -35,16 +30,16 @@ const said = (when: string): string => {
  * of a list from another.
  */
 const DeviceList = () => {
-  const [devices, setDevices] = useState<Device[] | null>(null)
-  const [isWorking, setIsWorking] = useState(false)
+  const [devices, setDevices] = useState<Device[] | null>(null);
+  const [isWorking, setIsWorking] = useState(false);
 
   const read = useCallback(() => {
-    void fetchDevices().then(setDevices)
-  }, [])
+    void fetchDevices().then(setDevices);
+  }, []);
 
-  useEffect(read, [read])
+  useEffect(read, [read]);
 
-  const elsewhere = (devices ?? []).filter((device) => !device.isCurrent)
+  const elsewhere = (devices ?? []).filter((device) => !device.isCurrent);
 
   return (
     <div className="flex flex-col gap-4">
@@ -61,12 +56,12 @@ const DeviceList = () => {
             isPill
             isLoading={isWorking}
             onClick={() => {
-              setIsWorking(true)
+              setIsWorking(true);
 
               void endOtherDevices().then(() => {
-                setIsWorking(false)
-                read()
-              })
+                setIsWorking(false);
+                read();
+              });
             }}
           >
             <IconLogout size={16} aria-hidden />
@@ -90,8 +85,6 @@ const DeviceList = () => {
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="truncate text-sm font-medium text-text">{device.name}</span>
 
-                  {/* Marked rather than hidden: somebody looking at their own
-                      devices wants to know which one they are holding. */}
                   {!device.isCurrent ? null : <Badge size="sm">This one</Badge>}
                 </span>
 
@@ -101,16 +94,13 @@ const DeviceList = () => {
                 </span>
               </span>
 
-              {/* The one being used has no button. Signing yourself out of the
-                  page you are signing things out from is its own small
-                  disaster, and there is already a sign-out below. */}
               {device.isCurrent ? null : (
                 <Button
                   variant="ghost"
                   size="sm"
                   isPill
                   onClick={() => {
-                    void endDevice(device.id).then(read)
+                    void endDevice(device.id).then(read);
                   }}
                 >
                   Sign out
@@ -121,9 +111,9 @@ const DeviceList = () => {
         </ul>
       )}
     </div>
-  )
-}
+  );
+};
 
-DeviceList.displayName = 'DeviceList'
+DeviceList.displayName = 'DeviceList';
 
-export default { DeviceList }
+export { DeviceList };

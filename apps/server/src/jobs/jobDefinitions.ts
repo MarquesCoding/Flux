@@ -1,8 +1,5 @@
-import { z } from 'zod'
-import JobQueueModule from './JobQueue'
-import type { ScheduleTrigger } from './scheduleTrigger'
-
-const {
+import { z } from 'zod';
+import {
   SCAN_LIBRARY_JOB,
   REGENERATE_PREVIEWS_JOB,
   REGENERATE_TRICKPLAY_JOB,
@@ -11,7 +8,8 @@ const {
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   scheduleTriggerKind,
-} = JobQueueModule
+} from './JobQueue';
+import type { ScheduleTrigger } from './scheduleTrigger';
 
 /**
  * Not a pg-boss job kind of its own — `LibraryService.reset` clears a
@@ -20,7 +18,7 @@ const {
  * to run does not think in queue kinds; they think "reset this library",
  * and that is its own distinct, destructive action worth its own entry.
  */
-const RESET_LIBRARY_JOB = 'library.reset'
+const RESET_LIBRARY_JOB = 'library.reset';
 
 /**
  * A job an admin can start on demand from the Work tab.
@@ -30,9 +28,9 @@ const RESET_LIBRARY_JOB = 'library.reset'
  * `JOB_DEFINITIONS` and asks the admin route to run one by `kind`.
  */
 type JobDefinition = {
-  kind: string
-  label: string
-  description: string
+  kind: string;
+  label: string;
+  description: string;
   /**
    * Whether this job runs against every library rather than the server as
    * a whole.
@@ -44,7 +42,7 @@ type JobDefinition = {
    * separately from these instead of needing a library nobody would pick
    * for it.
    */
-  needsLibrary: boolean
+  needsLibrary: boolean;
   /**
    * Whether running this loses data that cannot be recovered.
    *
@@ -52,8 +50,8 @@ type JobDefinition = {
    * job the same — a scan only ever adds to or corrects what a library
    * already has, but a reset deletes it all first.
    */
-  destructive: boolean
-}
+  destructive: boolean;
+};
 
 const JOB_DEFINITIONS: JobDefinition[] = [
   {
@@ -117,7 +115,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     needsLibrary: false,
     destructive: false,
   },
-]
+];
 
 /**
  * What each job runs on out of the box.
@@ -145,7 +143,7 @@ const DEFAULT_JOB_TRIGGERS: Record<string, ScheduleTrigger[]> = {
   [CHECK_CATALOGUE_CONNECTIVITY_JOB]: [{ kind: 'daily', hour: 5, minute: 0 }],
   [CLEANUP_SESSIONS_JOB]: [{ kind: 'daily', hour: 5, minute: 30 }],
   [CLEANUP_IMAGE_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 0 }],
-}
+};
 
 /**
  * Which queue a kind's schedule actually fires on.
@@ -156,27 +154,24 @@ const DEFAULT_JOB_TRIGGERS: Record<string, ScheduleTrigger[]> = {
  * has no such indirection: it fires on its own queue.
  */
 const scheduleQueueNameFor = (kind: string): string => {
-  const definition = JOB_DEFINITIONS.find((candidate) => candidate.kind === kind)
+  const definition = JOB_DEFINITIONS.find((candidate) => candidate.kind === kind);
 
-  return definition?.needsLibrary === true ? scheduleTriggerKind(kind) : kind
-}
+  return definition?.needsLibrary === true ? scheduleTriggerKind(kind) : kind;
+};
 
 const JobRunRequestSchema = z.object({
-  /**
-   * Absent for a job that does not need one — see `JobDefinition.needsLibrary`.
-   */
   libraryId: z.string().uuid().optional(),
   force: z.boolean().optional(),
-})
+});
 
-type JobRunRequest = z.infer<typeof JobRunRequestSchema>
+type JobRunRequest = z.infer<typeof JobRunRequestSchema>;
 
-export type { JobDefinition, JobRunRequest }
+export type { JobDefinition, JobRunRequest };
 
-export default {
+export {
   JOB_DEFINITIONS,
   DEFAULT_JOB_TRIGGERS,
   JobRunRequestSchema,
   RESET_LIBRARY_JOB,
   scheduleQueueNameFor,
-}
+};

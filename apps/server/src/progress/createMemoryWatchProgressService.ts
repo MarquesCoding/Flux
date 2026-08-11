@@ -1,7 +1,7 @@
-import type { WatchProgressService } from './WatchProgressService'
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
+import type { WatchProgressService } from './WatchProgressService';
+import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 
-type MemoryState = Record<string, WatchProgress[]>
+type MemoryState = Record<string, WatchProgress[]>;
 
 /**
  * Watch progress held in memory, so the HTTP surface can be exercised without
@@ -15,20 +15,20 @@ const createMemoryWatchProgressService = (
   list: (userId) => Promise.resolve(state[userId] ?? []),
 
   record: (userId, report) => {
-    const existing = (state[userId] ?? []).filter((entry) => entry.mediaId !== report.mediaId)
+    const existing = (state[userId] ?? []).filter((entry) => entry.mediaId !== report.mediaId);
 
-    state[userId] = [{ ...report, updatedAt: new Date(0).toISOString() }, ...existing]
+    state[userId] = [{ ...report, updatedAt: new Date(0).toISOString() }, ...existing];
 
-    return Promise.resolve()
+    return Promise.resolve();
   },
 
   forget: (userId, mediaId) => {
-    state[userId] = (state[userId] ?? []).filter((entry) => entry.mediaId !== mediaId)
+    state[userId] = (state[userId] ?? []).filter((entry) => entry.mediaId !== mediaId);
 
-    return Promise.resolve()
+    return Promise.resolve();
   },
-})
+});
 
-export type { MemoryState }
+export type { MemoryState };
 
-export default { createMemoryWatchProgressService }
+export { createMemoryWatchProgressService };

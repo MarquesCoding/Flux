@@ -1,7 +1,5 @@
-import cnModule from '@FluxUI/cn'
-import type { SparklineProps } from './Sparkline.types'
-
-const { cn } = cnModule
+import { cn } from '@FluxUI/cn';
+import type { SparklineProps } from './Sparkline.types';
 
 /**
  * A short history, drawn as columns.
@@ -12,7 +10,7 @@ const { cn } = cnModule
  * reading left to right expects now to be.
  */
 const Sparkline = ({ values, ceiling, label, className }: SparklineProps) => {
-  const highest = Math.max(ceiling, 1)
+  const highest = Math.max(ceiling, 1);
 
   return (
     <div
@@ -22,17 +20,15 @@ const Sparkline = ({ values, ceiling, label, className }: SparklineProps) => {
     >
       {values.map((value, index) => (
         <span
-          // Readings have no identity of their own — they are a position in a
-          // window that slides — so the position is the key.
           key={index}
           style={{ height: `${(Math.min(Math.max(value / highest, 0), 1) * 100).toString()}%` }}
           className="min-h-px w-full flex-1 rounded-sm bg-accent/70"
         />
       ))}
     </div>
-  )
-}
+  );
+};
 
-Sparkline.displayName = 'Sparkline'
+Sparkline.displayName = 'Sparkline';
 
-export default { Sparkline }
+export { Sparkline };

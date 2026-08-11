@@ -1,14 +1,11 @@
-import { useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { IconMenu2 } from '@tabler/icons-react'
-import cnModule from '@FluxUI/cn'
-import TooltipModule from '@FluxUI/Tooltip'
-import PopoverPanelModule from '@FluxUI/PopoverPanel'
-import type { TopNavProps } from './TopNav.types'
-
-const { cn } = cnModule
-const { Tooltip } = TooltipModule
-const { PopoverPanel } = PopoverPanelModule
+import { useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { IconMenu2 } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { cn } from '@FluxUI/cn';
+import { Tooltip } from '@FluxUI/Tooltip';
+import { PopoverPanel } from '@FluxUI/PopoverPanel';
+import type { TopNavProps } from './TopNav.types';
 
 /**
  * The bar across the top, as two things rather than one.
@@ -27,10 +24,8 @@ const { PopoverPanel } = PopoverPanelModule
  * so nothing shifts about except the badge itself.
  */
 const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }: TopNavProps) => {
-  const prefersReducedMotion = useReducedMotion()
-  // Closed when a place is chosen: a menu still sitting over the page it
-  // navigated to is a menu somebody has to dismiss to see what they asked for.
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const prefersReducedMotion = useReducedMotion();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <header
@@ -38,20 +33,10 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
     >
       <nav
         aria-label="Sections"
-        // Three columns where there is room for three: the places belong in
-        // the middle of the screen, not in the middle of whatever is left over
-        // once the tools have taken their width. On a phone there is no such
-        // room — three columns there means a middle one too wide to fit,
-        // pushed off both edges — so it is a row, and the places take what is
-        // left and scroll within it.
         className="mx-auto flex max-w-[1800px] items-center justify-between gap-2 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:gap-3"
       >
         <div className="pointer-events-auto hidden min-w-0 items-center sm:flex">{brand}</div>
 
-        {/* On a phone the places fold into one control. Two capsules and eight
-            icons do not fit across a phone, and the honest answer to not
-            fitting is to put the less urgent group away rather than to let it
-            run off both edges. */}
         <div className="flux-glass pointer-events-auto flex shrink-0 items-center rounded-full p-1 sm:hidden">
           <PopoverPanel
             label="Where to go"
@@ -63,12 +48,13 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
             <ul className="flex w-52 flex-col gap-0.5 py-1">
               {items.map((item) => (
                 <li key={item.id}>
-                  <button
-                    type="button"
+                  <Button
+                    variant="bare"
+                    size="none"
                     aria-current={item.id === selectedId ? 'page' : undefined}
                     onClick={() => {
-                      setIsMenuOpen(false)
-                      onSelect(item.id)
+                      setIsMenuOpen(false);
+                      onSelect(item.id);
                     }}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
@@ -81,7 +67,7 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                       <span className="flex shrink-0 items-center">{item.icon}</span>
                     )}
                     {item.label}
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -90,35 +76,26 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
 
         <ul className="flux-glass pointer-events-auto hidden min-w-0 items-center gap-0.5 overflow-x-auto rounded-full p-1 sm:flex sm:justify-self-center [&::-webkit-scrollbar]:hidden">
           {items.map((item) => {
-            const isCurrent = item.id === selectedId
+            const isCurrent = item.id === selectedId;
 
             return (
               <li key={item.id} className="shrink-0">
-                {/* Named on hover only while the name is not already
-                    there. The place being stood on writes itself out beside
-                    its icon, and a tooltip repeating it is the same word
-                    twice. */}
                 <Tooltip label={item.label} side="bottom" isDisabled={isCurrent}>
-                  <button
-                    type="button"
+                  <Button
+                    variant="bare"
+                    size="none"
                     aria-label={item.label}
                     aria-current={isCurrent ? 'page' : undefined}
                     onClick={() => {
-                      onSelect(item.id)
+                      onSelect(item.id);
                     }}
                     className={cn(
-                      // The same height as a tool, so the two capsules are the
-                      // same capsule at different lengths rather than two
-                      // near-misses sitting beside each other.
                       'relative flex h-10 items-center gap-1.5 rounded-full px-3 text-sm transition-colors duration-200',
                       isCurrent
                         ? 'font-medium text-text'
                         : 'text-text-muted hover:text-text focus-visible:text-text',
                     )}
                   >
-                    {/* Under the word rather than around it, so the capsule
-                      holds one moving highlight instead of five taking
-                      turns. */}
                     {!isCurrent ? null : (
                       <motion.span
                         layoutId="top-nav-current"
@@ -135,10 +112,6 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                       <span className="flex shrink-0 items-center">{item.icon}</span>
                     )}
 
-                    {/* The name only where it is being stood on. An icon is
-                      enough to point at a place; a word is what tells you
-                      where you are, and five words all the time is a strip of
-                      words. */}
                     <AnimatePresence initial={false}>
                       {!isCurrent ? null : (
                         <motion.span
@@ -152,10 +125,10 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                         </motion.span>
                       )}
                     </AnimatePresence>
-                  </button>
+                  </Button>
                 </Tooltip>
               </li>
-            )
+            );
           })}
         </ul>
 
@@ -163,8 +136,9 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
           {actions.map((action) =>
             action.control === undefined ? (
               <Tooltip key={action.id} label={action.label} side="bottom">
-                <button
-                  type="button"
+                <Button
+                  variant="bare"
+                  size="none"
                   aria-label={action.label}
                   aria-current={action.isCurrent === true ? 'page' : undefined}
                   onClick={action.onSelect}
@@ -180,7 +154,7 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                   {action.badge === undefined ? null : (
                     <span className="absolute -right-0.5 -top-0.5">{action.badge}</span>
                   )}
-                </button>
+                </Button>
               </Tooltip>
             ) : (
               <div key={action.id} className="flex items-center">
@@ -191,9 +165,9 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
         </div>
       </nav>
     </header>
-  )
-}
+  );
+};
 
-TopNav.displayName = 'TopNav'
+TopNav.displayName = 'TopNav';
 
-export default { TopNav }
+export { TopNav };

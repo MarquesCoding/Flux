@@ -1,13 +1,13 @@
-import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
+import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 type ProfileRequest = {
-  name: string
-  colour: ProfileColour
+  name: string;
+  colour: ProfileColour;
   /**
    * Absent to keep whatever the profile already wears.
    */
-  avatar?: Avatar
-}
+  avatar?: Avatar;
+};
 
 /**
  * The people using one account.
@@ -16,7 +16,7 @@ type ProfileRequest = {
  * without one.
  */
 type ProfileService = {
-  list: (userId: string) => Promise<ViewerProfile[]>
+  list: (userId: string) => Promise<ViewerProfile[]>;
   /**
    * The profile an account falls back to.
    *
@@ -24,10 +24,10 @@ type ProfileService = {
    * anybody should not carry a picker it has no use for. Whoever is watching
    * is a person either way, and their viewing has to hang on something.
    */
-  ensureDefault: (userId: string, name: string) => Promise<ViewerProfile>
-  create: (userId: string, request: ProfileRequest) => Promise<ViewerProfile>
-  rename: (userId: string, profileId: string, request: ProfileRequest) => Promise<boolean>
-  remove: (userId: string, profileId: string) => Promise<boolean>
+  ensureDefault: (userId: string, name: string) => Promise<ViewerProfile>;
+  create: (userId: string, request: ProfileRequest) => Promise<ViewerProfile>;
+  rename: (userId: string, profileId: string, request: ProfileRequest) => Promise<boolean>;
+  remove: (userId: string, profileId: string) => Promise<boolean>;
   /**
    * Whether this profile belongs to this account.
    *
@@ -35,7 +35,7 @@ type ProfileService = {
    * secret — it travels in a header and sits in local storage — so it grants
    * nothing on its own.
    */
-  belongsTo: (userId: string, profileId: string) => Promise<boolean>
+  belongsTo: (userId: string, profileId: string) => Promise<boolean>;
   /**
    * Hands a profile to an account of its own.
    *
@@ -45,7 +45,7 @@ type ProfileService = {
    * housemate's login ends up with their own, without losing their place in
    * anything.
    */
-  moveTo: (profileId: string, newOwnerId: string) => Promise<boolean>
+  moveTo: (profileId: string, newOwnerId: string) => Promise<boolean>;
   /**
    * Reads a profile's picture, drawing it if it is a drawn one.
    *
@@ -53,7 +53,7 @@ type ProfileService = {
    * uploaded photograph or a generated face without knowing which it asked
    * for.
    */
-  readAvatar: (profileId: string) => Promise<{ body: Uint8Array; contentType: string } | null>
+  readAvatar: (profileId: string) => Promise<{ body: Uint8Array; contentType: string } | null>;
   /**
    * Everybody with an account, as the way-in screen sees them.
    *
@@ -61,14 +61,14 @@ type ProfileService = {
    * signed in yet, so it must say who could sign in without saying anything
    * that helps them do it.
    */
-  listEveryone: () => Promise<ViewerProfile[]>
+  listEveryone: () => Promise<ViewerProfile[]>;
   /**
    * The address behind a profile, for signing its owner in.
    *
    * Never leaves the server. The way-in screen names a face, and this is what
    * turns that into the account better-auth knows about.
    */
-  findSignInEmail: (profileId: string) => Promise<string | null>
+  findSignInEmail: (profileId: string) => Promise<string | null>;
   /**
    * Stores a photograph somebody uploaded for a profile.
    */
@@ -76,9 +76,7 @@ type ProfileService = {
     userId: string,
     profileId: string,
     photo: { body: Uint8Array; contentType: string },
-  ) => Promise<boolean>
-}
+  ) => Promise<boolean>;
+};
 
-export type { ProfileRequest, ProfileService }
-
-export default {}
+export type { ProfileRequest, ProfileService };

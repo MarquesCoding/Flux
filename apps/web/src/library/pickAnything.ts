@@ -1,7 +1,5 @@
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import type { MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
+import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 /**
  * Something to watch, chosen by nobody.
@@ -22,7 +20,7 @@ const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
  */
 const pickAnything = async (): Promise<MediaSummary | null> => {
   try {
-    const libraries = await fetchLibraries()
+    const libraries = await fetchLibraries();
 
     const counts = await Promise.all(
       libraries.map(async (entry) =>
@@ -30,33 +28,30 @@ const pickAnything = async (): Promise<MediaSummary | null> => {
           .then((page) => ({ id: entry.id, total: page.total }))
           .catch(() => ({ id: entry.id, total: 0 })),
       ),
-    )
+    );
 
-    const total = counts.reduce((held, entry) => held + entry.total, 0)
+    const total = counts.reduce((held, entry) => held + entry.total, 0);
 
     if (total === 0) {
-      return null
+      return null;
     }
 
-    // One number across every library rather than a library and then an item
-    // within it: choosing the shelf first would give a shelf of three the same
-    // chance as a shelf of three thousand.
-    let at = Math.floor(Math.random() * total)
+    let at = Math.floor(Math.random() * total);
 
     for (const entry of counts) {
       if (at < entry.total) {
-        const page = await fetchLibraryItems(entry.id, { limit: 1, offset: at })
+        const page = await fetchLibraryItems(entry.id, { limit: 1, offset: at });
 
-        return page.items[0] ?? null
+        return page.items[0] ?? null;
       }
 
-      at -= entry.total
+      at -= entry.total;
     }
 
-    return null
+    return null;
   } catch {
-    return null
+    return null;
   }
-}
+};
 
-export default { pickAnything }
+export { pickAnything };

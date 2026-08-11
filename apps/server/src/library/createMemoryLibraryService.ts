@@ -1,11 +1,38 @@
-import { randomUUID } from 'node:crypto'
-import type { Library, MediaDetail } from '@FluxContracts/schemas/Library'
-import type { LibraryService } from './LibraryService'
+import { randomUUID } from 'node:crypto';
+import { groupIntoShows, buildShowDetail } from './groupIntoShows';
+import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { LibraryService } from './LibraryService';
+
+/**
+ * What a browser is told about an item, from everything held about it.
+ *
+ * Written once and used by both the listing and the grouping into shows, so a
+ * show cannot come to different conclusions about an episode than a rail does.
+ */
+const toSummary = (item: MediaDetail): MediaSummary => ({
+  id: item.id,
+  libraryId: item.libraryId,
+  title: item.title,
+  year: item.year ?? null,
+  durationSeconds: item.durationSeconds,
+  width: item.width,
+  height: item.height,
+  videoCodec: item.videoCodec,
+  videoRange: item.videoRange,
+  addedAt: item.addedAt,
+  hasPoster: item.metadata.hasPoster,
+  hasBackdrop: item.metadata.hasBackdrop,
+  rating: item.metadata.rating ?? null,
+  seriesTitle: item.metadata.seriesTitle ?? null,
+  seasonNumber: item.metadata.seasonNumber ?? null,
+  episodeNumber: item.metadata.episodeNumber ?? null,
+  genres: item.metadata.genres ?? null,
+});
 
 type MemoryState = {
-  libraries: Library[]
-  media: MediaDetail[]
-}
+  libraries: Library[];
+  media: MediaDetail[];
+};
 
 /**
  * A library held in memory.
@@ -36,37 +63,35 @@ const createMemoryLibraryService = (
       itemCount: 0,
       lastScannedAt: null,
       defaultAudioLanguage: null,
-    }
+    };
 
-    state.libraries.push(created)
+    state.libraries.push(created);
 
-    return Promise.resolve(created)
+    return Promise.resolve(created);
   },
 
   update: (libraryId, input) => {
-    const found = state.libraries.find((entry) => entry.id === libraryId)
+    const found = state.libraries.find((entry) => entry.id === libraryId);
 
     if (found === undefined) {
-      return Promise.resolve(null)
+      return Promise.resolve(null);
     }
 
-    found.defaultAudioLanguage = input.defaultAudioLanguage
+    found.defaultAudioLanguage = input.defaultAudioLanguage;
 
-    return Promise.resolve(found)
+    return Promise.resolve(found);
   },
 
   listItems: (libraryId, options) => {
     if (!state.libraries.some((entry) => entry.id === libraryId)) {
-      return Promise.resolve(null)
+      return Promise.resolve(null);
     }
 
-    const search = options.search?.toLowerCase() ?? ''
+    const search = options.search?.toLowerCase() ?? '';
 
     const matching = state.media
       .filter((item) => item.libraryId === libraryId)
       .filter((item) => search === '' || item.title.toLowerCase().includes(search))
-      // A programme belongs to a series and a film does not, which is the only
-      // difference a library can see.
       .filter(
         (item) =>
           options.kind === undefined ||
@@ -79,37 +104,35 @@ const createMemoryLibraryService = (
           options.genre === undefined || (item.metadata.genres ?? []).includes(options.genre),
       )
       .filter((item) => options.ids === undefined || options.ids.includes(item.id))
-      // The same order the database answers in, so what the routes are proved
-      // to do here is what they do against a real one.
       .sort((left, right) =>
         options.order === 'newest'
           ? right.addedAt.localeCompare(left.addedAt)
           : left.title.localeCompare(right.title),
-      )
+      );
 
-    const items = matching.slice(options.offset, options.offset + options.limit).map((item) => ({
-      id: item.id,
-      libraryId: item.libraryId,
-      title: item.title,
-      year: item.year ?? null,
-      durationSeconds: item.durationSeconds,
-      width: item.width,
-      height: item.height,
-      videoCodec: item.videoCodec,
-      videoRange: item.videoRange,
-      addedAt: item.addedAt,
-      hasPoster: item.metadata.hasPoster,
-      hasBackdrop: item.metadata.hasBackdrop,
-      seriesTitle: item.metadata.seriesTitle ?? null,
-      seasonNumber: item.metadata.seasonNumber ?? null,
-      episodeNumber: item.metadata.episodeNumber ?? null,
-      genres: item.metadata.genres ?? null,
-    }))
+    const items = matching.slice(options.offset, options.offset + options.limit).map(toSummary);
 
-    return Promise.resolve({ items, total: matching.length })
+    return Promise.resolve({ items, total: matching.length });
   },
 
   getMedia: (id) => Promise.resolve(state.media.find((item) => item.id === id) ?? null),
+
+  listShows: (libraryId) =>
+    Promise.resolve(
+      state.libraries.some((entry) => entry.id === libraryId)
+        ? groupIntoShows(state.media.filter((item) => item.libraryId === libraryId).map(toSummary))
+        : null,
+    ),
+
+  getShow: (libraryId, showId) =>
+    Promise.resolve(
+      state.libraries.some((entry) => entry.id === libraryId)
+        ? buildShowDetail(
+            state.media.filter((item) => item.libraryId === libraryId).map(toSummary),
+            showId,
+          )
+        : null,
+    ),
 
   scan: (libraryId, force = false) =>
     Promise.resolve(
@@ -120,12 +143,12 @@ const createMemoryLibraryService = (
 
   reset: (libraryId) => {
     if (!state.libraries.some((entry) => entry.id === libraryId)) {
-      return Promise.resolve(null)
+      return Promise.resolve(null);
     }
 
-    state.media = state.media.filter((item) => item.libraryId !== libraryId)
+    state.media = state.media.filter((item) => item.libraryId !== libraryId);
 
-    return Promise.resolve({ jobId: `reset-${libraryId}`, state: 'queued' })
+    return Promise.resolve({ jobId: `reset-${libraryId}`, state: 'queued' });
   },
 
   regeneratePreviews: (libraryId) =>
@@ -158,8 +181,8 @@ const createMemoryLibraryService = (
         ? `https://images.test/${kind}/${mediaId}.jpg`
         : null,
     ),
-})
+});
 
-export type { MemoryState }
+export type { MemoryState };
 
-export default { createMemoryLibraryService }
+export { createMemoryLibraryService };

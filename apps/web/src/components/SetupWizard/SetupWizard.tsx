@@ -1,15 +1,10 @@
-import { useState } from 'react'
-import { IconLock, IconLockOpen } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import CheckboxModule from '@FluxUI/Checkbox'
-import TextFieldModule from '@FluxUI/TextField'
-import validateSetupFormModule from './validateSetupForm'
-import type { SetupFormErrors, SetupWizardProps } from './SetupWizard.types'
-
-const { Button } = ButtonModule
-const { Checkbox } = CheckboxModule
-const { TextField } = TextFieldModule
-const { validateSetupForm, parseOrigins } = validateSetupFormModule
+import { useState } from 'react';
+import { IconLock, IconLockOpen } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { Checkbox } from '@FluxUI/Checkbox';
+import { TextField } from '@FluxUI/TextField';
+import { validateSetupForm, parseOrigins } from './validateSetupForm';
+import type { SetupFormErrors, SetupWizardProps } from './SetupWizard.types';
 
 /**
  * First-run setup.
@@ -20,24 +15,24 @@ const { validateSetupForm, parseOrigins } = validateSetupFormModule
  * that makes login silently fail.
  */
 const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [trustedOrigins, setTrustedOrigins] = useState(status.suggestedTrustedOrigins.join(', '))
-  const [cookieSecure, setCookieSecure] = useState(status.isSecureContext)
-  const [errors, setErrors] = useState<SetupFormErrors>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [trustedOrigins, setTrustedOrigins] = useState(status.suggestedTrustedOrigins.join(', '));
+  const [cookieSecure, setCookieSecure] = useState(status.isSecureContext);
+  const [errors, setErrors] = useState<SetupFormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async () => {
-    const found = validateSetupForm({ name, email, password, trustedOrigins })
+    const found = validateSetupForm({ name, email, password, trustedOrigins });
 
-    setErrors(found)
+    setErrors(found);
 
     if (Object.keys(found).length > 0) {
-      return
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       const response = await fetch('/api/setup', {
@@ -48,7 +43,7 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
           trustedOrigins: parseOrigins(trustedOrigins),
           cookieSecure,
         }),
-      })
+      });
 
       if (!response.ok) {
         setErrors({
@@ -56,18 +51,18 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
             response.status === 409
               ? 'This server has already been set up. Reload the page to sign in.'
               : 'Setup could not be completed. Check the details and try again.',
-        })
+        });
 
-        return
+        return;
       }
 
-      onComplete()
+      onComplete();
     } catch {
-      setErrors({ submit: 'Could not reach the server. Check that it is still running.' })
+      setErrors({ submit: 'Could not reach the server. Check that it is still running.' });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-6 p-8">
@@ -147,15 +142,15 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
       <Button
         isLoading={isSubmitting}
         onClick={() => {
-          void submit()
+          void submit();
         }}
       >
         Finish setup
       </Button>
     </main>
-  )
-}
+  );
+};
 
-SetupWizard.displayName = 'SetupWizard'
+SetupWizard.displayName = 'SetupWizard';
 
-export default { SetupWizard }
+export { SetupWizard };

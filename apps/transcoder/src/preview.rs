@@ -117,9 +117,6 @@ impl PreviewRequest {
         hasher.update(self.input_path.as_bytes());
         hasher.update(self.duration_seconds.to_be_bytes());
         hasher.update(self.width.to_be_bytes());
-        // Part of the identity, not just an argument: a clip made for one
-        // forced language must not be handed back, already "complete", for a
-        // request asking for another.
         hasher.update(self.audio_stream_index.unwrap_or(u32::MAX).to_be_bytes());
 
         let digest = hasher.finalize();
@@ -177,16 +174,12 @@ pub fn preview_arguments(
 ) -> Vec<String> {
     let mut filters = Vec::new();
 
-    // An HDR source encoded straight to a browser clip looks washed out, in
-    // exactly the way a stream would. The same conversion applies.
     if range != VideoRange::Sdr {
         if let Some(filter) = tone_map_filter(tone_mapping) {
             filters.push(filter.to_owned());
         }
     }
 
-    // Never scaled up: a film shot at 720 gains nothing from being stretched
-    // to a preview twice its size, and the encoder would spend the effort.
     filters.push(format!("scale='min({width},iw)':-2", width = request.width));
 
     let mut arguments = vec![
@@ -202,10 +195,6 @@ pub fn preview_arguments(
         request.duration_seconds.to_string(),
     ];
 
-    // Mapping is explicit whenever a library forced a language, and left to
-    // ffmpeg otherwise — the same rule the transcode session follows, so a
-    // preview and the film itself never disagree about which track this file
-    // plays in.
     if let Some(index) = request.audio_stream_index {
         arguments.push("-map".to_owned());
         arguments.push("0:v:0".to_owned());
@@ -232,8 +221,6 @@ pub fn preview_arguments(
         "128k".to_owned(),
         "-ac".to_owned(),
         "2".to_owned(),
-        // The index goes at the front, so a browser can start playing without
-        // fetching the whole file first.
         "-movflags".to_owned(),
         "+faststart".to_owned(),
         "-y".to_owned(),

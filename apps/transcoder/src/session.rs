@@ -157,16 +157,7 @@ impl Default for SessionConfig {
         Self {
             ffmpeg: "ffmpeg".to_owned(),
             cache_root: std::env::temp_dir().join("flux-transcodes"),
-            // Three missed heartbeats (30s apart) rather than the old 300s: the
-            // heartbeat is now the thing that keeps a paused-but-open session
-            // alive, so idle collection only needs to catch a client that has
-            // genuinely stopped reporting in — a network drop or a crash, not
-            // a browser closed cleanly, which the pagehide stop handles
-            // immediately.
             idle_timeout: Duration::from_secs(90),
-            // Deliberately low. A homelab box that becomes unresponsive because
-            // four people pressed play is the classic failure of this software
-            // class. See ADR-0006.
             max_concurrent: 2,
         }
     }
@@ -247,9 +238,6 @@ impl SessionRegistry {
             output_directory: directory.to_string_lossy().into_owned(),
         };
 
-        // Prove ffmpeg can start before reporting a session, so a bad binary
-        // or unreadable input fails here rather than as a manifest that never
-        // appears.
         drop(spawn_ffmpeg(&self.config.ffmpeg, &plan)?);
 
         let (cancel_tx, cancel_rx) = oneshot::channel();
@@ -377,9 +365,6 @@ async fn run_attempt(
     tokio::select! {
         biased;
 
-        // Cancelling drops the pending wait, which drops the child. The
-        // process is spawned with `kill_on_drop`, so a cancelled session
-        // cannot leave ffmpeg running.
         _ = &mut *cancel => ExitClass::Cancelled,
 
         finished = &mut waiting => match finished {
@@ -531,8 +516,6 @@ mod tests {
 
     #[test]
     fn keeps_a_session_alive_through_three_missed_heartbeats_worth_of_idle_time() {
-        // Three heartbeats (30s apart) is the assumption the default is built
-        // on — asserted here so a change to one without the other is caught.
         assert_eq!(SessionConfig::default().idle_timeout.as_secs(), 90);
     }
 }

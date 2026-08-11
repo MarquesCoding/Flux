@@ -11,7 +11,7 @@ const BROWSERS = [
   { named: 'Firefox', marks: ['Firefox/'] },
   { named: 'Chrome', marks: ['Chrome/', 'Chromium/'] },
   { named: 'Safari', marks: ['Safari/'] },
-] as const
+] as const;
 
 /**
  * The machines worth naming.
@@ -23,12 +23,12 @@ const SYSTEMS = [
   { named: 'macOS', marks: ['Macintosh', 'Mac OS X'] },
   { named: 'Windows', marks: ['Windows'] },
   { named: 'Linux', marks: ['Linux', 'X11'] },
-] as const
+] as const;
 
 /**
  * How much of an unrecognised agent to keep.
  */
-const KEPT = 40
+const KEPT = 40;
 
 /**
  * What to call a device, from what its browser said about itself.
@@ -39,27 +39,25 @@ const KEPT = 40
  * sessions can see which one is the television.
  */
 const describeDevice = (userAgent: string | null | undefined): string => {
-  const said = userAgent ?? ''
+  const said = userAgent ?? '';
 
   const browser = BROWSERS.find((candidate) =>
     candidate.marks.some((mark) => said.includes(mark)),
-  )?.named
+  )?.named;
 
   const system = SYSTEMS.find((candidate) =>
     candidate.marks.some((mark) => said.includes(mark)),
-  )?.named
+  )?.named;
 
   if (browser === undefined && system === undefined) {
-    // Something signed in without saying what it was. Better to admit that
-    // than to invent a name for it.
-    return said.trim() === '' ? 'Unknown device' : said.slice(0, KEPT)
+    return said.trim() === '' ? 'Unknown device' : said.slice(0, KEPT);
   }
 
   if (browser === undefined) {
-    return system ?? 'Unknown device'
+    return system ?? 'Unknown device';
   }
 
-  return system === undefined ? browser : `${browser} on ${system}`
-}
+  return system === undefined ? browser : `${browser} on ${system}`;
+};
 
-export default { describeDevice }
+export { describeDevice };

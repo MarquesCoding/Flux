@@ -1,58 +1,58 @@
-import { randomUUID } from 'node:crypto'
-import { stat } from 'node:fs/promises'
-import { z } from 'zod'
-import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
-import SchemaModule from '@FluxServer/db/Schema'
-import LibraryContract from '@FluxContracts/schemas/Library'
-import JsonValueModule from '@FluxContracts/schemas/JsonValue'
-import createMediaStoreModule from './createMediaStore'
-import scanLibraryModule from './scanLibrary'
-import regeneratePreviewsModule from './regeneratePreviews'
-import generateTrickplayModule from './generateTrickplay'
-import PlaybackServiceModule from '@FluxServer/playback/PlaybackService'
-import type { FluxDatabase } from '@FluxServer/db/Database'
-import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
-import type { MediaFileSystem } from './scanLibrary'
-import type { MetadataProvider } from './MetadataProvider'
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
-import type { LibraryService } from './LibraryService'
-import JobQueueModule from '@FluxServer/jobs/JobQueue'
-import type { JobQueue } from '@FluxServer/jobs/JobQueue'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+import { randomUUID } from 'node:crypto';
+import { stat } from 'node:fs/promises';
+import { z } from 'zod';
+import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { library, mediaItem } from '@FluxServer/db/Schema';
+import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import {
+  createMediaStore,
+  listOutstandingFor,
+  markJobComplete,
+  clearJobCompletions,
+} from './createMediaStore';
+import { scanLibrary } from './scanLibrary';
+import { groupIntoShows, buildShowDetail } from './groupIntoShows';
+import { regeneratePreviews } from './regeneratePreviews';
+import { generateTrickplay } from './generateTrickplay';
+import {
+  TRICKPLAY_INTERVAL_SECONDS,
+  TRICKPLAY_TILE_WIDTH,
+  TRICKPLAY_COLUMNS,
+  TRICKPLAY_ROWS,
+} from '@FluxServer/playback/PlaybackService';
+import type { FluxDatabase } from '@FluxServer/db/Database';
+import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaFileSystem } from './scanLibrary';
+import type { MetadataProvider } from './MetadataProvider';
+import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import type { LibraryService } from './LibraryService';
+import {
+  SCAN_LIBRARY_JOB,
+  REGENERATE_PREVIEWS_JOB,
+  REGENERATE_TRICKPLAY_JOB,
+  DETECT_SEGMENTS_JOB,
+} from '@FluxServer/jobs/JobQueue';
+import type { JobQueue } from '@FluxServer/jobs/JobQueue';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
-const { SCAN_LIBRARY_JOB, REGENERATE_PREVIEWS_JOB, REGENERATE_TRICKPLAY_JOB, DETECT_SEGMENTS_JOB } =
-  JobQueueModule
-
-const { library, mediaItem } = SchemaModule
-
-const { JsonValueSchema } = JsonValueModule
-
-const GenresSchema = z.array(z.string())
-const { createMediaStore, listOutstandingFor, markJobComplete, clearJobCompletions } =
-  createMediaStoreModule
-const { scanLibrary } = scanLibraryModule
-const { regeneratePreviews } = regeneratePreviewsModule
-const { generateTrickplay } = generateTrickplayModule
-const { TRICKPLAY_INTERVAL_SECONDS, TRICKPLAY_TILE_WIDTH, TRICKPLAY_COLUMNS, TRICKPLAY_ROWS } =
-  PlaybackServiceModule
-const { MediaDetailSchema } = LibraryContract
-
+const GenresSchema = z.array(z.string());
 type CreateDatabaseLibraryServiceOptions = {
-  db: FluxDatabase
-  files: MediaFileSystem
-  transcoder: Transcoder
-  jobs: JobQueue
+  db: FluxDatabase;
+  files: MediaFileSystem;
+  transcoder: Transcoder;
+  jobs: JobQueue;
   /**
    * Asked in order for each file's metadata, first answer winning.
    *
    * Left out entirely means the filename reader alone, which is what an
    * instance with no catalogue configured runs on.
    */
-  providers?: MetadataProvider[]
-  onProblem?: (path: string, reason: string) => void
-}
+  providers?: MetadataProvider[];
+  onProblem?: (path: string, reason: string) => void;
+};
 
-const toIso = (value: Date | null): string | null => value?.toISOString() ?? null
+const toIso = (value: Date | null): string | null => value?.toISOString() ?? null;
 
 /**
  * The library backed by Postgres.
@@ -72,10 +72,32 @@ const toIso = (value: Date | null): string | null => value?.toISOString() ?? nul
  * that no longer parses is an item with no genres rather than a failed page.
  */
 const readGenres = (stored: JsonValue): string[] | null => {
-  const parsed = GenresSchema.safeParse(stored)
+  const parsed = GenresSchema.safeParse(stored);
 
-  return parsed.success ? parsed.data : null
-}
+  return parsed.success ? parsed.data : null;
+};
+
+/**
+ * The library as this file provides it: everything the application asks of a
+ * library, and the work that only a real one can do.
+ */
+type DatabaseLibraryService = LibraryService & {
+  runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>;
+  runRegeneratePreviews: (
+    libraryId: string,
+    defaultAudioLanguage: string | null,
+    jobId?: string,
+  ) => Promise<void>;
+  runRegenerateTrickplay: (libraryId: string, jobId?: string) => Promise<void>;
+};
+
+/**
+ * How many episodes are read to build a series.
+ *
+ * A ceiling rather than a page: a show is only itself when all of it is there,
+ * and no series anybody owns has this many episodes.
+ */
+const EVERY_EPISODE = 2000;
 
 const createDatabaseLibraryService = ({
   db,
@@ -84,24 +106,16 @@ const createDatabaseLibraryService = ({
   jobs,
   providers,
   onProblem,
-}: CreateDatabaseLibraryServiceOptions): LibraryService & {
-  runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>
-  runRegeneratePreviews: (
-    libraryId: string,
-    defaultAudioLanguage: string | null,
-    jobId?: string,
-  ) => Promise<void>
-  runRegenerateTrickplay: (libraryId: string, jobId?: string) => Promise<void>
-} => {
-  const store = createMediaStore(db)
+}: CreateDatabaseLibraryServiceOptions): DatabaseLibraryService => {
+  const store = createMediaStore(db);
 
   const findLibrary = async (id: string) => {
-    const rows = await db.select().from(library).where(eq(library.id, id)).limit(1)
+    const rows = await db.select().from(library).where(eq(library.id, id)).limit(1);
 
-    return rows[0] ?? null
-  }
+    return rows[0] ?? null;
+  };
 
-  return {
+  const service: DatabaseLibraryService = {
     list: async () => {
       const rows = await db
         .select({
@@ -116,24 +130,24 @@ const createDatabaseLibraryService = ({
         .from(library)
         .leftJoin(mediaItem, eq(mediaItem.libraryId, library.id))
         .groupBy(library.id)
-        .orderBy(asc(library.name))
+        .orderBy(asc(library.name));
 
       return rows.map((row) => ({
         id: row.id,
         name: row.name,
-        kind: LibraryContract.LibraryKindSchema.parse(row.kind),
+        kind: LibraryKindSchema.parse(row.kind),
         path: row.path,
         itemCount: row.itemCount,
         lastScannedAt: toIso(row.lastScannedAt),
         defaultAudioLanguage: row.defaultAudioLanguage,
-      })) satisfies Library[]
+      })) satisfies Library[];
     },
 
     create: async (input) => {
-      const details = await stat(input.path).catch(() => null)
+      const details = await stat(input.path).catch(() => null);
 
       if (details === null || !details.isDirectory()) {
-        return null
+        return null;
       }
 
       const created = {
@@ -141,31 +155,27 @@ const createDatabaseLibraryService = ({
         name: input.name,
         kind: input.kind,
         path: input.path,
-      }
+      };
 
-      await db.insert(library).values(created)
+      await db.insert(library).values(created);
 
-      return { ...created, itemCount: 0, lastScannedAt: null, defaultAudioLanguage: null }
+      return { ...created, itemCount: 0, lastScannedAt: null, defaultAudioLanguage: null };
     },
 
     update: async (libraryId, input) => {
-      const before = await findLibrary(libraryId)
+      const before = await findLibrary(libraryId);
 
       if (before === null) {
-        return null
+        return null;
       }
 
       await db
         .update(library)
         .set({ defaultAudioLanguage: input.defaultAudioLanguage })
-        .where(eq(library.id, libraryId))
+        .where(eq(library.id, libraryId));
 
       if (before.defaultAudioLanguage !== input.defaultAudioLanguage) {
-        // Every preview clip in the library was rendered against the old
-        // language and now carries the wrong audio. The file has not changed,
-        // so nothing else would ever put these back in front of the preview
-        // job — this is the one thing that invalidates them from outside.
-        await clearJobCompletions(db, libraryId, REGENERATE_PREVIEWS_JOB)
+        await clearJobCompletions(db, libraryId, REGENERATE_PREVIEWS_JOB);
       }
 
       const [row] = await db
@@ -181,26 +191,26 @@ const createDatabaseLibraryService = ({
         .from(library)
         .leftJoin(mediaItem, eq(mediaItem.libraryId, library.id))
         .where(eq(library.id, libraryId))
-        .groupBy(library.id)
+        .groupBy(library.id);
 
       if (row === undefined) {
-        return null
+        return null;
       }
 
       return {
         id: row.id,
         name: row.name,
-        kind: LibraryContract.LibraryKindSchema.parse(row.kind),
+        kind: LibraryKindSchema.parse(row.kind),
         path: row.path,
         itemCount: row.itemCount,
         lastScannedAt: toIso(row.lastScannedAt),
         defaultAudioLanguage: row.defaultAudioLanguage,
-      }
+      };
     },
 
     listItems: async (libraryId, options) => {
       if ((await findLibrary(libraryId)) === null) {
-        return null
+        return null;
       }
 
       const asked = [
@@ -208,8 +218,6 @@ const createDatabaseLibraryService = ({
         ...(options.search === undefined || options.search.trim() === ''
           ? []
           : [ilike(mediaItem.title, `%${options.search}%`)]),
-        // A programme is a file that belongs to a series and a film is one
-        // that does not, which is the only difference the library can see.
         ...(options.kind === undefined
           ? []
           : [
@@ -217,27 +225,22 @@ const createDatabaseLibraryService = ({
                 ? isNotNull(mediaItem.seriesTitle)
                 : isNull(mediaItem.seriesTitle),
             ]),
-        // Asked of the column rather than of every row in turn: the genres are
-        // stored as JSON, and Postgres can answer whether a list contains
-        // something without the server reading the list.
         ...(options.genre === undefined || options.genre === ''
           ? []
           : [sql`${mediaItem.genres} @> ${JSON.stringify([options.genre])}::jsonb`]),
-        // An empty list of names is a question with no answer, and `in ()` is
-        // not something a database will take kindly to being asked.
         ...(options.ids === undefined
           ? []
           : options.ids.length === 0
             ? [sql`false`]
             : [inArray(mediaItem.id, options.ids)]),
-      ]
+      ];
 
-      const filters = and(...asked)
+      const filters = and(...asked);
 
       const [totals] = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(mediaItem)
-        .where(filters)
+        .where(filters);
 
       const rows = await db
         .select({
@@ -263,7 +266,7 @@ const createDatabaseLibraryService = ({
         .where(filters)
         .orderBy(options.order === 'newest' ? desc(mediaItem.addedAt) : asc(mediaItem.title))
         .limit(options.limit)
-        .offset(options.offset)
+        .offset(options.offset);
 
       const items = rows.map(({ posterUrl, backdropUrl, genres, ...row }) => ({
         ...row,
@@ -271,17 +274,17 @@ const createDatabaseLibraryService = ({
         hasPoster: posterUrl !== null,
         hasBackdrop: backdropUrl !== null,
         genres: readGenres(JsonValueSchema.parse(genres ?? null)),
-      })) satisfies MediaSummary[]
+      })) satisfies MediaSummary[];
 
-      return { items, total: totals?.total ?? 0 }
+      return { items, total: totals?.total ?? 0 };
     },
 
     getMedia: async (id) => {
-      const rows = await db.select().from(mediaItem).where(eq(mediaItem.id, id)).limit(1)
-      const row = rows[0]
+      const rows = await db.select().from(mediaItem).where(eq(mediaItem.id, id)).limit(1);
+      const row = rows[0];
 
       if (row === undefined) {
-        return null
+        return null;
       }
 
       const detail: MediaDetail = MediaDetailSchema.parse({
@@ -311,9 +314,9 @@ const createDatabaseLibraryService = ({
           seasonNumber: row.seasonNumber,
           episodeNumber: row.episodeNumber,
         },
-      })
+      });
 
-      return detail
+      return detail;
     },
 
     readArtworkUrl: async (mediaId, kind) => {
@@ -321,95 +324,92 @@ const createDatabaseLibraryService = ({
         .select({ poster: mediaItem.posterUrl, backdrop: mediaItem.backdropUrl })
         .from(mediaItem)
         .where(eq(mediaItem.id, mediaId))
-        .limit(1)
+        .limit(1);
 
-      const row = rows[0]
+      const row = rows[0];
 
       if (row === undefined) {
-        return null
+        return null;
       }
 
-      return (kind === 'poster' ? row.poster : row.backdrop) ?? null
+      return (kind === 'poster' ? row.poster : row.backdrop) ?? null;
     },
 
     scan: async (libraryId, force = false) => {
       if ((await findLibrary(libraryId)) === null) {
-        return null
+        return null;
       }
 
-      const jobId = await jobs.enqueue(SCAN_LIBRARY_JOB, { libraryId, force }, libraryId)
+      const jobId = await jobs.enqueue(SCAN_LIBRARY_JOB, { libraryId, force }, libraryId);
 
-      // pg-boss returns null when a singleton job for this library is already
-      // queued. Reporting that as a failure would be wrong: the scan the
-      // caller asked for is going to happen.
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
 
     reset: async (libraryId) => {
       if ((await findLibrary(libraryId)) === null) {
-        return null
+        return null;
       }
 
-      await store.clear(libraryId)
+      await store.clear(libraryId);
 
-      const jobId = await jobs.enqueue(SCAN_LIBRARY_JOB, { libraryId, force: true }, libraryId)
+      const jobId = await jobs.enqueue(SCAN_LIBRARY_JOB, { libraryId, force: true }, libraryId);
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
 
     regeneratePreviews: async (libraryId) => {
-      const found = await findLibrary(libraryId)
+      const found = await findLibrary(libraryId);
 
       if (found === null) {
-        return null
+        return null;
       }
 
       const jobId = await jobs.enqueue(
         REGENERATE_PREVIEWS_JOB,
         { libraryId, defaultAudioLanguage: found.defaultAudioLanguage },
         libraryId,
-      )
+      );
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
 
     regenerateTrickplay: async (libraryId) => {
       if ((await findLibrary(libraryId)) === null) {
-        return null
+        return null;
       }
 
-      const jobId = await jobs.enqueue(REGENERATE_TRICKPLAY_JOB, { libraryId }, libraryId)
+      const jobId = await jobs.enqueue(REGENERATE_TRICKPLAY_JOB, { libraryId }, libraryId);
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
 
     detectSegments: async (libraryId) => {
       if ((await findLibrary(libraryId)) === null) {
-        return null
+        return null;
       }
 
-      const jobId = await jobs.enqueue(DETECT_SEGMENTS_JOB, { libraryId }, libraryId)
+      const jobId = await jobs.enqueue(DETECT_SEGMENTS_JOB, { libraryId }, libraryId);
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
 
     readScanState: async (jobId) => {
-      const state = await jobs.readState(jobId)
-      const progress = jobs.readProgress(jobId)
+      const state = await jobs.readState(jobId);
+      const progress = jobs.readProgress(jobId);
 
       return {
         state,
         phase: progress?.phase ?? null,
         processed: progress?.processed ?? null,
         total: progress?.total ?? null,
-      }
+      };
     },
 
     runScan: async (libraryId, force = false, jobId) => {
-      const found = await findLibrary(libraryId)
+      const found = await findLibrary(libraryId);
 
       if (found === null) {
-        return
+        return;
       }
 
       await scanLibrary({
@@ -427,7 +427,7 @@ const createDatabaseLibraryService = ({
               onProgress: (phase, processed, total) =>
                 jobs.reportProgress(jobId, phase, processed, total),
             }),
-      })
+      });
     },
 
     runRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {
@@ -446,7 +446,7 @@ const createDatabaseLibraryService = ({
               onProgress: (processed, total) =>
                 jobs.reportProgress(jobId, 'previews', processed, total),
             }),
-      })
+      });
     },
 
     runRegenerateTrickplay: async (libraryId, jobId) => {
@@ -470,9 +470,31 @@ const createDatabaseLibraryService = ({
               onProgress: (processed, total) =>
                 jobs.reportProgress(jobId, 'trickplay', processed, total),
             }),
-      })
+      });
     },
-  }
-}
 
-export default { createDatabaseLibraryService }
+    listShows: async (libraryId) => {
+      const page = await service.listItems(libraryId, {
+        kind: 'shows',
+        limit: EVERY_EPISODE,
+        offset: 0,
+      });
+
+      return page === null ? null : groupIntoShows(page.items);
+    },
+
+    getShow: async (libraryId, showId) => {
+      const page = await service.listItems(libraryId, {
+        kind: 'shows',
+        limit: EVERY_EPISODE,
+        offset: 0,
+      });
+
+      return page === null ? null : buildShowDetail(page.items, showId);
+    },
+  };
+
+  return service;
+};
+
+export { createDatabaseLibraryService };

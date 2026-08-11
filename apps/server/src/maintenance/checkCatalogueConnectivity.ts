@@ -1,7 +1,4 @@
-import CatalogueMetadataProviderModule from '@FluxServer/library/createCatalogueMetadataProvider'
-
-const { isAccessToken } = CatalogueMetadataProviderModule
-
+import { isAccessToken } from '@FluxServer/library/createCatalogueMetadataProvider';
 /**
  * Where the catalogue lives.
  *
@@ -9,12 +6,12 @@ const { isAccessToken } = CatalogueMetadataProviderModule
  * than imported from it, since that module does not export its constant —
  * both point at the same place regardless.
  */
-const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3'
+const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3';
 
 type Fetcher = (
   url: string,
   headers?: Record<string, string>,
-) => Promise<{ ok: boolean; status: number }>
+) => Promise<{ ok: boolean; status: number }>;
 
 type CheckCatalogueConnectivityOptions = {
   /**
@@ -22,10 +19,10 @@ type CheckCatalogueConnectivityOptions = {
    * does: an operator changing the key in settings should not need to
    * restart the server to have this check try the new one.
    */
-  readApiKey: () => Promise<string | null>
-  baseUrl?: string
-  fetchImpl?: Fetcher
-}
+  readApiKey: () => Promise<string | null>;
+  baseUrl?: string;
+  fetchImpl?: Fetcher;
+};
 
 /**
  * Verifies the configured catalogue key can actually reach the catalogue,
@@ -45,26 +42,26 @@ const checkCatalogueConnectivity = async ({
   const call: Fetcher =
     fetchImpl ??
     (async (url, headers) => {
-      const response = await fetch(url, headers === undefined ? {} : { headers })
+      const response = await fetch(url, headers === undefined ? {} : { headers });
 
-      return { ok: response.ok, status: response.status }
-    })
+      return { ok: response.ok, status: response.status };
+    });
 
-  const key = await readApiKey()
+  const key = await readApiKey();
 
   if (key === null || key === '') {
-    return false
+    return false;
   }
 
-  const isToken = isAccessToken(key)
-  const query = new URLSearchParams(isToken ? {} : { api_key: key })
+  const isToken = isAccessToken(key);
+  const query = new URLSearchParams(isToken ? {} : { api_key: key });
 
   const response = await call(
     `${baseUrl}/authentication?${query.toString()}`,
     isToken ? { authorization: `Bearer ${key}` } : undefined,
-  ).catch(() => ({ ok: false, status: 0 }))
+  ).catch(() => ({ ok: false, status: 0 }));
 
-  return response.ok
-}
+  return response.ok;
+};
 
-export default { checkCatalogueConnectivity }
+export { checkCatalogueConnectivity };

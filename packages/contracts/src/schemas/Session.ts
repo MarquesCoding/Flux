@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 const SessionUserSchema = z.object({
   id: z.string().min(1),
@@ -8,7 +8,7 @@ const SessionUserSchema = z.object({
   image: z.string().nullish(),
   role: z.string().nullish(),
   twoFactorEnabled: z.boolean().nullish(),
-})
+});
 
 /**
  * The body better-auth returns from `GET /api/auth/get-session`.
@@ -21,12 +21,12 @@ const GetSessionResponseSchema = z
   .object({
     user: SessionUserSchema,
   })
-  .nullable()
+  .nullable();
 
 const SignInRequestSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-})
+});
 
 /**
  * The body better-auth returns from a successful password sign-in.
@@ -45,16 +45,11 @@ const SignInResponseSchema = z.union([
     token: z.string().optional(),
     user: SessionUserSchema,
   }),
-])
+]);
 
-export type SessionUser = z.infer<typeof SessionUserSchema>
-export type GetSessionResponse = z.infer<typeof GetSessionResponseSchema>
-export type SignInRequest = z.infer<typeof SignInRequestSchema>
-export type SignInResponse = z.infer<typeof SignInResponseSchema>
+export type SessionUser = z.infer<typeof SessionUserSchema>;
+export type GetSessionResponse = z.infer<typeof GetSessionResponseSchema>;
+export type SignInRequest = z.infer<typeof SignInRequestSchema>;
+export type SignInResponse = z.infer<typeof SignInResponseSchema>;
 
-export default {
-  SessionUserSchema,
-  GetSessionResponseSchema,
-  SignInRequestSchema,
-  SignInResponseSchema,
-}
+export { SessionUserSchema, GetSessionResponseSchema, SignInRequestSchema, SignInResponseSchema };

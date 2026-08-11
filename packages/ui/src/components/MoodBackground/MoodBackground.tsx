@@ -1,11 +1,8 @@
-import { useEffect, useRef } from 'react'
-import { useReducedMotion } from 'motion/react'
-import DotFieldModule from '@FluxUI/DotField'
-import blendLightsModule from '@FluxUI/blendLights'
-import type { MoodBackgroundProps, MoodLight } from './MoodBackground.types'
-
-const { DotField } = DotFieldModule
-const { blendLights } = blendLightsModule
+import { useEffect, useRef } from 'react';
+import { useReducedMotion } from 'motion/react';
+import { DotField } from '@FluxUI/DotField';
+import { blendLights } from '@FluxUI/blendLights';
+import type { MoodBackgroundProps, MoodLight } from './MoodBackground.types';
 
 /**
  * Where a light sits when it has not said, how large it is, and how much of it
@@ -21,7 +18,7 @@ const BLOOMS = [
   { at: '10% 84%', size: '70vw 55vh', strength: 30 },
   { at: '90% 86%', size: '65vw 55vh', strength: 28 },
   { at: '50% 45%', size: '80vw 60vh', strength: 24 },
-] as const
+] as const;
 
 /**
  * How long each takes to wander its circuit.
@@ -29,7 +26,7 @@ const BLOOMS = [
  * Different lengths on purpose: lights moving in step read as one light in
  * several places.
  */
-const DRIFTS = ['34s', '46s', '58s', '41s', '52s'] as const
+const DRIFTS = ['34s', '46s', '58s', '41s', '52s'] as const;
 
 /**
  * The light a page is under when nothing on it has any to give.
@@ -46,9 +43,9 @@ const HOUSE = [
   'rgb(44 54 124)',
   'rgb(50 62 142)',
   'rgb(40 50 118)',
-] as const
+] as const;
 
-const DEFAULT_LIGHTS: MoodLight[] = HOUSE.map((color) => ({ color }))
+const DEFAULT_LIGHTS: MoodLight[] = HOUSE.map((color) => ({ color }));
 
 /**
  * How far the light moves towards where it is going, each frame.
@@ -58,16 +55,16 @@ const DEFAULT_LIGHTS: MoodLight[] = HOUSE.map((color) => ({ color }))
  * whole question here — a wash that arrives in a few large ones is a wash that
  * flickers, however slowly it gets there.
  */
-const EASE = 0.03
+const EASE = 0.03;
 
 /**
  * How the light for one bloom is written.
  */
 const paint = (light: MoodLight, at: number): string => {
-  const bloom = BLOOMS[at] ?? BLOOMS[0]
+  const bloom = BLOOMS[at] ?? BLOOMS[0];
 
-  return `radial-gradient(${bloom.size} at ${light.at ?? bloom.at}, color-mix(in oklab, ${light.color} ${bloom.strength.toString()}%, transparent), transparent 70%)`
-}
+  return `radial-gradient(${bloom.size} at ${light.at ?? bloom.at}, color-mix(in oklab, ${light.color} ${bloom.strength.toString()}%, transparent), transparent 70%)`;
+};
 
 /**
  * The light a page is under.
@@ -93,66 +90,54 @@ const MoodBackground = ({
   hasGrid = false,
   isDrifting = false,
 }: MoodBackgroundProps) => {
-  const prefersReducedMotion = useReducedMotion()
-  const given = lights.filter((light) => light.color !== '')
-  const lit = given.length === 0 ? DEFAULT_LIGHTS : given
-  const bloomsRef = useRef<(HTMLSpanElement | null)[]>([])
-  const heldRef = useRef<MoodLight[]>([])
-  const wantedRef = useRef<MoodLight[]>(lit)
-  const paintedRef = useRef<string[]>([])
+  const prefersReducedMotion = useReducedMotion();
+  const given = lights.filter((light) => light.color !== '');
+  const lit = given.length === 0 ? DEFAULT_LIGHTS : given;
+  const bloomsRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const heldRef = useRef<MoodLight[]>([]);
+  const wantedRef = useRef<MoodLight[]>(lit);
+  const paintedRef = useRef<string[]>([]);
 
-  wantedRef.current = lit
+  wantedRef.current = lit;
 
   useEffect(() => {
-    // The first light is arrived at rather than eased into. Coming up to it
-    // from black would be a wash sliding in from a colour nothing on screen
-    // has anything to do with.
     if (heldRef.current.length === 0) {
-      heldRef.current = wantedRef.current
+      heldRef.current = wantedRef.current;
     }
 
-    let frame = 0
+    let frame = 0;
 
     const carry = () => {
-      const wanted = wantedRef.current
+      const wanted = wantedRef.current;
 
       heldRef.current =
         prefersReducedMotion === true || heldRef.current.length !== wanted.length
           ? wanted
-          : blendLights(heldRef.current, wanted, EASE)
+          : blendLights(heldRef.current, wanted, EASE);
 
       heldRef.current.forEach((light, at) => {
-        const element = bloomsRef.current[at]
-        const painted = paint(light, at)
+        const element = bloomsRef.current[at];
+        const painted = paint(light, at);
 
-        // Only when it has actually moved. Easing settles within a step of
-        // where it was going and then stops changing, and writing the same
-        // gradient back sixty times a second would keep the browser painting a
-        // screen-sized bloom long after it had finished arriving.
         if (element !== null && element !== undefined && paintedRef.current[at] !== painted) {
-          paintedRef.current[at] = painted
-          element.style.background = painted
+          paintedRef.current[at] = painted;
+          element.style.background = painted;
         }
-      })
+      });
 
-      frame = requestAnimationFrame(carry)
-    }
+      frame = requestAnimationFrame(carry);
+    };
 
-    frame = requestAnimationFrame(carry)
+    frame = requestAnimationFrame(carry);
 
     return () => {
-      cancelAnimationFrame(frame)
-    }
-  }, [prefersReducedMotion])
+      cancelAnimationFrame(frame);
+    };
+  }, [prefersReducedMotion]);
 
   return (
     <div
       role="presentation"
-      // At the top of the page rather than pinned to the screen. Light spilling
-      // off a picture belongs to that picture: it should slide away as the page
-      // is scrolled past it, not follow the reader down through a grid of
-      // artwork it has nothing to do with. Taller than a screen so the fade to
-      // the page's own colour finishes below the fold rather than across it.
       className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[140svh] overflow-hidden"
     >
       <div className="absolute inset-0">
@@ -160,7 +145,7 @@ const MoodBackground = ({
           <span
             key={`bloom-${at.toString()}`}
             ref={(element) => {
-              bloomsRef.current[at] = element
+              bloomsRef.current[at] = element;
             }}
             className={
               isDrifting && prefersReducedMotion !== true
@@ -174,17 +159,14 @@ const MoodBackground = ({
           />
         ))}
 
-        {/* The page's own colour underneath the light, so the foot of the
-            screen is the page rather than whatever the picture was made
-            of. */}
         <span className="flux-mood-fade" />
       </div>
 
       {hasGrid ? <DotField /> : null}
     </div>
-  )
-}
+  );
+};
 
-MoodBackground.displayName = 'MoodBackground'
+MoodBackground.displayName = 'MoodBackground';
 
-export default { MoodBackground }
+export { MoodBackground };

@@ -90,7 +90,7 @@ const LANGUAGE_CODES: Record<string, string> = {
   vietnamese: 'vi',
   vie: 'vi',
   vi: 'vi',
-}
+};
 
 /**
  * How a language is written for the person reading it.
@@ -122,12 +122,12 @@ const LANGUAGE_NAMES: Record<string, string> = {
   th: 'ไทย',
   uk: 'Українська',
   vi: 'Tiếng Việt',
-}
+};
 
 /**
  * The values files use to mean "nobody said".
  */
-const UNKNOWN_LANGUAGES = new Set(['', 'und', 'unknown', 'zxx', 'mul', 'mis'])
+const UNKNOWN_LANGUAGES = new Set(['', 'und', 'unknown', 'zxx', 'mul', 'mis']);
 
 /**
  * How many channels are described as what.
@@ -146,7 +146,7 @@ const CHANNEL_NAMES: Record<number, string> = {
   8: '7.1',
   10: '9.1',
   12: '11.1',
-}
+};
 
 /**
  * Normalises whatever a file called a language into a two-letter code.
@@ -155,14 +155,14 @@ const CHANNEL_NAMES: Record<number, string> = {
  * things that mean nothing.
  */
 const readLanguage = (raw: string | null | undefined): string | null => {
-  const lowered = (raw ?? '').trim().toLowerCase()
+  const lowered = (raw ?? '').trim().toLowerCase();
 
   if (UNKNOWN_LANGUAGES.has(lowered)) {
-    return null
+    return null;
   }
 
-  return LANGUAGE_CODES[lowered] ?? lowered
-}
+  return LANGUAGE_CODES[lowered] ?? lowered;
+};
 
 /**
  * Names a language for a viewer.
@@ -171,30 +171,30 @@ const readLanguage = (raw: string | null | undefined): string | null => {
  * a viewer who sees `tlh` at least learns something true about the file.
  */
 const describeLanguage = (raw: string | null | undefined): string | null => {
-  const code = readLanguage(raw)
+  const code = readLanguage(raw);
 
   if (code === null) {
-    return null
+    return null;
   }
 
-  return LANGUAGE_NAMES[code] ?? code.toUpperCase()
-}
+  return LANGUAGE_NAMES[code] ?? code.toUpperCase();
+};
 
 /**
  * Describes a channel count the way it is sold.
  */
 const describeChannels = (channels: number): string =>
-  CHANNEL_NAMES[channels] ?? `${channels.toString()}ch`
+  CHANNEL_NAMES[channels] ?? `${channels.toString()}ch`;
 
 type AudioTrackFacts = {
-  index: number
-  codec: string
-  channels: number
-  language?: string | null | undefined
-  title?: string | null | undefined
-  isAtmos?: boolean | undefined
-  isDefault?: boolean | undefined
-}
+  index: number;
+  codec: string;
+  channels: number;
+  language?: string | null | undefined;
+  title?: string | null | undefined;
+  isAtmos?: boolean | undefined;
+  isDefault?: boolean | undefined;
+};
 
 /**
  * Names an audio track for a menu.
@@ -210,33 +210,31 @@ type AudioTrackFacts = {
  * index — a viewer has no idea what stream 3 of a container is.
  */
 const describeAudioTrack = (track: AudioTrackFacts, position: number): string => {
-  const language = describeLanguage(track.language)
-  const title = track.title?.trim() ?? ''
+  const language = describeLanguage(track.language);
+  const title = track.title?.trim() ?? '';
 
-  // A title usually already says the language, so repeating it reads as a
-  // stutter: "English · English Commentary".
-  const saysLanguage = language !== null && title.toLowerCase().includes(language.toLowerCase())
+  const saysLanguage = language !== null && title.toLowerCase().includes(language.toLowerCase());
 
   const named =
     title === ''
       ? (language ?? `Track ${position.toString()}`)
       : language === null || saysLanguage
         ? title
-        : `${language} · ${title}`
+        : `${language} · ${title}`;
 
   const qualities = [
     describeChannels(track.channels),
     track.isAtmos === true ? 'Atmos' : track.codec.toUpperCase(),
-  ]
+  ];
 
-  return `${named} · ${qualities.join(' · ')}`
-}
+  return `${named} · ${qualities.join(' · ')}`;
+};
 
 type SelectableAudioStream = {
-  index: number
-  language?: string | null | undefined
-  isDefault?: boolean | undefined
-}
+  index: number;
+  language?: string | null | undefined;
+  isDefault?: boolean | undefined;
+};
 
 /**
  * Picks which of a file's audio streams should be used, when one language is
@@ -256,19 +254,19 @@ const selectAudioStream = <TStream extends SelectableAudioStream>(
   const preferred =
     preferredLanguage === null || preferredLanguage === undefined
       ? null
-      : readLanguage(preferredLanguage)
+      : readLanguage(preferredLanguage);
 
   const matching =
     preferred === null
       ? undefined
-      : streams.find((stream) => readLanguage(stream.language) === preferred)
+      : streams.find((stream) => readLanguage(stream.language) === preferred);
 
-  return matching ?? streams.find((stream) => stream.isDefault === true) ?? streams[0]
-}
+  return matching ?? streams.find((stream) => stream.isDefault === true) ?? streams[0];
+};
 
-export type { AudioTrackFacts }
+export type { AudioTrackFacts };
 
-export default {
+export {
   describeAudioTrack,
   describeLanguage,
   describeChannels,
@@ -277,4 +275,4 @@ export default {
   LANGUAGE_NAMES,
   LANGUAGE_CODES,
   CHANNEL_NAMES,
-}
+};

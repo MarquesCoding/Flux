@@ -1,7 +1,5 @@
-import ButtonModule from '@FluxUI/Button'
-import type { CaptionChoiceProps } from './CaptionChoice.types'
-
-const { Button } = ButtonModule
+import { Button } from '@FluxUI/Button';
+import type { CaptionChoiceProps } from './CaptionChoice.types';
 
 /**
  * One decision about how captions look, laid out flat.
@@ -25,13 +23,10 @@ const CaptionChoice = ({ label, options, selectedId, onSelect }: CaptionChoicePr
           key={option.id}
           size="sm"
           isPill
-          // Said rather than only shown. A row of these is a set of choices
-          // where one is in force, and a reader who cannot see which is filled
-          // deserves to be told which is pressed.
           aria-pressed={option.id === selectedId}
           variant={option.id === selectedId ? 'glossy' : 'ghost'}
           onClick={() => {
-            onSelect(option.id)
+            onSelect(option.id);
           }}
         >
           {option.label}
@@ -39,8 +34,8 @@ const CaptionChoice = ({ label, options, selectedId, onSelect }: CaptionChoicePr
       ))}
     </div>
   </fieldset>
-)
+);
 
-CaptionChoice.displayName = 'CaptionChoice'
+CaptionChoice.displayName = 'CaptionChoice';
 
-export default { CaptionChoice }
+export { CaptionChoice };

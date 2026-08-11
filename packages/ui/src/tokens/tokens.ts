@@ -8,6 +8,8 @@ const FLUX_TOKENS = {
     accent: 'var(--color-accent)',
     accentContrast: 'var(--color-accent-contrast)',
     danger: 'var(--color-danger)',
+    scrim: 'var(--color-scrim)',
+    onScrim: 'var(--color-on-scrim)',
   },
   radius: {
     sm: 'var(--radius-sm)',
@@ -19,10 +21,10 @@ const FLUX_TOKENS = {
     normal: 0.22,
     slow: 0.4,
   },
-} as const
+} as const;
 
-type FluxTokens = typeof FLUX_TOKENS
+type FluxTokens = typeof FLUX_TOKENS;
 
-export type { FluxTokens }
+export type { FluxTokens };
 
-export default { FLUX_TOKENS }
+export { FLUX_TOKENS };

@@ -1,6 +1,4 @@
-import FavouriteContract from '@FluxContracts/schemas/Favourite'
-
-const { FavouriteListSchema } = FavouriteContract
+import { FavouriteListSchema } from '@FluxContracts/schemas/Favourite';
 
 /**
  * Everything this viewer has kept.
@@ -14,17 +12,19 @@ const fetchFavourites = async (): Promise<string[]> => {
     const response = await fetch('/api/favourites', {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
-    })
+    });
 
     if (!response.ok) {
-      return []
+      return [];
     }
 
-    return FavouriteListSchema.parse(await response.json()).favourites.map((entry) => entry.mediaId)
+    return FavouriteListSchema.parse(await response.json()).favourites.map(
+      (entry) => entry.mediaId,
+    );
   } catch {
-    return []
+    return [];
   }
-}
+};
 
 /**
  * Keeps something, or stops keeping it.
@@ -37,9 +37,9 @@ const setFavourite = async (mediaId: string, isKept: boolean): Promise<boolean> 
   const response = await fetch(`/api/media/${mediaId}/favourite`, {
     method: isKept ? 'PUT' : 'DELETE',
     credentials: 'same-origin',
-  }).catch(() => null)
+  }).catch(() => null);
 
-  return response !== null && response.ok
-}
+  return response !== null && response.ok;
+};
 
-export default { fetchFavourites, setFavourite }
+export { fetchFavourites, setFavourite };

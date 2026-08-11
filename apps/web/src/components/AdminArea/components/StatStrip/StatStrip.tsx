@@ -1,4 +1,4 @@
-import type { StatStripProps } from './StatStrip.types'
+import type { StatStripProps } from './StatStrip.types';
 
 /**
  * The figures that stay on screen whatever else is being read.
@@ -39,8 +39,8 @@ const StatStrip = ({ stats }: StatStripProps) => (
       </div>
     ))}
   </dl>
-)
+);
 
-StatStrip.displayName = 'StatStrip'
+StatStrip.displayName = 'StatStrip';
 
-export default { StatStrip }
+export { StatStrip };

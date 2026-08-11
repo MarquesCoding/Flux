@@ -1,10 +1,7 @@
-import { IconPlayerPause, IconPlayerStop } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import GlassPanelModule from '@FluxUI/GlassPanel'
-import type { AdminMessageOverlayProps } from './AdminMessageOverlay.types'
-
-const { Button } = ButtonModule
-const { GlassPanel } = GlassPanelModule
+import { IconPlayerPause, IconPlayerStop } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { GlassPanel } from '@FluxUI/GlassPanel';
+import type { AdminMessageOverlayProps } from './AdminMessageOverlay.types';
 
 /**
  * What an admin's stop or pause looks like to the viewer it happened to.
@@ -24,7 +21,7 @@ const AdminMessageOverlay = ({ kind, reason, onDismiss }: AdminMessageOverlayPro
           Close
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -39,9 +36,9 @@ const AdminMessageOverlay = ({ kind, reason, onDismiss }: AdminMessageOverlayPro
         </Button>
       </GlassPanel>
     </div>
-  )
-}
+  );
+};
 
-AdminMessageOverlay.displayName = 'AdminMessageOverlay'
+AdminMessageOverlay.displayName = 'AdminMessageOverlay';
 
-export default { AdminMessageOverlay }
+export { AdminMessageOverlay };

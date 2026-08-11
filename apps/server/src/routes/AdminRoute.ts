@@ -1,15 +1,10 @@
-import { createRoute, z } from '@hono/zod-openapi'
-import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
-import JobDefinitionsModule from '@FluxServer/jobs/jobDefinitions'
-import ScheduleTriggerModule from '@FluxServer/jobs/scheduleTrigger'
-import { ScanAccepted } from './LibraryRoute'
+import { createRoute, z } from '@hono/zod-openapi';
+import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
+import { JobRunRequestSchema } from '@FluxServer/jobs/jobDefinitions';
+import { ScheduleTriggerSchema } from '@FluxServer/jobs/scheduleTrigger';
+import { ScanAccepted } from './LibraryRoute';
 
-const { JobRunRequestSchema } = JobDefinitionsModule
-const { ScheduleTriggerSchema } = ScheduleTriggerModule
-
-const { PlaybackPlanSchema } = PlaybackPlanModule
-
-const AdminError = z.object({ error: z.string() }).openapi('AdminError')
+const AdminError = z.object({ error: z.string() }).openapi('AdminError');
 
 const AdminUserSchema = z
   .object({
@@ -19,21 +14,15 @@ const AdminUserSchema = z
     role: z.string().nullable(),
     createdAt: z.string(),
   })
-  .openapi('AdminUser')
+  .openapi('AdminUser');
 
 const AdminSettingsSchema = z
   .object({
-    /**
-     * Whether a catalogue key is configured, never the key itself.
-     *
-     * An administration page has no business handing a secret back to a
-     * browser: it is there to say whether one is set, not to show it.
-     */
     hasCatalogueKey: z.boolean(),
     trustedOrigins: z.array(z.string()),
     cookieSecure: z.boolean(),
   })
-  .openapi('AdminSettings')
+  .openapi('AdminSettings');
 
 const AdminOverviewSchema = z
   .object({
@@ -49,13 +38,13 @@ const AdminOverviewSchema = z
       libraryCount: z.number().int().nonnegative(),
     }),
   })
-  .openapi('AdminOverview')
+  .openapi('AdminOverview');
 
 const AdminSettingsRequestSchema = z
   .object({
     catalogueApiKey: z.string().optional(),
   })
-  .openapi('AdminSettingsRequest')
+  .openapi('AdminSettingsRequest');
 
 /**
  * Everything an administrator needs to see at once.
@@ -78,7 +67,7 @@ const adminOverviewRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
 /**
  * One open tab, as an admin sees it.
@@ -117,7 +106,7 @@ const AdminSessionSchema = z
       })
       .nullable(),
   })
-  .openapi('AdminSession')
+  .openapi('AdminSession');
 
 /**
  * Every tab that has the app open, for an admin to see who is around and
@@ -138,7 +127,7 @@ const adminSessionsRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
 /**
  * Stops someone else's stream.
@@ -163,7 +152,7 @@ const adminStopSessionRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
 /**
  * Pauses someone else's stream.
@@ -192,7 +181,7 @@ const adminPauseSessionRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
 /**
  * Resumes a stream an admin paused.
@@ -214,7 +203,7 @@ const adminResumeSessionRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
 /**
  * Changes a setting an operator owns.
@@ -237,7 +226,7 @@ const adminSettingsRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
 /**
  * A job an admin can start on demand, as the picker sees it.
@@ -250,7 +239,7 @@ const AdminJobDefinitionSchema = z
     needsLibrary: z.boolean(),
     destructive: z.boolean(),
   })
-  .openapi('AdminJobDefinition')
+  .openapi('AdminJobDefinition');
 
 /**
  * Every job kind the Work tab's picker can offer.
@@ -274,9 +263,9 @@ const adminJobDefinitionsRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
-const AdminJobRunRequestSchema = JobRunRequestSchema.openapi('AdminJobRunRequest')
+const AdminJobRunRequestSchema = JobRunRequestSchema.openapi('AdminJobRunRequest');
 
 /**
  * Starts a job of the given kind against a library, from the Work tab.
@@ -309,14 +298,14 @@ const adminRunJobRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
 const AdminJobTriggerSchema = z
   .object({
     id: z.string(),
     trigger: ScheduleTriggerSchema,
   })
-  .openapi('AdminJobTrigger')
+  .openapi('AdminJobTrigger');
 
 /**
  * What makes a job run on its own, as the picker sees it.
@@ -326,7 +315,7 @@ const AdminJobScheduleSchema = z
     kind: z.string(),
     triggers: z.array(AdminJobTriggerSchema),
   })
-  .openapi('AdminJobSchedule')
+  .openapi('AdminJobSchedule');
 
 /**
  * Every job's current triggers, alongside `adminJobDefinitionsRoute`'s
@@ -351,11 +340,11 @@ const adminJobSchedulesRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
 const AdminAddTriggerRequestSchema = z
   .object({ trigger: ScheduleTriggerSchema })
-  .openapi('AdminAddTriggerRequest')
+  .openapi('AdminAddTriggerRequest');
 
 /**
  * Adds one trigger to a job.
@@ -387,7 +376,7 @@ const adminAddJobTriggerRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
 /**
  * Removes one trigger from a job.
@@ -411,9 +400,9 @@ const adminRemoveJobTriggerRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
-export default {
+export {
   adminOverviewRoute,
   adminSettingsRoute,
   adminSessionsRoute,
@@ -425,4 +414,4 @@ export default {
   adminJobSchedulesRoute,
   adminAddJobTriggerRoute,
   adminRemoveJobTriggerRoute,
-}
+};

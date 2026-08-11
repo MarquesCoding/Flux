@@ -1,4 +1,4 @@
-import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin'
+import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin';
 
 const DAY_NAMES = [
   'Sunday',
@@ -8,13 +8,13 @@ const DAY_NAMES = [
   'Thursday',
   'Friday',
   'Saturday',
-] as const
+] as const;
 
 /**
  * Writes an hour and minute as a 24-hour clock time.
  */
 const toClock = (hour: number, minute: number): string =>
-  `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+  `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 
 /**
  * Says what a trigger does, in the words an operator would use.
@@ -26,16 +26,16 @@ const toClock = (hour: number, minute: number): string =>
 const describeTrigger = (trigger: ScheduleTrigger): string => {
   switch (trigger.kind) {
     case 'startup':
-      return 'On application startup'
+      return 'On application startup';
     case 'everyMinutes':
-      return trigger.minutes === 1 ? 'Every minute' : `Every ${trigger.minutes.toString()} minutes`
+      return trigger.minutes === 1 ? 'Every minute' : `Every ${trigger.minutes.toString()} minutes`;
     case 'everyHours':
-      return trigger.hours === 1 ? 'Every hour' : `Every ${trigger.hours.toString()} hours`
+      return trigger.hours === 1 ? 'Every hour' : `Every ${trigger.hours.toString()} hours`;
     case 'daily':
-      return `Daily at ${toClock(trigger.hour, trigger.minute)}`
+      return `Daily at ${toClock(trigger.hour, trigger.minute)}`;
     case 'weekly':
-      return `${DAY_NAMES[trigger.dayOfWeek] ?? 'Weekly'} at ${toClock(trigger.hour, trigger.minute)}`
+      return `${DAY_NAMES[trigger.dayOfWeek] ?? 'Weekly'} at ${toClock(trigger.hour, trigger.minute)}`;
   }
-}
+};
 
-export default { describeTrigger, DAY_NAMES, toClock }
+export { describeTrigger, DAY_NAMES, toClock };

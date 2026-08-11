@@ -1,12 +1,12 @@
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 type ProfileEditorProps = {
   /**
    * The profile being changed, or nothing when one is being made.
    */
-  profile: ViewerProfile | null
-  onSaved: () => void
-  onCancel: () => void
-}
+  profile: ViewerProfile | null;
+  onSaved: () => void;
+  onCancel: () => void;
+};
 
-export type { ProfileEditorProps }
+export type { ProfileEditorProps };

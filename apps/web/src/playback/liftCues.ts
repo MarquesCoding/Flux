@@ -18,72 +18,59 @@ const liftCues = (
   lineAt: () => number,
 ): { stop: () => void; apply: () => void } => {
   const lift = (isRedrawNeeded = false) => {
-    const line = lineAt()
+    const line = lineAt();
 
     for (const track of Array.from(element.textTracks)) {
-      let hasMoved = false
+      let hasMoved = false;
 
       for (const cue of Array.from(track.cues ?? [])) {
-        // A cue from a format that does not carry a position is a cue there is
-        // nothing to move.
         if ('line' in cue && 'snapToLines' in cue) {
-          cue.snapToLines = false
-          cue.line = line
-          hasMoved = true
+          cue.snapToLines = false;
+          cue.line = line;
+          hasMoved = true;
         }
       }
 
-      // A cue already on screen keeps the position it was drawn at: browsers
-      // lay a cue out when it appears and do not watch it afterwards, which is
-      // why the line sometimes moved and sometimes did not — it depended on
-      // whether a new cue happened to arrive. Turning the track off and on
-      // again asks for the layout to be done afresh.
       if (isRedrawNeeded && hasMoved && track.mode === 'showing') {
-        track.mode = 'hidden'
-        track.mode = 'showing'
+        track.mode = 'hidden';
+        track.mode = 'showing';
       }
     }
-  }
+  };
 
-  // Wrapped rather than passed straight to the listener: an event handler is
-  // called with an event, and an event is truthy — which would ask for a
-  // redraw on every cue in the film.
   const onCueChange = () => {
-    lift()
-  }
+    lift();
+  };
 
   const watch = () => {
-    lift()
+    lift();
 
     for (const track of Array.from(element.textTracks)) {
-      track.addEventListener('cuechange', onCueChange)
+      track.addEventListener('cuechange', onCueChange);
     }
-  }
+  };
 
-  watch()
-  element.textTracks.addEventListener('addtrack', watch)
+  watch();
+  element.textTracks.addEventListener('addtrack', watch);
 
   return {
-    // Also callable from outside, because the line can change while a cue is
-    // already on screen: the bar fading is exactly that, and a cue that only
-    // moves when the next one arrives leaves the current one where it was.
     apply: () => {
-      lift(true)
+      lift(true);
     },
     stop: () => {
-      element.textTracks.removeEventListener('addtrack', watch)
+      element.textTracks.removeEventListener('addtrack', watch);
 
       for (const track of Array.from(element.textTracks)) {
-        track.removeEventListener('cuechange', onCueChange)
+        track.removeEventListener('cuechange', onCueChange);
       }
     },
-  }
-}
+  };
+};
 
 /**
  * How far down the picture a cue sits while nothing is over it.
  */
-const CUE_LINE_CLEAR = 92
+const CUE_LINE_CLEAR = 92;
 
 /**
  * How far down it sits while the controls are up.
@@ -91,6 +78,6 @@ const CUE_LINE_CLEAR = 92
  * High enough to clear a bar the depth of the player's, which is a scrub line
  * and a row of buttons.
  */
-const CUE_LINE_ABOVE_CONTROLS = 80
+const CUE_LINE_ABOVE_CONTROLS = 80;
 
-export default { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS }
+export { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS };

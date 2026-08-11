@@ -12,7 +12,6 @@
       "@FluxUI/DotField": ["./packages/ui/src/components/DotField/DotField.tsx"],
       "@FluxUI/FilePicker": ["./packages/ui/src/components/FilePicker/FilePicker.tsx"],
       "@FluxUI/GlassPanel": ["./packages/ui/src/components/GlassPanel/GlassPanel.tsx"],
-      "@FluxUI/IconButton": ["./packages/ui/src/components/IconButton/IconButton.tsx"],
       "@FluxUI/MediaCard": ["./packages/ui/src/components/MediaCard/MediaCard.tsx"],
       "@FluxUI/Meter": ["./packages/ui/src/components/Meter/Meter.tsx"],
       "@FluxUI/MoodBackground.types": [
@@ -22,6 +21,10 @@
       "@FluxUI/OptionMenu": ["./packages/ui/src/components/OptionMenu/OptionMenu.tsx"],
       "@FluxUI/PageDots": ["./packages/ui/src/components/PageDots/PageDots.tsx"],
       "@FluxUI/PopoverPanel": ["./packages/ui/src/components/PopoverPanel/PopoverPanel.tsx"],
+      "@FluxUI/ProgressBar": ["./packages/ui/src/components/ProgressBar/ProgressBar.tsx"],
+      "@FluxUI/ProgressBar.types": [
+        "./packages/ui/src/components/ProgressBar/ProgressBar.types.ts"
+      ],
       "@FluxUI/QrCode": ["./packages/ui/src/components/QrCode/QrCode.tsx"],
       "@FluxUI/Rail": ["./packages/ui/src/components/Rail/Rail.tsx"],
       "@FluxUI/SettingsMenu": ["./packages/ui/src/components/SettingsMenu/SettingsMenu.tsx"],
@@ -30,7 +33,14 @@
       "@FluxUI/Sparkline": ["./packages/ui/src/components/Sparkline/Sparkline.tsx"],
       "@FluxUI/Spinner": ["./packages/ui/src/components/Spinner/Spinner.tsx"],
       "@FluxUI/SplashScreen": ["./packages/ui/src/components/SplashScreen/SplashScreen.tsx"],
+      "@FluxUI/Switch": ["./packages/ui/src/components/Switch/Switch.tsx"],
+      "@FluxUI/Switch.types": ["./packages/ui/src/components/Switch/Switch.types.ts"],
       "@FluxUI/TabBar": ["./packages/ui/src/components/TabBar/TabBar.tsx"],
+      "@FluxUI/TabBar.types": ["./packages/ui/src/components/TabBar/TabBar.types.ts"],
+      "@FluxUI/TabPanel": ["./packages/ui/src/components/TabPanel/TabPanel.tsx"],
+      "@FluxUI/TabPanel.types": ["./packages/ui/src/components/TabPanel/TabPanel.types.ts"],
+      "@FluxUI/Tabs": ["./packages/ui/src/components/Tabs/Tabs.tsx"],
+      "@FluxUI/Tabs.types": ["./packages/ui/src/components/Tabs/Tabs.types.ts"],
       "@FluxUI/TextField": ["./packages/ui/src/components/TextField/TextField.tsx"],
       "@FluxUI/Tooltip": ["./packages/ui/src/components/Tooltip/Tooltip.tsx"],
       "@FluxUI/TopNav": ["./packages/ui/src/components/TopNav/TopNav.tsx"],
@@ -41,7 +51,6 @@
       "@FluxUI/blendLights": ["./packages/ui/src/functions/blendLights.ts"],
       "@FluxUI/hasFinePointer": ["./packages/ui/src/functions/hasFinePointer.ts"],
       "@FluxUI/cn": ["./packages/ui/src/functions/cn.ts"],
-      "@FluxUI/lazyFlux": ["./packages/ui/src/lazyFlux.ts"],
       "@FluxUI/tokens": ["./packages/ui/src/tokens/tokens.ts"],
       "@FluxWeb/*": ["./apps/web/src/*"]
     }

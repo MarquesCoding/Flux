@@ -7,11 +7,11 @@
  */
 declare global {
   interface HTMLVideoElement {
-    webkitShowPlaybackTargetPicker?: () => void
+    webkitShowPlaybackTargetPicker?: () => void;
     /**
      * Whether this element is currently playing somewhere else.
      */
-    webkitCurrentPlaybackTargetIsWireless?: boolean
+    webkitCurrentPlaybackTargetIsWireless?: boolean;
   }
 }
 
@@ -23,6 +23,6 @@ declare global {
  * machine the server is running on, where a television has nowhere to fetch
  * from.
  */
-type CastState = 'unavailable' | 'available' | 'connecting' | 'connected'
+type CastState = 'unavailable' | 'available' | 'connecting' | 'connected';
 
-export type { CastState }
+export type { CastState };

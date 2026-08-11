@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'flux.clientId'
+const STORAGE_KEY = 'flux.clientId';
 
 /**
  * Which open tab this is.
@@ -10,22 +10,20 @@ const STORAGE_KEY = 'flux.clientId'
  */
 const readClientId = (): string => {
   try {
-    const existing = window.sessionStorage.getItem(STORAGE_KEY)
+    const existing = window.sessionStorage.getItem(STORAGE_KEY);
 
     if (existing !== null) {
-      return existing
+      return existing;
     }
 
-    const created = crypto.randomUUID()
+    const created = crypto.randomUUID();
 
-    window.sessionStorage.setItem(STORAGE_KEY, created)
+    window.sessionStorage.setItem(STORAGE_KEY, created);
 
-    return created
+    return created;
   } catch {
-    // A browser refusing storage still needs an id for this call, it just
-    // will not be remembered for the next one.
-    return crypto.randomUUID()
+    return crypto.randomUUID();
   }
-}
+};
 
-export default { readClientId }
+export { readClientId };

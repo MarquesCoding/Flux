@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   IconBolt,
   IconLayoutGrid,
@@ -6,19 +6,14 @@ import {
   IconRefresh,
   IconScissors,
   IconTrash,
-} from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import DialogModule from '@FluxUI/Dialog'
-import ScanProgressBarModule from '@FluxWeb/components/AdminArea/components/ScanProgressBar/ScanProgressBar'
-import summariseProgressModule from './summariseProgress'
-import type { JobDefinition } from '@FluxWeb/admin/fetchAdmin'
-import type { ScanEntry } from '@FluxWeb/components/AdminArea/scanCoordinator'
-import type { JobRunnerProps } from './JobRunner.types'
-
-const { Button } = ButtonModule
-const { Dialog } = DialogModule
-const { ScanProgressBar } = ScanProgressBarModule
-const { summariseProgress } = summariseProgressModule
+} from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { Dialog } from '@FluxUI/Dialog';
+import { ScanProgressBar } from '@FluxWeb/components/AdminArea/components/ScanProgressBar/ScanProgressBar';
+import { summariseProgress } from './summariseProgress';
+import type { JobDefinition } from '@FluxWeb/admin/fetchAdmin';
+import type { ScanEntry } from '@FluxWeb/components/AdminArea/scanCoordinator';
+import type { JobRunnerProps } from './JobRunner.types';
 
 /**
  * What a job kind looks like at a glance.
@@ -33,7 +28,7 @@ const JOB_ICONS: Record<string, typeof IconRefresh> = {
   'library.regenerateTrickplay': IconLayoutGrid,
   'library.detectSegments': IconScissors,
   'library.reset': IconTrash,
-}
+};
 
 /**
  * Lets an admin start any job on demand, or press into it to see how often
@@ -46,7 +41,7 @@ const JOB_ICONS: Record<string, typeof IconRefresh> = {
  * its own kind instead — see `scanCoordinator.runDefinedJob`.
  */
 const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: JobRunnerProps) => {
-  const [confirming, setConfirming] = useState<JobDefinition | null>(null)
+  const [confirming, setConfirming] = useState<JobDefinition | null>(null);
 
   /**
    * Everything running under one job kind, folded into the one bar its row
@@ -62,22 +57,22 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
       [...libraries.map((library) => progress.get(library.id)), progress.get(kind)].filter(
         (entry): entry is ScanEntry => entry?.kind === kind,
       ),
-    )
+    );
 
-  const libraryDefinitions = definitions.filter((definition) => definition.needsLibrary)
-  const serverDefinitions = definitions.filter((definition) => !definition.needsLibrary)
+  const libraryDefinitions = definitions.filter((definition) => definition.needsLibrary);
+  const serverDefinitions = definitions.filter((definition) => !definition.needsLibrary);
 
   const askOrRun = (definition: JobDefinition) => {
     if (definition.destructive) {
-      setConfirming(definition)
+      setConfirming(definition);
     } else {
-      onRun(definition.kind)
+      onRun(definition.kind);
     }
-  }
+  };
 
   const row = (definition: JobDefinition) => {
-    const Icon = JOB_ICONS[definition.kind] ?? IconBolt
-    const summary = summaryFor(definition.kind)
+    const Icon = JOB_ICONS[definition.kind] ?? IconBolt;
+    const summary = summaryFor(definition.kind);
 
     return (
       <li
@@ -89,7 +84,7 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
           className="min-w-0 flex-1 justify-start gap-3 rounded-lg px-2 py-2 text-left"
           aria-label={`View schedule for ${definition.label}`}
           onClick={() => {
-            onOpenSchedule(definition.kind)
+            onOpenSchedule(definition.kind);
           }}
         >
           <Icon size={18} className="mt-0.5 shrink-0 self-start text-text-muted" aria-hidden />
@@ -107,7 +102,7 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
             isPill
             aria-label={`Run ${definition.label}`}
             onClick={() => {
-              askOrRun(definition)
+              askOrRun(definition);
             }}
           >
             Run
@@ -121,8 +116,8 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
           />
         )}
       </li>
-    )
-  }
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4 p-5">
@@ -144,7 +139,7 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
         label={confirming === null ? 'Run this job?' : `Run ${confirming.label}?`}
         isOpen={confirming !== null}
         onClose={() => {
-          setConfirming(null)
+          setConfirming(null);
         }}
       >
         {confirming === null ? null : (
@@ -160,7 +155,7 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
                 variant="ghost"
                 isPill
                 onClick={() => {
-                  setConfirming(null)
+                  setConfirming(null);
                 }}
               >
                 Cancel
@@ -170,8 +165,8 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
                 variant="danger"
                 isPill
                 onClick={() => {
-                  onRun(confirming.kind)
-                  setConfirming(null)
+                  onRun(confirming.kind);
+                  setConfirming(null);
                 }}
               >
                 {confirming.label}
@@ -181,9 +176,9 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
         )}
       </Dialog>
     </div>
-  )
-}
+  );
+};
 
-JobRunner.displayName = 'JobRunner'
+JobRunner.displayName = 'JobRunner';
 
-export default { JobRunner }
+export { JobRunner };

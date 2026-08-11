@@ -7,36 +7,36 @@
  * provide.
  */
 type CastMediaInfo = {
-  contentId: string
-  contentType: string
-  metadata?: { title?: string }
-}
+  contentId: string;
+  contentType: string;
+  metadata?: { title?: string };
+};
 
 type CastSession = {
-  loadMedia: (request: CastLoadRequest) => Promise<void>
-  endSession: (stopCasting: boolean) => void
-  getCastDevice: () => { friendlyName?: string } | null
-}
+  loadMedia: (request: CastLoadRequest) => Promise<void>;
+  endSession: (stopCasting: boolean) => void;
+  getCastDevice: () => { friendlyName?: string } | null;
+};
 
 type CastLoadRequest = {
-  media: CastMediaInfo
-  currentTime?: number
-  autoplay?: boolean
-}
+  media: CastMediaInfo;
+  currentTime?: number;
+  autoplay?: boolean;
+};
 
 /**
  * Where a cast is up to, in the library's own words.
  */
-type CastConnectionState = 'NO_DEVICES_AVAILABLE' | 'NOT_CONNECTED' | 'CONNECTING' | 'CONNECTED'
+type CastConnectionState = 'NO_DEVICES_AVAILABLE' | 'NOT_CONNECTED' | 'CONNECTING' | 'CONNECTED';
 
 type CastContext = {
-  setOptions: (options: { receiverApplicationId: string; autoJoinPolicy: string }) => void
-  requestSession: () => Promise<void>
-  getCurrentSession: () => CastSession | null
-  getCastState: () => CastConnectionState
-  addEventListener: (event: string, listener: () => void) => void
-  removeEventListener: (event: string, listener: () => void) => void
-}
+  setOptions: (options: { receiverApplicationId: string; autoJoinPolicy: string }) => void;
+  requestSession: () => Promise<void>;
+  getCurrentSession: () => CastSession | null;
+  getCastState: () => CastConnectionState;
+  addEventListener: (event: string, listener: () => void) => void;
+  removeEventListener: (event: string, listener: () => void) => void;
+};
 
 declare global {
   interface Window {
@@ -44,31 +44,31 @@ declare global {
      * Called by the library once it has loaded itself, which is the only
      * signal it gives.
      */
-    __onGCastApiAvailable?: (isAvailable: boolean) => void
+    __onGCastApiAvailable?: (isAvailable: boolean) => void;
     /**
      * The loading of the library, kept where the loading belongs.
      *
      * Once per page, because the library installs itself globally and objects
      * to being asked twice — and a page is the thing there is one of.
      */
-    __fluxCastSender?: Promise<CastContext | null>
+    __fluxCastSender?: Promise<CastContext | null>;
     cast?: {
       framework: {
-        CastContext: { getInstance: () => CastContext }
-        CastContextEventType: { CAST_STATE_CHANGED: string }
-      }
-    }
+        CastContext: { getInstance: () => CastContext };
+        CastContextEventType: { CAST_STATE_CHANGED: string };
+      };
+    };
     chrome?: {
       cast?: {
         media: {
-          DEFAULT_MEDIA_RECEIVER_APP_ID: string
-          MediaInfo: new (contentId: string, contentType: string) => CastMediaInfo
-          LoadRequest: new (media: CastMediaInfo) => CastLoadRequest
-          GenericMediaMetadata: new () => { title?: string }
-        }
-        AutoJoinPolicy: { ORIGIN_SCOPED: string }
-      }
-    }
+          DEFAULT_MEDIA_RECEIVER_APP_ID: string;
+          MediaInfo: new (contentId: string, contentType: string) => CastMediaInfo;
+          LoadRequest: new (media: CastMediaInfo) => CastLoadRequest;
+          GenericMediaMetadata: new () => { title?: string };
+        };
+        AutoJoinPolicy: { ORIGIN_SCOPED: string };
+      };
+    };
   }
 }
 
@@ -79,34 +79,34 @@ declare global {
  * without conjuring one.
  */
 type ScriptHost = {
-  createElement: (tag: 'script') => HTMLScriptElement
-  head: { append: (node: HTMLScriptElement) => void }
-}
+  createElement: (tag: 'script') => HTMLScriptElement;
+  head: { append: (node: HTMLScriptElement) => void };
+};
 
 /**
  * What the library installs itself onto, and where the loading is remembered.
  */
 type CastCarrier = {
-  __onGCastApiAvailable?: (isAvailable: boolean) => void
-  __fluxCastSender?: Promise<CastContext | null>
+  __onGCastApiAvailable?: (isAvailable: boolean) => void;
+  __fluxCastSender?: Promise<CastContext | null>;
   cast?: {
     framework: {
-      CastContext: { getInstance: () => CastContext }
-      CastContextEventType: { CAST_STATE_CHANGED: string }
-    }
-  }
+      CastContext: { getInstance: () => CastContext };
+      CastContextEventType: { CAST_STATE_CHANGED: string };
+    };
+  };
   chrome?: {
     cast?: {
       media: {
-        DEFAULT_MEDIA_RECEIVER_APP_ID: string
-        MediaInfo: new (contentId: string, contentType: string) => CastMediaInfo
-        LoadRequest: new (media: CastMediaInfo) => CastLoadRequest
-        GenericMediaMetadata: new () => { title?: string }
-      }
-      AutoJoinPolicy: { ORIGIN_SCOPED: string }
-    }
-  }
-}
+        DEFAULT_MEDIA_RECEIVER_APP_ID: string;
+        MediaInfo: new (contentId: string, contentType: string) => CastMediaInfo;
+        LoadRequest: new (media: CastMediaInfo) => CastLoadRequest;
+        GenericMediaMetadata: new () => { title?: string };
+      };
+      AutoJoinPolicy: { ORIGIN_SCOPED: string };
+    };
+  };
+};
 
 export type {
   CastCarrier,
@@ -116,4 +116,4 @@ export type {
   CastMediaInfo,
   CastSession,
   ScriptHost,
-}
+};

@@ -1,10 +1,13 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import fetchSubtitlesModule from './fetchSubtitles'
-import type { SubtitleTrack } from './fetchSubtitles'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, trackForLanguage, SUBTITLES_OFF } =
-  fetchSubtitlesModule
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  fetchSubtitleTracks,
+  subtitleTrackUrl,
+  defaultTrackId,
+  trackForLanguage,
+  SUBTITLES_OFF,
+} from './fetchSubtitles';
+import type { SubtitleTrack } from './fetchSubtitles';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 const track = (overrides: Partial<SubtitleTrack> = {}): SubtitleTrack => ({
   id: 'en',
@@ -14,7 +17,7 @@ const track = (overrides: Partial<SubtitleTrack> = {}): SubtitleTrack => ({
   isForced: false,
   isHearingImpaired: false,
   ...overrides,
-})
+});
 
 const respondWith = (answer: { ok: boolean; body: JsonValue }) => {
   vi.stubGlobal(
@@ -26,77 +29,77 @@ const respondWith = (answer: { ok: boolean; body: JsonValue }) => {
         json: () => Promise.resolve(answer.body),
       }),
     ),
-  )
-}
+  );
+};
 
 afterEach(() => {
-  vi.unstubAllGlobals()
-})
+  vi.unstubAllGlobals();
+});
 
 describe('subtitleTrackUrl', () => {
   it('shifts cues to where the stream starts, since a transcode counts from zero', () => {
-    expect(subtitleTrackUrl('media-1', 'abc', 2400)).toContain('from=2400')
-  })
+    expect(subtitleTrackUrl('media-1', 'abc', 2400)).toContain('from=2400');
+  });
 
   it('addresses a track under the item it belongs to', () => {
-    expect(subtitleTrackUrl('media-1', 'abc')).toBe('/api/media/media-1/subtitles/abc?from=0')
-  })
-})
+    expect(subtitleTrackUrl('media-1', 'abc')).toBe('/api/media/media-1/subtitles/abc?from=0');
+  });
+});
 
 describe('defaultTrackId', () => {
   it('shows a forced track without being asked', () => {
-    expect(defaultTrackId([track(), track({ id: 'fr', isForced: true })])).toBe('fr')
-  })
+    expect(defaultTrackId([track(), track({ id: 'fr', isForced: true })])).toBe('fr');
+  });
 
   it('stays off when nothing is forced', () => {
-    expect(defaultTrackId([track()])).toBe(SUBTITLES_OFF)
-  })
+    expect(defaultTrackId([track()])).toBe(SUBTITLES_OFF);
+  });
 
   it('stays off when there are no tracks at all', () => {
-    expect(defaultTrackId([])).toBe(SUBTITLES_OFF)
-  })
-})
+    expect(defaultTrackId([])).toBe(SUBTITLES_OFF);
+  });
+});
 
 describe('fetchSubtitleTracks', () => {
   it('reads the tracks the server lists', async () => {
-    respondWith({ ok: true, body: { tracks: [track()] } })
+    respondWith({ ok: true, body: { tracks: [track()] } });
 
-    await expect(fetchSubtitleTracks('media-1')).resolves.toMatchObject([{ label: 'English' }])
-  })
+    await expect(fetchSubtitleTracks('media-1')).resolves.toMatchObject([{ label: 'English' }]);
+  });
 
   it('answers with nothing when the item has none', async () => {
-    respondWith({ ok: false, body: null })
+    respondWith({ ok: false, body: null });
 
-    await expect(fetchSubtitleTracks('media-1')).resolves.toEqual([])
-  })
+    await expect(fetchSubtitleTracks('media-1')).resolves.toEqual([]);
+  });
 
   it('answers with nothing rather than throwing when the server sends nonsense', async () => {
-    respondWith({ ok: true, body: { tracks: [{ id: 42 }] } })
+    respondWith({ ok: true, body: { tracks: [{ id: 42 }] } });
 
-    await expect(fetchSubtitleTracks('media-1')).resolves.toEqual([])
-  })
-})
+    await expect(fetchSubtitleTracks('media-1')).resolves.toEqual([]);
+  });
+});
 
 describe('trackForLanguage', () => {
   it('continues the language a viewer was already reading', () => {
-    const english = track({ id: 'a', language: 'en' })
+    const english = track({ id: 'a', language: 'en' });
 
-    expect(trackForLanguage([track({ id: 'b', language: 'fr' }), english], 'en')?.id).toBe('a')
-  })
+    expect(trackForLanguage([track({ id: 'b', language: 'fr' }), english], 'en')?.id).toBe('a');
+  });
 
   it('matches a language whatever a file calls the region', () => {
-    expect(trackForLanguage([track({ id: 'a', language: 'en-GB' })], 'en')?.id).toBe('a')
-  })
+    expect(trackForLanguage([track({ id: 'a', language: 'en-GB' })], 'en')?.id).toBe('a');
+  });
 
   it('answers with nothing where nobody has chosen a language yet', () => {
-    expect(trackForLanguage([track({ id: 'a', language: 'en' })], null)).toBeNull()
-  })
+    expect(trackForLanguage([track({ id: 'a', language: 'en' })], null)).toBeNull();
+  });
 
   it('answers with nothing rather than something else, since a track in a language somebody cannot read is worse than none', () => {
-    expect(trackForLanguage([track({ id: 'a', language: 'hu' })], 'en')).toBeNull()
-  })
+    expect(trackForLanguage([track({ id: 'a', language: 'hu' })], 'en')).toBeNull();
+  });
 
   it('answers with nothing for a file that carries no subtitles', () => {
-    expect(trackForLanguage([], 'en')).toBeNull()
-  })
-})
+    expect(trackForLanguage([], 'en')).toBeNull();
+  });
+});

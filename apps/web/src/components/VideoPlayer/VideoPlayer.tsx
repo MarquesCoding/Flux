@@ -1,92 +1,77 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   IconAlertTriangle,
   IconShareplay,
   IconPictureInPicture,
   IconPlayerTrackNext,
   IconX,
-} from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import IconButtonModule from '@FluxUI/IconButton'
-import SpinnerModule from '@FluxUI/Spinner'
-import VideoSurfaceModule from '@FluxUI/VideoSurface'
-import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
-import detectClientLabelModule from '@FluxWeb/playback/detectClientLabel'
-import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
-import clientIdentityModule from '@FluxWeb/presence/clientIdentity'
-import presenceEventsModule from '@FluxWeb/presence/presenceEvents'
-import attachShakaModule from '@FluxWeb/playback/attachShaka'
-import castPlaybackModule from '@FluxWeb/playback/castPlayback'
-import handOverToDeviceModule from '@FluxWeb/playback/handOverToDevice'
-import castSenderModule from '@FluxWeb/playback/castSender'
-import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
-import popOutWithCaptionsModule from '@FluxWeb/playback/popOutWithCaptions'
-import captureFrameModule from '@FluxWeb/playback/captureFrame'
-import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
-import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
-import captionStyleModule from '@FluxWeb/playback/captionStyle'
-import qualityPreferenceModule from '@FluxWeb/playback/qualityPreference'
-import fetchSegmentsModule from '@FluxWeb/playback/fetchSegments'
-import watchProgressModule from '@FluxWeb/playback/watchProgress'
-import playbackPreferencesModule from '@FluxWeb/playback/playbackPreferences'
-import liftCuesModule from '@FluxWeb/playback/liftCues'
-import describeTrackModule from '@FluxCore/functions/describeTrack'
-import listAvailableQualityStepsModule from '@FluxCore/functions/listAvailableQualitySteps'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
-import PlayerControlsModule from './components/PlayerControls/PlayerControls'
-import StreamStatsModule from './components/StreamStats/StreamStats'
-import AdminMessageOverlayModule from './components/AdminMessageOverlay/AdminMessageOverlay'
-import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
-import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions'
-import type { CastState } from '@FluxWeb/playback/castPlayback.types'
-import type { CastContext } from '@FluxWeb/playback/castSender.types'
-import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
-import type { MediaDetail } from '@FluxContracts/schemas/Library'
-import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
-import type { PlaybackHealth } from './components/StreamStats/StreamStats.types'
-import type { QualityPreference } from '@FluxWeb/playback/qualityPreference'
-import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types'
-
-const { Button } = ButtonModule
-const { IconButton } = IconButtonModule
-const { Spinner } = SpinnerModule
-const { VideoSurface } = VideoSurfaceModule
-const { detectFromBrowser } = detectDeviceProfileModule
-const { detectFromNavigator } = detectClientLabelModule
-const {
+} from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { Spinner } from '@FluxUI/Spinner';
+import { VideoSurface } from '@FluxUI/VideoSurface';
+import { detectFromBrowser } from '@FluxWeb/playback/detectDeviceProfile';
+import { detectFromNavigator } from '@FluxWeb/playback/detectClientLabel';
+import { readClientId } from '@FluxWeb/presence/clientIdentity';
+import { onPresenceEvent } from '@FluxWeb/presence/presenceEvents';
+import {
   startPlaybackSession,
   stopPlaybackSession,
   stopWatching,
   heartbeatPlaybackSession,
   sendPresenceHeartbeat,
-} = startPlaybackSessionModule
-const { readClientId } = clientIdentityModule
-const { onPresenceEvent } = presenceEventsModule
-const { attachShaka } = attachShakaModule
-const { watchCastState, isReachableOrigin, promptForDevice, absoluteStreamUrl } = castPlaybackModule
-const { handOverToDevice } = handOverToDeviceModule
-const { loadCastSender, castStateOf, castStream } = castSenderModule
-const { fetchTrickplay } = fetchTrickplayModule
-const { popOutWithCaptions } = popOutWithCaptionsModule
-const { captureFrame } = captureFrameModule
-const { readPlaybackHealth, encodedSeconds } = readPlaybackHealthModule
-const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, trackForLanguage, SUBTITLES_OFF } =
-  fetchSubtitlesModule
-const { fetchMediaDetail } = fetchLibraryModule
-const { TrickplayPreview } = TrickplayPreviewModule
-const { PlayerControls } = PlayerControlsModule
-const { StreamStats } = StreamStatsModule
-const { AdminMessageOverlay } = AdminMessageOverlayModule
-const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
-const { readQualityPreference, saveQualityPreference } = qualityPreferenceModule
-const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
-const { describeAudioTrack } = describeTrackModule
-const { listAvailableQualitySteps } = listAvailableQualityStepsModule
-const { reportWatchProgress, REPORT_EVERY_MILLISECONDS } = watchProgressModule
-const { readPlaybackPreferences, writePlaybackPreferences } = playbackPreferencesModule
-const { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } = liftCuesModule
+} from '@FluxWeb/playback/startPlaybackSession';
+import { attachShaka } from '@FluxWeb/playback/attachShaka';
+import {
+  watchCastState,
+  isReachableOrigin,
+  promptForDevice,
+  absoluteStreamUrl,
+} from '@FluxWeb/playback/castPlayback';
+import { handOverToDevice } from '@FluxWeb/playback/handOverToDevice';
+import { loadCastSender, castStateOf, castStream } from '@FluxWeb/playback/castSender';
+import { fetchTrickplay } from '@FluxWeb/playback/fetchTrickplay';
+import { popOutWithCaptions } from '@FluxWeb/playback/popOutWithCaptions';
+import { captureFrame } from '@FluxWeb/playback/captureFrame';
+import { readPlaybackHealth, encodedSeconds } from '@FluxWeb/playback/readPlaybackHealth';
+import {
+  fetchSubtitleTracks,
+  subtitleTrackUrl,
+  defaultTrackId,
+  trackForLanguage,
+  SUBTITLES_OFF,
+} from '@FluxWeb/playback/fetchSubtitles';
+import {
+  toCueCss,
+  readCaptionStyle,
+  saveCaptionStyle,
+  DEFAULT_CAPTION_STYLE,
+} from '@FluxWeb/playback/captionStyle';
+import { readQualityPreference, saveQualityPreference } from '@FluxWeb/playback/qualityPreference';
+import { fetchSegments, skippableAt, describeSkip } from '@FluxWeb/playback/fetchSegments';
+import { reportWatchProgress, REPORT_EVERY_MILLISECONDS } from '@FluxWeb/playback/watchProgress';
+import {
+  readPlaybackPreferences,
+  writePlaybackPreferences,
+} from '@FluxWeb/playback/playbackPreferences';
+import { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } from '@FluxWeb/playback/liftCues';
+import { describeAudioTrack } from '@FluxCore/functions/describeTrack';
+import { listAvailableQualitySteps } from '@FluxCore/functions/listAvailableQualitySteps';
+import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
+import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview';
+import { PlayerControls } from './components/PlayerControls/PlayerControls';
+import { StreamStats } from './components/StreamStats/StreamStats';
+import { AdminMessageOverlay } from './components/AdminMessageOverlay/AdminMessageOverlay';
+import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay';
+import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions';
+import type { CastState } from '@FluxWeb/playback/castPlayback.types';
+import type { CastContext } from '@FluxWeb/playback/castSender.types';
+import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession';
+import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles';
+import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
+import type { PlaybackHealth } from './components/StreamStats/StreamStats.types';
+import type { QualityPreference } from '@FluxWeb/playback/qualityPreference';
+import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types';
 
 /**
  * An element that may be able to go full screen.
@@ -95,14 +80,14 @@ const { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } = liftCuesModule
  * every browser ships.
  */
 type FullscreenTarget = {
-  requestFullscreen?: () => Promise<void>
-}
+  requestFullscreen?: () => Promise<void>;
+};
 
 type FullscreenOwner = {
-  exitFullscreen?: () => Promise<void>
-}
+  exitFullscreen?: () => Promise<void>;
+};
 
-const IDLE_MILLISECONDS = 2500
+const IDLE_MILLISECONDS = 2500;
 
 /**
  * How far a jump moves.
@@ -111,7 +96,7 @@ const IDLE_MILLISECONDS = 2500
  * is for getting past it: thirty seconds is a scene, and the buttons on the
  * bar do ten.
  */
-const JUMP_SECONDS = 30
+const JUMP_SECONDS = 30;
 
 /**
  * How close to the end counts as finished.
@@ -119,9 +104,9 @@ const JUMP_SECONDS = 30
  * Credits run for minutes, and someone who stops during them has watched the
  * film. Offering to resume it would be offering them the credits.
  */
-const FINISHED_WITHIN_SECONDS = 90
+const FINISHED_WITHIN_SECONDS = 90;
 
-const HEALTH_INTERVAL_MILLISECONDS = 500
+const HEALTH_INTERVAL_MILLISECONDS = 500;
 
 /**
  * How often the player tells the server a session is still wanted.
@@ -130,7 +115,7 @@ const HEALTH_INTERVAL_MILLISECONDS = 500
  * missed heartbeats, so this has to be well under a third of that to give a
  * genuine hiccup room to recover before a session is reaped.
  */
-const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000
+const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000;
 
 /**
  * How often presence is told where this tab actually is in the film.
@@ -140,7 +125,7 @@ const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000
  * progress bar notices anything slower than about a second, and a scrub
  * jumps the position outside the normal rate of change entirely.
  */
-const PRESENCE_HEALTH_INTERVAL_MILLISECONDS = 1000
+const PRESENCE_HEALTH_INTERVAL_MILLISECONDS = 1000;
 
 /**
  * How long to let a change settle before asking for the cue again.
@@ -149,7 +134,7 @@ const PRESENCE_HEALTH_INTERVAL_MILLISECONDS = 1000
  * thirty on the way, short enough that letting go and looking at the result
  * feels like the same action.
  */
-const REDRAW_AFTER_MILLISECONDS = 150
+const REDRAW_AFTER_MILLISECONDS = 150;
 
 /**
  * How long a frame lasts until the film says otherwise.
@@ -158,12 +143,12 @@ const REDRAW_AFTER_MILLISECONDS = 150
  * all of them: it is only used for the first press, before two frames have
  * gone past to be measured.
  */
-const DEFAULT_FRAME_SECONDS = 1 / 25
+const DEFAULT_FRAME_SECONDS = 1 / 25;
 
 /**
  * How long to wait before asking a stalled stream again.
  */
-const START_RETRY_MILLISECONDS = 1500
+const START_RETRY_MILLISECONDS = 1500;
 
 /**
  * How many times that is worth doing.
@@ -171,7 +156,7 @@ const START_RETRY_MILLISECONDS = 1500
  * A few seconds of trying, and then the picture is somebody else's problem:
  * a player that retries forever is a player that hides a broken file.
  */
-const START_ATTEMPTS = 4
+const START_ATTEMPTS = 4;
 
 const EMPTY_HEALTH: PlaybackHealth = {
   positionSeconds: 0,
@@ -181,7 +166,7 @@ const EMPTY_HEALTH: PlaybackHealth = {
   decodedFrames: null,
   presentedWidth: 0,
   presentedHeight: 0,
-}
+};
 
 /**
  * Plays a library item.
@@ -202,278 +187,192 @@ const VideoPlayer = ({
   onSelectEpisode,
   watchedFractionFor,
 }: VideoPlayerProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const stageRef = useRef<HTMLDivElement>(null)
-  // Keeps the nudges at a stream that has not started from outliving the
-  // session they belong to.
-  const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  // How long one frame lasts, measured from the film itself. Nothing in the
-  // library reports a frame rate — ffprobe knows, but the browser is the one
-  // being asked to land on a frame, so the browser is asked.
-  const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS)
-  const [session, setSession] = useState<StartedSession | null>(null)
-  const [state, setState] = useState<PlayerState>('starting')
-  const [problem, setProblem] = useState<string | null>(null)
-  // What an admin has just done to this stream, if anything. Stopped blocks
-  // the stage until the viewer closes it; paused is a dismissible banner —
-  // pressing play is still theirs to do.
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS);
+  const [session, setSession] = useState<StartedSession | null>(null);
+  const [state, setState] = useState<PlayerState>('starting');
+  const [problem, setProblem] = useState<string | null>(null);
   const [adminMessage, setAdminMessage] = useState<{
-    kind: 'stopped' | 'paused'
-    reason: string
-  } | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [position, setPosition] = useState(0)
-  const [reportedDuration, setReportedDuration] = useState(0)
-  const [trickplay, setTrickplay] = useState<Trickplay | null>(null)
-  const [detail, setDetail] = useState<MediaDetail | null>(null)
-  // How this device was left, rather than how a fresh element starts. Somebody
-  // who turned a film down does not expect the next episode to open at full
-  // volume, and somebody watching in silence does not expect to be shouted at.
-  const [volume, setVolume] = useState(() => readPlaybackPreferences().volume)
-  const [isMuted, setIsMuted] = useState(() => readPlaybackPreferences().isMuted)
-  // Counting down or counting up. A habit rather than a setting, which is why
-  // it is remembered rather than asked again every film.
+    kind: 'stopped' | 'paused';
+    reason: string;
+  } | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [reportedDuration, setReportedDuration] = useState(0);
+  const [trickplay, setTrickplay] = useState<Trickplay | null>(null);
+  const [detail, setDetail] = useState<MediaDetail | null>(null);
+  const [volume, setVolume] = useState(() => readPlaybackPreferences().volume);
+  const [isMuted, setIsMuted] = useState(() => readPlaybackPreferences().isMuted);
   const [isShowingRemaining, setIsShowingRemaining] = useState(
     () => readPlaybackPreferences().showsRemaining,
-  )
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [isShowingStats, setIsShowingStats] = useState(false)
-  // Whether a menu on the bar is open. The bar stays up while one is: fading
-  // out from under an open menu takes the menu with it, and somebody reading a
-  // list of episodes has not stopped using the player.
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH)
-  const [isIdle, setIsIdle] = useState(false)
-  // Where the pointer was last seen, so a move that did not move can be told
-  // from one that did.
-  const pointRef = useRef<{ x: number; y: number } | null>(null)
-  // Bumped by anything a viewer actually did. Playback position is not that:
-  // it changes several times a second, and a timer restarted by it never
-  // expires, so the controls would sit there for the whole film.
-  const [activity, setActivity] = useState(0)
-  const [playbackRate, setPlaybackRate] = useState(1)
-  const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([])
-  const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF)
-  const [captionStyle, setCaptionStyle] = useState(readCaptionStyle)
-  // How far the subtitles have been nudged, and how far that nudge has already
-  // been applied to the cues on screen. Both are needed: the cues are moved by
-  // the difference, because a track carries its own times and there is nothing
-  // to reapply an absolute offset to.
-  const [subtitleOffset, setSubtitleOffset] = useState(0)
-  const appliedOffsetRef = useRef(0)
-  const [segments, setSegments] = useState<MediaSegment[]>([])
-  const [selectedAudioIndex, setSelectedAudioIndex] = useState<number | null>(null)
-  // What the current session was asked for. A transcode is produced from the
-  // point it starts at, so seeking outside what has been encoded means asking
-  // for a new one rather than moving within this one.
+  );
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isShowingStats, setIsShowingStats] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH);
+  const [isIdle, setIsIdle] = useState(false);
+  const pointRef = useRef<{ x: number; y: number } | null>(null);
+  const [activity, setActivity] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([]);
+  const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF);
+  const [captionStyle, setCaptionStyle] = useState(readCaptionStyle);
+  const [subtitleOffset, setSubtitleOffset] = useState(0);
+  const appliedOffsetRef = useRef(0);
+  const [segments, setSegments] = useState<MediaSegment[]>([]);
+  const [selectedAudioIndex, setSelectedAudioIndex] = useState<number | null>(null);
   const [request, setRequest] = useState<{
-    mediaId: string
-    startSeconds: number
-    audioStreamIndex?: number
-    requestedQuality: QualityPreference
-    // Whole seconds, always. A position read back from the server is a
-    // fraction of one — nobody stops a film on a second boundary — and the
-    // contract asks for an integer, so resuming used to be answered with a
-    // validation error the player could only report as "playback could not be
-    // started".
+    mediaId: string;
+    startSeconds: number;
+    audioStreamIndex?: number;
+    requestedQuality: QualityPreference;
   }>({
     mediaId: media.id,
     startSeconds: Math.floor(startSeconds),
     requestedQuality: readQualityPreference(),
-  })
-  // The frame the viewer was looking at when they dragged the scrub bar. Held
-  // on screen until the new session produces one of its own, because tearing
-  // the old session down blanks the media element and a black rectangle reads
-  // as the video having broken rather than as a seek.
-  const [heldFrame, setHeldFrame] = useState<{ url: string; isItemChange: boolean } | null>(null)
+  });
+  const [heldFrame, setHeldFrame] = useState<{ url: string; isItemChange: boolean } | null>(null);
 
-  // Offered only where the browser has a floating window of its own. Firefox
-  // has one it does not expose to a page, and Safari on a phone has none at
-  // all, so this is asked rather than assumed.
-  const canPopOut = typeof document !== 'undefined' && document.pictureInPictureEnabled === true
+  const canPopOut = typeof document !== 'undefined' && document.pictureInPictureEnabled === true;
 
-  // What is currently floating with its captions drawn in, so it can be put
-  // back. Held in a ref rather than in state because nothing on screen
-  // depends on it.
-  const poppedRef = useRef<PoppedOut | null>(null)
-  const [isPoppedOut, setIsPoppedOut] = useState(false)
-  // Where the playing is: here, or on something else on the network.
-  const [castState, setCastState] = useState<CastState>('unavailable')
-  // Why casting did not happen, for the one case where the answer is something
-  // the viewer can act on.
-  const [castNote, setCastNote] = useState<string | null>(null)
-  // What the media engine, if there is one, needs told before the element can
-  // be pointed at a device.
-  const releaseRef = useRef<(() => Promise<void>) | null>(null)
-  // Google's sender, where this browser has it. Held rather than looked up,
-  // because the library installs itself once and answers to nobody after that.
-  const castContextRef = useRef<CastContext | null>(null)
+  const poppedRef = useRef<PoppedOut | null>(null);
+  const [isPoppedOut, setIsPoppedOut] = useState(false);
+  const [castState, setCastState] = useState<CastState>('unavailable');
+  const [castNote, setCastNote] = useState<string | null>(null);
+  const releaseRef = useRef<(() => Promise<void>) | null>(null);
+  const castContextRef = useRef<CastContext | null>(null);
 
   const popOut = useCallback(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null) {
-      return
+      return;
     }
 
-    // Leaving is the same button as entering: a viewer who popped a film out
-    // and wants it back has one control, not two.
     if (document.pictureInPictureElement !== null) {
-      poppedRef.current?.stop()
-      poppedRef.current = null
-      setIsPoppedOut(false)
+      poppedRef.current?.stop();
+      poppedRef.current = null;
+      setIsPoppedOut(false);
 
-      void document.exitPictureInPicture().catch(() => {
-        // Already gone, which is the outcome that was wanted.
-      })
+      void document.exitPictureInPicture().catch(() => {});
 
-      return
+      return;
     }
 
     void (async () => {
-      // With subtitles on, the film is redrawn into a canvas along with its
-      // cues and that is what floats: a browser's own window shows the video
-      // and nothing layered over it, so captions would simply disappear.
       const withCaptions = Array.from(element.textTracks).some((track) => track.mode !== 'disabled')
         ? await popOutWithCaptions(element)
-        : null
+        : null;
 
       if (withCaptions !== null) {
-        poppedRef.current = withCaptions
-        setIsPoppedOut(true)
+        poppedRef.current = withCaptions;
+        setIsPoppedOut(true);
 
-        return
+        return;
       }
 
-      await element.requestPictureInPicture().catch(() => {
-        // A browser may refuse — no gesture, or a stream it will not float.
-        // Nothing to say about it that the viewer can act on.
-      })
-    })()
-  }, [])
+      await element.requestPictureInPicture().catch(() => {});
+    })();
+  }, []);
 
   useEffect(
     () => () => {
-      poppedRef.current?.stop()
-      poppedRef.current = null
+      poppedRef.current?.stop();
+      poppedRef.current = null;
     },
     [],
-  )
+  );
 
-  // Nudging the subtitles moves the cues themselves rather than asking the
-  // server for the file again: the browser already holds them, and a viewer
-  // pressing a button twice a second should not be waiting on a round trip
-  // each time.
   useEffect(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null) {
-      return
+      return;
     }
 
-    const shift = subtitleOffset - appliedOffsetRef.current
+    const shift = subtitleOffset - appliedOffsetRef.current;
 
     if (shift === 0) {
-      return
+      return;
     }
 
-    let moved = false
+    let moved = false;
 
     for (const track of Array.from(element.textTracks)) {
       for (const cue of Array.from(track.cues ?? [])) {
-        // Never before the beginning: a cue dragged past zero would stack up
-        // on the first frame with every other cue that went with it.
-        cue.startTime = Math.max(0, cue.startTime + shift)
-        cue.endTime = Math.max(0, cue.endTime + shift)
-        moved = true
+        cue.startTime = Math.max(0, cue.startTime + shift);
+        cue.endTime = Math.max(0, cue.endTime + shift);
+        moved = true;
       }
     }
 
     if (moved) {
-      appliedOffsetRef.current = subtitleOffset
+      appliedOffsetRef.current = subtitleOffset;
     }
-  }, [subtitleOffset, selectedSubtitleId, position])
+  }, [subtitleOffset, selectedSubtitleId, position]);
 
-  // Google's sender, fetched the first time a player is opened rather than on
-  // the way into the application: a viewer who never casts should never be
-  // told about it, and it is the one thing here fetched from somebody else.
   useEffect(() => {
-    let isAbandoned = false
+    let isAbandoned = false;
 
     void loadCastSender().then((context) => {
       if (isAbandoned || context === null) {
-        return
+        return;
       }
 
-      castContextRef.current = context
+      castContextRef.current = context;
 
       const said = () => {
-        const state = castStateOf(context)
+        const state = castStateOf(context);
 
-        // A library that loaded is a way to cast, whatever it says about
-        // devices. Chrome reports none while its own menu lists three, so
-        // taking that answer literally hides the control at exactly the moment
-        // it is wanted — and its picker opens and finds them regardless.
         setCastState(
           state === 'CONNECTED' ? 'connected' : state === 'CONNECTING' ? 'connecting' : 'available',
-        )
-      }
+        );
+      };
 
-      const framework = window.cast?.framework
+      const framework = window.cast?.framework;
 
       if (framework !== undefined) {
-        context.addEventListener(framework.CastContextEventType.CAST_STATE_CHANGED, said)
+        context.addEventListener(framework.CastContextEventType.CAST_STATE_CHANGED, said);
       }
 
-      said()
-    })
+      said();
+    });
 
     return () => {
-      isAbandoned = true
-    }
-  }, [])
+      isAbandoned = true;
+    };
+  }, []);
 
-  // Somewhere to send it, and whether it has been sent. Watched wherever the
-  // browser can answer at all, including where the address of this page is one
-  // no device could follow: a control that is missing teaches nobody anything,
-  // where one that says why it cannot be used says exactly what to do about
-  // it.
   useEffect(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null) {
-      return
+      return;
     }
 
-    return watchCastState(element, setCastState)
-  }, [])
+    return watchCastState(element, setCastState);
+  }, []);
 
-  // A device has taken it. Only now is the media engine let go of and the
-  // element pointed at the stream: an engine feeding this element re-attaches
-  // itself the moment anything else is assigned, so doing this before a device
-  // exists undoes itself and leaves nothing cast.
   useEffect(() => {
     if (castState !== 'connected') {
-      return
+      return;
     }
 
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null || session === null) {
-      return
+      return;
     }
 
     const address =
-      session.delivery.kind === 'direct' ? session.delivery.url : session.delivery.manifestUrl
+      session.delivery.kind === 'direct' ? session.delivery.url : session.delivery.manifestUrl;
 
-    // A Chromecast is told where the stream is and fetches it itself; there is
-    // no element on this page for it to be handed. Everything stops here
-    // instead, since two things playing the same film a second apart is worse
-    // than one.
-    const context = castContextRef.current
+    const context = castContextRef.current;
 
     if (context !== null) {
-      const whole = absoluteStreamUrl(address, window.location.origin)
+      const whole = absoluteStreamUrl(address, window.location.origin);
 
       if (whole !== null) {
         void castStream(context, {
@@ -482,16 +381,16 @@ const VideoPlayer = ({
           startSeconds: request.startSeconds + element.currentTime,
         }).then((accepted) => {
           if (accepted) {
-            element.pause()
+            element.pause();
 
-            return
+            return;
           }
 
-          setCastNote('That device would not take this stream.')
-        })
+          setCastNote('That device would not take this stream.');
+        });
       }
 
-      return
+      return;
     }
 
     void handOverToDevice({
@@ -502,96 +401,81 @@ const VideoPlayer = ({
         ? {}
         : {
             release: async () => {
-              await releaseRef.current?.()
-              releaseRef.current = null
+              await releaseRef.current?.();
+              releaseRef.current = null;
             },
           }),
-    })
-  }, [castState, session])
+    });
+  }, [castState, session]);
 
-  // Coming back from a device. Handing one the stream meant letting go of the
-  // media engine, and a browser that cannot play this format on its own — most
-  // of them, for HLS — is left with a black picture when the cast ends. So the
-  // engine is fetched again and put back where the film had got to.
-  const wasCastingRef = useRef(false)
+  const wasCastingRef = useRef(false);
 
   useEffect(() => {
     if (castState === 'connected') {
-      wasCastingRef.current = true
+      wasCastingRef.current = true;
 
-      return
+      return;
     }
 
     if (!wasCastingRef.current || castState === 'connecting') {
-      return
+      return;
     }
 
-    wasCastingRef.current = false
+    wasCastingRef.current = false;
 
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null || session === null || session.delivery.kind !== 'hls') {
-      return
+      return;
     }
 
-    const at = element.currentTime
+    const at = element.currentTime;
 
     void attachShaka({ element, manifestUrl: session.delivery.manifestUrl }).then((teardown) => {
-      releaseRef.current = teardown
-      element.currentTime = at
-      start(element)
-    })
-  }, [castState, session])
+      releaseRef.current = teardown;
+      element.currentTime = at;
+      start(element);
+    });
+  }, [castState, session]);
 
-  // Whatever engine is attached when this leaves, released. The one the page
-  // started with is torn down by the effect that made it; one fetched again
-  // after a cast ended is not that one.
   useEffect(
     () => () => {
-      void releaseRef.current?.()
-      releaseRef.current = null
+      void releaseRef.current?.();
+      releaseRef.current = null;
     },
     [],
-  )
+  );
 
-  // The window can be closed from its own controls as well as from ours, so
-  // the page listens rather than assuming it is the only thing that ends this.
   useEffect(() => {
     const onLeave = () => {
-      poppedRef.current?.stop()
-      poppedRef.current = null
-      setIsPoppedOut(false)
-    }
+      poppedRef.current?.stop();
+      poppedRef.current = null;
+      setIsPoppedOut(false);
+    };
 
     const onEnter = () => {
-      setIsPoppedOut(true)
-    }
+      setIsPoppedOut(true);
+    };
 
-    const element = videoRef.current
+    const element = videoRef.current;
 
-    element?.addEventListener('enterpictureinpicture', onEnter)
-    element?.addEventListener('leavepictureinpicture', onLeave)
-    document.addEventListener('leavepictureinpicture', onLeave)
+    element?.addEventListener('enterpictureinpicture', onEnter);
+    element?.addEventListener('leavepictureinpicture', onLeave);
+    document.addEventListener('leavepictureinpicture', onLeave);
 
     return () => {
-      element?.removeEventListener('enterpictureinpicture', onEnter)
-      element?.removeEventListener('leavepictureinpicture', onLeave)
-      document.removeEventListener('leavepictureinpicture', onLeave)
+      element?.removeEventListener('enterpictureinpicture', onEnter);
+      element?.removeEventListener('leavepictureinpicture', onLeave);
+      document.removeEventListener('leavepictureinpicture', onLeave);
 
-      // Leaving the player takes the floating window with it. The copy that
-      // floats is an element on the document rather than in this tree, so
-      // nothing else would ever remove it: pressing escape closed the page
-      // and left the film playing in the corner of the screen.
-      poppedRef.current?.stop()
-      poppedRef.current = null
+      poppedRef.current?.stop();
+      poppedRef.current = null;
 
       if (document.pictureInPictureEnabled === true && document.pictureInPictureElement !== null) {
-        void document.exitPictureInPicture().catch(() => {
-          // Already gone, which is the outcome that was wanted.
-        })
+        void document.exitPictureInPicture().catch(() => {});
       }
-    }
-  }, [])
+    };
+  }, []);
 
   /**
    * Gets a stream running, and keeps trying for as long as that is sensible.
@@ -603,35 +487,30 @@ const VideoPlayer = ({
    * seeking made the element ask again, and asking again was all it needed.
    */
   const start = useCallback((element: HTMLVideoElement) => {
-    let attempts = 0
+    let attempts = 0;
 
     const attempt = () => {
-      void element.play().catch(() => {
-        // Refused rather than unready: a browser that will not autoplay wants
-        // a gesture, and the play button is right there.
-      })
-    }
+      void element.play().catch(() => {});
+    };
 
-    attempt()
+    attempt();
 
-    clearInterval(startTimerRef.current ?? undefined)
+    clearInterval(startTimerRef.current ?? undefined);
 
     startTimerRef.current = setInterval(() => {
-      attempts += 1
+      attempts += 1;
 
       if (attempts > START_ATTEMPTS || element.readyState > 0 || !element.paused) {
-        clearInterval(startTimerRef.current ?? undefined)
-        startTimerRef.current = null
+        clearInterval(startTimerRef.current ?? undefined);
+        startTimerRef.current = null;
 
-        return
+        return;
       }
 
-      // Nothing has arrived yet. Asking the element to load again is what a
-      // seek was doing by accident.
-      element.load()
-      attempt()
-    }, START_RETRY_MILLISECONDS)
-  }, [])
+      element.load();
+      attempt();
+    }, START_RETRY_MILLISECONDS);
+  }, []);
 
   /**
    * Keeps whatever is on screen on screen.
@@ -641,34 +520,27 @@ const VideoPlayer = ({
    * player breaking rather than as a seek, or as the following episode.
    */
   const hold = useCallback((element: HTMLVideoElement | null, isItemChange = false) => {
-    const url = element === null ? null : captureFrame(element, document.createElement('canvas'))
+    const url = element === null ? null : captureFrame(element, document.createElement('canvas'));
 
     if (url !== null) {
-      setHeldFrame({ url, isItemChange })
+      setHeldFrame({ url, isItemChange });
     }
-  }, [])
+  }, []);
 
-  // The last frame of the episode being left, kept up while the next one is
-  // asked for. Tearing a session down blanks the element, and a black
-  // rectangle between two episodes reads as the player breaking rather than
-  // as one thing following another.
-  //
-  // A layout effect because it has to happen before the session's own cleanup
-  // clears the element out from under it.
   useLayoutEffect(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element !== null && element.readyState > 1) {
-      hold(element, true)
+      hold(element, true);
     }
-  }, [media.id, hold])
+  }, [media.id, hold]);
 
   if (request.mediaId !== media.id) {
     setRequest({
       mediaId: media.id,
       startSeconds: Math.floor(startSeconds),
       requestedQuality: request.requestedQuality,
-    })
+    });
   }
 
   /**
@@ -683,26 +555,22 @@ const VideoPlayer = ({
    */
   const reportPresenceHeartbeat = useCallback(
     (clientId: string, startSeconds: number) => {
-      const current = videoRef.current
-      const playing = current !== null && !current.paused
+      const current = videoRef.current;
+      const playing = current !== null && !current.paused;
 
       if (current === null) {
-        void sendPresenceHeartbeat(clientId, playing)
+        void sendPresenceHeartbeat(clientId, playing);
 
-        return
+        return;
       }
 
-      const measured = readPlaybackHealth(current, startSeconds)
-      // The library already knows how long the film is; a transcode's own
-      // playlist only knows how much has been encoded so far, which is not
-      // the same thing (see the `duration` calculation this mirrors, in the
-      // render below).
+      const measured = readPlaybackHealth(current, startSeconds);
       const totalDuration =
         media.durationSeconds > 0
           ? media.durationSeconds
           : Number.isFinite(current.duration)
             ? current.duration
-            : 0
+            : 0;
 
       void sendPresenceHeartbeat(clientId, playing, {
         positionSeconds: measured.positionSeconds,
@@ -710,53 +578,39 @@ const VideoPlayer = ({
         bufferedAheadSeconds: measured.bufferedAheadSeconds,
         presentedWidth: measured.presentedWidth,
         presentedHeight: measured.presentedHeight,
-      })
+      });
     },
     [media.durationSeconds],
-  )
+  );
 
   useEffect(() => {
-    // Read through a function so the checker cannot narrow it. The effect may
-    // be cleaned up while an await is in flight, so every guard after an await
-    // is live; narrowing would mark them dead and the lint would demand their
-    // removal.
-    // Every piece of state below describes the item that was playing a moment
-    // ago. Left alone it would be shown against the new one until the server
-    // answers, which reads as the player getting the film wrong.
-    setSession(null)
-    setState('starting')
-    setProblem(null)
-    setIsPlaying(false)
-    setPosition(request.startSeconds)
-    setReportedDuration(0)
+    setSession(null);
+    setState('starting');
+    setProblem(null);
+    setIsPlaying(false);
+    setPosition(request.startSeconds);
+    setReportedDuration(0);
 
-    const controller = new AbortController()
-    const isAbandoned = () => controller.signal.aborted
-    let teardown: (() => Promise<void>) | null = null
-    let startedId: string | null = null
-    let heartbeatInterval: ReturnType<typeof setInterval> | null = null
-    let presenceHealthInterval: ReturnType<typeof setInterval> | null = null
-    const clientId = readClientId()
+    const controller = new AbortController();
+    const isAbandoned = () => controller.signal.aborted;
+    let teardown: (() => Promise<void>) | null = null;
+    let startedId: string | null = null;
+    let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+    let presenceHealthInterval: ReturnType<typeof setInterval> | null = null;
+    const clientId = readClientId();
 
-    // A closed tab, not a paused player: `pagehide` fires whether or not the
-    // page will be resurrected from the back/forward cache, and `keepalive`
-    // is what makes a fetch survive the page actually going away, which a
-    // plain one is not guaranteed to. This is genuinely the tab closing —
-    // unlike a reseek or track change, which never fires `pagehide` at all —
-    // so it is also presence's cue that this tab has actually stopped
-    // watching, not just swapping sessions.
     const onPageHide = () => {
       if (startedId !== null) {
         void fetch(`/api/playback/session/${startedId}`, {
           method: 'DELETE',
           keepalive: true,
-        }).catch(() => undefined)
+        }).catch(() => undefined);
       }
 
-      void stopWatching(clientId, true)
-    }
+      void stopWatching(clientId, true);
+    };
 
-    window.addEventListener('pagehide', onPageHide)
+    window.addEventListener('pagehide', onPageHide);
 
     const run = async () => {
       const outcome = await startPlaybackSession(
@@ -766,336 +620,292 @@ const VideoPlayer = ({
         request.startSeconds,
         request.audioStreamIndex,
         request.requestedQuality,
-      )
+      );
 
       if (isAbandoned()) {
-        return
+        return;
       }
 
       if (outcome.kind === 'failed') {
-        setProblem(outcome.reason)
-        setState('failed')
+        setProblem(outcome.reason);
+        setState('failed');
 
-        return
+        return;
       }
 
-      startedId = outcome.session.sessionId
-      setSession(outcome.session)
+      startedId = outcome.session.sessionId;
+      setSession(outcome.session);
 
-      // Always ticks, direct play included: presence needs to know a tab is
-      // watching something regardless of delivery, even though direct play
-      // never reaches the media service and so has no transcode heartbeat to
-      // send.
-      const sessionId = startedId
-      const isHls = outcome.session.delivery.kind !== 'direct'
+      const sessionId = startedId;
+      const isHls = outcome.session.delivery.kind !== 'direct';
 
       heartbeatInterval = setInterval(() => {
         if (isHls) {
-          const current = videoRef.current
-          const playing = current !== null && !current.paused
+          const current = videoRef.current;
+          const playing = current !== null && !current.paused;
 
-          void heartbeatPlaybackSession(sessionId, playing)
+          void heartbeatPlaybackSession(sessionId, playing);
         }
-      }, HEARTBEAT_INTERVAL_MILLISECONDS)
+      }, HEARTBEAT_INTERVAL_MILLISECONDS);
 
-      // Its own faster interval, independent of the liveness heartbeat above:
-      // an admin watching a progress bar notices a stale position within a
-      // couple of seconds, and a scrub jumps it outside the rate a slower
-      // interval could ever track.
       presenceHealthInterval = setInterval(() => {
-        reportPresenceHeartbeat(clientId, request.startSeconds)
-      }, PRESENCE_HEALTH_INTERVAL_MILLISECONDS)
+        reportPresenceHeartbeat(clientId, request.startSeconds);
+      }, PRESENCE_HEALTH_INTERVAL_MILLISECONDS);
 
-      const element = videoRef.current
+      const element = videoRef.current;
 
       if (element === null) {
-        return
+        return;
       }
 
       try {
-        // Direct play needs no media engine at all: the browser can read the
-        // original file over byte ranges. Loading Shaka for it would download
-        // a decoder to do nothing.
         if (outcome.session.delivery.kind === 'direct') {
-          element.src = outcome.session.delivery.url
+          element.src = outcome.session.delivery.url;
         } else {
           teardown = await attachShaka({
             element,
             manifestUrl: outcome.session.delivery.manifestUrl,
-          })
+          });
 
-          // Kept so casting can let go of it: a device is handed an address
-          // and fetches the stream itself, which cannot happen while an engine
-          // here is feeding the same element.
-          releaseRef.current = teardown
+          releaseRef.current = teardown;
         }
 
         if (!isAbandoned()) {
-          setState('playing')
+          setState('playing');
 
-          // Navigating to a film is asking to watch it. Nobody arrives at a
-          // player and wants a still picture with a play button over it, and
-          // a seek is not a request to stop either.
-          start(element)
+          start(element);
         }
       } catch {
         if (!isAbandoned()) {
-          setProblem('This browser could not play the stream.')
-          setState('failed')
+          setProblem('This browser could not play the stream.');
+          setState('failed');
         }
       }
-    }
+    };
 
-    void run()
+    void run();
 
     return () => {
-      controller.abort()
-      window.removeEventListener('pagehide', onPageHide)
-      clearInterval(startTimerRef.current ?? undefined)
-      startTimerRef.current = null
-      clearInterval(heartbeatInterval ?? undefined)
-      clearInterval(presenceHealthInterval ?? undefined)
-      void teardown?.()
-      releaseRef.current = null
+      controller.abort();
+      window.removeEventListener('pagehide', onPageHide);
+      clearInterval(startTimerRef.current ?? undefined);
+      startTimerRef.current = null;
+      clearInterval(heartbeatInterval ?? undefined);
+      clearInterval(presenceHealthInterval ?? undefined);
+      void teardown?.();
+      releaseRef.current = null;
 
       if (startedId !== null) {
-        void stopPlaybackSession(startedId)
+        void stopPlaybackSession(startedId);
       }
-    }
-  }, [request, start])
+    };
+  }, [request, start]);
 
-  // Listens for the whole lifetime of the player, not scoped to one session:
-  // an admin's action targets this tab, not any particular transcode.
   useEffect(
     () =>
       onPresenceEvent((event) => {
-        const element = videoRef.current
+        const element = videoRef.current;
 
         if (event.kind === 'stopped') {
-          element?.pause()
-          setAdminMessage({ kind: 'stopped', reason: event.reason })
+          element?.pause();
+          setAdminMessage({ kind: 'stopped', reason: event.reason });
 
-          return
+          return;
         }
 
         if (event.kind === 'paused') {
-          element?.pause()
-          setAdminMessage({ kind: 'paused', reason: event.reason })
+          element?.pause();
+          setAdminMessage({ kind: 'paused', reason: event.reason });
 
-          return
+          return;
         }
 
-        setAdminMessage((current) => (current?.kind === 'paused' ? null : current))
-        void element?.play()
+        setAdminMessage((current) => (current?.kind === 'paused' ? null : current));
+        void element?.play();
       }),
     [],
-  )
+  );
 
-  // Reflects a viewer's own play/pause immediately, rather than leaving the
-  // admin's Active Sessions view showing whatever the last 30s heartbeat
-  // reported. The periodic heartbeat still runs alongside this — it is what
-  // keeps presence (and a real transcode) alive when nothing is changing.
   useEffect(() => {
     if (session === null) {
-      return
+      return;
     }
 
-    void sendPresenceHeartbeat(readClientId(), isPlaying)
-  }, [isPlaying, session])
+    void sendPresenceHeartbeat(readClientId(), isPlaying);
+  }, [isPlaying, session]);
 
-  // Says this tab has genuinely stopped watching — once, when the player
-  // itself unmounts. Empty dependencies rather than scoped to a session, on
-  // purpose: a quality or track change tears one session down and starts
-  // another without this effect re-running at all, so presence keeps
-  // showing the tab as watching right through the swap. Real tab closes are
-  // caught separately, by the per-session `pagehide` handler above — this
-  // one only fires for React unmounting the player within the app itself.
   useEffect(
     () => () => {
-      void stopWatching(readClientId())
+      void stopWatching(readClientId());
     },
     [],
-  )
+  );
 
   useEffect(() => {
-    // Fetched alongside playback rather than before it. Rendering thumbnails
-    // decodes the whole file, which on a long film takes longer than starting
-    // the stream; making playback wait for previews would be the wrong trade.
-    let abandoned = false
+    let abandoned = false;
 
-    setTrickplay(null)
-    setDetail(null)
-    setSubtitleTracks([])
-    setSelectedSubtitleId(SUBTITLES_OFF)
-    setSegments([])
-    setSelectedAudioIndex(null)
+    setTrickplay(null);
+    setDetail(null);
+    setSubtitleTracks([]);
+    setSelectedSubtitleId(SUBTITLES_OFF);
+    setSegments([]);
+    setSelectedAudioIndex(null);
 
     void fetchTrickplay(media.id).then((found) => {
       if (!abandoned) {
-        setTrickplay(found)
+        setTrickplay(found);
       }
-    })
+    });
 
     void fetchMediaDetail(media.id).then((found) => {
       if (!abandoned) {
-        setDetail(found)
+        setDetail(found);
       }
-    })
+    });
 
     void fetchSegments(media.id).then((found) => {
       if (!abandoned) {
-        setSegments(found)
+        setSegments(found);
       }
-    })
+    });
 
     void fetchSubtitleTracks(media.id).then((found) => {
       if (abandoned) {
-        return
+        return;
       }
 
-      setSubtitleTracks(found)
+      setSubtitleTracks(found);
 
-      // What this viewer was last reading, in this file's own terms. A choice
-      // made on one episode is a choice about a language, so it survives into
-      // the next one rather than lapsing back to nothing every time.
-      const remembered = readPlaybackPreferences().subtitleLanguage
+      const remembered = readPlaybackPreferences().subtitleLanguage;
 
       if (remembered === SUBTITLES_OFF) {
-        setSelectedSubtitleId(SUBTITLES_OFF)
+        setSelectedSubtitleId(SUBTITLES_OFF);
 
-        return
+        return;
       }
 
-      const continuing = trackForLanguage(found, remembered)
+      const continuing = trackForLanguage(found, remembered);
 
-      setSelectedSubtitleId(continuing === null ? defaultTrackId(found) : continuing.id)
-    })
+      setSelectedSubtitleId(continuing === null ? defaultTrackId(found) : continuing.id);
+    });
 
     return () => {
-      abandoned = true
-    }
-  }, [media.id])
+      abandoned = true;
+    };
+  }, [media.id]);
 
   useEffect(() => {
     const onChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement))
-    }
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
 
-    document.addEventListener('fullscreenchange', onChange)
+    document.addEventListener('fullscreenchange', onChange);
 
     return () => {
-      document.removeEventListener('fullscreenchange', onChange)
-    }
-  }, [])
+      document.removeEventListener('fullscreenchange', onChange);
+    };
+  }, []);
 
   useEffect(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element !== null) {
-      element.volume = volume
-      element.muted = isMuted
+      element.volume = volume;
+      element.muted = isMuted;
     }
 
-    writePlaybackPreferences({ volume, isMuted })
-  }, [volume, isMuted])
+    writePlaybackPreferences({ volume, isMuted });
+  }, [volume, isMuted]);
 
   useEffect(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element !== null) {
-      element.playbackRate = playbackRate
+      element.playbackRate = playbackRate;
     }
-    // Reapplied when the session changes: a new media element source resets
-    // the rate, and a viewer who chose half speed did not mean until the next
-    // seek.
-  }, [playbackRate, session])
+  }, [playbackRate, session]);
 
   useEffect(() => {
     if (!isShowingStats) {
-      return
+      return;
     }
 
     const sample = () => {
-      const element = videoRef.current
+      const element = videoRef.current;
 
       if (element !== null) {
-        setHealth(readPlaybackHealth(element, request.startSeconds))
+        setHealth(readPlaybackHealth(element, request.startSeconds));
       }
-    }
+    };
 
-    sample()
+    sample();
 
-    const timer = setInterval(sample, HEALTH_INTERVAL_MILLISECONDS)
+    const timer = setInterval(sample, HEALTH_INTERVAL_MILLISECONDS);
 
     return () => {
-      clearInterval(timer)
-    }
-  }, [isShowingStats, request.startSeconds])
+      clearInterval(timer);
+    };
+  }, [isShowingStats, request.startSeconds]);
 
   useEffect(() => {
     if (!isPlaying) {
-      setIsIdle(false)
+      setIsIdle(false);
 
-      return
+      return;
     }
 
     const timer = setTimeout(() => {
-      setIsIdle(true)
-    }, IDLE_MILLISECONDS)
+      setIsIdle(true);
+    }, IDLE_MILLISECONDS);
 
     return () => {
-      clearTimeout(timer)
-    }
-  }, [isPlaying, activity])
+      clearTimeout(timer);
+    };
+  }, [isPlaying, activity]);
 
-  // A transcode is delivered as a playlist that grows while ffmpeg encodes, so
-  // the media element only knows about the part produced so far. The library
-  // already knows how long the film is, and that is what a viewer should see.
-  const duration = media.durationSeconds > 0 ? media.durationSeconds : reportedDuration
+  const duration = media.durationSeconds > 0 ? media.durationSeconds : reportedDuration;
 
   const togglePlay = useCallback(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null) {
-      return
+      return;
     }
 
     if (element.paused) {
-      void element.play()
+      void element.play();
 
-      return
+      return;
     }
 
-    element.pause()
-  }, [])
+    element.pause();
+  }, []);
 
   const seek = useCallback(
     (seconds: number) => {
-      const element = videoRef.current
+      const element = videoRef.current;
 
       if (element === null) {
-        return
+        return;
       }
 
-      setPosition(seconds)
+      setPosition(seconds);
 
-      // Direct play serves the original file over byte ranges, so the whole
-      // film is reachable and the browser does the work.
       if (session?.delivery.kind === 'direct') {
-        element.currentTime = seconds
+        element.currentTime = seconds;
 
-        return
+        return;
       }
 
-      const withinSession = seconds - request.startSeconds
+      const withinSession = seconds - request.startSeconds;
 
       if (withinSession >= 0 && withinSession <= encodedSeconds(element)) {
-        element.currentTime = withinSession
+        element.currentTime = withinSession;
 
-        return
+        return;
       }
 
-      hold(element)
+      hold(element);
       setRequest({
         mediaId: request.mediaId,
         startSeconds: Math.floor(seconds),
@@ -1103,16 +913,16 @@ const VideoPlayer = ({
         ...(request.audioStreamIndex === undefined
           ? {}
           : { audioStreamIndex: request.audioStreamIndex }),
-      })
+      });
     },
     [request, session],
-  )
+  );
 
   useEffect(() => {
-    saveCaptionStyle(captionStyle)
-  }, [captionStyle])
+    saveCaptionStyle(captionStyle);
+  }, [captionStyle]);
 
-  const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null
+  const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null;
 
   /**
    * Takes a viewer at their word about subtitles.
@@ -1124,19 +934,19 @@ const VideoPlayer = ({
    */
   const chooseSubtitle = useCallback(
     (trackId: string) => {
-      setSelectedSubtitleId(trackId)
+      setSelectedSubtitleId(trackId);
 
-      const chosen = subtitleTracks.find((track) => track.id === trackId) ?? null
+      const chosen = subtitleTracks.find((track) => track.id === trackId) ?? null;
 
       writePlaybackPreferences({
         subtitleLanguage: trackId === SUBTITLES_OFF ? SUBTITLES_OFF : (chosen?.language ?? null),
-      })
+      });
     },
     [subtitleTracks],
-  )
+  );
 
-  const availableQualitySteps = detail === null ? [] : listAvailableQualitySteps(detail)
-  const skippable = state === 'playing' ? skippableAt(segments, position) : null
+  const availableQualitySteps = detail === null ? [] : listAvailableQualitySteps(detail);
+  const skippable = state === 'playing' ? skippableAt(segments, position) : null;
 
   const audioTracks = (detail?.audioStreams ?? []).map((stream, position) => ({
     index: stream.index,
@@ -1152,36 +962,32 @@ const VideoPlayer = ({
       },
       position + 1,
     ),
-  }))
+  }));
 
-  // Switching track means a new session, and a viewer who is forty minutes in
-  // expects to stay there rather than start again.
   const changeAudio = useCallback(
     (streamIndex: number) => {
-      const element = videoRef.current
+      const element = videoRef.current;
 
-      hold(element)
+      hold(element);
 
-      setSelectedAudioIndex(streamIndex)
+      setSelectedAudioIndex(streamIndex);
       setRequest({
         mediaId: request.mediaId,
         startSeconds: Math.floor(position),
         audioStreamIndex: streamIndex,
         requestedQuality: request.requestedQuality,
-      })
+      });
     },
     [request.mediaId, request.requestedQuality, position],
-  )
+  );
 
-  // A different quality is a different transcode, so — like changing the
-  // audio track — it means a new session rather than adjusting this one.
   const changeQuality = useCallback(
     (quality: QualityPreference) => {
-      const element = videoRef.current
+      const element = videoRef.current;
 
-      hold(element)
+      hold(element);
 
-      saveQualityPreference(quality)
+      saveQualityPreference(quality);
       setRequest({
         mediaId: request.mediaId,
         startSeconds: Math.floor(position),
@@ -1189,43 +995,39 @@ const VideoPlayer = ({
         ...(request.audioStreamIndex === undefined
           ? {}
           : { audioStreamIndex: request.audioStreamIndex }),
-      })
+      });
     },
     [request.mediaId, request.audioStreamIndex, position],
-  )
+  );
 
   useEffect(() => {
     if (state !== 'playing' || duration <= 0) {
-      return
+      return;
     }
 
-    // Reported on a timer rather than on every position change: a timeupdate
-    // fires several times a second, and a bookmark does not need that.
     const report = () => {
-      const element = videoRef.current
+      const element = videoRef.current;
 
       if (element === null) {
-        return
+        return;
       }
 
-      const at = request.startSeconds + element.currentTime
+      const at = request.startSeconds + element.currentTime;
 
       void reportWatchProgress(media.id, {
         positionSeconds: at,
         durationSeconds: duration,
         isFinished: at >= duration - FINISHED_WITHIN_SECONDS,
-      })
-    }
+      });
+    };
 
-    const timer = setInterval(report, REPORT_EVERY_MILLISECONDS)
+    const timer = setInterval(report, REPORT_EVERY_MILLISECONDS);
 
-    // Also on the way out, so closing a film records where it was left rather
-    // than losing up to a whole interval of it.
     return () => {
-      clearInterval(timer)
-      report()
-    }
-  }, [state, duration, media.id, request.startSeconds])
+      clearInterval(timer);
+      report();
+    };
+  }, [state, duration, media.id, request.startSeconds]);
 
   /**
    * Moves by a single frame of the film.
@@ -1236,268 +1038,217 @@ const VideoPlayer = ({
    * land on the next picture in it.
    */
   const stepFrame = useCallback((direction: number) => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null) {
-      return
+      return;
     }
 
-    // Stepping is something done to a still picture. A frame examined while
-    // the film is running has gone by before it can be looked at.
-    element.pause()
+    element.pause();
 
-    const at = element.currentTime + direction * frameSecondsRef.current
-    const last = Number.isFinite(element.duration) ? element.duration : at
+    const at = element.currentTime + direction * frameSecondsRef.current;
+    const last = Number.isFinite(element.duration) ? element.duration : at;
 
-    element.currentTime = Math.min(Math.max(at, 0), last)
-  }, [])
+    element.currentTime = Math.min(Math.max(at, 0), last);
+  }, []);
 
   const skip = useCallback(
     (delta: number) => {
-      seek(Math.min(Math.max(position + delta, 0), duration))
+      seek(Math.min(Math.max(position + delta, 0), duration));
     },
     [seek, position, duration],
-  )
+  );
 
   const toggleFullscreen = useCallback(() => {
-    const stage = stageRef.current
+    const stage = stageRef.current;
 
     if (stage === null) {
-      return
+      return;
     }
 
-    // Driven by what the player last heard from the fullscreenchange event
-    // rather than by reading the document: browsers disagree on whether an
-    // element that is not full screen reads as null or as absent.
-    //
-    // Read through types that admit the API might be missing. The DOM types
-    // promise a fullscreen API that not every browser actually ships.
-    const owner: FullscreenOwner = document
-    const target: FullscreenTarget = stage
+    const owner: FullscreenOwner = document;
+    const target: FullscreenTarget = stage;
 
     if (isFullscreen) {
-      void owner.exitFullscreen?.()
+      void owner.exitFullscreen?.();
 
-      return
+      return;
     }
 
-    void target.requestFullscreen?.()
-  }, [isFullscreen])
+    void target.requestFullscreen?.();
+  }, [isFullscreen]);
 
-  // Subtitles sit above the bar while the bar is up, and drop back down when
-  // it goes. A browser lifts cues over its own controls and knows nothing
-  // about ours, so the line somebody is reading was sitting underneath them.
-  //
-  // Read through a ref rather than listed as a dependency: the cues are moved
-  // as they change, and rebuilding the listeners every time the bar fades
-  // would drop the ones that are on screen at that moment.
-  // Whether the controls are on screen, which is what the cues have to clear.
-  const isBarUp = !isIdle || isShowingStats || isMenuOpen
-  const isBarUpRef = useRef(isBarUp)
-  const cuesRef = useRef<{ stop: () => void; apply: () => void } | null>(null)
+  const isBarUp = !isIdle || isShowingStats || isMenuOpen;
+  const isBarUpRef = useRef(isBarUp);
+  const cuesRef = useRef<{ stop: () => void; apply: () => void } | null>(null);
 
-  isBarUpRef.current = isBarUp
+  isBarUpRef.current = isBarUp;
 
   useEffect(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null || selectedSubtitleId === SUBTITLES_OFF) {
-      return
+      return;
     }
 
     const lifted = liftCues(element, () =>
       isBarUpRef.current ? CUE_LINE_ABOVE_CONTROLS : CUE_LINE_CLEAR,
-    )
+    );
 
-    cuesRef.current = lifted
+    cuesRef.current = lifted;
 
     return () => {
-      cuesRef.current = null
-      lifted.stop()
-    }
-  }, [selectedSubtitleId, session])
+      cuesRef.current = null;
+      lifted.stop();
+    };
+  }, [selectedSubtitleId, session]);
 
-  // The bar appearing or going, and the way captions are drawn, both change
-  // what is already on screen rather than only what comes next. A browser lays
-  // a cue out when it appears and does not look at it again, so both need the
-  // cue asking for afresh — otherwise a setting appears to do nothing until
-  // somebody says the next line.
-  //
-  // Once things have settled rather than on every change. Asking for the cue
-  // afresh takes it off screen and puts it back, which is invisible on its own
-  // and a flicker when it happens on every step of a slider being dragged
-  // through a colour.
   useEffect(() => {
     const timer = setTimeout(() => {
-      cuesRef.current?.apply()
-    }, REDRAW_AFTER_MILLISECONDS)
+      cuesRef.current?.apply();
+    }, REDRAW_AFTER_MILLISECONDS);
 
     return () => {
-      clearTimeout(timer)
-    }
-  }, [isBarUp, captionStyle])
+      clearTimeout(timer);
+    };
+  }, [isBarUp, captionStyle]);
 
-  // What one frame of this film is worth, taken from the film. Two consecutive
-  // frames are enough: the gap between the moments they cover is the frame
-  // duration, which is the only number that makes an arrow key land on the
-  // next picture rather than near it.
   useEffect(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null || !('requestVideoFrameCallback' in element)) {
-      return
+      return;
     }
 
-    let handle = 0
-    let previous: number | null = null
+    let handle = 0;
+    let previous: number | null = null;
 
     const measure = (_now: number, metadata: { mediaTime: number }) => {
       if (previous !== null) {
-        const gap = metadata.mediaTime - previous
+        const gap = metadata.mediaTime - previous;
 
-        // A gap of nothing is the same frame reported twice, and a gap of a
-        // second is a stall rather than a frame rate.
         if (gap > 0 && gap < 1) {
-          frameSecondsRef.current = gap
+          frameSecondsRef.current = gap;
 
-          return
+          return;
         }
       }
 
-      previous = metadata.mediaTime
-      handle = element.requestVideoFrameCallback(measure)
-    }
+      previous = metadata.mediaTime;
+      handle = element.requestVideoFrameCallback(measure);
+    };
 
-    handle = element.requestVideoFrameCallback(measure)
+    handle = element.requestVideoFrameCallback(measure);
 
     return () => {
-      element.cancelVideoFrameCallback(handle)
-    }
-  }, [session])
+      element.cancelVideoFrameCallback(handle);
+    };
+  }, [session]);
 
-  // Focus lands on the film itself when the player opens. The shortcuts listen
-  // on the window either way, but focus left behind on whatever was pressed to
-  // get here means the browser's own handling of space and the arrows fires
-  // first — which is why they appeared to do nothing until the picture had
-  // been clicked on.
   useEffect(() => {
     if (isImmersive) {
-      stageRef.current?.focus({ preventScroll: true })
+      stageRef.current?.focus({ preventScroll: true });
     }
-  }, [isImmersive, media.id])
+  }, [isImmersive, media.id]);
 
   useEffect(() => {
     if (!isImmersive) {
-      return
+      return;
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      // A viewer driving from the keyboard is not idle either, and the pointer
-      // never moves to say so.
-      setIsIdle(false)
-      setActivity((count) => count + 1)
+      setIsIdle(false);
+      setActivity((count) => count + 1);
 
-      const target = event.target
+      const target = event.target;
 
-      // Anything typed into a field belongs to that field. Space in a search
-      // box is a space, not a pause.
       if (
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
         (target instanceof HTMLElement && target.isContentEditable)
       ) {
-        return
+        return;
       }
 
       const shortcuts: Record<string, () => void> = {
         ' ': togglePlay,
         k: togglePlay,
         ArrowLeft: () => {
-          stepFrame(-1)
+          stepFrame(-1);
         },
         ArrowRight: () => {
-          stepFrame(1)
+          stepFrame(1);
         },
         j: () => {
-          skip(-JUMP_SECONDS)
+          skip(-JUMP_SECONDS);
         },
         l: () => {
-          skip(JUMP_SECONDS)
+          skip(JUMP_SECONDS);
         },
         f: toggleFullscreen,
         m: () => {
-          setIsMuted((muted) => !muted)
+          setIsMuted((muted) => !muted);
         },
         c: () => {
           setSelectedSubtitleId((current) =>
             current === SUBTITLES_OFF ? (subtitleTracks[0]?.id ?? SUBTITLES_OFF) : SUBTITLES_OFF,
-          )
+          );
         },
-      }
+      };
 
-      const act = shortcuts[event.key.length === 1 ? event.key.toLowerCase() : event.key]
+      const act = shortcuts[event.key.length === 1 ? event.key.toLowerCase() : event.key];
 
       if (act === undefined) {
-        return
+        return;
       }
 
-      // Space scrolls a page and arrows move a scrollbar. Neither is what
-      // someone watching a film meant.
-      event.preventDefault()
-      act()
-    }
+      event.preventDefault();
+      act();
+    };
 
-    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [isImmersive, togglePlay, stepFrame, toggleFullscreen, subtitleTracks])
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isImmersive, togglePlay, stepFrame, toggleFullscreen, subtitleTracks]);
 
   useEffect(() => {
     if (!isImmersive) {
-      return
+      return;
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !isFullscreen) {
-        onClose()
+        onClose();
       }
-    }
+    };
 
-    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [isImmersive, isFullscreen, onClose])
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isImmersive, isFullscreen, onClose]);
 
   return (
-    // The whole player is the surface, not just the picture. The title and the
-    // way out sit above the film rather than inside it, so watching for the
-    // pointer on the picture alone faded the controls out from under anybody
-    // reaching for them.
     <section
       className={isImmersive ? 'relative flex h-full flex-col' : 'flex flex-col gap-3'}
       onPointerMove={(event) => {
-        // Only a pointer that actually moved counts. Hiding the cursor makes a
-        // browser emit another move at the same coordinates, which woke the
-        // bar, which showed the cursor, which hid it again — the flicker was
-        // the interface arguing with itself.
-        const last = pointRef.current
+        const last = pointRef.current;
 
         if (last !== null && last.x === event.clientX && last.y === event.clientY) {
-          return
+          return;
         }
 
-        pointRef.current = { x: event.clientX, y: event.clientY }
+        pointRef.current = { x: event.clientX, y: event.clientY };
 
-        setIsIdle(false)
-        setActivity((count) => count + 1)
+        setIsIdle(false);
+        setActivity((count) => count + 1);
       }}
       onPointerLeave={() => {
-        pointRef.current = null
-        setIsIdle(isPlaying)
+        pointRef.current = null;
+        setIsIdle(isPlaying);
       }}
     >
       <header
@@ -1513,26 +1264,14 @@ const VideoPlayer = ({
           {media.title}
         </h2>
 
-        {/* The same glass as the bar at the bottom, and no word on it: an X
-            in the corner of a film needs no label, and the one it had made the
-            corner of the picture look like a page. */}
-        <IconButton label="Close" onClick={onClose} size="md" className="flux-glass text-white">
+        <Button isIconOnly variant="overlay" label="Close" onClick={onClose} size="md">
           <IconX size={20} aria-hidden />
-        </IconButton>
+        </Button>
       </header>
 
       <div
         ref={stageRef}
-        // Focusable, and focused on arrival, so the shortcuts work without
-        // being clicked on first. A viewer who has just navigated to a film
-        // has already said what they want to interact with.
         tabIndex={-1}
-        // The pointer goes with the controls: a cursor sitting over a film is
-        // as much of an intrusion as a bar of buttons is.
-        // `min-h-0` is what keeps the controls on screen. A flex child will
-        // not shrink below the size of its content by default, so a tall video
-        // grows the stage past the bottom of the window and takes the controls
-        // — which sit inside it — with it.
         className={`${
           isImmersive
             ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black'
@@ -1550,34 +1289,24 @@ const VideoPlayer = ({
                   id: selectedTrack.id,
                   label: selectedTrack.label,
                   language: selectedTrack.language ?? 'und',
-                  // Asked for as the stream sees them: a session that began
-                  // partway in is a video whose clock starts at zero, and the
-                  // cues have to be moved to match it.
                   src: subtitleTrackUrl(media.id, selectedTrack.id, request.startSeconds),
                 },
               })}
           onTimeUpdate={(seconds) => {
-            const at = request.startSeconds + seconds
+            const at = request.startSeconds + seconds;
 
-            setPosition(at)
-            setHeldFrame(null)
-            onProgress?.(at, duration)
+            setPosition(at);
+            setHeldFrame(null);
+            onProgress?.(at, duration);
           }}
           onDurationChange={setReportedDuration}
           onPlayingChange={setIsPlaying}
           onEnded={() => {
-            // Watched to the end, said before anything else happens: whoever
-            // owns the player may put another episode on, and it should not
-            // then be told the previous one stopped partway through.
-            onProgress?.(duration, duration)
-            onEnded?.()
+            onProgress?.(duration, duration);
+            onEnded?.();
           }}
         />
 
-        {/* While the film is floating in its own window the page shows that
-            rather than the same picture twice. The video itself keeps
-            rendering underneath, because the floating copy is drawn from it —
-            it is covered, not stopped. */}
         {!isPoppedOut ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
             <IconPictureInPicture size={32} className="text-text-muted" aria-hidden />
@@ -1595,19 +1324,17 @@ const VideoPlayer = ({
             kind={adminMessage.kind}
             reason={adminMessage.reason}
             onDismiss={() => {
-              const wasStopped = adminMessage.kind === 'stopped'
+              const wasStopped = adminMessage.kind === 'stopped';
 
-              setAdminMessage(null)
+              setAdminMessage(null);
 
               if (wasStopped) {
-                onClose()
+                onClose();
               }
             }}
           />
         )}
 
-        {/* Why a press did nothing. Above the bar, out of the way of the
-            picture, and gone as soon as something else is tried. */}
         {castNote === null ? null : (
           <div className="pointer-events-none absolute inset-x-0 bottom-24 z-30 flex justify-center px-4">
             <p className="flux-glass max-w-md rounded-2xl px-4 py-2 text-center text-sm text-white">
@@ -1616,10 +1343,6 @@ const VideoPlayer = ({
           </div>
         )}
 
-        {/* Playing somewhere else. The picture here is blank whatever we draw
-            over it — the element is feeding a television rather than this
-            screen — so it says where the film went and leaves the bar below
-            working, since those controls now drive the device. */}
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
             <IconShareplay size={32} className="text-text-muted" aria-hidden />
@@ -1648,10 +1371,6 @@ const VideoPlayer = ({
                 : 'pointer-events-none absolute right-3 top-3 rounded-full bg-black/60 p-2 text-white'
             }
           >
-            {/* A held frame means something is already on screen, so this is
-                the small one in the corner. What it says depends on what is
-                being waited for: the same picture moving again, or a
-                different one arriving. */}
             <Spinner
               label={
                 heldFrame === null
@@ -1665,13 +1384,8 @@ const VideoPlayer = ({
           </div>
         ) : null}
 
-        {/* Applied as a stylesheet because ::cue cannot be reached from an
-            inline style: the cues live in a shadow tree the page cannot
-            address any other way. */}
         <style>{`::cue { ${toCueCss(captionStyle)} }`}</style>
 
-        {/* Under the title rather than opposite it: these are notes about what
-            is playing, and they belong beside its name. */}
         {isShowingStats ? (
           <div className="pointer-events-none absolute inset-x-3 top-16 flex justify-start">
             <StreamStats
@@ -1681,7 +1395,7 @@ const VideoPlayer = ({
               health={health}
               sessionStartSeconds={request.startSeconds}
               onClose={() => {
-                setIsShowingStats(false)
+                setIsShowingStats(false);
               }}
             />
           </div>
@@ -1692,9 +1406,10 @@ const VideoPlayer = ({
             <Button
               size="lg"
               variant="secondary"
-              className="rounded-full px-6 shadow-lg"
+              isPill
+              className="px-6 shadow-lg"
               onClick={() => {
-                seek(skippable.endSeconds)
+                seek(skippable.endSeconds);
               }}
             >
               {describeSkip(skippable)}
@@ -1704,11 +1419,6 @@ const VideoPlayer = ({
         )}
 
         <div
-          // Pushed out of the picture rather than faded. Fading glass means
-          // fading a backdrop filter, and a filter does not fade the way a
-          // colour does — it goes at its own pace, which reads as the bar
-          // changing shade on its way out. Sliding it away moves it without
-          // touching how it is drawn.
           className={`absolute inset-x-3 bottom-3 transition-transform duration-500 ease-out ${
             isBarUp ? 'translate-y-0' : 'translate-y-[calc(100%_+_1.5rem)]'
           }`}
@@ -1745,75 +1455,66 @@ const VideoPlayer = ({
             isShowingRemaining={isShowingRemaining}
             onToggleTimeDisplay={() => {
               setIsShowingRemaining((showing) => {
-                writePlaybackPreferences({ showsRemaining: !showing })
+                writePlaybackPreferences({ showsRemaining: !showing });
 
-                return !showing
-              })
+                return !showing;
+              });
             }}
             captionStyle={captionStyle}
             onCaptionStyleChange={setCaptionStyle}
             onCaptionStyleReset={() => {
-              setCaptionStyle(DEFAULT_CAPTION_STYLE)
+              setCaptionStyle(DEFAULT_CAPTION_STYLE);
             }}
             onVolumeChange={(next) => {
-              setVolume(next)
-              setIsMuted(next === 0)
+              setVolume(next);
+              setIsMuted(next === 0);
             }}
             onToggleMute={() => {
-              setIsMuted((muted) => !muted)
+              setIsMuted((muted) => !muted);
             }}
             onToggleFullscreen={toggleFullscreen}
             castState={castState}
             onCast={() => {
-              const element = videoRef.current
+              const element = videoRef.current;
 
               if (element === null) {
-                return
+                return;
               }
 
               if (!isReachableOrigin(window.location.origin)) {
                 setCastNote(
                   'Open Flux at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
-                )
+                );
 
-                return
+                return;
               }
 
-              setCastNote(null)
+              setCastNote(null);
 
-              // Google's own picker where this browser has one, because its
-              // remote playback interface finds nothing on a desktop however
-              // many televisions are on the network. Asked for immediately,
-              // with nothing awaited first: a picker opens only during the
-              // press that asked for one.
-              const context = castContextRef.current
+              const context = castContextRef.current;
 
               if (context !== null) {
-                void context.requestSession().catch(() => {
-                  // Closed, or nothing chosen. Neither is worth saying.
-                })
+                void context.requestSession().catch(() => {});
 
-                return
+                return;
               }
 
-              // Everywhere else, whatever the browser itself offers: AirPlay
-              // in Safari, and nothing at all in Firefox.
               void promptForDevice(element).then((outcome) => {
                 if (outcome === 'shown' || outcome === 'dismissed') {
-                  return
+                  return;
                 }
 
                 setCastNote(
                   window.location.protocol === 'https:'
                     ? 'This browser offered no device. Safari casts to AirPlay receivers; Chrome needs the extension that backs casting.'
                     : 'This browser only casts over a secure connection. Serve Flux over HTTPS, or use Safari, which will cast from here as it is.',
-                )
-              })
+                );
+              });
             }}
             {...(canPopOut ? { onPopOut: popOut } : {})}
             isPoppedOut={isPoppedOut}
             onToggleStats={() => {
-              setIsShowingStats((showing) => !showing)
+              setIsShowingStats((showing) => !showing);
             }}
             subtitleOffsetSeconds={subtitleOffset}
             onSubtitleOffsetChange={setSubtitleOffset}
@@ -1845,9 +1546,9 @@ const VideoPlayer = ({
         </p>
       ) : null}
     </section>
-  )
-}
+  );
+};
 
-VideoPlayer.displayName = 'VideoPlayer'
+VideoPlayer.displayName = 'VideoPlayer';
 
-export default { VideoPlayer }
+export { VideoPlayer };

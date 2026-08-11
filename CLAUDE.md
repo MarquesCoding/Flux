@@ -18,15 +18,19 @@ reference, not a substitute for reading it.
 3. **No `../` imports.** Use `@FluxUI/*`, `@FluxContracts/*`, `@FluxCore/*`,
    `@FluxSDK/*`.
 4. **No `index.ts` / `index.tsx`.** No barrel files, ever.
-5. **`export default { ComponentName }`**, one member per file, filename matches
-   the member. Set `displayName` on every component.
+5. **`export { ComponentName }`** — named exports only, no default exports and
+   no module objects. One member per file, filename matches the member. Set
+   `displayName` on every component.
 6. **No comments.** TSDoc on functions only. Rust `///` and `// SAFETY:` on
    `unsafe` blocks. Lint directives with a reason. Nothing else — no `TODO`, no
    commented-out code, no section banners.
 7. **No `any`, no `unknown`, no `as` assertions.** `as const` and `satisfies`
    are fine. Untrusted input enters through a Zod schema.
-8. **No raw interactive HTML** (`<button>`, `<input>`, `<select>`, …) outside
-   `packages/ui`. Use FluxUI.
+8. **One FluxUI component owns each interactive element.** `<button>` lives in
+   `Button`, text inputs in `TextField`, `<input type="file">` in `FilePicker`,
+   `<dialog>` in `Dialog` — and nowhere else, including elsewhere in FluxUI.
+   Every other control composes one of those; there is no `IconButton`. ESLint
+   enforces it.
 9. **No raw SVG anywhere.** Icons come from `@tabler/icons-react`.
 10. **Every function and component has a co-located Vitest test.**
 11. **Conventional Commits.**

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 const SubtitleTrackSchema = z.object({
   id: z.string(),
@@ -7,11 +7,11 @@ const SubtitleTrackSchema = z.object({
   format: z.string(),
   isForced: z.boolean(),
   isHearingImpaired: z.boolean(),
-})
+});
 
-const SubtitleListSchema = z.object({ tracks: z.array(SubtitleTrackSchema) })
+const SubtitleListSchema = z.object({ tracks: z.array(SubtitleTrackSchema) });
 
-type SubtitleTrack = z.infer<typeof SubtitleTrackSchema>
+type SubtitleTrack = z.infer<typeof SubtitleTrackSchema>;
 
 /**
  * The value standing for showing no captions at all.
@@ -19,7 +19,7 @@ type SubtitleTrack = z.infer<typeof SubtitleTrackSchema>
  * A menu of tracks needs an entry for turning them off, and an empty string
  * would be indistinguishable from a track whose id failed to arrive.
  */
-const SUBTITLES_OFF = 'off'
+const SUBTITLES_OFF = 'off';
 
 /**
  * Reads the subtitle tracks sitting beside an item.
@@ -31,23 +31,23 @@ const fetchSubtitleTracks = async (mediaId: string): Promise<SubtitleTrack[]> =>
   try {
     const response = await fetch(`/api/media/${mediaId}/subtitles`, {
       headers: { accept: 'application/json' },
-    })
+    });
 
     if (!response.ok) {
-      return []
+      return [];
     }
 
-    return SubtitleListSchema.parse(await response.json()).tracks
+    return SubtitleListSchema.parse(await response.json()).tracks;
   } catch {
-    return []
+    return [];
   }
-}
+};
 
 /**
  * Where a track is served from.
  */
 const subtitleTrackUrl = (mediaId: string, trackId: string, fromSeconds = 0): string =>
-  `/api/media/${mediaId}/subtitles/${trackId}?from=${Math.max(0, Math.floor(fromSeconds)).toString()}`
+  `/api/media/${mediaId}/subtitles/${trackId}?from=${Math.max(0, Math.floor(fromSeconds)).toString()}`;
 
 /**
  * Picks the track to show before anyone has chosen one.
@@ -57,7 +57,7 @@ const subtitleTrackUrl = (mediaId: string, trackId: string, fromSeconds = 0): st
  * off until asked for.
  */
 const defaultTrackId = (tracks: SubtitleTrack[]): string =>
-  tracks.find((track) => track.isForced)?.id ?? SUBTITLES_OFF
+  tracks.find((track) => track.isForced)?.id ?? SUBTITLES_OFF;
 
 /**
  * The track that continues what a viewer was already reading.
@@ -76,13 +76,13 @@ const trackForLanguage = (
   language: string | null,
 ): SubtitleTrack | null => {
   if (language === null || language === '') {
-    return null
+    return null;
   }
 
-  const spoken = language.split('-')[0]?.toLowerCase() ?? ''
+  const spoken = language.split('-')[0]?.toLowerCase() ?? '';
 
-  return tracks.find((track) => (track.language ?? '').toLowerCase().startsWith(spoken)) ?? null
-}
+  return tracks.find((track) => (track.language ?? '').toLowerCase().startsWith(spoken)) ?? null;
+};
 
 /**
  * The track a preview should carry.
@@ -93,22 +93,22 @@ const trackForLanguage = (
  * it, and the first track stands in where it does not.
  */
 const previewTrack = (tracks: SubtitleTrack[], language: string): SubtitleTrack | null => {
-  const spoken = language.split('-')[0]?.toLowerCase() ?? ''
+  const spoken = language.split('-')[0]?.toLowerCase() ?? '';
 
   return (
     tracks.find((track) => (track.language ?? '').toLowerCase().startsWith(spoken)) ??
     tracks[0] ??
     null
-  )
-}
+  );
+};
 
-export type { SubtitleTrack }
+export type { SubtitleTrack };
 
-export default {
+export {
   fetchSubtitleTracks,
   subtitleTrackUrl,
   defaultTrackId,
   previewTrack,
   trackForLanguage,
   SUBTITLES_OFF,
-}
+};

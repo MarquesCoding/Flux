@@ -10,9 +10,9 @@ const signOut = async (): Promise<boolean> => {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({}),
-  })
+  });
 
-  return response.ok
-}
+  return response.ok;
+};
 
-export default { signOut }
+export { signOut };

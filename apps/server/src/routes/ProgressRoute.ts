@@ -1,6 +1,6 @@
-import { createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi';
 
-const ProgressError = z.object({ error: z.string() }).openapi('ProgressError')
+const ProgressError = z.object({ error: z.string() }).openapi('ProgressError');
 
 const ProgressSchema = z
   .object({
@@ -10,9 +10,9 @@ const ProgressSchema = z
     isFinished: z.boolean(),
     updatedAt: z.string().datetime(),
   })
-  .openapi('WatchProgress')
+  .openapi('WatchProgress');
 
-const ProgressListSchema = z.object({ progress: z.array(ProgressSchema) }).openapi('ProgressList')
+const ProgressListSchema = z.object({ progress: z.array(ProgressSchema) }).openapi('ProgressList');
 
 const ReportSchema = z
   .object({
@@ -20,7 +20,7 @@ const ReportSchema = z
     durationSeconds: z.number().positive(),
     isFinished: z.boolean().default(false),
   })
-  .openapi('ProgressReport')
+  .openapi('ProgressReport');
 
 /**
  * Reads where this viewer got to in everything.
@@ -44,7 +44,7 @@ const listProgressRoute = createRoute({
       content: { 'application/json': { schema: ProgressError } },
     },
   },
-})
+});
 
 /**
  * Records where this viewer has got to.
@@ -69,7 +69,7 @@ const recordProgressRoute = createRoute({
       content: { 'application/json': { schema: ProgressError } },
     },
   },
-})
+});
 
 /**
  * Forgets where this viewer got to, so something starts over.
@@ -87,6 +87,6 @@ const forgetProgressRoute = createRoute({
       content: { 'application/json': { schema: ProgressError } },
     },
   },
-})
+});
 
-export default { listProgressRoute, recordProgressRoute, forgetProgressRoute }
+export { listProgressRoute, recordProgressRoute, forgetProgressRoute };

@@ -15,6 +15,6 @@
 const hasFinePointer = (): boolean =>
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
-  window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-export default { hasFinePointer }
+export { hasFinePointer };

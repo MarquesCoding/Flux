@@ -5,9 +5,9 @@ import {
   IconBrandOperaFilled,
   IconBrandSafari,
   IconDeviceTvFilled,
-} from '@tabler/icons-react'
+} from '@tabler/icons-react';
 
-type Match = { prefix: string; icon: typeof IconDeviceTvFilled }
+type Match = { prefix: string; icon: typeof IconDeviceTvFilled };
 
 /**
  * Checked in this order for the same reason `detectClientLabel` builds its
@@ -17,12 +17,10 @@ type Match = { prefix: string; icon: typeof IconDeviceTvFilled }
 const MATCHES: Match[] = [
   { prefix: 'Edge', icon: IconBrandEdge },
   { prefix: 'Opera', icon: IconBrandOperaFilled },
-  // Chromium has no icon of its own in this set, and Chrome's is the closest
-  // thing to a generic Chromium-family mark.
   { prefix: 'Chromium', icon: IconBrandChrome },
   { prefix: 'Firefox', icon: IconBrandFirefox },
   { prefix: 'Safari', icon: IconBrandSafari },
-]
+];
 
 /**
  * The icon a device label starts with, or a plain device icon for one that
@@ -33,6 +31,6 @@ const MATCHES: Match[] = [
  * agreeing with itself on two separate parses.
  */
 const deviceIconFor = (deviceLabel: string): typeof IconDeviceTvFilled =>
-  MATCHES.find((candidate) => deviceLabel.startsWith(candidate.prefix))?.icon ?? IconDeviceTvFilled
+  MATCHES.find((candidate) => deviceLabel.startsWith(candidate.prefix))?.icon ?? IconDeviceTvFilled;
 
-export default { deviceIconFor }
+export { deviceIconFor };

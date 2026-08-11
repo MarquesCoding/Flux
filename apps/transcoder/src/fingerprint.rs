@@ -16,9 +16,6 @@
 //! passage disagree. Music and speech move far too much for this to matter,
 //! but it is why a detected range is only trusted when several independent
 //! pairs of episodes agree on it.
-// Frame sizes, band counts and sample rates are all far below the point where a
-// float loses an integer, and the arithmetic is approximate by nature: the
-// result is the sign of a difference rather than a measurement.
 #![allow(
     clippy::cast_precision_loss,
     clippy::cast_possible_truncation,
@@ -416,8 +413,6 @@ mod tests {
 
     #[test]
     fn a_quieter_copy_fingerprints_almost_identically() {
-        // The whole point of hashing differences rather than energies: half
-        // the volume is the same music.
         let loud = tone(1000.0, 0.5);
         let quiet: Vec<f32> = loud.iter().map(|sample| sample * 0.5).collect();
 

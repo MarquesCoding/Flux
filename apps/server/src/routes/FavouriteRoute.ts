@@ -1,17 +1,17 @@
-import { createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi';
 
-const FavouriteError = z.object({ error: z.string() }).openapi('FavouriteError')
+const FavouriteError = z.object({ error: z.string() }).openapi('FavouriteError');
 
 const FavouriteSchema = z
   .object({
     mediaId: z.string().uuid(),
     keptAt: z.string().datetime(),
   })
-  .openapi('Favourite')
+  .openapi('Favourite');
 
 const FavouriteListSchema = z
   .object({ favourites: z.array(FavouriteSchema) })
-  .openapi('FavouriteList')
+  .openapi('FavouriteList');
 
 /**
  * Reads everything this viewer has kept.
@@ -35,7 +35,7 @@ const listFavouritesRoute = createRoute({
       content: { 'application/json': { schema: FavouriteError } },
     },
   },
-})
+});
 
 /**
  * Keeps something.
@@ -61,7 +61,7 @@ const keepFavouriteRoute = createRoute({
       content: { 'application/json': { schema: FavouriteError } },
     },
   },
-})
+});
 
 /**
  * Stops keeping something.
@@ -79,6 +79,6 @@ const dropFavouriteRoute = createRoute({
       content: { 'application/json': { schema: FavouriteError } },
     },
   },
-})
+});
 
-export default { listFavouritesRoute, keepFavouriteRoute, dropFavouriteRoute }
+export { listFavouritesRoute, keepFavouriteRoute, dropFavouriteRoute };

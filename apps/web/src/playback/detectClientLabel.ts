@@ -1,4 +1,4 @@
-type Match = { name: string; pattern: RegExp }
+type Match = { name: string; pattern: RegExp };
 
 /**
  * Checked in this order because a browser's own user agent string usually
@@ -18,7 +18,7 @@ const BROWSERS: Match[] = [
   { name: 'Chromium', pattern: /Chrome\// },
   { name: 'Firefox', pattern: /Firefox\// },
   { name: 'Safari', pattern: /Safari\// },
-]
+];
 
 const OPERATING_SYSTEMS: Match[] = [
   { name: 'iOS', pattern: /iPhone|iPad|iPod/ },
@@ -26,7 +26,7 @@ const OPERATING_SYSTEMS: Match[] = [
   { name: 'macOS', pattern: /Mac OS X/ },
   { name: 'Windows', pattern: /Windows/ },
   { name: 'Linux', pattern: /Linux/ },
-]
+];
 
 /**
  * Names what a viewer is watching from, the way Jellyfin's session list
@@ -38,15 +38,16 @@ const OPERATING_SYSTEMS: Match[] = [
  * for negotiation.
  */
 const detectClientLabel = (userAgent: string): string => {
-  const browser = BROWSERS.find((candidate) => candidate.pattern.test(userAgent))?.name ?? 'Browser'
-  const os = OPERATING_SYSTEMS.find((candidate) => candidate.pattern.test(userAgent))?.name ?? null
+  const browser =
+    BROWSERS.find((candidate) => candidate.pattern.test(userAgent))?.name ?? 'Browser';
+  const os = OPERATING_SYSTEMS.find((candidate) => candidate.pattern.test(userAgent))?.name ?? null;
 
-  return os === null ? browser : `${browser} on ${os}`
-}
+  return os === null ? browser : `${browser} on ${os}`;
+};
 
 /**
  * The same label, read from this browser.
  */
-const detectFromNavigator = (): string => detectClientLabel(navigator.userAgent)
+const detectFromNavigator = (): string => detectClientLabel(navigator.userAgent);
 
-export default { detectClientLabel, detectFromNavigator }
+export { detectClientLabel, detectFromNavigator };

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 /**
  * The steps a viewer can pick below the source's own resolution.
@@ -7,9 +7,9 @@ import { z } from 'zod'
  * whatever device negotiation already decides, not a step with its own
  * numbers.
  */
-const QUALITY_STEP_IDS = ['1440p', '1080p', '720p', '480p', '360p', '240p', '144p'] as const
+const QUALITY_STEP_IDS = ['1440p', '1080p', '720p', '480p', '360p', '240p', '144p'] as const;
 
-const QualityStepIdSchema = z.enum(QUALITY_STEP_IDS)
+const QualityStepIdSchema = z.enum(QUALITY_STEP_IDS);
 
 /**
  * The ladder a requested step resolves to: a bounding box the source is
@@ -27,19 +27,19 @@ const QUALITY_STEPS = [
   { id: '360p', label: '360p', maxWidth: 640, maxHeight: 360, maxVideoBitrateKbps: 700 },
   { id: '240p', label: '240p', maxWidth: 426, maxHeight: 240, maxVideoBitrateKbps: 400 },
   { id: '144p', label: '144p', maxWidth: 256, maxHeight: 144, maxVideoBitrateKbps: 150 },
-] as const
+] as const;
 
-const COMPRESSED_AUDIO_THRESHOLD_HEIGHT = 720
+const COMPRESSED_AUDIO_THRESHOLD_HEIGHT = 720;
 
-const COMPRESSED_AUDIO_MAX_BITRATE_KBPS = 128
+const COMPRESSED_AUDIO_MAX_BITRATE_KBPS = 128;
 
-export type QualityStepId = z.infer<typeof QualityStepIdSchema>
-export type QualityStep = (typeof QUALITY_STEPS)[number]
+export type QualityStepId = z.infer<typeof QualityStepIdSchema>;
+export type QualityStep = (typeof QUALITY_STEPS)[number];
 
-export default {
+export {
   QUALITY_STEP_IDS,
   QualityStepIdSchema,
   QUALITY_STEPS,
   COMPRESSED_AUDIO_THRESHOLD_HEIGHT,
   COMPRESSED_AUDIO_MAX_BITRATE_KBPS,
-}
+};

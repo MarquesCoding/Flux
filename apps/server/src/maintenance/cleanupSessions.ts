@@ -6,7 +6,7 @@ type CleanupSessionsOptions = {
    * itself, so nothing else does either — this is the one thing that ever
    * reclaims the table.
    */
-  deleteExpiredSessions: () => Promise<number>
+  deleteExpiredSessions: () => Promise<number>;
   /**
    * Deletes every device-authorization code past its expiry, answering how
    * many.
@@ -15,9 +15,9 @@ type CleanupSessionsOptions = {
    * after — the `deviceCode` table has no cascade and nothing else prunes
    * it either.
    */
-  deleteExpiredDeviceCodes: () => Promise<number>
-  onProgress?: (phase: 'sessions' | 'deviceCodes', processed: number, total: number) => void
-}
+  deleteExpiredDeviceCodes: () => Promise<number>;
+  onProgress?: (phase: 'sessions' | 'deviceCodes', processed: number, total: number) => void;
+};
 
 /**
  * Clears out expired sign-in sessions and device-authorization codes.
@@ -31,15 +31,15 @@ const cleanupSessions = async ({
   deleteExpiredDeviceCodes,
   onProgress,
 }: CleanupSessionsOptions): Promise<number> => {
-  onProgress?.('sessions', 0, 1)
-  const sessionsRemoved = await deleteExpiredSessions()
-  onProgress?.('sessions', 1, 1)
+  onProgress?.('sessions', 0, 1);
+  const sessionsRemoved = await deleteExpiredSessions();
+  onProgress?.('sessions', 1, 1);
 
-  onProgress?.('deviceCodes', 0, 1)
-  const deviceCodesRemoved = await deleteExpiredDeviceCodes()
-  onProgress?.('deviceCodes', 1, 1)
+  onProgress?.('deviceCodes', 0, 1);
+  const deviceCodesRemoved = await deleteExpiredDeviceCodes();
+  onProgress?.('deviceCodes', 1, 1);
 
-  return sessionsRemoved + deviceCodesRemoved
-}
+  return sessionsRemoved + deviceCodesRemoved;
+};
 
-export default { cleanupSessions }
+export { cleanupSessions };

@@ -1,33 +1,31 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import AppModule from './App'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { App } = AppModule
+import { act, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { App } from './App';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 type FetchLike = (
   input: string,
   init?: RequestInit,
-) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>
+) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>;
 
-const fetchMock = vi.fn<FetchLike>()
+const fetchMock = vi.fn<FetchLike>();
 
 const setupComplete = {
   isComplete: true,
   detectedOrigin: 'http://192.168.1.40:8420',
   isSecureContext: false,
   suggestedTrustedOrigins: ['http://192.168.1.40:8420'],
-}
+};
 
 const user = {
   id: 'usr_1',
   name: 'Operator',
   email: 'admin@flux.test',
   emailVerified: false,
-}
+};
 
-const ok = (body: JsonValue) => ({ ok: true, status: 200, json: () => Promise.resolve(body) })
+const ok = (body: JsonValue) => ({ ok: true, status: 200, json: () => Promise.resolve(body) });
 
 const aLibraryWithArrival = {
   libraries: [
@@ -61,29 +59,29 @@ const aLibraryWithArrival = {
       },
     ],
   },
-} satisfies { libraries: JsonValue; items: JsonValue }
+} satisfies { libraries: JsonValue; items: JsonValue };
 
 /**
  * Routes the two endpoints the shell depends on, so tests describe server
  * state rather than call ordering.
  */
 const serverState = (options: {
-  setup: JsonValue
-  session: JsonValue
-  libraries?: JsonValue
-  items?: JsonValue
+  setup: JsonValue;
+  session: JsonValue;
+  libraries?: JsonValue;
+  items?: JsonValue;
 }) => {
   fetchMock.mockImplementation((input) => {
     if (input === '/api/setup/status') {
-      return Promise.resolve(ok(options.setup))
+      return Promise.resolve(ok(options.setup));
     }
 
     if (input.startsWith('/api/libraries/') && input.includes('/items')) {
-      return Promise.resolve(ok(options.items ?? { items: [], total: 0 }))
+      return Promise.resolve(ok(options.items ?? { items: [], total: 0 }));
     }
 
     if (input.startsWith('/api/libraries')) {
-      return Promise.resolve(ok(options.libraries ?? []))
+      return Promise.resolve(ok(options.libraries ?? []));
     }
 
     if (input.startsWith('/api/profiles/everyone')) {
@@ -100,20 +98,20 @@ const serverState = (options: {
             },
           ],
         }),
-      )
+      );
     }
 
     if (input.startsWith('/api/health')) {
-      return Promise.resolve(ok({ version: '0.0.0' }))
+      return Promise.resolve(ok({ version: '0.0.0' }));
     }
 
     if (input.startsWith('/api/media/')) {
-      return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) })
+      return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) });
     }
 
-    return Promise.resolve(ok(options.session))
-  })
-}
+    return Promise.resolve(ok(options.session));
+  });
+};
 
 /**
  * Stands in for presence's connection, opened once a viewer is signed in.
@@ -123,27 +121,23 @@ const serverState = (options: {
  * dangling connection every test would otherwise have to account for.
  */
 class FakeEventSource {
-  onmessage: ((event: MessageEvent<string>) => void) | null = null
+  onmessage: ((event: MessageEvent<string>) => void) | null = null;
 
-  close() {
-    /* nothing to release */
-  }
+  close() {}
 }
 
 beforeEach(() => {
-  // Navigation lives in the address bar now, so each test has to start from
-  // the front door rather than wherever the last one ended up.
-  window.history.replaceState(null, '', '/')
-  vi.useFakeTimers({ shouldAdvanceTime: true })
-  fetchMock.mockReset()
-  vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('EventSource', FakeEventSource)
-})
+  window.history.replaceState(null, '', '/');
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  fetchMock.mockReset();
+  vi.stubGlobal('fetch', fetchMock);
+  vi.stubGlobal('EventSource', FakeEventSource);
+});
 
 afterEach(() => {
-  vi.useRealTimers()
-  vi.unstubAllGlobals()
-})
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 /**
  * Lets the opening wordmark finish holding the screen.
@@ -152,194 +146,177 @@ afterEach(() => {
  * drawn until it has had its moment.
  */
 const arrive = async () => {
-  // Twice: the way in has a hold of its own, and its timer is not set until
-  // the splash has finished and it has been drawn.
   for (let pass = 0; pass < 2; pass += 1) {
     await act(async () => {
-      vi.advanceTimersByTime(10_000)
-      await Promise.resolve()
-      await Promise.resolve()
-    })
+      vi.advanceTimersByTime(10_000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
   }
-}
+};
 
 describe('App routing', () => {
   it('shows a spinner while loading', () => {
-    fetchMock.mockReturnValue(new Promise(() => undefined))
-    render(<App />)
+    fetchMock.mockReturnValue(new Promise(() => undefined));
+    render(<App />);
 
-    expect(screen.getByRole('status', { name: 'Loading Flux' })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('status', { name: 'Loading Flux' })).toBeInTheDocument();
+  });
 
   it('shows the setup wizard when setup is incomplete', async () => {
-    serverState({ setup: { ...setupComplete, isComplete: false }, session: null })
-    render(<App />)
+    serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
+    render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument();
+  });
 
   it('does not ask for a session before setup is complete', async () => {
-    serverState({ setup: { ...setupComplete, isComplete: false }, session: null })
-    render(<App />)
+    serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
+    render(<App />);
 
-    await screen.findByRole('heading', { name: 'Set up Flux' })
+    await screen.findByRole('heading', { name: 'Set up Flux' });
 
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/get-session', expect.anything())
-  })
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/get-session', expect.anything());
+  });
 
   it('asks who is watching when setup is complete but nobody is signed in', async () => {
-    serverState({ setup: setupComplete, session: null })
-    render(<App />)
+    serverState({ setup: setupComplete, session: null });
+    render(<App />);
 
-    await arrive()
+    await arrive();
 
-    expect(await screen.findByText('Who is watching?')).toBeInTheDocument()
-  })
+    expect(await screen.findByText('Who is watching?')).toBeInTheDocument();
+  });
 
   it('shows the library shell when signed in', async () => {
-    serverState({ setup: setupComplete, session: { user } })
-    render(<App />)
+    serverState({ setup: setupComplete, session: { user } });
+    render(<App />);
 
-    await arrive()
+    await arrive();
 
-    // The library owns the whole surface: the only chrome is the dock.
-    expect(await screen.findByRole('navigation', { name: 'Sections' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
-  })
+    expect(await screen.findByRole('navigation', { name: 'Sections' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+  });
 
   it('calls the instance whatever it is configured to be called', async () => {
-    serverState({ setup: setupComplete, session: null })
-    render(<App initialTitle="Living Room" />)
+    serverState({ setup: setupComplete, session: null });
+    render(<App initialTitle="Living Room" />);
 
-    await arrive()
+    await arrive();
 
-    // On the way in rather than on the account page: the account page is
-    // about the person, and their own name is what belongs at the top of it.
-    expect(screen.getAllByText(/Living Room/).length).toBeGreaterThan(0)
-  })
+    expect(screen.getAllByText(/Living Room/).length).toBeGreaterThan(0);
+  });
 
   it('puts a person\u2019s own name at the top of their account page', async () => {
-    serverState({ setup: setupComplete, session: { user } })
-    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    render(<App initialTitle="Living Room" />)
+    serverState({ setup: setupComplete, session: { user } });
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<App initialTitle="Living Room" />);
 
-    await arrive()
-    await actor.click(await screen.findByRole('button', { name: 'Account' }))
+    await arrive();
+    await actor.click(await screen.findByRole('button', { name: 'Account' }));
 
-    expect(await screen.findByRole('heading', { name: 'Operator' })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('heading', { name: 'Operator' })).toBeInTheDocument();
+  });
 
   it('reports an unreachable server rather than assuming setup is needed', async () => {
-    fetchMock.mockRejectedValue(new Error('offline'))
-    render(<App />)
+    fetchMock.mockRejectedValue(new Error('offline'));
+    render(<App />);
 
     expect(
       await screen.findByRole('heading', { name: 'Flux is not reachable' }),
-    ).toBeInTheDocument()
-  })
+    ).toBeInTheDocument();
+  });
 
   it('does not show sign in when the session request fails', async () => {
     fetchMock.mockImplementation((input) =>
       input === '/api/setup/status'
         ? Promise.resolve(ok(setupComplete))
         : Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve(null) }),
-    )
-    render(<App />)
+    );
+    render(<App />);
 
-    await screen.findByRole('heading', { name: 'Flux is not reachable' })
+    await screen.findByRole('heading', { name: 'Flux is not reachable' });
 
-    expect(screen.queryByText('Who is watching?')).not.toBeInTheDocument()
-  })
+    expect(screen.queryByText('Who is watching?')).not.toBeInTheDocument();
+  });
 
   it('signs out and returns to the wall of faces', async () => {
-    serverState({ setup: setupComplete, session: { user } })
-    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    render(<App />)
+    serverState({ setup: setupComplete, session: { user } });
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<App />);
 
-    await arrive()
-    await actor.click(await screen.findByRole('button', { name: 'Account' }))
-    await screen.findByText('admin@flux.test')
+    await arrive();
+    await actor.click(await screen.findByRole('button', { name: 'Account' }));
+    await screen.findByText('admin@flux.test');
 
-    serverState({ setup: setupComplete, session: null })
-    await actor.click(screen.getByRole('button', { name: /Sign out/ }))
-    await arrive()
+    serverState({ setup: setupComplete, session: null });
+    await actor.click(screen.getByRole('button', { name: /Sign out/ }));
+    await arrive();
 
-    expect(await screen.findByText('Who is watching?')).toBeInTheDocument()
-  })
+    expect(await screen.findByText('Who is watching?')).toBeInTheDocument();
+  });
 
   it('opens an item for a look rather than playing it straight away', async () => {
-    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival })
-    render(<App />)
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
 
-    await arrive()
+    await arrive();
 
-    // The library groups into rows, and an item appears in more than one of
-    // them, so the row has to be named for the query to mean anything.
-    const rail = await screen.findByRole('region', { name: 'Recently added' })
+    const rail = await screen.findByRole('region', { name: 'Recently added' });
 
-    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }))
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }));
 
-    expect(await screen.findByRole('dialog', { name: 'Arrival' })).toBeInTheDocument()
-    // The dialog carries the same name, so the player is identified by the
-    // one control only it has.
-    expect(screen.queryByRole('slider', { name: /Seek through/ })).not.toBeInTheDocument()
-  })
+    expect(await screen.findByRole('dialog', { name: 'Arrival' })).toBeInTheDocument();
+    expect(screen.queryByRole('slider', { name: /Seek through/ })).not.toBeInTheDocument();
+  });
 
   it('fills the page with the player once someone presses play', async () => {
-    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival })
-    render(<App />)
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
 
-    await arrive()
+    await arrive();
 
-    // The library groups into rows, and an item appears in more than one of
-    // them, so the row has to be named for the query to mean anything.
-    const rail = await screen.findByRole('region', { name: 'Recently added' })
+    const rail = await screen.findByRole('region', { name: 'Recently added' });
 
-    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }))
-    await actor.click(await screen.findByRole('button', { name: 'Play' }))
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }));
+    await actor.click(await screen.findByRole('button', { name: 'Play' }));
 
-    expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument()
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.queryByRole('textbox', { name: 'Search' })).not.toBeInTheDocument()
-  })
+    expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Search' })).not.toBeInTheDocument();
+  });
 
   it('keeps a position it has just seen, rather than the one the server still believes', async () => {
-    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    const arrival = aLibraryWithArrival.items.items[0]
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const arrival = aLibraryWithArrival.items.items[0];
 
-    // The server is a step behind: it answers with nothing while the player is
-    // reporting, which is the race that used to blank a progress bar the
-    // moment a film was closed.
-    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival })
-    render(<App />)
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
 
-    await arrive()
+    await arrive();
 
-    const rail = await screen.findByRole('region', { name: 'Recently added' })
+    const rail = await screen.findByRole('region', { name: 'Recently added' });
 
-    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }))
-    await actor.click(await screen.findByRole('button', { name: 'Play' }))
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }));
+    await actor.click(await screen.findByRole('button', { name: 'Play' }));
 
-    const player = await screen.findByLabelText('Arrival')
+    const player = await screen.findByLabelText('Arrival');
 
-    Object.defineProperty(player, 'currentTime', { configurable: true, value: 1800 })
+    Object.defineProperty(player, 'currentTime', { configurable: true, value: 1800 });
 
     await act(async () => {
-      player.dispatchEvent(new Event('timeupdate'))
-      await Promise.resolve()
-    })
+      player.dispatchEvent(new Event('timeupdate'));
+      await Promise.resolve();
+    });
 
-    await actor.click(screen.getByRole('button', { name: 'Close' }))
+    await actor.click(screen.getByRole('button', { name: 'Close' }));
 
-    // Back on the page about it, offering to resume rather than to start over.
-    expect(arrival?.id).toBeDefined()
+    expect(arrival?.id).toBeDefined();
 
-    // Half an hour in, which is what the player last said rather than what the
-    // server had on file.
     await waitFor(() => {
-      expect(screen.getByText(/Resume from 30:00/)).toBeInTheDocument()
-    })
-  })
-})
+      expect(screen.getByText(/Resume from 30:00/)).toBeInTheDocument();
+    });
+  });
+});

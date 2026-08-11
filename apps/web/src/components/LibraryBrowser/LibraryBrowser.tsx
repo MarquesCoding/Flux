@@ -1,41 +1,28 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { motion } from 'motion/react'
-import ButtonModule from '@FluxUI/Button'
-import revealModule from '@FluxUI/animations/reveal'
-import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
-import SpinnerModule from '@FluxUI/Spinner'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import RailModule from '@FluxUI/Rail'
-import HeroModule from '@FluxWeb/components/Hero/Hero'
-import groupIntoRailsModule from '@FluxWeb/library/groupIntoRails'
-import pickFeaturedModule from '@FluxWeb/library/pickFeatured'
-import watchProgressModule from '@FluxWeb/playback/watchProgress'
-import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
-import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
-import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
-
-const { Button } = ButtonModule
-const { RailCard } = RailCardModule
-const { Hero } = HeroModule
-const { Rail } = RailModule
-const { groupIntoRails } = groupIntoRailsModule
-const { pickFeatured } = pickFeaturedModule
-const { fetchWatchProgress, byMediaId } = watchProgressModule
-const { watchedFraction, isWorthResuming } = WatchProgressContract
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
+import { Button } from '@FluxUI/Button';
+import { staggerVariants } from '@FluxUI/animations/reveal';
+import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
+import { Spinner } from '@FluxUI/Spinner';
+import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
+import { Rail } from '@FluxUI/Rail';
+import { Hero } from '@FluxWeb/components/Hero/Hero';
+import { groupIntoRails } from '@FluxWeb/library/groupIntoRails';
+import { pickFeatured } from '@FluxWeb/library/pickFeatured';
+import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
+import { watchedFraction, isWorthResuming } from '@FluxContracts/schemas/WatchProgress';
+import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
+import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types';
 
 /**
  * How many items the hero rotates between.
  *
  * A handful: a carousel of thirty is a carousel nobody reaches the end of.
  */
-const HERO_COUNT = 5
-const { Spinner } = SpinnerModule
-const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
-const { staggerVariants } = revealModule
-
-const PAGE_SIZE = 60
-const SEARCH_DEBOUNCE_MS = 250
+const HERO_COUNT = 5;
+const PAGE_SIZE = 60;
+const SEARCH_DEBOUNCE_MS = 250;
 
 /**
  * Browses a library.
@@ -50,121 +37,115 @@ const LibraryBrowser = ({
   onFeatureChange,
   onPalette,
   onItemsLoaded,
+  onOpenShow,
   isKept,
   onToggleKept,
   onPlay,
   onWatch,
 }: LibraryBrowserProps) => {
-  const [libraries, setLibraries] = useState<Library[]>([])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [items, setItems] = useState<MediaSummary[]>([])
-  const [total, setTotal] = useState(0)
-  const [appliedSearch, setAppliedSearch] = useState('')
-  const [progress, setProgress] = useState(new Map<string, WatchProgress>())
+  const [libraries, setLibraries] = useState<Library[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [items, setItems] = useState<MediaSummary[]>([]);
+  const [total, setTotal] = useState(0);
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [progress, setProgress] = useState(new Map<string, WatchProgress>());
 
   /**
    * Where this viewer left something, when it is worth coming back to.
    */
   const resumeFor = (mediaId: string): number | null => {
-    const found = progress.get(mediaId)
+    const found = progress.get(mediaId);
 
-    return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
-  }
-  const [state, setState] = useState<BrowserState>('loading')
+    return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null;
+  };
+  const [state, setState] = useState<BrowserState>('loading');
 
-  // Held in a ref rather than depended upon. A caller that passes a fresh
-  // function every render — which is what an inline arrow is — would
-  // otherwise make this effect run on every render, and the state it sets
-  // renders again: an update loop that never settles.
-  const reportItems = useRef(onItemsLoaded)
+  const reportItems = useRef(onItemsLoaded);
 
-  reportItems.current = onItemsLoaded
+  reportItems.current = onItemsLoaded;
 
   useEffect(() => {
     if (items.length > 0) {
-      reportItems.current?.(items)
+      reportItems.current?.(items);
     }
-  }, [items])
+  }, [items]);
 
   useEffect(() => {
-    let abandoned = false
+    let abandoned = false;
 
     fetchLibraries()
       .then((found) => {
         if (abandoned) {
-          return
+          return;
         }
 
-        setLibraries(found)
-        setSelectedId(found[0]?.id ?? null)
-        setState('ready')
+        setLibraries(found);
+        setSelectedId(found[0]?.id ?? null);
+        setState('ready');
       })
       .catch(() => {
         if (!abandoned) {
-          setState('unreachable')
+          setState('unreachable');
         }
-      })
+      });
 
     return () => {
-      abandoned = true
-    }
-  }, [])
+      abandoned = true;
+    };
+  }, []);
 
   useEffect(() => {
-    let abandoned = false
+    let abandoned = false;
 
-    // Fetched once for the whole library rather than per card: a page of
-    // hundreds would otherwise open hundreds of connections to draw hundreds
-    // of thin bars.
     void fetchWatchProgress().then((found) => {
       if (!abandoned) {
-        setProgress(byMediaId(found))
+        setProgress(byMediaId(found));
       }
-    })
+    });
 
     return () => {
-      abandoned = true
-    }
-  }, [])
+      abandoned = true;
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setAppliedSearch(search)
-    }, SEARCH_DEBOUNCE_MS)
+      setAppliedSearch(search);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
-      clearTimeout(timer)
-    }
-  }, [search])
+      clearTimeout(timer);
+    };
+  }, [search]);
 
   const loadItems = useCallback(async () => {
     if (selectedId === null) {
-      return
+      return;
     }
 
     try {
       const page = await fetchLibraryItems(selectedId, {
         search: appliedSearch,
         limit: PAGE_SIZE,
-      })
+      });
 
-      setItems(page.items)
-      setTotal(page.total)
+      setItems(page.items);
+      setTotal(page.total);
     } catch {
-      setState('unreachable')
+      setState('unreachable');
     }
-  }, [selectedId, appliedSearch])
+  }, [selectedId, appliedSearch]);
 
   useEffect(() => {
-    void loadItems()
-  }, [loadItems])
+    void loadItems();
+  }, [loadItems]);
 
   if (state === 'loading') {
     return (
       <div className="flex justify-center p-12">
         <Spinner label="Reading your library" size="lg" />
       </div>
-    )
+    );
   }
 
   if (state === 'unreachable') {
@@ -172,7 +153,7 @@ const LibraryBrowser = ({
       <p role="alert" className="text-sm text-danger">
         Your library could not be loaded. Check that the server is running and reload.
       </p>
-    )
+    );
   }
 
   if (libraries.length === 0) {
@@ -183,15 +164,11 @@ const LibraryBrowser = ({
           Add a library pointing at a folder of media, then scan it to see your films here.
         </p>
       </section>
-    )
+    );
   }
 
   return (
     <motion.div
-      // Keyed on which of the two the browser is being, so moving between the
-      // library and search plays a transition. The component itself stays
-      // mounted underneath: remounting it would refetch everything and show a
-      // spinner where a transition should be.
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
@@ -202,9 +179,9 @@ const LibraryBrowser = ({
           items={pickFeatured(items, HERO_COUNT)}
           onPlay={(media, startSeconds) => {
             if (onWatch === undefined) {
-              onPlay(media)
+              onPlay(media);
             } else {
-              onWatch(media, startSeconds)
+              onWatch(media, startSeconds);
             }
           }}
           resumeFor={resumeFor}
@@ -230,7 +207,7 @@ const LibraryBrowser = ({
                 isPill
                 variant={entry.id === selectedId ? 'glossy' : 'secondary'}
                 onClick={() => {
-                  setSelectedId(entry.id)
+                  setSelectedId(entry.id);
                 }}
               >
                 {entry.name}
@@ -247,8 +224,19 @@ const LibraryBrowser = ({
           </p>
         ) : (
           <div className="flex flex-col gap-10">
-            {groupIntoRails(items, Date.now(), progress).map((rail) => (
-              <Rail key={rail.id} title={rail.title} className="px-0">
+            {groupIntoRails(items, Date.now(), progress).map(({ showOf, ...rail }) => (
+              <Rail
+                key={rail.id}
+                title={rail.title}
+                className="px-0"
+                {...(showOf === undefined || onOpenShow === undefined
+                  ? {}
+                  : {
+                      onOpenTitle: () => {
+                        onOpenShow(showOf);
+                      },
+                    })}
+              >
                 {rail.items.map((media) => (
                   <li key={media.id} className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80">
                     <RailCard
@@ -269,20 +257,17 @@ const LibraryBrowser = ({
                       {...(resumeFor(media.id) === null
                         ? {}
                         : { resumeSeconds: Math.floor(resumeFor(media.id) ?? 0) })}
-                      // Playing plays and reading opens the page. They were
-                      // both wired to the same handler, so the play button on
-                      // a card opened the page about the film instead of
-                      // starting it.
                       onPlay={(media, startSeconds) => {
                         if (onWatch === undefined) {
-                          onPlay(media)
+                          onPlay(media);
 
-                          return
+                          return;
                         }
 
-                        onWatch(media, startSeconds)
+                        onWatch(media, startSeconds);
                       }}
                       onInspect={onPlay}
+                      {...(onOpenShow === undefined ? {} : { onOpenShow })}
                       {...(isKept === undefined ? {} : { isKept: isKept(media.id) })}
                       {...(onToggleKept === undefined ? {} : { onToggleKept })}
                     />
@@ -294,9 +279,9 @@ const LibraryBrowser = ({
         )}
       </section>
     </motion.div>
-  )
-}
+  );
+};
 
-LibraryBrowser.displayName = 'LibraryBrowser'
+LibraryBrowser.displayName = 'LibraryBrowser';
 
-export default { LibraryBrowser }
+export { LibraryBrowser };

@@ -1,15 +1,13 @@
-import { z } from 'zod'
-import QualityStepModule from '@FluxContracts/schemas/QualityStep'
+import { z } from 'zod';
+import { QUALITY_STEP_IDS } from '@FluxContracts/schemas/QualityStep';
 
-const { QUALITY_STEP_IDS } = QualityStepModule
+const QualityPreferenceSchema = z.enum(['original', ...QUALITY_STEP_IDS]);
 
-const QualityPreferenceSchema = z.enum(['original', ...QUALITY_STEP_IDS])
+type QualityPreference = z.infer<typeof QualityPreferenceSchema>;
 
-type QualityPreference = z.infer<typeof QualityPreferenceSchema>
+const STORAGE_KEY = 'flux.qualityPreference';
 
-const STORAGE_KEY = 'flux.qualityPreference'
-
-const DEFAULT_QUALITY_PREFERENCE: QualityPreference = 'original'
+const DEFAULT_QUALITY_PREFERENCE: QualityPreference = 'original';
 
 /**
  * Reads a viewer's quality preference.
@@ -19,19 +17,19 @@ const DEFAULT_QUALITY_PREFERENCE: QualityPreference = 'original'
  */
 const readQualityPreference = (): QualityPreference => {
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
+    const stored = window.localStorage.getItem(STORAGE_KEY);
 
     if (stored === null) {
-      return DEFAULT_QUALITY_PREFERENCE
+      return DEFAULT_QUALITY_PREFERENCE;
     }
 
-    const parsed = QualityPreferenceSchema.safeParse(stored)
+    const parsed = QualityPreferenceSchema.safeParse(stored);
 
-    return parsed.success ? parsed.data : DEFAULT_QUALITY_PREFERENCE
+    return parsed.success ? parsed.data : DEFAULT_QUALITY_PREFERENCE;
   } catch {
-    return DEFAULT_QUALITY_PREFERENCE
+    return DEFAULT_QUALITY_PREFERENCE;
   }
-}
+};
 
 /**
  * Remembers a viewer's quality preference.
@@ -42,18 +40,16 @@ const readQualityPreference = (): QualityPreference => {
  */
 const saveQualityPreference = (preference: QualityPreference): void => {
   try {
-    window.localStorage.setItem(STORAGE_KEY, preference)
-  } catch {
-    // A browser refusing storage is not a reason to stop playback.
-  }
-}
+    window.localStorage.setItem(STORAGE_KEY, preference);
+  } catch {}
+};
 
-export type { QualityPreference }
+export type { QualityPreference };
 
-export default {
+export {
   QualityPreferenceSchema,
   DEFAULT_QUALITY_PREFERENCE,
   STORAGE_KEY,
   readQualityPreference,
   saveQualityPreference,
-}
+};

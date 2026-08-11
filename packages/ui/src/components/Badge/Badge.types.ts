@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from 'react';
 
 /**
  * How much attention a badge asks for.
@@ -8,15 +8,15 @@ import type { ReactNode } from 'react'
  * one that matters, and `solid` for a badge sitting on artwork, where
  * translucency would leave it unreadable.
  */
-type BadgeTone = 'quiet' | 'accent' | 'solid'
+type BadgeTone = 'quiet' | 'accent' | 'solid';
 
-type BadgeSize = 'sm' | 'md'
+type BadgeSize = 'sm' | 'md';
 
 type BadgeProps = {
-  children: ReactNode
-  tone?: BadgeTone
-  size?: BadgeSize
-  className?: string
-}
+  children: ReactNode;
+  tone?: BadgeTone;
+  size?: BadgeSize;
+  className?: string;
+};
 
-export type { BadgeProps, BadgeSize, BadgeTone }
+export type { BadgeProps, BadgeSize, BadgeTone };
