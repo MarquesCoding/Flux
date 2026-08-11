@@ -325,7 +325,12 @@ const RailCard = ({
               // buttons. A card opened near the foot of a tall row is exactly
               // the one that runs out of screen, and the thing to lose there is
               // the third line of a synopsis, not the way to play it.
-              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-2xl bg-surface-raised shadow-2xl ring-1 ring-white/10"
+              // Two shadows rather than one: a tight dark edge that separates
+              // the panel from the artwork it is lying on, and a wide soft one
+              // that puts it well above the row. The stock shadow does the
+              // second without the first, so an opened card floating over
+              // another poster read as part of it.
+              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-2xl bg-surface-raised shadow-[0_2px_10px_rgb(0_0_0/0.4),0_40px_90px_-24px_rgb(0_0_0/0.85)] ring-1 ring-white/10"
             >
               <div className="aspect-video max-h-[42svh] w-full shrink-0 overflow-hidden">
                 <MediaPreview
