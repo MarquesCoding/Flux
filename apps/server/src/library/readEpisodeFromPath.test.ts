@@ -25,6 +25,7 @@ describe('readEpisodeFromPath', () => {
   it('reads the usual numbering', () => {
     expect(readEpisodeFromPath('/media/Some Show/Season 1/Some.Show.S01E02.1080p.mkv')).toEqual({
       seriesTitle: 'Some Show',
+      seriesYear: null,
       seasonNumber: 1,
       episodeNumber: 2,
       episodeTitle: null,
@@ -55,9 +56,22 @@ describe('readEpisodeFromPath', () => {
   })
 
   it('falls back to the folder above the season for a file that names nothing', () => {
+    const found = readEpisodeFromPath('/media/tv/Another Show (2019)/Season 3/s03e07.mkv')
+
+    expect(found.seriesTitle).toBe('Another Show')
+  })
+
+  it('reads the year a folder names alongside a show, and keeps it out of the title', () => {
+    const found = readEpisodeFromPath('/media/tv/Ted (2024)/Season 1/s01e01.mkv')
+
+    expect(found.seriesTitle).toBe('Ted')
+    expect(found.seriesYear).toBe(2024)
+  })
+
+  it('reports no series year when the folder does not name one', () => {
     expect(
-      readEpisodeFromPath('/media/tv/Another Show (2019)/Season 3/s03e07.mkv').seriesTitle,
-    ).toBe('Another Show 2019')
+      readEpisodeFromPath('/media/Some Show/Season 1/Some.Show.S01E02.mkv').seriesYear,
+    ).toBeNull()
   })
 
   it('falls back to the immediate folder when episodes are not in season folders', () => {
@@ -84,6 +98,7 @@ describe('readEpisodeFromPath', () => {
   it('refuses to guess for a film', () => {
     expect(readEpisodeFromPath('/media/films/Arrival (2016).mkv')).toEqual({
       seriesTitle: null,
+      seriesYear: null,
       seasonNumber: null,
       episodeNumber: null,
       episodeTitle: null,
