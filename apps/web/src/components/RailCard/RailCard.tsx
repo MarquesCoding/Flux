@@ -307,16 +307,6 @@ const RailCard = ({
                       ? null
                       : media.title}
                   </span>
-
-                  {(detail?.metadata.genres ?? []).length === 0 ? null : (
-                    <span className="flex shrink-0 flex-wrap justify-end gap-1.5">
-                      {(detail?.metadata.genres ?? []).slice(0, GENRE_LIMIT).map((genre) => (
-                        <Badge key={genre} size="sm">
-                          {genre}
-                        </Badge>
-                      ))}
-                    </span>
-                  )}
                 </span>
 
                 {onOpenShow === undefined ||
@@ -359,6 +349,16 @@ const RailCard = ({
                   detail.metadata.overview === '' ? null : (
                     <span className="line-clamp-3 min-h-0 shrink overflow-hidden text-xs leading-relaxed text-text-muted">
                       {detail.metadata.overview}
+                    </span>
+                  )}
+
+                  {(detail?.metadata.genres ?? []).length === 0 ? null : (
+                    <span className="flex shrink-0 flex-wrap gap-1.5">
+                      {(detail?.metadata.genres ?? []).slice(0, GENRE_LIMIT).map((genre) => (
+                        <Badge key={genre} size="sm">
+                          {genre}
+                        </Badge>
+                      ))}
                     </span>
                   )}
                 </Button>
