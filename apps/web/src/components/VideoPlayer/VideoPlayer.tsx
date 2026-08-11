@@ -15,6 +15,7 @@ import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
 import attachShakaModule from '@FluxWeb/playback/attachShaka'
 import castPlaybackModule from '@FluxWeb/playback/castPlayback'
 import handOverToDeviceModule from '@FluxWeb/playback/handOverToDevice'
+import castSenderModule from '@FluxWeb/playback/castSender'
 import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
 import popOutWithCaptionsModule from '@FluxWeb/playback/popOutWithCaptions'
 import captureFrameModule from '@FluxWeb/playback/captureFrame'
@@ -35,6 +36,7 @@ import StreamStatsModule from './components/StreamStats/StreamStats'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions'
 import type { CastState } from '@FluxWeb/playback/castPlayback.types'
+import type { CastContext } from '@FluxWeb/playback/castSender.types'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
@@ -50,8 +52,9 @@ const { VideoSurface } = VideoSurfaceModule
 const { detectFromBrowser } = detectDeviceProfileModule
 const { startPlaybackSession, stopPlaybackSession } = startPlaybackSessionModule
 const { attachShaka } = attachShakaModule
-const { watchCastState, isReachableOrigin, promptForDevice } = castPlaybackModule
+const { watchCastState, isReachableOrigin, promptForDevice, absoluteStreamUrl } = castPlaybackModule
 const { handOverToDevice } = handOverToDeviceModule
+const { loadCastSender, castStateOf, castStream } = castSenderModule
 const { fetchTrickplay } = fetchTrickplayModule
 const { popOutWithCaptions } = popOutWithCaptionsModule
 const { captureFrame } = captureFrameModule
@@ -262,6 +265,9 @@ const VideoPlayer = ({
   // What the media engine, if there is one, needs told before the element can
   // be pointed at a device.
   const releaseRef = useRef<(() => Promise<void>) | null>(null)
+  // Google's sender, where this browser has it. Held rather than looked up,
+  // because the library installs itself once and answers to nobody after that.
+  const castContextRef = useRef<CastContext | null>(null)
 
   const popOut = useCallback(() => {
     const element = videoRef.current
@@ -348,6 +354,47 @@ const VideoPlayer = ({
     }
   }, [subtitleOffset, selectedSubtitleId, position])
 
+  // Google's sender, fetched the first time a player is opened rather than on
+  // the way into the application: a viewer who never casts should never be
+  // told about it, and it is the one thing here fetched from somebody else.
+  useEffect(() => {
+    let isAbandoned = false
+
+    void loadCastSender().then((context) => {
+      if (isAbandoned || context === null) {
+        return
+      }
+
+      castContextRef.current = context
+
+      const said = () => {
+        const state = castStateOf(context)
+
+        setCastState(
+          state === 'CONNECTED'
+            ? 'connected'
+            : state === 'CONNECTING'
+              ? 'connecting'
+              : state === 'NO_DEVICES_AVAILABLE'
+                ? 'unavailable'
+                : 'available',
+        )
+      }
+
+      const framework = window.cast?.framework
+
+      if (framework !== undefined) {
+        context.addEventListener(framework.CastContextEventType.CAST_STATE_CHANGED, said)
+      }
+
+      said()
+    })
+
+    return () => {
+      isAbandoned = true
+    }
+  }, [])
+
   // Somewhere to send it, and whether it has been sent. Watched wherever the
   // browser can answer at all, including where the address of this page is one
   // no device could follow: a control that is missing teaches nobody anything,
@@ -380,6 +427,34 @@ const VideoPlayer = ({
 
     const address =
       session.delivery.kind === 'direct' ? session.delivery.url : session.delivery.manifestUrl
+
+    // A Chromecast is told where the stream is and fetches it itself; there is
+    // no element on this page for it to be handed. Everything stops here
+    // instead, since two things playing the same film a second apart is worse
+    // than one.
+    const context = castContextRef.current
+
+    if (context !== null) {
+      const whole = absoluteStreamUrl(address, window.location.origin)
+
+      if (whole !== null) {
+        void castStream(context, {
+          url: whole,
+          title: media.title,
+          startSeconds: request.startSeconds + element.currentTime,
+        }).then((accepted) => {
+          if (accepted) {
+            element.pause()
+
+            return
+          }
+
+          setCastNote('That device would not take this stream.')
+        })
+      }
+
+      return
+    }
 
     void handOverToDevice({
       element,
@@ -1504,11 +1579,23 @@ const VideoPlayer = ({
 
               setCastNote(null)
 
-              // Asked for immediately, with nothing awaited first: a browser
-              // opens its picker only during the press that asked for one.
-              // Whatever is playing is left exactly as it is — the handover
-              // happens if and when a device is actually chosen, which is what
-              // the connection below is watching for.
+              // Google's own picker where this browser has one, because its
+              // remote playback interface finds nothing on a desktop however
+              // many televisions are on the network. Asked for immediately,
+              // with nothing awaited first: a picker opens only during the
+              // press that asked for one.
+              const context = castContextRef.current
+
+              if (context !== null) {
+                void context.requestSession().catch(() => {
+                  // Closed, or nothing chosen. Neither is worth saying.
+                })
+
+                return
+              }
+
+              // Everywhere else, whatever the browser itself offers: AirPlay
+              // in Safari, and nothing at all in Firefox.
               void promptForDevice(element).then((outcome) => {
                 if (outcome === 'shown' || outcome === 'dismissed') {
                   return
@@ -1516,7 +1603,7 @@ const VideoPlayer = ({
 
                 setCastNote(
                   window.location.protocol === 'https:'
-                    ? 'This browser offered no device. Safari casts to AirPlay receivers; Chrome needs a Chromecast, and finds nothing else.'
+                    ? 'This browser offered no device. Safari casts to AirPlay receivers; Chrome needs the extension that backs casting.'
                     : 'This browser only casts over a secure connection. Serve Flux over HTTPS, or use Safari, which will cast from here as it is.',
                 )
               })
