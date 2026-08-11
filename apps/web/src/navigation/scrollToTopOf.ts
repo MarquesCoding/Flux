@@ -10,6 +10,11 @@
  * The container is looked for rather than passed in, because the thing that
  * scrolls here is a dialog's own panel — owned by the component that draws the
  * dialog, not by the page inside it.
+ *
+ * Finding nothing that scrolls means there is nothing to do. It emphatically
+ * does not mean the page: a dialog opening over a library somebody has scrolled
+ * halfway down must not throw them back to the top of it, and a dialog whose
+ * contents have not arrived yet has nothing scrollable in it to find.
  */
 const scrollToTopOf = (from: HTMLElement | null, isSmooth = true): void => {
   if (from === null) {
@@ -30,8 +35,6 @@ const scrollToTopOf = (from: HTMLElement | null, isSmooth = true): void => {
 
     holder = holder.parentElement;
   }
-
-  window.scrollTo({ top: 0, behavior: isSmooth ? 'smooth' : 'auto' });
 };
 
 export { scrollToTopOf };
