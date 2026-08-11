@@ -116,9 +116,31 @@ const groupIntoRails = (
   }
   const recentThreshold = now - RECENT_DAYS * 24 * 60 * 60 * 1000
 
+  // One card per programme rather than one per episode. A series that arrived
+  // whole would otherwise fill this row with twelve pictures of itself, which
+  // says less than one picture of it does.
+  const seenSeries = new Set<string>()
+
   const recent = [...items]
     .filter((media) => addedAtMs(media) >= recentThreshold)
     .sort((left, right) => addedAtMs(right) - addedAtMs(left))
+    .filter((media) => {
+      const series = media.seriesTitle ?? ''
+
+      if (series === '') {
+        return true
+      }
+
+      const named = series.toLowerCase()
+
+      if (seenSeries.has(named)) {
+        return false
+      }
+
+      seenSeries.add(named)
+
+      return true
+    })
     .slice(0, RAIL_LIMIT)
 
   if (recent.length > 0) {

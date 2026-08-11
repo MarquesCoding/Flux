@@ -25,6 +25,13 @@ type RailCardProps = {
    * Left out where there is nobody to keep it for — a card drawn in a test or
    * a preview — and the heart is not drawn at all.
    */
+  /**
+   * Opens the page about the series this belongs to.
+   *
+   * Left out where there is no such page to open, in which case the show's
+   * name is a name rather than a way anywhere.
+   */
+  onOpenShow?: (media: MediaSummary) => void
   isKept?: boolean
   onToggleKept?: (media: MediaSummary) => void
 }

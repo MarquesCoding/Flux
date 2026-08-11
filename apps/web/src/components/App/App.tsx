@@ -1,4 +1,5 @@
 import type { MoodLight } from '@FluxUI/MoodBackground.types'
+import type { ShowSummary } from '@FluxContracts/schemas/Show'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -6,6 +7,9 @@ import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
 import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
 import SearchAreaModule from '@FluxWeb/components/SearchArea/SearchArea'
 import BrowseAreaModule from '@FluxWeb/components/BrowseArea/BrowseArea'
+import ShowDialogModule from '@FluxWeb/components/ShowDialog/ShowDialog'
+import fetchShowsModule from '@FluxWeb/library/fetchShows'
+import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import useFavouritesModule from '@FluxWeb/library/useFavourites'
 import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
 import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
@@ -36,6 +40,9 @@ const { SetupWizard } = SetupWizardModule
 const { LibraryBrowser } = LibraryBrowserModule
 const { SearchArea } = SearchAreaModule
 const { BrowseArea } = BrowseAreaModule
+const { ShowDialog } = ShowDialogModule
+const { fetchShows } = fetchShowsModule
+const { fetchLibraries } = fetchLibraryModule
 const { useFavourites } = useFavouritesModule
 const { ProfileFace } = ProfileFaceModule
 const { fetchProfiles } = fetchProfilesModule
@@ -82,6 +89,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   // decided when the file was imported.
   const [moodLights, setMoodLights] = useState<MoodLight[]>([])
   const favourites = useFavourites()
+  // Which series is being read about. Held as the summary rather than the
+  // identifier alone, because the dialog opens on what the shelf already knew
+  // and fetches the episodes itself.
+  const [openShow, setOpenShow] = useState<ShowSummary | null>(null)
   // Who is watching, for the face on the account button. Read here rather than
   // in the shell: the shell draws a frame and should not be the thing that
   // knows how profiles work.
@@ -105,6 +116,45 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [known, setKnown] = useState(new Map<string, MediaSummary>())
   const { place, go, replace } = usePlace()
   const prefersReducedMotion = useReducedMotion()
+
+  // A series named in the address is a series that should be open, so a reload
+  // or a link somebody sent lands on the programme rather than on the shelf.
+  useEffect(() => {
+    if (place.show === null) {
+      setOpenShow(null)
+
+      return
+    }
+
+    if (openShow?.id === place.show) {
+      return
+    }
+
+    let abandoned = false
+
+    void fetchLibraries()
+      .then(async (libraries) => {
+        for (const entry of libraries) {
+          const shows = await fetchShows(entry.id)
+          const found = shows.find((one) => one.id === place.show)
+
+          if (found !== undefined) {
+            return found
+          }
+        }
+
+        return null
+      })
+      .then((found) => {
+        if (!abandoned) {
+          setOpenShow(found)
+        }
+      })
+
+    return () => {
+      abandoned = true
+    }
+  }, [place.show, openShow])
 
   const section: ShellSection = place.section
   const inspecting = place.inspecting === null ? null : (known.get(place.inspecting) ?? null)
@@ -356,6 +406,26 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         ? {}
         : { avatar: <ProfileFace profile={watcher} className="size-7 rounded-full text-xs" /> })}
     >
+      <ShowDialog
+        show={openShow}
+        onClose={() => {
+          go({ show: null })
+        }}
+        onPlay={(media, startSeconds) => {
+          go({ playing: media.id, startSeconds: Math.floor(startSeconds), show: null })
+        }}
+        onInspect={(media) => {
+          go({ inspecting: media.id })
+        }}
+        watchedFractionFor={(mediaId) => {
+          const found = progress.get(mediaId)
+
+          return found === undefined ? undefined : watchedFraction(found)
+        }}
+        resumeFor={resumeFor}
+        isFinished={(mediaId) => progress.get(mediaId)?.isFinished === true}
+      />
+
       <MediaDetailDialog
         media={inspecting}
         siblings={inspecting === null ? [] : findSiblings([...known.values()], inspecting)}
@@ -464,6 +534,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           hasHero
           onFeatureChange={setFeatured}
           onPalette={setMoodLights}
+          onOpenShow={(show) => {
+            setOpenShow(show)
+            go({ show: show.id })
+          }}
           isKept={favourites.isKept}
           onToggleKept={(media) => {
             favourites.toggle(media.id)

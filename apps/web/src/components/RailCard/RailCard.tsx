@@ -133,6 +133,7 @@ const RailCard = ({
   onInspect,
   resumeSeconds,
   hoverDelayMilliseconds = HOVER_DELAY_MILLISECONDS,
+  onOpenShow,
   isKept = false,
   onToggleKept,
 }: RailCardProps) => {
@@ -346,14 +347,11 @@ const RailCard = ({
                     on a card and read it wants to know more about it, and
                     making them find a small button to say so is a puzzle
                     rather than an interface. */}
-              <button
-                type="button"
-                aria-label={`About ${media.title}`}
-                onClick={() => {
-                  onInspect(media)
-                }}
-                className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 text-left"
-              >
+              {/* A column rather than one enormous button, because the show's
+                  name inside it is a way to the programme and a button cannot
+                  hold another. Everything else about the item still opens the
+                  page about it. */}
+              <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 text-left">
                 {/* The episode and the genres share the top line: one says
                     what this is, the other says what sort of thing it is, and
                     both are read at a glance rather than in sentences. Set
@@ -381,22 +379,47 @@ const RailCard = ({
                     a card is looking for is what this is, and a name set at the
                     size of the line beneath it makes them read both to find
                     out. */}
-                <span className="text-xl font-semibold leading-tight tracking-[-0.02em] text-text">
-                  {media.seriesTitle ?? media.title}
-                </span>
-
-                <MediaFacts
-                  media={media}
-                  className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-[0.1em] text-text-muted"
-                />
-
-                {detail?.metadata.overview === undefined ||
-                detail.metadata.overview === null ||
-                detail.metadata.overview === '' ? null : (
-                  <span className="line-clamp-3 min-h-0 shrink overflow-hidden text-xs leading-relaxed text-text-muted">
-                    {detail.metadata.overview}
+                {onOpenShow === undefined ||
+                media.seriesTitle === null ||
+                media.seriesTitle === undefined ? (
+                  <span className="text-xl font-semibold leading-tight tracking-[-0.02em] text-text">
+                    {media.seriesTitle ?? media.title}
                   </span>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label={`About ${media.seriesTitle}`}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onOpenShow(media)
+                    }}
+                    className="text-left text-xl font-semibold leading-tight tracking-[-0.02em] text-text underline-offset-4 hover:underline"
+                  >
+                    {media.seriesTitle}
+                  </button>
                 )}
+
+                <button
+                  type="button"
+                  aria-label={`About ${media.title}`}
+                  onClick={() => {
+                    onInspect(media)
+                  }}
+                  className="flex min-h-0 shrink flex-col gap-3 text-left"
+                >
+                  <MediaFacts
+                    media={media}
+                    className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-[0.1em] text-text-muted"
+                  />
+
+                  {detail?.metadata.overview === undefined ||
+                  detail.metadata.overview === null ||
+                  detail.metadata.overview === '' ? null : (
+                    <span className="line-clamp-3 min-h-0 shrink overflow-hidden text-xs leading-relaxed text-text-muted">
+                      {detail.metadata.overview}
+                    </span>
+                  )}
+                </button>
 
                 {/* At the foot, after the reading: somebody decides what to do
                     with a thing once they know what it is. Two things worth
@@ -454,7 +477,7 @@ const RailCard = ({
                     </IconButton>
                   )}
                 </span>
-              </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>,
