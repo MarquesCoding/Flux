@@ -405,3 +405,46 @@ describe('detectLibrarySegments', () => {
     ).resolves.toBe(0);
   });
 });
+
+describe('when nothing can be asked', () => {
+  it('leaves a season outstanding rather than marking it done', async () => {
+    const completed: string[] = [];
+
+    await detectLibrarySegments({
+      libraryId: LIBRARY_ID,
+      providers: [
+        {
+          name: 'fingerprint',
+          detect: () => Promise.reject(new Error('fetch failed')),
+        },
+      ],
+      segments: createMemorySegmentService(),
+      markComplete: (mediaId) => {
+        completed.push(mediaId);
+
+        return Promise.resolve();
+      },
+      listCandidates: () => Promise.resolve([episode('a', 'Some Show', 1)]),
+    });
+
+    expect(completed).toEqual([]);
+  });
+
+  it('still marks a season done when a provider ran and simply found nothing', async () => {
+    const completed: string[] = [];
+
+    await detectLibrarySegments({
+      libraryId: LIBRARY_ID,
+      providers: [providerThat(() => new Map())],
+      segments: createMemorySegmentService(),
+      markComplete: (mediaId) => {
+        completed.push(mediaId);
+
+        return Promise.resolve();
+      },
+      listCandidates: () => Promise.resolve([episode('a', 'Some Show', 1)]),
+    });
+
+    expect(completed).toEqual(['a']);
+  });
+});
