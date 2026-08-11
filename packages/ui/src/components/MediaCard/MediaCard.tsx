@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { IconPlayerPlayFilled } from '@tabler/icons-react'
 import cnModule from '@FluxUI/cn'
+import hasFinePointerModule from '@FluxUI/hasFinePointer'
 import BadgeModule from '@FluxUI/Badge'
 import revealModule from '@FluxUI/animations/reveal'
 import type { MediaCardProps, MediaCardShape } from './MediaCard.types'
 
 const { cn } = cnModule
+const { hasFinePointer } = hasFinePointerModule
 const { Badge } = BadgeModule
 const { revealTransition } = revealModule
 
@@ -31,6 +34,7 @@ const SHAPE_CLASSES: Record<MediaCardShape, string> = {
  */
 const MediaCard = ({
   title,
+  eyebrow,
   subtitle,
   badges = [],
   imageUrl,
@@ -43,6 +47,14 @@ const MediaCard = ({
 }: MediaCardProps) => {
   const prefersReducedMotion = useReducedMotion()
   const isLead = emphasis === 'lead'
+  // Whether lifting towards a pointer means anything here. A finger reports a
+  // hover as it lands and goes on reporting it once it has gone, so a card on
+  // a phone would rise on being tapped and stay risen.
+  const [canHover, setCanHover] = useState(false)
+
+  useEffect(() => {
+    setCanHover(hasFinePointer())
+  }, [])
 
   return (
     <motion.button
@@ -50,7 +62,7 @@ const MediaCard = ({
       onClick={onSelect}
       // Spread rather than passed as undefined: with exact optional property
       // types, an absent prop and a prop set to nothing are different things.
-      {...(prefersReducedMotion === true || isStill
+      {...(prefersReducedMotion === true || isStill || !canHover
         ? {}
         : { whileHover: { y: -6 }, whileTap: { scale: 0.985 } })}
       transition={revealTransition(prefersReducedMotion)}
@@ -108,18 +120,33 @@ const MediaCard = ({
 
         {isLead ? (
           <span className="absolute inset-x-4 bottom-4 flex flex-col gap-1">
+            {eyebrow === undefined ? null : (
+              <span className="text-[0.65rem] uppercase tracking-[0.18em] text-white/60">
+                {eyebrow}
+              </span>
+            )}
+
             <span className="text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl">
               {title}
             </span>
-            <span className="text-xs text-white/70">{subtitle}</span>
+            <span className="font-body text-xs text-white/70">{subtitle}</span>
           </span>
         ) : null}
       </span>
 
       {isLead ? null : (
         <span className="flex flex-col gap-0.5 px-0.5">
+          {/* What is being offered, over what makes it recognisable. Small and
+              in capitals so it reads as a label rather than as a second
+              title. */}
+          {eyebrow === undefined ? null : (
+            <span className="line-clamp-1 text-[0.65rem] uppercase tracking-[0.16em] text-text-muted">
+              {eyebrow}
+            </span>
+          )}
+
           <span className="line-clamp-1 text-sm font-medium text-text">{title}</span>
-          <span className="line-clamp-1 text-xs text-text-muted">{subtitle}</span>
+          <span className="line-clamp-1 font-body text-xs text-text-muted">{subtitle}</span>
         </span>
       )}
     </motion.button>

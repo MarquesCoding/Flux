@@ -69,8 +69,8 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' })
 
-    expect(panel.className).toContain('max-sm:data-[starting-style]:translate-y-8')
-    expect(panel.className).toContain('sm:data-[starting-style]:scale-[0.97]')
+    expect(panel.className).toContain('max-sm:data-[starting-style]:translate-y-10')
+    expect(panel.className).toContain('sm:data-[starting-style]:scale-[0.92]')
   })
 
   it('drops the movement, but not the fade, when movement is unwelcome', () => {
@@ -83,5 +83,17 @@ describe('Dialog', () => {
     expect(screen.getByRole('dialog', { name: 'Arrival' }).className).toContain(
       'motion-reduce:transition-opacity',
     )
+  })
+  it('leaves faster than it arrives, since arriving is the part worth watching', () => {
+    render(
+      <Dialog label="Arrival" isOpen onClose={vi.fn()}>
+        <p>Details</p>
+      </Dialog>,
+    )
+
+    const panel = screen.getByRole('dialog', { name: 'Arrival' })
+
+    expect(panel.className).toContain('duration-[280ms]')
+    expect(panel.className).toContain('data-[ending-style]:duration-150')
   })
 })

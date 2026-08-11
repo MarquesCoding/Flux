@@ -1,7 +1,16 @@
+import type { MoodLight } from '@FluxUI/MoodBackground.types'
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
 import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
+import SearchAreaModule from '@FluxWeb/components/SearchArea/SearchArea'
+import BrowseAreaModule from '@FluxWeb/components/BrowseArea/BrowseArea'
+import useFavouritesModule from '@FluxWeb/library/useFavourites'
+import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
+import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
+import currentProfileModule from '@FluxWeb/profiles/currentProfile'
+import pickAnythingModule from '@FluxWeb/library/pickAnything'
 import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
 import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
 import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
@@ -25,6 +34,13 @@ import type { AppProps } from './App.types'
 
 const { SetupWizard } = SetupWizardModule
 const { LibraryBrowser } = LibraryBrowserModule
+const { SearchArea } = SearchAreaModule
+const { BrowseArea } = BrowseAreaModule
+const { useFavourites } = useFavouritesModule
+const { ProfileFace } = ProfileFaceModule
+const { fetchProfiles } = fetchProfilesModule
+const { readCurrentProfile } = currentProfileModule
+const { pickAnything } = pickAnythingModule
 const { VideoPlayer } = VideoPlayerModule
 const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
@@ -37,10 +53,6 @@ const { findSiblings, nextEpisode } = pickFeaturedModule
 const { fetchWatchProgress, byMediaId } = watchProgressModule
 const { isWorthResuming, watchedFraction, FINISHED_WITHIN_SECONDS } = WatchProgressContract
 
-/**
- * How long the opening title stays up.
- */
-const SPLASH_MILLISECONDS = 8_000
 const { fetchSession } = fetchSessionModule
 const { signOut } = signOutModule
 const { SetupStatusSchema } = SetupModule
@@ -65,8 +77,29 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   // which is why watching something and closing it sometimes left the bar
   // where it had been an hour ago.
   const reportedRef = useRef(new Map<string, WatchProgress>())
-  const [featured, setFeatured] = useState<MediaSummary | null>(null)
-  const [isTitleOver, setIsTitleOver] = useState(false)
+  const [, setFeatured] = useState<MediaSummary | null>(null)
+  // What the page is lit by, read from whatever is on screen rather than
+  // decided when the file was imported.
+  const [moodLights, setMoodLights] = useState<MoodLight[]>([])
+  const favourites = useFavourites()
+  // Who is watching, for the face on the account button. Read here rather than
+  // in the shell: the shell draws a frame and should not be the thing that
+  // knows how profiles work.
+  const [watcher, setWatcher] = useState<ViewerProfile | null>(null)
+
+  useEffect(() => {
+    const chosen = readCurrentProfile()
+
+    if (chosen === null) {
+      setWatcher(null)
+
+      return
+    }
+
+    void fetchProfiles().then((people) => {
+      setWatcher(people.find((person) => person.id === chosen) ?? null)
+    })
+  }, [user])
   // Everything the library has shown, so an address naming an item can be
   // turned back into one without asking the server a second time.
   const [known, setKnown] = useState(new Map<string, MediaSummary>())
@@ -128,19 +161,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     }
 
     setProgress(merged)
-  }, [])
-
-  // The opening title is held for its own length rather than for however long
-  // the server happens to take. A title card that flashes for 200ms on a fast
-  // connection and lingers on a slow one is not a title card.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsTitleOver(true)
-    }, SPLASH_MILLISECONDS)
-
-    return () => {
-      clearTimeout(timer)
-    }
   }, [])
 
   const refresh = useCallback(async () => {
@@ -215,14 +235,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         }}
       />
     )
-  }
-
-  // The opening title belongs in front of the library, not in front of the
-  // sign-in form. Somebody being asked for a password is not arriving
-  // anywhere yet, and holding them behind a title card is eight seconds
-  // between them and a field they have to fill in.
-  if (!isTitleOver) {
-    return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
   }
 
   // Watching is not a thing that happens inside a library page. The player
@@ -320,13 +332,29 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         // the page having broken.
         go({ section: next, search: next === 'search' ? place.search : '' })
       }}
-      // Home and search draw the same library, so moving between them keeps
-      // the page rather than fetching it all over again.
-      viewKey={section === 'home' || section === 'search' ? 'library' : section}
-      // The page takes its colour from whatever the viewer is looking at:
-      // what they have opened, or failing that what the hero is showing.
-      moodColor={inspecting?.accentColor ?? featured?.accentColor ?? null}
+      // The page takes its light from whatever the viewer is looking at, read
+      // out of the picture itself — and only where there is something to look
+      // at. A page of results or an account form has nothing to spill onto it,
+      // so it goes back to the house colour rather than keeping the light of a
+      // film the viewer has navigated away from.
+      moodLights={section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
+      // Something at random, opened as its own page rather than played
+      // outright: being thrown into a film nobody chose is a worse surprise
+      // than being shown one and asked.
+      onSurprise={() => {
+        void pickAnything().then((found) => {
+          if (found === null) {
+            return
+          }
+
+          rememberItems([found])
+          go({ inspecting: found.id })
+        })
+      }}
+      {...(watcher === null
+        ? {}
+        : { avatar: <ProfileFace profile={watcher} className="size-7 rounded-full text-xs" /> })}
     >
       <MediaDetailDialog
         media={inspecting}
@@ -342,6 +370,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         {...(inspecting !== null && resumeFor(inspecting.id) !== null
           ? { resumeSeconds: resumeFor(inspecting.id) ?? 0 }
           : {})}
+        isKept={inspecting !== null && favourites.isKept(inspecting.id)}
+        onToggleKept={(media) => {
+          favourites.toggle(media.id)
+        }}
         onClose={() => {
           go({ inspecting: null })
         }}
@@ -366,6 +398,57 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             })
           }}
         />
+      ) : section === 'shows' ||
+        section === 'films' ||
+        section === 'new' ||
+        section === 'favourites' ? (
+        <BrowseArea
+          kind={section}
+          favourites={[...favourites.kept]}
+          onPlay={(media, startSeconds) => {
+            go({ playing: media.id, startSeconds: Math.floor(startSeconds) })
+          }}
+          onInspect={(media) => {
+            go({ inspecting: media.id })
+          }}
+          onItemsLoaded={rememberItems}
+          watchedFractionFor={(mediaId) => {
+            const found = progress.get(mediaId)
+
+            return found === undefined ? undefined : watchedFraction(found)
+          }}
+          resumeFor={resumeFor}
+          isKept={favourites.isKept}
+          onToggleKept={(media) => {
+            favourites.toggle(media.id)
+          }}
+        />
+      ) : section === 'search' ? (
+        <SearchArea
+          search={place.search}
+          onSearchChange={(next) => {
+            // Replaced rather than pushed: a search box would otherwise fill
+            // the history with one entry per letter typed.
+            replace({ search: next })
+          }}
+          onPlay={(media, startSeconds) => {
+            go({ playing: media.id, startSeconds: Math.floor(startSeconds) })
+          }}
+          onInspect={(media) => {
+            go({ inspecting: media.id })
+          }}
+          onItemsLoaded={rememberItems}
+          watchedFractionFor={(mediaId) => {
+            const found = progress.get(mediaId)
+
+            return found === undefined ? undefined : watchedFraction(found)
+          }}
+          resumeFor={resumeFor}
+          isKept={favourites.isKept}
+          onToggleKept={(media) => {
+            favourites.toggle(media.id)
+          }}
+        />
       ) : (
         <LibraryBrowser
           search={place.search}
@@ -376,17 +459,15 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             go({ playing: media.id, startSeconds })
           }}
           onItemsLoaded={rememberItems}
-          // Only the home section opens with a hero. Films and series are
-          // places someone arrived at looking for something, and a screen of
-          // artwork between them and the list is in the way.
-          hasHero={section === 'home' && place.search === ''}
-          isSearching={section === 'search'}
-          onSearchChange={(next) => {
-            // Replaced rather than pushed: a search box would otherwise fill
-            // the history with one entry per letter typed.
-            replace({ search: next })
-          }}
+          // The only section left that draws the library is home, and home
+          // opens with a hero. Searching has a page of its own now.
+          hasHero
           onFeatureChange={setFeatured}
+          onPalette={setMoodLights}
+          isKept={favourites.isKept}
+          onToggleKept={(media) => {
+            favourites.toggle(media.id)
+          }}
         />
       )}
     </AppShell>

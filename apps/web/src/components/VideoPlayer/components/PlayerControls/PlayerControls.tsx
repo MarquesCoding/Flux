@@ -1,15 +1,18 @@
 import {
   IconAdjustmentsHorizontal,
   IconBadgeCc,
+  IconBadgeCcFilled,
   IconChartDots,
   IconClock,
   IconGauge,
   IconHeadphones,
   IconSettings,
+  IconSettingsFilled,
   IconTypography,
   IconMaximize,
   IconMinus,
   IconPictureInPicture,
+  IconPictureInPictureFilled,
   IconMinimize,
   IconPlus,
   IconRefresh,
@@ -108,6 +111,7 @@ const PlayerControls = ({
   onToggleMute,
   onToggleFullscreen,
   onPopOut,
+  isPoppedOut = false,
   onToggleStats,
   subtitleOffsetSeconds = 0,
   onSubtitleOffsetChange,
@@ -237,7 +241,11 @@ const PlayerControls = ({
           disabled={isDisabled}
           size="md"
         >
-          <IconBadgeCc size={22} aria-hidden />
+          {selectedSubtitleId === SUBTITLES_OFF ? (
+            <IconBadgeCc size={22} aria-hidden />
+          ) : (
+            <IconBadgeCcFilled size={22} aria-hidden />
+          )}
         </IconButton>
       )}
 
@@ -250,6 +258,7 @@ const PlayerControls = ({
         {...(onMenuOpenChange === undefined ? {} : { onOpenChange: onMenuOpenChange })}
         isDisabled={isDisabled}
         trigger={<IconSettings size={20} aria-hidden />}
+        triggerWhenOpen={<IconSettingsFilled size={20} aria-hidden />}
         rows={[
           ...(audioTracks.length < 2
             ? []
@@ -399,8 +408,12 @@ const PlayerControls = ({
       />
 
       {onPopOut === undefined ? null : (
-        <IconButton label="Pop out" onClick={onPopOut} size="md">
-          <IconPictureInPicture size={20} aria-hidden />
+        <IconButton label="Pop out" onClick={onPopOut} isActive={isPoppedOut} size="md">
+          {isPoppedOut ? (
+            <IconPictureInPictureFilled size={20} aria-hidden />
+          ) : (
+            <IconPictureInPicture size={20} aria-hidden />
+          )}
         </IconButton>
       )}
 

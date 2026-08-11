@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { IconSearch } from '@tabler/icons-react'
+import { motion } from 'motion/react'
 import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
 import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
@@ -12,7 +11,6 @@ import groupIntoRailsModule from '@FluxWeb/library/groupIntoRails'
 import pickFeaturedModule from '@FluxWeb/library/pickFeatured'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
 import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
-import describeMediaModule from './describeMedia'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
@@ -34,8 +32,7 @@ const { watchedFraction, isWorthResuming } = WatchProgressContract
 const HERO_COUNT = 5
 const { Spinner } = SpinnerModule
 const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { describeMedia } = describeMediaModule
+const { staggerVariants } = revealModule
 
 const PAGE_SIZE = 60
 const SEARCH_DEBOUNCE_MS = 250
@@ -50,10 +47,11 @@ const SEARCH_DEBOUNCE_MS = 250
 const LibraryBrowser = ({
   search = '',
   hasHero = false,
-  isSearching = false,
-  onSearchChange,
   onFeatureChange,
+  onPalette,
   onItemsLoaded,
+  isKept,
+  onToggleKept,
   onPlay,
   onWatch,
 }: LibraryBrowserProps) => {
@@ -63,8 +61,16 @@ const LibraryBrowser = ({
   const [total, setTotal] = useState(0)
   const [appliedSearch, setAppliedSearch] = useState('')
   const [progress, setProgress] = useState(new Map<string, WatchProgress>())
+
+  /**
+   * Where this viewer left something, when it is worth coming back to.
+   */
+  const resumeFor = (mediaId: string): number | null => {
+    const found = progress.get(mediaId)
+
+    return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
+  }
   const [state, setState] = useState<BrowserState>('loading')
-  const prefersReducedMotion = useReducedMotion()
 
   // Held in a ref rather than depended upon. A caller that passes a fresh
   // function every render — which is what an inline arrow is — would
@@ -156,7 +162,7 @@ const LibraryBrowser = ({
   if (state === 'loading') {
     return (
       <div className="flex justify-center p-12">
-        <Spinner label="Loading your library" size="lg" />
+        <Spinner label="Reading your library" size="lg" />
       </div>
     )
   }
@@ -186,38 +192,11 @@ const LibraryBrowser = ({
       // library and search plays a transition. The component itself stays
       // mounted underneath: remounting it would refetch everything and show a
       // spinner where a transition should be.
-      key={isSearching ? 'search' : 'browse'}
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
       className="flex flex-col gap-8"
     >
-      {isSearching ? (
-        <motion.div
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion, 'heavy')}
-          className="flex flex-col gap-4 px-5 pt-14 sm:px-10"
-        >
-          <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl">Search</h1>
-
-          <label className="flex items-center gap-3 border-b border-white/15 pb-3">
-            <IconSearch size={28} className="shrink-0 text-text-muted" aria-hidden />
-            <span className="sr-only">Search the library</span>
-
-            <input
-              type="search"
-              autoFocus
-              value={search}
-              placeholder="Everything you own"
-              onChange={(event) => {
-                onSearchChange?.(event.target.value)
-              }}
-              className="w-full bg-transparent text-2xl tracking-tight text-text outline-none placeholder:text-text-muted/50 sm:text-3xl"
-            />
-          </label>
-        </motion.div>
-      ) : null}
-
       {hasHero && items.length > 0 ? (
         <Hero
           items={pickFeatured(items, HERO_COUNT)}
@@ -228,12 +207,10 @@ const LibraryBrowser = ({
               onWatch(media, startSeconds)
             }
           }}
-          resumeFor={(mediaId) => {
-            const found = progress.get(mediaId)
-
-            return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
-          }}
+          resumeFor={resumeFor}
+          onInspect={onPlay}
           {...(onFeatureChange === undefined ? {} : { onFeatureChange })}
+          {...(onPalette === undefined ? {} : { onPalette })}
         />
       ) : null}
 
@@ -276,7 +253,6 @@ const LibraryBrowser = ({
                   <li key={media.id} className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80">
                     <RailCard
                       media={media}
-                      subtitle={describeMedia(media)}
                       {...(progress.has(media.id)
                         ? {
                             watchedFraction: watchedFraction(
@@ -290,8 +266,25 @@ const LibraryBrowser = ({
                             ),
                           }
                         : {})}
-                      onPlay={onPlay}
+                      {...(resumeFor(media.id) === null
+                        ? {}
+                        : { resumeSeconds: Math.floor(resumeFor(media.id) ?? 0) })}
+                      // Playing plays and reading opens the page. They were
+                      // both wired to the same handler, so the play button on
+                      // a card opened the page about the film instead of
+                      // starting it.
+                      onPlay={(media, startSeconds) => {
+                        if (onWatch === undefined) {
+                          onPlay(media)
+
+                          return
+                        }
+
+                        onWatch(media, startSeconds)
+                      }}
                       onInspect={onPlay}
+                      {...(isKept === undefined ? {} : { isKept: isKept(media.id) })}
+                      {...(onToggleKept === undefined ? {} : { onToggleKept })}
                     />
                   </li>
                 ))}

@@ -7,7 +7,6 @@
 #![cfg_attr(test, allow(clippy::expect_used, clippy::unwrap_used))]
 
 pub mod capability;
-pub mod colour;
 pub mod fingerprint;
 pub mod frame;
 pub mod media;

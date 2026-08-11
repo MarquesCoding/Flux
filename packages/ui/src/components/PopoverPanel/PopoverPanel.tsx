@@ -1,8 +1,10 @@
 import { Popover } from '@base-ui-components/react/popover'
 import cnModule from '@FluxUI/cn'
+import TooltipModule from '@FluxUI/Tooltip'
 import type { PopoverPanelProps } from './PopoverPanel.types'
 
 const { cn } = cnModule
+const { Tooltip } = TooltipModule
 
 /**
  * A panel of glass hung off a control.
@@ -19,6 +21,7 @@ const PopoverPanel = ({
   heading,
   isOpen,
   onOpenChange,
+  side = 'top',
   isDisabled = false,
   className,
 }: PopoverPanelProps) => (
@@ -26,22 +29,23 @@ const PopoverPanel = ({
     {...(isOpen === undefined ? {} : { open: isOpen })}
     {...(onOpenChange === undefined ? {} : { onOpenChange })}
   >
-    <Popover.Trigger
-      aria-label={label}
-      title={label}
-      disabled={isDisabled}
-      className={cn(
-        'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
-        'text-current transition-colors hover:bg-white/15',
-        'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
-      )}
-    >
-      {trigger}
-    </Popover.Trigger>
+    <Tooltip label={label} side={side === 'top' ? 'top' : 'bottom'}>
+      <Popover.Trigger
+        aria-label={label}
+        disabled={isDisabled}
+        className={cn(
+          'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
+          'text-current transition-colors hover:bg-white/15',
+          'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
+        )}
+      >
+        {trigger}
+      </Popover.Trigger>
+    </Tooltip>
 
     <Popover.Portal>
       <Popover.Positioner
-        side="top"
+        side={side}
         sideOffset={12}
         align="end"
         collisionPadding={12}
