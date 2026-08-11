@@ -18,10 +18,12 @@ import captureFrameModule from '@FluxWeb/playback/captureFrame'
 import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import captionStyleModule from '@FluxWeb/playback/captionStyle'
+import qualityPreferenceModule from '@FluxWeb/playback/qualityPreference'
 import fetchSegmentsModule from '@FluxWeb/playback/fetchSegments'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
 import playbackPreferencesModule from '@FluxWeb/playback/playbackPreferences'
 import describeTrackModule from '@FluxCore/functions/describeTrack'
+import listAvailableQualityStepsModule from '@FluxCore/functions/listAvailableQualitySteps'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
 import PlayerControlsModule from './components/PlayerControls/PlayerControls'
@@ -34,6 +36,7 @@ import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
 import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
 import type { PlaybackHealth } from './components/StreamStats/StreamStats.types'
+import type { QualityPreference } from '@FluxWeb/playback/qualityPreference'
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types'
 
 const { Button } = ButtonModule
@@ -55,8 +58,10 @@ const { PlayerControls } = PlayerControlsModule
 const { StreamStats } = StreamStatsModule
 const { CaptionSettings } = CaptionSettingsModule
 const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
+const { readQualityPreference, saveQualityPreference } = qualityPreferenceModule
 const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
 const { describeAudioTrack } = describeTrackModule
+const { listAvailableQualitySteps } = listAvailableQualityStepsModule
 const { reportWatchProgress, REPORT_EVERY_MILLISECONDS } = watchProgressModule
 const { readPlaybackPreferences, writePlaybackPreferences } = playbackPreferencesModule
 
@@ -193,12 +198,17 @@ const VideoPlayer = ({
     mediaId: string
     startSeconds: number
     audioStreamIndex?: number
+    requestedQuality: QualityPreference
     // Whole seconds, always. A position read back from the server is a
     // fraction of one — nobody stops a film on a second boundary — and the
     // contract asks for an integer, so resuming used to be answered with a
     // validation error the player could only report as "playback could not be
     // started".
-  }>({ mediaId: media.id, startSeconds: Math.floor(startSeconds) })
+  }>({
+    mediaId: media.id,
+    startSeconds: Math.floor(startSeconds),
+    requestedQuality: readQualityPreference(),
+  })
   // The frame the viewer was looking at when they dragged the scrub bar. Held
   // on screen until the new session produces one of its own, because tearing
   // the old session down blanks the media element and a black rectangle reads
@@ -368,7 +378,11 @@ const VideoPlayer = ({
   }, [])
 
   if (request.mediaId !== media.id) {
-    setRequest({ mediaId: media.id, startSeconds: Math.floor(startSeconds) })
+    setRequest({
+      mediaId: media.id,
+      startSeconds: Math.floor(startSeconds),
+      requestedQuality: request.requestedQuality,
+    })
   }
 
   useEffect(() => {
@@ -401,6 +415,7 @@ const VideoPlayer = ({
         detectFromBrowser(),
         request.startSeconds,
         request.audioStreamIndex,
+        request.requestedQuality,
       )
 
       if (isAbandoned()) {
@@ -648,6 +663,7 @@ const VideoPlayer = ({
       setRequest({
         mediaId: request.mediaId,
         startSeconds: Math.floor(seconds),
+        requestedQuality: request.requestedQuality,
         ...(request.audioStreamIndex === undefined
           ? {}
           : { audioStreamIndex: request.audioStreamIndex }),
@@ -682,6 +698,8 @@ const VideoPlayer = ({
     },
     [subtitleTracks],
   )
+
+  const availableQualitySteps = detail === null ? [] : listAvailableQualitySteps(detail)
   const skippable = state === 'playing' ? skippableAt(segments, position) : null
 
   const audioTracks = (detail?.audioStreams ?? []).map((stream, position) => ({
@@ -715,9 +733,33 @@ const VideoPlayer = ({
         mediaId: request.mediaId,
         startSeconds: Math.floor(position),
         audioStreamIndex: streamIndex,
+        requestedQuality: request.requestedQuality,
       })
     },
-    [request.mediaId, position],
+    [request.mediaId, request.requestedQuality, position],
+  )
+
+  // A different quality is a different transcode, so — like changing the
+  // audio track — it means a new session rather than adjusting this one.
+  const changeQuality = useCallback(
+    (quality: QualityPreference) => {
+      const element = videoRef.current
+
+      if (element !== null) {
+        setHeldFrame(captureFrame(element, document.createElement('canvas')))
+      }
+
+      saveQualityPreference(quality)
+      setRequest({
+        mediaId: request.mediaId,
+        startSeconds: Math.floor(position),
+        requestedQuality: quality,
+        ...(request.audioStreamIndex === undefined
+          ? {}
+          : { audioStreamIndex: request.audioStreamIndex }),
+      })
+    },
+    [request.mediaId, request.audioStreamIndex, position],
   )
 
   useEffect(() => {
@@ -998,7 +1040,7 @@ const VideoPlayer = ({
         <VideoSurface
           label={media.title}
           videoRef={videoRef}
-          className={isImmersive ? 'max-h-full max-w-full object-contain' : ''}
+          className={isImmersive ? 'h-full w-full object-contain' : ''}
           {...(selectedTrack === null
             ? {}
             : {
@@ -1141,6 +1183,8 @@ const VideoPlayer = ({
             selectedSubtitleId={selectedSubtitleId}
             audioTracks={audioTracks}
             selectedAudioIndex={selectedAudioIndex}
+            availableQualitySteps={availableQualitySteps}
+            selectedQuality={request.requestedQuality}
             isDisabled={state !== 'playing'}
             onTogglePlay={togglePlay}
             onSeek={seek}
@@ -1148,6 +1192,7 @@ const VideoPlayer = ({
             onPlaybackRateChange={setPlaybackRate}
             onSubtitleChange={chooseSubtitle}
             onAudioChange={changeAudio}
+            onQualityChange={changeQuality}
             onEditCaptions={() => {
               setIsEditingCaptions((editing) => !editing)
             }}

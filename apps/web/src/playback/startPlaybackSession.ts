@@ -2,6 +2,7 @@ import { z } from 'zod'
 import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile'
 import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan'
+import type { QualityPreference } from './qualityPreference'
 
 const { PlaybackPlanSchema } = PlaybackPlanModule
 
@@ -37,6 +38,7 @@ const startPlaybackSession = async (
   deviceProfile: DeviceProfile,
   startSeconds = 0,
   audioStreamIndex?: number,
+  requestedQuality?: QualityPreference,
 ): Promise<StartOutcome> => {
   const response = await fetch(`/api/playback/${mediaId}/session`, {
     method: 'POST',
@@ -45,6 +47,9 @@ const startPlaybackSession = async (
       deviceProfile,
       startSeconds,
       ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
+      ...(requestedQuality === undefined || requestedQuality === 'original'
+        ? {}
+        : { requestedQuality }),
     }),
   }).catch(() => null)
 

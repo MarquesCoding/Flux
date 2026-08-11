@@ -225,6 +225,7 @@ const MediaDetailDialog = ({
               variant="secondary"
               size="lg"
               isPill
+              className="rotate-90"
               onClick={() => {
                 onPlay(shown, 0)
               }}
