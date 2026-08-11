@@ -37,7 +37,28 @@ type LibraryService = {
    * or modification time changed.
    */
   scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>
-  readScanState: (jobId: string) => Promise<string>
+  /**
+   * Deletes every item in a library, then queues a scan to repopulate it
+   * from nothing.
+   *
+   * Null means there is no such library. As destructive as it sounds — an
+   * operator reaching for this wants a clean rebuild, not a delta against
+   * whatever the database currently believes.
+   */
+  reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
+  /**
+   * How a queued scan is getting on.
+   *
+   * `phase`/`processed`/`total` are null until the scan has reported
+   * anything, and for a service — like the in-memory one — that never
+   * tracked them at all.
+   */
+  readScanState: (jobId: string) => Promise<{
+    state: string
+    phase: string | null
+    processed: number | null
+    total: number | null
+  }>
   /**
    * Where an item's artwork lives at the catalogue it came from.
    *

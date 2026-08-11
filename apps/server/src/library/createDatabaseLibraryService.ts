@@ -56,7 +56,7 @@ const createDatabaseLibraryService = ({
   providers,
   onProblem,
 }: CreateDatabaseLibraryServiceOptions): LibraryService & {
-  runScan: (libraryId: string, force?: boolean) => Promise<void>
+  runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>
 } => {
   const store = createMediaStore(db)
 
@@ -232,9 +232,31 @@ const createDatabaseLibraryService = ({
       return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
     },
 
-    readScanState: (jobId) => jobs.readState(jobId),
+    reset: async (libraryId) => {
+      if ((await findLibrary(libraryId)) === null) {
+        return null
+      }
 
-    runScan: async (libraryId, force = false) => {
+      await store.clear(libraryId)
+
+      const jobId = await jobs.enqueueScan(libraryId, true)
+
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+    },
+
+    readScanState: async (jobId) => {
+      const state = await jobs.readState(jobId)
+      const progress = jobs.readProgress(jobId)
+
+      return {
+        state,
+        phase: progress?.phase ?? null,
+        processed: progress?.processed ?? null,
+        total: progress?.total ?? null,
+      }
+    },
+
+    runScan: async (libraryId, force = false, jobId) => {
       const found = await findLibrary(libraryId)
 
       if (found === null) {
@@ -256,6 +278,12 @@ const createDatabaseLibraryService = ({
         },
         ...(providers === undefined ? {} : { providers }),
         ...(onProblem === undefined ? {} : { onProblem }),
+        ...(jobId === undefined
+          ? {}
+          : {
+              onProgress: (phase, processed, total) =>
+                jobs.reportProgress(jobId, phase, processed, total),
+            }),
       })
     },
   }

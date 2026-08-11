@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { IconRefresh, IconRefreshAlert, IconSearch } from '@tabler/icons-react'
+import { IconSearch } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
 import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
@@ -33,7 +33,7 @@ const { watchedFraction, isWorthResuming } = WatchProgressContract
  */
 const HERO_COUNT = 5
 const { Spinner } = SpinnerModule
-const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
+const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { describeMedia } = describeMediaModule
 
@@ -64,7 +64,6 @@ const LibraryBrowser = ({
   const [appliedSearch, setAppliedSearch] = useState('')
   const [progress, setProgress] = useState(new Map<string, WatchProgress>())
   const [state, setState] = useState<BrowserState>('loading')
-  const [isScanning, setIsScanning] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
   // Held in a ref rather than depended upon. A caller that passes a fresh
@@ -153,21 +152,6 @@ const LibraryBrowser = ({
   useEffect(() => {
     void loadItems()
   }, [loadItems])
-
-  const rescan = async (force: boolean) => {
-    if (selectedId === null) {
-      return
-    }
-
-    setIsScanning(true)
-
-    try {
-      await scanLibrary(selectedId, force)
-      await loadItems()
-    } finally {
-      setIsScanning(false)
-    }
-  }
 
   if (state === 'loading') {
     return (
@@ -275,43 +259,6 @@ const LibraryBrowser = ({
                 {entry.name}
               </Button>
             ))}
-          </div>
-
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              isPill
-              isLoading={isScanning}
-              onClick={() => {
-                void rescan(false)
-              }}
-            >
-              <IconRefresh size={16} aria-hidden />
-              Scan
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              isPill
-              disabled={isScanning}
-              // Named once and shortened only on screen: two visible labels
-              // would both be read aloud, so what is spoken stays the same
-              // whatever the width.
-              aria-label="Full rescan"
-              onClick={() => {
-                void rescan(true)
-              }}
-            >
-              <IconRefreshAlert size={16} aria-hidden />
-              <span aria-hidden className="hidden sm:inline">
-                Full rescan
-              </span>
-              <span aria-hidden className="sm:hidden">
-                All
-              </span>
-            </Button>
           </div>
         </header>
 

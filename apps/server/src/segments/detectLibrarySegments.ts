@@ -19,7 +19,15 @@ type DetectLibrarySegmentsOptions = {
   segments: SegmentService
   listCandidates: (libraryId: string) => Promise<GroupedCandidate[]>
   onProblem?: (provider: string, reason: string) => void
-  onProgress?: (message: string) => void
+  /**
+   * Told after every season, how many of the library's episodes have been
+   * looked at.
+   *
+   * Counted in episodes rather than seasons: a library's few seasons say
+   * nothing about how much listening is left, and a season of one and a
+   * season of twenty should not look like equal steps.
+   */
+  onProgress?: (processed: number, total: number) => void
 }
 
 /**
@@ -61,17 +69,32 @@ const detectLibrarySegments = async ({
   onProgress,
 }: DetectLibrarySegmentsOptions): Promise<number> => {
   const groups = groupBySeason(await listCandidates(libraryId))
+  const total = [...groups.values()].reduce((sum, group) => sum + group.length, 0)
+  let processed = 0
   let marked = 0
 
-  for (const [key, group] of groups) {
-    onProgress?.(`Looking at ${key} (${group.length.toString()} items).`)
+  onProgress?.(processed, total)
 
-    const found = await resolveSegments(providers, group, onProblem)
+  for (const [, group] of groups) {
+    const baseline = processed
+
+    // A provider that reports per item — fingerprinting, the slow one — moves
+    // the bar as each episode's audio is actually decoded, rather than
+    // leaving it frozen for the whole season. Clamped to the group's own
+    // size: `onItemDone` is a courtesy a provider can call more of than it
+    // strictly should without this reading as further along than it is.
+    const found = await resolveSegments(providers, group, onProblem, () => {
+      processed += 1
+      onProgress?.(Math.min(processed, baseline + group.length), total)
+    })
 
     for (const [mediaId, detected] of found) {
       await segments.replace(mediaId, detected)
       marked += 1
     }
+
+    processed = baseline + group.length
+    onProgress?.(processed, total)
   }
 
   return marked

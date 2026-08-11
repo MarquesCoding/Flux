@@ -1,12 +1,13 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminAreaModule from './AdminArea'
-import type { Monitor } from '@FluxWeb/admin/fetchAdmin'
+import type { AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin'
+import type { Library } from '@FluxContracts/schemas/Library'
 
 const { AdminArea } = AdminAreaModule
 
-const OVERVIEW = {
+const OVERVIEW: AdminOverview = {
   users: [
     {
       id: 'abc',
@@ -68,7 +69,96 @@ const MONITOR: Monitor = {
   logs: [{ atMs: 0, level: 'error', source: 'transcoder', message: 'Could not open the file' }],
 }
 
+const MOVIES_LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
+
+const LIBRARIES: Library[] = [
+  {
+    id: MOVIES_LIBRARY_ID,
+    name: 'Movies',
+    kind: 'movies',
+    path: '/media/movies',
+    itemCount: 42,
+    lastScannedAt: null,
+  },
+]
+
+const CREATED_LIBRARY: Library = {
+  id: '11111111-1111-4111-8111-111111111111',
+  name: 'Shows',
+  kind: 'shows',
+  path: '/media/shows',
+  itemCount: 0,
+  lastScannedAt: null,
+}
+
+const SHOWS_LIBRARY_ID = '22222222-2222-4222-8222-222222222222'
+
+const TWO_LIBRARIES: Library[] = [
+  ...LIBRARIES,
+  {
+    id: SHOWS_LIBRARY_ID,
+    name: 'Shows',
+    kind: 'shows',
+    path: '/media/shows',
+    itemCount: 5,
+    lastScannedAt: null,
+  },
+]
+
 const fetchMock = vi.fn()
+
+/**
+ * Answers whatever the admin page's requests ask for.
+ *
+ * One implementation shared by every test rather than one per test, so a
+ * test that overrides the overview does not have to relearn how libraries,
+ * scans and the monitor stream are answered too.
+ */
+const respondWith =
+  (overview: typeof OVERVIEW = OVERVIEW) =>
+  (input: string, init?: RequestInit) => {
+    if (input.includes('/scans/')) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            jobId: 'scan-job',
+            state: 'completed',
+            phase: 'previews',
+            processed: 1,
+            total: 1,
+          }),
+      })
+    }
+
+    if (input.includes('/scan')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ jobId: 'scan-job', state: 'queued' }),
+      })
+    }
+
+    if (input.includes('/reset')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ jobId: 'reset-job', state: 'queued' }),
+      })
+    }
+
+    if (input.includes('/api/libraries') && init?.method === 'POST') {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(CREATED_LIBRARY) })
+    }
+
+    if (input.includes('/api/libraries')) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(LIBRARIES) })
+    }
+
+    if (input.includes('monitor')) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(MONITOR) })
+    }
+
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(overview) })
+  }
 
 class FakeEventSource {
   static last: FakeEventSource | null = null
@@ -89,12 +179,7 @@ class FakeEventSource {
 beforeEach(() => {
   FakeEventSource.last = null
   fetchMock.mockReset()
-  fetchMock.mockImplementation((input: string) =>
-    Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve(input.includes('monitor') ? MONITOR : OVERVIEW),
-    }),
-  )
+  fetchMock.mockImplementation(respondWith())
 
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('EventSource', FakeEventSource)
@@ -112,18 +197,10 @@ describe('AdminArea', () => {
   })
 
   it('says when the media service is not up, which is the thing worth knowing', async () => {
-    fetchMock.mockImplementation((input: string) =>
-      Promise.resolve({
-        ok: true,
-        json: () =>
-          Promise.resolve(
-            input.includes('monitor')
-              ? MONITOR
-              : {
-                  ...OVERVIEW,
-                  transcoder: { isReachable: false, ffmpegVersion: null, hardwareAccels: [] },
-                },
-          ),
+    fetchMock.mockImplementation(
+      respondWith({
+        ...OVERVIEW,
+        transcoder: { isReachable: false, ffmpegVersion: null, hardwareAccels: [] },
       }),
     )
 
@@ -229,5 +306,289 @@ describe('AdminArea', () => {
     render(<AdminArea />)
 
     expect(screen.getByText('Server')).toBeInTheDocument()
+  })
+
+  it('lists the library roots', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+
+    expect(screen.getByText('Movies')).toBeInTheDocument()
+    expect(screen.getByText(/\/media\/movies/)).toBeInTheDocument()
+  })
+
+  it('adds a library from the dialog', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Add library' }))
+
+    const dialog = screen.getByRole('dialog', { name: 'Add a library' })
+
+    await actor.type(within(dialog).getByLabelText('Name'), 'Shows')
+    await actor.type(within(dialog).getByLabelText('Path'), '/media/shows')
+    await actor.click(within(dialog).getByRole('button', { name: 'Add library' }))
+
+    await waitFor(() => {
+      expect(dialog).not.toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Shows')).toBeInTheDocument()
+  })
+
+  it('scans a library on request', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${MOVIES_LIBRARY_ID}/scan`, {
+        method: 'POST',
+      })
+    })
+  })
+
+  it('offers to scan every library at once, forcing a fresh probe of each', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan all libraries' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        `/api/libraries/${MOVIES_LIBRARY_ID}/scan?force=true`,
+        { method: 'POST' },
+      )
+    })
+  })
+
+  it('asks before resetting every library', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }))
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Reset and rebuild every library' }),
+    ).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/reset'), expect.anything())
+  })
+
+  it('clears and rebuilds every library once the operator confirms', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }))
+
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Reset and rebuild every library',
+    })
+
+    await actor.click(within(dialog).getByRole('button', { name: 'Reset and rebuild' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${MOVIES_LIBRARY_ID}/reset`, {
+        method: 'POST',
+      })
+    })
+  })
+
+  it('does nothing when the operator backs out of the reset', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }))
+
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Reset and rebuild every library',
+    })
+
+    await actor.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => {
+      expect(dialog).not.toBeInTheDocument()
+    })
+
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/reset'), expect.anything())
+  })
+
+  it('shows a progress bar in place of the button while a library is scanning', async () => {
+    const scanUrl = `/api/libraries/${MOVIES_LIBRARY_ID}/scan`
+
+    fetchMock.mockImplementation((input: string, init?: RequestInit) =>
+      input === scanUrl ? new Promise(() => undefined) : respondWith()(input, init),
+    )
+
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan' }))
+
+    expect(await screen.findByRole('progressbar', { name: 'Scanning Movies' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Scan' })).not.toBeInTheDocument()
+  })
+
+  it('reports how many files have actually been probed as the scan goes', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
+    const scanUrl = `/api/libraries/${MOVIES_LIBRARY_ID}/scan`
+    let readings = 0
+
+    fetchMock.mockImplementation((input: string, init?: RequestInit) => {
+      if (input === scanUrl) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ jobId: 'scan-job', state: 'queued' }),
+        })
+      }
+
+      if (input.includes('/scans/')) {
+        readings += 1
+
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve(
+              readings === 1
+                ? { jobId: 'scan-job', state: 'running', phase: 'probing', processed: 3, total: 10 }
+                : {
+                    jobId: 'scan-job',
+                    state: 'completed',
+                    phase: 'previews',
+                    processed: 10,
+                    total: 10,
+                  },
+            ),
+        })
+      }
+
+      return respondWith()(input, init)
+    })
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan' }))
+
+    expect(await screen.findByText('3/10')).toBeInTheDocument()
+    expect(screen.getByText('Probing')).toBeInTheDocument()
+
+    await vi.advanceTimersByTimeAsync(1000)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Scan' })).toBeInTheDocument()
+    })
+
+    vi.useRealTimers()
+  })
+
+  it('moves the label on to the next stage once probing finishes', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
+    const scanUrl = `/api/libraries/${MOVIES_LIBRARY_ID}/scan`
+    let readings = 0
+
+    fetchMock.mockImplementation((input: string, init?: RequestInit) => {
+      if (input === scanUrl) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ jobId: 'scan-job', state: 'queued' }),
+        })
+      }
+
+      if (input.includes('/scans/')) {
+        readings += 1
+
+        const reading =
+          readings === 1
+            ? { jobId: 'scan-job', state: 'running', phase: 'probing', processed: 1, total: 1 }
+            : readings === 2
+              ? { jobId: 'scan-job', state: 'running', phase: 'previews', processed: 0, total: 1 }
+              : { jobId: 'scan-job', state: 'completed', phase: 'previews', processed: 1, total: 1 }
+
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(reading) })
+      }
+
+      return respondWith()(input, init)
+    })
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan' }))
+
+    expect(await screen.findByText('Probing')).toBeInTheDocument()
+
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect(await screen.findByText('Generating previews')).toBeInTheDocument()
+
+    await vi.advanceTimersByTimeAsync(1000)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Scan' })).toBeInTheDocument()
+    })
+
+    vi.useRealTimers()
+  })
+
+  it('replaces every scan button with its own progress bar when scanning all libraries', async () => {
+    fetchMock.mockImplementation((input: string, init?: RequestInit) => {
+      if (input === '/api/libraries' && init?.method !== 'POST') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(TWO_LIBRARIES) })
+      }
+
+      if (input.includes('/scan?force=true')) {
+        return new Promise(() => undefined)
+      }
+
+      return respondWith()(input, init)
+    })
+
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan all libraries' }))
+
+    expect(await screen.findByRole('progressbar', { name: 'Scanning Movies' })).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Scanning Shows' })).toBeInTheDocument()
+    expect(screen.queryAllByRole('button', { name: 'Scan' })).toHaveLength(0)
+  })
+
+  it('guides the operator when there are no libraries', async () => {
+    fetchMock.mockImplementation((input: string, init?: RequestInit) =>
+      input.includes('/api/libraries') && init?.method !== 'POST'
+        ? Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+        : respondWith()(input, init),
+    )
+
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+
+    expect(await screen.findByText(/No libraries yet/)).toBeInTheDocument()
   })
 })

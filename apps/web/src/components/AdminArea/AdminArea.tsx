@@ -7,7 +7,11 @@ import {
   IconCpu,
   IconDatabase,
   IconPlayerPlay,
+  IconPlus,
+  IconRefresh,
+  IconRefreshAlert,
   IconStack2,
+  IconTrash,
 } from '@tabler/icons-react'
 import SparklineModule from '@FluxUI/Sparkline'
 import BadgeModule from '@FluxUI/Badge'
@@ -16,8 +20,14 @@ import TabBarModule from '@FluxUI/TabBar'
 import TextFieldModule from '@FluxUI/TextField'
 import revealModule from '@FluxUI/animations/reveal'
 import fetchAdminModule from '@FluxWeb/admin/fetchAdmin'
+import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
+import waitForScanCompletionModule from '@FluxWeb/library/waitForScanCompletion'
 import StatStripModule from './components/StatStrip/StatStrip'
+import AddLibraryDialogModule from './components/AddLibraryDialog/AddLibraryDialog'
+import ScanProgressBarModule from './components/ScanProgressBar/ScanProgressBar'
+import ResetLibrariesDialogModule from './components/ResetLibrariesDialog/ResetLibrariesDialog'
 import formatBytesModule from './formatBytes'
+import type { Library } from '@FluxContracts/schemas/Library'
 import type { AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin'
 import type { AdminAreaProps } from './AdminArea.types'
 
@@ -28,7 +38,12 @@ const { TabBar } = TabBarModule
 const { TextField } = TextFieldModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey } = fetchAdminModule
+const { fetchLibraries, scanLibrary, resetLibrary } = fetchLibraryModule
+const { waitForScanCompletion } = waitForScanCompletionModule
 const { StatStrip } = StatStripModule
+const { AddLibraryDialog } = AddLibraryDialogModule
+const { ScanProgressBar } = ScanProgressBarModule
+const { ResetLibrariesDialog } = ResetLibrariesDialogModule
 const { formatBytes } = formatBytesModule
 
 /**
@@ -40,6 +55,7 @@ const PANELS = [
   { id: 'activity', label: 'Activity' },
   { id: 'work', label: 'Work' },
   { id: 'events', label: 'Events' },
+  { id: 'libraries', label: 'Libraries' },
   { id: 'settings', label: 'Settings' },
 ] as const
 
@@ -102,11 +118,120 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
   const [panel, setPanel] = useState<PanelId>('activity')
   const [catalogueKey, setCatalogueKey] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [libraries, setLibraries] = useState<Library[]>([])
+  const [isAddingLibrary, setIsAddingLibrary] = useState(false)
+  const [scanProgress, setScanProgress] = useState<
+    ReadonlyMap<string, { phase: string | null; processed: number | null; total: number | null }>
+  >(new Map())
+  const [isScanningAll, setIsScanningAll] = useState(false)
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false)
+  const [isResettingAll, setIsResettingAll] = useState(false)
   const prefersReducedMotion = useReducedMotion()
+
+  const onLibraryCreated = (library: Library) => {
+    setLibraries((current) => [...current, library])
+    setIsAddingLibrary(false)
+  }
+
+  const trackProgress = (
+    libraryId: string,
+    phase: string | null,
+    processed: number | null,
+    total: number | null,
+  ) => {
+    setScanProgress((current) => new Map(current).set(libraryId, { phase, processed, total }))
+  }
+
+  const untrackProgress = (libraryId: string) => {
+    setScanProgress((current) => {
+      const next = new Map(current)
+      next.delete(libraryId)
+
+      return next
+    })
+  }
+
+  const rescan = async (libraryId: string) => {
+    trackProgress(libraryId, null, null, null)
+
+    try {
+      const job = await scanLibrary(libraryId)
+
+      if (job !== null) {
+        await waitForScanCompletion(job.jobId, (progress) => {
+          trackProgress(libraryId, progress.phase, progress.processed, progress.total)
+        })
+      }
+
+      setLibraries(await fetchLibraries())
+    } finally {
+      untrackProgress(libraryId)
+    }
+  }
+
+  const rescanAll = async () => {
+    setIsScanningAll(true)
+
+    for (const library of libraries) {
+      trackProgress(library.id, null, null, null)
+    }
+
+    try {
+      await Promise.all(
+        libraries.map(async (library) => {
+          const job = await scanLibrary(library.id, true)
+
+          if (job !== null) {
+            await waitForScanCompletion(job.jobId, (progress) => {
+              trackProgress(library.id, progress.phase, progress.processed, progress.total)
+            })
+          }
+
+          untrackProgress(library.id)
+        }),
+      )
+
+      setLibraries(await fetchLibraries())
+    } finally {
+      setIsScanningAll(false)
+      setScanProgress(new Map())
+    }
+  }
+
+  const resetAll = async () => {
+    setIsConfirmingReset(false)
+    setIsResettingAll(true)
+
+    for (const library of libraries) {
+      trackProgress(library.id, null, null, null)
+    }
+
+    try {
+      await Promise.all(
+        libraries.map(async (library) => {
+          const job = await resetLibrary(library.id)
+
+          if (job !== null) {
+            await waitForScanCompletion(job.jobId, (progress) => {
+              trackProgress(library.id, progress.phase, progress.processed, progress.total)
+            })
+          }
+
+          untrackProgress(library.id)
+        }),
+      )
+
+      setLibraries(await fetchLibraries())
+    } finally {
+      setIsResettingAll(false)
+      setScanProgress(new Map())
+    }
+  }
 
   useEffect(() => {
     void fetchAdminOverview().then(setOverview)
     void fetchMonitor().then(setMonitor)
+    void fetchLibraries().then(setLibraries)
   }, [])
 
   useEffect(() => {
@@ -396,6 +521,133 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                     ))}
                   </ul>
                 )}
+              </div>
+            ) : null}
+
+            {panel === 'libraries' ? (
+              <div className="flex flex-col">
+                <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
+                  <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
+                    Library roots
+                  </h2>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      isPill
+                      isLoading={isScanningAll}
+                      disabled={libraries.length === 0 || scanProgress.size > 0}
+                      onClick={() => {
+                        void rescanAll()
+                      }}
+                    >
+                      <IconRefreshAlert size={16} aria-hidden />
+                      Scan all libraries
+                    </Button>
+
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      isPill
+                      isLoading={isResettingAll}
+                      disabled={libraries.length === 0 || scanProgress.size > 0}
+                      onClick={() => {
+                        setIsConfirmingReset(true)
+                      }}
+                    >
+                      <IconTrash size={16} aria-hidden />
+                      Reset and rebuild
+                    </Button>
+
+                    <Button
+                      variant="glossy"
+                      size="sm"
+                      isPill
+                      onClick={() => {
+                        setIsAddingLibrary(true)
+                      }}
+                    >
+                      <IconPlus size={16} aria-hidden />
+                      Add library
+                    </Button>
+                  </div>
+                </header>
+
+                {libraries.length === 0 ? (
+                  <p className="p-5 text-sm text-text-muted">
+                    No libraries yet. Add one pointing at a folder of media.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-white/5">
+                    {libraries.map((library) => {
+                      const progress = scanProgress.get(library.id)
+
+                      return (
+                        <li
+                          key={library.id}
+                          className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+                        >
+                          <div className="flex min-w-0 flex-col gap-0.5">
+                            <span className="flex items-center gap-2 text-sm text-text">
+                              {library.name}
+                              <Badge size="sm">{library.kind}</Badge>
+                            </span>
+
+                            <span className="truncate text-xs text-text-muted" title={library.path}>
+                              {library.path} ·{' '}
+                              {library.itemCount === 1
+                                ? '1 item'
+                                : `${library.itemCount.toString()} items`}
+                            </span>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-2">
+                            {progress === undefined ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                isPill
+                                onClick={() => {
+                                  void rescan(library.id)
+                                }}
+                              >
+                                <IconRefresh size={16} aria-hidden />
+                                Scan
+                              </Button>
+                            ) : (
+                              <ScanProgressBar
+                                label={`Scanning ${library.name}`}
+                                phase={progress.phase}
+                                processed={progress.processed}
+                                total={progress.total}
+                              />
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+
+                <AddLibraryDialog
+                  isOpen={isAddingLibrary}
+                  onClose={() => {
+                    setIsAddingLibrary(false)
+                  }}
+                  onCreated={onLibraryCreated}
+                />
+
+                <ResetLibrariesDialog
+                  isOpen={isConfirmingReset}
+                  isResetting={isResettingAll}
+                  onClose={() => {
+                    setIsConfirmingReset(false)
+                  }}
+                  onConfirm={() => {
+                    void resetAll()
+                  }}
+                />
               </div>
             ) : null}
 

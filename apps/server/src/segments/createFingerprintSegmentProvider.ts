@@ -36,7 +36,6 @@ const MAX_EPISODES = 8
 type CreateFingerprintSegmentProviderOptions = {
   transcoder: Transcoder
   onProblem?: (path: string, reason: string) => void
-  onProgress?: (message: string) => void
 }
 
 /**
@@ -55,11 +54,10 @@ type CreateFingerprintSegmentProviderOptions = {
 const createFingerprintSegmentProvider = ({
   transcoder,
   onProblem,
-  onProgress,
 }: CreateFingerprintSegmentProviderOptions): SegmentProvider => ({
   name: 'fingerprint',
 
-  detect: async (group: SegmentCandidate[]) => {
+  detect: async (group: SegmentCandidate[], onItemDone?: () => void) => {
     const found = new Map<string, MediaSegment[]>()
 
     if (group.length < MIN_EPISODES) {
@@ -85,14 +83,17 @@ const createFingerprintSegmentProvider = ({
         })
       } catch (error) {
         onProblem?.(item.path, error instanceof Error ? error.message : 'Could not be listened to.')
+      } finally {
+        // The decode is the expensive part, so this is where the season's
+        // slowness actually lives — comparing the fingerprints afterwards is
+        // fast enough not to be worth reporting.
+        onItemDone?.()
       }
     }
 
     if (fingerprints.length < MIN_EPISODES) {
       return found
     }
-
-    onProgress?.(`Comparing ${fingerprints.length.toString()} episodes.`)
 
     // Every range each episode was found to share with any other. An episode
     // whose candidates disagree with each other has nothing worth trusting.
