@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { IconInfoCircle, IconPlayerPlayFilled, IconStar } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
@@ -14,6 +14,15 @@ const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { formatDuration } = formatDurationModule
 const { MediaPreview } = MediaPreviewModule
 const { cn } = cnModule
+
+/**
+ * How far the page has to move for the hero to become a card.
+ *
+ * About a third of a screen: far enough that a nudge does not shrink it, near
+ * enough that somebody scrolling to the library has it out of the way by the
+ * time they get there.
+ */
+const DRAWS_IN_BY_PIXELS = 320
 
 /**
  * How long an item holds the screen before the next one takes it.
@@ -95,6 +104,17 @@ const Hero = ({
       : [{ key: 'year', said: <span className="tabular-nums">{featured.year}</span> }]),
   ]
 
+  // How far the page has been read, as a number between the two shapes. The
+  // window rather than the section, because the hero is what is being scrolled
+  // away from rather than into.
+  const { scrollY } = useScroll()
+  const inset = useTransform(scrollY, [0, DRAWS_IN_BY_PIXELS], [0, 40], { clamp: true })
+  const lift = useTransform(scrollY, [0, DRAWS_IN_BY_PIXELS], [0, 72], { clamp: true })
+  const corner = useTransform(scrollY, [0, DRAWS_IN_BY_PIXELS], [0, 28], { clamp: true })
+  const height = useTransform(scrollY, [0, DRAWS_IN_BY_PIXELS], ['100svh', '68svh'], {
+    clamp: true,
+  })
+
   const showNext = useCallback(() => {
     if (items.length > 1 && !isHeld) {
       setIndex((current) => (current + 1) % items.length)
@@ -130,21 +150,30 @@ const Hero = ({
   }
 
   return (
-    <section
+    <motion.section
       aria-label="Featured"
       onPointerEnter={hold}
       onPointerLeave={release}
       onFocusCapture={hold}
       onBlurCapture={release}
+      style={
+        prefersReducedMotion === true
+          ? {}
+          : { height, marginLeft: inset, marginRight: inset, marginTop: lift, borderRadius: corner }
+      }
       // A card rather than a full-bleed opening shot: inset from the edges,
       // cornered like everything else on the page, and short enough that the
       // first row of the library shows underneath it. The page reads as a
       // library with something at the top of it rather than as a poster with
       // a library hidden behind it.
+      // It opens as the whole screen and draws itself in as the page moves:
+      // arriving is an opening shot, and reading is a library with something
+      // at the top of it. The sizes are driven by the scroll rather than by a
+      // class, because halfway between the two states is a real state.
       className={cn(
-        'relative mx-5 mt-20 flex min-h-[62svh] flex-col justify-end overflow-hidden',
-        'rounded-3xl ring-1 ring-white/10 shadow-[0_40px_80px_-40px_rgba(0,0,0,0.9)]',
-        'sm:mx-10 sm:min-h-[68svh]',
+        'relative flex flex-col justify-end overflow-hidden',
+        'ring-1 ring-white/10 shadow-[0_40px_80px_-40px_rgba(0,0,0,0.9)]',
+        prefersReducedMotion === true ? 'mx-5 mt-20 min-h-[68svh] rounded-3xl sm:mx-10' : '',
       )}
     >
       {/* The picture crossfades under the text rather than cutting, so a
@@ -305,7 +334,7 @@ const Hero = ({
           ))}
         </ul>
       )}
-    </section>
+    </motion.section>
   )
 }
 
