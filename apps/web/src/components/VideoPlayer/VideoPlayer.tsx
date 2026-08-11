@@ -77,13 +77,12 @@ type FullscreenOwner = {
 const IDLE_MILLISECONDS = 2500
 
 /**
- * How far the arrow keys move, and how far the longer jump does.
+ * How far a jump moves.
  *
- * Two sizes because scrubbing is two different jobs: nudging past a moment you
- * missed, and skipping a scene.
+ * The arrows step a frame at a time, which is for looking at something. This
+ * is for getting past it: thirty seconds is a scene, and the buttons on the
+ * bar do ten.
  */
-const SKIP_SECONDS = 10
-
 const JUMP_SECONDS = 30
 
 /**
@@ -95,6 +94,15 @@ const JUMP_SECONDS = 30
 const FINISHED_WITHIN_SECONDS = 90
 
 const HEALTH_INTERVAL_MILLISECONDS = 500
+
+/**
+ * How long a frame lasts until the film says otherwise.
+ *
+ * Twenty five a second, which is wrong for most things and close enough for
+ * all of them: it is only used for the first press, before two frames have
+ * gone past to be measured.
+ */
+const DEFAULT_FRAME_SECONDS = 1 / 25
 
 /**
  * How long to wait before asking a stalled stream again.
@@ -140,6 +148,10 @@ const VideoPlayer = ({
   // Keeps the nudges at a stream that has not started from outliving the
   // session they belong to.
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // How long one frame lasts, measured from the film itself. Nothing in the
+  // library reports a frame rate — ffprobe knows, but the browser is the one
+  // being asked to land on a frame, so the browser is asked.
+  const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS)
   const [session, setSession] = useState<StartedSession | null>(null)
   const [state, setState] = useState<PlayerState>('starting')
   const [problem, setProblem] = useState<string | null>(null)
@@ -742,37 +754,29 @@ const VideoPlayer = ({
   }, [state, duration, media.id, request.startSeconds])
 
   /**
-   * Moves by one keyframe.
+   * Moves by a single frame of the film.
    *
-   * The grid the thumbnails were rendered on, which is the grid a seek can
-   * actually land on: a transcode is cut at keyframes, so a ten second jump
-   * lands wherever the encoder happened to put one anyway. Stepping by that
-   * interval means the picture moves by exactly one step each press, and the
-   * preview under the scrub bar is the frame you arrive at.
+   * Done to the element rather than through a seek, because one frame is
+   * always inside what has already been decoded: asking the server for a new
+   * session to move a fortieth of a second would throw away the stream to
+   * land on the next picture in it.
    */
-  const stepFrame = useCallback(
-    (direction: number) => {
-      const frames = trickplay?.thumbnails ?? []
+  const stepFrame = useCallback((direction: number) => {
+    const element = videoRef.current
 
-      // Nothing has been rendered for this film, so there is no grid to step
-      // along. Ten seconds is the honest fallback rather than a guess at where
-      // the keyframes are.
-      if (frames.length === 0) {
-        seek(Math.min(Math.max(position + direction * SKIP_SECONDS, 0), duration))
+    if (element === null) {
+      return
+    }
 
-        return
-      }
+    // Stepping is something done to a still picture. A frame examined while
+    // the film is running has gone by before it can be looked at.
+    element.pause()
 
-      const at = frames.findIndex((frame) => position < frame.endSeconds)
-      const next =
-        frames[
-          Math.min(Math.max((at === -1 ? frames.length - 1 : at) + direction, 0), frames.length - 1)
-        ]
+    const at = element.currentTime + direction * frameSecondsRef.current
+    const last = Number.isFinite(element.duration) ? element.duration : at
 
-      seek(Math.min(Math.max(next?.startSeconds ?? 0, 0), duration))
-    },
-    [seek, position, duration, trickplay],
-  )
+    element.currentTime = Math.min(Math.max(at, 0), last)
+  }, [])
 
   const skip = useCallback(
     (delta: number) => {
@@ -805,6 +809,44 @@ const VideoPlayer = ({
 
     void target.requestFullscreen?.()
   }, [isFullscreen])
+
+  // What one frame of this film is worth, taken from the film. Two consecutive
+  // frames are enough: the gap between the moments they cover is the frame
+  // duration, which is the only number that makes an arrow key land on the
+  // next picture rather than near it.
+  useEffect(() => {
+    const element = videoRef.current
+
+    if (element === null || !('requestVideoFrameCallback' in element)) {
+      return
+    }
+
+    let handle = 0
+    let previous: number | null = null
+
+    const measure = (_now: number, metadata: { mediaTime: number }) => {
+      if (previous !== null) {
+        const gap = metadata.mediaTime - previous
+
+        // A gap of nothing is the same frame reported twice, and a gap of a
+        // second is a stall rather than a frame rate.
+        if (gap > 0 && gap < 1) {
+          frameSecondsRef.current = gap
+
+          return
+        }
+      }
+
+      previous = metadata.mediaTime
+      handle = element.requestVideoFrameCallback(measure)
+    }
+
+    handle = element.requestVideoFrameCallback(measure)
+
+    return () => {
+      element.cancelVideoFrameCallback(handle)
+    }
+  }, [session])
 
   // Focus lands on the film itself when the player opens. The shortcuts listen
   // on the window either way, but focus left behind on whatever was pressed to
