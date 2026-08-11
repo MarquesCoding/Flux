@@ -19,6 +19,7 @@ import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
 import MediaFactsModule from '@FluxWeb/components/MediaFacts/MediaFacts'
+import scrollToTopOfModule from '@FluxWeb/navigation/scrollToTopOf'
 import CastGridModule from './components/CastGrid/CastGrid'
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types'
@@ -34,6 +35,7 @@ const { formatDuration } = formatDurationModule
 const { fetchMediaDetail } = fetchLibraryModule
 const { MediaPreview } = MediaPreviewModule
 const { MediaFacts } = MediaFactsModule
+const { scrollToTopOf } = scrollToTopOfModule
 const { CastGrid } = CastGridModule
 
 /**
@@ -96,9 +98,12 @@ const MediaDetailDialog = ({
     // another: arriving at a new page halfway down it is arriving lost. Taken
     // rather than jumped, so it reads as the page returning to its beginning
     // instead of as a different page appearing.
-    topRef.current?.scrollIntoView({
-      block: 'start',
-      behavior: prefersReducedMotion === true ? 'auto' : 'smooth',
+    //
+    // Next frame, because the page it is returning to the top of has only just
+    // been mounted: a scroll asked for before that has been laid out is a
+    // scroll to where the old page happened to end.
+    const returning = requestAnimationFrame(() => {
+      scrollToTopOf(topRef.current, prefersReducedMotion !== true)
     })
 
     let abandoned = false
@@ -115,8 +120,9 @@ const MediaDetailDialog = ({
 
     return () => {
       abandoned = true
+      cancelAnimationFrame(returning)
     }
-  }, [media])
+  }, [media, prefersReducedMotion])
 
   // Everything the panel says about the item is held the same way. These are
   // worked out from the item being inspected, so they empty at the moment it
@@ -311,45 +317,27 @@ const MediaDetailDialog = ({
             )}
           </div>
 
-          {/* The poster beside the words rather than nowhere at all. The
-            picture at the top of this page is a frame of the film, chosen by
-            nobody; the poster is what somebody designed to say what this is,
-            and a page about an item that never shows it is missing the one
-            image made for the purpose. */}
-          <section className="flex flex-col gap-5 sm:flex-row sm:gap-8">
-            {!shown.hasPoster ? null : (
-              <span className="w-32 shrink-0 overflow-hidden rounded-xl bg-surface-raised shadow-lg ring-1 ring-white/10 sm:w-44">
-                <img
-                  src={artworkUrl(shown.id, 'poster')}
-                  alt=""
-                  loading="lazy"
-                  className="aspect-[2/3] h-full w-full object-cover"
-                />
-              </span>
+          <section className="flex flex-col gap-3">
+            <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
+              Synopsis
+            </h3>
+
+            {isLoading ? (
+              <div aria-hidden className="flex flex-col gap-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-[92%]" />
+                <Skeleton className="h-4 w-[70%]" />
+              </div>
+            ) : typeof metadata?.overview === 'string' && metadata.overview !== '' ? (
+              <p className="max-w-prose text-[0.95rem] leading-relaxed text-text">
+                {metadata.overview}
+              </p>
+            ) : (
+              <p className="flex items-center gap-2 text-sm text-text-muted">
+                <IconInfoCircle size={16} aria-hidden />
+                No synopsis yet. Configure a metadata provider and rescan to fill this in.
+              </p>
             )}
-
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
-                Synopsis
-              </h3>
-
-              {isLoading ? (
-                <div aria-hidden className="flex flex-col gap-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-[92%]" />
-                  <Skeleton className="h-4 w-[70%]" />
-                </div>
-              ) : typeof metadata?.overview === 'string' && metadata.overview !== '' ? (
-                <p className="max-w-prose text-[0.95rem] leading-relaxed text-text">
-                  {metadata.overview}
-                </p>
-              ) : (
-                <p className="flex items-center gap-2 text-sm text-text-muted">
-                  <IconInfoCircle size={16} aria-hidden />
-                  No synopsis yet. Configure a metadata provider and rescan to fill this in.
-                </p>
-              )}
-            </div>
           </section>
 
           <section className="flex flex-col gap-3">
