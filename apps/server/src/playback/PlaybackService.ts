@@ -2,7 +2,6 @@ import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile'
 import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan'
 import type { PlaybackMode } from '@FluxContracts/functions/describePlaybackMode'
 import type { QualityStepId } from '@FluxContracts/schemas/QualityStep'
-
 type Explanation = {
   mode: PlaybackMode
   plan: PlaybackPlan
@@ -95,6 +94,14 @@ type PlaybackService = {
   readPreview: (mediaId: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>
   readTrickplayFile: (trickplayId: string, name: string) => Promise<SessionFile | null>
   stop: (sessionId: string) => Promise<boolean>
+  /**
+   * Tells playback a session is still wanted, and whether it is currently
+   * playing or paused.
+   *
+   * `false` means the server no longer knows this session — the caller
+   * should stop sending heartbeats for it.
+   */
+  heartbeat: (sessionId: string, isPlaying: boolean) => Promise<boolean>
 }
 
 /**

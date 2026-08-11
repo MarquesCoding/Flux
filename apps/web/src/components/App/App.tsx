@@ -21,6 +21,7 @@ import ProfileGateModule from '@FluxWeb/components/ProfileGate/ProfileGate'
 import usePlaceModule from '@FluxWeb/navigation/usePlace'
 import pickFeaturedModule from '@FluxWeb/library/pickFeatured'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
+import watchPresenceModule from '@FluxWeb/presence/watchPresence'
 import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
 import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types'
 import fetchSessionModule from '@FluxWeb/session/fetchSession'
@@ -51,6 +52,7 @@ const { ProfileGate } = ProfileGateModule
 const { usePlace } = usePlaceModule
 const { findSiblings, nextEpisode } = pickFeaturedModule
 const { fetchWatchProgress, byMediaId } = watchProgressModule
+const { watchPresence } = watchPresenceModule
 const { isWorthResuming, watchedFraction, FINISHED_WITHIN_SECONDS } = WatchProgressContract
 
 const { fetchSession } = fetchSessionModule
@@ -194,6 +196,17 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       void readProgress()
     }
   }, [user, readProgress])
+
+  // Opened once for the whole app, not per player, so a tab shows up in the
+  // admin's Active Sessions list the moment it is open — whether or not
+  // anybody has started watching anything in it yet.
+  useEffect(() => {
+    if (user === null) {
+      return
+    }
+
+    return watchPresence()
+  }, [user])
 
   if (loadState === 'loading') {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
@@ -383,7 +396,16 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       />
 
       {section === 'admin' ? (
-        <AdminArea />
+        <AdminArea
+          initialPanel={place.adminPanel}
+          onPanelChange={(panel) => {
+            replace({ adminPanel: panel })
+          }}
+          initialJob={place.adminJob}
+          onJobChange={(kind) => {
+            replace({ adminJob: kind })
+          }}
+        />
       ) : section === 'account' ? (
         <AccountArea
           user={user}

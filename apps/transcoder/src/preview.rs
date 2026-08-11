@@ -67,6 +67,11 @@ pub struct PreviewRequest {
     /// Whether the caller will wait for the encode to finish.
     #[serde(default)]
     pub wait: bool,
+    /// Which audio stream the clip should carry, when a library forces one.
+    ///
+    /// Absent leaves the choice to ffmpeg, exactly as before this existed.
+    #[serde(default)]
+    pub audio_stream_index: Option<u32>,
 }
 
 const fn default_seconds() -> u32 {
@@ -112,6 +117,10 @@ impl PreviewRequest {
         hasher.update(self.input_path.as_bytes());
         hasher.update(self.duration_seconds.to_be_bytes());
         hasher.update(self.width.to_be_bytes());
+        // Part of the identity, not just an argument: a clip made for one
+        // forced language must not be handed back, already "complete", for a
+        // request asking for another.
+        hasher.update(self.audio_stream_index.unwrap_or(u32::MAX).to_be_bytes());
 
         let digest = hasher.finalize();
         let mut id = String::with_capacity(32);
@@ -180,7 +189,7 @@ pub fn preview_arguments(
     // to a preview twice its size, and the encoder would spend the effort.
     filters.push(format!("scale='min({width},iw)':-2", width = request.width));
 
-    vec![
+    let mut arguments = vec![
         "-hide_banner".to_owned(),
         "-loglevel".to_owned(),
         "error".to_owned(),
@@ -191,6 +200,20 @@ pub fn preview_arguments(
         request.input_path.clone(),
         "-t".to_owned(),
         request.duration_seconds.to_string(),
+    ];
+
+    // Mapping is explicit whenever a library forced a language, and left to
+    // ffmpeg otherwise — the same rule the transcode session follows, so a
+    // preview and the film itself never disagree about which track this file
+    // plays in.
+    if let Some(index) = request.audio_stream_index {
+        arguments.push("-map".to_owned());
+        arguments.push("0:v:0".to_owned());
+        arguments.push("-map".to_owned());
+        arguments.push(format!("0:{index}"));
+    }
+
+    arguments.extend([
         "-vf".to_owned(),
         filters.join(","),
         "-c:v".to_owned(),
@@ -215,7 +238,9 @@ pub fn preview_arguments(
         "+faststart".to_owned(),
         "-y".to_owned(),
         output.to_string_lossy().into_owned(),
-    ]
+    ]);
+
+    arguments
 }
 
 /// Makes the clip, or reuses the one already there.
@@ -293,6 +318,7 @@ mod tests {
             duration_seconds: 24,
             width: 1920,
             wait: false,
+            audio_stream_index: None,
         }
     }
 
@@ -362,5 +388,52 @@ mod tests {
     #[test]
     fn is_named_the_same_for_the_same_clip() {
         assert_eq!(request().id(), request().id());
+    }
+
+    #[test]
+    fn leaves_stream_selection_to_ffmpeg_when_no_language_is_forced() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            VideoRange::Sdr,
+            ToneMapping::Zscale,
+            Path::new("/cache/preview.mp4"),
+        );
+
+        assert!(!arguments.iter().any(|argument| argument == "-map"));
+    }
+
+    #[test]
+    fn maps_the_forced_audio_stream_explicitly() {
+        let forced = PreviewRequest {
+            audio_stream_index: Some(2),
+            ..request()
+        };
+
+        let arguments = preview_arguments(
+            &forced,
+            600,
+            VideoRange::Sdr,
+            ToneMapping::Zscale,
+            Path::new("/cache/preview.mp4"),
+        );
+
+        assert!(arguments.windows(2).any(|pair| pair == ["-map", "0:v:0"]));
+        assert!(arguments.windows(2).any(|pair| pair == ["-map", "0:2"]));
+    }
+
+    #[test]
+    fn identifies_clips_for_different_forced_languages_separately() {
+        let english = PreviewRequest {
+            audio_stream_index: Some(2),
+            ..request()
+        };
+        let german = PreviewRequest {
+            audio_stream_index: Some(1),
+            ..request()
+        };
+
+        assert_ne!(english.id(), german.id());
+        assert_ne!(english.id(), request().id());
     }
 }

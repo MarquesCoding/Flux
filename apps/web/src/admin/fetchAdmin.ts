@@ -1,4 +1,9 @@
 import { z } from 'zod'
+import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
+import { ScanJobSchema } from '@FluxWeb/library/fetchLibrary'
+import type { ScanJob } from '@FluxWeb/library/fetchLibrary'
+
+const { PlaybackPlanSchema } = PlaybackPlanModule
 
 const AdminUserSchema = z.object({
   id: z.string(),
@@ -72,9 +77,92 @@ const MonitorSchema = z.object({
   ),
 })
 
+const ActiveSessionSchema = z.object({
+  clientId: z.string(),
+  profileId: z.string().nullable(),
+  profileName: z.string().nullable(),
+  deviceLabel: z.string(),
+  connectedAt: z.number(),
+  playback: z
+    .object({
+      mediaId: z.string(),
+      mediaTitle: z.string(),
+      hasPoster: z.boolean(),
+      hasBackdrop: z.boolean(),
+      mode: z.enum(['direct', 'transcode']),
+      plan: PlaybackPlanSchema,
+      isPlaying: z.boolean(),
+      pausedByAdmin: z.boolean(),
+      startedAt: z.number(),
+      health: z
+        .object({
+          positionSeconds: z.number(),
+          durationSeconds: z.number(),
+          bufferedAheadSeconds: z.number(),
+          presentedWidth: z.number(),
+          presentedHeight: z.number(),
+        })
+        .nullable(),
+    })
+    .nullable(),
+})
+
+/**
+ * A job an admin can start on demand, as the Work tab's picker sees it.
+ */
+const JobDefinitionSchema = z.object({
+  kind: z.string(),
+  label: z.string(),
+  description: z.string(),
+  needsLibrary: z.boolean(),
+  destructive: z.boolean(),
+})
+
+/**
+ * What makes a job run on its own, matching the server's own set of triggers
+ * — see `apps/server/src/jobs/scheduleTrigger.ts`.
+ */
+const ScheduleTriggerSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('startup') }),
+  z.object({
+    kind: z.literal('everyMinutes'),
+    minutes: z.number().int().min(1).max(59),
+  }),
+  z.object({
+    kind: z.literal('everyHours'),
+    hours: z.number().int().min(1).max(23),
+  }),
+  z.object({
+    kind: z.literal('daily'),
+    hour: z.number().int().min(0).max(23),
+    minute: z.number().int().min(0).max(59),
+  }),
+  z.object({
+    kind: z.literal('weekly'),
+    dayOfWeek: z.number().int().min(0).max(6),
+    hour: z.number().int().min(0).max(23),
+    minute: z.number().int().min(0).max(59),
+  }),
+])
+
+const JobTriggerSchema = z.object({
+  id: z.string(),
+  trigger: ScheduleTriggerSchema,
+})
+
+const JobScheduleSchema = z.object({
+  kind: z.string(),
+  triggers: z.array(JobTriggerSchema),
+})
+
 type AdminOverview = z.infer<typeof AdminOverviewSchema>
 type Monitor = z.infer<typeof MonitorSchema>
 type Job = z.infer<typeof JobSchema>
+type ActiveSession = z.infer<typeof ActiveSessionSchema>
+type JobDefinition = z.infer<typeof JobDefinitionSchema>
+type ScheduleTrigger = z.infer<typeof ScheduleTriggerSchema>
+type JobTrigger = z.infer<typeof JobTriggerSchema>
+type JobSchedule = z.infer<typeof JobScheduleSchema>
 
 /**
  * Reads the state of the server.
@@ -136,6 +224,159 @@ const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
 }
 
 /**
+ * Reads every tab that has the app open right now.
+ */
+const fetchActiveSessions = async (): Promise<ActiveSession[]> => {
+  const response = await fetch('/api/admin/sessions', { credentials: 'same-origin' }).catch(
+    () => null,
+  )
+
+  if (response === null || !response.ok) {
+    return []
+  }
+
+  return z.array(ActiveSessionSchema).parse(await response.json())
+}
+
+/**
+ * Stops someone else's stream, kicking them out of the player.
+ */
+const stopSession = async (clientId: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/sessions/${clientId}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  }).catch(() => null)
+
+  return response !== null && response.ok
+}
+
+/**
+ * Pauses someone else's stream. Not a lock — they can press play again.
+ */
+const pauseSession = async (clientId: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/sessions/${clientId}/pause`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  }).catch(() => null)
+
+  return response !== null && response.ok
+}
+
+/**
+ * Resumes a stream this admin paused.
+ */
+const resumeSession = async (clientId: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/sessions/${clientId}/resume`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  }).catch(() => null)
+
+  return response !== null && response.ok
+}
+
+/**
+ * Reads every job an admin can start on demand from the Work tab.
+ */
+const fetchJobDefinitions = async (): Promise<JobDefinition[]> => {
+  const response = await fetch('/api/admin/jobs/definitions', {
+    credentials: 'same-origin',
+  }).catch(() => null)
+
+  if (response === null || !response.ok) {
+    return []
+  }
+
+  const { definitions } = z
+    .object({ definitions: z.array(JobDefinitionSchema) })
+    .parse(await response.json())
+
+  return definitions
+}
+
+/**
+ * Starts a job of the given kind against a library, from the Work tab.
+ *
+ * Additive to the per-library `scanLibrary`/`resetLibrary`/
+ * `regenerateLibraryPreviews` calls in `fetchLibrary.ts` rather than a
+ * replacement for them — this is the admin-gated, kind-generic entry point
+ * the job picker needs, working for any kind the server's job registry
+ * returns without further changes here.
+ */
+const runJob = async (
+  kind: string,
+  libraryId?: string,
+  force?: boolean,
+): Promise<ScanJob | null> => {
+  const response = await fetch(`/api/admin/jobs/${kind}/run`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      ...(libraryId === undefined ? {} : { libraryId }),
+      ...(force === undefined ? {} : { force }),
+    }),
+  }).catch(() => null)
+
+  if (response === null || !response.ok) {
+    return null
+  }
+
+  return ScanJobSchema.parse(await response.json())
+}
+
+/**
+ * Reads what makes each job run on its own.
+ */
+const fetchJobSchedules = async (): Promise<JobSchedule[]> => {
+  const response = await fetch('/api/admin/jobs/schedules', { credentials: 'same-origin' }).catch(
+    () => null,
+  )
+
+  if (response === null || !response.ok) {
+    return []
+  }
+
+  const { schedules } = z
+    .object({ schedules: z.array(JobScheduleSchema) })
+    .parse(await response.json())
+
+  return schedules
+}
+
+/**
+ * Adds one trigger to a job, reporting it with the id that removes it again.
+ */
+const addJobTrigger = async (
+  kind: string,
+  trigger: ScheduleTrigger,
+): Promise<JobTrigger | null> => {
+  const response = await fetch(`/api/admin/jobs/${kind}/triggers`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ trigger }),
+  }).catch(() => null)
+
+  if (response === null || !response.ok) {
+    return null
+  }
+
+  return JobTriggerSchema.parse(await response.json())
+}
+
+/**
+ * Removes one trigger from a job.
+ */
+const removeJobTrigger = async (kind: string, triggerId: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/jobs/${kind}/triggers/${triggerId}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  }).catch(() => null)
+
+  return response !== null && response.ok
+}
+
+/**
  * Saves a setting an operator owns.
  */
 const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
@@ -149,6 +390,29 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
   return response !== null && response.ok
 }
 
-export type { AdminOverview, Job, Monitor }
+export type {
+  ActiveSession,
+  AdminOverview,
+  Job,
+  JobDefinition,
+  JobSchedule,
+  JobTrigger,
+  Monitor,
+  ScheduleTrigger,
+}
 
-export default { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey }
+export default {
+  fetchAdminOverview,
+  fetchMonitor,
+  watchMonitor,
+  saveCatalogueKey,
+  fetchActiveSessions,
+  stopSession,
+  pauseSession,
+  resumeSession,
+  fetchJobDefinitions,
+  runJob,
+  fetchJobSchedules,
+  addJobTrigger,
+  removeJobTrigger,
+}

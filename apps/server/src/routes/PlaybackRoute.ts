@@ -18,6 +18,14 @@ const ExplainResponse = z
 const StartRequest = z
   .object({
     deviceProfile: DeviceProfileSchema,
+    /**
+     * The tab starting this session, for presence to attribute it to.
+     *
+     * Optional so a caller with no presence identity (a test, a script) can
+     * still start a session — it just will not show up as watching anything
+     * in the admin's Active Sessions list.
+     */
+    clientId: z.string().min(1).optional(),
     startSeconds: z.number().int().nonnegative().optional(),
     /**
      * The audio stream to play, as the item's detail numbers them.
@@ -138,9 +146,50 @@ const stopRoute = createRoute({
   path: '/api/playback/session/{sessionId}',
   tags: ['Playback'],
   summary: 'Stop a playback session',
-  request: { params: z.object({ sessionId: z.string().min(1) }) },
+  request: {
+    params: z.object({ sessionId: z.string().min(1) }),
+  },
   responses: {
     204: { description: 'The session was stopped' },
+    404: {
+      description: 'No such session',
+      content: { 'application/json': { schema: PlaybackError } },
+    },
+  },
+})
+
+const HeartbeatRequest = z
+  .object({
+    /**
+     * Whether the player is actually playing right now, as opposed to
+     * paused with the tab still open.
+     *
+     * Reported rather than inferred: pausing stops segment requests too, so
+     * only the player itself can say which of the two is happening.
+     */
+    isPlaying: z.boolean(),
+  })
+  .openapi('PlaybackHeartbeatRequest')
+
+/**
+ * Tells the server a session is still wanted.
+ *
+ * The authoritative liveness signal, sent on a fixed interval regardless of
+ * play state — unlike segment fetching, which a paused player stops doing.
+ * Without this, idle collection could not tell a viewer who is letting the
+ * buffer fill apart from one who closed the tab.
+ */
+const heartbeatRoute = createRoute({
+  method: 'post',
+  path: '/api/playback/session/{sessionId}/heartbeat',
+  tags: ['Playback'],
+  summary: 'Report that a session is still wanted, and whether it is playing',
+  request: {
+    params: z.object({ sessionId: z.string().min(1) }),
+    body: { content: { 'application/json': { schema: HeartbeatRequest } } },
+  },
+  responses: {
+    204: { description: 'The heartbeat was recorded' },
     404: {
       description: 'No such session',
       content: { 'application/json': { schema: PlaybackError } },
@@ -269,4 +318,5 @@ export default {
   trickplayFileRoute,
   frameRoute,
   stopRoute,
+  heartbeatRoute,
 }
