@@ -22,6 +22,7 @@ const createMediaStore = (
         path: mediaItem.path,
         sizeBytes: mediaItem.sizeBytes,
         modifiedAtMs: mediaItem.modifiedAtMs,
+        externalId: mediaItem.externalId,
       })
       .from(mediaItem)
       .where(eq(mediaItem.libraryId, libraryId))

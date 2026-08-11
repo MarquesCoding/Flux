@@ -10,10 +10,20 @@ type MediaFacts = {
    */
   episode?: {
     seriesTitle: string | null
+    seriesYear?: number | null
     seasonNumber: number | null
     episodeNumber: number | null
     episodeTitle?: string | null
   }
+  /**
+   * What a provider previously said this item's id was, there.
+   *
+   * A rescan asks again by name from nothing, every time, unless told what it
+   * already knew — and a name search is exactly what let this item get
+   * mismatched in the first place. Given the id, a provider can go straight
+   * to the thing it already found instead of searching for it again.
+   */
+  knownExternalId?: string | null
 }
 
 type CastMember = {
