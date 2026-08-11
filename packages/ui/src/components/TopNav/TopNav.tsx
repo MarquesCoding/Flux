@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { IconMenu2 } from '@tabler/icons-react'
 import cnModule from '@FluxUI/cn'
 import TooltipModule from '@FluxUI/Tooltip'
+import PopoverPanelModule from '@FluxUI/PopoverPanel'
 import type { TopNavProps } from './TopNav.types'
 
 const { cn } = cnModule
 const { Tooltip } = TooltipModule
+const { PopoverPanel } = PopoverPanelModule
 
 /**
  * The bar across the top, as two things rather than one.
@@ -24,6 +28,9 @@ const { Tooltip } = TooltipModule
  */
 const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }: TopNavProps) => {
   const prefersReducedMotion = useReducedMotion()
+  // Closed when a place is chosen: a menu still sitting over the page it
+  // navigated to is a menu somebody has to dismiss to see what they asked for.
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
     <header
@@ -31,18 +38,57 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
     >
       <nav
         aria-label="Sections"
-        // Three columns rather than a row that spaces itself. The places
-        // belong in the middle of the screen, not in the middle of whatever is
-        // left over once the tools have taken their width.
-        className="mx-auto grid max-w-[1800px] grid-cols-[1fr_auto_1fr] items-center gap-3"
+        // Three columns where there is room for three: the places belong in
+        // the middle of the screen, not in the middle of whatever is left over
+        // once the tools have taken their width. On a phone there is no such
+        // room — three columns there means a middle one too wide to fit,
+        // pushed off both edges — so it is a row, and the places take what is
+        // left and scroll within it.
+        className="mx-auto flex max-w-[1800px] items-center justify-between gap-2 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:gap-3"
       >
-        <div className="pointer-events-auto flex min-w-0 items-center">{brand}</div>
+        <div className="pointer-events-auto hidden min-w-0 items-center sm:flex">{brand}</div>
 
-        {/* The places. Scrollable at narrow widths rather than folded away
-            behind a button: five words fit on a phone if they are allowed to
-            run off the edge, and a menu that has to be opened to see where you
-            can go is a menu nobody opens. */}
-        <ul className="flux-glass pointer-events-auto flex min-w-0 items-center gap-0.5 justify-self-center overflow-x-auto rounded-full p-1 [&::-webkit-scrollbar]:hidden">
+        {/* On a phone the places fold into one control. Two capsules and eight
+            icons do not fit across a phone, and the honest answer to not
+            fitting is to put the less urgent group away rather than to let it
+            run off both edges. */}
+        <div className="flux-glass pointer-events-auto flex shrink-0 items-center rounded-full p-1 sm:hidden">
+          <PopoverPanel
+            label="Where to go"
+            side="bottom"
+            trigger={<IconMenu2 size={20} aria-hidden />}
+            isOpen={isMenuOpen}
+            onOpenChange={setIsMenuOpen}
+          >
+            <ul className="flex w-52 flex-col gap-0.5 py-1">
+              {items.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    aria-current={item.id === selectedId ? 'page' : undefined}
+                    onClick={() => {
+                      setIsMenuOpen(false)
+                      onSelect(item.id)
+                    }}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+                      item.id === selectedId
+                        ? 'bg-white/15 font-medium text-white'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white',
+                    )}
+                  >
+                    {item.icon === undefined ? null : (
+                      <span className="flex shrink-0 items-center">{item.icon}</span>
+                    )}
+                    {item.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </PopoverPanel>
+        </div>
+
+        <ul className="flux-glass pointer-events-auto hidden min-w-0 items-center gap-0.5 overflow-x-auto rounded-full p-1 sm:flex sm:justify-self-center [&::-webkit-scrollbar]:hidden">
           {items.map((item) => {
             const isCurrent = item.id === selectedId
 

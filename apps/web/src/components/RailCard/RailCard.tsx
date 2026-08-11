@@ -19,6 +19,7 @@ import BadgeModule from '@FluxUI/Badge'
 import ButtonModule from '@FluxUI/Button'
 import IconButtonModule from '@FluxUI/IconButton'
 import revealModule from '@FluxUI/animations/reveal'
+import hasFinePointerModule from '@FluxUI/hasFinePointer'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
@@ -31,6 +32,7 @@ const { Badge } = BadgeModule
 const { Button } = ButtonModule
 const { IconButton } = IconButtonModule
 const { liquidSpring } = revealModule
+const { hasFinePointer } = hasFinePointerModule
 const { formatDuration } = formatDurationModule
 const { fetchMediaDetail } = fetchLibraryModule
 const { MediaPreview } = MediaPreviewModule
@@ -77,15 +79,6 @@ const LEAN = { stiffness: 150, damping: 18, mass: 0.6 } as const
  * Where a card is on screen.
  */
 type Anchor = { left: number; top: number; width: number }
-
-/**
- * Whether this is a device where hovering means anything.
- *
- * A touch screen reports a hover the moment a finger lands, which would open a
- * card every time somebody scrolled a row.
- */
-const hasPointer = (): boolean =>
-  typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
 /**
  * Places the open card over the one it grew from.
@@ -235,7 +228,7 @@ const RailCard = ({
   const open = useCallback(() => {
     const holder = holderRef.current
 
-    if (holder === null || prefersReducedMotion === true || !hasPointer()) {
+    if (holder === null || prefersReducedMotion === true || !hasFinePointer()) {
       return
     }
 

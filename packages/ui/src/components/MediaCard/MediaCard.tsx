@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { IconPlayerPlayFilled } from '@tabler/icons-react'
 import cnModule from '@FluxUI/cn'
+import hasFinePointerModule from '@FluxUI/hasFinePointer'
 import BadgeModule from '@FluxUI/Badge'
 import revealModule from '@FluxUI/animations/reveal'
 import type { MediaCardProps, MediaCardShape } from './MediaCard.types'
 
 const { cn } = cnModule
+const { hasFinePointer } = hasFinePointerModule
 const { Badge } = BadgeModule
 const { revealTransition } = revealModule
 
@@ -44,6 +47,14 @@ const MediaCard = ({
 }: MediaCardProps) => {
   const prefersReducedMotion = useReducedMotion()
   const isLead = emphasis === 'lead'
+  // Whether lifting towards a pointer means anything here. A finger reports a
+  // hover as it lands and goes on reporting it once it has gone, so a card on
+  // a phone would rise on being tapped and stay risen.
+  const [canHover, setCanHover] = useState(false)
+
+  useEffect(() => {
+    setCanHover(hasFinePointer())
+  }, [])
 
   return (
     <motion.button
@@ -51,7 +62,7 @@ const MediaCard = ({
       onClick={onSelect}
       // Spread rather than passed as undefined: with exact optional property
       // types, an absent prop and a prop set to nothing are different things.
-      {...(prefersReducedMotion === true || isStill
+      {...(prefersReducedMotion === true || isStill || !canHover
         ? {}
         : { whileHover: { y: -6 }, whileTap: { scale: 0.985 } })}
       transition={revealTransition(prefersReducedMotion)}

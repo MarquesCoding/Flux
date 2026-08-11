@@ -317,7 +317,11 @@ const Hero = ({
             labels={items.map((item) => item.title)}
             label="Featured items"
             onSelect={setIndex}
-            className="absolute bottom-8 right-5 sm:right-10"
+            // Below the buttons on a phone and beside them on anything
+            // wider. Floated over the bottom corner of a narrow screen, the
+            // markers land on top of the one control the hero exists to
+            // offer.
+            className="mb-8 mr-5 self-end sm:absolute sm:bottom-8 sm:right-10 sm:mb-0 sm:mr-0"
           />
         </motion.section>
       </div>
