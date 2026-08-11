@@ -24,6 +24,14 @@ type MediaDetailDialogProps = {
   /**
    * Whether this viewer has kept it, and how they say otherwise.
    */
+  /**
+   * Where this was opened from, when it was opened from something.
+   *
+   * An episode reached from its programme should lead back to it: closing
+   * would drop somebody onto the shelf they came through two steps ago.
+   */
+  onBack?: () => void
+  backLabel?: string
   isKept?: boolean
   onToggleKept?: (media: MediaSummary) => void
 }

@@ -440,6 +440,16 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         {...(inspecting !== null && resumeFor(inspecting.id) !== null
           ? { resumeSeconds: resumeFor(inspecting.id) ?? 0 }
           : {})}
+        {...(openShow === null
+          ? {}
+          : {
+              // Reached from a programme, so it leads back to the programme
+              // rather than out to whatever shelf that was opened from.
+              onBack: () => {
+                go({ inspecting: null })
+              },
+              backLabel: openShow.title,
+            })}
         isKept={inspecting !== null && favourites.isKept(inspecting.id)}
         onToggleKept={(media) => {
           favourites.toggle(media.id)
