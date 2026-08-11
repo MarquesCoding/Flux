@@ -1499,6 +1499,21 @@ const VideoPlayer = ({
                         releaseRef.current = null
                       },
                     }),
+              }).then((outcome) => {
+                if (outcome === 'shown' || outcome === 'dismissed') {
+                  return
+                }
+
+                // The browser declined to open its picker. The usual reason is
+                // the connection: casting is offered over HTTPS and over
+                // localhost, and a server read at its address on the network
+                // over plain HTTP is neither — which is exactly how it has to
+                // be read for a television to fetch anything from it.
+                setCastNote(
+                  window.location.protocol === 'https:'
+                    ? 'This browser would not offer a device. Safari casts over AirPlay; Chrome needs a Chromecast on the same network.'
+                    : 'This browser only casts over a secure connection. Serve Flux over HTTPS, or use Safari, which will cast from here as it is.',
+                )
               })
             }}
             {...(canPopOut ? { onPopOut: popOut } : {})}

@@ -1,4 +1,5 @@
 import castPlaybackModule from '@FluxWeb/playback/castPlayback'
+import type { PromptOutcome } from '@FluxWeb/playback/castPlayback'
 
 const { absoluteStreamUrl, promptForDevice } = castPlaybackModule
 
@@ -31,15 +32,20 @@ type HandOverOptions = {
  * directly, the position is put back so the film carries on from where it was,
  * and the engine is let go of afterwards.
  *
- * Answers with whether a picker was shown. Nothing is torn down when there was
- * no address to give, so a viewer who cannot cast is left watching what they
- * were watching.
+ * Answers with what the browser did about the picker, so a caller can say why
+ * nothing happened. Nothing is torn down when there was no address to give, so
+ * a viewer who cannot cast is left watching what they were watching.
  */
-const handOverToDevice = ({ element, url, origin, release }: HandOverOptions): Promise<boolean> => {
+const handOverToDevice = ({
+  element,
+  url,
+  origin,
+  release,
+}: HandOverOptions): Promise<PromptOutcome> => {
   const address = absoluteStreamUrl(url, origin)
 
   if (address === null) {
-    return Promise.resolve(false)
+    return Promise.resolve('unsupported')
   }
 
   const at = element.currentTime

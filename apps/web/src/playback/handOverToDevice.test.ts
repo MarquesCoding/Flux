@@ -9,13 +9,17 @@ const REACHABLE = 'http://flux.local:5173'
  * A video element that can be handed to a device, as Chrome presents one.
  */
 const castable = (isRefused = false) => {
+  const closed = new Error('closed')
+
+  closed.name = 'AbortError'
+
   const element = document.createElement('video')
 
   Object.defineProperty(element, 'remote', {
     configurable: true,
     value: {
       state: 'disconnected',
-      prompt: vi.fn(() => (isRefused ? Promise.reject(new Error('no')) : Promise.resolve())),
+      prompt: vi.fn(() => (isRefused ? Promise.reject(closed) : Promise.resolve())),
       watchAvailability: vi.fn(() => Promise.resolve(1)),
       cancelWatchAvailability: vi.fn(() => Promise.resolve()),
       addEventListener: vi.fn(),
@@ -86,11 +90,11 @@ describe('handOverToDevice', () => {
 
     // Nothing torn down, so a viewer who cannot cast is left watching what
     // they were watching.
-    expect(shown).toBe(false)
+    expect(shown).toBe('unsupported')
     expect(release).not.toHaveBeenCalled()
   })
 
-  it('says so when the picker was dismissed', async () => {
+  it('says so when the viewer closed the picker', async () => {
     const element = castable(true)
 
     await expect(
@@ -99,6 +103,6 @@ describe('handOverToDevice', () => {
         url: '/api/playback/session/abc/index.m3u8',
         origin: REACHABLE,
       }),
-    ).resolves.toBe(false)
+    ).resolves.toBe('dismissed')
   })
 })

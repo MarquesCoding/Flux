@@ -151,23 +151,37 @@ describe('promptForDevice', () => {
   it('shows Safari its own picker', async () => {
     const element = wireless()
 
-    await expect(promptForDevice(element)).resolves.toBe(true)
+    await expect(promptForDevice(element)).resolves.toBe('shown')
     expect(element.webkitShowPlaybackTargetPicker).toHaveBeenCalled()
   })
 
   it('asks the standard interface everywhere else', async () => {
     const { element, remote } = standard('disconnected')
 
-    await expect(promptForDevice(element)).resolves.toBe(true)
+    await expect(promptForDevice(element)).resolves.toBe('shown')
     expect(remote.prompt).toHaveBeenCalled()
   })
 
-  it('treats a dismissed picker as nothing having happened', async () => {
+  it('tells a closed picker from a refused one', async () => {
     const { element, remote } = standard('disconnected')
+    const closed = new Error('closed')
 
-    remote.prompt.mockRejectedValue(new Error('dismissed'))
+    closed.name = 'AbortError'
+    remote.prompt.mockRejectedValue(closed)
 
-    await expect(promptForDevice(element)).resolves.toBe(false)
+    await expect(promptForDevice(element)).resolves.toBe('dismissed')
+  })
+
+  it('says when the browser declined to open one at all', async () => {
+    // What a browser does over a plain connection, which is exactly how a
+    // server has to be read for a television to fetch anything from it.
+    const { element, remote } = standard('disconnected')
+    const refused = new Error('not supported')
+
+    refused.name = 'NotSupportedError'
+    remote.prompt.mockRejectedValue(refused)
+
+    await expect(promptForDevice(element)).resolves.toBe('refused')
   })
 
   it('says so where there is no picker to show', async () => {
@@ -175,6 +189,6 @@ describe('promptForDevice', () => {
 
     Object.defineProperty(element, 'remote', { configurable: true, value: undefined })
 
-    await expect(promptForDevice(element)).resolves.toBe(false)
+    await expect(promptForDevice(element)).resolves.toBe('unsupported')
   })
 })

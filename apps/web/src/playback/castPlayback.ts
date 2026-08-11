@@ -142,37 +142,56 @@ const watchCastState = (
 }
 
 /**
+ * Why a picker did not open.
+ *
+ * `refused` is the one worth saying out loud: the standard interface is only
+ * offered over a secure connection, so a server read over plain HTTP at its
+ * address on the network — which is exactly how it has to be read for casting
+ * to be any use — is refused by the browser rather than by anything here.
+ */
+type PromptOutcome = 'shown' | 'dismissed' | 'refused' | 'unsupported'
+
+/**
  * Asks the browser to show its list of devices.
  *
- * The browser's own list rather than one drawn here: it is the only thing that
- * knows what is on the network, and a viewer choosing a television already
- * knows what their browser's picker looks like.
+ * The browser's own list rather than one drawn here: no page is allowed to
+ * know what is on somebody's network, since a list of it is a fingerprint.
  *
- * Answers with whether anything was shown, so a caller can say why not.
+ * Answers with what happened rather than with whether it worked, because the
+ * difference between a viewer closing a picker and a browser refusing to open
+ * one is the difference between saying nothing and saying what to do.
  */
-const promptForDevice = async (element: HTMLVideoElement): Promise<boolean> => {
+const promptForDevice = async (element: HTMLVideoElement): Promise<PromptOutcome> => {
   if (typeof element.webkitShowPlaybackTargetPicker === 'function') {
-    element.webkitShowPlaybackTargetPicker()
+    try {
+      element.webkitShowPlaybackTargetPicker()
 
-    return true
+      return 'shown'
+    } catch {
+      return 'refused'
+    }
   }
 
   const remote = element.remote
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- As above: the type is a promise the browser has not necessarily kept.
   if (remote === undefined) {
-    return false
+    return 'unsupported'
   }
 
   try {
     await remote.prompt()
 
-    return true
-  } catch {
-    // Dismissed, or refused because nothing was reachable. Neither is a fault
-    // worth reporting as one.
-    return false
+    return 'shown'
+  } catch (error) {
+    const named = error instanceof Error ? error.name : ''
+
+    // Closing a picker is a decision. Everything else is the browser declining
+    // to show one, which is worth passing on.
+    return named === 'AbortError' || named === 'NotAllowedError' ? 'dismissed' : 'refused'
   }
 }
+
+export type { PromptOutcome }
 
 export default { isReachableOrigin, absoluteStreamUrl, watchCastState, promptForDevice, OWN_NAMES }
