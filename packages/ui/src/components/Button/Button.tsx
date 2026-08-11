@@ -45,7 +45,7 @@ const Button = ({
       aria-busy={isLoading}
       className={cn(
         'inline-flex shrink-0 items-center justify-center font-medium',
-        'transition-[filter,box-shadow,transform,opacity] duration-200',
+        'transition-[filter,box-shadow,transform,translate,scale,opacity] duration-200',
         'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100',
         'active:scale-[0.98]',
         isPill ? 'rounded-full' : 'rounded-lg',

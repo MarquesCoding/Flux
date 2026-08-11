@@ -21,7 +21,13 @@ const POPUP_MOTION = [
   // and leaving is not. The curve decelerates hard rather than easing evenly,
   // which is what makes a panel look like it has weight instead of like a
   // rectangle whose opacity is being changed.
-  'transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+  //
+  // Every property that actually moves is named. Tailwind writes a shift and a
+  // scale as the `translate` and `scale` properties rather than into
+  // `transform`, so a transition that only knows about `transform` transitions
+  // nothing: the panel snapped into place and only its opacity was ever
+  // animated.
+  'transition-[opacity,transform,translate,scale] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
   'data-[ending-style]:duration-150 data-[ending-style]:ease-in',
   'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
   // Each width animates the property the other is using for layout: a phone
