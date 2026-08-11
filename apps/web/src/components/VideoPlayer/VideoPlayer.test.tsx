@@ -952,4 +952,200 @@ describe('VideoPlayer', () => {
       vi.useRealTimers()
     }
   })
+
+  it('starts playing on arrival rather than waiting to be asked', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    await settled()
+
+    expect(play).toHaveBeenCalled()
+  })
+
+  it('asks for whole seconds, since a resumed position is a fraction of one', async () => {
+    render(<VideoPlayer media={media} startSeconds={2103.4567} onClose={vi.fn()} />)
+    await settled()
+
+    // The third thing it is asked for is where to start, and it has to be a
+    // whole number: the contract says so, and a rejected request is the
+    // "playback could not be started" a viewer used to meet on resuming.
+    expect(startMock.mock.calls.at(-1)?.[2]).toBe(2103)
+  })
+
+  it('says where the viewer has got to as they get there', async () => {
+    const onProgress = vi.fn()
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} onProgress={onProgress} />)
+    await settled()
+
+    const element = await screen.findByLabelText('Arrival')
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 90 })
+    fireEvent.timeUpdate(element)
+
+    expect(onProgress).toHaveBeenCalledWith(90, 7200)
+  })
+
+  it('says when the film has run out, so a season can go on', async () => {
+    const onEnded = vi.fn()
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} onEnded={onEnded} />)
+    await settled()
+
+    fireEvent.ended(await screen.findByLabelText('Arrival'))
+
+    expect(onEnded).toHaveBeenCalledOnce()
+  })
+
+  it('counts the film as watched to the end before handing over', async () => {
+    const onProgress = vi.fn()
+
+    render(
+      <VideoPlayer media={media} onClose={vi.fn()} onProgress={onProgress} onEnded={vi.fn()} />,
+    )
+    await settled()
+
+    fireEvent.ended(await screen.findByLabelText('Arrival'))
+
+    expect(onProgress).toHaveBeenLastCalledWith(7200, 7200)
+  })
+
+  it('steps a frame at a time rather than seeking, since one frame is already decoded', async () => {
+    const actor = userEvent.setup()
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
+    await settled()
+
+    const element = await screen.findByLabelText('Arrival')
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 10, writable: true })
+    Object.defineProperty(element, 'duration', { configurable: true, value: 7200 })
+
+    await actor.keyboard('{ArrowRight}')
+
+    // A fraction of a second on, rather than a new session a few seconds away.
+    const at = element instanceof HTMLVideoElement ? element.currentTime : 0
+
+    expect(at).toBeGreaterThan(10)
+    expect(at).toBeLessThan(10.5)
+    expect(startMock).toHaveBeenCalledOnce()
+  })
+
+  it('pauses to step, since a frame examined while running has gone by', async () => {
+    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined)
+    const actor = userEvent.setup()
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
+    await settled()
+
+    await actor.keyboard('{ArrowLeft}')
+
+    expect(pause).toHaveBeenCalled()
+  })
+
+  it('offers the rest of the season, and nothing at all for a film', async () => {
+    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
+    await settled()
+
+    expect(screen.queryByRole('button', { name: 'Episodes' })).not.toBeInTheDocument()
+
+    rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        episodes={[
+          {
+            ...media,
+            libraryId: 'lib',
+            year: null,
+            width: 1920,
+            height: 1080,
+            videoCodec: 'h264',
+            videoRange: 'SDR',
+            addedAt: '2026-01-01T00:00:00.000Z',
+            hasPoster: false,
+            hasBackdrop: false,
+            seriesTitle: 'Show',
+            seasonNumber: 1,
+            episodeNumber: 1,
+          },
+        ]}
+        onSelectEpisode={vi.fn()}
+      />,
+    )
+
+    expect(await screen.findByRole('button', { name: 'Episodes' })).toBeInTheDocument()
+  })
+
+  it('takes the floating window with it, however the player is left', async () => {
+    const exit = vi.fn().mockResolvedValue(undefined)
+
+    // Put back afterwards: a document that still claims it can float things,
+    // with nothing left to do it, breaks every test that unmounts a player
+    // after this one.
+    const asBrowserWithout = () => {
+      Object.defineProperty(document, 'pictureInPictureEnabled', {
+        configurable: true,
+        value: false,
+      })
+      Object.defineProperty(document, 'pictureInPictureElement', {
+        configurable: true,
+        value: null,
+      })
+    }
+
+    try {
+      Object.defineProperty(document, 'pictureInPictureEnabled', {
+        configurable: true,
+        value: true,
+      })
+      Object.defineProperty(document, 'pictureInPictureElement', {
+        configurable: true,
+        value: document.createElement('video'),
+      })
+      Object.defineProperty(document, 'exitPictureInPicture', { configurable: true, value: exit })
+
+      const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+
+      await settled()
+      unmount()
+
+      expect(exit).toHaveBeenCalled()
+    } finally {
+      asBrowserWithout()
+    }
+  })
+
+  it('keeps the controls up while a menu on them is open', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
+    try {
+      const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
+      // The stream is nudged until it starts, which means asking the element
+      // to play — and this test runs after ones that have had their hands on
+      // it.
+      vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+
+      render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
+
+      const element = await screen.findByLabelText('Arrival')
+
+      fireEvent.play(element)
+      await actor.click(screen.getByRole('button', { name: 'Settings' }))
+
+      act(() => {
+        vi.advanceTimersByTime(6000)
+      })
+
+      // The bar has not been pushed out of the picture: a bar that left from
+      // under an open menu would take the menu with it.
+      const bar = screen.getByRole('button', { name: 'Settings' }).closest('.absolute')
+
+      expect(bar?.className).toContain('translate-y-0')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
