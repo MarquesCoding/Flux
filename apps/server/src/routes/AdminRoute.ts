@@ -1,4 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi'
+import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
+
+const { PlaybackPlanSchema } = PlaybackPlanModule
 
 const AdminError = z.object({ error: z.string() }).openapi('AdminError')
 
@@ -72,6 +75,142 @@ const adminOverviewRoute = createRoute({
 })
 
 /**
+ * One open tab, as an admin sees it.
+ *
+ * Presence itself, not the transcoder — this is why a browsing viewer who
+ * has started nothing still shows up, and why a direct play (which never
+ * touches the transcoder at all) does too.
+ */
+const AdminSessionSchema = z
+  .object({
+    clientId: z.string(),
+    profileId: z.string().nullable(),
+    profileName: z.string().nullable(),
+    deviceLabel: z.string(),
+    connectedAt: z.number(),
+    playback: z
+      .object({
+        mediaId: z.string(),
+        mediaTitle: z.string(),
+        hasPoster: z.boolean(),
+        hasBackdrop: z.boolean(),
+        mode: z.enum(['direct', 'transcode']),
+        plan: PlaybackPlanSchema,
+        isPlaying: z.boolean(),
+        pausedByAdmin: z.boolean(),
+        startedAt: z.number(),
+        health: z
+          .object({
+            positionSeconds: z.number(),
+            durationSeconds: z.number(),
+            bufferedAheadSeconds: z.number(),
+            presentedWidth: z.number(),
+            presentedHeight: z.number(),
+          })
+          .nullable(),
+      })
+      .nullable(),
+  })
+  .openapi('AdminSession')
+
+/**
+ * Every tab that has the app open, for an admin to see who is around and
+ * what they are watching.
+ */
+const adminSessionsRoute = createRoute({
+  method: 'get',
+  path: '/api/admin/sessions',
+  tags: ['Admin'],
+  summary: 'List every open tab',
+  responses: {
+    200: {
+      description: 'Every open tab',
+      content: { 'application/json': { schema: z.array(AdminSessionSchema) } },
+    },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+})
+
+/**
+ * Stops someone else's stream.
+ *
+ * Kicks the viewer out of the player immediately, with an explanation —
+ * unlike closing their own tab, which they would never see a message for.
+ */
+const adminStopSessionRoute = createRoute({
+  method: 'delete',
+  path: '/api/admin/sessions/{clientId}',
+  tags: ['Admin'],
+  summary: 'Stop a viewer’s stream',
+  request: { params: z.object({ clientId: z.string().min(1) }) },
+  responses: {
+    204: { description: 'The stream was stopped' },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+    404: {
+      description: 'That tab is not open',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+})
+
+/**
+ * Pauses someone else's stream.
+ *
+ * Not a lock — the viewer can press play again themselves. A nudge, with an
+ * explanation, not an enforced hold.
+ */
+const adminPauseSessionRoute = createRoute({
+  method: 'post',
+  path: '/api/admin/sessions/{clientId}/pause',
+  tags: ['Admin'],
+  summary: 'Pause a viewer’s stream',
+  request: { params: z.object({ clientId: z.string().min(1) }) },
+  responses: {
+    204: { description: 'The stream was paused' },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+    404: {
+      description: 'That tab is not open',
+      content: { 'application/json': { schema: AdminError } },
+    },
+    409: {
+      description: 'That tab is not watching anything',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+})
+
+/**
+ * Resumes a stream an admin paused.
+ */
+const adminResumeSessionRoute = createRoute({
+  method: 'post',
+  path: '/api/admin/sessions/{clientId}/resume',
+  tags: ['Admin'],
+  summary: 'Resume a viewer’s stream',
+  request: { params: z.object({ clientId: z.string().min(1) }) },
+  responses: {
+    204: { description: 'The stream was resumed' },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+    404: {
+      description: 'That tab is not open',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+})
+
+/**
  * Changes a setting an operator owns.
  */
 const adminSettingsRoute = createRoute({
@@ -94,4 +233,11 @@ const adminSettingsRoute = createRoute({
   },
 })
 
-export default { adminOverviewRoute, adminSettingsRoute }
+export default {
+  adminOverviewRoute,
+  adminSettingsRoute,
+  adminSessionsRoute,
+  adminStopSessionRoute,
+  adminPauseSessionRoute,
+  adminResumeSessionRoute,
+}

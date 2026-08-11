@@ -3,9 +3,19 @@ import JsonValueModule from '@FluxContracts/schemas/JsonValue'
 import fetchAdminModule from './fetchAdmin'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 import type { Monitor } from './fetchAdmin'
+import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
 
 const { JsonValueSchema } = JsonValueModule
-const { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey } = fetchAdminModule
+const {
+  fetchAdminOverview,
+  fetchMonitor,
+  watchMonitor,
+  saveCatalogueKey,
+  fetchActiveSessions,
+  stopSession,
+  pauseSession,
+  resumeSession,
+} = fetchAdminModule
 
 type Answer = { ok: boolean; json: () => Promise<JsonValue> }
 
@@ -130,6 +140,118 @@ describe('saveCatalogueKey', () => {
     fetchMock.mockRejectedValue(new Error('offline'))
 
     await expect(saveCatalogueKey('a-key')).resolves.toBe(false)
+  })
+})
+
+describe('fetchActiveSessions', () => {
+  const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' }
+  const plan: PlaybackPlan = {
+    mediaId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+    container: { kind: 'passthrough', reason },
+    video: { kind: 'passthrough', reason },
+    audio: { kind: 'passthrough', streamIndex: 1, reason },
+    subtitles: { kind: 'none', reason },
+  }
+
+  const SESSION = {
+    clientId: 'tab-1',
+    profileId: 'profile-1',
+    profileName: 'Dan',
+    deviceLabel: 'Living room TV',
+    connectedAt: 1000,
+    playback: {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: true,
+      hasBackdrop: true,
+      mode: 'direct' as const,
+      plan,
+      isPlaying: true,
+      pausedByAdmin: false,
+      startedAt: 1500,
+      health: null,
+    },
+  }
+
+  it('reads every tab that has the app open', async () => {
+    answerWith([SESSION])
+
+    await expect(fetchActiveSessions()).resolves.toEqual([SESSION])
+  })
+
+  it('reports nothing when the server refuses, rather than throwing', async () => {
+    answerWith([], false)
+
+    await expect(fetchActiveSessions()).resolves.toEqual([])
+  })
+
+  it('reports nothing when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'))
+
+    await expect(fetchActiveSessions()).resolves.toEqual([])
+  })
+})
+
+describe('stopSession', () => {
+  it('stops the stream an admin picked', async () => {
+    answerWith({})
+
+    await expect(stopSession('tab-1')).resolves.toBe(true)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/sessions/tab-1',
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('reports failure rather than pretending it stopped', async () => {
+    answerWith({}, false)
+
+    await expect(stopSession('tab-1')).resolves.toBe(false)
+  })
+
+  it('reports failure when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'))
+
+    await expect(stopSession('tab-1')).resolves.toBe(false)
+  })
+})
+
+describe('pauseSession', () => {
+  it('pauses the stream an admin picked', async () => {
+    answerWith({})
+
+    await expect(pauseSession('tab-1')).resolves.toBe(true)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/sessions/tab-1/pause',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('reports failure rather than pretending it paused', async () => {
+    answerWith({}, false)
+
+    await expect(pauseSession('tab-1')).resolves.toBe(false)
+  })
+})
+
+describe('resumeSession', () => {
+  it('resumes a stream this admin paused', async () => {
+    answerWith({})
+
+    await expect(resumeSession('tab-1')).resolves.toBe(true)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/sessions/tab-1/resume',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('reports failure rather than pretending it resumed', async () => {
+    answerWith({}, false)
+
+    await expect(resumeSession('tab-1')).resolves.toBe(false)
   })
 })
 

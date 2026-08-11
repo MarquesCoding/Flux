@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminAreaModule from './AdminArea'
 import type { AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin'
 import type { Library } from '@FluxContracts/schemas/Library'
+import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
 
 const { AdminArea } = AdminAreaModule
 
@@ -120,9 +121,52 @@ const fetchMock = vi.fn()
  * test that overrides the overview does not have to relearn how libraries,
  * scans and the monitor stream are answered too.
  */
+type FakeSession = {
+  clientId: string
+  profileId: string | null
+  profileName: string | null
+  deviceLabel: string
+  connectedAt: number
+  playback: {
+    mediaId: string
+    mediaTitle: string
+    hasPoster: boolean
+    hasBackdrop: boolean
+    mode: 'direct' | 'transcode'
+    plan: PlaybackPlan
+    isPlaying: boolean
+    pausedByAdmin: boolean
+    startedAt: number
+    health: {
+      positionSeconds: number
+      durationSeconds: number
+      bufferedAheadSeconds: number
+      presentedWidth: number
+      presentedHeight: number
+    } | null
+  } | null
+}
+
+const planReason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' }
+
+const FAKE_PLAN: PlaybackPlan = {
+  mediaId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+  container: { kind: 'passthrough', reason: planReason },
+  video: { kind: 'passthrough', reason: planReason },
+  audio: { kind: 'passthrough', streamIndex: 1, reason: planReason },
+  subtitles: { kind: 'none', reason: planReason },
+}
+
 const respondWith =
-  (overview: typeof OVERVIEW = OVERVIEW) =>
+  (overview: typeof OVERVIEW = OVERVIEW, sessions: readonly FakeSession[] = []) =>
   (input: string, init?: RequestInit) => {
+    if (input.includes('/api/admin/sessions')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(init?.method === 'DELETE' ? {} : sessions),
+      })
+    }
+
     if (input.includes('/scans/')) {
       return Promise.resolve({
         ok: true,
@@ -312,6 +356,80 @@ describe('AdminArea', () => {
     render(<AdminArea />)
 
     expect(screen.getByText('Server')).toBeInTheDocument()
+  })
+
+  it('says nobody has the app open when nobody does', async () => {
+    render(<AdminArea />)
+
+    expect(await screen.findByText('Nobody has the app open right now.')).toBeInTheDocument()
+  })
+
+  it('lists a stream in progress', async () => {
+    const session: FakeSession = {
+      clientId: 'tab-1',
+      profileId: 'profile-1',
+      profileName: 'Dan',
+      deviceLabel: 'Living room TV',
+      connectedAt: 1000,
+      playback: {
+        mediaId: 'media-1',
+        mediaTitle: 'Arrival',
+        hasPoster: false,
+        hasBackdrop: false,
+        mode: 'direct',
+        plan: FAKE_PLAN,
+        isPlaying: true,
+        pausedByAdmin: false,
+        startedAt: 1500,
+        health: null,
+      },
+    }
+
+    fetchMock.mockImplementation(respondWith(OVERVIEW, [session]))
+
+    render(<AdminArea />)
+
+    expect(await screen.findByText(/Arrival/)).toBeInTheDocument()
+    expect(screen.getByText('Playing')).toBeInTheDocument()
+    expect(screen.getByText('Living room TV')).toBeInTheDocument()
+    expect(screen.getAllByText('Dan').length).toBeGreaterThan(0)
+    expect(screen.getByText(/Direct play/)).toBeInTheDocument()
+  })
+
+  it('stops a stream on request', async () => {
+    const session: FakeSession = {
+      clientId: 'tab-1',
+      profileId: 'profile-1',
+      profileName: 'Dan',
+      deviceLabel: 'Living room TV',
+      connectedAt: 1000,
+      playback: {
+        mediaId: 'media-1',
+        mediaTitle: 'Arrival',
+        hasPoster: false,
+        hasBackdrop: false,
+        mode: 'direct',
+        plan: FAKE_PLAN,
+        isPlaying: true,
+        pausedByAdmin: false,
+        startedAt: 1500,
+        health: null,
+      },
+    }
+
+    fetchMock.mockImplementation(respondWith(OVERVIEW, [session]))
+
+    const actor = userEvent.setup()
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: /Stop/ }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/sessions/tab-1',
+        expect.objectContaining({ method: 'DELETE' }),
+      )
+    })
   })
 
   it('lists the library roots', async () => {

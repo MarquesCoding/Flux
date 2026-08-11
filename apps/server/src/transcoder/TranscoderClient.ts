@@ -258,6 +258,14 @@ type Transcoder = {
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>
   stopSession: (id: string) => Promise<boolean>
+  /**
+   * Tells the media service a session is still wanted, and whether it is
+   * currently playing or paused.
+   *
+   * `false` means the service no longer knows this session — the caller
+   * should stop sending heartbeats for it.
+   */
+  heartbeatSession: (id: string, isPlaying: boolean) => Promise<boolean>
   capabilities: () => Promise<TranscoderCapabilities>
 }
 
@@ -487,6 +495,16 @@ const createTranscoderClient = ({
 
     stopSession: async (id) => {
       const response = await call2(`${origin}/sessions/${id}`, { method: 'DELETE' })
+
+      return response.ok
+    },
+
+    heartbeatSession: async (id, isPlaying) => {
+      const response = await call2(`${origin}/sessions/${encodeURIComponent(id)}/heartbeat`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ isPlaying }),
+      })
 
       return response.ok
     },

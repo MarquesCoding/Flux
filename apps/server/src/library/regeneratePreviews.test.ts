@@ -24,6 +24,7 @@ const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcode
   requestTrickplay: () => Promise.reject(new Error('not used')),
   readTrickplayFile: () => Promise.resolve(null),
   stopSession: () => Promise.resolve(true),
+  heartbeatSession: () => Promise.resolve(true),
   readSubtitle: () => Promise.reject(new Error('not used')),
   readFrame: () => Promise.reject(new Error('not used')),
   requestPreview,

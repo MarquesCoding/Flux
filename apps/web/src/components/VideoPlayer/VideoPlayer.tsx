@@ -10,7 +10,10 @@ import IconButtonModule from '@FluxUI/IconButton'
 import SpinnerModule from '@FluxUI/Spinner'
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
+import detectClientLabelModule from '@FluxWeb/playback/detectClientLabel'
 import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
+import clientIdentityModule from '@FluxWeb/presence/clientIdentity'
+import presenceEventsModule from '@FluxWeb/presence/presenceEvents'
 import attachShakaModule from '@FluxWeb/playback/attachShaka'
 import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
 import popOutWithCaptionsModule from '@FluxWeb/playback/popOutWithCaptions'
@@ -29,6 +32,7 @@ import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
 import PlayerControlsModule from './components/PlayerControls/PlayerControls'
 import StreamStatsModule from './components/StreamStats/StreamStats'
+import AdminMessageOverlayModule from './components/AdminMessageOverlay/AdminMessageOverlay'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
@@ -44,7 +48,16 @@ const { IconButton } = IconButtonModule
 const { Spinner } = SpinnerModule
 const { VideoSurface } = VideoSurfaceModule
 const { detectFromBrowser } = detectDeviceProfileModule
-const { startPlaybackSession, stopPlaybackSession } = startPlaybackSessionModule
+const { detectFromNavigator } = detectClientLabelModule
+const {
+  startPlaybackSession,
+  stopPlaybackSession,
+  stopWatching,
+  heartbeatPlaybackSession,
+  sendPresenceHeartbeat,
+} = startPlaybackSessionModule
+const { readClientId } = clientIdentityModule
+const { onPresenceEvent } = presenceEventsModule
 const { attachShaka } = attachShakaModule
 const { fetchTrickplay } = fetchTrickplayModule
 const { popOutWithCaptions } = popOutWithCaptionsModule
@@ -56,6 +69,7 @@ const { fetchMediaDetail } = fetchLibraryModule
 const { TrickplayPreview } = TrickplayPreviewModule
 const { PlayerControls } = PlayerControlsModule
 const { StreamStats } = StreamStatsModule
+const { AdminMessageOverlay } = AdminMessageOverlayModule
 const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
 const { readQualityPreference, saveQualityPreference } = qualityPreferenceModule
 const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
@@ -99,6 +113,25 @@ const JUMP_SECONDS = 30
 const FINISHED_WITHIN_SECONDS = 90
 
 const HEALTH_INTERVAL_MILLISECONDS = 500
+
+/**
+ * How often the player tells the server a session is still wanted.
+ *
+ * Sent regardless of pause state — the server's idle timeout allows three
+ * missed heartbeats, so this has to be well under a third of that to give a
+ * genuine hiccup room to recover before a session is reaped.
+ */
+const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000
+
+/**
+ * How often presence is told where this tab actually is in the film.
+ *
+ * Much faster than the liveness heartbeat above: that one only has to arrive
+ * before the idle reaper's patience runs out, but an admin watching a
+ * progress bar notices anything slower than about a second, and a scrub
+ * jumps the position outside the normal rate of change entirely.
+ */
+const PRESENCE_HEALTH_INTERVAL_MILLISECONDS = 1000
 
 /**
  * How long to let a change settle before asking for the cue again.
@@ -172,6 +205,13 @@ const VideoPlayer = ({
   const [session, setSession] = useState<StartedSession | null>(null)
   const [state, setState] = useState<PlayerState>('starting')
   const [problem, setProblem] = useState<string | null>(null)
+  // What an admin has just done to this stream, if anything. Stopped blocks
+  // the stage until the viewer closes it; paused is a dismissible banner —
+  // pressing play is still theirs to do.
+  const [adminMessage, setAdminMessage] = useState<{
+    kind: 'stopped' | 'paused'
+    reason: string
+  } | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [position, setPosition] = useState(0)
   const [reportedDuration, setReportedDuration] = useState(0)
@@ -451,6 +491,50 @@ const VideoPlayer = ({
     })
   }
 
+  /**
+   * Tells presence whether this tab is playing, and what it can measure
+   * about the stream right now.
+   *
+   * Shared by the periodic heartbeat and the immediate one sent on every
+   * play/pause and session change, so a track or quality change — which
+   * tears the old session down and starts a new one — never leaves the
+   * admin's progress bar without a position for up to a whole heartbeat
+   * interval.
+   */
+  const reportPresenceHeartbeat = useCallback(
+    (clientId: string, startSeconds: number) => {
+      const current = videoRef.current
+      const playing = current !== null && !current.paused
+
+      if (current === null) {
+        void sendPresenceHeartbeat(clientId, playing)
+
+        return
+      }
+
+      const measured = readPlaybackHealth(current, startSeconds)
+      // The library already knows how long the film is; a transcode's own
+      // playlist only knows how much has been encoded so far, which is not
+      // the same thing (see the `duration` calculation this mirrors, in the
+      // render below).
+      const totalDuration =
+        media.durationSeconds > 0
+          ? media.durationSeconds
+          : Number.isFinite(current.duration)
+            ? current.duration
+            : 0
+
+      void sendPresenceHeartbeat(clientId, playing, {
+        positionSeconds: measured.positionSeconds,
+        durationSeconds: totalDuration,
+        bufferedAheadSeconds: measured.bufferedAheadSeconds,
+        presentedWidth: measured.presentedWidth,
+        presentedHeight: measured.presentedHeight,
+      })
+    },
+    [media.durationSeconds],
+  )
+
   useEffect(() => {
     // Read through a function so the checker cannot narrow it. The effect may
     // be cleaned up while an await is in flight, so every guard after an await
@@ -470,11 +554,35 @@ const VideoPlayer = ({
     const isAbandoned = () => controller.signal.aborted
     let teardown: (() => Promise<void>) | null = null
     let startedId: string | null = null
+    let heartbeatInterval: ReturnType<typeof setInterval> | null = null
+    let presenceHealthInterval: ReturnType<typeof setInterval> | null = null
+    const clientId = readClientId()
+
+    // A closed tab, not a paused player: `pagehide` fires whether or not the
+    // page will be resurrected from the back/forward cache, and `keepalive`
+    // is what makes a fetch survive the page actually going away, which a
+    // plain one is not guaranteed to. This is genuinely the tab closing —
+    // unlike a reseek or track change, which never fires `pagehide` at all —
+    // so it is also presence's cue that this tab has actually stopped
+    // watching, not just swapping sessions.
+    const onPageHide = () => {
+      if (startedId !== null) {
+        void fetch(`/api/playback/session/${startedId}`, {
+          method: 'DELETE',
+          keepalive: true,
+        }).catch(() => undefined)
+      }
+
+      void stopWatching(clientId, true)
+    }
+
+    window.addEventListener('pagehide', onPageHide)
 
     const run = async () => {
       const outcome = await startPlaybackSession(
         request.mediaId,
-        detectFromBrowser(),
+        detectFromBrowser(detectFromNavigator()),
+        clientId,
         request.startSeconds,
         request.audioStreamIndex,
         request.requestedQuality,
@@ -493,6 +601,30 @@ const VideoPlayer = ({
 
       startedId = outcome.session.sessionId
       setSession(outcome.session)
+
+      // Always ticks, direct play included: presence needs to know a tab is
+      // watching something regardless of delivery, even though direct play
+      // never reaches the media service and so has no transcode heartbeat to
+      // send.
+      const sessionId = startedId
+      const isHls = outcome.session.delivery.kind !== 'direct'
+
+      heartbeatInterval = setInterval(() => {
+        if (isHls) {
+          const current = videoRef.current
+          const playing = current !== null && !current.paused
+
+          void heartbeatPlaybackSession(sessionId, playing)
+        }
+      }, HEARTBEAT_INTERVAL_MILLISECONDS)
+
+      // Its own faster interval, independent of the liveness heartbeat above:
+      // an admin watching a progress bar notices a stale position within a
+      // couple of seconds, and a scrub jumps it outside the rate a slower
+      // interval could ever track.
+      presenceHealthInterval = setInterval(() => {
+        reportPresenceHeartbeat(clientId, request.startSeconds)
+      }, PRESENCE_HEALTH_INTERVAL_MILLISECONDS)
 
       const element = videoRef.current
 
@@ -533,8 +665,11 @@ const VideoPlayer = ({
 
     return () => {
       controller.abort()
+      window.removeEventListener('pagehide', onPageHide)
       clearInterval(startTimerRef.current ?? undefined)
       startTimerRef.current = null
+      clearInterval(heartbeatInterval ?? undefined)
+      clearInterval(presenceHealthInterval ?? undefined)
       void teardown?.()
 
       if (startedId !== null) {
@@ -542,6 +677,59 @@ const VideoPlayer = ({
       }
     }
   }, [request, start])
+
+  // Listens for the whole lifetime of the player, not scoped to one session:
+  // an admin's action targets this tab, not any particular transcode.
+  useEffect(
+    () =>
+      onPresenceEvent((event) => {
+        const element = videoRef.current
+
+        if (event.kind === 'stopped') {
+          element?.pause()
+          setAdminMessage({ kind: 'stopped', reason: event.reason })
+
+          return
+        }
+
+        if (event.kind === 'paused') {
+          element?.pause()
+          setAdminMessage({ kind: 'paused', reason: event.reason })
+
+          return
+        }
+
+        setAdminMessage((current) => (current?.kind === 'paused' ? null : current))
+        void element?.play()
+      }),
+    [],
+  )
+
+  // Reflects a viewer's own play/pause immediately, rather than leaving the
+  // admin's Active Sessions view showing whatever the last 30s heartbeat
+  // reported. The periodic heartbeat still runs alongside this — it is what
+  // keeps presence (and a real transcode) alive when nothing is changing.
+  useEffect(() => {
+    if (session === null) {
+      return
+    }
+
+    void sendPresenceHeartbeat(readClientId(), isPlaying)
+  }, [isPlaying, session])
+
+  // Says this tab has genuinely stopped watching — once, when the player
+  // itself unmounts. Empty dependencies rather than scoped to a session, on
+  // purpose: a quality or track change tears one session down and starts
+  // another without this effect re-running at all, so presence keeps
+  // showing the tab as watching right through the swap. Real tab closes are
+  // caught separately, by the per-session `pagehide` handler above — this
+  // one only fires for React unmounting the player within the app itself.
+  useEffect(
+    () => () => {
+      void stopWatching(readClientId())
+    },
+    [],
+  )
 
   useEffect(() => {
     // Fetched alongside playback rather than before it. Rendering thumbnails
@@ -1214,6 +1402,22 @@ const VideoPlayer = ({
               Bring it back
             </Button>
           </div>
+        )}
+
+        {adminMessage === null ? null : (
+          <AdminMessageOverlay
+            kind={adminMessage.kind}
+            reason={adminMessage.reason}
+            onDismiss={() => {
+              const wasStopped = adminMessage.kind === 'stopped'
+
+              setAdminMessage(null)
+
+              if (wasStopped) {
+                onClose()
+              }
+            }}
+          />
         )}
 
         {heldFrame === null ? null : (

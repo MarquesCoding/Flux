@@ -27,9 +27,10 @@ import AddLibraryDialogModule from './components/AddLibraryDialog/AddLibraryDial
 import ScanProgressBarModule from './components/ScanProgressBar/ScanProgressBar'
 import ResetLibrariesDialogModule from './components/ResetLibrariesDialog/ResetLibrariesDialog'
 import LibrarySettingsDialogModule from './components/LibrarySettingsDialog/LibrarySettingsDialog'
+import SessionCardModule from './components/SessionCard/SessionCard'
 import formatBytesModule from './formatBytes'
 import type { Library } from '@FluxContracts/schemas/Library'
-import type { AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin'
+import type { ActiveSession, AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin'
 import type { AdminAreaProps } from './AdminArea.types'
 
 const { Sparkline } = SparklineModule
@@ -38,7 +39,16 @@ const { Button } = ButtonModule
 const { TabBar } = TabBarModule
 const { TextField } = TextFieldModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey } = fetchAdminModule
+const {
+  fetchAdminOverview,
+  fetchMonitor,
+  watchMonitor,
+  saveCatalogueKey,
+  fetchActiveSessions,
+  stopSession,
+  pauseSession,
+  resumeSession,
+} = fetchAdminModule
 const { fetchLibraries, scanLibrary, resetLibrary, regenerateLibraryPreviews } = fetchLibraryModule
 const { waitForScanCompletion } = waitForScanCompletionModule
 const { StatStrip } = StatStripModule
@@ -46,12 +56,22 @@ const { AddLibraryDialog } = AddLibraryDialogModule
 const { ScanProgressBar } = ScanProgressBarModule
 const { ResetLibrariesDialog } = ResetLibrariesDialogModule
 const { LibrarySettingsDialog } = LibrarySettingsDialogModule
+const { SessionCard } = SessionCardModule
 const { formatBytes } = formatBytesModule
 
 /**
  * How many readings stay on screen.
  */
 const HISTORY_LENGTH = 60
+
+/**
+ * How often the list of active streams is refreshed.
+ *
+ * Slower than the resource stream on purpose: who is watching what changes at
+ * human timescale — someone pressing play or closing a tab — not every
+ * second the way CPU and memory do.
+ */
+const SESSIONS_POLL_MILLISECONDS = 5000
 
 const PANELS = [
   { id: 'activity', label: 'Activity' },
@@ -86,6 +106,29 @@ const describeElapsed = (job: Job, now: number): string => {
 }
 
 const atTime = (ms: number): string => new Date(ms).toLocaleTimeString()
+
+type SessionGroup = { key: string; label: string; sessions: ActiveSession[] }
+
+/**
+ * Separates every open tab out by who has it open, so an admin can see every
+ * session a given viewer has running rather than one flat list.
+ */
+const groupSessionsByViewer = (sessions: ActiveSession[]): SessionGroup[] => {
+  const groups = new Map<string, SessionGroup>()
+
+  for (const session of sessions) {
+    const key = session.profileId ?? 'unknown'
+    const existing = groups.get(key)
+
+    if (existing === undefined) {
+      groups.set(key, { key, label: session.profileName ?? 'Unknown viewer', sessions: [session] })
+    } else {
+      existing.sessions.push(session)
+    }
+  }
+
+  return [...groups.values()]
+}
 
 /**
  * Trims what ffmpeg calls itself down to a version.
@@ -137,6 +180,8 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
   const [isConfirmingReset, setIsConfirmingReset] = useState(false)
   const [isResettingAll, setIsResettingAll] = useState(false)
   const [settingsLibraryId, setSettingsLibraryId] = useState<string | null>(null)
+  const [sessions, setSessions] = useState<ActiveSession[]>([])
+  const [busyClientId, setBusyClientId] = useState<string | null>(null)
   const prefersReducedMotion = useReducedMotion()
 
   const onLibraryUpdated = (updated: Library) => {
@@ -266,10 +311,54 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     }
   }
 
+  const stopStream = async (clientId: string) => {
+    setBusyClientId(clientId)
+
+    try {
+      await stopSession(clientId)
+      setSessions(await fetchActiveSessions())
+    } finally {
+      setBusyClientId(null)
+    }
+  }
+
+  const pauseStream = async (clientId: string) => {
+    setBusyClientId(clientId)
+
+    try {
+      await pauseSession(clientId)
+      setSessions(await fetchActiveSessions())
+    } finally {
+      setBusyClientId(null)
+    }
+  }
+
+  const resumeStream = async (clientId: string) => {
+    setBusyClientId(clientId)
+
+    try {
+      await resumeSession(clientId)
+      setSessions(await fetchActiveSessions())
+    } finally {
+      setBusyClientId(null)
+    }
+  }
+
   useEffect(() => {
     void fetchAdminOverview().then(setOverview)
     void fetchMonitor().then(setMonitor)
     void fetchLibraries().then(setLibraries)
+    void fetchActiveSessions().then(setSessions)
+  }, [])
+
+  useEffect(() => {
+    const poll = setInterval(() => {
+      void fetchActiveSessions().then(setSessions)
+    }, SESSIONS_POLL_MILLISECONDS)
+
+    return () => {
+      clearInterval(poll)
+    }
   }, [])
 
   useEffect(() => {
@@ -408,73 +497,110 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
             {panel === 'activity' ? (
-              <div className="grid gap-px bg-white/10 lg:grid-cols-[1.4fr_1fr]">
-                <div className="flex flex-col gap-4 bg-surface/40 p-5">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-text-muted">
-                      <IconActivity size={14} aria-hidden />
-                      Last minute
-                    </h2>
+              <>
+                <div className="grid gap-px bg-white/10 lg:grid-cols-[1.4fr_1fr]">
+                  <div className="flex flex-col gap-4 bg-surface/40 p-5">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-text-muted">
+                        <IconActivity size={14} aria-hidden />
+                        Last minute
+                      </h2>
 
-                    <span className="text-xs tabular-nums text-text-muted">
-                      {history.length.toString()} readings
-                    </span>
+                      <span className="text-xs tabular-nums text-text-muted">
+                        {history.length.toString()} readings
+                      </span>
+                    </div>
+
+                    <Sparkline
+                      values={history}
+                      ceiling={100}
+                      label="Processor use over the last minute"
+                      className="h-32"
+                    />
+
+                    <p className="text-xs leading-relaxed text-text-muted">
+                      A reading a second. A tall run is something being converted; a flat floor is
+                      the server idling.
+                    </p>
                   </div>
 
-                  <Sparkline
-                    values={history}
-                    ceiling={100}
-                    label="Processor use over the last minute"
-                    className="h-32"
-                  />
+                  <div className="flex flex-col gap-3 bg-surface/40 p-5">
+                    <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
+                      Conversions
+                    </h2>
 
-                  <p className="text-xs leading-relaxed text-text-muted">
-                    A reading a second. A tall run is something being converted; a flat floor is the
-                    server idling.
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3 bg-surface/40 p-5">
-                  <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
-                    Conversions
-                  </h2>
-
-                  {conversions.length === 0 ? (
-                    <p className="text-sm text-text-muted">Nothing is being converted.</p>
-                  ) : (
-                    <ul className="flex flex-col gap-3">
-                      {conversions.map((child) => (
-                        <li key={child.pid} className="flex flex-col gap-1.5">
-                          <span className="flex items-baseline justify-between gap-3 text-sm tabular-nums">
-                            <span className="text-text">ffmpeg {child.pid}</span>
-                            <span className="text-text-muted">
-                              {child.cpuPercent.toFixed(0)}% · {formatBytes(child.memoryBytes)}
+                    {conversions.length === 0 ? (
+                      <p className="text-sm text-text-muted">Nothing is being converted.</p>
+                    ) : (
+                      <ul className="flex flex-col gap-3">
+                        {conversions.map((child) => (
+                          <li key={child.pid} className="flex flex-col gap-1.5">
+                            <span className="flex items-baseline justify-between gap-3 text-sm tabular-nums">
+                              <span className="text-text">ffmpeg {child.pid}</span>
+                              <span className="text-text-muted">
+                                {child.cpuPercent.toFixed(0)}% · {formatBytes(child.memoryBytes)}
+                              </span>
                             </span>
-                          </span>
 
-                          {/* Measured against every core rather than one, so a
+                            {/* Measured against every core rather than one, so a
                               process reported at 380% reads as what it is: a
                               fair share of an eighteen core machine. */}
-                          <span className="block h-1 overflow-hidden rounded-full bg-white/10">
-                            <span
-                              role="presentation"
-                              style={{
-                                width: `${Math.min(
-                                  (child.cpuPercent /
-                                    Math.max((resources?.cpuCount ?? 1) * 100, 1)) *
+                            <span className="block h-1 overflow-hidden rounded-full bg-white/10">
+                              <span
+                                role="presentation"
+                                style={{
+                                  width: `${Math.min(
+                                    (child.cpuPercent /
+                                      Math.max((resources?.cpuCount ?? 1) * 100, 1)) *
+                                      100,
                                     100,
-                                  100,
-                                ).toString()}%`,
+                                  ).toString()}%`,
+                                }}
+                                className="block h-full rounded-full bg-accent"
+                              />
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-5 border-t border-white/10 bg-surface/40 p-5">
+                  <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
+                    Active Sessions
+                  </h2>
+
+                  {sessions.length === 0 ? (
+                    <p className="text-sm text-text-muted">Nobody has the app open right now.</p>
+                  ) : (
+                    groupSessionsByViewer(sessions).map((group) => (
+                      <div key={group.key} className="flex flex-col gap-3">
+                        <h3 className="text-xs font-medium text-text">{group.label}</h3>
+
+                        <div className="flex flex-wrap gap-3">
+                          {group.sessions.map((session) => (
+                            <SessionCard
+                              key={session.clientId}
+                              session={session}
+                              isBusy={busyClientId === session.clientId}
+                              onStop={() => {
+                                void stopStream(session.clientId)
                               }}
-                              className="block h-full rounded-full bg-accent"
+                              onPause={() => {
+                                void pauseStream(session.clientId)
+                              }}
+                              onResume={() => {
+                                void resumeStream(session.clientId)
+                              }}
                             />
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                          ))}
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
-              </div>
+              </>
             ) : null}
 
             {panel === 'work' ? (

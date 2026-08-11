@@ -71,6 +71,7 @@ const harness = (defaultAudioLanguage: string | null) => {
     requestTrickplay: () => Promise.reject(new Error('not used')),
     readTrickplayFile: () => Promise.resolve(null),
     stopSession: () => Promise.resolve(true),
+    heartbeatSession: () => Promise.resolve(true),
     readSubtitle: () => Promise.reject(new Error('not used')),
     readFrame: () => Promise.reject(new Error('not used')),
     requestPreview: () => Promise.reject(new Error('not used')),
@@ -133,5 +134,11 @@ describe('createPlaybackService', () => {
     const explanation = await service.explain(MEDIA_ID, capableProfile)
 
     expect(explanation?.plan.audio).toMatchObject({ streamIndex: 2 })
+  })
+
+  it('delegates a heartbeat to the media service', async () => {
+    const { service } = harness(null)
+
+    await expect(service.heartbeat('session-1', false)).resolves.toBe(true)
   })
 })

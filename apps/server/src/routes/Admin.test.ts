@@ -128,4 +128,89 @@ describe('administration over HTTP', () => {
 
     expect(body).not.toContain('a-secret')
   })
+
+  it('tells somebody who is not signed in nothing about who is streaming', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/admin/sessions`)
+
+    expect(response.status).toBe(403)
+  })
+
+  it('tells an ordinary account nothing about who is streaming either', async () => {
+    const { app } = build()
+    const cookie = await signedIn(app)
+
+    const response = await app.request(`${BASE}/api/admin/sessions`, {
+      headers: { cookie, origin: BASE },
+    })
+
+    expect(response.status).toBe(403)
+  })
+
+  it('will not let an unauthenticated request stop a session', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/admin/sessions/some-session`, {
+      method: 'DELETE',
+    })
+
+    expect(response.status).toBe(403)
+  })
+
+  it('will not let an ordinary account stop a session', async () => {
+    const { app } = build()
+    const cookie = await signedIn(app)
+
+    const response = await app.request(`${BASE}/api/admin/sessions/some-session`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    })
+
+    expect(response.status).toBe(403)
+  })
+
+  it('will not let an unauthenticated request pause a stream', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/admin/sessions/some-session/pause`, {
+      method: 'POST',
+    })
+
+    expect(response.status).toBe(403)
+  })
+
+  it('will not let an ordinary account pause a stream', async () => {
+    const { app } = build()
+    const cookie = await signedIn(app)
+
+    const response = await app.request(`${BASE}/api/admin/sessions/some-session/pause`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    })
+
+    expect(response.status).toBe(403)
+  })
+
+  it('will not let an unauthenticated request resume a stream', async () => {
+    const { app } = build()
+
+    const response = await app.request(`${BASE}/api/admin/sessions/some-session/resume`, {
+      method: 'POST',
+    })
+
+    expect(response.status).toBe(403)
+  })
+
+  it('will not let an ordinary account resume a stream', async () => {
+    const { app } = build()
+    const cookie = await signedIn(app)
+
+    const response = await app.request(`${BASE}/api/admin/sessions/some-session/resume`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    })
+
+    expect(response.status).toBe(403)
+  })
 })
