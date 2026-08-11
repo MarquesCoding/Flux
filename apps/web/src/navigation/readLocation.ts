@@ -36,6 +36,14 @@ type Place = {
    */
   inspecting: string | null
   /**
+   * The series whose page is open, if one is.
+   *
+   * Held apart from the item being read about: a show and an episode are
+   * different things to have open, and closing the episode should leave the
+   * show where it was.
+   */
+  show: string | null
+  /**
    * The item being watched, if one is.
    */
   playing: string | null
@@ -49,6 +57,7 @@ const HOME: Place = {
   section: 'home',
   search: '',
   inspecting: null,
+  show: null,
   playing: null,
   startSeconds: 0,
 }
@@ -78,6 +87,7 @@ const readLocation = (url: string): Place => {
     section: section.success ? section.data : 'home',
     search: query.get('q') ?? '',
     inspecting: first === 'media' && second !== '' ? second : query.get('item'),
+    show: query.get('show'),
     playing: watching,
     startSeconds: Number.isFinite(started) && started > 0 ? started : 0,
   }
@@ -101,6 +111,10 @@ const writeLocation = (place: Place): string => {
 
   if (place.search !== '') {
     query.set('q', place.search)
+  }
+
+  if (place.show !== null) {
+    query.set('show', place.show)
   }
 
   if (place.inspecting !== null) {

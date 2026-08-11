@@ -1,5 +1,6 @@
 import type { MoodLight } from '@FluxUI/MoodBackground.types'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
+import type { ShowSummary } from '@FluxContracts/schemas/Show'
 
 type LibraryBrowserProps = {
   /**
@@ -42,6 +43,10 @@ type LibraryBrowserProps = {
   /**
    * Whether this viewer has kept each item, and how they say otherwise.
    */
+  /**
+   * Opens the page about a series rather than about an episode.
+   */
+  onOpenShow?: (show: ShowSummary) => void
   isKept?: (mediaId: string) => boolean
   onToggleKept?: (media: MediaSummary) => void
 }

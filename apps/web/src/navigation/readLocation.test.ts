@@ -70,6 +70,18 @@ describe('writeLocation', () => {
     )
   })
 
+  it('writes an open series as a query, so an episode can open over it', () => {
+    expect(writeLocation({ ...HOME, show: 'a-sign-of-affection' })).toBe(
+      '/?show=a-sign-of-affection',
+    )
+  })
+
+  it('reads a series back out of an address', () => {
+    expect(readLocation('http://flux.local/?show=a-sign-of-affection').show).toBe(
+      'a-sign-of-affection',
+    )
+  })
+
   it('writes an open item as a query, so closing it returns where it opened from', () => {
     expect(writeLocation({ ...HOME, section: 'search', inspecting: 'abc' })).toBe(
       '/search?item=abc',
@@ -93,6 +105,7 @@ describe('writeLocation', () => {
       section: 'search',
       search: 'blade',
       inspecting: 'abc',
+      show: null,
       playing: null,
       startSeconds: 0,
     } as const
