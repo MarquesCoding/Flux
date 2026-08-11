@@ -165,16 +165,41 @@ type JobSchedule = z.infer<typeof JobScheduleSchema>;
 /**
  * Reads the state of the server.
  */
-const fetchAdminOverview = async (): Promise<AdminOverview | null> => {
+/**
+ * Why the server could not be read, or nothing when it could.
+ *
+ * Reported rather than thrown. A page that cannot say what is wrong sends
+ * somebody to the terminal to find out, and the answer is usually already in
+ * the response it just threw away.
+ */
+type OverviewOutcome = { overview: AdminOverview | null; problem: string | null };
+
+const fetchAdminOverview = async (): Promise<OverviewOutcome> => {
   const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
     () => null,
   );
 
-  if (response === null || !response.ok) {
-    return null;
+  if (response === null) {
+    return { overview: null, problem: 'The server could not be reached.' };
   }
 
-  return AdminOverviewSchema.parse(await response.json());
+  if (!response.ok) {
+    return {
+      overview: null,
+      problem: `The server answered ${response.status.toString()}.`,
+    };
+  }
+
+  const parsed = AdminOverviewSchema.safeParse(await response.json().catch(() => null));
+
+  return parsed.success
+    ? { overview: parsed.data, problem: null }
+    : {
+        overview: null,
+        problem: `The server answered something this page did not understand: ${parsed.error.issues
+          .map((issue) => `${issue.path.join('.')} ${issue.message}`)
+          .join('; ')}`,
+      };
 };
 
 /**
@@ -387,6 +412,7 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
 };
 
 export type {
+  OverviewOutcome,
   ActiveSession,
   AdminOverview,
   Job,

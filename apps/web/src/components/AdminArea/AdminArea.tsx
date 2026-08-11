@@ -182,6 +182,7 @@ const AdminArea = ({
   onJobChange,
 }: AdminAreaProps) => {
   const [overview, setOverview] = useState<AdminOverview | null>(null);
+  const [overviewProblem, setOverviewProblem] = useState<string | null>(null);
   const [monitor, setMonitor] = useState<Monitor | null>(null);
   const [history, setHistory] = useState<number[]>([]);
   const [panel, setPanel] = useState<PanelId>(
@@ -315,7 +316,10 @@ const AdminArea = ({
   };
 
   useEffect(() => {
-    void fetchAdminOverview().then(setOverview);
+    void fetchAdminOverview().then((outcome) => {
+      setOverview(outcome.overview);
+      setOverviewProblem(outcome.problem);
+    });
     void fetchMonitor().then(setMonitor);
     void fetchLibraries().then(setLibraries);
     void fetchActiveSessions().then(setSessions);
@@ -394,7 +398,7 @@ const AdminArea = ({
                   <IconAlertTriangle size={16} className="text-danger" aria-hidden />
                 )}
                 {overview === null
-                  ? 'Reading the server…'
+                  ? (overviewProblem ?? 'Reading the server…')
                   : overview.transcoder.isReachable
                     ? `Media service up · ffmpeg ${shortVersion(overview.transcoder.ffmpegVersion)}`
                     : 'Media service unreachable'}
@@ -918,7 +922,12 @@ const AdminArea = ({
 
                         if (saved) {
                           setCatalogueKey('');
-                          setOverview(await fetchAdminOverview());
+                          {
+                            const outcome = await fetchAdminOverview();
+
+                            setOverview(outcome.overview);
+                            setOverviewProblem(outcome.problem);
+                          }
                         }
                       });
                     }}
