@@ -126,6 +126,28 @@ describe('detectLibrarySegments', () => {
     expect(seen.sort()).toEqual([1, 2])
   })
 
+  it('reports how many seasons have been looked at', async () => {
+    const onProgress = vi.fn()
+    const segments = createMemorySegmentService()
+
+    await detectLibrarySegments({
+      libraryId: LIBRARY_ID,
+      providers: [providerThat(() => new Map())],
+      segments,
+      listCandidates: () =>
+        Promise.resolve([
+          episode('a', 'Some Show', 1),
+          episode('b', 'Some Show', 2),
+          episode('c', 'Other Show', 1),
+        ]),
+      onProgress,
+    })
+
+    expect(onProgress).toHaveBeenCalledWith(0, 3)
+    expect(onProgress).toHaveBeenLastCalledWith(3, 3)
+    expect(onProgress).toHaveBeenCalledTimes(4)
+  })
+
   it('replaces what was known rather than adding to it', async () => {
     const segments = createMemorySegmentService({ a: [{ ...intro, startSeconds: 999 }] })
 

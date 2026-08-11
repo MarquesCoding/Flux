@@ -161,6 +161,9 @@ const jobs = await createJobQueue({
       onProblem: (provider, reason) => {
         process.stderr.write(`segments: ${provider}: ${reason}\n`)
       },
+      onProgress: (processed, total) => {
+        jobs.reportProgress(jobId, 'segments', processed, total)
+      },
     })
 
     if (marked > 0) {

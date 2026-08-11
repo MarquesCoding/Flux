@@ -118,7 +118,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
   const [libraries, setLibraries] = useState<Library[]>([])
   const [isAddingLibrary, setIsAddingLibrary] = useState(false)
   const [scanProgress, setScanProgress] = useState<
-    ReadonlyMap<string, { processed: number | null; total: number | null }>
+    ReadonlyMap<string, { phase: string | null; processed: number | null; total: number | null }>
   >(new Map())
   const [isScanningAll, setIsScanningAll] = useState(false)
   const prefersReducedMotion = useReducedMotion()
@@ -128,8 +128,13 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     setIsAddingLibrary(false)
   }
 
-  const trackProgress = (libraryId: string, processed: number | null, total: number | null) => {
-    setScanProgress((current) => new Map(current).set(libraryId, { processed, total }))
+  const trackProgress = (
+    libraryId: string,
+    phase: string | null,
+    processed: number | null,
+    total: number | null,
+  ) => {
+    setScanProgress((current) => new Map(current).set(libraryId, { phase, processed, total }))
   }
 
   const untrackProgress = (libraryId: string) => {
@@ -142,14 +147,14 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
   }
 
   const rescan = async (libraryId: string) => {
-    trackProgress(libraryId, null, null)
+    trackProgress(libraryId, null, null, null)
 
     try {
       const job = await scanLibrary(libraryId)
 
       if (job !== null) {
         await waitForScanCompletion(job.jobId, (progress) => {
-          trackProgress(libraryId, progress.processed, progress.total)
+          trackProgress(libraryId, progress.phase, progress.processed, progress.total)
         })
       }
 
@@ -163,7 +168,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     setIsScanningAll(true)
 
     for (const library of libraries) {
-      trackProgress(library.id, null, null)
+      trackProgress(library.id, null, null, null)
     }
 
     try {
@@ -173,7 +178,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
 
           if (job !== null) {
             await waitForScanCompletion(job.jobId, (progress) => {
-              trackProgress(library.id, progress.processed, progress.total)
+              trackProgress(library.id, progress.phase, progress.processed, progress.total)
             })
           }
 
@@ -564,6 +569,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                             ) : (
                               <ScanProgressBar
                                 label={`Scanning ${library.name}`}
+                                phase={progress.phase}
                                 processed={progress.processed}
                                 total={progress.total}
                               />

@@ -236,7 +236,12 @@ const createDatabaseLibraryService = ({
       const state = await jobs.readState(jobId)
       const progress = jobs.readProgress(jobId)
 
-      return { state, processed: progress?.processed ?? null, total: progress?.total ?? null }
+      return {
+        state,
+        phase: progress?.phase ?? null,
+        processed: progress?.processed ?? null,
+        total: progress?.total ?? null,
+      }
     },
 
     runScan: async (libraryId, force = false, jobId) => {
@@ -263,7 +268,10 @@ const createDatabaseLibraryService = ({
         ...(onProblem === undefined ? {} : { onProblem }),
         ...(jobId === undefined
           ? {}
-          : { onProgress: (processed, total) => jobs.reportProgress(jobId, processed, total) }),
+          : {
+              onProgress: (phase, processed, total) =>
+                jobs.reportProgress(jobId, phase, processed, total),
+            }),
       })
     },
   }

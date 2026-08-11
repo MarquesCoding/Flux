@@ -185,12 +185,15 @@ describe('scanLibrary', () => {
 })
 
 describe('readScanState', () => {
-  it('returns the state and progress of a queued scan', async () => {
-    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'running', processed: 4, total: 10 }))
+  it('returns the state, phase and progress of a queued scan', async () => {
+    fetchMock.mockResolvedValue(
+      ok({ jobId: 'job-1', state: 'running', phase: 'probing', processed: 4, total: 10 }),
+    )
 
     await expect(readScanState('job-1')).resolves.toEqual({
       jobId: 'job-1',
       state: 'running',
+      phase: 'probing',
       processed: 4,
       total: 10,
     })
@@ -202,6 +205,7 @@ describe('readScanState', () => {
     await expect(readScanState('job-1')).resolves.toEqual({
       jobId: 'job-1',
       state: 'unknown',
+      phase: null,
       processed: null,
       total: null,
     })

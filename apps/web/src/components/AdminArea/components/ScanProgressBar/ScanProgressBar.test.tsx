@@ -5,24 +5,35 @@ import ScanProgressBarModule from './ScanProgressBar'
 const { ScanProgressBar } = ScanProgressBarModule
 
 describe('ScanProgressBar', () => {
-  it('says what is being scanned', () => {
-    render(<ScanProgressBar label="Scanning Movies" processed={4} total={10} />)
+  it('names the phase it is in', () => {
+    render(<ScanProgressBar label="Scanning Movies" phase="probing" processed={4} total={10} />)
 
-    expect(screen.getByRole('progressbar', { name: 'Scanning Movies' })).toBeInTheDocument()
+    expect(screen.getByText('Probing')).toBeInTheDocument()
+    expect(
+      screen.getByRole('progressbar', { name: 'Scanning Movies: Probing' }),
+    ).toBeInTheDocument()
   })
 
-  it('reports how far through a scan with a known total actually is', () => {
-    render(<ScanProgressBar label="Scanning Movies" processed={4} total={10} />)
+  it('reports how far through the current phase it is', () => {
+    render(<ScanProgressBar label="Scanning Movies" phase="probing" processed={4} total={10} />)
 
-    const bar = screen.getByRole('progressbar', { name: 'Scanning Movies' })
+    const bar = screen.getByRole('progressbar', { name: 'Scanning Movies: Probing' })
 
     expect(bar).toHaveAttribute('aria-valuenow', '4')
     expect(bar).toHaveAttribute('aria-valuemax', '10')
     expect(screen.getByText('4/10')).toBeInTheDocument()
   })
 
-  it('has no numeric value before the walk has counted its files', () => {
-    render(<ScanProgressBar label="Scanning Movies" processed={null} total={null} />)
+  it('reads an unrecognised phase name as-is, rather than hiding it', () => {
+    render(
+      <ScanProgressBar label="Scanning Movies" phase="detecting" processed={null} total={null} />,
+    )
+
+    expect(screen.getByText('detecting')).toBeInTheDocument()
+  })
+
+  it('has no phase or numeric value before the scan has reported anything', () => {
+    render(<ScanProgressBar label="Scanning Movies" phase={null} processed={null} total={null} />)
 
     const bar = screen.getByRole('progressbar', { name: 'Scanning Movies' })
 

@@ -40,12 +40,16 @@ type LibraryService = {
   /**
    * How a queued scan is getting on.
    *
-   * `processed`/`total` are null until the walk has counted its files, and
-   * for a service — like the in-memory one — that never tracked them at all.
+   * `phase`/`processed`/`total` are null until the scan has reported
+   * anything, and for a service — like the in-memory one — that never
+   * tracked them at all.
    */
-  readScanState: (
-    jobId: string,
-  ) => Promise<{ state: string; processed: number | null; total: number | null }>
+  readScanState: (jobId: string) => Promise<{
+    state: string
+    phase: string | null
+    processed: number | null
+    total: number | null
+  }>
   /**
    * Where an item's artwork lives at the catalogue it came from.
    *

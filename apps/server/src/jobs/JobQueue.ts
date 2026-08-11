@@ -28,8 +28,13 @@ type JobState = z.infer<typeof JobStateSchema>
 
 /**
  * How far a running job has got.
+ *
+ * `phase` names what it is doing right now — a job with more than one kind
+ * of work reports a fresh `processed`/`total` for each, rather than one
+ * number that has to somehow mean both.
  */
 type JobProgress = {
+  phase: string
   processed: number
   total: number
 }
@@ -50,7 +55,7 @@ type JobQueue = {
    * that does not report progress at all.
    */
   readProgress: (jobId: string) => JobProgress | null
-  reportProgress: (jobId: string, processed: number, total: number) => void
+  reportProgress: (jobId: string, phase: string, processed: number, total: number) => void
   stop: () => Promise<void>
 }
 
