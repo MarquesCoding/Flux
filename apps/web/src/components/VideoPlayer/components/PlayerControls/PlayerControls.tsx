@@ -113,7 +113,7 @@ const PlayerControls = ({
   onSubtitleOffsetChange,
   renderPreview,
 }: PlayerControlsProps) => (
-  <div className="flux-glass flex flex-col gap-1 rounded-2xl px-3 py-2 text-white sm:px-4">
+  <div className="flux-glass flux-glass--film flex flex-col gap-1 rounded-2xl px-3 py-2 text-white sm:px-4">
     {/* The scrub bar gets a line of its own on every size. Squeezing it in
         beside ten controls leaves a phone with a bar too short to aim at. */}
     <div className="flex items-center gap-3">
