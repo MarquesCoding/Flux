@@ -320,42 +320,6 @@ const RailCard = ({
                 }}
                 className="flex w-full flex-col gap-3 p-4 text-left"
               >
-                {/* Two things somebody might want, said plainly rather than
-                    left to be guessed at: watch it, or read about it first.
-                    The same controls as everywhere else — a card is not the
-                    place to invent a second shape of play button. */}
-                <span className="flex flex-wrap items-center gap-2">
-                  <Button
-                    variant="glossy"
-                    size="sm"
-                    isPill
-                    onClick={(event) => {
-                      // Inside the panel, so its press must not also read as a
-                      // press on the panel behind it.
-                      event.stopPropagation()
-                      onPlay(media, resumeSeconds ?? 0)
-                    }}
-                  >
-                    <IconPlayerPlayFilled size={16} aria-hidden />
-                    {resumeSeconds === undefined
-                      ? 'Play'
-                      : `Resume from ${formatDuration(resumeSeconds)}`}
-                  </Button>
-
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    isPill
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onInspect(media)
-                    }}
-                  >
-                    <IconInfoCircle size={16} aria-hidden />
-                    More info
-                  </Button>
-                </span>
-
                 <span className="flex flex-col gap-1">
                   {detail?.metadata.seriesTitle === undefined ||
                   detail.metadata.seriesTitle === null ? null : (
@@ -404,6 +368,43 @@ const RailCard = ({
                     {detail.metadata.overview}
                   </span>
                 )}
+
+                {/* At the foot, after the reading: somebody decides what to do
+                    with a thing once they know what it is. Two things worth
+                    offering, said plainly rather than left to be guessed at.
+                    The same controls as everywhere else — a card is not the
+                    place to invent a second shape of play button. */}
+                <span className="flex flex-wrap items-center gap-2 pt-1">
+                  <Button
+                    variant="glossy"
+                    size="sm"
+                    isPill
+                    onClick={(event) => {
+                      // Inside the panel, so its press must not also read as a
+                      // press on the panel behind it.
+                      event.stopPropagation()
+                      onPlay(media, resumeSeconds ?? 0)
+                    }}
+                  >
+                    <IconPlayerPlayFilled size={16} aria-hidden />
+                    {resumeSeconds === undefined
+                      ? 'Play'
+                      : `Resume from ${formatDuration(resumeSeconds)}`}
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    isPill
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onInspect(media)
+                    }}
+                  >
+                    <IconInfoCircle size={16} aria-hidden />
+                    More info
+                  </Button>
+                </span>
               </button>
             </motion.div>
           )}
