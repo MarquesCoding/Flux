@@ -5,6 +5,7 @@ import { IconInfoCircle, IconPlayerPlayFilled, IconStar } from '@tabler/icons-re
 import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
+import cnModule from '@FluxUI/cn'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
 import type { HeroProps } from './Hero.types'
 
@@ -12,6 +13,7 @@ const { Button } = ButtonModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { formatDuration } = formatDurationModule
 const { MediaPreview } = MediaPreviewModule
+const { cn } = cnModule
 
 /**
  * How long an item holds the screen before the next one takes it.
@@ -134,10 +136,16 @@ const Hero = ({
       onPointerLeave={release}
       onFocusCapture={hold}
       onBlurCapture={release}
-      // The whole screen, so nothing of the library shows until somebody asks
-      // for it by scrolling. A row of cards peeking under a hero turns an
-      // opening shot into a header.
-      className="relative flex min-h-svh flex-col justify-end overflow-hidden"
+      // A card rather than a full-bleed opening shot: inset from the edges,
+      // cornered like everything else on the page, and short enough that the
+      // first row of the library shows underneath it. The page reads as a
+      // library with something at the top of it rather than as a poster with
+      // a library hidden behind it.
+      className={cn(
+        'relative mx-5 mt-20 flex min-h-[62svh] flex-col justify-end overflow-hidden',
+        'rounded-3xl ring-1 ring-white/10 shadow-[0_40px_80px_-40px_rgba(0,0,0,0.9)]',
+        'sm:mx-10 sm:min-h-[68svh]',
+      )}
     >
       {/* The picture crossfades under the text rather than cutting, so a
           rotation reads as one screen changing its mind rather than as two
