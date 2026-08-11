@@ -332,16 +332,24 @@ const createSocketFetch = (socketPath: string): FetchLike => {
  * Separate from the narrowed fetch every other call uses, because that one
  * reads a whole body before returning it — which is right for a probe and
  * wrong for a stream that never ends.
+ *
+ * The connection pool is made once and kept, like the one every other call
+ * uses. Making one per request leaks a pool and its socket every time: the
+ * admin monitor is an `EventSource`, which reconnects on its own, so a page
+ * left open during a scan quietly consumed file descriptors until the media
+ * service could no longer be reached at all.
  */
-const createStreamFetch =
-  (socketPath: string | null) =>
-  async (url: string): Promise<{ ok: boolean; body: ReadableStream<Uint8Array> | null }> => {
-    if (socketPath === null) {
-      return fetch(url);
-    }
+const createStreamFetch = (
+  socketPath: string | null,
+): ((url: string) => Promise<{ ok: boolean; body: ReadableStream<Uint8Array> | null }>) => {
+  if (socketPath === null) {
+    return async (url) => fetch(url);
+  }
 
-    return undiciFetch(url, { dispatcher: new Agent({ connect: { socketPath } }) });
-  };
+  const agent = new Agent({ connect: { socketPath } });
+
+  return async (url) => undiciFetch(url, { dispatcher: agent });
+};
 
 class TranscoderError extends Error {
   constructor(
