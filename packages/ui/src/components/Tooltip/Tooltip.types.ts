@@ -1,4 +1,9 @@
-import type { ReactNode } from 'react'
+import type { ReactElement } from 'react'
+
+/**
+ * What a control is rendered with, once the tooltip has added its own.
+ */
+type ControlProperties = Record<string, string | number | boolean | object | null | undefined>
 
 type TooltipProps = {
   /**
@@ -11,8 +16,15 @@ type TooltipProps = {
   label: string
   /**
    * The control itself.
+   *
+   * One element rather than anything renderable: the tooltip hands its
+   * handlers to what it is given and hangs its panel off that element's
+   * position, and a fragment has no position to hang anything off.
+   *
+   * Typed as a bag of properties because that is what it is handed — the
+   * element is rendered with whatever the tooltip needs to add to it.
    */
-  children: ReactNode
+  children: ReactElement<ControlProperties>
   /**
    * Which way it hangs. Above by default, since most controls carrying one sit
    * in a bar along the bottom of something.
@@ -27,4 +39,4 @@ type TooltipProps = {
   isDisabled?: boolean
 }
 
-export type { TooltipProps }
+export type { ControlProperties, TooltipProps }

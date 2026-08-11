@@ -31,11 +31,10 @@ const Tooltip = ({ label, children, side = 'top', isDisabled = false }: TooltipP
   return (
     <BaseTooltip.Provider delay={DELAY_MILLISECONDS}>
       <BaseTooltip.Root>
-        {/* Wrapped rather than cloned. Handing the control itself to the
-            trigger means typing what props it will be given, and the answer
-            is a bag of anything; a wrapper that takes up no space at all
-            leaves the control exactly as its caller built it. */}
-        <BaseTooltip.Trigger render={<span className="contents" />}>{children}</BaseTooltip.Trigger>
+        {/* The control itself is the trigger, rather than a wrapper around
+            it. A wrapper that takes up no space has no position either, and
+            the panel hung off it opened in the corner of the page. */}
+        <BaseTooltip.Trigger render={children} />
 
         <BaseTooltip.Portal>
           <BaseTooltip.Positioner side={side} sideOffset={8} collisionPadding={8} className="z-50">
