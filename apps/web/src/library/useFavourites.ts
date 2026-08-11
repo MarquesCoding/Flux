@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import fetchFavouritesModule from '@FluxWeb/library/fetchFavourites'
 
 const { fetchFavourites, setFavourite } = fetchFavouritesModule
@@ -22,16 +22,32 @@ type Favourites = {
  */
 const useFavourites = (): Favourites => {
   const [kept, setKept] = useState<Set<string>>(new Set())
+  // What this viewer has changed since the page opened. The list is read once
+  // on the way in, and a heart pressed before that read lands would otherwise
+  // be undone by an answer that was already stale when it was asked for.
+  const changedRef = useRef(new Map<string, boolean>())
 
   useEffect(() => {
     void fetchFavourites().then((ids) => {
-      setKept(new Set(ids))
+      const arrived = new Set(ids)
+
+      for (const [mediaId, wants] of changedRef.current) {
+        if (wants) {
+          arrived.add(mediaId)
+        } else {
+          arrived.delete(mediaId)
+        }
+      }
+
+      setKept(arrived)
     })
   }, [])
 
   const toggle = useCallback(
     (mediaId: string) => {
       const wants = !kept.has(mediaId)
+
+      changedRef.current.set(mediaId, wants)
 
       setKept((held) => {
         const next = new Set(held)
@@ -49,6 +65,8 @@ const useFavourites = (): Favourites => {
         if (agreed) {
           return
         }
+
+        changedRef.current.set(mediaId, !wants)
 
         setKept((held) => {
           const next = new Set(held)

@@ -66,6 +66,13 @@ const createMemoryLibraryService = (
           options.genre === undefined || (item.metadata.genres ?? []).includes(options.genre),
       )
       .filter((item) => options.ids === undefined || options.ids.includes(item.id))
+      // The same order the database answers in, so what the routes are proved
+      // to do here is what they do against a real one.
+      .sort((left, right) =>
+        options.order === 'newest'
+          ? right.addedAt.localeCompare(left.addedAt)
+          : left.title.localeCompare(right.title),
+      )
 
     const items = matching.slice(options.offset, options.offset + options.limit).map((item) => ({
       id: item.id,
