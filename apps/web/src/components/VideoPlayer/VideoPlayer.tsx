@@ -101,6 +101,15 @@ const FINISHED_WITHIN_SECONDS = 90
 const HEALTH_INTERVAL_MILLISECONDS = 500
 
 /**
+ * How long to let a change settle before asking for the cue again.
+ *
+ * Long enough that dragging a slider is one redraw at the end rather than
+ * thirty on the way, short enough that letting go and looking at the result
+ * feels like the same action.
+ */
+const REDRAW_AFTER_MILLISECONDS = 150
+
+/**
  * How long a frame lasts until the film says otherwise.
  *
  * Twenty five a second, which is wrong for most things and close enough for
@@ -939,8 +948,19 @@ const VideoPlayer = ({
   // a cue out when it appears and does not look at it again, so both need the
   // cue asking for afresh — otherwise a setting appears to do nothing until
   // somebody says the next line.
+  //
+  // Once things have settled rather than on every change. Asking for the cue
+  // afresh takes it off screen and puts it back, which is invisible on its own
+  // and a flicker when it happens on every step of a slider being dragged
+  // through a colour.
   useEffect(() => {
-    cuesRef.current?.apply()
+    const timer = setTimeout(() => {
+      cuesRef.current?.apply()
+    }, REDRAW_AFTER_MILLISECONDS)
+
+    return () => {
+      clearTimeout(timer)
+    }
   }, [isBarUp, captionStyle])
 
   // What one frame of this film is worth, taken from the film. Two consecutive
