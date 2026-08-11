@@ -67,9 +67,56 @@ type Metadata = {
  * Providers are asked in order and the first answer wins, so a plugin can
  * override the built-in without replacing it.
  */
+/**
+ * What a catalogue says a whole series contains.
+ */
+type SeriesShape = {
+  seasons: { seasonNumber: number; episodeCount: number }[];
+};
+
 type MetadataProvider = {
   name: string;
   describe: (facts: MediaFacts) => Promise<Metadata | null>;
+  /**
+   * How many episodes each season of a series has, asked by the id this
+   * provider gave for it.
+   *
+   * Optional, because a provider that reads filenames can only ever describe
+   * what is already there. Only a catalogue knows what is missing, which is
+   * the whole reason this exists.
+   */
+  describeSeries?: (externalId: string) => Promise<SeriesShape | null>;
+};
+
+/**
+ * Asks each provider in turn what a series should contain.
+ *
+ * The same order and the same forgiveness as `resolveMetadata`: a catalogue
+ * being down means a series whose shape is unknown, never a series that fails
+ * to open.
+ */
+const resolveSeriesShape = async (
+  providers: MetadataProvider[],
+  externalId: string,
+  onProblem?: (provider: string, reason: string) => void,
+): Promise<SeriesShape | null> => {
+  for (const provider of providers) {
+    if (provider.describeSeries === undefined) {
+      continue;
+    }
+
+    try {
+      const found = await provider.describeSeries(externalId);
+
+      if (found !== null) {
+        return found;
+      }
+    } catch (error) {
+      onProblem?.(provider.name, error instanceof Error ? error.message : 'Provider failed.');
+    }
+  }
+
+  return null;
 };
 
 /**
@@ -98,6 +145,6 @@ const resolveMetadata = async (
   return null;
 };
 
-export type { CastMember, MediaFacts, Metadata, MetadataProvider };
+export type { CastMember, MediaFacts, Metadata, MetadataProvider, SeriesShape };
 
-export { resolveMetadata };
+export { resolveMetadata, resolveSeriesShape };

@@ -71,6 +71,14 @@ const DetailResponseSchema = z.object({
   backdrop_path: z.string().nullish(),
   vote_average: z.number().optional(),
   genres: z.array(z.object({ name: z.string() })).default([]),
+  seasons: z
+    .array(
+      z.object({
+        season_number: z.number().int(),
+        episode_count: z.number().int().nonnegative(),
+      }),
+    )
+    .default([]),
   credits: z
     .object({
       cast: z
@@ -355,6 +363,28 @@ const createCatalogueMetadataProvider = ({
       }
 
       return describeFrom(detail.data);
+    },
+
+    describeSeries: async (externalId) => {
+      const key = await readApiKey();
+
+      if (key === null || key === '') {
+        return null;
+      }
+
+      const detailed = await request(`/tv/${externalId}`, key, {});
+      const detail = DetailResponseSchema.safeParse(detailed);
+
+      if (!detail.success) {
+        return null;
+      }
+
+      return {
+        seasons: detail.data.seasons.map((season) => ({
+          seasonNumber: season.season_number,
+          episodeCount: season.episode_count,
+        })),
+      };
     },
   };
 };

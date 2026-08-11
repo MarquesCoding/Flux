@@ -13,6 +13,7 @@ import {
 } from './createMediaStore';
 import { scanLibrary } from './scanLibrary';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
+import { resolveSeriesShape } from './MetadataProvider';
 import { regeneratePreviews } from './regeneratePreviews';
 import { generateTrickplay } from './generateTrickplay';
 import {
@@ -24,7 +25,8 @@ import {
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { MediaFileSystem } from './scanLibrary';
-import type { MetadataProvider } from './MetadataProvider';
+import type { MetadataProvider, SeriesShape } from './MetadataProvider';
+import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 import type { LibraryService } from './LibraryService';
 import {
@@ -108,6 +110,48 @@ const createDatabaseLibraryService = ({
   onProblem,
 }: CreateDatabaseLibraryServiceOptions): DatabaseLibraryService => {
   const store = createMediaStore(db);
+
+  /**
+   * What the catalogue says the series contains, or nothing when nobody can
+   * say.
+   *
+   * Asked by the id a provider already gave one of the episodes, which is why
+   * this needs no new column: every episode of a series was matched to the
+   * same series in the catalogue, so any one of them can name it.
+   *
+   * Held for the life of the process. A series gains an episode a week at
+   * most, and asking a catalogue again every time somebody opens a dialog is
+   * a request per press for an answer that does not move.
+   */
+  const shapes = new Map<string, SeriesShape | null>();
+
+  const shapeOf = async (detail: ShowDetail): Promise<SeriesShape | null> => {
+    const [row] = await db
+      .select({ externalId: mediaItem.externalId })
+      .from(mediaItem)
+      .where(eq(mediaItem.id, detail.coverMediaId))
+      .limit(1);
+
+    const externalId = row?.externalId ?? null;
+
+    if (externalId === null || externalId === '') {
+      return null;
+    }
+
+    const known = shapes.get(externalId);
+
+    if (known !== undefined) {
+      return known;
+    }
+
+    const found = await resolveSeriesShape(providers ?? [], externalId, (provider, reason) => {
+      onProblem?.(provider, reason);
+    });
+
+    shapes.set(externalId, found);
+
+    return found;
+  };
 
   const findLibrary = async (id: string) => {
     const rows = await db.select().from(library).where(eq(library.id, id)).limit(1);
@@ -490,7 +534,15 @@ const createDatabaseLibraryService = ({
         offset: 0,
       });
 
-      return page === null ? null : buildShowDetail(page.items, showId);
+      const detail = page === null ? null : buildShowDetail(page.items, showId);
+
+      if (detail === null) {
+        return null;
+      }
+
+      const shape = await shapeOf(detail);
+
+      return shape === null ? detail : { ...detail, shape: shape.seasons };
     },
   };
 
