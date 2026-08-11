@@ -109,9 +109,13 @@ const Hero = ({
   // window rather than the section, because the hero is what is being scrolled
   // away from rather than into.
   const runwayRef = useRef<HTMLDivElement>(null)
+  // Measured across exactly the scrolling the hero is pinned for. The runway's
+  // bottom reaching the bottom of the screen is the moment the picture stops
+  // being stuck, so that is the moment the card has to be finished — anything
+  // longer and the page starts moving with a half-drawn card on it.
   const { scrollYProgress } = useScroll({
     target: runwayRef,
-    offset: ['start start', 'end start'],
+    offset: ['start start', 'end end'],
   })
 
   // The card is drawn inside a slot that never changes size, so nothing below
