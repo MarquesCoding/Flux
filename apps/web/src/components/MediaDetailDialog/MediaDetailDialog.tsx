@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
+import { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import {
   IconArrowLeft,
   IconHeart,
@@ -8,33 +8,32 @@ import {
   IconPlayerPlayFilled,
   IconRotateClockwise,
   IconX,
-} from '@tabler/icons-react'
-import { Dialog } from '@FluxUI/Dialog'
-import { Button } from '@FluxUI/Button'
-import { IconButton } from '@FluxUI/IconButton'
-import { Badge } from '@FluxUI/Badge'
-import { Skeleton } from '@FluxUI/Skeleton'
-import { MediaCard } from '@FluxUI/MediaCard'
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
-import { formatDuration } from '@FluxCore/functions/formatDuration'
-import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary'
-import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview'
-import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts'
-import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf'
-import { CastGrid } from './components/CastGrid/CastGrid'
-import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
-import type { MediaDetailDialogProps } from './MediaDetailDialog.types'
+} from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { Dialog } from '@FluxUI/Dialog';
+import { Badge } from '@FluxUI/Badge';
+import { Skeleton } from '@FluxUI/Skeleton';
+import { MediaCard } from '@FluxUI/MediaCard';
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
+import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
+import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
+import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
+import { CastGrid } from './components/CastGrid/CastGrid';
+import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaDetailDialogProps } from './MediaDetailDialog.types';
 
 /**
  * How many faces stand in for a cast that has not arrived.
  */
-const CAST_PLACEHOLDERS = 5
+const CAST_PLACEHOLDERS = 5;
 
 /**
  * Where an item's artwork is served from.
  */
 const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
-  `/api/media/${mediaId}/image/${kind}`
+  `/api/media/${mediaId}/image/${kind}`;
 
 /**
  * Everything known about one item, before deciding to watch it.
@@ -61,16 +60,16 @@ const MediaDetailDialog = ({
   isKept = false,
   onToggleKept,
 }: MediaDetailDialogProps) => {
-  const [detail, setDetail] = useState<MediaDetail | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [lastShown, setLastShown] = useState<MediaSummary | null>(null)
+  const [detail, setDetail] = useState<MediaDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastShown, setLastShown] = useState<MediaSummary | null>(null);
   const heldRef = useRef<{ resume: number | undefined; siblings: MediaSummary[] }>({
     resume: undefined,
     siblings: [],
-  })
-  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false)
-  const topRef = useRef<HTMLDivElement>(null)
-  const prefersReducedMotion = useReducedMotion()
+  });
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const topRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     // Nothing is thrown away on the way out. The panel is still on screen
@@ -78,10 +77,10 @@ const MediaDetailDialog = ({
     // clears empties the thing being watched leave. Opening the next item
     // clears it below, before anything of that item is drawn.
     if (media === null) {
-      return
+      return;
     }
 
-    setLastShown(media)
+    setLastShown(media);
 
     // Back to the top on the way in, and again when one episode leads to
     // another: arriving at a new page halfway down it is arriving lost. Taken
@@ -92,26 +91,26 @@ const MediaDetailDialog = ({
     // been mounted: a scroll asked for before that has been laid out is a
     // scroll to where the old page happened to end.
     const returning = requestAnimationFrame(() => {
-      scrollToTopOf(topRef.current, prefersReducedMotion !== true)
-    })
+      scrollToTopOf(topRef.current, prefersReducedMotion !== true);
+    });
 
-    let abandoned = false
+    let abandoned = false;
 
-    setDetail(null)
-    setIsLoading(true)
+    setDetail(null);
+    setIsLoading(true);
 
     void fetchMediaDetail(media.id).then((found) => {
       if (!abandoned) {
-        setDetail(found)
-        setIsLoading(false)
+        setDetail(found);
+        setIsLoading(false);
       }
-    })
+    });
 
     return () => {
-      abandoned = true
-      cancelAnimationFrame(returning)
-    }
-  }, [media, prefersReducedMotion])
+      abandoned = true;
+      cancelAnimationFrame(returning);
+    };
+  }, [media, prefersReducedMotion]);
 
   // Everything the panel says about the item is held the same way. These are
   // worked out from the item being inspected, so they empty at the moment it
@@ -123,24 +122,24 @@ const MediaDetailDialog = ({
   // update would be a new list every time, and a new list every time is a
   // render that asks for another one.
   if (media !== null) {
-    heldRef.current = { resume: resumeSeconds, siblings }
+    heldRef.current = { resume: resumeSeconds, siblings };
   }
 
   // The last thing shown is kept so the panel has something to draw while it
   // is leaving. Returning nothing the moment the item clears would unmount the
   // dialog before it could animate out, which reads as it vanishing.
-  const shown = media ?? lastShown
-  const shownResume = media === null ? heldRef.current.resume : resumeSeconds
-  const shownSiblings = media === null ? heldRef.current.siblings : siblings
+  const shown = media ?? lastShown;
+  const shownResume = media === null ? heldRef.current.resume : resumeSeconds;
+  const shownSiblings = media === null ? heldRef.current.siblings : siblings;
 
   if (shown === null) {
-    return null
+    return null;
   }
 
-  const metadata = detail?.metadata ?? null
-  const season = metadata?.seasonNumber ?? null
-  const genres = metadata?.genres ?? []
-  const cast = metadata?.cast ?? []
+  const metadata = detail?.metadata ?? null;
+  const season = metadata?.seasonNumber ?? null;
+  const genres = metadata?.genres ?? [];
+  const cast = metadata?.cast ?? [];
 
   return (
     <Dialog
@@ -176,12 +175,14 @@ const MediaDetailDialog = ({
                     // the row of words below. Keeping something is a mark made
                     // on it, not one of the two things you might do next.
                     actions: (
-                      <IconButton
+                      <Button
+                        isIconOnly
+                        variant="ghost"
                         label={isKept ? `Stop keeping ${shown.title}` : `Keep ${shown.title}`}
                         isActive={isKept}
                         className="bg-black/50 text-white backdrop-blur"
                         onClick={() => {
-                          onToggleKept(shown)
+                          onToggleKept(shown);
                         }}
                       >
                         {isKept ? (
@@ -189,7 +190,7 @@ const MediaDetailDialog = ({
                         ) : (
                           <IconHeart size={18} aria-hidden />
                         )}
-                      </IconButton>
+                      </Button>
                     ),
                   })}
               // Once, then back to the picture and the words about it. A clip
@@ -226,9 +227,15 @@ const MediaDetailDialog = ({
           )}
 
           <div className="absolute right-4 top-4">
-            <IconButton label="Close" onClick={onClose} className="bg-black/50 text-white">
+            <Button
+              isIconOnly
+              variant="ghost"
+              label="Close"
+              onClick={onClose}
+              className="bg-black/50 text-white"
+            >
               <IconX size={20} aria-hidden />
-            </IconButton>
+            </Button>
           </div>
 
           {/* Everything written over the picture steps back once the picture is
@@ -302,7 +309,7 @@ const MediaDetailDialog = ({
               size="lg"
               isPill
               onClick={() => {
-                onPlay(shown, shownResume ?? 0)
+                onPlay(shown, shownResume ?? 0);
               }}
             >
               <IconPlayerPlayFilled size={18} aria-hidden />
@@ -315,7 +322,7 @@ const MediaDetailDialog = ({
                 size="lg"
                 isPill
                 onClick={() => {
-                  onPlay(shown, 0)
+                  onPlay(shown, 0);
                 }}
               >
                 <IconRotateClockwise size={18} aria-hidden />
@@ -411,7 +418,7 @@ const MediaDetailDialog = ({
                         ? { imageUrl: artworkUrl(sibling.id, 'backdrop') }
                         : {})}
                       onSelect={() => {
-                        onSelectSibling?.(sibling)
+                        onSelectSibling?.(sibling);
                       }}
                     />
                   </li>
@@ -422,9 +429,9 @@ const MediaDetailDialog = ({
         </div>
       </motion.div>
     </Dialog>
-  )
-}
+  );
+};
 
-MediaDetailDialog.displayName = 'MediaDetailDialog'
+MediaDetailDialog.displayName = 'MediaDetailDialog';
 
-export { MediaDetailDialog }
+export { MediaDetailDialog };

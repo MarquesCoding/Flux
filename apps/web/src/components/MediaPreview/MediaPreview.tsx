@@ -1,21 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react';
 import {
   IconPlayerPauseFilled,
   IconPlayerPlayFilled,
   IconVolume,
   IconVolumeOff,
-} from '@tabler/icons-react'
-import { VideoSurface } from '@FluxUI/VideoSurface'
-import { IconButton } from '@FluxUI/IconButton'
-import { frameUrl } from '@FluxWeb/playback/frameUrl'
-import { readLights } from '@FluxWeb/library/readLights'
+} from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { VideoSurface } from '@FluxUI/VideoSurface';
+import { frameUrl } from '@FluxWeb/playback/frameUrl';
+import { readLights } from '@FluxWeb/library/readLights';
 import {
   fetchSubtitleTracks,
   subtitleTrackUrl,
   previewTrack,
-} from '@FluxWeb/playback/fetchSubtitles'
-import { liftCues } from '@FluxWeb/playback/liftCues'
-import type { MediaPreviewProps } from './MediaPreview.types'
+} from '@FluxWeb/playback/fetchSubtitles';
+import { liftCues } from '@FluxWeb/playback/liftCues';
+import type { MediaPreviewProps } from './MediaPreview.types';
 
 /**
  * How long the page waits before starting anything.
@@ -23,12 +23,12 @@ import type { MediaPreviewProps } from './MediaPreview.types'
  * Opening an item to read its runtime should not start it playing. Someone
  * still looking after a moment is someone who might watch it.
  */
-const SETTLE_MILLISECONDS = 1200
+const SETTLE_MILLISECONDS = 1200;
 
 /**
  * Where an item's preview clip is served from.
  */
-const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`
+const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`;
 
 /**
  * How far down the picture a subtitle sits, as a percentage.
@@ -38,7 +38,7 @@ const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`
  * blended into the page there, so a cue on the last line is drawn underneath
  * the very gradient that hides it.
  */
-const CUE_LINE = 80
+const CUE_LINE = 80;
 
 /**
  * How often to look at what is showing.
@@ -48,7 +48,7 @@ const CUE_LINE = 80
  * painting the clip itself. Looking often is what lets the room follow a scene;
  * it is not what decides how fast the room changes.
  */
-const LOOK_EVERY_MILLISECONDS = 200
+const LOOK_EVERY_MILLISECONDS = 200;
 
 /**
  * A glimpse of what an item looks like.
@@ -82,31 +82,31 @@ const MediaPreview = ({
   onPalette,
   actions,
 }: MediaPreviewProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const stillRef = useRef<HTMLImageElement>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const stillRef = useRef<HTMLImageElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   // Whether the clip has finished. Together with whether it has started, this
   // is the only thing that decides which of the two pictures is on top —
   // pausing is not one of them, because a paused video is still a frame of the
   // film and covering it with a still is covering a picture with a picture.
-  const [hasEnded, setHasEnded] = useState(false)
+  const [hasEnded, setHasEnded] = useState(false);
   // Whether the picture has arrived. Kept so nothing can flash a half drawn
   // image, but never a reason to hide the still: an item whose artwork is
   // slow should show black, not a video that is not ready either.
-  const [, setHasFrame] = useState(false)
+  const [, setHasFrame] = useState(false);
   // Silent until somebody asks otherwise. Opening an item is a deliberate act
   // but it is not a request to be talked at, and a dialog that starts making
   // noise over whatever else is playing is a dialog people close.
-  const [isMuted, setIsMuted] = useState(true)
+  const [isMuted, setIsMuted] = useState(true);
   // Whether the clip has ever run. The controls appear once it has and stay,
   // because a pause button that vanishes the moment it is pressed is a pause
   // button nobody can undo.
-  const [hasStarted, setHasStarted] = useState(false)
+  const [hasStarted, setHasStarted] = useState(false);
   // The track to draw over the clip, once it is known. A preview of a film in
   // a language somebody does not speak is a preview of nothing, so the
   // subtitles a viewer would get if they pressed play are the subtitles they
   // get while deciding whether to.
-  const [subtitles, setSubtitles] = useState<{ id: string; language: string } | null>(null)
+  const [subtitles, setSubtitles] = useState<{ id: string; language: string } | null>(null);
 
   /**
    * Whether the frame is the thing being shown.
@@ -121,110 +121,110 @@ const MediaPreview = ({
   // handler because it rotates; a dialog and a hovered card have nowhere to
   // go, and dropping them back to a photograph after twenty four seconds
   // reads as the preview breaking.
-  const loops = repeats ?? onEnded === undefined
+  const loops = repeats ?? onEnded === undefined;
 
-  const isShowingFrame = !hasStarted || hasEnded
-  const startSeconds = Math.floor(durationSeconds * startFraction)
+  const isShowingFrame = !hasStarted || hasEnded;
+  const startSeconds = Math.floor(durationSeconds * startFraction);
 
   useEffect(() => {
     if (!hasSubtitles) {
-      return
+      return;
     }
 
-    let abandoned = false
+    let abandoned = false;
 
     void fetchSubtitleTracks(mediaId).then((tracks) => {
-      const chosen = previewTrack(tracks, navigator.language)
+      const chosen = previewTrack(tracks, navigator.language);
 
       if (!abandoned && chosen !== null) {
-        setSubtitles({ id: chosen.id, language: chosen.language ?? 'und' })
+        setSubtitles({ id: chosen.id, language: chosen.language ?? 'und' });
       }
-    })
+    });
 
     return () => {
-      abandoned = true
-    }
-  }, [mediaId, hasSubtitles])
+      abandoned = true;
+    };
+  }, [mediaId, hasSubtitles]);
 
   useEffect(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null) {
-      return
+      return;
     }
 
     const play = async () => {
       // Muted, which is also the only way a browser will let a page start a
       // video by itself. Sound is a thing to be turned on.
-      element.muted = true
-      element.src = previewUrl(mediaId)
+      element.muted = true;
+      element.src = previewUrl(mediaId);
 
       await element.play().catch(() => {
         // The still frame is a perfectly good answer.
-      })
-    }
+      });
+    };
 
     const timer = setTimeout(() => {
-      void play()
-    }, settleMilliseconds)
+      void play();
+    }, settleMilliseconds);
 
     return () => {
-      clearTimeout(timer)
-      setIsPlaying(false)
-      setHasStarted(false)
-      setHasEnded(false)
-      setIsMuted(true)
-      element.removeAttribute('src')
-      element.load()
-    }
-  }, [mediaId, settleMilliseconds])
+      clearTimeout(timer);
+      setIsPlaying(false);
+      setHasStarted(false);
+      setHasEnded(false);
+      setIsMuted(true);
+      element.removeAttribute('src');
+      element.load();
+    };
+  }, [mediaId, settleMilliseconds]);
 
   // Cues sit where the picture is, not where the page fades it out. A preview
   // is masked into the surface along its bottom edge, and a subtitle placed on
   // the last line lands inside that fade — technically drawn, practically
   // invisible.
   useEffect(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null || subtitles === null) {
-      return
+      return;
     }
 
-    return liftCues(element, () => CUE_LINE).stop
-  }, [subtitles])
+    return liftCues(element, () => CUE_LINE).stop;
+  }, [subtitles]);
 
   // The light the page is under, read from whatever this is showing: the clip
   // as it runs, and the still while it is not. Read corner by corner, so what
   // lands on the left of the page came from the left of the picture.
   useEffect(() => {
     if (onPalette === undefined) {
-      return
+      return;
     }
 
     const look = () => {
-      const element = videoRef.current
-      const still = stillRef.current
+      const element = videoRef.current;
+      const still = stillRef.current;
 
       const found =
         element !== null && !isShowingFrame && element.readyState > 1
           ? readLights(element)
           : still !== null && still.complete
             ? readLights(still)
-            : []
+            : [];
 
       if (found.length > 0) {
-        onPalette(found)
+        onPalette(found);
       }
-    }
+    };
 
-    look()
+    look();
 
-    const timer = setInterval(look, LOOK_EVERY_MILLISECONDS)
+    const timer = setInterval(look, LOOK_EVERY_MILLISECONDS);
 
     return () => {
-      clearInterval(timer)
-    }
-  }, [onPalette, isShowingFrame, mediaId])
+      clearInterval(timer);
+    };
+  }, [onPalette, isShowingFrame, mediaId]);
 
   return (
     <div
@@ -245,7 +245,7 @@ const MediaPreview = ({
         alt=""
         aria-hidden
         onLoad={() => {
-          setHasFrame(true)
+          setHasFrame(true);
         }}
         className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
           isShowingFrame ? 'opacity-100' : 'opacity-0'
@@ -263,14 +263,14 @@ const MediaPreview = ({
         // disagree — and when they did, the still came back over a clip that
         // was still running, which is the one state that must be impossible.
         onPlayingChange={(playing) => {
-          setIsPlaying(playing)
+          setIsPlaying(playing);
 
           if (playing) {
-            setHasStarted(true)
-            setHasEnded(false)
+            setHasStarted(true);
+            setHasEnded(false);
           }
 
-          onPlayingChange?.(playing)
+          onPlayingChange?.(playing);
         }}
         {...(subtitles === null
           ? {}
@@ -292,17 +292,17 @@ const MediaPreview = ({
           // over to, and falling back to a photograph reads as the preview
           // breaking rather than as it finishing.
           if (loops) {
-            const element = videoRef.current
+            const element = videoRef.current;
 
             if (element !== null) {
-              element.currentTime = 0
+              element.currentTime = 0;
 
               void element.play().catch(() => {
                 // Refused; the frame underneath is a fair answer.
-              })
+              });
             }
 
-            return
+            return;
           }
 
           // Back to the frame first, and only then is whoever owns this told:
@@ -310,8 +310,8 @@ const MediaPreview = ({
           // one that begins from the frame is a dissolve. Not everything that
           // plays once has somebody waiting — a page about one item simply
           // goes back to being a page about one item.
-          setHasEnded(true)
-          onEnded?.()
+          setHasEnded(true);
+          onEnded?.();
         }}
       />
 
@@ -326,21 +326,23 @@ const MediaPreview = ({
 
           {!hasSound || !hasStarted ? null : (
             <>
-              <IconButton
+              <Button
+                isIconOnly
+                variant="ghost"
                 label={isPlaying ? 'Pause the preview' : 'Play the preview'}
                 onClick={() => {
-                  const element = videoRef.current
+                  const element = videoRef.current;
 
                   if (element === null) {
-                    return
+                    return;
                   }
 
                   if (element.paused) {
                     void element.play().catch(() => {
                       // Refused, which the still frame already reflects.
-                    })
+                    });
                   } else {
-                    element.pause()
+                    element.pause();
                   }
                 }}
                 className="bg-black/50 text-white backdrop-blur"
@@ -350,16 +352,18 @@ const MediaPreview = ({
                 ) : (
                   <IconPlayerPlayFilled size={18} aria-hidden />
                 )}
-              </IconButton>
+              </Button>
 
-              <IconButton
+              <Button
+                isIconOnly
+                variant="ghost"
                 label={isMuted ? 'Turn sound on' : 'Turn sound off'}
                 onClick={() => {
-                  const element = videoRef.current
+                  const element = videoRef.current;
 
                   if (element !== null) {
-                    element.muted = !isMuted
-                    setIsMuted(!isMuted)
+                    element.muted = !isMuted;
+                    setIsMuted(!isMuted);
                   }
                 }}
                 className="bg-black/50 text-white backdrop-blur"
@@ -369,7 +373,7 @@ const MediaPreview = ({
                 ) : (
                   <IconVolume size={18} aria-hidden />
                 )}
-              </IconButton>
+              </Button>
             </>
           )}
         </div>
@@ -379,9 +383,9 @@ const MediaPreview = ({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-surface to-transparent" />
       )}
     </div>
-  )
-}
+  );
+};
 
-MediaPreview.displayName = 'MediaPreview'
+MediaPreview.displayName = 'MediaPreview';
 
-export { MediaPreview }
+export { MediaPreview };

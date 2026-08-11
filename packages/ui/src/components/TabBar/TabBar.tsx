@@ -1,7 +1,8 @@
-import { motion, useReducedMotion } from 'motion/react'
-import { cn } from '@FluxUI/cn'
-import { revealTransition } from '@FluxUI/animations/reveal'
-import type { TabBarProps } from './TabBar.types'
+import { motion, useReducedMotion } from 'motion/react';
+import { Button } from '@FluxUI/Button';
+import { cn } from '@FluxUI/cn';
+import { revealTransition } from '@FluxUI/animations/reveal';
+import type { TabBarProps } from './TabBar.types';
 
 /**
  * Words across the top that filter what is beneath them.
@@ -14,21 +15,22 @@ import type { TabBarProps } from './TabBar.types'
  * and a second row of tabs is a menu nobody asked for.
  */
 const TabBar = ({ tabs, selectedId, onSelect, label, className }: TabBarProps) => {
-  const prefersReducedMotion = useReducedMotion()
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <nav aria-label={label} className={cn('flux-rail overflow-x-auto', className)}>
       <ul className="flex items-center gap-6 px-5 sm:px-10">
         {tabs.map((tab) => {
-          const isSelected = tab.id === selectedId
+          const isSelected = tab.id === selectedId;
 
           return (
             <li key={tab.id} className="relative shrink-0 py-3">
-              <button
-                type="button"
+              <Button
+                variant="bare"
+                size="none"
                 aria-current={isSelected ? 'page' : undefined}
                 onClick={() => {
-                  onSelect(tab.id)
+                  onSelect(tab.id);
                 }}
                 className={cn(
                   'text-xl font-semibold tracking-tight transition-colors sm:text-2xl',
@@ -36,7 +38,7 @@ const TabBar = ({ tabs, selectedId, onSelect, label, className }: TabBarProps) =
                 )}
               >
                 {tab.label}
-              </button>
+              </Button>
 
               {isSelected ? (
                 <motion.span
@@ -46,13 +48,13 @@ const TabBar = ({ tabs, selectedId, onSelect, label, className }: TabBarProps) =
                 />
               ) : null}
             </li>
-          )
+          );
         })}
       </ul>
     </nav>
-  )
-}
+  );
+};
 
-TabBar.displayName = 'TabBar'
+TabBar.displayName = 'TabBar';
 
-export { TabBar }
+export { TabBar };

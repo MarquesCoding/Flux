@@ -53,8 +53,8 @@ binaries. Same principle, same enforcement.
 in an import specifier.
 
 ```ts
-import Button from '@FluxUI/Button' // correct
-import Button from '../../ui/Button/Button' // banned
+import Button from '@FluxUI/Button'; // correct
+import Button from '../../ui/Button/Button'; // banned
 ```
 
 Same-directory relative imports (`./Button.types`) are permitted, because a
@@ -132,11 +132,11 @@ export { Button }
 Consumption — **import what is used, and nothing else**:
 
 ```tsx
-import { Button } from '@FluxUI/Button'
+import { Button } from '@FluxUI/Button';
 
 const MediaCard = (props: MediaCardProps) => {
-  return <Button variant="primary">Play</Button>
-}
+  return <Button variant="primary">Play</Button>;
+};
 ```
 
 No default exports, and no module objects. A file exports the thing it is named
@@ -256,7 +256,7 @@ Untrusted data enters through a Zod schema, which produces a concrete type
 without any annotation being written:
 
 ```ts
-const item = MediaItemSchema.parse(JSON.parse(body))
+const item = MediaItemSchema.parse(JSON.parse(body));
 ```
 
 `JSON.parse` returns `any`, but no `any` token appears in the source and the
@@ -271,12 +271,12 @@ narrows it without a cast:
 
 ```ts
 try {
-  await startSession(plan)
+  await startSession(plan);
 } catch (error) {
   if (error instanceof TranscodeError) {
-    return failure(error.code)
+    return failure(error.code);
   }
-  throw error
+  throw error;
 }
 ```
 
@@ -287,17 +287,59 @@ try {
 
 ## 9. UI components
 
-**Raw HTML form and interactive elements are banned in application code.** No
-`<button>`, `<input>`, `<select>`, `<checkbox>`, `<textarea>`, `<a>` used as a
-control, or `<dialog>`. Use the FluxUI equivalent.
-
-FluxUI itself is the only place these primitives appear, because that is where
-they are wrapped. See ADR-0013.
+**Raw HTML form and interactive elements are banned outside the one FluxUI
+component that owns each of them.** No `<button>`, `<input>`, `<select>`,
+`<textarea>`, `<a>` used as a control, or `<dialog>` — not in application code,
+and not in other FluxUI components either.
 
 Structural elements — `<div>`, `<span>`, `<section>`, `<ul>` — are fine.
 
-**If FluxUI lacks a component you need, add it to FluxUI.** Do not work around
-its absence locally. A one-off raw control in an app is how design systems die.
+### One component owns each primitive
+
+| Primitive                                           | Owned by     | Everything else       |
+| --------------------------------------------------- | ------------ | --------------------- |
+| `<button>`                                          | `Button`     | composes `Button`     |
+| `<input type="text\|email\|password\|url\|search">` | `TextField`  | composes `TextField`  |
+| `<input type="file">`                               | `FilePicker` | composes `FilePicker` |
+| `<dialog>`, focus trapping                          | `Dialog`     | composes `Dialog`     |
+
+**A control that is not one of those is a shape of one of those.** An icon
+button is `Button` with an icon and a label. A search box is `TextField` wearing
+no box. A row of page markers, a bar of places, a menu of settings: all
+`Button`, painted differently.
+
+There is no `IconButton`, and there should be no equivalent of one for any other
+primitive. A second component wrapping the same element is a second set of focus
+behaviour, disabled behaviour and keyboard behaviour — written slightly
+differently, drifting apart from the first, and each fixed separately when
+either turns out to be wrong.
+
+### Widening a component rather than escaping it
+
+When a control needs something the owning component does not offer, **add it to
+that component**. `Button` carries `variant="bare"` and `size="none"` for
+exactly this: the controls FluxUI builds out of it need a button's behaviour and
+none of its skin.
+
+`bare` and `none` are for a control that supplies its own shape: a card that is
+one big press target, an episode row, the clock in the player. They say _this
+one is painted by its caller_ — not _this one is exempt_. A control that wants a
+skin FluxUI does not have wants a variant that ought to exist by name; add it,
+and say what it is for.
+
+**If FluxUI lacks a component you need, add it to FluxUI.** A one-off raw
+control in an app is how design systems die; a second component owning the same
+element is how they rot.
+
+### How this is enforced
+
+ESLint fails the build on `<button>`, `<input>`, `<select>`, `<textarea>` and
+`<dialog>` anywhere in the repo. The exceptions are listed by filename in
+`eslint.config.ts`: the three components that own those elements, and test files,
+where a raw element stands in for an arbitrary caller-supplied child.
+
+Adding a filename to that list is not how you satisfy the rule. The list grows
+only when a new primitive gets an owner.
 
 ---
 

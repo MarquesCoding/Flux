@@ -1,15 +1,16 @@
-import { useState } from 'react'
-import { Popover } from '@base-ui-components/react/popover'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
-import { cn } from '@FluxUI/cn'
-import { Tooltip } from '@FluxUI/Tooltip'
+import { useState } from 'react';
+import { Popover } from '@base-ui-components/react/popover';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { cn } from '@FluxUI/cn';
+import { Tooltip } from '@FluxUI/Tooltip';
 import type {
   SettingsChoiceRow,
   SettingsMenuProps,
   SettingsPanelRow,
   SettingsRow,
-} from './SettingsMenu.types'
+} from './SettingsMenu.types';
 
 /**
  * The class every row shares.
@@ -19,7 +20,7 @@ import type {
  * list of unrelated things.
  */
 const ROW =
-  'flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-left text-sm transition-colors'
+  'flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-left text-sm transition-colors';
 
 /**
  * How far a subsection slides in from.
@@ -27,24 +28,24 @@ const ROW =
  * Enough to read as coming from the right, and not so far that the panel looks
  * like it is throwing its contents about.
  */
-const SLIDE = 28
+const SLIDE = 28;
 
 /**
  * What a row is currently set to.
  */
 const answerOf = (row: SettingsRow): string | null => {
   if (row.kind === 'choice') {
-    return row.choices.find((choice) => choice.id === row.selectedId)?.label ?? null
+    return row.choices.find((choice) => choice.id === row.selectedId)?.label ?? null;
   }
 
-  return row.kind === 'toggle' ? null : (row.detail ?? null)
-}
+  return row.kind === 'toggle' ? null : (row.detail ?? null);
+};
 
 /**
  * Whether a row leads somewhere rather than doing something in place.
  */
 const opensSomething = (row: SettingsRow): row is SettingsChoiceRow | SettingsPanelRow =>
-  row.kind === 'choice' || row.kind === 'panel'
+  row.kind === 'choice' || row.kind === 'panel';
 
 /**
  * Everything about what is playing, behind one control.
@@ -72,23 +73,23 @@ const SettingsMenu = ({
 }: SettingsMenuProps) => {
   // Which row is open, if any. Held here rather than by the caller because it
   // is a thing about this panel rather than about what it describes.
-  const [openId, setOpenId] = useState<string | null>(null)
-  const [isOpen, setIsOpen] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   const opened =
     rows.find(
       (row): row is SettingsChoiceRow | SettingsPanelRow =>
         opensSomething(row) && row.id === openId,
-    ) ?? null
+    ) ?? null;
 
   // Going in comes from the right and coming back from the left, so the
   // movement says which way the panel went rather than only that it changed.
-  const travel = prefersReducedMotion === true ? 0 : SLIDE
+  const travel = prefersReducedMotion === true ? 0 : SLIDE;
 
   const close = () => {
-    setOpenId(null)
-  }
+    setOpenId(null);
+  };
 
   return (
     <Popover.Root
@@ -96,11 +97,11 @@ const SettingsMenu = ({
         // Closing forgets where it was. Reopening onto the subsection somebody
         // was last in reads as the panel having got stuck.
         if (!open) {
-          close()
+          close();
         }
 
-        setIsOpen(open)
-        onOpenChange?.(open)
+        setIsOpen(open);
+        onOpenChange?.(open);
       }}
     >
       <Tooltip label={label}>
@@ -146,13 +147,14 @@ const SettingsMenu = ({
               >
                 {opened === null
                   ? rows.map((row) => {
-                      const answer = answerOf(row)
+                      const answer = answerOf(row);
 
                       if (row.kind === 'toggle') {
                         return (
-                          <button
+                          <Button
                             key={row.id}
-                            type="button"
+                            variant="bare"
+                            size="none"
                             role="switch"
                             aria-checked={row.isOn}
                             onClick={row.onToggle}
@@ -174,8 +176,8 @@ const SettingsMenu = ({
                                 )}
                               />
                             </span>
-                          </button>
-                        )
+                          </Button>
+                        );
                       }
 
                       if (row.kind === 'custom') {
@@ -192,21 +194,22 @@ const SettingsMenu = ({
 
                             {row.control}
                           </div>
-                        )
+                        );
                       }
 
                       return (
-                        <button
+                        <Button
                           key={row.id}
-                          type="button"
+                          variant="bare"
+                          size="none"
                           onClick={() => {
                             if (row.kind === 'action') {
-                              row.onSelect()
+                              row.onSelect();
 
-                              return
+                              return;
                             }
 
-                            setOpenId(row.id)
+                            setOpenId(row.id);
                           }}
                           className={cn(ROW, 'shrink-0 hover:bg-white/10')}
                         >
@@ -222,16 +225,17 @@ const SettingsMenu = ({
                             </span>
                             <IconChevronRight size={16} className="shrink-0" aria-hidden />
                           </span>
-                        </button>
-                      )
+                        </Button>
+                      );
                     })
                   : [
                       // The way back is the heading. A panel that replaced
                       // itself and offered no way out would be a trap, and a
                       // back button beside a title is two things saying one.
-                      <button
+                      <Button
                         key="back"
-                        type="button"
+                        variant="bare"
+                        size="none"
                         onClick={close}
                         className={cn(
                           ROW,
@@ -240,7 +244,7 @@ const SettingsMenu = ({
                       >
                         <IconChevronLeft size={18} aria-hidden />
                         {opened.label}
-                      </button>,
+                      </Button>,
 
                       ...(opened.kind === 'panel'
                         ? [
@@ -249,14 +253,15 @@ const SettingsMenu = ({
                             </div>,
                           ]
                         : opened.choices.map((choice) => (
-                            <button
+                            <Button
                               key={choice.id}
-                              type="button"
+                              variant="bare"
+                              size="none"
                               role="menuitemradio"
                               aria-checked={choice.id === opened.selectedId}
                               onClick={() => {
-                                opened.onSelect(choice.id)
-                                close()
+                                opened.onSelect(choice.id);
+                                close();
                               }}
                               className={cn(ROW, 'shrink-0 hover:bg-white/10')}
                             >
@@ -274,7 +279,7 @@ const SettingsMenu = ({
                                   </span>
                                 )}
                               </span>
-                            </button>
+                            </Button>
                           ))),
                     ]}
               </motion.div>
@@ -283,9 +288,9 @@ const SettingsMenu = ({
         </Popover.Positioner>
       </Popover.Portal>
     </Popover.Root>
-  )
-}
+  );
+};
 
-SettingsMenu.displayName = 'SettingsMenu'
+SettingsMenu.displayName = 'SettingsMenu';
 
-export { SettingsMenu }
+export { SettingsMenu };

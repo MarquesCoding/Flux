@@ -1,12 +1,12 @@
-import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react'
-import { IconButton } from '@FluxUI/IconButton'
-import { formatDuration } from '@FluxCore/functions/formatDuration'
-import type { EpisodeRowProps } from './EpisodeRow.types'
+import { Button } from '@FluxUI/Button';
+import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react';
+import { formatDuration } from '@FluxCore/functions/formatDuration';
+import type { EpisodeRowProps } from './EpisodeRow.types';
 
 /**
  * Where the still for an episode comes from.
  */
-const stillUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`
+const stillUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
 /**
  * One episode, in a list of them.
@@ -27,17 +27,18 @@ const EpisodeRow = ({
   resumeSeconds,
 }: EpisodeRowProps) => (
   <div className="group/episode flex items-center gap-3 py-3">
-    <button
-      type="button"
+    <Button
+      variant="bare"
+      size="none"
       aria-label={
         resumeSeconds === undefined
           ? `Play ${episode.title}`
           : `Resume ${episode.title} from ${formatDuration(resumeSeconds)}`
       }
       onClick={() => {
-        onPlay(episode, resumeSeconds ?? 0)
+        onPlay(episode, resumeSeconds ?? 0);
       }}
-      className="flex min-w-0 flex-1 items-center gap-4 text-left"
+      className="flex min-w-0 shrink flex-1 items-center gap-4 text-left"
     >
       <span className="w-8 shrink-0 text-center text-sm tabular-nums text-text-muted">
         {episode.episodeNumber ?? '—'}
@@ -77,22 +78,24 @@ const EpisodeRow = ({
           {resumeSeconds === undefined ? '' : ` · ${formatDuration(resumeSeconds)} in`}
         </span>
       </span>
-    </button>
+    </Button>
 
     {onInspect === undefined ? null : (
-      <IconButton
+      <Button
+        isIconOnly
+        variant="ghost"
         label={`About ${episode.title}`}
         size="sm"
         onClick={() => {
-          onInspect(episode)
+          onInspect(episode);
         }}
       >
         <IconInfoCircle size={18} aria-hidden />
-      </IconButton>
+      </Button>
     )}
   </div>
-)
+);
 
-EpisodeRow.displayName = 'EpisodeRow'
+EpisodeRow.displayName = 'EpisodeRow';
 
-export { EpisodeRow }
+export { EpisodeRow };

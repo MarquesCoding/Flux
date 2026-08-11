@@ -12,7 +12,6 @@
       "@FluxUI/DotField": ["./packages/ui/src/components/DotField/DotField.tsx"],
       "@FluxUI/FilePicker": ["./packages/ui/src/components/FilePicker/FilePicker.tsx"],
       "@FluxUI/GlassPanel": ["./packages/ui/src/components/GlassPanel/GlassPanel.tsx"],
-      "@FluxUI/IconButton": ["./packages/ui/src/components/IconButton/IconButton.tsx"],
       "@FluxUI/MediaCard": ["./packages/ui/src/components/MediaCard/MediaCard.tsx"],
       "@FluxUI/Meter": ["./packages/ui/src/components/Meter/Meter.tsx"],
       "@FluxUI/MoodBackground.types": [
