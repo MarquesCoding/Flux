@@ -180,6 +180,26 @@ const Hero = ({
           {featured.seriesTitle ?? featured.title}
         </motion.h1>
 
+        {/* The episode, under the show it belongs to. The show is what
+            somebody recognises and the episode is what they are being offered,
+            so both are worth saying — in that order and at that weight. */}
+        {featured.seriesTitle === null || featured.seriesTitle === undefined ? null : (
+          <motion.p
+            variants={revealVariants(prefersReducedMotion)}
+            transition={revealTransition(prefersReducedMotion)}
+            className="flex flex-wrap items-center gap-2 text-base font-medium text-text-muted sm:text-lg"
+          >
+            {typeof featured.seasonNumber !== 'number' ||
+            typeof featured.episodeNumber !== 'number' ? null : (
+              <span className="tabular-nums">
+                S{featured.seasonNumber} · E{featured.episodeNumber}
+              </span>
+            )}
+
+            <span className="text-text">{featured.title}</span>
+          </motion.p>
+        )}
+
         <motion.div
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
