@@ -180,6 +180,9 @@ const VideoPlayer = ({
   const [isShowingStats, setIsShowingStats] = useState(false)
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH)
   const [isIdle, setIsIdle] = useState(false)
+  // Where the pointer was last seen, so a move that did not move can be told
+  // from one that did.
+  const pointRef = useRef<{ x: number; y: number } | null>(null)
   // Bumped by anything a viewer actually did. Playback position is not that:
   // it changes several times a second, and a timer restarted by it never
   // expires, so the controls would sit there for the whole film.
@@ -1032,7 +1035,7 @@ const VideoPlayer = ({
       <header
         className={
           isImmersive
-            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-opacity ${
+            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-opacity duration-500 ease-out ${
                 isIdle && !isShowingStats ? 'opacity-0' : 'opacity-100'
               }`
             : 'flex items-center justify-between gap-4'
@@ -1067,11 +1070,24 @@ const VideoPlayer = ({
             ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black'
             : 'relative overflow-hidden rounded-lg bg-black'
         } ${isIdle && !isShowingStats ? 'cursor-none' : 'cursor-default'} outline-none`}
-        onPointerMove={() => {
+        onPointerMove={(event) => {
+          // Only a pointer that actually moved counts. Hiding the cursor
+          // makes a browser emit another move at the same coordinates, which
+          // woke the bar, which showed the cursor, which hid it again — the
+          // flicker was the interface arguing with itself.
+          const last = pointRef.current
+
+          if (last !== null && last.x === event.clientX && last.y === event.clientY) {
+            return
+          }
+
+          pointRef.current = { x: event.clientX, y: event.clientY }
+
           setIsIdle(false)
           setActivity((count) => count + 1)
         }}
         onPointerLeave={() => {
+          pointRef.current = null
           setIsIdle(isPlaying)
         }}
       >
@@ -1198,8 +1214,8 @@ const VideoPlayer = ({
         )}
 
         <div
-          className={`absolute inset-x-3 bottom-3 transition-opacity ${
-            isIdle && !isShowingStats ? 'opacity-0' : 'opacity-100'
+          className={`absolute inset-x-3 bottom-3 transition-opacity duration-500 ease-out ${
+            isIdle && !isShowingStats ? 'flux-glass-clearing opacity-0' : 'opacity-100'
           }`}
         >
           <PlayerControls
