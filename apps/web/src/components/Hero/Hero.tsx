@@ -18,7 +18,7 @@ import type { HeroProps } from './Hero.types';
  * scrolling gets the change of shape first and the change of place second,
  * rather than both at once.
  */
-const DRAWS_IN_BY_PIXELS = 320;
+const DRAWS_IN_BY_PIXELS = 640;
 
 /**
  * How much of the screen the card gives up at its foot.
