@@ -9,8 +9,8 @@ import {
   IconRefresh,
   IconPlayerPause,
   IconPlayerPlay,
-  IconRotate,
-  IconRotateClockwise,
+  IconRewindBackward10,
+  IconRewindForward10,
   IconVolume,
   IconVolumeOff,
 } from '@tabler/icons-react'
@@ -109,7 +109,7 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        <IconRotate size={22} aria-hidden />
+        <IconRewindBackward10 size={22} aria-hidden />
       </IconButton>
 
       <IconButton
@@ -133,7 +133,7 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        <IconRotateClockwise size={22} aria-hidden />
+        <IconRewindForward10 size={22} aria-hidden />
       </IconButton>
 
       <span className="flex-1" />
