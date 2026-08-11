@@ -418,14 +418,14 @@ describe('PlayerControls', () => {
   it('offers to cast once the browser has found somewhere', () => {
     draw({ onCast: vi.fn(), castState: 'available' })
 
-    expect(screen.getByRole('button', { name: 'Play on a device' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Play on a device/ })).toBeInTheDocument()
   })
 
   it('hands it over on request', async () => {
     const user = userEvent.setup()
     const props = draw({ onCast: vi.fn(), castState: 'available' })
 
-    await user.click(screen.getByRole('button', { name: 'Play on a device' }))
+    await user.click(screen.getByRole('button', { name: /Play on a device/ }))
 
     expect(props.onCast).toHaveBeenCalledTimes(1)
   })
@@ -442,7 +442,7 @@ describe('PlayerControls', () => {
   it('waits rather than asking twice while a device is being reached', () => {
     draw({ onCast: vi.fn(), castState: 'connecting' })
 
-    expect(screen.getByRole('button', { name: 'Play on a device' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Play on a device/ })).toBeDisabled()
   })
 
   it('sets a display name so devtools can identify it', () => {

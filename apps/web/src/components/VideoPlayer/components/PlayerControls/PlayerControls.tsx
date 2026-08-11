@@ -414,7 +414,14 @@ const PlayerControls = ({
           browser, which is the only thing that knows what is on the network. */}
       {onCast === undefined || castState === 'unavailable' ? null : (
         <IconButton
-          label={castState === 'connected' ? 'Playing on another device' : 'Play on a device'}
+          // Named for what the press does rather than for what it opens: the
+          // list belongs to the browser, and no page is allowed to know what is
+          // on somebody's network.
+          label={
+            castState === 'connected'
+              ? 'Playing on another device'
+              : 'Play on a device — your browser will ask which'
+          }
           isActive={castState === 'connected'}
           disabled={castState === 'connecting'}
           onClick={onCast}
