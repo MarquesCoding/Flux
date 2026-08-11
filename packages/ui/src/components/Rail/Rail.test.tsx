@@ -95,6 +95,38 @@ describe('Rail', () => {
     expect(screen.getByText('See all')).toBeInTheDocument();
   });
 
+  it('leaves the heading as plain text when it leads nowhere', () => {
+    render(<Rail title="Continue watching">{items}</Rail>);
+
+    expect(screen.queryByRole('button', { name: 'Continue watching' })).not.toBeInTheDocument();
+  });
+
+  it('makes the heading a control when it names something to open', async () => {
+    const onOpenTitle = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Rail title="A Sign of Affection · Season 1" onOpenTitle={onOpenTitle}>
+        {items}
+      </Rail>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'A Sign of Affection · Season 1' }));
+
+    expect(onOpenTitle).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the heading a heading, so the row is still found by its name', () => {
+    render(
+      <Rail title="A Sign of Affection · Season 1" onOpenTitle={vi.fn()}>
+        {items}
+      </Rail>,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'A Sign of Affection · Season 1' }),
+    ).toBeInTheDocument();
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(Rail.displayName).toBe('Rail');
   });

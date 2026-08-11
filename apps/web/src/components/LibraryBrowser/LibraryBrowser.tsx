@@ -224,8 +224,19 @@ const LibraryBrowser = ({
           </p>
         ) : (
           <div className="flex flex-col gap-10">
-            {groupIntoRails(items, Date.now(), progress).map((rail) => (
-              <Rail key={rail.id} title={rail.title} className="px-0">
+            {groupIntoRails(items, Date.now(), progress).map(({ showOf, ...rail }) => (
+              <Rail
+                key={rail.id}
+                title={rail.title}
+                className="px-0"
+                {...(showOf === undefined || onOpenShow === undefined
+                  ? {}
+                  : {
+                      onOpenTitle: () => {
+                        onOpenShow(showOf);
+                      },
+                    })}
+              >
                 {rail.items.map((media) => (
                   <li key={media.id} className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80">
                     <RailCard

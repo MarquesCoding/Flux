@@ -172,3 +172,31 @@ describe('groupIntoRails', () => {
     expect(first.map((rail) => rail.id)).toEqual(second.map((rail) => rail.id));
   });
 });
+
+describe('a row that names a programme', () => {
+  it('carries an episode of it, so the heading knows what it leads to', () => {
+    const rails = groupIntoRails(
+      [episode('Affection', 1, 1), episode('Affection', 1, 2)],
+      Date.now(),
+      new Map(),
+    );
+
+    const season = rails.find((rail) => rail.id.startsWith('season:'));
+
+    expect(season?.showOf?.seriesTitle).toBe('Affection');
+  });
+
+  it('leads nowhere from a row that is about no one series', () => {
+    const rails = groupIntoRails(
+      [episode('Affection', 1, 1), episode('Affection', 1, 2)],
+      Date.now(),
+      new Map(),
+    );
+
+    expect(
+      rails
+        .filter((rail) => !rail.id.startsWith('season:'))
+        .every((rail) => rail.showOf === undefined),
+    ).toBe(true);
+  });
+});
