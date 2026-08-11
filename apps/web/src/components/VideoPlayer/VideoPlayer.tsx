@@ -171,6 +171,11 @@ const VideoPlayer = ({
   // volume, and somebody watching in silence does not expect to be shouted at.
   const [volume, setVolume] = useState(() => readPlaybackPreferences().volume)
   const [isMuted, setIsMuted] = useState(() => readPlaybackPreferences().isMuted)
+  // Counting down or counting up. A habit rather than a setting, which is why
+  // it is remembered rather than asked again every film.
+  const [isShowingRemaining, setIsShowingRemaining] = useState(
+    () => readPlaybackPreferences().showsRemaining,
+  )
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isShowingStats, setIsShowingStats] = useState(false)
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH)
@@ -1225,6 +1230,14 @@ const VideoPlayer = ({
             onSubtitleChange={chooseSubtitle}
             onAudioChange={changeAudio}
             onQualityChange={changeQuality}
+            isShowingRemaining={isShowingRemaining}
+            onToggleTimeDisplay={() => {
+              setIsShowingRemaining((showing) => {
+                writePlaybackPreferences({ showsRemaining: !showing })
+
+                return !showing
+              })
+            }}
             captionStyle={captionStyle}
             onCaptionStyleChange={setCaptionStyle}
             onCaptionStyleReset={() => {

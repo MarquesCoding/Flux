@@ -98,6 +98,8 @@ const PlayerControls = ({
   episodes = [],
   onSelectEpisode,
   watchedFractionFor,
+  isShowingRemaining,
+  onToggleTimeDisplay,
   captionStyle,
   onCaptionStyleChange,
   onCaptionStyleReset,
@@ -124,10 +126,20 @@ const PlayerControls = ({
         {...(renderPreview === undefined ? {} : { renderPreview })}
       />
 
-      <span className="shrink-0 text-xs tabular-nums sm:text-sm">
-        {formatDuration(position)}{' '}
+      {/* The clock is a control. Everybody wants one of two numbers from it —
+          how far in they are, or how much is left — and which one depends on
+          whether they are enjoying it or deciding whether there is time. */}
+      <button
+        type="button"
+        aria-label={isShowingRemaining ? 'Show the time played' : 'Show the time remaining'}
+        onClick={onToggleTimeDisplay}
+        className="shrink-0 rounded-md px-1 text-xs tabular-nums transition-colors hover:bg-white/10 sm:text-sm"
+      >
+        {isShowingRemaining
+          ? `-${formatDuration(Math.max(duration - position, 0))}`
+          : formatDuration(position)}{' '}
         <span className="text-white/50">/ {formatDuration(duration)}</span>
-      </span>
+      </button>
     </div>
 
     <div className="flex items-center gap-1 sm:gap-2">
