@@ -3,7 +3,7 @@ import {
   resetLibrary,
   regenerateLibraryPreviews,
 } from '@FluxWeb/library/fetchLibrary';
-import { runJob } from '@FluxWeb/admin/fetchAdmin';
+import { fetchRunningScans, runJob } from '@FluxWeb/admin/fetchAdmin';
 import { waitForScanCompletion } from '@FluxWeb/library/waitForScanCompletion';
 import type { ScanJob } from '@FluxWeb/library/fetchLibrary';
 import type { Library } from '@FluxContracts/schemas/Library';
@@ -118,6 +118,50 @@ const runAndTrack = async (
 };
 
 /**
+ * Picks up scans the server is already running.
+ *
+ * A reload loses the job ids this page was following, but not the work: the
+ * server is still scanning, and a page that shows nothing is telling the
+ * operator something untrue. Asked once when the page opens, so a refresh
+ * mid-scan rejoins rather than starts again.
+ */
+const resumeRunning = async (): Promise<void> => {
+  const running = await fetchRunningScans();
+
+  await Promise.all(
+    running
+      .filter((scan) => scan.libraryId !== null)
+      .map(async (scan) => {
+        const libraryId = scan.libraryId ?? '';
+
+        if (snapshot.progress.has(libraryId)) {
+          return;
+        }
+
+        track(libraryId, {
+          kind: scan.kind,
+          phase: scan.phase,
+          processed: scan.processed,
+          total: scan.total,
+        });
+
+        try {
+          await waitForScanCompletion(scan.jobId, (found) => {
+            track(libraryId, {
+              kind: scan.kind,
+              phase: found.phase,
+              processed: found.processed,
+              total: found.total,
+            });
+          });
+        } finally {
+          untrack(libraryId);
+        }
+      }),
+  );
+};
+
+/**
  * Scans one library, tracking its progress until it finishes.
  */
 const startScan = (libraryId: string): Promise<void> =>
@@ -211,6 +255,7 @@ const resetForTests = () => {
 export {
   subscribe,
   getSnapshot,
+  resumeRunning,
   startScan,
   startScanAll,
   startResetAll,

@@ -45,6 +45,7 @@ import { SessionCard } from './components/SessionCard/SessionCard';
 import { JobRunner } from './components/JobRunner/JobRunner';
 import { JobSchedulePage } from './components/JobSchedulePage/JobSchedulePage';
 import {
+  resumeRunning,
   subscribe as subscribeToScans,
   getSnapshot as getScanSnapshot,
   startScan,
@@ -325,6 +326,7 @@ const AdminArea = ({
     void fetchActiveSessions().then(setSessions);
     void fetchJobDefinitions().then(setJobDefinitions);
     void readJobSchedules().then(setJobSchedules);
+    void resumeRunning();
   }, []);
 
   useEffect(() => {

@@ -1,3 +1,4 @@
+import type { RunningJob } from '@FluxServer/jobs/JobQueue';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins';
@@ -23,6 +24,7 @@ import {
   getShowRoute,
   scanLibraryRoute,
   scanStateRoute,
+  runningScansRoute,
   resetLibraryRoute,
   regeneratePreviewsRoute,
 } from './routes/LibraryRoute';
@@ -229,6 +231,10 @@ type CreateAppOptions = {
    */
   readImage?: (url: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>;
   isTranscoderReachable?: () => Promise<boolean>;
+  /**
+   * What the server is working on, so a page reloaded mid-scan can find it.
+   */
+  listRunningJobs?: () => RunningJob[];
 };
 
 /**
@@ -263,6 +269,7 @@ const createApp = ({
   monitorStream,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
+  listRunningJobs = () => [],
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
@@ -400,6 +407,22 @@ const createApp = ({
 
     return context.json(queued, 202);
   });
+
+  app.openapi(runningScansRoute, (context) =>
+    context.json(
+      {
+        scans: listRunningJobs().map((job) => ({
+          jobId: job.jobId,
+          kind: job.kind,
+          libraryId: job.subject,
+          phase: job.progress?.phase ?? null,
+          processed: job.progress?.processed ?? null,
+          total: job.progress?.total ?? null,
+        })),
+      },
+      200,
+    ),
+  );
 
   app.openapi(scanStateRoute, async (context) => {
     const { jobId } = context.req.valid('param');

@@ -129,6 +129,20 @@ type JobProgress = {
  * A port rather than pg-boss directly, so the routes can be tested without
  * Postgres and so the queue can be swapped without touching call sites.
  */
+/**
+ * A job in flight, named by what it is about.
+ *
+ * `subject` is what the work concerns — a library id, for everything that
+ * runs against one — so a page can match a running job to the thing on screen
+ * without having been the one to start it.
+ */
+type RunningJob = {
+  jobId: string;
+  kind: string;
+  subject: string | null;
+  progress: JobProgress | null;
+};
+
 type JobQueue = {
   /**
    * Queues work of the given kind, reporting its job id.
@@ -151,6 +165,16 @@ type JobQueue = {
    */
   readProgress: (jobId: string) => JobProgress | null;
   reportProgress: (jobId: string, phase: string, processed: number, total: number) => void;
+  /**
+   * Every job the server is working on right now, and what each is about.
+   *
+   * A browser that asked for a scan knows its job id until it is reloaded, and
+   * then knows nothing: the work carries on and the page that started it has
+   * no way to find it again. Asking the server what is running is the only
+   * answer that survives a refresh, or a second browser, or being opened by
+   * somebody else entirely.
+   */
+  listRunning: () => RunningJob[];
   /**
    * Sets one of the schedules a queue name runs on.
    *
@@ -175,6 +199,7 @@ export type {
   JobState,
   RegeneratePreviewsJob,
   RegenerateTrickplayJob,
+  RunningJob,
   ScanLibraryJob,
 };
 

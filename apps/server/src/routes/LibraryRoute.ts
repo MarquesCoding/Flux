@@ -195,6 +195,36 @@ const scanLibraryRoute = createRoute({
   },
 });
 
+const runningScansRoute = createRoute({
+  method: 'get',
+  path: '/api/libraries/scans',
+  tags: ['Library'],
+  summary: 'List the scans running right now',
+  responses: {
+    200: {
+      description: 'What the server is working on',
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              scans: z.array(
+                z.object({
+                  jobId: z.string(),
+                  kind: z.string(),
+                  libraryId: z.string().nullable(),
+                  phase: z.string().nullable(),
+                  processed: z.number().nullable(),
+                  total: z.number().nullable(),
+                }),
+              ),
+            })
+            .openapi('RunningScans'),
+        },
+      },
+    },
+  },
+});
+
 const scanStateRoute = createRoute({
   method: 'get',
   path: '/api/libraries/scans/{jobId}',
@@ -321,5 +351,6 @@ export {
   resetLibraryRoute,
   listShowsRoute,
   getShowRoute,
+  runningScansRoute,
   regeneratePreviewsRoute,
 };
