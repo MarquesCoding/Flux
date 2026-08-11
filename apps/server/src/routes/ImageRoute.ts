@@ -1,6 +1,6 @@
-import { createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi';
 
-const ImageError = z.object({ error: z.string() }).openapi('ImageError')
+const ImageError = z.object({ error: z.string() }).openapi('ImageError');
 
 /**
  * Serves an item's artwork from Flux's own cache.
@@ -27,6 +27,6 @@ const mediaImageRoute = createRoute({
       content: { 'application/json': { schema: ImageError } },
     },
   },
-})
+});
 
-export { mediaImageRoute }
+export { mediaImageRoute };

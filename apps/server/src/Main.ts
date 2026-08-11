@@ -1,33 +1,33 @@
-import { join } from 'node:path'
-import { z } from 'zod'
-import { serve } from '@hono/node-server'
-import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { count, eq } from 'drizzle-orm'
-import { createApp } from './App'
-import { createAuth } from '@FluxServer/auth/Auth'
-import { createDatabase } from '@FluxServer/db/Database'
-import { user, mediaItem, userProfile, viewerProfile } from '@FluxServer/db/Schema'
-import { readEnv } from '@FluxServer/env/Env'
-import { createDatabaseSettingsStore } from '@FluxServer/settings/createDatabaseSettingsStore'
-import { createDatabaseLibraryService } from '@FluxServer/library/createDatabaseLibraryService'
-import { createCatalogueMetadataProvider } from '@FluxServer/library/createCatalogueMetadataProvider'
-import { createFilenameMetadataProvider } from '@FluxServer/library/createFilenameMetadataProvider'
-import { createMediaFileSystem } from '@FluxServer/library/createMediaFileSystem'
-import { createTranscoderClient } from '@FluxServer/transcoder/TranscoderClient'
-import { createImageCache } from '@FluxServer/images/createImageCache'
-import { detectLibrarySegments } from '@FluxServer/segments/detectLibrarySegments'
-import { createDatabaseWatchProgressService } from '@FluxServer/progress/createDatabaseWatchProgressService'
-import { createDatabaseFavouriteService } from '@FluxServer/favourites/createDatabaseFavouriteService'
-import { createDatabaseSegmentService } from '@FluxServer/segments/createDatabaseSegmentService'
-import { createChapterSegmentProvider } from '@FluxServer/segments/createChapterSegmentProvider'
-import { createFingerprintSegmentProvider } from '@FluxServer/segments/createFingerprintSegmentProvider'
-import { createSidecarSubtitleService } from '@FluxServer/subtitles/createSidecarSubtitleService'
-import { createDatabaseProfileService } from '@FluxServer/profiles/createDatabaseProfileService'
-import { ViewerProfileSchema } from '@FluxContracts/schemas/ViewerProfile'
-import { createEmbeddedSubtitleService } from '@FluxServer/subtitles/createEmbeddedSubtitleService'
-import { createLayeredSubtitleService } from '@FluxServer/subtitles/createLayeredSubtitleService'
-import { createPlaybackService } from '@FluxServer/playback/createPlaybackService'
-import { createJobQueue } from '@FluxServer/jobs/createJobQueue'
+import { join } from 'node:path';
+import { z } from 'zod';
+import { serve } from '@hono/node-server';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { count, eq } from 'drizzle-orm';
+import { createApp } from './App';
+import { createAuth } from '@FluxServer/auth/Auth';
+import { createDatabase } from '@FluxServer/db/Database';
+import { user, mediaItem, userProfile, viewerProfile } from '@FluxServer/db/Schema';
+import { readEnv } from '@FluxServer/env/Env';
+import { createDatabaseSettingsStore } from '@FluxServer/settings/createDatabaseSettingsStore';
+import { createDatabaseLibraryService } from '@FluxServer/library/createDatabaseLibraryService';
+import { createCatalogueMetadataProvider } from '@FluxServer/library/createCatalogueMetadataProvider';
+import { createFilenameMetadataProvider } from '@FluxServer/library/createFilenameMetadataProvider';
+import { createMediaFileSystem } from '@FluxServer/library/createMediaFileSystem';
+import { createTranscoderClient } from '@FluxServer/transcoder/TranscoderClient';
+import { createImageCache } from '@FluxServer/images/createImageCache';
+import { detectLibrarySegments } from '@FluxServer/segments/detectLibrarySegments';
+import { createDatabaseWatchProgressService } from '@FluxServer/progress/createDatabaseWatchProgressService';
+import { createDatabaseFavouriteService } from '@FluxServer/favourites/createDatabaseFavouriteService';
+import { createDatabaseSegmentService } from '@FluxServer/segments/createDatabaseSegmentService';
+import { createChapterSegmentProvider } from '@FluxServer/segments/createChapterSegmentProvider';
+import { createFingerprintSegmentProvider } from '@FluxServer/segments/createFingerprintSegmentProvider';
+import { createSidecarSubtitleService } from '@FluxServer/subtitles/createSidecarSubtitleService';
+import { createDatabaseProfileService } from '@FluxServer/profiles/createDatabaseProfileService';
+import { ViewerProfileSchema } from '@FluxContracts/schemas/ViewerProfile';
+import { createEmbeddedSubtitleService } from '@FluxServer/subtitles/createEmbeddedSubtitleService';
+import { createLayeredSubtitleService } from '@FluxServer/subtitles/createLayeredSubtitleService';
+import { createPlaybackService } from '@FluxServer/playback/createPlaybackService';
+import { createJobQueue } from '@FluxServer/jobs/createJobQueue';
 
 /**
  * Chapters as they were stored, which may be from an older shape.
@@ -38,9 +38,9 @@ const ChapterListSchema = z.array(
     startSeconds: z.number(),
     endSeconds: z.number(),
   }),
-)
-const env = readEnv(process.env)
-const { db, schema } = createDatabase(env.DATABASE_URL)
+);
+const env = readEnv(process.env);
+const { db, schema } = createDatabase(env.DATABASE_URL);
 
 const settings = createDatabaseSettingsStore({
   db,
@@ -50,9 +50,9 @@ const settings = createDatabaseSettingsStore({
     setupCompletedAt: null,
     catalogueApiKey: env.CATALOGUE_API_KEY,
   },
-})
+});
 
-const persisted = await settings.read()
+const persisted = await settings.read();
 
 const auth = createAuth({
   env,
@@ -60,37 +60,37 @@ const auth = createAuth({
   settings,
   cookieSecure: persisted.cookieSecure,
   onUserCreated: async (userId) => {
-    await db.insert(userProfile).values({ userId }).onConflictDoNothing()
+    await db.insert(userProfile).values({ userId }).onConflictDoNothing();
   },
   onPasswordResetRequested: (email, url) => {
     // Written to the log rather than emailed. The operator of a homelab server
     // can read their own logs; they usually cannot send mail.
-    process.stdout.write(`password reset for ${email}: ${url}\n`)
+    process.stdout.write(`password reset for ${email}: ${url}\n`);
 
-    return Promise.resolve()
+    return Promise.resolve();
   },
-})
+});
 
 const countUsers = async (): Promise<number> => {
-  const rows = await db.select({ total: count() }).from(user)
+  const rows = await db.select({ total: count() }).from(user);
 
-  return rows[0]?.total ?? 0
-}
+  return rows[0]?.total ?? 0;
+};
 
 const promoteToAdmin = async (email: string): Promise<void> => {
-  await db.update(user).set({ role: 'admin' }).where(eq(user.email, email))
-}
+  await db.update(user).set({ role: 'admin' }).where(eq(user.email, email));
+};
 
-const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR, 'profiles'))
+const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR, 'profiles'));
 
-const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL })
+const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL });
 
 // The queue and the library know about each other: the library enqueues
 // scans, and the queue calls the library's worker body to run them.
 const jobs = await createJobQueue({
   connectionString: env.DATABASE_URL,
   onScan: async (libraryId, force, jobId) => {
-    await libraryService.runScan(libraryId, force, jobId)
+    await libraryService.runScan(libraryId, force, jobId);
 
     // Detection runs after the scan rather than inside it. Walking a directory
     // takes seconds; listening to a season takes minutes, and a library should
@@ -112,7 +112,7 @@ const jobs = await createJobQueue({
             bitrateKbps: mediaItem.bitrateKbps,
           })
           .from(mediaItem)
-          .where(eq(mediaItem.libraryId, id))
+          .where(eq(mediaItem.libraryId, id));
 
         return rows.map((row) => ({
           mediaId: row.mediaId,
@@ -131,31 +131,31 @@ const jobs = await createJobQueue({
             subtitleStreams: [],
             chapters: ChapterListSchema.catch([]).parse(row.chapters),
           },
-        }))
+        }));
       },
       onProblem: (provider, reason) => {
-        process.stderr.write(`segments: ${provider}: ${reason}\n`)
+        process.stderr.write(`segments: ${provider}: ${reason}\n`);
       },
       onProgress: (processed, total) => {
-        jobs.reportProgress(jobId, 'segments', processed, total)
+        jobs.reportProgress(jobId, 'segments', processed, total);
       },
-    })
+    });
 
     if (marked > 0) {
-      process.stdout.write(`marked segments on ${marked.toString()} item(s)\n`)
+      process.stdout.write(`marked segments on ${marked.toString()} item(s)\n`);
     }
   },
   onProblem: (message) => {
-    process.stderr.write(`job queue: ${message}\n`)
+    process.stderr.write(`job queue: ${message}\n`);
   },
-})
+});
 
 const catalogueProvider = createCatalogueMetadataProvider({
   readApiKey: async () => (await settings.read()).catalogueApiKey,
   onProblem: (reason) => {
-    process.stderr.write(`catalogue: ${reason}\n`)
+    process.stderr.write(`catalogue: ${reason}\n`);
   },
-})
+});
 
 const libraryService = createDatabaseLibraryService({
   db,
@@ -167,23 +167,23 @@ const libraryService = createDatabaseLibraryService({
   // on disk rather than leaving the item blank.
   providers: [catalogueProvider, createFilenameMetadataProvider()],
   onProblem: (path, reason) => {
-    process.stderr.write(`skipped ${path}: ${reason}\n`)
+    process.stderr.write(`skipped ${path}: ${reason}\n`);
   },
-})
+});
 
 const findMediaPath = async (mediaId: string): Promise<string | null> => {
   const rows = await db
     .select({ path: mediaItem.path })
     .from(mediaItem)
     .where(eq(mediaItem.id, mediaId))
-    .limit(1)
+    .limit(1);
 
-  return rows[0]?.path ?? null
-}
+  return rows[0]?.path ?? null;
+};
 
 const reportSubtitleProblem = (path: string, reason: string): void => {
-  process.stderr.write(`subtitles: ${path}: ${reason}\n`)
-}
+  process.stderr.write(`subtitles: ${path}: ${reason}\n`);
+};
 
 // Sidecars first: a track someone put beside the file themselves is a
 // deliberate choice, where an embedded one is whatever the release shipped.
@@ -195,18 +195,18 @@ const subtitleService = createLayeredSubtitleService([
   createEmbeddedSubtitleService({
     media: {
       find: async (mediaId) => {
-        const item = await libraryService.getMedia(mediaId)
-        const path = await findMediaPath(mediaId)
+        const item = await libraryService.getMedia(mediaId);
+        const path = await findMediaPath(mediaId);
 
-        return item === null || path === null ? null : { path, streams: item.subtitleStreams }
+        return item === null || path === null ? null : { path, streams: item.subtitleStreams };
       },
     },
     transcoder,
     onProblem: reportSubtitleProblem,
   }),
-])
+]);
 
-const segmentService = createDatabaseSegmentService(db)
+const segmentService = createDatabaseSegmentService(db);
 
 // Chapters first: where a release named its own intro there is nothing to
 // detect, and listening to a whole season to rediscover it would be absurd.
@@ -215,43 +215,43 @@ const segmentProviders = [
   createFingerprintSegmentProvider({
     transcoder,
     onProblem: (path, reason) => {
-      process.stderr.write(`segments ${path}: ${reason}\n`)
+      process.stderr.write(`segments ${path}: ${reason}\n`);
     },
   }),
-]
+];
 
 const images = createImageCache({
   directory: env.IMAGE_CACHE_DIR,
   onProblem: (url, reason) => {
-    process.stderr.write(`artwork ${url}: ${reason}\n`)
+    process.stderr.write(`artwork ${url}: ${reason}\n`);
   },
-})
+});
 
 const playbackService = createPlaybackService({
   media: {
     findForPlayback: async (mediaId) => {
-      const item = await libraryService.getMedia(mediaId)
+      const item = await libraryService.getMedia(mediaId);
 
       if (item === null) {
-        return null
+        return null;
       }
 
       const rows = await db
         .select({ path: mediaItem.path })
         .from(mediaItem)
         .where(eq(mediaItem.id, mediaId))
-        .limit(1)
+        .limit(1);
 
-      const path = rows[0]?.path
+      const path = rows[0]?.path;
 
-      return path === undefined ? null : { item, path }
+      return path === undefined ? null : { item, path };
     },
   },
   transcoder,
   sessionUrlPrefix: '/api/playback/session',
   directUrlPrefix: '/api/playback',
   trickplayUrlPrefix: '/api/playback/trickplay',
-})
+});
 
 const app = createApp({
   auth,
@@ -275,12 +275,12 @@ const app = createApp({
       })
       .from(viewerProfile)
       .where(eq(viewerProfile.id, profileId))
-      .limit(1)
+      .limit(1);
 
-    const found = rows[0]
+    const found = rows[0];
 
     if (found === undefined) {
-      return { kind: 'missing' }
+      return { kind: 'missing' };
     }
 
     // better-auth owns how a password becomes a credential, so the account is
@@ -288,13 +288,13 @@ const app = createApp({
     // ordinary failure here and reads as a conflict rather than as a fault.
     const created = await auth.api
       .signUpEmail({ body: { email, password, name: found.name } })
-      .catch(() => null)
+      .catch(() => null);
 
     if (created === null) {
-      return { kind: 'taken' }
+      return { kind: 'taken' };
     }
 
-    await profileService.moveTo(profileId, created.user.id)
+    await profileService.moveTo(profileId, created.user.id);
 
     return {
       kind: 'promoted',
@@ -304,7 +304,7 @@ const app = createApp({
         colour: found.colour,
         createdAt: found.createdAt.toISOString(),
       }),
-    }
+    };
   },
   listUsers: async () => {
     const rows = await db
@@ -315,25 +315,25 @@ const app = createApp({
         role: user.role,
         createdAt: user.createdAt,
       })
-      .from(user)
+      .from(user);
 
-    return rows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }))
+    return rows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }));
   },
   capabilities: () => transcoder.capabilities(),
   monitor: () => transcoder.readMonitor(),
   monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
-})
+});
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
-  const origin = `http://localhost:${info.port.toString()}`
+  const origin = `http://localhost:${info.port.toString()}`;
 
-  process.stdout.write(`Flux listening on ${origin}\n`)
+  process.stdout.write(`Flux listening on ${origin}\n`);
 
   if (persisted.setupCompletedAt === null) {
-    process.stdout.write(`First-run setup at ${origin}\n`)
+    process.stdout.write(`First-run setup at ${origin}\n`);
   }
 
-  process.stdout.write(`API reference at ${origin}/api/reference\n`)
-})
+  process.stdout.write(`API reference at ${origin}/api/reference\n`);
+});

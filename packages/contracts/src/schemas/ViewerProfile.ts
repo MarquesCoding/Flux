@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 /**
  * The colours a profile may be drawn in.
@@ -7,9 +7,9 @@ import { z } from 'zod'
  * these, and a household picking its own hex values produces one profile
  * nobody can read against the background.
  */
-const PROFILE_COLOURS = ['#e8503a', '#e8a33a', '#3ac47d', '#3a8ee8', '#8b5ce8', '#e83a90'] as const
+const PROFILE_COLOURS = ['#e8503a', '#e8a33a', '#3ac47d', '#3a8ee8', '#8b5ce8', '#e83a90'] as const;
 
-const ProfileColourSchema = z.enum(PROFILE_COLOURS)
+const ProfileColourSchema = z.enum(PROFILE_COLOURS);
 
 /**
  * How long a profile name may be.
@@ -17,7 +17,7 @@ const ProfileColourSchema = z.enum(PROFILE_COLOURS)
  * Enough for a name, not enough for a sentence: these are drawn under a
  * portrait on a picker, where anything longer stops being a label.
  */
-const NAME_MAX = 24
+const NAME_MAX = 24;
 
 /**
  * The drawn avatar styles a profile may wear.
@@ -32,9 +32,9 @@ const AVATAR_STYLES = [
   'bottts',
   'funEmoji',
   'thumbs',
-] as const
+] as const;
 
-const AvatarStyleSchema = z.enum(AVATAR_STYLES)
+const AvatarStyleSchema = z.enum(AVATAR_STYLES);
 
 /**
  * What a profile is drawn with.
@@ -55,7 +55,7 @@ const AvatarSchema = z.discriminatedUnion('kind', [
      */
     isVideo: z.boolean().default(false),
   }),
-])
+]);
 
 const ViewerProfileSchema = z.object({
   id: z.string().uuid(),
@@ -71,7 +71,7 @@ const ViewerProfileSchema = z.object({
    * one goes on showing it however many times they replace it.
    */
   updatedAt: z.string(),
-})
+});
 
 const ViewerProfileRequestSchema = z.object({
   name: z.string().trim().min(1).max(NAME_MAX),
@@ -80,9 +80,9 @@ const ViewerProfileRequestSchema = z.object({
    * Left out to keep whatever the profile already wears.
    */
   avatar: AvatarSchema.optional(),
-})
+});
 
-const ViewerProfileListSchema = z.object({ profiles: z.array(ViewerProfileSchema) })
+const ViewerProfileListSchema = z.object({ profiles: z.array(ViewerProfileSchema) });
 
 /**
  * The letter a profile is drawn with when it has no picture.
@@ -91,7 +91,7 @@ const ViewerProfileListSchema = z.object({ profiles: z.array(ViewerProfileSchema
  * not "Margaret Anne Fitzgerald", and one large letter reads at a glance where
  * two small ones do not.
  */
-const profileInitial = (name: string): string => (name.trim()[0] ?? '?').toUpperCase()
+const profileInitial = (name: string): string => (name.trim()[0] ?? '?').toUpperCase();
 
 /**
  * Where a profile's picture is served from.
@@ -105,15 +105,15 @@ const profileInitial = (name: string): string => (name.trim()[0] ?? '?').toUpper
  * long after somebody has changed it.
  */
 const profileAvatarUrl = (profile: { id: string; updatedAt: string }): string =>
-  `/api/profiles/${profile.id}/avatar?v=${encodeURIComponent(profile.updatedAt)}`
+  `/api/profiles/${profile.id}/avatar?v=${encodeURIComponent(profile.updatedAt)}`;
 
-type Avatar = z.infer<typeof AvatarSchema>
-type AvatarStyle = z.infer<typeof AvatarStyleSchema>
-type ViewerProfile = z.infer<typeof ViewerProfileSchema>
-type ViewerProfileRequest = z.infer<typeof ViewerProfileRequestSchema>
-type ProfileColour = z.infer<typeof ProfileColourSchema>
+type Avatar = z.infer<typeof AvatarSchema>;
+type AvatarStyle = z.infer<typeof AvatarStyleSchema>;
+type ViewerProfile = z.infer<typeof ViewerProfileSchema>;
+type ViewerProfileRequest = z.infer<typeof ViewerProfileRequestSchema>;
+type ProfileColour = z.infer<typeof ProfileColourSchema>;
 
-export type { Avatar, AvatarStyle, ProfileColour, ViewerProfile, ViewerProfileRequest }
+export type { Avatar, AvatarStyle, ProfileColour, ViewerProfile, ViewerProfileRequest };
 
 export {
   ViewerProfileSchema,
@@ -127,4 +127,4 @@ export {
   NAME_MAX,
   profileInitial,
   profileAvatarUrl,
-}
+};

@@ -1,14 +1,14 @@
-import { createRoute, z } from '@hono/zod-openapi'
-import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan'
-import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile'
-import { QualityStepIdSchema } from '@FluxContracts/schemas/QualityStep'
-import { PLAYBACK_MODES } from '@FluxContracts/functions/describePlaybackMode'
+import { createRoute, z } from '@hono/zod-openapi';
+import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
+import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile';
+import { QualityStepIdSchema } from '@FluxContracts/schemas/QualityStep';
+import { PLAYBACK_MODES } from '@FluxContracts/functions/describePlaybackMode';
 
-const PlaybackError = z.object({ error: z.string() }).openapi('PlaybackError')
+const PlaybackError = z.object({ error: z.string() }).openapi('PlaybackError');
 
 const ExplainResponse = z
   .object({ mode: z.enum(PLAYBACK_MODES), plan: PlaybackPlanSchema })
-  .openapi('PlaybackExplainResponse')
+  .openapi('PlaybackExplainResponse');
 
 const StartRequest = z
   .object({
@@ -29,14 +29,14 @@ const StartRequest = z
      */
     requestedQuality: QualityStepIdSchema.optional(),
   })
-  .openapi('PlaybackStartRequest')
+  .openapi('PlaybackStartRequest');
 
 const DeliverySchema = z
   .union([
     z.object({ kind: z.literal('hls'), manifestUrl: z.string() }),
     z.object({ kind: z.literal('direct'), url: z.string() }),
   ])
-  .openapi('PlaybackDelivery')
+  .openapi('PlaybackDelivery');
 
 const StartResponse = z
   .object({
@@ -46,7 +46,7 @@ const StartResponse = z
     plan: PlaybackPlanSchema,
     warnings: z.array(z.string()),
   })
-  .openapi('PlaybackStartResponse')
+  .openapi('PlaybackStartResponse');
 
 /**
  * Explains how an item would be played, without starting anything.
@@ -74,7 +74,7 @@ const explainRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 const startRoute = createRoute({
   method: 'post',
@@ -103,7 +103,7 @@ const startRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 /**
  * Serves a manifest or segment from a session.
@@ -126,7 +126,7 @@ const sessionFileRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 const stopRoute = createRoute({
   method: 'delete',
@@ -141,7 +141,7 @@ const stopRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 /**
  * Serves the original file for direct play, honouring byte ranges.
@@ -164,7 +164,7 @@ const directFileRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 const TrickplayResponse = z
   .object({
@@ -174,7 +174,7 @@ const TrickplayResponse = z
     tileWidth: z.number(),
     tileHeight: z.number(),
   })
-  .openapi('TrickplayResponse')
+  .openapi('TrickplayResponse');
 
 /**
  * Renders seek-bar previews for an item.
@@ -203,7 +203,7 @@ const trickplayRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 /**
  * Serves the frame a preview is going to start from.
@@ -230,7 +230,7 @@ const frameRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 /**
  * Serves an index or a sheet.
@@ -253,7 +253,7 @@ const trickplayFileRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 export {
   explainRoute,
@@ -264,4 +264,4 @@ export {
   trickplayFileRoute,
   frameRoute,
   stopRoute,
-}
+};

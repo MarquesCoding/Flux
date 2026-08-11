@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
-import { toDataURL } from 'qrcode'
-import { cn } from '@FluxUI/cn'
-import type { QrCodeProps } from './QrCode.types'
+import { useEffect, useState } from 'react';
+import { toDataURL } from 'qrcode';
+import { cn } from '@FluxUI/cn';
+import type { QrCodeProps } from './QrCode.types';
 
-const DEFAULT_SIZE = 192
+const DEFAULT_SIZE = 192;
 
 /**
  * Renders a value as a scannable QR code.
@@ -17,27 +17,27 @@ const DEFAULT_SIZE = 192
  * setting up on the same device they are reading from.
  */
 const QrCode = ({ value, label, size = DEFAULT_SIZE, className }: QrCodeProps) => {
-  const [dataUrl, setDataUrl] = useState<string | null>(null)
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    let isCurrent = true
+    let isCurrent = true;
 
     toDataURL(value, { width: size, margin: 1 })
       .then((url) => {
         if (isCurrent) {
-          setDataUrl(url)
+          setDataUrl(url);
         }
       })
       .catch(() => {
         if (isCurrent) {
-          setDataUrl(null)
+          setDataUrl(null);
         }
-      })
+      });
 
     return () => {
-      isCurrent = false
-    }
-  }, [value, size])
+      isCurrent = false;
+    };
+  }, [value, size]);
 
   if (dataUrl === null) {
     return (
@@ -45,7 +45,7 @@ const QrCode = ({ value, label, size = DEFAULT_SIZE, className }: QrCodeProps) =
         className={cn('rounded-md border border-border bg-surface-raised', className)}
         style={{ width: size, height: size }}
       />
-    )
+    );
   }
 
   return (
@@ -56,9 +56,9 @@ const QrCode = ({ value, label, size = DEFAULT_SIZE, className }: QrCodeProps) =
       height={size}
       className={cn('rounded-md border border-border bg-white p-2', className)}
     />
-  )
-}
+  );
+};
 
-QrCode.displayName = 'QrCode'
+QrCode.displayName = 'QrCode';
 
-export { QrCode }
+export { QrCode };

@@ -1,5 +1,5 @@
-import { cn } from '@FluxUI/cn'
-import type { MeterProps } from './Meter.types'
+import { cn } from '@FluxUI/cn';
+import type { MeterProps } from './Meter.types';
 
 /**
  * How much of something is being used.
@@ -10,8 +10,8 @@ import type { MeterProps } from './Meter.types'
  * its limit should look different at a glance from something idling.
  */
 const Meter = ({ label, fraction, value, className }: MeterProps) => {
-  const filled = Math.min(Math.max(fraction, 0), 1)
-  const tone = filled > 0.9 ? 'bg-danger' : filled > 0.7 ? 'bg-amber-400' : 'bg-accent'
+  const filled = Math.min(Math.max(fraction, 0), 1);
+  const tone = filled > 0.9 ? 'bg-danger' : filled > 0.7 ? 'bg-amber-400' : 'bg-accent';
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
@@ -31,9 +31,9 @@ const Meter = ({ label, fraction, value, className }: MeterProps) => {
         />
       </span>
     </div>
-  )
-}
+  );
+};
 
-Meter.displayName = 'Meter'
+Meter.displayName = 'Meter';
 
-export { Meter }
+export { Meter };

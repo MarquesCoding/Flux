@@ -1,26 +1,26 @@
-import { useEffect, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { IconLogout, IconPencil, IconShieldLock, IconUser } from '@tabler/icons-react'
-import { Button } from '@FluxUI/Button'
-import { Badge } from '@FluxUI/Badge'
-import { TabBar } from '@FluxUI/TabBar'
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
-import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles'
-import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace'
-import { ProfileEditor } from '@FluxWeb/components/ProfilePicker/components/ProfileEditor/ProfileEditor'
-import { TwoFactorSetup } from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup'
-import { PasskeySetup } from '@FluxWeb/components/PasskeySetup/PasskeySetup'
-import { DeviceList } from '@FluxWeb/components/AccountArea/components/DeviceList/DeviceList'
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-import type { AccountAreaProps } from './AccountArea.types'
+import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { IconLogout, IconPencil, IconShieldLock, IconUser } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { Badge } from '@FluxUI/Badge';
+import { TabBar } from '@FluxUI/TabBar';
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles';
+import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
+import { ProfileEditor } from '@FluxWeb/components/ProfilePicker/components/ProfileEditor/ProfileEditor';
+import { TwoFactorSetup } from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup';
+import { PasskeySetup } from '@FluxWeb/components/PasskeySetup/PasskeySetup';
+import { DeviceList } from '@FluxWeb/components/AccountArea/components/DeviceList/DeviceList';
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { AccountAreaProps } from './AccountArea.types';
 
 const PANELS = [
   { id: 'profile', label: 'Profile' },
   { id: 'security', label: 'Security' },
   { id: 'devices', label: 'Devices' },
-] as const
+] as const;
 
-type PanelId = (typeof PANELS)[number]['id']
+type PanelId = (typeof PANELS)[number]['id'];
 
 /**
  * A person's own account.
@@ -35,18 +35,18 @@ type PanelId = (typeof PANELS)[number]['id']
  * portrait is what it looks like there.
  */
 const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
-  const [profile, setProfile] = useState<ViewerProfile | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [panel, setPanel] = useState<PanelId>('profile')
-  const prefersReducedMotion = useReducedMotion()
+  const [profile, setProfile] = useState<ViewerProfile | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [panel, setPanel] = useState<PanelId>('profile');
+  const prefersReducedMotion = useReducedMotion();
 
   const read = () => {
     void fetchProfiles().then((profiles) => {
-      setProfile(profiles[0] ?? null)
-    })
-  }
+      setProfile(profiles[0] ?? null);
+    });
+  };
 
-  useEffect(read, [])
+  useEffect(read, []);
 
   return (
     <motion.div
@@ -86,10 +86,10 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
           tabs={[...PANELS]}
           selectedId={panel}
           onSelect={(id) => {
-            const found = PANELS.find((candidate) => candidate.id === id)
+            const found = PANELS.find((candidate) => candidate.id === id);
 
             if (found !== undefined) {
-              setPanel(found.id)
+              setPanel(found.id);
             }
           }}
           label="What to change"
@@ -115,7 +115,7 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
                 size="sm"
                 isPill
                 onClick={() => {
-                  setIsEditing(true)
+                  setIsEditing(true);
                 }}
               >
                 <IconPencil size={16} aria-hidden />
@@ -130,12 +130,12 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
             <ProfileEditor
               profile={profile}
               onSaved={() => {
-                setIsEditing(false)
-                read()
-                onChanged()
+                setIsEditing(false);
+                read();
+                onChanged();
               }}
               onCancel={() => {
-                setIsEditing(false)
+                setIsEditing(false);
               }}
             />
           ) : (
@@ -195,9 +195,9 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
         </Button>
       </motion.footer>
     </motion.div>
-  )
-}
+  );
+};
 
-AccountArea.displayName = 'AccountArea'
+AccountArea.displayName = 'AccountArea';
 
-export { AccountArea }
+export { AccountArea };

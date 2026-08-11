@@ -1,9 +1,9 @@
 type ProfileGateProps = {
-  onSignedIn: () => void
+  onSignedIn: () => void;
   /**
    * What the instance calls itself, set over the wall of faces.
    */
-  name?: string
-}
+  name?: string;
+};
 
-export type { ProfileGateProps }
+export type { ProfileGateProps };

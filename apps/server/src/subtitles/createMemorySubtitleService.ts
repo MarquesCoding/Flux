@@ -1,18 +1,18 @@
-import { toWebVtt } from '@FluxCore/functions/toWebVtt'
-import { trackId } from './SubtitleService'
-import type { SubtitleService, SubtitleTrack } from './SubtitleService'
+import { toWebVtt } from '@FluxCore/functions/toWebVtt';
+import { trackId } from './SubtitleService';
+import type { SubtitleService, SubtitleTrack } from './SubtitleService';
 
 type MemorySubtitle = {
-  path: string
-  language: string | null
-  label: string
-  format: string
-  contents: string
-  isForced?: boolean
-  isHearingImpaired?: boolean
-}
+  path: string;
+  language: string | null;
+  label: string;
+  format: string;
+  contents: string;
+  isForced?: boolean;
+  isHearingImpaired?: boolean;
+};
 
-type MemoryState = Record<string, MemorySubtitle[]>
+type MemoryState = Record<string, MemorySubtitle[]>;
 
 /**
  * Subtitles held in memory.
@@ -22,10 +22,10 @@ type MemoryState = Record<string, MemorySubtitle[]>
  */
 const createMemorySubtitleService = (state: MemoryState = {}): SubtitleService => {
   const tracksFor = (mediaId: string): SubtitleTrack[] | null => {
-    const found = state[mediaId]
+    const found = state[mediaId];
 
     if (found === undefined) {
-      return null
+      return null;
     }
 
     return found.map((track) => ({
@@ -35,20 +35,20 @@ const createMemorySubtitleService = (state: MemoryState = {}): SubtitleService =
       format: track.format,
       isForced: track.isForced ?? false,
       isHearingImpaired: track.isHearingImpaired ?? false,
-    }))
-  }
+    }));
+  };
 
   return {
     list: (mediaId) => Promise.resolve(tracksFor(mediaId)),
 
     read: (mediaId, id) => {
-      const track = state[mediaId]?.find((candidate) => trackId(candidate.path) === id)
+      const track = state[mediaId]?.find((candidate) => trackId(candidate.path) === id);
 
-      return Promise.resolve(track === undefined ? null : toWebVtt(track.contents, track.format))
+      return Promise.resolve(track === undefined ? null : toWebVtt(track.contents, track.format));
     },
-  }
-}
+  };
+};
 
-export type { MemoryState, MemorySubtitle }
+export type { MemoryState, MemorySubtitle };
 
-export { createMemorySubtitleService }
+export { createMemorySubtitleService };

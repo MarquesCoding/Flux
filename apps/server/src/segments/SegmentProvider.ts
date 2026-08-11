@@ -1,12 +1,12 @@
-import type { MediaSegment, SegmentKind } from '@FluxContracts/schemas/MediaSegment'
-import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient'
+import type { MediaSegment, SegmentKind } from '@FluxContracts/schemas/MediaSegment';
+import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient';
 
 type SegmentCandidate = {
-  mediaId: string
-  path: string
-  probe: MediaProbe
-  durationSeconds: number
-}
+  mediaId: string;
+  path: string;
+  probe: MediaProbe;
+  durationSeconds: number;
+};
 
 /**
  * Where the marked stretches of an item come from.
@@ -20,7 +20,7 @@ type SegmentCandidate = {
  * answered from a single file.
  */
 type SegmentProvider = {
-  name: string
+  name: string;
   /**
    * `onItemDone`, if a provider calls it, is told once for every item in the
    * group it has finished with — not what it found, just that one more is
@@ -30,8 +30,8 @@ type SegmentProvider = {
   detect: (
     group: SegmentCandidate[],
     onItemDone?: () => void,
-  ) => Promise<Map<string, MediaSegment[]>>
-}
+  ) => Promise<Map<string, MediaSegment[]>>;
+};
 
 /**
  * The bounds a detected intro has to fall inside to be believed.
@@ -47,7 +47,7 @@ const INTRO_BOUNDS = {
    * How far into a runtime an intro may begin, as a fraction.
    */
   maxStartFraction: 0.4,
-} as const
+} as const;
 
 const CREDITS_BOUNDS = {
   minSeconds: 15,
@@ -56,7 +56,7 @@ const CREDITS_BOUNDS = {
    * How late credits must begin to be credits rather than a theme.
    */
   minStartFraction: 0.6,
-} as const
+} as const;
 
 /**
  * Whether a range is plausible for the kind of thing it claims to be.
@@ -70,10 +70,10 @@ const isPlausible = (
   segment: { kind: SegmentKind; startSeconds: number; endSeconds: number },
   durationSeconds: number,
 ): boolean => {
-  const length = segment.endSeconds - segment.startSeconds
+  const length = segment.endSeconds - segment.startSeconds;
 
   if (length <= 0 || segment.startSeconds < 0 || segment.endSeconds > durationSeconds + 1) {
-    return false
+    return false;
   }
 
   if (segment.kind === 'intro' || segment.kind === 'recap') {
@@ -81,7 +81,7 @@ const isPlausible = (
       length >= INTRO_BOUNDS.minSeconds &&
       length <= INTRO_BOUNDS.maxSeconds &&
       segment.startSeconds <= durationSeconds * INTRO_BOUNDS.maxStartFraction
-    )
+    );
   }
 
   if (segment.kind === 'credits') {
@@ -89,11 +89,11 @@ const isPlausible = (
       length >= CREDITS_BOUNDS.minSeconds &&
       length <= CREDITS_BOUNDS.maxSeconds &&
       segment.startSeconds >= durationSeconds * CREDITS_BOUNDS.minStartFraction
-    )
+    );
   }
 
-  return true
-}
+  return true;
+};
 
 /**
  * Asks each provider in turn and keeps the first answer for each kind.
@@ -108,38 +108,38 @@ const resolveSegments = async (
   onProblem?: (provider: string, reason: string) => void,
   onItemDone?: () => void,
 ): Promise<Map<string, MediaSegment[]>> => {
-  const resolved = new Map<string, MediaSegment[]>()
-  const durations = new Map(group.map((item) => [item.mediaId, item.durationSeconds]))
+  const resolved = new Map<string, MediaSegment[]>();
+  const durations = new Map(group.map((item) => [item.mediaId, item.durationSeconds]));
 
   for (const provider of providers) {
-    let found: Map<string, MediaSegment[]>
+    let found: Map<string, MediaSegment[]>;
 
     try {
-      found = await provider.detect(group, onItemDone)
+      found = await provider.detect(group, onItemDone);
     } catch (error) {
-      onProblem?.(provider.name, error instanceof Error ? error.message : 'Detection failed.')
+      onProblem?.(provider.name, error instanceof Error ? error.message : 'Detection failed.');
 
-      continue
+      continue;
     }
 
     for (const [mediaId, segments] of found) {
-      const existing = resolved.get(mediaId) ?? []
-      const kinds = new Set(existing.map((segment) => segment.kind))
+      const existing = resolved.get(mediaId) ?? [];
+      const kinds = new Set(existing.map((segment) => segment.kind));
 
       const additions = segments.filter(
         (segment) =>
           !kinds.has(segment.kind) && isPlausible(segment, durations.get(mediaId) ?? Infinity),
-      )
+      );
 
       if (additions.length > 0) {
-        resolved.set(mediaId, [...existing, ...additions])
+        resolved.set(mediaId, [...existing, ...additions]);
       }
     }
   }
 
-  return resolved
-}
+  return resolved;
+};
 
-export type { SegmentCandidate, SegmentProvider }
+export type { SegmentCandidate, SegmentProvider };
 
-export { resolveSegments, isPlausible, INTRO_BOUNDS, CREDITS_BOUNDS }
+export { resolveSegments, isPlausible, INTRO_BOUNDS, CREDITS_BOUNDS };

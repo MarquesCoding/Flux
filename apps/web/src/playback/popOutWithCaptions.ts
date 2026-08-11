@@ -5,7 +5,7 @@
  * exactly would mean drawing every frame of a fifty frame source into a canvas
  * for the sake of a thumbnail.
  */
-const FRAMES_PER_SECOND = 30
+const FRAMES_PER_SECOND = 30;
 
 /**
  * How wide the composed picture is drawn, at most.
@@ -14,24 +14,24 @@ const FRAMES_PER_SECOND = 30
  * frame into a canvas thirty times a second to shrink it into that would cost
  * more than playing the film does.
  */
-const MAX_WIDTH = 1280
+const MAX_WIDTH = 1280;
 
 /**
  * How large the caption text is, as a fraction of the picture's height.
  */
-const TEXT_SCALE = 0.062
+const TEXT_SCALE = 0.062;
 
 /**
  * How far above the bottom edge captions sit.
  */
-const BASELINE = 0.055
+const BASELINE = 0.055;
 
 /**
  * What is running, so it can be stopped.
  */
 type PoppedOut = {
-  stop: () => void
-}
+  stop: () => void;
+};
 
 /**
  * The cues showing on a video at this moment, as plain lines.
@@ -41,29 +41,29 @@ type PoppedOut = {
  * both simpler and always right.
  */
 const currentLines = (video: HTMLVideoElement): string[] => {
-  const lines: string[] = []
+  const lines: string[] = [];
 
   for (const track of Array.from(video.textTracks)) {
     if (track.mode === 'disabled') {
-      continue
+      continue;
     }
 
     for (const cue of Array.from(track.activeCues ?? [])) {
       // A cue's text carries WebVTT markup — voices, italics, positioning.
       // None of it survives being drawn as plain text, so the tags are
       // dropped rather than printed.
-      const text = 'text' in cue && typeof cue.text === 'string' ? cue.text : ''
+      const text = 'text' in cue && typeof cue.text === 'string' ? cue.text : '';
 
       for (const line of text.replaceAll(/<[^>]*>/g, '').split('\n')) {
         if (line.trim() !== '') {
-          lines.push(line.trim())
+          lines.push(line.trim());
         }
       }
     }
   }
 
-  return lines
-}
+  return lines;
+};
 
 /**
  * Draws one frame of the film with its captions burned into it.
@@ -74,35 +74,35 @@ const compose = (
   width: number,
   height: number,
 ): void => {
-  context.drawImage(video, 0, 0, width, height)
+  context.drawImage(video, 0, 0, width, height);
 
-  const lines = currentLines(video)
+  const lines = currentLines(video);
 
   if (lines.length === 0) {
-    return
+    return;
   }
 
-  const size = Math.round(height * TEXT_SCALE)
+  const size = Math.round(height * TEXT_SCALE);
 
-  context.font = `600 ${size.toString()}px system-ui, sans-serif`
-  context.textAlign = 'center'
-  context.textBaseline = 'bottom'
-  context.lineJoin = 'round'
+  context.font = `600 ${size.toString()}px system-ui, sans-serif`;
+  context.textAlign = 'center';
+  context.textBaseline = 'bottom';
+  context.lineJoin = 'round';
   // Drawn as thick outline first and fill second, which is how every subtitle
   // renderer keeps white text readable over a white shirt.
-  context.lineWidth = Math.max(2, size * 0.16)
-  context.strokeStyle = 'rgba(0, 0, 0, 0.85)'
-  context.fillStyle = '#ffffff'
+  context.lineWidth = Math.max(2, size * 0.16);
+  context.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+  context.fillStyle = '#ffffff';
 
-  const bottom = height - height * BASELINE
+  const bottom = height - height * BASELINE;
 
   for (const [at, line] of [...lines].reverse().entries()) {
-    const y = bottom - at * size * 1.25
+    const y = bottom - at * size * 1.25;
 
-    context.strokeText(line, width / 2, y)
-    context.fillText(line, width / 2, y)
+    context.strokeText(line, width / 2, y);
+    context.fillText(line, width / 2, y);
   }
-}
+};
 
 /**
  * Pops a film out with its subtitles still on it.
@@ -123,81 +123,81 @@ const compose = (
  */
 const popOutWithCaptions = async (video: HTMLVideoElement): Promise<PoppedOut | null> => {
   if (!document.pictureInPictureEnabled) {
-    return null
+    return null;
   }
 
-  const ratio = video.videoHeight === 0 ? 9 / 16 : video.videoHeight / video.videoWidth
-  const width = Math.min(video.videoWidth === 0 ? MAX_WIDTH : video.videoWidth, MAX_WIDTH)
-  const height = Math.round(width * ratio)
+  const ratio = video.videoHeight === 0 ? 9 / 16 : video.videoHeight / video.videoWidth;
+  const width = Math.min(video.videoWidth === 0 ? MAX_WIDTH : video.videoWidth, MAX_WIDTH);
+  const height = Math.round(width * ratio);
 
-  const canvas = document.createElement('canvas')
+  const canvas = document.createElement('canvas');
 
-  canvas.width = width
-  canvas.height = height
+  canvas.width = width;
+  canvas.height = height;
 
-  const context = canvas.getContext('2d')
+  const context = canvas.getContext('2d');
 
   if (context === null) {
-    return null
+    return null;
   }
 
-  const surface = document.createElement('video')
+  const surface = document.createElement('video');
 
   // Off screen rather than hidden: a browser will not float an element it has
   // been told not to render.
-  surface.style.position = 'fixed'
-  surface.style.opacity = '0'
-  surface.style.pointerEvents = 'none'
-  surface.style.width = '1px'
-  surface.style.height = '1px'
-  surface.muted = true
-  surface.playsInline = true
-  surface.srcObject = canvas.captureStream(FRAMES_PER_SECOND)
+  surface.style.position = 'fixed';
+  surface.style.opacity = '0';
+  surface.style.pointerEvents = 'none';
+  surface.style.width = '1px';
+  surface.style.height = '1px';
+  surface.muted = true;
+  surface.playsInline = true;
+  surface.srcObject = canvas.captureStream(FRAMES_PER_SECOND);
 
-  document.body.append(surface)
+  document.body.append(surface);
 
-  let frame = 0
+  let frame = 0;
 
   const tick = () => {
-    compose(context, video, width, height)
-    frame = requestAnimationFrame(tick)
-  }
+    compose(context, video, width, height);
+    frame = requestAnimationFrame(tick);
+  };
 
   const stop = () => {
-    cancelAnimationFrame(frame)
-    surface.srcObject = null
-    surface.remove()
-  }
+    cancelAnimationFrame(frame);
+    surface.srcObject = null;
+    surface.remove();
+  };
 
   // The little window's own controls act on the copy, so they are passed
   // through to the film. Without this, pausing it would freeze the picture
   // while the sound carried on.
   surface.addEventListener('pause', () => {
-    video.pause()
-  })
+    video.pause();
+  });
 
   surface.addEventListener('play', () => {
     void video.play().catch(() => {
       // Refused by the browser; the copy carries on showing frames either way.
-    })
-  })
+    });
+  });
 
-  surface.addEventListener('leavepictureinpicture', stop, { once: true })
+  surface.addEventListener('leavepictureinpicture', stop, { once: true });
 
   try {
-    tick()
+    tick();
 
-    await surface.play()
-    await surface.requestPictureInPicture()
+    await surface.play();
+    await surface.requestPictureInPicture();
   } catch {
-    stop()
+    stop();
 
-    return null
+    return null;
   }
 
-  return { stop }
-}
+  return { stop };
+};
 
-export type { PoppedOut }
+export type { PoppedOut };
 
-export { popOutWithCaptions, currentLines }
+export { popOutWithCaptions, currentLines };

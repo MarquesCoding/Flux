@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 /**
  * The sections a URL may name.
@@ -16,9 +16,9 @@ const SECTIONS = [
   'search',
   'account',
   'admin',
-] as const
+] as const;
 
-const SectionSchema = z.enum(SECTIONS)
+const SectionSchema = z.enum(SECTIONS);
 
 /**
  * Where somebody is, as the address bar records it.
@@ -29,12 +29,12 @@ const SectionSchema = z.enum(SECTIONS)
  * work at all.
  */
 type Place = {
-  section: (typeof SECTIONS)[number]
-  search: string
+  section: (typeof SECTIONS)[number];
+  search: string;
   /**
    * The item whose page is open, if one is.
    */
-  inspecting: string | null
+  inspecting: string | null;
   /**
    * The series whose page is open, if one is.
    *
@@ -42,16 +42,16 @@ type Place = {
    * different things to have open, and closing the episode should leave the
    * show where it was.
    */
-  show: string | null
+  show: string | null;
   /**
    * The item being watched, if one is.
    */
-  playing: string | null
+  playing: string | null;
   /**
    * Where to start what is being watched, in seconds.
    */
-  startSeconds: number
-}
+  startSeconds: number;
+};
 
 const HOME: Place = {
   section: 'home',
@@ -60,7 +60,7 @@ const HOME: Place = {
   show: null,
   playing: null,
   startSeconds: 0,
-}
+};
 
 /**
  * Reads a place out of an address.
@@ -70,18 +70,18 @@ const HOME: Place = {
  * sensible rather than on an error.
  */
 const readLocation = (url: string): Place => {
-  const parsed = URL.parse(url)
+  const parsed = URL.parse(url);
 
   if (parsed === null) {
-    return HOME
+    return HOME;
   }
 
-  const [, first = '', second = ''] = parsed.pathname.split('/')
-  const query = parsed.searchParams
+  const [, first = '', second = ''] = parsed.pathname.split('/');
+  const query = parsed.searchParams;
 
-  const section = SectionSchema.safeParse(first)
-  const watching = first === 'watch' && second !== '' ? second : null
-  const started = Number.parseInt(query.get('t') ?? '', 10)
+  const section = SectionSchema.safeParse(first);
+  const watching = first === 'watch' && second !== '' ? second : null;
+  const started = Number.parseInt(query.get('t') ?? '', 10);
 
   return {
     section: section.success ? section.data : 'home',
@@ -90,8 +90,8 @@ const readLocation = (url: string): Place => {
     show: query.get('show'),
     playing: watching,
     startSeconds: Number.isFinite(started) && started > 0 ? started : 0,
-  }
-}
+  };
+};
 
 /**
  * Writes a place back as an address.
@@ -102,30 +102,30 @@ const readLocation = (url: string): Place => {
  */
 const writeLocation = (place: Place): string => {
   if (place.playing !== null) {
-    const at = place.startSeconds > 0 ? `?t=${place.startSeconds.toString()}` : ''
+    const at = place.startSeconds > 0 ? `?t=${place.startSeconds.toString()}` : '';
 
-    return `/watch/${place.playing}${at}`
+    return `/watch/${place.playing}${at}`;
   }
 
-  const query = new URLSearchParams()
+  const query = new URLSearchParams();
 
   if (place.search !== '') {
-    query.set('q', place.search)
+    query.set('q', place.search);
   }
 
   if (place.show !== null) {
-    query.set('show', place.show)
+    query.set('show', place.show);
   }
 
   if (place.inspecting !== null) {
-    query.set('item', place.inspecting)
+    query.set('item', place.inspecting);
   }
 
-  const rest = query.toString()
+  const rest = query.toString();
 
-  return `/${place.section === 'home' ? '' : place.section}${rest === '' ? '' : `?${rest}`}`
-}
+  return `/${place.section === 'home' ? '' : place.section}${rest === '' ? '' : `?${rest}`}`;
+};
 
-export type { Place }
+export type { Place };
 
-export { readLocation, writeLocation, SECTIONS, HOME }
+export { readLocation, writeLocation, SECTIONS, HOME };

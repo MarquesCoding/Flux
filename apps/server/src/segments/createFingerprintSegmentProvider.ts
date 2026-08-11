@@ -1,9 +1,9 @@
-import { findSharedAudio, agreeRange } from '@FluxCore/functions/findSharedAudio'
-import { INTRO_BOUNDS } from './SegmentProvider'
-import type { SegmentCandidate, SegmentProvider } from './SegmentProvider'
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
-import type { Range } from '@FluxCore/functions/findSharedAudio'
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
+import { findSharedAudio, agreeRange } from '@FluxCore/functions/findSharedAudio';
+import { INTRO_BOUNDS } from './SegmentProvider';
+import type { SegmentCandidate, SegmentProvider } from './SegmentProvider';
+import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
+import type { Range } from '@FluxCore/functions/findSharedAudio';
+import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 
 /**
  * How much of each episode is listened to.
@@ -12,7 +12,7 @@ import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
  * Listening to a whole episode would multiply the decoding cost by six for
  * nothing.
  */
-const WINDOW_SECONDS = 600
+const WINDOW_SECONDS = 600;
 
 /**
  * The fewest episodes worth comparing.
@@ -20,7 +20,7 @@ const WINDOW_SECONDS = 600
  * One episode shares nothing with itself that means anything. Two can agree on
  * a coincidence. Three is where agreement starts to be evidence.
  */
-const MIN_EPISODES = 3
+const MIN_EPISODES = 3;
 
 /**
  * The most episodes to compare.
@@ -28,12 +28,12 @@ const MIN_EPISODES = 3
  * Comparison is quadratic in the number of episodes, and a theme tune is not
  * more discoverable from twenty examples than from eight.
  */
-const MAX_EPISODES = 8
+const MAX_EPISODES = 8;
 
 type CreateFingerprintSegmentProviderOptions = {
-  transcoder: Transcoder
-  onProblem?: (path: string, reason: string) => void
-}
+  transcoder: Transcoder;
+  onProblem?: (path: string, reason: string) => void;
+};
 
 /**
  * Segments found by listening to a season.
@@ -55,15 +55,15 @@ const createFingerprintSegmentProvider = ({
   name: 'fingerprint',
 
   detect: async (group: SegmentCandidate[], onItemDone?: () => void) => {
-    const found = new Map<string, MediaSegment[]>()
+    const found = new Map<string, MediaSegment[]>();
 
     if (group.length < MIN_EPISODES) {
-      return found
+      return found;
     }
 
-    const considered = group.slice(0, MAX_EPISODES)
+    const considered = group.slice(0, MAX_EPISODES);
 
-    const fingerprints: { mediaId: string; hashes: number[]; framesPerSecond: number }[] = []
+    const fingerprints: { mediaId: string; hashes: number[]; framesPerSecond: number }[] = [];
 
     for (const item of considered) {
       try {
@@ -71,64 +71,67 @@ const createFingerprintSegmentProvider = ({
           inputPath: item.path,
           startSeconds: 0,
           durationSeconds: Math.min(WINDOW_SECONDS, Math.floor(item.durationSeconds)),
-        })
+        });
 
         fingerprints.push({
           mediaId: item.mediaId,
           hashes: printed.hashes,
           framesPerSecond: printed.framesPerSecond,
-        })
+        });
       } catch (error) {
-        onProblem?.(item.path, error instanceof Error ? error.message : 'Could not be listened to.')
+        onProblem?.(
+          item.path,
+          error instanceof Error ? error.message : 'Could not be listened to.',
+        );
       } finally {
         // The decode is the expensive part, so this is where the season's
         // slowness actually lives — comparing the fingerprints afterwards is
         // fast enough not to be worth reporting.
-        onItemDone?.()
+        onItemDone?.();
       }
     }
 
     if (fingerprints.length < MIN_EPISODES) {
-      return found
+      return found;
     }
 
     // Every range each episode was found to share with any other. An episode
     // whose candidates disagree with each other has nothing worth trusting.
-    const candidates = new Map<string, Range[]>()
+    const candidates = new Map<string, Range[]>();
 
     for (let left = 0; left < fingerprints.length; left += 1) {
       for (let right = left + 1; right < fingerprints.length; right += 1) {
-        const first = fingerprints[left]
-        const second = fingerprints[right]
+        const first = fingerprints[left];
+        const second = fingerprints[right];
 
         if (first === undefined || second === undefined) {
-          continue
+          continue;
         }
 
         const shared = findSharedAudio(first.hashes, second.hashes, {
           framesPerSecond: first.framesPerSecond,
           minSeconds: INTRO_BOUNDS.minSeconds,
-        })
+        });
 
         if (shared === null) {
-          continue
+          continue;
         }
 
-        candidates.set(first.mediaId, [...(candidates.get(first.mediaId) ?? []), shared.left])
-        candidates.set(second.mediaId, [...(candidates.get(second.mediaId) ?? []), shared.right])
+        candidates.set(first.mediaId, [...(candidates.get(first.mediaId) ?? []), shared.left]);
+        candidates.set(second.mediaId, [...(candidates.get(second.mediaId) ?? []), shared.right]);
       }
     }
 
     for (const [mediaId, ranges] of candidates) {
       // A range one pair found is a coincidence until something else agrees.
       if (ranges.length < 2) {
-        continue
+        continue;
       }
 
-      const agreed = agreeRange(ranges)
+      const agreed = agreeRange(ranges);
 
       if (agreed === null) {
-        continue
+        continue;
       }
 
       found.set(mediaId, [
@@ -138,13 +141,13 @@ const createFingerprintSegmentProvider = ({
           endSeconds: agreed.endSeconds,
           source: 'fingerprint',
         },
-      ])
+      ]);
     }
 
-    return found
+    return found;
   },
-})
+});
 
-export type { CreateFingerprintSegmentProviderOptions }
+export type { CreateFingerprintSegmentProviderOptions };
 
-export { createFingerprintSegmentProvider, WINDOW_SECONDS, MIN_EPISODES, MAX_EPISODES }
+export { createFingerprintSegmentProvider, WINDOW_SECONDS, MIN_EPISODES, MAX_EPISODES };

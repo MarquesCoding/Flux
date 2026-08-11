@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { MediaSummarySchema } from './Library'
+import { z } from 'zod';
+import { MediaSummarySchema } from './Library';
 
 /**
  * A series, as the library sees one.
@@ -27,7 +27,7 @@ const ShowSummarySchema = z.object({
   year: z.number().int().nullish(),
   rating: z.number().nullish(),
   genres: z.array(z.string()).nullish(),
-})
+});
 
 /**
  * A season of one, with the episodes in the order they are watched.
@@ -35,21 +35,21 @@ const ShowSummarySchema = z.object({
 const ShowSeasonSchema = z.object({
   seasonNumber: z.number().int().nullable(),
   episodes: z.array(MediaSummarySchema),
-})
+});
 
 /**
  * Everything the library holds about a series.
  */
 const ShowDetailSchema = ShowSummarySchema.extend({
   seasons: z.array(ShowSeasonSchema),
-})
+});
 
-const ShowListSchema = z.object({ shows: z.array(ShowSummarySchema) })
+const ShowListSchema = z.object({ shows: z.array(ShowSummarySchema) });
 
-type ShowSummary = z.infer<typeof ShowSummarySchema>
-type ShowSeason = z.infer<typeof ShowSeasonSchema>
-type ShowDetail = z.infer<typeof ShowDetailSchema>
+type ShowSummary = z.infer<typeof ShowSummarySchema>;
+type ShowSeason = z.infer<typeof ShowSeasonSchema>;
+type ShowDetail = z.infer<typeof ShowDetailSchema>;
 
-export type { ShowDetail, ShowSeason, ShowSummary }
+export type { ShowDetail, ShowSeason, ShowSummary };
 
-export { ShowSummarySchema, ShowSeasonSchema, ShowDetailSchema, ShowListSchema }
+export { ShowSummarySchema, ShowSeasonSchema, ShowDetailSchema, ShowListSchema };

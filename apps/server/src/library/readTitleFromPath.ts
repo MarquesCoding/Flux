@@ -13,7 +13,7 @@ const MEDIA_EXTENSIONS = new Set([
   'flv',
   'ogv',
   '3gp',
-])
+]);
 
 /**
  * Noise that appears in scene release names and is never part of a title.
@@ -67,7 +67,7 @@ const NOISE = new Set([
   'unrated',
   'imax',
   'remastered',
-])
+]);
 
 /**
  * Reports whether a file looks like something Flux can play.
@@ -77,16 +77,16 @@ const NOISE = new Set([
  * them would make a first scan needlessly slow.
  */
 const isMediaFile = (fileName: string): boolean => {
-  const extension = fileName.split('.').pop()?.toLowerCase() ?? ''
+  const extension = fileName.split('.').pop()?.toLowerCase() ?? '';
 
-  return !fileName.startsWith('.') && MEDIA_EXTENSIONS.has(extension)
-}
+  return !fileName.startsWith('.') && MEDIA_EXTENSIONS.has(extension);
+};
 
 const stripExtension = (fileName: string): string => {
-  const lastDot = fileName.lastIndexOf('.')
+  const lastDot = fileName.lastIndexOf('.');
 
-  return lastDot > 0 ? fileName.slice(0, lastDot) : fileName
-}
+  return lastDot > 0 ? fileName.slice(0, lastDot) : fileName;
+};
 
 /**
  * Finds a release year in a piece of text, bracketed or bare.
@@ -96,19 +96,19 @@ const stripExtension = (fileName: string): string => {
  * whether it names a file or a directory.
  */
 const findYear = (text: string): { year: number; index: number } | null => {
-  const matches = [...text.matchAll(/(?<open>[([])?\b(?<year>19\d{2}|20\d{2})\b\)?]?/g)]
+  const matches = [...text.matchAll(/(?<open>[([])?\b(?<year>19\d{2}|20\d{2})\b\)?]?/g)];
 
   // A title can contain a year: "Blade Runner 2049 (2017)". A bracketed year
   // is the release year by convention, and failing that the last one is, since
   // the title comes first. Taking the first match reads 2049 as the year and
   // truncates the title.
   const yearMatch =
-    matches.find((match) => match.groups?.open !== undefined) ?? matches[matches.length - 1]
+    matches.find((match) => match.groups?.open !== undefined) ?? matches[matches.length - 1];
 
   return yearMatch?.groups?.year === undefined
     ? null
-    : { year: Number(yearMatch.groups.year), index: yearMatch.index }
-}
+    : { year: Number(yearMatch.groups.year), index: yearMatch.index };
+};
 
 /**
  * Reads a display title and year out of a filename.
@@ -118,22 +118,22 @@ const findYear = (text: string): { year: number; index: number } | null => {
  * the interface until a metadata provider plugin supplies something better.
  */
 const readTitleFromPath = (filePath: string): { title: string; year: number | null } => {
-  const fileName = filePath.split('/').pop() ?? filePath
-  const base = stripExtension(fileName)
+  const fileName = filePath.split('/').pop() ?? filePath;
+  const base = stripExtension(fileName);
 
-  const found = findYear(base)
-  const year = found?.year ?? null
-  const beforeYear = found === null ? base : base.slice(0, found.index)
+  const found = findYear(base);
+  const year = found?.year ?? null;
+  const beforeYear = found === null ? base : base.slice(0, found.index);
 
   const words = beforeYear
     .replace(/[[\]()_.]+/g, ' ')
     .split(/[\s-]+/)
     .filter((word) => word.length > 0)
-    .filter((word) => !NOISE.has(word.toLowerCase()))
+    .filter((word) => !NOISE.has(word.toLowerCase()));
 
-  const title = words.join(' ').trim()
+  const title = words.join(' ').trim();
 
-  return { title: title.length > 0 ? title : stripExtension(fileName), year }
-}
+  return { title: title.length > 0 ? title : stripExtension(fileName), year };
+};
 
-export { isMediaFile, readTitleFromPath, findYear, MEDIA_EXTENSIONS }
+export { isMediaFile, readTitleFromPath, findYear, MEDIA_EXTENSIONS };

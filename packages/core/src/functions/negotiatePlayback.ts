@@ -1,18 +1,18 @@
-import type { MediaItem, SubtitleFormat } from '@FluxContracts/schemas/MediaItem'
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile'
+import type { MediaItem, SubtitleFormat } from '@FluxContracts/schemas/MediaItem';
+import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
 import type {
   AudioDecision,
   ContainerDecision,
   PlaybackPlan,
   SubtitleDecision,
   VideoDecision,
-} from '@FluxContracts/schemas/PlaybackPlan'
-import type { QualityClamp } from './resolveQualityStep'
+} from '@FluxContracts/schemas/PlaybackPlan';
+import type { QualityClamp } from './resolveQualityStep';
 
-const IMAGE_SUBTITLE_FORMATS: readonly SubtitleFormat[] = ['pgs', 'vobsub', 'dvbsub']
+const IMAGE_SUBTITLE_FORMATS: readonly SubtitleFormat[] = ['pgs', 'vobsub', 'dvbsub'];
 
 const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDecision => {
-  const supported = profile.directPlayProfiles.some((entry) => entry.container === media.container)
+  const supported = profile.directPlayProfiles.some((entry) => entry.container === media.container);
 
   if (supported) {
     return {
@@ -21,10 +21,10 @@ const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDec
         code: 'ClientSupportsSource',
         detail: `Client direct plays the ${media.container} container`,
       },
-    }
+    };
   }
 
-  const target = profile.transcodingProfiles[0]
+  const target = profile.transcodingProfiles[0];
 
   return {
     kind: 'remux',
@@ -33,25 +33,25 @@ const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDec
       code: 'ContainerNotSupported',
       detail: `Client does not support the ${media.container} container`,
     },
-  }
-}
+  };
+};
 
 const decideVideo = (
   media: MediaItem,
   profile: DeviceProfile,
   qualityClamp?: QualityClamp | null,
 ): VideoDecision => {
-  const fallback = profile.transcodingProfiles[0]
-  const targetCodec = fallback === undefined ? 'h264' : fallback.videoCodec
-  const clamp = qualityClamp ?? null
+  const fallback = profile.transcodingProfiles[0];
+  const targetCodec = fallback === undefined ? 'h264' : fallback.videoCodec;
+  const clamp = qualityClamp ?? null;
 
   const maxBitrateKbps =
     clamp === null
       ? profile.maxBitrateKbps
-      : Math.min(profile.maxBitrateKbps, clamp.maxVideoBitrateKbps)
-  const maxWidth = clamp === null ? profile.maxWidth : Math.min(profile.maxWidth, clamp.maxWidth)
+      : Math.min(profile.maxBitrateKbps, clamp.maxVideoBitrateKbps);
+  const maxWidth = clamp === null ? profile.maxWidth : Math.min(profile.maxWidth, clamp.maxWidth);
   const maxHeight =
-    clamp === null ? profile.maxHeight : Math.min(profile.maxHeight, clamp.maxHeight)
+    clamp === null ? profile.maxHeight : Math.min(profile.maxHeight, clamp.maxHeight);
 
   const transcodeTo = (
     code:
@@ -69,28 +69,28 @@ const decideVideo = (
     maxWidth,
     maxHeight,
     reason: { code, detail },
-  })
+  });
 
   const codecSupported = profile.directPlayProfiles.some((entry) =>
     entry.videoCodecs.includes(media.videoCodec),
-  )
+  );
 
   if (!codecSupported) {
     return transcodeTo(
       'VideoCodecNotSupported',
       `Client does not support the ${media.videoCodec} video codec`,
-    )
+    );
   }
 
   if (!profile.supportedVideoRanges.includes(media.videoRange)) {
     return transcodeTo(
       'VideoRangeNotSupported',
       `Client does not support the ${media.videoRange} video range`,
-    )
+    );
   }
 
   if (media.bitrateKbps > maxBitrateKbps) {
-    const forcedByQuality = clamp !== null && clamp.maxVideoBitrateKbps < profile.maxBitrateKbps
+    const forcedByQuality = clamp !== null && clamp.maxVideoBitrateKbps < profile.maxBitrateKbps;
 
     return forcedByQuality
       ? transcodeTo(
@@ -100,12 +100,12 @@ const decideVideo = (
       : transcodeTo(
           'VideoBitrateAboveLimit',
           `Source bitrate ${media.bitrateKbps.toString()}kbps exceeds the client limit of ${maxBitrateKbps.toString()}kbps`,
-        )
+        );
   }
 
   if (media.width > maxWidth || media.height > maxHeight) {
     const forcedByQuality =
-      clamp !== null && (clamp.maxWidth < profile.maxWidth || clamp.maxHeight < profile.maxHeight)
+      clamp !== null && (clamp.maxWidth < profile.maxWidth || clamp.maxHeight < profile.maxHeight);
 
     return forcedByQuality
       ? transcodeTo(
@@ -115,7 +115,7 @@ const decideVideo = (
       : transcodeTo(
           'VideoResolutionAboveLimit',
           `Source resolution ${media.width.toString()}x${media.height.toString()} exceeds the client limit`,
-        )
+        );
   }
 
   return {
@@ -124,30 +124,30 @@ const decideVideo = (
       code: 'ClientSupportsSource',
       detail: `Client direct plays ${media.videoCodec} at this bitrate, resolution and range`,
     },
-  }
-}
+  };
+};
 
 const decideAudio = (
   media: MediaItem,
   profile: DeviceProfile,
   qualityClamp?: QualityClamp | null,
 ): AudioDecision => {
-  const stream = media.audioStreams[0]
-  const fallback = profile.transcodingProfiles[0]
-  const targetCodec = fallback === undefined ? 'aac' : fallback.audioCodec
-  const compressedBitrateKbps = qualityClamp?.maxAudioBitrateKbps ?? null
-  const maxBitrateKbps = compressedBitrateKbps ?? 384
+  const stream = media.audioStreams[0];
+  const fallback = profile.transcodingProfiles[0];
+  const targetCodec = fallback === undefined ? 'aac' : fallback.audioCodec;
+  const compressedBitrateKbps = qualityClamp?.maxAudioBitrateKbps ?? null;
+  const maxBitrateKbps = compressedBitrateKbps ?? 384;
 
   if (stream === undefined) {
     return {
       kind: 'passthrough',
       reason: { code: 'ClientSupportsSource', detail: 'Source has no audio stream' },
-    }
+    };
   }
 
   const codecSupported = profile.directPlayProfiles.some((entry) =>
     entry.audioCodecs.includes(stream.codec),
-  )
+  );
 
   if (!codecSupported) {
     return {
@@ -159,7 +159,7 @@ const decideAudio = (
         code: 'AudioCodecNotSupported',
         detail: `Client does not support the ${stream.codec} audio codec`,
       },
-    }
+    };
   }
 
   if (stream.channels > profile.maxAudioChannels) {
@@ -172,7 +172,7 @@ const decideAudio = (
         code: 'AudioChannelsAboveLimit',
         detail: `Source has ${stream.channels.toString()} channels, client supports ${profile.maxAudioChannels.toString()}`,
       },
-    }
+    };
   }
 
   if (compressedBitrateKbps !== null) {
@@ -185,7 +185,7 @@ const decideAudio = (
         code: 'UserForcedTranscode',
         detail: `Quality step compresses audio to ${compressedBitrateKbps.toString()}kbps`,
       },
-    }
+    };
   }
 
   return {
@@ -194,17 +194,17 @@ const decideAudio = (
       code: 'ClientSupportsSource',
       detail: `Client direct plays ${stream.codec} at ${stream.channels.toString()} channels`,
     },
-  }
-}
+  };
+};
 
 const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDecision => {
-  const stream = media.subtitleStreams[0]
+  const stream = media.subtitleStreams[0];
 
   if (stream === undefined) {
     return {
       kind: 'none',
       reason: { code: 'ClientSupportsSource', detail: 'Source has no subtitle stream' },
-    }
+    };
   }
 
   if (profile.supportedSubtitleFormats.includes(stream.format)) {
@@ -215,7 +215,7 @@ const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDeci
         code: 'ClientSupportsSource',
         detail: `Client renders ${stream.format} subtitles`,
       },
-    }
+    };
   }
 
   if (IMAGE_SUBTITLE_FORMATS.includes(stream.format)) {
@@ -226,7 +226,7 @@ const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDeci
         code: 'SubtitleFormatNotSupported',
         detail: `${stream.format} is image based and cannot be converted, so it must be burned in`,
       },
-    }
+    };
   }
 
   return {
@@ -237,8 +237,8 @@ const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDeci
       code: 'SubtitleFormatNotSupported',
       detail: `Client does not render ${stream.format}, delivering as a WebVTT sidecar instead`,
     },
-  }
-}
+  };
+};
 
 /**
  * Decides how a media item should be delivered to a client.
@@ -266,6 +266,6 @@ const negotiatePlayback = (
   video: decideVideo(media, profile, qualityClamp),
   audio: decideAudio(media, profile, qualityClamp),
   subtitles: decideSubtitles(media, profile),
-})
+});
 
-export { negotiatePlayback }
+export { negotiatePlayback };

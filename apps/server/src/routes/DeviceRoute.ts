@@ -1,6 +1,6 @@
-import { createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi';
 
-const DeviceError = z.object({ error: z.string() }).openapi('DeviceError')
+const DeviceError = z.object({ error: z.string() }).openapi('DeviceError');
 
 const DeviceSchema = z
   .object({
@@ -32,9 +32,9 @@ const DeviceSchema = z
      */
     isCurrent: z.boolean(),
   })
-  .openapi('Device')
+  .openapi('Device');
 
-const DeviceListSchema = z.object({ devices: z.array(DeviceSchema) }).openapi('DeviceList')
+const DeviceListSchema = z.object({ devices: z.array(DeviceSchema) }).openapi('DeviceList');
 
 /**
  * Everywhere this account is signed in.
@@ -58,7 +58,7 @@ const listDevicesRoute = createRoute({
       content: { 'application/json': { schema: DeviceError } },
     },
   },
-})
+});
 
 /**
  * Ends one of them.
@@ -76,7 +76,7 @@ const endDeviceRoute = createRoute({
       content: { 'application/json': { schema: DeviceError } },
     },
   },
-})
+});
 
 /**
  * Ends all of them but this one.
@@ -97,6 +97,6 @@ const endOtherDevicesRoute = createRoute({
       content: { 'application/json': { schema: DeviceError } },
     },
   },
-})
+});
 
-export { listDevicesRoute, endDeviceRoute, endOtherDevicesRoute }
+export { listDevicesRoute, endDeviceRoute, endOtherDevicesRoute };

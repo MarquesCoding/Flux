@@ -4,7 +4,7 @@
  * Long enough for any title somebody would say out loud, short enough that a
  * link can be read over the phone.
  */
-const LONGEST = 80
+const LONGEST = 80;
 
 /**
  * What a series is called, as an address.
@@ -24,6 +24,6 @@ const showSlug = (seriesTitle: string): string =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, LONGEST)
+    .slice(0, LONGEST);
 
-export { showSlug, LONGEST }
+export { showSlug, LONGEST };

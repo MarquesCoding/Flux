@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
-import { useReducedMotion } from 'motion/react'
-import { cn } from '@FluxUI/cn'
-import type { DotFieldProps } from './DotField.types'
+import { useEffect, useRef } from 'react';
+import { useReducedMotion } from 'motion/react';
+import { cn } from '@FluxUI/cn';
+import type { DotFieldProps } from './DotField.types';
 
 /**
  * How far apart dots sit by default.
@@ -10,17 +10,17 @@ import type { DotFieldProps } from './DotField.types'
  * screen of ten thousand of them is a few hundredths of a millisecond, where
  * ten thousand elements would be unusable.
  */
-const SPACING = 16
+const SPACING = 16;
 
 /**
  * How long one ripple takes to cross the field.
  */
-const SECONDS = 7
+const SECONDS = 7;
 
 /**
  * How many places ripples come from.
  */
-const SOURCES = 2
+const SOURCES = 2;
 
 /**
  * How long the wave front takes to reach a dot, per pixel away from its
@@ -30,12 +30,12 @@ const SOURCES = 2
  * the same cycle and enters it late in proportion to how far it is from where
  * the ripple started.
  */
-const DELAY_PER_PIXEL = 0.0016
+const DELAY_PER_PIXEL = 0.0016;
 
 /**
  * How bright a dot is when nothing is happening to it.
  */
-const RESTING = 0.18
+const RESTING = 0.18;
 
 /**
  * How bright a dot is as the wave front passes.
@@ -43,7 +43,7 @@ const RESTING = 0.18
  * A rise rather than a flare. The wave should read as light moving over a
  * texture, not as the texture switching on.
  */
-const LIT = 0.42
+const LIT = 0.42;
 
 /**
  * How much of a cycle a dot spends lit.
@@ -51,12 +51,12 @@ const LIT = 0.42
  * A narrow window, because a dot lit for half of every pass reads as a
  * flashing grid rather than as a wave going by.
  */
-const WINDOW = 0.12
+const WINDOW = 0.12;
 
 /**
  * How far down the field the dots have faded out entirely.
  */
-const FADE_BY = 0.92
+const FADE_BY = 0.92;
 
 /**
  * How many levels of brightness are drawn.
@@ -66,7 +66,7 @@ const FADE_BY = 0.92
  * two pixel square, so dots are grouped by how bright they are and each group
  * drawn in one go.
  */
-const LEVELS = 10
+const LEVELS = 10;
 
 /**
  * How bright a dot is at a point in its cycle.
@@ -75,15 +75,15 @@ const LEVELS = 10
  */
 const brightnessAt = (phase: number): number => {
   if (phase > WINDOW) {
-    return 0
+    return 0;
   }
 
   // A curve rather than a triangle: the front should arrive faster than it
   // leaves, which is what makes it read as travelling in a direction.
-  const along = phase / WINDOW
+  const along = phase / WINDOW;
 
-  return Math.sin(along * Math.PI) ** 2
-}
+  return Math.sin(along * Math.PI) ** 2;
+};
 
 /**
  * A field of dots that ripples.
@@ -106,29 +106,29 @@ const DotField = ({
   seconds = SECONDS,
   className,
 }: DotFieldProps) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const prefersReducedMotion = useReducedMotion()
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
-    const canvas = canvasRef.current
+    const canvas = canvasRef.current;
 
     if (canvas === null) {
-      return
+      return;
     }
 
-    const context = canvas.getContext('2d')
+    const context = canvas.getContext('2d');
 
     if (context === null) {
-      return
+      return;
     }
 
-    let frame = 0
-    let xs = new Float32Array(0)
-    let ys = new Float32Array(0)
-    let delays: Float32Array[] = []
-    let fades = new Float32Array(0)
-    let width = 0
-    let height = 0
+    let frame = 0;
+    let xs = new Float32Array(0);
+    let ys = new Float32Array(0);
+    let delays: Float32Array[] = [];
+    let fades = new Float32Array(0);
+    let width = 0;
+    let height = 0;
 
     /**
      * Works out where every dot is and when each ripple reaches it.
@@ -137,49 +137,49 @@ const DotField = ({
      * distances are fixed, and only the clock moves.
      */
     const lay = () => {
-      const ratio = Math.min(window.devicePixelRatio, 2)
+      const ratio = Math.min(window.devicePixelRatio, 2);
 
-      width = canvas.clientWidth
-      height = canvas.clientHeight
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
 
-      canvas.width = Math.floor(width * ratio)
-      canvas.height = Math.floor(height * ratio)
-      context.setTransform(ratio, 0, 0, ratio, 0, 0)
+      canvas.width = Math.floor(width * ratio);
+      canvas.height = Math.floor(height * ratio);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-      const columns = Math.ceil(width / spacing) + 1
-      const rows = Math.ceil(height / spacing) + 1
-      const count = columns * rows
+      const columns = Math.ceil(width / spacing) + 1;
+      const rows = Math.ceil(height / spacing) + 1;
+      const count = columns * rows;
 
-      xs = new Float32Array(count)
-      ys = new Float32Array(count)
-      fades = new Float32Array(count)
-      delays = Array.from({ length: Math.max(sources, 1) }, () => new Float32Array(count))
+      xs = new Float32Array(count);
+      ys = new Float32Array(count);
+      fades = new Float32Array(count);
+      delays = Array.from({ length: Math.max(sources, 1) }, () => new Float32Array(count));
 
       const origins = delays.map(() => ({
         x: Math.random() * width,
         y: Math.random() * height,
-      }))
+      }));
 
       for (let index = 0; index < count; index += 1) {
-        const x = (index % columns) * spacing
-        const y = Math.floor(index / columns) * spacing
+        const x = (index % columns) * spacing;
+        const y = Math.floor(index / columns) * spacing;
 
-        xs[index] = x
-        ys[index] = y
+        xs[index] = x;
+        ys[index] = y;
         // The same fade the rest of the page uses, so the grid dies out
         // rather than stopping at an edge.
-        fades[index] = Math.max(0, 1 - y / (height * FADE_BY))
+        fades[index] = Math.max(0, 1 - y / (height * FADE_BY));
 
         for (const [at, origin] of origins.entries()) {
-          const away = Math.hypot(x - origin.x, y - origin.y)
-          const row = delays[at]
+          const away = Math.hypot(x - origin.x, y - origin.y);
+          const row = delays[at];
 
           if (row !== undefined) {
-            row[index] = away * DELAY_PER_PIXEL
+            row[index] = away * DELAY_PER_PIXEL;
           }
         }
       }
-    }
+    };
 
     /**
      * The colour the dots are drawn in.
@@ -187,94 +187,94 @@ const DotField = ({
      * Read from the page rather than hard coded, so the field belongs to
      * whatever theme is in force.
      */
-    const ink = getComputedStyle(canvas).color
+    const ink = getComputedStyle(canvas).color;
 
-    const buckets: number[][] = Array.from({ length: LEVELS }, () => [])
+    const buckets: number[][] = Array.from({ length: LEVELS }, () => []);
 
     const draw = (elapsed: number) => {
-      context.clearRect(0, 0, width, height)
+      context.clearRect(0, 0, width, height);
 
       for (const bucket of buckets) {
-        bucket.length = 0
+        bucket.length = 0;
       }
 
       for (let index = 0; index < xs.length; index += 1) {
-        const fade = fades[index] ?? 0
+        const fade = fades[index] ?? 0;
 
         if (fade <= 0) {
-          continue
+          continue;
         }
 
-        let lift = 0
+        let lift = 0;
 
         for (const row of delays) {
-          const delay = row[index] ?? 0
-          const phase = ((elapsed - delay) / seconds) % 1
+          const delay = row[index] ?? 0;
+          const phase = ((elapsed - delay) / seconds) % 1;
 
           // A ripple has not reached this dot yet on its first pass.
           if (phase >= 0) {
-            lift = Math.max(lift, brightnessAt(phase))
+            lift = Math.max(lift, brightnessAt(phase));
           }
         }
 
-        const alpha = (RESTING + (LIT - RESTING) * lift) * fade
-        const level = Math.min(LEVELS - 1, Math.floor((alpha / LIT) * LEVELS))
+        const alpha = (RESTING + (LIT - RESTING) * lift) * fade;
+        const level = Math.min(LEVELS - 1, Math.floor((alpha / LIT) * LEVELS));
 
-        buckets[level]?.push(index)
+        buckets[level]?.push(index);
       }
 
       for (const [level, bucket] of buckets.entries()) {
         if (bucket.length === 0) {
-          continue
+          continue;
         }
 
-        const alpha = ((level + 0.5) / LEVELS) * LIT
+        const alpha = ((level + 0.5) / LEVELS) * LIT;
         // The brightest dots are drawn larger as well, which is what gives the
         // front its weight.
-        const size = 1.2 + (level / LEVELS) * 1.1
+        const size = 1.2 + (level / LEVELS) * 1.1;
 
-        context.globalAlpha = alpha
-        context.fillStyle = ink
+        context.globalAlpha = alpha;
+        context.fillStyle = ink;
 
         for (const index of bucket) {
-          context.fillRect((xs[index] ?? 0) - size / 2, (ys[index] ?? 0) - size / 2, size, size)
+          context.fillRect((xs[index] ?? 0) - size / 2, (ys[index] ?? 0) - size / 2, size, size);
         }
       }
 
-      context.globalAlpha = 1
-    }
+      context.globalAlpha = 1;
+    };
 
-    const started = performance.now()
+    const started = performance.now();
 
     const tick = (now: number) => {
-      draw((now - started) / 1000)
-      frame = requestAnimationFrame(tick)
-    }
+      draw((now - started) / 1000);
+      frame = requestAnimationFrame(tick);
+    };
 
-    lay()
+    lay();
 
     if (prefersReducedMotion === true) {
       // Still a grid, just a still one.
-      draw(0)
+      draw(0);
     } else {
-      frame = requestAnimationFrame(tick)
+      frame = requestAnimationFrame(tick);
     }
 
     const observer = new ResizeObserver(() => {
-      lay()
+      lay();
 
       if (prefersReducedMotion === true) {
-        draw(0)
+        draw(0);
       }
-    })
+    });
 
-    observer.observe(canvas)
+    observer.observe(canvas);
 
     return () => {
-      cancelAnimationFrame(frame)
-      observer.disconnect()
-    }
-  }, [spacing, sources, seconds, prefersReducedMotion])
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [spacing, sources, seconds, prefersReducedMotion]);
 
   return (
     <canvas
@@ -282,9 +282,9 @@ const DotField = ({
       aria-hidden
       className={cn('pointer-events-none absolute inset-0 h-full w-full text-text', className)}
     />
-  )
-}
+  );
+};
 
-DotField.displayName = 'DotField'
+DotField.displayName = 'DotField';
 
-export { DotField }
+export { DotField };

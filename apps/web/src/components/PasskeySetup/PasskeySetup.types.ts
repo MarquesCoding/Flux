@@ -1,5 +1,5 @@
 type PasskeySetupProps = {
-  onChanged?: () => void
-}
+  onChanged?: () => void;
+};
 
-export type { PasskeySetupProps }
+export type { PasskeySetupProps };

@@ -9,7 +9,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
-} from 'drizzle-orm/pg-core'
+} from 'drizzle-orm/pg-core';
 
 const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -24,7 +24,7 @@ const user = pgTable('user', {
   banned: boolean('banned').default(false),
   banReason: text('banReason'),
   banExpires: timestamp('banExpires'),
-})
+});
 
 const session = pgTable('session', {
   id: text('id').primaryKey(),
@@ -38,7 +38,7 @@ const session = pgTable('session', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   impersonatedBy: text('impersonatedBy'),
-})
+});
 
 const account = pgTable('account', {
   id: text('id').primaryKey(),
@@ -56,7 +56,7 @@ const account = pgTable('account', {
   password: text('password'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull(),
-})
+});
 
 const verification = pgTable('verification', {
   id: text('id').primaryKey(),
@@ -65,7 +65,7 @@ const verification = pgTable('verification', {
   expiresAt: timestamp('expiresAt').notNull(),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
-})
+});
 
 const twoFactor = pgTable('twoFactor', {
   id: text('id').primaryKey(),
@@ -77,7 +77,7 @@ const twoFactor = pgTable('twoFactor', {
   verified: boolean('verified').default(false),
   failedVerificationCount: integer('failedVerificationCount').default(0),
   lockedUntil: timestamp('lockedUntil'),
-})
+});
 
 const passkey = pgTable('passkey', {
   id: text('id').primaryKey(),
@@ -93,7 +93,7 @@ const passkey = pgTable('passkey', {
   transports: text('transports'),
   createdAt: timestamp('createdAt'),
   aaguid: text('aaguid'),
-})
+});
 
 const deviceCode = pgTable('deviceCode', {
   id: text('id').primaryKey(),
@@ -106,7 +106,7 @@ const deviceCode = pgTable('deviceCode', {
   pollingInterval: integer('pollingInterval'),
   clientId: text('clientId'),
   scope: text('scope'),
-})
+});
 
 const jwks = pgTable('jwks', {
   id: text('id').primaryKey(),
@@ -114,7 +114,7 @@ const jwks = pgTable('jwks', {
   privateKey: text('privateKey').notNull(),
   createdAt: timestamp('createdAt').notNull(),
   expiresAt: timestamp('expiresAt'),
-})
+});
 
 const apikey = pgTable('apikey', {
   id: text('id').primaryKey(),
@@ -139,7 +139,7 @@ const apikey = pgTable('apikey', {
   updatedAt: timestamp('updatedAt').notNull(),
   permissions: text('permissions'),
   metadata: text('metadata'),
-})
+});
 
 const library = pgTable('library', {
   id: text('id').primaryKey(),
@@ -148,7 +148,7 @@ const library = pgTable('library', {
   path: text('path').notNull().unique(),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   lastScannedAt: timestamp('lastScannedAt'),
-})
+});
 
 /**
  * One viewer within an account.
@@ -190,7 +190,7 @@ const viewerProfile = pgTable(
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
   (table) => [index('viewer_profile_user_idx').on(table.userId)],
-)
+);
 
 const watchProgress = pgTable(
   'watch_progress',
@@ -225,7 +225,7 @@ const watchProgress = pgTable(
     uniqueIndex('watch_progress_profile_idx').on(table.profileId, table.mediaItemId),
     index('watch_progress_recent_idx').on(table.profileId, table.updatedAt),
   ],
-)
+);
 
 const favourite = pgTable(
   'favourite',
@@ -247,7 +247,7 @@ const favourite = pgTable(
     uniqueIndex('favourite_profile_idx').on(table.profileId, table.mediaItemId),
     index('favourite_recent_idx').on(table.profileId, table.keptAt),
   ],
-)
+);
 
 const mediaSegment = pgTable(
   'media_segment',
@@ -266,7 +266,7 @@ const mediaSegment = pgTable(
     uniqueIndex('media_segment_kind_idx').on(table.mediaItemId, table.kind),
     index('media_segment_item_idx').on(table.mediaItemId),
   ],
-)
+);
 
 const mediaItem = pgTable(
   'media_item',
@@ -310,13 +310,13 @@ const mediaItem = pgTable(
     index('media_item_title_idx').on(table.title),
     index('media_item_series_idx').on(table.seriesTitle, table.seasonNumber),
   ],
-)
+);
 
 const serverSetting = pgTable('server_setting', {
   key: text('key').primaryKey(),
   value: jsonb('value').notNull(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
-})
+});
 
 const userProfile = pgTable('user_profile', {
   userId: text('userId')
@@ -328,7 +328,7 @@ const userProfile = pgTable('user_profile', {
   requestQuotaPerWeek: integer('requestQuotaPerWeek').notNull().default(0),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
-})
+});
 
 export {
   authSchema,
@@ -350,7 +350,7 @@ export {
   apikey,
   userProfile,
   viewerProfile,
-}
+};
 
 const authSchema = {
   user,
@@ -362,6 +362,6 @@ const authSchema = {
   deviceCode,
   jwks,
   apikey,
-}
+};
 
-const fluxSchema = { userProfile, viewerProfile, serverSetting, library, mediaItem }
+const fluxSchema = { userProfile, viewerProfile, serverSetting, library, mediaItem };

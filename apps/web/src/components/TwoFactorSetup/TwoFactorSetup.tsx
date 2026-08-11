@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { Button } from '@FluxUI/Button'
-import { QrCode } from '@FluxUI/QrCode'
-import { TextField } from '@FluxUI/TextField'
-import { TwoFactorEnableResponseSchema } from '@FluxContracts/schemas/TwoFactor'
-import { readTotpSecret, formatTotpSecret } from './readTotpSecret'
-import type { Enrollment, SetupStage, TwoFactorSetupProps } from './TwoFactorSetup.types'
+import { useState } from 'react';
+import { Button } from '@FluxUI/Button';
+import { QrCode } from '@FluxUI/QrCode';
+import { TextField } from '@FluxUI/TextField';
+import { TwoFactorEnableResponseSchema } from '@FluxContracts/schemas/TwoFactor';
+import { readTotpSecret, formatTotpSecret } from './readTotpSecret';
+import type { Enrollment, SetupStage, TwoFactorSetupProps } from './TwoFactorSetup.types';
 
 /**
  * Two-factor enrollment and removal.
@@ -15,123 +15,123 @@ import type { Enrollment, SetupStage, TwoFactorSetupProps } from './TwoFactorSet
  * mistyped or unscanned secret.
  */
 const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
-  const [stage, setStage] = useState<SetupStage>('idle')
-  const [password, setPassword] = useState('')
-  const [code, setCode] = useState('')
-  const [enrollment, setEnrollment] = useState<Enrollment | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isBusy, setIsBusy] = useState(false)
+  const [stage, setStage] = useState<SetupStage>('idle');
+  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
 
   const reset = () => {
-    setStage('idle')
-    setPassword('')
-    setCode('')
-    setEnrollment(null)
-    setError(null)
-  }
+    setStage('idle');
+    setPassword('');
+    setCode('');
+    setEnrollment(null);
+    setError(null);
+  };
 
   const begin = async () => {
     if (password.length === 0) {
-      setError('Enter your password to continue.')
+      setError('Enter your password to continue.');
 
-      return
+      return;
     }
 
-    setError(null)
-    setIsBusy(true)
+    setError(null);
+    setIsBusy(true);
 
     try {
       const response = await fetch('/api/auth/two-factor/enable', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ password }),
-      })
+      });
 
       if (!response.ok) {
-        setError('That password is incorrect.')
+        setError('That password is incorrect.');
 
-        return
+        return;
       }
 
-      const body = TwoFactorEnableResponseSchema.parse(await response.json())
+      const body = TwoFactorEnableResponseSchema.parse(await response.json());
 
       setEnrollment({
         totpURI: body.totpURI,
         secret: readTotpSecret(body.totpURI),
         backupCodes: body.backupCodes,
-      })
-      setPassword('')
-      setStage('showSecret')
+      });
+      setPassword('');
+      setStage('showSecret');
     } catch {
-      setError('Could not reach the server. Check that it is still running.')
+      setError('Could not reach the server. Check that it is still running.');
     } finally {
-      setIsBusy(false)
+      setIsBusy(false);
     }
-  }
+  };
 
   const confirm = async () => {
     if (!/^\d{6}$/.test(code.trim())) {
-      setError('Authenticator codes are 6 digits.')
+      setError('Authenticator codes are 6 digits.');
 
-      return
+      return;
     }
 
-    setError(null)
-    setIsBusy(true)
+    setError(null);
+    setIsBusy(true);
 
     try {
       const response = await fetch('/api/auth/two-factor/verify-totp', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ code: code.trim() }),
-      })
+      });
 
       if (!response.ok) {
-        setError('That code is not valid. Try the next one.')
+        setError('That code is not valid. Try the next one.');
 
-        return
+        return;
       }
 
-      reset()
-      onChanged()
+      reset();
+      onChanged();
     } catch {
-      setError('Could not reach the server. Check that it is still running.')
+      setError('Could not reach the server. Check that it is still running.');
     } finally {
-      setIsBusy(false)
+      setIsBusy(false);
     }
-  }
+  };
 
   const disable = async () => {
     if (password.length === 0) {
-      setError('Enter your password to continue.')
+      setError('Enter your password to continue.');
 
-      return
+      return;
     }
 
-    setError(null)
-    setIsBusy(true)
+    setError(null);
+    setIsBusy(true);
 
     try {
       const response = await fetch('/api/auth/two-factor/disable', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ password }),
-      })
+      });
 
       if (!response.ok) {
-        setError('That password is incorrect.')
+        setError('That password is incorrect.');
 
-        return
+        return;
       }
 
-      reset()
-      onChanged()
+      reset();
+      onChanged();
     } catch {
-      setError('Could not reach the server. Check that it is still running.')
+      setError('Could not reach the server. Check that it is still running.');
     } finally {
-      setIsBusy(false)
+      setIsBusy(false);
     }
-  }
+  };
 
   return (
     <section className="flex flex-col gap-4 rounded-lg border border-border p-5">
@@ -153,7 +153,7 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
       {stage === 'idle' && !isEnabled ? (
         <Button
           onClick={() => {
-            setStage('confirmPassword')
+            setStage('confirmPassword');
           }}
         >
           Set up two-factor
@@ -164,7 +164,7 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
         <Button
           variant="secondary"
           onClick={() => {
-            setStage('disable')
+            setStage('disable');
           }}
         >
           Turn off two-factor
@@ -176,8 +176,8 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
           noValidate
           className="flex flex-col gap-3"
           onSubmit={(event) => {
-            event.preventDefault()
-            void (stage === 'disable' ? disable() : begin())
+            event.preventDefault();
+            void (stage === 'disable' ? disable() : begin());
           }}
         >
           <TextField
@@ -232,8 +232,8 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
             noValidate
             className="flex flex-col gap-3"
             onSubmit={(event) => {
-              event.preventDefault()
-              void confirm()
+              event.preventDefault();
+              void confirm();
             }}
           >
             <TextField
@@ -257,9 +257,9 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
         </div>
       ) : null}
     </section>
-  )
-}
+  );
+};
 
-TwoFactorSetup.displayName = 'TwoFactorSetup'
+TwoFactorSetup.displayName = 'TwoFactorSetup';
 
-export { TwoFactorSetup }
+export { TwoFactorSetup };

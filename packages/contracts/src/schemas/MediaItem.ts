@@ -1,8 +1,8 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
-const VideoRangeSchema = z.enum(['SDR', 'HDR10', 'HDR10Plus', 'HLG', 'DolbyVision'])
+const VideoRangeSchema = z.enum(['SDR', 'HDR10', 'HDR10Plus', 'HLG', 'DolbyVision']);
 
-const VideoCodecSchema = z.enum(['h264', 'hevc', 'av1', 'vp9', 'vp8', 'mpeg2', 'vc1'])
+const VideoCodecSchema = z.enum(['h264', 'hevc', 'av1', 'vp9', 'vp8', 'mpeg2', 'vc1']);
 
 const AudioCodecSchema = z.enum([
   'aac',
@@ -17,11 +17,11 @@ const AudioCodecSchema = z.enum([
   'dts',
   'dtshd',
   'pcm',
-])
+]);
 
-const ContainerSchema = z.enum(['mp4', 'mkv', 'webm', 'ts', 'm2ts', 'mov', 'avi'])
+const ContainerSchema = z.enum(['mp4', 'mkv', 'webm', 'ts', 'm2ts', 'mov', 'avi']);
 
-const SubtitleFormatSchema = z.enum(['srt', 'webvtt', 'ass', 'ssa', 'vobsub', 'pgs', 'dvbsub'])
+const SubtitleFormatSchema = z.enum(['srt', 'webvtt', 'ass', 'ssa', 'vobsub', 'pgs', 'dvbsub']);
 
 const AudioStreamSchema = z.object({
   index: z.number().int().nonnegative(),
@@ -43,7 +43,7 @@ const AudioStreamSchema = z.object({
   title: z.string().nullish(),
   isDefault: z.boolean().default(false),
   isAtmos: z.boolean(),
-})
+});
 
 const SubtitleStreamSchema = z.object({
   index: z.number().int().nonnegative(),
@@ -62,7 +62,7 @@ const SubtitleStreamSchema = z.object({
    */
   title: z.string().nullish(),
   isForced: z.boolean(),
-})
+});
 
 /**
  * A single playable media file with the stream details the playback negotiator
@@ -82,16 +82,16 @@ const MediaItemSchema = z.object({
   bitrateKbps: z.number().int().positive(),
   audioStreams: z.array(AudioStreamSchema).min(1),
   subtitleStreams: z.array(SubtitleStreamSchema),
-})
+});
 
-export type VideoRange = z.infer<typeof VideoRangeSchema>
-export type VideoCodec = z.infer<typeof VideoCodecSchema>
-export type AudioCodec = z.infer<typeof AudioCodecSchema>
-export type Container = z.infer<typeof ContainerSchema>
-export type SubtitleFormat = z.infer<typeof SubtitleFormatSchema>
-export type AudioStream = z.infer<typeof AudioStreamSchema>
-export type SubtitleStream = z.infer<typeof SubtitleStreamSchema>
-export type MediaItem = z.infer<typeof MediaItemSchema>
+export type VideoRange = z.infer<typeof VideoRangeSchema>;
+export type VideoCodec = z.infer<typeof VideoCodecSchema>;
+export type AudioCodec = z.infer<typeof AudioCodecSchema>;
+export type Container = z.infer<typeof ContainerSchema>;
+export type SubtitleFormat = z.infer<typeof SubtitleFormatSchema>;
+export type AudioStream = z.infer<typeof AudioStreamSchema>;
+export type SubtitleStream = z.infer<typeof SubtitleStreamSchema>;
+export type MediaItem = z.infer<typeof MediaItemSchema>;
 
 export {
   MediaItemSchema,
@@ -102,4 +102,4 @@ export {
   SubtitleFormatSchema,
   AudioStreamSchema,
   SubtitleStreamSchema,
-}
+};

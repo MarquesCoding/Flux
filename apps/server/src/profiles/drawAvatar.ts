@@ -1,5 +1,5 @@
-import { createAvatar } from '@dicebear/core'
-import { adventurer, bottts, funEmoji, lorelei, notionists, thumbs } from '@dicebear/collection'
+import { createAvatar } from '@dicebear/core';
+import { adventurer, bottts, funEmoji, lorelei, notionists, thumbs } from '@dicebear/collection';
 
 /**
  * The styles somebody may choose from, each as the call that draws it.
@@ -18,15 +18,15 @@ const AVATAR_STYLES = {
   bottts: (seed: string) => createAvatar(bottts, { seed, radius: 50 }).toString(),
   funEmoji: (seed: string) => createAvatar(funEmoji, { seed, radius: 50 }).toString(),
   thumbs: (seed: string) => createAvatar(thumbs, { seed, radius: 50 }).toString(),
-} as const
+} as const;
 
-type AvatarStyle = keyof typeof AVATAR_STYLES
+type AvatarStyle = keyof typeof AVATAR_STYLES;
 
 /**
  * Whether this is a style Flux draws.
  */
 const isAvatarStyle = (candidate: string): candidate is AvatarStyle =>
-  Object.hasOwn(AVATAR_STYLES, candidate)
+  Object.hasOwn(AVATAR_STYLES, candidate);
 
 /**
  * Draws an avatar as an SVG.
@@ -40,8 +40,8 @@ const isAvatarStyle = (candidate: string): candidate is AvatarStyle =>
  * time from a few bytes rather than from a stored image.
 
  */
-const drawAvatar = (style: AvatarStyle, seed: string): string => AVATAR_STYLES[style](seed)
+const drawAvatar = (style: AvatarStyle, seed: string): string => AVATAR_STYLES[style](seed);
 
-export type { AvatarStyle }
+export type { AvatarStyle };
 
-export { drawAvatar, isAvatarStyle, AVATAR_STYLES }
+export { drawAvatar, isAvatarStyle, AVATAR_STYLES };

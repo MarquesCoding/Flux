@@ -1,10 +1,10 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
-type JsonPrimitive = string | number | boolean | null
+type JsonPrimitive = string | number | boolean | null;
 
-type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
-const JsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()])
+const JsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 
 /**
  * Any value expressible in JSON.
@@ -15,10 +15,10 @@ const JsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null
  */
 const JsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
   z.union([JsonPrimitiveSchema, z.array(JsonValueSchema), z.record(z.string(), JsonValueSchema)]),
-)
+);
 
-const JsonObjectSchema = z.record(z.string(), JsonValueSchema)
+const JsonObjectSchema = z.record(z.string(), JsonValueSchema);
 
-export type { JsonPrimitive, JsonValue }
+export type { JsonPrimitive, JsonValue };
 
-export { JsonValueSchema, JsonPrimitiveSchema, JsonObjectSchema }
+export { JsonValueSchema, JsonPrimitiveSchema, JsonObjectSchema };

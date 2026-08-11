@@ -1,7 +1,7 @@
-import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
-import { MotionGlobalConfig } from 'motion/react'
+import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+import { MotionGlobalConfig } from 'motion/react';
 
 /**
  * jsdom has no layout, and therefore no ResizeObserver.
@@ -16,20 +16,20 @@ import { MotionGlobalConfig } from 'motion/react'
  */
 class LayoutlessResizeObserver implements ResizeObserver {
   observe(): void {
-    return undefined
+    return undefined;
   }
 
   unobserve(): void {
-    return undefined
+    return undefined;
   }
 
   disconnect(): void {
-    return undefined
+    return undefined;
   }
 }
 
 if (!('ResizeObserver' in globalThis)) {
-  globalThis.ResizeObserver = LayoutlessResizeObserver
+  globalThis.ResizeObserver = LayoutlessResizeObserver;
 }
 
 /**
@@ -41,7 +41,7 @@ if (!('ResizeObserver' in globalThis)) {
  * settle instantly, so tests describe what ends up on screen rather than how
  * long it took to get there.
  */
-MotionGlobalConfig.skipAnimations = true
+MotionGlobalConfig.skipAnimations = true;
 
 /**
  * jsdom has no pointer events either.
@@ -56,7 +56,7 @@ if (!('PointerEvent' in globalThis)) {
   Object.defineProperty(globalThis, 'PointerEvent', {
     configurable: true,
     value: MouseEvent,
-  })
+  });
 }
 
 /**
@@ -75,13 +75,13 @@ if (typeof HTMLMediaElement !== 'undefined') {
     configurable: true,
     writable: true,
     value: () => Promise.resolve(),
-  })
+  });
 
   Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
     configurable: true,
     writable: true,
     value: () => undefined,
-  })
+  });
 
   // A track list that can be listened to, which jsdom's cannot: the surface
   // waits for cues arriving after the element already has its track.
@@ -92,7 +92,7 @@ if (typeof HTMLMediaElement !== 'undefined') {
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
     }),
-  })
+  });
 }
 
 /**
@@ -106,7 +106,7 @@ if (typeof window !== 'undefined') {
     configurable: true,
     writable: true,
     value: () => undefined,
-  })
+  });
 }
 
 if (typeof Element !== 'undefined') {
@@ -114,7 +114,7 @@ if (typeof Element !== 'undefined') {
     configurable: true,
     writable: true,
     value: () => undefined,
-  })
+  });
 }
 
 if (typeof HTMLMediaElement !== 'undefined') {
@@ -122,7 +122,7 @@ if (typeof HTMLMediaElement !== 'undefined') {
     configurable: true,
     writable: true,
     value: () => undefined,
-  })
+  });
 }
 
 /*
@@ -139,9 +139,9 @@ if (typeof HTMLCanvasElement !== 'undefined') {
     configurable: true,
     writable: true,
     value: () => null,
-  })
+  });
 }
 
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});

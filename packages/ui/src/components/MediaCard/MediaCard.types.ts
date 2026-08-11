@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from 'react';
 
 /**
  * How the artwork is shaped.
@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
  * shot in. A grid of stills reads as somewhere to browse rather than a shelf
  * to look through.
  */
-type MediaCardShape = 'poster' | 'wide'
+type MediaCardShape = 'poster' | 'wide';
 
 /**
  * How much of a row an item is entitled to.
@@ -16,28 +16,28 @@ type MediaCardShape = 'poster' | 'wide'
  * over the artwork. Everything being the same size is what makes a catalogue
  * feel like a spreadsheet.
  */
-type MediaCardEmphasis = 'lead' | 'standard'
+type MediaCardEmphasis = 'lead' | 'standard';
 
 type MediaCardProps = {
-  title: string
+  title: string;
   /**
    * The line above the title, smaller and in capitals.
    *
    * What is being offered, where the title is what makes it recognisable: an
    * episode over the show it belongs to. Films have nothing here.
    */
-  eyebrow?: ReactNode
+  eyebrow?: ReactNode;
   /**
    * The line below the title.
    *
    * Anything renderable rather than a string: what places an item is a list of
    * facts, and one of them is a rating, which is a mark as well as a number.
    */
-  subtitle: ReactNode
-  badges?: string[]
-  imageUrl?: string
-  shape?: MediaCardShape
-  emphasis?: MediaCardEmphasis
+  subtitle: ReactNode;
+  badges?: string[];
+  imageUrl?: string;
+  shape?: MediaCardShape;
+  emphasis?: MediaCardEmphasis;
   /**
    * How far through this item the viewer is, between nothing and everything.
    *
@@ -45,8 +45,8 @@ type MediaCardProps = {
    * which is different from nought: a bar sitting at zero on every unwatched
    * item is a row of noise.
    */
-  watchedFraction?: number
-  onSelect: () => void
+  watchedFraction?: number;
+  onSelect: () => void;
   /**
    * Whether the card stays where it is put.
    *
@@ -54,8 +54,8 @@ type MediaCardProps = {
    * like a shelf. A card in a list inside a panel is a line of a list, and a
    * line that jumps when the pointer crosses it makes the list look unstable.
    */
-  isStill?: boolean
-  className?: string
-}
+  isStill?: boolean;
+  className?: string;
+};
 
-export type { MediaCardEmphasis, MediaCardProps, MediaCardShape }
+export type { MediaCardEmphasis, MediaCardProps, MediaCardShape };

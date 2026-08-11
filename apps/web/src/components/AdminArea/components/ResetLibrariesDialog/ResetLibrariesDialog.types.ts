@@ -1,8 +1,8 @@
 type ResetLibrariesDialogProps = {
-  isOpen: boolean
-  isResetting: boolean
-  onClose: () => void
-  onConfirm: () => void
-}
+  isOpen: boolean;
+  isResetting: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+};
 
-export type { ResetLibrariesDialogProps }
+export type { ResetLibrariesDialogProps };

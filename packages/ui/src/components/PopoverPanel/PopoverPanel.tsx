@@ -1,7 +1,7 @@
-import { Popover } from '@base-ui-components/react/popover'
-import { cn } from '@FluxUI/cn'
-import { Tooltip } from '@FluxUI/Tooltip'
-import type { PopoverPanelProps } from './PopoverPanel.types'
+import { Popover } from '@base-ui-components/react/popover';
+import { cn } from '@FluxUI/cn';
+import { Tooltip } from '@FluxUI/Tooltip';
+import type { PopoverPanelProps } from './PopoverPanel.types';
 
 /**
  * A panel of glass hung off a control.
@@ -64,8 +64,8 @@ const PopoverPanel = ({
       </Popover.Positioner>
     </Popover.Portal>
   </Popover.Root>
-)
+);
 
-PopoverPanel.displayName = 'PopoverPanel'
+PopoverPanel.displayName = 'PopoverPanel';
 
-export { PopoverPanel }
+export { PopoverPanel };

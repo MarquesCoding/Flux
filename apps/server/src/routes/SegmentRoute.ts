@@ -1,7 +1,7 @@
-import { createRoute, z } from '@hono/zod-openapi'
-import { SEGMENT_KINDS, SEGMENT_SOURCES } from '@FluxContracts/schemas/MediaSegment'
+import { createRoute, z } from '@hono/zod-openapi';
+import { SEGMENT_KINDS, SEGMENT_SOURCES } from '@FluxContracts/schemas/MediaSegment';
 
-const SegmentError = z.object({ error: z.string() }).openapi('SegmentError')
+const SegmentError = z.object({ error: z.string() }).openapi('SegmentError');
 
 const SegmentSchema = z
   .object({
@@ -10,9 +10,9 @@ const SegmentSchema = z
     endSeconds: z.number(),
     source: z.enum(SEGMENT_SOURCES),
   })
-  .openapi('MediaSegment')
+  .openapi('MediaSegment');
 
-const SegmentListSchema = z.object({ segments: z.array(SegmentSchema) }).openapi('SegmentList')
+const SegmentListSchema = z.object({ segments: z.array(SegmentSchema) }).openapi('SegmentList');
 
 /**
  * Lists the marked stretches of an item.
@@ -37,6 +37,6 @@ const listSegmentsRoute = createRoute({
       content: { 'application/json': { schema: SegmentError } },
     },
   },
-})
+});
 
-export { listSegmentsRoute }
+export { listSegmentsRoute };

@@ -1,5 +1,5 @@
-import { motion, useReducedMotion } from 'motion/react'
-import type { SplashScreenProps } from './SplashScreen.types'
+import { motion, useReducedMotion } from 'motion/react';
+import type { SplashScreenProps } from './SplashScreen.types';
 
 /**
  * The screen shown while the application works out what it is showing.
@@ -13,7 +13,7 @@ import type { SplashScreenProps } from './SplashScreen.types'
  * take, and a progress bar that guesses is a progress bar that lies.
  */
 const SplashScreen = ({ name = 'Flux', label = 'Loading' }: SplashScreenProps) => {
-  const prefersReducedMotion = useReducedMotion()
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <div
@@ -44,9 +44,9 @@ const SplashScreen = ({ name = 'Flux', label = 'Loading' }: SplashScreenProps) =
         )}
       </span>
     </div>
-  )
-}
+  );
+};
 
-SplashScreen.displayName = 'SplashScreen'
+SplashScreen.displayName = 'SplashScreen';
 
-export { SplashScreen }
+export { SplashScreen };

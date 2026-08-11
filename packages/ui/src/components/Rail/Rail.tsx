@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { cn } from '@FluxUI/cn'
-import { PageDots } from '@FluxUI/PageDots'
-import type { RailProps } from './Rail.types'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { cn } from '@FluxUI/cn';
+import { PageDots } from '@FluxUI/PageDots';
+import type { RailProps } from './Rail.types';
 
 /**
  * How much of the visible width one page is.
@@ -9,7 +9,7 @@ import type { RailProps } from './Rail.types'
  * Not quite the whole of it: leaving a card partly visible tells a viewer the
  * row carried on, where a clean page turn loses their place in it.
  */
-const SCROLL_FRACTION = 0.85
+const SCROLL_FRACTION = 0.85;
 
 /**
  * A horizontally scrolling row of items.
@@ -23,53 +23,53 @@ const SCROLL_FRACTION = 0.85
  * whatever else did the scrolling.
  */
 const Rail = ({ title, children, action, className }: RailProps) => {
-  const trackRef = useRef<HTMLUListElement>(null)
+  const trackRef = useRef<HTMLUListElement>(null);
   // How many screenfuls the row is, and which one is being looked at. Worked
   // out from the scroller rather than from the number of items, because how
   // many fit is a question about this window rather than about this row.
-  const [pages, setPages] = useState({ count: 1, at: 0 })
+  const [pages, setPages] = useState({ count: 1, at: 0 });
 
   const measure = useCallback(() => {
-    const track = trackRef.current
+    const track = trackRef.current;
 
     if (track === null) {
-      return
+      return;
     }
 
-    const step = Math.max(1, track.clientWidth * SCROLL_FRACTION)
-    const beyond = Math.max(0, track.scrollWidth - track.clientWidth)
+    const step = Math.max(1, track.clientWidth * SCROLL_FRACTION);
+    const beyond = Math.max(0, track.scrollWidth - track.clientWidth);
 
     setPages({
       count: Math.max(1, Math.ceil(beyond / step) + 1),
       at: Math.round(track.scrollLeft / step),
-    })
-  }, [])
+    });
+  }, []);
 
   useEffect(() => {
-    measure()
+    measure();
 
-    const track = trackRef.current
+    const track = trackRef.current;
 
     if (track === null) {
-      return
+      return;
     }
 
-    const observer = new ResizeObserver(measure)
+    const observer = new ResizeObserver(measure);
 
-    observer.observe(track)
+    observer.observe(track);
 
     return () => {
-      observer.disconnect()
-    }
-  }, [measure, children])
+      observer.disconnect();
+    };
+  }, [measure, children]);
 
   const scrollTo = (page: number) => {
-    const track = trackRef.current
+    const track = trackRef.current;
 
     if (track !== null) {
-      track.scrollTo({ left: page * track.clientWidth * SCROLL_FRACTION, behavior: 'smooth' })
+      track.scrollTo({ left: page * track.clientWidth * SCROLL_FRACTION, behavior: 'smooth' });
     }
-  }
+  };
 
   return (
     <section className={cn('group/rail flex flex-col gap-3', className)} aria-label={title}>
@@ -107,9 +107,9 @@ const Rail = ({ title, children, action, className }: RailProps) => {
         </ul>
       </div>
     </section>
-  )
-}
+  );
+};
 
-Rail.displayName = 'Rail'
+Rail.displayName = 'Rail';
 
-export { Rail }
+export { Rail };

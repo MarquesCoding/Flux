@@ -1,16 +1,16 @@
-import type { SetupStatus } from '@FluxContracts/schemas/Setup'
+import type { SetupStatus } from '@FluxContracts/schemas/Setup';
 
 type SetupWizardProps = {
-  status: SetupStatus
-  onComplete: () => void
-}
+  status: SetupStatus;
+  onComplete: () => void;
+};
 
 type SetupFormErrors = {
-  name?: string
-  email?: string
-  password?: string
-  trustedOrigins?: string
-  submit?: string
-}
+  name?: string;
+  email?: string;
+  password?: string;
+  trustedOrigins?: string;
+  submit?: string;
+};
 
-export type { SetupWizardProps, SetupFormErrors }
+export type { SetupWizardProps, SetupFormErrors };

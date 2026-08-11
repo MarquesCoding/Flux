@@ -1,7 +1,7 @@
-import { randomUUID } from 'node:crypto'
-import { groupIntoShows, buildShowDetail } from './groupIntoShows'
-import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
-import type { LibraryService } from './LibraryService'
+import { randomUUID } from 'node:crypto';
+import { groupIntoShows, buildShowDetail } from './groupIntoShows';
+import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { LibraryService } from './LibraryService';
 
 /**
  * What a browser is told about an item, from everything held about it.
@@ -27,12 +27,12 @@ const toSummary = (item: MediaDetail): MediaSummary => ({
   seasonNumber: item.metadata.seasonNumber ?? null,
   episodeNumber: item.metadata.episodeNumber ?? null,
   genres: item.metadata.genres ?? null,
-})
+});
 
 type MemoryState = {
-  libraries: Library[]
-  media: MediaDetail[]
-}
+  libraries: Library[];
+  media: MediaDetail[];
+};
 
 /**
  * A library held in memory.
@@ -62,19 +62,19 @@ const createMemoryLibraryService = (
       path: input.path,
       itemCount: 0,
       lastScannedAt: null,
-    }
+    };
 
-    state.libraries.push(created)
+    state.libraries.push(created);
 
-    return Promise.resolve(created)
+    return Promise.resolve(created);
   },
 
   listItems: (libraryId, options) => {
     if (!state.libraries.some((entry) => entry.id === libraryId)) {
-      return Promise.resolve(null)
+      return Promise.resolve(null);
     }
 
-    const search = options.search?.toLowerCase() ?? ''
+    const search = options.search?.toLowerCase() ?? '';
 
     const matching = state.media
       .filter((item) => item.libraryId === libraryId)
@@ -99,11 +99,11 @@ const createMemoryLibraryService = (
         options.order === 'newest'
           ? right.addedAt.localeCompare(left.addedAt)
           : left.title.localeCompare(right.title),
-      )
+      );
 
-    const items = matching.slice(options.offset, options.offset + options.limit).map(toSummary)
+    const items = matching.slice(options.offset, options.offset + options.limit).map(toSummary);
 
-    return Promise.resolve({ items, total: matching.length })
+    return Promise.resolve({ items, total: matching.length });
   },
 
   getMedia: (id) => Promise.resolve(state.media.find((item) => item.id === id) ?? null),
@@ -134,12 +134,12 @@ const createMemoryLibraryService = (
 
   reset: (libraryId) => {
     if (!state.libraries.some((entry) => entry.id === libraryId)) {
-      return Promise.resolve(null)
+      return Promise.resolve(null);
     }
 
-    state.media = state.media.filter((item) => item.libraryId !== libraryId)
+    state.media = state.media.filter((item) => item.libraryId !== libraryId);
 
-    return Promise.resolve({ jobId: `reset-${libraryId}`, state: 'queued' })
+    return Promise.resolve({ jobId: `reset-${libraryId}`, state: 'queued' });
   },
 
   readScanState: () =>
@@ -151,8 +151,8 @@ const createMemoryLibraryService = (
         ? `https://images.test/${kind}/${mediaId}.jpg`
         : null,
     ),
-})
+});
 
-export type { MemoryState }
+export type { MemoryState };
 
-export { createMemoryLibraryService }
+export { createMemoryLibraryService };

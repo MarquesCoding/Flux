@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { IconPlayerPlayFilled } from '@tabler/icons-react'
-import { cn } from '@FluxUI/cn'
-import { hasFinePointer } from '@FluxUI/hasFinePointer'
-import { Badge } from '@FluxUI/Badge'
-import { revealTransition } from '@FluxUI/animations/reveal'
-import type { MediaCardProps, MediaCardShape } from './MediaCard.types'
+import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { IconPlayerPlayFilled } from '@tabler/icons-react';
+import { cn } from '@FluxUI/cn';
+import { hasFinePointer } from '@FluxUI/hasFinePointer';
+import { Badge } from '@FluxUI/Badge';
+import { revealTransition } from '@FluxUI/animations/reveal';
+import type { MediaCardProps, MediaCardShape } from './MediaCard.types';
 
 const SHAPE_CLASSES: Record<MediaCardShape, string> = {
   poster: 'aspect-[2/3]',
   wide: 'aspect-video',
-}
+};
 
 /**
  * One item in a library.
@@ -40,16 +40,16 @@ const MediaCard = ({
   isStill = false,
   className,
 }: MediaCardProps) => {
-  const prefersReducedMotion = useReducedMotion()
-  const isLead = emphasis === 'lead'
+  const prefersReducedMotion = useReducedMotion();
+  const isLead = emphasis === 'lead';
   // Whether lifting towards a pointer means anything here. A finger reports a
   // hover as it lands and goes on reporting it once it has gone, so a card on
   // a phone would rise on being tapped and stay risen.
-  const [canHover, setCanHover] = useState(false)
+  const [canHover, setCanHover] = useState(false);
 
   useEffect(() => {
-    setCanHover(hasFinePointer())
-  }, [])
+    setCanHover(hasFinePointer());
+  }, []);
 
   return (
     <motion.button
@@ -145,9 +145,9 @@ const MediaCard = ({
         </span>
       )}
     </motion.button>
-  )
-}
+  );
+};
 
-MediaCard.displayName = 'MediaCard'
+MediaCard.displayName = 'MediaCard';
 
-export { MediaCard }
+export { MediaCard };

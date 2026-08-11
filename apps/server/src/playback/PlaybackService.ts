@@ -1,12 +1,12 @@
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile'
-import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan'
-import type { PlaybackMode } from '@FluxContracts/functions/describePlaybackMode'
-import type { QualityStepId } from '@FluxContracts/schemas/QualityStep'
+import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
+import type { PlaybackMode } from '@FluxContracts/functions/describePlaybackMode';
+import type { QualityStepId } from '@FluxContracts/schemas/QualityStep';
 
 type Explanation = {
-  mode: PlaybackMode
-  plan: PlaybackPlan
-}
+  mode: PlaybackMode;
+  plan: PlaybackPlan;
+};
 
 /**
  * How the bytes reach the client.
@@ -15,34 +15,34 @@ type Explanation = {
  * ranges, with no transcode, no remux and no segment cache. Modelling it as a
  * separate delivery rather than a flag keeps the client from having to guess.
  */
-type Delivery = { kind: 'hls'; manifestUrl: string } | { kind: 'direct'; url: string }
+type Delivery = { kind: 'hls'; manifestUrl: string } | { kind: 'direct'; url: string };
 
 type StartedSession = Explanation & {
-  sessionId: string
-  delivery: Delivery
+  sessionId: string;
+  delivery: Delivery;
   /// Things the viewer should know that are not failures, such as a server
   /// that cannot tone map the HDR source it is about to convert.
-  warnings: string[]
-}
+  warnings: string[];
+};
 
 type StartOutcome =
   | { kind: 'started'; session: StartedSession }
   | { kind: 'notFound' }
   | { kind: 'unsupported'; reason: string }
-  | { kind: 'failed'; reason: string }
+  | { kind: 'failed'; reason: string };
 
 type SessionFile = {
-  body: ArrayBuffer
-  contentType: string
-}
+  body: ArrayBuffer;
+  contentType: string;
+};
 
 /// A byte range answer from the media service.
 type RangedFile = {
-  body: ArrayBuffer
-  contentType: string
-  status: number
-  contentRange: string | null
-}
+  body: ArrayBuffer;
+  contentType: string;
+  status: number;
+  contentRange: string | null;
+};
 
 /**
  * Playback as the HTTP layer sees it.
@@ -62,7 +62,7 @@ type PlaybackService = {
      * would decide, unchanged.
      */
     requestedQuality?: QualityStepId,
-  ) => Promise<Explanation | null>
+  ) => Promise<Explanation | null>;
   start: (
     mediaId: string,
     profile: DeviceProfile,
@@ -75,27 +75,27 @@ type PlaybackService = {
      */
     audioStreamIndex?: number,
     requestedQuality?: QualityStepId,
-  ) => Promise<StartOutcome>
-  readSessionFile: (sessionId: string, name: string) => Promise<SessionFile | null>
-  readDirectFile: (mediaId: string, range: string | null) => Promise<RangedFile | null>
+  ) => Promise<StartOutcome>;
+  readSessionFile: (sessionId: string, name: string) => Promise<SessionFile | null>;
+  readDirectFile: (mediaId: string, range: string | null) => Promise<RangedFile | null>;
   /**
    * Renders seek-bar previews for an item, or reuses ones already on disk.
    */
-  trickplay: (mediaId: string) => Promise<Trickplay | null>
+  trickplay: (mediaId: string) => Promise<Trickplay | null>;
   /**
    * Reads one frame of an item as a picture.
    */
-  readFrame: (mediaId: string, seconds: number, width: number) => Promise<ArrayBuffer | null>
+  readFrame: (mediaId: string, seconds: number, width: number) => Promise<ArrayBuffer | null>;
   /**
    * The short clip a library page plays for an item.
    *
    * Null while it is still being made: a page shows the still frame it
    * already has rather than waiting for something decorative.
    */
-  readPreview: (mediaId: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>
-  readTrickplayFile: (trickplayId: string, name: string) => Promise<SessionFile | null>
-  stop: (sessionId: string) => Promise<boolean>
-}
+  readPreview: (mediaId: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>;
+  readTrickplayFile: (trickplayId: string, name: string) => Promise<SessionFile | null>;
+  stop: (sessionId: string) => Promise<boolean>;
+};
 
 /**
  * Seek-bar previews as a client sees them.
@@ -105,14 +105,14 @@ type PlaybackService = {
  * timeline being scrubbed.
  */
 type Trickplay = {
-  id: string
-  url: string
-  intervalSeconds: number
-  tileWidth: number
-  tileHeight: number
-}
+  id: string;
+  url: string;
+  intervalSeconds: number;
+  tileWidth: number;
+  tileHeight: number;
+};
 
-const SEGMENT_SECONDS = 4
+const SEGMENT_SECONDS = 4;
 
 /**
  * Seconds between preview thumbnails.
@@ -121,11 +121,11 @@ const SEGMENT_SECONDS = 4
  * time and sheet size for a difference a viewer dragging a scrub bar cannot
  * perceive.
  */
-const TRICKPLAY_INTERVAL_SECONDS = 10
+const TRICKPLAY_INTERVAL_SECONDS = 10;
 
-const TRICKPLAY_TILE_WIDTH = 320
-const TRICKPLAY_COLUMNS = 10
-const TRICKPLAY_ROWS = 10
+const TRICKPLAY_TILE_WIDTH = 320;
+const TRICKPLAY_COLUMNS = 10;
+const TRICKPLAY_ROWS = 10;
 
 export type {
   Delivery,
@@ -136,7 +136,7 @@ export type {
   StartOutcome,
   StartedSession,
   Trickplay,
-}
+};
 
 export {
   SEGMENT_SECONDS,
@@ -144,4 +144,4 @@ export {
   TRICKPLAY_TILE_WIDTH,
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
-}
+};

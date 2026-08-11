@@ -1,11 +1,11 @@
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
+import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 
 type ProgressReport = {
-  mediaId: string
-  positionSeconds: number
-  durationSeconds: number
-  isFinished: boolean
-}
+  mediaId: string;
+  positionSeconds: number;
+  durationSeconds: number;
+  isFinished: boolean;
+};
 
 /**
  * Where each person got to, as the HTTP layer sees it.
@@ -18,9 +18,9 @@ type ProgressReport = {
  * without one.
  */
 type WatchProgressService = {
-  list: (profileId: string) => Promise<WatchProgress[]>
-  record: (profileId: string, report: ProgressReport) => Promise<void>
-  forget: (profileId: string, mediaId: string) => Promise<void>
-}
+  list: (profileId: string) => Promise<WatchProgress[]>;
+  record: (profileId: string, report: ProgressReport) => Promise<void>;
+  forget: (profileId: string, mediaId: string) => Promise<void>;
+};
 
-export type { ProgressReport, WatchProgressService }
+export type { ProgressReport, WatchProgressService };

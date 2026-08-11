@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { MediaItemSchema } from './MediaItem'
+import { z } from 'zod';
+import { MediaItemSchema } from './MediaItem';
 
 /**
  * The library kinds, as a tuple.
@@ -8,9 +8,9 @@ import { MediaItemSchema } from './MediaItem'
  * the OpenAPI-extended `z` while still deriving the values from one place.
  * Mixing zod instances between packages breaks request type inference.
  */
-const LIBRARY_KINDS = ['movies', 'shows', 'music'] as const
+const LIBRARY_KINDS = ['movies', 'shows', 'music'] as const;
 
-const LibraryKindSchema = z.enum(LIBRARY_KINDS)
+const LibraryKindSchema = z.enum(LIBRARY_KINDS);
 
 /**
  * A root the scanner walks.
@@ -26,7 +26,7 @@ const LibrarySchema = z.object({
   path: z.string().min(1),
   itemCount: z.number().int().nonnegative(),
   lastScannedAt: z.string().datetime().nullable(),
-})
+});
 
 /**
  * Enough of an item to draw it in a grid.
@@ -78,7 +78,7 @@ const MediaSummarySchema = z.object({
    * questions to draw one row of buttons.
    */
   genres: z.array(z.string()).nullish(),
-})
+});
 
 /**
  * Everything about an item, including the streams the negotiator needs.
@@ -90,7 +90,7 @@ const CastMemberSchema = z.object({
   name: z.string(),
   role: z.string(),
   imageUrl: z.string().nullable(),
-})
+});
 
 /**
  * What a catalogue knows about an item, when one has been consulted.
@@ -110,13 +110,13 @@ const MediaMetadataSchema = z.object({
   seriesTitle: z.string().nullish(),
   seasonNumber: z.number().int().nullish(),
   episodeNumber: z.number().int().nullish(),
-})
+});
 
 const MediaDetailSchema = MediaItemSchema.extend({
   libraryId: z.string().uuid(),
   addedAt: z.string().datetime(),
   metadata: MediaMetadataSchema,
-})
+});
 
 /**
  * A page of library items.
@@ -124,23 +124,23 @@ const MediaDetailSchema = MediaItemSchema.extend({
 const MediaPageSchema = z.object({
   items: z.array(MediaSummarySchema),
   total: z.number().int().nonnegative(),
-})
+});
 
 const ScanResultSchema = z.object({
   added: z.number().int().nonnegative(),
   updated: z.number().int().nonnegative(),
   removed: z.number().int().nonnegative(),
   failed: z.number().int().nonnegative(),
-})
+});
 
-export type LibraryKind = z.infer<typeof LibraryKindSchema>
-export type Library = z.infer<typeof LibrarySchema>
-export type MediaSummary = z.infer<typeof MediaSummarySchema>
-export type MediaPage = z.infer<typeof MediaPageSchema>
-export type MediaDetail = z.infer<typeof MediaDetailSchema>
-export type MediaMetadata = z.infer<typeof MediaMetadataSchema>
-export type CastMember = z.infer<typeof CastMemberSchema>
-export type ScanResult = z.infer<typeof ScanResultSchema>
+export type LibraryKind = z.infer<typeof LibraryKindSchema>;
+export type Library = z.infer<typeof LibrarySchema>;
+export type MediaSummary = z.infer<typeof MediaSummarySchema>;
+export type MediaPage = z.infer<typeof MediaPageSchema>;
+export type MediaDetail = z.infer<typeof MediaDetailSchema>;
+export type MediaMetadata = z.infer<typeof MediaMetadataSchema>;
+export type CastMember = z.infer<typeof CastMemberSchema>;
+export type ScanResult = z.infer<typeof ScanResultSchema>;
 
 export {
   LIBRARY_KINDS,
@@ -152,4 +152,4 @@ export {
   MediaMetadataSchema,
   CastMemberSchema,
   ScanResultSchema,
-}
+};

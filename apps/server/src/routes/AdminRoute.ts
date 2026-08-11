@@ -1,6 +1,6 @@
-import { createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi';
 
-const AdminError = z.object({ error: z.string() }).openapi('AdminError')
+const AdminError = z.object({ error: z.string() }).openapi('AdminError');
 
 const AdminUserSchema = z
   .object({
@@ -10,7 +10,7 @@ const AdminUserSchema = z
     role: z.string().nullable(),
     createdAt: z.string(),
   })
-  .openapi('AdminUser')
+  .openapi('AdminUser');
 
 const AdminSettingsSchema = z
   .object({
@@ -24,7 +24,7 @@ const AdminSettingsSchema = z
     trustedOrigins: z.array(z.string()),
     cookieSecure: z.boolean(),
   })
-  .openapi('AdminSettings')
+  .openapi('AdminSettings');
 
 const AdminOverviewSchema = z
   .object({
@@ -40,13 +40,13 @@ const AdminOverviewSchema = z
       libraryCount: z.number().int().nonnegative(),
     }),
   })
-  .openapi('AdminOverview')
+  .openapi('AdminOverview');
 
 const AdminSettingsRequestSchema = z
   .object({
     catalogueApiKey: z.string().optional(),
   })
-  .openapi('AdminSettingsRequest')
+  .openapi('AdminSettingsRequest');
 
 /**
  * Everything an administrator needs to see at once.
@@ -69,7 +69,7 @@ const adminOverviewRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
 /**
  * Changes a setting an operator owns.
@@ -92,6 +92,6 @@ const adminSettingsRoute = createRoute({
       content: { 'application/json': { schema: AdminError } },
     },
   },
-})
+});
 
-export { adminOverviewRoute, adminSettingsRoute }
+export { adminOverviewRoute, adminSettingsRoute };

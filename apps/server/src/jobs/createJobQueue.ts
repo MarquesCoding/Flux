@@ -1,14 +1,14 @@
-import { PgBoss } from 'pg-boss'
-import type { Job } from 'pg-boss'
-import { SCAN_LIBRARY_JOB, ScanLibraryJobSchema } from './JobQueue'
-import type { JobProgress, JobQueue, JobState } from './JobQueue'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+import { PgBoss } from 'pg-boss';
+import type { Job } from 'pg-boss';
+import { SCAN_LIBRARY_JOB, ScanLibraryJobSchema } from './JobQueue';
+import type { JobProgress, JobQueue, JobState } from './JobQueue';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 type CreateJobQueueOptions = {
-  connectionString: string
-  onScan: (libraryId: string, force: boolean, jobId: string) => Promise<void>
-  onProblem?: (message: string) => void
-}
+  connectionString: string;
+  onScan: (libraryId: string, force: boolean, jobId: string) => Promise<void>;
+  onProblem?: (message: string) => void;
+};
 
 /**
  * How long a scan may run before it is presumed dead.
@@ -17,7 +17,7 @@ type CreateJobQueueOptions = {
  * time: this is the point at which an unfinished scan stops blocking the next
  * one, not a target.
  */
-const SCAN_EXPIRES_AFTER_SECONDS = 2 * 60 * 60
+const SCAN_EXPIRES_AFTER_SECONDS = 2 * 60 * 60;
 
 const PG_BOSS_STATES: Record<string, JobState> = {
   created: 'queued',
@@ -26,7 +26,7 @@ const PG_BOSS_STATES: Record<string, JobState> = {
   completed: 'completed',
   cancelled: 'failed',
   failed: 'failed',
-}
+};
 
 /**
  * Starts the job queue.
@@ -44,34 +44,34 @@ const createJobQueue = async ({
   onScan,
   onProblem,
 }: CreateJobQueueOptions): Promise<JobQueue> => {
-  const boss = new PgBoss({ connectionString, schema: 'flux_jobs' })
+  const boss = new PgBoss({ connectionString, schema: 'flux_jobs' });
 
   // Kept alongside pg-boss rather than in it: progress is a running number a
   // job reports about itself mid-flight, not the job's own queued/completed
   // lifecycle, and pg-boss has nowhere to put that. Lost on restart, which is
   // fine — a job that outlives the process reports from wherever it resumes.
-  const progressByJobId = new Map<string, JobProgress>()
+  const progressByJobId = new Map<string, JobProgress>();
 
   boss.on('error', (error: Error) => {
-    onProblem?.(error.message)
-  })
+    onProblem?.(error.message);
+  });
 
-  await boss.start()
-  await boss.createQueue(SCAN_LIBRARY_JOB)
+  await boss.start();
+  await boss.createQueue(SCAN_LIBRARY_JOB);
 
   await boss.work(SCAN_LIBRARY_JOB, async (jobs: Job<JsonValue>[]) => {
     for (const job of jobs) {
-      const parsed = ScanLibraryJobSchema.safeParse(job.data)
+      const parsed = ScanLibraryJobSchema.safeParse(job.data);
 
       if (!parsed.success) {
-        onProblem?.('A scan job carried data Flux could not read.')
+        onProblem?.('A scan job carried data Flux could not read.');
 
-        continue
+        continue;
       }
 
-      await onScan(parsed.data.libraryId, parsed.data.force, job.id)
+      await onScan(parsed.data.libraryId, parsed.data.force, job.id);
     }
-  })
+  });
 
   return {
     enqueueScan: (libraryId, force = false) =>
@@ -96,21 +96,21 @@ const createJobQueue = async ({
       ),
 
     readState: async (jobId) => {
-      const job = await boss.getJobById(SCAN_LIBRARY_JOB, jobId)
+      const job = await boss.getJobById(SCAN_LIBRARY_JOB, jobId);
 
-      return job === null ? 'unknown' : (PG_BOSS_STATES[job.state] ?? 'unknown')
+      return job === null ? 'unknown' : (PG_BOSS_STATES[job.state] ?? 'unknown');
     },
 
     readProgress: (jobId) => progressByJobId.get(jobId) ?? null,
 
     reportProgress: (jobId, phase, processed, total) => {
-      progressByJobId.set(jobId, { phase, processed, total })
+      progressByJobId.set(jobId, { phase, processed, total });
     },
 
     stop: async () => {
-      await boss.stop()
+      await boss.stop();
     },
-  }
-}
+  };
+};
 
-export { createJobQueue, PG_BOSS_STATES }
+export { createJobQueue, PG_BOSS_STATES };

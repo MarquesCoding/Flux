@@ -1,5 +1,5 @@
-import { cn } from '@FluxUI/cn'
-import type { SparklineProps } from './Sparkline.types'
+import { cn } from '@FluxUI/cn';
+import type { SparklineProps } from './Sparkline.types';
 
 /**
  * A short history, drawn as columns.
@@ -10,7 +10,7 @@ import type { SparklineProps } from './Sparkline.types'
  * reading left to right expects now to be.
  */
 const Sparkline = ({ values, ceiling, label, className }: SparklineProps) => {
-  const highest = Math.max(ceiling, 1)
+  const highest = Math.max(ceiling, 1);
 
   return (
     <div
@@ -28,9 +28,9 @@ const Sparkline = ({ values, ceiling, label, className }: SparklineProps) => {
         />
       ))}
     </div>
-  )
-}
+  );
+};
 
-Sparkline.displayName = 'Sparkline'
+Sparkline.displayName = 'Sparkline';
 
-export { Sparkline }
+export { Sparkline };

@@ -1,7 +1,7 @@
-import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
-import { MotionGlobalConfig } from 'motion/react'
+import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+import { MotionGlobalConfig } from 'motion/react';
 
 /**
  * jsdom has no layout, and therefore no ResizeObserver.
@@ -16,20 +16,20 @@ import { MotionGlobalConfig } from 'motion/react'
  */
 class LayoutlessResizeObserver implements ResizeObserver {
   observe(): void {
-    return undefined
+    return undefined;
   }
 
   unobserve(): void {
-    return undefined
+    return undefined;
   }
 
   disconnect(): void {
-    return undefined
+    return undefined;
   }
 }
 
 if (!('ResizeObserver' in globalThis)) {
-  globalThis.ResizeObserver = LayoutlessResizeObserver
+  globalThis.ResizeObserver = LayoutlessResizeObserver;
 }
 
 /**
@@ -41,7 +41,7 @@ if (!('ResizeObserver' in globalThis)) {
  * settle instantly, so tests describe what ends up on screen rather than how
  * long it took to get there.
  */
-MotionGlobalConfig.skipAnimations = true
+MotionGlobalConfig.skipAnimations = true;
 
 /**
  * jsdom has no pointer events either.
@@ -56,9 +56,9 @@ if (!('PointerEvent' in globalThis)) {
   Object.defineProperty(globalThis, 'PointerEvent', {
     configurable: true,
     value: MouseEvent,
-  })
+  });
 }
 
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});

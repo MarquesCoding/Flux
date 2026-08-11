@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 const ServerSettingsSchema = z.object({
   trustedOrigins: z.array(z.string().url()),
@@ -12,9 +12,9 @@ const ServerSettingsSchema = z.object({
    * rather than one Flux makes for them.
    */
   catalogueApiKey: z.string().default(''),
-})
+});
 
-type ServerSettings = z.infer<typeof ServerSettingsSchema>
+type ServerSettings = z.infer<typeof ServerSettingsSchema>;
 
 /**
  * A read/write view over the instance's persisted settings.
@@ -25,12 +25,12 @@ type ServerSettings = z.infer<typeof ServerSettingsSchema>
  * a restart.
  */
 type SettingsStore = {
-  read: () => Promise<ServerSettings>
-  write: (patch: Partial<ServerSettings>) => Promise<ServerSettings>
-}
+  read: () => Promise<ServerSettings>;
+  write: (patch: Partial<ServerSettings>) => Promise<ServerSettings>;
+};
 
-const SETTINGS_KEY = 'server'
+const SETTINGS_KEY = 'server';
 
-export type { ServerSettings, SettingsStore }
+export type { ServerSettings, SettingsStore };
 
-export { ServerSettingsSchema, SETTINGS_KEY }
+export { ServerSettingsSchema, SETTINGS_KEY };

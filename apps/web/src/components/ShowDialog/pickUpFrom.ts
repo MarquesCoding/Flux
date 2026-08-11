@@ -1,14 +1,14 @@
-import type { MediaSummary } from '@FluxContracts/schemas/Library'
-import type { ShowDetail } from '@FluxContracts/schemas/Show'
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { ShowDetail } from '@FluxContracts/schemas/Show';
 
 type PickedUp = {
-  episode: MediaSummary
+  episode: MediaSummary;
   /**
    * Where to start it, and whether that is a continuation or a beginning.
    */
-  startSeconds: number
-  isResuming: boolean
-}
+  startSeconds: number;
+  isResuming: boolean;
+};
 
 /**
  * The episode a viewer means when they press one button.
@@ -30,31 +30,31 @@ const pickUpFrom = (
     resumeFor,
     isFinished,
   }: {
-    resumeFor?: ((mediaId: string) => number | null) | undefined
-    isFinished?: ((mediaId: string) => boolean) | undefined
+    resumeFor?: ((mediaId: string) => number | null) | undefined;
+    isFinished?: ((mediaId: string) => boolean) | undefined;
   } = {},
 ): PickedUp | null => {
-  const episodes = show.seasons.flatMap((season) => season.episodes)
+  const episodes = show.seasons.flatMap((season) => season.episodes);
 
   if (episodes.length === 0) {
-    return null
+    return null;
   }
 
-  const halfWatched = episodes.find((episode) => (resumeFor?.(episode.id) ?? null) !== null)
+  const halfWatched = episodes.find((episode) => (resumeFor?.(episode.id) ?? null) !== null);
 
   if (halfWatched !== undefined) {
     return {
       episode: halfWatched,
       startSeconds: Math.floor(resumeFor?.(halfWatched.id) ?? 0),
       isResuming: true,
-    }
+    };
   }
 
   // Everything watched means the series is finished, and the offer is to see
   // it again from the beginning rather than nothing at all.
-  const next = episodes.find((episode) => isFinished?.(episode.id) !== true) ?? episodes[0]
+  const next = episodes.find((episode) => isFinished?.(episode.id) !== true) ?? episodes[0];
 
-  return next === undefined ? null : { episode: next, startSeconds: 0, isResuming: false }
-}
+  return next === undefined ? null : { episode: next, startSeconds: 0, isResuming: false };
+};
 
-export { pickUpFrom }
+export { pickUpFrom };

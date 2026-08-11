@@ -1,5 +1,5 @@
-import { readTitleFromPath } from './readTitleFromPath'
-import type { MetadataProvider } from './MetadataProvider'
+import { readTitleFromPath } from './readTitleFromPath';
+import type { MetadataProvider } from './MetadataProvider';
 
 /**
  * The provider Flux ships with.
@@ -10,6 +10,6 @@ import type { MetadataProvider } from './MetadataProvider'
 const createFilenameMetadataProvider = (): MetadataProvider => ({
   name: 'filename',
   describe: (facts) => Promise.resolve(readTitleFromPath(facts.path)),
-})
+});
 
-export { createFilenameMetadataProvider }
+export { createFilenameMetadataProvider };

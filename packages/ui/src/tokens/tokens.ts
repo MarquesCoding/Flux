@@ -19,10 +19,10 @@ const FLUX_TOKENS = {
     normal: 0.22,
     slow: 0.4,
   },
-} as const
+} as const;
 
-type FluxTokens = typeof FLUX_TOKENS
+type FluxTokens = typeof FLUX_TOKENS;
 
-export type { FluxTokens }
+export type { FluxTokens };
 
-export { FLUX_TOKENS }
+export { FLUX_TOKENS };

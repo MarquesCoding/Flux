@@ -1,60 +1,60 @@
-import { randomUUID } from 'node:crypto'
-import { stat } from 'node:fs/promises'
-import { z } from 'zod'
-import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
-import { library, mediaItem } from '@FluxServer/db/Schema'
-import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library'
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
-import { createMediaStore } from './createMediaStore'
-import { groupIntoShows, buildShowDetail } from './groupIntoShows'
-import { scanLibrary } from './scanLibrary'
+import { randomUUID } from 'node:crypto';
+import { stat } from 'node:fs/promises';
+import { z } from 'zod';
+import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { library, mediaItem } from '@FluxServer/db/Schema';
+import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import { createMediaStore } from './createMediaStore';
+import { groupIntoShows, buildShowDetail } from './groupIntoShows';
+import { scanLibrary } from './scanLibrary';
 import {
   TRICKPLAY_INTERVAL_SECONDS,
   TRICKPLAY_TILE_WIDTH,
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
-} from '@FluxServer/playback/PlaybackService'
-import type { FluxDatabase } from '@FluxServer/db/Database'
-import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
-import type { MediaFileSystem } from './scanLibrary'
-import type { MetadataProvider } from './MetadataProvider'
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
-import type { LibraryService } from './LibraryService'
+} from '@FluxServer/playback/PlaybackService';
+import type { FluxDatabase } from '@FluxServer/db/Database';
+import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaFileSystem } from './scanLibrary';
+import type { MetadataProvider } from './MetadataProvider';
+import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import type { LibraryService } from './LibraryService';
 
 /**
  * The library as this file provides it: everything the application asks of a
  * library, and the scanning that only a real one can do.
  */
 type DatabaseLibraryService = LibraryService & {
-  runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>
-}
-import type { JobQueue } from '@FluxServer/jobs/JobQueue'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+  runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>;
+};
+import type { JobQueue } from '@FluxServer/jobs/JobQueue';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
-const GenresSchema = z.array(z.string())
+const GenresSchema = z.array(z.string());
 /**
  * How many episodes are read to build a series.
  *
  * A ceiling rather than a page: a show is only itself when all of it is there,
  * and no series anybody owns has this many episodes.
  */
-const EVERY_EPISODE = 2000
+const EVERY_EPISODE = 2000;
 type CreateDatabaseLibraryServiceOptions = {
-  db: FluxDatabase
-  files: MediaFileSystem
-  transcoder: Transcoder
-  jobs: JobQueue
+  db: FluxDatabase;
+  files: MediaFileSystem;
+  transcoder: Transcoder;
+  jobs: JobQueue;
   /**
    * Asked in order for each file's metadata, first answer winning.
    *
    * Left out entirely means the filename reader alone, which is what an
    * instance with no catalogue configured runs on.
    */
-  providers?: MetadataProvider[]
-  onProblem?: (path: string, reason: string) => void
-}
+  providers?: MetadataProvider[];
+  onProblem?: (path: string, reason: string) => void;
+};
 
-const toIso = (value: Date | null): string | null => value?.toISOString() ?? null
+const toIso = (value: Date | null): string | null => value?.toISOString() ?? null;
 
 /**
  * The library backed by Postgres.
@@ -74,10 +74,10 @@ const toIso = (value: Date | null): string | null => value?.toISOString() ?? nul
  * that no longer parses is an item with no genres rather than a failed page.
  */
 const readGenres = (stored: JsonValue): string[] | null => {
-  const parsed = GenresSchema.safeParse(stored)
+  const parsed = GenresSchema.safeParse(stored);
 
-  return parsed.success ? parsed.data : null
-}
+  return parsed.success ? parsed.data : null;
+};
 
 const createDatabaseLibraryService = ({
   db,
@@ -87,13 +87,13 @@ const createDatabaseLibraryService = ({
   providers,
   onProblem,
 }: CreateDatabaseLibraryServiceOptions): DatabaseLibraryService => {
-  const store = createMediaStore(db)
+  const store = createMediaStore(db);
 
   const findLibrary = async (id: string) => {
-    const rows = await db.select().from(library).where(eq(library.id, id)).limit(1)
+    const rows = await db.select().from(library).where(eq(library.id, id)).limit(1);
 
-    return rows[0] ?? null
-  }
+    return rows[0] ?? null;
+  };
 
   // Named, so the two show readings can ask it the same question the routes
   // ask rather than repeating the query that answers it.
@@ -111,7 +111,7 @@ const createDatabaseLibraryService = ({
         .from(library)
         .leftJoin(mediaItem, eq(mediaItem.libraryId, library.id))
         .groupBy(library.id)
-        .orderBy(asc(library.name))
+        .orderBy(asc(library.name));
 
       return rows.map((row) => ({
         id: row.id,
@@ -120,14 +120,14 @@ const createDatabaseLibraryService = ({
         path: row.path,
         itemCount: row.itemCount,
         lastScannedAt: toIso(row.lastScannedAt),
-      })) satisfies Library[]
+      })) satisfies Library[];
     },
 
     create: async (input) => {
-      const details = await stat(input.path).catch(() => null)
+      const details = await stat(input.path).catch(() => null);
 
       if (details === null || !details.isDirectory()) {
-        return null
+        return null;
       }
 
       const created = {
@@ -135,16 +135,16 @@ const createDatabaseLibraryService = ({
         name: input.name,
         kind: input.kind,
         path: input.path,
-      }
+      };
 
-      await db.insert(library).values(created)
+      await db.insert(library).values(created);
 
-      return { ...created, itemCount: 0, lastScannedAt: null }
+      return { ...created, itemCount: 0, lastScannedAt: null };
     },
 
     listItems: async (libraryId, options) => {
       if ((await findLibrary(libraryId)) === null) {
-        return null
+        return null;
       }
 
       const asked = [
@@ -174,14 +174,14 @@ const createDatabaseLibraryService = ({
           : options.ids.length === 0
             ? [sql`false`]
             : [inArray(mediaItem.id, options.ids)]),
-      ]
+      ];
 
-      const filters = and(...asked)
+      const filters = and(...asked);
 
       const [totals] = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(mediaItem)
-        .where(filters)
+        .where(filters);
 
       const rows = await db
         .select({
@@ -207,7 +207,7 @@ const createDatabaseLibraryService = ({
         .where(filters)
         .orderBy(options.order === 'newest' ? desc(mediaItem.addedAt) : asc(mediaItem.title))
         .limit(options.limit)
-        .offset(options.offset)
+        .offset(options.offset);
 
       const items = rows.map(({ posterUrl, backdropUrl, genres, ...row }) => ({
         ...row,
@@ -215,9 +215,9 @@ const createDatabaseLibraryService = ({
         hasPoster: posterUrl !== null,
         hasBackdrop: backdropUrl !== null,
         genres: readGenres(JsonValueSchema.parse(genres ?? null)),
-      })) satisfies MediaSummary[]
+      })) satisfies MediaSummary[];
 
-      return { items, total: totals?.total ?? 0 }
+      return { items, total: totals?.total ?? 0 };
     },
 
     // Every episode of every series in one read, grouped here rather than by
@@ -229,9 +229,9 @@ const createDatabaseLibraryService = ({
         kind: 'shows',
         limit: EVERY_EPISODE,
         offset: 0,
-      })
+      });
 
-      return page === null ? null : groupIntoShows(page.items)
+      return page === null ? null : groupIntoShows(page.items);
     },
 
     getShow: async (libraryId, showId) => {
@@ -239,17 +239,17 @@ const createDatabaseLibraryService = ({
         kind: 'shows',
         limit: EVERY_EPISODE,
         offset: 0,
-      })
+      });
 
-      return page === null ? null : buildShowDetail(page.items, showId)
+      return page === null ? null : buildShowDetail(page.items, showId);
     },
 
     getMedia: async (id) => {
-      const rows = await db.select().from(mediaItem).where(eq(mediaItem.id, id)).limit(1)
-      const row = rows[0]
+      const rows = await db.select().from(mediaItem).where(eq(mediaItem.id, id)).limit(1);
+      const row = rows[0];
 
       if (row === undefined) {
-        return null
+        return null;
       }
 
       const detail: MediaDetail = MediaDetailSchema.parse({
@@ -279,9 +279,9 @@ const createDatabaseLibraryService = ({
           seasonNumber: row.seasonNumber,
           episodeNumber: row.episodeNumber,
         },
-      })
+      });
 
-      return detail
+      return detail;
     },
 
     readArtworkUrl: async (mediaId, kind) => {
@@ -289,59 +289,59 @@ const createDatabaseLibraryService = ({
         .select({ poster: mediaItem.posterUrl, backdrop: mediaItem.backdropUrl })
         .from(mediaItem)
         .where(eq(mediaItem.id, mediaId))
-        .limit(1)
+        .limit(1);
 
-      const row = rows[0]
+      const row = rows[0];
 
       if (row === undefined) {
-        return null
+        return null;
       }
 
-      return (kind === 'poster' ? row.poster : row.backdrop) ?? null
+      return (kind === 'poster' ? row.poster : row.backdrop) ?? null;
     },
 
     scan: async (libraryId, force = false) => {
       if ((await findLibrary(libraryId)) === null) {
-        return null
+        return null;
       }
 
-      const jobId = await jobs.enqueueScan(libraryId, force)
+      const jobId = await jobs.enqueueScan(libraryId, force);
 
       // pg-boss returns null when a singleton job for this library is already
       // queued. Reporting that as a failure would be wrong: the scan the
       // caller asked for is going to happen.
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
 
     reset: async (libraryId) => {
       if ((await findLibrary(libraryId)) === null) {
-        return null
+        return null;
       }
 
-      await store.clear(libraryId)
+      await store.clear(libraryId);
 
-      const jobId = await jobs.enqueueScan(libraryId, true)
+      const jobId = await jobs.enqueueScan(libraryId, true);
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
 
     readScanState: async (jobId) => {
-      const state = await jobs.readState(jobId)
-      const progress = jobs.readProgress(jobId)
+      const state = await jobs.readState(jobId);
+      const progress = jobs.readProgress(jobId);
 
       return {
         state,
         phase: progress?.phase ?? null,
         processed: progress?.processed ?? null,
         total: progress?.total ?? null,
-      }
+      };
     },
 
     runScan: async (libraryId, force = false, jobId) => {
-      const found = await findLibrary(libraryId)
+      const found = await findLibrary(libraryId);
 
       if (found === null) {
-        return
+        return;
       }
 
       await scanLibrary({
@@ -365,11 +365,11 @@ const createDatabaseLibraryService = ({
               onProgress: (phase, processed, total) =>
                 jobs.reportProgress(jobId, phase, processed, total),
             }),
-      })
+      });
     },
-  }
+  };
 
-  return service
-}
+  return service;
+};
 
-export { createDatabaseLibraryService }
+export { createDatabaseLibraryService };

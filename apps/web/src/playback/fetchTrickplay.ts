@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 const TrickplaySchema = z.object({
   id: z.string(),
@@ -6,45 +6,45 @@ const TrickplaySchema = z.object({
   intervalSeconds: z.number(),
   tileWidth: z.number(),
   tileHeight: z.number(),
-})
+});
 
 type Thumbnail = {
-  startSeconds: number
-  endSeconds: number
-  sheetUrl: string
-  x: number
-  y: number
-  width: number
-  height: number
-}
+  startSeconds: number;
+  endSeconds: number;
+  sheetUrl: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 type Trickplay = {
-  thumbnails: Thumbnail[]
-  width: number
-  height: number
-}
+  thumbnails: Thumbnail[];
+  width: number;
+  height: number;
+};
 
-const TIMESTAMP = /(\d+):(\d{2}):(\d{2})(?:\.(\d{1,3}))?/
+const TIMESTAMP = /(\d+):(\d{2}):(\d{2})(?:\.(\d{1,3}))?/;
 
 /**
  * Reads a `WebVTT` timestamp as seconds.
  */
 const readTimestamp = (value: string): number | null => {
-  const match = TIMESTAMP.exec(value.trim())
+  const match = TIMESTAMP.exec(value.trim());
 
   if (match === null) {
-    return null
+    return null;
   }
 
-  const [, hours = '0', minutes = '0', seconds = '0', milliseconds = '0'] = match
+  const [, hours = '0', minutes = '0', seconds = '0', milliseconds = '0'] = match;
 
   return (
     Number(hours) * 3600 +
     Number(minutes) * 60 +
     Number(seconds) +
     Number(milliseconds.padEnd(3, '0')) / 1000
-  )
-}
+  );
+};
 
 /**
  * Reads the rectangle a cue points at.
@@ -56,22 +56,22 @@ const readTimestamp = (value: string): number | null => {
 const readRectangle = (
   payload: string,
 ): { name: string; x: number; y: number; width: number; height: number } | null => {
-  const [name = '', fragment] = payload.trim().split('#xywh=')
+  const [name = '', fragment] = payload.trim().split('#xywh=');
 
   if (fragment === undefined) {
-    return null
+    return null;
   }
 
-  const parts = fragment.split(',').map(Number)
+  const parts = fragment.split(',').map(Number);
 
   if (parts.length !== 4 || parts.some((part) => !Number.isFinite(part))) {
-    return null
+    return null;
   }
 
-  const [x = 0, y = 0, width = 0, height = 0] = parts
+  const [x = 0, y = 0, width = 0, height = 0] = parts;
 
-  return { name, x, y, width, height }
-}
+  return { name, x, y, width, height };
+};
 
 /**
  * Turns a `WebVTT` index into thumbnails.
@@ -80,21 +80,21 @@ const readRectangle = (
  * index's own URL exactly as a browser would resolve them.
  */
 const parseTrickplayIndex = (vtt: string, indexUrl: string): Thumbnail[] => {
-  const thumbnails: Thumbnail[] = []
-  const lines = vtt.split(/\r?\n/)
+  const thumbnails: Thumbnail[] = [];
+  const lines = vtt.split(/\r?\n/);
 
   for (const [index, line] of lines.entries()) {
     if (!line.includes('-->')) {
-      continue
+      continue;
     }
 
-    const [from = '', to = ''] = line.split('-->')
-    const startSeconds = readTimestamp(from)
-    const endSeconds = readTimestamp(to)
-    const rectangle = readRectangle(lines[index + 1] ?? '')
+    const [from = '', to = ''] = line.split('-->');
+    const startSeconds = readTimestamp(from);
+    const endSeconds = readTimestamp(to);
+    const rectangle = readRectangle(lines[index + 1] ?? '');
 
     if (startSeconds === null || endSeconds === null || rectangle === null) {
-      continue
+      continue;
     }
 
     thumbnails.push({
@@ -105,11 +105,11 @@ const parseTrickplayIndex = (vtt: string, indexUrl: string): Thumbnail[] => {
       y: rectangle.y,
       width: rectangle.width,
       height: rectangle.height,
-    })
+    });
   }
 
-  return thumbnails
-}
+  return thumbnails;
+};
 
 /**
  * Finds the thumbnail covering a moment.
@@ -119,16 +119,16 @@ const parseTrickplayIndex = (vtt: string, indexUrl: string): Thumbnail[] => {
  * a picture.
  */
 const thumbnailAt = (thumbnails: Thumbnail[], seconds: number): Thumbnail | null => {
-  let best: Thumbnail | null = null
+  let best: Thumbnail | null = null;
 
   for (const thumbnail of thumbnails) {
     if (thumbnail.startSeconds <= seconds) {
-      best = thumbnail
+      best = thumbnail;
     }
   }
 
-  return best ?? thumbnails[0] ?? null
-}
+  return best ?? thumbnails[0] ?? null;
+};
 
 /**
  * Asks the server for seek-bar previews.
@@ -138,31 +138,31 @@ const thumbnailAt = (thumbnails: Thumbnail[], seconds: number): Thumbnail | null
  */
 const fetchTrickplay = async (mediaId: string): Promise<Trickplay | null> => {
   try {
-    const response = await fetch(`/api/playback/${mediaId}/trickplay`, { method: 'POST' })
+    const response = await fetch(`/api/playback/${mediaId}/trickplay`, { method: 'POST' });
 
     if (!response.ok) {
-      return null
+      return null;
     }
 
-    const index = TrickplaySchema.parse(await response.json())
-    const vtt = await fetch(index.url)
+    const index = TrickplaySchema.parse(await response.json());
+    const vtt = await fetch(index.url);
 
     if (!vtt.ok) {
-      return null
+      return null;
     }
 
-    const thumbnails = parseTrickplayIndex(await vtt.text(), index.url)
+    const thumbnails = parseTrickplayIndex(await vtt.text(), index.url);
 
     if (thumbnails.length === 0) {
-      return null
+      return null;
     }
 
-    return { thumbnails, width: index.tileWidth, height: index.tileHeight }
+    return { thumbnails, width: index.tileWidth, height: index.tileHeight };
   } catch {
-    return null
+    return null;
   }
-}
+};
 
-export type { Thumbnail, Trickplay }
+export type { Thumbnail, Trickplay };
 
-export { fetchTrickplay, parseTrickplayIndex, thumbnailAt, readTimestamp }
+export { fetchTrickplay, parseTrickplayIndex, thumbnailAt, readTimestamp };

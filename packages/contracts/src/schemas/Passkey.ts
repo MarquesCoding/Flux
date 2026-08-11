@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 /**
  * A registered passkey, as listed by better-auth.
@@ -12,9 +12,9 @@ const PasskeySchema = z.object({
   deviceType: z.string().nullish(),
   backedUp: z.boolean().nullish(),
   createdAt: z.string().nullish(),
-})
+});
 
-const PasskeyListSchema = z.array(PasskeySchema)
+const PasskeyListSchema = z.array(PasskeySchema);
 
 /**
  * The fields of a WebAuthn registration challenge that Flux checks before
@@ -30,7 +30,7 @@ const PasskeyRegistrationChallengeSchema = z.object({
   rp: z.object({ name: z.string().min(1), id: z.string().optional() }),
   user: z.object({ id: z.string().min(1), name: z.string(), displayName: z.string() }),
   pubKeyCredParams: z.array(z.object({ alg: z.number(), type: z.literal('public-key') })).min(1),
-})
+});
 
 /**
  * The fields of a WebAuthn authentication challenge that Flux checks before
@@ -45,13 +45,13 @@ const PasskeyAuthenticationChallengeSchema = z.object({
   rpId: z.string().optional(),
   timeout: z.number().optional(),
   userVerification: z.string().optional(),
-})
+});
 
-export type Passkey = z.infer<typeof PasskeySchema>
+export type Passkey = z.infer<typeof PasskeySchema>;
 
 export {
   PasskeySchema,
   PasskeyListSchema,
   PasskeyRegistrationChallengeSchema,
   PasskeyAuthenticationChallengeSchema,
-}
+};

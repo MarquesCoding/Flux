@@ -1,9 +1,9 @@
-import type { AddLibraryFormErrors } from './AddLibraryDialog.types'
+import type { AddLibraryFormErrors } from './AddLibraryDialog.types';
 
 type AddLibraryFormValues = {
-  name: string
-  path: string
-}
+  name: string;
+  path: string;
+};
 
 /**
  * Validates the add-library form before it reaches the server.
@@ -13,19 +13,19 @@ type AddLibraryFormValues = {
  * waiting on a round trip for something checkable locally.
  */
 const validateAddLibraryForm = (values: AddLibraryFormValues): AddLibraryFormErrors => {
-  const errors: AddLibraryFormErrors = {}
+  const errors: AddLibraryFormErrors = {};
 
   if (values.name.trim().length === 0) {
-    errors.name = 'Enter a name for this library.'
+    errors.name = 'Enter a name for this library.';
   }
 
   if (values.path.trim().length === 0) {
-    errors.path = 'Enter the path to this library on the machine running Flux.'
+    errors.path = 'Enter the path to this library on the machine running Flux.';
   }
 
-  return errors
-}
+  return errors;
+};
 
-export type { AddLibraryFormValues }
+export type { AddLibraryFormValues };
 
-export { validateAddLibraryForm }
+export { validateAddLibraryForm };

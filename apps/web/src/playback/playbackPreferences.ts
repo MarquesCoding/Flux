@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 /**
  * Where the way somebody likes to watch is remembered.
@@ -9,7 +9,7 @@ import { z } from 'zod'
  * somebody turning a film down on headphones and finding the television
  * whispering the next evening.
  */
-const STORAGE_KEY = 'flux.playback'
+const STORAGE_KEY = 'flux.playback';
 
 /**
  * The language of a chosen subtitle track, or that they were switched off.
@@ -18,7 +18,7 @@ const STORAGE_KEY = 'flux.playback'
  * the identifier that means "English" for one episode means nothing for the
  * next. What a viewer chose was a language, and that is what carries.
  */
-const SUBTITLES_OFF = 'off'
+const SUBTITLES_OFF = 'off';
 
 const PreferencesSchema = z.object({
   volume: z.number().min(0).max(1).default(1),
@@ -37,16 +37,16 @@ const PreferencesSchema = z.object({
    * the interface is respecting.
    */
   showsRemaining: z.boolean().default(false),
-})
+});
 
-type PlaybackPreferences = z.infer<typeof PreferencesSchema>
+type PlaybackPreferences = z.infer<typeof PreferencesSchema>;
 
 const DEFAULTS: PlaybackPreferences = {
   volume: 1,
   isMuted: false,
   subtitleLanguage: null,
   showsRemaining: false,
-}
+};
 
 /**
  * How this device likes to watch.
@@ -57,19 +57,19 @@ const DEFAULTS: PlaybackPreferences = {
  */
 const readPlaybackPreferences = (): PlaybackPreferences => {
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
+    const stored = window.localStorage.getItem(STORAGE_KEY);
 
     if (stored === null) {
-      return DEFAULTS
+      return DEFAULTS;
     }
 
-    const parsed = PreferencesSchema.safeParse(JSON.parse(stored))
+    const parsed = PreferencesSchema.safeParse(JSON.parse(stored));
 
-    return parsed.success ? parsed.data : DEFAULTS
+    return parsed.success ? parsed.data : DEFAULTS;
   } catch {
-    return DEFAULTS
+    return DEFAULTS;
   }
-}
+};
 
 /**
  * Remembers a change to how this device likes to watch.
@@ -83,13 +83,13 @@ const writePlaybackPreferences = (change: Partial<PlaybackPreferences>): void =>
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ ...readPlaybackPreferences(), ...change }),
-    )
+    );
   } catch {
     // The setting lasts for this session instead of for this device, which is
     // a smaller loss than refusing to play anything.
   }
-}
+};
 
-export type { PlaybackPreferences }
+export type { PlaybackPreferences };
 
-export { readPlaybackPreferences, writePlaybackPreferences, STORAGE_KEY, SUBTITLES_OFF, DEFAULTS }
+export { readPlaybackPreferences, writePlaybackPreferences, STORAGE_KEY, SUBTITLES_OFF, DEFAULTS };

@@ -1,16 +1,16 @@
-import { cn } from '@FluxUI/cn'
-import type { BadgeProps, BadgeSize, BadgeTone } from './Badge.types'
+import { cn } from '@FluxUI/cn';
+import type { BadgeProps, BadgeSize, BadgeTone } from './Badge.types';
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
   quiet: 'border border-white/15 bg-white/[0.06] text-text-muted backdrop-blur-md',
   accent: 'border border-accent/40 bg-accent/15 text-text backdrop-blur-md',
   solid: 'bg-black/60 text-white backdrop-blur-md',
-}
+};
 
 const SIZE_CLASSES: Record<BadgeSize, string> = {
   sm: 'h-6 px-2.5 text-[0.65rem]',
   md: 'h-7 px-3 text-xs',
-}
+};
 
 /**
  * A small fact about something.
@@ -34,8 +34,8 @@ const Badge = ({ children, tone = 'quiet', size = 'sm', className }: BadgeProps)
   >
     {children}
   </span>
-)
+);
 
-Badge.displayName = 'Badge'
+Badge.displayName = 'Badge';
 
-export { Badge }
+export { Badge };

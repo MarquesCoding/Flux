@@ -1,47 +1,47 @@
-import type { MoodLight } from '@FluxUI/MoodBackground.types'
-import type { ShowSummary } from '@FluxContracts/schemas/Show'
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { SetupWizard } from '@FluxWeb/components/SetupWizard/SetupWizard'
-import { LibraryBrowser } from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
-import { SearchArea } from '@FluxWeb/components/SearchArea/SearchArea'
-import { BrowseArea } from '@FluxWeb/components/BrowseArea/BrowseArea'
-import { ShowDialog } from '@FluxWeb/components/ShowDialog/ShowDialog'
-import { fetchShows } from '@FluxWeb/library/fetchShows'
-import { fetchLibraries } from '@FluxWeb/library/fetchLibrary'
-import { showSlug } from '@FluxCore/functions/showSlug'
-import { useFavourites } from '@FluxWeb/library/useFavourites'
-import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace'
-import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles'
-import { readCurrentProfile } from '@FluxWeb/profiles/currentProfile'
-import { pickAnything } from '@FluxWeb/library/pickAnything'
-import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer'
-import { MediaDetailDialog } from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
-import { AppShell } from '@FluxWeb/components/AppShell/AppShell'
-import { SplashScreen } from '@FluxUI/SplashScreen'
-import { AdminArea } from '@FluxWeb/components/AdminArea/AdminArea'
-import { AccountArea } from '@FluxWeb/components/AccountArea/AccountArea'
-import { ProfileGate } from '@FluxWeb/components/ProfileGate/ProfileGate'
-import { usePlace } from '@FluxWeb/navigation/usePlace'
-import { findSiblings, nextEpisode } from '@FluxWeb/library/pickFeatured'
-import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress'
+import type { MoodLight } from '@FluxUI/MoodBackground.types';
+import type { ShowSummary } from '@FluxContracts/schemas/Show';
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { SetupWizard } from '@FluxWeb/components/SetupWizard/SetupWizard';
+import { LibraryBrowser } from '@FluxWeb/components/LibraryBrowser/LibraryBrowser';
+import { SearchArea } from '@FluxWeb/components/SearchArea/SearchArea';
+import { BrowseArea } from '@FluxWeb/components/BrowseArea/BrowseArea';
+import { ShowDialog } from '@FluxWeb/components/ShowDialog/ShowDialog';
+import { fetchShows } from '@FluxWeb/library/fetchShows';
+import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
+import { showSlug } from '@FluxCore/functions/showSlug';
+import { useFavourites } from '@FluxWeb/library/useFavourites';
+import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
+import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles';
+import { readCurrentProfile } from '@FluxWeb/profiles/currentProfile';
+import { pickAnything } from '@FluxWeb/library/pickAnything';
+import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer';
+import { MediaDetailDialog } from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog';
+import { AppShell } from '@FluxWeb/components/AppShell/AppShell';
+import { SplashScreen } from '@FluxUI/SplashScreen';
+import { AdminArea } from '@FluxWeb/components/AdminArea/AdminArea';
+import { AccountArea } from '@FluxWeb/components/AccountArea/AccountArea';
+import { ProfileGate } from '@FluxWeb/components/ProfileGate/ProfileGate';
+import { usePlace } from '@FluxWeb/navigation/usePlace';
+import { findSiblings, nextEpisode } from '@FluxWeb/library/pickFeatured';
+import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
 import {
   isWorthResuming,
   watchedFraction,
   FINISHED_WITHIN_SECONDS,
-} from '@FluxContracts/schemas/WatchProgress'
-import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types'
-import { fetchSession } from '@FluxWeb/session/fetchSession'
-import { signOut } from '@FluxWeb/session/signOut'
-import { SetupStatusSchema } from '@FluxContracts/schemas/Setup'
-import type { SetupStatus } from '@FluxContracts/schemas/Setup'
-import type { SessionUser } from '@FluxContracts/schemas/Session'
-import type { MediaSummary } from '@FluxContracts/schemas/Library'
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
-import type { AppProps } from './App.types'
+} from '@FluxContracts/schemas/WatchProgress';
+import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types';
+import { fetchSession } from '@FluxWeb/session/fetchSession';
+import { signOut } from '@FluxWeb/session/signOut';
+import { SetupStatusSchema } from '@FluxContracts/schemas/Setup';
+import type { SetupStatus } from '@FluxContracts/schemas/Setup';
+import type { SessionUser } from '@FluxContracts/schemas/Session';
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
+import type { AppProps } from './App.types';
 
-type LoadState = 'loading' | 'ready' | 'unreachable'
+type LoadState = 'loading' | 'ready' | 'unreachable';
 
 /**
  * Application shell and routing.
@@ -51,91 +51,91 @@ type LoadState = 'loading' | 'ready' | 'unreachable'
  * cannot behave as though it is still signed in.
  */
 const App = ({ initialTitle = 'Flux' }: AppProps) => {
-  const [status, setStatus] = useState<SetupStatus | null>(null)
-  const [user, setUser] = useState<SessionUser | null>(null)
-  const [loadState, setLoadState] = useState<LoadState>('loading')
-  const [progress, setProgress] = useState(new Map<string, WatchProgress>())
+  const [status, setStatus] = useState<SetupStatus | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>('loading');
+  const [progress, setProgress] = useState(new Map<string, WatchProgress>());
   // What this session has said and not yet seen come back. The server is told
   // on a timer and again on the way out, neither of which a read waits for, so
   // a read that lands in between would put the old position back on the card —
   // which is why watching something and closing it sometimes left the bar
   // where it had been an hour ago.
-  const reportedRef = useRef(new Map<string, WatchProgress>())
-  const [, setFeatured] = useState<MediaSummary | null>(null)
+  const reportedRef = useRef(new Map<string, WatchProgress>());
+  const [, setFeatured] = useState<MediaSummary | null>(null);
   // What the page is lit by, read from whatever is on screen rather than
   // decided when the file was imported.
-  const [moodLights, setMoodLights] = useState<MoodLight[]>([])
-  const favourites = useFavourites()
+  const [moodLights, setMoodLights] = useState<MoodLight[]>([]);
+  const favourites = useFavourites();
   // Which series is being read about. Held as the summary rather than the
   // identifier alone, because the dialog opens on what the shelf already knew
   // and fetches the episodes itself.
-  const [openShow, setOpenShow] = useState<ShowSummary | null>(null)
+  const [openShow, setOpenShow] = useState<ShowSummary | null>(null);
   // Who is watching, for the face on the account button. Read here rather than
   // in the shell: the shell draws a frame and should not be the thing that
   // knows how profiles work.
-  const [watcher, setWatcher] = useState<ViewerProfile | null>(null)
+  const [watcher, setWatcher] = useState<ViewerProfile | null>(null);
 
   useEffect(() => {
-    const chosen = readCurrentProfile()
+    const chosen = readCurrentProfile();
 
     if (chosen === null) {
-      setWatcher(null)
+      setWatcher(null);
 
-      return
+      return;
     }
 
     void fetchProfiles().then((people) => {
-      setWatcher(people.find((person) => person.id === chosen) ?? null)
-    })
-  }, [user])
+      setWatcher(people.find((person) => person.id === chosen) ?? null);
+    });
+  }, [user]);
   // Everything the library has shown, so an address naming an item can be
   // turned back into one without asking the server a second time.
-  const [known, setKnown] = useState(new Map<string, MediaSummary>())
-  const { place, go, replace } = usePlace()
-  const prefersReducedMotion = useReducedMotion()
+  const [known, setKnown] = useState(new Map<string, MediaSummary>());
+  const { place, go, replace } = usePlace();
+  const prefersReducedMotion = useReducedMotion();
 
   // A series named in the address is a series that should be open, so a reload
   // or a link somebody sent lands on the programme rather than on the shelf.
   useEffect(() => {
     if (place.show === null) {
-      setOpenShow(null)
+      setOpenShow(null);
 
-      return
+      return;
     }
 
     if (openShow?.id === place.show) {
-      return
+      return;
     }
 
-    let abandoned = false
+    let abandoned = false;
 
     void fetchLibraries()
       .then(async (libraries) => {
         for (const entry of libraries) {
-          const shows = await fetchShows(entry.id)
-          const found = shows.find((one) => one.id === place.show)
+          const shows = await fetchShows(entry.id);
+          const found = shows.find((one) => one.id === place.show);
 
           if (found !== undefined) {
-            return found
+            return found;
           }
         }
 
-        return null
+        return null;
       })
       .then((found) => {
         if (!abandoned) {
-          setOpenShow(found)
+          setOpenShow(found);
         }
-      })
+      });
 
     return () => {
-      abandoned = true
-    }
-  }, [place.show, openShow])
+      abandoned = true;
+    };
+  }, [place.show, openShow]);
 
-  const section: ShellSection = place.section
-  const inspecting = place.inspecting === null ? null : (known.get(place.inspecting) ?? null)
-  const playing = place.playing === null ? null : (known.get(place.playing) ?? null)
+  const section: ShellSection = place.section;
+  const inspecting = place.inspecting === null ? null : (known.get(place.inspecting) ?? null);
+  const playing = place.playing === null ? null : (known.get(place.playing) ?? null);
 
   /**
    * Forgets who was watching on this device.
@@ -144,10 +144,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
    * Where this viewer left an item, when it is worth coming back to.
    */
   const resumeFor = (mediaId: string): number | null => {
-    const found = progress.get(mediaId)
+    const found = progress.get(mediaId);
 
-    return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null
-  }
+    return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null;
+  };
 
   /**
    * Keeps what the library has shown, so an address naming an item can be
@@ -158,72 +158,72 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
    */
   const rememberItems = useCallback((items: MediaSummary[]) => {
     setKnown((current) => {
-      const next = new Map(current)
+      const next = new Map(current);
 
       for (const item of items) {
-        next.set(item.id, item)
+        next.set(item.id, item);
       }
 
-      return next
-    })
-  }, [])
+      return next;
+    });
+  }, []);
 
   const readProgress = useCallback(async () => {
-    const fromServer = byMediaId(await fetchWatchProgress())
-    const merged = new Map(fromServer)
+    const fromServer = byMediaId(await fetchWatchProgress());
+    const merged = new Map(fromServer);
 
     for (const [mediaId, mine] of reportedRef.current) {
-      const theirs = fromServer.get(mediaId)
+      const theirs = fromServer.get(mediaId);
 
       // Caught up: what came back is what was sent, so this copy stops
       // standing in for it. Compared rather than trusted to be larger,
       // because rewinding is a smaller number and still the right one.
       if (theirs !== undefined && Math.abs(theirs.positionSeconds - mine.positionSeconds) <= 1) {
-        reportedRef.current.delete(mediaId)
+        reportedRef.current.delete(mediaId);
 
-        continue
+        continue;
       }
 
-      merged.set(mediaId, mine)
+      merged.set(mediaId, mine);
     }
 
-    setProgress(merged)
-  }, [])
+    setProgress(merged);
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch('/api/setup/status')
+      const response = await fetch('/api/setup/status');
 
       if (!response.ok) {
-        setLoadState('unreachable')
+        setLoadState('unreachable');
 
-        return
+        return;
       }
 
-      const nextStatus = SetupStatusSchema.parse(await response.json())
+      const nextStatus = SetupStatusSchema.parse(await response.json());
 
-      setStatus(nextStatus)
-      setUser(nextStatus.isComplete ? await fetchSession() : null)
-      setLoadState('ready')
+      setStatus(nextStatus);
+      setUser(nextStatus.isComplete ? await fetchSession() : null);
+      setLoadState('ready');
     } catch {
-      setLoadState('unreachable')
+      setLoadState('unreachable');
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    void refresh();
+  }, [refresh]);
 
   // Read once there is somebody to read them for. Asking before sign-in would
   // be a request that can only ever answer with nobody.
   useEffect(() => {
     if (user !== null) {
-      void readProgress()
+      void readProgress();
     }
-  }, [user, readProgress])
+  }, [user, readProgress]);
 
   if (loadState === 'loading') {
-    return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />
+    return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />;
   }
 
   if (loadState === 'unreachable' || status === null) {
@@ -234,7 +234,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           The server did not respond. Check that it is running and reload the page.
         </p>
       </main>
-    )
+    );
   }
 
   if (!status.isComplete) {
@@ -242,10 +242,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       <SetupWizard
         status={status}
         onComplete={() => {
-          void refresh()
+          void refresh();
         }}
       />
-    )
+    );
   }
 
   if (user === null) {
@@ -257,11 +257,11 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           // just started; dropping them into the admin page or a half watched
           // film because that is where the last person was is not where they
           // meant to go.
-          go({ section: 'home', search: '', inspecting: null, playing: null, startSeconds: 0 })
-          void refresh()
+          go({ section: 'home', search: '', inspecting: null, playing: null, startSeconds: 0 });
+          void refresh();
         }}
       />
-    )
+    );
   }
 
   // Watching is not a thing that happens inside a library page. The player
@@ -295,12 +295,12 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
                 )
           }
           onSelectEpisode={(episode) => {
-            go({ playing: episode.id, startSeconds: Math.floor(resumeFor(episode.id) ?? 0) })
+            go({ playing: episode.id, startSeconds: Math.floor(resumeFor(episode.id) ?? 0) });
           }}
           watchedFractionFor={(mediaId) => {
-            const found = progress.get(mediaId)
+            const found = progress.get(mediaId);
 
-            return found === undefined ? undefined : watchedFraction(found)
+            return found === undefined ? undefined : watchedFraction(found);
           }}
           // Kept here as it happens rather than read back afterwards: the
           // server is told on a timer, and a card that waits for that round
@@ -312,42 +312,42 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               durationSeconds,
               isFinished: positionSeconds >= durationSeconds - FINISHED_WITHIN_SECONDS,
               updatedAt: new Date().toISOString(),
-            }
+            };
 
-            reportedRef.current.set(playing.id, entry)
+            reportedRef.current.set(playing.id, entry);
 
             setProgress((current) => {
-              const next = new Map(current)
+              const next = new Map(current);
 
-              next.set(playing.id, entry)
+              next.set(playing.id, entry);
 
-              return next
-            })
+              return next;
+            });
           }}
           // One episode runs into the next, which is the whole point of a
           // season. A film has nothing after it, so the player closes back to
           // the page about it.
           onEnded={() => {
-            const following = nextEpisode([...known.values()], playing)
+            const following = nextEpisode([...known.values()], playing);
 
             if (following === null) {
-              go({ playing: null, startSeconds: 0, inspecting: playing.id })
+              go({ playing: null, startSeconds: 0, inspecting: playing.id });
 
-              return
+              return;
             }
 
-            go({ playing: following.id, startSeconds: 0, inspecting: null })
+            go({ playing: following.id, startSeconds: 0, inspecting: null });
           }}
           onClose={() => {
             // Back to where they came from, not out to the library: someone
             // leaving a film usually wants the page about it, whether to read
             // the rest of it or to pick the next episode.
-            go({ playing: null, startSeconds: 0, inspecting: playing.id })
-            void readProgress()
+            go({ playing: null, startSeconds: 0, inspecting: playing.id });
+            void readProgress();
           }}
         />
       </motion.main>
-    )
+    );
   }
 
   return (
@@ -357,7 +357,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         // Leaving search abandons the search. Carrying the term out with them
         // leaves home showing a filtered library and no hero, which reads as
         // the page having broken.
-        go({ section: next, search: next === 'search' ? place.search : '' })
+        go({ section: next, search: next === 'search' ? place.search : '' });
       }}
       // The page takes its light from whatever the viewer is looking at, read
       // out of the picture itself — and only where there is something to look
@@ -372,12 +372,12 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       onSurprise={() => {
         void pickAnything().then((found) => {
           if (found === null) {
-            return
+            return;
           }
 
-          rememberItems([found])
-          go({ inspecting: found.id })
-        })
+          rememberItems([found]);
+          go({ inspecting: found.id });
+        });
       }}
       {...(watcher === null
         ? {}
@@ -386,18 +386,18 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       <ShowDialog
         show={openShow}
         onClose={() => {
-          go({ show: null })
+          go({ show: null });
         }}
         onPlay={(media, startSeconds) => {
-          go({ playing: media.id, startSeconds: Math.floor(startSeconds), show: null })
+          go({ playing: media.id, startSeconds: Math.floor(startSeconds), show: null });
         }}
         onInspect={(media) => {
-          go({ inspecting: media.id })
+          go({ inspecting: media.id });
         }}
         watchedFractionFor={(mediaId) => {
-          const found = progress.get(mediaId)
+          const found = progress.get(mediaId);
 
-          return found === undefined ? undefined : watchedFraction(found)
+          return found === undefined ? undefined : watchedFraction(found);
         }}
         resumeFor={resumeFor}
         isFinished={(mediaId) => progress.get(mediaId)?.isFinished === true}
@@ -407,12 +407,12 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         media={inspecting}
         siblings={inspecting === null ? [] : findSiblings([...known.values()], inspecting)}
         watchedFractionFor={(mediaId) => {
-          const found = progress.get(mediaId)
+          const found = progress.get(mediaId);
 
-          return found === undefined ? undefined : watchedFraction(found)
+          return found === undefined ? undefined : watchedFraction(found);
         }}
         onSelectSibling={(sibling) => {
-          go({ inspecting: sibling.id })
+          go({ inspecting: sibling.id });
         }}
         {...(inspecting !== null && resumeFor(inspecting.id) !== null
           ? { resumeSeconds: resumeFor(inspecting.id) ?? 0 }
@@ -423,19 +423,19 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               // Reached from a programme, so it leads back to the programme
               // rather than out to whatever shelf that was opened from.
               onBack: () => {
-                go({ inspecting: null })
+                go({ inspecting: null });
               },
               backLabel: openShow.title,
             })}
         isKept={inspecting !== null && favourites.isKept(inspecting.id)}
         onToggleKept={(media) => {
-          favourites.toggle(media.id)
+          favourites.toggle(media.id);
         }}
         onClose={() => {
-          go({ inspecting: null })
+          go({ inspecting: null });
         }}
         onPlay={(media, startSeconds) => {
-          go({ inspecting: null, playing: media.id, startSeconds })
+          go({ inspecting: null, playing: media.id, startSeconds });
         }}
       />
 
@@ -445,14 +445,14 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         <AccountArea
           user={user}
           onChanged={() => {
-            void refresh()
+            void refresh();
           }}
           onSignOut={() => {
             void signOut().then(() => {
-              go({ section: 'home', search: '', inspecting: null, playing: null, startSeconds: 0 })
+              go({ section: 'home', search: '', inspecting: null, playing: null, startSeconds: 0 });
 
-              return refresh()
-            })
+              return refresh();
+            });
           }}
         />
       ) : section === 'shows' ||
@@ -463,21 +463,21 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           kind={section}
           favourites={[...favourites.kept]}
           onPlay={(media, startSeconds) => {
-            go({ playing: media.id, startSeconds: Math.floor(startSeconds) })
+            go({ playing: media.id, startSeconds: Math.floor(startSeconds) });
           }}
           onInspect={(media) => {
-            go({ inspecting: media.id })
+            go({ inspecting: media.id });
           }}
           onItemsLoaded={rememberItems}
           watchedFractionFor={(mediaId) => {
-            const found = progress.get(mediaId)
+            const found = progress.get(mediaId);
 
-            return found === undefined ? undefined : watchedFraction(found)
+            return found === undefined ? undefined : watchedFraction(found);
           }}
           resumeFor={resumeFor}
           isKept={favourites.isKept}
           onToggleKept={(media) => {
-            favourites.toggle(media.id)
+            favourites.toggle(media.id);
           }}
         />
       ) : section === 'search' ? (
@@ -486,34 +486,34 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           onSearchChange={(next) => {
             // Replaced rather than pushed: a search box would otherwise fill
             // the history with one entry per letter typed.
-            replace({ search: next })
+            replace({ search: next });
           }}
           onPlay={(media, startSeconds) => {
-            go({ playing: media.id, startSeconds: Math.floor(startSeconds) })
+            go({ playing: media.id, startSeconds: Math.floor(startSeconds) });
           }}
           onInspect={(media) => {
-            go({ inspecting: media.id })
+            go({ inspecting: media.id });
           }}
           onItemsLoaded={rememberItems}
           watchedFractionFor={(mediaId) => {
-            const found = progress.get(mediaId)
+            const found = progress.get(mediaId);
 
-            return found === undefined ? undefined : watchedFraction(found)
+            return found === undefined ? undefined : watchedFraction(found);
           }}
           resumeFor={resumeFor}
           isKept={favourites.isKept}
           onToggleKept={(media) => {
-            favourites.toggle(media.id)
+            favourites.toggle(media.id);
           }}
         />
       ) : (
         <LibraryBrowser
           search={place.search}
           onPlay={(media) => {
-            go({ inspecting: media.id })
+            go({ inspecting: media.id });
           }}
           onWatch={(media, startSeconds) => {
-            go({ playing: media.id, startSeconds })
+            go({ playing: media.id, startSeconds });
           }}
           onItemsLoaded={rememberItems}
           // The only section left that draws the library is home, and home
@@ -522,24 +522,24 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           onFeatureChange={setFeatured}
           onPalette={setMoodLights}
           onOpenShow={(media) => {
-            const series = media.seriesTitle ?? ''
+            const series = media.seriesTitle ?? '';
 
             if (series !== '') {
               // Named rather than looked up: the address is the question, and
               // whoever answers it fetches the programme.
-              go({ show: showSlug(series) })
+              go({ show: showSlug(series) });
             }
           }}
           isKept={favourites.isKept}
           onToggleKept={(media) => {
-            favourites.toggle(media.id)
+            favourites.toggle(media.id);
           }}
         />
       )}
     </AppShell>
-  )
-}
+  );
+};
 
-App.displayName = 'App'
+App.displayName = 'App';
 
-export { App }
+export { App };

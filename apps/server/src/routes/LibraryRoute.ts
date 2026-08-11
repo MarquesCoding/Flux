@@ -1,22 +1,22 @@
-import { createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi';
 import {
   LibrarySchema,
   MediaSummarySchema,
   MediaDetailSchema,
   LIBRARY_KINDS,
-} from '@FluxContracts/schemas/Library'
+} from '@FluxContracts/schemas/Library';
 import {
   ShowListSchema as ShowListContract,
   ShowDetailSchema as ShowDetailContract,
-} from '@FluxContracts/schemas/Show'
+} from '@FluxContracts/schemas/Show';
 
-const Library = LibrarySchema.openapi('Library')
-const MediaSummary = MediaSummarySchema.openapi('MediaSummary')
-const MediaDetail = MediaDetailSchema.openapi('MediaDetail')
-const NotFound = z.object({ error: z.string() }).openapi('LibraryNotFound')
+const Library = LibrarySchema.openapi('Library');
+const MediaSummary = MediaSummarySchema.openapi('MediaSummary');
+const MediaDetail = MediaDetailSchema.openapi('MediaDetail');
+const NotFound = z.object({ error: z.string() }).openapi('LibraryNotFound');
 
-const ShowListSchema = ShowListContract.openapi('ShowList')
-const ShowDetailSchema = ShowDetailContract.openapi('ShowDetail')
+const ShowListSchema = ShowListContract.openapi('ShowList');
+const ShowDetailSchema = ShowDetailContract.openapi('ShowDetail');
 
 const CreateLibraryRequest = z
   .object({
@@ -24,7 +24,7 @@ const CreateLibraryRequest = z
     kind: z.enum(LIBRARY_KINDS),
     path: z.string().min(1),
   })
-  .openapi('CreateLibraryRequest')
+  .openapi('CreateLibraryRequest');
 
 const listLibrariesRoute = createRoute({
   method: 'get',
@@ -37,7 +37,7 @@ const listLibrariesRoute = createRoute({
       content: { 'application/json': { schema: z.array(Library) } },
     },
   },
-})
+});
 
 const createLibraryRoute = createRoute({
   method: 'post',
@@ -55,7 +55,7 @@ const createLibraryRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 /**
  * Lists the items in a library.
@@ -102,7 +102,7 @@ const listItemsRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 const getMediaRoute = createRoute({
   method: 'get',
@@ -120,9 +120,9 @@ const getMediaRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
-const ScanAccepted = z.object({ jobId: z.string(), state: z.string() }).openapi('ScanAccepted')
+const ScanAccepted = z.object({ jobId: z.string(), state: z.string() }).openapi('ScanAccepted');
 
 /**
  * How far a scan has got.
@@ -140,7 +140,7 @@ const ScanState = z
     processed: z.number().int().nonnegative().nullable(),
     total: z.number().int().nonnegative().nullable(),
   })
-  .openapi('ScanState')
+  .openapi('ScanState');
 
 /**
  * Queues a scan.
@@ -173,7 +173,7 @@ const scanLibraryRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 const scanStateRoute = createRoute({
   method: 'get',
@@ -187,7 +187,7 @@ const scanStateRoute = createRoute({
       content: { 'application/json': { schema: ScanState } },
     },
   },
-})
+});
 
 /**
  * Deletes every item in a library, then queues a scan to repopulate it from
@@ -220,7 +220,7 @@ const listShowsRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 /**
  * Everything the library holds about one series.
@@ -243,7 +243,7 @@ const getShowRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 const resetLibraryRoute = createRoute({
   method: 'post',
@@ -261,7 +261,7 @@ const resetLibraryRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 export {
   listLibrariesRoute,
@@ -273,4 +273,4 @@ export {
   resetLibraryRoute,
   listShowsRoute,
   getShowRoute,
-}
+};

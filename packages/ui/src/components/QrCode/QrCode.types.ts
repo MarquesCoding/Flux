@@ -1,8 +1,8 @@
 type QrCodeProps = {
-  value: string
-  label: string
-  size?: number
-  className?: string
-}
+  value: string;
+  label: string;
+  size?: number;
+  className?: string;
+};
 
-export type { QrCodeProps }
+export type { QrCodeProps };
