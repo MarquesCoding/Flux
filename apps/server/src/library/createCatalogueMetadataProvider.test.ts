@@ -18,10 +18,15 @@ const probe: MediaProbe = {
   chapters: [],
 }
 
-const facts = (path: string, episode?: MediaFacts['episode']): MediaFacts => ({
+const facts = (
+  path: string,
+  episode?: MediaFacts['episode'],
+  knownExternalId?: string | null,
+): MediaFacts => ({
   path,
   probe,
   ...(episode === undefined ? {} : { episode }),
+  ...(knownExternalId === undefined ? {} : { knownExternalId }),
 })
 
 const SEARCH = {
@@ -172,6 +177,44 @@ describe('createCatalogueMetadataProvider', () => {
 
     expect(calls[0]).toContain('/search/tv')
     expect(calls[0]).toContain('Some+Show')
+  })
+
+  it('disambiguates a series search by the year its folder names, same as a film', async () => {
+    const { instance, calls } = provider({
+      '/search/tv': { results: [{ id: 5, name: 'Ted', first_air_date: '2024-01-01' }] },
+      '/tv/5': { id: 5, name: 'Ted', genres: [] },
+    })
+
+    await instance.describe(
+      facts('/media/Ted (2024)/Season 1/s01e01.mkv', {
+        seriesTitle: 'Ted',
+        seriesYear: 2024,
+        seasonNumber: 1,
+        episodeNumber: 1,
+      }),
+    )
+
+    expect(calls[0]).toContain('first_air_date_year=2024')
+  })
+
+  it('skips search entirely when the item already has a known catalogue id', async () => {
+    const { instance, calls } = provider({ '/movie/329': DETAIL })
+
+    const found = await instance.describe(facts('/media/Arrival (2016).mkv', undefined, '329'))
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toContain('/movie/329')
+    expect(found).toMatchObject({ title: 'Arrival', externalId: '329' })
+  })
+
+  it('falls back to search when a known id no longer resolves', async () => {
+    const { instance, calls } = provider({ '/search/movie': SEARCH, '/movie/329': DETAIL })
+
+    const found = await instance.describe(facts('/media/Arrival (2016).mkv', undefined, '999999'))
+
+    expect(calls[0]).toContain('/movie/999999')
+    expect(calls.some((call) => call.includes('/search/movie'))).toBe(true)
+    expect(found).toMatchObject({ title: 'Arrival', externalId: '329' })
   })
 
   it('reports nothing when the catalogue knows nothing', async () => {

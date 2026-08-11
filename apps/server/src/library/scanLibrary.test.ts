@@ -47,6 +47,7 @@ const stored = (path: string, overrides: Partial<StoredItem> = {}): StoredItem =
   path,
   sizeBytes: 1000,
   modifiedAtMs: 1000,
+  externalId: null,
   ...overrides,
 })
 
@@ -319,6 +320,48 @@ describe('scanLibrary', () => {
     await run()
 
     expect(rows[0]).toMatchObject({ title: 'Arrival', year: 2016 })
+  })
+
+  it('tells a provider what a file was already matched to, on a forced rescan', async () => {
+    let seenKnownExternalId: string | null | undefined
+    const { run } = harness({
+      found: [file('/media/films/arrival.2016.1080p.mkv')],
+      existing: [stored('/media/films/arrival.2016.1080p.mkv', { externalId: '329' })],
+      force: true,
+      providers: [
+        {
+          name: 'plugin',
+          describe: (facts) => {
+            seenKnownExternalId = facts.knownExternalId
+            return Promise.resolve({ title: 'Arrival', year: 2016 })
+          },
+        },
+      ],
+    })
+
+    await run()
+
+    expect(seenKnownExternalId).toBe('329')
+  })
+
+  it('tells a provider nothing was known yet for a file never matched before', async () => {
+    let seenKnownExternalId: string | null | undefined
+    const { run } = harness({
+      found: [file('/media/films/arrival.2016.1080p.mkv')],
+      providers: [
+        {
+          name: 'plugin',
+          describe: (facts) => {
+            seenKnownExternalId = facts.knownExternalId
+            return Promise.resolve({ title: 'Arrival', year: 2016 })
+          },
+        },
+      ],
+    })
+
+    await run()
+
+    expect(seenKnownExternalId).toBeNull()
   })
 
   it('counts a file no provider can name as failed rather than storing it blank', async () => {

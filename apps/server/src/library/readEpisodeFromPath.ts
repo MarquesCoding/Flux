@@ -1,3 +1,7 @@
+import readTitleFromPathModule from './readTitleFromPath'
+
+const { findYear } = readTitleFromPathModule
+
 /**
  * The shapes an episode number is written in.
  *
@@ -35,6 +39,15 @@ type EpisodeNumbering = {
    * library folder happens to be called.
    */
   seriesTitle: string | null
+  /**
+   * The year a folder names alongside the show, when it does.
+   *
+   * Release folders reach for this exactly when a name alone is ambiguous —
+   * "Ted (2024)" says which "Ted", the same way a film's filename does. Absent
+   * far more often than a film's year is, since only a name collision usually
+   * makes anyone bother writing it down.
+   */
+  seriesYear: number | null
   seasonNumber: number | null
   episodeNumber: number | null
   /**
@@ -97,7 +110,13 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
     numbering?.groups?.episode === undefined ? null : Number(numbering.groups.episode)
 
   if (episodeNumber === null || numbering === undefined) {
-    return { seriesTitle: null, seasonNumber: null, episodeNumber: null, episodeTitle: null }
+    return {
+      seriesTitle: null,
+      seriesYear: null,
+      seasonNumber: null,
+      episodeNumber: null,
+      episodeTitle: null,
+    }
   }
 
   // Everything the filename says before it names the episode. This is where
@@ -109,7 +128,12 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
   // A season directory means the one above it names the show. Without one, the
   // immediate parent is the best guess available.
   const seriesDirectory = parentSeason === null ? parentName : grandparentName
-  const seriesTitle = fromFileName === '' ? tidy(seriesDirectory) : fromFileName
+  const directoryYear = findYear(seriesDirectory)
+  const tidiedDirectory = tidy(
+    directoryYear === null ? seriesDirectory : seriesDirectory.slice(0, directoryYear.index),
+  )
+  const seriesTitle = fromFileName === '' ? tidiedDirectory : fromFileName
+  const seriesYear = directoryYear?.year ?? null
 
   // Whatever follows the numbering, less the extension and the release group
   // that so often trails it.
@@ -124,6 +148,7 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
 
   return {
     seriesTitle: seriesTitle === '' ? null : seriesTitle,
+    seriesYear,
     seasonNumber,
     episodeNumber,
     episodeTitle: episodeTitle === '' ? null : episodeTitle,
