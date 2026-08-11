@@ -146,9 +146,6 @@ impl Default for SessionConfig {
             ffmpeg: "ffmpeg".to_owned(),
             cache_root: std::env::temp_dir().join("flux-transcodes"),
             idle_timeout: Duration::from_secs(300),
-            // Deliberately low. A homelab box that becomes unresponsive because
-            // four people pressed play is the classic failure of this software
-            // class. See ADR-0006.
             max_concurrent: 2,
         }
     }
@@ -229,9 +226,6 @@ impl SessionRegistry {
             output_directory: directory.to_string_lossy().into_owned(),
         };
 
-        // Prove ffmpeg can start before reporting a session, so a bad binary
-        // or unreadable input fails here rather than as a manifest that never
-        // appears.
         drop(spawn_ffmpeg(&self.config.ffmpeg, &plan)?);
 
         let (cancel_tx, cancel_rx) = oneshot::channel();
@@ -343,9 +337,6 @@ async fn run_attempt(
     tokio::select! {
         biased;
 
-        // Cancelling drops the pending wait, which drops the child. The
-        // process is spawned with `kill_on_drop`, so a cancelled session
-        // cannot leave ffmpeg running.
         _ = &mut *cancel => ExitClass::Cancelled,
 
         finished = &mut waiting => match finished {

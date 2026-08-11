@@ -149,8 +149,6 @@ async fn renders_sheets_a_browser_can_draw() {
     .await;
 
     assert_eq!(status, StatusCode::OK);
-    // A JPEG starts with the SOI marker. Asserting on bytes rather than length
-    // is what separates "ffmpeg wrote a file" from "ffmpeg wrote an image".
     assert_eq!(&sheet[..2], &[0xFF, 0xD8], "the sheet is not a JPEG");
 }
 
@@ -263,8 +261,6 @@ fn runs_recorded(tally: &std::path::Path) -> usize {
 
 #[tokio::test]
 async fn asking_twice_at_once_renders_one_set_rather_than_two() {
-    // A player mounting twice is enough to reach here concurrently, and each
-    // request would otherwise decode the whole file into the same directory.
     let root = std::env::temp_dir().join("flux-test-trickplay-concurrent");
     let _ = std::fs::remove_dir_all(&root);
 

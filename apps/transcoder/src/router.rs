@@ -116,7 +116,6 @@ pub fn parse_range(header: &str, length: u64) -> Option<ByteRange> {
 
     let range = match (from.trim(), to.trim()) {
         ("", "") => return None,
-        // A suffix range: the last N bytes.
         ("", last) => {
             let count: u64 = last.parse().ok()?;
             let count = count.min(length);
@@ -541,9 +540,6 @@ async fn start_trickplay(
 
     let config = state.registry.config();
 
-    // A caller that will not wait is told where the thumbnails will be and
-    // left to get on with playing the film. Rendering carries on behind it, so
-    // asking again a minute later finds them ready.
     if !request.wait {
         let id = request.id();
 
@@ -679,8 +675,6 @@ async fn monitor_stream(State(state): State<AppState>) -> Response {
                 logs: state.monitor.journal().read().await,
             };
 
-            // A reading that cannot be written is skipped rather than ending
-            // the stream: the next one is a second away.
             if let Ok(payload) = serde_json::to_string(&report) {
                 yield Ok::<_, std::convert::Infallible>(
                     axum::response::sse::Event::default().data(payload),

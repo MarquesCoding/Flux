@@ -168,16 +168,12 @@ pub fn preview_arguments(
 ) -> Vec<String> {
     let mut filters = Vec::new();
 
-    // An HDR source encoded straight to a browser clip looks washed out, in
-    // exactly the way a stream would. The same conversion applies.
     if range != VideoRange::Sdr {
         if let Some(filter) = tone_map_filter(tone_mapping) {
             filters.push(filter.to_owned());
         }
     }
 
-    // Never scaled up: a film shot at 720 gains nothing from being stretched
-    // to a preview twice its size, and the encoder would spend the effort.
     filters.push(format!("scale='min({width},iw)':-2", width = request.width));
 
     vec![
@@ -209,8 +205,6 @@ pub fn preview_arguments(
         "128k".to_owned(),
         "-ac".to_owned(),
         "2".to_owned(),
-        // The index goes at the front, so a browser can start playing without
-        // fetching the whole file first.
         "-movflags".to_owned(),
         "+faststart".to_owned(),
         "-y".to_owned(),

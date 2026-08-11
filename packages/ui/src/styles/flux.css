@@ -1,25 +1,7 @@
 @import 'tailwindcss';
 
-/*
- * FluxUI's own sources.
- *
- * Automatic detection starts from the application importing this file and
- * never reaches this package, so without this every class used only inside
- * FluxUI is missing from the stylesheet and the component renders unstyled.
- */
 @source '../';
 
-/*
- * The typeface.
- *
- * Served by Flux rather than fetched from anybody else: a self-hosted server
- * should not tell a third party who is looking at it, and a page whose
- * lettering depends on somebody else's uptime is a page that can arrive
- * wrong. Only the weights the interface actually uses are carried.
- *
- * `swap` on purpose — text in a fallback face is readable, and text that is
- * invisible while a font loads is not.
- */
 @font-face {
   font-family: 'Gilroy';
   src: url('/fonts/Gilroy-Light.woff') format('woff');
@@ -68,18 +50,6 @@
   font-display: swap;
 }
 
-/*
- * The reading face.
- *
- * Gilroy sets the interface — names, controls, headings — and Manrope sets the
- * prose underneath it: synopses, captions, the lines that place an item. A
- * display face is drawn to be recognised at a glance and a text face to be
- * read at length, and a paragraph in a display face is a paragraph somebody
- * skims.
- *
- * One file for the whole weight range, so asking for a semibold caption costs
- * nothing beyond what has already been fetched.
- */
 @font-face {
   font-family: 'Manrope';
   src: url('/fonts/Manrope-Variable.woff2') format('woff2');
@@ -104,16 +74,8 @@
 }
 
 @theme {
-  /*
-   * One name for the typeface, so replacing it — with a licensed copy, or
-   * with something else entirely — is this line rather than every component.
-   */
   --font-sans: 'Gilroy', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  /*
-   * What prose is set in. One name here, so changing the reading face is this
-   * line rather than every paragraph.
-   */
   --font-body: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --color-surface: oklch(0.99 0 0);
@@ -125,22 +87,9 @@
   --color-accent-contrast: oklch(0.99 0 0);
   --color-danger: oklch(0.55 0.19 27);
 
-  /*
-   * A control laid over artwork.
-   *
-   * Not redefined per theme, and deliberately: what it floats over is a
-   * photograph either way, so it is dark with light lettering on a light page
-   * as well as on a dark one.
-   */
   --color-scrim: color-mix(in oklab, black 55%, transparent);
   --color-on-scrim: oklch(0.99 0 0);
 
-  /*
-   * How far glass pushes what is behind it towards the page's own tone.
-   *
-   * Lightens on a light page and darkens on a dark one, so a control keeps
-   * its contrast whatever it happens to be floating over.
-   */
   --glass-brightness: 1.35;
 
   --radius-sm: 0.25rem;
@@ -149,7 +98,6 @@
   --radius-xl: 1.25rem;
   --radius-pill: 999px;
 
-  /* Layered translucency, which is what makes glass read as glass. */
   --glass-tint: color-mix(in oklab, var(--color-surface-raised) 62%, transparent);
   --glass-edge: color-mix(in oklab, white 22%, transparent);
   --glass-shadow: 0 24px 60px -24px rgb(0 0 0 / 0.65);
@@ -169,8 +117,6 @@
       --color-danger: oklch(0.68 0.19 25);
       --glass-tint: color-mix(in oklab, white 8%, transparent);
       --glass-edge: color-mix(in oklab, white 16%, transparent);
-      /* Darkens what is behind it, so white lettering holds up over a bright
-         still as well as over a dark one. */
       --glass-brightness: 0.5;
     }
   }
@@ -190,26 +136,10 @@
   }
 }
 
-/*
- * The page stops at its own ends.
- *
- * No rubber banding past the top or bottom, and no handing a scroll on to
- * whatever is behind the page. A hero that holds the page still while it draws
- * itself into a card is undone by a browser that bounces the whole document
- * while it happens.
- */
 :root {
   overscroll-behavior: none;
 }
 
-/*
- * Prose reads in the text face, wherever it is.
- *
- * Set on the elements that carry prose rather than component by component: a
- * synopsis is a paragraph whether it is in a dialog, a card or an empty state,
- * and a rule that has to be remembered at each call site is a rule that will
- * be forgotten at one of them.
- */
 p,
 figcaption,
 blockquote,
@@ -224,13 +154,6 @@ body {
   color: var(--color-text);
 }
 
-/*
- * One of the lights a page is under.
- *
- * A soft bloom of colour read out of whatever is on screen. Oversized first,
- * because a gradient can only be moved within its own box, and one sized to
- * the screen has nowhere to travel.
- */
 .flux-bloom {
   position: absolute;
   inset: 0;
@@ -239,12 +162,6 @@ body {
   background-position: 50% 50%;
 }
 
-/*
- * Given somewhere to go.
- *
- * Each bloom is told its own length by whatever draws it, so three lights do
- * not move in step — which would read as one light in three places.
- */
 .flux-bloom--drift {
   animation: flux-bloom-drift 40s ease-in-out infinite alternate;
 }
@@ -264,10 +181,6 @@ body {
   }
 }
 
-/*
- * The page's own colour, under the light rather than over it, so the foot of
- * the screen is the page rather than whatever the picture was made of.
- */
 .flux-mood-fade {
   position: absolute;
   inset: 0;
@@ -284,46 +197,8 @@ body {
   }
 }
 
-/*
- * A grid of dots over the wash.
- *
- * Gives the gradient something to be a gradient across: a plain wash reads as
- * a rendering artefact, where the same wash behind a regular grid reads as a
- * surface with light falling on it. Fades out down the page so it never
- * competes with what is written over it.
- *
- * Home only. A texture that appears everywhere stops being a texture and
- * becomes the background, and the pages that are mostly text and numbers read
- * better on something plain.
- */
-/*
- * A wave passing through the dots.
- *
- * The same grid drawn a second time, brighter, and shown only through a soft
- * diagonal band that sweeps across. What travels is the mask, so nothing with
- * an edge is ever drawn — the dots themselves light up as it reaches them and
- * fade as it goes, which is what a wave through a grid actually looks like.
- *
- * Masked by the page fade as well, so the wave dies out down the screen along
- * with the grid it belongs to.
- */
-
-/*
- * Glass.
- *
- * The blur alone is not what sells it. What does is the bright hairline along
- * the top edge, where light catches the lip of a real pane, and the darker one
- * beneath it.
- */
 .flux-glass {
   background: var(--glass-tint);
-  /*
-   * The blur takes whatever is behind and the brightness pushes it towards
-   * the page's own end of the scale, so glass over a pale still is as
-   * readable as glass over a dark one. Adapting the backdrop rather than the
-   * lettering is what keeps one set of colours working everywhere — text that
-   * changes colour under a moving picture flickers as the picture moves.
-   */
   backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));
   -webkit-backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));
   border: 1px solid var(--glass-edge);
@@ -333,27 +208,12 @@ body {
     var(--glass-shadow);
 }
 
-/*
- * Glass laid over a film.
- *
- * Everything on the player writes in white, whatever the page's theme, because
- * what is behind it is a picture rather than a page. The light theme's glass
- * brightens its backdrop, which over a pale frame leaves a white panel with
- * white lettering on it — so an overlay on film keeps the dark treatment
- * whichever way the rest of the interface is set.
- */
 .flux-glass--film {
   --glass-tint: color-mix(in oklab, black 45%, transparent);
   --glass-edge: color-mix(in oklab, white 16%, transparent);
   --glass-brightness: 0.5;
 }
 
-/*
- * Gloss.
- *
- * A control lit from above: brighter at the top, a highlight along its lip,
- * and a shadow underneath so it sits on the surface rather than in it.
- */
 .flux-gloss {
   background-image: linear-gradient(
     180deg,
@@ -365,10 +225,6 @@ body {
     0 8px 20px -8px rgb(0 0 0 / 0.55);
 }
 
-/*
- * Rails scroll horizontally and their scrollbars are noise: the cards
- * themselves say which way to go, and controls sit at either end.
- */
 .flux-rail {
   scrollbar-width: none;
 }
@@ -377,25 +233,11 @@ body {
   display: none;
 }
 
-/*
- * Nothing draws a focus ring. Asked for explicitly: the rings read as browser
- * chrome over a design that signals focus through its own hover and selection
- * states instead.
- */
 :focus,
 :focus-visible {
   outline: none;
 }
 
-/*
- * Fields a browser cannot repaint.
- *
- * Chrome fills a remembered field with its own pale background and dark text,
- * which turns a dark form white the moment a password manager touches it —
- * and the colour is not something a class can override. The inset shadow is
- * the only thing that covers it, and the text colour has to be set through
- * the fill property rather than through `color`.
- */
 .flux-field:-webkit-autofill,
 .flux-field:-webkit-autofill:hover,
 .flux-field:-webkit-autofill:focus {
@@ -405,14 +247,6 @@ body {
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/*
- * A pointer over anything that can be pressed.
- *
- * Tailwind's reset stopped giving buttons one, on the reasoning that a real
- * button on a real form does not have it. Everything here is a control on a
- * screen people expect to click, though, so the hand comes back — and a
- * control that cannot be used says so instead.
- */
 button:not(:disabled),
 [role='button']:not([aria-disabled='true']),
 label:has(> input[type='file']:not(:disabled)),
@@ -425,14 +259,6 @@ button:disabled,
   cursor: not-allowed;
 }
 
-/*
- * Subtitles over a preview.
- *
- * A preview is faded into the page along its bottom edge, and a browser draws
- * cues inside the video where that fade covers them. They are lifted clear in
- * script; this gives them something to sit on, because a white line over a
- * bright frame is unreadable wherever it lands.
- */
 .flux-preview::cue {
   background: rgb(0 0 0 / 0.78);
   color: #fff;
