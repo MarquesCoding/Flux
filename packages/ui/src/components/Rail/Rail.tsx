@@ -81,12 +81,7 @@ const Rail = ({ title, children, action, onOpenTitle, className }: RailProps) =>
           {onOpenTitle === undefined ? (
             title
           ) : (
-            <Button
-              variant="bare"
-              size="none"
-              onClick={onOpenTitle}
-              className="text-left underline-offset-4 hover:underline"
-            >
+            <Button variant="link" size="none" onClick={onOpenTitle} className="text-left">
               {title}
             </Button>
           )}

@@ -344,6 +344,27 @@ and say what it is for.
 control in an app is how design systems die; a second component owning the same
 element is how they rot.
 
+### A look is a variant, not a class at the call site
+
+`className` on a FluxUI component is for _where a thing sits_ — width, margin,
+grid placement. It is not for what the thing looks like.
+
+Four call sites once wrote `className="bg-black/50 text-white backdrop-blur"` on
+a `Button`. That is one look, described four times, in raw colours no theme can
+reach. It is now `variant="overlay"`, painted from `--color-scrim` and
+`--color-on-scrim`.
+
+When a control needs a look the component does not offer:
+
+1. Name the look — what is it _for_, not what colour is it. `overlay` is for a
+   control on artwork; `link` is text that leads somewhere.
+2. Add it to the component's variant list, in tokens rather than literal
+   colours.
+3. Use it everywhere that look appears.
+
+A theme can only move what is named. `bg-black/50` at a call site is invisible
+to it, and every one of those is a place a future theme will be wrong.
+
 ### How this is enforced
 
 ESLint fails the build on `<button>`, `<input>`, `<select>`, `<textarea>` and

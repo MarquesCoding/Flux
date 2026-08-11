@@ -1115,14 +1115,7 @@ const VideoPlayer = ({
           {media.title}
         </h2>
 
-        <Button
-          isIconOnly
-          variant="ghost"
-          label="Close"
-          onClick={onClose}
-          size="md"
-          className="flux-glass text-white"
-        >
+        <Button isIconOnly variant="overlay" label="Close" onClick={onClose} size="md">
           <IconX size={20} aria-hidden />
         </Button>
       </header>
@@ -1248,7 +1241,8 @@ const VideoPlayer = ({
             <Button
               size="lg"
               variant="secondary"
-              className="rounded-full px-6 shadow-lg"
+              isPill
+              className="px-6 shadow-lg"
               onClick={() => {
                 seek(skippable.endSeconds);
               }}

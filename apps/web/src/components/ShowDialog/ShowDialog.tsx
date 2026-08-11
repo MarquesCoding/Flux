@@ -126,13 +126,7 @@ const ShowDialog = ({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-surface via-surface/80 to-transparent" />
 
         <div className="absolute right-4 top-4">
-          <Button
-            isIconOnly
-            variant="ghost"
-            label="Close"
-            onClick={onClose}
-            className="bg-black/50 text-white"
-          >
+          <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
             <IconX size={20} aria-hidden />
           </Button>
         </div>

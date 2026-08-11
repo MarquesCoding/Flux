@@ -5,13 +5,18 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
  * that says "press me" from across a room. `primary` stays flat for forms and
  * settings, where a glowing button would be noise.
  *
+ * `overlay` is for a control sitting on artwork or video, where the page's own
+ * colours say nothing about what is behind it. `link` is text that behaves like
+ * a button but reads as a way somewhere.
+ *
  * `bare` paints nothing at all. It is for a control that supplies its own
  * shape — a row of page markers, a card that is one big press target, the clock
  * in the player — which needs the behaviour of a button and none of its skin.
  * It means painted by its caller rather than exempt: if a control wants a look
  * this does not offer, that look belongs here, by name.
  */
-type ButtonVariant = 'primary' | 'glossy' | 'secondary' | 'ghost' | 'danger' | 'bare';
+type ButtonVariant =
+  'primary' | 'glossy' | 'secondary' | 'ghost' | 'danger' | 'overlay' | 'link' | 'bare';
 
 /**
  * `none` leaves the height and padding to the caller, for the same reason

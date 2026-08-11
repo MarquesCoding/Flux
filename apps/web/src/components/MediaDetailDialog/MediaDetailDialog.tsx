@@ -144,10 +144,9 @@ const MediaDetailDialog = ({
                     actions: (
                       <Button
                         isIconOnly
-                        variant="ghost"
+                        variant="overlay"
                         label={isKept ? `Stop keeping ${shown.title}` : `Keep ${shown.title}`}
                         isActive={isKept}
-                        className="bg-black/50 text-white backdrop-blur"
                         onClick={() => {
                           onToggleKept(shown);
                         }}
@@ -170,13 +169,7 @@ const MediaDetailDialog = ({
 
           {onBack === undefined ? null : (
             <div className="absolute left-4 top-4">
-              <Button
-                variant="secondary"
-                size="sm"
-                isPill
-                onClick={onBack}
-                className="bg-black/50 text-white backdrop-blur"
-              >
+              <Button variant="overlay" size="sm" isPill onClick={onBack}>
                 <IconArrowLeft size={16} aria-hidden />
                 {backLabel ?? 'Back'}
               </Button>
@@ -184,13 +177,7 @@ const MediaDetailDialog = ({
           )}
 
           <div className="absolute right-4 top-4">
-            <Button
-              isIconOnly
-              variant="ghost"
-              label="Close"
-              onClick={onClose}
-              className="bg-black/50 text-white"
-            >
+            <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
               <IconX size={20} aria-hidden />
             </Button>
           </div>
