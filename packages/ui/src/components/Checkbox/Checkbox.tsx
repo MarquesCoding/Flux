@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { Checkbox as BaseCheckbox } from '@base-ui-components/react/checkbox';
+import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
 import { IconCheck } from '@tabler/icons-react';
 import { cn } from '@FluxUI/cn';
 import type { CheckboxProps } from './Checkbox.types';

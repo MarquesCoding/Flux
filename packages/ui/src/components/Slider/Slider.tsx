@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { Slider as BaseSlider } from '@base-ui-components/react/slider';
+import { Slider as BaseSlider } from '@base-ui/react/slider';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { cn } from '@FluxUI/cn';
 import type { SliderProps, SliderTone } from './Slider.types';

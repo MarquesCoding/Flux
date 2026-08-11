@@ -1,4 +1,4 @@
-import { Popover } from '@base-ui-components/react/popover';
+import { Popover } from '@base-ui/react/popover';
 import { cn } from '@FluxUI/cn';
 import { Tooltip } from '@FluxUI/Tooltip';
 import type { PopoverPanelProps } from './PopoverPanel.types';

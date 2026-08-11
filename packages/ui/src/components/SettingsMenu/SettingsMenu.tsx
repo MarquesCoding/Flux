@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Popover } from '@base-ui-components/react/popover';
+import { Popover } from '@base-ui/react/popover';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
