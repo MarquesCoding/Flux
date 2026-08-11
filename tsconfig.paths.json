@@ -19,6 +19,7 @@
       "@FluxUI/Meter": ["./packages/ui/src/components/Meter/Meter.tsx"],
       "@FluxUI/MoodBackground": ["./packages/ui/src/components/MoodBackground/MoodBackground.tsx"],
       "@FluxUI/OptionMenu": ["./packages/ui/src/components/OptionMenu/OptionMenu.tsx"],
+      "@FluxUI/PopoverPanel": ["./packages/ui/src/components/PopoverPanel/PopoverPanel.tsx"],
       "@FluxUI/QrCode": ["./packages/ui/src/components/QrCode/QrCode.tsx"],
       "@FluxUI/Rail": ["./packages/ui/src/components/Rail/Rail.tsx"],
       "@FluxUI/SettingsMenu": ["./packages/ui/src/components/SettingsMenu/SettingsMenu.tsx"],

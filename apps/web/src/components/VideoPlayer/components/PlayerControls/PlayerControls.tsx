@@ -27,6 +27,7 @@ import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import QualityStepModule from '@FluxContracts/schemas/QualityStep'
 import CaptionSettingsModule from '@FluxWeb/components/VideoPlayer/components/CaptionSettings/CaptionSettings'
+import EpisodeMenuModule from '@FluxWeb/components/VideoPlayer/components/EpisodeMenu/EpisodeMenu'
 import PlayerControlsTypes from './PlayerControls.types'
 import type { PlayerControlsProps } from './PlayerControls.types'
 
@@ -34,6 +35,7 @@ const { IconButton } = IconButtonModule
 const { Slider } = SliderModule
 const { SettingsMenu } = SettingsMenuModule
 const { CaptionSettings } = CaptionSettingsModule
+const { EpisodeMenu } = EpisodeMenuModule
 const { formatDuration } = formatDurationModule
 const { SKIP_SECONDS, PLAYBACK_RATES } = PlayerControlsTypes
 const { SUBTITLES_OFF } = fetchSubtitlesModule
@@ -92,6 +94,10 @@ const PlayerControls = ({
   onSubtitleChange,
   onAudioChange,
   onQualityChange,
+  playingId,
+  episodes = [],
+  onSelectEpisode,
+  watchedFractionFor,
   captionStyle,
   onCaptionStyleChange,
   onCaptionStyleReset,
@@ -189,6 +195,16 @@ const PlayerControls = ({
           className="w-0 overflow-hidden px-0 transition-all group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
         />
       </div>
+
+      {onSelectEpisode === undefined ? null : (
+        <EpisodeMenu
+          episodes={episodes}
+          playingId={playingId}
+          onSelect={onSelectEpisode}
+          isDisabled={isDisabled}
+          {...(watchedFractionFor === undefined ? {} : { watchedFractionFor })}
+        />
+      )}
 
       {/* Subtitles keep a button of their own. Turning them on is the one
           setting somebody changes mid-sentence, and a panel to open first is

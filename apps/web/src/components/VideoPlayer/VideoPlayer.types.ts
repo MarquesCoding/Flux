@@ -35,6 +35,14 @@ type VideoPlayerProps = {
    * nothing.
    */
   onEnded?: () => void
+  /**
+   * The season this belongs to, in order.
+   *
+   * Empty for a film, which is what keeps the episode list off one.
+   */
+  episodes?: MediaSummary[]
+  onSelectEpisode?: (episode: MediaSummary) => void
+  watchedFractionFor?: (mediaId: string) => number | undefined
 }
 
 type PlayerState = 'starting' | 'playing' | 'failed'

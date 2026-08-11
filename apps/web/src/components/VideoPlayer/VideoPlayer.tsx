@@ -145,6 +145,9 @@ const VideoPlayer = ({
   onClose,
   onProgress,
   onEnded,
+  episodes = [],
+  onSelectEpisode,
+  watchedFractionFor,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -1151,6 +1154,10 @@ const VideoPlayer = ({
         >
           <PlayerControls
             title={media.title}
+            playingId={media.id}
+            episodes={episodes}
+            {...(onSelectEpisode === undefined ? {} : { onSelectEpisode })}
+            {...(watchedFractionFor === undefined ? {} : { watchedFractionFor })}
             isPlaying={isPlaying}
             position={position}
             duration={duration}

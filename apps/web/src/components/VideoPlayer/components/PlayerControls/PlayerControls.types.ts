@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { CaptionStyle } from '@FluxWeb/playback/captionStyle'
 import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
 import type { QualityPreference } from '@FluxWeb/playback/qualityPreference'
@@ -52,6 +53,16 @@ type PlayerControlsProps = {
    * Carried through the bar because the settings panel is where it is edited:
    * a page inside the panel is one less thing floating over the film.
    */
+  /**
+   * The season this belongs to, in order, or nothing for a film.
+   */
+  episodes?: MediaSummary[]
+  /**
+   * Which item is on screen, so the list can say "you are here".
+   */
+  playingId: string
+  onSelectEpisode?: (episode: MediaSummary) => void
+  watchedFractionFor?: (mediaId: string) => number | undefined
   captionStyle: CaptionStyle
   onCaptionStyleChange: (style: CaptionStyle) => void
   onCaptionStyleReset: () => void
