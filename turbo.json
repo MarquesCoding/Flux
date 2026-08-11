@@ -2,6 +2,21 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
   "globalDependencies": ["tsconfig.base.json", "tsconfig.paths.json"],
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "PORT",
+    "DATABASE_URL",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "TRUSTED_ORIGINS",
+    "COOKIE_SECURE",
+    "AUTH_RATE_LIMIT_ENABLED",
+    "AUTH_RATE_LIMIT_WINDOW_SECONDS",
+    "AUTH_RATE_LIMIT_MAX",
+    "CATALOGUE_API_KEY",
+    "IMAGE_CACHE_DIR",
+    "TRANSCODER_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
