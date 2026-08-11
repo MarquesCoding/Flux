@@ -162,6 +162,24 @@ const readScanState = async (jobId: string): Promise<ScanProgress> => {
   return ScanProgressSchema.parse(await response.json())
 }
 
+/**
+ * Deletes every item in a library, then queues a scan to repopulate it from
+ * nothing.
+ *
+ * A rebuild rather than a rescan: nothing already in the database is kept or
+ * reconciled against, which is the point of reaching for this instead of an
+ * ordinary — even forced — scan.
+ */
+const resetLibrary = async (libraryId: string): Promise<ScanJob | null> => {
+  const response = await fetch(`/api/libraries/${libraryId}/reset`, { method: 'POST' })
+
+  if (!response.ok) {
+    return null
+  }
+
+  return ScanJobSchema.parse(await response.json())
+}
+
 export type { ListItemsOptions, CreateLibraryInput, ScanJob, ScanState, ScanProgress }
 
 export default {
@@ -171,4 +189,5 @@ export default {
   fetchMediaDetail,
   scanLibrary,
   readScanState,
+  resetLibrary,
 }

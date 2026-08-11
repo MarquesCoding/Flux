@@ -2,8 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import fetchLibraryModule from './fetchLibrary'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
-const { fetchLibraries, createLibrary, fetchLibraryItems, scanLibrary, readScanState } =
-  fetchLibraryModule
+const {
+  fetchLibraries,
+  createLibrary,
+  fetchLibraryItems,
+  scanLibrary,
+  readScanState,
+  resetLibrary,
+} = fetchLibraryModule
 
 type FetchLike = (
   input: string,
@@ -208,6 +214,30 @@ describe('readScanState', () => {
       phase: null,
       processed: null,
       total: null,
+    })
+  })
+})
+
+describe('resetLibrary', () => {
+  it('returns the queued rebuild job', async () => {
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }))
+
+    await expect(resetLibrary(library.id)).resolves.toEqual({ jobId: 'job-1', state: 'queued' })
+  })
+
+  it('reports failure without throwing', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) })
+
+    await expect(resetLibrary(library.id)).resolves.toBeNull()
+  })
+
+  it('posts to the reset endpoint for the library', async () => {
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }))
+
+    await resetLibrary(library.id)
+
+    expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${library.id}/reset`, {
+      method: 'POST',
     })
   })
 })

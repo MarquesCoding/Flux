@@ -167,6 +167,32 @@ const scanStateRoute = createRoute({
   },
 })
 
+/**
+ * Deletes every item in a library, then queues a scan to repopulate it from
+ * nothing.
+ *
+ * A rebuild, not a rescan: an ordinary scan reconciles against what the
+ * database already believes, and an operator reaching for this wants no part
+ * of that history kept.
+ */
+const resetLibraryRoute = createRoute({
+  method: 'post',
+  path: '/api/libraries/{id}/reset',
+  tags: ['Library'],
+  summary: 'Delete every item in a library and queue a scan to repopulate it from nothing',
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    202: {
+      description: 'The library was cleared and a scan was queued',
+      content: { 'application/json': { schema: ScanAccepted } },
+    },
+    404: {
+      description: 'No such library',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+})
+
 export default {
   listLibrariesRoute,
   createLibraryRoute,
@@ -174,4 +200,5 @@ export default {
   getMediaRoute,
   scanLibraryRoute,
   scanStateRoute,
+  resetLibraryRoute,
 }

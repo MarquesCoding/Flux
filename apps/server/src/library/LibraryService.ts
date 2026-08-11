@@ -38,6 +38,15 @@ type LibraryService = {
    */
   scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>
   /**
+   * Deletes every item in a library, then queues a scan to repopulate it
+   * from nothing.
+   *
+   * Null means there is no such library. As destructive as it sounds — an
+   * operator reaching for this wants a clean rebuild, not a delta against
+   * whatever the database currently believes.
+   */
+  reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>
+  /**
    * How a queued scan is getting on.
    *
    * `phase`/`processed`/`total` are null until the scan has reported
