@@ -47,6 +47,28 @@ const detail = (overrides: Partial<MediaDetail> = {}): MediaDetail => ({
   ...overrides,
 })
 
+/**
+ * An episode of a series, which is what an item is when its metadata names
+ * one — there is no other kind of show.
+ */
+const episodeOf = ({
+  id = MEDIA_ID,
+  title = 'Yuki’s World',
+  seasonNumber = 1,
+  episodeNumber = 1,
+}: { id?: string; title?: string; seasonNumber?: number; episodeNumber?: number } = {}) =>
+  detail({
+    id,
+    title,
+    metadata: {
+      hasPoster: false,
+      hasBackdrop: false,
+      seriesTitle: 'A Sign of Affection',
+      seasonNumber,
+      episodeNumber,
+    },
+  })
+
 const build = (media: MediaDetail[] = []) => {
   const { auth, settings } = createMemoryAuth()
   const library = createMemoryLibraryService({
@@ -151,6 +173,81 @@ describe('library routes', () => {
       .parse(await response.json())
 
     expect(body.items.map((item) => item.title)).toEqual(['Newer', 'Older'])
+  })
+
+  it('lists the series in a library, saying each one once', async () => {
+    const { app } = build([
+      episodeOf({ episodeNumber: 1 }),
+      episodeOf({
+        id: '11111111-1111-4111-8111-111111111111',
+        title: 'To Affection',
+        episodeNumber: 2,
+      }),
+    ])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/shows`)
+    const body = z
+      .object({
+        shows: z.array(z.object({ id: z.string(), title: z.string(), episodeCount: z.number() })),
+      })
+      .parse(await response.json())
+
+    expect(response.status).toBe(200)
+    expect(body.shows).toMatchObject([
+      { id: 'a-sign-of-affection', title: 'A Sign of Affection', episodeCount: 2 },
+    ])
+  })
+
+  it('does not call a film a series', async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/shows`)
+
+    expect(await response.json()).toMatchObject({ shows: [] })
+  })
+
+  it('reads one series, season by season', async () => {
+    const { app } = build([
+      episodeOf({ seasonNumber: 1, episodeNumber: 1 }),
+      episodeOf({
+        id: '11111111-1111-4111-8111-111111111111',
+        seasonNumber: 2,
+        episodeNumber: 1,
+      }),
+    ])
+
+    const response = await app.request(
+      `${BASE}/api/libraries/${LIBRARY_ID}/shows/a-sign-of-affection`,
+    )
+    const body = z
+      .object({
+        title: z.string(),
+        seasonCount: z.number(),
+        seasons: z.array(z.object({ seasonNumber: z.number().nullable() })),
+      })
+      .parse(await response.json())
+
+    expect(body.title).toBe('A Sign of Affection')
+    expect(body.seasonCount).toBe(2)
+    expect(body.seasons.map((season) => season.seasonNumber)).toEqual([1, 2])
+  })
+
+  it('says so when there is no such series', async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/shows/nothing-here`)
+
+    expect(response.status).toBe(404)
+  })
+
+  it('says so when there is no such library', async () => {
+    const { app } = build([detail()])
+
+    const response = await app.request(
+      `${BASE}/api/libraries/11111111-2222-4333-8444-555555555555/shows`,
+    )
+
+    expect(response.status).toBe(404)
   })
 
   it('searches by title', async () => {

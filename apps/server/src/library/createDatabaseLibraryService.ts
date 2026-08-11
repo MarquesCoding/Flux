@@ -6,6 +6,7 @@ import SchemaModule from '@FluxServer/db/Schema'
 import LibraryContract from '@FluxContracts/schemas/Library'
 import JsonValueModule from '@FluxContracts/schemas/JsonValue'
 import createMediaStoreModule from './createMediaStore'
+import groupIntoShowsModule from './groupIntoShows'
 import scanLibraryModule from './scanLibrary'
 import PlaybackServiceModule from '@FluxServer/playback/PlaybackService'
 import type { FluxDatabase } from '@FluxServer/db/Database'
@@ -14,6 +15,14 @@ import type { MediaFileSystem } from './scanLibrary'
 import type { MetadataProvider } from './MetadataProvider'
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
 import type { LibraryService } from './LibraryService'
+
+/**
+ * The library as this file provides it: everything the application asks of a
+ * library, and the scanning that only a real one can do.
+ */
+type DatabaseLibraryService = LibraryService & {
+  runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>
+}
 import type { JobQueue } from '@FluxServer/jobs/JobQueue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
@@ -23,6 +32,15 @@ const { JsonValueSchema } = JsonValueModule
 
 const GenresSchema = z.array(z.string())
 const { createMediaStore } = createMediaStoreModule
+const { groupIntoShows, buildShowDetail } = groupIntoShowsModule
+
+/**
+ * How many episodes are read to build a series.
+ *
+ * A ceiling rather than a page: a show is only itself when all of it is there,
+ * and no series anybody owns has this many episodes.
+ */
+const EVERY_EPISODE = 2000
 const { scanLibrary } = scanLibraryModule
 const { TRICKPLAY_INTERVAL_SECONDS, TRICKPLAY_TILE_WIDTH, TRICKPLAY_COLUMNS, TRICKPLAY_ROWS } =
   PlaybackServiceModule
@@ -75,9 +93,7 @@ const createDatabaseLibraryService = ({
   jobs,
   providers,
   onProblem,
-}: CreateDatabaseLibraryServiceOptions): LibraryService & {
-  runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>
-} => {
+}: CreateDatabaseLibraryServiceOptions): DatabaseLibraryService => {
   const store = createMediaStore(db)
 
   const findLibrary = async (id: string) => {
@@ -86,7 +102,9 @@ const createDatabaseLibraryService = ({
     return rows[0] ?? null
   }
 
-  return {
+  // Named, so the two show readings can ask it the same question the routes
+  // ask rather than repeating the query that answers it.
+  const service: DatabaseLibraryService = {
     list: async () => {
       const rows = await db
         .select({
@@ -207,6 +225,30 @@ const createDatabaseLibraryService = ({
       })) satisfies MediaSummary[]
 
       return { items, total: totals?.total ?? 0 }
+    },
+
+    // Every episode of every series in one read, grouped here rather than by
+    // the database: a show is a thing this application recognises, not a thing
+    // Postgres has been told about, and the alternative is a query that knows
+    // how titles become identifiers.
+    listShows: async (libraryId) => {
+      const page = await service.listItems(libraryId, {
+        kind: 'shows',
+        limit: EVERY_EPISODE,
+        offset: 0,
+      })
+
+      return page === null ? null : groupIntoShows(page.items)
+    },
+
+    getShow: async (libraryId, showId) => {
+      const page = await service.listItems(libraryId, {
+        kind: 'shows',
+        limit: EVERY_EPISODE,
+        offset: 0,
+      })
+
+      return page === null ? null : buildShowDetail(page.items, showId)
     },
 
     getMedia: async (id) => {
@@ -333,6 +375,8 @@ const createDatabaseLibraryService = ({
       })
     },
   }
+
+  return service
 }
 
 export default { createDatabaseLibraryService }
