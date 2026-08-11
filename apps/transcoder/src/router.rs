@@ -10,13 +10,41 @@ use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 
 use crate::capability::{detect_capabilities, Capabilities};
+use crate::colour::{sample_colour, ColourRequest};
 use crate::fingerprint::{fingerprint, FingerprintRequest};
+use crate::frame::{take_frame, FrameRequest};
+use crate::monitor::{Monitor, Report};
+use crate::preview::{
+    directory_for as preview_directory, generate as generate_preview, is_complete as preview_ready,
+    PreviewClip, PreviewRequest,
+};
 use crate::probe::probe_media;
+use crate::queue::WorkQueue;
 use crate::session::{await_manifest, SessionRegistry};
+use crate::subtitle::{extract_subtitle, SubtitleRequest};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
-use crate::trickplay::{directory_for, TrickplayRegistry, TrickplayRequest};
+use crate::trickplay::{
+    directory_for, is_complete, pending_index, tile_height_for, TrickplayRegistry, TrickplayRequest,
+};
 
 const MANIFEST_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// How often a watching page is sent a new reading.
+///
+/// A second is fast enough to watch a transcode start and slow enough that
+/// measuring costs less than the thing being measured.
+const MONITOR_INTERVAL: Duration = Duration::from_secs(1);
+
+/// What to call a file in a list of work.
+///
+/// The name alone: an operator watching a queue recognises "Parasite.mkv" and
+/// learns nothing from the eighty characters of path in front of it.
+fn name_of(path: &Path) -> String {
+    path.file_name().map_or_else(
+        || path.to_string_lossy().into_owned(),
+        |name| name.to_string_lossy().into_owned(),
+    )
+}
 
 /// Everything the routes need.
 #[derive(Clone)]
@@ -30,6 +58,13 @@ pub struct AppState {
     pub media_roots: Vec<PathBuf>,
     /// Keeps one set of thumbnails from being rendered twice at once.
     pub trickplay: TrickplayRegistry,
+    /// Where background work waits its turn.
+    ///
+    /// Everything that reads a whole file goes through here, so there is a
+    /// ceiling on how much of the machine work nobody is waiting for can take.
+    pub queue: WorkQueue,
+    /// What the machine is using, and what has happened lately.
+    pub monitor: Monitor,
 }
 
 impl AppState {
@@ -317,6 +352,168 @@ async fn session_file(
     serve_file(&directory, &name).await
 }
 
+/// Makes the short clip a library page plays.
+///
+/// Encoded once and served as a file afterwards, so a wall of cards playing
+/// previews costs nothing running: the alternative is half a dozen transcodes
+/// competing with whatever somebody is actually watching.
+async fn start_preview(
+    State(state): State<AppState>,
+    Json(request): Json<PreviewRequest>,
+) -> Response {
+    let path = PathBuf::from(&request.input_path);
+
+    if !state.is_readable(&path) {
+        return error(
+            StatusCode::FORBIDDEN,
+            "That file is outside the media roots.",
+        );
+    }
+
+    let config = state.registry.config().clone();
+    let id = request.id();
+
+    if preview_ready(&config.cache_root, &id).await {
+        return (
+            StatusCode::OK,
+            Json(PreviewClip {
+                url: format!("/previews/{id}/{}", crate::preview::PREVIEW_NAME),
+                id,
+                is_ready: true,
+            }),
+        )
+            .into_response();
+    }
+
+    let probe = match probe_media(&state.ffprobe, &path).await {
+        Ok(probe) => probe,
+        Err(failure) => return error(StatusCode::BAD_REQUEST, &failure.to_string()),
+    };
+
+    let Some(video) = probe.video.as_ref() else {
+        return error(StatusCode::BAD_REQUEST, "That file has no video stream.");
+    };
+
+    let range = video.range;
+    let tone_mapping = detect_capabilities(&config.ffmpeg).await.tone_mapping;
+    let duration = probe.duration_seconds;
+
+    if !request.wait {
+        let queue = state.queue.clone();
+        let subject = name_of(&path);
+        let queued = request.clone();
+        let ffmpeg = config.ffmpeg.clone();
+        let cache_root = config.cache_root.clone();
+
+        tokio::spawn(async move {
+            let _ = queue
+                .run(
+                    "preview",
+                    &subject,
+                    generate_preview(&ffmpeg, &cache_root, &queued, range, tone_mapping, duration),
+                )
+                .await;
+        });
+
+        return (
+            StatusCode::ACCEPTED,
+            Json(PreviewClip {
+                url: format!("/previews/{id}/{}", crate::preview::PREVIEW_NAME),
+                id,
+                is_ready: false,
+            }),
+        )
+            .into_response();
+    }
+
+    match state
+        .queue
+        .run(
+            "preview",
+            &name_of(&path),
+            generate_preview(
+                &config.ffmpeg,
+                &config.cache_root,
+                &request,
+                range,
+                tone_mapping,
+                duration,
+            ),
+        )
+        .await
+    {
+        Ok(clip) => (StatusCode::OK, Json(clip)).into_response(),
+        Err(failure) => error(StatusCode::INTERNAL_SERVER_ERROR, &failure.to_string()),
+    }
+}
+
+/// Serves a made clip.
+async fn preview_file(
+    State(state): State<AppState>,
+    AxumPath((id, name)): AxumPath<(String, String)>,
+) -> Response {
+    let directory = preview_directory(&state.registry.config().cache_root, &id);
+
+    serve_file(&directory, &name).await
+}
+
+/// Takes a single frame out of a file.
+///
+/// Answers with the JPEG itself rather than a path, because the caller is
+/// about to put it on a page and a second round trip would defeat the point of
+/// having it early.
+async fn start_frame(State(state): State<AppState>, Json(request): Json<FrameRequest>) -> Response {
+    let path = PathBuf::from(&request.input_path);
+
+    if !state.is_readable(&path) {
+        return error(
+            StatusCode::FORBIDDEN,
+            "That file is outside the media roots.",
+        );
+    }
+
+    match take_frame(
+        &state.registry.config().ffmpeg,
+        &path,
+        request.at_seconds,
+        request.width,
+    )
+    .await
+    {
+        Ok(picture) => (
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "image/jpeg")],
+            picture,
+        )
+            .into_response(),
+        Err(failure) => error(StatusCode::BAD_REQUEST, &failure.to_string()),
+    }
+}
+
+/// Reads one subtitle track out of a container.
+///
+/// Answers with the whole track rather than a path, because a subtitle file is
+/// a few tens of kilobytes and the player wants all of it before the first cue
+/// is due.
+async fn start_subtitle(
+    State(state): State<AppState>,
+    Json(request): Json<SubtitleRequest>,
+) -> Response {
+    let path = PathBuf::from(&request.input_path);
+
+    if !state.is_readable(&path) {
+        return error(
+            StatusCode::FORBIDDEN,
+            "That file is outside the media roots.",
+        );
+    }
+
+    match extract_subtitle(&state.registry.config().ffmpeg, &path, request.stream_index).await {
+        Ok(track) => (StatusCode::OK, Json(track)).into_response(),
+        Err(failure) => error(StatusCode::BAD_REQUEST, &failure.to_string()),
+    }
+}
+
 /// Renders seek-bar previews for a file.
 ///
 /// Answers with the index rather than the images: the player fetches sheets
@@ -343,15 +540,53 @@ async fn start_trickplay(
         return error(StatusCode::BAD_REQUEST, "That file has no video stream.");
     };
 
+    let config = state.registry.config();
+
+    // A caller that will not wait is told where the thumbnails will be and
+    // left to get on with playing the film. Rendering carries on behind it, so
+    // asking again a minute later finds them ready.
+    if !request.wait {
+        let id = request.id();
+
+        if !is_complete(&config.cache_root, &id).await {
+            let tile_height = tile_height_for(request.tile_width, video.width, video.height);
+            let pending = pending_index(&request, tile_height);
+            let trickplay = state.trickplay.clone();
+            let ffmpeg = config.ffmpeg.clone();
+            let cache_root = config.cache_root.clone();
+            let queued = request.clone();
+            let (width, height, duration) = (video.width, video.height, probe.duration_seconds);
+
+            let queue = state.queue.clone();
+            let subject = name_of(&path);
+
+            tokio::spawn(async move {
+                let _ = queue
+                    .run(
+                        "thumbnails",
+                        &subject,
+                        trickplay.generate(&ffmpeg, &cache_root, &queued, width, height, duration),
+                    )
+                    .await;
+            });
+
+            return (StatusCode::ACCEPTED, Json(pending)).into_response();
+        }
+    }
+
     match state
-        .trickplay
-        .generate(
-            &state.registry.config().ffmpeg,
-            &state.registry.config().cache_root,
-            &request,
-            video.width,
-            video.height,
-            probe.duration_seconds,
+        .queue
+        .run(
+            "thumbnails",
+            &name_of(&path),
+            state.trickplay.generate(
+                &config.ffmpeg,
+                &config.cache_root,
+                &request,
+                video.width,
+                video.height,
+                probe.duration_seconds,
+            ),
         )
         .await
     {
@@ -389,8 +624,47 @@ async fn start_fingerprint(
         );
     }
 
-    match fingerprint(&state.registry.config().ffmpeg, &request).await {
+    match state
+        .queue
+        .run(
+            "fingerprint",
+            &name_of(&PathBuf::from(&request.input_path)),
+            fingerprint(&state.registry.config().ffmpeg, &request),
+        )
+        .await
+    {
         Ok(prints) => (StatusCode::OK, Json(prints)).into_response(),
+        Err(failure) => error(StatusCode::BAD_REQUEST, &failure.to_string()),
+    }
+}
+
+/// Takes the colour a file feels like.
+///
+/// Answers with one colour rather than a palette: the interface lights a page
+/// with it, and a page lit by five colours at once is a mess.
+async fn start_colour(
+    State(state): State<AppState>,
+    Json(request): Json<ColourRequest>,
+) -> Response {
+    let path = PathBuf::from(&request.input_path);
+
+    if !state.is_readable(&path) {
+        return error(
+            StatusCode::FORBIDDEN,
+            "That file is outside the media roots.",
+        );
+    }
+
+    match state
+        .queue
+        .run(
+            "colour",
+            &name_of(&PathBuf::from(&request.input_path)),
+            sample_colour(&state.registry.config().ffmpeg, &request),
+        )
+        .await
+    {
+        Ok(colour) => (StatusCode::OK, Json(colour)).into_response(),
         Err(failure) => error(StatusCode::BAD_REQUEST, &failure.to_string()),
     }
 }
@@ -403,6 +677,55 @@ async fn stop_session(State(state): State<AppState>, AxumPath(id): AxumPath<Stri
     error(StatusCode::NOT_FOUND, "No such session.")
 }
 
+/// Everything an operator watching the server reads.
+///
+/// One request rather than four, because these are read together and read
+/// often: a page refreshing four endpoints a second is four times the work for
+/// no more information.
+async fn monitor(State(state): State<AppState>) -> Response {
+    let report = Report {
+        resources: state.monitor.measure().await,
+        queue: state.queue.snapshot().await,
+        sessions: state.registry.len().await,
+        logs: state.monitor.journal().read().await,
+    };
+
+    (StatusCode::OK, Json(report)).into_response()
+}
+
+/// The same report, over and over, as an event stream.
+///
+/// Server-sent events rather than a socket: this is one direction only, it
+/// reconnects on its own, and it survives a proxy that knows nothing about it.
+async fn monitor_stream(State(state): State<AppState>) -> Response {
+    let stream = async_stream::stream! {
+        let mut ticker = tokio::time::interval(MONITOR_INTERVAL);
+
+        loop {
+            ticker.tick().await;
+
+            let report = Report {
+                resources: state.monitor.measure().await,
+                queue: state.queue.snapshot().await,
+                sessions: state.registry.len().await,
+                logs: state.monitor.journal().read().await,
+            };
+
+            // A reading that cannot be written is skipped rather than ending
+            // the stream: the next one is a second away.
+            if let Ok(payload) = serde_json::to_string(&report) {
+                yield Ok::<_, std::convert::Infallible>(
+                    axum::response::sse::Event::default().data(payload),
+                );
+            }
+        }
+    };
+
+    axum::response::Sse::new(stream)
+        .keep_alive(axum::response::sse::KeepAlive::default())
+        .into_response()
+}
+
 /// Builds the media service routes.
 ///
 /// Returned as a router rather than a bound server so the whole surface can be
@@ -410,13 +733,20 @@ async fn stop_session(State(state): State<AppState>, AxumPath(id): AxumPath<Stri
 pub fn create_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
+        .route("/monitor", get(monitor))
+        .route("/monitor/stream", get(monitor_stream))
         .route("/capabilities", get(capabilities))
         .route("/probe", post(probe))
         .route("/file", get(direct_file))
         .route("/sessions", post(start_session))
         .route("/sessions/{id}/{name}", get(session_file))
         .route("/sessions/{id}", axum::routing::delete(stop_session))
+        .route("/colour", post(start_colour))
         .route("/fingerprint", post(start_fingerprint))
+        .route("/frame", post(start_frame))
+        .route("/previews", post(start_preview))
+        .route("/previews/{id}/{name}", get(preview_file))
+        .route("/subtitles", post(start_subtitle))
         .route("/trickplay", post(start_trickplay))
         .route("/trickplay/{id}/{name}", get(trickplay_file))
         .with_state(state)

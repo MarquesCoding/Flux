@@ -12,6 +12,15 @@ type CreateJobQueueOptions = {
   onProblem?: (message: string) => void
 }
 
+/**
+ * How long a scan may run before it is presumed dead.
+ *
+ * Generous, because a first scan of a large library really does take a long
+ * time: this is the point at which an unfinished scan stops blocking the next
+ * one, not a target.
+ */
+const SCAN_EXPIRES_AFTER_SECONDS = 2 * 60 * 60
+
 const PG_BOSS_STATES: Record<string, JobState> = {
   created: 'queued',
   retry: 'queued',
@@ -65,11 +74,21 @@ const createJobQueue = async ({
       boss.send(
         SCAN_LIBRARY_JOB,
         { libraryId, force },
-        // Keyed on the library alone, so a forced scan and an ordinary one
-        // never walk the same directory at once writing the same rows. A
-        // forced scan asked for while one is already queued therefore joins
-        // that scan rather than starting a second.
-        { singletonKey: libraryId, retryLimit: 2, retryBackoff: true },
+        {
+          // Keyed on the library alone, so a forced scan and an ordinary one
+          // never walk the same directory at once writing the same rows. A
+          // forced scan asked for while one is already queued therefore joins
+          // that scan rather than starting a second.
+          singletonKey: libraryId,
+          retryLimit: 2,
+          retryBackoff: true,
+          // A scan that stops without saying so — the server restarted, the
+          // process was killed — would otherwise hold the key for that library
+          // forever, and every later scan would queue behind something that is
+          // never coming back. This is the longest a scan may run before it is
+          // treated as gone.
+          expireInSeconds: SCAN_EXPIRES_AFTER_SECONDS,
+        },
       ),
 
     readState: async (jobId) => {

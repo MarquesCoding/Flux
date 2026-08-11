@@ -22,6 +22,8 @@ const TextField = ({
   required = false,
   disabled = false,
   autoComplete,
+  isPill = false,
+  size = 'md',
   className,
 }: TextFieldProps) => {
   const inputId = useId()
@@ -61,10 +63,15 @@ const TextField = ({
           onValueChange(event.target.value)
         }}
         className={cn(
-          'h-10 rounded-md border border-border bg-surface-raised px-3 text-text',
-          'placeholder:text-text-muted',
-          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+          // `flux-field` carries the one thing Tailwind cannot: a browser
+          // painting its own pale background over an autofilled field, which
+          // turns a dark form white the moment somebody's password manager
+          // touches it.
+          'flux-field border border-white/10 bg-white/[0.04] text-text backdrop-blur-xl',
+          'transition-colors placeholder:text-text-muted hover:border-white/20',
           'disabled:cursor-not-allowed disabled:opacity-50',
+          size === 'lg' ? 'h-14 px-5 text-base' : 'h-10 px-3 text-sm',
+          isPill ? 'rounded-full' : 'rounded-xl',
           error === undefined ? '' : 'border-danger',
         )}
       />

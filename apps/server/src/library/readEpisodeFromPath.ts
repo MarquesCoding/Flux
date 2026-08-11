@@ -13,19 +13,36 @@ const EPISODE_PATTERNS = [
 
 const SEASON_DIRECTORY = /\b(?:season|series|s)[\s._-]*(?<season>\d{1,2})\b/i
 
+/**
+ * The first word a release group adds rather than a person.
+ *
+ * An episode title runs until one of these appears: everything after
+ * `1080p` is how the file was made, not what it is called.
+ */
+const RELEASE_NOISE =
+  /\b(?:\d{3,4}p|4k|uhd|web[\s._-]?dl|webrip|bluray|blu[\s._-]?ray|hdtv|dvdrip|remux|proper|repack|x26[45]|h\.?26[45]|hevc|avc|aac\d*|ac3|eac3|ddp?\d?|dts[\w]*|flac|opus|10bit|8bit|hdr\d*|dv|sdr|amzn|nf|dsnp|hulu|atvp|multi|dual)\b/i
+
 const SPECIALS_DIRECTORY = /\b(?:specials?|extras?)\b/i
 
 type EpisodeNumbering = {
   /**
    * The show this file belongs to, as far as the path says.
    *
-   * Taken from the directory above the season where there is one, because a
-   * filename is where release groups put their noise and a directory is where
-   * people put the name.
+   * Taken from the filename where it names the show before saying which
+   * episode it is, and from the directory structure otherwise. A file called
+   * `A Sign of Affection - 1x01 - ....mkv` says the show's name plainly, and
+   * trusting the folder over it means searching a catalogue for whatever the
+   * library folder happens to be called.
    */
   seriesTitle: string | null
   seasonNumber: number | null
   episodeNumber: number | null
+  /**
+   * What this particular episode is called, where the filename says.
+   *
+   * Only ever a guess, and only used when a catalogue has nothing better.
+   */
+  episodeTitle: string | null
 }
 
 /**
@@ -79,19 +96,37 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
   const episodeNumber =
     numbering?.groups?.episode === undefined ? null : Number(numbering.groups.episode)
 
-  if (episodeNumber === null) {
-    return { seriesTitle: null, seasonNumber: null, episodeNumber: null }
+  if (episodeNumber === null || numbering === undefined) {
+    return { seriesTitle: null, seasonNumber: null, episodeNumber: null, episodeTitle: null }
   }
+
+  // Everything the filename says before it names the episode. This is where
+  // the show's name actually is on most files, and a folder is only a
+  // fallback: a library kept flat would otherwise be searched for as though
+  // every show were called "media".
+  const fromFileName = tidy(fileName.slice(0, numbering.index).replace(/[-–—\s]+$/, ''))
 
   // A season directory means the one above it names the show. Without one, the
   // immediate parent is the best guess available.
   const seriesDirectory = parentSeason === null ? parentName : grandparentName
-  const seriesTitle = tidy(seriesDirectory)
+  const seriesTitle = fromFileName === '' ? tidy(seriesDirectory) : fromFileName
+
+  // Whatever follows the numbering, less the extension and the release group
+  // that so often trails it.
+  const afterNumbering = fileName.slice(numbering.index + numbering[0].length)
+  const spoken = afterNumbering.replace(/\.[a-z0-9]{2,4}$/i, '').replace(/^[-–—\s._]+/, '')
+
+  const noise = RELEASE_NOISE.exec(spoken)
+
+  const episodeTitle = tidy(
+    (noise === null ? spoken : spoken.slice(0, noise.index)).replace(/\bby\s+\S+$/i, ''),
+  )
 
   return {
     seriesTitle: seriesTitle === '' ? null : seriesTitle,
     seasonNumber,
     episodeNumber,
+    episodeTitle: episodeTitle === '' ? null : episodeTitle,
   }
 }
 

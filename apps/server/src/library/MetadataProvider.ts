@@ -12,6 +12,7 @@ type MediaFacts = {
     seriesTitle: string | null
     seasonNumber: number | null
     episodeNumber: number | null
+    episodeTitle?: string | null
   }
 }
 
@@ -32,6 +33,11 @@ type Metadata = {
    * Out of ten, as the catalogues that supply it report.
    */
   rating?: number
+  /**
+   * The show an episode belongs to, when a provider knows it better than the
+   * path did.
+   */
+  seriesTitle?: string
   posterUrl?: string
   backdropUrl?: string
   /**

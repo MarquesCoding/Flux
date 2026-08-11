@@ -105,6 +105,36 @@ describe('StreamStats', () => {
     expect(screen.getByText(/^none —/)).toBeInTheDocument()
   })
 
+  it('shows the resolution and bitrate ceiling a video transcode is targeting', () => {
+    draw()
+
+    expect(screen.getByText(/\(1920x1080 @ 8000kbps\)/)).toBeInTheDocument()
+  })
+
+  it('shows the bitrate ceiling an audio transcode is targeting', () => {
+    draw()
+
+    expect(screen.getByText(/\(192kbps\)/)).toBeInTheDocument()
+  })
+
+  it('shows no ceiling for an axis that passes through', () => {
+    draw({
+      session: {
+        sessionId: 'abc',
+        delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
+        mode: 'DirectPlay',
+        plan: {
+          ...plan,
+          video: { kind: 'passthrough', reason },
+          audio: { kind: 'passthrough', reason },
+        },
+        warnings: [],
+      },
+    })
+
+    expect(screen.queryByText(/kbps\)/)).not.toBeInTheDocument()
+  })
+
   it('reports what the source actually is', () => {
     draw()
 

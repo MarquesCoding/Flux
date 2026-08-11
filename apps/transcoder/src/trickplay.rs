@@ -43,6 +43,18 @@ pub struct TrickplayRequest {
     pub columns: u32,
     /// Thumbnails down one sheet.
     pub rows: u32,
+    /// Whether the caller is willing to wait for rendering to finish.
+    ///
+    /// A library import waits, because nobody is watching it. A player must
+    /// not: a feature length film takes minutes to render and a viewer who
+    /// pressed play should be watching it, not waiting on seek previews.
+    #[serde(default = "waits_by_default")]
+    pub wait: bool,
+}
+
+/// What a caller that says nothing about waiting means.
+const fn waits_by_default() -> bool {
+    true
 }
 
 impl Default for TrickplayRequest {
@@ -56,6 +68,7 @@ impl Default for TrickplayRequest {
             tile_width: 320,
             columns: 10,
             rows: 10,
+            wait: true,
         }
     }
 }
@@ -74,6 +87,11 @@ pub struct TrickplayIndex {
     pub sheets: Vec<String>,
     /// Path the player fetches the `WebVTT` index from.
     pub index: String,
+    /// Whether the sheets behind this index exist yet.
+    ///
+    /// False means rendering is under way and the caller should ask again
+    /// later rather than fetch sheets that are not there.
+    pub is_ready: bool,
 }
 
 /// Why thumbnails could not be made.
@@ -162,11 +180,26 @@ pub fn thumbnail_count(duration_seconds: f64, interval_seconds: u32) -> u32 {
     }
 }
 
+/// How many threads a thumbnail render may use.
+///
+/// Deliberately a fraction of the machine. Rendering thumbnails is background
+/// work that nobody is waiting for, and a decode allowed to take every core
+/// will starve the transcode of whatever somebody is actually watching — which
+/// is a stalled film in exchange for seek previews of a different one.
+const RENDER_THREADS: u32 = 2;
+
 /// The ffmpeg arguments that render the sheets.
 ///
 /// One decode pass drives both the sampling and the tiling, so the file is
 /// read once. `fps` before `scale` means the expensive resize only runs on the
 /// frames that survive.
+///
+/// Only keyframes are decoded. A seek preview is a rough idea of where the
+/// timeline is about to land, and the nearest keyframe answers that as well as
+/// the exact frame does — at a fraction of the cost, because the decoder skips
+/// everything between them. Measured on a ninety minute film: fifteen seconds
+/// against several minutes. The `fps` filter still emits one image per
+/// interval, so the index and the sheets line up as before.
 #[must_use]
 pub fn sheet_arguments(
     request: &TrickplayRequest,
@@ -187,6 +220,10 @@ pub fn sheet_arguments(
         "-loglevel".to_owned(),
         "error".to_owned(),
         "-nostdin".to_owned(),
+        "-threads".to_owned(),
+        RENDER_THREADS.to_string(),
+        "-skip_frame".to_owned(),
+        "nokey".to_owned(),
         "-i".to_owned(),
         request.input_path.clone(),
         "-vf".to_owned(),
@@ -384,6 +421,7 @@ pub async fn generate(
     let directory = cache_root.join("trickplay").join(&id);
 
     let finish = |sheets: Vec<String>| TrickplayIndex {
+        is_ready: true,
         interval_seconds: request.interval_seconds,
         tile_width: request.tile_width,
         tile_height,
@@ -430,6 +468,33 @@ pub async fn generate(
     Ok(finish(sheets))
 }
 
+/// Whether a set of thumbnails has already been rendered.
+pub async fn is_complete(cache_root: &Path, id: &str) -> bool {
+    is_already_complete(&directory_for(cache_root, id)).await
+}
+
+/// Describes thumbnails that have been asked for but not rendered.
+///
+/// Answers a caller that will not wait: it names where the index will be and
+/// says plainly that it is not there yet, so the caller can ask again rather
+/// than fetch sheets that do not exist.
+#[must_use]
+pub fn pending_index(request: &TrickplayRequest, tile_height: u32) -> TrickplayIndex {
+    let id = request.id();
+
+    TrickplayIndex {
+        interval_seconds: request.interval_seconds,
+        tile_width: request.tile_width,
+        tile_height,
+        columns: request.columns,
+        rows: request.rows,
+        index: format!("/trickplay/{id}/{INDEX_NAME}"),
+        id,
+        sheets: Vec::new(),
+        is_ready: false,
+    }
+}
+
 /// Where a generated set of thumbnails lives.
 #[must_use]
 pub fn directory_for(cache_root: &Path, id: &str) -> PathBuf {
@@ -451,6 +516,7 @@ mod tests {
             tile_width: 320,
             columns: 2,
             rows: 2,
+            wait: true,
         }
     }
 
