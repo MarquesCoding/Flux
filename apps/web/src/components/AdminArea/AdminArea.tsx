@@ -113,9 +113,8 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
   const [isSaving, setIsSaving] = useState(false)
   const [libraries, setLibraries] = useState<Library[]>([])
   const [isAddingLibrary, setIsAddingLibrary] = useState(false)
-  const [scanningLibrary, setScanningLibrary] = useState<{ id: string; force: boolean } | null>(
-    null,
-  )
+  const [scanningLibrary, setScanningLibrary] = useState<string | null>(null)
+  const [isScanningAll, setIsScanningAll] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
   const onLibraryCreated = (library: Library) => {
@@ -123,13 +122,23 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     setIsAddingLibrary(false)
   }
 
-  const rescan = async (libraryId: string, force: boolean) => {
-    setScanningLibrary({ id: libraryId, force })
+  const rescan = async (libraryId: string) => {
+    setScanningLibrary(libraryId)
 
     try {
-      await scanLibrary(libraryId, force)
+      await scanLibrary(libraryId)
     } finally {
       setScanningLibrary(null)
+    }
+  }
+
+  const rescanAll = async () => {
+    setIsScanningAll(true)
+
+    try {
+      await Promise.all(libraries.map((library) => scanLibrary(library.id, true)))
+    } finally {
+      setIsScanningAll(false)
     }
   }
 
@@ -436,17 +445,33 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                     Library roots
                   </h2>
 
-                  <Button
-                    variant="glossy"
-                    size="sm"
-                    isPill
-                    onClick={() => {
-                      setIsAddingLibrary(true)
-                    }}
-                  >
-                    <IconPlus size={16} aria-hidden />
-                    Add library
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      isPill
+                      isLoading={isScanningAll}
+                      disabled={libraries.length === 0}
+                      onClick={() => {
+                        void rescanAll()
+                      }}
+                    >
+                      <IconRefreshAlert size={16} aria-hidden />
+                      Scan all libraries
+                    </Button>
+
+                    <Button
+                      variant="glossy"
+                      size="sm"
+                      isPill
+                      onClick={() => {
+                        setIsAddingLibrary(true)
+                      }}
+                    >
+                      <IconPlus size={16} aria-hidden />
+                      Add library
+                    </Button>
+                  </div>
                 </header>
 
                 {libraries.length === 0 ? (
@@ -456,10 +481,6 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                 ) : (
                   <ul className="divide-y divide-white/5">
                     {libraries.map((library) => {
-                      const isScanningThis = scanningLibrary?.id === library.id
-                      const isScanningPlain = isScanningThis && !scanningLibrary.force
-                      const isScanningFull = isScanningThis && scanningLibrary.force
-
                       return (
                         <li
                           key={library.id}
@@ -484,31 +505,14 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                               variant="ghost"
                               size="sm"
                               isPill
-                              isLoading={isScanningPlain}
-                              disabled={isScanningFull}
+                              isLoading={scanningLibrary === library.id}
+                              disabled={isScanningAll}
                               onClick={() => {
-                                void rescan(library.id, false)
+                                void rescan(library.id)
                               }}
                             >
                               <IconRefresh size={16} aria-hidden />
                               Scan
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              isPill
-                              isLoading={isScanningFull}
-                              disabled={isScanningPlain}
-                              aria-label="Full rescan"
-                              onClick={() => {
-                                void rescan(library.id, true)
-                              }}
-                            >
-                              <IconRefreshAlert size={16} aria-hidden />
-                              <span aria-hidden className="hidden sm:inline">
-                                Full rescan
-                              </span>
                             </Button>
                           </div>
                         </li>
