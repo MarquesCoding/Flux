@@ -6,6 +6,7 @@ import {
   IconX,
 } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
+import IconButtonModule from '@FluxUI/IconButton'
 import SpinnerModule from '@FluxUI/Spinner'
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
@@ -36,6 +37,7 @@ import type { PlaybackHealth } from './components/StreamStats/StreamStats.types'
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types'
 
 const { Button } = ButtonModule
+const { IconButton } = IconButtonModule
 const { Spinner } = SpinnerModule
 const { VideoSurface } = VideoSurfaceModule
 const { detectFromBrowser } = detectDeviceProfileModule
@@ -179,7 +181,12 @@ const VideoPlayer = ({
     mediaId: string
     startSeconds: number
     audioStreamIndex?: number
-  }>({ mediaId: media.id, startSeconds })
+    // Whole seconds, always. A position read back from the server is a
+    // fraction of one — nobody stops a film on a second boundary — and the
+    // contract asks for an integer, so resuming used to be answered with a
+    // validation error the player could only report as "playback could not be
+    // started".
+  }>({ mediaId: media.id, startSeconds: Math.floor(startSeconds) })
   // The frame the viewer was looking at when they dragged the scrub bar. Held
   // on screen until the new session produces one of its own, because tearing
   // the old session down blanks the media element and a black rectangle reads
@@ -349,7 +356,7 @@ const VideoPlayer = ({
   }, [])
 
   if (request.mediaId !== media.id) {
-    setRequest({ mediaId: media.id, startSeconds })
+    setRequest({ mediaId: media.id, startSeconds: Math.floor(startSeconds) })
   }
 
   useEffect(() => {
@@ -734,6 +741,39 @@ const VideoPlayer = ({
     }
   }, [state, duration, media.id, request.startSeconds])
 
+  /**
+   * Moves by one keyframe.
+   *
+   * The grid the thumbnails were rendered on, which is the grid a seek can
+   * actually land on: a transcode is cut at keyframes, so a ten second jump
+   * lands wherever the encoder happened to put one anyway. Stepping by that
+   * interval means the picture moves by exactly one step each press, and the
+   * preview under the scrub bar is the frame you arrive at.
+   */
+  const stepFrame = useCallback(
+    (direction: number) => {
+      const frames = trickplay?.thumbnails ?? []
+
+      // Nothing has been rendered for this film, so there is no grid to step
+      // along. Ten seconds is the honest fallback rather than a guess at where
+      // the keyframes are.
+      if (frames.length === 0) {
+        seek(Math.min(Math.max(position + direction * SKIP_SECONDS, 0), duration))
+
+        return
+      }
+
+      const at = frames.findIndex((frame) => position < frame.endSeconds)
+      const next =
+        frames[
+          Math.min(Math.max((at === -1 ? frames.length - 1 : at) + direction, 0), frames.length - 1)
+        ]
+
+      seek(Math.min(Math.max(next?.startSeconds ?? 0, 0), duration))
+    },
+    [seek, position, duration, trickplay],
+  )
+
   const skip = useCallback(
     (delta: number) => {
       seek(Math.min(Math.max(position + delta, 0), duration))
@@ -766,6 +806,17 @@ const VideoPlayer = ({
     void target.requestFullscreen?.()
   }, [isFullscreen])
 
+  // Focus lands on the film itself when the player opens. The shortcuts listen
+  // on the window either way, but focus left behind on whatever was pressed to
+  // get here means the browser's own handling of space and the arrows fires
+  // first — which is why they appeared to do nothing until the picture had
+  // been clicked on.
+  useEffect(() => {
+    if (isImmersive) {
+      stageRef.current?.focus({ preventScroll: true })
+    }
+  }, [isImmersive, media.id])
+
   useEffect(() => {
     if (!isImmersive) {
       return
@@ -793,10 +844,10 @@ const VideoPlayer = ({
         ' ': togglePlay,
         k: togglePlay,
         ArrowLeft: () => {
-          skip(-SKIP_SECONDS)
+          stepFrame(-1)
         },
         ArrowRight: () => {
-          skip(SKIP_SECONDS)
+          stepFrame(1)
         },
         j: () => {
           skip(-JUMP_SECONDS)
@@ -832,7 +883,7 @@ const VideoPlayer = ({
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isImmersive, togglePlay, skip, toggleFullscreen, subtitleTracks])
+  }, [isImmersive, togglePlay, stepFrame, toggleFullscreen, subtitleTracks])
 
   useEffect(() => {
     if (!isImmersive) {
@@ -867,14 +918,20 @@ const VideoPlayer = ({
           {media.title}
         </h2>
 
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <IconX size={16} aria-hidden />
-          Close
-        </Button>
+        {/* The same glass as the bar at the bottom, and no word on it: an X
+            in the corner of a film needs no label, and the one it had made the
+            corner of the picture look like a page. */}
+        <IconButton label="Close" onClick={onClose} size="md" className="flux-glass text-white">
+          <IconX size={20} aria-hidden />
+        </IconButton>
       </header>
 
       <div
         ref={stageRef}
+        // Focusable, and focused on arrival, so the shortcuts work without
+        // being clicked on first. A viewer who has just navigated to a film
+        // has already said what they want to interact with.
+        tabIndex={-1}
         // The pointer goes with the controls: a cursor sitting over a film is
         // as much of an intrusion as a bar of buttons is.
         // `min-h-0` is what keeps the controls on screen. A flex child will
@@ -885,7 +942,9 @@ const VideoPlayer = ({
           isImmersive
             ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black'
             : 'relative overflow-hidden rounded-lg bg-black'
-        } ${isIdle && !isShowingStats && !isEditingCaptions ? 'cursor-none' : 'cursor-default'}`}
+        } ${
+          isIdle && !isShowingStats && !isEditingCaptions ? 'cursor-none' : 'cursor-default'
+        } outline-none`}
         onPointerMove={() => {
           setIsIdle(false)
           setActivity((count) => count + 1)
@@ -988,8 +1047,10 @@ const VideoPlayer = ({
           </div>
         ) : null}
 
+        {/* Under the title rather than opposite it: these are notes about what
+            is playing, and they belong beside its name. */}
         {isShowingStats ? (
-          <div className="pointer-events-none absolute left-3 right-3 top-3 flex justify-end">
+          <div className="pointer-events-none absolute inset-x-3 top-16 flex justify-start">
             <StreamStats
               media={media}
               session={session}
