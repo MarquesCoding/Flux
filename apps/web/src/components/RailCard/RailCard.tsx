@@ -75,7 +75,31 @@ const LEAN = { stiffness: 150, damping: 18, mass: 0.6 } as const
 /**
  * Where a card is on screen.
  */
-type Anchor = { left: number; top: number; width: number }
+type Anchor = {
+  left: number
+  top: number
+  width: number
+  /**
+   * The box of the poster this grew out of.
+   *
+   * Kept so the panel can start there: a morph is the difference between two
+   * rectangles, and the second one is no use without the first.
+   */
+  from: { left: number; top: number; width: number; height: number }
+}
+
+/**
+ * Where a panel starts, said as a shift and a shrink.
+ *
+ * A transform rather than a change of position and size: moving and resizing an
+ * element lays the page out again on every frame of the animation, where a
+ * shift and a scale are carried on the card the browser has already drawn.
+ */
+const growFrom = (anchor: Anchor, height: number): { scale: number; x: number; y: number } => ({
+  scale: anchor.from.width / anchor.width,
+  x: anchor.from.left + anchor.from.width / 2 - (anchor.left + anchor.width / 2),
+  y: anchor.from.top + anchor.from.height / 2 - (anchor.top + height / 2),
+})
 
 /**
  * Whether this is a device where hovering means anything.
@@ -101,6 +125,7 @@ const placeOver = (rect: DOMRect): Anchor => {
     width,
     left: Math.min(Math.max(centred, MARGIN), Math.max(furthest, MARGIN)),
     top: rect.top - (rect.height * (GROWTH - 1)) / 2,
+    from: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
   }
 }
 
@@ -201,6 +226,9 @@ const RailCard = ({
   // card at the foot of the screen is exactly the one somebody has scrolled to
   // look at.
   const panelRef = useRef<HTMLDivElement>(null)
+  // How tall the panel turned out to be, so the shrink it grows out of lines
+  // its middle up with the middle of the poster rather than with a guess.
+  const [panelHeight, setPanelHeight] = useState(0)
 
   useLayoutEffect(() => {
     const panel = panelRef.current
@@ -210,6 +238,8 @@ const RailCard = ({
     }
 
     const fit = () => {
+      setPanelHeight(panel.offsetHeight)
+
       const fitted = fitInside(anchor.top, panel.offsetHeight)
 
       if (Math.abs(fitted - anchor.top) > 1) {
@@ -252,6 +282,8 @@ const RailCard = ({
   }, [])
 
   useEffect(() => cancel, [cancel])
+
+  const grownFrom = anchor === null ? { scale: 1, x: 0, y: 0 } : growFrom(anchor, panelHeight)
 
   const artworkUrl = media.hasBackdrop
     ? `/api/media/${media.id}/image/backdrop`
@@ -306,9 +338,19 @@ const RailCard = ({
             <motion.div
               key={media.id}
               ref={panelRef}
-              initial={{ opacity: 0, scale: 1 / GROWTH }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1 / GROWTH }}
+              // Out of the poster rather than out of nowhere: the panel starts
+              // at the size and place of the card it belongs to and grows from
+              // there, which is what makes it read as that card opening rather
+              // than as a second card appearing over it.
+              //
+              // Worked out from the two rectangles rather than left to a shared
+              // layout animation. A title can sit in more than one row — new
+              // arrivals and comedies are the same film twice — and telling the
+              // browser those are one thing makes every other copy disappear
+              // into the one being opened.
+              initial={{ opacity: 0, ...grownFrom }}
+              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+              exit={{ opacity: 0, ...grownFrom }}
               transition={liquidSpring}
               onPointerLeave={close}
               style={{

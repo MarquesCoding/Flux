@@ -28,7 +28,11 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
       <div
         role="img"
         aria-label={`Preview at ${formatDuration(seconds)}`}
-        className="rounded-xl bg-black bg-no-repeat"
+        // The page's own surface under the frame rather than black. A sheet
+        // that has not arrived, or a frame narrower than its tile, shows what
+        // is beneath it — and a black plate inside pale glass is the one part
+        // of this that did not follow the theme.
+        className="rounded-xl bg-surface bg-no-repeat"
         style={{
           width: `${thumbnail.width.toString()}px`,
           height: `${thumbnail.height.toString()}px`,
