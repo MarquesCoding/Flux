@@ -1,12 +1,12 @@
-import type { MediaSummary } from '@FluxContracts/schemas/Library'
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 type MediaFactsProps = {
-  media: MediaSummary
+  media: MediaSummary;
   /**
    * How the line is set. The hero says this louder than a card does, and the
    * facts themselves are the same either way.
    */
-  className?: string
+  className?: string;
   /**
    * Whether to say how long it runs.
    *
@@ -14,7 +14,7 @@ type MediaFactsProps = {
    * tonight wants it. A card in a row of twenty does not: the runtime is the
    * least distinguishing thing on it.
    */
-  hasRuntime?: boolean
-}
+  hasRuntime?: boolean;
+};
 
-export type { MediaFactsProps }
+export type { MediaFactsProps };

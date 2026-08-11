@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import cnModule from '@FluxUI/cn'
-import PageDotsModule from '@FluxUI/PageDots'
-import type { RailProps } from './Rail.types'
-
-const { cn } = cnModule
-const { PageDots } = PageDotsModule
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { cn } from '@FluxUI/cn';
+import { Button } from '@FluxUI/Button';
+import { PageDots } from '@FluxUI/PageDots';
+import type { RailProps } from './Rail.types';
 
 /**
  * How much of the visible width one page is.
@@ -12,7 +10,7 @@ const { PageDots } = PageDotsModule
  * Not quite the whole of it: leaving a card partly visible tells a viewer the
  * row carried on, where a clean page turn loses their place in it.
  */
-const SCROLL_FRACTION = 0.85
+const SCROLL_FRACTION = 0.85;
 
 /**
  * A horizontally scrolling row of items.
@@ -24,67 +22,74 @@ const SCROLL_FRACTION = 0.85
  * screen and a keyboard all work without being taught to. The markers exist
  * for a mouse, which has none of those, and they are told where they are by
  * whatever else did the scrolling.
+ *
+ * The track's `-my-6 py-6` is load-bearing: a browser will not give one axis a
+ * scrollbar and leave the other free, so scrolling sideways clips the top of a
+ * card that lifts on hover. The padding is the room it lifts into and the
+ * negative margin gives that space back to the page.
  */
-const Rail = ({ title, children, action, className }: RailProps) => {
-  const trackRef = useRef<HTMLUListElement>(null)
-  // How many screenfuls the row is, and which one is being looked at. Worked
-  // out from the scroller rather than from the number of items, because how
-  // many fit is a question about this window rather than about this row.
-  const [pages, setPages] = useState({ count: 1, at: 0 })
+const Rail = ({ title, children, action, onOpenTitle, className }: RailProps) => {
+  const trackRef = useRef<HTMLUListElement>(null);
+  const [pages, setPages] = useState({ count: 1, at: 0 });
 
   const measure = useCallback(() => {
-    const track = trackRef.current
+    const track = trackRef.current;
 
     if (track === null) {
-      return
+      return;
     }
 
-    const step = Math.max(1, track.clientWidth * SCROLL_FRACTION)
-    const beyond = Math.max(0, track.scrollWidth - track.clientWidth)
+    const step = Math.max(1, track.clientWidth * SCROLL_FRACTION);
+    const beyond = Math.max(0, track.scrollWidth - track.clientWidth);
 
     setPages({
       count: Math.max(1, Math.ceil(beyond / step) + 1),
       at: Math.round(track.scrollLeft / step),
-    })
-  }, [])
+    });
+  }, []);
 
   useEffect(() => {
-    measure()
+    measure();
 
-    const track = trackRef.current
+    const track = trackRef.current;
 
     if (track === null) {
-      return
+      return;
     }
 
-    const observer = new ResizeObserver(measure)
+    const observer = new ResizeObserver(measure);
 
-    observer.observe(track)
+    observer.observe(track);
 
     return () => {
-      observer.disconnect()
-    }
-  }, [measure, children])
+      observer.disconnect();
+    };
+  }, [measure, children]);
 
   const scrollTo = (page: number) => {
-    const track = trackRef.current
+    const track = trackRef.current;
 
     if (track !== null) {
-      track.scrollTo({ left: page * track.clientWidth * SCROLL_FRACTION, behavior: 'smooth' })
+      track.scrollTo({ left: page * track.clientWidth * SCROLL_FRACTION, behavior: 'smooth' });
     }
-  }
+  };
 
   return (
     <section className={cn('group/rail flex flex-col gap-3', className)} aria-label={title}>
       <header className="flex items-end justify-between gap-4 px-1">
-        <h2 className="text-lg font-semibold tracking-tight text-text">{title}</h2>
+        <h2 className="text-lg font-semibold tracking-tight text-text">
+          {onOpenTitle === undefined ? (
+            title
+          ) : (
+            <Button variant="link" size="none" onClick={onOpenTitle} className="text-left">
+              {title}
+            </Button>
+          )}
+        </h2>
 
         <div className="flex items-center gap-2">
           {action}
 
-          {/* The same markers as everywhere else, rather than two arrows.
-              They say how much row there is as well as where in it you are,
-              and reaching the far end is one press instead of six. */}
           <PageDots
             count={pages.count}
             selectedIndex={pages.at}
@@ -99,20 +104,15 @@ const Rail = ({ title, children, action, className }: RailProps) => {
         <ul
           ref={trackRef}
           onScroll={measure}
-          // Scrolling sideways clips vertically too — a browser will not give one
-          // axis a scrollbar and leave the other free — so a card that lifts on
-          // hover loses its top edge and its shadow. The padding is the room it
-          // lifts into; the negative margin gives that space back to the page so
-          // rows are not pushed apart by it.
           className="flux-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
         >
           {children}
         </ul>
       </div>
     </section>
-  )
-}
+  );
+};
 
-Rail.displayName = 'Rail'
+Rail.displayName = 'Rail';
 
-export default { Rail }
+export { Rail };

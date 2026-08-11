@@ -1,4 +1,4 @@
-import type { UserConfig } from '@commitlint/types'
+import type { UserConfig } from '@commitlint/types';
 
 const config: UserConfig = {
   extends: ['@commitlint/config-conventional'],
@@ -39,6 +39,6 @@ const config: UserConfig = {
     ],
     'subject-case': [2, 'always', 'lower-case'],
   },
-}
+};
 
-export default config
+export default config;

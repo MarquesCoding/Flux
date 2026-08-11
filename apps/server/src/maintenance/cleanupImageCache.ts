@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { join } from 'node:path';
 
 /**
  * The cache directories as cleanup sees them.
@@ -8,38 +8,38 @@ import { join } from 'node:path'
  * directory never has to know its `profiles` subdirectory lives inside it.
  */
 type CacheFileSystem = {
-  list: (directory: string) => Promise<string[]>
-  remove: (path: string) => Promise<void>
-}
+  list: (directory: string) => Promise<string[]>;
+  remove: (path: string) => Promise<void>;
+};
 
 type MediaImageUrls = {
-  posterUrl: string | null
-  backdropUrl: string | null
-}
+  posterUrl: string | null;
+  backdropUrl: string | null;
+};
 
 type CleanupImageCacheOptions = {
-  imageCacheDir: string
-  profilesDir: string
-  files: CacheFileSystem
+  imageCacheDir: string;
+  profilesDir: string;
+  files: CacheFileSystem;
   /**
    * The same hash a read builds a cache file's name from — reused rather
    * than reimplemented, so a cleanup that disagrees with the cache about its
    * own naming scheme is not possible.
    */
-  nameFor: (url: string) => string
-  listMediaImageUrls: () => Promise<MediaImageUrls[]>
-  listProfilePhotoPaths: () => Promise<(string | null)[]>
-  onProblem?: (path: string, reason: string) => void
+  nameFor: (url: string) => string;
+  listMediaImageUrls: () => Promise<MediaImageUrls[]>;
+  listProfilePhotoPaths: () => Promise<(string | null)[]>;
+  onProblem?: (path: string, reason: string) => void;
   /**
    * `phase` tells the two directories apart, the same way a scan's phases
    * tell probing apart from previews — the cache is swept first, then
    * profile photos, and each restarts its own count rather than continuing
    * the other's total.
    */
-  onProgress?: (phase: 'cache' | 'profiles', processed: number, total: number) => void
-}
+  onProgress?: (phase: 'cache' | 'profiles', processed: number, total: number) => void;
+};
 
-const baseName = (path: string): string => path.split('/').pop() ?? path
+const baseName = (path: string): string => path.split('/').pop() ?? path;
 
 /**
  * Removes every file in a directory that nothing valid still points at.
@@ -52,28 +52,28 @@ const sweep = async (
   onProgress?: CleanupImageCacheOptions['onProgress'],
   onProblem?: CleanupImageCacheOptions['onProblem'],
 ): Promise<number> => {
-  const names = await files.list(directory)
-  let removed = 0
+  const names = await files.list(directory);
+  let removed = 0;
 
-  onProgress?.(phase, 0, names.length)
+  onProgress?.(phase, 0, names.length);
 
   for (const [index, name] of names.entries()) {
     if (!isValid(name)) {
       await files
         .remove(join(directory, name))
         .then(() => {
-          removed += 1
+          removed += 1;
         })
         .catch((error: Error) => {
-          onProblem?.(name, error.message)
-        })
+          onProblem?.(name, error.message);
+        });
     }
 
-    onProgress?.(phase, index + 1, names.length)
+    onProgress?.(phase, index + 1, names.length);
   }
 
-  return removed
-}
+  return removed;
+};
 
 /**
  * Deletes every cached artwork and profile photo file nothing in the
@@ -96,16 +96,16 @@ const cleanupImageCache = async ({
   onProblem,
   onProgress,
 }: CleanupImageCacheOptions): Promise<number> => {
-  const media = await listMediaImageUrls()
-  const validCacheNames = new Set<string>()
+  const media = await listMediaImageUrls();
+  const validCacheNames = new Set<string>();
 
   for (const item of media) {
     if (item.posterUrl !== null) {
-      validCacheNames.add(nameFor(item.posterUrl))
+      validCacheNames.add(nameFor(item.posterUrl));
     }
 
     if (item.backdropUrl !== null) {
-      validCacheNames.add(nameFor(item.backdropUrl))
+      validCacheNames.add(nameFor(item.backdropUrl));
     }
   }
 
@@ -116,12 +116,12 @@ const cleanupImageCache = async ({
     'cache',
     onProgress,
     onProblem,
-  )
+  );
 
-  const photoPaths = await listProfilePhotoPaths()
+  const photoPaths = await listProfilePhotoPaths();
   const validPhotoNames = new Set(
     photoPaths.filter((path): path is string => path !== null).map(baseName),
-  )
+  );
 
   const profilesRemoved = await sweep(
     profilesDir,
@@ -130,11 +130,11 @@ const cleanupImageCache = async ({
     'profiles',
     onProgress,
     onProblem,
-  )
+  );
 
-  return cacheRemoved + profilesRemoved
-}
+  return cacheRemoved + profilesRemoved;
+};
 
-export type { CacheFileSystem, MediaImageUrls }
+export type { CacheFileSystem, MediaImageUrls };
 
-export default { cleanupImageCache }
+export { cleanupImageCache };

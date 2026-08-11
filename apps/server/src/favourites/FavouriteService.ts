@@ -1,4 +1,4 @@
-import type { Favourite } from '@FluxContracts/schemas/Favourite'
+import type { Favourite } from '@FluxContracts/schemas/Favourite';
 
 /**
  * What each person has kept, as the HTTP layer sees it.
@@ -11,11 +11,9 @@ import type { Favourite } from '@FluxContracts/schemas/Favourite'
  * without one.
  */
 type FavouriteService = {
-  list: (profileId: string) => Promise<Favourite[]>
-  keep: (profileId: string, mediaId: string) => Promise<void>
-  drop: (profileId: string, mediaId: string) => Promise<void>
-}
+  list: (profileId: string) => Promise<Favourite[]>;
+  keep: (profileId: string, mediaId: string) => Promise<void>;
+  drop: (profileId: string, mediaId: string) => Promise<void>;
+};
 
-export type { FavouriteService }
-
-export default {}
+export type { FavouriteService };

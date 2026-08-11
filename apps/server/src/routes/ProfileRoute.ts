@@ -1,14 +1,15 @@
-import { createRoute, z } from '@hono/zod-openapi'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
+import { createRoute, z } from '@hono/zod-openapi';
+import {
+  ViewerProfileSchema,
+  ViewerProfileRequestSchema,
+  ViewerProfileListSchema,
+} from '@FluxContracts/schemas/ViewerProfile';
 
-const { ViewerProfileSchema, ViewerProfileRequestSchema, ViewerProfileListSchema } =
-  ViewerProfileModule
+const ProfileError = z.object({ error: z.string() }).openapi('ProfileError');
 
-const ProfileError = z.object({ error: z.string() }).openapi('ProfileError')
-
-const ProfileSchema = ViewerProfileSchema.openapi('ViewerProfile')
-const ProfileListSchema = ViewerProfileListSchema.openapi('ViewerProfileList')
-const ProfileRequestSchema = ViewerProfileRequestSchema.openapi('ViewerProfileRequest')
+const ProfileSchema = ViewerProfileSchema.openapi('ViewerProfile');
+const ProfileListSchema = ViewerProfileListSchema.openapi('ViewerProfileList');
+const ProfileRequestSchema = ViewerProfileRequestSchema.openapi('ViewerProfileRequest');
 
 /**
  * Lists the people using this account.
@@ -31,7 +32,7 @@ const listProfilesRoute = createRoute({
       content: { 'application/json': { schema: ProfileError } },
     },
   },
-})
+});
 
 const createProfileRoute = createRoute({
   method: 'post',
@@ -53,7 +54,7 @@ const createProfileRoute = createRoute({
       content: { 'application/json': { schema: ProfileError } },
     },
   },
-})
+});
 
 const updateProfileRoute = createRoute({
   method: 'patch',
@@ -75,7 +76,7 @@ const updateProfileRoute = createRoute({
       content: { 'application/json': { schema: ProfileError } },
     },
   },
-})
+});
 
 /**
  * Removes somebody from this account.
@@ -100,14 +101,14 @@ const deleteProfileRoute = createRoute({
       content: { 'application/json': { schema: ProfileError } },
     },
   },
-})
+});
 
 const PromoteRequestSchema = z
   .object({
     email: z.string().email(),
     password: z.string().min(8),
   })
-  .openapi('PromoteProfileRequest')
+  .openapi('PromoteProfileRequest');
 
 /**
  * Gives a profile an account of its own.
@@ -146,12 +147,12 @@ const promoteProfileRoute = createRoute({
       content: { 'application/json': { schema: ProfileError } },
     },
   },
-})
+});
 
-export default {
+export {
   listProfilesRoute,
   createProfileRoute,
   updateProfileRoute,
   deleteProfileRoute,
   promoteProfileRoute,
-}
+};

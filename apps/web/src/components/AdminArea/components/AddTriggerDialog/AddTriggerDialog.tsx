@@ -1,18 +1,12 @@
-import { useState } from 'react'
-import { IconSelector } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import DialogModule from '@FluxUI/Dialog'
-import OptionMenuModule from '@FluxUI/OptionMenu'
-import TextFieldModule from '@FluxUI/TextField'
-import describeTriggerModule from '@FluxWeb/admin/describeTrigger'
-import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin'
-import type { AddTriggerDialogProps } from './AddTriggerDialog.types'
-
-const { Button } = ButtonModule
-const { Dialog } = DialogModule
-const { OptionMenu } = OptionMenuModule
-const { TextField } = TextFieldModule
-const { DAY_NAMES } = describeTriggerModule
+import { useState } from 'react';
+import { IconSelector } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { Dialog } from '@FluxUI/Dialog';
+import { OptionMenu } from '@FluxUI/OptionMenu';
+import { TextField } from '@FluxUI/TextField';
+import { DAY_NAMES } from '@FluxWeb/admin/describeTrigger';
+import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin';
+import type { AddTriggerDialogProps } from './AddTriggerDialog.types';
 
 /**
  * The kinds of trigger as an operator picks them, which is not quite how they
@@ -28,16 +22,16 @@ const TRIGGER_TYPES = [
   { id: 'weekly', label: 'Weekly' },
   { id: 'interval', label: 'On an interval' },
   { id: 'startup', label: 'On application startup' },
-] as const
+] as const;
 
-type TriggerType = (typeof TRIGGER_TYPES)[number]['id']
+type TriggerType = (typeof TRIGGER_TYPES)[number]['id'];
 
 const INTERVAL_UNITS = [
   { id: 'minutes', label: 'Minutes' },
   { id: 'hours', label: 'Hours' },
-] as const
+] as const;
 
-type IntervalUnit = (typeof INTERVAL_UNITS)[number]['id']
+type IntervalUnit = (typeof INTERVAL_UNITS)[number]['id'];
 
 /**
  * Reads an `HH:MM` field back into the numbers a trigger is stored with.
@@ -46,16 +40,16 @@ type IntervalUnit = (typeof INTERVAL_UNITS)[number]['id']
  * empty value or a half-typed hour.
  */
 const readClock = (value: string): { hour: number; minute: number } | null => {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value)
-  const hour = Number.parseInt(match?.[1] ?? '', 10)
-  const minute = Number.parseInt(match?.[2] ?? '', 10)
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value);
+  const hour = Number.parseInt(match?.[1] ?? '', 10);
+  const minute = Number.parseInt(match?.[2] ?? '', 10);
 
   if (Number.isNaN(hour) || Number.isNaN(minute) || hour > 23 || minute > 59) {
-    return null
+    return null;
   }
 
-  return { hour, minute }
-}
+  return { hour, minute };
+};
 
 /**
  * Adds one trigger to a job, Jellyfin's Add Trigger dialog style: pick what
@@ -67,39 +61,39 @@ const readClock = (value: string): { hour: number; minute: number } | null => {
  * error worth telling somebody about.
  */
 const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTriggerDialogProps) => {
-  const [type, setType] = useState<TriggerType>('daily')
-  const [time, setTime] = useState('03:00')
-  const [dayOfWeek, setDayOfWeek] = useState('0')
-  const [every, setEvery] = useState('6')
-  const [unit, setUnit] = useState<IntervalUnit>('hours')
+  const [type, setType] = useState<TriggerType>('daily');
+  const [time, setTime] = useState('03:00');
+  const [dayOfWeek, setDayOfWeek] = useState('0');
+  const [every, setEvery] = useState('6');
+  const [unit, setUnit] = useState<IntervalUnit>('hours');
 
   const build = (): ScheduleTrigger | null => {
     if (type === 'startup') {
-      return { kind: 'startup' }
+      return { kind: 'startup' };
     }
 
     if (type === 'interval') {
-      const count = Number.parseInt(every, 10)
+      const count = Number.parseInt(every, 10);
 
       if (Number.isNaN(count) || count < 1) {
-        return null
+        return null;
       }
 
       if (unit === 'minutes') {
-        return count > 59 ? null : { kind: 'everyMinutes', minutes: count }
+        return count > 59 ? null : { kind: 'everyMinutes', minutes: count };
       }
 
-      return count > 23 ? null : { kind: 'everyHours', hours: count }
+      return count > 23 ? null : { kind: 'everyHours', hours: count };
     }
 
-    const clock = readClock(time)
+    const clock = readClock(time);
 
     if (clock === null) {
-      return null
+      return null;
     }
 
     if (type === 'daily') {
-      return { kind: 'daily', hour: clock.hour, minute: clock.minute }
+      return { kind: 'daily', hour: clock.hour, minute: clock.minute };
     }
 
     return {
@@ -107,10 +101,10 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
       dayOfWeek: Number.parseInt(dayOfWeek, 10),
       hour: clock.hour,
       minute: clock.minute,
-    }
-  }
+    };
+  };
 
-  const built = build()
+  const built = build();
 
   const select = (
     label: string,
@@ -136,7 +130,7 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
         matchTriggerWidth
       />
     </fieldset>
-  )
+  );
 
   return (
     <Dialog label="Add trigger" isOpen={isOpen} onClose={onClose}>
@@ -149,7 +143,7 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
           TRIGGER_TYPES.find((candidate) => candidate.id === type)?.label ?? '',
           [...TRIGGER_TYPES],
           (id) => {
-            setType(TRIGGER_TYPES.find((candidate) => candidate.id === id)?.id ?? 'daily')
+            setType(TRIGGER_TYPES.find((candidate) => candidate.id === id)?.id ?? 'daily');
           },
         )}
 
@@ -185,7 +179,7 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
               INTERVAL_UNITS.find((candidate) => candidate.id === unit)?.label ?? '',
               [...INTERVAL_UNITS],
               (id) => {
-                setUnit(INTERVAL_UNITS.find((candidate) => candidate.id === id)?.id ?? 'hours')
+                setUnit(INTERVAL_UNITS.find((candidate) => candidate.id === id)?.id ?? 'hours');
               },
             )}
           </div>
@@ -209,7 +203,7 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
             disabled={built === null || isSaving}
             onClick={() => {
               if (built !== null) {
-                onAdd(built)
+                onAdd(built);
               }
             }}
           >
@@ -218,9 +212,9 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
         </div>
       </div>
     </Dialog>
-  )
-}
+  );
+};
 
-AddTriggerDialog.displayName = 'AddTriggerDialog'
+AddTriggerDialog.displayName = 'AddTriggerDialog';
 
-export default { AddTriggerDialog }
+export { AddTriggerDialog };

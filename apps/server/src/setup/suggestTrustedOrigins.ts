@@ -1,4 +1,4 @@
-const WEB_DEV_PORT = '5173'
+const WEB_DEV_PORT = '5173';
 
 /**
  * Suggests the origins an operator most likely needs to trust, given the
@@ -11,15 +11,15 @@ const WEB_DEV_PORT = '5173'
  * alone.
  */
 const suggestTrustedOrigins = (detectedOrigin: string): string[] => {
-  const suggestions = [detectedOrigin]
+  const suggestions = [detectedOrigin];
 
-  const parsed = URL.parse(detectedOrigin)
+  const parsed = URL.parse(detectedOrigin);
 
   if (parsed !== null && parsed.port !== WEB_DEV_PORT) {
-    suggestions.push(`${parsed.protocol}//${parsed.hostname}:${WEB_DEV_PORT}`)
+    suggestions.push(`${parsed.protocol}//${parsed.hostname}:${WEB_DEV_PORT}`);
   }
 
-  return [...new Set(suggestions)]
-}
+  return [...new Set(suggestions)];
+};
 
-export default { suggestTrustedOrigins, WEB_DEV_PORT }
+export { suggestTrustedOrigins, WEB_DEV_PORT };

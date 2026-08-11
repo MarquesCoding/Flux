@@ -1,20 +1,17 @@
-import { useState } from 'react'
-import { IconPhotoUp, IconRefresh } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import TextFieldModule from '@FluxUI/TextField'
-import FilePickerModule from '@FluxUI/FilePicker'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
-import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
-import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
-import type { Avatar, AvatarStyle, ProfileColour } from '@FluxContracts/schemas/ViewerProfile'
-import type { ProfileEditorProps } from './ProfileEditor.types'
-
-const { Button } = ButtonModule
-const { TextField } = TextFieldModule
-const { FilePicker } = FilePickerModule
-const { PROFILE_COLOURS, AVATAR_STYLES, profileInitial } = ViewerProfileModule
-const { createProfile, saveProfile, uploadProfilePhoto } = fetchProfilesModule
-const { ProfileFace } = ProfileFaceModule
+import { useState } from 'react';
+import { IconPhotoUp, IconRefresh } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { TextField } from '@FluxUI/TextField';
+import { FilePicker } from '@FluxUI/FilePicker';
+import {
+  PROFILE_COLOURS,
+  AVATAR_STYLES,
+  profileInitial,
+} from '@FluxContracts/schemas/ViewerProfile';
+import { createProfile, saveProfile, uploadProfilePhoto } from '@FluxWeb/profiles/fetchProfiles';
+import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
+import type { Avatar, AvatarStyle, ProfileColour } from '@FluxContracts/schemas/ViewerProfile';
+import type { ProfileEditorProps } from './ProfileEditor.types';
 
 /**
  * What a picture may be.
@@ -23,7 +20,7 @@ const { ProfileFace } = ProfileFaceModule
  * document that can carry script, and a picture of somebody's face has no
  * reason to be one.
  */
-const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/webm,video/mp4'
+const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/webm,video/mp4';
 
 /**
  * Where a drawn face is previewed from.
@@ -33,7 +30,7 @@ const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/
  * rather than fetched from whoever generates them.
  */
 const previewUrl = (style: AvatarStyle, seed: string): string =>
-  `/api/profiles/avatars/${style}?seed=${encodeURIComponent(seed)}`
+  `/api/profiles/avatars/${style}?seed=${encodeURIComponent(seed)}`;
 
 /**
  * Changing what somebody is called and what they look like.
@@ -44,40 +41,38 @@ const previewUrl = (style: AvatarStyle, seed: string): string =>
  * because choosing a picture is a thing done by looking.
  */
 const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
-  const [name, setName] = useState(profile?.name ?? '')
-  const [colour, setColour] = useState<ProfileColour>(profile?.colour ?? PROFILE_COLOURS[0])
-  const [avatar, setAvatar] = useState<Avatar>(profile?.avatar ?? { kind: 'initial' })
+  const [name, setName] = useState(profile?.name ?? '');
+  const [colour, setColour] = useState<ProfileColour>(profile?.colour ?? PROFILE_COLOURS[0]);
+  const [avatar, setAvatar] = useState<Avatar>(profile?.avatar ?? { kind: 'initial' });
   const [seed, setSeed] = useState(
     profile?.avatar.kind === 'drawn' ? profile.avatar.seed : (profile?.id ?? 'flux'),
-  )
-  const [photo, setPhoto] = useState<File | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
+  );
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const trimmed = name.trim()
+  const trimmed = name.trim();
 
   const save = async () => {
-    setIsSaving(true)
+    setIsSaving(true);
 
     const chosen: Avatar =
-      photo === null ? avatar : { kind: 'photo', isVideo: photo.type.startsWith('video/') }
+      photo === null ? avatar : { kind: 'photo', isVideo: photo.type.startsWith('video/') };
 
     const saved =
       profile === null
         ? await createProfile(trimmed, colour, chosen)
-        : await saveProfile(profile.id, trimmed, colour, chosen)
+        : await saveProfile(profile.id, trimmed, colour, chosen);
 
-    // The photograph goes second because a new profile has no identifier to
-    // hang one on until it exists.
     if (saved && photo !== null && profile !== null) {
-      await uploadProfilePhoto(profile.id, photo)
+      await uploadProfilePhoto(profile.id, photo);
     }
 
-    setIsSaving(false)
+    setIsSaving(false);
 
     if (saved) {
-      onSaved()
+      onSaved();
     }
-  }
+  };
 
   return (
     <div className="flex w-full max-w-lg flex-col gap-6">
@@ -124,13 +119,14 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
 
         <div className="flex flex-wrap gap-3 pt-2">
           {PROFILE_COLOURS.map((option) => (
-            <button
+            <Button
               key={option}
-              type="button"
+              variant="bare"
+              size="none"
               aria-label={`Use ${option}`}
-              aria-pressed={option === colour}
+              isActive={option === colour}
               onClick={() => {
-                setColour(option)
+                setColour(option);
               }}
               style={{ backgroundColor: option }}
               className={`size-9 rounded-full transition-transform ${
@@ -147,12 +143,13 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
         </legend>
 
         <div className="flex flex-wrap items-center gap-3 pt-2">
-          <button
-            type="button"
-            aria-pressed={avatar.kind === 'initial' && photo === null}
+          <Button
+            variant="bare"
+            size="none"
+            isActive={avatar.kind === 'initial' && photo === null}
             onClick={() => {
-              setPhoto(null)
-              setAvatar({ kind: 'initial' })
+              setPhoto(null);
+              setAvatar({ kind: 'initial' });
             }}
             style={{ backgroundColor: colour }}
             className={`flex size-14 items-center justify-center rounded-2xl text-xl font-semibold text-black/80 transition-transform ${
@@ -162,17 +159,18 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
             }`}
           >
             {profileInitial(trimmed === '' ? '?' : trimmed)}
-          </button>
+          </Button>
 
           {AVATAR_STYLES.map((style) => (
-            <button
+            <Button
               key={style}
-              type="button"
+              variant="bare"
+              size="none"
               aria-label={`Use the ${style} face`}
-              aria-pressed={avatar.kind === 'drawn' && avatar.style === style && photo === null}
+              isActive={avatar.kind === 'drawn' && avatar.style === style && photo === null}
               onClick={() => {
-                setPhoto(null)
-                setAvatar({ kind: 'drawn', style, seed })
+                setPhoto(null);
+                setAvatar({ kind: 'drawn', style, seed });
               }}
               className={`size-14 overflow-hidden rounded-2xl bg-white/5 transition-transform ${
                 avatar.kind === 'drawn' && avatar.style === style && photo === null
@@ -186,7 +184,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
                 loading="lazy"
                 className="h-full w-full object-cover"
               />
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -196,16 +194,13 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
             size="sm"
             isPill
             onClick={() => {
-              // A new seed is a new face in every style at once, which is what
-              // somebody means when they press this: not "a different style"
-              // but "not that one".
-              const next = Math.random().toString(36).slice(2, 10)
+              const next = Math.random().toString(36).slice(2, 10);
 
-              setSeed(next)
-              setPhoto(null)
+              setSeed(next);
+              setPhoto(null);
 
               if (avatar.kind === 'drawn') {
-                setAvatar({ kind: 'drawn', style: avatar.style, seed: next })
+                setAvatar({ kind: 'drawn', style: avatar.style, seed: next });
               }
             }}
           >
@@ -218,7 +213,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               label="Upload a photograph"
               accept={PHOTO_TYPES}
               onPick={(file) => {
-                setPhoto(file)
+                setPhoto(file);
               }}
             >
               <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-white/10 hover:text-text">
@@ -244,7 +239,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
           isLoading={isSaving}
           disabled={trimmed === ''}
           onClick={() => {
-            void save()
+            void save();
           }}
         >
           {profile === null ? 'Add' : 'Save'}
@@ -255,9 +250,9 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
         </Button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-ProfileEditor.displayName = 'ProfileEditor'
+ProfileEditor.displayName = 'ProfileEditor';
 
-export default { ProfileEditor }
+export { ProfileEditor };

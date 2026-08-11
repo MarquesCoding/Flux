@@ -303,8 +303,6 @@ pub fn video_filter_chain(
 
     steps.push(scale_filter(max_width, max_height));
 
-    // Drawn after scaling so the text is rendered at output resolution rather
-    // than scaled along with the picture, which would soften it.
     if let Some((path, index)) = text_subtitles {
         steps.push(format!(
             "subtitles='{}':si={index}",
@@ -390,8 +388,6 @@ impl TranscodePlan {
                     is_image_based: true,
                 } = &self.spec.subtitles
                 {
-                    // Bitmap subtitles are a second video stream, so they have
-                    // to be composited in a filter graph rather than a chain.
                     args.push("-filter_complex".into());
                     args.push(format!(
                         "[0:v]{chain}[base];[base][0:s:{stream_index}]overlay[v]"
@@ -407,9 +403,6 @@ impl TranscodePlan {
             }
         }
 
-        // Mapping is explicit whenever a stream was chosen, and left to ffmpeg
-        // otherwise. Naming a stream unconditionally would break a file that
-        // has no audio at all.
         if let Some(index) = self.spec.audio_stream_index {
             args.push("-map".into());
             args.push("0:v:0".into());
@@ -440,11 +433,6 @@ impl TranscodePlan {
         args.push("hls".into());
         args.push("-hls_time".into());
         args.push(self.spec.segment_seconds.to_string());
-        // An event playlist is written as each segment lands. A vod playlist
-        // is only written when ffmpeg exits, so a feature length transcode
-        // serves no manifest at all until the whole film has been encoded —
-        // long past any sane client timeout. The playlist still gains an
-        // ENDLIST when the run finishes, so a finished session reads as VOD.
         args.push("-hls_playlist_type".into());
         args.push("event".into());
         args.push("-hls_segment_type".into());

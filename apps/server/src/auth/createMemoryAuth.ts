@@ -1,16 +1,12 @@
-import { memoryAdapter } from 'better-auth/adapters/memory'
-import AuthModule from './Auth'
-import type { FluxAuth } from './Auth'
-import EnvModule from '@FluxServer/env/Env'
-import type { Env } from '@FluxServer/env/Env'
-import createMemorySettingsStoreModule from '@FluxServer/settings/createMemorySettingsStore'
-import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
+import { memoryAdapter } from 'better-auth/adapters/memory';
+import { createAuth } from './Auth';
+import type { FluxAuth } from './Auth';
+import { readEnv } from '@FluxServer/env/Env';
+import type { Env } from '@FluxServer/env/Env';
+import { createMemorySettingsStore } from '@FluxServer/settings/createMemorySettingsStore';
+import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
 
-const { createAuth } = AuthModule
-const { readEnv } = EnvModule
-const { createMemorySettingsStore } = createMemorySettingsStoreModule
-
-const TEST_SECRET = 'flux-test-secret-value-at-least-32-chars'
+const TEST_SECRET = 'flux-test-secret-value-at-least-32-chars';
 
 /**
  * A signed-up user, as the memory adapter stores it.
@@ -18,18 +14,18 @@ const TEST_SECRET = 'flux-test-secret-value-at-least-32-chars'
  * Typed with `role` rather than left to inference, so a test can promote a
  * user to admin (`store.user[0].role = 'admin'`) without a cast.
  */
-type MemoryUserRow = { id: string; role?: string }
+type MemoryUserRow = { id: string; role?: string };
 
 const emptyStore = (): {
-  user: MemoryUserRow[]
-  session: never[]
-  account: never[]
-  verification: never[]
-  twoFactor: never[]
-  passkey: never[]
-  deviceCode: never[]
-  jwks: never[]
-  apikey: never[]
+  user: MemoryUserRow[];
+  session: never[];
+  account: never[];
+  verification: never[];
+  twoFactor: never[];
+  passkey: never[];
+  deviceCode: never[];
+  jwks: never[];
+  apikey: never[];
 } => ({
   user: [],
   session: [],
@@ -40,7 +36,7 @@ const emptyStore = (): {
   deviceCode: [],
   jwks: [],
   apikey: [],
-})
+});
 
 /**
  * Builds an in-memory authentication layer and its settings store.
@@ -52,10 +48,10 @@ const emptyStore = (): {
 const createMemoryAuth = (
   overrides: Partial<NodeJS.ProcessEnv> = {},
 ): {
-  auth: FluxAuth
-  settings: SettingsStore
-  profiles: string[]
-  resetLinks: { email: string; url: string }[]
+  auth: FluxAuth;
+  settings: SettingsStore;
+  profiles: string[];
+  resetLinks: { email: string; url: string }[];
   /**
    * The raw in-memory rows behind `auth`.
    *
@@ -63,11 +59,11 @@ const createMemoryAuth = (
    * (`store.user[0].role = 'admin'`) without a real database to run
    * `promoteToAdmin` against.
    */
-  store: ReturnType<typeof emptyStore>
+  store: ReturnType<typeof emptyStore>;
 } => {
-  const profiles: string[] = []
-  const resetLinks: { email: string; url: string }[] = []
-  const store = emptyStore()
+  const profiles: string[] = [];
+  const resetLinks: { email: string; url: string }[] = [];
+  const store = emptyStore();
 
   const env: Env = readEnv({
     BETTER_AUTH_SECRET: TEST_SECRET,
@@ -75,7 +71,7 @@ const createMemoryAuth = (
     TRUSTED_ORIGINS: 'http://localhost:8420,http://localhost:5173',
     AUTH_RATE_LIMIT_ENABLED: 'false',
     ...overrides,
-  })
+  });
 
   const settings = createMemorySettingsStore({
     trustedOrigins: env.TRUSTED_ORIGINS,
@@ -83,7 +79,7 @@ const createMemoryAuth = (
     setupCompletedAt: null,
     catalogueApiKey: '',
     seededJobTriggerKinds: [],
-  })
+  });
 
   const auth = createAuth({
     env,
@@ -91,18 +87,18 @@ const createMemoryAuth = (
     settings,
     cookieSecure: env.COOKIE_SECURE,
     onUserCreated: (userId) => {
-      profiles.push(userId)
+      profiles.push(userId);
 
-      return Promise.resolve()
+      return Promise.resolve();
     },
     onPasswordResetRequested: (email, url) => {
-      resetLinks.push({ email, url })
+      resetLinks.push({ email, url });
 
-      return Promise.resolve()
+      return Promise.resolve();
     },
-  })
+  });
 
-  return { auth, settings, profiles, resetLinks, store }
-}
+  return { auth, settings, profiles, resetLinks, store };
+};
 
-export default { createMemoryAuth, TEST_SECRET }
+export { createMemoryAuth, TEST_SECRET };

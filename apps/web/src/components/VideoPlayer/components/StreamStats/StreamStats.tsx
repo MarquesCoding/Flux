@@ -1,35 +1,31 @@
-import { IconX } from '@tabler/icons-react'
-import IconButtonModule from '@FluxUI/IconButton'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
-import describePlaybackAxisModule from '@FluxCore/functions/describePlaybackAxis'
-import type { StreamStatsProps } from './StreamStats.types'
-
-const { IconButton } = IconButtonModule
-const { formatDuration } = formatDurationModule
-const {
-  describeAxis: axis,
-  describeVideoAxis: videoAxis,
-  describeAudioAxis: audioAxis,
-} = describePlaybackAxisModule
+import { IconX } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { formatDuration } from '@FluxCore/functions/formatDuration';
+import {
+  describeAxis as axis,
+  describeVideoAxis as videoAxis,
+  describeAudioAxis as audioAxis,
+} from '@FluxCore/functions/describePlaybackAxis';
+import type { StreamStatsProps } from './StreamStats.types';
 
 /**
  * Rounds a number of seconds for display without pretending to precision.
  */
-const seconds = (value: number): string => `${value.toFixed(1)}s`
+const seconds = (value: number): string => `${value.toFixed(1)}s`;
 
 type RowProps = {
-  name: string
-  children: string
-}
+  name: string;
+  children: string;
+};
 
 const Row = ({ name, children }: RowProps) => (
   <div className="flex gap-3 rounded-md px-1 py-1 transition-colors hover:bg-white/5">
     <dt className="w-40 shrink-0 text-white/50">{name}</dt>
     <dd className="min-w-0 break-words font-medium tabular-nums text-white">{children}</dd>
   </div>
-)
+);
 
-Row.displayName = 'Row'
+Row.displayName = 'Row';
 
 /**
  * Everything Flux knows about what is on screen.
@@ -47,23 +43,21 @@ const StreamStats = ({
   sessionStartSeconds,
   onClose,
 }: StreamStatsProps) => {
-  const video = detail?.videoCodec ?? media.id
-  const audio = detail?.audioStreams[0] ?? null
-  const plan = session?.plan ?? null
+  const video = detail?.videoCodec ?? media.id;
+  const audio = detail?.audioStreams[0] ?? null;
+  const plan = session?.plan ?? null;
 
   return (
     <section
       aria-label="Stats for nerds"
-      // The same glass as the bar and the settings panel. These are notes
-      // laid over a film, not a console pasted onto one.
       className="flux-glass pointer-events-auto max-h-full w-full max-w-lg overflow-y-auto rounded-2xl p-4 text-xs text-white"
     >
       <header className="mb-3 flex items-center justify-between gap-4 border-b border-white/10 pb-2">
         <h3 className="text-sm font-medium tracking-tight">Stats for nerds</h3>
 
-        <IconButton label="Close stats" size="sm" onClick={onClose}>
+        <Button isIconOnly variant="ghost" label="Close stats" size="sm" onClick={onClose}>
           <IconX size={16} aria-hidden />
-        </IconButton>
+        </Button>
       </header>
 
       <dl className="flex flex-col">
@@ -122,9 +116,9 @@ const StreamStats = ({
         )}
       </dl>
     </section>
-  )
-}
+  );
+};
 
-StreamStats.displayName = 'StreamStats'
+StreamStats.displayName = 'StreamStats';
 
-export default { StreamStats }
+export { StreamStats };

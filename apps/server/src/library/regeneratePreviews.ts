@@ -1,8 +1,6 @@
-import selectAudioStreamModule from '@FluxCore/functions/describeTrack'
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem'
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
-
-const { selectAudioStream } = selectAudioStreamModule
+import { selectAudioStream } from '@FluxCore/functions/describeTrack';
+import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
+import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 
 /**
  * The library table, as regeneration sees it.
@@ -13,21 +11,21 @@ type PreviewStore = {
    */
   listOutstanding: (
     libraryId: string,
-  ) => Promise<{ id: string; path: string; audioStreams: AudioStream[] }[]>
-  markComplete: (mediaItemId: string) => Promise<void>
-}
+  ) => Promise<{ id: string; path: string; audioStreams: AudioStream[] }[]>;
+  markComplete: (mediaItemId: string) => Promise<void>;
+};
 
 type RegeneratePreviewsOptions = {
-  libraryId: string
-  store: PreviewStore
-  transcoder: Transcoder
+  libraryId: string;
+  store: PreviewStore;
+  transcoder: Transcoder;
   /**
    * The language previews should prefer, when the library forces one.
    */
-  defaultAudioLanguage: string | null
-  onProblem?: (path: string, reason: string) => void
-  onProgress?: (processed: number, total: number) => void
-}
+  defaultAudioLanguage: string | null;
+  onProblem?: (path: string, reason: string) => void;
+  onProgress?: (processed: number, total: number) => void;
+};
 
 /**
  * Renders the preview clips a library is still missing.
@@ -49,16 +47,16 @@ const regeneratePreviews = async ({
   onProblem,
   onProgress,
 }: RegeneratePreviewsOptions): Promise<void> => {
-  const items = await store.listOutstanding(libraryId)
-  let processed = 0
+  const items = await store.listOutstanding(libraryId);
+  let processed = 0;
 
-  onProgress?.(processed, items.length)
+  onProgress?.(processed, items.length);
 
   for (const item of items) {
     const audioStreamIndex =
       defaultAudioLanguage === null
         ? undefined
-        : selectAudioStream(item.audioStreams, defaultAudioLanguage)?.index
+        : selectAudioStream(item.audioStreams, defaultAudioLanguage)?.index;
 
     const rendered = await transcoder
       .requestPreview({
@@ -68,20 +66,20 @@ const regeneratePreviews = async ({
       })
       .then(() => true)
       .catch((error: Error) => {
-        onProblem?.(item.path, error.message)
+        onProblem?.(item.path, error.message);
 
-        return false
-      })
+        return false;
+      });
 
     if (rendered) {
-      await store.markComplete(item.id)
+      await store.markComplete(item.id);
     }
 
-    processed += 1
-    onProgress?.(processed, items.length)
+    processed += 1;
+    onProgress?.(processed, items.length);
   }
-}
+};
 
-export type { PreviewStore }
+export type { PreviewStore };
 
-export default { regeneratePreviews }
+export { regeneratePreviews };

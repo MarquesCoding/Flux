@@ -1,22 +1,22 @@
 type Range = {
-  startSeconds: number
-  endSeconds: number
-}
+  startSeconds: number;
+  endSeconds: number;
+};
 
 type SharedAudio = {
   /**
    * Where the shared run sits in the first fingerprint.
    */
-  left: Range
+  left: Range;
   /**
    * Where the same run sits in the second.
    */
-  right: Range
-  frames: number
-}
+  right: Range;
+  frames: number;
+};
 
 type CompareOptions = {
-  framesPerSecond: number
+  framesPerSecond: number;
   /**
    * How many bits two hashes may differ by and still count as the same audio.
    *
@@ -25,11 +25,11 @@ type CompareOptions = {
    * matching. Six of thirty-two is loose enough for a re-encode and tight
    * enough that silence does not match noise.
    */
-  maxBitsDiffering?: number
+  maxBitsDiffering?: number;
   /**
    * The shortest run worth reporting, in seconds.
    */
-  minSeconds?: number
+  minSeconds?: number;
   /**
    * Gaps shorter than this are treated as part of the run.
    *
@@ -37,14 +37,14 @@ type CompareOptions = {
    * title lands over it — and without this the run would be chopped into
    * fragments none of which are long enough to report.
    */
-  toleratedGapSeconds?: number
-}
+  toleratedGapSeconds?: number;
+};
 
-const DEFAULT_MAX_BITS_DIFFERING = 6
+const DEFAULT_MAX_BITS_DIFFERING = 6;
 
-const DEFAULT_MIN_SECONDS = 15
+const DEFAULT_MIN_SECONDS = 15;
 
-const DEFAULT_TOLERATED_GAP_SECONDS = 3
+const DEFAULT_TOLERATED_GAP_SECONDS = 3;
 
 /**
  * How much work is worth doing exhaustively.
@@ -54,7 +54,7 @@ const DEFAULT_TOLERATED_GAP_SECONDS = 3
  * minutes of arithmetic for one season. Below this, exhaustive is instant and
  * worth keeping.
  */
-const EXHAUSTIVE_LIMIT = 4_000_000
+const EXHAUSTIVE_LIMIT = 4_000_000;
 
 /**
  * The bits an offset is proposed from.
@@ -63,27 +63,27 @@ const EXHAUSTIVE_LIMIT = 4_000_000
  * survive re-encoding best. Indexing on them finds the frames two recordings
  * genuinely share without demanding they agree bit for bit.
  */
-const INDEX_MASK = 0xffff
+const INDEX_MASK = 0xffff;
 
 /**
  * How many proposed alignments are worth scoring properly.
  */
-const CANDIDATE_OFFSETS = 24
+const CANDIDATE_OFFSETS = 24;
 
 /**
  * How many bits two hashes differ by.
  */
 const bitsDiffering = (left: number, right: number): number => {
-  let value = (left ^ right) >>> 0
-  let count = 0
+  let value = (left ^ right) >>> 0;
+  let count = 0;
 
   while (value !== 0) {
-    value &= value - 1
-    count += 1
+    value &= value - 1;
+    count += 1;
   }
 
-  return count
-}
+  return count;
+};
 
 /**
  * The longest run of near-matching frames at one alignment.
@@ -98,51 +98,51 @@ const longestRunAt = (
   maxBitsDiffering: number,
   toleratedGap: number,
 ): { start: number; length: number } => {
-  const from = Math.max(0, -offset)
-  const to = Math.min(left.length, right.length - offset)
+  const from = Math.max(0, -offset);
+  const to = Math.min(left.length, right.length - offset);
 
-  let best = { start: 0, length: 0 }
-  let runStart = -1
-  let runEnd = -1
-  let gap = 0
+  let best = { start: 0, length: 0 };
+  let runStart = -1;
+  let runEnd = -1;
+  let gap = 0;
 
   for (let index = from; index < to; index += 1) {
-    const matches = bitsDiffering(left[index] ?? 0, right[index + offset] ?? 0) <= maxBitsDiffering
+    const matches = bitsDiffering(left[index] ?? 0, right[index + offset] ?? 0) <= maxBitsDiffering;
 
     if (matches) {
       if (runStart === -1) {
-        runStart = index
+        runStart = index;
       }
 
-      runEnd = index
-      gap = 0
+      runEnd = index;
+      gap = 0;
 
-      continue
+      continue;
     }
 
     if (runStart === -1) {
-      continue
+      continue;
     }
 
-    gap += 1
+    gap += 1;
 
     if (gap > toleratedGap) {
       if (runEnd - runStart + 1 > best.length) {
-        best = { start: runStart, length: runEnd - runStart + 1 }
+        best = { start: runStart, length: runEnd - runStart + 1 };
       }
 
-      runStart = -1
-      runEnd = -1
-      gap = 0
+      runStart = -1;
+      runEnd = -1;
+      gap = 0;
     }
   }
 
   if (runStart !== -1 && runEnd - runStart + 1 > best.length) {
-    best = { start: runStart, length: runEnd - runStart + 1 }
+    best = { start: runStart, length: runEnd - runStart + 1 };
   }
 
-  return best
-}
+  return best;
+};
 
 /**
  * Proposes the alignments worth scoring.
@@ -157,36 +157,34 @@ const longestRunAt = (
  * rather than how carefully to try them.
  */
 const proposeOffsets = (left: number[], right: number[]): number[] => {
-  const positions = new Map<number, number[]>()
+  const positions = new Map<number, number[]>();
 
   for (const [index, hash] of right.entries()) {
-    const key = hash & INDEX_MASK
-    const seen = positions.get(key)
+    const key = hash & INDEX_MASK;
+    const seen = positions.get(key);
 
     if (seen === undefined) {
-      positions.set(key, [index])
+      positions.set(key, [index]);
     } else if (seen.length < 64) {
-      // A hash appearing everywhere is silence or a drone, and says nothing
-      // about alignment. Capping keeps one such hash from dominating.
-      seen.push(index)
+      seen.push(index);
     }
   }
 
-  const votes = new Map<number, number>()
+  const votes = new Map<number, number>();
 
   for (const [index, hash] of left.entries()) {
     for (const position of positions.get(hash & INDEX_MASK) ?? []) {
-      const offset = position - index
+      const offset = position - index;
 
-      votes.set(offset, (votes.get(offset) ?? 0) + 1)
+      votes.set(offset, (votes.get(offset) ?? 0) + 1);
     }
   }
 
   return [...votes.entries()]
     .sort((first, second) => second[1] - first[1])
     .slice(0, CANDIDATE_OFFSETS)
-    .map(([offset]) => offset)
-}
+    .map(([offset]) => offset);
+};
 
 /**
  * Finds the longest stretch of audio two recordings have in common.
@@ -210,16 +208,16 @@ const findSharedAudio = (
     maxBitsDiffering = DEFAULT_MAX_BITS_DIFFERING,
     minSeconds = DEFAULT_MIN_SECONDS,
     toleratedGapSeconds = DEFAULT_TOLERATED_GAP_SECONDS,
-  } = options
+  } = options;
 
   if (left.length === 0 || right.length === 0 || framesPerSecond <= 0) {
-    return null
+    return null;
   }
 
-  const toleratedGap = Math.round(toleratedGapSeconds * framesPerSecond)
-  const minFrames = Math.round(minSeconds * framesPerSecond)
+  const toleratedGap = Math.round(toleratedGapSeconds * framesPerSecond);
+  const minFrames = Math.round(minSeconds * framesPerSecond);
 
-  let best = { start: 0, length: 0, offset: 0 }
+  let best = { start: 0, length: 0, offset: 0 };
 
   const offsets =
     left.length * right.length <= EXHAUSTIVE_LIMIT
@@ -227,18 +225,18 @@ const findSharedAudio = (
           { length: left.length + right.length - 1 },
           (_, index) => index - left.length + 1,
         )
-      : proposeOffsets(left, right)
+      : proposeOffsets(left, right);
 
   for (const offset of offsets) {
-    const run = longestRunAt(left, right, offset, maxBitsDiffering, toleratedGap)
+    const run = longestRunAt(left, right, offset, maxBitsDiffering, toleratedGap);
 
     if (run.length > best.length) {
-      best = { ...run, offset }
+      best = { ...run, offset };
     }
   }
 
   if (best.length < minFrames) {
-    return null
+    return null;
   }
 
   return {
@@ -251,15 +249,15 @@ const findSharedAudio = (
       endSeconds: (best.start + best.offset + best.length) / framesPerSecond,
     },
     frames: best.length,
-  }
-}
+  };
+};
 
 /**
  * Whether two ranges describe the same stretch of a recording.
  */
 const overlaps = (left: Range, right: Range, toleranceSeconds: number): boolean =>
   Math.abs(left.startSeconds - right.startSeconds) <= toleranceSeconds &&
-  Math.abs(left.endSeconds - right.endSeconds) <= toleranceSeconds
+  Math.abs(left.endSeconds - right.endSeconds) <= toleranceSeconds;
 
 /**
  * Settles on the range the most comparisons agreed about.
@@ -272,41 +270,41 @@ const overlaps = (left: Range, right: Range, toleranceSeconds: number): boolean 
  */
 const agreeRange = (candidates: Range[], toleranceSeconds = 4): Range | null => {
   if (candidates.length === 0) {
-    return null
+    return null;
   }
 
-  let bestGroup: Range[] = []
+  let bestGroup: Range[] = [];
 
   for (const candidate of candidates) {
-    const group = candidates.filter((other) => overlaps(candidate, other, toleranceSeconds))
+    const group = candidates.filter((other) => overlaps(candidate, other, toleranceSeconds));
 
     if (group.length > bestGroup.length) {
-      bestGroup = group
+      bestGroup = group;
     }
   }
 
   if (bestGroup.length === 0) {
-    return null
+    return null;
   }
 
   const median = (values: number[]): number => {
-    const sorted = [...values].sort((first, second) => first - second)
-    const middle = Math.floor(sorted.length / 2)
+    const sorted = [...values].sort((first, second) => first - second);
+    const middle = Math.floor(sorted.length / 2);
 
     return sorted.length % 2 === 0
       ? ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2
-      : (sorted[middle] ?? 0)
-  }
+      : (sorted[middle] ?? 0);
+  };
 
   return {
     startSeconds: median(bestGroup.map((range) => range.startSeconds)),
     endSeconds: median(bestGroup.map((range) => range.endSeconds)),
-  }
-}
+  };
+};
 
-export type { CompareOptions, Range, SharedAudio }
+export type { CompareOptions, Range, SharedAudio };
 
-export default {
+export {
   findSharedAudio,
   proposeOffsets,
   agreeRange,
@@ -315,4 +313,4 @@ export default {
   overlaps,
   DEFAULT_MAX_BITS_DIFFERING,
   DEFAULT_MIN_SECONDS,
-}
+};

@@ -1,8 +1,6 @@
-import { render } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import DotFieldModule from './DotField'
-
-const { DotField } = DotFieldModule
+import { render } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DotField } from './DotField';
 
 const context = {
   clearRect: vi.fn(),
@@ -11,17 +9,17 @@ const context = {
   scale: vi.fn(),
   fillStyle: '',
   globalAlpha: 1,
-}
+};
 
-const observe = vi.fn()
-const disconnect = vi.fn()
+const observe = vi.fn();
+const disconnect = vi.fn();
 
 class FakeResizeObserver {
-  observe = observe
+  observe = observe;
 
-  disconnect = disconnect
+  disconnect = disconnect;
 
-  unobserve = vi.fn()
+  unobserve = vi.fn();
 }
 
 /**
@@ -31,32 +29,32 @@ const sizeCanvas = () => {
   Object.defineProperty(HTMLCanvasElement.prototype, 'clientWidth', {
     configurable: true,
     value: 800,
-  })
+  });
   Object.defineProperty(HTMLCanvasElement.prototype, 'clientHeight', {
     configurable: true,
     value: 600,
-  })
-}
+  });
+};
 
 const canvasOf = (container: HTMLElement): HTMLCanvasElement | null =>
-  container.querySelector('canvas')
+  container.querySelector('canvas');
 
 beforeEach(() => {
-  context.clearRect.mockClear()
-  context.fillRect.mockClear()
-  observe.mockClear()
-  disconnect.mockClear()
+  context.clearRect.mockClear();
+  context.fillRect.mockClear();
+  observe.mockClear();
+  disconnect.mockClear();
 
-  sizeCanvas()
+  sizeCanvas();
 
   Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     configurable: true,
     value: () => context,
-  })
+  });
 
-  vi.stubGlobal('ResizeObserver', FakeResizeObserver)
-  vi.stubGlobal('requestAnimationFrame', vi.fn().mockReturnValue(1))
-  vi.stubGlobal('cancelAnimationFrame', vi.fn())
+  vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+  vi.stubGlobal('requestAnimationFrame', vi.fn().mockReturnValue(1));
+  vi.stubGlobal('cancelAnimationFrame', vi.fn());
   vi.stubGlobal(
     'matchMedia',
     vi.fn().mockImplementation((query: string) => ({
@@ -69,69 +67,69 @@ beforeEach(() => {
       onchange: null,
       dispatchEvent: vi.fn(),
     })),
-  )
-})
+  );
+});
 
 afterEach(() => {
-  vi.unstubAllGlobals()
-})
+  vi.unstubAllGlobals();
+});
 
 describe('DotField', () => {
   it('draws one element rather than ten thousand', () => {
-    const { container } = render(<DotField />)
+    const { container } = render(<DotField />);
 
-    expect(canvasOf(container)).toBeInTheDocument()
-    expect(container.querySelectorAll('*')).toHaveLength(1)
-  })
+    expect(canvasOf(container)).toBeInTheDocument();
+    expect(container.querySelectorAll('*')).toHaveLength(1);
+  });
 
   it('is decoration, so nothing reading the page aloud mentions it', () => {
-    const { container } = render(<DotField />)
+    const { container } = render(<DotField />);
 
-    expect(canvasOf(container)).toHaveAttribute('aria-hidden', 'true')
-  })
+    expect(canvasOf(container)).toHaveAttribute('aria-hidden', 'true');
+  });
 
   it('never takes a press meant for what is behind it', () => {
-    const { container } = render(<DotField />)
+    const { container } = render(<DotField />);
 
-    expect(canvasOf(container)?.className).toContain('pointer-events-none')
-  })
+    expect(canvasOf(container)?.className).toContain('pointer-events-none');
+  });
 
   it('draws the dots', () => {
-    render(<DotField />)
+    render(<DotField />);
 
-    expect(context.fillRect).toHaveBeenCalled()
-  })
+    expect(context.fillRect).toHaveBeenCalled();
+  });
 
   it('draws more of them the finer the grid is asked to be', () => {
-    render(<DotField spacing={64} />)
+    render(<DotField spacing={64} />);
 
-    const coarse = context.fillRect.mock.calls.length
+    const coarse = context.fillRect.mock.calls.length;
 
-    context.fillRect.mockClear()
-    render(<DotField spacing={16} />)
+    context.fillRect.mockClear();
+    render(<DotField spacing={16} />);
 
-    expect(context.fillRect.mock.calls.length).toBeGreaterThan(coarse)
-  })
+    expect(context.fillRect.mock.calls.length).toBeGreaterThan(coarse);
+  });
 
   it('holds still for somebody who asked for less motion, but is still a grid', () => {
-    render(<DotField />)
+    render(<DotField />);
 
-    expect(requestAnimationFrame).not.toHaveBeenCalled()
-    expect(context.fillRect).toHaveBeenCalled()
-  })
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+    expect(context.fillRect).toHaveBeenCalled();
+  });
 
   it('lays the grid out again when the window changes shape', () => {
-    render(<DotField />)
+    render(<DotField />);
 
-    expect(observe).toHaveBeenCalled()
-  })
+    expect(observe).toHaveBeenCalled();
+  });
 
   it('stops drawing once it is gone', () => {
-    const { unmount } = render(<DotField />)
+    const { unmount } = render(<DotField />);
 
-    unmount()
+    unmount();
 
-    expect(disconnect).toHaveBeenCalled()
-    expect(cancelAnimationFrame).toHaveBeenCalled()
-  })
-})
+    expect(disconnect).toHaveBeenCalled();
+    expect(cancelAnimationFrame).toHaveBeenCalled();
+  });
+});

@@ -1,0 +1,16 @@
+{
+  "name": "@flux/tools",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint:comments": "tsx comments/checkComments.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@typescript-eslint/utils": "^8.66.0",
+    "tsx": "^4.19.2",
+    "vitest": "^3.0.2"
+  }
+}

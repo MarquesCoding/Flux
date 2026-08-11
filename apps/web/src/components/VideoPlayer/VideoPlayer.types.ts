@@ -1,14 +1,14 @@
-import type { MediaSummary } from '@FluxContracts/schemas/Library'
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 type VideoPlayerProps = {
-  media: Pick<MediaSummary, 'id' | 'title' | 'durationSeconds'>
+  media: Pick<MediaSummary, 'id' | 'title' | 'durationSeconds'>;
   /**
    * Whether the player owns the whole screen.
    *
    * An immersive player fills what it is given and lets the video decide its
    * own height, rather than sitting in a page's flow beneath a heading.
    */
-  isImmersive?: boolean
+  isImmersive?: boolean;
   /**
    * Where to begin, in seconds.
    *
@@ -16,8 +16,8 @@ type VideoPlayerProps = {
    * player that starts at zero regardless is a player that loses their place
    * every time they close it.
    */
-  startSeconds?: number
-  onClose: () => void
+  startSeconds?: number;
+  onClose: () => void;
   /**
    * Says where this viewer has got to, as they get there.
    *
@@ -26,7 +26,7 @@ type VideoPlayerProps = {
    * behind it still showing where you were an hour ago reads as nothing
    * having been saved at all.
    */
-  onProgress?: (positionSeconds: number, durationSeconds: number) => void
+  onProgress?: (positionSeconds: number, durationSeconds: number) => void;
   /**
    * Called when the film runs out.
    *
@@ -34,17 +34,17 @@ type VideoPlayerProps = {
    * episode is followed by the next episode, and a film is followed by
    * nothing.
    */
-  onEnded?: () => void
+  onEnded?: () => void;
   /**
    * The season this belongs to, in order.
    *
    * Empty for a film, which is what keeps the episode list off one.
    */
-  episodes?: MediaSummary[]
-  onSelectEpisode?: (episode: MediaSummary) => void
-  watchedFractionFor?: (mediaId: string) => number | undefined
-}
+  episodes?: MediaSummary[];
+  onSelectEpisode?: (episode: MediaSummary) => void;
+  watchedFractionFor?: (mediaId: string) => number | undefined;
+};
 
-type PlayerState = 'starting' | 'playing' | 'failed'
+type PlayerState = 'starting' | 'playing' | 'failed';
 
-export type { PlayerState, VideoPlayerProps }
+export type { PlayerState, VideoPlayerProps };

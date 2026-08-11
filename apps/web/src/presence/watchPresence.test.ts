@@ -1,78 +1,74 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import watchPresenceModule from './watchPresence'
-import presenceEventsModule from './presenceEvents'
-
-const { watchPresence } = watchPresenceModule
-const { onPresenceEvent } = presenceEventsModule
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { watchPresence } from './watchPresence';
+import { onPresenceEvent } from './presenceEvents';
 class FakeEventSource {
-  static last: FakeEventSource | null = null
+  static last: FakeEventSource | null = null;
 
-  onmessage: ((event: MessageEvent<string>) => void) | null = null
+  onmessage: ((event: MessageEvent<string>) => void) | null = null;
 
-  isClosed = false
+  isClosed = false;
 
   constructor(readonly url: string) {
-    FakeEventSource.last = this
+    FakeEventSource.last = this;
   }
 
   close() {
-    this.isClosed = true
+    this.isClosed = true;
   }
 }
 
 beforeEach(() => {
-  window.sessionStorage.clear()
-  FakeEventSource.last = null
-  vi.stubGlobal('EventSource', FakeEventSource)
-})
+  window.sessionStorage.clear();
+  FakeEventSource.last = null;
+  vi.stubGlobal('EventSource', FakeEventSource);
+});
 
 afterEach(() => {
-  vi.unstubAllGlobals()
-})
+  vi.unstubAllGlobals();
+});
 
 describe('watchPresence', () => {
   it('opens this tab’s own presence connection', () => {
-    watchPresence()
+    watchPresence();
 
-    expect(FakeEventSource.last?.url).toContain('/api/presence/stream?')
-    expect(FakeEventSource.last?.url).toContain('clientId=')
-  })
+    expect(FakeEventSource.last?.url).toContain('/api/presence/stream?');
+    expect(FakeEventSource.last?.url).toContain('clientId=');
+  });
 
   it('passes a stopped event on to anyone listening', () => {
-    const listener = vi.fn()
+    const listener = vi.fn();
 
-    onPresenceEvent(listener)
-    watchPresence()
+    onPresenceEvent(listener);
+    watchPresence();
     FakeEventSource.last?.onmessage?.(
       new MessageEvent('message', {
         data: JSON.stringify({ kind: 'stopped', reason: 'This stream was stopped by an admin.' }),
       }),
-    )
+    );
 
     expect(listener).toHaveBeenCalledWith({
       kind: 'stopped',
       reason: 'This stream was stopped by an admin.',
-    })
-  })
+    });
+  });
 
   it('ignores a message it cannot read, rather than throwing on the stream', () => {
-    const listener = vi.fn()
+    const listener = vi.fn();
 
-    onPresenceEvent(listener)
-    watchPresence()
+    onPresenceEvent(listener);
+    watchPresence();
     FakeEventSource.last?.onmessage?.(
       new MessageEvent('message', { data: JSON.stringify({ kind: 'unknown' }) }),
-    )
+    );
 
-    expect(listener).not.toHaveBeenCalled()
-  })
+    expect(listener).not.toHaveBeenCalled();
+  });
 
   it('stops watching when it is told to', () => {
-    const stop = watchPresence()
+    const stop = watchPresence();
 
-    stop()
+    stop();
 
-    expect(FakeEventSource.last?.isClosed).toBe(true)
-  })
-})
+    expect(FakeEventSource.last?.isClosed).toBe(true);
+  });
+});

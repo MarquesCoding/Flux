@@ -1,17 +1,14 @@
-import { IconLoader2 } from '@tabler/icons-react'
-import { motion, useReducedMotion } from 'motion/react'
-import cnModule from '@FluxUI/cn'
-import spinModule from '@FluxUI/animations/spin'
-import type { SpinnerProps, SpinnerSize } from './Spinner.types'
-
-const { cn } = cnModule
-const { spinVariants, spinTransition, reducedSpinTransition } = spinModule
+import { IconLoader2 } from '@tabler/icons-react';
+import { motion, useReducedMotion } from 'motion/react';
+import { cn } from '@FluxUI/cn';
+import { spinVariants, spinTransition, reducedSpinTransition } from '@FluxUI/animations/spin';
+import type { SpinnerProps, SpinnerSize } from './Spinner.types';
 
 const SIZE_PIXELS: Record<SpinnerSize, number> = {
   sm: 16,
   md: 24,
   lg: 32,
-}
+};
 
 /**
  * An indeterminate loading indicator.
@@ -20,7 +17,7 @@ const SIZE_PIXELS: Record<SpinnerSize, number> = {
  * code standards section 11.
  */
 const Spinner = ({ size = 'md', label, className }: SpinnerProps) => {
-  const prefersReducedMotion = useReducedMotion()
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <motion.span
@@ -34,9 +31,9 @@ const Spinner = ({ size = 'md', label, className }: SpinnerProps) => {
     >
       <IconLoader2 size={SIZE_PIXELS[size]} stroke={2} aria-hidden />
     </motion.span>
-  )
-}
+  );
+};
 
-Spinner.displayName = 'Spinner'
+Spinner.displayName = 'Spinner';
 
-export default { Spinner }
+export { Spinner };

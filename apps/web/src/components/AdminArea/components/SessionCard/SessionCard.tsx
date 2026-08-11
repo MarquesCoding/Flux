@@ -1,19 +1,15 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   IconDeviceTvFilled,
   IconInfoCircleFilled,
   IconPlayerPause,
   IconPlayerPlay,
   IconPlayerStop,
-} from '@tabler/icons-react'
-import IconButtonModule from '@FluxUI/IconButton'
-import deviceIconModule from './deviceIcon'
-import SessionStatsDialogModule from '@FluxWeb/components/AdminArea/components/SessionStatsDialog/SessionStatsDialog'
-import type { SessionCardProps } from './SessionCard.types'
-
-const { IconButton } = IconButtonModule
-const { deviceIconFor } = deviceIconModule
-const { SessionStatsDialog } = SessionStatsDialogModule
+} from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { deviceIconFor } from './deviceIcon';
+import { SessionStatsDialog } from '@FluxWeb/components/AdminArea/components/SessionStatsDialog/SessionStatsDialog';
+import type { SessionCardProps } from './SessionCard.types';
 
 /**
  * One open tab, styled after Jellyfin's session cards: artwork with the
@@ -25,9 +21,9 @@ const { SessionStatsDialog } = SessionStatsDialogModule
  * saw a fraction of who was actually around.
  */
 const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCardProps) => {
-  const { playback } = session
-  const DeviceIcon = deviceIconFor(session.deviceLabel)
-  const [isShowingStats, setIsShowingStats] = useState(false)
+  const { playback } = session;
+  const DeviceIcon = deviceIconFor(session.deviceLabel);
+  const [isShowingStats, setIsShowingStats] = useState(false);
 
   return (
     <article className="flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
@@ -72,9 +68,6 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
       </div>
 
       {playback !== null && playback.health !== null && playback.health.durationSeconds > 0 ? (
-        // Buffer drawn first and wider, position drawn over it — the same
-        // layering Jellyfin's own session cards use, so how far ahead the
-        // transcode is stays visible even while paused.
         <div className="relative h-1 w-full bg-white/10">
           <div
             className="absolute inset-y-0 left-0 bg-white/30"
@@ -105,35 +98,53 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
         </div>
       ) : (
         <div className="relative flex min-h-11 items-center justify-center gap-1 border-t border-white/10 bg-black/20 px-2 py-1.5">
-          {/* Follows whether it is actually playing, not just whether an
-              admin was the one who paused it — a viewer pausing themselves
-              should turn this into a working play button too. */}
           {playback.isPlaying ? (
-            <IconButton label="Pause" size="sm" disabled={isBusy} onClick={onPause}>
+            <Button
+              isIconOnly
+              variant="ghost"
+              label="Pause"
+              size="sm"
+              disabled={isBusy}
+              onClick={onPause}
+            >
               <IconPlayerPause size={16} aria-hidden />
-            </IconButton>
+            </Button>
           ) : (
-            <IconButton label="Play" size="sm" disabled={isBusy} onClick={onResume}>
+            <Button
+              isIconOnly
+              variant="ghost"
+              label="Play"
+              size="sm"
+              disabled={isBusy}
+              onClick={onResume}
+            >
               <IconPlayerPlay size={16} aria-hidden />
-            </IconButton>
+            </Button>
           )}
 
-          <IconButton label="Stop" size="sm" disabled={isBusy} onClick={onStop}>
+          <Button
+            isIconOnly
+            variant="ghost"
+            label="Stop"
+            size="sm"
+            disabled={isBusy}
+            onClick={onStop}
+          >
             <IconPlayerStop size={16} aria-hidden />
-          </IconButton>
+          </Button>
 
-          {/* Positioned out of the centering flow rather than as a flex
-              sibling, so it does not pull the transport controls off centre. */}
-          <IconButton
+          <Button
+            isIconOnly
+            variant="ghost"
             label="Stream stats"
             size="sm"
             className="absolute right-2"
             onClick={() => {
-              setIsShowingStats(true)
+              setIsShowingStats(true);
             }}
           >
             <IconInfoCircleFilled size={16} aria-hidden />
-          </IconButton>
+          </Button>
         </div>
       )}
 
@@ -141,13 +152,13 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
         session={session}
         isOpen={isShowingStats}
         onClose={() => {
-          setIsShowingStats(false)
+          setIsShowingStats(false);
         }}
       />
     </article>
-  )
-}
+  );
+};
 
-SessionCard.displayName = 'SessionCard'
+SessionCard.displayName = 'SessionCard';
 
-export default { SessionCard }
+export { SessionCard };

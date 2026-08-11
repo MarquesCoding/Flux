@@ -1,9 +1,7 @@
-import { Menu } from '@base-ui-components/react/menu'
-import { IconCheck } from '@tabler/icons-react'
-import cnModule from '@FluxUI/cn'
-import type { OptionMenuProps } from './OptionMenu.types'
-
-const { cn } = cnModule
+import { Menu } from '@base-ui/react/menu';
+import { IconCheck } from '@tabler/icons-react';
+import { cn } from '@FluxUI/cn';
+import type { OptionMenuProps } from './OptionMenu.types';
 
 /**
  * How the popup arrives and leaves.
@@ -18,7 +16,7 @@ const POPUP_MOTION = [
   'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
   'motion-reduce:transition-opacity',
   'motion-reduce:data-[starting-style]:scale-100 motion-reduce:data-[ending-style]:scale-100',
-].join(' ')
+].join(' ');
 
 /**
  * A menu of mutually exclusive choices, in one or more columns.
@@ -75,7 +73,7 @@ const OptionMenu = ({
                 <Menu.RadioGroup
                   value={group.selectedId}
                   onValueChange={(next) => {
-                    group.onSelect(String(next))
+                    group.onSelect(String(next));
                   }}
                   className="flex flex-col"
                 >
@@ -113,8 +111,8 @@ const OptionMenu = ({
       </Menu.Positioner>
     </Menu.Portal>
   </Menu.Root>
-)
+);
 
-OptionMenu.displayName = 'OptionMenu'
+OptionMenu.displayName = 'OptionMenu';
 
-export default { OptionMenu }
+export { OptionMenu };

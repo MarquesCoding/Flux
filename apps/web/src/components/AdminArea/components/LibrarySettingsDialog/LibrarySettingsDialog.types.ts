@@ -1,10 +1,10 @@
-import type { Library } from '@FluxContracts/schemas/Library'
+import type { Library } from '@FluxContracts/schemas/Library';
 
 type LibrarySettingsDialogProps = {
-  library: Library | null
-  isOpen: boolean
-  onClose: () => void
-  onUpdated: (library: Library) => void
+  library: Library | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdated: (library: Library) => void;
   /**
    * Asks the caller to queue preview regeneration for a library.
    *
@@ -13,7 +13,7 @@ type LibrarySettingsDialogProps = {
    * does for a scan, so this dialog can close immediately rather than
    * blocking on a job that can take a while.
    */
-  onRegenerate: (libraryId: string) => void
-}
+  onRegenerate: (libraryId: string) => void;
+};
 
-export type { LibrarySettingsDialogProps }
+export type { LibrarySettingsDialogProps };

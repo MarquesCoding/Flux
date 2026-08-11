@@ -1,23 +1,19 @@
-import { readdir, readFile } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
-import toWebVttModule from '@FluxCore/functions/toWebVtt'
-import findSidecarSubtitlesModule from './findSidecarSubtitles'
-import SubtitleServiceModule from './SubtitleService'
-import type { SubtitleService, SubtitleTrack } from './SubtitleService'
-import type { SidecarFile } from './findSidecarSubtitles'
-
-const { toWebVtt } = toWebVttModule
-const { findSidecarSubtitles, SUBTITLE_DIRECTORIES } = findSidecarSubtitlesModule
-const { trackId } = SubtitleServiceModule
+import { readdir, readFile } from 'node:fs/promises';
+import { basename, dirname, join } from 'node:path';
+import { toWebVtt } from '@FluxCore/functions/toWebVtt';
+import { findSidecarSubtitles, SUBTITLE_DIRECTORIES } from './findSidecarSubtitles';
+import { trackId } from './SubtitleService';
+import type { SubtitleService, SubtitleTrack } from './SubtitleService';
+import type { SidecarFile } from './findSidecarSubtitles';
 
 type MediaPathLookup = {
-  findPath: (mediaId: string) => Promise<string | null>
-}
+  findPath: (mediaId: string) => Promise<string | null>;
+};
 
 type CreateSidecarSubtitleServiceOptions = {
-  media: MediaPathLookup
-  onProblem?: (path: string, reason: string) => void
-}
+  media: MediaPathLookup;
+  onProblem?: (path: string, reason: string) => void;
+};
 
 /**
  * Lists a directory, treating an unreadable one as empty.
@@ -27,30 +23,30 @@ type CreateSidecarSubtitleServiceOptions = {
  */
 const listFiles = async (directory: string): Promise<SidecarFile[]> => {
   try {
-    const entries = await readdir(directory, { withFileTypes: true })
+    const entries = await readdir(directory, { withFileTypes: true });
 
     return entries
       .filter((entry) => entry.isFile())
-      .map((entry) => ({ path: join(directory, entry.name), name: entry.name }))
+      .map((entry) => ({ path: join(directory, entry.name), name: entry.name }));
   } catch {
-    return []
+    return [];
   }
-}
+};
 
 /**
  * Finds the subtitle directories sitting beside a video.
  */
 const findSubtitleDirectories = async (directory: string): Promise<string[]> => {
   try {
-    const entries = await readdir(directory, { withFileTypes: true })
+    const entries = await readdir(directory, { withFileTypes: true });
 
     return entries
       .filter((entry) => entry.isDirectory() && SUBTITLE_DIRECTORIES.has(entry.name.toLowerCase()))
-      .map((entry) => join(directory, entry.name))
+      .map((entry) => join(directory, entry.name));
   } catch {
-    return []
+    return [];
   }
-}
+};
 
 /**
  * Subtitles read from the files beside a video.
@@ -66,16 +62,16 @@ const createSidecarSubtitleService = ({
   onProblem,
 }: CreateSidecarSubtitleServiceOptions): SubtitleService => {
   const discover = async (mediaId: string) => {
-    const videoPath = await media.findPath(mediaId)
+    const videoPath = await media.findPath(mediaId);
 
     if (videoPath === null) {
-      return null
+      return null;
     }
 
-    const directory = dirname(videoPath)
-    const videoName = basename(videoPath)
+    const directory = dirname(videoPath);
+    const videoName = basename(videoPath);
 
-    const beside = findSidecarSubtitles(videoName, await listFiles(directory))
+    const beside = findSidecarSubtitles(videoName, await listFiles(directory));
 
     const nested = await Promise.all(
       (await findSubtitleDirectories(directory)).map(async (subtitleDirectory) =>
@@ -83,17 +79,17 @@ const createSidecarSubtitleService = ({
           fromSubtitleDirectory: true,
         }),
       ),
-    )
+    );
 
-    return [...beside, ...nested.flat()]
-  }
+    return [...beside, ...nested.flat()];
+  };
 
   return {
     list: async (mediaId) => {
-      const found = await discover(mediaId)
+      const found = await discover(mediaId);
 
       if (found === null) {
-        return null
+        return null;
       }
 
       const tracks: SubtitleTrack[] = found.map((track) => ({
@@ -103,33 +99,30 @@ const createSidecarSubtitleService = ({
         format: track.format,
         isForced: track.isForced,
         isHearingImpaired: track.isHearingImpaired,
-      }))
+      }));
 
-      return tracks
+      return tracks;
     },
 
     read: async (mediaId, id) => {
-      const found = await discover(mediaId)
-      const track = found?.find((candidate) => trackId(candidate.path) === id)
+      const found = await discover(mediaId);
+      const track = found?.find((candidate) => trackId(candidate.path) === id);
 
       if (track === undefined) {
-        return null
+        return null;
       }
 
       try {
-        // Read as UTF-8 and let a mis-encoded file arrive as replacement
-        // characters rather than failing: a track with mangled accents is
-        // still better than no subtitles at all.
-        return toWebVtt(await readFile(track.path, 'utf8'), track.format)
+        return toWebVtt(await readFile(track.path, 'utf8'), track.format);
       } catch (error) {
-        onProblem?.(track.path, error instanceof Error ? error.message : 'Unreadable.')
+        onProblem?.(track.path, error instanceof Error ? error.message : 'Unreadable.');
 
-        return null
+        return null;
       }
     },
-  }
-}
+  };
+};
 
-export type { CreateSidecarSubtitleServiceOptions, MediaPathLookup }
+export type { CreateSidecarSubtitleServiceOptions, MediaPathLookup };
 
-export default { createSidecarSubtitleService, listFiles, findSubtitleDirectories }
+export { createSidecarSubtitleService, listFiles, findSubtitleDirectories };

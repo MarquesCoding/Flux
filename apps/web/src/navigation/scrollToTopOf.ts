@@ -13,26 +13,25 @@
  */
 const scrollToTopOf = (from: HTMLElement | null, isSmooth = true): void => {
   if (from === null) {
-    return
+    return;
   }
 
-  let holder = from.parentElement
+  let holder = from.parentElement;
 
   while (holder !== null) {
-    const style = window.getComputedStyle(holder)
-    const scrolls = style.overflowY === 'auto' || style.overflowY === 'scroll'
+    const style = window.getComputedStyle(holder);
+    const scrolls = style.overflowY === 'auto' || style.overflowY === 'scroll';
 
     if (scrolls && holder.scrollHeight > holder.clientHeight) {
-      holder.scrollTo({ top: 0, behavior: isSmooth ? 'smooth' : 'auto' })
+      holder.scrollTo({ top: 0, behavior: isSmooth ? 'smooth' : 'auto' });
 
-      return
+      return;
     }
 
-    holder = holder.parentElement
+    holder = holder.parentElement;
   }
 
-  // Nothing between here and the document scrolls, so the document does.
-  window.scrollTo({ top: 0, behavior: isSmooth ? 'smooth' : 'auto' })
-}
+  window.scrollTo({ top: 0, behavior: isSmooth ? 'smooth' : 'auto' });
+};
 
-export default { scrollToTopOf }
+export { scrollToTopOf };

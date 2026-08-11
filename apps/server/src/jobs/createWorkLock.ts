@@ -14,8 +14,8 @@
  * would mean a scheduled run silently not happening.
  */
 type WorkLock = {
-  run: <T>(key: string, work: () => Promise<T>) => Promise<T>
-}
+  run: <T>(key: string, work: () => Promise<T>) => Promise<T>;
+};
 
 /**
  * Calls the work, turning a synchronous throw into a rejection.
@@ -27,53 +27,37 @@ type WorkLock = {
  */
 const start = <T>(work: () => Promise<T>): Promise<T> => {
   try {
-    return work()
+    return work();
   } catch (error) {
-    return Promise.reject(error instanceof Error ? error : new Error(String(error)))
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
   }
-}
+};
 
 const createWorkLock = (): WorkLock => {
-  // Holds the settled-and-swallowed tail rather than the caller's own
-  // promise, so what the next piece waits on carries no value and can never
-  // reject.
-  const tails = new Map<string, Promise<void>>()
+  const tails = new Map<string, Promise<void>>();
 
   return {
     run: (key, work) => {
-      const previous = tails.get(key)
-      // Started outright when nothing holds the key, rather than chained off
-      // an already-resolved promise: the uncontended case is the usual one,
-      // and it should not be pushed behind a microtask to get there.
-      const next =
-        previous === undefined
-          ? start(work)
-          : // Runs whether the piece in front succeeded or failed: one job
-            // throwing must not wedge every later job for that library behind
-            // it forever.
-            previous.then(work, work)
-      // The chain is what the next caller waits on, so it must never reject —
-      // the caller of *this* run still sees the real result through `next`.
+      const previous = tails.get(key);
+      const next = previous === undefined ? start(work) : previous.then(work, work);
       const settled = next.then(
         () => {},
         () => {},
-      )
+      );
 
-      tails.set(key, settled)
+      tails.set(key, settled);
 
       void settled.then(() => {
-        // Only the last piece in a chain clears it. Anything else would drop
-        // a key that somebody is still queued behind.
         if (tails.get(key) === settled) {
-          tails.delete(key)
+          tails.delete(key);
         }
-      })
+      });
 
-      return next
+      return next;
     },
-  }
-}
+  };
+};
 
-export type { WorkLock }
+export type { WorkLock };
 
-export default { createWorkLock }
+export { createWorkLock };

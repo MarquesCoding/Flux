@@ -1,9 +1,9 @@
 type PresenceEvent =
-  { kind: 'stopped'; reason: string } | { kind: 'paused'; reason: string } | { kind: 'resumed' }
+  { kind: 'stopped'; reason: string } | { kind: 'paused'; reason: string } | { kind: 'resumed' };
 
-type PresenceEventListener = (event: PresenceEvent) => void
+type PresenceEventListener = (event: PresenceEvent) => void;
 
-const listeners = new Set<PresenceEventListener>()
+const listeners = new Set<PresenceEventListener>();
 
 /**
  * Passes an admin action from this tab's presence connection to whichever
@@ -16,9 +16,9 @@ const listeners = new Set<PresenceEventListener>()
  */
 const emitPresenceEvent = (event: PresenceEvent): void => {
   for (const listener of listeners) {
-    listener(event)
+    listener(event);
   }
-}
+};
 
 /**
  * Listens for admin actions pushed down this tab's presence connection.
@@ -26,13 +26,13 @@ const emitPresenceEvent = (event: PresenceEvent): void => {
  * Returns the function that stops listening.
  */
 const onPresenceEvent = (listener: PresenceEventListener): (() => void) => {
-  listeners.add(listener)
+  listeners.add(listener);
 
   return () => {
-    listeners.delete(listener)
-  }
-}
+    listeners.delete(listener);
+  };
+};
 
-export type { PresenceEvent }
+export type { PresenceEvent };
 
-export default { emitPresenceEvent, onPresenceEvent }
+export { emitPresenceEvent, onPresenceEvent };

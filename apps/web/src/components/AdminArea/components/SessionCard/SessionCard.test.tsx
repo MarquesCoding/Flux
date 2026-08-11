@@ -1,13 +1,11 @@
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
-import SessionCardModule from './SessionCard'
-import type { ActiveSession } from '@FluxWeb/admin/fetchAdmin'
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import { SessionCard } from './SessionCard';
+import type { ActiveSession } from '@FluxWeb/admin/fetchAdmin';
+import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 
-const { SessionCard } = SessionCardModule
-
-const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' }
+const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };
 
 const PLAN: PlaybackPlan = {
   mediaId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
@@ -15,7 +13,7 @@ const PLAN: PlaybackPlan = {
   video: { kind: 'passthrough', reason },
   audio: { kind: 'passthrough', streamIndex: 1, reason },
   subtitles: { kind: 'none', reason },
-}
+};
 
 const IDLE_SESSION: ActiveSession = {
   clientId: 'tab-1',
@@ -24,7 +22,7 @@ const IDLE_SESSION: ActiveSession = {
   deviceLabel: 'Living room TV',
   connectedAt: 1000,
   playback: null,
-}
+};
 
 const WATCHING_SESSION: ActiveSession = {
   ...IDLE_SESSION,
@@ -40,7 +38,7 @@ const WATCHING_SESSION: ActiveSession = {
     startedAt: 1500,
     health: null,
   },
-}
+};
 
 describe('SessionCard', () => {
   it('shows the device for a tab that is not watching anything', () => {
@@ -52,11 +50,11 @@ describe('SessionCard', () => {
         onPause={vi.fn()}
         onResume={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.getByText('Living room TV')).toBeInTheDocument()
-    expect(screen.getByText('Not watching anything')).toBeInTheDocument()
-  })
+    expect(screen.getByText('Living room TV')).toBeInTheDocument();
+    expect(screen.getByText('Not watching anything')).toBeInTheDocument();
+  });
 
   it('offers no playback controls when nothing is playing', () => {
     render(
@@ -67,10 +65,10 @@ describe('SessionCard', () => {
         onPause={vi.fn()}
         onResume={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.queryByRole('button', { name: /Pause|Stop/ })).not.toBeInTheDocument()
-  })
+    expect(screen.queryByRole('button', { name: /Pause|Stop/ })).not.toBeInTheDocument();
+  });
 
   it('shows what a tab is watching, and how', () => {
     render(
@@ -81,14 +79,14 @@ describe('SessionCard', () => {
         onPause={vi.fn()}
         onResume={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.getByText(/Arrival/)).toBeInTheDocument()
-    expect(screen.getByText(/Transcoding/)).toBeInTheDocument()
-  })
+    expect(screen.getByText(/Arrival/)).toBeInTheDocument();
+    expect(screen.getByText(/Transcoding/)).toBeInTheDocument();
+  });
 
   it('stops a stream on request', async () => {
-    const onStop = vi.fn()
+    const onStop = vi.fn();
 
     render(
       <SessionCard
@@ -98,14 +96,14 @@ describe('SessionCard', () => {
         onPause={vi.fn()}
         onResume={vi.fn()}
       />,
-    )
-    await userEvent.click(screen.getByRole('button', { name: /Stop/ }))
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Stop/ }));
 
-    expect(onStop).toHaveBeenCalled()
-  })
+    expect(onStop).toHaveBeenCalled();
+  });
 
   it('offers to pause a stream that is playing', async () => {
-    const onPause = vi.fn()
+    const onPause = vi.fn();
 
     render(
       <SessionCard
@@ -115,21 +113,21 @@ describe('SessionCard', () => {
         onPause={onPause}
         onResume={vi.fn()}
       />,
-    )
-    await userEvent.click(screen.getByRole('button', { name: /Pause/ }))
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Pause/ }));
 
-    expect(onPause).toHaveBeenCalled()
-  })
+    expect(onPause).toHaveBeenCalled();
+  });
 
   it('offers to resume a stream an admin already paused', async () => {
-    const onResume = vi.fn()
+    const onResume = vi.fn();
     const pausedSession: ActiveSession = {
       ...WATCHING_SESSION,
       playback:
         WATCHING_SESSION.playback === null
           ? null
           : { ...WATCHING_SESSION.playback, pausedByAdmin: true, isPlaying: false },
-    }
+    };
 
     render(
       <SessionCard
@@ -139,11 +137,11 @@ describe('SessionCard', () => {
         onPause={vi.fn()}
         onResume={onResume}
       />,
-    )
-    await userEvent.click(screen.getByRole('button', { name: /Play/ }))
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Play/ }));
 
-    expect(onResume).toHaveBeenCalled()
-  })
+    expect(onResume).toHaveBeenCalled();
+  });
 
   it('shows no progress bar until the player has reported its position', () => {
     const { container } = render(
@@ -154,10 +152,10 @@ describe('SessionCard', () => {
         onPause={vi.fn()}
         onResume={vi.fn()}
       />,
-    )
+    );
 
-    expect(container.querySelector('.bg-accent')).not.toBeInTheDocument()
-  })
+    expect(container.querySelector('.bg-accent')).not.toBeInTheDocument();
+  });
 
   it('draws the position and buffer as widths of how far through the film they are', () => {
     const session: ActiveSession = {
@@ -175,7 +173,7 @@ describe('SessionCard', () => {
                 presentedHeight: 1080,
               },
             },
-    }
+    };
 
     const { container } = render(
       <SessionCard
@@ -185,24 +183,24 @@ describe('SessionCard', () => {
         onPause={vi.fn()}
         onResume={vi.fn()}
       />,
-    )
+    );
 
-    const position = container.querySelector('.bg-accent')
-    const buffer = container.querySelector('.bg-white\\/30')
+    const position = container.querySelector('.bg-accent');
+    const buffer = container.querySelector('.bg-white\\/30');
 
-    expect(position).toHaveStyle({ width: '25%' })
-    expect(buffer).toHaveStyle({ width: '37.5%' })
-  })
+    expect(position).toHaveStyle({ width: '25%' });
+    expect(buffer).toHaveStyle({ width: '37.5%' });
+  });
 
   it('offers a working play button when a viewer paused it themselves', async () => {
-    const onResume = vi.fn()
+    const onResume = vi.fn();
     const selfPausedSession: ActiveSession = {
       ...WATCHING_SESSION,
       playback:
         WATCHING_SESSION.playback === null
           ? null
           : { ...WATCHING_SESSION.playback, pausedByAdmin: false, isPlaying: false },
-    }
+    };
 
     render(
       <SessionCard
@@ -212,9 +210,9 @@ describe('SessionCard', () => {
         onPause={vi.fn()}
         onResume={onResume}
       />,
-    )
-    await userEvent.click(screen.getByRole('button', { name: /Play/ }))
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Play/ }));
 
-    expect(onResume).toHaveBeenCalled()
-  })
-})
+    expect(onResume).toHaveBeenCalled();
+  });
+});

@@ -1,14 +1,10 @@
-import { useState } from 'react'
-import { IconArrowLeft, IconPlus, IconX } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import AddTriggerDialogModule from '@FluxWeb/components/AdminArea/components/AddTriggerDialog/AddTriggerDialog'
-import describeTriggerModule from '@FluxWeb/admin/describeTrigger'
-import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin'
-import type { JobSchedulePageProps } from './JobSchedulePage.types'
-
-const { Button } = ButtonModule
-const { AddTriggerDialog } = AddTriggerDialogModule
-const { describeTrigger } = describeTriggerModule
+import { useState } from 'react';
+import { IconArrowLeft, IconPlus, IconX } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { AddTriggerDialog } from '@FluxWeb/components/AdminArea/components/AddTriggerDialog/AddTriggerDialog';
+import { describeTrigger } from '@FluxWeb/admin/describeTrigger';
+import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin';
+import type { JobSchedulePageProps } from './JobSchedulePage.types';
 
 /**
  * What makes one job run on its own, Jellyfin's scheduled-tasks page style —
@@ -26,12 +22,12 @@ const JobSchedulePage = ({
   onRemove,
   onClose,
 }: JobSchedulePageProps) => {
-  const [isAdding, setIsAdding] = useState(false)
+  const [isAdding, setIsAdding] = useState(false);
 
   const add = (trigger: ScheduleTrigger) => {
-    setIsAdding(false)
-    onAdd(trigger)
-  }
+    setIsAdding(false);
+    onAdd(trigger);
+  };
 
   return (
     <div className="flex flex-col gap-6 p-5">
@@ -54,7 +50,7 @@ const JobSchedulePage = ({
             size="sm"
             isPill
             onClick={() => {
-              setIsAdding(true)
+              setIsAdding(true);
             }}
           >
             <IconPlus size={16} aria-hidden />
@@ -78,7 +74,7 @@ const JobSchedulePage = ({
                   isPill
                   aria-label={`Remove ${describeTrigger(entry.trigger)}`}
                   onClick={() => {
-                    onRemove(entry.id)
+                    onRemove(entry.id);
                   }}
                 >
                   <IconX size={16} aria-hidden />
@@ -93,13 +89,13 @@ const JobSchedulePage = ({
         isOpen={isAdding}
         onAdd={add}
         onClose={() => {
-          setIsAdding(false)
+          setIsAdding(false);
         }}
       />
     </div>
-  )
-}
+  );
+};
 
-JobSchedulePage.displayName = 'JobSchedulePage'
+JobSchedulePage.displayName = 'JobSchedulePage';
 
-export default { JobSchedulePage }
+export { JobSchedulePage };

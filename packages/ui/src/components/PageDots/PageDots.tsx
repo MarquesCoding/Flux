@@ -1,7 +1,6 @@
-import cnModule from '@FluxUI/cn'
-import type { PageDotsProps } from './PageDots.types'
-
-const { cn } = cnModule
+import { Button } from '@FluxUI/Button';
+import { cn } from '@FluxUI/cn';
+import type { PageDotsProps } from './PageDots.types';
 
 /**
  * Which of several things is showing, and a way to any of the others.
@@ -19,26 +18,23 @@ const { cn } = cnModule
  */
 const PageDots = ({ count, selectedIndex, onSelect, labels, label, className }: PageDotsProps) => {
   if (count <= 1) {
-    return null
+    return null;
   }
 
   return (
     <ul aria-label={label} className={cn('flex items-center gap-1.5', className)}>
       {Array.from({ length: count }, (_, index) => index).map((index) => {
-        const named = labels?.[index]
+        const named = labels?.[index];
 
         return (
           <li key={index}>
-            <button
-              type="button"
-              // Named for what pressing it does rather than for what it points
-              // at: the caption above says which thing this is, and a button
-              // whose whole name is a film title does not say that it is a way
-              // of getting there.
+            <Button
+              variant="bare"
+              size="none"
               aria-label={`Show ${named ?? `page ${(index + 1).toString()}`}`}
               aria-current={selectedIndex === index ? 'true' : undefined}
               onClick={() => {
-                onSelect(index)
+                onSelect(index);
               }}
               className="group relative flex items-center px-0.5 py-2"
             >
@@ -56,14 +52,14 @@ const PageDots = ({ count, selectedIndex, onSelect, labels, label, className }: 
                     : 'w-1.5 bg-text-muted/40 group-hover:bg-text-muted',
                 )}
               />
-            </button>
+            </Button>
           </li>
-        )
+        );
       })}
     </ul>
-  )
-}
+  );
+};
 
-PageDots.displayName = 'PageDots'
+PageDots.displayName = 'PageDots';
 
-export default { PageDots }
+export { PageDots };

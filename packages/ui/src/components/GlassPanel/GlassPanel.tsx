@@ -1,12 +1,10 @@
-import cnModule from '@FluxUI/cn'
-import type { GlassElevation, GlassPanelProps } from './GlassPanel.types'
-
-const { cn } = cnModule
+import { cn } from '@FluxUI/cn';
+import type { GlassElevation, GlassPanelProps } from './GlassPanel.types';
 
 const ELEVATION_CLASSES: Record<GlassElevation, string> = {
   floating: 'flux-glass',
   inset: 'border border-white/10 bg-white/[0.04] backdrop-blur-xl',
-}
+};
 
 /**
  * A translucent pane.
@@ -26,8 +24,8 @@ const GlassPanel = ({
   <Element className={cn('rounded-xl', ELEVATION_CLASSES[elevation], className)} {...rest}>
     {children}
   </Element>
-)
+);
 
-GlassPanel.displayName = 'GlassPanel'
+GlassPanel.displayName = 'GlassPanel';
 
-export default { GlassPanel }
+export { GlassPanel };

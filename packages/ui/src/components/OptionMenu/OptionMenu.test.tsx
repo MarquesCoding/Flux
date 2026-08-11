@@ -1,10 +1,8 @@
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
-import OptionMenuModule from './OptionMenu'
-import type { MenuGroup } from './OptionMenu.types'
-
-const { OptionMenu } = OptionMenuModule
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import { OptionMenu } from './OptionMenu';
+import type { MenuGroup } from './OptionMenu.types';
 
 const speed = (onSelect = vi.fn()): MenuGroup => ({
   name: 'Playback Speed',
@@ -15,53 +13,53 @@ const speed = (onSelect = vi.fn()): MenuGroup => ({
     { id: '1', label: '1x' },
     { id: '2', label: '2x' },
   ],
-})
+});
 
 const open = async (groups: MenuGroup[]) => {
-  const user = userEvent.setup()
-  render(<OptionMenu label="Playback speed" trigger={<span>1x</span>} groups={groups} />)
+  const user = userEvent.setup();
+  render(<OptionMenu label="Playback speed" trigger={<span>1x</span>} groups={groups} />);
 
-  await user.click(screen.getByRole('button', { name: 'Playback speed' }))
+  await user.click(screen.getByRole('button', { name: 'Playback speed' }));
 
-  return user
-}
+  return user;
+};
 
 describe('OptionMenu', () => {
   it('keeps its choices out of the way until asked', () => {
-    render(<OptionMenu label="Playback speed" trigger={<span>1x</span>} groups={[speed()]} />)
+    render(<OptionMenu label="Playback speed" trigger={<span>1x</span>} groups={[speed()]} />);
 
-    expect(screen.queryByRole('menuitemradio', { name: /0.5x/ })).not.toBeInTheDocument()
-  })
+    expect(screen.queryByRole('menuitemradio', { name: /0.5x/ })).not.toBeInTheDocument();
+  });
 
   it('offers every choice once opened', async () => {
-    await open([speed()])
+    await open([speed()]);
 
-    expect(await screen.findByRole('menuitemradio', { name: '0.5x' })).toBeInTheDocument()
-    expect(screen.getByRole('menuitemradio', { name: '2x' })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('menuitemradio', { name: '0.5x' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', { name: '2x' })).toBeInTheDocument();
+  });
 
   it('marks the choice already in force', async () => {
-    await open([speed()])
+    await open([speed()]);
 
-    expect(await screen.findByRole('menuitemradio', { name: '1x' })).toBeChecked()
-  })
+    expect(await screen.findByRole('menuitemradio', { name: '1x' })).toBeChecked();
+  });
 
   it('reports a choice by its id rather than its label', async () => {
-    const onSelect = vi.fn()
-    const user = await open([speed(onSelect)])
+    const onSelect = vi.fn();
+    const user = await open([speed(onSelect)]);
 
-    await user.click(await screen.findByRole('menuitemradio', { name: '2x' }))
+    await user.click(await screen.findByRole('menuitemradio', { name: '2x' }));
 
-    expect(onSelect).toHaveBeenCalledWith('2')
-  })
+    expect(onSelect).toHaveBeenCalledWith('2');
+  });
 
   it('closes once a choice is made', async () => {
-    const user = await open([speed()])
+    const user = await open([speed()]);
 
-    await user.click(await screen.findByRole('menuitemradio', { name: '2x' }))
+    await user.click(await screen.findByRole('menuitemradio', { name: '2x' }));
 
-    expect(screen.queryByRole('menuitemradio', { name: '2x' })).not.toBeInTheDocument()
-  })
+    expect(screen.queryByRole('menuitemradio', { name: '2x' })).not.toBeInTheDocument();
+  });
 
   it('offers two lists side by side when a decision has two parts', async () => {
     await open([
@@ -80,13 +78,13 @@ describe('OptionMenu', () => {
         ],
         onSelect: vi.fn(),
       },
-    ])
+    ]);
 
-    expect(await screen.findByText('Audio')).toBeInTheDocument()
-    expect(screen.getByText('Subtitles')).toBeInTheDocument()
-    expect(screen.getByRole('menuitemradio', { name: 'Japanese' })).toBeChecked()
-    expect(screen.getByRole('menuitemradio', { name: 'Deutsch' })).not.toBeChecked()
-  })
+    expect(await screen.findByText('Audio')).toBeInTheDocument();
+    expect(screen.getByText('Subtitles')).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', { name: 'Japanese' })).toBeChecked();
+    expect(screen.getByRole('menuitemradio', { name: 'Deutsch' })).not.toBeChecked();
+  });
 
   it('shows the note attached to a choice', async () => {
     await open([
@@ -96,20 +94,20 @@ describe('OptionMenu', () => {
         options: [{ id: 'en', label: 'English', detail: 'forced' }],
         onSelect: vi.fn(),
       },
-    ])
+    ]);
 
-    expect(await screen.findByText('forced')).toBeInTheDocument()
-  })
+    expect(await screen.findByText('forced')).toBeInTheDocument();
+  });
 
   it('cannot be opened while disabled', () => {
     render(
       <OptionMenu label="Playback speed" trigger={<span>1x</span>} groups={[speed()]} isDisabled />,
-    )
+    );
 
-    expect(screen.getByRole('button', { name: 'Playback speed' })).toBeDisabled()
-  })
+    expect(screen.getByRole('button', { name: 'Playback speed' })).toBeDisabled();
+  });
 
   it('sets a display name so devtools can identify it', () => {
-    expect(OptionMenu.displayName).toBe('OptionMenu')
-  })
-})
+    expect(OptionMenu.displayName).toBe('OptionMenu');
+  });
+});

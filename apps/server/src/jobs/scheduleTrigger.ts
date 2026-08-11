@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 /**
  * What makes a job run on its own, without an admin pressing Run.
@@ -16,19 +16,10 @@ const ScheduleTriggerSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('startup') }),
   z.object({
     kind: z.literal('everyMinutes'),
-    /**
-     * Bounded to what a cron minute-step field can express — 60 or more
-     * would just be a whole number of hours, which `everyHours` already says
-     * more plainly.
-     */
     minutes: z.number().int().min(1).max(59),
   }),
   z.object({
     kind: z.literal('everyHours'),
-    /**
-     * Bounded the same way `minutes` is — 24 or more is a whole number of
-     * days, which `daily`/`weekly` already say more plainly.
-     */
     hours: z.number().int().min(1).max(23),
   }),
   z.object({
@@ -38,16 +29,13 @@ const ScheduleTriggerSchema = z.discriminatedUnion('kind', [
   }),
   z.object({
     kind: z.literal('weekly'),
-    /**
-     * 0 is Sunday, matching cron's own day-of-week field.
-     */
     dayOfWeek: z.number().int().min(0).max(6),
     hour: z.number().int().min(0).max(23),
     minute: z.number().int().min(0).max(59),
   }),
-])
+]);
 
-type ScheduleTrigger = z.infer<typeof ScheduleTriggerSchema>
+type ScheduleTrigger = z.infer<typeof ScheduleTriggerSchema>;
 
 /**
  * Writes a trigger as the cron expression pg-boss schedules on.
@@ -58,18 +46,18 @@ type ScheduleTrigger = z.infer<typeof ScheduleTriggerSchema>
 const toCron = (trigger: ScheduleTrigger): string | null => {
   switch (trigger.kind) {
     case 'startup':
-      return null
+      return null;
     case 'everyMinutes':
-      return `*/${trigger.minutes.toString()} * * * *`
+      return `*/${trigger.minutes.toString()} * * * *`;
     case 'everyHours':
-      return `0 */${trigger.hours.toString()} * * *`
+      return `0 */${trigger.hours.toString()} * * *`;
     case 'daily':
-      return `${trigger.minute.toString()} ${trigger.hour.toString()} * * *`
+      return `${trigger.minute.toString()} ${trigger.hour.toString()} * * *`;
     case 'weekly':
-      return `${trigger.minute.toString()} ${trigger.hour.toString()} * * ${trigger.dayOfWeek.toString()}`
+      return `${trigger.minute.toString()} ${trigger.hour.toString()} * * ${trigger.dayOfWeek.toString()}`;
   }
-}
+};
 
-export type { ScheduleTrigger }
+export type { ScheduleTrigger };
 
-export default { ScheduleTriggerSchema, toCron }
+export { ScheduleTriggerSchema, toCron };

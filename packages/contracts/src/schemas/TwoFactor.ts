@@ -1,7 +1,5 @@
-import { z } from 'zod'
-import SessionModule from './Session'
-
-const { SessionUserSchema } = SessionModule
+import { z } from 'zod';
+import { SessionUserSchema } from './Session';
 
 /**
  * What better-auth returns when two-factor is first enabled.
@@ -13,7 +11,7 @@ const { SessionUserSchema } = SessionModule
 const TwoFactorEnableResponseSchema = z.object({
   totpURI: z.string().min(1),
   backupCodes: z.array(z.string().min(1)).min(1),
-})
+});
 
 /**
  * What better-auth returns when a code is accepted, both when completing
@@ -22,16 +20,12 @@ const TwoFactorEnableResponseSchema = z.object({
 const TwoFactorVerifyResponseSchema = z.object({
   token: z.string().optional(),
   user: SessionUserSchema,
-})
+});
 
-const TwoFactorMethodSchema = z.enum(['totp', 'otp'])
+const TwoFactorMethodSchema = z.enum(['totp', 'otp']);
 
-export type TwoFactorEnableResponse = z.infer<typeof TwoFactorEnableResponseSchema>
-export type TwoFactorVerifyResponse = z.infer<typeof TwoFactorVerifyResponseSchema>
-export type TwoFactorMethod = z.infer<typeof TwoFactorMethodSchema>
+export type TwoFactorEnableResponse = z.infer<typeof TwoFactorEnableResponseSchema>;
+export type TwoFactorVerifyResponse = z.infer<typeof TwoFactorVerifyResponseSchema>;
+export type TwoFactorMethod = z.infer<typeof TwoFactorMethodSchema>;
 
-export default {
-  TwoFactorEnableResponseSchema,
-  TwoFactorVerifyResponseSchema,
-  TwoFactorMethodSchema,
-}
+export { TwoFactorEnableResponseSchema, TwoFactorVerifyResponseSchema, TwoFactorMethodSchema };

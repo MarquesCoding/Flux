@@ -1,15 +1,10 @@
-import { createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi';
 
-const PresenceError = z.object({ error: z.string() }).openapi('PresenceError')
+const PresenceError = z.object({ error: z.string() }).openapi('PresenceError');
 
 const PresenceHeartbeatRequest = z
   .object({
     isPlaying: z.boolean(),
-    /**
-     * What the player itself measured, for an admin looking at this stream
-     * to see. Omitted means the caller has nothing to report — a direct
-     * play tab that has not attached a media engine yet, for instance.
-     */
     health: z
       .object({
         positionSeconds: z.number().nonnegative(),
@@ -20,7 +15,7 @@ const PresenceHeartbeatRequest = z
       })
       .optional(),
   })
-  .openapi('PresenceHeartbeatRequest')
+  .openapi('PresenceHeartbeatRequest');
 
 /**
  * Reports whether a tab is actually playing right now.
@@ -46,7 +41,7 @@ const presenceHeartbeatRoute = createRoute({
       content: { 'application/json': { schema: PresenceError } },
     },
   },
-})
+});
 
 /**
  * Says a tab has genuinely stopped watching anything.
@@ -73,6 +68,6 @@ const presenceStopWatchingRoute = createRoute({
       content: { 'application/json': { schema: PresenceError } },
     },
   },
-})
+});
 
-export default { presenceHeartbeatRoute, presenceStopWatchingRoute }
+export { presenceHeartbeatRoute, presenceStopWatchingRoute };

@@ -1,10 +1,8 @@
-import { z } from 'zod'
-import MediaSegmentModule from '@FluxContracts/schemas/MediaSegment'
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
+import { z } from 'zod';
+import { MediaSegmentSchema } from '@FluxContracts/schemas/MediaSegment';
+import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
 
-const { MediaSegmentSchema } = MediaSegmentModule
-
-const SegmentListSchema = z.object({ segments: z.array(MediaSegmentSchema) })
+const SegmentListSchema = z.object({ segments: z.array(MediaSegmentSchema) });
 
 /**
  * How long a skip stays offered after its segment has begun.
@@ -13,7 +11,7 @@ const SegmentListSchema = z.object({ segments: z.array(MediaSegmentSchema) })
  * and a half; offering it only at the very start means anyone who looked away
  * has missed it.
  */
-const OFFER_SECONDS = 12
+const OFFER_SECONDS = 12;
 
 /**
  * Reads what is known about an item's intro, recap and credits.
@@ -25,17 +23,17 @@ const fetchSegments = async (mediaId: string): Promise<MediaSegment[]> => {
   try {
     const response = await fetch(`/api/media/${mediaId}/segments`, {
       headers: { accept: 'application/json' },
-    })
+    });
 
     if (!response.ok) {
-      return []
+      return [];
     }
 
-    return SegmentListSchema.parse(await response.json()).segments
+    return SegmentListSchema.parse(await response.json()).segments;
   } catch {
-    return []
+    return [];
   }
-}
+};
 
 /**
  * The segment worth offering to skip at this moment, if any.
@@ -50,23 +48,23 @@ const skippableAt = (segments: MediaSegment[], positionSeconds: number): MediaSe
       segment.kind !== 'preview' &&
       positionSeconds >= segment.startSeconds &&
       positionSeconds < Math.min(segment.startSeconds + OFFER_SECONDS, segment.endSeconds),
-  ) ?? null
+  ) ?? null;
 
 /**
  * What the button says.
  */
 const describeSkip = (segment: MediaSegment): string => {
   if (segment.kind === 'recap') {
-    return 'Skip Recap'
+    return 'Skip Recap';
   }
 
   if (segment.kind === 'credits') {
-    return 'Skip Credits'
+    return 'Skip Credits';
   }
 
-  return 'Skip Intro'
-}
+  return 'Skip Intro';
+};
 
-export type { MediaSegment }
+export type { MediaSegment };
 
-export default { fetchSegments, skippableAt, describeSkip, OFFER_SECONDS }
+export { fetchSegments, skippableAt, describeSkip, OFFER_SECONDS };

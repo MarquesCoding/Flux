@@ -1,8 +1,6 @@
-import { Dialog as BaseDialog } from '@base-ui-components/react/dialog'
-import cnModule from '@FluxUI/cn'
-import type { DialogProps } from './Dialog.types'
-
-const { cn } = cnModule
+import { Dialog as BaseDialog } from '@base-ui/react/dialog';
+import { cn } from '@FluxUI/cn';
+import type { DialogProps } from './Dialog.types';
 
 /**
  * How the panel arrives and leaves.
@@ -17,22 +15,9 @@ const { cn } = cnModule
  * middle, since it has no edge the pointer came from.
  */
 const POPUP_MOTION = [
-  // Out of the way quickly and in with a settle: arriving is worth watching
-  // and leaving is not. The curve decelerates hard rather than easing evenly,
-  // which is what makes a panel look like it has weight instead of like a
-  // rectangle whose opacity is being changed.
-  //
-  // Every property that actually moves is named. Tailwind writes a shift and a
-  // scale as the `translate` and `scale` properties rather than into
-  // `transform`, so a transition that only knows about `transform` transitions
-  // nothing: the panel snapped into place and only its opacity was ever
-  // animated.
   'transition-[opacity,transform,translate,scale] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
   'data-[ending-style]:duration-150 data-[ending-style]:ease-in',
   'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
-  // Each width animates the property the other is using for layout: a phone
-  // slides, and a desktop is already translated to sit in the middle, so it
-  // scales instead.
   'max-sm:data-[starting-style]:translate-y-10 max-sm:data-[ending-style]:translate-y-6',
   'sm:data-[starting-style]:scale-[0.92] sm:data-[ending-style]:scale-[0.98]',
   'motion-reduce:transition-opacity',
@@ -40,14 +25,12 @@ const POPUP_MOTION = [
   'motion-reduce:max-sm:data-[ending-style]:translate-y-0',
   'motion-reduce:sm:data-[starting-style]:scale-100',
   'motion-reduce:sm:data-[ending-style]:scale-100',
-].join(' ')
+].join(' ');
 
 const BACKDROP_MOTION = [
-  // Ahead of the panel on the way in and behind it on the way out, so the page
-  // is already dimmed when the panel lands and still dim while it leaves.
   'transition-opacity duration-200 ease-out data-[ending-style]:duration-200',
   'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
-].join(' ')
+].join(' ');
 
 /**
  * A panel over the page.
@@ -61,7 +44,7 @@ const Dialog = ({ label, isOpen, onClose, children, className }: DialogProps) =>
     open={isOpen}
     onOpenChange={(open) => {
       if (!open) {
-        onClose()
+        onClose();
       }
     }}
   >
@@ -85,8 +68,8 @@ const Dialog = ({ label, isOpen, onClose, children, className }: DialogProps) =>
       </BaseDialog.Popup>
     </BaseDialog.Portal>
   </BaseDialog.Root>
-)
+);
 
-Dialog.displayName = 'Dialog'
+Dialog.displayName = 'Dialog';
 
-export default { Dialog }
+export { Dialog };

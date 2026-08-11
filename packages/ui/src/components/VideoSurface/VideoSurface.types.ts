@@ -1,4 +1,4 @@
-import type { RefObject } from 'react'
+import type { RefObject } from 'react';
 
 /**
  * A subtitle track the browser renders itself.
@@ -8,33 +8,33 @@ import type { RefObject } from 'react'
  * without anything having to drive them.
  */
 type TextTrack = {
-  id: string
-  label: string
-  language: string
-  src: string
-}
+  id: string;
+  label: string;
+  language: string;
+  src: string;
+};
 
 type VideoSurfaceProps = {
-  label: string
-  videoRef: RefObject<HTMLVideoElement | null>
-  poster?: string
-  className?: string
+  label: string;
+  videoRef: RefObject<HTMLVideoElement | null>;
+  poster?: string;
+  className?: string;
   /**
    * The track to show, if any. Only one is rendered at a time: a browser will
    * happily display two at once, on top of each other.
    */
-  textTrack?: TextTrack
-  onTimeUpdate?: (currentSeconds: number) => void
-  onDurationChange?: (durationSeconds: number) => void
-  onPlayingChange?: (isPlaying: boolean) => void
+  textTrack?: TextTrack;
+  onTimeUpdate?: (currentSeconds: number) => void;
+  onDurationChange?: (durationSeconds: number) => void;
+  onPlayingChange?: (isPlaying: boolean) => void;
   /**
    * Called when the media reaches its end.
    */
-  onEnded?: () => void
+  onEnded?: () => void;
   /**
    * Whether the media starts again when it reaches the end.
    */
-  loops?: boolean
-}
+  loops?: boolean;
+};
 
-export type { TextTrack, VideoSurfaceProps }
+export type { TextTrack, VideoSurfaceProps };

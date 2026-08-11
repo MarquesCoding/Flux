@@ -286,7 +286,6 @@ mod tests {
 
         tokio::time::sleep(Duration::from_millis(20)).await;
 
-        // The second is queued behind the first rather than running beside it.
         let snapshot = queue.snapshot().await;
         let waiting = snapshot
             .jobs

@@ -1,16 +1,13 @@
-import { useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react'
-import IconButtonModule from '@FluxUI/IconButton'
-import revealModule from '@FluxUI/animations/reveal'
-import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
-import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
-import ProfileEditorModule from './components/ProfileEditor/ProfileEditor'
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-import type { ProfilePickerProps } from './ProfilePicker.types'
-
-const { IconButton } = IconButtonModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
+import { useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { removeProfile } from '@FluxWeb/profiles/fetchProfiles';
+import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
+import { ProfileEditor } from './components/ProfileEditor/ProfileEditor';
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { ProfilePickerProps } from './ProfilePicker.types';
 
 /**
  * How many people may share one account.
@@ -18,11 +15,7 @@ const { revealVariants, revealTransition, staggerVariants } = revealModule
  * Matches what the server will accept, so the offer to add somebody
  * disappears rather than failing when it is taken up.
  */
-const PROFILE_LIMIT = 6
-const { removeProfile } = fetchProfilesModule
-const { ProfileFace } = ProfileFaceModule
-const { ProfileEditor } = ProfileEditorModule
-
+const PROFILE_LIMIT = 6;
 /**
  * Who is watching.
  *
@@ -41,11 +34,8 @@ const ProfilePicker = ({
   onChanged,
   isEditable = false,
 }: ProfilePickerProps) => {
-  // Null means nothing is being edited; a profile means that one is; and the
-  // string means a new one is being made. Three states in one, because they
-  // are three states of the same screen.
-  const [editing, setEditing] = useState<ViewerProfile | 'new' | null>(null)
-  const prefersReducedMotion = useReducedMotion()
+  const [editing, setEditing] = useState<ViewerProfile | 'new' | null>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <motion.div
@@ -72,7 +62,7 @@ const ProfilePicker = ({
             <motion.button
               type="button"
               onClick={() => {
-                onChoose(profile)
+                onChoose(profile);
               }}
               {...(prefersReducedMotion === true
                 ? {}
@@ -92,26 +82,30 @@ const ProfilePicker = ({
 
             {!isEditable ? null : (
               <span className="absolute -right-2 -top-2 flex gap-1">
-                <IconButton
+                <Button
+                  isIconOnly
+                  variant="ghost"
                   label={`Edit ${profile.name}`}
                   onClick={() => {
-                    setEditing(profile)
+                    setEditing(profile);
                   }}
                   className="bg-surface-raised"
                 >
                   <IconPencil size={16} aria-hidden />
-                </IconButton>
+                </Button>
 
                 {profiles.length < 2 ? null : (
-                  <IconButton
+                  <Button
+                    isIconOnly
+                    variant="ghost"
                     label={`Remove ${profile.name}`}
                     onClick={() => {
-                      void removeProfile(profile.id).then(onChanged)
+                      void removeProfile(profile.id).then(onChanged);
                     }}
                     className="bg-surface-raised"
                   >
                     <IconTrash size={16} aria-hidden />
-                  </IconButton>
+                  </Button>
                 )}
               </span>
             )}
@@ -120,10 +114,11 @@ const ProfilePicker = ({
 
         {!isEditable || profiles.length >= PROFILE_LIMIT ? null : (
           <li>
-            <button
-              type="button"
+            <Button
+              variant="bare"
+              size="none"
               onClick={() => {
-                setEditing('new')
+                setEditing('new');
               }}
               className="flex w-24 flex-col items-center gap-3 sm:w-32"
             >
@@ -132,7 +127,7 @@ const ProfilePicker = ({
               </span>
 
               <span className="text-sm text-text-muted">Add</span>
-            </button>
+            </Button>
           </li>
         )}
       </motion.ul>
@@ -146,19 +141,19 @@ const ProfilePicker = ({
           <ProfileEditor
             profile={editing === 'new' ? null : editing}
             onSaved={() => {
-              setEditing(null)
-              onChanged()
+              setEditing(null);
+              onChanged();
             }}
             onCancel={() => {
-              setEditing(null)
+              setEditing(null);
             }}
           />
         </motion.div>
       )}
     </motion.div>
-  )
-}
+  );
+};
 
-ProfilePicker.displayName = 'ProfilePicker'
+ProfilePicker.displayName = 'ProfilePicker';
 
-export default { ProfilePicker }
+export { ProfilePicker };

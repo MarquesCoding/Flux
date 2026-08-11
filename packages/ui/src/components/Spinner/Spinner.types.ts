@@ -1,9 +1,9 @@
-type SpinnerSize = 'sm' | 'md' | 'lg'
+type SpinnerSize = 'sm' | 'md' | 'lg';
 
 type SpinnerProps = {
-  size?: SpinnerSize
-  label: string
-  className?: string
-}
+  size?: SpinnerSize;
+  label: string;
+  className?: string;
+};
 
-export type { SpinnerProps, SpinnerSize }
+export type { SpinnerProps, SpinnerSize };

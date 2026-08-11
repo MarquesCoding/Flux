@@ -1,17 +1,15 @@
-import castPlaybackModule from '@FluxWeb/playback/castPlayback'
-
-const { absoluteStreamUrl } = castPlaybackModule
+import { absoluteStreamUrl } from '@FluxWeb/playback/castPlayback';
 
 type HandOverOptions = {
-  element: HTMLVideoElement
+  element: HTMLVideoElement;
   /**
    * Where the stream is, as this page asks for it.
    */
-  url: string
+  url: string;
   /**
    * Where the page itself is, which is the only address a device can be given.
    */
-  origin: string
+  origin: string;
   /**
    * What to do about the media engine before handing over.
    *
@@ -19,8 +17,8 @@ type HandOverOptions = {
    * while the element is pointed somewhere else is how a handover ends with
    * two things playing.
    */
-  release?: () => Promise<void>
-}
+  release?: () => Promise<void>;
+};
 
 /**
  * Points the element at the stream, so a device can fetch it.
@@ -41,20 +39,20 @@ const handOverToDevice = async ({
   origin,
   release,
 }: HandOverOptions): Promise<boolean> => {
-  const address = absoluteStreamUrl(url, origin)
+  const address = absoluteStreamUrl(url, origin);
 
   if (address === null) {
-    return false
+    return false;
   }
 
-  const at = element.currentTime
+  const at = element.currentTime;
 
-  await release?.()
+  await release?.();
 
-  element.src = address
-  element.currentTime = at
+  element.src = address;
+  element.currentTime = at;
 
-  return true
-}
+  return true;
+};
 
-export default { handOverToDevice }
+export { handOverToDevice };

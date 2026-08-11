@@ -1,8 +1,6 @@
-import { useEffect, useRef } from 'react'
-import cnModule from '@FluxUI/cn'
-import type { VideoSurfaceProps } from './VideoSurface.types'
-
-const { cn } = cnModule
+import { useEffect, useRef } from 'react';
+import { cn } from '@FluxUI/cn';
+import type { VideoSurfaceProps } from './VideoSurface.types';
 
 /**
  * The video element itself, and nothing else.
@@ -27,49 +25,36 @@ const VideoSurface = ({
   onEnded,
   loops = false,
 }: VideoSurfaceProps) => {
-  const trackId = textTrack?.id ?? null
-  const trackRef = useRef<HTMLTrackElement>(null)
+  const trackId = textTrack?.id ?? null;
+  const trackRef = useRef<HTMLTrackElement>(null);
 
-  // `default` only means anything while the element is loading, and a track
-  // chosen from a menu arrives long after that: the browser mounts it and
-  // leaves it disabled, which reads as subtitles that do nothing. Turning it
-  // on explicitly is the only thing that shows a late track.
-  //
-  // One track, named rather than counted. A video keeps the tracks of elements
-  // it has already been given, so turning on everything it holds turns on
-  // every language that has ever been chosen — which is how switching twice
-  // ended with two sets of subtitles on top of each other. Everything is
-  // turned off, then the one belonging to this element is turned on, which is
-  // also what makes turning subtitles off actually turn them off.
   useEffect(() => {
-    const element = videoRef.current
+    const element = videoRef.current;
 
     if (element === null) {
-      return
+      return;
     }
 
     const show = () => {
       for (const track of Array.from(element.textTracks)) {
-        track.mode = 'disabled'
+        track.mode = 'disabled';
       }
 
-      const own = trackRef.current?.track
+      const own = trackRef.current?.track;
 
       if (own !== undefined && trackId !== null) {
-        own.mode = 'showing'
+        own.mode = 'showing';
       }
-    }
+    };
 
-    show()
+    show();
 
-    // Again once the cues have actually loaded: a track set to showing before
-    // its file arrives can be reset when it does.
-    element.textTracks.addEventListener('addtrack', show)
+    element.textTracks.addEventListener('addtrack', show);
 
     return () => {
-      element.textTracks.removeEventListener('addtrack', show)
-    }
-  }, [videoRef, trackId])
+      element.textTracks.removeEventListener('addtrack', show);
+    };
+  }, [videoRef, trackId]);
 
   return (
     <video
@@ -80,20 +65,20 @@ const VideoSurface = ({
       {...(poster === undefined ? {} : { poster })}
       className={cn('w-full bg-black', className)}
       onTimeUpdate={(event) => {
-        onTimeUpdate?.(event.currentTarget.currentTime)
+        onTimeUpdate?.(event.currentTarget.currentTime);
       }}
       onDurationChange={(event) => {
-        onDurationChange?.(event.currentTarget.duration)
+        onDurationChange?.(event.currentTarget.duration);
       }}
       onEnded={() => {
-        onPlayingChange?.(false)
-        onEnded?.()
+        onPlayingChange?.(false);
+        onEnded?.();
       }}
       onPlay={() => {
-        onPlayingChange?.(true)
+        onPlayingChange?.(true);
       }}
       onPause={() => {
-        onPlayingChange?.(false)
+        onPlayingChange?.(false);
       }}
     >
       {textTrack === undefined ? null : (
@@ -108,9 +93,9 @@ const VideoSurface = ({
         />
       )}
     </video>
-  )
-}
+  );
+};
 
-VideoSurface.displayName = 'VideoSurface'
+VideoSurface.displayName = 'VideoSurface';
 
-export default { VideoSurface }
+export { VideoSurface };

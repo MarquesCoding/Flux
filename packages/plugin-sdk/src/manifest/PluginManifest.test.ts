@@ -1,7 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import PluginManifestModule from './PluginManifest'
-
-const { PluginManifestSchema } = PluginManifestModule
+import { describe, expect, it } from 'vitest';
+import { PluginManifestSchema } from './PluginManifest';
 
 const validManifest = {
   id: 'tmdb-metadata',
@@ -16,25 +14,25 @@ const validManifest = {
     { kind: 'library', access: 'read' },
   ],
   entry: 'dist/plugin.js',
-}
+};
 
 describe('PluginManifestSchema', () => {
   it('accepts a complete manifest', () => {
-    const result = PluginManifestSchema.parse(validManifest)
+    const result = PluginManifestSchema.parse(validManifest);
 
-    expect(result.id).toBe('tmdb-metadata')
-    expect(result.capabilities).toHaveLength(2)
-  })
+    expect(result.id).toBe('tmdb-metadata');
+    expect(result.capabilities).toHaveLength(2);
+  });
 
   it('accepts a manifest declaring no capabilities', () => {
-    const result = PluginManifestSchema.parse({ ...validManifest, capabilities: [] })
+    const result = PluginManifestSchema.parse({ ...validManifest, capabilities: [] });
 
-    expect(result.capabilities).toHaveLength(0)
-  })
+    expect(result.capabilities).toHaveLength(0);
+  });
 
   it('rejects a plugin id that is not kebab-case', () => {
-    expect(() => PluginManifestSchema.parse({ ...validManifest, id: 'TMDB_Metadata' })).toThrow()
-  })
+    expect(() => PluginManifestSchema.parse({ ...validManifest, id: 'TMDB_Metadata' })).toThrow();
+  });
 
   it('rejects a network capability with no domains', () => {
     expect(() =>
@@ -42,8 +40,8 @@ describe('PluginManifestSchema', () => {
         ...validManifest,
         capabilities: [{ kind: 'network', domains: [] }],
       }),
-    ).toThrow()
-  })
+    ).toThrow();
+  });
 
   it('rejects an unknown capability kind', () => {
     expect(() =>
@@ -51,22 +49,22 @@ describe('PluginManifestSchema', () => {
         ...validManifest,
         capabilities: [{ kind: 'filesystem', paths: ['/'] }],
       }),
-    ).toThrow()
-  })
+    ).toThrow();
+  });
 
   it('rejects a manifest with no extension points', () => {
-    expect(() => PluginManifestSchema.parse({ ...validManifest, extensionPoints: [] })).toThrow()
-  })
+    expect(() => PluginManifestSchema.parse({ ...validManifest, extensionPoints: [] })).toThrow();
+  });
 
   it('rejects an unknown extension point', () => {
     expect(() =>
       PluginManifestSchema.parse({ ...validManifest, extensionPoints: ['DatabaseAccess'] }),
-    ).toThrow()
-  })
+    ).toThrow();
+  });
 
   it('rejects a non-semver version', () => {
-    expect(() => PluginManifestSchema.parse({ ...validManifest, version: 'v1' })).toThrow()
-  })
+    expect(() => PluginManifestSchema.parse({ ...validManifest, version: 'v1' })).toThrow();
+  });
 
   it('caps the storage quota a plugin may request', () => {
     expect(() =>
@@ -74,6 +72,6 @@ describe('PluginManifestSchema', () => {
         ...validManifest,
         capabilities: [{ kind: 'storage', quotaBytes: 999_000_000 }],
       }),
-    ).toThrow()
-  })
-})
+    ).toThrow();
+  });
+});

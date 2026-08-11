@@ -1,4 +1,4 @@
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
+import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 
 /**
  * The library table, as trickplay regeneration sees it.
@@ -7,25 +7,25 @@ type TrickplayStore = {
   /**
    * The items still without a thumbnail sheet, rather than all of them.
    */
-  listOutstanding: (libraryId: string) => Promise<{ id: string; path: string }[]>
-  markComplete: (mediaItemId: string) => Promise<void>
-}
+  listOutstanding: (libraryId: string) => Promise<{ id: string; path: string }[]>;
+  markComplete: (mediaItemId: string) => Promise<void>;
+};
 
 type TrickplayParams = {
-  intervalSeconds: number
-  tileWidth: number
-  columns: number
-  rows: number
-}
+  intervalSeconds: number;
+  tileWidth: number;
+  columns: number;
+  rows: number;
+};
 
 type GenerateTrickplayOptions = {
-  libraryId: string
-  store: TrickplayStore
-  transcoder: Transcoder
-  trickplay: TrickplayParams
-  onProblem?: (path: string, reason: string) => void
-  onProgress?: (processed: number, total: number) => void
-}
+  libraryId: string;
+  store: TrickplayStore;
+  transcoder: Transcoder;
+  trickplay: TrickplayParams;
+  onProblem?: (path: string, reason: string) => void;
+  onProgress?: (processed: number, total: number) => void;
+};
 
 /**
  * Renders the scrubbing thumbnail sheets a library is still missing.
@@ -43,30 +43,30 @@ const generateTrickplay = async ({
   onProblem,
   onProgress,
 }: GenerateTrickplayOptions): Promise<void> => {
-  const items = await store.listOutstanding(libraryId)
-  let processed = 0
+  const items = await store.listOutstanding(libraryId);
+  let processed = 0;
 
-  onProgress?.(processed, items.length)
+  onProgress?.(processed, items.length);
 
   for (const item of items) {
     const rendered = await transcoder
       .requestTrickplay({ inputPath: item.path, ...trickplay, wait: true })
       .then(() => true)
       .catch((error: Error) => {
-        onProblem?.(item.path, error.message)
+        onProblem?.(item.path, error.message);
 
-        return false
-      })
+        return false;
+      });
 
     if (rendered) {
-      await store.markComplete(item.id)
+      await store.markComplete(item.id);
     }
 
-    processed += 1
-    onProgress?.(processed, items.length)
+    processed += 1;
+    onProgress?.(processed, items.length);
   }
-}
+};
 
-export type { TrickplayParams, TrickplayStore }
+export type { TrickplayParams, TrickplayStore };
 
-export default { generateTrickplay }
+export { generateTrickplay };

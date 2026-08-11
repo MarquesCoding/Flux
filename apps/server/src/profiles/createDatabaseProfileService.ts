@@ -1,17 +1,13 @@
-import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { extname, join } from 'node:path'
-import { and, asc, eq } from 'drizzle-orm'
-import drawAvatarModule from './drawAvatar'
-import SchemaModule from '@FluxServer/db/Schema'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
-import type { FluxDatabase } from '@FluxServer/db/Database'
-import type { ProfileService } from './ProfileService'
-import type { ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { viewerProfile, user } = SchemaModule
-const { ProfileColourSchema, PROFILE_COLOURS } = ViewerProfileModule
-const { drawAvatar, isAvatarStyle } = drawAvatarModule
+import { randomUUID } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { extname, join } from 'node:path';
+import { and, asc, eq } from 'drizzle-orm';
+import { drawAvatar, isAvatarStyle } from './drawAvatar';
+import { viewerProfile, user } from '@FluxServer/db/Schema';
+import { ProfileColourSchema, PROFILE_COLOURS } from '@FluxContracts/schemas/ViewerProfile';
+import type { FluxDatabase } from '@FluxServer/db/Database';
+import type { ProfileService } from './ProfileService';
+import type { ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 /**
  * The picture formats a profile photograph may arrive in.
@@ -24,17 +20,15 @@ const PHOTO_TYPES: Record<string, string> = {
   'image/png': '.png',
   'image/webp': '.webp',
   'image/avif': '.avif',
-  // Pictures that move. A GIF is one a browser draws like any other; a WebM
-  // is a video, and needs an element that can play it.
   'image/gif': '.gif',
   'video/webm': '.webm',
   'video/mp4': '.mp4',
-}
+};
 
 /**
  * The formats that are video rather than picture.
  */
-const MOVING_FORMATS = new Set(['.webm', '.mp4'])
+const MOVING_FORMATS = new Set(['.webm', '.mp4']);
 
 /**
  * How large a profile picture may be.
@@ -43,19 +37,19 @@ const MOVING_FORMATS = new Set(['.webm', '.mp4'])
  * moving at the size a portrait is drawn. Anything larger is a video somebody
  * meant to watch rather than a face.
  */
-const PHOTO_MAX_BYTES = 6 * 1024 * 1024
+const PHOTO_MAX_BYTES = 6 * 1024 * 1024;
 
 /**
  * The same mapping read the other way, for serving what was stored.
  */
 const PHOTO_CONTENT_TYPES: Record<string, string> = Object.fromEntries(
   Object.entries(PHOTO_TYPES).map(([contentType, extension]) => [extension, contentType]),
-)
+);
 
 /**
  * The colour a profile nobody chose one for is drawn in.
  */
-const [DEFAULT_COLOUR] = PROFILE_COLOURS
+const [DEFAULT_COLOUR] = PROFILE_COLOURS;
 
 /**
  * How many people may share one account.
@@ -64,18 +58,18 @@ const [DEFAULT_COLOUR] = PROFILE_COLOURS
  * quietly become a service somebody is running for a hundred people on a
  * machine sized for six.
  */
-const LIMIT = 6
+const LIMIT = 6;
 
 type ProfileRow = {
-  id: string
-  name: string
-  colour: string
-  avatarStyle: string | null
-  avatarSeed: string | null
-  photoPath: string | null
-  createdAt: Date
-  updatedAt: Date
-}
+  id: string;
+  name: string;
+  colour: string;
+  avatarStyle: string | null;
+  avatarSeed: string | null;
+  photoPath: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 /**
  * Reads a stored colour, falling back rather than failing.
@@ -84,10 +78,10 @@ type ProfileRow = {
  * refusing to draw it would lose them their viewing over a shade.
  */
 const readColour = (stored: string): ProfileColour => {
-  const parsed = ProfileColourSchema.safeParse(stored)
+  const parsed = ProfileColourSchema.safeParse(stored);
 
-  return parsed.success ? parsed.data : DEFAULT_COLOUR
-}
+  return parsed.success ? parsed.data : DEFAULT_COLOUR;
+};
 
 /**
  * What a stored row says the profile is drawn with.
@@ -97,15 +91,15 @@ const readColour = (stored: string): ProfileColour => {
  */
 const readAvatarChoice = (row: ProfileRow): ViewerProfile['avatar'] => {
   if (row.photoPath !== null) {
-    return { kind: 'photo', isVideo: MOVING_FORMATS.has(extname(row.photoPath)) }
+    return { kind: 'photo', isVideo: MOVING_FORMATS.has(extname(row.photoPath)) };
   }
 
   if (row.avatarStyle !== null && row.avatarSeed !== null && isAvatarStyle(row.avatarStyle)) {
-    return { kind: 'drawn', style: row.avatarStyle, seed: row.avatarSeed }
+    return { kind: 'drawn', style: row.avatarStyle, seed: row.avatarSeed };
   }
 
-  return { kind: 'initial' }
-}
+  return { kind: 'initial' };
+};
 
 const toProfile = (row: ProfileRow): ViewerProfile => ({
   id: row.id,
@@ -114,7 +108,7 @@ const toProfile = (row: ProfileRow): ViewerProfile => ({
   avatar: readAvatarChoice(row),
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
-})
+});
 
 /**
  * How a chosen avatar is written to the columns that hold it.
@@ -126,21 +120,19 @@ const avatarColumns = (
   avatar: ViewerProfile['avatar'] | undefined,
 ): { avatarStyle: string | null; avatarSeed: string | null; photoPath: string | null } | null => {
   if (avatar === undefined) {
-    return null
+    return null;
   }
 
   if (avatar.kind === 'drawn') {
-    return { avatarStyle: avatar.style, avatarSeed: avatar.seed, photoPath: null }
+    return { avatarStyle: avatar.style, avatarSeed: avatar.seed, photoPath: null };
   }
 
   if (avatar.kind === 'initial') {
-    return { avatarStyle: null, avatarSeed: null, photoPath: null }
+    return { avatarStyle: null, avatarSeed: null, photoPath: null };
   }
 
-  // A photograph is chosen by uploading one, not by asking for it. Saying
-  // "photo" without having sent a photograph changes nothing.
-  return null
-}
+  return null;
+};
 
 /**
  * Profiles held in Postgres.
@@ -157,34 +149,28 @@ const COLUMNS = {
   photoPath: viewerProfile.photoPath,
   createdAt: viewerProfile.createdAt,
   updatedAt: viewerProfile.updatedAt,
-}
+};
 
-const createDatabaseProfileService = (
-  db: FluxDatabase,
-  /**
-   * Where uploaded photographs are kept.
-   */
-  photoDirectory: string,
-): ProfileService => {
+const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string): ProfileService => {
   const listFor = async (userId: string): Promise<ViewerProfile[]> => {
     const rows = await db
       .select(COLUMNS)
       .from(viewerProfile)
       .where(eq(viewerProfile.userId, userId))
-      .orderBy(asc(viewerProfile.createdAt))
+      .orderBy(asc(viewerProfile.createdAt));
 
-    return rows.map(toProfile)
-  }
+    return rows.map(toProfile);
+  };
 
   /**
    * The profile an account uses, made if it has none.
    */
   const ensure = async (userId: string, name: string): Promise<ViewerProfile> => {
-    const existing = await listFor(userId)
-    const first = existing[0]
+    const existing = await listFor(userId);
+    const first = existing[0];
 
     if (first !== undefined) {
-      return first
+      return first;
     }
 
     const created = {
@@ -192,12 +178,10 @@ const createDatabaseProfileService = (
       userId,
       name: name.trim() === '' ? 'Me' : name.trim(),
       colour: DEFAULT_COLOUR,
-    }
+    };
 
-    await db.insert(viewerProfile).values(created)
+    await db.insert(viewerProfile).values(created);
 
-    // Only what the contract describes. The owning account is Flux's
-    // business, not the browser's.
     return {
       id: created.id,
       name: created.name,
@@ -205,8 +189,8 @@ const createDatabaseProfileService = (
       avatar: { kind: 'initial' },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    }
-  }
+    };
+  };
 
   return {
     list: listFor,
@@ -214,10 +198,10 @@ const createDatabaseProfileService = (
     ensureDefault: ensure,
 
     create: async (userId, request) => {
-      const existing = await listFor(userId)
+      const existing = await listFor(userId);
 
       if (existing.length >= LIMIT) {
-        throw new Error(`An account may hold ${LIMIT.toString()} profiles.`)
+        throw new Error(`An account may hold ${LIMIT.toString()} profiles.`);
       }
 
       const created = {
@@ -225,9 +209,9 @@ const createDatabaseProfileService = (
         userId,
         name: request.name,
         colour: request.colour,
-      }
+      };
 
-      await db.insert(viewerProfile).values(created)
+      await db.insert(viewerProfile).values(created);
 
       return {
         id: created.id,
@@ -236,11 +220,11 @@ const createDatabaseProfileService = (
         avatar: { kind: 'initial' },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      }
+      };
     },
 
     rename: async (userId, profileId, request) => {
-      const chosen = avatarColumns(request.avatar)
+      const chosen = avatarColumns(request.avatar);
 
       const changed = await db
         .update(viewerProfile)
@@ -251,27 +235,24 @@ const createDatabaseProfileService = (
           ...chosen,
         })
         .where(and(eq(viewerProfile.id, profileId), eq(viewerProfile.userId, userId)))
-        .returning({ id: viewerProfile.id })
+        .returning({ id: viewerProfile.id });
 
-      return changed.length > 0
+      return changed.length > 0;
     },
 
     remove: async (userId, profileId) => {
-      const existing = await listFor(userId)
+      const existing = await listFor(userId);
 
-      // The last one is not removable. Somewhere to record viewing is not
-      // optional, and an account with no profiles would silently stop
-      // remembering where anybody had got to.
       if (existing.length <= 1) {
-        return false
+        return false;
       }
 
       const removed = await db
         .delete(viewerProfile)
         .where(and(eq(viewerProfile.id, profileId), eq(viewerProfile.userId, userId)))
-        .returning({ id: viewerProfile.id })
+        .returning({ id: viewerProfile.id });
 
-      return removed.length > 0
+      return removed.length > 0;
     },
 
     belongsTo: async (userId, profileId) => {
@@ -279,15 +260,12 @@ const createDatabaseProfileService = (
         .select({ id: viewerProfile.id })
         .from(viewerProfile)
         .where(and(eq(viewerProfile.id, profileId), eq(viewerProfile.userId, userId)))
-        .limit(1)
+        .limit(1);
 
-      return rows.length > 0
+      return rows.length > 0;
     },
 
     listEveryone: async () => {
-      // Every account, whether or not it has been looked at. A profile is made
-      // for one that has none, because the wall is the only way in: an account
-      // that is invisible until it signs in can never sign in.
       const rows = await db
         .select({
           userId: user.id,
@@ -297,19 +275,19 @@ const createDatabaseProfileService = (
         })
         .from(user)
         .leftJoin(viewerProfile, eq(viewerProfile.userId, user.id))
-        .orderBy(asc(user.createdAt))
+        .orderBy(asc(user.createdAt));
 
-      const seen = new Set<string>()
-      const everyone: ViewerProfile[] = []
+      const seen = new Set<string>();
+      const everyone: ViewerProfile[] = [];
 
       for (const row of rows) {
         if (seen.has(row.userId)) {
-          continue
+          continue;
         }
 
-        seen.add(row.userId)
+        seen.add(row.userId);
 
-        const found = row.profile
+        const found = row.profile;
 
         everyone.push(
           found === null
@@ -324,10 +302,10 @@ const createDatabaseProfileService = (
                 createdAt: found.createdAt,
                 updatedAt: found.updatedAt,
               }),
-        )
+        );
       }
 
-      return everyone
+      return everyone;
     },
 
     findSignInEmail: async (profileId) => {
@@ -336,9 +314,9 @@ const createDatabaseProfileService = (
         .from(viewerProfile)
         .innerJoin(user, eq(user.id, viewerProfile.userId))
         .where(eq(viewerProfile.id, profileId))
-        .limit(1)
+        .limit(1);
 
-      return rows[0]?.email ?? null
+      return rows[0]?.email ?? null;
     },
 
     readAvatar: async (profileId) => {
@@ -346,70 +324,65 @@ const createDatabaseProfileService = (
         .select(COLUMNS)
         .from(viewerProfile)
         .where(eq(viewerProfile.id, profileId))
-        .limit(1)
-      const found = rows[0]
+        .limit(1);
+      const found = rows[0];
 
       if (found === undefined) {
-        return null
+        return null;
       }
 
-      const choice = readAvatarChoice(found)
+      const choice = readAvatarChoice(found);
 
       if (choice.kind === 'drawn') {
         return {
           body: new TextEncoder().encode(drawAvatar(choice.style, choice.seed)),
           contentType: 'image/svg+xml',
-        }
+        };
       }
 
       if (choice.kind === 'photo' && found.photoPath !== null) {
-        const body = await readFile(found.photoPath).catch(() => null)
+        const body = await readFile(found.photoPath).catch(() => null);
 
         if (body !== null) {
           return {
             body,
             contentType: PHOTO_CONTENT_TYPES[extname(found.photoPath)] ?? 'image/jpeg',
-          }
+          };
         }
       }
 
-      // A letter on a colour is drawn by the browser, which already knows the
-      // name and the colour. There is no picture to serve.
-      return null
+      return null;
     },
 
     savePhoto: async (userId, profileId, photo) => {
-      const extension = PHOTO_TYPES[photo.contentType]
+      const extension = PHOTO_TYPES[photo.contentType];
 
       if (extension === undefined || photo.body.byteLength > PHOTO_MAX_BYTES) {
-        return false
+        return false;
       }
 
       const owned = await db
         .select({ id: viewerProfile.id })
         .from(viewerProfile)
         .where(and(eq(viewerProfile.id, profileId), eq(viewerProfile.userId, userId)))
-        .limit(1)
+        .limit(1);
 
       if (owned.length === 0) {
-        return false
+        return false;
       }
 
-      await mkdir(photoDirectory, { recursive: true })
+      await mkdir(photoDirectory, { recursive: true });
 
-      // Named after the profile rather than after the upload, so a second
-      // photograph replaces the first instead of leaving the old one on disk
-      // with nothing pointing at it.
-      const path = join(photoDirectory, `${profileId}${extension}`)
+      const path = join(photoDirectory, `${profileId}${extension}`);
 
-      await writeFile(path, photo.body)
+      await writeFile(path, photo.body);
 
       await db
         .update(viewerProfile)
         .set({ photoPath: path, avatarStyle: null, avatarSeed: null, updatedAt: new Date() })
-        .where(eq(viewerProfile.id, profileId))
+        .where(eq(viewerProfile.id, profileId));
 
-      return true
+      return true;
     },
 
     moveTo: async (profileId, newOwnerId) => {
@@ -417,11 +390,11 @@ const createDatabaseProfileService = (
         .update(viewerProfile)
         .set({ userId: newOwnerId, updatedAt: new Date() })
         .where(eq(viewerProfile.id, profileId))
-        .returning({ id: viewerProfile.id })
+        .returning({ id: viewerProfile.id });
 
-      return moved.length > 0
+      return moved.length > 0;
     },
-  }
-}
+  };
+};
 
-export default { createDatabaseProfileService, LIMIT }
+export { createDatabaseProfileService, LIMIT };

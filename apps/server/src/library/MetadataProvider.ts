@@ -1,20 +1,20 @@
-import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient'
+import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient';
 
 type MediaFacts = {
-  path: string
-  probe: MediaProbe
+  path: string;
+  probe: MediaProbe;
   /**
    * What the path says about where this file sits in a series, when it says
    * anything. A provider searching a catalogue needs to know whether it is
    * looking for a film or an episode.
    */
   episode?: {
-    seriesTitle: string | null
-    seriesYear?: number | null
-    seasonNumber: number | null
-    episodeNumber: number | null
-    episodeTitle?: string | null
-  }
+    seriesTitle: string | null;
+    seriesYear?: number | null;
+    seasonNumber: number | null;
+    episodeNumber: number | null;
+    episodeTitle?: string | null;
+  };
   /**
    * What a provider previously said this item's id was, there.
    *
@@ -23,38 +23,38 @@ type MediaFacts = {
    * mismatched in the first place. Given the id, a provider can go straight
    * to the thing it already found instead of searching for it again.
    */
-  knownExternalId?: string | null
-}
+  knownExternalId?: string | null;
+};
 
 type CastMember = {
-  name: string
-  role: string
-  imageUrl: string | null
-}
+  name: string;
+  role: string;
+  imageUrl: string | null;
+};
 
 type Metadata = {
-  title: string
-  year: number | null
-  overview?: string
-  tagline?: string
-  genres?: string[]
-  cast?: CastMember[]
+  title: string;
+  year: number | null;
+  overview?: string;
+  tagline?: string;
+  genres?: string[];
+  cast?: CastMember[];
   /**
    * Out of ten, as the catalogues that supply it report.
    */
-  rating?: number
+  rating?: number;
   /**
    * The show an episode belongs to, when a provider knows it better than the
    * path did.
    */
-  seriesTitle?: string
-  posterUrl?: string
-  backdropUrl?: string
+  seriesTitle?: string;
+  posterUrl?: string;
+  backdropUrl?: string;
   /**
    * How the provider names this item, so a later lookup can skip searching.
    */
-  externalId?: string
-}
+  externalId?: string;
+};
 
 /**
  * Where a title comes from.
@@ -68,9 +68,9 @@ type Metadata = {
  * override the built-in without replacing it.
  */
 type MetadataProvider = {
-  name: string
-  describe: (facts: MediaFacts) => Promise<Metadata | null>
-}
+  name: string;
+  describe: (facts: MediaFacts) => Promise<Metadata | null>;
+};
 
 /**
  * Asks each provider in turn.
@@ -85,19 +85,19 @@ const resolveMetadata = async (
 ): Promise<Metadata | null> => {
   for (const provider of providers) {
     try {
-      const found = await provider.describe(facts)
+      const found = await provider.describe(facts);
 
       if (found !== null) {
-        return found
+        return found;
       }
     } catch (error) {
-      onProblem?.(provider.name, error instanceof Error ? error.message : 'Provider failed.')
+      onProblem?.(provider.name, error instanceof Error ? error.message : 'Provider failed.');
     }
   }
 
-  return null
-}
+  return null;
+};
 
-export type { CastMember, MediaFacts, Metadata, MetadataProvider }
+export type { CastMember, MediaFacts, Metadata, MetadataProvider };
 
-export default { resolveMetadata }
+export { resolveMetadata };

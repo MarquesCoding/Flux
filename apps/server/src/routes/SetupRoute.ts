@@ -1,12 +1,15 @@
-import { createRoute } from '@hono/zod-openapi'
-import SetupModule from '@FluxContracts/schemas/Setup'
+import { createRoute } from '@hono/zod-openapi';
+import {
+  SetupStatusSchema,
+  SetupRequestSchema,
+  SetupResultSchema,
+  SetupErrorSchema,
+} from '@FluxContracts/schemas/Setup';
 
-const { SetupStatusSchema, SetupRequestSchema, SetupResultSchema, SetupErrorSchema } = SetupModule
-
-const StatusResponse = SetupStatusSchema.openapi('SetupStatus')
-const SetupRequest = SetupRequestSchema.openapi('SetupRequest')
-const SetupResult = SetupResultSchema.openapi('SetupResult')
-const SetupError = SetupErrorSchema.openapi('SetupError')
+const StatusResponse = SetupStatusSchema.openapi('SetupStatus');
+const SetupRequest = SetupRequestSchema.openapi('SetupRequest');
+const SetupResult = SetupResultSchema.openapi('SetupResult');
+const SetupError = SetupErrorSchema.openapi('SetupError');
 
 /**
  * Reports whether this instance still needs first-run setup, and what the
@@ -23,7 +26,7 @@ const setupStatusRoute = createRoute({
       content: { 'application/json': { schema: StatusResponse } },
     },
   },
-})
+});
 
 /**
  * Completes first-run setup: creates the administrator and stores the access
@@ -56,6 +59,6 @@ const setupCompleteRoute = createRoute({
       content: { 'application/json': { schema: SetupError } },
     },
   },
-})
+});
 
-export default { setupStatusRoute, setupCompleteRoute }
+export { setupStatusRoute, setupCompleteRoute };

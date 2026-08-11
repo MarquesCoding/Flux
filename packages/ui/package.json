@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@base-ui-components/react": "^1.0.0-alpha.5",
+    "@base-ui/react": "^1.7.0",
     "@tabler/icons-react": "^3.26.0",
     "clsx": "^2.1.1",
     "motion": "^11.15.0",

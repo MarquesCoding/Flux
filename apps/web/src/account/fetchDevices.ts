@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 const DeviceSchema = z.object({
   id: z.string(),
@@ -7,11 +7,11 @@ const DeviceSchema = z.object({
   signedInAt: z.string(),
   expiresAt: z.string(),
   isCurrent: z.boolean(),
-})
+});
 
-const DeviceListSchema = z.object({ devices: z.array(DeviceSchema) })
+const DeviceListSchema = z.object({ devices: z.array(DeviceSchema) });
 
-type Device = z.infer<typeof DeviceSchema>
+type Device = z.infer<typeof DeviceSchema>;
 
 /**
  * Everywhere this account is signed in.
@@ -25,17 +25,17 @@ const fetchDevices = async (): Promise<Device[]> => {
     const response = await fetch('/api/account/devices', {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
-    })
+    });
 
     if (!response.ok) {
-      return []
+      return [];
     }
 
-    return DeviceListSchema.parse(await response.json()).devices
+    return DeviceListSchema.parse(await response.json()).devices;
   } catch {
-    return []
+    return [];
   }
-}
+};
 
 /**
  * Signs one of them out.
@@ -44,10 +44,10 @@ const endDevice = async (deviceId: string): Promise<boolean> => {
   const response = await fetch(`/api/account/devices/${deviceId}`, {
     method: 'DELETE',
     credentials: 'same-origin',
-  }).catch(() => null)
+  }).catch(() => null);
 
-  return response !== null && response.ok
-}
+  return response !== null && response.ok;
+};
 
 /**
  * Signs out everywhere but here.
@@ -56,11 +56,11 @@ const endOtherDevices = async (): Promise<boolean> => {
   const response = await fetch('/api/account/devices/end-others', {
     method: 'POST',
     credentials: 'same-origin',
-  }).catch(() => null)
+  }).catch(() => null);
 
-  return response !== null && response.ok
-}
+  return response !== null && response.ok;
+};
 
-export type { Device }
+export type { Device };
 
-export default { fetchDevices, endDevice, endOtherDevices }
+export { fetchDevices, endDevice, endOtherDevices };

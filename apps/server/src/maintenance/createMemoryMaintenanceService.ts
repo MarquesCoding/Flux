@@ -1,4 +1,4 @@
-import type { MaintenanceService } from './MaintenanceService'
+import type { MaintenanceService } from './MaintenanceService';
 
 /**
  * Server-wide upkeep that answers as if queued, without a real queue.
@@ -11,6 +11,6 @@ const createMemoryMaintenanceService = (): MaintenanceService => ({
   cleanupSessions: () => Promise.resolve({ jobId: 'job-cleanup-sessions', state: 'queued' }),
   checkCatalogueConnectivity: () =>
     Promise.resolve({ jobId: 'job-check-catalogue-connectivity', state: 'queued' }),
-})
+});
 
-export default { createMemoryMaintenanceService }
+export { createMemoryMaintenanceService };

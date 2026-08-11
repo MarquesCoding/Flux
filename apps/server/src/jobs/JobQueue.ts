@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+import { z } from 'zod';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 /**
  * The jobs Flux runs in the background.
@@ -8,17 +8,14 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
  * minutes, and doing it inline means an HTTP request that times out while the
  * work carries on invisibly. See ADR-0005.
  */
-const SCAN_LIBRARY_JOB = 'library.scan'
+const SCAN_LIBRARY_JOB = 'library.scan';
 
 const ScanLibraryJobSchema = z.object({
   libraryId: z.string().uuid(),
-  /**
-   * Whether every file should be probed again rather than only changed ones.
-   */
   force: z.boolean().default(false),
-})
+});
 
-type ScanLibraryJob = z.infer<typeof ScanLibraryJobSchema>
+type ScanLibraryJob = z.infer<typeof ScanLibraryJobSchema>;
 
 /**
  * Re-renders preview clips for a library's already-scanned media, without a
@@ -29,14 +26,14 @@ type ScanLibraryJob = z.infer<typeof ScanLibraryJobSchema>
  * and re-sample colours just to pick up a different audio track in the
  * previews.
  */
-const REGENERATE_PREVIEWS_JOB = 'library.regeneratePreviews'
+const REGENERATE_PREVIEWS_JOB = 'library.regeneratePreviews';
 
 const RegeneratePreviewsJobSchema = z.object({
   libraryId: z.string().uuid(),
   defaultAudioLanguage: z.string().nullable(),
-})
+});
 
-type RegeneratePreviewsJob = z.infer<typeof RegeneratePreviewsJobSchema>
+type RegeneratePreviewsJob = z.infer<typeof RegeneratePreviewsJobSchema>;
 
 /**
  * Re-renders every scrubbing thumbnail sheet for a library's already-scanned
@@ -46,13 +43,13 @@ type RegeneratePreviewsJob = z.infer<typeof RegeneratePreviewsJobSchema>
  * scrub clip are different renders with different reasons to redo them, and
  * an admin picking one from the Work tab should not have to run the other.
  */
-const REGENERATE_TRICKPLAY_JOB = 'library.regenerateTrickplay'
+const REGENERATE_TRICKPLAY_JOB = 'library.regenerateTrickplay';
 
 const RegenerateTrickplayJobSchema = z.object({
   libraryId: z.string().uuid(),
-})
+});
 
-type RegenerateTrickplayJob = z.infer<typeof RegenerateTrickplayJobSchema>
+type RegenerateTrickplayJob = z.infer<typeof RegenerateTrickplayJobSchema>;
 
 /**
  * Finds intros, outros and other skippable segments across a library's
@@ -62,13 +59,13 @@ type RegenerateTrickplayJob = z.infer<typeof RegenerateTrickplayJobSchema>
  * this is for redoing it on demand, such as after a segment provider was
  * reconfigured.
  */
-const DETECT_SEGMENTS_JOB = 'library.detectSegments'
+const DETECT_SEGMENTS_JOB = 'library.detectSegments';
 
 const DetectSegmentsJobSchema = z.object({
   libraryId: z.string().uuid(),
-})
+});
 
-type DetectSegmentsJob = z.infer<typeof DetectSegmentsJobSchema>
+type DetectSegmentsJob = z.infer<typeof DetectSegmentsJobSchema>;
 
 /**
  * Deletes cached artwork and profile photo files nothing in the database
@@ -77,7 +74,7 @@ type DetectSegmentsJob = z.infer<typeof DetectSegmentsJobSchema>
  * Not library-scoped — the cache is one directory shared by every library,
  * and a profile photo belongs to an account, not a library.
  */
-const CLEANUP_IMAGE_CACHE_JOB = 'server.cleanupImageCache'
+const CLEANUP_IMAGE_CACHE_JOB = 'server.cleanupImageCache';
 
 /**
  * Clears out expired sign-in sessions and device-authorization codes.
@@ -85,14 +82,14 @@ const CLEANUP_IMAGE_CACHE_JOB = 'server.cleanupImageCache'
  * Not library-scoped — sessions and device codes belong to accounts, not
  * libraries.
  */
-const CLEANUP_SESSIONS_JOB = 'server.cleanupSessions'
+const CLEANUP_SESSIONS_JOB = 'server.cleanupSessions';
 
 /**
  * Verifies the configured catalogue key can actually reach the catalogue.
  *
  * Not library-scoped — one key serves every library's metadata matching.
  */
-const CHECK_CATALOGUE_CONNECTIVITY_JOB = 'server.checkCatalogueConnectivity'
+const CHECK_CATALOGUE_CONNECTIVITY_JOB = 'server.checkCatalogueConnectivity';
 
 /**
  * The queue a schedule for a library-scoped kind actually fires on.
@@ -104,14 +101,14 @@ const CHECK_CATALOGUE_CONNECTIVITY_JOB = 'server.checkCatalogueConnectivity'
  * handler is the thing that actually enumerates libraries and enqueues the
  * real job once per library — see `Main.ts`.
  */
-const scheduleTriggerKind = (kind: string): string => `${kind}.scheduled`
+const scheduleTriggerKind = (kind: string): string => `${kind}.scheduled`;
 
 /**
  * Where a queued job has got to.
  */
-const JobStateSchema = z.enum(['queued', 'running', 'completed', 'failed', 'unknown'])
+const JobStateSchema = z.enum(['queued', 'running', 'completed', 'failed', 'unknown']);
 
-type JobState = z.infer<typeof JobStateSchema>
+type JobState = z.infer<typeof JobStateSchema>;
 
 /**
  * How far a running job has got.
@@ -121,10 +118,10 @@ type JobState = z.infer<typeof JobStateSchema>
  * number that has to somehow mean both.
  */
 type JobProgress = {
-  phase: string
-  processed: number
-  total: number
-}
+  phase: string;
+  processed: number;
+  total: number;
+};
 
 /**
  * The queue as the rest of the server sees it.
@@ -144,16 +141,16 @@ type JobQueue = {
     kind: string,
     payload: { [key: string]: JsonValue },
     singletonKey?: string,
-  ) => Promise<string | null>
-  readState: (jobId: string) => Promise<JobState>
+  ) => Promise<string | null>;
+  readState: (jobId: string) => Promise<JobState>;
   /**
    * What a running job last reported about itself.
    *
    * Null until the job has reported anything, which is also true of a job
    * that does not report progress at all.
    */
-  readProgress: (jobId: string) => JobProgress | null
-  reportProgress: (jobId: string, phase: string, processed: number, total: number) => void
+  readProgress: (jobId: string) => JobProgress | null;
+  reportProgress: (jobId: string, phase: string, processed: number, total: number) => void;
   /**
    * Sets one of the schedules a queue name runs on.
    *
@@ -162,14 +159,14 @@ type JobQueue = {
    * their key. `queueName` must be one registered as a handler, the same as
    * `enqueue` — a schedule fires by sending to that queue.
    */
-  setSchedule: (queueName: string, key: string, cron: string) => Promise<void>
-  clearSchedule: (queueName: string, key: string) => Promise<void>
+  setSchedule: (queueName: string, key: string, cron: string) => Promise<void>;
+  clearSchedule: (queueName: string, key: string) => Promise<void>;
   /**
    * Every schedule currently set, across every queue name.
    */
-  listSchedules: () => Promise<{ queueName: string; key: string; cron: string }[]>
-  stop: () => Promise<void>
-}
+  listSchedules: () => Promise<{ queueName: string; key: string; cron: string }[]>;
+  stop: () => Promise<void>;
+};
 
 export type {
   DetectSegmentsJob,
@@ -179,9 +176,9 @@ export type {
   RegeneratePreviewsJob,
   RegenerateTrickplayJob,
   ScanLibraryJob,
-}
+};
 
-export default {
+export {
   SCAN_LIBRARY_JOB,
   ScanLibraryJobSchema,
   REGENERATE_PREVIEWS_JOB,
@@ -195,4 +192,4 @@ export default {
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   scheduleTriggerKind,
   JobStateSchema,
-}
+};

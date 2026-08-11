@@ -1,22 +1,16 @@
-import negotiatePlaybackModule from '@FluxCore/functions/negotiatePlayback'
-import resolveQualityStepModule from '@FluxCore/functions/resolveQualityStep'
-import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
-import planToSessionSpecModule from '@FluxCore/functions/planToSessionSpec'
-import PlaybackServiceModule from './PlaybackService'
-import type { PlaybackService } from './PlaybackService'
-import type { Transcoder, TranscoderCapabilities } from '@FluxServer/transcoder/TranscoderClient'
-
-const { negotiatePlayback } = negotiatePlaybackModule
-const { resolveQualityStep } = resolveQualityStepModule
-const { describePlaybackMode } = describePlaybackModeModule
-const { planToSessionSpec } = planToSessionSpecModule
-const {
+import { negotiatePlayback } from '@FluxCore/functions/negotiatePlayback';
+import { resolveQualityStep } from '@FluxCore/functions/resolveQualityStep';
+import { describePlaybackMode } from '@FluxContracts/functions/describePlaybackMode';
+import { planToSessionSpec } from '@FluxCore/functions/planToSessionSpec';
+import {
   SEGMENT_SECONDS,
   TRICKPLAY_INTERVAL_SECONDS,
   TRICKPLAY_TILE_WIDTH,
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
-} = PlaybackServiceModule
+} from './PlaybackService';
+import type { PlaybackService } from './PlaybackService';
+import type { Transcoder, TranscoderCapabilities } from '@FluxServer/transcoder/TranscoderClient';
 
 /**
  * Subtitle formats that are pictures rather than text.
@@ -27,14 +21,14 @@ const {
 /**
  * The file the media service names its index.
  */
-const TRICKPLAY_INDEX_NAME = 'thumbnails.vtt'
+const TRICKPLAY_INDEX_NAME = 'thumbnails.vtt';
 
 /**
  * The file the media service names a preview clip.
  */
-const PREVIEW_NAME = 'preview.mp4'
+const PREVIEW_NAME = 'preview.mp4';
 
-const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub'])
+const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub']);
 
 /**
  * Whether a plan asks for nothing to be changed.
@@ -51,7 +45,7 @@ const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub'])
  * negotiation actually chose.
  */
 const naturalAudioStreamIndex = (item: Parameters<typeof negotiatePlayback>[0]): number | null =>
-  (item.audioStreams.find((stream) => stream.isDefault) ?? item.audioStreams[0])?.index ?? null
+  (item.audioStreams.find((stream) => stream.isDefault) ?? item.audioStreams[0])?.index ?? null;
 
 const isDirectPlay = (
   plan: Parameters<typeof describePlaybackMode>[0],
@@ -61,33 +55,33 @@ const isDirectPlay = (
   plan.video.kind === 'passthrough' &&
   plan.audio.kind === 'passthrough' &&
   plan.audio.streamIndex === naturalAudioStreamIndex(item) &&
-  plan.subtitles.kind !== 'burnIn'
+  plan.subtitles.kind !== 'burnIn';
 
 type MediaLookup = {
   findForPlayback: (mediaId: string) => Promise<{
-    item: Parameters<typeof negotiatePlayback>[0]
-    path: string
+    item: Parameters<typeof negotiatePlayback>[0];
+    path: string;
     /**
      * The language the item's library forces audio selection toward, when an
      * operator has set one.
      */
-    defaultAudioLanguage: string | null
-  } | null>
-}
+    defaultAudioLanguage: string | null;
+  } | null>;
+};
 
 type CreatePlaybackServiceOptions = {
-  media: MediaLookup
-  transcoder: Transcoder
-  sessionUrlPrefix: string
-  directUrlPrefix: string
+  media: MediaLookup;
+  transcoder: Transcoder;
+  sessionUrlPrefix: string;
+  directUrlPrefix: string;
   /**
    * Where seek-bar previews are served from.
    *
    * Proxied like segments are, because the media service reads any path it is
    * given and has no authentication of its own.
    */
-  trickplayUrlPrefix: string
-}
+  trickplayUrlPrefix: string;
+};
 
 /**
  * Playback backed by the media service.
@@ -102,56 +96,46 @@ const createPlaybackService = ({
   directUrlPrefix,
   trickplayUrlPrefix,
 }: CreatePlaybackServiceOptions): PlaybackService => {
-  let cached: TranscoderCapabilities | null = null
+  let cached: TranscoderCapabilities | null = null;
 
   const capabilities = async (): Promise<TranscoderCapabilities> => {
     if (cached !== null) {
-      return cached
+      return cached;
     }
 
-    const found = await transcoder.capabilities()
+    const found = await transcoder.capabilities();
 
-    // An empty answer is not an answer worth keeping. The media service
-    // reports what it could verify at the moment it was asked, and a service
-    // still starting, or one whose ffmpeg was being replaced underneath it,
-    // reports nothing — which would otherwise be cached for the life of the
-    // process and turn a passing problem into a permanent one.
     if (found.encoders.length > 0) {
-      cached = found
+      cached = found;
     }
 
-    return found
-  }
+    return found;
+  };
 
   return {
     explain: async (mediaId, profile, requestedQuality) => {
-      const found = await media.findForPlayback(mediaId)
+      const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
-        return null
+        return null;
       }
 
-      const qualityClamp = resolveQualityStep(found.item, requestedQuality ?? 'original')
-      const plan = negotiatePlayback(found.item, profile, qualityClamp, found.defaultAudioLanguage)
+      const qualityClamp = resolveQualityStep(found.item, requestedQuality ?? 'original');
+      const plan = negotiatePlayback(found.item, profile, qualityClamp, found.defaultAudioLanguage);
 
-      return { mode: describePlaybackMode(plan), plan }
+      return { mode: describePlaybackMode(plan), plan };
     },
 
     start: async (mediaId, profile, startSeconds, audioStreamIndex, requestedQuality) => {
-      const found = await media.findForPlayback(mediaId)
+      const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
-        return { kind: 'notFound' }
+        return { kind: 'notFound' };
       }
 
-      const qualityClamp = resolveQualityStep(found.item, requestedQuality ?? 'original')
-      const plan = negotiatePlayback(found.item, profile, qualityClamp, found.defaultAudioLanguage)
+      const qualityClamp = resolveQualityStep(found.item, requestedQuality ?? 'original');
+      const plan = negotiatePlayback(found.item, profile, qualityClamp, found.defaultAudioLanguage);
 
-      // A viewer who picked a track needs that track selected, which the
-      // original file cannot do: it carries every stream and the browser picks
-      // the default. Choosing one therefore means transcoding. A library that
-      // forces a language behaves the same way whenever the forced track is
-      // not what the file would default to on its own.
       if (isDirectPlay(plan, found.item) && audioStreamIndex === undefined) {
         return {
           kind: 'started',
@@ -162,7 +146,7 @@ const createPlaybackService = ({
             plan,
             warnings: [],
           },
-        }
+        };
       }
 
       const outcome = planToSessionSpec({
@@ -175,24 +159,19 @@ const createPlaybackService = ({
         capabilities: await capabilities(),
         startSeconds,
         segmentSeconds: SEGMENT_SECONDS,
-        // A viewer's explicit pick wins. Otherwise the session must still be
-        // told which stream negotiation chose — leaving this out would let
-        // the media service fall back to its own default, undoing a forced
-        // library language the moment a session (rather than a direct file
-        // serve) is needed.
         ...(audioStreamIndex !== undefined
           ? { audioStreamIndex }
           : plan.audio.streamIndex === null
             ? {}
             : { audioStreamIndex: plan.audio.streamIndex }),
-      })
+      });
 
       if (outcome.kind === 'unsupported') {
-        return { kind: 'unsupported', reason: outcome.reason }
+        return { kind: 'unsupported', reason: outcome.reason };
       }
 
       try {
-        const session = await transcoder.startSession(outcome.spec)
+        const session = await transcoder.startSession(outcome.spec);
 
         return {
           kind: 'started',
@@ -206,28 +185,28 @@ const createPlaybackService = ({
             plan,
             warnings: outcome.warnings,
           },
-        }
+        };
       } catch (error) {
         return {
           kind: 'failed',
           reason: error instanceof Error ? error.message : 'The media service failed.',
-        }
+        };
       }
     },
 
     readSessionFile: async (sessionId, name) => transcoder.readSessionFile(sessionId, name),
 
     readDirectFile: async (mediaId, range) => {
-      const found = await media.findForPlayback(mediaId)
+      const found = await media.findForPlayback(mediaId);
 
-      return found === null ? null : transcoder.readFile(found.path, range)
+      return found === null ? null : transcoder.readFile(found.path, range);
     },
 
     trickplay: async (mediaId) => {
-      const found = await media.findForPlayback(mediaId)
+      const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
-        return null
+        return null;
       }
 
       const index = await transcoder.requestTrickplay({
@@ -237,13 +216,10 @@ const createPlaybackService = ({
         columns: TRICKPLAY_COLUMNS,
         rows: TRICKPLAY_ROWS,
         wait: false,
-      })
+      });
 
-      // Rendering has been started but has not finished. Saying so, rather
-      // than waiting for it, is what lets the film start now and the previews
-      // appear when the player next asks.
       if (!index.isReady) {
-        return null
+        return null;
       }
 
       return {
@@ -252,39 +228,37 @@ const createPlaybackService = ({
         intervalSeconds: index.intervalSeconds,
         tileWidth: index.tileWidth,
         tileHeight: index.tileHeight,
-      }
+      };
     },
 
     readFrame: async (mediaId, seconds, width) => {
-      const found = await media.findForPlayback(mediaId)
+      const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
-        return null
+        return null;
       }
 
       return transcoder
         .readFrame({ inputPath: found.path, atSeconds: seconds, width })
-        .catch(() => null)
+        .catch(() => null);
     },
 
     readPreview: async (mediaId) => {
-      const found = await media.findForPlayback(mediaId)
+      const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
-        return null
+        return null;
       }
 
-      // Asked for without waiting: if it has not been made yet this starts it
-      // and says so, and the page carries on with the frame it already has.
       const clip = await transcoder
         .requestPreview({ inputPath: found.path, wait: false })
-        .catch(() => null)
+        .catch(() => null);
 
       if (clip === null || !clip.isReady) {
-        return null
+        return null;
       }
 
-      return transcoder.readPreviewFile(clip.id, PREVIEW_NAME)
+      return transcoder.readPreviewFile(clip.id, PREVIEW_NAME);
     },
 
     readTrickplayFile: (trickplayId, name) => transcoder.readTrickplayFile(trickplayId, name),
@@ -292,9 +266,9 @@ const createPlaybackService = ({
     stop: (sessionId) => transcoder.stopSession(sessionId),
 
     heartbeat: (sessionId, isPlaying) => transcoder.heartbeatSession(sessionId, isPlaying),
-  }
-}
+  };
+};
 
-export type { MediaLookup }
+export type { MediaLookup };
 
-export default { createPlaybackService }
+export { createPlaybackService };

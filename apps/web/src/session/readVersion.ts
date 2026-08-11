@@ -1,6 +1,6 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
-const HealthSchema = z.object({ version: z.string() })
+const HealthSchema = z.object({ version: z.string() });
 
 /**
  * What an unreleased build calls itself.
@@ -9,18 +9,18 @@ const HealthSchema = z.object({ version: z.string() })
  * and printing it on a sign-in screen says less than nothing. Somebody running
  * from source should see that they are.
  */
-const LOCAL = 'local.dev'
+const LOCAL = 'local.dev';
 
 /**
  * The versions that mean "this was never released".
  */
-const UNRELEASED = new Set(['0.0.0', 'dev', ''])
+const UNRELEASED = new Set(['0.0.0', 'dev', '']);
 
 /**
  * Says a version the way it should be read.
  */
 const describeVersion = (reported: string): string =>
-  UNRELEASED.has(reported.trim()) ? LOCAL : reported
+  UNRELEASED.has(reported.trim()) ? LOCAL : reported;
 
 /**
  * Which version of Flux this is.
@@ -31,16 +31,16 @@ const describeVersion = (reported: string): string =>
  */
 const readVersion = async (): Promise<string | null> => {
   try {
-    const response = await fetch('/api/health', { headers: { accept: 'application/json' } })
+    const response = await fetch('/api/health', { headers: { accept: 'application/json' } });
 
     if (!response.ok) {
-      return null
+      return null;
     }
 
-    return describeVersion(HealthSchema.parse(await response.json()).version)
+    return describeVersion(HealthSchema.parse(await response.json()).version);
   } catch {
-    return null
+    return null;
   }
-}
+};
 
-export default { readVersion, describeVersion, LOCAL }
+export { readVersion, describeVersion, LOCAL };

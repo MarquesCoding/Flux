@@ -1,13 +1,11 @@
-import { z } from 'zod'
-import MediaItemModule from './MediaItem'
-
-const {
+import { z } from 'zod';
+import {
   ContainerSchema,
   VideoCodecSchema,
   AudioCodecSchema,
   SubtitleFormatSchema,
   VideoRangeSchema,
-} = MediaItemModule
+} from './MediaItem';
 
 const ReasonCodeSchema = z.enum([
   'ClientSupportsSource',
@@ -23,17 +21,17 @@ const ReasonCodeSchema = z.enum([
   'SubtitleFormatNotSupported',
   'SubtitleNotCarryableInContainer',
   'UserForcedTranscode',
-])
+]);
 
 const ReasonSchema = z.object({
   code: ReasonCodeSchema,
   detail: z.string().min(1),
-})
+});
 
 const ContainerDecisionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('passthrough'), reason: ReasonSchema }),
   z.object({ kind: z.literal('remux'), target: ContainerSchema, reason: ReasonSchema }),
-])
+]);
 
 const VideoDecisionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('passthrough'), reason: ReasonSchema }),
@@ -46,19 +44,11 @@ const VideoDecisionSchema = z.discriminatedUnion('kind', [
     maxHeight: z.number().int().positive(),
     reason: ReasonSchema,
   }),
-])
+]);
 
 const AudioDecisionSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('passthrough'),
-    /**
-     * Which of the source's audio streams was chosen, when it has one.
-     *
-     * Carried here rather than left implicit so a caller can tell whether the
-     * container's own default track was picked or whether Flux picked another
-     * one for it — the difference that decides whether a direct file serve can
-     * honour the choice or a remux is needed to select it. See ADR-0011.
-     */
     streamIndex: z.number().int().nullable(),
     reason: ReasonSchema,
   }),
@@ -70,7 +60,7 @@ const AudioDecisionSchema = z.discriminatedUnion('kind', [
     maxBitrateKbps: z.number().int().positive(),
     reason: ReasonSchema,
   }),
-])
+]);
 
 const SubtitleDecisionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('none'), reason: ReasonSchema }),
@@ -82,7 +72,7 @@ const SubtitleDecisionSchema = z.discriminatedUnion('kind', [
     reason: ReasonSchema,
   }),
   z.object({ kind: z.literal('burnIn'), streamIndex: z.number().int(), reason: ReasonSchema }),
-])
+]);
 
 /**
  * The output of playback negotiation. Each axis is decided independently so
@@ -97,17 +87,17 @@ const PlaybackPlanSchema = z.object({
   video: VideoDecisionSchema,
   audio: AudioDecisionSchema,
   subtitles: SubtitleDecisionSchema,
-})
+});
 
-export type ReasonCode = z.infer<typeof ReasonCodeSchema>
-export type Reason = z.infer<typeof ReasonSchema>
-export type ContainerDecision = z.infer<typeof ContainerDecisionSchema>
-export type VideoDecision = z.infer<typeof VideoDecisionSchema>
-export type AudioDecision = z.infer<typeof AudioDecisionSchema>
-export type SubtitleDecision = z.infer<typeof SubtitleDecisionSchema>
-export type PlaybackPlan = z.infer<typeof PlaybackPlanSchema>
+export type ReasonCode = z.infer<typeof ReasonCodeSchema>;
+export type Reason = z.infer<typeof ReasonSchema>;
+export type ContainerDecision = z.infer<typeof ContainerDecisionSchema>;
+export type VideoDecision = z.infer<typeof VideoDecisionSchema>;
+export type AudioDecision = z.infer<typeof AudioDecisionSchema>;
+export type SubtitleDecision = z.infer<typeof SubtitleDecisionSchema>;
+export type PlaybackPlan = z.infer<typeof PlaybackPlanSchema>;
 
-export default {
+export {
   PlaybackPlanSchema,
   ReasonCodeSchema,
   ReasonSchema,
@@ -115,4 +105,4 @@ export default {
   VideoDecisionSchema,
   AudioDecisionSchema,
   SubtitleDecisionSchema,
-}
+};

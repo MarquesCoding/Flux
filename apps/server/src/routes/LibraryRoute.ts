@@ -1,18 +1,23 @@
-import { createRoute, z } from '@hono/zod-openapi'
-import LibraryModule from '@FluxContracts/schemas/Library'
-
-const {
+import { createRoute, z } from '@hono/zod-openapi';
+import {
   LibrarySchema,
   UpdateLibraryRequestSchema,
   MediaSummarySchema,
   MediaDetailSchema,
   LIBRARY_KINDS,
-} = LibraryModule
+} from '@FluxContracts/schemas/Library';
+import {
+  ShowListSchema as ShowListContract,
+  ShowDetailSchema as ShowDetailContract,
+} from '@FluxContracts/schemas/Show';
 
-const Library = LibrarySchema.openapi('Library')
-const MediaSummary = MediaSummarySchema.openapi('MediaSummary')
-const MediaDetail = MediaDetailSchema.openapi('MediaDetail')
-const NotFound = z.object({ error: z.string() }).openapi('LibraryNotFound')
+const Library = LibrarySchema.openapi('Library');
+const MediaSummary = MediaSummarySchema.openapi('MediaSummary');
+const MediaDetail = MediaDetailSchema.openapi('MediaDetail');
+const NotFound = z.object({ error: z.string() }).openapi('LibraryNotFound');
+
+const ShowListSchema = ShowListContract.openapi('ShowList');
+const ShowDetailSchema = ShowDetailContract.openapi('ShowDetail');
 
 const CreateLibraryRequest = z
   .object({
@@ -20,9 +25,9 @@ const CreateLibraryRequest = z
     kind: z.enum(LIBRARY_KINDS),
     path: z.string().min(1),
   })
-  .openapi('CreateLibraryRequest')
+  .openapi('CreateLibraryRequest');
 
-const UpdateLibraryRequest = UpdateLibraryRequestSchema.openapi('UpdateLibraryRequest')
+const UpdateLibraryRequest = UpdateLibraryRequestSchema.openapi('UpdateLibraryRequest');
 
 const listLibrariesRoute = createRoute({
   method: 'get',
@@ -35,7 +40,7 @@ const listLibrariesRoute = createRoute({
       content: { 'application/json': { schema: z.array(Library) } },
     },
   },
-})
+});
 
 const createLibraryRoute = createRoute({
   method: 'post',
@@ -53,7 +58,7 @@ const createLibraryRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 /**
  * Changes a library's settings, such as which language its audio track
@@ -78,7 +83,7 @@ const updateLibraryRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 /**
  * Lists the items in a library.
@@ -95,16 +100,8 @@ const listItemsRoute = createRoute({
     params: z.object({ id: z.string().uuid() }),
     query: z.object({
       search: z.string().optional(),
-      /**
-       * Films or programmes, told apart by whether a file belongs to a series.
-       */
       kind: z.enum(['films', 'shows']).optional(),
       genre: z.string().optional(),
-      /**
-       * Particular items, named outright and separated by commas. For a page
-       * built from a list kept elsewhere, such as what a viewer has
-       * favourited.
-       */
       ids: z.string().optional(),
       order: z.enum(['title', 'newest']).optional(),
       limit: z.coerce.number().int().positive().max(200).optional(),
@@ -125,7 +122,7 @@ const listItemsRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 const getMediaRoute = createRoute({
   method: 'get',
@@ -143,9 +140,9 @@ const getMediaRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
-const ScanAccepted = z.object({ jobId: z.string(), state: z.string() }).openapi('ScanAccepted')
+const ScanAccepted = z.object({ jobId: z.string(), state: z.string() }).openapi('ScanAccepted');
 
 /**
  * How far a scan has got.
@@ -163,7 +160,7 @@ const ScanState = z
     processed: z.number().int().nonnegative().nullable(),
     total: z.number().int().nonnegative().nullable(),
   })
-  .openapi('ScanState')
+  .openapi('ScanState');
 
 /**
  * Queues a scan.
@@ -196,7 +193,7 @@ const scanLibraryRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 const scanStateRoute = createRoute({
   method: 'get',
@@ -210,7 +207,7 @@ const scanStateRoute = createRoute({
       content: { 'application/json': { schema: ScanState } },
     },
   },
-})
+});
 
 /**
  * Deletes every item in a library, then queues a scan to repopulate it from
@@ -220,6 +217,54 @@ const scanStateRoute = createRoute({
  * database already believes, and an operator reaching for this wants no part
  * of that history kept.
  */
+/**
+ * Lists the series in a library.
+ *
+ * A show is every item naming the same series, so this is a reading of the
+ * library rather than a table in it — and it is read here rather than in a
+ * browser because a page holds the first sixty things it was sent.
+ */
+const listShowsRoute = createRoute({
+  method: 'get',
+  path: '/api/libraries/{id}/shows',
+  tags: ['Library'],
+  summary: 'List the series in a library',
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: {
+      description: 'The series, most recent arrival first',
+      content: { 'application/json': { schema: ShowListSchema } },
+    },
+    404: {
+      description: 'No such library',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+});
+
+/**
+ * Everything the library holds about one series.
+ */
+const getShowRoute = createRoute({
+  method: 'get',
+  path: '/api/libraries/{id}/shows/{showId}',
+  tags: ['Library'],
+  summary: 'Read one series and its episodes',
+  request: {
+    params: z.object({ id: z.string().uuid(), showId: z.string().min(1) }),
+  },
+  responses: {
+    200: {
+      description: 'The series, season by season',
+      content: { 'application/json': { schema: ShowDetailSchema } },
+    },
+    404: {
+      description: 'No such library or series',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+});
+
 const resetLibraryRoute = createRoute({
   method: 'post',
   path: '/api/libraries/{id}/reset',
@@ -236,7 +281,7 @@ const resetLibraryRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
 /**
  * Re-renders preview clips against the library's current forced audio
@@ -261,11 +306,11 @@ const regeneratePreviewsRoute = createRoute({
       content: { 'application/json': { schema: NotFound } },
     },
   },
-})
+});
 
-export { ScanAccepted }
+export { ScanAccepted };
 
-export default {
+export {
   listLibrariesRoute,
   createLibraryRoute,
   updateLibraryRoute,
@@ -274,5 +319,7 @@ export default {
   scanLibraryRoute,
   scanStateRoute,
   resetLibraryRoute,
+  listShowsRoute,
+  getShowRoute,
   regeneratePreviewsRoute,
-}
+};

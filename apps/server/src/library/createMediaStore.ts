@@ -1,14 +1,11 @@
-import { randomUUID } from 'node:crypto'
-import { z } from 'zod'
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
-import SchemaModule from '@FluxServer/db/Schema'
-import MediaItemModule from '@FluxContracts/schemas/MediaItem'
-import type { FluxDatabase } from '@FluxServer/db/Database'
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem'
-import type { MediaStore } from './scanLibrary'
-
-const { mediaItem, mediaItemJob, library } = SchemaModule
-const { AudioStreamSchema } = MediaItemModule
+import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { mediaItem, mediaItemJob, library } from '@FluxServer/db/Schema';
+import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
+import type { FluxDatabase } from '@FluxServer/db/Database';
+import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
+import type { MediaStore } from './scanLibrary';
 
 /**
  * The library tables, for the scanner.
@@ -29,16 +26,16 @@ const createMediaStore = (
         externalId: mediaItem.externalId,
       })
       .from(mediaItem)
-      .where(eq(mediaItem.libraryId, libraryId))
+      .where(eq(mediaItem.libraryId, libraryId));
 
-    return rows
+    return rows;
   },
 
   upsert: async (row) => {
-    const video = row.probe.video
+    const video = row.probe.video;
 
     if (video === null) {
-      return
+      return;
     }
 
     const changeable = {
@@ -58,8 +55,6 @@ const createMediaStore = (
       audioStreams: row.probe.audioStreams,
       subtitleStreams: row.probe.subtitleStreams,
       chapters: row.probe.chapters,
-      // What the catalogue calls the show wins over what the path suggested:
-      // one is a name, the other is a folder somebody happened to choose.
       seriesTitle: row.metadata.seriesTitle ?? row.episode.seriesTitle,
       seasonNumber: row.episode.seasonNumber,
       episodeNumber: row.episode.episodeNumber,
@@ -72,60 +67,48 @@ const createMediaStore = (
       backdropUrl: row.metadata.backdropUrl ?? null,
       externalId: row.metadata.externalId ?? null,
       updatedAt: new Date(),
-    }
+    };
 
     const [saved] = await db
       .insert(mediaItem)
       .values({ id: randomUUID(), ...changeable })
-      // Everything the scan just worked out, not a subset of it. This clause
-      // was written when a row was only what a probe said, and it never
-      // learned about metadata — so an item that already existed could never
-      // gain a poster, a synopsis or a cast, and a catalogue key added after
-      // the first scan appeared to do nothing at all.
       .onConflictDoUpdate({
         target: [mediaItem.libraryId, mediaItem.path],
         set: changeable,
       })
-      .returning({ id: mediaItem.id })
+      .returning({ id: mediaItem.id });
 
     if (saved !== undefined) {
-      // Reaching here means the file is new or has changed on disk, so every
-      // derived thing about it — its preview, its thumbnail sheet, where its
-      // intro is — describes a file that no longer exists in that form.
-      // Forgetting the completions is what puts it back in front of the jobs
-      // that make them.
-      await db.delete(mediaItemJob).where(eq(mediaItemJob.mediaItemId, saved.id))
+      await db.delete(mediaItemJob).where(eq(mediaItemJob.mediaItemId, saved.id));
     }
   },
 
   removeByPaths: async (libraryId, paths) => {
     if (paths.length === 0) {
-      return 0
+      return 0;
     }
 
     const removed = await db
       .delete(mediaItem)
       .where(and(eq(mediaItem.libraryId, libraryId), inArray(mediaItem.path, paths)))
-      .returning({ id: mediaItem.id })
+      .returning({ id: mediaItem.id });
 
-    return removed.length
+    return removed.length;
   },
 
   markScanned: async (libraryId) => {
-    await db.update(library).set({ lastScannedAt: new Date() }).where(eq(library.id, libraryId))
+    await db.update(library).set({ lastScannedAt: new Date() }).where(eq(library.id, libraryId));
   },
 
-  // Watch progress and segments cascade with the item they belong to, so a
-  // clear leaves nothing behind for a rebuilt item to inherit by accident.
   clear: async (libraryId) => {
     const removed = await db
       .delete(mediaItem)
       .where(eq(mediaItem.libraryId, libraryId))
-      .returning({ id: mediaItem.id })
+      .returning({ id: mediaItem.id });
 
-    return removed.length
+    return removed.length;
   },
-})
+});
 
 /**
  * Counts the items in a library.
@@ -134,10 +117,10 @@ const countItems = async (db: FluxDatabase, libraryId: string): Promise<number> 
   const rows = await db
     .select({ total: sql<number>`count(*)::int` })
     .from(mediaItem)
-    .where(eq(mediaItem.libraryId, libraryId))
+    .where(eq(mediaItem.libraryId, libraryId));
 
-  return rows[0]?.total ?? 0
-}
+  return rows[0]?.total ?? 0;
+};
 
 /**
  * The items in a library that have not finished the given job.
@@ -164,14 +147,14 @@ const listOutstandingFor = async (
       mediaItemJob,
       and(eq(mediaItemJob.mediaItemId, mediaItem.id), eq(mediaItemJob.kind, kind)),
     )
-    .where(and(eq(mediaItem.libraryId, libraryId), isNull(mediaItemJob.mediaItemId)))
+    .where(and(eq(mediaItem.libraryId, libraryId), isNull(mediaItemJob.mediaItemId)));
 
   return rows.map((row) => ({
     id: row.id,
     path: row.path,
     audioStreams: z.array(AudioStreamSchema).parse(row.audioStreams),
-  }))
-}
+  }));
+};
 
 /**
  * Records that a job has finished with one item.
@@ -181,8 +164,8 @@ const markJobComplete = async (
   mediaItemId: string,
   kind: string,
 ): Promise<void> => {
-  await db.insert(mediaItemJob).values({ mediaItemId, kind }).onConflictDoNothing()
-}
+  await db.insert(mediaItemJob).values({ mediaItemId, kind }).onConflictDoNothing();
+};
 
 /**
  * Forgets a job's completions across a whole library, putting every item back
@@ -200,10 +183,10 @@ const clearJobCompletions = async (
   const rows = await db
     .select({ id: mediaItem.id })
     .from(mediaItem)
-    .where(eq(mediaItem.libraryId, libraryId))
+    .where(eq(mediaItem.libraryId, libraryId));
 
   if (rows.length === 0) {
-    return
+    return;
   }
 
   await db.delete(mediaItemJob).where(
@@ -214,13 +197,7 @@ const clearJobCompletions = async (
         rows.map((row) => row.id),
       ),
     ),
-  )
-}
+  );
+};
 
-export default {
-  createMediaStore,
-  countItems,
-  listOutstandingFor,
-  markJobComplete,
-  clearJobCompletions,
-}
+export { createMediaStore, countItems, listOutstandingFor, markJobComplete, clearJobCompletions };

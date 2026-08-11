@@ -1,27 +1,22 @@
-import ButtonModule from '@FluxUI/Button'
-import SliderModule from '@FluxUI/Slider'
-import CaptionChoiceModule from './components/CaptionChoice/CaptionChoice'
-import captionStyleModule from '@FluxWeb/playback/captionStyle'
-import type { CaptionSettingsProps } from './CaptionSettings.types'
-
-const { Button } = ButtonModule
-const { Slider } = SliderModule
-const { CaptionChoice } = CaptionChoiceModule
-const { toCueDeclarations } = captionStyleModule
+import { Button } from '@FluxUI/Button';
+import { Slider } from '@FluxUI/Slider';
+import { CaptionChoice } from './components/CaptionChoice/CaptionChoice';
+import { toCueDeclarations } from '@FluxWeb/playback/captionStyle';
+import type { CaptionSettingsProps } from './CaptionSettings.types';
 
 const FONTS = [
   { id: 'sans', label: 'Sans serif' },
   { id: 'serif', label: 'Serif' },
   { id: 'mono', label: 'Monospace' },
   { id: 'casual', label: 'Casual' },
-] as const
+] as const;
 
 const EDGES = [
   { id: 'none', label: 'None' },
   { id: 'outline', label: 'Outline' },
   { id: 'shadow', label: 'Drop shadow' },
   { id: 'raised', label: 'Raised' },
-] as const
+] as const;
 
 const COLOURS = [
   { id: '#ffffff', label: 'White' },
@@ -30,7 +25,7 @@ const COLOURS = [
   { id: '#00ffff', label: 'Cyan' },
   { id: '#ff0000', label: 'Red' },
   { id: '#000000', label: 'Black' },
-] as const
+] as const;
 
 /**
  * How captions should look, decided by the person reading them.
@@ -41,12 +36,7 @@ const COLOURS = [
  * CSS the cues get, so what is chosen here is what appears on the film.
  */
 const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => (
-  <section
-    aria-label="Caption settings"
-    // No chrome of its own: this is a page inside the settings panel, and the
-    // panel already carries the glass, the name and the way back.
-    className="flex w-full flex-col gap-4 text-sm text-white"
-  >
+  <section aria-label="Caption settings" className="flex w-full flex-col gap-4 text-sm text-white">
     <p
       aria-label="Caption preview"
       className="rounded-md px-3 py-2 text-center"
@@ -60,11 +50,11 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
       options={FONTS}
       selectedId={style.fontFamily}
       onSelect={(id) => {
-        onChange({ ...style, fontFamily: FONTS.find((font) => font.id === id)?.id ?? 'sans' })
+        onChange({ ...style, fontFamily: FONTS.find((font) => font.id === id)?.id ?? 'sans' });
       }}
     />
 
-    <label className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1">
       <span>Size — {style.fontScale}%</span>
 
       <Slider
@@ -74,17 +64,17 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
         max={300}
         step={10}
         onValueChange={(value) => {
-          onChange({ ...style, fontScale: Math.max(50, value) })
+          onChange({ ...style, fontScale: Math.max(50, value) });
         }}
       />
-    </label>
+    </div>
 
     <CaptionChoice
       label="Text colour"
       options={COLOURS}
       selectedId={style.color}
       onSelect={(id) => {
-        onChange({ ...style, color: id })
+        onChange({ ...style, color: id });
       }}
     />
 
@@ -93,11 +83,11 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
       options={COLOURS}
       selectedId={style.backgroundColor}
       onSelect={(id) => {
-        onChange({ ...style, backgroundColor: id })
+        onChange({ ...style, backgroundColor: id });
       }}
     />
 
-    <label className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1">
       <span>Background opacity — {Math.round(style.backgroundOpacity * 100)}%</span>
 
       <Slider
@@ -107,17 +97,17 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
         max={100}
         step={5}
         onValueChange={(value) => {
-          onChange({ ...style, backgroundOpacity: value / 100 })
+          onChange({ ...style, backgroundOpacity: value / 100 });
         }}
       />
-    </label>
+    </div>
 
     <CaptionChoice
       label="Edge"
       options={EDGES}
       selectedId={style.edgeStyle}
       onSelect={(id) => {
-        onChange({ ...style, edgeStyle: EDGES.find((edge) => edge.id === id)?.id ?? 'outline' })
+        onChange({ ...style, edgeStyle: EDGES.find((edge) => edge.id === id)?.id ?? 'outline' });
       }}
     />
 
@@ -125,8 +115,8 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
       Reset to defaults
     </Button>
   </section>
-)
+);
 
-CaptionSettings.displayName = 'CaptionSettings'
+CaptionSettings.displayName = 'CaptionSettings';
 
-export default { CaptionSettings }
+export { CaptionSettings };

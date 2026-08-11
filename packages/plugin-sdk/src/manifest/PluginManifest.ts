@@ -1,9 +1,7 @@
-import { z } from 'zod'
-import JsonValueModule from '@FluxContracts/schemas/JsonValue'
+import { z } from 'zod';
+import { JsonObjectSchema } from '@FluxContracts/schemas/JsonValue';
 
-const { JsonObjectSchema } = JsonValueModule
-
-const SEMVER_RANGE = /^[\^~]?\d+(\.\d+)?(\.\d+)?(\s*-\s*\d+(\.\d+)?(\.\d+)?)?$/
+const SEMVER_RANGE = /^[\^~]?\d+(\.\d+)?(\.\d+)?(\s*-\s*\d+(\.\d+)?(\.\d+)?)?$/;
 
 const ExtensionPointSchema = z.enum([
   'MetadataProvider',
@@ -13,32 +11,32 @@ const ExtensionPointSchema = z.enum([
   'RequestBackend',
   'TranscodeProfileProvider',
   'UIContribution',
-])
+]);
 
 const NetworkCapabilitySchema = z.object({
   kind: z.literal('network'),
   domains: z.array(z.string().min(1)).min(1),
-})
+});
 
 const LibraryCapabilitySchema = z.object({
   kind: z.literal('library'),
   access: z.enum(['read']),
-})
+});
 
 const MediaCapabilitySchema = z.object({
   kind: z.literal('media'),
   access: z.enum(['probe', 'read']),
-})
+});
 
 const EventsCapabilitySchema = z.object({
   kind: z.literal('events'),
   topics: z.array(z.string().min(1)).min(1),
-})
+});
 
 const StorageCapabilitySchema = z.object({
   kind: z.literal('storage'),
   quotaBytes: z.number().int().positive().max(50_000_000),
-})
+});
 
 const CapabilitySchema = z.discriminatedUnion('kind', [
   NetworkCapabilitySchema,
@@ -46,7 +44,7 @@ const CapabilitySchema = z.discriminatedUnion('kind', [
   MediaCapabilitySchema,
   EventsCapabilitySchema,
   StorageCapabilitySchema,
-])
+]);
 
 /**
  * The declaration a plugin ships with. Every capability the broker will grant
@@ -70,10 +68,10 @@ const PluginManifestSchema = z.object({
   capabilities: z.array(CapabilitySchema),
   entry: z.string().min(1),
   settingsSchema: JsonObjectSchema.optional(),
-})
+});
 
-export type ExtensionPoint = z.infer<typeof ExtensionPointSchema>
-export type Capability = z.infer<typeof CapabilitySchema>
-export type PluginManifest = z.infer<typeof PluginManifestSchema>
+export type ExtensionPoint = z.infer<typeof ExtensionPointSchema>;
+export type Capability = z.infer<typeof CapabilitySchema>;
+export type PluginManifest = z.infer<typeof PluginManifestSchema>;
 
-export default { PluginManifestSchema, CapabilitySchema, ExtensionPointSchema }
+export { PluginManifestSchema, CapabilitySchema, ExtensionPointSchema };

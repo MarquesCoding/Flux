@@ -1,5 +1,5 @@
-import { Tooltip as BaseTooltip } from '@base-ui-components/react/tooltip'
-import type { TooltipProps } from './Tooltip.types'
+import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
+import type { TooltipProps } from './Tooltip.types';
 
 /**
  * How long a pointer must rest before a name appears.
@@ -7,7 +7,7 @@ import type { TooltipProps } from './Tooltip.types'
  * Long enough that crossing a bar of eight controls names none of them, short
  * enough that stopping on one is answered rather than waited on.
  */
-const DELAY_MILLISECONDS = 450
+const DELAY_MILLISECONDS = 450;
 
 /**
  * How it arrives and leaves.
@@ -32,13 +32,10 @@ const POPUP_MOTION = [
   'data-[side=bottom]:data-[starting-style]:-translate-y-1',
   'data-[side=left]:data-[starting-style]:translate-x-1',
   'data-[side=right]:data-[starting-style]:-translate-x-1',
-  // Nothing that moves, for somebody who has asked for nothing to move. The
-  // name still fades, because appearing instantly out of nowhere is its own
-  // kind of jolt.
   'motion-reduce:transition-opacity',
   'motion-reduce:data-[starting-style]:scale-100 motion-reduce:data-[ending-style]:scale-100',
   'motion-reduce:data-[starting-style]:translate-x-0 motion-reduce:data-[starting-style]:translate-y-0',
-].join(' ')
+].join(' ');
 
 /**
  * The name of a control, for the pointer that has stopped on it.
@@ -56,15 +53,12 @@ const POPUP_MOTION = [
  */
 const Tooltip = ({ label, children, side = 'top', isDisabled = false }: TooltipProps) => {
   if (isDisabled) {
-    return children
+    return children;
   }
 
   return (
     <BaseTooltip.Provider delay={DELAY_MILLISECONDS}>
       <BaseTooltip.Root>
-        {/* The control itself is the trigger, rather than a wrapper around
-            it. A wrapper that takes up no space has no position either, and
-            the panel hung off it opened in the corner of the page. */}
         <BaseTooltip.Trigger render={children} />
 
         <BaseTooltip.Portal>
@@ -79,9 +73,9 @@ const Tooltip = ({ label, children, side = 'top', isDisabled = false }: TooltipP
         </BaseTooltip.Portal>
       </BaseTooltip.Root>
     </BaseTooltip.Provider>
-  )
-}
+  );
+};
 
-Tooltip.displayName = 'Tooltip'
+Tooltip.displayName = 'Tooltip';
 
-export default { Tooltip, DELAY_MILLISECONDS }
+export { Tooltip, DELAY_MILLISECONDS };

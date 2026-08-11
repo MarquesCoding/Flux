@@ -1,55 +1,30 @@
-import { createRoute, z } from '@hono/zod-openapi'
-import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
-import DeviceProfileModule from '@FluxContracts/schemas/DeviceProfile'
-import QualityStepModule from '@FluxContracts/schemas/QualityStep'
-import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
-
-const { PlaybackPlanSchema } = PlaybackPlanModule
-const { DeviceProfileSchema } = DeviceProfileModule
-const { QualityStepIdSchema } = QualityStepModule
-const { PLAYBACK_MODES } = describePlaybackModeModule
-
-const PlaybackError = z.object({ error: z.string() }).openapi('PlaybackError')
+import { createRoute, z } from '@hono/zod-openapi';
+import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
+import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile';
+import { QualityStepIdSchema } from '@FluxContracts/schemas/QualityStep';
+import { PLAYBACK_MODES } from '@FluxContracts/functions/describePlaybackMode';
+const PlaybackError = z.object({ error: z.string() }).openapi('PlaybackError');
 
 const ExplainResponse = z
   .object({ mode: z.enum(PLAYBACK_MODES), plan: PlaybackPlanSchema })
-  .openapi('PlaybackExplainResponse')
+  .openapi('PlaybackExplainResponse');
 
 const StartRequest = z
   .object({
     deviceProfile: DeviceProfileSchema,
-    /**
-     * The tab starting this session, for presence to attribute it to.
-     *
-     * Optional so a caller with no presence identity (a test, a script) can
-     * still start a session — it just will not show up as watching anything
-     * in the admin's Active Sessions list.
-     */
     clientId: z.string().min(1).optional(),
     startSeconds: z.number().int().nonnegative().optional(),
-    /**
-     * The audio stream to play, as the item's detail numbers them.
-     *
-     * Choosing one rules out direct play, because the original file carries
-     * every stream and leaves the choice to the browser.
-     */
     audioStreamIndex: z.number().int().nonnegative().optional(),
-    /**
-     * A quality step the viewer picked, below the device's own capability.
-     *
-     * Absent or omitted means Original: whatever device negotiation alone
-     * would decide, unchanged.
-     */
     requestedQuality: QualityStepIdSchema.optional(),
   })
-  .openapi('PlaybackStartRequest')
+  .openapi('PlaybackStartRequest');
 
 const DeliverySchema = z
   .union([
     z.object({ kind: z.literal('hls'), manifestUrl: z.string() }),
     z.object({ kind: z.literal('direct'), url: z.string() }),
   ])
-  .openapi('PlaybackDelivery')
+  .openapi('PlaybackDelivery');
 
 const StartResponse = z
   .object({
@@ -59,7 +34,7 @@ const StartResponse = z
     plan: PlaybackPlanSchema,
     warnings: z.array(z.string()),
   })
-  .openapi('PlaybackStartResponse')
+  .openapi('PlaybackStartResponse');
 
 /**
  * Explains how an item would be played, without starting anything.
@@ -87,7 +62,7 @@ const explainRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 const startRoute = createRoute({
   method: 'post',
@@ -116,7 +91,7 @@ const startRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 /**
  * Serves a manifest or segment from a session.
@@ -139,7 +114,7 @@ const sessionFileRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 const stopRoute = createRoute({
   method: 'delete',
@@ -156,20 +131,13 @@ const stopRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 const HeartbeatRequest = z
   .object({
-    /**
-     * Whether the player is actually playing right now, as opposed to
-     * paused with the tab still open.
-     *
-     * Reported rather than inferred: pausing stops segment requests too, so
-     * only the player itself can say which of the two is happening.
-     */
     isPlaying: z.boolean(),
   })
-  .openapi('PlaybackHeartbeatRequest')
+  .openapi('PlaybackHeartbeatRequest');
 
 /**
  * Tells the server a session is still wanted.
@@ -195,7 +163,7 @@ const heartbeatRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 /**
  * Serves the original file for direct play, honouring byte ranges.
@@ -218,7 +186,7 @@ const directFileRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 const TrickplayResponse = z
   .object({
@@ -228,7 +196,7 @@ const TrickplayResponse = z
     tileWidth: z.number(),
     tileHeight: z.number(),
   })
-  .openapi('TrickplayResponse')
+  .openapi('TrickplayResponse');
 
 /**
  * Renders seek-bar previews for an item.
@@ -257,7 +225,7 @@ const trickplayRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 /**
  * Serves the frame a preview is going to start from.
@@ -284,7 +252,7 @@ const frameRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
 /**
  * Serves an index or a sheet.
@@ -307,9 +275,9 @@ const trickplayFileRoute = createRoute({
       content: { 'application/json': { schema: PlaybackError } },
     },
   },
-})
+});
 
-export default {
+export {
   explainRoute,
   startRoute,
   sessionFileRoute,
@@ -319,4 +287,4 @@ export default {
   frameRoute,
   stopRoute,
   heartbeatRoute,
-}
+};

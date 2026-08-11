@@ -368,8 +368,6 @@ async fn re_encodes_video_when_asked() {
         .output()
         .expect("runs ffprobe");
 
-    // ffprobe reports the stream once per segment in an HLS playlist, so the
-    // first line is the answer and the repeats are noise.
     let raw = String::from_utf8_lossy(&output.stdout);
     let dimensions = raw
         .lines()
@@ -549,9 +547,6 @@ async fn reports_capabilities_over_http() {
 
 #[tokio::test]
 async fn serves_a_manifest_before_the_transcode_has_finished() {
-    // Session directories are content addressed and outlive the process, so a
-    // manifest left by an earlier run would answer this test instead of the
-    // one under test.
     let _ = std::fs::remove_dir_all(cache_root("growing"));
 
     let app = app(registry("growing"));
@@ -579,8 +574,6 @@ async fn serves_a_manifest_before_the_transcode_has_finished() {
 
     assert_eq!(status, StatusCode::OK);
     assert!(manifest.contains("#EXTM3U"), "{manifest}");
-    // Still encoding, so the playlist must already list what exists rather
-    // than waiting for the run to end.
     assert!(manifest.contains(".m4s"), "{manifest}");
     assert!(
         !manifest.contains("#EXT-X-ENDLIST"),

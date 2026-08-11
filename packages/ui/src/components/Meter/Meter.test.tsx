@@ -1,58 +1,71 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import MeterModule from './Meter'
-
-const { Meter } = MeterModule
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { Meter } from './Meter';
 
 const barOf = (container: HTMLElement): HTMLElement | null =>
-  container.querySelector('[role="presentation"]')
+  container.querySelector('[style*="width"]');
 
 describe('Meter', () => {
   it('names what is being measured', () => {
-    render(<Meter label="Memory" fraction={0.5} value="8 GB" />)
+    render(<Meter label="Memory" fraction={0.5} value="8 GB" />);
 
-    expect(screen.getByText('Memory')).toBeInTheDocument()
-  })
+    expect(screen.getByText('Memory')).toBeInTheDocument();
+  });
 
   it('says the answer in words, which a bar alone cannot', () => {
-    render(<Meter label="Memory" fraction={0.5} value="8 GB of 16 GB" />)
+    render(<Meter label="Memory" fraction={0.5} value="8 GB of 16 GB" />);
 
-    expect(screen.getByText('8 GB of 16 GB')).toBeInTheDocument()
-  })
+    expect(screen.getByText('8 GB of 16 GB')).toBeInTheDocument();
+  });
 
   it('fills the bar to the fraction it was given', () => {
-    const { container } = render(<Meter label="Memory" fraction={0.42} value="42%" />)
+    const { container } = render(<Meter label="Memory" fraction={0.42} value="42%" />);
 
-    expect(barOf(container)?.style.width).toBe('42%')
-  })
+    expect(barOf(container)?.style.width).toBe('42%');
+  });
 
   it('never fills past full, however far over the reading is', () => {
-    const { container } = render(<Meter label="Memory" fraction={1.4} value="140%" />)
+    const { container } = render(<Meter label="Memory" fraction={1.4} value="140%" />);
 
-    expect(barOf(container)?.style.width).toBe('100%')
-  })
+    expect(barOf(container)?.style.width).toBe('100%');
+  });
 
   it('never fills below empty', () => {
-    const { container } = render(<Meter label="Memory" fraction={-1} value="0%" />)
+    const { container } = render(<Meter label="Memory" fraction={-1} value="0%" />);
 
-    expect(barOf(container)?.style.width).toBe('0%')
-  })
+    expect(barOf(container)?.style.width).toBe('0%');
+  });
+
+  it('is a meter to anything reading the page, not a decorated box', () => {
+    render(<Meter label="Memory" fraction={0.42} value="8 GB of 16 GB" />);
+
+    const meter = screen.getByRole('meter', { name: 'Memory' });
+
+    expect(meter).toHaveAttribute('aria-valuenow', '42');
+    expect(meter).toHaveAttribute('aria-valuetext', '8 GB of 16 GB');
+  });
+
+  it('reports a reading over the limit as full rather than as impossible', () => {
+    render(<Meter label="Memory" fraction={1.4} value="140%" />);
+
+    expect(screen.getByRole('meter', { name: 'Memory' })).toHaveAttribute('aria-valuenow', '100');
+  });
 
   it('looks calm while something is idling', () => {
-    const { container } = render(<Meter label="CPU" fraction={0.2} value="20%" />)
+    const { container } = render(<Meter label="CPU" fraction={0.2} value="20%" />);
 
-    expect(barOf(container)?.className).toContain('bg-accent')
-  })
+    expect(barOf(container)?.className).toContain('bg-accent');
+  });
 
   it('warns as something approaches its limit', () => {
-    const { container } = render(<Meter label="CPU" fraction={0.8} value="80%" />)
+    const { container } = render(<Meter label="CPU" fraction={0.8} value="80%" />);
 
-    expect(barOf(container)?.className).toContain('bg-amber-400')
-  })
+    expect(barOf(container)?.className).toContain('bg-amber-400');
+  });
 
   it('looks different at a glance when something is at its limit', () => {
-    const { container } = render(<Meter label="CPU" fraction={0.95} value="95%" />)
+    const { container } = render(<Meter label="CPU" fraction={0.95} value="95%" />);
 
-    expect(barOf(container)?.className).toContain('bg-danger')
-  })
-})
+    expect(barOf(container)?.className).toContain('bg-danger');
+  });
+});

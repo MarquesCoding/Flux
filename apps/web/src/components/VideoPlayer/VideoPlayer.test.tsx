@@ -1,93 +1,82 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import VideoPlayerModule from './VideoPlayer'
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
-import type TrickplayModule from '@FluxWeb/playback/fetchTrickplay'
-import type SubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
-import type SegmentsModule from '@FluxWeb/playback/fetchSegments'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { VideoPlayer } from './VideoPlayer';
+import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
+import type * as SegmentsModule from '@FluxWeb/playback/fetchSegments';
+import type * as SubtitlesModule from '@FluxWeb/playback/fetchSubtitles';
+import type * as TrickplayModule from '@FluxWeb/playback/fetchTrickplay';
 
-const { VideoPlayer } = VideoPlayerModule
-
-const startMock = vi.hoisted(() => vi.fn())
-const stopMock = vi.hoisted(() => vi.fn())
-const stopWatchingMock = vi.hoisted(() => vi.fn())
-const heartbeatMock = vi.hoisted(() => vi.fn())
-const presenceHeartbeatMock = vi.hoisted(() => vi.fn())
-const attachMock = vi.hoisted(() => vi.fn())
-const teardownMock = vi.hoisted(() => vi.fn())
-const trickplayMock = vi.hoisted(() => vi.fn())
-const captureMock = vi.hoisted(() => vi.fn())
-const subtitlesMock = vi.hoisted(() => vi.fn())
-const segmentsMock = vi.hoisted(() => vi.fn())
-const detailMock = vi.hoisted(() => vi.fn())
+const startMock = vi.hoisted(() => vi.fn());
+const stopMock = vi.hoisted(() => vi.fn());
+const stopWatchingMock = vi.hoisted(() => vi.fn());
+const heartbeatMock = vi.hoisted(() => vi.fn());
+const presenceHeartbeatMock = vi.hoisted(() => vi.fn());
+const attachMock = vi.hoisted(() => vi.fn());
+const teardownMock = vi.hoisted(() => vi.fn());
+const trickplayMock = vi.hoisted(() => vi.fn());
+const captureMock = vi.hoisted(() => vi.fn());
+const subtitlesMock = vi.hoisted(() => vi.fn());
+const segmentsMock = vi.hoisted(() => vi.fn());
+const detailMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
-    default: { describeWhy: (plan: PlaybackPlan) => string[] }
-  }>('@FluxWeb/playback/startPlaybackSession')
+    describeWhy: (plan: PlaybackPlan) => string[];
+  }>('@FluxWeb/playback/startPlaybackSession');
 
   return {
-    default: {
-      startPlaybackSession: startMock,
-      stopPlaybackSession: stopMock,
-      stopWatching: stopWatchingMock,
-      heartbeatPlaybackSession: heartbeatMock,
-      sendPresenceHeartbeat: presenceHeartbeatMock,
-      describeWhy: actual.default.describeWhy,
-    },
-  }
-})
+    startPlaybackSession: startMock,
+    stopPlaybackSession: stopMock,
+    stopWatching: stopWatchingMock,
+    heartbeatPlaybackSession: heartbeatMock,
+    sendPresenceHeartbeat: presenceHeartbeatMock,
+    describeWhy: actual.describeWhy,
+  };
+});
 
 vi.mock('@FluxWeb/playback/attachShaka', () => ({
-  default: { attachShaka: attachMock },
-}))
+  attachShaka: attachMock,
+}));
 
 vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
-  default: { detectFromBrowser: () => ({ name: 'Browser' }) },
-}))
+  detectFromBrowser: () => ({ name: 'Browser' }),
+}));
 
 vi.mock('@FluxWeb/presence/clientIdentity', () => ({
-  default: { readClientId: () => 'client-1' },
-}))
+  readClientId: () => 'client-1',
+}));
 
-// jsdom has no 2d context, so a real capture can only ever answer with
-// nothing here. What it does with a frame is covered where the capture lives.
 vi.mock('@FluxWeb/playback/captureFrame', () => ({
-  default: { captureFrame: captureMock },
-}))
+  captureFrame: captureMock,
+}));
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
-  default: { fetchMediaDetail: detailMock },
-}))
+  fetchMediaDetail: detailMock,
+}));
 
 vi.mock('@FluxWeb/playback/fetchSegments', async () => {
-  const actual = await vi.importActual<{ default: typeof SegmentsModule }>(
-    '@FluxWeb/playback/fetchSegments',
-  )
+  const actual = await vi.importActual<typeof SegmentsModule>('@FluxWeb/playback/fetchSegments');
 
-  return { default: { ...actual.default, fetchSegments: segmentsMock } }
-})
+  return { ...actual, fetchSegments: segmentsMock };
+});
 
 vi.mock('@FluxWeb/playback/fetchSubtitles', async () => {
-  const actual = await vi.importActual<{ default: typeof SubtitlesModule }>(
-    '@FluxWeb/playback/fetchSubtitles',
-  )
+  const actual = await vi.importActual<typeof SubtitlesModule>('@FluxWeb/playback/fetchSubtitles');
 
-  return { default: { ...actual.default, fetchSubtitleTracks: subtitlesMock } }
-})
+  return { ...actual, fetchSubtitleTracks: subtitlesMock };
+});
 
 vi.mock('@FluxWeb/playback/fetchTrickplay', async () => {
-  const actual = await vi.importActual<{ default: typeof TrickplayModule }>(
-    '@FluxWeb/playback/fetchTrickplay',
-  )
+  const actual = await vi.importActual<typeof TrickplayModule>('@FluxWeb/playback/fetchTrickplay');
 
   return {
-    default: { ...actual.default, fetchTrickplay: trickplayMock },
-  }
-})
+    ...actual,
+    fetchTrickplay: trickplayMock,
+  };
+});
 
-const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' }
+const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };
 
 const transcodingPlan: PlaybackPlan = {
   mediaId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
@@ -103,9 +92,9 @@ const transcodingPlan: PlaybackPlan = {
   },
   audio: { kind: 'passthrough', streamIndex: 1, reason },
   subtitles: { kind: 'none', reason },
-}
+};
 
-const media = { id: 'media-1', title: 'Arrival', durationSeconds: 7200 }
+const media = { id: 'media-1', title: 'Arrival', durationSeconds: 7200 };
 
 /**
  * Declares how much of the stream the element could seek within.
@@ -114,10 +103,10 @@ const media = { id: 'media-1', title: 'Arrival', durationSeconds: 7200 }
  * rather than produced.
  */
 const showingAFrame = (element: HTMLElement) => {
-  Object.defineProperty(element, 'videoWidth', { configurable: true, value: 1920 })
-  Object.defineProperty(element, 'videoHeight', { configurable: true, value: 1080 })
-  captureMock.mockReturnValue('data:image/jpeg;base64,frame')
-}
+  Object.defineProperty(element, 'videoWidth', { configurable: true, value: 1920 });
+  Object.defineProperty(element, 'videoHeight', { configurable: true, value: 1080 });
+  captureMock.mockReturnValue('data:image/jpeg;base64,frame');
+};
 
 /**
  * Waits for the session to have started and been attached.
@@ -127,79 +116,79 @@ const showingAFrame = (element: HTMLElement) => {
  */
 const settled = async () => {
   await waitFor(() => {
-    expect(screen.queryByRole('status', { name: 'Preparing playback' })).not.toBeInTheDocument()
-  })
-}
+    expect(screen.queryByRole('status', { name: 'Preparing playback' })).not.toBeInTheDocument();
+  });
+};
 
 const seekableTo = (element: HTMLElement, seconds: number) => {
   Object.defineProperty(element, 'seekable', {
     configurable: true,
     value: { length: 1, end: () => seconds },
-  })
-  Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 0 })
-}
+  });
+  Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 0 });
+};
 
 const startedSession: {
-  sessionId: string
-  delivery: { kind: 'hls'; manifestUrl: string } | { kind: 'direct'; url: string }
-  mode: string
-  plan: PlaybackPlan
-  warnings: string[]
+  sessionId: string;
+  delivery: { kind: 'hls'; manifestUrl: string } | { kind: 'direct'; url: string };
+  mode: string;
+  plan: PlaybackPlan;
+  warnings: string[];
 } = {
   sessionId: 'abc',
   delivery: { kind: 'hls', manifestUrl: '/api/playback/session/abc/index.m3u8' },
   mode: 'Transcode',
   plan: transcodingPlan,
   warnings: [],
-}
+};
 
 beforeEach(() => {
-  startMock.mockReset()
-  stopMock.mockReset()
-  stopWatchingMock.mockReset()
-  attachMock.mockReset()
-  teardownMock.mockReset()
-  trickplayMock.mockReset()
-  trickplayMock.mockResolvedValue(null)
-  captureMock.mockReset()
-  captureMock.mockReturnValue(null)
-  subtitlesMock.mockReset()
-  subtitlesMock.mockResolvedValue([])
-  segmentsMock.mockReset()
-  segmentsMock.mockResolvedValue([])
-  detailMock.mockReset()
-  detailMock.mockResolvedValue(null)
+  startMock.mockReset();
+  stopMock.mockReset();
+  stopWatchingMock.mockReset();
+  attachMock.mockReset();
+  teardownMock.mockReset();
+  trickplayMock.mockReset();
+  trickplayMock.mockResolvedValue(null);
+  captureMock.mockReset();
+  captureMock.mockReturnValue(null);
+  subtitlesMock.mockReset();
+  subtitlesMock.mockResolvedValue([]);
+  segmentsMock.mockReset();
+  segmentsMock.mockResolvedValue([]);
+  detailMock.mockReset();
+  detailMock.mockResolvedValue(null);
 
-  startMock.mockResolvedValue({ kind: 'started', session: startedSession })
-  attachMock.mockResolvedValue(teardownMock)
-  stopMock.mockResolvedValue(undefined)
-  stopWatchingMock.mockResolvedValue(undefined)
+  startMock.mockResolvedValue({ kind: 'started', session: startedSession });
+  attachMock.mockResolvedValue(teardownMock);
+  stopMock.mockResolvedValue(undefined);
+  stopWatchingMock.mockResolvedValue(undefined);
 
-  heartbeatMock.mockReset()
-  heartbeatMock.mockResolvedValue(undefined)
-})
+  heartbeatMock.mockReset();
+  heartbeatMock.mockResolvedValue(undefined);
+});
 
 afterEach(() => {
-  vi.restoreAllMocks()
-})
+  vi.restoreAllMocks();
+});
 
 describe('VideoPlayer', () => {
   it('shows the title and a video surface', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument()
-    expect(await screen.findByLabelText('Arrival')).toBeInTheDocument()
-  })
+    expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
+    expect(await screen.findByLabelText('Arrival')).toBeInTheDocument();
+  });
 
   it('shows a spinner while the session is starting', () => {
-    startMock.mockReturnValue(new Promise(() => undefined))
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    startMock.mockReturnValue(new Promise(() => undefined));
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    expect(screen.getByRole('status', { name: 'Preparing playback' })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('status', { name: 'Preparing playback' })).toBeInTheDocument();
+  });
 
   it('asks the server for a session for this item', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledWith(
@@ -209,107 +198,107 @@ describe('VideoPlayer', () => {
         0,
         undefined,
         'original',
-      )
-    })
-  })
+      );
+    });
+  });
 
   it('attaches the media engine to the returned manifest', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await waitFor(() => {
       expect(attachMock).toHaveBeenCalledWith(
         expect.objectContaining({ manifestUrl: '/api/playback/session/abc/index.m3u8' }),
-      )
-    })
-  })
+      );
+    });
+  });
 
   it('shows the playback mode the server chose, on request', async () => {
-    const actor = userEvent.setup()
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(screen.getByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }))
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }));
 
-    expect(await screen.findByText('Transcode')).toBeInTheDocument()
-  })
+    expect(await screen.findByText('Transcode')).toBeInTheDocument();
+  });
 
   it('explains why the stream is being converted, on request', async () => {
-    const actor = userEvent.setup()
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(screen.getByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }))
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }));
 
-    expect(screen.getByText(/Client does not support hevc/)).toBeInTheDocument()
-  })
+    expect(screen.getByText(/Client does not support hevc/)).toBeInTheDocument();
+  });
 
   it('keeps the stats out of the way until asked for', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
+    await settled();
 
-    expect(screen.queryByRole('region', { name: 'Stats for nerds' })).not.toBeInTheDocument()
-    expect(screen.queryByText(/Client does not support hevc/)).not.toBeInTheDocument()
-  })
+    expect(screen.queryByRole('region', { name: 'Stats for nerds' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Client does not support hevc/)).not.toBeInTheDocument();
+  });
 
   it('puts the stats away again', async () => {
-    const actor = userEvent.setup()
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(screen.getByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }))
-    await actor.click(screen.getByRole('button', { name: 'Close stats' }))
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }));
+    await actor.click(screen.getByRole('button', { name: 'Close stats' }));
 
-    expect(screen.queryByRole('region', { name: 'Stats for nerds' })).not.toBeInTheDocument()
-  })
+    expect(screen.queryByRole('region', { name: 'Stats for nerds' })).not.toBeInTheDocument();
+  });
 
   it('reports why the server refused', async () => {
     startMock.mockResolvedValue({
       kind: 'failed',
       reason: 'This server has no working encoder for h264.',
-    })
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('no working encoder')
-  })
+    expect(await screen.findByRole('alert')).toHaveTextContent('no working encoder');
+  });
 
   it('does not attach an engine when the session failed', async () => {
-    startMock.mockResolvedValue({ kind: 'failed', reason: 'nope' })
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    startMock.mockResolvedValue({ kind: 'failed', reason: 'nope' });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await screen.findByRole('alert')
+    await screen.findByRole('alert');
 
-    expect(attachMock).not.toHaveBeenCalled()
-  })
+    expect(attachMock).not.toHaveBeenCalled();
+  });
 
   it('reports a browser that cannot play the stream', async () => {
-    attachMock.mockRejectedValue(new Error('no media source'))
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    attachMock.mockRejectedValue(new Error('no media source'));
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('could not play the stream')
-  })
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not play the stream');
+  });
 
   it('stops the session and tears down the engine when closed', async () => {
-    const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await waitFor(() => {
-      expect(attachMock).toHaveBeenCalled()
-    })
+      expect(attachMock).toHaveBeenCalled();
+    });
 
-    unmount()
+    unmount();
 
     await waitFor(() => {
-      expect(stopMock).toHaveBeenCalledWith('abc')
-    })
-    expect(teardownMock).toHaveBeenCalled()
-    expect(stopWatchingMock).toHaveBeenCalledWith('client-1')
-  })
+      expect(stopMock).toHaveBeenCalledWith('abc');
+    });
+    expect(teardownMock).toHaveBeenCalled();
+    expect(stopWatchingMock).toHaveBeenCalledWith('client-1');
+  });
 
   it('does not say a tab has stopped watching just for changing quality or track', async () => {
-    const actor = userEvent.setup()
+    const actor = userEvent.setup();
     detailMock.mockResolvedValue({
       id: 'media-1',
       libraryId: 'library-1',
@@ -329,130 +318,127 @@ describe('VideoPlayer', () => {
         { index: 1, codec: 'aac', channels: 2, language: 'jpn', isDefault: true, isAtmos: false },
         { index: 2, codec: 'ac3', channels: 6, language: 'eng', isDefault: false, isAtmos: false },
       ],
-    })
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(screen.getByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('button', { name: /Audio track/ }))
-    await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }))
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Audio track/ }));
+    await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }));
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledTimes(2)
-    })
+      expect(startMock).toHaveBeenCalledTimes(2);
+    });
 
-    expect(stopWatchingMock).not.toHaveBeenCalled()
-  })
+    expect(stopWatchingMock).not.toHaveBeenCalled();
+  });
 
   it('sends a heartbeat on a fixed interval, whether or not the player is paused', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.useFakeTimers({ shouldAdvanceTime: true });
 
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await act(async () => {
-      await vi.waitFor(() => expect(attachMock).toHaveBeenCalled())
-    })
+      await vi.waitFor(() => expect(attachMock).toHaveBeenCalled());
+    });
 
-    const element = document.querySelector('video')
+    const element = document.querySelector('video');
 
-    Object.defineProperty(element, 'paused', { configurable: true, value: true })
+    Object.defineProperty(element, 'paused', { configurable: true, value: true });
 
     act(() => {
-      vi.advanceTimersByTime(30_000)
-    })
+      vi.advanceTimersByTime(30_000);
+    });
 
-    expect(heartbeatMock).toHaveBeenCalledWith('abc', false)
+    expect(heartbeatMock).toHaveBeenCalledWith('abc', false);
 
-    vi.useRealTimers()
-  })
+    vi.useRealTimers();
+  });
 
   it('stops sending heartbeats once the session ends', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.useFakeTimers({ shouldAdvanceTime: true });
 
-    const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await act(async () => {
-      await vi.waitFor(() => expect(attachMock).toHaveBeenCalled())
-    })
+      await vi.waitFor(() => expect(attachMock).toHaveBeenCalled());
+    });
 
-    unmount()
-    heartbeatMock.mockClear()
+    unmount();
+    heartbeatMock.mockClear();
 
     act(() => {
-      vi.advanceTimersByTime(60_000)
-    })
+      vi.advanceTimersByTime(60_000);
+    });
 
-    expect(heartbeatMock).not.toHaveBeenCalled()
+    expect(heartbeatMock).not.toHaveBeenCalled();
 
-    vi.useRealTimers()
-  })
+    vi.useRealTimers();
+  });
 
   it('stops the session with a keepalive request when the tab actually closes', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
 
-    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('fetch', fetchMock);
 
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await waitFor(() => {
-      expect(attachMock).toHaveBeenCalled()
-    })
+      expect(attachMock).toHaveBeenCalled();
+    });
 
-    window.dispatchEvent(new Event('pagehide'))
+    window.dispatchEvent(new Event('pagehide'));
 
     expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc', {
       method: 'DELETE',
       keepalive: true,
-    })
-    expect(stopWatchingMock).toHaveBeenCalledWith('client-1', true)
+    });
+    expect(stopWatchingMock).toHaveBeenCalledWith('client-1', true);
 
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
   it('does not send a keepalive stop before a session has actually started', () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi.fn();
 
-    vi.stubGlobal('fetch', fetchMock)
-    startMock.mockReturnValue(new Promise(() => undefined))
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    vi.stubGlobal('fetch', fetchMock);
+    startMock.mockReturnValue(new Promise(() => undefined));
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    window.dispatchEvent(new Event('pagehide'))
+    window.dispatchEvent(new Event('pagehide'));
 
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled();
 
-    // Presence still hears about it, even though there was no session to
-    // stop — the two are unrelated: a viewer who left before anything
-    // started is still a viewer who is no longer watching.
-    expect(stopWatchingMock).toHaveBeenCalledWith('client-1', true)
+    expect(stopWatchingMock).toHaveBeenCalledWith('client-1', true);
 
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
   it('can be closed', async () => {
-    const onClose = vi.fn()
-    const actor = userEvent.setup()
-    render(<VideoPlayer media={media} onClose={onClose} />)
+    const onClose = vi.fn();
+    const actor = userEvent.setup();
+    render(<VideoPlayer media={media} onClose={onClose} />);
 
-    await actor.click(screen.getByRole('button', { name: /Close/ }))
+    await actor.click(screen.getByRole('button', { name: /Close/ }));
 
-    expect(onClose).toHaveBeenCalledOnce()
-  })
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 
   it('disables the transport until playback is ready', () => {
-    startMock.mockReturnValue(new Promise(() => undefined))
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    startMock.mockReturnValue(new Promise(() => undefined));
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Play' })).toBeDisabled()
-  })
+    expect(screen.getByRole('button', { name: 'Play' })).toBeDisabled();
+  });
 
   it('shows a running position against the length of the film', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await screen.findByLabelText('Arrival')
+    await screen.findByLabelText('Arrival');
 
-    expect(screen.getByText('0:00')).toBeInTheDocument()
-    expect(screen.getByText('/ 2:00:00')).toBeInTheDocument()
-  })
+    expect(screen.getByText('0:00')).toBeInTheDocument();
+    expect(screen.getByText('/ 2:00:00')).toBeInTheDocument();
+  });
 
   it('warns when the server cannot tone map, without hiding it behind a click', async () => {
     startMock.mockResolvedValue({
@@ -461,19 +447,19 @@ describe('VideoPlayer', () => {
         ...startedSession,
         warnings: ['This server cannot tone map HDR to SDR, so colours will look washed out.'],
       },
-    })
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    expect(await screen.findByText(/cannot tone map/)).toBeInTheDocument()
-  })
+    expect(await screen.findByText(/cannot tone map/)).toBeInTheDocument();
+  });
 
   it('shows no warning banner when there is nothing to warn about', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
+    await settled();
 
-    expect(screen.queryByText(/cannot tone map/)).not.toBeInTheDocument()
-  })
+    expect(screen.queryByText(/cannot tone map/)).not.toBeInTheDocument();
+  });
 
   it('plays a direct file without loading a media engine', async () => {
     startMock.mockResolvedValue({
@@ -483,13 +469,13 @@ describe('VideoPlayer', () => {
         mode: 'DirectPlay',
         delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
       },
-    })
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
+    await settled();
 
-    expect(attachMock).not.toHaveBeenCalled()
-  })
+    expect(attachMock).not.toHaveBeenCalled();
+  });
 
   it('points the video element at the direct file', async () => {
     startMock.mockResolvedValue({
@@ -499,27 +485,27 @@ describe('VideoPlayer', () => {
         mode: 'DirectPlay',
         delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
       },
-    })
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
+    await settled();
 
-    expect(screen.getByLabelText('Arrival')).toHaveAttribute('src', '/api/playback/media-1/file')
-  })
+    expect(screen.getByLabelText('Arrival')).toHaveAttribute('src', '/api/playback/media-1/file');
+  });
 
   it('offers a seek bar named after the item', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument();
+  });
 
   it('plays on without previews when the server cannot render them', async () => {
-    trickplayMock.mockResolvedValue(null)
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    trickplayMock.mockResolvedValue(null);
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument()
-    expect(screen.queryByRole('img', { name: /Preview at/ })).not.toBeInTheDocument()
-  })
+    expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Preview at/ })).not.toBeInTheDocument();
+  });
 
   it("drops the previous item's thumbnails when another is played", async () => {
     trickplayMock.mockResolvedValue({
@@ -536,79 +522,79 @@ describe('VideoPlayer', () => {
           height: 180,
         },
       ],
-    })
+    });
 
-    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await screen.findByRole('slider', { name: 'Seek through Arrival' })
+    await screen.findByRole('slider', { name: 'Seek through Arrival' });
 
-    let pending: (value: null) => void = () => undefined
+    let pending: (value: null) => void = () => undefined;
     trickplayMock.mockReturnValue(
       new Promise<null>((resolve) => {
-        pending = resolve
+        pending = resolve;
       }),
-    )
+    );
 
     rerender(
       <VideoPlayer
         media={{ id: 'media-2', title: 'Dune', durationSeconds: 600 }}
         onClose={vi.fn()}
       />,
-    )
+    );
 
-    await screen.findByRole('slider', { name: 'Seek through Dune' })
+    await screen.findByRole('slider', { name: 'Seek through Dune' });
 
-    expect(screen.queryByRole('img', { name: /Preview at/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /Preview at/ })).not.toBeInTheDocument();
 
-    pending(null)
-  })
+    pending(null);
+  });
 
   it("drops the previous item's stats when another is played", async () => {
-    const actor = userEvent.setup()
-    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(screen.getByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }))
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }));
 
-    expect(await screen.findByText('Transcode')).toBeInTheDocument()
+    expect(await screen.findByText('Transcode')).toBeInTheDocument();
 
-    startMock.mockReturnValue(new Promise(() => undefined))
+    startMock.mockReturnValue(new Promise(() => undefined));
     rerender(
       <VideoPlayer
         media={{ id: 'media-2', title: 'Dune', durationSeconds: 600 }}
         onClose={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.queryByText('Transcode')).not.toBeInTheDocument()
-  })
+    expect(screen.queryByText('Transcode')).not.toBeInTheDocument();
+  });
 
   it('seeks inside the session when the target is already encoded', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    seekableTo(element, 600)
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 600);
 
-    const bar = screen.getByRole('slider', { name: 'Seek through Arrival' })
-    fireEvent.keyDown(bar, { key: 'ArrowRight' })
+    const bar = screen.getByRole('slider', { name: 'Seek through Arrival' });
+    fireEvent.keyDown(bar, { key: 'ArrowRight' });
 
     await waitFor(() => {
-      expect(element).toHaveProperty('currentTime', 1)
-    })
+      expect(element).toHaveProperty('currentTime', 1);
+    });
 
-    expect(startMock).toHaveBeenCalledTimes(1)
-  })
+    expect(startMock).toHaveBeenCalledTimes(1);
+  });
 
   it('starts a new session when the target has not been encoded yet', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    seekableTo(element, 30)
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 30);
 
     fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
       target: { value: '3600' },
-    })
+    });
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledWith(
@@ -618,34 +604,34 @@ describe('VideoPlayer', () => {
         3600,
         undefined,
         'original',
-      )
-    })
-  })
+      );
+    });
+  });
 
   it('stops the session it is seeking away from', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    seekableTo(element, 30)
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 30);
 
     fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
       target: { value: '3600' },
-    })
+    });
 
     await waitFor(() => {
-      expect(stopMock).toHaveBeenCalledWith('abc')
-    })
-  })
+      expect(stopMock).toHaveBeenCalledWith('abc');
+    });
+  });
 
   it('reports the position on the film, not inside the session', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    seekableTo(element, 30)
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 30);
 
     fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
       target: { value: '3600' },
-    })
+    });
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledWith(
@@ -655,14 +641,14 @@ describe('VideoPlayer', () => {
         3600,
         undefined,
         'original',
-      )
-    })
+      );
+    });
 
-    Object.defineProperty(element, 'currentTime', { value: 12, writable: true })
-    fireEvent.timeUpdate(element)
+    Object.defineProperty(element, 'currentTime', { value: 12, writable: true });
+    fireEvent.timeUpdate(element);
 
-    expect(await screen.findByText('1:00:12')).toBeInTheDocument()
-  })
+    expect(await screen.findByText('1:00:12')).toBeInTheDocument();
+  });
 
   it('seeks a direct played file in the browser rather than restarting it', async () => {
     startMock.mockResolvedValue({
@@ -672,153 +658,155 @@ describe('VideoPlayer', () => {
         mode: 'DirectPlay',
         delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
       },
-    })
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
+    await settled();
 
-    const element = screen.getByLabelText('Arrival')
+    const element = screen.getByLabelText('Arrival');
     fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
       target: { value: '3600' },
-    })
+    });
 
     await waitFor(() => {
-      expect(element).toHaveProperty('currentTime', 3600)
-    })
+      expect(element).toHaveProperty('currentTime', 3600);
+    });
 
-    expect(startMock).toHaveBeenCalledTimes(1)
-  })
+    expect(startMock).toHaveBeenCalledTimes(1);
+  });
 
   it('holds the last frame rather than blanking while a seek restarts', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    seekableTo(element, 30)
-    showingAFrame(element)
-    startMock.mockReturnValue(new Promise(() => undefined))
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 30);
+    showingAFrame(element);
+    startMock.mockReturnValue(new Promise(() => undefined));
 
     fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
       target: { value: '3600' },
-    })
+    });
 
-    // The centred spinner is what covers the video. While a frame is held, the
-    // wait has to be reported without hiding what it is waiting on.
-    expect(await screen.findByRole('status', { name: 'Seeking' })).toBeInTheDocument()
-    expect(screen.queryByRole('status', { name: 'Preparing playback' })).not.toBeInTheDocument()
-  })
+    expect(await screen.findByRole('status', { name: 'Seeking' })).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Preparing playback' })).not.toBeInTheDocument();
+  });
 
   it('lets the new session replace the held frame once it is playing', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    seekableTo(element, 30)
-    showingAFrame(element)
-    startMock.mockReturnValue(new Promise(() => undefined))
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 30);
+    showingAFrame(element);
+    startMock.mockReturnValue(new Promise(() => undefined));
 
     fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
       target: { value: '3600' },
-    })
+    });
 
-    await screen.findByRole('status', { name: 'Seeking' })
+    await screen.findByRole('status', { name: 'Seeking' });
 
-    Object.defineProperty(element, 'currentTime', { configurable: true, value: 2 })
-    fireEvent.timeUpdate(element)
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 2 });
+    fireEvent.timeUpdate(element);
 
     await waitFor(() => {
-      expect(screen.queryByRole('status', { name: 'Seeking' })).not.toBeInTheDocument()
-    })
-  })
+      expect(screen.queryByRole('status', { name: 'Seeking' })).not.toBeInTheDocument();
+    });
+  });
 
   it('shows the full spinner when there is no frame to hold', () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    expect(screen.getByRole('status', { name: 'Preparing playback' })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('status', { name: 'Preparing playback' })).toBeInTheDocument();
+  });
 
   it('mutes and unmutes the media element itself', async () => {
-    const actor = userEvent.setup()
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    const element = screen.getByLabelText('Arrival')
+    await settled();
+    const element = screen.getByLabelText('Arrival');
 
-    await actor.click(screen.getByRole('button', { name: 'Mute' }))
+    await actor.click(screen.getByRole('button', { name: 'Mute' }));
 
-    expect(element).toHaveProperty('muted', true)
+    expect(element).toHaveProperty('muted', true);
 
-    await actor.click(screen.getByRole('button', { name: 'Unmute' }))
+    await actor.click(screen.getByRole('button', { name: 'Unmute' }));
 
-    expect(element).toHaveProperty('muted', false)
-  })
+    expect(element).toHaveProperty('muted', false);
+  });
 
   it('carries the volume through to the media element', async () => {
-    const actor = userEvent.setup()
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
+    await settled();
 
-    screen.getByRole('slider', { name: 'Volume' }).focus()
-    await actor.keyboard('{ArrowLeft}')
+    screen.getByRole('slider', { name: 'Volume' }).focus();
+    await actor.keyboard('{ArrowLeft}');
 
-    expect(screen.getByLabelText('Arrival')).toHaveProperty('volume', 0.99)
-  })
+    expect(screen.getByLabelText('Arrival')).toHaveProperty('volume', 0.99);
+  });
 
   it('asks for full screen on the whole stage, not just the video', async () => {
-    const actor = userEvent.setup()
-    const request = vi.fn()
+    const actor = userEvent.setup();
+    const request = vi.fn();
 
     Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
       configurable: true,
       writable: true,
       value: request,
-    })
+    });
 
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(screen.getByRole('button', { name: 'Full screen' }))
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Full screen' }));
 
-    expect(request).toHaveBeenCalledTimes(1)
-  })
+    expect(request).toHaveBeenCalledTimes(1);
+  });
 
   it('jumps back and forward without leaving the session when it can', async () => {
-    const actor = userEvent.setup()
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    seekableTo(element, 600)
-    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 60 })
-    fireEvent.timeUpdate(element)
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 600);
+    Object.defineProperty(element, 'currentTime', {
+      configurable: true,
+      writable: true,
+      value: 60,
+    });
+    fireEvent.timeUpdate(element);
 
-    await actor.click(screen.getByRole('button', { name: 'Forward 10 seconds' }))
+    await actor.click(screen.getByRole('button', { name: 'Forward 10 seconds' }));
 
-    expect(element).toHaveProperty('currentTime', 70)
-    expect(startMock).toHaveBeenCalledTimes(1)
-  })
+    expect(element).toHaveProperty('currentTime', 70);
+    expect(startMock).toHaveBeenCalledTimes(1);
+  });
 
   it('never jumps back past the start of the film', async () => {
-    const actor = userEvent.setup()
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    seekableTo(element, 600)
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 600);
 
-    await actor.click(screen.getByRole('button', { name: 'Back 10 seconds' }))
+    await actor.click(screen.getByRole('button', { name: 'Back 10 seconds' }));
 
-    expect(element).toHaveProperty('currentTime', 0)
-  })
+    expect(element).toHaveProperty('currentTime', 0);
+  });
 
   it('carries the chosen speed through to the media element', async () => {
-    const actor = userEvent.setup()
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(screen.getByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('button', { name: /Playback speed/ }))
-    await actor.click(await screen.findByRole('menuitemradio', { name: '1.5x' }))
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Playback speed/ }));
+    await actor.click(await screen.findByRole('menuitemradio', { name: '1.5x' }));
 
-    expect(screen.getByLabelText('Arrival')).toHaveProperty('playbackRate', 1.5)
-  })
+    expect(screen.getByLabelText('Arrival')).toHaveProperty('playbackRate', 1.5);
+  });
 
   it('shows no captions until a track is chosen', async () => {
     subtitlesMock.mockResolvedValue([
@@ -830,16 +818,16 @@ describe('VideoPlayer', () => {
         isForced: false,
         isHearingImpaired: false,
       },
-    ])
-    const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    ]);
+    const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
+    await settled();
 
-    expect(container.querySelector('track')).not.toBeInTheDocument()
-  })
+    expect(container.querySelector('track')).not.toBeInTheDocument();
+  });
 
   it('renders the track a viewer chooses', async () => {
-    const actor = userEvent.setup()
+    const actor = userEvent.setup();
     subtitlesMock.mockResolvedValue([
       {
         id: 'en',
@@ -849,18 +837,18 @@ describe('VideoPlayer', () => {
         isForced: false,
         isHearingImpaired: false,
       },
-    ])
-    const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    ]);
+    const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(await screen.findByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('button', { name: /Subtitles\/CC/ }))
-    await actor.click(await screen.findByRole('menuitemradio', { name: /English/ }))
+    await settled();
+    await actor.click(await screen.findByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Subtitles\/CC/ }));
+    await actor.click(await screen.findByRole('menuitemradio', { name: /English/ }));
 
     expect(container.querySelector('track')?.getAttribute('src')).toContain(
       '/api/media/media-1/subtitles/en',
-    )
-  })
+    );
+  });
 
   it('shows a forced track without being asked', async () => {
     subtitlesMock.mockResolvedValue([
@@ -872,133 +860,135 @@ describe('VideoPlayer', () => {
         isForced: true,
         isHearingImpaired: false,
       },
-    ])
-    const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    ]);
+    const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
+    await settled();
 
     await waitFor(() => {
-      expect(container.querySelector('track')).toHaveAttribute('srclang', 'fr')
-    })
-  })
+      expect(container.querySelector('track')).toHaveAttribute('srclang', 'fr');
+    });
+  });
 
   it('opens the caption settings from the subtitles menu', async () => {
-    const actor = userEvent.setup()
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(screen.getByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('button', { name: /Caption settings/ }))
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Caption settings/ }));
 
-    expect(await screen.findByRole('region', { name: 'Caption settings' })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('region', { name: 'Caption settings' })).toBeInTheDocument();
+  });
 
   it('remembers caption settings for the next film', async () => {
-    const actor = userEvent.setup()
-    const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    const actor = userEvent.setup();
+    const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(screen.getByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('button', { name: /Caption settings/ }))
-    await actor.click(await screen.findByRole('button', { name: 'Drop shadow' }))
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Caption settings/ }));
+    await actor.click(await screen.findByRole('button', { name: 'Drop shadow' }));
 
-    unmount()
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    unmount();
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    await settled()
-    await actor.click(screen.getByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('button', { name: /Caption settings/ }))
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Caption settings/ }));
 
-    // Chosen rather than merely present: every edge is on screen now, and what
-    // says which one is in force is which of them is pressed.
     expect(await screen.findByRole('button', { name: 'Drop shadow' })).toHaveAttribute(
       'aria-pressed',
       'true',
-    )
-  })
+    );
+  });
 
   it('offers to skip an intro once playback reaches it', async () => {
     segmentsMock.mockResolvedValue([
       { kind: 'intro', startSeconds: 30, endSeconds: 120, source: 'fingerprint' },
-    ])
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    ]);
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    await settled()
+    const element = await screen.findByLabelText('Arrival');
+    await settled();
 
-    expect(screen.queryByRole('button', { name: /Skip Intro/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Skip Intro/ })).not.toBeInTheDocument();
 
-    Object.defineProperty(element, 'currentTime', { configurable: true, value: 32 })
-    fireEvent.timeUpdate(element)
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 32 });
+    fireEvent.timeUpdate(element);
 
-    expect(await screen.findByRole('button', { name: /Skip Intro/ })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('button', { name: /Skip Intro/ })).toBeInTheDocument();
+  });
 
   it('jumps to the end of the intro when asked', async () => {
-    const actor = userEvent.setup()
+    const actor = userEvent.setup();
     segmentsMock.mockResolvedValue([
       { kind: 'intro', startSeconds: 30, endSeconds: 120, source: 'fingerprint' },
-    ])
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    ]);
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    seekableTo(element, 600)
-    await settled()
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 600);
+    await settled();
 
-    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 32 })
-    fireEvent.timeUpdate(element)
+    Object.defineProperty(element, 'currentTime', {
+      configurable: true,
+      writable: true,
+      value: 32,
+    });
+    fireEvent.timeUpdate(element);
 
-    await actor.click(await screen.findByRole('button', { name: /Skip Intro/ }))
+    await actor.click(await screen.findByRole('button', { name: /Skip Intro/ }));
 
-    expect(element).toHaveProperty('currentTime', 120)
-  })
+    expect(element).toHaveProperty('currentTime', 120);
+  });
 
   it('stops offering the skip once the intro is well under way', async () => {
     segmentsMock.mockResolvedValue([
       { kind: 'intro', startSeconds: 30, endSeconds: 120, source: 'fingerprint' },
-    ])
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    ]);
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    await settled()
+    const element = await screen.findByLabelText('Arrival');
+    await settled();
 
-    Object.defineProperty(element, 'currentTime', { configurable: true, value: 90 })
-    fireEvent.timeUpdate(element)
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 90 });
+    fireEvent.timeUpdate(element);
 
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /Skip Intro/ })).not.toBeInTheDocument()
-    })
-  })
+      expect(screen.queryByRole('button', { name: /Skip Intro/ })).not.toBeInTheDocument();
+    });
+  });
 
   it('names what it is skipping', async () => {
     segmentsMock.mockResolvedValue([
       { kind: 'recap', startSeconds: 0, endSeconds: 40, source: 'chapters' },
-    ])
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    ]);
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    await settled()
+    const element = await screen.findByLabelText('Arrival');
+    await settled();
 
-    Object.defineProperty(element, 'currentTime', { configurable: true, value: 2 })
-    fireEvent.timeUpdate(element)
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 2 });
+    fireEvent.timeUpdate(element);
 
-    expect(await screen.findByRole('button', { name: /Skip Recap/ })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('button', { name: /Skip Recap/ })).toBeInTheDocument();
+  });
 
   it('offers nothing for an item with no known segments', async () => {
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    await settled()
+    const element = await screen.findByLabelText('Arrival');
+    await settled();
 
-    Object.defineProperty(element, 'currentTime', { configurable: true, value: 32 })
-    fireEvent.timeUpdate(element)
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 32 });
+    fireEvent.timeUpdate(element);
 
-    expect(screen.queryByRole('button', { name: /Skip/ })).not.toBeInTheDocument()
-  })
+    expect(screen.queryByRole('button', { name: /Skip/ })).not.toBeInTheDocument();
+  });
 
   it('restarts where it left off when a viewer picks another soundtrack', async () => {
-    const actor = userEvent.setup()
+    const actor = userEvent.setup();
     detailMock.mockResolvedValue({
       id: 'media-1',
       libraryId: 'library-1',
@@ -1018,18 +1008,18 @@ describe('VideoPlayer', () => {
         { index: 1, codec: 'aac', channels: 2, language: 'jpn', isDefault: true, isAtmos: false },
         { index: 2, codec: 'ac3', channels: 6, language: 'eng', isDefault: false, isAtmos: false },
       ],
-    })
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
+    });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival')
-    await settled()
+    const element = await screen.findByLabelText('Arrival');
+    await settled();
 
-    Object.defineProperty(element, 'currentTime', { configurable: true, value: 2400 })
-    fireEvent.timeUpdate(element)
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 2400 });
+    fireEvent.timeUpdate(element);
 
-    await actor.click(screen.getByRole('button', { name: 'Settings' }))
-    await actor.click(await screen.findByRole('button', { name: /Audio track/ }))
-    await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }))
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Audio track/ }));
+    await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }));
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledWith(
@@ -1039,163 +1029,160 @@ describe('VideoPlayer', () => {
         2400,
         2,
         'original',
-      )
-    })
-  })
+      );
+    });
+  });
 
   it('sets a display name so devtools can identify it', () => {
-    expect(VideoPlayer.displayName).toBe('VideoPlayer')
-  })
+    expect(VideoPlayer.displayName).toBe('VideoPlayer');
+  });
 
   it('fades the controls away once a viewer has left them alone', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.useFakeTimers({ shouldAdvanceTime: true });
 
     try {
-      render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
+      render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
 
-      const element = await screen.findByLabelText('Arrival')
+      const element = await screen.findByLabelText('Arrival');
 
-      fireEvent.play(element)
+      fireEvent.play(element);
 
-      // Playback carries on, which moves the position several times a second.
-      // That must not count as a viewer being present, or the controls would
-      // never leave for the whole film.
       for (const seconds of [1, 2, 3, 4]) {
-        Object.defineProperty(element, 'currentTime', { configurable: true, value: seconds })
-        fireEvent.timeUpdate(element)
+        Object.defineProperty(element, 'currentTime', { configurable: true, value: seconds });
+        fireEvent.timeUpdate(element);
       }
 
       act(() => {
-        vi.advanceTimersByTime(4000)
-      })
+        vi.advanceTimersByTime(4000);
+      });
 
-      expect(screen.getByLabelText('Arrival').parentElement?.className).toContain('cursor-none')
+      expect(screen.getByLabelText('Arrival').parentElement?.className).toContain('cursor-none');
     } finally {
-      vi.useRealTimers()
+      vi.useRealTimers();
     }
-  })
+  });
 
   it('brings the controls and the pointer back when the viewer moves', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.useFakeTimers({ shouldAdvanceTime: true });
 
     try {
-      render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
+      render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
 
-      const element = await screen.findByLabelText('Arrival')
+      const element = await screen.findByLabelText('Arrival');
 
-      fireEvent.play(element)
+      fireEvent.play(element);
 
       act(() => {
-        vi.advanceTimersByTime(4000)
-      })
+        vi.advanceTimersByTime(4000);
+      });
 
-      const stage = screen.getByLabelText('Arrival').parentElement
+      const stage = screen.getByLabelText('Arrival').parentElement;
 
       if (stage !== null) {
-        fireEvent.pointerMove(stage)
+        fireEvent.pointerMove(stage);
       }
 
-      expect(stage?.className).toContain('cursor-default')
+      expect(stage?.className).toContain('cursor-default');
     } finally {
-      vi.useRealTimers()
+      vi.useRealTimers();
     }
-  })
+  });
 
   it('starts playing on arrival rather than waiting to be asked', async () => {
-    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
 
-    render(<VideoPlayer media={media} onClose={vi.fn()} />)
-    await settled()
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
 
-    expect(play).toHaveBeenCalled()
-  })
+    expect(play).toHaveBeenCalled();
+  });
 
   it('asks for whole seconds, since a resumed position is a fraction of one', async () => {
-    render(<VideoPlayer media={media} startSeconds={2103.4567} onClose={vi.fn()} />)
-    await settled()
+    render(<VideoPlayer media={media} startSeconds={2103.4567} onClose={vi.fn()} />);
+    await settled();
 
-    // The fourth thing it is asked for is where to start, and it has to be a
-    // whole number: the contract says so, and a rejected request is the
-    // "playback could not be started" a viewer used to meet on resuming.
-    expect(startMock.mock.calls.at(-1)?.[3]).toBe(2103)
-  })
+    expect(startMock.mock.calls.at(-1)?.[3]).toBe(2103);
+  });
 
   it('says where the viewer has got to as they get there', async () => {
-    const onProgress = vi.fn()
+    const onProgress = vi.fn();
 
-    render(<VideoPlayer media={media} onClose={vi.fn()} onProgress={onProgress} />)
-    await settled()
+    render(<VideoPlayer media={media} onClose={vi.fn()} onProgress={onProgress} />);
+    await settled();
 
-    const element = await screen.findByLabelText('Arrival')
+    const element = await screen.findByLabelText('Arrival');
 
-    Object.defineProperty(element, 'currentTime', { configurable: true, value: 90 })
-    fireEvent.timeUpdate(element)
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 90 });
+    fireEvent.timeUpdate(element);
 
-    expect(onProgress).toHaveBeenCalledWith(90, 7200)
-  })
+    expect(onProgress).toHaveBeenCalledWith(90, 7200);
+  });
 
   it('says when the film has run out, so a season can go on', async () => {
-    const onEnded = vi.fn()
+    const onEnded = vi.fn();
 
-    render(<VideoPlayer media={media} onClose={vi.fn()} onEnded={onEnded} />)
-    await settled()
+    render(<VideoPlayer media={media} onClose={vi.fn()} onEnded={onEnded} />);
+    await settled();
 
-    fireEvent.ended(await screen.findByLabelText('Arrival'))
+    fireEvent.ended(await screen.findByLabelText('Arrival'));
 
-    expect(onEnded).toHaveBeenCalledOnce()
-  })
+    expect(onEnded).toHaveBeenCalledOnce();
+  });
 
   it('counts the film as watched to the end before handing over', async () => {
-    const onProgress = vi.fn()
+    const onProgress = vi.fn();
 
     render(
       <VideoPlayer media={media} onClose={vi.fn()} onProgress={onProgress} onEnded={vi.fn()} />,
-    )
-    await settled()
+    );
+    await settled();
 
-    fireEvent.ended(await screen.findByLabelText('Arrival'))
+    fireEvent.ended(await screen.findByLabelText('Arrival'));
 
-    expect(onProgress).toHaveBeenLastCalledWith(7200, 7200)
-  })
+    expect(onProgress).toHaveBeenLastCalledWith(7200, 7200);
+  });
 
   it('steps a frame at a time rather than seeking, since one frame is already decoded', async () => {
-    const actor = userEvent.setup()
+    const actor = userEvent.setup();
 
-    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
-    await settled()
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
 
-    const element = await screen.findByLabelText('Arrival')
+    const element = await screen.findByLabelText('Arrival');
 
-    Object.defineProperty(element, 'currentTime', { configurable: true, value: 10, writable: true })
-    Object.defineProperty(element, 'duration', { configurable: true, value: 7200 })
+    Object.defineProperty(element, 'currentTime', {
+      configurable: true,
+      value: 10,
+      writable: true,
+    });
+    Object.defineProperty(element, 'duration', { configurable: true, value: 7200 });
 
-    await actor.keyboard('{ArrowRight}')
+    await actor.keyboard('{ArrowRight}');
 
-    // A fraction of a second on, rather than a new session a few seconds away.
-    const at = element instanceof HTMLVideoElement ? element.currentTime : 0
+    const at = element instanceof HTMLVideoElement ? element.currentTime : 0;
 
-    expect(at).toBeGreaterThan(10)
-    expect(at).toBeLessThan(10.5)
-    expect(startMock).toHaveBeenCalledOnce()
-  })
+    expect(at).toBeGreaterThan(10);
+    expect(at).toBeLessThan(10.5);
+    expect(startMock).toHaveBeenCalledOnce();
+  });
 
   it('pauses to step, since a frame examined while running has gone by', async () => {
-    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined)
-    const actor = userEvent.setup()
+    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+    const actor = userEvent.setup();
 
-    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
-    await settled()
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
 
-    await actor.keyboard('{ArrowLeft}')
+    await actor.keyboard('{ArrowLeft}');
 
-    expect(pause).toHaveBeenCalled()
-  })
+    expect(pause).toHaveBeenCalled();
+  });
 
   it('offers the rest of the season, and nothing at all for a film', async () => {
-    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
-    await settled()
+    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
 
-    expect(screen.queryByRole('button', { name: 'Episodes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Episodes' })).not.toBeInTheDocument();
 
     rerender(
       <VideoPlayer
@@ -1221,79 +1208,71 @@ describe('VideoPlayer', () => {
         ]}
         onSelectEpisode={vi.fn()}
       />,
-    )
+    );
 
-    expect(await screen.findByRole('button', { name: 'Episodes' })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('button', { name: 'Episodes' })).toBeInTheDocument();
+  });
 
   it('takes the floating window with it, however the player is left', async () => {
-    const exit = vi.fn().mockResolvedValue(undefined)
+    const exit = vi.fn().mockResolvedValue(undefined);
 
-    // Put back afterwards: a document that still claims it can float things,
-    // with nothing left to do it, breaks every test that unmounts a player
-    // after this one.
     const asBrowserWithout = () => {
       Object.defineProperty(document, 'pictureInPictureEnabled', {
         configurable: true,
         value: false,
-      })
+      });
       Object.defineProperty(document, 'pictureInPictureElement', {
         configurable: true,
         value: null,
-      })
-    }
+      });
+    };
 
     try {
       Object.defineProperty(document, 'pictureInPictureEnabled', {
         configurable: true,
         value: true,
-      })
+      });
       Object.defineProperty(document, 'pictureInPictureElement', {
         configurable: true,
         value: document.createElement('video'),
-      })
-      Object.defineProperty(document, 'exitPictureInPicture', { configurable: true, value: exit })
+      });
+      Object.defineProperty(document, 'exitPictureInPicture', { configurable: true, value: exit });
 
-      const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />)
+      const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-      await settled()
-      unmount()
+      await settled();
+      unmount();
 
-      expect(exit).toHaveBeenCalled()
+      expect(exit).toHaveBeenCalled();
     } finally {
-      asBrowserWithout()
+      asBrowserWithout();
     }
-  })
+  });
 
   it('keeps the controls up while a menu on them is open', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.useFakeTimers({ shouldAdvanceTime: true });
 
     try {
-      const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-      // The stream is nudged until it starts, which means asking the element
-      // to play — and this test runs after ones that have had their hands on
-      // it.
-      vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+      vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
 
-      render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />)
+      render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
 
-      const element = await screen.findByLabelText('Arrival')
+      const element = await screen.findByLabelText('Arrival');
 
-      fireEvent.play(element)
-      await actor.click(screen.getByRole('button', { name: 'Settings' }))
+      fireEvent.play(element);
+      await actor.click(screen.getByRole('button', { name: 'Settings' }));
 
       act(() => {
-        vi.advanceTimersByTime(6000)
-      })
+        vi.advanceTimersByTime(6000);
+      });
 
-      // The bar has not been pushed out of the picture: a bar that left from
-      // under an open menu would take the menu with it.
-      const bar = screen.getByRole('button', { name: 'Settings' }).closest('.absolute')
+      const bar = screen.getByRole('button', { name: 'Settings' }).closest('.absolute');
 
-      expect(bar?.className).toContain('translate-y-0')
+      expect(bar?.className).toContain('translate-y-0');
     } finally {
-      vi.useRealTimers()
+      vi.useRealTimers();
     }
-  })
-})
+  });
+});

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 /**
  * The kinds of stretch worth marking.
@@ -8,9 +8,9 @@ import { z } from 'zod'
  * meaning rather than a bare bookmark, because what the player offers depends
  * on which it is.
  */
-const SEGMENT_KINDS = ['intro', 'recap', 'credits', 'preview'] as const
+const SEGMENT_KINDS = ['intro', 'recap', 'credits', 'preview'] as const;
 
-const SegmentKindSchema = z.enum(SEGMENT_KINDS)
+const SegmentKindSchema = z.enum(SEGMENT_KINDS);
 
 /**
  * How a segment came to be known.
@@ -19,27 +19,27 @@ const SegmentKindSchema = z.enum(SEGMENT_KINDS)
  * "Intro" was written by a human and is exact, while a detected range is a
  * measurement that several episodes agreed on.
  */
-const SEGMENT_SOURCES = ['chapters', 'fingerprint', 'manual'] as const
+const SEGMENT_SOURCES = ['chapters', 'fingerprint', 'manual'] as const;
 
-const SegmentSourceSchema = z.enum(SEGMENT_SOURCES)
+const SegmentSourceSchema = z.enum(SEGMENT_SOURCES);
 
 const MediaSegmentSchema = z.object({
   kind: SegmentKindSchema,
   startSeconds: z.number().nonnegative(),
   endSeconds: z.number().positive(),
   source: SegmentSourceSchema,
-})
+});
 
-type MediaSegment = z.infer<typeof MediaSegmentSchema>
-type SegmentKind = z.infer<typeof SegmentKindSchema>
-type SegmentSource = z.infer<typeof SegmentSourceSchema>
+type MediaSegment = z.infer<typeof MediaSegmentSchema>;
+type SegmentKind = z.infer<typeof SegmentKindSchema>;
+type SegmentSource = z.infer<typeof SegmentSourceSchema>;
 
-export type { MediaSegment, SegmentKind, SegmentSource }
+export type { MediaSegment, SegmentKind, SegmentSource };
 
-export default {
+export {
   MediaSegmentSchema,
   SegmentKindSchema,
   SegmentSourceSchema,
   SEGMENT_KINDS,
   SEGMENT_SOURCES,
-}
+};

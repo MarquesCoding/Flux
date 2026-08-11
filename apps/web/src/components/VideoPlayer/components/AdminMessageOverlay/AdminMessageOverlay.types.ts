@@ -4,9 +4,9 @@ type AdminMessageOverlayProps = {
    * gone. Paused is a lighter banner, because the picture is still there and
    * a viewer can simply press play again.
    */
-  kind: 'stopped' | 'paused'
-  reason: string
-  onDismiss: () => void
-}
+  kind: 'stopped' | 'paused';
+  reason: string;
+  onDismiss: () => void;
+};
 
-export type { AdminMessageOverlayProps }
+export type { AdminMessageOverlayProps };

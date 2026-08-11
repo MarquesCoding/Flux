@@ -1,22 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
-import { IconCheck, IconKey, IconPencil, IconTrash } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import SpinnerModule from '@FluxUI/Spinner'
-import TextFieldModule from '@FluxUI/TextField'
-import isPasskeySupportedModule from '@FluxWeb/passkeys/isPasskeySupported'
-import registerPasskeyModule from '@FluxWeb/passkeys/registerPasskey'
-import listPasskeysModule from '@FluxWeb/passkeys/listPasskeys'
-import type { Passkey } from '@FluxContracts/schemas/Passkey'
-import type { PasskeySetupProps } from './PasskeySetup.types'
+import { useCallback, useEffect, useState } from 'react';
+import { IconCheck, IconKey, IconPencil, IconTrash } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { Spinner } from '@FluxUI/Spinner';
+import { TextField } from '@FluxUI/TextField';
+import { describePasskeyUnavailability } from '@FluxWeb/passkeys/isPasskeySupported';
+import { registerPasskey } from '@FluxWeb/passkeys/registerPasskey';
+import { listPasskeys, deletePasskey, renamePasskey } from '@FluxWeb/passkeys/listPasskeys';
+import type { Passkey } from '@FluxContracts/schemas/Passkey';
+import type { PasskeySetupProps } from './PasskeySetup.types';
 
-const { Button } = ButtonModule
-const { Spinner } = SpinnerModule
-const { TextField } = TextFieldModule
-const { describePasskeyUnavailability } = isPasskeySupportedModule
-const { registerPasskey } = registerPasskeyModule
-const { listPasskeys, deletePasskey, renamePasskey } = listPasskeysModule
-
-const DEFAULT_NAME = 'This device'
+const DEFAULT_NAME = 'This device';
 
 /**
  * Passkey enrollment and removal.
@@ -27,89 +20,89 @@ const DEFAULT_NAME = 'This device'
  * when pressed.
  */
 const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
-  const [passkeys, setPasskeys] = useState<Passkey[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [name, setName] = useState(DEFAULT_NAME)
-  const [isAdding, setIsAdding] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [renameValue, setRenameValue] = useState('')
+  const [passkeys, setPasskeys] = useState<Passkey[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [name, setName] = useState(DEFAULT_NAME);
+  const [isAdding, setIsAdding] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
-  const unavailable = describePasskeyUnavailability()
+  const unavailable = describePasskeyUnavailability();
 
   const refresh = useCallback(async () => {
     try {
-      setPasskeys(await listPasskeys())
+      setPasskeys(await listPasskeys());
     } catch {
-      setMessage('Could not load your passkeys.')
+      setMessage('Could not load your passkeys.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    void refresh();
+  }, [refresh]);
 
   const add = async () => {
-    setMessage(null)
-    setIsAdding(true)
+    setMessage(null);
+    setIsAdding(true);
 
     try {
-      const outcome = await registerPasskey(name.trim() === '' ? DEFAULT_NAME : name.trim())
+      const outcome = await registerPasskey(name.trim() === '' ? DEFAULT_NAME : name.trim());
 
       if (outcome.kind === 'failed') {
-        setMessage(outcome.reason)
+        setMessage(outcome.reason);
 
-        return
+        return;
       }
 
       if (outcome.kind === 'cancelled') {
-        return
+        return;
       }
 
-      setName(DEFAULT_NAME)
-      await refresh()
-      onChanged?.()
+      setName(DEFAULT_NAME);
+      await refresh();
+      onChanged?.();
     } finally {
-      setIsAdding(false)
+      setIsAdding(false);
     }
-  }
+  };
 
   const rename = async (passkey: Passkey) => {
-    setMessage(null)
+    setMessage(null);
 
-    const next = renameValue.trim()
+    const next = renameValue.trim();
 
     if (next === '') {
-      setMessage('Give the passkey a name.')
+      setMessage('Give the passkey a name.');
 
-      return
+      return;
     }
 
     if (!(await renamePasskey(passkey.id, next))) {
-      setMessage('That passkey could not be renamed.')
+      setMessage('That passkey could not be renamed.');
 
-      return
+      return;
     }
 
-    setRenamingId(null)
-    await refresh()
-    onChanged?.()
-  }
+    setRenamingId(null);
+    await refresh();
+    onChanged?.();
+  };
 
   const remove = async (passkey: Passkey) => {
-    setMessage(null)
+    setMessage(null);
 
     if (!(await deletePasskey(passkey.id))) {
-      setMessage('That passkey could not be removed.')
+      setMessage('That passkey could not be removed.');
 
-      return
+      return;
     }
 
-    await refresh()
-    onChanged?.()
-  }
+    await refresh();
+    onChanged?.();
+  };
 
   return (
     <section className="flex flex-col gap-4 rounded-lg border border-border p-5">
@@ -140,8 +133,8 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
                   noValidate
                   className="flex w-full items-end gap-2"
                   onSubmit={(event) => {
-                    event.preventDefault()
-                    void rename(passkey)
+                    event.preventDefault();
+                    void rename(passkey);
                   }}
                 >
                   <TextField
@@ -161,7 +154,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setRenamingId(null)
+                      setRenamingId(null);
                     }}
                   >
                     Cancel
@@ -179,8 +172,8 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setRenamingId(passkey.id)
-                        setRenameValue(passkey.name ?? '')
+                        setRenamingId(passkey.id);
+                        setRenameValue(passkey.name ?? '');
                       }}
                     >
                       <IconPencil size={16} aria-hidden />
@@ -191,7 +184,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        void remove(passkey)
+                        void remove(passkey);
                       }}
                     >
                       <IconTrash size={16} aria-hidden />
@@ -210,8 +203,8 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
           noValidate
           className="flex flex-col gap-3"
           onSubmit={(event) => {
-            event.preventDefault()
-            void add()
+            event.preventDefault();
+            void add();
           }}
         >
           <TextField
@@ -229,9 +222,9 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
         <p className="text-sm text-text-muted">{unavailable}</p>
       )}
     </section>
-  )
-}
+  );
+};
 
-PasskeySetup.displayName = 'PasskeySetup'
+PasskeySetup.displayName = 'PasskeySetup';
 
-export default { PasskeySetup }
+export { PasskeySetup };

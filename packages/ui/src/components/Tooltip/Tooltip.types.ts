@@ -1,9 +1,9 @@
-import type { ReactElement } from 'react'
+import type { ReactElement } from 'react';
 
 /**
  * What a control is rendered with, once the tooltip has added its own.
  */
-type ControlProperties = Record<string, string | number | boolean | object | null | undefined>
+type ControlProperties = Record<string, string | number | boolean | object | null | undefined>;
 
 type TooltipProps = {
   /**
@@ -13,7 +13,7 @@ type TooltipProps = {
    * different from the label is a second name for the same thing, and the two
    * drift.
    */
-  label: string
+  label: string;
   /**
    * The control itself.
    *
@@ -24,19 +24,19 @@ type TooltipProps = {
    * Typed as a bag of properties because that is what it is handed — the
    * element is rendered with whatever the tooltip needs to add to it.
    */
-  children: ReactElement<ControlProperties>
+  children: ReactElement<ControlProperties>;
   /**
    * Which way it hangs. Above by default, since most controls carrying one sit
    * in a bar along the bottom of something.
    */
-  side?: 'top' | 'bottom' | 'left' | 'right'
+  side?: 'top' | 'bottom' | 'left' | 'right';
   /**
    * Whether to say anything at all.
    *
    * For the caller that shows a name beside the icon already, where a tooltip
    * would repeat a word the viewer is looking at.
    */
-  isDisabled?: boolean
-}
+  isDisabled?: boolean;
+};
 
-export type { ControlProperties, TooltipProps }
+export type { ControlProperties, TooltipProps };
