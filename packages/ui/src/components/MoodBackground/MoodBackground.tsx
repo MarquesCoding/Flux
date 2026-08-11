@@ -1,8 +1,11 @@
+import { useEffect, useRef } from 'react'
 import { useReducedMotion } from 'motion/react'
 import DotFieldModule from '@FluxUI/DotField'
-import type { MoodBackgroundProps } from './MoodBackground.types'
+import blendLightsModule from '@FluxUI/blendLights'
+import type { MoodBackgroundProps, MoodLight } from './MoodBackground.types'
 
 const { DotField } = DotFieldModule
+const { blendLights } = blendLightsModule
 
 /**
  * Where a light sits when it has not said, how large it is, and how much of it
@@ -29,6 +32,25 @@ const BLOOMS = [
 const DRIFTS = ['34s', '46s', '58s', '41s', '52s'] as const
 
 /**
+ * How far the light moves towards where it is going, each frame.
+ *
+ * Three hundredths, sixty times a second: about half a second to cover most of
+ * a change, and no single step large enough to see. The size of a step is the
+ * whole question here — a wash that arrives in a few large ones is a wash that
+ * flickers, however slowly it gets there.
+ */
+const EASE = 0.03
+
+/**
+ * How the light for one bloom is written.
+ */
+const paint = (light: MoodLight, at: number): string => {
+  const bloom = BLOOMS[at] ?? BLOOMS[0]
+
+  return `radial-gradient(${bloom.size} at ${light.at ?? bloom.at}, color-mix(in oklab, ${light.color} ${bloom.strength.toString()}%, transparent), transparent 70%)`
+}
+
+/**
  * The light a page is under.
  *
  * Taken from what is on screen — each corner of the picture read on its own —
@@ -39,12 +61,13 @@ const DRIFTS = ['34s', '46s', '58s', '41s', '52s'] as const
  * like the film is on, and a wash strong enough to notice is a wash competing
  * with the thing it came from.
  *
- * The lights change in place rather than being swapped for new ones. A frame
- * of a film is read several times a second, and a page that crossfaded two
- * whole layers at that rate would spend its life halfway between two washes.
- * What arrives here has already been eased towards the picture by whatever is
- * reading it; the short transition on each gradient only covers the gap
- * between one reading and the next.
+ * What arrives is where the light is going rather than where it is. A frame of
+ * a film is read a few times a second, and a page painted straight from those
+ * readings steps between them. So the colours are carried the rest of the way
+ * here, a fraction per frame, written onto the elements directly: this changes
+ * sixty times a second, and asking React to redraw the page it sits behind at
+ * that rate to move a gradient would cost more than everything else on screen
+ * put together.
  */
 const MoodBackground = ({
   lights = [],
@@ -53,29 +76,75 @@ const MoodBackground = ({
 }: MoodBackgroundProps) => {
   const prefersReducedMotion = useReducedMotion()
   const lit = lights.filter((light) => light.color !== '')
+  const bloomsRef = useRef<(HTMLSpanElement | null)[]>([])
+  const heldRef = useRef<MoodLight[]>([])
+  const wantedRef = useRef<MoodLight[]>(lit)
+  const paintedRef = useRef<string[]>([])
+
+  wantedRef.current = lit
+
+  useEffect(() => {
+    // The first light is arrived at rather than eased into. Coming up to it
+    // from black would be a wash sliding in from a colour nothing on screen
+    // has anything to do with.
+    if (heldRef.current.length === 0) {
+      heldRef.current = wantedRef.current
+    }
+
+    let frame = 0
+
+    const carry = () => {
+      const wanted = wantedRef.current
+
+      heldRef.current =
+        prefersReducedMotion === true || heldRef.current.length !== wanted.length
+          ? wanted
+          : blendLights(heldRef.current, wanted, EASE)
+
+      heldRef.current.forEach((light, at) => {
+        const element = bloomsRef.current[at]
+        const painted = paint(light, at)
+
+        // Only when it has actually moved. Easing settles within a step of
+        // where it was going and then stops changing, and writing the same
+        // gradient back sixty times a second would keep the browser painting a
+        // screen-sized bloom long after it had finished arriving.
+        if (element !== null && element !== undefined && paintedRef.current[at] !== painted) {
+          paintedRef.current[at] = painted
+          element.style.background = painted
+        }
+      })
+
+      frame = requestAnimationFrame(carry)
+    }
+
+    frame = requestAnimationFrame(carry)
+
+    return () => {
+      cancelAnimationFrame(frame)
+    }
+  }, [prefersReducedMotion])
 
   return (
     <div role="presentation" className="pointer-events-none fixed inset-0 -z-10">
       <div className="absolute inset-0">
-        {lit.slice(0, BLOOMS.length).map((light, at) => {
-          const bloom = BLOOMS[at] ?? BLOOMS[0]
-
-          return (
-            <span
-              key={`bloom-${at.toString()}`}
-              className={
-                isDrifting && prefersReducedMotion !== true
-                  ? 'flux-bloom flux-bloom--drift'
-                  : 'flux-bloom'
-              }
-              style={{
-                background: `radial-gradient(${bloom.size} at ${light.at ?? bloom.at}, color-mix(in oklab, ${light.color} ${bloom.strength.toString()}%, transparent), transparent 70%)`,
-                animationDuration: DRIFTS[at] ?? '40s',
-                transitionDuration: prefersReducedMotion === true ? '0ms' : undefined,
-              }}
-            />
-          )
-        })}
+        {lit.slice(0, BLOOMS.length).map((light, at) => (
+          <span
+            key={`bloom-${at.toString()}`}
+            ref={(element) => {
+              bloomsRef.current[at] = element
+            }}
+            className={
+              isDrifting && prefersReducedMotion !== true
+                ? 'flux-bloom flux-bloom--drift'
+                : 'flux-bloom'
+            }
+            style={{
+              background: paint(heldRef.current[at] ?? light, at),
+              animationDuration: DRIFTS[at] ?? '40s',
+            }}
+          />
+        ))}
 
         {/* The page's own colour underneath the light, so the foot of the
             screen is the page rather than whatever the picture was made

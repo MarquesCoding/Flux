@@ -26,11 +26,13 @@ type MoodBackgroundProps = {
    */
   isDrifting?: boolean
   /**
-   * The lights the page is under.
+   * The lights the page is heading towards.
    *
    * Read out of whatever is on screen, corner by corner, rather than chosen in
-   * advance. An empty list means the page keeps its own light, so a library
-   * with no artwork still looks deliberate rather than unfinished.
+   * advance. Where the light is going rather than where it is: the wash carries
+   * itself the rest of the way, so these may change as abruptly as the picture
+   * does. An empty list means the page keeps its own light, so a library with
+   * no artwork still looks deliberate rather than unfinished.
    */
   lights?: MoodLight[]
 }

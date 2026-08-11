@@ -8,9 +8,7 @@ import {
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import IconButtonModule from '@FluxUI/IconButton'
 import frameUrlModule from '@FluxWeb/playback/frameUrl'
-import type { MoodLight } from '@FluxUI/MoodBackground.types'
 import readLightsModule from '@FluxWeb/library/readLights'
-import blendLightsModule from '@FluxWeb/library/blendLights'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import liftCuesModule from '@FluxWeb/playback/liftCues'
 import type { MediaPreviewProps } from './MediaPreview.types'
@@ -19,7 +17,6 @@ const { VideoSurface } = VideoSurfaceModule
 const { IconButton } = IconButtonModule
 const { frameUrl } = frameUrlModule
 const { readLights } = readLightsModule
-const { blendLights } = blendLightsModule
 const { fetchSubtitleTracks, subtitleTrackUrl, previewTrack } = fetchSubtitlesModule
 const { liftCues } = liftCuesModule
 
@@ -57,16 +54,6 @@ const CUE_LINE = 80
 const LOOK_EVERY_MILLISECONDS = 200
 
 /**
- * How much of each reading to believe.
- *
- * A fifth of the way, five times a second: a colour that holds for a second
- * arrives in full, and a cut, a muzzle flash or a pan across a lamp barely
- * registers. Reading often and believing slowly is what separates a room the
- * film is playing in from a wash running at the film's frame rate.
- */
-const BELIEVE = 0.2
-
-/**
  * A glimpse of what an item looks like.
  *
  * The clip is a file made when the item was imported, not a stream produced on
@@ -100,10 +87,6 @@ const MediaPreview = ({
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const stillRef = useRef<HTMLImageElement>(null)
-
-  // The light as it stands, kept out of state on purpose: it changes five
-  // times a second and nothing in this component is drawn from it.
-  const heldRef = useRef<MoodLight[]>([])
   const [isPlaying, setIsPlaying] = useState(false)
   // Whether the clip has finished. Together with whether it has started, this
   // is the only thing that decides which of the two pictures is on top —
@@ -232,19 +215,9 @@ const MediaPreview = ({
             ? readLights(still)
             : []
 
-      if (found.length === 0) {
-        return
+      if (found.length > 0) {
+        onPalette(found)
       }
-
-      // Nothing held yet — the first reading is the light, since easing up from
-      // whatever the page happened to be showing would be a wash sliding in
-      // from a colour this item has nothing to do with.
-      const eased =
-        heldRef.current.length === 0 ? found : blendLights(heldRef.current, found, BELIEVE)
-
-      heldRef.current = eased
-
-      onPalette(eased)
     }
 
     look()
