@@ -126,7 +126,7 @@ describe('detectLibrarySegments', () => {
     expect(seen.sort()).toEqual([1, 2])
   })
 
-  it('reports how many seasons have been looked at', async () => {
+  it('reports progress in episodes rather than seasons, so an uneven season does not look like an equal step', async () => {
     const onProgress = vi.fn()
     const segments = createMemorySegmentService()
 
@@ -137,15 +137,20 @@ describe('detectLibrarySegments', () => {
       listCandidates: () =>
         Promise.resolve([
           episode('a', 'Some Show', 1),
-          episode('b', 'Some Show', 2),
-          episode('c', 'Other Show', 1),
+          episode('b', 'Some Show', 1),
+          episode('c', 'Some Show', 2),
+          episode('d', 'Some Show', 2),
+          episode('e', 'Some Show', 2),
         ]),
       onProgress,
     })
 
-    expect(onProgress).toHaveBeenCalledWith(0, 3)
-    expect(onProgress).toHaveBeenLastCalledWith(3, 3)
-    expect(onProgress).toHaveBeenCalledTimes(4)
+    // Two seasons, five episodes: a bar counting seasons would say "0 of 2"
+    // then "1 of 2" then stop, the same whichever season went first. Counted
+    // by episode it grows by however many that season actually had.
+    expect(onProgress).toHaveBeenCalledWith(0, 5)
+    expect(onProgress).toHaveBeenLastCalledWith(5, 5)
+    expect(onProgress).toHaveBeenCalledTimes(3)
   })
 
   it('replaces what was known rather than adding to it', async () => {
