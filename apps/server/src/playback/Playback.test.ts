@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import AppModule from '@FluxServer/App'
 import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from '@FluxServer/library/createMemoryLibraryService'
+import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
 import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from './createMemoryPlaybackService'
@@ -15,6 +16,7 @@ const { createMemoryLibraryService } = createMemoryLibraryServiceModule
 const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
 const { createMemorySegmentService } = createMemorySegmentServiceModule
+const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
 
 const { PlaybackPlanSchema } = PlaybackPlanModule
 
@@ -78,10 +80,27 @@ const capableProfile = {
   ],
 }
 
+const MODEST_MEDIA_ID = '11111111-1111-4111-8111-111111111111'
+
+const modestMedia: MediaItem = {
+  id: MODEST_MEDIA_ID,
+  title: 'A Modest Film',
+  year: 2020,
+  container: 'mkv',
+  durationSeconds: 6000,
+  videoCodec: 'h264',
+  videoRange: 'SDR',
+  width: 1920,
+  height: 1080,
+  bitrateKbps: 3000,
+  audioStreams: [{ index: 1, codec: 'aac', channels: 2, isDefault: true, isAtmos: false }],
+  subtitleStreams: [],
+}
+
 const build = (options: { unsupported?: boolean } = {}) => {
   const { auth, settings } = createMemoryAuth()
   const playback = createMemoryPlaybackService({
-    media: { [MEDIA_ID]: hdrMedia },
+    media: { [MEDIA_ID]: hdrMedia, [MODEST_MEDIA_ID]: modestMedia },
     sessions: {},
     ...(options.unsupported === true ? { unsupported: true } : {}),
   })
@@ -94,6 +113,7 @@ const build = (options: { unsupported?: boolean } = {}) => {
     library: createMemoryLibraryService(),
     subtitles: createMemorySubtitleService(),
     segments: createMemorySegmentService(),
+    progress: createMemoryWatchProgressService(),
     playback,
   })
 
@@ -391,5 +411,85 @@ describe('trickplay', () => {
         'audioStreamIndex',
       ])
     })
+  })
+})
+
+describe('quality steps', () => {
+  it('forces a resolution and bitrate clamp the device alone would not require', async () => {
+    const { app } = build()
+
+    const response = await app.request(
+      post(`/api/playback/${MEDIA_ID}/session`, {
+        deviceProfile: capableProfile,
+        requestedQuality: '720p',
+      }),
+    )
+    const body = StartSchema.parse(await response.json())
+
+    expect(body.plan.video).toMatchObject({
+      kind: 'transcode',
+      maxWidth: 1280,
+      maxHeight: 720,
+      maxBitrateKbps: 2500,
+    })
+    expect(body.plan.video.reason.code).toBe('UserForcedTranscode')
+  })
+
+  it('leaves audio alone at 720p', async () => {
+    const { app } = build()
+
+    const response = await app.request(
+      post(`/api/playback/${MEDIA_ID}/session`, {
+        deviceProfile: capableProfile,
+        requestedQuality: '720p',
+      }),
+    )
+    const body = StartSchema.parse(await response.json())
+
+    expect(body.plan.audio.kind).toBe('passthrough')
+  })
+
+  it('compresses audio below 720p', async () => {
+    const { app } = build()
+
+    const response = await app.request(
+      post(`/api/playback/${MEDIA_ID}/session`, {
+        deviceProfile: capableProfile,
+        requestedQuality: '480p',
+      }),
+    )
+    const body = StartSchema.parse(await response.json())
+
+    expect(body.plan.audio).toMatchObject({ kind: 'transcode', maxBitrateKbps: 128 })
+    expect(body.plan.audio.reason.code).toBe('UserForcedTranscode')
+  })
+
+  it('treats a step that would not reduce anything as Original', async () => {
+    const { app } = build()
+
+    const response = await app.request(
+      post(`/api/playback/${MODEST_MEDIA_ID}/session`, {
+        deviceProfile: capableProfile,
+        requestedQuality: '1080p',
+      }),
+    )
+    const body = StartSchema.parse(await response.json())
+
+    expect(body.mode).toBe('DirectPlay')
+    expect(body.plan.video.kind).toBe('passthrough')
+    expect(body.plan.audio.kind).toBe('passthrough')
+  })
+
+  it('documents the choice in the specification', async () => {
+    const { app } = build()
+    const body = await (await app.request(`${BASE}/api/openapi.json`)).json()
+
+    expect(body).toHaveProperty([
+      'components',
+      'schemas',
+      'PlaybackStartRequest',
+      'properties',
+      'requestedQuality',
+    ])
   })
 })

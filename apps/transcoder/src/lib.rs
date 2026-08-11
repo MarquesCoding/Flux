@@ -7,10 +7,16 @@
 #![cfg_attr(test, allow(clippy::expect_used, clippy::unwrap_used))]
 
 pub mod capability;
+pub mod colour;
 pub mod fingerprint;
+pub mod frame;
 pub mod media;
+pub mod monitor;
+pub mod preview;
 pub mod probe;
+pub mod queue;
 pub mod router;
 pub mod session;
+pub mod subtitle;
 pub mod transcode_plan;
 pub mod trickplay;
