@@ -63,6 +63,11 @@ type PlayerControlsProps = {
   playingId: string
   onSelectEpisode?: (episode: MediaSummary) => void
   watchedFractionFor?: (mediaId: string) => number | undefined
+  /**
+   * Whether the clock counts down to the end rather than up from the start.
+   */
+  isShowingRemaining: boolean
+  onToggleTimeDisplay: () => void
   captionStyle: CaptionStyle
   onCaptionStyleChange: (style: CaptionStyle) => void
   onCaptionStyleReset: () => void

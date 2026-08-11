@@ -29,6 +29,14 @@ const PreferencesSchema = z.object({
    * an instruction.
    */
   subtitleLanguage: z.string().nullable().default(null),
+  /**
+   * Whether the clock counts down rather than up.
+   *
+   * Kept on the device like the rest of it: how somebody reads a running time
+   * is a habit, and a habit that has to be re-expressed every film is not one
+   * the interface is respecting.
+   */
+  showsRemaining: z.boolean().default(false),
 })
 
 type PlaybackPreferences = z.infer<typeof PreferencesSchema>
@@ -37,6 +45,7 @@ const DEFAULTS: PlaybackPreferences = {
   volume: 1,
   isMuted: false,
   subtitleLanguage: null,
+  showsRemaining: false,
 }
 
 /**
