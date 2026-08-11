@@ -84,6 +84,16 @@ const createMemoryLibraryService = (
         : null,
     ),
 
+  reset: (libraryId) => {
+    if (!state.libraries.some((entry) => entry.id === libraryId)) {
+      return Promise.resolve(null)
+    }
+
+    state.media = state.media.filter((item) => item.libraryId !== libraryId)
+
+    return Promise.resolve({ jobId: `reset-${libraryId}`, state: 'queued' })
+  },
+
   readScanState: () =>
     Promise.resolve({ state: 'completed', phase: null, processed: null, total: null }),
 

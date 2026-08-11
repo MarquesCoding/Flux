@@ -232,6 +232,18 @@ const createDatabaseLibraryService = ({
       return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
     },
 
+    reset: async (libraryId) => {
+      if ((await findLibrary(libraryId)) === null) {
+        return null
+      }
+
+      await store.clear(libraryId)
+
+      const jobId = await jobs.enqueueScan(libraryId, true)
+
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+    },
+
     readScanState: async (jobId) => {
       const state = await jobs.readState(jobId)
       const progress = jobs.readProgress(jobId)

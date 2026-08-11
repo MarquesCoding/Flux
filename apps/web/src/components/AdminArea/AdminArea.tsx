@@ -11,6 +11,7 @@ import {
   IconRefresh,
   IconRefreshAlert,
   IconStack2,
+  IconTrash,
 } from '@tabler/icons-react'
 import SparklineModule from '@FluxUI/Sparkline'
 import BadgeModule from '@FluxUI/Badge'
@@ -24,6 +25,7 @@ import waitForScanCompletionModule from '@FluxWeb/library/waitForScanCompletion'
 import StatStripModule from './components/StatStrip/StatStrip'
 import AddLibraryDialogModule from './components/AddLibraryDialog/AddLibraryDialog'
 import ScanProgressBarModule from './components/ScanProgressBar/ScanProgressBar'
+import ResetLibrariesDialogModule from './components/ResetLibrariesDialog/ResetLibrariesDialog'
 import formatBytesModule from './formatBytes'
 import type { Library } from '@FluxContracts/schemas/Library'
 import type { AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin'
@@ -36,11 +38,12 @@ const { TabBar } = TabBarModule
 const { TextField } = TextFieldModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey } = fetchAdminModule
-const { fetchLibraries, scanLibrary } = fetchLibraryModule
+const { fetchLibraries, scanLibrary, resetLibrary } = fetchLibraryModule
 const { waitForScanCompletion } = waitForScanCompletionModule
 const { StatStrip } = StatStripModule
 const { AddLibraryDialog } = AddLibraryDialogModule
 const { ScanProgressBar } = ScanProgressBarModule
+const { ResetLibrariesDialog } = ResetLibrariesDialogModule
 const { formatBytes } = formatBytesModule
 
 /**
@@ -121,6 +124,8 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     ReadonlyMap<string, { phase: string | null; processed: number | null; total: number | null }>
   >(new Map())
   const [isScanningAll, setIsScanningAll] = useState(false)
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false)
+  const [isResettingAll, setIsResettingAll] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
   const onLibraryCreated = (library: Library) => {
@@ -189,6 +194,36 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
       setLibraries(await fetchLibraries())
     } finally {
       setIsScanningAll(false)
+      setScanProgress(new Map())
+    }
+  }
+
+  const resetAll = async () => {
+    setIsConfirmingReset(false)
+    setIsResettingAll(true)
+
+    for (const library of libraries) {
+      trackProgress(library.id, null, null, null)
+    }
+
+    try {
+      await Promise.all(
+        libraries.map(async (library) => {
+          const job = await resetLibrary(library.id)
+
+          if (job !== null) {
+            await waitForScanCompletion(job.jobId, (progress) => {
+              trackProgress(library.id, progress.phase, progress.processed, progress.total)
+            })
+          }
+
+          untrackProgress(library.id)
+        }),
+      )
+
+      setLibraries(await fetchLibraries())
+    } finally {
+      setIsResettingAll(false)
       setScanProgress(new Map())
     }
   }
@@ -512,6 +547,20 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                     </Button>
 
                     <Button
+                      variant="danger"
+                      size="sm"
+                      isPill
+                      isLoading={isResettingAll}
+                      disabled={libraries.length === 0 || scanProgress.size > 0}
+                      onClick={() => {
+                        setIsConfirmingReset(true)
+                      }}
+                    >
+                      <IconTrash size={16} aria-hidden />
+                      Reset and rebuild
+                    </Button>
+
+                    <Button
                       variant="glossy"
                       size="sm"
                       isPill
@@ -587,6 +636,17 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                     setIsAddingLibrary(false)
                   }}
                   onCreated={onLibraryCreated}
+                />
+
+                <ResetLibrariesDialog
+                  isOpen={isConfirmingReset}
+                  isResetting={isResettingAll}
+                  onClose={() => {
+                    setIsConfirmingReset(false)
+                  }}
+                  onConfirm={() => {
+                    void resetAll()
+                  }}
                 />
               </div>
             ) : null}

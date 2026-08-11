@@ -138,6 +138,13 @@ const respondWith =
       })
     }
 
+    if (input.includes('/reset')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ jobId: 'reset-job', state: 'queued' }),
+      })
+    }
+
     if (input.includes('/api/libraries') && init?.method === 'POST') {
       return Promise.resolve({ ok: true, json: () => Promise.resolve(CREATED_LIBRARY) })
     }
@@ -362,6 +369,62 @@ describe('AdminArea', () => {
         { method: 'POST' },
       )
     })
+  })
+
+  it('asks before resetting every library', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }))
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Reset and rebuild every library' }),
+    ).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/reset'), expect.anything())
+  })
+
+  it('clears and rebuilds every library once the operator confirms', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }))
+
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Reset and rebuild every library',
+    })
+
+    await actor.click(within(dialog).getByRole('button', { name: 'Reset and rebuild' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${MOVIES_LIBRARY_ID}/reset`, {
+        method: 'POST',
+      })
+    })
+  })
+
+  it('does nothing when the operator backs out of the reset', async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }))
+
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Reset and rebuild every library',
+    })
+
+    await actor.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => {
+      expect(dialog).not.toBeInTheDocument()
+    })
+
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/reset'), expect.anything())
   })
 
   it('shows a progress bar in place of the button while a library is scanning', async () => {
