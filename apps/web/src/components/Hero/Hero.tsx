@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
-import { IconInfoCircle, IconPlayerPlayFilled, IconStar } from '@tabler/icons-react'
+import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import cnModule from '@FluxUI/cn'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
+import MediaFactsModule from '@FluxWeb/components/MediaFacts/MediaFacts'
 import type { HeroProps } from './Hero.types'
 
 const { Button } = ButtonModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { formatDuration } = formatDurationModule
 const { MediaPreview } = MediaPreviewModule
+const { MediaFacts } = MediaFactsModule
 const { cn } = cnModule
 
 /**
@@ -82,41 +83,12 @@ const Hero = ({
 
   const featured = items[index % Math.max(items.length, 1)]
   const resume = featured === undefined ? null : (resumeFor?.(featured.id) ?? null)
-  const rating = featured?.rating ?? null
 
   useEffect(() => {
     if (featured !== undefined) {
       onFeatureChange?.(featured)
     }
   }, [featured, onFeatureChange])
-
-  // Said in one voice and in one order, so the line can be built from
-  // whatever is actually known about this item rather than from four
-  // conditionals in the middle of the markup.
-  const facts: { key: string; said: ReactNode }[] = [
-    ...(typeof featured?.episodeNumber === 'number'
-      ? [{ key: 'episode', said: <span className="tabular-nums">EP{featured.episodeNumber}</span> }]
-      : []),
-    ...(typeof featured?.seasonNumber === 'number'
-      ? [{ key: 'season', said: <span className="tabular-nums">S{featured.seasonNumber}</span> }]
-      : []),
-    ...(rating === null
-      ? []
-      : [
-          {
-            key: 'rating',
-            said: (
-              <span className="flex items-center gap-1.5 tabular-nums">
-                <IconStar size={14} aria-hidden />
-                {rating.toFixed(1)}
-              </span>
-            ),
-          },
-        ]),
-    ...(featured?.year === null || featured?.year === undefined
-      ? []
-      : [{ key: 'year', said: <span className="tabular-nums">{featured.year}</span> }]),
-  ]
 
   // How far the page has been read, as a number between the two shapes. The
   // window rather than the section, because the hero is what is being scrolled
@@ -289,20 +261,15 @@ const Hero = ({
             sits in the series, what it scored, and when it was made. Separated
             by dots rather than by space alone, so four facts read as a list
             rather than as a row of unrelated numbers. */}
-            {facts.length === 0 ? null : (
-              <motion.p
-                variants={revealVariants(prefersReducedMotion)}
-                transition={revealTransition(prefersReducedMotion)}
+            <motion.p
+              variants={revealVariants(prefersReducedMotion)}
+              transition={revealTransition(prefersReducedMotion)}
+            >
+              <MediaFacts
+                media={featured}
                 className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-text-muted"
-              >
-                {facts.map((fact, at) => (
-                  <span key={fact.key} className="flex items-center gap-2">
-                    {at === 0 ? null : <span aria-hidden>·</span>}
-                    {fact.said}
-                  </span>
-                ))}
-              </motion.p>
-            )}
+              />
+            </motion.p>
 
             <motion.div
               variants={revealVariants(prefersReducedMotion)}

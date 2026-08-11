@@ -2,7 +2,6 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library'
 
 type RailCardProps = {
   media: MediaSummary
-  subtitle: string
   /**
    * How far through this item the viewer is, if they have started it.
    */

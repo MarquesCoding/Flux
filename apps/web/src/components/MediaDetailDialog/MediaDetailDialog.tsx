@@ -6,7 +6,6 @@ import {
   IconInfoCircle,
   IconPlayerPlayFilled,
   IconRotateClockwise,
-  IconStar,
   IconX,
 } from '@tabler/icons-react'
 import DialogModule from '@FluxUI/Dialog'
@@ -19,6 +18,7 @@ import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
+import MediaFactsModule from '@FluxWeb/components/MediaFacts/MediaFacts'
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types'
 
@@ -32,6 +32,7 @@ const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { formatDuration } = formatDurationModule
 const { fetchMediaDetail } = fetchLibraryModule
 const { MediaPreview } = MediaPreviewModule
+const { MediaFacts } = MediaFactsModule
 
 /**
  * How many faces stand in for a cast that has not arrived.
@@ -188,42 +189,48 @@ const MediaDetailDialog = ({
             isPreviewPlaying ? 'pointer-events-none opacity-0' : 'opacity-100'
           }`}
         >
+          {/* The episode above the show and the genres beside them, so the
+              title underneath is the one thing set large. What is being
+              offered is the episode; what makes it recognisable is the show,
+              and a page that leads with the episode name is a page about
+              something nobody has heard of. */}
+          <motion.div
+            variants={revealVariants(prefersReducedMotion)}
+            transition={revealTransition(prefersReducedMotion)}
+            className="flex flex-wrap items-center justify-between gap-3"
+          >
+            <span className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted">
+              {shown.seriesTitle === null || shown.seriesTitle === undefined ? null : shown.title}
+            </span>
+
+            {genres.length === 0 ? null : (
+              <span className="flex flex-wrap gap-1.5">
+                {genres.map((label) => (
+                  <Badge key={label} size="sm">
+                    {label}
+                  </Badge>
+                ))}
+              </span>
+            )}
+          </motion.div>
+
           <motion.h2
             variants={revealVariants(prefersReducedMotion)}
             transition={revealTransition(prefersReducedMotion, 'heavy')}
             className="max-w-[16ch] text-[clamp(2rem,6vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-text"
           >
-            {shown.title}
+            {shown.seriesTitle ?? shown.title}
           </motion.h2>
 
           <motion.div
             variants={revealVariants(prefersReducedMotion)}
             transition={revealTransition(prefersReducedMotion)}
-            className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-muted"
           >
-            {shown.year === null ? null : <span className="text-text">{shown.year}</span>}
-            <span>{formatDuration(shown.durationSeconds)}</span>
-
-            {metadata?.rating === undefined || metadata.rating === null ? null : (
-              <span className="flex items-center gap-1 text-text">
-                <IconStar size={14} aria-hidden />
-                {metadata.rating.toFixed(1)}
-              </span>
-            )}
-
-            {typeof season !== 'number' || typeof metadata?.episodeNumber !== 'number' ? null : (
-              <span>
-                Season {season}, episode {metadata.episodeNumber}
-              </span>
-            )}
-
-            {/* With the year and the runtime, because a genre is another fact
-                about the item rather than another thing to press. */}
-            {genres.map((label) => (
-              <Badge key={label} size="sm">
-                {label}
-              </Badge>
-            ))}
+            <MediaFacts
+              media={shown}
+              hasRuntime
+              className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-text-muted"
+            />
           </motion.div>
         </motion.div>
       </div>
@@ -355,12 +362,21 @@ const MediaDetailDialog = ({
               {season === null ? 'More from this series' : `More from season ${season.toString()}`}
             </h3>
 
-            <ul className="flux-rail flex gap-4 overflow-x-auto pb-2">
+            <ul className="flux-rail -my-6 flex gap-4 overflow-x-auto px-1 py-6">
               {shownSiblings.map((sibling) => (
                 <li key={sibling.id} className="w-56 shrink-0 sm:w-64">
                   <MediaCard
-                    title={sibling.title}
-                    subtitle={formatDuration(sibling.durationSeconds)}
+                    {...(sibling.seriesTitle === null || sibling.seriesTitle === undefined
+                      ? {}
+                      : { eyebrow: sibling.title })}
+                    title={sibling.seriesTitle ?? sibling.title}
+                    subtitle={
+                      <MediaFacts
+                        media={sibling}
+                        hasRuntime
+                        className="flex flex-wrap items-center gap-2"
+                      />
+                    }
                     shape="wide"
                     {...(watchedFractionFor?.(sibling.id) === undefined
                       ? {}

@@ -12,7 +12,6 @@ import groupIntoRailsModule from '@FluxWeb/library/groupIntoRails'
 import pickFeaturedModule from '@FluxWeb/library/pickFeatured'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
 import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
-import describeMediaModule from './describeMedia'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
@@ -35,7 +34,6 @@ const HERO_COUNT = 5
 const { Spinner } = SpinnerModule
 const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
 const { staggerVariants } = revealModule
-const { describeMedia } = describeMediaModule
 
 const PAGE_SIZE = 60
 const SEARCH_DEBOUNCE_MS = 250
@@ -309,7 +307,6 @@ const LibraryBrowser = ({
                   <li key={media.id} className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80">
                     <RailCard
                       media={media}
-                      subtitle={describeMedia(media)}
                       {...(progress.has(media.id)
                         ? {
                             watchedFraction: watchedFraction(

@@ -1,8 +1,6 @@
-import describeMediaModule from '@FluxWeb/components/LibraryBrowser/describeMedia'
 import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
 import type { MediaGridProps } from './MediaGrid.types'
 
-const { describeMedia } = describeMediaModule
 const { RailCard } = RailCardModule
 
 /**
@@ -30,7 +28,6 @@ const MediaGrid = ({
       <li key={media.id}>
         <RailCard
           media={media}
-          subtitle={describeMedia(media)}
           {...(watchedFractionFor?.(media.id) === undefined
             ? {}
             : { watchedFraction: watchedFractionFor(media.id) ?? 0 })}

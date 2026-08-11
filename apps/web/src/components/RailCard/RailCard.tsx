@@ -13,7 +13,6 @@ import {
   IconHeartFilled,
   IconInfoCircle,
   IconPlayerPlayFilled,
-  IconStar,
 } from '@tabler/icons-react'
 import MediaCardModule from '@FluxUI/MediaCard'
 import BadgeModule from '@FluxUI/Badge'
@@ -23,6 +22,7 @@ import revealModule from '@FluxUI/animations/reveal'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
+import MediaFactsModule from '@FluxWeb/components/MediaFacts/MediaFacts'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { RailCardProps } from './RailCard.types'
 
@@ -34,6 +34,7 @@ const { liquidSpring } = revealModule
 const { formatDuration } = formatDurationModule
 const { fetchMediaDetail } = fetchLibraryModule
 const { MediaPreview } = MediaPreviewModule
+const { MediaFacts } = MediaFactsModule
 
 /**
  * How long a pointer rests before a card opens.
@@ -134,7 +135,6 @@ const fitInside = (top: number, height: number): number => {
  */
 const RailCard = ({
   media,
-  subtitle,
   watchedFraction,
   onPlay,
   onInspect,
@@ -288,9 +288,16 @@ const RailCard = ({
         towardsY.set((event.clientY - box.top) / box.height - 0.5)
       }}
     >
+      {/* Named the way the hero names things: the episode above in capitals,
+          the show as the title, and everything that places it on the line
+          below. A grid where the episode is the title is a grid of names
+          nobody recognises. */}
       <MediaCard
-        title={media.title}
-        subtitle={subtitle}
+        {...(media.seriesTitle === null || media.seriesTitle === undefined
+          ? {}
+          : { eyebrow: media.title })}
+        title={media.seriesTitle ?? media.title}
+        subtitle={<MediaFacts media={media} className="flex flex-wrap items-center gap-2" />}
         shape="wide"
         {...(watchedFraction === undefined ? {} : { watchedFraction })}
         {...(artworkUrl === undefined ? {} : { imageUrl: artworkUrl })}
@@ -354,46 +361,41 @@ const RailCard = ({
                 }}
                 className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 text-left"
               >
-                <span className="flex flex-col gap-1">
-                  {detail?.metadata.seriesTitle === undefined ||
-                  detail.metadata.seriesTitle === null ? null : (
-                    <span className="text-xs uppercase tracking-[0.14em] text-text-muted">
-                      {detail.metadata.seriesTitle}
-                    </span>
-                  )}
-
-                  <span className="text-sm font-medium leading-tight text-text">{media.title}</span>
-                </span>
-
-                <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
-                  {media.year === null ? null : <span>{media.year}</span>}
-                  <span>{formatDuration(media.durationSeconds)}</span>
-
-                  {detail?.metadata.rating === undefined ||
-                  detail.metadata.rating === null ? null : (
-                    <span className="flex items-center gap-1">
-                      <IconStar size={12} aria-hidden />
-                      {detail.metadata.rating.toFixed(1)}
-                    </span>
-                  )}
-
-                  {typeof media.seasonNumber !== 'number' ||
-                  typeof media.episodeNumber !== 'number' ? null : (
-                    <span>
-                      S{media.seasonNumber} · E{media.episodeNumber}
-                    </span>
-                  )}
-                </span>
-
-                {(detail?.metadata.genres ?? []).length === 0 ? null : (
-                  <span className="flex flex-wrap gap-1.5">
-                    {(detail?.metadata.genres ?? []).slice(0, GENRE_LIMIT).map((genre) => (
-                      <Badge key={genre} size="sm">
-                        {genre}
-                      </Badge>
-                    ))}
+                {/* The episode and the genres share the top line: one says
+                    what this is, the other says what sort of thing it is, and
+                    both are read at a glance rather than in sentences. Set
+                    apart so the title underneath has the width to be a
+                    title. */}
+                <span className="flex items-start justify-between gap-3">
+                  <span className="min-w-0 text-xs uppercase tracking-[0.16em] text-text-muted">
+                    {media.seriesTitle === null || media.seriesTitle === undefined
+                      ? null
+                      : media.title}
                   </span>
-                )}
+
+                  {(detail?.metadata.genres ?? []).length === 0 ? null : (
+                    <span className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                      {(detail?.metadata.genres ?? []).slice(0, GENRE_LIMIT).map((genre) => (
+                        <Badge key={genre} size="sm">
+                          {genre}
+                        </Badge>
+                      ))}
+                    </span>
+                  )}
+                </span>
+
+                {/* The show, at the size of a heading. What somebody stopped on
+                    a card is looking for is what this is, and a name set at the
+                    size of the line beneath it makes them read both to find
+                    out. */}
+                <span className="text-xl font-semibold leading-tight tracking-[-0.02em] text-text">
+                  {media.seriesTitle ?? media.title}
+                </span>
+
+                <MediaFacts
+                  media={media}
+                  className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-[0.1em] text-text-muted"
+                />
 
                 {detail?.metadata.overview === undefined ||
                 detail.metadata.overview === null ||

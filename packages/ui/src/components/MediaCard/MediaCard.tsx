@@ -31,6 +31,7 @@ const SHAPE_CLASSES: Record<MediaCardShape, string> = {
  */
 const MediaCard = ({
   title,
+  eyebrow,
   subtitle,
   badges = [],
   imageUrl,
@@ -108,6 +109,12 @@ const MediaCard = ({
 
         {isLead ? (
           <span className="absolute inset-x-4 bottom-4 flex flex-col gap-1">
+            {eyebrow === undefined ? null : (
+              <span className="text-[0.65rem] uppercase tracking-[0.18em] text-white/60">
+                {eyebrow}
+              </span>
+            )}
+
             <span className="text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl">
               {title}
             </span>
@@ -118,6 +125,15 @@ const MediaCard = ({
 
       {isLead ? null : (
         <span className="flex flex-col gap-0.5 px-0.5">
+          {/* What is being offered, over what makes it recognisable. Small and
+              in capitals so it reads as a label rather than as a second
+              title. */}
+          {eyebrow === undefined ? null : (
+            <span className="line-clamp-1 text-[0.65rem] uppercase tracking-[0.16em] text-text-muted">
+              {eyebrow}
+            </span>
+          )}
+
           <span className="line-clamp-1 text-sm font-medium text-text">{title}</span>
           <span className="line-clamp-1 text-xs text-text-muted">{subtitle}</span>
         </span>
