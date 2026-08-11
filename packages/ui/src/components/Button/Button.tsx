@@ -10,6 +10,8 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   secondary: 'flux-glass text-text hover:brightness-125',
   ghost: 'bg-transparent text-text hover:bg-white/10',
   danger: 'flux-gloss bg-danger text-white hover:brightness-110',
+  overlay: 'bg-scrim text-on-scrim backdrop-blur-md hover:brightness-125',
+  link: 'bg-transparent text-text underline-offset-4 hover:underline',
   bare: '',
 };
 

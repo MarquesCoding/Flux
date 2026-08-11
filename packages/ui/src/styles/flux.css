@@ -126,6 +126,16 @@
   --color-danger: oklch(0.55 0.19 27);
 
   /*
+   * A control laid over artwork.
+   *
+   * Not redefined per theme, and deliberately: what it floats over is a
+   * photograph either way, so it is dark with light lettering on a light page
+   * as well as on a dark one.
+   */
+  --color-scrim: color-mix(in oklab, black 55%, transparent);
+  --color-on-scrim: oklch(0.99 0 0);
+
+  /*
    * How far glass pushes what is behind it towards the page's own tone.
    *
    * Lightens on a light page and darkens on a dark one, so a control keeps

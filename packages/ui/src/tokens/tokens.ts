@@ -8,6 +8,8 @@ const FLUX_TOKENS = {
     accent: 'var(--color-accent)',
     accentContrast: 'var(--color-accent-contrast)',
     danger: 'var(--color-danger)',
+    scrim: 'var(--color-scrim)',
+    onScrim: 'var(--color-on-scrim)',
   },
   radius: {
     sm: 'var(--radius-sm)',

@@ -207,6 +207,31 @@ describe('Button', () => {
     });
   });
 
+  describe('named looks rather than classes at the call site', () => {
+    it('offers a treatment for a control laid over artwork', () => {
+      render(<Button variant="overlay">Close</Button>);
+
+      const button = screen.getByRole('button', { name: 'Close' });
+
+      expect(button).toHaveClass('bg-scrim');
+      expect(button).toHaveClass('text-on-scrim');
+    });
+
+    it('paints an overlay control from tokens, so a theme can move it', () => {
+      render(<Button variant="overlay">Close</Button>);
+
+      expect(screen.getByRole('button', { name: 'Close' })).not.toHaveClass('bg-black/50');
+    });
+
+    it('offers a treatment for text that reads as a way somewhere', () => {
+      render(<Button variant="link">A Sign of Affection</Button>);
+
+      expect(screen.getByRole('button', { name: 'A Sign of Affection' })).toHaveClass(
+        'underline-offset-4',
+      );
+    });
+  });
+
   describe('painted by its caller', () => {
     it('brings no skin of its own when bare', () => {
       render(
