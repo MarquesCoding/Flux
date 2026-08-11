@@ -5,6 +5,7 @@ import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from '@FluxServer/library/createMemoryLibraryService'
 import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
 import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
+import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
 import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from './createMemorySubtitleService'
 
@@ -15,6 +16,7 @@ const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
 const { createMemorySegmentService } = createMemorySegmentServiceModule
 const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
+const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
 
 const BASE = 'http://localhost:8420'
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9'
@@ -34,6 +36,7 @@ const build = () => {
     playback: createMemoryPlaybackService(),
     segments: createMemorySegmentService(),
     progress: createMemoryWatchProgressService(),
+    favourites: createMemoryFavouriteService(),
     subtitles: createMemorySubtitleService({
       [MEDIA_ID]: [
         {

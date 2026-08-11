@@ -13,6 +13,7 @@ import ButtonModule from '@FluxUI/Button'
 import IconButtonModule from '@FluxUI/IconButton'
 import TextFieldModule from '@FluxUI/TextField'
 import MoodBackgroundModule from '@FluxUI/MoodBackground'
+import PageDotsModule from '@FluxUI/PageDots'
 import SpinnerModule from '@FluxUI/Spinner'
 import revealModule from '@FluxUI/animations/reveal'
 import fetchEveryoneModule from '@FluxWeb/profiles/fetchEveryone'
@@ -29,6 +30,7 @@ const { Button } = ButtonModule
 const { IconButton } = IconButtonModule
 const { TextField } = TextFieldModule
 const { MoodBackground } = MoodBackgroundModule
+const { PageDots } = PageDotsModule
 const { Spinner } = SpinnerModule
 const { revealVariants, revealTransition, staggerVariants, liquidSpring, stillTransition } =
   revealModule
@@ -296,7 +298,11 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
 
   return (
     <main className="relative flex min-h-svh flex-col items-center justify-center gap-8 px-6 py-16">
-      <MoodBackground color={chosen?.colour ?? null} hasGrid isDrifting />
+      <MoodBackground
+        lights={chosen === null ? [] : [{ color: chosen.colour }]}
+        hasGrid
+        isDrifting
+      />
 
       {/* The one mark, in both places. It opens the screen on its own and
           then moves to sit above the question — a layout animation rather
@@ -433,30 +439,20 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                 </span>
               </motion.div>
 
-              {pages < 2 ? null : (
-                <motion.ul
-                  variants={revealVariants(prefersReducedMotion)}
-                  transition={revealTransition(prefersReducedMotion)}
-                  className="flex items-center gap-2"
-                >
-                  {Array.from({ length: pages }, (_, at) => at).map((at) => (
-                    <li key={at}>
-                      <button
-                        type="button"
-                        aria-label={`Page ${(at + 1).toString()}`}
-                        aria-current={at === page ? 'true' : undefined}
-                        onClick={() => {
-                          setIsReturning(false)
-                          setPage(at)
-                        }}
-                        className={`block h-1.5 rounded-full transition-all duration-300 ${
-                          at === page ? 'w-6 bg-text' : 'w-1.5 bg-text-muted/40 hover:bg-text-muted'
-                        }`}
-                      />
-                    </li>
-                  ))}
-                </motion.ul>
-              )}
+              <motion.div
+                variants={revealVariants(prefersReducedMotion)}
+                transition={revealTransition(prefersReducedMotion)}
+              >
+                <PageDots
+                  count={pages}
+                  selectedIndex={page}
+                  label="Pages of people"
+                  onSelect={(at) => {
+                    setIsReturning(false)
+                    setPage(at)
+                  }}
+                />
+              </motion.div>
 
               {everyone.length !== 0 ? null : (
                 <motion.p

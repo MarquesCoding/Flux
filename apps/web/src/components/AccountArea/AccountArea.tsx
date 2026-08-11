@@ -10,6 +10,7 @@ import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
 import ProfileEditorModule from '@FluxWeb/components/ProfilePicker/components/ProfileEditor/ProfileEditor'
 import TwoFactorSetupModule from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup'
 import PasskeySetupModule from '@FluxWeb/components/PasskeySetup/PasskeySetup'
+import DeviceListModule from '@FluxWeb/components/AccountArea/components/DeviceList/DeviceList'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import type { AccountAreaProps } from './AccountArea.types'
 
@@ -22,10 +23,12 @@ const { ProfileFace } = ProfileFaceModule
 const { ProfileEditor } = ProfileEditorModule
 const { TwoFactorSetup } = TwoFactorSetupModule
 const { PasskeySetup } = PasskeySetupModule
+const { DeviceList } = DeviceListModule
 
 const PANELS = [
   { id: 'profile', label: 'Profile' },
   { id: 'security', label: 'Security' },
+  { id: 'devices', label: 'Devices' },
 ] as const
 
 type PanelId = (typeof PANELS)[number]['id']
@@ -152,6 +155,17 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
               watching. Changing it changes nothing about how you sign in.
             </p>
           )}
+        </motion.section>
+      )}
+
+      {panel !== 'devices' ? null : (
+        <motion.section
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion)}
+          aria-label="Devices"
+          className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+        >
+          <DeviceList />
         </motion.section>
       )}
 

@@ -1,3 +1,4 @@
+import type { MoodLight } from '@FluxUI/MoodBackground.types'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
 
 type LibraryBrowserProps = {
@@ -12,16 +13,16 @@ type LibraryBrowserProps = {
    * Whether to open with a featured item filling the screen.
    */
   hasHero?: boolean
-  /**
-   * Whether this is the search section, which leads with the field itself
-   * rather than with the library.
-   */
-  isSearching?: boolean
   onSearchChange?: (search: string) => void
   /**
    * Told which item the hero is showing, so the page can be lit by it.
    */
   onFeatureChange?: (media: MediaSummary) => void
+  /**
+   * Called with the colours the hero is showing, so the page can be lit by
+   * what is actually on screen rather than by a colour chosen in advance.
+   */
+  onPalette?: (lights: MoodLight[]) => void
   onPlay: (media: MediaSummary) => void
   /**
    * Starts something, rather than opening the page about it.
@@ -38,6 +39,11 @@ type LibraryBrowserProps = {
    * than every other part of the application asking the server again.
    */
   onItemsLoaded?: (items: MediaSummary[]) => void
+  /**
+   * Whether this viewer has kept each item, and how they say otherwise.
+   */
+  isKept?: (mediaId: string) => boolean
+  onToggleKept?: (media: MediaSummary) => void
 }
 
 type BrowserState = 'loading' | 'ready' | 'unreachable'

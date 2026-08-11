@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import cnModule from '@FluxUI/cn'
 import type { VideoSurfaceProps } from './VideoSurface.types'
 
@@ -28,21 +28,35 @@ const VideoSurface = ({
   loops = false,
 }: VideoSurfaceProps) => {
   const trackId = textTrack?.id ?? null
+  const trackRef = useRef<HTMLTrackElement>(null)
 
   // `default` only means anything while the element is loading, and a track
   // chosen from a menu arrives long after that: the browser mounts it and
   // leaves it disabled, which reads as subtitles that do nothing. Turning it
   // on explicitly is the only thing that shows a late track.
+  //
+  // One track, named rather than counted. A video keeps the tracks of elements
+  // it has already been given, so turning on everything it holds turns on
+  // every language that has ever been chosen — which is how switching twice
+  // ended with two sets of subtitles on top of each other. Everything is
+  // turned off, then the one belonging to this element is turned on, which is
+  // also what makes turning subtitles off actually turn them off.
   useEffect(() => {
     const element = videoRef.current
 
-    if (element === null || trackId === null) {
+    if (element === null) {
       return
     }
 
     const show = () => {
       for (const track of Array.from(element.textTracks)) {
-        track.mode = 'showing'
+        track.mode = 'disabled'
+      }
+
+      const own = trackRef.current?.track
+
+      if (own !== undefined && trackId !== null) {
+        own.mode = 'showing'
       }
     }
 
@@ -85,6 +99,7 @@ const VideoSurface = ({
       {textTrack === undefined ? null : (
         <track
           key={textTrack.id}
+          ref={trackRef}
           kind="subtitles"
           default
           src={textTrack.src}

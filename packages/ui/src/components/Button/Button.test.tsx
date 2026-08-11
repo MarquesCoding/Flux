@@ -54,7 +54,7 @@ describe('Button', () => {
   it('shows a spinner while loading', () => {
     render(<Button isLoading>Play</Button>)
 
-    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Working' })).toBeInTheDocument()
   })
 
   it('shows no spinner when not loading', () => {

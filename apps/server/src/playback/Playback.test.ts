@@ -3,6 +3,7 @@ import AppModule from '@FluxServer/App'
 import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
 import createMemoryLibraryServiceModule from '@FluxServer/library/createMemoryLibraryService'
 import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
+import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
 import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
 import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
 import createMemoryPlaybackServiceModule from './createMemoryPlaybackService'
@@ -17,6 +18,7 @@ const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
 const { createMemorySubtitleService } = createMemorySubtitleServiceModule
 const { createMemorySegmentService } = createMemorySegmentServiceModule
 const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
+const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
 
 const { PlaybackPlanSchema } = PlaybackPlanModule
 
@@ -114,6 +116,7 @@ const build = (options: { unsupported?: boolean } = {}) => {
     subtitles: createMemorySubtitleService(),
     segments: createMemorySegmentService(),
     progress: createMemoryWatchProgressService(),
+    favourites: createMemoryFavouriteService(),
     playback,
   })
 

@@ -1,0 +1,1 @@
+ALTER TABLE "media_item" DROP COLUMN "accentColor";

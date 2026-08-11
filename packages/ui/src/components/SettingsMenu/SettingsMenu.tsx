@@ -3,6 +3,7 @@ import { Popover } from '@base-ui-components/react/popover'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import cnModule from '@FluxUI/cn'
+import TooltipModule from '@FluxUI/Tooltip'
 import type {
   SettingsChoiceRow,
   SettingsMenuProps,
@@ -11,6 +12,7 @@ import type {
 } from './SettingsMenu.types'
 
 const { cn } = cnModule
+const { Tooltip } = TooltipModule
 
 /**
  * The class every row shares.
@@ -65,6 +67,7 @@ const opensSomething = (row: SettingsRow): row is SettingsChoiceRow | SettingsPa
 const SettingsMenu = ({
   label,
   trigger,
+  triggerWhenOpen,
   rows,
   onOpenChange,
   isDisabled = false,
@@ -73,6 +76,7 @@ const SettingsMenu = ({
   // Which row is open, if any. Held here rather than by the caller because it
   // is a thing about this panel rather than about what it describes.
   const [openId, setOpenId] = useState<string | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
   const opened =
@@ -91,29 +95,31 @@ const SettingsMenu = ({
 
   return (
     <Popover.Root
-      onOpenChange={(isOpen) => {
+      onOpenChange={(open) => {
         // Closing forgets where it was. Reopening onto the subsection somebody
         // was last in reads as the panel having got stuck.
-        if (!isOpen) {
+        if (!open) {
           close()
         }
 
-        onOpenChange?.(isOpen)
+        setIsOpen(open)
+        onOpenChange?.(open)
       }}
     >
-      <Popover.Trigger
-        aria-label={label}
-        title={label}
-        disabled={isDisabled}
-        className={cn(
-          'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
-          'text-current transition-colors hover:bg-white/15',
-          'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
-          className,
-        )}
-      >
-        {trigger}
-      </Popover.Trigger>
+      <Tooltip label={label}>
+        <Popover.Trigger
+          aria-label={label}
+          disabled={isDisabled}
+          className={cn(
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
+            'text-current transition-colors hover:bg-white/15',
+            'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
+            className,
+          )}
+        >
+          {isOpen ? (triggerWhenOpen ?? trigger) : trigger}
+        </Popover.Trigger>
+      </Tooltip>
 
       <Popover.Portal>
         {/* Above the bar and pinned to its own button, with room kept at the

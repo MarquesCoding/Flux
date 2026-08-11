@@ -10,7 +10,6 @@ use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 
 use crate::capability::{detect_capabilities, Capabilities};
-use crate::colour::{sample_colour, ColourRequest};
 use crate::fingerprint::{fingerprint, FingerprintRequest};
 use crate::frame::{take_frame, FrameRequest};
 use crate::monitor::{Monitor, Report};
@@ -638,37 +637,6 @@ async fn start_fingerprint(
     }
 }
 
-/// Takes the colour a file feels like.
-///
-/// Answers with one colour rather than a palette: the interface lights a page
-/// with it, and a page lit by five colours at once is a mess.
-async fn start_colour(
-    State(state): State<AppState>,
-    Json(request): Json<ColourRequest>,
-) -> Response {
-    let path = PathBuf::from(&request.input_path);
-
-    if !state.is_readable(&path) {
-        return error(
-            StatusCode::FORBIDDEN,
-            "That file is outside the media roots.",
-        );
-    }
-
-    match state
-        .queue
-        .run(
-            "colour",
-            &name_of(&PathBuf::from(&request.input_path)),
-            sample_colour(&state.registry.config().ffmpeg, &request),
-        )
-        .await
-    {
-        Ok(colour) => (StatusCode::OK, Json(colour)).into_response(),
-        Err(failure) => error(StatusCode::BAD_REQUEST, &failure.to_string()),
-    }
-}
-
 async fn stop_session(State(state): State<AppState>, AxumPath(id): AxumPath<String>) -> Response {
     if state.registry.stop(&id).await {
         return (StatusCode::NO_CONTENT, Body::empty()).into_response();
@@ -741,7 +709,6 @@ pub fn create_router(state: AppState) -> Router {
         .route("/sessions", post(start_session))
         .route("/sessions/{id}/{name}", get(session_file))
         .route("/sessions/{id}", axum::routing::delete(stop_session))
-        .route("/colour", post(start_colour))
         .route("/fingerprint", post(start_fingerprint))
         .route("/frame", post(start_frame))
         .route("/previews", post(start_preview))
