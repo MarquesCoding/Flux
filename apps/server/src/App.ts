@@ -102,6 +102,21 @@ import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt';
 import type { ProfileService } from '@FluxServer/profiles/ProfileService';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import { createSessionGate } from '@FluxServer/auth/createSessionGate';
+import { checkRoleChange } from '@FluxServer/auth/checkRoleChange';
+import type { RoleChangeRefusal } from '@FluxServer/auth/checkRoleChange';
+import { PERMISSIONS } from '@FluxContracts/schemas/Permission';
+import {
+  listPermissionsRoute,
+  listRolesRoute,
+  createRoleRoute,
+  updateRoleRoute,
+  deleteRoleRoute,
+  listAccountRolesRoute,
+  assignRoleRoute,
+  removeRoleRoute,
+  setOverrideRoute,
+  clearOverrideRoute,
+} from '@FluxServer/routes/RoleRoute';
 import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
 import type { PermissionService } from '@FluxServer/auth/PermissionService';
 import type { Permission } from '@FluxContracts/schemas/Permission';
@@ -140,6 +155,14 @@ const readByteRange = (
 const SignInBodySchema = z.object({ password: z.string().min(1) });
 
 const SERVER_VERSION = '0.0.0';
+
+/**
+ * What to tell somebody whose change to a role was refused.
+ */
+const describeRefusal = (refusal: RoleChangeRefusal): string =>
+  refusal === 'outranked'
+    ? 'That role is at or above your own.'
+    : 'You cannot grant a permission you do not hold.';
 
 type CreateAppOptions = {
   auth: FluxAuth;
@@ -1060,6 +1083,355 @@ const createApp = ({
 
     if (!(await schedules.remove(kind, triggerId))) {
       return context.json({ error: 'No such trigger.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  /**
+   * Who is asking, and what they may do — resolved once for the role routes,
+   * which need both their permissions and their rank.
+   */
+  const readActor = async (headers: Headers) => {
+    const session = await auth.api.getSession({ headers }).catch(() => null);
+
+    if (session === null) {
+      return null;
+    }
+
+    const held = await permissions.rolesFor(session.user.id);
+
+    return {
+      id: session.user.id,
+      permissions: await permissions.resolve(session.user.id),
+      highestPosition: held.length === 0 ? null : Math.max(...held.map((role) => role.position)),
+    };
+  };
+
+  /**
+   * Whether taking something away would leave the server with nobody able to
+   * administer it.
+   *
+   * Asked after the change rather than reasoned about beforehand: the rules
+   * for who ends up holding `administrator` live in `resolvePermissions`, and
+   * working out the answer a second time here is how the two come to disagree.
+   * So the change is made, counted, and rolled back if it emptied the room.
+   *
+   * Counted before as well as after, because taking the last administrator
+   * away is the thing to refuse — an instance that had none to begin with is
+   * not made worse by an unrelated change, and blocking one would make a
+   * half-set-up server impossible to configure.
+   *
+   * Only safe where the undo genuinely restores what was there. Deleting a
+   * role is not such a change — the row takes every assignment to it away by
+   * cascade, and recreating it makes a different role with the same name — so
+   * that route refuses outright rather than trying to put it back.
+   */
+  const wouldStrandTheServer = async (apply: () => Promise<void>, undo: () => Promise<void>) => {
+    const before = await permissions.countAdministrators();
+
+    await apply();
+
+    if (before === 0 || (await permissions.countAdministrators()) > 0) {
+      return false;
+    }
+
+    await undo();
+
+    return true;
+  };
+
+  app.openapi(listPermissionsRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.roles'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    return context.json({ permissions: [...PERMISSIONS] }, 200);
+  });
+
+  app.openapi(listRolesRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.roles'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    return context.json({ roles: await permissions.listRoles() }, 200);
+  });
+
+  app.openapi(createRoleRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const body = context.req.valid('json');
+    const refusal = checkRoleChange({
+      actorHighestPosition: actor.highestPosition,
+      actorPermissions: actor.permissions,
+      targetPosition: body.position,
+      granting: body.permissions,
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeRefusal(refusal) }, 403);
+    }
+
+    return context.json(await permissions.createRole(body), 201);
+  });
+
+  app.openapi(updateRoleRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { id } = context.req.valid('param');
+    const body = context.req.valid('json');
+    const existing = (await permissions.listRoles()).find((role) => role.id === id);
+
+    if (existing === undefined) {
+      return context.json({ error: 'No such role.' }, 404);
+    }
+
+    const refusal = checkRoleChange({
+      actorHighestPosition: actor.highestPosition,
+      actorPermissions: actor.permissions,
+      targetPosition: Math.max(existing.position, body.position ?? existing.position),
+      granting: body.permissions ?? [],
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeRefusal(refusal) }, 403);
+    }
+
+    const before = existing.permissions;
+    const patch = {
+      ...(body.name === undefined ? {} : { name: body.name }),
+      ...(body.position === undefined ? {} : { position: body.position }),
+      ...(body.permissions === undefined ? {} : { permissions: body.permissions }),
+    };
+    const updated = await permissions.updateRole(id, patch);
+
+    if (updated === null) {
+      return context.json({ error: 'No such role.' }, 404);
+    }
+
+    const stranded = await wouldStrandTheServer(
+      () => Promise.resolve(),
+      async () => {
+        await permissions.updateRole(id, { permissions: before });
+      },
+    );
+
+    if (stranded) {
+      return context.json(
+        { error: 'That would leave nobody able to administer this server.' },
+        400,
+      );
+    }
+
+    return context.json(updated, 200);
+  });
+
+  app.openapi(deleteRoleRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { id } = context.req.valid('param');
+    const existing = (await permissions.listRoles()).find((role) => role.id === id);
+
+    if (existing === undefined) {
+      return context.json({ error: 'No such role.' }, 404);
+    }
+
+    const refusal = checkRoleChange({
+      actorHighestPosition: actor.highestPosition,
+      actorPermissions: actor.permissions,
+      targetPosition: existing.position,
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeRefusal(refusal) }, 403);
+    }
+
+    if (existing.permissions.includes('administrator')) {
+      return context.json(
+        {
+          error:
+            'A role granting administrator cannot be deleted. Change what it grants, or move its holders first.',
+        },
+        400,
+      );
+    }
+
+    await permissions.deleteRole(id);
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(listAccountRolesRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.roles'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+
+    return context.json(
+      {
+        roles: await permissions.rolesFor(userId),
+        overrides: await permissions.overridesFor(userId),
+        effective: [...(await permissions.resolve(userId))],
+      },
+      200,
+    );
+  });
+
+  app.openapi(assignRoleRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId, roleId } = context.req.valid('param');
+    const role = (await permissions.listRoles()).find((candidate) => candidate.id === roleId);
+
+    if (role === undefined) {
+      return context.json({ error: 'No such role.' }, 404);
+    }
+
+    const refusal = checkRoleChange({
+      actorHighestPosition: actor.highestPosition,
+      actorPermissions: actor.permissions,
+      targetPosition: role.position,
+      granting: role.permissions,
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeRefusal(refusal) }, 403);
+    }
+
+    await permissions.assignRole(userId, roleId);
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(removeRoleRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId, roleId } = context.req.valid('param');
+    const role = (await permissions.listRoles()).find((candidate) => candidate.id === roleId);
+
+    if (role !== undefined) {
+      const refusal = checkRoleChange({
+        actorHighestPosition: actor.highestPosition,
+        actorPermissions: actor.permissions,
+        targetPosition: role.position,
+      });
+
+      if (refusal !== null) {
+        return context.json({ error: describeRefusal(refusal) }, 403);
+      }
+    }
+
+    const stranded = await wouldStrandTheServer(
+      async () => {
+        await permissions.removeRole(userId, roleId);
+      },
+      async () => {
+        await permissions.assignRole(userId, roleId);
+      },
+    );
+
+    if (stranded) {
+      return context.json(
+        { error: 'That would leave nobody able to administer this server.' },
+        400,
+      );
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(setOverrideRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+    const grant = context.req.valid('json');
+
+    if (grant.effect === 'allow' && !actor.permissions.has(grant.permission)) {
+      return context.json({ error: describeRefusal('escalation') }, 403);
+    }
+
+    const previous = (await permissions.overridesFor(userId)).find(
+      (existing) => existing.permission === grant.permission,
+    );
+
+    const stranded = await wouldStrandTheServer(
+      async () => {
+        await permissions.setOverride(userId, grant);
+      },
+      async () => {
+        if (previous === undefined) {
+          await permissions.clearOverride(userId, grant.permission);
+
+          return;
+        }
+
+        await permissions.setOverride(userId, previous);
+      },
+    );
+
+    if (stranded) {
+      return context.json(
+        { error: 'That would leave nobody able to administer this server.' },
+        400,
+      );
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(clearOverrideRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId, permission } = context.req.valid('param');
+    const previous = (await permissions.overridesFor(userId)).find(
+      (existing) => existing.permission === permission,
+    );
+
+    const stranded = await wouldStrandTheServer(
+      async () => {
+        await permissions.clearOverride(userId, permission);
+      },
+      async () => {
+        if (previous !== undefined) {
+          await permissions.setOverride(userId, previous);
+        }
+      },
+    );
+
+    if (stranded) {
+      return context.json(
+        { error: 'That would leave nobody able to administer this server.' },
+        400,
+      );
     }
 
     return context.body(null, 204);
