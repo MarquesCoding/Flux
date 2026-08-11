@@ -1,6 +1,12 @@
 import {
   IconAdjustmentsHorizontal,
   IconBadgeCc,
+  IconChartDots,
+  IconClock,
+  IconGauge,
+  IconHeadphones,
+  IconSettings,
+  IconTypography,
   IconMaximize,
   IconMinus,
   IconPictureInPicture,
@@ -16,7 +22,7 @@ import {
 } from '@tabler/icons-react'
 import IconButtonModule from '@FluxUI/IconButton'
 import SliderModule from '@FluxUI/Slider'
-import OptionMenuModule from '@FluxUI/OptionMenu'
+import SettingsMenuModule from '@FluxUI/SettingsMenu'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import QualityStepModule from '@FluxContracts/schemas/QualityStep'
@@ -25,7 +31,7 @@ import type { PlayerControlsProps } from './PlayerControls.types'
 
 const { IconButton } = IconButtonModule
 const { Slider } = SliderModule
-const { OptionMenu } = OptionMenuModule
+const { SettingsMenu } = SettingsMenuModule
 const { formatDuration } = formatDurationModule
 const { SKIP_SECONDS, PLAYBACK_RATES } = PlayerControlsTypes
 const { SUBTITLES_OFF } = fetchSubtitlesModule
@@ -180,37 +186,62 @@ const PlayerControls = ({
         />
       </div>
 
-      <OptionMenu
-        label="Subtitles"
-        isDisabled={false}
-        trigger={
-          <IconBadgeCc
-            size={22}
-            className={selectedSubtitleId === SUBTITLES_OFF ? 'opacity-60' : ''}
-            aria-hidden
-          />
-        }
-        groups={[
+      {/* Subtitles keep a button of their own. Turning them on is the one
+          setting somebody changes mid-sentence, and a panel to open first is
+          a panel between them and the line they missed. */}
+      {subtitleTracks.length === 0 ? null : (
+        <IconButton
+          label={selectedSubtitleId === SUBTITLES_OFF ? 'Turn subtitles on' : 'Turn subtitles off'}
+          isActive={selectedSubtitleId !== SUBTITLES_OFF}
+          onClick={() => {
+            onSubtitleChange(
+              selectedSubtitleId === SUBTITLES_OFF
+                ? (subtitleTracks[0]?.id ?? SUBTITLES_OFF)
+                : SUBTITLES_OFF,
+            )
+          }}
+          disabled={isDisabled}
+          size="md"
+        >
+          <IconBadgeCc size={22} aria-hidden />
+        </IconButton>
+      )}
+
+      {/* Everything about what is playing, behind one control. A bar with a
+          button per setting asks a viewer to learn a row of icons; a bar with
+          one asks them to open it and read, which is what somebody changing a
+          setting is doing anyway. */}
+      <SettingsMenu
+        label="Settings"
+        isDisabled={isDisabled}
+        trigger={<IconSettings size={20} aria-hidden />}
+        rows={[
           ...(audioTracks.length < 2
             ? []
             : [
                 {
-                  name: 'Audio',
+                  kind: 'choice' as const,
+                  id: 'audio',
+                  label: 'Audio track',
+                  icon: <IconHeadphones size={18} aria-hidden />,
                   selectedId: (selectedAudioIndex ?? audioTracks[0]?.index ?? 0).toString(),
                   onSelect: (id: string) => {
                     onAudioChange(Number(id))
                   },
-                  options: audioTracks.map((track) => ({
+                  choices: audioTracks.map((track) => ({
                     id: track.index.toString(),
                     label: track.label,
                   })),
                 },
               ]),
           {
-            name: 'Subtitles/CC',
+            kind: 'choice' as const,
+            id: 'subtitles',
+            label: 'Subtitles/CC',
+            icon: <IconBadgeCc size={18} aria-hidden />,
             selectedId: selectedSubtitleId,
             onSelect: onSubtitleChange,
-            options: [
+            choices: [
               { id: SUBTITLES_OFF, label: 'Off' },
               ...subtitleTracks.map((track) => ({
                 id: track.id,
@@ -219,126 +250,112 @@ const PlayerControls = ({
               })),
             ],
           },
-          {
-            name: 'Appearance',
-            selectedId: '',
-            onSelect: onEditCaptions,
-            options: [{ id: 'style', label: 'Caption settings…' }],
-          },
-        ]}
-        {...(selectedSubtitleId === SUBTITLES_OFF || onSubtitleOffsetChange === undefined
-          ? {}
-          : {
-              footer: (
-                <div className="flex items-center justify-between gap-4">
-                  <span className="flex flex-col">
-                    Timing
-                    <span className="text-xs text-white/50">
-                      {subtitleOffsetSeconds === 0
-                        ? 'In time'
-                        : `${subtitleOffsetSeconds > 0 ? '+' : ''}${subtitleOffsetSeconds.toFixed(2)}s`}
+          ...(selectedSubtitleId === SUBTITLES_OFF || onSubtitleOffsetChange === undefined
+            ? []
+            : [
+                {
+                  kind: 'custom' as const,
+                  id: 'timing',
+                  label: 'Subtitle timing',
+                  icon: <IconClock size={18} aria-hidden />,
+                  detail:
+                    subtitleOffsetSeconds === 0
+                      ? 'In time'
+                      : `${subtitleOffsetSeconds > 0 ? '+' : ''}${subtitleOffsetSeconds.toFixed(2)}s`,
+                  control: (
+                    <span className="flex items-center gap-1">
+                      <IconButton
+                        label="Subtitles earlier"
+                        size="sm"
+                        onClick={() => {
+                          onSubtitleOffsetChange(subtitleOffsetSeconds - SUBTITLE_STEP_SECONDS)
+                        }}
+                      >
+                        <IconMinus size={16} aria-hidden />
+                      </IconButton>
+
+                      <IconButton
+                        label="Subtitles in time"
+                        size="sm"
+                        onClick={() => {
+                          onSubtitleOffsetChange(0)
+                        }}
+                      >
+                        <IconRefresh size={16} aria-hidden />
+                      </IconButton>
+
+                      <IconButton
+                        label="Subtitles later"
+                        size="sm"
+                        onClick={() => {
+                          onSubtitleOffsetChange(subtitleOffsetSeconds + SUBTITLE_STEP_SECONDS)
+                        }}
+                      >
+                        <IconPlus size={16} aria-hidden />
+                      </IconButton>
                     </span>
-                  </span>
-
-                  <span className="flex items-center gap-1">
-                    <IconButton
-                      label="Subtitles earlier"
-                      size="sm"
-                      onClick={() => {
-                        onSubtitleOffsetChange(subtitleOffsetSeconds - SUBTITLE_STEP_SECONDS)
-                      }}
-                    >
-                      <IconMinus size={16} aria-hidden />
-                    </IconButton>
-
-                    <IconButton
-                      label="Subtitles in time"
-                      size="sm"
-                      onClick={() => {
-                        onSubtitleOffsetChange(0)
-                      }}
-                    >
-                      <IconRefresh size={16} aria-hidden />
-                    </IconButton>
-
-                    <IconButton
-                      label="Subtitles later"
-                      size="sm"
-                      onClick={() => {
-                        onSubtitleOffsetChange(subtitleOffsetSeconds + SUBTITLE_STEP_SECONDS)
-                      }}
-                    >
-                      <IconPlus size={16} aria-hidden />
-                    </IconButton>
-                  </span>
-                </div>
-              ),
-            })}
-      />
-
-      <OptionMenu
-        label="Playback speed"
-        trigger={<span className="text-sm font-medium">{rateLabel(playbackRate)}</span>}
-        groups={[
+                  ),
+                },
+              ]),
           {
-            name: 'Playback Speed',
+            kind: 'action' as const,
+            id: 'appearance',
+            label: 'Caption settings',
+            icon: <IconTypography size={18} aria-hidden />,
+            onSelect: onEditCaptions,
+          },
+          {
+            kind: 'choice' as const,
+            id: 'speed',
+            label: 'Playback speed',
+            icon: <IconGauge size={18} aria-hidden />,
             selectedId: playbackRate.toString(),
-            onSelect: (id) => {
+            onSelect: (id: string) => {
               onPlaybackRateChange(Number(id))
             },
-            options: PLAYBACK_RATES.map((rate) => ({
+            choices: PLAYBACK_RATES.map((rate) => ({
               id: rate.toString(),
-              label: rateLabel(rate),
+              label: rate === 1 ? 'Normal' : rateLabel(rate),
             })),
+          },
+          ...(availableQualitySteps.length === 0
+            ? []
+            : [
+                {
+                  kind: 'choice' as const,
+                  id: 'quality',
+                  label: 'Quality',
+                  icon: <IconAdjustmentsHorizontal size={18} aria-hidden />,
+                  selectedId: selectedQuality,
+                  onSelect: (id: string) => {
+                    onQualityChange(availableQualitySteps.find((step) => step === id) ?? 'original')
+                  },
+                  choices: [
+                    { id: 'original', label: 'Original' },
+                    ...availableQualitySteps.map((id) => {
+                      const step = QUALITY_STEPS.find((entry) => entry.id === id)
+
+                      return {
+                        id,
+                        label: step?.label ?? id,
+                        ...(step === undefined
+                          ? {}
+                          : { detail: bitrateDetail(step.maxVideoBitrateKbps) }),
+                      }
+                    }),
+                  ],
+                },
+              ]),
+          {
+            kind: 'toggle' as const,
+            id: 'stats',
+            label: 'Stats for nerds',
+            icon: <IconChartDots size={18} aria-hidden />,
+            isOn: isShowingStats,
+            onToggle: onToggleStats,
           },
         ]}
       />
-
-      {availableQualitySteps.length === 0 ? null : (
-        <OptionMenu
-          label="Quality"
-          trigger={
-            <span className="text-sm font-medium">
-              {selectedQuality === 'original'
-                ? 'Original'
-                : (QUALITY_STEPS.find((step) => step.id === selectedQuality)?.label ??
-                  selectedQuality)}
-            </span>
-          }
-          groups={[
-            {
-              name: 'Quality',
-              selectedId: selectedQuality,
-              onSelect: (id) => {
-                onQualityChange(availableQualitySteps.find((step) => step === id) ?? 'original')
-              },
-              options: [
-                { id: 'original', label: 'Original' },
-                ...availableQualitySteps.map((id) => {
-                  const step = QUALITY_STEPS.find((entry) => entry.id === id)
-
-                  return {
-                    id,
-                    label: step?.label ?? id,
-                    ...(step === undefined
-                      ? {}
-                      : { detail: bitrateDetail(step.maxVideoBitrateKbps) }),
-                  }
-                }),
-              ],
-            },
-          ]}
-        />
-      )}
-
-      <IconButton
-        label="Stats for nerds"
-        isActive={isShowingStats}
-        onClick={onToggleStats}
-        size="md"
-      >
-        <IconAdjustmentsHorizontal size={20} aria-hidden />
-      </IconButton>
 
       {onPopOut === undefined ? null : (
         <IconButton label="Pop out" onClick={onPopOut} size="md">

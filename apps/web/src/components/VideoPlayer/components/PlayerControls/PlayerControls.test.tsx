@@ -126,13 +126,14 @@ describe('PlayerControls', () => {
     expect(screen.getByRole('button', { name: 'Mute' })).toBeInTheDocument()
   })
 
-  it('reports that stats are showing', () => {
+  it('reports that stats are showing', async () => {
+    const user = userEvent.setup()
+
     draw({ isShowingStats: true })
 
-    expect(screen.getByRole('button', { name: 'Stats for nerds' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+
+    expect(await screen.findByRole('switch', { name: /Stats for nerds/ })).toBeChecked()
   })
 
   it('offers to leave full screen once in it', () => {
@@ -203,17 +204,22 @@ describe('PlayerControls', () => {
     expect(props.onSkip).toHaveBeenNthCalledWith(2, 10)
   })
 
-  it('shows the speed it is playing at', () => {
+  it('shows the speed it is playing at without being opened item by item', async () => {
+    const user = userEvent.setup()
+
     draw({ playbackRate: 1.5 })
 
-    expect(screen.getByRole('button', { name: 'Playback speed' })).toHaveTextContent('1.5x')
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+
+    expect(await screen.findByRole('button', { name: /Playback speed.*1\.5x/ })).toBeInTheDocument()
   })
 
   it('reports a change of speed as a number', async () => {
     const user = userEvent.setup()
     const props = draw()
 
-    await user.click(screen.getByRole('button', { name: 'Playback speed' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /Playback speed/ }))
     await user.click(await screen.findByRole('menuitemradio', { name: '0.5x' }))
 
     expect(props.onPlaybackRateChange).toHaveBeenCalledWith(0.5)
@@ -223,7 +229,8 @@ describe('PlayerControls', () => {
     const user = userEvent.setup()
     draw({ playbackRate: 2 })
 
-    await user.click(screen.getByRole('button', { name: 'Playback speed' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /Playback speed/ }))
 
     expect(await screen.findByRole('menuitemradio', { name: '2x' })).toBeChecked()
   })
@@ -232,7 +239,8 @@ describe('PlayerControls', () => {
     const user = userEvent.setup()
     draw()
 
-    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /Subtitles\/CC/ }))
 
     expect(await screen.findByRole('menuitemradio', { name: 'Off' })).toBeChecked()
     expect(screen.getByRole('menuitemradio', { name: /English/ })).toBeInTheDocument()
@@ -242,7 +250,8 @@ describe('PlayerControls', () => {
     const user = userEvent.setup()
     const props = draw()
 
-    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /Subtitles\/CC/ }))
     await user.click(await screen.findByRole('menuitemradio', { name: /English/ }))
 
     expect(props.onSubtitleChange).toHaveBeenCalledWith('en')
@@ -252,20 +261,18 @@ describe('PlayerControls', () => {
     const user = userEvent.setup()
     draw({ subtitleTracks: [] })
 
-    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
 
-    expect(
-      await screen.findByRole('menuitemradio', { name: /Caption settings/ }),
-    ).toBeInTheDocument()
-    expect(screen.queryByRole('menuitemradio', { name: /English/ })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /Caption settings/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /English/ })).not.toBeInTheDocument()
   })
 
   it('opens the caption settings on request', async () => {
     const user = userEvent.setup()
     const props = draw()
 
-    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
-    await user.click(await screen.findByRole('menuitemradio', { name: /Caption settings/ }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /Caption settings/ }))
 
     expect(props.onEditCaptions).toHaveBeenCalled()
   })
@@ -274,9 +281,9 @@ describe('PlayerControls', () => {
     const user = userEvent.setup()
     draw({ audioTracks: [{ index: 1, label: 'English · 2ch · aac' }] })
 
-    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
 
-    expect(screen.queryByText('Audio')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Audio track/ })).not.toBeInTheDocument()
   })
 
   it('offers the soundtracks when there is a choice to make', async () => {
@@ -289,10 +296,10 @@ describe('PlayerControls', () => {
       selectedAudioIndex: 1,
     })
 
-    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /Audio track/ }))
 
-    expect(await screen.findByText('Audio')).toBeInTheDocument()
-    expect(screen.getByRole('menuitemradio', { name: /Japanese/ })).toBeChecked()
+    expect(await screen.findByRole('menuitemradio', { name: /Japanese/ })).toBeChecked()
   })
 
   it('reports the soundtrack that was chosen by its stream number', async () => {
@@ -305,10 +312,8 @@ describe('PlayerControls', () => {
       selectedAudioIndex: 1,
     })
 
-    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
-
-    // The subtitle column offers an English track too, so the soundtrack is
-    // identified by its full label rather than the language alone.
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /Audio track/ }))
     await user.click(await screen.findByRole('menuitemradio', { name: 'English · 6ch · ac3' }))
 
     expect(props.onAudioChange).toHaveBeenCalledWith(2)
@@ -324,7 +329,8 @@ describe('PlayerControls', () => {
       selectedAudioIndex: null,
     })
 
-    await user.click(screen.getByRole('button', { name: 'Subtitles' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /Audio track/ }))
 
     expect(await screen.findByRole('menuitemradio', { name: /Japanese/ })).toBeChecked()
   })
@@ -335,17 +341,22 @@ describe('PlayerControls', () => {
     expect(screen.queryByRole('button', { name: 'Quality' })).not.toBeInTheDocument()
   })
 
-  it('shows Original as the quality by default', () => {
+  it('shows Original as the quality by default', async () => {
+    const user = userEvent.setup()
+
     draw({ availableQualitySteps: ['720p', '480p'] })
 
-    expect(screen.getByRole('button', { name: 'Quality' })).toHaveTextContent('Original')
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+
+    expect(await screen.findByRole('button', { name: /^Quality/ })).toHaveTextContent('Original')
   })
 
   it('offers every available step alongside Original', async () => {
     const user = userEvent.setup()
     draw({ availableQualitySteps: ['720p', '480p'] })
 
-    await user.click(screen.getByRole('button', { name: 'Quality' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /^Quality/ }))
 
     expect(await screen.findByRole('menuitemradio', { name: 'Original' })).toBeChecked()
     expect(screen.getByRole('menuitemradio', { name: /720p/ })).toBeInTheDocument()
@@ -356,7 +367,8 @@ describe('PlayerControls', () => {
     const user = userEvent.setup()
     draw({ availableQualitySteps: ['720p'] })
 
-    await user.click(screen.getByRole('button', { name: 'Quality' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /^Quality/ }))
 
     expect(await screen.findByRole('menuitemradio', { name: /720p/ })).toHaveTextContent('2.5 Mbps')
   })
@@ -365,7 +377,8 @@ describe('PlayerControls', () => {
     const user = userEvent.setup()
     const props = draw({ availableQualitySteps: ['720p', '480p'] })
 
-    await user.click(screen.getByRole('button', { name: 'Quality' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /^Quality/ }))
     await user.click(await screen.findByRole('menuitemradio', { name: /720p/ }))
 
     expect(props.onQualityChange).toHaveBeenCalledWith('720p')
@@ -375,7 +388,8 @@ describe('PlayerControls', () => {
     const user = userEvent.setup()
     const props = draw({ availableQualitySteps: ['720p'], selectedQuality: '720p' })
 
-    await user.click(screen.getByRole('button', { name: 'Quality' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: /^Quality/ }))
     await user.click(await screen.findByRole('menuitemradio', { name: 'Original' }))
 
     expect(props.onQualityChange).toHaveBeenCalledWith('original')
