@@ -26,6 +26,18 @@ const { cn } = cnModule
 const DRAWS_IN_BY_PIXELS = 320
 
 /**
+ * How much of the screen the card gives up at its foot.
+ *
+ * The slot the card is drawn in has to stay a whole screen tall while it
+ * forms, or the page underneath moves. What is left below the finished card is
+ * dead space, so the page is pulled up over exactly that much — during the
+ * drawing it is under the fold and nothing sees it, and afterwards the library
+ * starts at the card's own bottom edge rather than a quarter of a screen
+ * beneath it.
+ */
+const FOOT_OF_THE_CARD = '24svh'
+
+/**
  * How long an item holds the screen before the next one takes it.
  */
 const ROTATE_AFTER_MILLISECONDS = 14_000
@@ -123,7 +135,7 @@ const Hero = ({
   // the library begin to come up.
   const inset = useTransform(scrollYProgress, [0, 1], ['0px', '40px'])
   const lift = useTransform(scrollYProgress, [0, 1], ['0px', '72px'])
-  const foot = useTransform(scrollYProgress, [0, 1], ['0px', '24svh'])
+  const foot = useTransform(scrollYProgress, [0, 1], ['0px', FOOT_OF_THE_CARD])
   const corner = useTransform(scrollYProgress, [0, 1], ['0px', '28px'])
 
   const showNext = useCallback(() => {
@@ -172,6 +184,7 @@ const Hero = ({
           prefersReducedMotion === true
             ? '100svh'
             : `calc(100svh + ${DRAWS_IN_BY_PIXELS.toString()}px)`,
+        marginBottom: `-${FOOT_OF_THE_CARD}`,
       }}
     >
       {/* The slot the card is drawn in. It is the whole screen and stays the
@@ -188,7 +201,13 @@ const Hero = ({
           // the size and shape the scrolling would have arrived at.
           style={
             prefersReducedMotion === true
-              ? { top: '72px', left: '40px', right: '40px', bottom: '24svh', borderRadius: '28px' }
+              ? {
+                  top: '72px',
+                  left: '40px',
+                  right: '40px',
+                  bottom: FOOT_OF_THE_CARD,
+                  borderRadius: '28px',
+                }
               : { top: lift, left: inset, right: inset, bottom: foot, borderRadius: corner }
           }
           // It opens as the whole screen and draws itself in as the page moves:
