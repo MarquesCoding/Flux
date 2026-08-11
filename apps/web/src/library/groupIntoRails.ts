@@ -10,6 +10,14 @@ type Rail = {
   id: string;
   title: string;
   items: MediaSummary[];
+  /**
+   * An episode of the series this row is a season of, for a row whose heading
+   * names a programme rather than a mood. A viewer who reads "A Sign of
+   * Affection · Season 1" and presses it means the programme, so the heading
+   * has to know which one it is talking about. Absent on rows like
+   * `Continue watching`, which are about no one series.
+   */
+  showOf?: MediaSummary;
 };
 
 /**
@@ -171,6 +179,7 @@ const groupIntoRails = (
       id: `season:${key}`,
       title: describeSeason(first.seriesTitle, first.seasonNumber),
       items: [...episodes].sort(inBroadcastOrder).slice(0, RAIL_LIMIT),
+      showOf: first,
     });
   }
 

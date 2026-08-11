@@ -202,6 +202,42 @@ describe('LibraryBrowser', () => {
     expect(screen.queryByRole('region', { name: 'Featured' })).not.toBeInTheDocument();
   });
 
+  it('opens the programme when the heading naming it is pressed', async () => {
+    const onOpenShow = vi.fn();
+    const user = userEvent.setup();
+    const first = {
+      ...arrival,
+      id: '00000000-0000-4000-8000-000000000001',
+      title: 'Hello, World',
+      seriesTitle: 'A Sign of Affection',
+      seasonNumber: 1,
+      episodeNumber: 1,
+    };
+    fetchItemsMock.mockResolvedValue({
+      items: [
+        first,
+        {
+          ...first,
+          id: '00000000-0000-4000-8000-000000000002',
+          title: 'A Step Forward',
+          episodeNumber: 2,
+        },
+      ],
+      total: 2,
+    });
+    render(<LibraryBrowser onOpenShow={onOpenShow} onPlay={vi.fn()} />);
+
+    const heading = await screen.findByRole('button', {
+      name: 'A Sign of Affection · Season 1',
+    });
+
+    await user.click(heading);
+
+    expect(onOpenShow).toHaveBeenCalledWith(
+      expect.objectContaining({ seriesTitle: 'A Sign of Affection' }),
+    );
+  });
+
   it('says which item the hero is showing, so the page can be lit by it', async () => {
     const onFeatureChange = vi.fn();
     render(<LibraryBrowser hasHero onFeatureChange={onFeatureChange} onPlay={vi.fn()} />);

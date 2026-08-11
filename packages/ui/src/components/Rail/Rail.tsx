@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@FluxUI/cn';
+import { Button } from '@FluxUI/Button';
 import { PageDots } from '@FluxUI/PageDots';
 import type { RailProps } from './Rail.types';
 
@@ -27,7 +28,7 @@ const SCROLL_FRACTION = 0.85;
  * card that lifts on hover. The padding is the room it lifts into and the
  * negative margin gives that space back to the page.
  */
-const Rail = ({ title, children, action, className }: RailProps) => {
+const Rail = ({ title, children, action, onOpenTitle, className }: RailProps) => {
   const trackRef = useRef<HTMLUListElement>(null);
   const [pages, setPages] = useState({ count: 1, at: 0 });
 
@@ -76,7 +77,20 @@ const Rail = ({ title, children, action, className }: RailProps) => {
   return (
     <section className={cn('group/rail flex flex-col gap-3', className)} aria-label={title}>
       <header className="flex items-end justify-between gap-4 px-1">
-        <h2 className="text-lg font-semibold tracking-tight text-text">{title}</h2>
+        <h2 className="text-lg font-semibold tracking-tight text-text">
+          {onOpenTitle === undefined ? (
+            title
+          ) : (
+            <Button
+              variant="bare"
+              size="none"
+              onClick={onOpenTitle}
+              className="text-left underline-offset-4 hover:underline"
+            >
+              {title}
+            </Button>
+          )}
+        </h2>
 
         <div className="flex items-center gap-2">
           {action}
