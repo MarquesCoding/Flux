@@ -54,7 +54,7 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
       }}
     />
 
-    <label className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1">
       <span>Size — {style.fontScale}%</span>
 
       <Slider
@@ -67,7 +67,7 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
           onChange({ ...style, fontScale: Math.max(50, value) });
         }}
       />
-    </label>
+    </div>
 
     <CaptionChoice
       label="Text colour"
@@ -87,7 +87,7 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
       }}
     />
 
-    <label className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1">
       <span>Background opacity — {Math.round(style.backgroundOpacity * 100)}%</span>
 
       <Slider
@@ -100,7 +100,7 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
           onChange({ ...style, backgroundOpacity: value / 100 });
         }}
       />
-    </label>
+    </div>
 
     <CaptionChoice
       label="Edge"

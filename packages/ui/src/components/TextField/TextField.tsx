@@ -1,13 +1,15 @@
-import { useId } from 'react';
+import { Field } from '@base-ui/react/field';
 import { cn } from '@FluxUI/cn';
 import type { TextFieldProps } from './TextField.types';
 
 /**
  * A labelled single-line text input.
  *
- * This is the only place a raw `<input>` is permitted for text entry; see code
- * standards section 9. The label is a real `<label for>` because the control is
- * a native input and therefore labelable.
+ * This is the only place text entry is written; see code standards section 9.
+ * The label, the description, the error and the wiring between them are Base
+ * UI's `Field`, which owns the part that is easy to get subtly wrong: which
+ * element describes which, and what a reader is told when a field goes invalid.
+ * What is left here is what the field looks like.
  */
 const TextField = ({
   label,
@@ -27,81 +29,61 @@ const TextField = ({
   icon,
   hasFocusOnMount = false,
   className,
-}: TextFieldProps) => {
-  const inputId = useId();
-  const descriptionId = useId();
-  const errorId = useId();
+}: TextFieldProps) => (
+  <Field.Root
+    disabled={disabled}
+    invalid={error !== undefined}
+    className={cn('flex flex-col gap-1.5', className)}
+  >
+    <Field.Label className={cn('text-sm font-medium text-text', isLabelHidden ? 'sr-only' : '')}>
+      {label}
+    </Field.Label>
 
-  const describedBy = [
-    description === undefined ? null : descriptionId,
-    error === undefined ? null : errorId,
-  ]
-    .filter((id) => id !== null)
-    .join(' ');
+    {description === undefined ? null : (
+      <Field.Description className="text-sm text-text-muted">{description}</Field.Description>
+    )}
 
-  return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <label
-        htmlFor={inputId}
-        className={cn('text-sm font-medium text-text', isLabelHidden ? 'sr-only' : '')}
-      >
-        {label}
-      </label>
+    <span className={cn('flex items-center gap-3', isBare ? 'border-b border-white/15 pb-3' : '')}>
+      {icon === undefined ? null : <span className="shrink-0 text-text-muted">{icon}</span>}
 
-      {description === undefined ? null : (
-        <p id={descriptionId} className="text-sm text-text-muted">
-          {description}
-        </p>
-      )}
+      <Field.Control
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        required={required}
+        {...(autoComplete === undefined ? {} : { autoComplete })}
+        onValueChange={(next) => {
+          onValueChange(next);
+        }}
+        autoFocus={hasFocusOnMount}
+        className={cn(
+          'flux-field text-text',
+          'transition-colors placeholder:text-text-muted',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+          isBare
+            ? 'w-full bg-transparent outline-none'
+            : 'border border-white/10 bg-white/[0.04] backdrop-blur-xl hover:border-white/20',
+          isBare
+            ? ''
+            : size === 'lg'
+              ? 'h-14 px-5 text-base'
+              : size === 'xl'
+                ? 'h-16 px-6 text-lg'
+                : 'h-10 px-3 text-sm',
+          isBare && size === 'xl' ? 'text-2xl tracking-tight sm:text-3xl' : '',
+          isBare ? '' : isPill ? 'rounded-full' : 'rounded-xl',
+          error === undefined ? '' : 'border-danger',
+        )}
+      />
+    </span>
 
-      <span
-        className={cn('flex items-center gap-3', isBare ? 'border-b border-white/15 pb-3' : '')}
-      >
-        {icon === undefined ? null : <span className="shrink-0 text-text-muted">{icon}</span>}
-
-        <input
-          id={inputId}
-          type={type}
-          value={value}
-          placeholder={placeholder}
-          required={required}
-          disabled={disabled}
-          aria-invalid={error !== undefined}
-          aria-describedby={describedBy === '' ? undefined : describedBy}
-          {...(autoComplete === undefined ? {} : { autoComplete })}
-          onChange={(event) => {
-            onValueChange(event.target.value);
-          }}
-          autoFocus={hasFocusOnMount}
-          className={cn(
-            'flux-field text-text',
-            'transition-colors placeholder:text-text-muted',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            isBare
-              ? 'w-full bg-transparent outline-none'
-              : 'border border-white/10 bg-white/[0.04] backdrop-blur-xl hover:border-white/20',
-            isBare
-              ? ''
-              : size === 'lg'
-                ? 'h-14 px-5 text-base'
-                : size === 'xl'
-                  ? 'h-16 px-6 text-lg'
-                  : 'h-10 px-3 text-sm',
-            isBare && size === 'xl' ? 'text-2xl tracking-tight sm:text-3xl' : '',
-            isBare ? '' : isPill ? 'rounded-full' : 'rounded-xl',
-            error === undefined ? '' : 'border-danger',
-          )}
-        />
-      </span>
-
-      {error === undefined ? null : (
-        <p id={errorId} role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-};
+    {error === undefined ? null : (
+      <Field.Error match role="alert" className="text-sm text-danger">
+        {error}
+      </Field.Error>
+    )}
+  </Field.Root>
+);
 
 TextField.displayName = 'TextField';
 

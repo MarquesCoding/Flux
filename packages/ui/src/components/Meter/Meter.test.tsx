@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Meter } from './Meter';
 
 const barOf = (container: HTMLElement): HTMLElement | null =>
-  container.querySelector('[role="presentation"]');
+  container.querySelector('[style*="width"]');
 
 describe('Meter', () => {
   it('names what is being measured', () => {
@@ -34,6 +34,21 @@ describe('Meter', () => {
     const { container } = render(<Meter label="Memory" fraction={-1} value="0%" />);
 
     expect(barOf(container)?.style.width).toBe('0%');
+  });
+
+  it('is a meter to anything reading the page, not a decorated box', () => {
+    render(<Meter label="Memory" fraction={0.42} value="8 GB of 16 GB" />);
+
+    const meter = screen.getByRole('meter', { name: 'Memory' });
+
+    expect(meter).toHaveAttribute('aria-valuenow', '42');
+    expect(meter).toHaveAttribute('aria-valuetext', '8 GB of 16 GB');
+  });
+
+  it('reports a reading over the limit as full rather than as impossible', () => {
+    render(<Meter label="Memory" fraction={1.4} value="140%" />);
+
+    expect(screen.getByRole('meter', { name: 'Memory' })).toHaveAttribute('aria-valuenow', '100');
   });
 
   it('looks calm while something is idling', () => {

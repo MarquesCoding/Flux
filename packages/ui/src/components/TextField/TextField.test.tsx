@@ -60,10 +60,10 @@ describe('TextField', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid email');
   });
 
-  it('is not invalid when no error is given', () => {
+  it('says nothing about validity when there is no error', () => {
     render(<TextField label="Email" value="" onValueChange={vi.fn()} />);
 
-    expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByLabelText('Email')).not.toHaveAttribute('aria-invalid');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
