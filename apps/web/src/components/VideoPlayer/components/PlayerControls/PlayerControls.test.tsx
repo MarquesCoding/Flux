@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
-import { DEFAULT_CAPTION_STYLE } from '@FluxWeb/playback/captionStyle'
-import { PlayerControls } from './PlayerControls'
-import type { PlayerControlsProps } from './PlayerControls.types'
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import { DEFAULT_CAPTION_STYLE } from '@FluxWeb/playback/captionStyle';
+import { PlayerControls } from './PlayerControls';
+import type { PlayerControlsProps } from './PlayerControls.types';
 
 const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
   const props: PlayerControlsProps = {
@@ -49,114 +49,114 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
     onToggleFullscreen: vi.fn(),
     onToggleStats: vi.fn(),
     ...overrides,
-  }
+  };
 
-  render(<PlayerControls {...props} />)
+  render(<PlayerControls {...props} />);
 
-  return props
-}
+  return props;
+};
 
 describe('PlayerControls', () => {
   it('offers play while paused', () => {
-    draw()
+    draw();
 
-    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
+  });
 
   it('offers pause while playing', () => {
-    draw({ isPlaying: true })
+    draw({ isPlaying: true });
 
-    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+  });
 
   it('reports a press of play', async () => {
-    const user = userEvent.setup()
-    const props = draw()
+    const user = userEvent.setup();
+    const props = draw();
 
-    await user.click(screen.getByRole('button', { name: 'Play' }))
+    await user.click(screen.getByRole('button', { name: 'Play' }));
 
-    expect(props.onTogglePlay).toHaveBeenCalledTimes(1)
-  })
+    expect(props.onTogglePlay).toHaveBeenCalledTimes(1);
+  });
 
   it('shows the position against the length', () => {
-    draw()
+    draw();
 
-    expect(screen.getByText('0:30')).toBeInTheDocument()
-    expect(screen.getByText('/ 2:00:00')).toBeInTheDocument()
-  })
+    expect(screen.getByText('0:30')).toBeInTheDocument();
+    expect(screen.getByText('/ 2:00:00')).toBeInTheDocument();
+  });
 
   it('names the scrub bar after what is playing', () => {
-    draw()
+    draw();
 
-    expect(screen.getByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument();
+  });
 
   it('reports a seek', async () => {
-    const user = userEvent.setup()
-    const props = draw()
+    const user = userEvent.setup();
+    const props = draw();
 
-    screen.getByRole('slider', { name: 'Seek through Arrival' }).focus()
-    await user.keyboard('{ArrowRight}')
+    screen.getByRole('slider', { name: 'Seek through Arrival' }).focus();
+    await user.keyboard('{ArrowRight}');
 
-    expect(props.onSeek).toHaveBeenCalledWith(31)
-  })
+    expect(props.onSeek).toHaveBeenCalledWith(31);
+  });
 
   it('shows volume as a percentage of the way up', () => {
-    draw({ volume: 0.5 })
+    draw({ volume: 0.5 });
 
-    expect(screen.getByRole('slider', { name: 'Volume' })).toHaveAttribute('aria-valuenow', '50')
-  })
+    expect(screen.getByRole('slider', { name: 'Volume' })).toHaveAttribute('aria-valuenow', '50');
+  });
 
   it('reports volume back as a fraction, not a percentage', async () => {
-    const user = userEvent.setup()
-    const props = draw({ volume: 0.5 })
+    const user = userEvent.setup();
+    const props = draw({ volume: 0.5 });
 
-    screen.getByRole('slider', { name: 'Volume' }).focus()
-    await user.keyboard('{ArrowRight}')
+    screen.getByRole('slider', { name: 'Volume' }).focus();
+    await user.keyboard('{ArrowRight}');
 
-    expect(props.onVolumeChange).toHaveBeenCalledWith(0.51)
-  })
+    expect(props.onVolumeChange).toHaveBeenCalledWith(0.51);
+  });
 
   it('shows a muted icon and a bar at zero while muted', () => {
-    draw({ isMuted: true, volume: 1 })
+    draw({ isMuted: true, volume: 1 });
 
-    expect(screen.getByRole('button', { name: 'Unmute' })).toBeInTheDocument()
-    expect(screen.getByRole('slider', { name: 'Volume' })).toHaveAttribute('aria-valuenow', '0')
-  })
+    expect(screen.getByRole('button', { name: 'Unmute' })).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Volume' })).toHaveAttribute('aria-valuenow', '0');
+  });
 
   it('shows a muted icon when the volume is simply down', () => {
-    draw({ volume: 0 })
+    draw({ volume: 0 });
 
-    expect(screen.getByRole('button', { name: 'Mute' })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('button', { name: 'Mute' })).toBeInTheDocument();
+  });
 
   it('reports that stats are showing', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    draw({ isShowingStats: true })
+    draw({ isShowingStats: true });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
 
-    expect(await screen.findByRole('switch', { name: /Stats for nerds/ })).toBeChecked()
-  })
+    expect(await screen.findByRole('switch', { name: /Stats for nerds/ })).toBeChecked();
+  });
 
   it('offers to leave full screen once in it', () => {
-    draw({ isFullscreen: true })
+    draw({ isFullscreen: true });
 
-    expect(screen.getByRole('button', { name: 'Exit full screen' })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('button', { name: 'Exit full screen' })).toBeInTheDocument();
+  });
 
   it('cannot be played before there is anything to play', () => {
-    draw({ isDisabled: true })
+    draw({ isDisabled: true });
 
-    expect(screen.getByRole('button', { name: 'Play' })).toBeDisabled()
-  })
+    expect(screen.getByRole('button', { name: 'Play' })).toBeDisabled();
+  });
 
   it('draws a preview when the caller supplies one', () => {
-    draw({ renderPreview: () => <span>a thumbnail</span> })
+    draw({ renderPreview: () => <span>a thumbnail</span> });
 
-    expect(screen.queryByText('a thumbnail')).not.toBeInTheDocument()
-  })
+    expect(screen.queryByText('a thumbnail')).not.toBeInTheDocument();
+  });
 
   it('draws its sliders for sitting on top of video', () => {
     const { container } = render(
@@ -194,283 +194,287 @@ describe('PlayerControls', () => {
         onToggleFullscreen={vi.fn()}
         onToggleStats={vi.fn()}
       />,
-    )
+    );
 
     // Theme surface colours are near black, which is invisible on a dark bar
     // over a dark picture.
-    expect(container.querySelectorAll('[data-tone="overlay"]')).toHaveLength(2)
-    expect(container.querySelector('[data-tone="default"]')).not.toBeInTheDocument()
-  })
+    expect(container.querySelectorAll('[data-tone="overlay"]')).toHaveLength(2);
+    expect(container.querySelector('[data-tone="default"]')).not.toBeInTheDocument();
+  });
 
   it('offers a jump back and a jump forward', async () => {
-    const user = userEvent.setup()
-    const props = draw()
+    const user = userEvent.setup();
+    const props = draw();
 
-    await user.click(screen.getByRole('button', { name: 'Back 10 seconds' }))
-    await user.click(screen.getByRole('button', { name: 'Forward 10 seconds' }))
+    await user.click(screen.getByRole('button', { name: 'Back 10 seconds' }));
+    await user.click(screen.getByRole('button', { name: 'Forward 10 seconds' }));
 
-    expect(props.onSkip).toHaveBeenNthCalledWith(1, -10)
-    expect(props.onSkip).toHaveBeenNthCalledWith(2, 10)
-  })
+    expect(props.onSkip).toHaveBeenNthCalledWith(1, -10);
+    expect(props.onSkip).toHaveBeenNthCalledWith(2, 10);
+  });
 
   it('shows the speed it is playing at without being opened item by item', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    draw({ playbackRate: 1.5 })
+    draw({ playbackRate: 1.5 });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
 
-    expect(await screen.findByRole('button', { name: /Playback speed.*1\.5x/ })).toBeInTheDocument()
-  })
+    expect(
+      await screen.findByRole('button', { name: /Playback speed.*1\.5x/ }),
+    ).toBeInTheDocument();
+  });
 
   it('reports a change of speed as a number', async () => {
-    const user = userEvent.setup()
-    const props = draw()
+    const user = userEvent.setup();
+    const props = draw();
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /Playback speed/ }))
-    await user.click(await screen.findByRole('menuitemradio', { name: '0.5x' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /Playback speed/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: '0.5x' }));
 
-    expect(props.onPlaybackRateChange).toHaveBeenCalledWith(0.5)
-  })
+    expect(props.onPlaybackRateChange).toHaveBeenCalledWith(0.5);
+  });
 
   it('marks the speed already in force', async () => {
-    const user = userEvent.setup()
-    draw({ playbackRate: 2 })
+    const user = userEvent.setup();
+    draw({ playbackRate: 2 });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /Playback speed/ }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /Playback speed/ }));
 
-    expect(await screen.findByRole('menuitemradio', { name: '2x' })).toBeChecked()
-  })
+    expect(await screen.findByRole('menuitemradio', { name: '2x' })).toBeChecked();
+  });
 
   it('offers every track plus a way to turn captions off', async () => {
-    const user = userEvent.setup()
-    draw()
+    const user = userEvent.setup();
+    draw();
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /Subtitles\/CC/ }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /Subtitles\/CC/ }));
 
-    expect(await screen.findByRole('menuitemradio', { name: 'Off' })).toBeChecked()
-    expect(screen.getByRole('menuitemradio', { name: /English/ })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('menuitemradio', { name: 'Off' })).toBeChecked();
+    expect(screen.getByRole('menuitemradio', { name: /English/ })).toBeInTheDocument();
+  });
 
   it('reports the track that was chosen', async () => {
-    const user = userEvent.setup()
-    const props = draw()
+    const user = userEvent.setup();
+    const props = draw();
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /Subtitles\/CC/ }))
-    await user.click(await screen.findByRole('menuitemradio', { name: /English/ }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /Subtitles\/CC/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: /English/ }));
 
-    expect(props.onSubtitleChange).toHaveBeenCalledWith('en')
-  })
+    expect(props.onSubtitleChange).toHaveBeenCalledWith('en');
+  });
 
   it('still offers caption appearance when a film has no subtitles beside it', async () => {
-    const user = userEvent.setup()
-    draw({ subtitleTracks: [] })
+    const user = userEvent.setup();
+    draw({ subtitleTracks: [] });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
 
-    expect(await screen.findByRole('button', { name: /Caption settings/ })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /English/ })).not.toBeInTheDocument()
-  })
+    expect(await screen.findByRole('button', { name: /Caption settings/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /English/ })).not.toBeInTheDocument();
+  });
 
   it('opens the caption settings as a page of the panel rather than over the film', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    draw()
+    draw();
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /Caption settings/ }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /Caption settings/ }));
 
-    expect(await screen.findByRole('region', { name: 'Caption settings' })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('region', { name: 'Caption settings' })).toBeInTheDocument();
+  });
 
   it('offers nothing to choose when a file carries one soundtrack', async () => {
-    const user = userEvent.setup()
-    draw({ audioTracks: [{ index: 1, label: 'English · 2ch · aac' }] })
+    const user = userEvent.setup();
+    draw({ audioTracks: [{ index: 1, label: 'English · 2ch · aac' }] });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
 
-    expect(screen.queryByRole('button', { name: /Audio track/ })).not.toBeInTheDocument()
-  })
+    expect(screen.queryByRole('button', { name: /Audio track/ })).not.toBeInTheDocument();
+  });
 
   it('offers the soundtracks when there is a choice to make', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
     draw({
       audioTracks: [
         { index: 1, label: 'Japanese · 2ch · aac' },
         { index: 2, label: 'English · 6ch · ac3' },
       ],
       selectedAudioIndex: 1,
-    })
+    });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /Audio track/ }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /Audio track/ }));
 
-    expect(await screen.findByRole('menuitemradio', { name: /Japanese/ })).toBeChecked()
-  })
+    expect(await screen.findByRole('menuitemradio', { name: /Japanese/ })).toBeChecked();
+  });
 
   it('reports the soundtrack that was chosen by its stream number', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
     const props = draw({
       audioTracks: [
         { index: 1, label: 'Japanese · 2ch · aac' },
         { index: 2, label: 'English · 6ch · ac3' },
       ],
       selectedAudioIndex: 1,
-    })
+    });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /Audio track/ }))
-    await user.click(await screen.findByRole('menuitemradio', { name: 'English · 6ch · ac3' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /Audio track/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: 'English · 6ch · ac3' }));
 
-    expect(props.onAudioChange).toHaveBeenCalledWith(2)
-  })
+    expect(props.onAudioChange).toHaveBeenCalledWith(2);
+  });
 
   it('marks the first soundtrack until a viewer chooses otherwise', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
     draw({
       audioTracks: [
         { index: 1, label: 'Japanese · 2ch · aac' },
         { index: 2, label: 'English · 6ch · ac3' },
       ],
       selectedAudioIndex: null,
-    })
+    });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /Audio track/ }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /Audio track/ }));
 
-    expect(await screen.findByRole('menuitemradio', { name: /Japanese/ })).toBeChecked()
-  })
+    expect(await screen.findByRole('menuitemradio', { name: /Japanese/ })).toBeChecked();
+  });
 
   it('offers no quality menu when there is nothing below Original', () => {
-    draw({ availableQualitySteps: [] })
+    draw({ availableQualitySteps: [] });
 
-    expect(screen.queryByRole('button', { name: 'Quality' })).not.toBeInTheDocument()
-  })
+    expect(screen.queryByRole('button', { name: 'Quality' })).not.toBeInTheDocument();
+  });
 
   it('shows Original as the quality by default', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    draw({ availableQualitySteps: ['720p', '480p'] })
+    draw({ availableQualitySteps: ['720p', '480p'] });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
 
-    expect(await screen.findByRole('button', { name: /^Quality/ })).toHaveTextContent('Original')
-  })
+    expect(await screen.findByRole('button', { name: /^Quality/ })).toHaveTextContent('Original');
+  });
 
   it('offers every available step alongside Original', async () => {
-    const user = userEvent.setup()
-    draw({ availableQualitySteps: ['720p', '480p'] })
+    const user = userEvent.setup();
+    draw({ availableQualitySteps: ['720p', '480p'] });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /^Quality/ }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /^Quality/ }));
 
-    expect(await screen.findByRole('menuitemradio', { name: 'Original' })).toBeChecked()
-    expect(screen.getByRole('menuitemradio', { name: /720p/ })).toBeInTheDocument()
-    expect(screen.getByRole('menuitemradio', { name: /480p/ })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('menuitemradio', { name: 'Original' })).toBeChecked();
+    expect(screen.getByRole('menuitemradio', { name: /720p/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', { name: /480p/ })).toBeInTheDocument();
+  });
 
   it('shows a step bitrate as a detail', async () => {
-    const user = userEvent.setup()
-    draw({ availableQualitySteps: ['720p'] })
+    const user = userEvent.setup();
+    draw({ availableQualitySteps: ['720p'] });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /^Quality/ }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /^Quality/ }));
 
-    expect(await screen.findByRole('menuitemradio', { name: /720p/ })).toHaveTextContent('2.5 Mbps')
-  })
+    expect(await screen.findByRole('menuitemradio', { name: /720p/ })).toHaveTextContent(
+      '2.5 Mbps',
+    );
+  });
 
   it('reports the step that was chosen', async () => {
-    const user = userEvent.setup()
-    const props = draw({ availableQualitySteps: ['720p', '480p'] })
+    const user = userEvent.setup();
+    const props = draw({ availableQualitySteps: ['720p', '480p'] });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /^Quality/ }))
-    await user.click(await screen.findByRole('menuitemradio', { name: /720p/ }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /^Quality/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: /720p/ }));
 
-    expect(props.onQualityChange).toHaveBeenCalledWith('720p')
-  })
+    expect(props.onQualityChange).toHaveBeenCalledWith('720p');
+  });
 
   it('can be switched back to Original', async () => {
-    const user = userEvent.setup()
-    const props = draw({ availableQualitySteps: ['720p'], selectedQuality: '720p' })
+    const user = userEvent.setup();
+    const props = draw({ availableQualitySteps: ['720p'], selectedQuality: '720p' });
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('button', { name: /^Quality/ }))
-    await user.click(await screen.findByRole('menuitemradio', { name: 'Original' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(await screen.findByRole('button', { name: /^Quality/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: 'Original' }));
 
-    expect(props.onQualityChange).toHaveBeenCalledWith('original')
-  })
+    expect(props.onQualityChange).toHaveBeenCalledWith('original');
+  });
 
   it('offers nowhere to cast when there is nowhere to cast to', () => {
-    draw({ onCast: vi.fn() })
+    draw({ onCast: vi.fn() });
 
     // A picker that opens an empty list is a button that has wasted a press.
-    expect(screen.queryByRole('button', { name: /device/i })).not.toBeInTheDocument()
-  })
+    expect(screen.queryByRole('button', { name: /device/i })).not.toBeInTheDocument();
+  });
 
   it('offers to cast once the browser has found somewhere', () => {
-    draw({ onCast: vi.fn(), castState: 'available' })
+    draw({ onCast: vi.fn(), castState: 'available' });
 
-    expect(screen.getByRole('button', { name: /Play on a device/ })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('button', { name: /Play on a device/ })).toBeInTheDocument();
+  });
 
   it('hands it over on request', async () => {
-    const user = userEvent.setup()
-    const props = draw({ onCast: vi.fn(), castState: 'available' })
+    const user = userEvent.setup();
+    const props = draw({ onCast: vi.fn(), castState: 'available' });
 
-    await user.click(screen.getByRole('button', { name: /Play on a device/ }))
+    await user.click(screen.getByRole('button', { name: /Play on a device/ }));
 
-    expect(props.onCast).toHaveBeenCalledTimes(1)
-  })
+    expect(props.onCast).toHaveBeenCalledTimes(1);
+  });
 
   it('says when the film is already playing somewhere else', () => {
-    draw({ onCast: vi.fn(), castState: 'connected' })
+    draw({ onCast: vi.fn(), castState: 'connected' });
 
     expect(screen.getByRole('button', { name: 'Playing on another device' })).toHaveAttribute(
       'aria-pressed',
       'true',
-    )
-  })
+    );
+  });
 
   it('waits rather than asking twice while a device is being reached', () => {
-    draw({ onCast: vi.fn(), castState: 'connecting' })
+    draw({ onCast: vi.fn(), castState: 'connecting' });
 
-    expect(screen.getByRole('button', { name: /Play on a device/ })).toBeDisabled()
-  })
+    expect(screen.getByRole('button', { name: /Play on a device/ })).toBeDisabled();
+  });
 
   it('sets a display name so devtools can identify it', () => {
-    expect(PlayerControls.displayName).toBe('PlayerControls')
-  })
+    expect(PlayerControls.displayName).toBe('PlayerControls');
+  });
 
   it('gives the scrub bar a line of its own, so a phone can aim at it', () => {
-    draw()
+    draw();
 
-    const scrub = screen.getByRole('slider', { name: 'Seek through Arrival' })
-    const play = screen.getByRole('button', { name: 'Play' })
+    const scrub = screen.getByRole('slider', { name: 'Seek through Arrival' });
+    const play = screen.getByRole('button', { name: 'Play' });
 
     // Squeezed in beside ten controls, a scrub bar on a phone is too short to
     // hit, so the two live on different rows.
-    const scrubRow = scrub.closest('[data-tone]')?.parentElement
-    const controlRow = play.parentElement
+    const scrubRow = scrub.closest('[data-tone]')?.parentElement;
+    const controlRow = play.parentElement;
 
-    expect(scrubRow).not.toBe(controlRow)
-    expect(scrubRow).not.toBeNull()
-  })
+    expect(scrubRow).not.toBe(controlRow);
+    expect(scrubRow).not.toBeNull();
+  });
 
   it("leaves volume to a phone's own buttons", () => {
-    draw()
+    draw();
 
     // Present for a pointer, out of the way on a touch screen, which has
     // hardware keys for exactly this. Asked for by shape rather than by
     // parentage: a control's immediate parent is whatever wraps it for a
     // tooltip, and the group is the box around the pair.
-    const volumeGroup = screen.getByRole('button', { name: 'Mute' }).closest('div')
+    const volumeGroup = screen.getByRole('button', { name: 'Mute' }).closest('div');
 
-    expect(volumeGroup?.className).toContain('hidden')
-    expect(volumeGroup?.className).toContain('sm:flex')
-  })
-})
+    expect(volumeGroup?.className).toContain('hidden');
+    expect(volumeGroup?.className).toContain('sm:flex');
+  });
+});

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 /**
  * The jobs Flux runs in the background.
@@ -7,7 +7,7 @@ import { z } from 'zod'
  * minutes, and doing it inline means an HTTP request that times out while the
  * work carries on invisibly. See ADR-0005.
  */
-const SCAN_LIBRARY_JOB = 'library.scan'
+const SCAN_LIBRARY_JOB = 'library.scan';
 
 const ScanLibraryJobSchema = z.object({
   libraryId: z.string().uuid(),
@@ -15,16 +15,16 @@ const ScanLibraryJobSchema = z.object({
    * Whether every file should be probed again rather than only changed ones.
    */
   force: z.boolean().default(false),
-})
+});
 
-type ScanLibraryJob = z.infer<typeof ScanLibraryJobSchema>
+type ScanLibraryJob = z.infer<typeof ScanLibraryJobSchema>;
 
 /**
  * Where a queued job has got to.
  */
-const JobStateSchema = z.enum(['queued', 'running', 'completed', 'failed', 'unknown'])
+const JobStateSchema = z.enum(['queued', 'running', 'completed', 'failed', 'unknown']);
 
-type JobState = z.infer<typeof JobStateSchema>
+type JobState = z.infer<typeof JobStateSchema>;
 
 /**
  * How far a running job has got.
@@ -34,10 +34,10 @@ type JobState = z.infer<typeof JobStateSchema>
  * number that has to somehow mean both.
  */
 type JobProgress = {
-  phase: string
-  processed: number
-  total: number
-}
+  phase: string;
+  processed: number;
+  total: number;
+};
 
 /**
  * The queue as the rest of the server sees it.
@@ -46,19 +46,19 @@ type JobProgress = {
  * Postgres and so the queue can be swapped without touching call sites.
  */
 type JobQueue = {
-  enqueueScan: (libraryId: string, force?: boolean) => Promise<string | null>
-  readState: (jobId: string) => Promise<JobState>
+  enqueueScan: (libraryId: string, force?: boolean) => Promise<string | null>;
+  readState: (jobId: string) => Promise<JobState>;
   /**
    * What a running job last reported about itself.
    *
    * Null until the job has reported anything, which is also true of a job
    * that does not report progress at all.
    */
-  readProgress: (jobId: string) => JobProgress | null
-  reportProgress: (jobId: string, phase: string, processed: number, total: number) => void
-  stop: () => Promise<void>
-}
+  readProgress: (jobId: string) => JobProgress | null;
+  reportProgress: (jobId: string, phase: string, processed: number, total: number) => void;
+  stop: () => Promise<void>;
+};
 
-export type { JobProgress, JobQueue, JobState, ScanLibraryJob }
+export type { JobProgress, JobQueue, JobState, ScanLibraryJob };
 
-export { SCAN_LIBRARY_JOB, ScanLibraryJobSchema, JobStateSchema }
+export { SCAN_LIBRARY_JOB, ScanLibraryJobSchema, JobStateSchema };

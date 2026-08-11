@@ -1,16 +1,16 @@
-import { OpenAPIHono, z } from '@hono/zod-openapi'
-import { apiReference } from '@scalar/hono-api-reference'
-import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins'
-import type { FluxAuth } from '@FluxServer/auth/Auth'
-import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
-import { DEFAULT_LIMIT } from '@FluxServer/library/LibraryService'
-import type { LibraryService } from '@FluxServer/library/LibraryService'
-import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService'
-import type { SegmentService } from '@FluxServer/segments/SegmentService'
-import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService'
-import type { FavouriteService } from '@FluxServer/favourites/FavouriteService'
-import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
-import { healthRoute } from './routes/HealthRoute'
+import { OpenAPIHono, z } from '@hono/zod-openapi';
+import { apiReference } from '@scalar/hono-api-reference';
+import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins';
+import type { FluxAuth } from '@FluxServer/auth/Auth';
+import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
+import { DEFAULT_LIMIT } from '@FluxServer/library/LibraryService';
+import type { LibraryService } from '@FluxServer/library/LibraryService';
+import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService';
+import type { SegmentService } from '@FluxServer/segments/SegmentService';
+import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService';
+import type { FavouriteService } from '@FluxServer/favourites/FavouriteService';
+import type { PlaybackService } from '@FluxServer/playback/PlaybackService';
+import { healthRoute } from './routes/HealthRoute';
 import {
   listLibrariesRoute,
   createLibraryRoute,
@@ -21,7 +21,7 @@ import {
   resetLibraryRoute,
   listShowsRoute,
   getShowRoute,
-} from './routes/LibraryRoute'
+} from './routes/LibraryRoute';
 import {
   explainRoute,
   startRoute,
@@ -31,46 +31,46 @@ import {
   trickplayFileRoute,
   frameRoute,
   stopRoute,
-} from './routes/PlaybackRoute'
-import { mediaImageRoute } from '@FluxServer/routes/ImageRoute'
-import { listSegmentsRoute } from '@FluxServer/routes/SegmentRoute'
+} from './routes/PlaybackRoute';
+import { mediaImageRoute } from '@FluxServer/routes/ImageRoute';
+import { listSegmentsRoute } from '@FluxServer/routes/SegmentRoute';
 import {
   listProgressRoute,
   recordProgressRoute,
   forgetProgressRoute,
-} from '@FluxServer/routes/ProgressRoute'
+} from '@FluxServer/routes/ProgressRoute';
 import {
   listFavouritesRoute,
   keepFavouriteRoute,
   dropFavouriteRoute,
-} from '@FluxServer/routes/FavouriteRoute'
-import { adminOverviewRoute, adminSettingsRoute } from '@FluxServer/routes/AdminRoute'
+} from '@FluxServer/routes/FavouriteRoute';
+import { adminOverviewRoute, adminSettingsRoute } from '@FluxServer/routes/AdminRoute';
 import {
   listDevicesRoute,
   endDeviceRoute,
   endOtherDevicesRoute,
-} from '@FluxServer/routes/DeviceRoute'
-import { describeDevice } from '@FluxServer/account/describeDevice'
+} from '@FluxServer/routes/DeviceRoute';
+import { describeDevice } from '@FluxServer/account/describeDevice';
 import {
   listProfilesRoute,
   createProfileRoute,
   updateProfileRoute,
   deleteProfileRoute,
   promoteProfileRoute,
-} from '@FluxServer/routes/ProfileRoute'
-import { listSubtitlesRoute, readSubtitleRoute } from '@FluxServer/routes/SubtitleRoute'
-import { setupStatusRoute, setupCompleteRoute } from './routes/SetupRoute'
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-import { drawAvatar, isAvatarStyle } from '@FluxServer/profiles/drawAvatar'
-import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt'
-import type { ProfileService } from '@FluxServer/profiles/ProfileService'
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
+} from '@FluxServer/routes/ProfileRoute';
+import { listSubtitlesRoute, readSubtitleRoute } from '@FluxServer/routes/SubtitleRoute';
+import { setupStatusRoute, setupCompleteRoute } from './routes/SetupRoute';
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { drawAvatar, isAvatarStyle } from '@FluxServer/profiles/drawAvatar';
+import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt';
+import type { ProfileService } from '@FluxServer/profiles/ProfileService';
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 /**
  * The header a browser names the watching profile in.
  */
-const PROFILE_HEADER = 'x-flux-profile'
+const PROFILE_HEADER = 'x-flux-profile';
 
 /**
  * Reads a single byte range out of a request.
@@ -83,40 +83,40 @@ const readByteRange = (
   header: string | undefined,
   size: number,
 ): { from: number; to: number } | null => {
-  const match = /^bytes=(?<from>\d+)-(?<to>\d*)$/.exec(header ?? '')
+  const match = /^bytes=(?<from>\d+)-(?<to>\d*)$/.exec(header ?? '');
 
   if (match?.groups === undefined) {
-    return null
+    return null;
   }
 
-  const from = Number(match.groups.from)
-  const to = match.groups.to === '' ? size - 1 : Number(match.groups.to)
+  const from = Number(match.groups.from);
+  const to = match.groups.to === '' ? size - 1 : Number(match.groups.to);
 
-  return from >= size || from > to ? null : { from, to: Math.min(to, size - 1) }
-}
+  return from >= size || from > to ? null : { from, to: Math.min(to, size - 1) };
+};
 
 /**
  * What signing in by face carries.
  */
-const SignInBodySchema = z.object({ password: z.string().min(1) })
+const SignInBodySchema = z.object({ password: z.string().min(1) });
 
-const SERVER_VERSION = '0.0.0'
+const SERVER_VERSION = '0.0.0';
 
 type CreateAppOptions = {
-  auth: FluxAuth
-  settings: SettingsStore
-  countUsers: () => Promise<number>
-  promoteToAdmin: (email: string) => Promise<void>
-  library: LibraryService
-  playback: PlaybackService
-  subtitles: SubtitleService
-  segments: SegmentService
-  progress: WatchProgressService
-  favourites: FavouriteService
+  auth: FluxAuth;
+  settings: SettingsStore;
+  countUsers: () => Promise<number>;
+  promoteToAdmin: (email: string) => Promise<void>;
+  library: LibraryService;
+  playback: PlaybackService;
+  subtitles: SubtitleService;
+  segments: SegmentService;
+  progress: WatchProgressService;
+  favourites: FavouriteService;
   /**
    * The people using each account.
    */
-  profiles?: ProfileService
+  profiles?: ProfileService;
   /**
    * Gives a profile an account of its own.
    *
@@ -124,33 +124,33 @@ type CreateAppOptions = {
    * business and it owns how a password becomes a credential.
    */
   promoteProfile?: (request: {
-    profileId: string
-    email: string
-    password: string
+    profileId: string;
+    email: string;
+    password: string;
   }) => Promise<
     { kind: 'promoted'; profile: ViewerProfile } | { kind: 'taken' } | { kind: 'missing' }
-  >
+  >;
   /**
    * Everyone with an account, for the administration page.
    */
   listUsers?: () => Promise<
     { id: string; name: string; email: string; role: string | null; createdAt: string }[]
-  >
-  capabilities?: () => Promise<{ ffmpegVersion: string; hardwareAccels: string[] }>
+  >;
+  capabilities?: () => Promise<{ ffmpegVersion: string; hardwareAccels: string[] }>;
   /**
    * What the media service is doing right now.
    */
-  monitor?: () => Promise<JsonValue>
-  monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>
+  monitor?: () => Promise<JsonValue>;
+  monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>;
   /**
    * Reads artwork from Flux's own cache, fetching it once if needed.
    *
    * Optional because an instance with no metadata provider configured has no
    * artwork to serve.
    */
-  readImage?: (url: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>
-  isTranscoderReachable?: () => Promise<boolean>
-}
+  readImage?: (url: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>;
+  isTranscoderReachable?: () => Promise<boolean>;
+};
 
 /**
  * Builds the Flux HTTP application.
@@ -182,12 +182,12 @@ const createApp = ({
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
 }: CreateAppOptions) => {
-  const app = new OpenAPIHono()
+  const app = new OpenAPIHono();
 
-  app.on(['GET', 'POST'], '/api/auth/*', (context) => auth.handler(context.req.raw))
+  app.on(['GET', 'POST'], '/api/auth/*', (context) => auth.handler(context.req.raw));
 
   app.openapi(setupStatusRoute, async (context) => {
-    const detectedOrigin = new URL(context.req.url).origin
+    const detectedOrigin = new URL(context.req.url).origin;
 
     return context.json(
       {
@@ -197,56 +197,56 @@ const createApp = ({
         suggestedTrustedOrigins: suggestTrustedOrigins(detectedOrigin),
       },
       200,
-    )
-  })
+    );
+  });
 
   app.openapi(setupCompleteRoute, async (context) => {
     if ((await countUsers()) > 0) {
-      return context.json({ error: 'Setup has already been completed.' }, 409)
+      return context.json({ error: 'Setup has already been completed.' }, 409);
     }
 
-    const { admin, trustedOrigins, cookieSecure } = context.req.valid('json')
+    const { admin, trustedOrigins, cookieSecure } = context.req.valid('json');
 
     const created = await auth.api.signUpEmail({
       body: { name: admin.name, email: admin.email, password: admin.password },
       asResponse: true,
-    })
+    });
 
     if (!created.ok) {
-      return context.json({ error: 'The administrator account could not be created.' }, 400)
+      return context.json({ error: 'The administrator account could not be created.' }, 400);
     }
 
-    await promoteToAdmin(admin.email)
+    await promoteToAdmin(admin.email);
 
-    const previous = await settings.read()
+    const previous = await settings.read();
 
     await settings.write({
       trustedOrigins,
       cookieSecure,
       setupCompletedAt: new Date().toISOString(),
-    })
+    });
 
     return context.json(
       { isComplete: true, restartRequired: previous.cookieSecure !== cookieSecure },
       200,
-    )
-  })
+    );
+  });
 
-  app.openapi(listLibrariesRoute, async (context) => context.json(await library.list(), 200))
+  app.openapi(listLibrariesRoute, async (context) => context.json(await library.list(), 200));
 
   app.openapi(createLibraryRoute, async (context) => {
-    const created = await library.create(context.req.valid('json'))
+    const created = await library.create(context.req.valid('json'));
 
     if (created === null) {
-      return context.json({ error: 'That path is not a readable directory.' }, 400)
+      return context.json({ error: 'That path is not a readable directory.' }, 400);
     }
 
-    return context.json(created, 201)
-  })
+    return context.json(created, 201);
+  });
 
   app.openapi(listItemsRoute, async (context) => {
-    const { id } = context.req.valid('param')
-    const { search, kind, genre, ids, order, limit, offset } = context.req.valid('query')
+    const { id } = context.req.valid('param');
+    const { search, kind, genre, ids, order, limit, offset } = context.req.valid('query');
 
     const page = await library.listItems(id, {
       ...(search === undefined ? {} : { search }),
@@ -258,78 +258,78 @@ const createApp = ({
       ...(order === undefined ? {} : { order }),
       limit: limit ?? DEFAULT_LIMIT,
       offset: offset ?? 0,
-    })
+    });
 
     if (page === null) {
-      return context.json({ error: 'No such library.' }, 404)
+      return context.json({ error: 'No such library.' }, 404);
     }
 
-    return context.json(page, 200)
-  })
+    return context.json(page, 200);
+  });
 
   app.openapi(listShowsRoute, async (context) => {
-    const shows = await library.listShows(context.req.valid('param').id)
+    const shows = await library.listShows(context.req.valid('param').id);
 
     if (shows === null) {
-      return context.json({ error: 'No such library.' }, 404)
+      return context.json({ error: 'No such library.' }, 404);
     }
 
-    return context.json({ shows }, 200)
-  })
+    return context.json({ shows }, 200);
+  });
 
   app.openapi(getShowRoute, async (context) => {
-    const { id, showId } = context.req.valid('param')
-    const show = await library.getShow(id, showId)
+    const { id, showId } = context.req.valid('param');
+    const show = await library.getShow(id, showId);
 
     if (show === null) {
-      return context.json({ error: 'No such series.' }, 404)
+      return context.json({ error: 'No such series.' }, 404);
     }
 
-    return context.json(show, 200)
-  })
+    return context.json(show, 200);
+  });
 
   app.openapi(getMediaRoute, async (context) => {
-    const item = await library.getMedia(context.req.valid('param').id)
+    const item = await library.getMedia(context.req.valid('param').id);
 
     if (item === null) {
-      return context.json({ error: 'No such item.' }, 404)
+      return context.json({ error: 'No such item.' }, 404);
     }
 
-    return context.json(item, 200)
-  })
+    return context.json(item, 200);
+  });
 
   app.openapi(scanLibraryRoute, async (context) => {
     const queued = await library.scan(
       context.req.valid('param').id,
       context.req.valid('query').force === 'true',
-    )
+    );
 
     if (queued === null) {
-      return context.json({ error: 'No such library.' }, 404)
+      return context.json({ error: 'No such library.' }, 404);
     }
 
-    return context.json(queued, 202)
-  })
+    return context.json(queued, 202);
+  });
 
   app.openapi(scanStateRoute, async (context) => {
-    const { jobId } = context.req.valid('param')
-    const { state, phase, processed, total } = await library.readScanState(jobId)
+    const { jobId } = context.req.valid('param');
+    const { state, phase, processed, total } = await library.readScanState(jobId);
 
-    return context.json({ jobId, state, phase, processed, total }, 200)
-  })
+    return context.json({ jobId, state, phase, processed, total }, 200);
+  });
 
   app.openapi(resetLibraryRoute, async (context) => {
-    const reset = await library.reset(context.req.valid('param').id)
+    const reset = await library.reset(context.req.valid('param').id);
 
     if (reset === null) {
-      return context.json({ error: 'No such library.' }, 404)
+      return context.json({ error: 'No such library.' }, 404);
     }
 
-    return context.json(reset, 202)
-  })
+    return context.json(reset, 202);
+  });
 
   app.openapi(healthRoute, async (context) => {
-    const transcoderReachable = await isTranscoderReachable()
+    const transcoderReachable = await isTranscoderReachable();
 
     return context.json(
       {
@@ -342,26 +342,26 @@ const createApp = ({
         transcoderReachable,
       },
       200,
-    )
-  })
+    );
+  });
 
   app.openapi(explainRoute, async (context) => {
-    const { mediaId } = context.req.valid('param')
-    const { deviceProfile, requestedQuality } = context.req.valid('json')
+    const { mediaId } = context.req.valid('param');
+    const { deviceProfile, requestedQuality } = context.req.valid('json');
 
-    const explanation = await playback.explain(mediaId, deviceProfile, requestedQuality)
+    const explanation = await playback.explain(mediaId, deviceProfile, requestedQuality);
 
     if (explanation === null) {
-      return context.json({ error: 'No such media item.' }, 404)
+      return context.json({ error: 'No such media item.' }, 404);
     }
 
-    return context.json(explanation, 200)
-  })
+    return context.json(explanation, 200);
+  });
 
   app.openapi(startRoute, async (context) => {
-    const { mediaId } = context.req.valid('param')
+    const { mediaId } = context.req.valid('param');
     const { deviceProfile, startSeconds, audioStreamIndex, requestedQuality } =
-      context.req.valid('json')
+      context.req.valid('json');
 
     const outcome = await playback.start(
       mediaId,
@@ -369,81 +369,81 @@ const createApp = ({
       startSeconds ?? 0,
       audioStreamIndex,
       requestedQuality,
-    )
+    );
 
     if (outcome.kind === 'notFound') {
-      return context.json({ error: 'No such media item.' }, 404)
+      return context.json({ error: 'No such media item.' }, 404);
     }
 
     if (outcome.kind === 'unsupported') {
-      return context.json({ error: outcome.reason }, 422)
+      return context.json({ error: outcome.reason }, 422);
     }
 
     if (outcome.kind === 'failed') {
-      return context.json({ error: outcome.reason }, 500)
+      return context.json({ error: outcome.reason }, 500);
     }
 
-    return context.json(outcome.session, 200)
-  })
+    return context.json(outcome.session, 200);
+  });
 
   app.openapi(sessionFileRoute, async (context) => {
-    const { sessionId, name } = context.req.valid('param')
+    const { sessionId, name } = context.req.valid('param');
 
-    const file = await playback.readSessionFile(sessionId, name)
+    const file = await playback.readSessionFile(sessionId, name);
 
     if (file === null) {
-      return context.json({ error: 'No such session or segment.' }, 404)
+      return context.json({ error: 'No such session or segment.' }, 404);
     }
 
-    return context.body(file.body, 200, { 'content-type': file.contentType })
-  })
+    return context.body(file.body, 200, { 'content-type': file.contentType });
+  });
 
   app.openapi(directFileRoute, async (context) => {
-    const { mediaId } = context.req.valid('param')
-    const range = context.req.header('range') ?? null
+    const { mediaId } = context.req.valid('param');
+    const range = context.req.header('range') ?? null;
 
-    const file = await playback.readDirectFile(mediaId, range)
+    const file = await playback.readDirectFile(mediaId, range);
 
     if (file === null) {
-      return context.json({ error: 'No such media item.' }, 404)
+      return context.json({ error: 'No such media item.' }, 404);
     }
 
     const headers: Record<string, string> = {
       'content-type': file.contentType,
       'accept-ranges': 'bytes',
-    }
+    };
 
     if (file.contentRange !== null) {
-      headers['content-range'] = file.contentRange
+      headers['content-range'] = file.contentRange;
     }
 
-    return context.body(file.body, file.status === 206 ? 206 : 200, headers)
-  })
+    return context.body(file.body, file.status === 206 ? 206 : 200, headers);
+  });
 
   app.openapi(trickplayRoute, async (context) => {
-    const { mediaId } = context.req.valid('param')
+    const { mediaId } = context.req.valid('param');
 
     try {
-      const thumbnails = await playback.trickplay(mediaId)
+      const thumbnails = await playback.trickplay(mediaId);
 
       if (thumbnails === null) {
-        return context.json({ error: 'No such media item.' }, 404)
+        return context.json({ error: 'No such media item.' }, 404);
       }
 
-      return context.json(thumbnails, 200)
+      return context.json(thumbnails, 200);
     } catch {
-      return context.json({ error: 'The thumbnails could not be rendered.' }, 500)
+      return context.json({ error: 'The thumbnails could not be rendered.' }, 500);
     }
-  })
+  });
 
   app.openapi(frameRoute, async (context) => {
-    const { mediaId } = context.req.valid('param')
-    const { seconds, width } = context.req.valid('query')
+    const { mediaId } = context.req.valid('param');
+    const { seconds, width } = context.req.valid('query');
 
-    const frame = await playback.readFrame(mediaId, seconds, width)
+    const frame = await playback.readFrame(mediaId, seconds, width);
 
     if (frame === null) {
-      return context.json({ error: 'No frame there.' }, 404)
+      return context.json({ error: 'No frame there.' }, 404);
     }
 
     // A frame is decided by the file and the position, neither of which
@@ -451,8 +451,8 @@ const createApp = ({
     return context.body(frame, 200, {
       'content-type': 'image/jpeg',
       'cache-control': 'public, max-age=31536000, immutable',
-    })
-  })
+    });
+  });
 
   /**
    * The short clip a library page plays for an item.
@@ -462,24 +462,24 @@ const createApp = ({
    * clip is made in the background and the page shows a still until it exists.
    */
   app.get('/api/media/:mediaId/preview', async (context) => {
-    const clip = await playback.readPreview(context.req.param('mediaId')).catch(() => null)
+    const clip = await playback.readPreview(context.req.param('mediaId')).catch(() => null);
 
     if (clip === null) {
-      return context.json({ error: 'No preview yet.' }, 404)
+      return context.json({ error: 'No preview yet.' }, 404);
     }
 
     // Media elements ask for byte ranges, and some browsers will not play a
     // response that cannot answer one. The clip is small enough to hold, so
     // the range is served from what was already read rather than by reaching
     // for the file again.
-    const range = readByteRange(context.req.header('range'), clip.body.byteLength)
+    const range = readByteRange(context.req.header('range'), clip.body.byteLength);
 
     if (range === null) {
       return context.body(clip.body, 200, {
         'content-type': clip.contentType,
         'accept-ranges': 'bytes',
         'cache-control': 'public, max-age=86400',
-      })
+      });
     }
 
     return context.body(clip.body.slice(range.from, range.to + 1), 206, {
@@ -487,20 +487,20 @@ const createApp = ({
       'accept-ranges': 'bytes',
       'content-range': `bytes ${range.from.toString()}-${range.to.toString()}/${clip.body.byteLength.toString()}`,
       'cache-control': 'public, max-age=86400',
-    })
-  })
+    });
+  });
 
   app.openapi(trickplayFileRoute, async (context) => {
-    const { trickplayId, name } = context.req.valid('param')
+    const { trickplayId, name } = context.req.valid('param');
 
-    const file = await playback.readTrickplayFile(trickplayId, name)
+    const file = await playback.readTrickplayFile(trickplayId, name);
 
     if (file === null) {
-      return context.json({ error: 'No such thumbnails.' }, 404)
+      return context.json({ error: 'No such thumbnails.' }, 404);
     }
 
-    return context.body(file.body, 200, { 'content-type': file.contentType })
-  })
+    return context.body(file.body, 200, { 'content-type': file.contentType });
+  });
 
   /**
    * Who is asking.
@@ -520,21 +520,21 @@ const createApp = ({
    * an error.
    */
   const readProfileId = async (headers: Headers): Promise<string | null> => {
-    const session = await auth.api.getSession({ headers }).catch(() => null)
-    const viewer = session?.user
+    const session = await auth.api.getSession({ headers }).catch(() => null);
+    const viewer = session?.user;
 
     if (viewer === undefined || profiles === undefined) {
-      return null
+      return null;
     }
 
-    const named = headers.get(PROFILE_HEADER)
+    const named = headers.get(PROFILE_HEADER);
 
     if (named !== null && (await profiles.belongsTo(viewer.id, named))) {
-      return named
+      return named;
     }
 
-    return (await profiles.ensureDefault(viewer.id, viewer.name)).id
-  }
+    return (await profiles.ensureDefault(viewer.id, viewer.name)).id;
+  };
 
   /**
    * Whether the viewer administers the server.
@@ -543,117 +543,117 @@ const createApp = ({
    * that hides a section is a courtesy, not a permission.
    */
   const isAdministrator = async (headers: Headers): Promise<boolean> => {
-    const session = await auth.api.getSession({ headers }).catch(() => null)
+    const session = await auth.api.getSession({ headers }).catch(() => null);
 
-    return session?.user.role === 'admin'
-  }
+    return session?.user.role === 'admin';
+  };
 
   /**
    * Who is signed in, for the routes that act on their own account.
    */
   const readAccount = async (headers: Headers) => {
-    const session = await auth.api.getSession({ headers }).catch(() => null)
+    const session = await auth.api.getSession({ headers }).catch(() => null);
 
-    return session?.user ?? null
-  }
+    return session?.user ?? null;
+  };
 
   app.openapi(listProfilesRoute, async (context) => {
-    const account = await readAccount(context.req.raw.headers)
+    const account = await readAccount(context.req.raw.headers);
 
     if (account === null || profiles === undefined) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
     // Asked for a default first, so an account that has never thought about
     // profiles still answers with the one it is really using.
-    await profiles.ensureDefault(account.id, account.name)
+    await profiles.ensureDefault(account.id, account.name);
 
-    return context.json({ profiles: await profiles.list(account.id) }, 200)
-  })
+    return context.json({ profiles: await profiles.list(account.id) }, 200);
+  });
 
   app.openapi(createProfileRoute, async (context) => {
-    const account = await readAccount(context.req.raw.headers)
+    const account = await readAccount(context.req.raw.headers);
 
     if (account === null || profiles === undefined) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    const { name, colour, avatar } = context.req.valid('json')
+    const { name, colour, avatar } = context.req.valid('json');
 
     try {
       const created = await profiles.create(account.id, {
         name,
         colour,
         ...(avatar === undefined ? {} : { avatar }),
-      })
+      });
 
-      return context.json(created, 201)
+      return context.json(created, 201);
     } catch (error) {
       return context.json(
         { error: error instanceof Error ? error.message : 'That profile could not be added.' },
         409,
-      )
+      );
     }
-  })
+  });
 
   app.openapi(updateProfileRoute, async (context) => {
-    const account = await readAccount(context.req.raw.headers)
+    const account = await readAccount(context.req.raw.headers);
 
     if (account === null || profiles === undefined) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    const { name, colour, avatar } = context.req.valid('json')
+    const { name, colour, avatar } = context.req.valid('json');
 
     const changed = await profiles.rename(account.id, context.req.valid('param').profileId, {
       name,
       colour,
       ...(avatar === undefined ? {} : { avatar }),
-    })
+    });
 
     return changed
       ? context.body(null, 204)
-      : context.json({ error: 'No such profile on this account.' }, 404)
-  })
+      : context.json({ error: 'No such profile on this account.' }, 404);
+  });
 
   app.openapi(deleteProfileRoute, async (context) => {
-    const account = await readAccount(context.req.raw.headers)
+    const account = await readAccount(context.req.raw.headers);
 
     if (account === null || profiles === undefined) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    const removed = await profiles.remove(account.id, context.req.valid('param').profileId)
+    const removed = await profiles.remove(account.id, context.req.valid('param').profileId);
 
     return removed
       ? context.body(null, 204)
-      : context.json({ error: 'No such profile, or it is the only one left.' }, 404)
-  })
+      : context.json({ error: 'No such profile, or it is the only one left.' }, 404);
+  });
 
   app.openapi(promoteProfileRoute, async (context) => {
     if (!(await isAdministrator(context.req.raw.headers))) {
-      return context.json({ error: 'That is for administrators.' }, 403)
+      return context.json({ error: 'That is for administrators.' }, 403);
     }
 
     if (profiles === undefined || promoteProfile === undefined) {
-      return context.json({ error: 'No such profile.' }, 404)
+      return context.json({ error: 'No such profile.' }, 404);
     }
 
-    const { profileId } = context.req.valid('param')
-    const { email, password } = context.req.valid('json')
+    const { profileId } = context.req.valid('param');
+    const { email, password } = context.req.valid('json');
 
-    const outcome = await promoteProfile({ profileId, email, password })
+    const outcome = await promoteProfile({ profileId, email, password });
 
     if (outcome.kind === 'taken') {
-      return context.json({ error: 'That address already has an account.' }, 409)
+      return context.json({ error: 'That address already has an account.' }, 409);
     }
 
     if (outcome.kind === 'missing') {
-      return context.json({ error: 'No such profile.' }, 404)
+      return context.json({ error: 'No such profile.' }, 404);
     }
 
-    return context.json(outcome.profile, 200)
-  })
+    return context.json(outcome.profile, 200);
+  });
 
   /**
    * A profile's picture.
@@ -664,22 +664,22 @@ const createApp = ({
    * for one is already only known to whoever can list them.
    */
   app.get('/api/profiles/:profileId/avatar', async (context) => {
-    const picture = await profiles?.readAvatar(context.req.param('profileId'))
+    const picture = await profiles?.readAvatar(context.req.param('profileId'));
 
     if (picture === undefined || picture === null) {
-      return context.json({ error: 'That profile has no picture.' }, 404)
+      return context.json({ error: 'That profile has no picture.' }, 404);
     }
 
     // Asked for by version, the answer can never go stale: changing a picture
     // changes its address. Asked for without one, it is remembered for a
     // minute at most, because then the address outlives the picture.
-    const isVersioned = context.req.query('v') !== undefined
+    const isVersioned = context.req.query('v') !== undefined;
 
     return context.body(picture.body.slice().buffer, 200, {
       'content-type': picture.contentType,
       'cache-control': isVersioned ? 'private, max-age=31536000, immutable' : 'private, max-age=60',
-    })
-  })
+    });
+  });
 
   /**
    * Everybody who could sign in.
@@ -690,10 +690,10 @@ const createApp = ({
    * account, and it is never sent.
    */
   app.get('/api/profiles/everyone', async (context) => {
-    const everyone = await profiles?.listEveryone()
+    const everyone = await profiles?.listEveryone();
 
-    return context.json({ profiles: everyone ?? [] }, 200)
-  })
+    return context.json({ profiles: everyone ?? [] }, 200);
+  });
 
   /**
    * Signs somebody in by their face rather than their address.
@@ -705,30 +705,30 @@ const createApp = ({
    */
   app.post('/api/profiles/:profileId/sign-in', async (context) => {
     if (profiles === undefined) {
-      return context.json({ error: 'No such profile.' }, 404)
+      return context.json({ error: 'No such profile.' }, 404);
     }
 
     // Read as text and parsed here, because the router's own JSON reader is
     // typed as anything and untrusted input enters through a schema.
-    const body = await context.req.text().catch(() => '')
-    const parsed = SignInBodySchema.safeParse(JsonValueSchema.parse(JSON.parse(body || 'null')))
+    const body = await context.req.text().catch(() => '');
+    const parsed = SignInBodySchema.safeParse(JsonValueSchema.parse(JSON.parse(body || 'null')));
 
     if (!parsed.success) {
-      return context.json({ error: 'A password is required.' }, 400)
+      return context.json({ error: 'A password is required.' }, 400);
     }
 
-    const email = await profiles.findSignInEmail(context.req.param('profileId'))
+    const email = await profiles.findSignInEmail(context.req.param('profileId'));
 
     if (email === null) {
-      return context.json({ error: 'No such profile.' }, 404)
+      return context.json({ error: 'No such profile.' }, 404);
     }
 
     return auth.api.signInEmail({
       body: { email, password: parsed.data.password },
       asResponse: true,
       headers: context.req.raw.headers,
-    })
-  })
+    });
+  });
 
   /**
    * Draws a face that nobody has chosen yet.
@@ -738,11 +738,11 @@ const createApp = ({
    * avatar ever is.
    */
   app.get('/api/profiles/avatars/:style', (context) => {
-    const style = context.req.param('style')
-    const seed = context.req.query('seed') ?? 'flux'
+    const style = context.req.param('style');
+    const seed = context.req.query('seed') ?? 'flux';
 
     if (!isAvatarStyle(style)) {
-      return context.json({ error: 'No such style.' }, 404)
+      return context.json({ error: 'No such style.' }, 404);
     }
 
     return context.body(drawAvatar(style, seed), 200, {
@@ -750,8 +750,8 @@ const createApp = ({
       // The same style and seed always draw the same face, so this is worth
       // keeping for as long as a browser will.
       'cache-control': 'public, max-age=86400',
-    })
-  })
+    });
+  });
 
   /**
    * Uploads a photograph for a profile.
@@ -760,25 +760,25 @@ const createApp = ({
    * no other fields, and multipart parsing to find it would be ceremony.
    */
   app.put('/api/profiles/:profileId/photo', async (context) => {
-    const account = await readAccount(context.req.raw.headers)
+    const account = await readAccount(context.req.raw.headers);
 
     if (account === null || profiles === undefined) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
     const saved = await profiles.savePhoto(account.id, context.req.param('profileId'), {
       body: new Uint8Array(await context.req.arrayBuffer()),
       contentType: context.req.header('content-type') ?? '',
-    })
+    });
 
     return saved
       ? context.body(null, 204)
-      : context.json({ error: 'That picture could not be used.' }, 400)
-  })
+      : context.json({ error: 'That picture could not be used.' }, 400);
+  });
 
   app.openapi(adminOverviewRoute, async (context) => {
     if (!(await isAdministrator(context.req.raw.headers))) {
-      return context.json({ error: 'That is for administrators.' }, 403)
+      return context.json({ error: 'That is for administrators.' }, 403);
     }
 
     const [users, current, libraries, transcoderCapabilities] = await Promise.all([
@@ -786,7 +786,7 @@ const createApp = ({
       settings.read(),
       library.list(),
       capabilities?.().catch(() => null) ?? Promise.resolve(null),
-    ])
+    ]);
 
     return context.json(
       {
@@ -807,19 +807,19 @@ const createApp = ({
         },
       },
       200,
-    )
-  })
+    );
+  });
 
   app.openapi(adminSettingsRoute, async (context) => {
     if (!(await isAdministrator(context.req.raw.headers))) {
-      return context.json({ error: 'That is for administrators.' }, 403)
+      return context.json({ error: 'That is for administrators.' }, 403);
     }
 
-    const patch = context.req.valid('json')
+    const patch = context.req.valid('json');
 
     const updated = await settings.write(
       patch.catalogueApiKey === undefined ? {} : { catalogueApiKey: patch.catalogueApiKey },
-    )
+    );
 
     return context.json(
       {
@@ -828,8 +828,8 @@ const createApp = ({
         cookieSecure: updated.cookieSecure,
       },
       200,
-    )
-  })
+    );
+  });
 
   /**
    * Everywhere this account is signed in.
@@ -839,14 +839,14 @@ const createApp = ({
    * that was replaced, a browser on a machine at work.
    */
   app.openapi(listDevicesRoute, async (context) => {
-    const headers = context.req.raw.headers
-    const session = await auth.api.getSession({ headers }).catch(() => null)
+    const headers = context.req.raw.headers;
+    const session = await auth.api.getSession({ headers }).catch(() => null);
 
     if (session === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    const held = await auth.api.listSessions({ headers }).catch(() => [])
+    const held = await auth.api.listSessions({ headers }).catch(() => []);
 
     return context.json(
       {
@@ -862,8 +862,8 @@ const createApp = ({
         })),
       },
       200,
-    )
-  })
+    );
+  });
 
   /**
    * Ends one of them.
@@ -873,24 +873,26 @@ const createApp = ({
    * travels to a page that lists them.
    */
   app.openapi(endDeviceRoute, async (context) => {
-    const headers = context.req.raw.headers
-    const session = await auth.api.getSession({ headers }).catch(() => null)
+    const headers = context.req.raw.headers;
+    const session = await auth.api.getSession({ headers }).catch(() => null);
 
     if (session === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    const held = await auth.api.listSessions({ headers }).catch(() => [])
-    const asked = held.find((one) => one.id === context.req.valid('param').id)
+    const held = await auth.api.listSessions({ headers }).catch(() => []);
+    const asked = held.find((one) => one.id === context.req.valid('param').id);
 
     if (asked !== undefined) {
-      await auth.api.revokeSession({ headers, body: { token: asked.token } }).catch(() => undefined)
+      await auth.api
+        .revokeSession({ headers, body: { token: asked.token } })
+        .catch(() => undefined);
     }
 
     // The same answer either way: whether it was already gone or never
     // existed, what the asker wanted is now true.
-    return context.body(null, 204)
-  })
+    return context.body(null, 204);
+  });
 
   /**
    * Ends all of them but this one.
@@ -900,17 +902,17 @@ const createApp = ({
    * everything else out is its own small disaster.
    */
   app.openapi(endOtherDevicesRoute, async (context) => {
-    const headers = context.req.raw.headers
-    const session = await auth.api.getSession({ headers }).catch(() => null)
+    const headers = context.req.raw.headers;
+    const session = await auth.api.getSession({ headers }).catch(() => null);
 
     if (session === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    await auth.api.revokeOtherSessions({ headers }).catch(() => undefined)
+    await auth.api.revokeOtherSessions({ headers }).catch(() => undefined);
 
-    return context.body(null, 204)
-  })
+    return context.body(null, 204);
+  });
 
   /**
    * What the media service is doing at this moment.
@@ -922,19 +924,19 @@ const createApp = ({
    */
   app.get('/api/admin/monitor', async (context) => {
     if (!(await isAdministrator(context.req.raw.headers))) {
-      return context.json({ error: 'That is for administrators.' }, 403)
+      return context.json({ error: 'That is for administrators.' }, 403);
     }
 
-    const reading = await monitor?.().catch(() => null)
+    const reading = await monitor?.().catch(() => null);
 
     if (reading === null || reading === undefined) {
-      return context.json({ error: 'The media service did not answer.' }, 503)
+      return context.json({ error: 'The media service did not answer.' }, 503);
     }
 
     return new Response(JSON.stringify(reading), {
       headers: { 'content-type': 'application/json' },
-    })
-  })
+    });
+  });
 
   /**
    * The same reading, over and over, for a page that wants to watch.
@@ -945,13 +947,13 @@ const createApp = ({
    */
   app.get('/api/admin/monitor/stream', async (context) => {
     if (!(await isAdministrator(context.req.raw.headers))) {
-      return context.json({ error: 'That is for administrators.' }, 403)
+      return context.json({ error: 'That is for administrators.' }, 403);
     }
 
-    const stream = await monitorStream?.().catch(() => null)
+    const stream = await monitorStream?.().catch(() => null);
 
     if (stream === null || stream === undefined) {
-      return context.json({ error: 'The media service did not answer.' }, 503)
+      return context.json({ error: 'The media service did not answer.' }, 503);
     }
 
     return new Response(stream, {
@@ -960,114 +962,114 @@ const createApp = ({
         'cache-control': 'no-cache',
         connection: 'keep-alive',
       },
-    })
-  })
+    });
+  });
 
   app.openapi(listProgressRoute, async (context) => {
-    const profileId = await readProfileId(context.req.raw.headers)
+    const profileId = await readProfileId(context.req.raw.headers);
 
     if (profileId === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    return context.json({ progress: await progress.list(profileId) }, 200)
-  })
+    return context.json({ progress: await progress.list(profileId) }, 200);
+  });
 
   app.openapi(recordProgressRoute, async (context) => {
-    const profileId = await readProfileId(context.req.raw.headers)
+    const profileId = await readProfileId(context.req.raw.headers);
 
     if (profileId === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    const { mediaId } = context.req.valid('param')
+    const { mediaId } = context.req.valid('param');
 
     if ((await library.getMedia(mediaId)) === null) {
-      return context.json({ error: 'No such media item.' }, 404)
+      return context.json({ error: 'No such media item.' }, 404);
     }
 
-    const report = context.req.valid('json')
+    const report = context.req.valid('json');
 
-    await progress.record(profileId, { mediaId, ...report })
+    await progress.record(profileId, { mediaId, ...report });
 
-    return context.body(null, 204)
-  })
+    return context.body(null, 204);
+  });
 
   app.openapi(forgetProgressRoute, async (context) => {
-    const profileId = await readProfileId(context.req.raw.headers)
+    const profileId = await readProfileId(context.req.raw.headers);
 
     if (profileId === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    await progress.forget(profileId, context.req.valid('param').mediaId)
+    await progress.forget(profileId, context.req.valid('param').mediaId);
 
-    return context.body(null, 204)
-  })
+    return context.body(null, 204);
+  });
 
   app.openapi(listFavouritesRoute, async (context) => {
-    const profileId = await readProfileId(context.req.raw.headers)
+    const profileId = await readProfileId(context.req.raw.headers);
 
     if (profileId === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    return context.json({ favourites: await favourites.list(profileId) }, 200)
-  })
+    return context.json({ favourites: await favourites.list(profileId) }, 200);
+  });
 
   app.openapi(keepFavouriteRoute, async (context) => {
-    const profileId = await readProfileId(context.req.raw.headers)
+    const profileId = await readProfileId(context.req.raw.headers);
 
     if (profileId === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    const { mediaId } = context.req.valid('param')
+    const { mediaId } = context.req.valid('param');
 
     if ((await library.getMedia(mediaId)) === null) {
-      return context.json({ error: 'No such media item.' }, 404)
+      return context.json({ error: 'No such media item.' }, 404);
     }
 
-    await favourites.keep(profileId, mediaId)
+    await favourites.keep(profileId, mediaId);
 
-    return context.body(null, 204)
-  })
+    return context.body(null, 204);
+  });
 
   app.openapi(dropFavouriteRoute, async (context) => {
-    const profileId = await readProfileId(context.req.raw.headers)
+    const profileId = await readProfileId(context.req.raw.headers);
 
     if (profileId === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401)
+      return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    await favourites.drop(profileId, context.req.valid('param').mediaId)
+    await favourites.drop(profileId, context.req.valid('param').mediaId);
 
-    return context.body(null, 204)
-  })
+    return context.body(null, 204);
+  });
 
   app.openapi(listSegmentsRoute, async (context) => {
-    const { mediaId } = context.req.valid('param')
+    const { mediaId } = context.req.valid('param');
 
     if ((await library.getMedia(mediaId)) === null) {
-      return context.json({ error: 'No such media item.' }, 404)
+      return context.json({ error: 'No such media item.' }, 404);
     }
 
-    return context.json({ segments: await segments.list(mediaId) }, 200)
-  })
+    return context.json({ segments: await segments.list(mediaId) }, 200);
+  });
 
   app.openapi(mediaImageRoute, async (context) => {
-    const { mediaId, kind } = context.req.valid('param')
+    const { mediaId, kind } = context.req.valid('param');
 
-    const url = await library.readArtworkUrl(mediaId, kind)
+    const url = await library.readArtworkUrl(mediaId, kind);
 
     if (url === null || readImage === undefined) {
-      return context.json({ error: 'No artwork for that item.' }, 404)
+      return context.json({ error: 'No artwork for that item.' }, 404);
     }
 
-    const image = await readImage(url)
+    const image = await readImage(url);
 
     if (image === null) {
-      return context.json({ error: 'That artwork could not be read.' }, 404)
+      return context.json({ error: 'That artwork could not be read.' }, 404);
     }
 
     return context.body(image.body, 200, {
@@ -1075,43 +1077,43 @@ const createApp = ({
       // Artwork for an item never changes without the item changing, so this
       // is worth keeping out of the network entirely.
       'cache-control': 'public, max-age=604800, immutable',
-    })
-  })
+    });
+  });
 
   app.openapi(listSubtitlesRoute, async (context) => {
-    const tracks = await subtitles.list(context.req.valid('param').mediaId)
+    const tracks = await subtitles.list(context.req.valid('param').mediaId);
 
     if (tracks === null) {
-      return context.json({ error: 'No such media item.' }, 404)
+      return context.json({ error: 'No such media item.' }, 404);
     }
 
-    return context.json({ tracks }, 200)
-  })
+    return context.json({ tracks }, 200);
+  });
 
   app.openapi(readSubtitleRoute, async (context) => {
-    const { mediaId, trackId } = context.req.valid('param')
-    const { from } = context.req.valid('query')
+    const { mediaId, trackId } = context.req.valid('param');
+    const { from } = context.req.valid('query');
 
-    const track = await subtitles.read(mediaId, trackId)
+    const track = await subtitles.read(mediaId, trackId);
 
     if (track === null) {
-      return context.json({ error: 'No such track.' }, 404)
+      return context.json({ error: 'No such track.' }, 404);
     }
 
     return context.body(shiftWebVtt(track, from), 200, {
       'content-type': 'text/vtt; charset=utf-8',
-    })
-  })
+    });
+  });
 
   app.openapi(stopRoute, async (context) => {
-    const stopped = await playback.stop(context.req.valid('param').sessionId)
+    const stopped = await playback.stop(context.req.valid('param').sessionId);
 
     if (!stopped) {
-      return context.json({ error: 'No such session.' }, 404)
+      return context.json({ error: 'No such session.' }, 404);
     }
 
-    return context.body(null, 204)
-  })
+    return context.body(null, 204);
+  });
 
   app.doc('/api/openapi.json', {
     openapi: '3.1.0',
@@ -1120,16 +1122,16 @@ const createApp = ({
       version: SERVER_VERSION,
       description: 'Self-hosted streaming platform API.',
     },
-  })
+  });
 
   app.get(
     '/api/reference',
     apiReference({ spec: { url: '/api/openapi.json' }, pageTitle: 'Flux API' }),
-  )
+  );
 
-  return app
-}
+  return app;
+};
 
-export type { CreateAppOptions }
+export type { CreateAppOptions };
 
-export { createApp, SERVER_VERSION }
+export { createApp, SERVER_VERSION };

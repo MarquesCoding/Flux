@@ -1,7 +1,7 @@
-import { Agent, fetch as undiciFetch } from 'undici'
-import { z } from 'zod'
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+import { Agent, fetch as undiciFetch } from 'undici';
+import { z } from 'zod';
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 /**
  * The part of a response Flux uses.
@@ -11,20 +11,20 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
  * assertion is needed to treat them alike.
  */
 type HttpResponse = {
-  ok: boolean
-  status: number
-  headers: { get: (name: string) => string | null }
-  json: () => Promise<JsonValue>
-  arrayBuffer: () => Promise<ArrayBuffer>
-}
+  ok: boolean;
+  status: number;
+  headers: { get: (name: string) => string | null };
+  json: () => Promise<JsonValue>;
+  arrayBuffer: () => Promise<ArrayBuffer>;
+};
 
 type HttpRequestInit = {
-  method?: string
-  headers?: Record<string, string>
-  body?: string
-}
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+};
 
-type FetchLike = (url: string, init?: HttpRequestInit) => Promise<HttpResponse>
+type FetchLike = (url: string, init?: HttpRequestInit) => Promise<HttpResponse>;
 
 const ProbeVideoSchema = z.object({
   index: z.number().int(),
@@ -34,7 +34,7 @@ const ProbeVideoSchema = z.object({
   range: z.string(),
   bitrateKbps: z.number().int().nullable(),
   bitDepth: z.number().int().nullable(),
-})
+});
 
 const ProbeAudioSchema = z.object({
   index: z.number().int(),
@@ -44,7 +44,7 @@ const ProbeAudioSchema = z.object({
   title: z.string().nullable().default(null),
   isDefault: z.boolean().default(false),
   isAtmos: z.boolean(),
-})
+});
 
 const ProbeSubtitleSchema = z.object({
   index: z.number().int(),
@@ -54,7 +54,7 @@ const ProbeSubtitleSchema = z.object({
   isDefault: z.boolean(),
   isForced: z.boolean(),
   isImageBased: z.boolean(),
-})
+});
 
 /**
  * What the media service reports about a file.
@@ -79,12 +79,12 @@ const MediaProbeSchema = z.object({
     )
     .default([]),
   subtitleStreams: z.array(ProbeSubtitleSchema),
-})
+});
 
 const SessionResponseSchema = z.object({
   id: z.string().min(1),
   manifest: z.string().min(1),
-})
+});
 
 const CapabilitiesSchema = z.object({
   ffmpegVersion: z.string(),
@@ -97,21 +97,21 @@ const CapabilitiesSchema = z.object({
     }),
   ),
   hardwareAccels: z.array(z.string()),
-})
+});
 
 const FingerprintSchema = z.object({
   framesPerSecond: z.number().positive(),
   startSeconds: z.number().nonnegative(),
   hashes: z.array(z.number()),
-})
+});
 
-const SubtitleTrackSchema = z.object({ content: z.string() })
+const SubtitleTrackSchema = z.object({ content: z.string() });
 
 const PreviewClipSchema = z.object({
   id: z.string(),
   url: z.string(),
   isReady: z.boolean(),
-})
+});
 
 const TrickplayIndexSchema = z.object({
   id: z.string(),
@@ -123,52 +123,53 @@ const TrickplayIndexSchema = z.object({
   sheets: z.array(z.string()),
   index: z.string(),
   isReady: z.boolean(),
-})
+});
 
-type MediaProbe = z.infer<typeof MediaProbeSchema>
-type Fingerprint = z.infer<typeof FingerprintSchema>
+type MediaProbe = z.infer<typeof MediaProbeSchema>;
+type Fingerprint = z.infer<typeof FingerprintSchema>;
 
 type FingerprintRequest = {
-  inputPath: string
-  startSeconds: number
-  durationSeconds: number
-}
-type TrickplayIndex = z.infer<typeof TrickplayIndexSchema>
+  inputPath: string;
+  startSeconds: number;
+  durationSeconds: number;
+};
+type TrickplayIndex = z.infer<typeof TrickplayIndexSchema>;
 
 type TrickplayRequest = {
-  inputPath: string
-  intervalSeconds: number
-  tileWidth: number
-  columns: number
-  rows: number
+  inputPath: string;
+  intervalSeconds: number;
+  tileWidth: number;
+  columns: number;
+  rows: number;
   /**
    * Whether the caller will wait for rendering to finish.
    *
    * An import waits. A player does not: a feature length film takes minutes,
    * and seek previews are not worth delaying the film for.
    */
-  wait?: boolean
-}
-type SessionResponse = z.infer<typeof SessionResponseSchema>
-type TranscoderCapabilities = z.infer<typeof CapabilitiesSchema>
+  wait?: boolean;
+};
+type SessionResponse = z.infer<typeof SessionResponseSchema>;
+type TranscoderCapabilities = z.infer<typeof CapabilitiesSchema>;
 
 type SessionSpec = {
-  inputPath: string
-  startSeconds: number
-  segmentSeconds: number
-  hardwareAccel: string
+  inputPath: string;
+  startSeconds: number;
+  segmentSeconds: number;
+  hardwareAccel: string;
   video:
     | { kind: 'copy' }
     | {
-        kind: 'encode'
-        encoder: string
-        maxBitrateKbps: number
-        maxWidth: number
-        maxHeight: number
-      }
+        kind: 'encode';
+        encoder: string;
+        maxBitrateKbps: number;
+        maxWidth: number;
+        maxHeight: number;
+      };
   audio:
-    { kind: 'copy' } | { kind: 'encode'; encoder: string; channels: number; maxBitrateKbps: number }
-}
+    | { kind: 'copy' }
+    | { kind: 'encode'; encoder: string; channels: number; maxBitrateKbps: number };
+};
 
 /**
  * The media service as the rest of the server sees it.
@@ -179,11 +180,11 @@ type SessionSpec = {
  * transcoding. See ADR-0006.
  */
 type Transcoder = {
-  isReachable: () => Promise<boolean>
-  probe: (path: string) => Promise<MediaProbe>
-  startSession: (spec: SessionSpec) => Promise<SessionResponse>
-  readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>
-  readFile: (path: string, range: string | null) => Promise<TranscoderRangedFile | null>
+  isReachable: () => Promise<boolean>;
+  probe: (path: string) => Promise<MediaProbe>;
+  startSession: (spec: SessionSpec) => Promise<SessionResponse>;
+  readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>;
+  readFile: (path: string, range: string | null) => Promise<TranscoderRangedFile | null>;
   /**
    * Renders seek-bar previews, or reuses ones already on disk.
    */
@@ -194,11 +195,11 @@ type Transcoder = {
    * arithmetic over them, and that belongs where it can be tested without
    * media.
    */
-  fingerprint: (request: FingerprintRequest) => Promise<Fingerprint>
+  fingerprint: (request: FingerprintRequest) => Promise<Fingerprint>;
   /**
    * Reads one subtitle track out of a container as WebVTT.
    */
-  readSubtitle: (request: { inputPath: string; streamIndex: number }) => Promise<string>
+  readSubtitle: (request: { inputPath: string; streamIndex: number }) => Promise<string>;
   /**
    * Reads what the media service is doing right now.
    *
@@ -207,22 +208,22 @@ type Transcoder = {
    * from, and a monitoring endpoint that stops working because it grew a
    * field is worse than one that shows an unexpected one.
    */
-  readMonitor: () => Promise<JsonValue>
+  readMonitor: () => Promise<JsonValue>;
   /**
    * Opens the stream of readings, for a page that wants to watch.
    *
    * Null when the media service cannot be reached, so a monitoring page can
    * say so rather than hanging on a connection that will never open.
    */
-  openMonitorStream: () => Promise<ReadableStream<Uint8Array> | null>
+  openMonitorStream: () => Promise<ReadableStream<Uint8Array> | null>;
   /**
    * Takes one frame of a file as a JPEG.
    */
   readFrame: (request: {
-    inputPath: string
-    atSeconds: number
-    width: number
-  }) => Promise<ArrayBuffer>
+    inputPath: string;
+    atSeconds: number;
+    width: number;
+  }) => Promise<ArrayBuffer>;
   /**
    * Makes, or finds, the short clip a library page plays.
    *
@@ -230,25 +231,25 @@ type Transcoder = {
    * page full of previews costs nothing running.
    */
   requestPreview: (request: {
-    inputPath: string
-    wait?: boolean
-  }) => Promise<{ id: string; url: string; isReady: boolean }>
-  readPreviewFile: (id: string, name: string) => Promise<TranscoderFile | null>
-  requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>
-  readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>
-  stopSession: (id: string) => Promise<boolean>
-  capabilities: () => Promise<TranscoderCapabilities>
-}
+    inputPath: string;
+    wait?: boolean;
+  }) => Promise<{ id: string; url: string; isReady: boolean }>;
+  readPreviewFile: (id: string, name: string) => Promise<TranscoderFile | null>;
+  requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>;
+  readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>;
+  stopSession: (id: string) => Promise<boolean>;
+  capabilities: () => Promise<TranscoderCapabilities>;
+};
 
 type TranscoderFile = {
-  body: ArrayBuffer
-  contentType: string
-}
+  body: ArrayBuffer;
+  contentType: string;
+};
 
 type TranscoderRangedFile = TranscoderFile & {
-  status: number
-  contentRange: string | null
-}
+  status: number;
+  contentRange: string | null;
+};
 
 type CreateTranscoderClientOptions = {
   /**
@@ -260,11 +261,11 @@ type CreateTranscoderClientOptions = {
    * its own. An `http://` address is used when the media service runs
    * elsewhere. See ADR-0006.
    */
-  baseUrl: string
-  fetchImpl?: FetchLike
-}
+  baseUrl: string;
+  fetchImpl?: FetchLike;
+};
 
-const UNIX_PREFIX = 'unix:'
+const UNIX_PREFIX = 'unix:';
 
 /**
  * Splits a socket URL into the path to connect to and the URL to request.
@@ -273,7 +274,7 @@ const UNIX_PREFIX = 'unix:'
  * a placeholder host that the dispatcher ignores.
  */
 const readSocketPath = (baseUrl: string): string | null =>
-  baseUrl.startsWith(UNIX_PREFIX) ? baseUrl.slice(UNIX_PREFIX.length) : null
+  baseUrl.startsWith(UNIX_PREFIX) ? baseUrl.slice(UNIX_PREFIX.length) : null;
 
 /**
  * Builds a fetch bound to a Unix socket.
@@ -286,29 +287,29 @@ const readSocketPath = (baseUrl: string): string | null =>
  * the thing the standards forbid.
  */
 const narrow = <TBody>(response: {
-  ok: boolean
-  status: number
-  headers: { get: (name: string) => string | null }
-  json: () => Promise<TBody>
-  arrayBuffer: () => Promise<ArrayBuffer>
+  ok: boolean;
+  status: number;
+  headers: { get: (name: string) => string | null };
+  json: () => Promise<TBody>;
+  arrayBuffer: () => Promise<ArrayBuffer>;
 }): HttpResponse => ({
   ok: response.ok,
   status: response.status,
   headers: { get: (name) => response.headers.get(name) },
   json: async () => JsonValueSchema.parse(await response.json()),
   arrayBuffer: () => response.arrayBuffer(),
-})
+});
 
 /**
  * The ordinary network fetch, narrowed to what Flux uses.
  */
-const httpFetch: FetchLike = async (url, init) => narrow(await fetch(url, init))
+const httpFetch: FetchLike = async (url, init) => narrow(await fetch(url, init));
 
 const createSocketFetch = (socketPath: string): FetchLike => {
-  const agent = new Agent({ connect: { socketPath } })
+  const agent = new Agent({ connect: { socketPath } });
 
-  return async (url, init) => narrow(await undiciFetch(url, { ...init, dispatcher: agent }))
-}
+  return async (url, init) => narrow(await undiciFetch(url, { ...init, dispatcher: agent }));
+};
 
 /**
  * Opens a response whose body is read as it arrives.
@@ -321,19 +322,19 @@ const createStreamFetch =
   (socketPath: string | null) =>
   async (url: string): Promise<{ ok: boolean; body: ReadableStream<Uint8Array> | null }> => {
     if (socketPath === null) {
-      return fetch(url)
+      return fetch(url);
     }
 
-    return undiciFetch(url, { dispatcher: new Agent({ connect: { socketPath } }) })
-  }
+    return undiciFetch(url, { dispatcher: new Agent({ connect: { socketPath } }) });
+  };
 
 class TranscoderError extends Error {
   constructor(
     message: string,
     readonly status: number,
   ) {
-    super(message)
-    this.name = 'TranscoderError'
+    super(message);
+    this.name = 'TranscoderError';
   }
 }
 
@@ -344,33 +345,33 @@ const createTranscoderClient = ({
   baseUrl,
   fetchImpl,
 }: CreateTranscoderClientOptions): Transcoder => {
-  const socketPath = readSocketPath(baseUrl)
-  const origin = socketPath === null ? baseUrl : 'http://transcoder.local'
-  const call2 = fetchImpl ?? (socketPath === null ? httpFetch : createSocketFetch(socketPath))
+  const socketPath = readSocketPath(baseUrl);
+  const origin = socketPath === null ? baseUrl : 'http://transcoder.local';
+  const call2 = fetchImpl ?? (socketPath === null ? httpFetch : createSocketFetch(socketPath));
   const call = async (path: string, init?: HttpRequestInit): Promise<HttpResponse> => {
-    const response = await call2(`${origin}${path}`, init)
+    const response = await call2(`${origin}${path}`, init);
 
     if (!response.ok) {
-      throw new TranscoderError(`The media service rejected ${path}.`, response.status)
+      throw new TranscoderError(`The media service rejected ${path}.`, response.status);
     }
 
-    return response
-  }
+    return response;
+  };
 
-  const streamFrom = createStreamFetch(socketPath)
+  const streamFrom = createStreamFetch(socketPath);
 
   const postJson = (path: string, body: object): Promise<HttpResponse> =>
     call(path, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
-    })
+    });
 
   return {
     isReachable: async () => {
-      const response = await call2(`${origin}/health`).catch(() => null)
+      const response = await call2(`${origin}/health`).catch(() => null);
 
-      return response !== null && response.ok
+      return response !== null && response.ok;
     },
 
     probe: async (path) =>
@@ -382,25 +383,25 @@ const createTranscoderClient = ({
     readSessionFile: async (sessionId, name) => {
       const response = await call2(
         `${origin}/sessions/${encodeURIComponent(sessionId)}/${encodeURIComponent(name)}`,
-      )
+      );
 
       if (!response.ok) {
-        return null
+        return null;
       }
 
       return {
         body: await response.arrayBuffer(),
         contentType: response.headers.get('content-type') ?? 'application/octet-stream',
-      }
+      };
     },
 
     readFile: async (path, range) => {
       const response = await call2(`${origin}/file?path=${encodeURIComponent(path)}`, {
         headers: range === null ? {} : { range },
-      })
+      });
 
       if (!response.ok) {
-        return null
+        return null;
       }
 
       return {
@@ -408,7 +409,7 @@ const createTranscoderClient = ({
         contentType: response.headers.get('content-type') ?? 'application/octet-stream',
         status: response.status,
         contentRange: response.headers.get('content-range'),
-      }
+      };
     },
 
     fingerprint: async (request) =>
@@ -422,22 +423,22 @@ const createTranscoderClient = ({
     readPreviewFile: async (id, name) => {
       const response = await call2(
         `${origin}/previews/${encodeURIComponent(id)}/${encodeURIComponent(name)}`,
-      )
+      );
 
       return response.ok
         ? {
             body: await response.arrayBuffer(),
             contentType: response.headers.get('content-type') ?? 'video/mp4',
           }
-        : null
+        : null;
     },
 
     readMonitor: async () => (await call('/monitor')).json(),
 
     openMonitorStream: async () => {
-      const response = await streamFrom(`${origin}/monitor/stream`).catch(() => null)
+      const response = await streamFrom(`${origin}/monitor/stream`).catch(() => null);
 
-      return response === null || !response.ok ? null : response.body
+      return response === null || !response.ok ? null : response.body;
     },
 
     readSubtitle: async (request) =>
@@ -449,27 +450,27 @@ const createTranscoderClient = ({
     readTrickplayFile: async (id, name) => {
       const response = await call2(
         `${origin}/trickplay/${encodeURIComponent(id)}/${encodeURIComponent(name)}`,
-      )
+      );
 
       if (!response.ok) {
-        return null
+        return null;
       }
 
       return {
         body: await response.arrayBuffer(),
         contentType: response.headers.get('content-type') ?? 'application/octet-stream',
-      }
+      };
     },
 
     stopSession: async (id) => {
-      const response = await call2(`${origin}/sessions/${id}`, { method: 'DELETE' })
+      const response = await call2(`${origin}/sessions/${id}`, { method: 'DELETE' });
 
-      return response.ok
+      return response.ok;
     },
 
     capabilities: async () => CapabilitiesSchema.parse(await (await call('/capabilities')).json()),
-  }
-}
+  };
+};
 
 export type {
   FetchLike,
@@ -485,6 +486,6 @@ export type {
   FingerprintRequest,
   TranscoderFile,
   TranscoderRangedFile,
-}
+};
 
-export { createTranscoderClient, readSocketPath, TranscoderError, MediaProbeSchema }
+export { createTranscoderClient, readSocketPath, TranscoderError, MediaProbeSchema };

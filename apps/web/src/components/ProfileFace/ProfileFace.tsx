@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { cn } from '@FluxUI/cn'
-import { profileInitial, profileAvatarUrl } from '@FluxContracts/schemas/ViewerProfile'
-import type { ProfileFaceProps } from './ProfileFace.types'
+import { useEffect, useState } from 'react';
+import { cn } from '@FluxUI/cn';
+import { profileInitial, profileAvatarUrl } from '@FluxContracts/schemas/ViewerProfile';
+import type { ProfileFaceProps } from './ProfileFace.types';
 
 /**
  * What a profile looks like.
@@ -16,33 +16,33 @@ import type { ProfileFaceProps } from './ProfileFace.types'
  * assume was a failed upload.
  */
 const ProfileFace = ({ profile, pending = null, className }: ProfileFaceProps) => {
-  const [chosen, setChosen] = useState<string | null>(null)
+  const [chosen, setChosen] = useState<string | null>(null);
 
   useEffect(() => {
     if (pending === null) {
-      setChosen(null)
+      setChosen(null);
 
-      return
+      return;
     }
 
-    const address = URL.createObjectURL(pending)
+    const address = URL.createObjectURL(pending);
 
-    setChosen(address)
+    setChosen(address);
 
     return () => {
       // Released rather than left behind: an object URL holds the whole file
       // in memory until it is revoked, and somebody trying pictures would
       // otherwise accumulate every one they looked at.
-      URL.revokeObjectURL(address)
-    }
-  }, [pending])
+      URL.revokeObjectURL(address);
+    };
+  }, [pending]);
 
   const isMoving =
     chosen === null
       ? profile.avatar.kind === 'photo' && profile.avatar.isVideo
-      : pending?.type.startsWith('video/') === true
-  const source = chosen ?? profileAvatarUrl(profile)
-  const showsPicture = chosen !== null || profile.avatar.kind !== 'initial'
+      : pending?.type.startsWith('video/') === true;
+  const source = chosen ?? profileAvatarUrl(profile);
+  const showsPicture = chosen !== null || profile.avatar.kind !== 'initial';
 
   return (
     <span
@@ -68,9 +68,9 @@ const ProfileFace = ({ profile, pending = null, className }: ProfileFaceProps) =
         <img src={source} alt="" className="h-full w-full object-cover" />
       )}
     </span>
-  )
-}
+  );
+};
 
-ProfileFace.displayName = 'ProfileFace'
+ProfileFace.displayName = 'ProfileFace';
 
-export { ProfileFace }
+export { ProfileFace };

@@ -1,16 +1,16 @@
-import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile'
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile'
+import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile';
+import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
 
-type CodecProbe = (mimeType: string) => boolean
+type CodecProbe = (mimeType: string) => boolean;
 
 type DetectDeviceProfileOptions = {
-  isTypeSupported: CodecProbe
-  supportsHdr: boolean
-  screenWidth: number
-  screenHeight: number
-  name: string
-  maxBitrateKbps?: number
-}
+  isTypeSupported: CodecProbe;
+  supportsHdr: boolean;
+  screenWidth: number;
+  screenHeight: number;
+  name: string;
+  maxBitrateKbps?: number;
+};
 
 /**
  * The probes Flux uses to decide what a browser can play.
@@ -24,7 +24,7 @@ const VIDEO_PROBES = [
   { codec: 'hevc', mimeType: 'video/mp4; codecs="hvc1.1.6.L93.B0"' },
   { codec: 'av1', mimeType: 'video/mp4; codecs="av01.0.05M.08"' },
   { codec: 'vp9', mimeType: 'video/webm; codecs="vp9"' },
-] as const
+] as const;
 
 const AUDIO_PROBES = [
   { codec: 'aac', mimeType: 'audio/mp4; codecs="mp4a.40.2"' },
@@ -32,9 +32,9 @@ const AUDIO_PROBES = [
   { codec: 'eac3', mimeType: 'audio/mp4; codecs="ec-3"' },
   { codec: 'opus', mimeType: 'audio/webm; codecs="opus"' },
   { codec: 'flac', mimeType: 'audio/mp4; codecs="flac"' },
-] as const
+] as const;
 
-const DEFAULT_MAX_BITRATE_KBPS = 20_000
+const DEFAULT_MAX_BITRATE_KBPS = 20_000;
 
 /**
  * Builds a device profile from what the browser actually reports.
@@ -59,14 +59,14 @@ const detectDeviceProfile = ({
 }: DetectDeviceProfileOptions): DeviceProfile => {
   const videoCodecs = VIDEO_PROBES.filter((probe) => isTypeSupported(probe.mimeType)).map(
     (probe) => probe.codec,
-  )
+  );
 
   const audioCodecs = AUDIO_PROBES.filter((probe) => isTypeSupported(probe.mimeType)).map(
     (probe) => probe.codec,
-  )
+  );
 
-  const video = videoCodecs.length > 0 ? [...videoCodecs] : ['h264']
-  const audio = audioCodecs.length > 0 ? [...audioCodecs] : ['aac']
+  const video = videoCodecs.length > 0 ? [...videoCodecs] : ['h264'];
+  const audio = audioCodecs.length > 0 ? [...audioCodecs] : ['aac'];
 
   // Parsed rather than asserted: the profile Flux sends must satisfy the same
   // contract the server validates it against, so a mistake here fails in the
@@ -90,15 +90,15 @@ const detectDeviceProfile = ({
     transcodingProfiles: [
       { container: 'ts', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
     ],
-  })
-}
+  });
+};
 
 /**
  * Somewhere media queries can be asked, if this browser has them.
  */
 type MediaQuerySource = {
-  matchMedia?: (query: string) => { matches: boolean }
-}
+  matchMedia?: (query: string) => { matches: boolean };
+};
 
 /**
  * Reads the browser's real capabilities.
@@ -110,12 +110,12 @@ const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
   const isTypeSupported: CodecProbe =
     'MediaSource' in window && typeof window.MediaSource.isTypeSupported === 'function'
       ? (mimeType) => window.MediaSource.isTypeSupported(mimeType)
-      : () => false
+      : () => false;
 
   // Asked through a shape that admits the answer might be missing. A browser
   // without media queries cannot answer the question, and a capability probe
   // that throws takes playback down with it.
-  const queries: MediaQuerySource = window
+  const queries: MediaQuerySource = window;
 
   return detectDeviceProfile({
     isTypeSupported,
@@ -123,9 +123,9 @@ const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
     screenWidth: Math.round(window.screen.width * window.devicePixelRatio),
     screenHeight: Math.round(window.screen.height * window.devicePixelRatio),
     name,
-  })
-}
+  });
+};
 
-export type { CodecProbe, DetectDeviceProfileOptions }
+export type { CodecProbe, DetectDeviceProfileOptions };
 
-export { detectDeviceProfile, detectFromBrowser, VIDEO_PROBES, AUDIO_PROBES }
+export { detectDeviceProfile, detectFromBrowser, VIDEO_PROBES, AUDIO_PROBES };

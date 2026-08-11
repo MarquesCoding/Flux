@@ -1,5 +1,5 @@
-import { ShowListSchema, ShowDetailSchema } from '@FluxContracts/schemas/Show'
-import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show'
+import { ShowListSchema, ShowDetailSchema } from '@FluxContracts/schemas/Show';
+import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
 
 /**
  * The series in a library.
@@ -12,17 +12,17 @@ const fetchShows = async (libraryId: string): Promise<ShowSummary[]> => {
   try {
     const response = await fetch(`/api/libraries/${libraryId}/shows`, {
       headers: { accept: 'application/json' },
-    })
+    });
 
     if (!response.ok) {
-      return []
+      return [];
     }
 
-    return ShowListSchema.parse(await response.json()).shows
+    return ShowListSchema.parse(await response.json()).shows;
   } catch {
-    return []
+    return [];
   }
-}
+};
 
 /**
  * One series and everything the library holds of it.
@@ -31,16 +31,16 @@ const fetchShow = async (libraryId: string, showId: string): Promise<ShowDetail 
   try {
     const response = await fetch(`/api/libraries/${libraryId}/shows/${showId}`, {
       headers: { accept: 'application/json' },
-    })
+    });
 
     if (!response.ok) {
-      return null
+      return null;
     }
 
-    return ShowDetailSchema.parse(await response.json())
+    return ShowDetailSchema.parse(await response.json());
   } catch {
-    return null
+    return null;
   }
-}
+};
 
-export { fetchShows, fetchShow }
+export { fetchShows, fetchShow };

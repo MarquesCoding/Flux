@@ -1,10 +1,10 @@
-import { drizzle } from 'drizzle-orm/node-postgres'
-import { Pool } from 'pg'
-import { authSchema, fluxSchema } from '@FluxServer/db/Schema'
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { authSchema, fluxSchema } from '@FluxServer/db/Schema';
 
-const schema = { ...authSchema, ...fluxSchema }
+const schema = { ...authSchema, ...fluxSchema };
 
-type FluxDatabase = ReturnType<typeof createDatabase>['db']
+type FluxDatabase = ReturnType<typeof createDatabase>['db'];
 
 /**
  * Opens the Postgres connection pool and binds the Drizzle schema to it.
@@ -13,12 +13,12 @@ type FluxDatabase = ReturnType<typeof createDatabase>['db']
  * queue. See ADR-0005.
  */
 const createDatabase = (databaseUrl: string) => {
-  const pool = new Pool({ connectionString: databaseUrl })
-  const db = drizzle(pool, { schema })
+  const pool = new Pool({ connectionString: databaseUrl });
+  const db = drizzle(pool, { schema });
 
-  return { db, pool, schema }
-}
+  return { db, pool, schema };
+};
 
-export type { FluxDatabase }
+export type { FluxDatabase };
 
-export { createDatabase, schema }
+export { createDatabase, schema };

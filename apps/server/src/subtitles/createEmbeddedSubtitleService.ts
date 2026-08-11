@@ -1,44 +1,44 @@
-import { describeLanguage, readLanguage } from '@FluxCore/functions/describeTrack'
-import { trackId } from './SubtitleService'
-import type { SubtitleService, SubtitleTrack } from './SubtitleService'
+import { describeLanguage, readLanguage } from '@FluxCore/functions/describeTrack';
+import { trackId } from './SubtitleService';
+import type { SubtitleService, SubtitleTrack } from './SubtitleService';
 
 /**
  * Marks a title puts on a track that carries more than dialogue.
  */
-const HEARING_IMPAIRED_MARKERS = ['sdh', 'cc', 'hearing', 'hard of hearing']
+const HEARING_IMPAIRED_MARKERS = ['sdh', 'cc', 'hearing', 'hard of hearing'];
 
 /**
  * Formats that carry pictures of words rather than words.
  */
-const IMAGE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub'])
+const IMAGE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub']);
 
 /**
  * One subtitle stream, as the container describes it.
  */
 type EmbeddedStream = {
-  index: number
-  format: string
-  language?: string | null | undefined
-  title?: string | null | undefined
-  isForced: boolean
-}
+  index: number;
+  format: string;
+  language?: string | null | undefined;
+  title?: string | null | undefined;
+  isForced: boolean;
+};
 
 /**
  * A file and what is inside it.
  */
 type EmbeddedLookup = {
-  find: (mediaId: string) => Promise<{ path: string; streams: EmbeddedStream[] } | null>
-}
+  find: (mediaId: string) => Promise<{ path: string; streams: EmbeddedStream[] } | null>;
+};
 
 type Extractor = {
-  readSubtitle: (request: { inputPath: string; streamIndex: number }) => Promise<string>
-}
+  readSubtitle: (request: { inputPath: string; streamIndex: number }) => Promise<string>;
+};
 
 type CreateEmbeddedSubtitleServiceOptions = {
-  media: EmbeddedLookup
-  transcoder: Extractor
-  onProblem?: (path: string, reason: string) => void
-}
+  media: EmbeddedLookup;
+  transcoder: Extractor;
+  onProblem?: (path: string, reason: string) => void;
+};
 
 /**
  * Names a track for a menu.
@@ -49,28 +49,28 @@ type CreateEmbeddedSubtitleServiceOptions = {
  * so its own name wins.
  */
 const describeSubtitle = (stream: EmbeddedStream, position: number): string => {
-  const language = describeLanguage(stream.language)
-  const title = stream.title?.trim() ?? ''
-  const saysLanguage = language !== null && title.toLowerCase().includes(language.toLowerCase())
+  const language = describeLanguage(stream.language);
+  const title = stream.title?.trim() ?? '';
+  const saysLanguage = language !== null && title.toLowerCase().includes(language.toLowerCase());
 
   const named =
     title === ''
       ? (language ?? `Track ${position.toString()}`)
       : language === null || saysLanguage
         ? title
-        : `${language} · ${title}`
+        : `${language} · ${title}`;
 
-  return stream.isForced && !named.toLowerCase().includes('forced') ? `${named} · Forced` : named
-}
+  return stream.isForced && !named.toLowerCase().includes('forced') ? `${named} · Forced` : named;
+};
 
 /**
  * Whether a track's own name says it transcribes more than the dialogue.
  */
 const marksHearingImpaired = (title: string | null | undefined): boolean => {
-  const lowered = (title ?? '').toLowerCase()
+  const lowered = (title ?? '').toLowerCase();
 
-  return HEARING_IMPAIRED_MARKERS.some((marker) => lowered.includes(marker))
-}
+  return HEARING_IMPAIRED_MARKERS.some((marker) => lowered.includes(marker));
+};
 
 /**
  * Subtitles read out of the container itself.
@@ -92,28 +92,28 @@ const createEmbeddedSubtitleService = ({
   onProblem,
 }: CreateEmbeddedSubtitleServiceOptions): SubtitleService => {
   const discover = async (mediaId: string) => {
-    const found = await media.find(mediaId)
+    const found = await media.find(mediaId);
 
     if (found === null) {
-      return null
+      return null;
     }
 
-    const streams = found.streams.filter((stream) => !IMAGE_FORMATS.has(stream.format))
+    const streams = found.streams.filter((stream) => !IMAGE_FORMATS.has(stream.format));
 
-    return { path: found.path, streams }
-  }
+    return { path: found.path, streams };
+  };
 
   /**
    * Names a stream, so listing and reading agree on what a track is called.
    */
-  const idFor = (path: string, index: number): string => trackId(`${path}#${index.toString()}`)
+  const idFor = (path: string, index: number): string => trackId(`${path}#${index.toString()}`);
 
   return {
     list: async (mediaId) => {
-      const found = await discover(mediaId)
+      const found = await discover(mediaId);
 
       if (found === null) {
-        return null
+        return null;
       }
 
       const tracks: SubtitleTrack[] = found.streams.map((stream, position) => ({
@@ -123,33 +123,33 @@ const createEmbeddedSubtitleService = ({
         format: stream.format,
         isForced: stream.isForced,
         isHearingImpaired: marksHearingImpaired(stream.title),
-      }))
+      }));
 
-      return tracks
+      return tracks;
     },
 
     read: async (mediaId, id) => {
-      const found = await discover(mediaId)
-      const stream = found?.streams.find((candidate) => idFor(found.path, candidate.index) === id)
+      const found = await discover(mediaId);
+      const stream = found?.streams.find((candidate) => idFor(found.path, candidate.index) === id);
 
       if (found === null || stream === undefined) {
-        return null
+        return null;
       }
 
       try {
         return await transcoder.readSubtitle({
           inputPath: found.path,
           streamIndex: stream.index,
-        })
+        });
       } catch (error) {
-        onProblem?.(found.path, error instanceof Error ? error.message : 'Unreadable.')
+        onProblem?.(found.path, error instanceof Error ? error.message : 'Unreadable.');
 
-        return null
+        return null;
       }
     },
-  }
-}
+  };
+};
 
-export type { CreateEmbeddedSubtitleServiceOptions, EmbeddedLookup, EmbeddedStream }
+export type { CreateEmbeddedSubtitleServiceOptions, EmbeddedLookup, EmbeddedStream };
 
-export { createEmbeddedSubtitleService, describeSubtitle, marksHearingImpaired }
+export { createEmbeddedSubtitleService, describeSubtitle, marksHearingImpaired };

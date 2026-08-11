@@ -1,13 +1,13 @@
-import { eq } from 'drizzle-orm'
-import { serverSetting } from '@FluxServer/db/Schema'
-import { ServerSettingsSchema, SETTINGS_KEY } from './ServerSettings'
-import type { ServerSettings, SettingsStore } from './ServerSettings'
-import type { FluxDatabase } from '@FluxServer/db/Database'
+import { eq } from 'drizzle-orm';
+import { serverSetting } from '@FluxServer/db/Schema';
+import { ServerSettingsSchema, SETTINGS_KEY } from './ServerSettings';
+import type { ServerSettings, SettingsStore } from './ServerSettings';
+import type { FluxDatabase } from '@FluxServer/db/Database';
 
 type CreateDatabaseSettingsStoreOptions = {
-  db: FluxDatabase
-  defaults: ServerSettings
-}
+  db: FluxDatabase;
+  defaults: ServerSettings;
+};
 
 /**
  * Builds a settings store backed by the `server_setting` table.
@@ -26,21 +26,21 @@ const createDatabaseSettingsStore = ({
       .select()
       .from(serverSetting)
       .where(eq(serverSetting.key, SETTINGS_KEY))
-      .limit(1)
+      .limit(1);
 
-    const row = rows[0]
+    const row = rows[0];
 
     if (row === undefined) {
-      return defaults
+      return defaults;
     }
 
-    const parsed = ServerSettingsSchema.safeParse(row.value)
+    const parsed = ServerSettingsSchema.safeParse(row.value);
 
-    return parsed.success ? parsed.data : defaults
-  }
+    return parsed.success ? parsed.data : defaults;
+  };
 
   const write = async (patch: Partial<ServerSettings>): Promise<ServerSettings> => {
-    const next = ServerSettingsSchema.parse({ ...(await read()), ...patch })
+    const next = ServerSettingsSchema.parse({ ...(await read()), ...patch });
 
     await db
       .insert(serverSetting)
@@ -48,12 +48,12 @@ const createDatabaseSettingsStore = ({
       .onConflictDoUpdate({
         target: serverSetting.key,
         set: { value: next, updatedAt: new Date() },
-      })
+      });
 
-    return next
-  }
+    return next;
+  };
 
-  return { read, write }
-}
+  return { read, write };
+};
 
-export { createDatabaseSettingsStore }
+export { createDatabaseSettingsStore };

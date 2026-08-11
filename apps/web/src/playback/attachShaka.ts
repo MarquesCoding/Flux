@@ -1,4 +1,4 @@
-import type shaka from 'shaka-player/dist/shaka-player.compiled'
+import type shaka from 'shaka-player/dist/shaka-player.compiled';
 
 /**
  * The slice of Shaka that Flux uses.
@@ -7,21 +7,21 @@ import type shaka from 'shaka-player/dist/shaka-player.compiled'
  * reproducing a media engine, and so it is obvious what Flux depends on.
  */
 type ShakaPlayer = {
-  attach: (element: HTMLMediaElement) => Promise<void>
-  load: (manifestUrl: string) => Promise<void>
-  destroy: () => Promise<void>
-}
+  attach: (element: HTMLMediaElement) => Promise<void>;
+  load: (manifestUrl: string) => Promise<void>;
+  destroy: () => Promise<void>;
+};
 
 type ShakaModule = {
-  polyfill: { installAll: () => void }
-  Player: new () => ShakaPlayer
-}
+  polyfill: { installAll: () => void };
+  Player: new () => ShakaPlayer;
+};
 
 type AttachOptions = {
-  element: HTMLVideoElement
-  manifestUrl: string
-  loadShaka?: () => Promise<ShakaModule>
-}
+  element: HTMLVideoElement;
+  manifestUrl: string;
+  loadShaka?: () => Promise<ShakaModule>;
+};
 
 /**
  * Loads Shaka Player on demand.
@@ -31,10 +31,10 @@ type AttachOptions = {
  * download a media engine.
  */
 const loadShakaPlayer = async (): Promise<ShakaModule> => {
-  const imported: typeof shaka = (await import('shaka-player/dist/shaka-player.compiled')).default
+  const imported: typeof shaka = (await import('shaka-player/dist/shaka-player.compiled')).default;
 
-  return imported
-}
+  return imported;
+};
 
 /**
  * Attaches a player to a video element and loads a manifest.
@@ -47,18 +47,18 @@ const attachShaka = async ({
   manifestUrl,
   loadShaka = loadShakaPlayer,
 }: AttachOptions): Promise<() => Promise<void>> => {
-  const shaka = await loadShaka()
+  const shaka = await loadShaka();
 
-  shaka.polyfill.installAll()
+  shaka.polyfill.installAll();
 
-  const player = new shaka.Player()
+  const player = new shaka.Player();
 
-  await player.attach(element)
-  await player.load(manifestUrl)
+  await player.attach(element);
+  await player.load(manifestUrl);
 
-  return () => player.destroy()
-}
+  return () => player.destroy();
+};
 
-export type { AttachOptions, ShakaModule, ShakaPlayer }
+export type { AttachOptions, ShakaModule, ShakaPlayer };
 
-export { attachShaka, loadShakaPlayer }
+export { attachShaka, loadShakaPlayer };

@@ -1,4 +1,4 @@
-import type { MediaSummary } from '@FluxContracts/schemas/Library'
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 /**
  * Which item stands for a show.
@@ -8,10 +8,10 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library'
  * introduction at all.
  */
 const isEarlier = (candidate: MediaSummary, against: MediaSummary): boolean => {
-  const season = (candidate.seasonNumber ?? 0) - (against.seasonNumber ?? 0)
+  const season = (candidate.seasonNumber ?? 0) - (against.seasonNumber ?? 0);
 
-  return season === 0 ? (candidate.episodeNumber ?? 0) < (against.episodeNumber ?? 0) : season < 0
-}
+  return season === 0 ? (candidate.episodeNumber ?? 0) < (against.episodeNumber ?? 0) : season < 0;
+};
 
 /**
  * The items worth putting on the front of a library.
@@ -24,43 +24,43 @@ const isEarlier = (candidate: MediaSummary, against: MediaSummary): boolean => {
  * Films stand for themselves, since there is nothing to group them under.
  */
 const pickFeatured = (items: MediaSummary[], limit: number): MediaSummary[] => {
-  const shows = new Map<string, MediaSummary>()
-  const featured: MediaSummary[] = []
+  const shows = new Map<string, MediaSummary>();
+  const featured: MediaSummary[] = [];
 
   for (const item of items) {
-    const series = item.seriesTitle ?? null
+    const series = item.seriesTitle ?? null;
 
     if (series === null) {
-      featured.push(item)
+      featured.push(item);
 
-      continue
+      continue;
     }
 
-    const standing = shows.get(series)
+    const standing = shows.get(series);
 
     if (standing === undefined) {
-      shows.set(series, item)
+      shows.set(series, item);
       // The place is claimed now and filled in later, so a show appears where
       // its first file did rather than being pushed to the end by an episode
       // that happened to be listed sooner.
-      featured.push(item)
+      featured.push(item);
 
-      continue
+      continue;
     }
 
     if (isEarlier(item, standing)) {
-      shows.set(series, item)
+      shows.set(series, item);
 
-      const at = featured.indexOf(standing)
+      const at = featured.indexOf(standing);
 
       if (at !== -1) {
-        featured[at] = item
+        featured[at] = item;
       }
     }
   }
 
-  return featured.slice(0, limit)
-}
+  return featured.slice(0, limit);
+};
 
 /**
  * The other episodes of the same season.
@@ -70,10 +70,10 @@ const pickFeatured = (items: MediaSummary[], limit: number): MediaSummary[] => {
  * in it.
  */
 const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] => {
-  const series = of.seriesTitle ?? null
+  const series = of.seriesTitle ?? null;
 
   if (series === null) {
-    return []
+    return [];
   }
 
   return items
@@ -83,8 +83,8 @@ const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] =
         item.seriesTitle === series &&
         (item.seasonNumber ?? null) === (of.seasonNumber ?? null),
     )
-    .sort((left, right) => (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0))
-}
+    .sort((left, right) => (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0));
+};
 
 /**
  * What follows an episode.
@@ -94,13 +94,13 @@ const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] =
  * listed next would be worse than stopping.
  */
 const nextEpisode = (items: MediaSummary[], after: MediaSummary): MediaSummary | null => {
-  const at = after.episodeNumber ?? null
+  const at = after.episodeNumber ?? null;
 
   if (at === null) {
-    return null
+    return null;
   }
 
-  return findSiblings(items, after).find((item) => (item.episodeNumber ?? 0) > at) ?? null
-}
+  return findSiblings(items, after).find((item) => (item.episodeNumber ?? 0) > at) ?? null;
+};
 
-export { pickFeatured, isEarlier, findSiblings, nextEpisode }
+export { pickFeatured, isEarlier, findSiblings, nextEpisode };

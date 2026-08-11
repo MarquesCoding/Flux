@@ -1,6 +1,6 @@
-import { createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi';
 
-const SubtitleError = z.object({ error: z.string() }).openapi('SubtitleError')
+const SubtitleError = z.object({ error: z.string() }).openapi('SubtitleError');
 
 const SubtitleTrackSchema = z
   .object({
@@ -11,11 +11,11 @@ const SubtitleTrackSchema = z
     isForced: z.boolean(),
     isHearingImpaired: z.boolean(),
   })
-  .openapi('SubtitleTrack')
+  .openapi('SubtitleTrack');
 
 const SubtitleListSchema = z
   .object({ tracks: z.array(SubtitleTrackSchema) })
-  .openapi('SubtitleList')
+  .openapi('SubtitleList');
 
 /**
  * Lists the subtitle tracks an item has.
@@ -44,7 +44,7 @@ const listSubtitlesRoute = createRoute({
       content: { 'application/json': { schema: SubtitleError } },
     },
   },
-})
+});
 
 /**
  * Serves one track as WebVTT.
@@ -77,6 +77,6 @@ const readSubtitleRoute = createRoute({
       content: { 'application/json': { schema: SubtitleError } },
     },
   },
-})
+});
 
-export { listSubtitlesRoute, readSubtitleRoute }
+export { listSubtitlesRoute, readSubtitleRoute };

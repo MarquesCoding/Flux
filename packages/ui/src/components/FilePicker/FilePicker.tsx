@@ -1,6 +1,6 @@
-import { useId, useRef } from 'react'
-import { cn } from '@FluxUI/cn'
-import type { FilePickerProps } from './FilePicker.types'
+import { useId, useRef } from 'react';
+import { cn } from '@FluxUI/cn';
+import type { FilePickerProps } from './FilePicker.types';
 
 /**
  * A control for choosing one file.
@@ -19,8 +19,8 @@ const FilePicker = ({
   disabled = false,
   className,
 }: FilePickerProps) => {
-  const inputId = useId()
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <label
@@ -41,24 +41,24 @@ const FilePicker = ({
         disabled={disabled}
         className="sr-only"
         onChange={(event) => {
-          const [file] = event.target.files ?? []
+          const [file] = event.target.files ?? [];
 
           if (file !== undefined) {
-            onPick(file)
+            onPick(file);
           }
 
           // Cleared so that choosing the same file twice in a row still
           // counts as a change. A browser reports nothing when the value has
           // not moved, which reads as the second attempt being ignored.
-          event.target.value = ''
+          event.target.value = '';
         }}
       />
 
       {children}
     </label>
-  )
-}
+  );
+};
 
-FilePicker.displayName = 'FilePicker'
+FilePicker.displayName = 'FilePicker';
 
-export { FilePicker }
+export { FilePicker };

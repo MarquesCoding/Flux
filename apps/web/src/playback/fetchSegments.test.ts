@@ -1,14 +1,14 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchSegments, skippableAt, describeSkip } from './fetchSegments'
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fetchSegments, skippableAt, describeSkip } from './fetchSegments';
+import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 const intro: MediaSegment = {
   kind: 'intro',
   startSeconds: 30,
   endSeconds: 120,
   source: 'fingerprint',
-}
+};
 
 const respondWith = (answer: { ok: boolean; body: JsonValue }) => {
   vi.stubGlobal(
@@ -20,33 +20,33 @@ const respondWith = (answer: { ok: boolean; body: JsonValue }) => {
         json: () => Promise.resolve(answer.body),
       }),
     ),
-  )
-}
+  );
+};
 
 afterEach(() => {
-  vi.unstubAllGlobals()
-})
+  vi.unstubAllGlobals();
+});
 
 describe('skippableAt', () => {
   it('offers a skip as the intro begins', () => {
-    expect(skippableAt([intro], 30)?.kind).toBe('intro')
-  })
+    expect(skippableAt([intro], 30)?.kind).toBe('intro');
+  });
 
   it('still offers it a moment later, for anyone who looked away', () => {
-    expect(skippableAt([intro], 38)).not.toBeNull()
-  })
+    expect(skippableAt([intro], 38)).not.toBeNull();
+  });
 
   it('stops offering it once the intro is well under way', () => {
-    expect(skippableAt([intro], 60)).toBeNull()
-  })
+    expect(skippableAt([intro], 60)).toBeNull();
+  });
 
   it('offers nothing before the intro starts', () => {
-    expect(skippableAt([intro], 10)).toBeNull()
-  })
+    expect(skippableAt([intro], 10)).toBeNull();
+  });
 
   it('offers nothing after the intro has finished', () => {
-    expect(skippableAt([intro], 200)).toBeNull()
-  })
+    expect(skippableAt([intro], 200)).toBeNull();
+  });
 
   it('never offers to skip a preview of the next episode', () => {
     const preview: MediaSegment = {
@@ -54,47 +54,47 @@ describe('skippableAt', () => {
       startSeconds: 30,
       endSeconds: 60,
       source: 'chapters',
-    }
+    };
 
-    expect(skippableAt([preview], 35)).toBeNull()
-  })
+    expect(skippableAt([preview], 35)).toBeNull();
+  });
 
   it('does not outlast a segment shorter than the offer', () => {
-    const brief: MediaSegment = { ...intro, startSeconds: 30, endSeconds: 35 }
+    const brief: MediaSegment = { ...intro, startSeconds: 30, endSeconds: 35 };
 
-    expect(skippableAt([brief], 34)).not.toBeNull()
-    expect(skippableAt([brief], 36)).toBeNull()
-  })
+    expect(skippableAt([brief], 34)).not.toBeNull();
+    expect(skippableAt([brief], 36)).toBeNull();
+  });
 
   it('offers nothing at all when nothing is known', () => {
-    expect(skippableAt([], 30)).toBeNull()
-  })
-})
+    expect(skippableAt([], 30)).toBeNull();
+  });
+});
 
 describe('describeSkip', () => {
   it('names what is being skipped', () => {
-    expect(describeSkip(intro)).toBe('Skip Intro')
-    expect(describeSkip({ ...intro, kind: 'recap' })).toBe('Skip Recap')
-    expect(describeSkip({ ...intro, kind: 'credits' })).toBe('Skip Credits')
-  })
-})
+    expect(describeSkip(intro)).toBe('Skip Intro');
+    expect(describeSkip({ ...intro, kind: 'recap' })).toBe('Skip Recap');
+    expect(describeSkip({ ...intro, kind: 'credits' })).toBe('Skip Credits');
+  });
+});
 
 describe('fetchSegments', () => {
   it('reads what the server knows', async () => {
-    respondWith({ ok: true, body: { segments: [intro] } })
+    respondWith({ ok: true, body: { segments: [intro] } });
 
-    await expect(fetchSegments('media-1')).resolves.toEqual([intro])
-  })
+    await expect(fetchSegments('media-1')).resolves.toEqual([intro]);
+  });
 
   it('answers with nothing for an item nothing is known about', async () => {
-    respondWith({ ok: false, body: null })
+    respondWith({ ok: false, body: null });
 
-    await expect(fetchSegments('media-1')).resolves.toEqual([])
-  })
+    await expect(fetchSegments('media-1')).resolves.toEqual([]);
+  });
 
   it('answers with nothing rather than throwing on a response it cannot read', async () => {
-    respondWith({ ok: true, body: { segments: [{ kind: 'nonsense' }] } })
+    respondWith({ ok: true, body: { segments: [{ kind: 'nonsense' }] } });
 
-    await expect(fetchSegments('media-1')).resolves.toEqual([])
-  })
-})
+    await expect(fetchSegments('media-1')).resolves.toEqual([]);
+  });
+});

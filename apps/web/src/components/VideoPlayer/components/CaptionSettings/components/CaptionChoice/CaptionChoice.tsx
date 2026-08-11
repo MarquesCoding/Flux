@@ -1,5 +1,5 @@
-import { Button } from '@FluxUI/Button'
-import type { CaptionChoiceProps } from './CaptionChoice.types'
+import { Button } from '@FluxUI/Button';
+import type { CaptionChoiceProps } from './CaptionChoice.types';
 
 /**
  * One decision about how captions look, laid out flat.
@@ -29,7 +29,7 @@ const CaptionChoice = ({ label, options, selectedId, onSelect }: CaptionChoicePr
           aria-pressed={option.id === selectedId}
           variant={option.id === selectedId ? 'glossy' : 'ghost'}
           onClick={() => {
-            onSelect(option.id)
+            onSelect(option.id);
           }}
         >
           {option.label}
@@ -37,8 +37,8 @@ const CaptionChoice = ({ label, options, selectedId, onSelect }: CaptionChoicePr
       ))}
     </div>
   </fieldset>
-)
+);
 
-CaptionChoice.displayName = 'CaptionChoice'
+CaptionChoice.displayName = 'CaptionChoice';
 
-export { CaptionChoice }
+export { CaptionChoice };

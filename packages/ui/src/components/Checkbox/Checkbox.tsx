@@ -1,8 +1,8 @@
-import { useId } from 'react'
-import { Checkbox as BaseCheckbox } from '@base-ui-components/react/checkbox'
-import { IconCheck } from '@tabler/icons-react'
-import { cn } from '@FluxUI/cn'
-import type { CheckboxProps } from './Checkbox.types'
+import { useId } from 'react';
+import { Checkbox as BaseCheckbox } from '@base-ui-components/react/checkbox';
+import { IconCheck } from '@tabler/icons-react';
+import { cn } from '@FluxUI/cn';
+import type { CheckboxProps } from './Checkbox.types';
 
 /**
  * A labelled checkbox built on the Base UI primitive, which supplies the
@@ -20,7 +20,7 @@ const Checkbox = ({
   onCheckedChange,
   className,
 }: CheckboxProps) => {
-  const labelId = useId()
+  const labelId = useId();
 
   return (
     <span className={cn('inline-flex items-center gap-2 text-text', className)}>
@@ -43,9 +43,9 @@ const Checkbox = ({
       </BaseCheckbox.Root>
       <span id={labelId}>{label}</span>
     </span>
-  )
-}
+  );
+};
 
-Checkbox.displayName = 'Checkbox'
+Checkbox.displayName = 'Checkbox';
 
-export { Checkbox }
+export { Checkbox };

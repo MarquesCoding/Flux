@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchFavourites, setFavourite } from '@FluxWeb/library/fetchFavourites'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { fetchFavourites, setFavourite } from '@FluxWeb/library/fetchFavourites';
 
 type Favourites = {
-  kept: Set<string>
-  isKept: (mediaId: string) => boolean
-  toggle: (mediaId: string) => void
-}
+  kept: Set<string>;
+  isKept: (mediaId: string) => boolean;
+  toggle: (mediaId: string) => void;
+};
 
 /**
  * What this viewer has kept, and the one gesture that changes it.
@@ -19,76 +19,76 @@ type Favourites = {
  * feels broken on a connection that is merely slow.
  */
 const useFavourites = (): Favourites => {
-  const [kept, setKept] = useState<Set<string>>(new Set())
+  const [kept, setKept] = useState<Set<string>>(new Set());
   // What this viewer has changed since the page opened. The list is read once
   // on the way in, and a heart pressed before that read lands would otherwise
   // be undone by an answer that was already stale when it was asked for.
-  const changedRef = useRef(new Map<string, boolean>())
+  const changedRef = useRef(new Map<string, boolean>());
 
   useEffect(() => {
     void fetchFavourites().then((ids) => {
-      const arrived = new Set(ids)
+      const arrived = new Set(ids);
 
       for (const [mediaId, wants] of changedRef.current) {
         if (wants) {
-          arrived.add(mediaId)
+          arrived.add(mediaId);
         } else {
-          arrived.delete(mediaId)
+          arrived.delete(mediaId);
         }
       }
 
-      setKept(arrived)
-    })
-  }, [])
+      setKept(arrived);
+    });
+  }, []);
 
   const toggle = useCallback(
     (mediaId: string) => {
-      const wants = !kept.has(mediaId)
+      const wants = !kept.has(mediaId);
 
-      changedRef.current.set(mediaId, wants)
+      changedRef.current.set(mediaId, wants);
 
       setKept((held) => {
-        const next = new Set(held)
+        const next = new Set(held);
 
         if (wants) {
-          next.add(mediaId)
+          next.add(mediaId);
         } else {
-          next.delete(mediaId)
+          next.delete(mediaId);
         }
 
-        return next
-      })
+        return next;
+      });
 
       void setFavourite(mediaId, wants).then((agreed) => {
         if (agreed) {
-          return
+          return;
         }
 
-        changedRef.current.set(mediaId, !wants)
+        changedRef.current.set(mediaId, !wants);
 
         setKept((held) => {
-          const next = new Set(held)
+          const next = new Set(held);
 
           if (wants) {
-            next.delete(mediaId)
+            next.delete(mediaId);
           } else {
-            next.add(mediaId)
+            next.add(mediaId);
           }
 
-          return next
-        })
-      })
+          return next;
+        });
+      });
     },
     [kept],
-  )
+  );
 
   return {
     kept,
     isKept: (mediaId) => kept.has(mediaId),
     toggle,
-  }
-}
+  };
+};
 
-export type { Favourites }
+export type { Favourites };
 
-export { useFavourites }
+export { useFavourites };

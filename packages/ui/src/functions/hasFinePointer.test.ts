@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { hasFinePointer } from './hasFinePointer'
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { hasFinePointer } from './hasFinePointer';
 
 const answering = (matches: boolean) =>
   vi.fn(() => ({
@@ -11,39 +11,39 @@ const answering = (matches: boolean) =>
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
-  }))
+  }));
 
 afterEach(() => {
-  vi.unstubAllGlobals()
-})
+  vi.unstubAllGlobals();
+});
 
 describe('hasFinePointer', () => {
   it('agrees where the browser says there is one', () => {
-    vi.stubGlobal('matchMedia', answering(true))
+    vi.stubGlobal('matchMedia', answering(true));
 
-    expect(hasFinePointer()).toBe(true)
-  })
+    expect(hasFinePointer()).toBe(true);
+  });
 
   it('declines where the browser says there is not', () => {
-    vi.stubGlobal('matchMedia', answering(false))
+    vi.stubGlobal('matchMedia', answering(false));
 
-    expect(hasFinePointer()).toBe(false)
-  })
+    expect(hasFinePointer()).toBe(false);
+  });
 
   it('asks about hovering and pointing, not about width', () => {
-    const asked = answering(true)
+    const asked = answering(true);
 
-    vi.stubGlobal('matchMedia', asked)
-    hasFinePointer()
+    vi.stubGlobal('matchMedia', asked);
+    hasFinePointer();
 
-    expect(asked).toHaveBeenCalledWith('(hover: hover) and (pointer: fine)')
-  })
+    expect(asked).toHaveBeenCalledWith('(hover: hover) and (pointer: fine)');
+  });
 
   it('declines where the browser cannot answer at all', () => {
     // A document being rendered on a server, or in a test. Nothing should be
     // drawn hovered before anything has been drawn.
-    vi.stubGlobal('matchMedia', undefined)
+    vi.stubGlobal('matchMedia', undefined);
 
-    expect(hasFinePointer()).toBe(false)
-  })
-})
+    expect(hasFinePointer()).toBe(false);
+  });
+});

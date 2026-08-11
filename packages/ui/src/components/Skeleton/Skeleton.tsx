@@ -1,5 +1,5 @@
-import { cn } from '@FluxUI/cn'
-import type { SkeletonProps } from './Skeleton.types'
+import { cn } from '@FluxUI/cn';
+import type { SkeletonProps } from './Skeleton.types';
 
 /**
  * The shape of something that has not arrived yet.
@@ -22,8 +22,8 @@ const Skeleton = ({ label, className }: SkeletonProps) => (
       className,
     )}
   />
-)
+);
 
-Skeleton.displayName = 'Skeleton'
+Skeleton.displayName = 'Skeleton';
 
-export { Skeleton }
+export { Skeleton };

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   IconActivity,
   IconAlertTriangle,
@@ -12,34 +12,34 @@ import {
   IconRefreshAlert,
   IconStack2,
   IconTrash,
-} from '@tabler/icons-react'
-import { Sparkline } from '@FluxUI/Sparkline'
-import { Badge } from '@FluxUI/Badge'
-import { Button } from '@FluxUI/Button'
-import { TabBar } from '@FluxUI/TabBar'
-import { TextField } from '@FluxUI/TextField'
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
+} from '@tabler/icons-react';
+import { Sparkline } from '@FluxUI/Sparkline';
+import { Badge } from '@FluxUI/Badge';
+import { Button } from '@FluxUI/Button';
+import { TabBar } from '@FluxUI/TabBar';
+import { TextField } from '@FluxUI/TextField';
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import {
   fetchAdminOverview,
   fetchMonitor,
   watchMonitor,
   saveCatalogueKey,
-} from '@FluxWeb/admin/fetchAdmin'
-import { fetchLibraries, scanLibrary, resetLibrary } from '@FluxWeb/library/fetchLibrary'
-import { waitForScanCompletion } from '@FluxWeb/library/waitForScanCompletion'
-import { StatStrip } from './components/StatStrip/StatStrip'
-import { AddLibraryDialog } from './components/AddLibraryDialog/AddLibraryDialog'
-import { ScanProgressBar } from './components/ScanProgressBar/ScanProgressBar'
-import { ResetLibrariesDialog } from './components/ResetLibrariesDialog/ResetLibrariesDialog'
-import { formatBytes } from './formatBytes'
-import type { Library } from '@FluxContracts/schemas/Library'
-import type { AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin'
-import type { AdminAreaProps } from './AdminArea.types'
+} from '@FluxWeb/admin/fetchAdmin';
+import { fetchLibraries, scanLibrary, resetLibrary } from '@FluxWeb/library/fetchLibrary';
+import { waitForScanCompletion } from '@FluxWeb/library/waitForScanCompletion';
+import { StatStrip } from './components/StatStrip/StatStrip';
+import { AddLibraryDialog } from './components/AddLibraryDialog/AddLibraryDialog';
+import { ScanProgressBar } from './components/ScanProgressBar/ScanProgressBar';
+import { ResetLibrariesDialog } from './components/ResetLibrariesDialog/ResetLibrariesDialog';
+import { formatBytes } from './formatBytes';
+import type { Library } from '@FluxContracts/schemas/Library';
+import type { AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin';
+import type { AdminAreaProps } from './AdminArea.types';
 
 /**
  * How many readings stay on screen.
  */
-const HISTORY_LENGTH = 60
+const HISTORY_LENGTH = 60;
 
 const PANELS = [
   { id: 'activity', label: 'Activity' },
@@ -47,33 +47,33 @@ const PANELS = [
   { id: 'events', label: 'Events' },
   { id: 'libraries', label: 'Libraries' },
   { id: 'settings', label: 'Settings' },
-] as const
+] as const;
 
-type PanelId = (typeof PANELS)[number]['id']
+type PanelId = (typeof PANELS)[number]['id'];
 
 const JOB_TONES: Record<Job['state'], 'quiet' | 'accent' | 'solid'> = {
   queued: 'quiet',
   running: 'accent',
   finished: 'quiet',
   failed: 'solid',
-}
+};
 
 /**
  * How long a job took, or has been taking.
  */
 const describeElapsed = (job: Job, now: number): string => {
   if (job.startedAtMs === null) {
-    return 'waiting'
+    return 'waiting';
   }
 
-  const elapsed = (job.finishedAtMs ?? now) - job.startedAtMs
+  const elapsed = (job.finishedAtMs ?? now) - job.startedAtMs;
 
   return elapsed < 1000
     ? `${elapsed.toString()} ms`
-    : `${(elapsed / 1000).toFixed(elapsed < 10_000 ? 1 : 0)} s`
-}
+    : `${(elapsed / 1000).toFixed(elapsed < 10_000 ? 1 : 0)} s`;
+};
 
-const atTime = (ms: number): string => new Date(ms).toLocaleTimeString()
+const atTime = (ms: number): string => new Date(ms).toLocaleTimeString();
 
 /**
  * Trims what ffmpeg calls itself down to a version.
@@ -83,11 +83,11 @@ const atTime = (ms: number): string => new Date(ms).toLocaleTimeString()
  */
 const shortVersion = (reported: string | null): string => {
   if (reported === null) {
-    return 'unknown'
+    return 'unknown';
   }
 
-  return /ffmpeg version (\S+)/.exec(reported)?.[1] ?? reported.slice(0, 24)
-}
+  return /ffmpeg version (\S+)/.exec(reported)?.[1] ?? reported.slice(0, 24);
+};
 
 /**
  * The server, as the person running it sees it.
@@ -102,26 +102,26 @@ const shortVersion = (reported: string | null): string => {
  * one number says nothing about whether it is climbing.
  */
 const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
-  const [overview, setOverview] = useState<AdminOverview | null>(null)
-  const [monitor, setMonitor] = useState<Monitor | null>(null)
-  const [history, setHistory] = useState<number[]>([])
-  const [panel, setPanel] = useState<PanelId>('activity')
-  const [catalogueKey, setCatalogueKey] = useState('')
-  const [isSaving, setIsSaving] = useState(false)
-  const [libraries, setLibraries] = useState<Library[]>([])
-  const [isAddingLibrary, setIsAddingLibrary] = useState(false)
+  const [overview, setOverview] = useState<AdminOverview | null>(null);
+  const [monitor, setMonitor] = useState<Monitor | null>(null);
+  const [history, setHistory] = useState<number[]>([]);
+  const [panel, setPanel] = useState<PanelId>('activity');
+  const [catalogueKey, setCatalogueKey] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [libraries, setLibraries] = useState<Library[]>([]);
+  const [isAddingLibrary, setIsAddingLibrary] = useState(false);
   const [scanProgress, setScanProgress] = useState<
     ReadonlyMap<string, { phase: string | null; processed: number | null; total: number | null }>
-  >(new Map())
-  const [isScanningAll, setIsScanningAll] = useState(false)
-  const [isConfirmingReset, setIsConfirmingReset] = useState(false)
-  const [isResettingAll, setIsResettingAll] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
+  >(new Map());
+  const [isScanningAll, setIsScanningAll] = useState(false);
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false);
+  const [isResettingAll, setIsResettingAll] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   const onLibraryCreated = (library: Library) => {
-    setLibraries((current) => [...current, library])
-    setIsAddingLibrary(false)
-  }
+    setLibraries((current) => [...current, library]);
+    setIsAddingLibrary(false);
+  };
 
   const trackProgress = (
     libraryId: string,
@@ -129,121 +129,121 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     processed: number | null,
     total: number | null,
   ) => {
-    setScanProgress((current) => new Map(current).set(libraryId, { phase, processed, total }))
-  }
+    setScanProgress((current) => new Map(current).set(libraryId, { phase, processed, total }));
+  };
 
   const untrackProgress = (libraryId: string) => {
     setScanProgress((current) => {
-      const next = new Map(current)
-      next.delete(libraryId)
+      const next = new Map(current);
+      next.delete(libraryId);
 
-      return next
-    })
-  }
+      return next;
+    });
+  };
 
   const rescan = async (libraryId: string) => {
-    trackProgress(libraryId, null, null, null)
+    trackProgress(libraryId, null, null, null);
 
     try {
-      const job = await scanLibrary(libraryId)
+      const job = await scanLibrary(libraryId);
 
       if (job !== null) {
         await waitForScanCompletion(job.jobId, (progress) => {
-          trackProgress(libraryId, progress.phase, progress.processed, progress.total)
-        })
+          trackProgress(libraryId, progress.phase, progress.processed, progress.total);
+        });
       }
 
-      setLibraries(await fetchLibraries())
+      setLibraries(await fetchLibraries());
     } finally {
-      untrackProgress(libraryId)
+      untrackProgress(libraryId);
     }
-  }
+  };
 
   const rescanAll = async () => {
-    setIsScanningAll(true)
+    setIsScanningAll(true);
 
     for (const library of libraries) {
-      trackProgress(library.id, null, null, null)
+      trackProgress(library.id, null, null, null);
     }
 
     try {
       await Promise.all(
         libraries.map(async (library) => {
-          const job = await scanLibrary(library.id, true)
+          const job = await scanLibrary(library.id, true);
 
           if (job !== null) {
             await waitForScanCompletion(job.jobId, (progress) => {
-              trackProgress(library.id, progress.phase, progress.processed, progress.total)
-            })
+              trackProgress(library.id, progress.phase, progress.processed, progress.total);
+            });
           }
 
-          untrackProgress(library.id)
+          untrackProgress(library.id);
         }),
-      )
+      );
 
-      setLibraries(await fetchLibraries())
+      setLibraries(await fetchLibraries());
     } finally {
-      setIsScanningAll(false)
-      setScanProgress(new Map())
+      setIsScanningAll(false);
+      setScanProgress(new Map());
     }
-  }
+  };
 
   const resetAll = async () => {
-    setIsConfirmingReset(false)
-    setIsResettingAll(true)
+    setIsConfirmingReset(false);
+    setIsResettingAll(true);
 
     for (const library of libraries) {
-      trackProgress(library.id, null, null, null)
+      trackProgress(library.id, null, null, null);
     }
 
     try {
       await Promise.all(
         libraries.map(async (library) => {
-          const job = await resetLibrary(library.id)
+          const job = await resetLibrary(library.id);
 
           if (job !== null) {
             await waitForScanCompletion(job.jobId, (progress) => {
-              trackProgress(library.id, progress.phase, progress.processed, progress.total)
-            })
+              trackProgress(library.id, progress.phase, progress.processed, progress.total);
+            });
           }
 
-          untrackProgress(library.id)
+          untrackProgress(library.id);
         }),
-      )
+      );
 
-      setLibraries(await fetchLibraries())
+      setLibraries(await fetchLibraries());
     } finally {
-      setIsResettingAll(false)
-      setScanProgress(new Map())
+      setIsResettingAll(false);
+      setScanProgress(new Map());
     }
-  }
+  };
 
   useEffect(() => {
-    void fetchAdminOverview().then(setOverview)
-    void fetchMonitor().then(setMonitor)
-    void fetchLibraries().then(setLibraries)
-  }, [])
+    void fetchAdminOverview().then(setOverview);
+    void fetchMonitor().then(setMonitor);
+    void fetchLibraries().then(setLibraries);
+  }, []);
 
   useEffect(() => {
     const stop = watchMonitor((reading) => {
-      setMonitor(reading)
+      setMonitor(reading);
       setHistory((current) =>
         [...current, reading.resources.systemCpuPercent].slice(-historyLength),
-      )
-    })
+      );
+    });
 
-    return stop
-  }, [historyLength])
+    return stop;
+  }, [historyLength]);
 
-  const now = Date.now()
-  const resources = monitor?.resources ?? null
+  const now = Date.now();
+  const resources = monitor?.resources ?? null;
   const memoryFraction =
     resources === null || resources.systemMemoryTotalBytes === 0
       ? 0
-      : resources.systemMemoryUsedBytes / resources.systemMemoryTotalBytes
+      : resources.systemMemoryUsedBytes / resources.systemMemoryTotalBytes;
 
-  const failures = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'failed').length
-  const conversions = resources?.children ?? []
+  const failures = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'failed').length;
+  const conversions = resources?.children ?? [];
 
   return (
     <motion.div
@@ -288,10 +288,10 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
           onSelect={(id) => {
             // Matched against the same list the bar was given rather than
             // trusted: anything else is not a panel this page has.
-            const found = PANELS.find((candidate) => candidate.id === id)
+            const found = PANELS.find((candidate) => candidate.id === id);
 
             if (found !== undefined) {
-              setPanel(found.id)
+              setPanel(found.id);
             }
           }}
           label="What to look at"
@@ -529,7 +529,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                       isLoading={isScanningAll}
                       disabled={libraries.length === 0 || scanProgress.size > 0}
                       onClick={() => {
-                        void rescanAll()
+                        void rescanAll();
                       }}
                     >
                       <IconRefreshAlert size={16} aria-hidden />
@@ -543,7 +543,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                       isLoading={isResettingAll}
                       disabled={libraries.length === 0 || scanProgress.size > 0}
                       onClick={() => {
-                        setIsConfirmingReset(true)
+                        setIsConfirmingReset(true);
                       }}
                     >
                       <IconTrash size={16} aria-hidden />
@@ -555,7 +555,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                       size="sm"
                       isPill
                       onClick={() => {
-                        setIsAddingLibrary(true)
+                        setIsAddingLibrary(true);
                       }}
                     >
                       <IconPlus size={16} aria-hidden />
@@ -571,7 +571,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                 ) : (
                   <ul className="divide-y divide-white/5">
                     {libraries.map((library) => {
-                      const progress = scanProgress.get(library.id)
+                      const progress = scanProgress.get(library.id);
 
                       return (
                         <li
@@ -599,7 +599,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                                 size="sm"
                                 isPill
                                 onClick={() => {
-                                  void rescan(library.id)
+                                  void rescan(library.id);
                                 }}
                               >
                                 <IconRefresh size={16} aria-hidden />
@@ -615,7 +615,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                             )}
                           </div>
                         </li>
-                      )
+                      );
                     })}
                   </ul>
                 )}
@@ -623,7 +623,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                 <AddLibraryDialog
                   isOpen={isAddingLibrary}
                   onClose={() => {
-                    setIsAddingLibrary(false)
+                    setIsAddingLibrary(false);
                   }}
                   onCreated={onLibraryCreated}
                 />
@@ -632,10 +632,10 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                   isOpen={isConfirmingReset}
                   isResetting={isResettingAll}
                   onClose={() => {
-                    setIsConfirmingReset(false)
+                    setIsConfirmingReset(false);
                   }}
                   onConfirm={() => {
-                    void resetAll()
+                    void resetAll();
                   }}
                 />
               </div>
@@ -670,16 +670,16 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                       isLoading={isSaving}
                       disabled={catalogueKey === ''}
                       onClick={() => {
-                        setIsSaving(true)
+                        setIsSaving(true);
 
                         void saveCatalogueKey(catalogueKey).then(async (saved) => {
-                          setIsSaving(false)
+                          setIsSaving(false);
 
                           if (saved) {
-                            setCatalogueKey('')
-                            setOverview(await fetchAdminOverview())
+                            setCatalogueKey('');
+                            setOverview(await fetchAdminOverview());
                           }
-                        })
+                        });
                       }}
                     >
                       Save key
@@ -714,9 +714,9 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
         </AnimatePresence>
       </motion.section>
     </motion.div>
-  )
-}
+  );
+};
 
-AdminArea.displayName = 'AdminArea'
+AdminArea.displayName = 'AdminArea';
 
-export { AdminArea }
+export { AdminArea };

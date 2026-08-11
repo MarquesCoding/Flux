@@ -1,18 +1,18 @@
-import { useState } from 'react'
-import { Button } from '@FluxUI/Button'
-import { Dialog } from '@FluxUI/Dialog'
-import { TextField } from '@FluxUI/TextField'
-import { LIBRARY_KINDS } from '@FluxContracts/schemas/Library'
-import { createLibrary } from '@FluxWeb/library/fetchLibrary'
-import { validateAddLibraryForm } from './validateAddLibraryForm'
-import type { LibraryKind } from '@FluxContracts/schemas/Library'
-import type { AddLibraryDialogProps, AddLibraryFormErrors } from './AddLibraryDialog.types'
+import { useState } from 'react';
+import { Button } from '@FluxUI/Button';
+import { Dialog } from '@FluxUI/Dialog';
+import { TextField } from '@FluxUI/TextField';
+import { LIBRARY_KINDS } from '@FluxContracts/schemas/Library';
+import { createLibrary } from '@FluxWeb/library/fetchLibrary';
+import { validateAddLibraryForm } from './validateAddLibraryForm';
+import type { LibraryKind } from '@FluxContracts/schemas/Library';
+import type { AddLibraryDialogProps, AddLibraryFormErrors } from './AddLibraryDialog.types';
 
 const KIND_LABELS: Record<LibraryKind, string> = {
   movies: 'Movies',
   shows: 'Shows',
   music: 'Music',
-}
+};
 
 /**
  * Adds a library root.
@@ -21,48 +21,48 @@ const KIND_LABELS: Record<LibraryKind, string> = {
  * is easy to forget on a desktop reaching a server elsewhere on the network.
  */
 const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps) => {
-  const [name, setName] = useState('')
-  const [kind, setKind] = useState<LibraryKind>('movies')
-  const [path, setPath] = useState('')
-  const [errors, setErrors] = useState<AddLibraryFormErrors>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [name, setName] = useState('');
+  const [kind, setKind] = useState<LibraryKind>('movies');
+  const [path, setPath] = useState('');
+  const [errors, setErrors] = useState<AddLibraryFormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reset = () => {
-    setName('')
-    setKind('movies')
-    setPath('')
-    setErrors({})
-  }
+    setName('');
+    setKind('movies');
+    setPath('');
+    setErrors({});
+  };
 
   const close = () => {
-    reset()
-    onClose()
-  }
+    reset();
+    onClose();
+  };
 
   const submit = async () => {
-    const found = validateAddLibraryForm({ name, path })
+    const found = validateAddLibraryForm({ name, path });
 
-    setErrors(found)
+    setErrors(found);
 
     if (Object.keys(found).length > 0) {
-      return
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
-      const library = await createLibrary({ name, kind, path })
+      const library = await createLibrary({ name, kind, path });
 
-      onCreated(library)
-      reset()
+      onCreated(library);
+      reset();
     } catch (error) {
       setErrors({
         submit: error instanceof Error ? error.message : 'The library could not be added.',
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Dialog label="Add a library" isOpen={isOpen} onClose={close}>
@@ -88,7 +88,7 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
                 variant={entry === kind ? 'primary' : 'secondary'}
                 aria-pressed={entry === kind}
                 onClick={() => {
-                  setKind(entry)
+                  setKind(entry);
                 }}
               >
                 {KIND_LABELS[entry]}
@@ -122,7 +122,7 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
             isPill
             isLoading={isSubmitting}
             onClick={() => {
-              void submit()
+              void submit();
             }}
           >
             Add library
@@ -130,9 +130,9 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
         </div>
       </div>
     </Dialog>
-  )
-}
+  );
+};
 
-AddLibraryDialog.displayName = 'AddLibraryDialog'
+AddLibraryDialog.displayName = 'AddLibraryDialog';
 
-export { AddLibraryDialog }
+export { AddLibraryDialog };

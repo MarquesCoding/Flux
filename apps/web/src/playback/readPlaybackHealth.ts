@@ -1,4 +1,4 @@
-import type { PlaybackHealth } from '@FluxWeb/components/VideoPlayer/components/StreamStats/StreamStats.types'
+import type { PlaybackHealth } from '@FluxWeb/components/VideoPlayer/components/StreamStats/StreamStats.types';
 
 /**
  * The last moment of the stream that exists.
@@ -9,13 +9,13 @@ import type { PlaybackHealth } from '@FluxWeb/components/VideoPlayer/components/
  */
 const encodedSeconds = (element: HTMLVideoElement): number => {
   try {
-    const ranges = element.seekable
+    const ranges = element.seekable;
 
-    return ranges.length > 0 ? ranges.end(ranges.length - 1) : 0
+    return ranges.length > 0 ? ranges.end(ranges.length - 1) : 0;
   } catch {
-    return 0
+    return 0;
   }
-}
+};
 
 /**
  * How much is buffered past where the viewer is.
@@ -25,19 +25,19 @@ const encodedSeconds = (element: HTMLVideoElement): number => {
  */
 const bufferedAhead = (element: HTMLVideoElement): number => {
   try {
-    const ranges = element.buffered
+    const ranges = element.buffered;
 
     for (let index = 0; index < ranges.length; index += 1) {
       if (ranges.start(index) <= element.currentTime && ranges.end(index) >= element.currentTime) {
-        return ranges.end(index) - element.currentTime
+        return ranges.end(index) - element.currentTime;
       }
     }
 
-    return 0
+    return 0;
   } catch {
-    return 0
+    return 0;
   }
-}
+};
 
 /**
  * A source of frame counts.
@@ -46,8 +46,8 @@ const bufferedAhead = (element: HTMLVideoElement): number => {
  * types do not admit.
  */
 type FrameCountSource = {
-  getVideoPlaybackQuality?: () => { droppedVideoFrames: number; totalVideoFrames: number }
-}
+  getVideoPlaybackQuality?: () => { droppedVideoFrames: number; totalVideoFrames: number };
+};
 
 /**
  * Frame counts, where the browser keeps them.
@@ -59,14 +59,14 @@ type FrameCountSource = {
 const frameCounts = (
   element: FrameCountSource,
 ): { dropped: number | null; decoded: number | null } => {
-  const quality = element.getVideoPlaybackQuality?.()
+  const quality = element.getVideoPlaybackQuality?.();
 
   if (quality === undefined) {
-    return { dropped: null, decoded: null }
+    return { dropped: null, decoded: null };
   }
 
-  return { dropped: quality.droppedVideoFrames, decoded: quality.totalVideoFrames }
-}
+  return { dropped: quality.droppedVideoFrames, decoded: quality.totalVideoFrames };
+};
 
 /**
  * Samples what the browser is actually doing with the stream.
@@ -79,7 +79,7 @@ const readPlaybackHealth = (
   element: HTMLVideoElement,
   sessionStartSeconds: number,
 ): PlaybackHealth => {
-  const frames = frameCounts(element)
+  const frames = frameCounts(element);
 
   return {
     positionSeconds: sessionStartSeconds + element.currentTime,
@@ -89,9 +89,9 @@ const readPlaybackHealth = (
     decodedFrames: frames.decoded,
     presentedWidth: element.videoWidth,
     presentedHeight: element.videoHeight,
-  }
-}
+  };
+};
 
-export type { FrameCountSource }
+export type { FrameCountSource };
 
-export { readPlaybackHealth, encodedSeconds, bufferedAhead }
+export { readPlaybackHealth, encodedSeconds, bufferedAhead };

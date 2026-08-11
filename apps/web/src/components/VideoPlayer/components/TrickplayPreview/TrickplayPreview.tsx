@@ -1,6 +1,6 @@
-import { formatDuration } from '@FluxCore/functions/formatDuration'
-import { thumbnailAt } from '@FluxWeb/playback/fetchTrickplay'
-import type { TrickplayPreviewProps } from './TrickplayPreview.types'
+import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { thumbnailAt } from '@FluxWeb/playback/fetchTrickplay';
+import type { TrickplayPreviewProps } from './TrickplayPreview.types';
 
 /**
  * The frame under the pointer while scrubbing.
@@ -9,10 +9,10 @@ import type { TrickplayPreviewProps } from './TrickplayPreview.types'
  * across a timeline costs no requests beyond the sheets already fetched.
  */
 const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
-  const thumbnail = thumbnailAt(trickplay.thumbnails, seconds)
+  const thumbnail = thumbnailAt(trickplay.thumbnails, seconds);
 
   if (thumbnail === null) {
-    return null
+    return null;
   }
 
   return (
@@ -40,9 +40,9 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
 
       <figcaption className="text-center text-md mt-2">{formatDuration(seconds)}</figcaption>
     </figure>
-  )
-}
+  );
+};
 
-TrickplayPreview.displayName = 'TrickplayPreview'
+TrickplayPreview.displayName = 'TrickplayPreview';
 
-export { TrickplayPreview }
+export { TrickplayPreview };

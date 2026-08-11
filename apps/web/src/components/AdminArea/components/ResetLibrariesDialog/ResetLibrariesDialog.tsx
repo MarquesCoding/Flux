@@ -1,6 +1,6 @@
-import { Button } from '@FluxUI/Button'
-import { Dialog } from '@FluxUI/Dialog'
-import type { ResetLibrariesDialogProps } from './ResetLibrariesDialog.types'
+import { Button } from '@FluxUI/Button';
+import { Dialog } from '@FluxUI/Dialog';
+import type { ResetLibrariesDialogProps } from './ResetLibrariesDialog.types';
 
 /**
  * Asks before a rebuild, because a rebuild cannot be asked to stop.
@@ -34,8 +34,8 @@ const ResetLibrariesDialog = ({
       </div>
     </div>
   </Dialog>
-)
+);
 
-ResetLibrariesDialog.displayName = 'ResetLibrariesDialog'
+ResetLibrariesDialog.displayName = 'ResetLibrariesDialog';
 
-export { ResetLibrariesDialog }
+export { ResetLibrariesDialog };

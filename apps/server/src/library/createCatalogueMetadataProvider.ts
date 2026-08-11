@@ -1,8 +1,8 @@
-import { z } from 'zod'
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-import { readTitleFromPath } from './readTitleFromPath'
-import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider'
+import { z } from 'zod';
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { readTitleFromPath } from './readTitleFromPath';
+import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider';
 
 /**
  * Where the catalogue lives.
@@ -10,7 +10,7 @@ import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider'
  * Configurable so a deployment can point at a mirror, and so tests can point
  * at nothing at all.
  */
-const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3'
+const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3';
 
 /**
  * Whether a credential is the newer kind.
@@ -19,9 +19,9 @@ const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3'
  * plain string of hexadecimal. Telling them apart by shape means an operator
  * never has to know which they were given.
  */
-const isAccessToken = (key: string): boolean => key.split('.').length === 3 && key.startsWith('ey')
+const isAccessToken = (key: string): boolean => key.split('.').length === 3 && key.startsWith('ey');
 
-const DEFAULT_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p'
+const DEFAULT_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
 /**
  * How many people are worth naming.
@@ -29,7 +29,7 @@ const DEFAULT_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p'
  * A film credits hundreds. A viewer deciding whether to watch it reads the
  * first few.
  */
-const CAST_LIMIT = 12
+const CAST_LIMIT = 12;
 
 const SearchResultSchema = z.object({
   id: z.number(),
@@ -41,9 +41,9 @@ const SearchResultSchema = z.object({
   poster_path: z.string().nullish(),
   backdrop_path: z.string().nullish(),
   vote_average: z.number().optional(),
-})
+});
 
-const SearchResponseSchema = z.object({ results: z.array(SearchResultSchema).default([]) })
+const SearchResponseSchema = z.object({ results: z.array(SearchResultSchema).default([]) });
 
 /**
  * What the catalogue says about one episode.
@@ -57,7 +57,7 @@ const EpisodeResponseSchema = z.object({
   overview: z.string().optional(),
   still_path: z.string().nullish(),
   vote_average: z.number().optional(),
-})
+});
 
 const DetailResponseSchema = z.object({
   id: z.number(),
@@ -84,33 +84,33 @@ const DetailResponseSchema = z.object({
         .default([]),
     })
     .optional(),
-})
+});
 
 type Fetcher = (
   url: string,
   headers?: Record<string, string>,
-) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>
+) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>;
 
 type CreateCatalogueMetadataProviderOptions = {
   /**
    * Read at call time rather than at construction, so an operator adding a key
    * in settings does not have to restart the server.
    */
-  readApiKey: () => Promise<string | null>
-  baseUrl?: string
-  imageBaseUrl?: string
-  fetchImpl?: Fetcher
-  onProblem?: (reason: string) => void
-}
+  readApiKey: () => Promise<string | null>;
+  baseUrl?: string;
+  imageBaseUrl?: string;
+  fetchImpl?: Fetcher;
+  onProblem?: (reason: string) => void;
+};
 
 /**
  * Reads a year out of a catalogue's date, which may be absent or empty.
  */
 const readYear = (date: string | undefined): number | null => {
-  const year = Number(date?.slice(0, 4))
+  const year = Number(date?.slice(0, 4));
 
-  return Number.isInteger(year) && year > 1870 ? year : null
-}
+  return Number.isInteger(year) && year > 1870 ? year : null;
+};
 
 /**
  * A title stripped to the words in it, for comparing two spellings of the
@@ -120,7 +120,7 @@ const normalizeTitle = (value: string): string =>
   value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
+    .trim();
 
 /**
  * Whether two titles have a real word in common.
@@ -136,12 +136,12 @@ const shareASignificantWord = (left: string, right: string): boolean => {
       normalizeTitle(value)
         .split(' ')
         .filter((word) => word.length >= 4),
-    )
+    );
 
-  const leftWords = wordsOf(left)
+  const leftWords = wordsOf(left);
 
-  return [...wordsOf(right)].some((word) => leftWords.has(word))
-}
+  return [...wordsOf(right)].some((word) => leftWords.has(word));
+};
 
 /**
  * Builds an image address at a sensible width.
@@ -151,7 +151,7 @@ const shareASignificantWord = (left: string, right: string): boolean => {
  * absurd.
  */
 const imageUrl = (base: string, path: string | null | undefined, size: string): string | null =>
-  path === null || path === undefined || path === '' ? null : `${base}/${size}${path}`
+  path === null || path === undefined || path === '' ? null : `${base}/${size}${path}`;
 
 /**
  * Metadata from an online catalogue.
@@ -175,7 +175,7 @@ const createCatalogueMetadataProvider = ({
   const call: Fetcher =
     fetchImpl ??
     (async (url: string, headers?: Record<string, string>) => {
-      const response = await fetch(url, headers === undefined ? {} : { headers })
+      const response = await fetch(url, headers === undefined ? {} : { headers });
 
       return {
         ok: response.ok,
@@ -183,47 +183,47 @@ const createCatalogueMetadataProvider = ({
         // Parsed by a schema at the call site, so the body arriving as any
         // shape at all is expected rather than a hole in the typing.
         json: async (): Promise<JsonValue> => JsonValueSchema.parse(await response.json()),
-      }
-    })
+      };
+    });
 
   const request = async (path: string, key: string, query: Record<string, string>) => {
     // The catalogue issues two kinds of credential and does not accept them
     // the same way: the older one is a key in the query string, and the newer
     // one is a token in a header. Somebody pasting either should get their
     // posters, rather than a silent four hundred and one.
-    const isToken = isAccessToken(key)
-    const parameters = new URLSearchParams(isToken ? query : { api_key: key, ...query })
+    const isToken = isAccessToken(key);
+    const parameters = new URLSearchParams(isToken ? query : { api_key: key, ...query });
 
     const response = await call(
       `${baseUrl}${path}?${parameters.toString()}`,
       isToken ? { authorization: `Bearer ${key}` } : undefined,
-    )
+    );
 
     if (!response.ok) {
-      onProblem?.(`The catalogue answered ${response.status.toString()} for ${path}.`)
+      onProblem?.(`The catalogue answered ${response.status.toString()} for ${path}.`);
 
-      return null
+      return null;
     }
 
-    return response.json()
-  }
+    return response.json();
+  };
 
   return {
     name: 'catalogue',
 
     describe: async (facts) => {
-      const key = await readApiKey()
+      const key = await readApiKey();
 
       if (key === null || key === '') {
-        return null
+        return null;
       }
 
-      const episodeNumber = facts.episode?.episodeNumber ?? null
-      const isEpisode = episodeNumber !== null
-      const fromFilename = readTitleFromPath(facts.path)
+      const episodeNumber = facts.episode?.episodeNumber ?? null;
+      const isEpisode = episodeNumber !== null;
+      const fromFilename = readTitleFromPath(facts.path);
       const searchTitle = isEpisode
         ? (facts.episode?.seriesTitle ?? fromFilename.title)
-        : fromFilename.title
+        : fromFilename.title;
 
       // The tail shared by both a known id and a freshly searched one: fetch
       // the episode underneath it, cross-check its title, and shape whatever
@@ -236,9 +236,9 @@ const createCatalogueMetadataProvider = ({
             name: member.name,
             role: member.character ?? '',
             imageUrl: imageUrl(imageBaseUrl, member.profile_path, 'w185'),
-          })) ?? []
+          })) ?? [];
 
-        const poster = imageUrl(imageBaseUrl, detail.poster_path, 'w500')
+        const poster = imageUrl(imageBaseUrl, detail.poster_path, 'w500');
 
         // An episode is named by the episode, illustrated by its own still, and
         // described by its own synopsis — falling back to the series for
@@ -251,7 +251,7 @@ const createCatalogueMetadataProvider = ({
                 {},
               ),
             )
-          : null
+          : null;
 
         // A second check, past the series title: two shows can share a name, or
         // neither search result may have matched exactly, and either way the
@@ -259,11 +259,11 @@ const createCatalogueMetadataProvider = ({
         // just not the one the filename already named. Refusing here falls
         // back to what the filename said, rather than keeping a confident
         // answer about the wrong show.
-        const knownEpisodeTitle = facts.episode?.episodeTitle ?? null
+        const knownEpisodeTitle = facts.episode?.episodeTitle ?? null;
         const catalogueEpisodeName =
           episode?.success === true && episode.data.name !== undefined && episode.data.name !== ''
             ? episode.data.name
-            : null
+            : null;
 
         if (
           isEpisode &&
@@ -271,22 +271,24 @@ const createCatalogueMetadataProvider = ({
           catalogueEpisodeName !== null &&
           !shareASignificantWord(knownEpisodeTitle, catalogueEpisodeName)
         ) {
-          return null
+          return null;
         }
 
         const still =
-          episode?.success === true ? imageUrl(imageBaseUrl, episode.data.still_path, 'w780') : null
-        const backdrop = still ?? imageUrl(imageBaseUrl, detail.backdrop_path, 'w1280')
+          episode?.success === true
+            ? imageUrl(imageBaseUrl, episode.data.still_path, 'w780')
+            : null;
+        const backdrop = still ?? imageUrl(imageBaseUrl, detail.backdrop_path, 'w1280');
 
-        const seriesName = detail.title ?? detail.name ?? searchTitle
-        const episodeName = catalogueEpisodeName ?? knownEpisodeTitle
+        const seriesName = detail.title ?? detail.name ?? searchTitle;
+        const episodeName = catalogueEpisodeName ?? knownEpisodeTitle;
 
         const overview =
           episode?.success === true &&
           episode.data.overview !== undefined &&
           episode.data.overview !== ''
             ? episode.data.overview
-            : detail.overview
+            : detail.overview;
 
         return {
           title: isEpisode ? (episodeName ?? seriesName) : seriesName,
@@ -306,8 +308,8 @@ const createCatalogueMetadataProvider = ({
           ...(detail.vote_average === undefined ? {} : { rating: detail.vote_average }),
           ...(poster === null ? {} : { posterUrl: poster }),
           ...(backdrop === null ? {} : { backdropUrl: backdrop }),
-        }
-      }
+        };
+      };
 
       // A rescan asking about something already matched skips search
       // entirely and goes straight to what a provider already said this
@@ -322,12 +324,12 @@ const createCatalogueMetadataProvider = ({
           `${isEpisode ? '/tv' : '/movie'}/${facts.knownExternalId}`,
           key,
           { append_to_response: 'credits' },
-        )
+        );
 
-        const detail = DetailResponseSchema.safeParse(detailed)
+        const detail = DetailResponseSchema.safeParse(detailed);
 
         if (detail.success) {
-          return describeFrom(detail.data)
+          return describeFrom(detail.data);
         }
 
         // The id no longer resolves — removed from the catalogue, or merged
@@ -335,7 +337,7 @@ const createCatalogueMetadataProvider = ({
         // same as an item that has never been matched before.
       }
 
-      const seriesYear = facts.episode?.seriesYear ?? null
+      const seriesYear = facts.episode?.seriesYear ?? null;
       const searched = await request(isEpisode ? '/search/tv' : '/search/movie', key, {
         query: searchTitle,
         ...(isEpisode
@@ -345,36 +347,36 @@ const createCatalogueMetadataProvider = ({
           : fromFilename.year === null
             ? {}
             : { year: fromFilename.year.toString() }),
-      })
+      });
 
       if (searched === null) {
-        return null
+        return null;
       }
 
-      const results = SearchResponseSchema.safeParse(searched)
-      const candidates = results.success ? results.data.results : []
+      const results = SearchResponseSchema.safeParse(searched);
+      const candidates = results.success ? results.data.results : [];
 
       // The catalogue sorts by popularity, not by which title matches best —
       // searching "Ted" can rank "Ted Lasso" above "Ted" itself. An exact
       // title is trusted over the ranking whenever the search actually found
       // one, and only falls back to "whatever came first" when it did not.
-      const wanted = normalizeTitle(searchTitle)
+      const wanted = normalizeTitle(searchTitle);
       const exact = candidates.find(
         (entry) => normalizeTitle(entry.title ?? entry.name ?? '') === wanted,
-      )
-      const first = exact ?? candidates[0]
+      );
+      const first = exact ?? candidates[0];
 
       if (first === undefined) {
-        return null
+        return null;
       }
 
       const detailed = await request(
         `${isEpisode ? '/tv' : '/movie'}/${first.id.toString()}`,
         key,
         { append_to_response: 'credits' },
-      )
+      );
 
-      const detail = DetailResponseSchema.safeParse(detailed)
+      const detail = DetailResponseSchema.safeParse(detailed);
 
       if (!detail.success) {
         // The search found something even if the details did not arrive, so
@@ -383,14 +385,14 @@ const createCatalogueMetadataProvider = ({
           title: first.title ?? first.name ?? searchTitle,
           year: readYear(first.release_date ?? first.first_air_date),
           externalId: first.id.toString(),
-        }
+        };
       }
 
-      return describeFrom(detail.data)
+      return describeFrom(detail.data);
     },
-  }
-}
+  };
+};
 
-export type { CreateCatalogueMetadataProviderOptions, Fetcher }
+export type { CreateCatalogueMetadataProviderOptions, Fetcher };
 
-export { createCatalogueMetadataProvider, readYear, imageUrl, CAST_LIMIT }
+export { createCatalogueMetadataProvider, readYear, imageUrl, CAST_LIMIT };

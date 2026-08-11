@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
-import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react'
-import { Button } from '@FluxUI/Button'
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
-import { formatDuration } from '@FluxCore/functions/formatDuration'
-import { cn } from '@FluxUI/cn'
-import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview'
-import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts'
-import { PageDots } from '@FluxUI/PageDots'
-import type { HeroProps } from './Hero.types'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { cn } from '@FluxUI/cn';
+import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
+import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
+import { PageDots } from '@FluxUI/PageDots';
+import type { HeroProps } from './Hero.types';
 
 /**
  * How much scrolling the hero holds on to before the page moves on.
@@ -18,7 +18,7 @@ import type { HeroProps } from './Hero.types'
  * scrolling gets the change of shape first and the change of place second,
  * rather than both at once.
  */
-const DRAWS_IN_BY_PIXELS = 320
+const DRAWS_IN_BY_PIXELS = 320;
 
 /**
  * How much of the screen the card gives up at its foot.
@@ -30,12 +30,12 @@ const DRAWS_IN_BY_PIXELS = 320
  * starts at the card's own bottom edge rather than a quarter of a screen
  * beneath it.
  */
-const FOOT_OF_THE_CARD = '24svh'
+const FOOT_OF_THE_CARD = '24svh';
 
 /**
  * How long an item holds the screen before the next one takes it.
  */
-const ROTATE_AFTER_MILLISECONDS = 14_000
+const ROTATE_AFTER_MILLISECONDS = 14_000;
 
 /**
  * How long the hero waits before starting a preview.
@@ -43,12 +43,12 @@ const ROTATE_AFTER_MILLISECONDS = 14_000
  * Arriving at a home page is not the same as choosing something, and a page
  * that starts transcoding the moment it loads transcodes for nobody.
  */
-const PREVIEW_SETTLE_MILLISECONDS = 2500
+const PREVIEW_SETTLE_MILLISECONDS = 2500;
 
 /**
  * Where an item's artwork is served from.
  */
-const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`
+const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
 /**
  * The screen the library opens with.
@@ -71,23 +71,23 @@ const Hero = ({
   resumeFor,
   rotateAfterMilliseconds = ROTATE_AFTER_MILLISECONDS,
 }: HeroProps) => {
-  const [index, setIndex] = useState(0)
-  const [isHeld, setIsHeld] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
+  const [index, setIndex] = useState(0);
+  const [isHeld, setIsHeld] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
-  const featured = items[index % Math.max(items.length, 1)]
-  const resume = featured === undefined ? null : (resumeFor?.(featured.id) ?? null)
+  const featured = items[index % Math.max(items.length, 1)];
+  const resume = featured === undefined ? null : (resumeFor?.(featured.id) ?? null);
 
   useEffect(() => {
     if (featured !== undefined) {
-      onFeatureChange?.(featured)
+      onFeatureChange?.(featured);
     }
-  }, [featured, onFeatureChange])
+  }, [featured, onFeatureChange]);
 
   // How far the page has been read, as a number between the two shapes. The
   // window rather than the section, because the hero is what is being scrolled
   // away from rather than into.
-  const runwayRef = useRef<HTMLDivElement>(null)
+  const runwayRef = useRef<HTMLDivElement>(null);
   // Measured across exactly the scrolling the hero is pinned for. The runway's
   // bottom reaching the bottom of the screen is the moment the picture stops
   // being stuck, so that is the moment the card has to be finished — anything
@@ -95,21 +95,21 @@ const Hero = ({
   const { scrollYProgress } = useScroll({
     target: runwayRef,
     offset: ['start start', 'end end'],
-  })
+  });
 
   // The card is drawn inside a slot that never changes size, so nothing below
   // it moves while it forms. Only once it has finished does the runway end and
   // the library begin to come up.
-  const inset = useTransform(scrollYProgress, [0, 1], ['0px', '40px'])
-  const lift = useTransform(scrollYProgress, [0, 1], ['0px', '72px'])
-  const foot = useTransform(scrollYProgress, [0, 1], ['0px', FOOT_OF_THE_CARD])
-  const corner = useTransform(scrollYProgress, [0, 1], ['0px', '28px'])
+  const inset = useTransform(scrollYProgress, [0, 1], ['0px', '40px']);
+  const lift = useTransform(scrollYProgress, [0, 1], ['0px', '72px']);
+  const foot = useTransform(scrollYProgress, [0, 1], ['0px', FOOT_OF_THE_CARD]);
+  const corner = useTransform(scrollYProgress, [0, 1], ['0px', '28px']);
 
   const showNext = useCallback(() => {
     if (items.length > 1 && !isHeld) {
-      setIndex((current) => (current + 1) % items.length)
+      setIndex((current) => (current + 1) % items.length);
     }
-  }, [items.length, isHeld])
+  }, [items.length, isHeld]);
 
   // A backstop rather than the clock the hero runs on. The preview says when
   // it has finished and the hero moves on then, which is what makes it change
@@ -117,26 +117,26 @@ const Hero = ({
   // never arrives, so a hero without previews still rotates.
   useEffect(() => {
     if (items.length < 2 || rotateAfterMilliseconds <= 0 || isHeld) {
-      return
+      return;
     }
 
-    const timer = setTimeout(showNext, rotateAfterMilliseconds)
+    const timer = setTimeout(showNext, rotateAfterMilliseconds);
 
     return () => {
-      clearTimeout(timer)
-    }
-  }, [items.length, rotateAfterMilliseconds, isHeld, index, showNext])
+      clearTimeout(timer);
+    };
+  }, [items.length, rotateAfterMilliseconds, isHeld, index, showNext]);
 
   const hold = useCallback(() => {
-    setIsHeld(true)
-  }, [])
+    setIsHeld(true);
+  }, []);
 
   const release = useCallback(() => {
-    setIsHeld(false)
-  }, [])
+    setIsHeld(false);
+  }, []);
 
   if (featured === undefined) {
-    return null
+    return null;
   }
 
   return (
@@ -278,7 +278,7 @@ const Hero = ({
                 size="lg"
                 isPill
                 onClick={() => {
-                  onPlay(featured, resume ?? 0)
+                  onPlay(featured, resume ?? 0);
                 }}
               >
                 <IconPlayerPlayFilled size={18} aria-hidden />
@@ -293,7 +293,7 @@ const Hero = ({
                   size="lg"
                   isPill
                   onClick={() => {
-                    onInspect(featured)
+                    onInspect(featured);
                   }}
                 >
                   <IconInfoCircle size={18} aria-hidden />
@@ -318,9 +318,9 @@ const Hero = ({
         </motion.section>
       </div>
     </div>
-  )
-}
+  );
+};
 
-Hero.displayName = 'Hero'
+Hero.displayName = 'Hero';
 
-export { Hero }
+export { Hero };

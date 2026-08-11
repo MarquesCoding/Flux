@@ -1,6 +1,6 @@
-import { Dialog as BaseDialog } from '@base-ui-components/react/dialog'
-import { cn } from '@FluxUI/cn'
-import type { DialogProps } from './Dialog.types'
+import { Dialog as BaseDialog } from '@base-ui-components/react/dialog';
+import { cn } from '@FluxUI/cn';
+import type { DialogProps } from './Dialog.types';
 
 /**
  * How the panel arrives and leaves.
@@ -38,14 +38,14 @@ const POPUP_MOTION = [
   'motion-reduce:max-sm:data-[ending-style]:translate-y-0',
   'motion-reduce:sm:data-[starting-style]:scale-100',
   'motion-reduce:sm:data-[ending-style]:scale-100',
-].join(' ')
+].join(' ');
 
 const BACKDROP_MOTION = [
   // Ahead of the panel on the way in and behind it on the way out, so the page
   // is already dimmed when the panel lands and still dim while it leaves.
   'transition-opacity duration-200 ease-out data-[ending-style]:duration-200',
   'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
-].join(' ')
+].join(' ');
 
 /**
  * A panel over the page.
@@ -59,7 +59,7 @@ const Dialog = ({ label, isOpen, onClose, children, className }: DialogProps) =>
     open={isOpen}
     onOpenChange={(open) => {
       if (!open) {
-        onClose()
+        onClose();
       }
     }}
   >
@@ -83,8 +83,8 @@ const Dialog = ({ label, isOpen, onClose, children, className }: DialogProps) =>
       </BaseDialog.Popup>
     </BaseDialog.Portal>
   </BaseDialog.Root>
-)
+);
 
-Dialog.displayName = 'Dialog'
+Dialog.displayName = 'Dialog';
 
-export { Dialog }
+export { Dialog };

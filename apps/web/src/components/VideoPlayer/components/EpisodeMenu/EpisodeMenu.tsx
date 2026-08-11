@@ -1,20 +1,20 @@
-import { useState } from 'react'
-import { IconArticle, IconArticleFilled } from '@tabler/icons-react'
-import { PopoverPanel } from '@FluxUI/PopoverPanel'
-import { MediaCard } from '@FluxUI/MediaCard'
-import { formatDuration } from '@FluxCore/functions/formatDuration'
-import type { EpisodeMenuProps } from './EpisodeMenu.types'
+import { useState } from 'react';
+import { IconArticle, IconArticleFilled } from '@tabler/icons-react';
+import { PopoverPanel } from '@FluxUI/PopoverPanel';
+import { MediaCard } from '@FluxUI/MediaCard';
+import { formatDuration } from '@FluxCore/functions/formatDuration';
+import type { EpisodeMenuProps } from './EpisodeMenu.types';
 
 /**
  * Where an episode's picture comes from.
  */
-const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`
+const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
 /**
  * What a season is called at the top of the list.
  */
 const headingOf = (seasonNumber: number | null | undefined): string =>
-  typeof seasonNumber === 'number' ? `Season ${seasonNumber.toString()}` : 'Episodes'
+  typeof seasonNumber === 'number' ? `Season ${seasonNumber.toString()}` : 'Episodes';
 
 /**
  * The rest of the season, without leaving the film.
@@ -34,20 +34,20 @@ const EpisodeMenu = ({
 }: EpisodeMenuProps) => {
   // Closed by picking something. A list that navigates should not still be
   // sitting over what it navigated to.
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   const show = (next: boolean) => {
-    setIsOpen(next)
-    onOpenChange?.(next)
-  }
+    setIsOpen(next);
+    onOpenChange?.(next);
+  };
 
   // A film has no season to list. The button is not drawn at all rather than
   // drawn and disabled: a control that can never do anything is furniture.
   if (episodes.length === 0) {
-    return null
+    return null;
   }
 
-  const playing = episodes.find((episode) => episode.id === playingId) ?? null
+  const playing = episodes.find((episode) => episode.id === playingId) ?? null;
 
   return (
     <PopoverPanel
@@ -81,8 +81,8 @@ const EpisodeMenu = ({
                 {...(episode.hasBackdrop ? { imageUrl: artworkUrl(episode.id) } : {})}
                 isStill
                 onSelect={() => {
-                  show(false)
-                  onSelect(episode)
+                  show(false);
+                  onSelect(episode);
                 }}
                 className={episode.id === playingId ? 'opacity-60' : ''}
               />
@@ -91,9 +91,9 @@ const EpisodeMenu = ({
         ))}
       </ul>
     </PopoverPanel>
-  )
-}
+  );
+};
 
-EpisodeMenu.displayName = 'EpisodeMenu'
+EpisodeMenu.displayName = 'EpisodeMenu';
 
-export { EpisodeMenu }
+export { EpisodeMenu };

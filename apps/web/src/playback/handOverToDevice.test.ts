@@ -1,17 +1,17 @@
-import { describe, expect, it, vi } from 'vitest'
-import { handOverToDevice } from './handOverToDevice'
+import { describe, expect, it, vi } from 'vitest';
+import { handOverToDevice } from './handOverToDevice';
 
-const REACHABLE = 'http://flux.local:5173'
+const REACHABLE = 'http://flux.local:5173';
 
 /**
  * A video element that can be handed to a device, as Chrome presents one.
  */
 const castable = (isRefused = false) => {
-  const closed = new Error('closed')
+  const closed = new Error('closed');
 
-  closed.name = 'AbortError'
+  closed.name = 'AbortError';
 
-  const element = document.createElement('video')
+  const element = document.createElement('video');
 
   Object.defineProperty(element, 'remote', {
     configurable: true,
@@ -23,98 +23,98 @@ const castable = (isRefused = false) => {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     },
-  })
+  });
 
-  return element
-}
+  return element;
+};
 
 describe('handOverToDevice', () => {
   it('points the element at an address a device can fetch', async () => {
-    const element = castable()
+    const element = castable();
 
     await handOverToDevice({
       element,
       url: '/api/playback/session/abc/index.m3u8',
       origin: REACHABLE,
-    })
+    });
 
-    expect(element.src).toBe('http://flux.local:5173/api/playback/session/abc/index.m3u8')
-  })
+    expect(element.src).toBe('http://flux.local:5173/api/playback/session/abc/index.m3u8');
+  });
 
   it('lets go of the media engine', async () => {
-    const element = castable()
-    const release = vi.fn(() => Promise.resolve())
+    const element = castable();
+    const release = vi.fn(() => Promise.resolve());
 
     await handOverToDevice({
       element,
       url: '/api/playback/session/abc/index.m3u8',
       origin: REACHABLE,
       release,
-    })
+    });
 
     // A device fetches the stream itself, which cannot happen while an engine
     // here is feeding the same element.
-    expect(release).toHaveBeenCalled()
-  })
+    expect(release).toHaveBeenCalled();
+  });
 
   it('carries on from where the viewer was', async () => {
-    const element = castable()
+    const element = castable();
 
     Object.defineProperty(element, 'currentTime', {
       configurable: true,
       writable: true,
       value: 812,
-    })
+    });
 
     await handOverToDevice({
       element,
       url: '/api/playback/session/abc/index.m3u8',
       origin: REACHABLE,
-    })
+    });
 
-    expect(element.currentTime).toBe(812)
-  })
+    expect(element.currentTime).toBe(812);
+  });
 
   it('refuses where the page is at an address nothing else can follow', async () => {
-    const element = castable()
-    const release = vi.fn(() => Promise.resolve())
+    const element = castable();
+    const release = vi.fn(() => Promise.resolve());
 
     const shown = await handOverToDevice({
       element,
       url: '/api/playback/session/abc/index.m3u8',
       origin: 'http://localhost:5173',
       release,
-    })
+    });
 
     // Nothing torn down, so a viewer who cannot cast is left watching what
     // they were watching.
-    expect(shown).toBe(false)
-    expect(release).not.toHaveBeenCalled()
-  })
+    expect(shown).toBe(false);
+    expect(release).not.toHaveBeenCalled();
+  });
 
   it('lets go of the engine before pointing the element anywhere', async () => {
-    const element = castable()
-    const order: string[] = []
+    const element = castable();
+    const order: string[] = [];
 
     Object.defineProperty(element, 'src', {
       configurable: true,
       set: () => order.push('pointed'),
       get: () => '',
-    })
+    });
 
     await handOverToDevice({
       element,
       url: '/api/playback/session/abc/index.m3u8',
       origin: REACHABLE,
       release: () => {
-        order.push('released')
+        order.push('released');
 
-        return Promise.resolve()
+        return Promise.resolve();
       },
-    })
+    });
 
     // An engine feeding this element re-attaches itself the moment anything
     // else is assigned, so the order is the whole point.
-    expect(order).toEqual(['released', 'pointed'])
-  })
-})
+    expect(order).toEqual(['released', 'pointed']);
+  });
+});

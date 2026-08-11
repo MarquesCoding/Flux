@@ -1,10 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
-import { scanLibrary, selectChanged } from './scanLibrary'
-import type { MediaRow, ScanPhase, ScannedFile, StoredItem } from './scanLibrary'
-import type { MetadataProvider } from './MetadataProvider'
-import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient'
+import { describe, expect, it, vi } from 'vitest';
+import { scanLibrary, selectChanged } from './scanLibrary';
+import type { MediaRow, ScanPhase, ScannedFile, StoredItem } from './scanLibrary';
+import type { MetadataProvider } from './MetadataProvider';
+import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 
-const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
+const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 
 const probe = (): MediaProbe => ({
   container: 'mkv',
@@ -32,14 +32,14 @@ const probe = (): MediaProbe => ({
   ],
   subtitleStreams: [],
   chapters: [],
-})
+});
 
 const file = (path: string, overrides: Partial<ScannedFile> = {}): ScannedFile => ({
   path,
   sizeBytes: 1000,
   modifiedAtMs: 1000,
   ...overrides,
-})
+});
 
 const stored = (path: string, overrides: Partial<StoredItem> = {}): StoredItem => ({
   path,
@@ -47,21 +47,21 @@ const stored = (path: string, overrides: Partial<StoredItem> = {}): StoredItem =
   modifiedAtMs: 1000,
   externalId: null,
   ...overrides,
-})
+});
 
 const harness = (options: {
-  found?: ScannedFile[]
-  existing?: StoredItem[]
-  probeImpl?: (path: string) => Promise<MediaProbe>
-  providers?: MetadataProvider[]
-  force?: boolean
-  onProblem?: (path: string, reason: string) => void
-  onProgress?: (phase: ScanPhase, processed: number, total: number) => void
-  trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number }
+  found?: ScannedFile[];
+  existing?: StoredItem[];
+  probeImpl?: (path: string) => Promise<MediaProbe>;
+  providers?: MetadataProvider[];
+  force?: boolean;
+  onProblem?: (path: string, reason: string) => void;
+  onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
+  trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number };
 }) => {
-  const rows: MediaRow[] = []
-  const removedPaths: string[] = []
-  const markScanned = vi.fn(() => Promise.resolve())
+  const rows: MediaRow[] = [];
+  const removedPaths: string[] = [];
+  const markScanned = vi.fn(() => Promise.resolve());
 
   const transcoder: Transcoder = {
     isReachable: () => Promise.resolve(true),
@@ -92,7 +92,7 @@ const harness = (options: {
     openMonitorStream: () => Promise.resolve(null),
     capabilities: () =>
       Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
-  }
+  };
 
   const run = () =>
     scanLibrary({
@@ -102,14 +102,14 @@ const harness = (options: {
       store: {
         listStored: () => Promise.resolve(options.existing ?? []),
         upsert: (row) => {
-          rows.push(row)
+          rows.push(row);
 
-          return Promise.resolve()
+          return Promise.resolve();
         },
         removeByPaths: (_, paths) => {
-          removedPaths.push(...paths)
+          removedPaths.push(...paths);
 
-          return Promise.resolve(paths.length)
+          return Promise.resolve(paths.length);
         },
         markScanned,
       },
@@ -119,116 +119,116 @@ const harness = (options: {
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
       ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
       ...(options.trickplay === undefined ? {} : { trickplay: options.trickplay }),
-    })
+    });
 
-  return { run, rows, removedPaths, markScanned }
-}
+  return { run, rows, removedPaths, markScanned };
+};
 
 describe('selectChanged', () => {
   it('treats an unseen file as changed', () => {
-    const { changed } = selectChanged([file('/a.mkv')], [])
+    const { changed } = selectChanged([file('/a.mkv')], []);
 
-    expect(changed).toHaveLength(1)
-  })
+    expect(changed).toHaveLength(1);
+  });
 
   it('leaves an unchanged file alone', () => {
-    const { changed } = selectChanged([file('/a.mkv')], [stored('/a.mkv')])
+    const { changed } = selectChanged([file('/a.mkv')], [stored('/a.mkv')]);
 
-    expect(changed).toHaveLength(0)
-  })
+    expect(changed).toHaveLength(0);
+  });
 
   it('notices a file whose size changed', () => {
-    const { changed } = selectChanged([file('/a.mkv', { sizeBytes: 2000 })], [stored('/a.mkv')])
+    const { changed } = selectChanged([file('/a.mkv', { sizeBytes: 2000 })], [stored('/a.mkv')]);
 
-    expect(changed).toHaveLength(1)
-  })
+    expect(changed).toHaveLength(1);
+  });
 
   it('notices a file that was modified', () => {
-    const { changed } = selectChanged([file('/a.mkv', { modifiedAtMs: 2000 })], [stored('/a.mkv')])
+    const { changed } = selectChanged([file('/a.mkv', { modifiedAtMs: 2000 })], [stored('/a.mkv')]);
 
-    expect(changed).toHaveLength(1)
-  })
+    expect(changed).toHaveLength(1);
+  });
 
   it('reports files that are no longer on disk', () => {
-    const { missing } = selectChanged([file('/a.mkv')], [stored('/a.mkv'), stored('/gone.mkv')])
+    const { missing } = selectChanged([file('/a.mkv')], [stored('/a.mkv'), stored('/gone.mkv')]);
 
-    expect(missing).toEqual(['/gone.mkv'])
-  })
-})
+    expect(missing).toEqual(['/gone.mkv']);
+  });
+});
 
 describe('scanLibrary', () => {
   it('adds new media', async () => {
-    const { run, rows } = harness({ found: [file('/media/films/Arrival (2016).mkv')] })
+    const { run, rows } = harness({ found: [file('/media/films/Arrival (2016).mkv')] });
 
-    const result = await run()
+    const result = await run();
 
-    expect(result).toMatchObject({ added: 1, updated: 0, removed: 0, failed: 0 })
-    expect(rows[0]).toMatchObject({ title: 'Arrival', year: 2016, libraryId: LIBRARY_ID })
-  })
+    expect(result).toMatchObject({ added: 1, updated: 0, removed: 0, failed: 0 });
+    expect(rows[0]).toMatchObject({ title: 'Arrival', year: 2016, libraryId: LIBRARY_ID });
+  });
 
   it('ignores files that are not media', async () => {
     const { run, rows } = harness({
       found: [file('/media/films/poster.jpg'), file('/media/films/film.nfo')],
-    })
+    });
 
-    const result = await run()
+    const result = await run();
 
-    expect(result.added).toBe(0)
-    expect(rows).toHaveLength(0)
-  })
+    expect(result.added).toBe(0);
+    expect(rows).toHaveLength(0);
+  });
 
   it('does not re-probe an unchanged file', async () => {
-    const probeSpy = vi.fn(() => Promise.resolve(probe()))
+    const probeSpy = vi.fn(() => Promise.resolve(probe()));
     const { run } = harness({
       found: [file('/a.mkv')],
       existing: [stored('/a.mkv')],
       probeImpl: probeSpy,
-    })
+    });
 
-    await run()
+    await run();
 
-    expect(probeSpy).not.toHaveBeenCalled()
-  })
+    expect(probeSpy).not.toHaveBeenCalled();
+  });
 
   it('counts a re-probed file as updated rather than added', async () => {
     const { run } = harness({
       found: [file('/a.mkv', { sizeBytes: 5000 })],
       existing: [stored('/a.mkv')],
-    })
+    });
 
-    expect(await run()).toMatchObject({ added: 0, updated: 1 })
-  })
+    expect(await run()).toMatchObject({ added: 0, updated: 1 });
+  });
 
   it('removes rows for files that disappeared', async () => {
     const { run, removedPaths } = harness({
       found: [],
       existing: [stored('/gone.mkv')],
-    })
+    });
 
-    expect(await run()).toMatchObject({ removed: 1 })
-    expect(removedPaths).toEqual(['/gone.mkv'])
-  })
+    expect(await run()).toMatchObject({ removed: 1 });
+    expect(removedPaths).toEqual(['/gone.mkv']);
+  });
 
   it('keeps scanning after a file fails to probe', async () => {
     const probeImpl = vi.fn((path: string) =>
       path.includes('broken')
         ? Promise.reject(new Error('moov atom not found'))
         : Promise.resolve(probe()),
-    )
+    );
 
     const { run, rows } = harness({
       found: [file('/broken.mkv'), file('/good.mkv')],
       probeImpl,
-    })
+    });
 
-    const result = await run()
+    const result = await run();
 
-    expect(result).toMatchObject({ added: 1, failed: 1 })
-    expect(rows).toHaveLength(1)
-  })
+    expect(result).toMatchObject({ added: 1, failed: 1 });
+    expect(rows).toHaveLength(1);
+  });
 
   it('reports why a file failed', async () => {
-    const problems: string[] = []
+    const problems: string[] = [];
 
     await scanLibrary({
       libraryId: LIBRARY_ID,
@@ -272,38 +272,38 @@ describe('scanLibrary', () => {
           Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
       },
       onProblem: (path, reason) => problems.push(`${path}: ${reason}`),
-    })
+    });
 
-    expect(problems).toEqual(['/broken.mkv: moov atom not found'])
-  })
+    expect(problems).toEqual(['/broken.mkv: moov atom not found']);
+  });
 
   it('skips a file with no video stream', async () => {
     const { run, rows } = harness({
       found: [file('/audio-only.mkv')],
       probeImpl: () => Promise.resolve({ ...probe(), video: null }),
-    })
+    });
 
-    expect(await run()).toMatchObject({ added: 0, failed: 1 })
-    expect(rows).toHaveLength(0)
-  })
+    expect(await run()).toMatchObject({ added: 0, failed: 1 });
+    expect(rows).toHaveLength(0);
+  });
 
   it('records when the library was scanned', async () => {
-    const { run, markScanned } = harness({ found: [] })
+    const { run, markScanned } = harness({ found: [] });
 
-    await run()
+    await run();
 
-    expect(markScanned).toHaveBeenCalledOnce()
-  })
+    expect(markScanned).toHaveBeenCalledOnce();
+  });
 
   it('does not touch the store when nothing is missing', async () => {
     const { run, removedPaths } = harness({
       found: [file('/a.mkv')],
       existing: [stored('/a.mkv')],
-    })
+    });
 
-    expect(await run()).toMatchObject({ removed: 0 })
-    expect(removedPaths).toHaveLength(0)
-  })
+    expect(await run()).toMatchObject({ removed: 0 });
+    expect(removedPaths).toHaveLength(0);
+  });
 
   it('lets a provider override the filename title', async () => {
     const { run, rows } = harness({
@@ -311,15 +311,15 @@ describe('scanLibrary', () => {
       providers: [
         { name: 'plugin', describe: () => Promise.resolve({ title: 'Arrival', year: 2016 }) },
       ],
-    })
+    });
 
-    await run()
+    await run();
 
-    expect(rows[0]).toMatchObject({ title: 'Arrival', year: 2016 })
-  })
+    expect(rows[0]).toMatchObject({ title: 'Arrival', year: 2016 });
+  });
 
   it('tells a provider what a file was already matched to, on a forced rescan', async () => {
-    let seenKnownExternalId: string | null | undefined
+    let seenKnownExternalId: string | null | undefined;
     const { run } = harness({
       found: [file('/media/films/arrival.2016.1080p.mkv')],
       existing: [stored('/media/films/arrival.2016.1080p.mkv', { externalId: '329' })],
@@ -328,127 +328,127 @@ describe('scanLibrary', () => {
         {
           name: 'plugin',
           describe: (facts) => {
-            seenKnownExternalId = facts.knownExternalId
-            return Promise.resolve({ title: 'Arrival', year: 2016 })
+            seenKnownExternalId = facts.knownExternalId;
+            return Promise.resolve({ title: 'Arrival', year: 2016 });
           },
         },
       ],
-    })
+    });
 
-    await run()
+    await run();
 
-    expect(seenKnownExternalId).toBe('329')
-  })
+    expect(seenKnownExternalId).toBe('329');
+  });
 
   it('tells a provider nothing was known yet for a file never matched before', async () => {
-    let seenKnownExternalId: string | null | undefined
+    let seenKnownExternalId: string | null | undefined;
     const { run } = harness({
       found: [file('/media/films/arrival.2016.1080p.mkv')],
       providers: [
         {
           name: 'plugin',
           describe: (facts) => {
-            seenKnownExternalId = facts.knownExternalId
-            return Promise.resolve({ title: 'Arrival', year: 2016 })
+            seenKnownExternalId = facts.knownExternalId;
+            return Promise.resolve({ title: 'Arrival', year: 2016 });
           },
         },
       ],
-    })
+    });
 
-    await run()
+    await run();
 
-    expect(seenKnownExternalId).toBeNull()
-  })
+    expect(seenKnownExternalId).toBeNull();
+  });
 
   it('counts a file no provider can name as failed rather than storing it blank', async () => {
-    const onProblem = vi.fn()
+    const onProblem = vi.fn();
     const { run, rows } = harness({
       found: [file('/media/films/arrival.mkv')],
       providers: [{ name: 'plugin', describe: () => Promise.resolve(null) }],
       onProblem,
-    })
+    });
 
-    const result = await run()
+    const result = await run();
 
-    expect(result.failed).toBe(1)
-    expect(rows).toHaveLength(0)
-    expect(onProblem).toHaveBeenCalled()
-  })
+    expect(result.failed).toBe(1);
+    expect(rows).toHaveLength(0);
+    expect(onProblem).toHaveBeenCalled();
+  });
 
   it('probes every file again when forced', async () => {
-    const probeSpy = vi.fn(() => Promise.resolve(probe()))
+    const probeSpy = vi.fn(() => Promise.resolve(probe()));
     const { run, rows } = harness({
       found: [file('/a.mkv'), file('/b.mkv')],
       existing: [stored('/a.mkv'), stored('/b.mkv')],
       probeImpl: probeSpy,
       force: true,
-    })
+    });
 
-    const result = await run()
+    const result = await run();
 
-    expect(probeSpy).toHaveBeenCalledTimes(2)
-    expect(rows).toHaveLength(2)
-    expect(result.updated).toBe(2)
-  })
+    expect(probeSpy).toHaveBeenCalledTimes(2);
+    expect(rows).toHaveLength(2);
+    expect(result.updated).toBe(2);
+  });
 
   it('still removes files that disappeared when forced', async () => {
     const { run, removedPaths } = harness({
       found: [file('/a.mkv')],
       existing: [stored('/a.mkv'), stored('/gone.mkv')],
       force: true,
-    })
+    });
 
-    const result = await run()
+    const result = await run();
 
-    expect(removedPaths).toEqual(['/gone.mkv'])
-    expect(result.removed).toBe(1)
-  })
+    expect(removedPaths).toEqual(['/gone.mkv']);
+    expect(result.removed).toBe(1);
+  });
 
   it('reports probing progress against the files it is actually walking, not everything on disk', async () => {
-    const onProgress = vi.fn()
+    const onProgress = vi.fn();
     const { run } = harness({
       found: [file('/a.mkv'), file('/b.mkv')],
       existing: [stored('/a.mkv')],
       onProgress,
-    })
+    });
 
-    await run()
+    await run();
 
-    expect(onProgress).toHaveBeenCalledWith('probing', 0, 1)
-    expect(onProgress).toHaveBeenCalledWith('probing', 1, 1)
-    expect(onProgress).toHaveBeenCalledTimes(2)
-  })
+    expect(onProgress).toHaveBeenCalledWith('probing', 0, 1);
+    expect(onProgress).toHaveBeenCalledWith('probing', 1, 1);
+    expect(onProgress).toHaveBeenCalledTimes(2);
+  });
 
   it('still counts a failed probe toward progress', async () => {
-    const onProgress = vi.fn()
+    const onProgress = vi.fn();
     const { run } = harness({
       found: [file('/a.mkv'), file('/b.mkv')],
       probeImpl: (path) =>
         path === '/a.mkv' ? Promise.reject(new Error('boom')) : Promise.resolve(probe()),
       onProgress,
-    })
+    });
 
-    await run()
+    await run();
 
-    expect(onProgress).toHaveBeenLastCalledWith('probing', 2, 2)
-  })
+    expect(onProgress).toHaveBeenLastCalledWith('probing', 2, 2);
+  });
 
   it('moves on to a fresh previews phase rather than stopping once every file is probed', async () => {
-    const onProgress = vi.fn()
+    const onProgress = vi.fn();
     const { run } = harness({
       found: [file('/a.mkv'), file('/b.mkv')],
       onProgress,
       trickplay: { intervalSeconds: 10, tileWidth: 320, columns: 10, rows: 10 },
-    })
+    });
 
-    await run()
+    await run();
 
     // Probing both files finishes its own phase at 2 of 2. A bar that
     // stopped reading progress there would look done while ffmpeg was still
     // generating trickplay and a preview clip for each — a second phase,
     // counted from zero rather than tacked onto the first.
-    expect(onProgress).toHaveBeenCalledWith('probing', 2, 2)
-    expect(onProgress).toHaveBeenCalledWith('previews', 0, 2)
-    expect(onProgress).toHaveBeenLastCalledWith('previews', 2, 2)
-  })
-})
+    expect(onProgress).toHaveBeenCalledWith('probing', 2, 2);
+    expect(onProgress).toHaveBeenCalledWith('previews', 0, 2);
+    expect(onProgress).toHaveBeenLastCalledWith('previews', 2, 2);
+  });
+});

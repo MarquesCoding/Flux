@@ -1,7 +1,7 @@
 type TwoFactorChallengeProps = {
-  onVerified: () => void
-}
+  onVerified: () => void;
+};
 
-type ChallengeMode = 'totp' | 'backup'
+type ChallengeMode = 'totp' | 'backup';
 
-export type { TwoFactorChallengeProps, ChallengeMode }
+export type { TwoFactorChallengeProps, ChallengeMode };

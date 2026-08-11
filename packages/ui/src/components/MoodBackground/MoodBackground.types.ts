@@ -6,9 +6,9 @@
  * somebody chose rather than as spill from the picture.
  */
 type MoodLight = {
-  color: string
-  at?: string
-}
+  color: string;
+  at?: string;
+};
 
 type MoodBackgroundProps = {
   /**
@@ -17,14 +17,14 @@ type MoodBackgroundProps = {
    * Home only. Everywhere else is mostly words and figures, which read better
    * on something plain.
    */
-  hasGrid?: boolean
+  hasGrid?: boolean;
   /**
    * Whether the light drifts rather than sitting still.
    *
    * For screens somebody is waiting on — signing in, choosing who they are —
    * where a painted background reads as a page that has stopped.
    */
-  isDrifting?: boolean
+  isDrifting?: boolean;
   /**
    * The lights the page is heading towards.
    *
@@ -34,7 +34,7 @@ type MoodBackgroundProps = {
    * does. An empty list means the page keeps its own light, so a library with
    * no artwork still looks deliberate rather than unfinished.
    */
-  lights?: MoodLight[]
-}
+  lights?: MoodLight[];
+};
 
-export type { MoodBackgroundProps, MoodLight }
+export type { MoodBackgroundProps, MoodLight };

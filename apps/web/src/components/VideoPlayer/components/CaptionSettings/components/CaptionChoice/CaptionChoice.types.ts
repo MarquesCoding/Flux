@@ -1,13 +1,13 @@
 type CaptionChoiceOption = {
-  id: string
-  label: string
-}
+  id: string;
+  label: string;
+};
 
 type CaptionChoiceProps = {
-  label: string
-  options: readonly CaptionChoiceOption[]
-  selectedId: string
-  onSelect: (id: string) => void
-}
+  label: string;
+  options: readonly CaptionChoiceOption[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+};
 
-export type { CaptionChoiceOption, CaptionChoiceProps }
+export type { CaptionChoiceOption, CaptionChoiceProps };

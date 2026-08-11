@@ -1,5 +1,5 @@
-import { cn } from '@FluxUI/cn'
-import type { ScanProgressBarProps } from './ScanProgressBar.types'
+import { cn } from '@FluxUI/cn';
+import type { ScanProgressBarProps } from './ScanProgressBar.types';
 
 /**
  * What the server calls a phase, in words an operator reads.
@@ -8,7 +8,7 @@ const PHASE_LABELS: Record<string, string> = {
   probing: 'Probing',
   previews: 'Generating previews',
   segments: 'Finding intros',
-}
+};
 
 /**
  * How far through a scan actually is.
@@ -19,9 +19,9 @@ const PHASE_LABELS: Record<string, string> = {
  * reads as moving on to the next stage, not as stalled.
  */
 const ScanProgressBar = ({ label, phase, processed, total }: ScanProgressBarProps) => {
-  const isKnown = processed !== null && total !== null && total > 0
-  const fraction = isKnown ? Math.min(processed / total, 1) : 0
-  const phaseLabel = phase === null ? null : (PHASE_LABELS[phase] ?? phase)
+  const isKnown = processed !== null && total !== null && total > 0;
+  const fraction = isKnown ? Math.min(processed / total, 1) : 0;
+  const phaseLabel = phase === null ? null : (PHASE_LABELS[phase] ?? phase);
 
   return (
     <div
@@ -52,9 +52,9 @@ const ScanProgressBar = ({ label, phase, processed, total }: ScanProgressBarProp
         </span>
       ) : null}
     </div>
-  )
-}
+  );
+};
 
-ScanProgressBar.displayName = 'ScanProgressBar'
+ScanProgressBar.displayName = 'ScanProgressBar';
 
-export { ScanProgressBar }
+export { ScanProgressBar };

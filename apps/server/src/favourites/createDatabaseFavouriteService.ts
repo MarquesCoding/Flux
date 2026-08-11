@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto'
-import { and, desc, eq } from 'drizzle-orm'
-import { favourite } from '@FluxServer/db/Schema'
-import type { FluxDatabase } from '@FluxServer/db/Database'
-import type { FavouriteService } from './FavouriteService'
+import { randomUUID } from 'node:crypto';
+import { and, desc, eq } from 'drizzle-orm';
+import { favourite } from '@FluxServer/db/Schema';
+import type { FluxDatabase } from '@FluxServer/db/Database';
+import type { FavouriteService } from './FavouriteService';
 
 /**
  * How many kept items are worth carrying to a browser.
@@ -10,7 +10,7 @@ import type { FavouriteService } from './FavouriteService'
  * A list somebody curates by hand rather than a history that accumulates on
  * its own, so this is a ceiling nobody should meet.
  */
-const LIMIT = 500
+const LIMIT = 500;
 
 /**
  * Favourites held in Postgres.
@@ -26,12 +26,12 @@ const createDatabaseFavouriteService = (db: FluxDatabase): FavouriteService => (
       .from(favourite)
       .where(eq(favourite.profileId, profileId))
       .orderBy(desc(favourite.keptAt))
-      .limit(LIMIT)
+      .limit(LIMIT);
 
     return rows.map((row) => ({
       mediaId: row.mediaItemId,
       keptAt: row.keptAt.toISOString(),
-    }))
+    }));
   },
 
   keep: async (profileId, mediaId) => {
@@ -43,14 +43,14 @@ const createDatabaseFavouriteService = (db: FluxDatabase): FavouriteService => (
         mediaItemId: mediaId,
         keptAt: new Date(),
       })
-      .onConflictDoNothing({ target: [favourite.profileId, favourite.mediaItemId] })
+      .onConflictDoNothing({ target: [favourite.profileId, favourite.mediaItemId] });
   },
 
   drop: async (profileId, mediaId) => {
     await db
       .delete(favourite)
-      .where(and(eq(favourite.profileId, profileId), eq(favourite.mediaItemId, mediaId)))
+      .where(and(eq(favourite.profileId, profileId), eq(favourite.mediaItemId, mediaId)));
   },
-})
+});
 
-export { createDatabaseFavouriteService, LIMIT }
+export { createDatabaseFavouriteService, LIMIT };

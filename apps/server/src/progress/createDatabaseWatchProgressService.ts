@@ -1,15 +1,15 @@
-import { randomUUID } from 'node:crypto'
-import { and, desc, eq } from 'drizzle-orm'
-import { watchProgress } from '@FluxServer/db/Schema'
-import type { FluxDatabase } from '@FluxServer/db/Database'
-import type { WatchProgressService } from './WatchProgressService'
+import { randomUUID } from 'node:crypto';
+import { and, desc, eq } from 'drizzle-orm';
+import { watchProgress } from '@FluxServer/db/Schema';
+import type { FluxDatabase } from '@FluxServer/db/Database';
+import type { WatchProgressService } from './WatchProgressService';
 
 /**
  * How many resumable items are worth carrying to a browser.
  *
  * A continue watching row is a handful of things, not a viewing history.
  */
-const LIMIT = 60
+const LIMIT = 60;
 
 /**
  * Watch progress held in Postgres.
@@ -24,7 +24,7 @@ const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressServ
       .from(watchProgress)
       .where(eq(watchProgress.profileId, profileId))
       .orderBy(desc(watchProgress.updatedAt))
-      .limit(LIMIT)
+      .limit(LIMIT);
 
     return rows.map((row) => ({
       mediaId: row.mediaItemId,
@@ -32,7 +32,7 @@ const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressServ
       durationSeconds: row.durationSeconds,
       isFinished: row.isFinished,
       updatedAt: row.updatedAt.toISOString(),
-    }))
+    }));
   },
 
   record: async (profileId, report) => {
@@ -55,14 +55,14 @@ const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressServ
           isFinished: report.isFinished,
           updatedAt: new Date(),
         },
-      })
+      });
   },
 
   forget: async (profileId, mediaId) => {
     await db
       .delete(watchProgress)
-      .where(and(eq(watchProgress.profileId, profileId), eq(watchProgress.mediaItemId, mediaId)))
+      .where(and(eq(watchProgress.profileId, profileId), eq(watchProgress.mediaItemId, mediaId)));
   },
-})
+});
 
-export { createDatabaseWatchProgressService, LIMIT }
+export { createDatabaseWatchProgressService, LIMIT };

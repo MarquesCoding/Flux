@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 const AdminUserSchema = z.object({
   id: z.string(),
@@ -6,7 +6,7 @@ const AdminUserSchema = z.object({
   email: z.string(),
   role: z.string().nullable(),
   createdAt: z.string(),
-})
+});
 
 const AdminOverviewSchema = z.object({
   users: z.array(AdminUserSchema),
@@ -24,7 +24,7 @@ const AdminOverviewSchema = z.object({
     itemCount: z.number(),
     libraryCount: z.number(),
   }),
-})
+});
 
 const JobSchema = z.object({
   id: z.number(),
@@ -35,13 +35,13 @@ const JobSchema = z.object({
   startedAtMs: z.number().nullable(),
   finishedAtMs: z.number().nullable(),
   detail: z.string().nullable(),
-})
+});
 
 const ProcessUseSchema = z.object({
   pid: z.number(),
   cpuPercent: z.number(),
   memoryBytes: z.number(),
-})
+});
 
 const MonitorSchema = z.object({
   resources: z.object({
@@ -70,11 +70,11 @@ const MonitorSchema = z.object({
       message: z.string(),
     }),
   ),
-})
+});
 
-type AdminOverview = z.infer<typeof AdminOverviewSchema>
-type Monitor = z.infer<typeof MonitorSchema>
-type Job = z.infer<typeof JobSchema>
+type AdminOverview = z.infer<typeof AdminOverviewSchema>;
+type Monitor = z.infer<typeof MonitorSchema>;
+type Job = z.infer<typeof JobSchema>;
 
 /**
  * Reads the state of the server.
@@ -82,14 +82,14 @@ type Job = z.infer<typeof JobSchema>
 const fetchAdminOverview = async (): Promise<AdminOverview | null> => {
   const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
     () => null,
-  )
+  );
 
   if (response === null || !response.ok) {
-    return null
+    return null;
   }
 
-  return AdminOverviewSchema.parse(await response.json())
-}
+  return AdminOverviewSchema.parse(await response.json());
+};
 
 /**
  * Reads one measurement of what the media service is doing.
@@ -100,14 +100,14 @@ const fetchAdminOverview = async (): Promise<AdminOverview | null> => {
 const fetchMonitor = async (): Promise<Monitor | null> => {
   const response = await fetch('/api/admin/monitor', { credentials: 'same-origin' }).catch(
     () => null,
-  )
+  );
 
   if (response === null || !response.ok) {
-    return null
+    return null;
   }
 
-  return MonitorSchema.parse(await response.json())
-}
+  return MonitorSchema.parse(await response.json());
+};
 
 /**
  * Watches the media service, calling back on every reading.
@@ -118,22 +118,22 @@ const fetchMonitor = async (): Promise<Monitor | null> => {
  * something even when nothing does.
  */
 const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
-  const source = new EventSource('/api/admin/monitor/stream', { withCredentials: true })
+  const source = new EventSource('/api/admin/monitor/stream', { withCredentials: true });
 
   source.onmessage = (event: MessageEvent<string>) => {
     // Parsed through the schema like every other body: an event stream is
     // still input, and this one arrives without even a status code to check.
-    const parsed = MonitorSchema.safeParse(JSON.parse(event.data))
+    const parsed = MonitorSchema.safeParse(JSON.parse(event.data));
 
     if (parsed.success) {
-      onReading(parsed.data)
+      onReading(parsed.data);
     }
-  }
+  };
 
   return () => {
-    source.close()
-  }
-}
+    source.close();
+  };
+};
 
 /**
  * Saves a setting an operator owns.
@@ -144,11 +144,11 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ catalogueApiKey }),
-  }).catch(() => null)
+  }).catch(() => null);
 
-  return response !== null && response.ok
-}
+  return response !== null && response.ok;
+};
 
-export type { AdminOverview, Job, Monitor }
+export type { AdminOverview, Job, Monitor };
 
-export { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey }
+export { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey };

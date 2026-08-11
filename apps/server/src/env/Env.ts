@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -37,9 +37,9 @@ const EnvSchema = z.object({
     .transform((value) => value === 'true'),
   AUTH_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(60),
-})
+});
 
-type Env = z.infer<typeof EnvSchema>
+type Env = z.infer<typeof EnvSchema>;
 
 /**
  * Parses process environment into a validated configuration object.
@@ -48,8 +48,8 @@ type Env = z.infer<typeof EnvSchema>
  * at build time, because a self-hosted instance is reached over plain HTTP on
  * a LAN address as often as over TLS on a domain. See ADR-0004.
  */
-const readEnv = (source: NodeJS.ProcessEnv): Env => EnvSchema.parse(source)
+const readEnv = (source: NodeJS.ProcessEnv): Env => EnvSchema.parse(source);
 
-export type { Env }
+export type { Env };
 
-export { readEnv, EnvSchema }
+export { readEnv, EnvSchema };

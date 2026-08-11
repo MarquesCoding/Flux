@@ -1,23 +1,23 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-import { fetchEveryone, signInAsProfile } from './fetchEveryone'
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { fetchEveryone, signInAsProfile } from './fetchEveryone';
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
-type Answer = { ok: boolean; json: () => Promise<JsonValue>; text?: () => Promise<string> }
+type Answer = { ok: boolean; json: () => Promise<JsonValue>; text?: () => Promise<string> };
 
-type FetchLike = (input: string, init?: RequestInit) => Promise<Answer>
+type FetchLike = (input: string, init?: RequestInit) => Promise<Answer>;
 
-const fetchMock = vi.fn<FetchLike>()
+const fetchMock = vi.fn<FetchLike>();
 
 /**
  * The body of the last request, as it was sent.
  */
 const sentBody = (): JsonValue => {
-  const body = fetchMock.mock.calls.at(-1)?.[1]?.body
+  const body = fetchMock.mock.calls.at(-1)?.[1]?.body;
 
-  return JsonValueSchema.parse(JSON.parse(typeof body === 'string' ? body : 'null'))
-}
+  return JsonValueSchema.parse(JSON.parse(typeof body === 'string' ? body : 'null'));
+};
 
 const PROFILE: ViewerProfile = {
   id: '00000000-0000-4000-8000-000000000001',
@@ -26,112 +26,112 @@ const PROFILE: ViewerProfile = {
   avatar: { kind: 'initial' },
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
-}
+};
 
 beforeEach(() => {
-  fetchMock.mockReset()
-  vi.stubGlobal('fetch', fetchMock)
-})
+  fetchMock.mockReset();
+  vi.stubGlobal('fetch', fetchMock);
+});
 
 afterEach(() => {
-  vi.unstubAllGlobals()
-})
+  vi.unstubAllGlobals();
+});
 
 const answerWith = (body: string, ok = true) => {
   fetchMock.mockResolvedValue({
     ok,
     json: () => Promise.resolve(JSON.parse(body)),
     text: () => Promise.resolve(body),
-  })
-}
+  });
+};
 
 describe('fetchEveryone', () => {
   it('asks for everybody who could sign in', async () => {
-    answerWith(JSON.stringify({ profiles: [PROFILE] }))
+    answerWith(JSON.stringify({ profiles: [PROFILE] }));
 
-    await fetchEveryone()
+    await fetchEveryone();
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/profiles/everyone', expect.anything())
-  })
+    expect(fetchMock).toHaveBeenCalledWith('/api/profiles/everyone', expect.anything());
+  });
 
   it('answers with the faces to show', async () => {
-    answerWith(JSON.stringify({ profiles: [PROFILE] }))
+    answerWith(JSON.stringify({ profiles: [PROFILE] }));
 
-    await expect(fetchEveryone()).resolves.toEqual([PROFILE])
-  })
+    await expect(fetchEveryone()).resolves.toEqual([PROFILE]);
+  });
 
   it('answers with nobody when the server refuses', async () => {
-    answerWith('{}', false)
+    answerWith('{}', false);
 
-    await expect(fetchEveryone()).resolves.toEqual([])
-  })
+    await expect(fetchEveryone()).resolves.toEqual([]);
+  });
 
   it('answers with nobody when the server cannot be reached', async () => {
-    fetchMock.mockRejectedValue(new Error('offline'))
+    fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchEveryone()).resolves.toEqual([])
-  })
+    await expect(fetchEveryone()).resolves.toEqual([]);
+  });
 
   it('answers with nobody rather than throwing on an answer that is not a list', async () => {
-    answerWith(JSON.stringify({ profiles: 'everybody' }))
+    answerWith(JSON.stringify({ profiles: 'everybody' }));
 
-    await expect(fetchEveryone()).resolves.toEqual([])
-  })
-})
+    await expect(fetchEveryone()).resolves.toEqual([]);
+  });
+});
 
 describe('signInAsProfile', () => {
   it('signs in as the face that was picked', async () => {
-    answerWith('{}')
+    answerWith('{}');
 
-    await signInAsProfile('abc', 'a password')
+    await signInAsProfile('abc', 'a password');
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/profiles/abc/sign-in',
       expect.objectContaining({ method: 'POST' }),
-    )
-  })
+    );
+  });
 
   it('never sends an address, because the face is the account', async () => {
-    answerWith('{}')
+    answerWith('{}');
 
-    await signInAsProfile('abc', 'a password')
+    await signInAsProfile('abc', 'a password');
 
-    expect(sentBody()).toEqual({ password: 'a password' })
-  })
+    expect(sentBody()).toEqual({ password: 'a password' });
+  });
 
   it('reports a session when the password was enough', async () => {
-    answerWith('{}')
+    answerWith('{}');
 
-    await expect(signInAsProfile('abc', 'a password')).resolves.toEqual({ kind: 'signedIn' })
-  })
+    await expect(signInAsProfile('abc', 'a password')).resolves.toEqual({ kind: 'signedIn' });
+  });
 
   it('asks for a code when the password was right but not enough', async () => {
-    answerWith(JSON.stringify({ twoFactorRedirect: true }))
+    answerWith(JSON.stringify({ twoFactorRedirect: true }));
 
-    await expect(signInAsProfile('abc', 'a password')).resolves.toEqual({ kind: 'needsCode' })
-  })
+    await expect(signInAsProfile('abc', 'a password')).resolves.toEqual({ kind: 'needsCode' });
+  });
 
   it('says it was the password when it was', async () => {
-    answerWith('{}', false)
+    answerWith('{}', false);
 
     await expect(signInAsProfile('abc', 'wrong')).resolves.toEqual({
       kind: 'refused',
       reason: 'That password is not right.',
-    })
-  })
+    });
+  });
 
   it('says it was the server when it was', async () => {
-    fetchMock.mockRejectedValue(new Error('offline'))
+    fetchMock.mockRejectedValue(new Error('offline'));
 
     await expect(signInAsProfile('abc', 'a password')).resolves.toEqual({
       kind: 'refused',
       reason: 'Flux could not be reached.',
-    })
-  })
+    });
+  });
 
   it('treats an empty answer as a session rather than as a failure', async () => {
-    answerWith('')
+    answerWith('');
 
-    await expect(signInAsProfile('abc', 'a password')).resolves.toEqual({ kind: 'signedIn' })
-  })
-})
+    await expect(signInAsProfile('abc', 'a password')).resolves.toEqual({ kind: 'signedIn' });
+  });
+});

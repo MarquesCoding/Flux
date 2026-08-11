@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { PageDots } from '@FluxUI/PageDots'
-import type { CastGridProps } from './CastGrid.types'
+import { useEffect, useRef, useState } from 'react';
+import { PageDots } from '@FluxUI/PageDots';
+import type { CastGridProps } from './CastGrid.types';
 
 /**
  * How wide a face wants to be, and how much air goes between two of them.
@@ -8,8 +8,8 @@ import type { CastGridProps } from './CastGrid.types'
  * Wide enough to recognise somebody and to fit a name under them without
  * breaking it across three lines.
  */
-const FACE_WIDTH = 170
-const GAP = 16
+const FACE_WIDTH = 170;
+const GAP = 16;
 
 /**
  * The fewest to put on a line.
@@ -17,7 +17,7 @@ const GAP = 16
  * A phone is narrower than three faces at that width, and three squeezed faces
  * beat one enormous one.
  */
-const LEAST_PER_PAGE = 3
+const LEAST_PER_PAGE = 3;
 
 /**
  * Who is in it.
@@ -33,37 +33,37 @@ const LEAST_PER_PAGE = 3
  * a wide screen and overflow a narrow one.
  */
 const CastGrid = ({ members }: CastGridProps) => {
-  const [page, setPage] = useState(0)
-  const [perPage, setPerPage] = useState(LEAST_PER_PAGE)
-  const trackRef = useRef<HTMLDivElement>(null)
+  const [page, setPage] = useState(0);
+  const [perPage, setPerPage] = useState(LEAST_PER_PAGE);
+  const trackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const track = trackRef.current
+    const track = trackRef.current;
 
     if (track === null) {
-      return
+      return;
     }
 
     const measure = () => {
-      const fits = Math.floor((track.clientWidth + GAP) / (FACE_WIDTH + GAP))
+      const fits = Math.floor((track.clientWidth + GAP) / (FACE_WIDTH + GAP));
 
-      setPerPage(Math.max(LEAST_PER_PAGE, fits))
-    }
+      setPerPage(Math.max(LEAST_PER_PAGE, fits));
+    };
 
-    measure()
+    measure();
 
-    const watcher = new ResizeObserver(measure)
+    const watcher = new ResizeObserver(measure);
 
-    watcher.observe(track)
+    watcher.observe(track);
 
     return () => {
-      watcher.disconnect()
-    }
-  }, [])
+      watcher.disconnect();
+    };
+  }, []);
 
-  const pages = Math.max(1, Math.ceil(members.length / perPage))
-  const at = Math.min(page, pages - 1)
-  const shown = members.slice(at * perPage, at * perPage + perPage)
+  const pages = Math.max(1, Math.ceil(members.length / perPage));
+  const at = Math.min(page, pages - 1);
+  const shown = members.slice(at * perPage, at * perPage + perPage);
 
   return (
     <div className="flex flex-col gap-4">
@@ -121,9 +121,9 @@ const CastGrid = ({ members }: CastGridProps) => {
         </ul>
       </div>
     </div>
-  )
-}
+  );
+};
 
-CastGrid.displayName = 'CastGrid'
+CastGrid.displayName = 'CastGrid';
 
-export { CastGrid, FACE_WIDTH, LEAST_PER_PAGE }
+export { CastGrid, FACE_WIDTH, LEAST_PER_PAGE };

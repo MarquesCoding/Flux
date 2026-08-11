@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { Spinner } from '@FluxUI/Spinner'
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
-import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary'
-import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid'
-import type { MediaSummary } from '@FluxContracts/schemas/Library'
-import type { BrowseAreaProps, BrowseKind } from './BrowseArea.types'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { Spinner } from '@FluxUI/Spinner';
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
+import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { BrowseAreaProps, BrowseKind } from './BrowseArea.types';
 
 /**
  * How many items a browse page holds at once.
  */
-const PAGE_SIZE = 120
+const PAGE_SIZE = 120;
 
 /**
  * What each page is called, and what it says when it has nothing.
@@ -42,7 +42,7 @@ const PAGES: Record<BrowseKind, { title: string; standfirst: string; empty: stri
     standfirst: 'Everything you have kept.',
     empty: 'Nothing kept yet. The heart on any item puts it here.',
   },
-}
+};
 
 /**
  * A page of the library, asked one question.
@@ -67,61 +67,61 @@ const BrowseArea = ({
   isKept,
   onToggleKept,
 }: BrowseAreaProps) => {
-  const [libraryIds, setLibraryIds] = useState<string[]>([])
-  const [items, setItems] = useState<MediaSummary[]>([])
-  const [isReading, setIsReading] = useState(true)
-  const prefersReducedMotion = useReducedMotion()
-  const page = PAGES[kind]
+  const [libraryIds, setLibraryIds] = useState<string[]>([]);
+  const [items, setItems] = useState<MediaSummary[]>([]);
+  const [isReading, setIsReading] = useState(true);
+  const prefersReducedMotion = useReducedMotion();
+  const page = PAGES[kind];
 
   // Stable, so telling the page what was found cannot start the read that
   // found it all over again.
-  const reportItems = useRef(onItemsLoaded)
+  const reportItems = useRef(onItemsLoaded);
 
-  reportItems.current = onItemsLoaded
+  reportItems.current = onItemsLoaded;
 
   useEffect(() => {
     void fetchLibraries()
       .then((found) => {
-        setLibraryIds(found.map((entry) => entry.id))
+        setLibraryIds(found.map((entry) => entry.id));
       })
       .catch(() => {
-        setLibraryIds([])
-        setIsReading(false)
-      })
-  }, [])
+        setLibraryIds([]);
+        setIsReading(false);
+      });
+  }, []);
 
-  const kept = favourites.join(',')
+  const kept = favourites.join(',');
 
   const read = useCallback(async () => {
     if (libraryIds.length === 0) {
-      return
+      return;
     }
 
-    setIsReading(true)
+    setIsReading(true);
 
     const asked =
       kind === 'favourites'
         ? { ids: kept === '' ? [] : kept.split(','), limit: PAGE_SIZE }
         : kind === 'new'
           ? { order: 'newest' as const, limit: PAGE_SIZE }
-          : { kind, limit: PAGE_SIZE }
+          : { kind, limit: PAGE_SIZE };
 
     const pages = await Promise.all(
       libraryIds.map(async (libraryId) =>
         fetchLibraryItems(libraryId, asked).catch(() => ({ items: [], total: 0 })),
       ),
-    )
+    );
 
-    const found = pages.flatMap((entry) => entry.items)
+    const found = pages.flatMap((entry) => entry.items);
 
-    setItems(found)
-    setIsReading(false)
-    reportItems.current?.(found)
-  }, [libraryIds, kind, kept])
+    setItems(found);
+    setIsReading(false);
+    reportItems.current?.(found);
+  }, [libraryIds, kind, kept]);
 
   useEffect(() => {
-    void read()
-  }, [read])
+    void read();
+  }, [read]);
 
   return (
     <motion.div
@@ -162,9 +162,9 @@ const BrowseArea = ({
         )}
       </motion.section>
     </motion.div>
-  )
-}
+  );
+};
 
-BrowseArea.displayName = 'BrowseArea'
+BrowseArea.displayName = 'BrowseArea';
 
-export { BrowseArea }
+export { BrowseArea };

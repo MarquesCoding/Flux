@@ -1,15 +1,15 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from 'react';
 
 type FilePickerProps = {
-  label: string
+  label: string;
   /**
    * What the browser should offer, as an `accept` list.
    */
-  accept: string
-  onPick: (file: File) => void
-  children: ReactNode
-  disabled?: boolean
-  className?: string
-}
+  accept: string;
+  onPick: (file: File) => void;
+  children: ReactNode;
+  disabled?: boolean;
+  className?: string;
+};
 
-export type { FilePickerProps }
+export type { FilePickerProps };

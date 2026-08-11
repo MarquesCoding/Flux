@@ -1,7 +1,7 @@
-import { WatchProgressListSchema } from '@FluxContracts/schemas/WatchProgress'
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
+import { WatchProgressListSchema } from '@FluxContracts/schemas/WatchProgress';
+import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 
-import { profileHeaders } from '@FluxWeb/profiles/currentProfile'
+import { profileHeaders } from '@FluxWeb/profiles/currentProfile';
 
 /**
  * How often a position is sent while something is playing.
@@ -10,7 +10,7 @@ import { profileHeaders } from '@FluxWeb/profiles/currentProfile'
  * enough that a two hour film is a few hundred small requests instead of tens
  * of thousands.
  */
-const REPORT_EVERY_MILLISECONDS = 10_000
+const REPORT_EVERY_MILLISECONDS = 10_000;
 
 /**
  * Reads where this viewer got to in everything.
@@ -22,17 +22,17 @@ const fetchWatchProgress = async (): Promise<WatchProgress[]> => {
   try {
     const response = await fetch('/api/progress', {
       headers: { accept: 'application/json', ...profileHeaders() },
-    })
+    });
 
     if (!response.ok) {
-      return []
+      return [];
     }
 
-    return WatchProgressListSchema.parse(await response.json()).progress
+    return WatchProgressListSchema.parse(await response.json()).progress;
   } catch {
-    return []
+    return [];
   }
-}
+};
 
 /**
  * Records where this viewer has got to.
@@ -49,18 +49,18 @@ const reportWatchProgress = async (
       method: 'PUT',
       headers: { 'content-type': 'application/json', ...profileHeaders() },
       body: JSON.stringify({ isFinished: false, ...report }),
-    })
+    });
   } catch {
     // Nothing useful to say, and nothing worth saying it over.
   }
-}
+};
 
 /**
  * Turns a list into something a card can ask one question of.
  */
 const byMediaId = (progress: WatchProgress[]): Map<string, WatchProgress> =>
-  new Map(progress.map((entry) => [entry.mediaId, entry]))
+  new Map(progress.map((entry) => [entry.mediaId, entry]));
 
-export type { WatchProgress }
+export type { WatchProgress };
 
-export { fetchWatchProgress, reportWatchProgress, byMediaId, REPORT_EVERY_MILLISECONDS }
+export { fetchWatchProgress, reportWatchProgress, byMediaId, REPORT_EVERY_MILLISECONDS };

@@ -1,5 +1,5 @@
 type AppProps = {
-  initialTitle?: string
-}
+  initialTitle?: string;
+};
 
-export type { AppProps }
+export type { AppProps };

@@ -1,9 +1,9 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import tsconfigPaths from 'vite-tsconfig-paths'
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 /*
  * A certificate this machine trusts, if one has been made.
@@ -19,13 +19,13 @@ import tsconfigPaths from 'vite-tsconfig-paths'
  * that has escaped.
  */
 const certificate = (name: string): Buffer | null => {
-  const path = fileURLToPath(new URL(`./certificates/${name}`, import.meta.url))
+  const path = fileURLToPath(new URL(`./certificates/${name}`, import.meta.url));
 
-  return existsSync(path) ? readFileSync(path) : null
-}
+  return existsSync(path) ? readFileSync(path) : null;
+};
 
-const cert = certificate('local.pem')
-const key = certificate('local-key.pem')
+const cert = certificate('local.pem');
+const key = certificate('local-key.pem');
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), tsconfigPaths({ root: '../../' })],
@@ -45,4 +45,4 @@ export default defineConfig({
       '/api': 'http://localhost:8420',
     },
   },
-})
+});

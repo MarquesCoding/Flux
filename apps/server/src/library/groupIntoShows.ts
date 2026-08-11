@@ -1,15 +1,15 @@
-import { showSlug } from '@FluxCore/functions/showSlug'
-import type { MediaSummary } from '@FluxContracts/schemas/Library'
-import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show'
+import { showSlug } from '@FluxCore/functions/showSlug';
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
 
 /**
  * Reads a timestamp, treating anything unreadable as long ago.
  */
 const addedAtMs = (media: MediaSummary): number => {
-  const parsed = Date.parse(media.addedAt)
+  const parsed = Date.parse(media.addedAt);
 
-  return Number.isNaN(parsed) ? 0 : parsed
-}
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
 
 /**
  * Orders episodes the way they are watched.
@@ -18,16 +18,16 @@ const addedAtMs = (media: MediaSummary): number => {
  * before `Episode 2` alphabetically, which is no use to anyone.
  */
 const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
-  const season = (left.seasonNumber ?? 0) - (right.seasonNumber ?? 0)
+  const season = (left.seasonNumber ?? 0) - (right.seasonNumber ?? 0);
 
   if (season !== 0) {
-    return season
+    return season;
   }
 
-  const episode = (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0)
+  const episode = (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0);
 
-  return episode === 0 ? left.title.localeCompare(right.title) : episode
-}
+  return episode === 0 ? left.title.localeCompare(right.title) : episode;
+};
 
 /**
  * Everything that names the same series, gathered.
@@ -36,22 +36,22 @@ const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
  * is not a series of one.
  */
 const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
-  const shows = new Map<string, MediaSummary[]>()
+  const shows = new Map<string, MediaSummary[]>();
 
   for (const media of items) {
-    const series = media.seriesTitle ?? ''
+    const series = media.seriesTitle ?? '';
 
     if (series === '') {
-      continue
+      continue;
     }
 
-    const id = showSlug(series)
+    const id = showSlug(series);
 
-    shows.set(id, [...(shows.get(id) ?? []), media])
+    shows.set(id, [...(shows.get(id) ?? []), media]);
   }
 
-  return shows
-}
+  return shows;
+};
 
 /**
  * What a series is, said from what its episodes agree on.
@@ -65,14 +65,14 @@ const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
  * that description, so the first that has one is as good as any.
  */
 const describeShow = (id: string, episodes: MediaSummary[]): ShowSummary | null => {
-  const inOrder = [...episodes].sort(inBroadcastOrder)
-  const cover = inOrder[0]
+  const inOrder = [...episodes].sort(inBroadcastOrder);
+  const cover = inOrder[0];
 
   if (cover?.seriesTitle === null || cover?.seriesTitle === undefined) {
-    return null
+    return null;
   }
 
-  const seasons = new Set(inOrder.map((episode) => episode.seasonNumber ?? 0))
+  const seasons = new Set(inOrder.map((episode) => episode.seasonNumber ?? 0));
 
   return {
     id,
@@ -87,8 +87,8 @@ const describeShow = (id: string, episodes: MediaSummary[]): ShowSummary | null 
     year: inOrder.find((episode) => episode.year !== null)?.year ?? null,
     rating: inOrder.find((episode) => (episode.rating ?? null) !== null)?.rating ?? null,
     genres: inOrder.find((episode) => (episode.genres ?? []).length > 0)?.genres ?? [],
-  }
-}
+  };
+};
 
 /**
  * Every series in a set of items, newest arrival first.
@@ -100,7 +100,7 @@ const groupIntoShows = (items: MediaSummary[]): ShowSummary[] =>
   [...gather(items)]
     .map(([id, episodes]) => describeShow(id, episodes))
     .filter((show): show is ShowSummary => show !== null)
-    .sort((left, right) => Date.parse(right.latestAddedAt) - Date.parse(left.latestAddedAt))
+    .sort((left, right) => Date.parse(right.latestAddedAt) - Date.parse(left.latestAddedAt));
 
 /**
  * One series, with its episodes in the order they are watched.
@@ -110,24 +110,24 @@ const groupIntoShows = (items: MediaSummary[]): ShowSummary[] =>
  * series rather than before it.
  */
 const buildShowDetail = (items: MediaSummary[], showId: string): ShowDetail | null => {
-  const episodes = gather(items).get(showId)
+  const episodes = gather(items).get(showId);
 
   if (episodes === undefined) {
-    return null
+    return null;
   }
 
-  const summary = describeShow(showId, episodes)
+  const summary = describeShow(showId, episodes);
 
   if (summary === null) {
-    return null
+    return null;
   }
 
-  const seasons = new Map<number | null, MediaSummary[]>()
+  const seasons = new Map<number | null, MediaSummary[]>();
 
   for (const episode of [...episodes].sort(inBroadcastOrder)) {
-    const season = episode.seasonNumber ?? null
+    const season = episode.seasonNumber ?? null;
 
-    seasons.set(season, [...(seasons.get(season) ?? []), episode])
+    seasons.set(season, [...(seasons.get(season) ?? []), episode]);
   }
 
   return {
@@ -135,7 +135,7 @@ const buildShowDetail = (items: MediaSummary[], showId: string): ShowDetail | nu
     seasons: [...seasons]
       .map(([seasonNumber, ofSeason]) => ({ seasonNumber, episodes: ofSeason }))
       .sort((left, right) => (left.seasonNumber ?? Infinity) - (right.seasonNumber ?? Infinity)),
-  }
-}
+  };
+};
 
-export { groupIntoShows, buildShowDetail, describeShow, inBroadcastOrder }
+export { groupIntoShows, buildShowDetail, describeShow, inBroadcastOrder };

@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto'
-import { and, eq, inArray, sql } from 'drizzle-orm'
-import { mediaItem, library } from '@FluxServer/db/Schema'
-import type { FluxDatabase } from '@FluxServer/db/Database'
-import type { MediaStore } from './scanLibrary'
+import { randomUUID } from 'node:crypto';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { mediaItem, library } from '@FluxServer/db/Schema';
+import type { FluxDatabase } from '@FluxServer/db/Database';
+import type { MediaStore } from './scanLibrary';
 
 /**
  * The library tables, for the scanner.
@@ -23,16 +23,16 @@ const createMediaStore = (
         externalId: mediaItem.externalId,
       })
       .from(mediaItem)
-      .where(eq(mediaItem.libraryId, libraryId))
+      .where(eq(mediaItem.libraryId, libraryId));
 
-    return rows
+    return rows;
   },
 
   upsert: async (row) => {
-    const video = row.probe.video
+    const video = row.probe.video;
 
     if (video === null) {
-      return
+      return;
     }
 
     const changeable = {
@@ -66,7 +66,7 @@ const createMediaStore = (
       backdropUrl: row.metadata.backdropUrl ?? null,
       externalId: row.metadata.externalId ?? null,
       updatedAt: new Date(),
-    }
+    };
 
     await db
       .insert(mediaItem)
@@ -79,24 +79,24 @@ const createMediaStore = (
       .onConflictDoUpdate({
         target: [mediaItem.libraryId, mediaItem.path],
         set: changeable,
-      })
+      });
   },
 
   removeByPaths: async (libraryId, paths) => {
     if (paths.length === 0) {
-      return 0
+      return 0;
     }
 
     const removed = await db
       .delete(mediaItem)
       .where(and(eq(mediaItem.libraryId, libraryId), inArray(mediaItem.path, paths)))
-      .returning({ id: mediaItem.id })
+      .returning({ id: mediaItem.id });
 
-    return removed.length
+    return removed.length;
   },
 
   markScanned: async (libraryId) => {
-    await db.update(library).set({ lastScannedAt: new Date() }).where(eq(library.id, libraryId))
+    await db.update(library).set({ lastScannedAt: new Date() }).where(eq(library.id, libraryId));
   },
 
   // Watch progress and segments cascade with the item they belong to, so a
@@ -105,11 +105,11 @@ const createMediaStore = (
     const removed = await db
       .delete(mediaItem)
       .where(eq(mediaItem.libraryId, libraryId))
-      .returning({ id: mediaItem.id })
+      .returning({ id: mediaItem.id });
 
-    return removed.length
+    return removed.length;
   },
-})
+});
 
 /**
  * Counts the items in a library.
@@ -118,9 +118,9 @@ const countItems = async (db: FluxDatabase, libraryId: string): Promise<number> 
   const rows = await db
     .select({ total: sql<number>`count(*)::int` })
     .from(mediaItem)
-    .where(eq(mediaItem.libraryId, libraryId))
+    .where(eq(mediaItem.libraryId, libraryId));
 
-  return rows[0]?.total ?? 0
-}
+  return rows[0]?.total ?? 0;
+};
 
-export { createMediaStore, countItems }
+export { createMediaStore, countItems };

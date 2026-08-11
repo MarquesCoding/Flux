@@ -5,7 +5,7 @@ type AdminAreaProps = {
    * A minute at one a second. Long enough to see a transcode start and settle,
    * short enough that the shape of now is not lost in the shape of earlier.
    */
-  historyLength?: number
-}
+  historyLength?: number;
+};
 
-export type { AdminAreaProps }
+export type { AdminAreaProps };
