@@ -331,6 +331,8 @@ const userProfile = pgTable('user_profile', {
 })
 
 export {
+  authSchema,
+  fluxSchema,
   library,
   mediaItem,
   mediaSegment,
@@ -363,25 +365,3 @@ const authSchema = {
 }
 
 const fluxSchema = { userProfile, viewerProfile, serverSetting, library, mediaItem }
-
-export default {
-  authSchema,
-  fluxSchema,
-  library,
-  mediaItem,
-  mediaSegment,
-  watchProgress,
-  favourite,
-  user,
-  session,
-  account,
-  verification,
-  twoFactor,
-  passkey,
-  deviceCode,
-  jwks,
-  serverSetting,
-  apikey,
-  userProfile,
-  viewerProfile,
-}

@@ -92,10 +92,4 @@ const writePlaybackPreferences = (change: Partial<PlaybackPreferences>): void =>
 
 export type { PlaybackPreferences }
 
-export default {
-  readPlaybackPreferences,
-  writePlaybackPreferences,
-  STORAGE_KEY,
-  SUBTITLES_OFF,
-  DEFAULTS,
-}
+export { readPlaybackPreferences, writePlaybackPreferences, STORAGE_KEY, SUBTITLES_OFF, DEFAULTS }

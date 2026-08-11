@@ -140,4 +140,4 @@ const castStream = async (
   }
 }
 
-export default { loadCastSender, castStateOf, castStream, SENDER_URL, RECEIVER }
+export { loadCastSender, castStateOf, castStream, SENDER_URL, RECEIVER }

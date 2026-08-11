@@ -93,7 +93,7 @@ export type AudioStream = z.infer<typeof AudioStreamSchema>
 export type SubtitleStream = z.infer<typeof SubtitleStreamSchema>
 export type MediaItem = z.infer<typeof MediaItemSchema>
 
-export default {
+export {
   MediaItemSchema,
   VideoRangeSchema,
   VideoCodecSchema,

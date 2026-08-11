@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import SliderModule from './Slider'
-
-const { Slider } = SliderModule
+import { Slider } from './Slider'
 
 const slider = (name = 'Seek') => screen.getByRole('slider', { name })
 

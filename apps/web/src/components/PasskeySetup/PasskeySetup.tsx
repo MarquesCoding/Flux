@@ -1,20 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { IconCheck, IconKey, IconPencil, IconTrash } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import SpinnerModule from '@FluxUI/Spinner'
-import TextFieldModule from '@FluxUI/TextField'
-import isPasskeySupportedModule from '@FluxWeb/passkeys/isPasskeySupported'
-import registerPasskeyModule from '@FluxWeb/passkeys/registerPasskey'
-import listPasskeysModule from '@FluxWeb/passkeys/listPasskeys'
+import { Button } from '@FluxUI/Button'
+import { Spinner } from '@FluxUI/Spinner'
+import { TextField } from '@FluxUI/TextField'
+import { describePasskeyUnavailability } from '@FluxWeb/passkeys/isPasskeySupported'
+import { registerPasskey } from '@FluxWeb/passkeys/registerPasskey'
+import { listPasskeys, deletePasskey, renamePasskey } from '@FluxWeb/passkeys/listPasskeys'
 import type { Passkey } from '@FluxContracts/schemas/Passkey'
 import type { PasskeySetupProps } from './PasskeySetup.types'
-
-const { Button } = ButtonModule
-const { Spinner } = SpinnerModule
-const { TextField } = TextFieldModule
-const { describePasskeyUnavailability } = isPasskeySupportedModule
-const { registerPasskey } = registerPasskeyModule
-const { listPasskeys, deletePasskey, renamePasskey } = listPasskeysModule
 
 const DEFAULT_NAME = 'This device'
 
@@ -234,4 +227,4 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
 
 PasskeySetup.displayName = 'PasskeySetup'
 
-export default { PasskeySetup }
+export { PasskeySetup }

@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import frameUrlModule from './frameUrl'
-
-const { frameUrl, FRAME_WIDTH } = frameUrlModule
+import { frameUrl, FRAME_WIDTH } from './frameUrl'
 
 describe('frameUrl', () => {
   it('asks the playback service for a frame of an item', () => {

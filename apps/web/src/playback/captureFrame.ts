@@ -51,4 +51,4 @@ const captureFrame = (element: HTMLVideoElement, canvas: DrawingSurface): string
 
 export type { DrawingContext, DrawingSurface }
 
-export default { captureFrame }
+export { captureFrame }

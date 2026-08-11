@@ -1,13 +1,8 @@
 import { createRoute, z } from '@hono/zod-openapi'
-import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
-import DeviceProfileModule from '@FluxContracts/schemas/DeviceProfile'
-import QualityStepModule from '@FluxContracts/schemas/QualityStep'
-import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
-
-const { PlaybackPlanSchema } = PlaybackPlanModule
-const { DeviceProfileSchema } = DeviceProfileModule
-const { QualityStepIdSchema } = QualityStepModule
-const { PLAYBACK_MODES } = describePlaybackModeModule
+import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan'
+import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile'
+import { QualityStepIdSchema } from '@FluxContracts/schemas/QualityStep'
+import { PLAYBACK_MODES } from '@FluxContracts/functions/describePlaybackMode'
 
 const PlaybackError = z.object({ error: z.string() }).openapi('PlaybackError')
 
@@ -260,7 +255,7 @@ const trickplayFileRoute = createRoute({
   },
 })
 
-export default {
+export {
   explainRoute,
   startRoute,
   sessionFileRoute,

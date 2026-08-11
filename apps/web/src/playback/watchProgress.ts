@@ -1,10 +1,7 @@
-import WatchProgressModule from '@FluxContracts/schemas/WatchProgress'
+import { WatchProgressListSchema } from '@FluxContracts/schemas/WatchProgress'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 
-import currentProfileModule from '@FluxWeb/profiles/currentProfile'
-
-const { WatchProgressListSchema } = WatchProgressModule
-const { profileHeaders } = currentProfileModule
+import { profileHeaders } from '@FluxWeb/profiles/currentProfile'
 
 /**
  * How often a position is sent while something is playing.
@@ -66,9 +63,4 @@ const byMediaId = (progress: WatchProgress[]): Map<string, WatchProgress> =>
 
 export type { WatchProgress }
 
-export default {
-  fetchWatchProgress,
-  reportWatchProgress,
-  byMediaId,
-  REPORT_EVERY_MILLISECONDS,
-}
+export { fetchWatchProgress, reportWatchProgress, byMediaId, REPORT_EVERY_MILLISECONDS }

@@ -1,8 +1,6 @@
 import { useEffect, useRef } from 'react'
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { VideoSurfaceProps } from './VideoSurface.types'
-
-const { cn } = cnModule
 
 /**
  * The video element itself, and nothing else.
@@ -113,4 +111,4 @@ const VideoSurface = ({
 
 VideoSurface.displayName = 'VideoSurface'
 
-export default { VideoSurface }
+export { VideoSurface }

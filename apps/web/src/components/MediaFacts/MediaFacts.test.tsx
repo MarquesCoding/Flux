@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import MediaFactsModule from './MediaFacts'
+import { MediaFacts } from './MediaFacts'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { MediaFacts } = MediaFactsModule
 
 const media: MediaSummary = {
   id: 'media-1',

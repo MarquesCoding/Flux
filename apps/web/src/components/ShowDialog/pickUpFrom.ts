@@ -57,4 +57,4 @@ const pickUpFrom = (
   return next === undefined ? null : { episode: next, startSeconds: 0, isResuming: false }
 }
 
-export default { pickUpFrom }
+export { pickUpFrom }

@@ -1,10 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { and, eq, inArray, sql } from 'drizzle-orm'
-import SchemaModule from '@FluxServer/db/Schema'
+import { mediaItem, library } from '@FluxServer/db/Schema'
 import type { FluxDatabase } from '@FluxServer/db/Database'
 import type { MediaStore } from './scanLibrary'
-
-const { mediaItem, library } = SchemaModule
 
 /**
  * The library tables, for the scanner.
@@ -125,4 +123,4 @@ const countItems = async (db: FluxDatabase, libraryId: string): Promise<number> 
   return rows[0]?.total ?? 0
 }
 
-export default { createMediaStore, countItems }
+export { createMediaStore, countItems }

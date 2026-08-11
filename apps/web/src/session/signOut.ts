@@ -15,4 +15,4 @@ const signOut = async (): Promise<boolean> => {
   return response.ok
 }
 
-export default { signOut }
+export { signOut }

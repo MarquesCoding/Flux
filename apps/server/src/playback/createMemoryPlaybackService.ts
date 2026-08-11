@@ -1,12 +1,8 @@
-import negotiatePlaybackModule from '@FluxCore/functions/negotiatePlayback'
-import resolveQualityStepModule from '@FluxCore/functions/resolveQualityStep'
-import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
+import { negotiatePlayback } from '@FluxCore/functions/negotiatePlayback'
+import { resolveQualityStep } from '@FluxCore/functions/resolveQualityStep'
+import { describePlaybackMode } from '@FluxContracts/functions/describePlaybackMode'
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem'
 import type { PlaybackService } from './PlaybackService'
-
-const { negotiatePlayback } = negotiatePlaybackModule
-const { resolveQualityStep } = resolveQualityStepModule
-const { describePlaybackMode } = describePlaybackModeModule
 
 type MemoryPlaybackState = {
   media: Record<string, MediaItem>
@@ -146,4 +142,4 @@ const createMemoryPlaybackService = (
 
 export type { MemoryPlaybackState }
 
-export default { createMemoryPlaybackService }
+export { createMemoryPlaybackService }

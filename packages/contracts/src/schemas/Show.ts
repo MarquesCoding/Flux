@@ -1,7 +1,5 @@
 import { z } from 'zod'
-import LibraryContract from './Library'
-
-const { MediaSummarySchema } = LibraryContract
+import { MediaSummarySchema } from './Library'
 
 /**
  * A series, as the library sees one.
@@ -54,4 +52,4 @@ type ShowDetail = z.infer<typeof ShowDetailSchema>
 
 export type { ShowDetail, ShowSeason, ShowSummary }
 
-export default { ShowSummarySchema, ShowSeasonSchema, ShowDetailSchema, ShowListSchema }
+export { ShowSummarySchema, ShowSeasonSchema, ShowDetailSchema, ShowListSchema }

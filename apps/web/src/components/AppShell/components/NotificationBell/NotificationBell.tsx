@@ -1,7 +1,5 @@
 import { IconBell } from '@tabler/icons-react'
-import PopoverPanelModule from '@FluxUI/PopoverPanel'
-
-const { PopoverPanel } = PopoverPanelModule
+import { PopoverPanel } from '@FluxUI/PopoverPanel'
 
 /**
  * What has happened since somebody last looked.
@@ -33,4 +31,4 @@ const NotificationBell = () => (
 
 NotificationBell.displayName = 'NotificationBell'
 
-export default { NotificationBell }
+export { NotificationBell }

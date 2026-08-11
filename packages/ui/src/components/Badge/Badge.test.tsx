@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import BadgeModule from './Badge'
-
-const { Badge } = BadgeModule
+import { Badge } from './Badge'
 
 describe('Badge', () => {
   it('states what it was given', () => {

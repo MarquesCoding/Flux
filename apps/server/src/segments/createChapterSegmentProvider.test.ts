@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import createChapterSegmentProviderModule from './createChapterSegmentProvider'
+import { createChapterSegmentProvider, readChapterKind } from './createChapterSegmentProvider'
 import type { SegmentCandidate } from './SegmentProvider'
 import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient'
-
-const { createChapterSegmentProvider, readChapterKind } = createChapterSegmentProviderModule
 
 const probe = (chapters: MediaProbe['chapters']): MediaProbe => ({
   container: 'mkv',

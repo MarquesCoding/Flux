@@ -25,4 +25,4 @@ type FluxTokens = typeof FLUX_TOKENS
 
 export type { FluxTokens }
 
-export default { FLUX_TOKENS }
+export { FLUX_TOKENS }

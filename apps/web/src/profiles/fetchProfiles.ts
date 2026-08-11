@@ -1,7 +1,5 @@
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
+import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile'
 import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { ViewerProfileListSchema } = ViewerProfileModule
 
 /**
  * The people using this account.
@@ -84,4 +82,4 @@ const removeProfile = async (profileId: string): Promise<boolean> => {
   return response !== null && response.ok
 }
 
-export default { fetchProfiles, createProfile, saveProfile, removeProfile, uploadProfilePhoto }
+export { fetchProfiles, createProfile, saveProfile, removeProfile, uploadProfilePhoto }

@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import cnModule from '@FluxUI/cn'
-import PageDotsModule from '@FluxUI/PageDots'
+import { cn } from '@FluxUI/cn'
+import { PageDots } from '@FluxUI/PageDots'
 import type { RailProps } from './Rail.types'
-
-const { cn } = cnModule
-const { PageDots } = PageDotsModule
 
 /**
  * How much of the visible width one page is.
@@ -115,4 +112,4 @@ const Rail = ({ title, children, action, className }: RailProps) => {
 
 Rail.displayName = 'Rail'
 
-export default { Rail }
+export { Rail }

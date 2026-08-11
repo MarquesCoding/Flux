@@ -36,7 +36,7 @@ const COMPRESSED_AUDIO_MAX_BITRATE_KBPS = 128
 export type QualityStepId = z.infer<typeof QualityStepIdSchema>
 export type QualityStep = (typeof QUALITY_STEPS)[number]
 
-export default {
+export {
   QUALITY_STEP_IDS,
   QualityStepIdSchema,
   QUALITY_STEPS,

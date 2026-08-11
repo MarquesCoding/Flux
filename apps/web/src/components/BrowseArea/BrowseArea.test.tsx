@@ -1,9 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import BrowseAreaModule from './BrowseArea'
+import { BrowseArea } from './BrowseArea'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { BrowseArea } = BrowseAreaModule
 
 type Page = { items: MediaSummary[]; total: number }
 type Options = { kind?: string; order?: string; ids?: string[]; limit?: number }
@@ -12,11 +10,9 @@ const fetchLibraries = vi.fn<() => Promise<{ id: string }[]>>()
 const fetchLibraryItems = vi.fn<(libraryId: string, options?: Options) => Promise<Page>>()
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
-  default: {
-    fetchLibraries: () => fetchLibraries(),
-    fetchLibraryItems: (libraryId: string, options?: Options) =>
-      fetchLibraryItems(libraryId, options),
-  },
+  fetchLibraries: () => fetchLibraries(),
+  fetchLibraryItems: (libraryId: string, options?: Options) =>
+    fetchLibraryItems(libraryId, options),
 }))
 
 const item = (id: string, title: string): MediaSummary => ({

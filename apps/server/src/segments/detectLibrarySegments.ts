@@ -1,8 +1,6 @@
-import SegmentProviderModule from './SegmentProvider'
+import { resolveSegments } from './SegmentProvider'
 import type { SegmentCandidate, SegmentProvider } from './SegmentProvider'
 import type { SegmentService } from './SegmentService'
-
-const { resolveSegments } = SegmentProviderModule
 
 type GroupedCandidate = SegmentCandidate & {
   /**
@@ -102,4 +100,4 @@ const detectLibrarySegments = async ({
 
 export type { DetectLibrarySegmentsOptions, GroupedCandidate }
 
-export default { detectLibrarySegments, groupBySeason }
+export { detectLibrarySegments, groupBySeason }

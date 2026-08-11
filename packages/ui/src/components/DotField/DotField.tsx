@@ -1,9 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useReducedMotion } from 'motion/react'
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { DotFieldProps } from './DotField.types'
-
-const { cn } = cnModule
 
 /**
  * How far apart dots sit by default.
@@ -289,4 +287,4 @@ const DotField = ({
 
 DotField.displayName = 'DotField'
 
-export default { DotField }
+export { DotField }

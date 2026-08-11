@@ -1,8 +1,6 @@
 import { Dialog as BaseDialog } from '@base-ui-components/react/dialog'
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { DialogProps } from './Dialog.types'
-
-const { cn } = cnModule
 
 /**
  * How the panel arrives and leaves.
@@ -89,4 +87,4 @@ const Dialog = ({ label, isOpen, onClose, children, className }: DialogProps) =>
 
 Dialog.displayName = 'Dialog'
 
-export default { Dialog }
+export { Dialog }

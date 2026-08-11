@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import SplashScreenModule from './SplashScreen'
-
-const { SplashScreen } = SplashScreenModule
+import { SplashScreen } from './SplashScreen'
 
 describe('SplashScreen', () => {
   it('says something is happening, for anyone who cannot see the bar', () => {

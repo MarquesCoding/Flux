@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
-import cnModule from '@FluxUI/cn'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
+import { cn } from '@FluxUI/cn'
+import { profileInitial, profileAvatarUrl } from '@FluxContracts/schemas/ViewerProfile'
 import type { ProfileFaceProps } from './ProfileFace.types'
-
-const { cn } = cnModule
-const { profileInitial, profileAvatarUrl } = ViewerProfileModule
 
 /**
  * What a profile looks like.
@@ -76,4 +73,4 @@ const ProfileFace = ({ profile, pending = null, className }: ProfileFaceProps) =
 
 ProfileFace.displayName = 'ProfileFace'
 
-export default { ProfileFace }
+export { ProfileFace }

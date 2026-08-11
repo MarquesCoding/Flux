@@ -1,8 +1,6 @@
 import { z } from 'zod'
-import LibraryContract from '@FluxContracts/schemas/Library'
+import { LibrarySchema, MediaPageSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library'
 import type { Library, LibraryKind, MediaDetail, MediaPage } from '@FluxContracts/schemas/Library'
-
-const { LibrarySchema, MediaPageSchema, MediaDetailSchema } = LibraryContract
 
 const LibraryListSchema = z.array(LibrarySchema)
 const ErrorBodySchema = z.object({ error: z.string() })
@@ -212,7 +210,7 @@ const resetLibrary = async (libraryId: string): Promise<ScanJob | null> => {
 
 export type { ListItemsOptions, CreateLibraryInput, ScanJob, ScanState, ScanProgress }
 
-export default {
+export {
   fetchLibraries,
   createLibrary,
   fetchLibraryItems,

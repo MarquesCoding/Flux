@@ -1,26 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import AppModule from '@FluxServer/App'
-import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
-import createMemoryLibraryServiceModule from '@FluxServer/library/createMemoryLibraryService'
-import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
-import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
-import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
-import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
-import createMemoryPlaybackServiceModule from './createMemoryPlaybackService'
+import { createApp } from '@FluxServer/App'
+import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth'
+import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService'
+import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService'
+import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService'
+import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService'
+import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService'
+import { createMemoryPlaybackService } from './createMemoryPlaybackService'
 import { z } from 'zod'
-import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
+import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan'
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem'
-
-const { createApp } = AppModule
-const { createMemoryAuth } = createMemoryAuthModule
-const { createMemoryLibraryService } = createMemoryLibraryServiceModule
-const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
-const { createMemorySubtitleService } = createMemorySubtitleServiceModule
-const { createMemorySegmentService } = createMemorySegmentServiceModule
-const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
-const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
-
-const { PlaybackPlanSchema } = PlaybackPlanModule
 
 const ExplainSchema = z.object({ mode: z.string(), plan: PlaybackPlanSchema })
 

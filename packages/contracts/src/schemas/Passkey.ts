@@ -49,7 +49,7 @@ const PasskeyAuthenticationChallengeSchema = z.object({
 
 export type Passkey = z.infer<typeof PasskeySchema>
 
-export default {
+export {
   PasskeySchema,
   PasskeyListSchema,
   PasskeyRegistrationChallengeSchema,

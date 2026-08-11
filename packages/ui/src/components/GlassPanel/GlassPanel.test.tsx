@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import GlassPanelModule from './GlassPanel'
-
-const { GlassPanel } = GlassPanelModule
+import { GlassPanel } from './GlassPanel'
 
 describe('GlassPanel', () => {
   it('shows what it was given', () => {

@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import createEmbeddedSubtitleServiceModule from './createEmbeddedSubtitleService'
+import {
+  createEmbeddedSubtitleService,
+  describeSubtitle,
+  marksHearingImpaired,
+} from './createEmbeddedSubtitleService'
 import type { EmbeddedStream } from './createEmbeddedSubtitleService'
-
-const { createEmbeddedSubtitleService, describeSubtitle, marksHearingImpaired } =
-  createEmbeddedSubtitleServiceModule
 
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9'
 const PATH = '/media/Parasite (2019).mkv'

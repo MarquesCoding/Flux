@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { IconPlayerPlayFilled } from '@tabler/icons-react'
-import cnModule from '@FluxUI/cn'
-import hasFinePointerModule from '@FluxUI/hasFinePointer'
-import BadgeModule from '@FluxUI/Badge'
-import revealModule from '@FluxUI/animations/reveal'
+import { cn } from '@FluxUI/cn'
+import { hasFinePointer } from '@FluxUI/hasFinePointer'
+import { Badge } from '@FluxUI/Badge'
+import { revealTransition } from '@FluxUI/animations/reveal'
 import type { MediaCardProps, MediaCardShape } from './MediaCard.types'
-
-const { cn } = cnModule
-const { hasFinePointer } = hasFinePointerModule
-const { Badge } = BadgeModule
-const { revealTransition } = revealModule
 
 const SHAPE_CLASSES: Record<MediaCardShape, string> = {
   poster: 'aspect-[2/3]',
@@ -155,4 +150,4 @@ const MediaCard = ({
 
 MediaCard.displayName = 'MediaCard'
 
-export default { MediaCard }
+export { MediaCard }

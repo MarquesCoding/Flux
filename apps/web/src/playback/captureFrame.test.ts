@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import captureFrameModule from './captureFrame'
+import { captureFrame } from './captureFrame'
 import type { DrawingSurface } from './captureFrame'
-
-const { captureFrame } = captureFrameModule
 
 const video = (width: number, height: number): HTMLVideoElement => {
   const element = document.createElement('video')

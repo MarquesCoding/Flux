@@ -21,4 +21,4 @@ const JsonObjectSchema = z.record(z.string(), JsonValueSchema)
 
 export type { JsonPrimitive, JsonValue }
 
-export default { JsonValueSchema, JsonPrimitiveSchema, JsonObjectSchema }
+export { JsonValueSchema, JsonPrimitiveSchema, JsonObjectSchema }

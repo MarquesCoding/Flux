@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import MediaItemModule from './MediaItem'
-
-const { MediaItemSchema } = MediaItemModule
+import { MediaItemSchema } from './MediaItem'
 
 const validItem = {
   id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',

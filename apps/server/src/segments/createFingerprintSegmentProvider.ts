@@ -1,12 +1,9 @@
-import findSharedAudioModule from '@FluxCore/functions/findSharedAudio'
-import SegmentProviderModule from './SegmentProvider'
+import { findSharedAudio, agreeRange } from '@FluxCore/functions/findSharedAudio'
+import { INTRO_BOUNDS } from './SegmentProvider'
 import type { SegmentCandidate, SegmentProvider } from './SegmentProvider'
 import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
 import type { Range } from '@FluxCore/functions/findSharedAudio'
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
-
-const { findSharedAudio, agreeRange } = findSharedAudioModule
-const { INTRO_BOUNDS } = SegmentProviderModule
 
 /**
  * How much of each episode is listened to.
@@ -150,9 +147,4 @@ const createFingerprintSegmentProvider = ({
 
 export type { CreateFingerprintSegmentProviderOptions }
 
-export default {
-  createFingerprintSegmentProvider,
-  WINDOW_SECONDS,
-  MIN_EPISODES,
-  MAX_EPISODES,
-}
+export { createFingerprintSegmentProvider, WINDOW_SECONDS, MIN_EPISODES, MAX_EPISODES }

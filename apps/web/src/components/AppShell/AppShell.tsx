@@ -11,20 +11,14 @@ import {
   IconUserCircle,
 } from '@tabler/icons-react'
 import { motion, useReducedMotion } from 'motion/react'
-import TopNavModule from '@FluxUI/TopNav'
-import MoodBackgroundModule from '@FluxUI/MoodBackground'
-import revealModule from '@FluxUI/animations/reveal'
-import NotificationBellModule from './components/NotificationBell/NotificationBell'
-import AppShellTypesModule from './AppShell.types'
+import { TopNav } from '@FluxUI/TopNav'
+import { MoodBackground } from '@FluxUI/MoodBackground'
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
+import { NotificationBell } from './components/NotificationBell/NotificationBell'
+import { BROWSE_SECTIONS } from './AppShell.types'
 import type { ReactNode } from 'react'
 import type { TopNavAction, TopNavItem } from '@FluxUI/TopNav.types'
 import type { AppShellProps, ShellSection } from './AppShell.types'
-
-const { TopNav } = TopNavModule
-const { MoodBackground } = MoodBackgroundModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { NotificationBell } = NotificationBellModule
-const { BROWSE_SECTIONS } = AppShellTypesModule
 
 /**
  * The mark each place carries while it is the one being stood on.
@@ -227,4 +221,4 @@ const AppShell = ({
 
 AppShell.displayName = 'AppShell'
 
-export default { AppShell }
+export { AppShell }

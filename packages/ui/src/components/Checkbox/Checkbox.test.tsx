@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import CheckboxModule from './Checkbox'
-
-const { Checkbox } = CheckboxModule
+import { Checkbox } from './Checkbox'
 
 describe('Checkbox', () => {
   it('renders an accessible checkbox named by its label', () => {

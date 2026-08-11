@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import ViewerProfileModule from './ViewerProfile'
-
-const {
+import {
   ViewerProfileSchema,
   ViewerProfileRequestSchema,
   ViewerProfileListSchema,
@@ -11,7 +9,7 @@ const {
   NAME_MAX,
   profileInitial,
   profileAvatarUrl,
-} = ViewerProfileModule
+} from './ViewerProfile'
 
 const PROFILE = {
   id: '00000000-0000-4000-8000-000000000001',

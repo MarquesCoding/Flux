@@ -268,4 +268,4 @@ const negotiatePlayback = (
   subtitles: decideSubtitles(media, profile),
 })
 
-export default { negotiatePlayback }
+export { negotiatePlayback }

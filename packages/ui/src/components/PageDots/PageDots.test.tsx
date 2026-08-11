@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import PageDotsModule from './PageDots'
-
-const { PageDots } = PageDotsModule
+import { PageDots } from './PageDots'
 
 describe('PageDots', () => {
   it('draws one marker per thing there is', () => {

@@ -1,7 +1,5 @@
-import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
+import { RailCard } from '@FluxWeb/components/RailCard/RailCard'
 import type { MediaGridProps } from './MediaGrid.types'
-
-const { RailCard } = RailCardModule
 
 /**
  * A page of items, laid out as a grid.
@@ -46,4 +44,4 @@ const MediaGrid = ({
 
 MediaGrid.displayName = 'MediaGrid'
 
-export default { MediaGrid }
+export { MediaGrid }

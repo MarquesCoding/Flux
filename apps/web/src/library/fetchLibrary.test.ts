@@ -1,15 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import fetchLibraryModule from './fetchLibrary'
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const {
+import {
   fetchLibraries,
   createLibrary,
   fetchLibraryItems,
   scanLibrary,
   readScanState,
   resetLibrary,
-} = fetchLibraryModule
+} from './fetchLibrary'
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
 type FetchLike = (
   input: string,

@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem'
-import listAvailableQualityStepsModule from './listAvailableQualitySteps'
-
-const { listAvailableQualitySteps } = listAvailableQualityStepsModule
+import { listAvailableQualitySteps } from './listAvailableQualitySteps'
 
 const media: MediaItem = {
   id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',

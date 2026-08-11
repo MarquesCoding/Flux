@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem'
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile'
-import negotiatePlaybackModule from './negotiatePlayback'
-
-const { negotiatePlayback } = negotiatePlaybackModule
+import { negotiatePlayback } from './negotiatePlayback'
 
 const media: MediaItem = {
   id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',

@@ -29,4 +29,4 @@ const mediaImageRoute = createRoute({
   },
 })
 
-export default { mediaImageRoute }
+export { mediaImageRoute }

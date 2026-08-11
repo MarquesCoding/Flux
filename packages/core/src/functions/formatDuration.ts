@@ -23,4 +23,4 @@ const formatDuration = (totalSeconds: number): string => {
   return `${minutes.toString()}:${pad(seconds)}`
 }
 
-export default { formatDuration }
+export { formatDuration }

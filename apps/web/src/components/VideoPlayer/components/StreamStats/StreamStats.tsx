@@ -1,11 +1,8 @@
 import { IconX } from '@tabler/icons-react'
-import IconButtonModule from '@FluxUI/IconButton'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
+import { IconButton } from '@FluxUI/IconButton'
+import { formatDuration } from '@FluxCore/functions/formatDuration'
 import type { AudioDecision, VideoDecision } from '@FluxContracts/schemas/PlaybackPlan'
 import type { StreamStatsProps } from './StreamStats.types'
-
-const { IconButton } = IconButtonModule
-const { formatDuration } = formatDurationModule
 
 /**
  * Rounds a number of seconds for display without pretending to precision.
@@ -145,4 +142,4 @@ const StreamStats = ({
 
 StreamStats.displayName = 'StreamStats'
 
-export default { StreamStats }
+export { StreamStats }

@@ -1,10 +1,8 @@
 import { useId } from 'react'
 import { Checkbox as BaseCheckbox } from '@base-ui-components/react/checkbox'
 import { IconCheck } from '@tabler/icons-react'
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { CheckboxProps } from './Checkbox.types'
-
-const { cn } = cnModule
 
 /**
  * A labelled checkbox built on the Base UI primitive, which supplies the
@@ -50,4 +48,4 @@ const Checkbox = ({
 
 Checkbox.displayName = 'Checkbox'
 
-export default { Checkbox }
+export { Checkbox }

@@ -1,18 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import JsonValueModule from '@FluxContracts/schemas/JsonValue'
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-import watchProgressModule from './watchProgress'
-import currentProfileModule from '@FluxWeb/profiles/currentProfile'
+import { fetchWatchProgress, reportWatchProgress, byMediaId } from './watchProgress'
+import { writeCurrentProfile } from '@FluxWeb/profiles/currentProfile'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
-
-const { fetchWatchProgress, reportWatchProgress, byMediaId } = watchProgressModule
-const { writeCurrentProfile } = currentProfileModule
 
 type Answer = { ok: boolean; json: () => Promise<JsonValue>; text?: () => Promise<string> }
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Answer>
-
-const { JsonValueSchema } = JsonValueModule
 
 const fetchMock = vi.fn<FetchLike>()
 

@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import planToSessionSpecModule from './planToSessionSpec'
+import { planToSessionSpec, selectEncoder } from './planToSessionSpec'
 import type { Capabilities } from './planToSessionSpec'
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan'
-
-const { planToSessionSpec, selectEncoder } = planToSessionSpecModule
 
 const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' }
 

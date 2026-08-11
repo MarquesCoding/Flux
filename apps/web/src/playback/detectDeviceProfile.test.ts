@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import DeviceProfileModule from '@FluxContracts/schemas/DeviceProfile'
-import detectDeviceProfileModule from './detectDeviceProfile'
-
-const { DeviceProfileSchema } = DeviceProfileModule
-const { detectDeviceProfile } = detectDeviceProfileModule
+import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile'
+import { detectDeviceProfile, detectFromBrowser } from './detectDeviceProfile'
 
 const supporting =
   (...supported: string[]) =>
@@ -113,7 +110,7 @@ describe('detectDeviceProfile', () => {
   it('reports no HDR rather than failing in a browser without media queries', () => {
     vi.stubGlobal('matchMedia', undefined)
 
-    expect(() => detectDeviceProfileModule.detectFromBrowser()).not.toThrow()
-    expect(detectDeviceProfileModule.detectFromBrowser().supportedVideoRanges).toEqual(['SDR'])
+    expect(() => detectFromBrowser()).not.toThrow()
+    expect(detectFromBrowser().supportedVideoRanges).toEqual(['SDR'])
   })
 })

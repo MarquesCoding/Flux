@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import createLayeredSubtitleServiceModule from './createLayeredSubtitleService'
+import { createLayeredSubtitleService } from './createLayeredSubtitleService'
 import type { SubtitleService, SubtitleTrack } from './SubtitleService'
-
-const { createLayeredSubtitleService } = createLayeredSubtitleServiceModule
 
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9'
 

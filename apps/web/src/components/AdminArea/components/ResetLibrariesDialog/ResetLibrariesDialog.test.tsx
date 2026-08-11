@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import ResetLibrariesDialogModule from './ResetLibrariesDialog'
-
-const { ResetLibrariesDialog } = ResetLibrariesDialogModule
+import { ResetLibrariesDialog } from './ResetLibrariesDialog'
 
 describe('ResetLibrariesDialog', () => {
   it('warns that the rebuild cannot be undone', () => {

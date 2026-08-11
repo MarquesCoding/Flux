@@ -1,11 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import AccountAreaModule from './AccountArea'
+import { AccountArea } from './AccountArea'
 import type { SessionUser } from '@FluxContracts/schemas/Session'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { AccountArea } = AccountAreaModule
 
 const USER: SessionUser = {
   id: '00000000-0000-4000-8000-000000000001',

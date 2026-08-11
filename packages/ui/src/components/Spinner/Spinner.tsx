@@ -1,11 +1,8 @@
 import { IconLoader2 } from '@tabler/icons-react'
 import { motion, useReducedMotion } from 'motion/react'
-import cnModule from '@FluxUI/cn'
-import spinModule from '@FluxUI/animations/spin'
+import { cn } from '@FluxUI/cn'
+import { spinVariants, spinTransition, reducedSpinTransition } from '@FluxUI/animations/spin'
 import type { SpinnerProps, SpinnerSize } from './Spinner.types'
-
-const { cn } = cnModule
-const { spinVariants, spinTransition, reducedSpinTransition } = spinModule
 
 const SIZE_PIXELS: Record<SpinnerSize, number> = {
   sm: 16,
@@ -39,4 +36,4 @@ const Spinner = ({ size = 'md', label, className }: SpinnerProps) => {
 
 Spinner.displayName = 'Spinner'
 
-export default { Spinner }
+export { Spinner }

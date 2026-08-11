@@ -24,5 +24,3 @@ type WatchProgressService = {
 }
 
 export type { ProgressReport, WatchProgressService }
-
-export default {}

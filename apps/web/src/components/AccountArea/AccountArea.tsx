@@ -1,29 +1,18 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { IconLogout, IconPencil, IconShieldLock, IconUser } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import BadgeModule from '@FluxUI/Badge'
-import TabBarModule from '@FluxUI/TabBar'
-import revealModule from '@FluxUI/animations/reveal'
-import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
-import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
-import ProfileEditorModule from '@FluxWeb/components/ProfilePicker/components/ProfileEditor/ProfileEditor'
-import TwoFactorSetupModule from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup'
-import PasskeySetupModule from '@FluxWeb/components/PasskeySetup/PasskeySetup'
-import DeviceListModule from '@FluxWeb/components/AccountArea/components/DeviceList/DeviceList'
+import { Button } from '@FluxUI/Button'
+import { Badge } from '@FluxUI/Badge'
+import { TabBar } from '@FluxUI/TabBar'
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
+import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles'
+import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace'
+import { ProfileEditor } from '@FluxWeb/components/ProfilePicker/components/ProfileEditor/ProfileEditor'
+import { TwoFactorSetup } from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup'
+import { PasskeySetup } from '@FluxWeb/components/PasskeySetup/PasskeySetup'
+import { DeviceList } from '@FluxWeb/components/AccountArea/components/DeviceList/DeviceList'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import type { AccountAreaProps } from './AccountArea.types'
-
-const { Button } = ButtonModule
-const { Badge } = BadgeModule
-const { TabBar } = TabBarModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { fetchProfiles } = fetchProfilesModule
-const { ProfileFace } = ProfileFaceModule
-const { ProfileEditor } = ProfileEditorModule
-const { TwoFactorSetup } = TwoFactorSetupModule
-const { PasskeySetup } = PasskeySetupModule
-const { DeviceList } = DeviceListModule
 
 const PANELS = [
   { id: 'profile', label: 'Profile' },
@@ -211,4 +200,4 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
 
 AccountArea.displayName = 'AccountArea'
 
-export default { AccountArea }
+export { AccountArea }

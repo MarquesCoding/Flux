@@ -1,8 +1,6 @@
-import WatchProgressModule from '@FluxContracts/schemas/WatchProgress'
+import { isWorthResuming } from '@FluxContracts/schemas/WatchProgress'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
-
-const { isWorthResuming } = WatchProgressModule
 
 type Rail = {
   /**
@@ -195,7 +193,7 @@ const groupIntoRails = (
 
 export type { Rail }
 
-export default {
+export {
   groupIntoRails,
   describeSeason,
   inBroadcastOrder,

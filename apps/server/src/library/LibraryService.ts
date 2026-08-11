@@ -115,4 +115,4 @@ const DEFAULT_LIMIT = 60
 
 export type { CreateLibraryInput, LibraryService, ListItemsOptions }
 
-export default { DEFAULT_LIMIT }
+export { DEFAULT_LIMIT }

@@ -117,8 +117,7 @@ barrel.
 
 ## 5. Exports
 
-**Every component and function file default-exports an object naming its
-member:**
+**Every component and function file exports its members by name:**
 
 ```tsx
 const Button = (props: ButtonProps) => {
@@ -127,69 +126,57 @@ const Button = (props: ButtonProps) => {
 
 Button.displayName = 'Button'
 
-export default { Button }
+export { Button }
 ```
 
-Consumption — **import the module, then destructure at the top of the file**:
+Consumption — **import what is used, and nothing else**:
 
 ```tsx
-import ButtonModule from '@FluxUI/Button'
-
-const { Button } = ButtonModule
+import { Button } from '@FluxUI/Button'
 
 const MediaCard = (props: MediaCardProps) => {
   return <Button variant="primary">Play</Button>
 }
 ```
 
-This is the house style and it is not optional. Using the module object inline
-(`<ButtonModule.Button />`) works but reads badly and is inconsistent with the
-rest of the codebase. Destructuring once at module scope keeps JSX identical to
-a conventional named import.
+No default exports, and no module objects. A file exports the thing it is named
+after; a caller names the thing it needs. Nothing has to be unwrapped at the top
+of a file before it can be used, and nothing has to be renamed to avoid a
+collision between two modules called the same.
 
-Type-only exports (`export type { ButtonProps }`) are permitted alongside the
-default export, because they are erased at runtime and are not members.
+Type-only exports (`export type { ButtonProps }`) sit alongside the value
+exports and are erased at runtime.
 
-One exported runtime member per file. The file name matches the member name.
+One exported runtime member per file, with the file named after it. Constants
+that belong to that member — a delay, a limit, a list of options it is built
+from — may be exported beside it where tests or callers genuinely need them.
 
-### The one tooling exception
+### What this replaces
 
-`apps/server/src/db/Schema.ts` additionally exports each table as a named
-export. **drizzle-kit discovers tables by scanning a module's named exports**;
-given only a default-exported object it reports `0 tables` and generates an
-empty migration — silently, with no error.
+Until August 2026 every file default-exported an object naming its member, and
+every caller imported the module and destructured it. That form was chosen to
+make the exported surface explicit; in practice it cost more than it bought.
 
-This is the same class of exception as `// SAFETY:` in section 6: a rule that
-fights the toolchain is a rule that gets worked around badly. The file keeps its
-default export as well, and application code imports through the default. The
-named exports exist for drizzle-kit alone.
+**What the change buys.** React Fast Refresh works again: a component inside an
+object literal cannot be tracked, so every edit remounted the subtree and lost
+local state — a player forgot its position on each keystroke. `React.lazy` works
+directly, so the `lazyFlux` helper that existed only to unwrap a default is
+gone. `displayName` remains required, but for its own sake rather than to repair
+a name the convention had erased.
 
-Do not extend this exception to other files without the same kind of hard
-tooling requirement.
+**What it costs.** A single sweeping change to every file in the repository,
+which is a large diff and a bad day for anybody rebasing across it. That cost is
+paid once.
 
-### Known costs of this rule, and required mitigations
+This rule is enforced: `import/no-default-export` is on in oxlint, with an
+exception for the config files that tooling insists on reading a default from.
 
-This form was chosen deliberately. Its consequences are managed, not ignored.
+### The tooling note that survives it
 
-**React DevTools.** A component inside an object literal has no inferred name.
-`displayName` is therefore **mandatory** on every component and is lint-enforced.
-With it set, DevTools displays correctly.
-
-**`React.lazy`.** A lazy import cannot find a component default. Use the
-`lazyFlux` helper in `@FluxUI/lazyFlux`, never `React.lazy` directly:
-
-```ts
-const Settings = lazyFlux(() => import('@FluxUI/Settings'), 'Settings')
-```
-
-**Vite Fast Refresh.** React Fast Refresh cannot track a component wrapped in an
-object literal, so editing a component remounts its subtree and loses local state
-instead of hot-patching in place. There is no mitigation. This is an accepted
-cost of the export convention; do not file it as a bug.
-
-**Tree-shaking.** Not materially affected. Because rule 4 forbids barrels and
-each file exports exactly one member, there is nothing else in the module for a
-bundler to eliminate.
+`apps/server/src/db/Schema.ts` exports each table by name because drizzle-kit
+discovers tables by scanning a module's named exports; given anything else it
+reports `0 tables` and generates an empty migration, silently. Under this rule
+that file is no longer an exception — it is simply the rule applied.
 
 ---
 

@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import hasFinePointerModule from './hasFinePointer'
-
-const { hasFinePointer } = hasFinePointerModule
+import { hasFinePointer } from './hasFinePointer'
 
 const answering = (matches: boolean) =>
   vi.fn(() => ({

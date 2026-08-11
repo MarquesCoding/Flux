@@ -1,14 +1,10 @@
 import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { IconMenu2 } from '@tabler/icons-react'
-import cnModule from '@FluxUI/cn'
-import TooltipModule from '@FluxUI/Tooltip'
-import PopoverPanelModule from '@FluxUI/PopoverPanel'
+import { cn } from '@FluxUI/cn'
+import { Tooltip } from '@FluxUI/Tooltip'
+import { PopoverPanel } from '@FluxUI/PopoverPanel'
 import type { TopNavProps } from './TopNav.types'
-
-const { cn } = cnModule
-const { Tooltip } = TooltipModule
-const { PopoverPanel } = PopoverPanelModule
 
 /**
  * The bar across the top, as two things rather than one.
@@ -196,4 +192,4 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
 
 TopNav.displayName = 'TopNav'
 
-export default { TopNav }
+export { TopNav }

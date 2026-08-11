@@ -1,9 +1,6 @@
-import cnModule from '@FluxUI/cn'
-import TooltipModule from '@FluxUI/Tooltip'
+import { cn } from '@FluxUI/cn'
+import { Tooltip } from '@FluxUI/Tooltip'
 import type { IconButtonProps, IconButtonSize } from './IconButton.types'
-
-const { cn } = cnModule
-const { Tooltip } = TooltipModule
 
 const SIZE_CLASSES: Record<IconButtonSize, string> = {
   sm: 'size-8',
@@ -56,4 +53,4 @@ const IconButton = ({
 
 IconButton.displayName = 'IconButton'
 
-export default { IconButton }
+export { IconButton }

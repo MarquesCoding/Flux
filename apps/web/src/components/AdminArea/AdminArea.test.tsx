@@ -1,11 +1,9 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import AdminAreaModule from './AdminArea'
+import { AdminArea } from './AdminArea'
 import type { AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin'
 import type { Library } from '@FluxContracts/schemas/Library'
-
-const { AdminArea } = AdminAreaModule
 
 const OVERVIEW: AdminOverview = {
   users: [

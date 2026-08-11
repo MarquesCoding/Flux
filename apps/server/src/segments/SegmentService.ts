@@ -12,5 +12,3 @@ type SegmentService = {
 }
 
 export type { SegmentService }
-
-export default {}

@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import TranscoderClientModule from './TranscoderClient'
-
-const { readSocketPath, createTranscoderClient } = TranscoderClientModule
+import { readSocketPath, createTranscoderClient } from './TranscoderClient'
 
 describe('readSocketPath', () => {
   it('reads a unix socket address', () => {

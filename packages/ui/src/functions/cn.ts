@@ -8,4 +8,4 @@ import { twMerge } from 'tailwind-merge'
  */
 const cn = (...inputs: ClassValue[]): string => twMerge(clsx(inputs))
 
-export default { cn }
+export { cn }

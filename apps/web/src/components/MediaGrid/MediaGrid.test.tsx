@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import MediaGridModule from './MediaGrid'
+import { MediaGrid } from './MediaGrid'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { MediaGrid } = MediaGridModule
 
 const item = (id: string, title: string): MediaSummary => ({
   id,

@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import playbackPreferencesModule from './playbackPreferences'
-
-const { readPlaybackPreferences, writePlaybackPreferences, STORAGE_KEY, SUBTITLES_OFF, DEFAULTS } =
-  playbackPreferencesModule
+import {
+  readPlaybackPreferences,
+  writePlaybackPreferences,
+  STORAGE_KEY,
+  SUBTITLES_OFF,
+  DEFAULTS,
+} from './playbackPreferences'
 
 beforeEach(() => {
   window.localStorage.clear()

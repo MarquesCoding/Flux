@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import fetchSessionModule from './fetchSession'
-
-const { fetchSession } = fetchSessionModule
+import { fetchSession } from './fetchSession'
 
 const fetchMock = vi.fn()
 

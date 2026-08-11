@@ -1,12 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import SetupWizardModule from './SetupWizard'
-import SetupModule from '@FluxContracts/schemas/Setup'
+import { SetupWizard } from './SetupWizard'
+import { SetupRequestSchema } from '@FluxContracts/schemas/Setup'
 import type { SetupRequest, SetupStatus } from '@FluxContracts/schemas/Setup'
-
-const { SetupWizard } = SetupWizardModule
-const { SetupRequestSchema } = SetupModule
 
 const status: SetupStatus = {
   isComplete: false,

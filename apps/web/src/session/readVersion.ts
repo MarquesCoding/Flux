@@ -43,4 +43,4 @@ const readVersion = async (): Promise<string | null> => {
   }
 }
 
-export default { readVersion, describeVersion, LOCAL }
+export { readVersion, describeVersion, LOCAL }

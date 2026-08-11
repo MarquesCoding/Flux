@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import castPlaybackModule from './castPlayback'
+import {
+  isReachableOrigin,
+  absoluteStreamUrl,
+  watchCastState,
+  promptForDevice,
+} from './castPlayback'
 import type { CastState } from './castPlayback.types'
-
-const { isReachableOrigin, absoluteStreamUrl, watchCastState, promptForDevice } = castPlaybackModule
 
 /**
  * A video element as Safari presents one: its own route picker, and no sign of

@@ -11,11 +11,9 @@ import {
 } from 'better-auth/plugins'
 import { apiKey } from '@better-auth/api-key'
 import { passkey } from '@better-auth/passkey'
-import ownOriginsModule from '@FluxServer/env/ownOrigins'
+import { ownOrigins } from '@FluxServer/env/ownOrigins'
 import type { Env } from '@FluxServer/env/Env'
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
-
-const { ownOrigins } = ownOriginsModule
 
 type AuthDatabase = DBAdapter | DBAdapterInstance
 
@@ -128,4 +126,4 @@ type FluxAuth = ReturnType<typeof createAuth>
 
 export type { CreateAuthOptions, FluxAuth, AuthDatabase }
 
-export default { createAuth, FLUX_APP_NAME }
+export { createAuth, FLUX_APP_NAME }

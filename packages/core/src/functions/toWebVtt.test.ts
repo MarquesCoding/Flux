@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import toWebVttModule from './toWebVtt'
-
-const { toWebVtt, fromSubRip, fromAdvancedSubStation, formatTimestamp, readAssTimestamp } =
-  toWebVttModule
+import {
+  toWebVtt,
+  fromSubRip,
+  fromAdvancedSubStation,
+  formatTimestamp,
+  readAssTimestamp,
+} from './toWebVtt'
 
 const subRip = ['1', '00:00:01,000 --> 00:00:03,500', 'Line one', '', '2'].join('\n')
 

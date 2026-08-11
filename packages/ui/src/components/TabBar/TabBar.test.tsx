@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import TabBarModule from './TabBar'
-
-const { TabBar } = TabBarModule
+import { TabBar } from './TabBar'
 
 const tabs = [
   { id: 'trending', label: 'Trending' },

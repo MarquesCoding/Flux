@@ -1,13 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import detectLibrarySegmentsModule from './detectLibrarySegments'
-import createMemorySegmentServiceModule from './createMemorySegmentService'
+import { detectLibrarySegments, groupBySeason } from './detectLibrarySegments'
+import { createMemorySegmentService } from './createMemorySegmentService'
 import type { GroupedCandidate } from './detectLibrarySegments'
 import type { SegmentCandidate, SegmentProvider } from './SegmentProvider'
 import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient'
 import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
-
-const { detectLibrarySegments, groupBySeason } = detectLibrarySegmentsModule
-const { createMemorySegmentService } = createMemorySegmentServiceModule
 
 const LIBRARY_ID = 'library-1'
 

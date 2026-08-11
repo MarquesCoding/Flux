@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import createMemoryFavouriteServiceModule from './createMemoryFavouriteService'
-
-const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
+import { createMemoryFavouriteService } from './createMemoryFavouriteService'
 
 describe('createMemoryFavouriteService', () => {
   it('answers with nothing for somebody who has kept nothing', async () => {

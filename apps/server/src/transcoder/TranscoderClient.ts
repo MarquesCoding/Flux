@@ -1,9 +1,7 @@
 import { Agent, fetch as undiciFetch } from 'undici'
 import { z } from 'zod'
-import JsonValueModule from '@FluxContracts/schemas/JsonValue'
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { JsonValueSchema } = JsonValueModule
 
 /**
  * The part of a response Flux uses.
@@ -489,4 +487,4 @@ export type {
   TranscoderRangedFile,
 }
 
-export default { createTranscoderClient, readSocketPath, TranscoderError, MediaProbeSchema }
+export { createTranscoderClient, readSocketPath, TranscoderError, MediaProbeSchema }

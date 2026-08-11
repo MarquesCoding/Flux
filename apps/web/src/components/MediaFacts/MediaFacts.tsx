@@ -1,9 +1,7 @@
 import { IconStar } from '@tabler/icons-react'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
+import { formatDuration } from '@FluxCore/functions/formatDuration'
 import type { ReactNode } from 'react'
 import type { MediaFactsProps } from './MediaFacts.types'
-
-const { formatDuration } = formatDurationModule
 
 /**
  * Everything that places an item, on one line.
@@ -74,4 +72,4 @@ const MediaFacts = ({ media, className, hasRuntime = false }: MediaFactsProps) =
 
 MediaFacts.displayName = 'MediaFacts'
 
-export default { MediaFacts }
+export { MediaFacts }

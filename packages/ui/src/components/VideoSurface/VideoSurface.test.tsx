@@ -1,9 +1,7 @@
 import { createRef } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import VideoSurfaceModule from './VideoSurface'
-
-const { VideoSurface } = VideoSurfaceModule
+import { VideoSurface } from './VideoSurface'
 
 beforeEach(() => {
   // jsdom hands back a track list that cannot be listened to, and the surface

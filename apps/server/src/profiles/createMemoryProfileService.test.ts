@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import createMemoryProfileServiceModule from './createMemoryProfileService'
-
-const { createMemoryProfileService } = createMemoryProfileServiceModule
+import { createMemoryProfileService } from './createMemoryProfileService'
 
 const REQUEST = { name: 'Sam', colour: '#3ac47d' } as const
 

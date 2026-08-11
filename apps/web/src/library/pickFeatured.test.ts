@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import pickFeaturedModule from './pickFeatured'
+import { pickFeatured, isEarlier, findSiblings, nextEpisode } from './pickFeatured'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { pickFeatured, isEarlier, findSiblings, nextEpisode } = pickFeaturedModule
 
 let counter = 0
 

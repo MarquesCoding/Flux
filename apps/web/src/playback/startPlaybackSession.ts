@@ -1,10 +1,8 @@
 import { z } from 'zod'
-import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
+import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan'
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile'
 import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan'
 import type { QualityPreference } from './qualityPreference'
-
-const { PlaybackPlanSchema } = PlaybackPlanModule
 
 const DeliverySchema = z.union([
   z.object({ kind: z.literal('hls'), manifestUrl: z.string().min(1) }),
@@ -125,9 +123,4 @@ const describeWhy = (plan: PlaybackPlan): string[] => {
 
 export type { StartedSession, StartOutcome }
 
-export default {
-  startPlaybackSession,
-  stopPlaybackSession,
-  describeWhy,
-  StartedSessionSchema,
-}
+export { startPlaybackSession, stopPlaybackSession, describeWhy, StartedSessionSchema }

@@ -1,20 +1,17 @@
 import { useState } from 'react'
 import { IconPhotoUp, IconRefresh } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import TextFieldModule from '@FluxUI/TextField'
-import FilePickerModule from '@FluxUI/FilePicker'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
-import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
-import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
+import { Button } from '@FluxUI/Button'
+import { TextField } from '@FluxUI/TextField'
+import { FilePicker } from '@FluxUI/FilePicker'
+import {
+  PROFILE_COLOURS,
+  AVATAR_STYLES,
+  profileInitial,
+} from '@FluxContracts/schemas/ViewerProfile'
+import { createProfile, saveProfile, uploadProfilePhoto } from '@FluxWeb/profiles/fetchProfiles'
+import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace'
 import type { Avatar, AvatarStyle, ProfileColour } from '@FluxContracts/schemas/ViewerProfile'
 import type { ProfileEditorProps } from './ProfileEditor.types'
-
-const { Button } = ButtonModule
-const { TextField } = TextFieldModule
-const { FilePicker } = FilePickerModule
-const { PROFILE_COLOURS, AVATAR_STYLES, profileInitial } = ViewerProfileModule
-const { createProfile, saveProfile, uploadProfilePhoto } = fetchProfilesModule
-const { ProfileFace } = ProfileFaceModule
 
 /**
  * What a picture may be.
@@ -260,4 +257,4 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
 
 ProfileEditor.displayName = 'ProfileEditor'
 
-export default { ProfileEditor }
+export { ProfileEditor }

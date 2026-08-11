@@ -113,4 +113,4 @@ type ImageCache = ReturnType<typeof createImageCache>
 
 export type { CachedImage, ImageCache, ImageFetcher }
 
-export default { createImageCache, MAX_BYTES, IMAGE_TYPES }
+export { createImageCache, MAX_BYTES, IMAGE_TYPES }

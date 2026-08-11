@@ -62,4 +62,4 @@ const describeDevice = (userAgent: string | null | undefined): string => {
   return system === undefined ? browser : `${browser} on ${system}`
 }
 
-export default { describeDevice }
+export { describeDevice }

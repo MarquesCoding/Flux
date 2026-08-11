@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import showSlugModule from './showSlug'
-
-const { showSlug, LONGEST } = showSlugModule
+import { showSlug, LONGEST } from './showSlug'
 
 describe('showSlug', () => {
   it('makes a title safe to put in an address', () => {

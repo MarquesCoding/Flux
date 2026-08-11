@@ -28,4 +28,4 @@ const describePlaybackMode = (plan: PlaybackPlan): PlaybackMode => {
 
 export type { PlaybackMode }
 
-export default { describePlaybackMode, PLAYBACK_MODES }
+export { describePlaybackMode, PLAYBACK_MODES }

@@ -1,7 +1,5 @@
-import ShowContract from '@FluxContracts/schemas/Show'
+import { ShowListSchema, ShowDetailSchema } from '@FluxContracts/schemas/Show'
 import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show'
-
-const { ShowListSchema, ShowDetailSchema } = ShowContract
 
 /**
  * The series in a library.
@@ -45,4 +43,4 @@ const fetchShow = async (libraryId: string, showId: string): Promise<ShowDetail 
   }
 }
 
-export default { fetchShows, fetchShow }
+export { fetchShows, fetchShow }

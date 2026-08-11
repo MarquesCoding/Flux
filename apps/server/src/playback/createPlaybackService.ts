@@ -1,22 +1,16 @@
-import negotiatePlaybackModule from '@FluxCore/functions/negotiatePlayback'
-import resolveQualityStepModule from '@FluxCore/functions/resolveQualityStep'
-import describePlaybackModeModule from '@FluxContracts/functions/describePlaybackMode'
-import planToSessionSpecModule from '@FluxCore/functions/planToSessionSpec'
-import PlaybackServiceModule from './PlaybackService'
-import type { PlaybackService } from './PlaybackService'
-import type { Transcoder, TranscoderCapabilities } from '@FluxServer/transcoder/TranscoderClient'
-
-const { negotiatePlayback } = negotiatePlaybackModule
-const { resolveQualityStep } = resolveQualityStepModule
-const { describePlaybackMode } = describePlaybackModeModule
-const { planToSessionSpec } = planToSessionSpecModule
-const {
+import { negotiatePlayback } from '@FluxCore/functions/negotiatePlayback'
+import { resolveQualityStep } from '@FluxCore/functions/resolveQualityStep'
+import { describePlaybackMode } from '@FluxContracts/functions/describePlaybackMode'
+import { planToSessionSpec } from '@FluxCore/functions/planToSessionSpec'
+import {
   SEGMENT_SECONDS,
   TRICKPLAY_INTERVAL_SECONDS,
   TRICKPLAY_TILE_WIDTH,
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
-} = PlaybackServiceModule
+} from './PlaybackService'
+import type { PlaybackService } from './PlaybackService'
+import type { Transcoder, TranscoderCapabilities } from '@FluxServer/transcoder/TranscoderClient'
 
 /**
  * Subtitle formats that are pictures rather than text.
@@ -263,4 +257,4 @@ const createPlaybackService = ({
 
 export type { MediaLookup }
 
-export default { createPlaybackService }
+export { createPlaybackService }

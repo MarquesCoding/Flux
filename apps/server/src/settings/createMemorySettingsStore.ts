@@ -18,4 +18,4 @@ const createMemorySettingsStore = (initial: ServerSettings): SettingsStore => {
   }
 }
 
-export default { createMemorySettingsStore }
+export { createMemorySettingsStore }

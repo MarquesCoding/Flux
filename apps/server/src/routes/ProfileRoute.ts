@@ -1,8 +1,9 @@
 import { createRoute, z } from '@hono/zod-openapi'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
-
-const { ViewerProfileSchema, ViewerProfileRequestSchema, ViewerProfileListSchema } =
-  ViewerProfileModule
+import {
+  ViewerProfileSchema,
+  ViewerProfileRequestSchema,
+  ViewerProfileListSchema,
+} from '@FluxContracts/schemas/ViewerProfile'
 
 const ProfileError = z.object({ error: z.string() }).openapi('ProfileError')
 
@@ -148,7 +149,7 @@ const promoteProfileRoute = createRoute({
   },
 })
 
-export default {
+export {
   listProfilesRoute,
   createProfileRoute,
   updateProfileRoute,

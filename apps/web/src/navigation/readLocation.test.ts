@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import readLocationModule from './readLocation'
-
-const { readLocation, writeLocation, HOME } = readLocationModule
+import { readLocation, writeLocation, HOME } from './readLocation'
 
 const at = (path: string) => readLocation(`http://flux.local${path}`)
 

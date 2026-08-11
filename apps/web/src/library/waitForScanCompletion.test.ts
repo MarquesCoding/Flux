@@ -1,13 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import waitForScanCompletionModule from './waitForScanCompletion'
+import { waitForScanCompletion } from './waitForScanCompletion'
 
 const readScanStateMock = vi.hoisted(() => vi.fn())
 
 vi.mock('./fetchLibrary', () => ({
-  default: { readScanState: readScanStateMock },
+  readScanState: readScanStateMock,
 }))
-
-const { waitForScanCompletion } = waitForScanCompletionModule
 
 const progress = (
   state: string,

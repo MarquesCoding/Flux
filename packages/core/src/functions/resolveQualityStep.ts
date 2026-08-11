@@ -1,9 +1,10 @@
-import QualityStepModule from '@FluxContracts/schemas/QualityStep'
+import {
+  QUALITY_STEPS,
+  COMPRESSED_AUDIO_THRESHOLD_HEIGHT,
+  COMPRESSED_AUDIO_MAX_BITRATE_KBPS,
+} from '@FluxContracts/schemas/QualityStep'
 import type { QualityStepId } from '@FluxContracts/schemas/QualityStep'
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem'
-
-const { QUALITY_STEPS, COMPRESSED_AUDIO_THRESHOLD_HEIGHT, COMPRESSED_AUDIO_MAX_BITRATE_KBPS } =
-  QualityStepModule
 
 type QualityClamp = {
   maxWidth: number
@@ -50,4 +51,4 @@ const resolveQualityStep = (
 
 export type { QualityClamp }
 
-export default { resolveQualityStep }
+export { resolveQualityStep }

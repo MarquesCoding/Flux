@@ -1,21 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import DeviceListModule from './DeviceList'
+import { DeviceList } from './DeviceList'
 import type { Device } from '@FluxWeb/account/fetchDevices'
-
-const { DeviceList } = DeviceListModule
 
 const fetchDevices = vi.fn<() => Promise<Device[]>>()
 const endDevice = vi.fn<(deviceId: string) => Promise<boolean>>()
 const endOtherDevices = vi.fn<() => Promise<boolean>>()
 
 vi.mock('@FluxWeb/account/fetchDevices', () => ({
-  default: {
-    fetchDevices: () => fetchDevices(),
-    endDevice: (deviceId: string) => endDevice(deviceId),
-    endOtherDevices: () => endOtherDevices(),
-  },
+  fetchDevices: () => fetchDevices(),
+  endDevice: (deviceId: string) => endDevice(deviceId),
+  endOtherDevices: () => endOtherDevices(),
 }))
 
 const device = (overrides: Partial<Device> = {}): Device => ({

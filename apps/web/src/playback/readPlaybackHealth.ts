@@ -94,4 +94,4 @@ const readPlaybackHealth = (
 
 export type { FrameCountSource }
 
-export default { readPlaybackHealth, encodedSeconds, bufferedAhead }
+export { readPlaybackHealth, encodedSeconds, bufferedAhead }

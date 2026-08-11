@@ -136,4 +136,4 @@ const readTitleFromPath = (filePath: string): { title: string; year: number | nu
   return { title: title.length > 0 ? title : stripExtension(fileName), year }
 }
 
-export default { isMediaFile, readTitleFromPath, findYear, MEDIA_EXTENSIONS }
+export { isMediaFile, readTitleFromPath, findYear, MEDIA_EXTENSIONS }

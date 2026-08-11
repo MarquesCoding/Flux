@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import EnvModule from './Env'
-
-const { readEnv } = EnvModule
+import { readEnv } from './Env'
 
 describe('readEnv', () => {
   it('applies defaults for an empty environment', () => {

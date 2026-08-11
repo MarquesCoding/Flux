@@ -30,4 +30,4 @@ const describePasskeyUnavailability = (): string | null => {
   return null
 }
 
-export default { isPasskeySupported, describePasskeyUnavailability }
+export { isPasskeySupported, describePasskeyUnavailability }

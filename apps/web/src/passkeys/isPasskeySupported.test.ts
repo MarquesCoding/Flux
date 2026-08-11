@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import isPasskeySupportedModule from './isPasskeySupported'
-
-const { isPasskeySupported, describePasskeyUnavailability } = isPasskeySupportedModule
+import { isPasskeySupported, describePasskeyUnavailability } from './isPasskeySupported'
 
 const setContext = (options: { secure: boolean; hasCredential: boolean }) => {
   vi.stubGlobal('window', {

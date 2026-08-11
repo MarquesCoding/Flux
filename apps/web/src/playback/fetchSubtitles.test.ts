@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fetchSubtitlesModule from './fetchSubtitles'
+import {
+  fetchSubtitleTracks,
+  subtitleTrackUrl,
+  defaultTrackId,
+  trackForLanguage,
+  SUBTITLES_OFF,
+} from './fetchSubtitles'
 import type { SubtitleTrack } from './fetchSubtitles'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, trackForLanguage, SUBTITLES_OFF } =
-  fetchSubtitlesModule
 
 const track = (overrides: Partial<SubtitleTrack> = {}): SubtitleTrack => ({
   id: 'en',

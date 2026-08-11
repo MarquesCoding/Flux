@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import DialogModule from './Dialog'
-
-const { Dialog } = DialogModule
+import { Dialog } from './Dialog'
 
 describe('Dialog', () => {
   it('shows nothing while closed', () => {

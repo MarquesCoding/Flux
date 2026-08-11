@@ -170,7 +170,7 @@ const saveCaptionStyle = (style: CaptionStyle): void => {
 
 export type { CaptionStyle, CueDeclarations }
 
-export default {
+export {
   CaptionStyleSchema,
   DEFAULT_CAPTION_STYLE,
   FONT_FAMILIES,

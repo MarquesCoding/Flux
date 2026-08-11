@@ -1,10 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import ProfilePickerModule from './ProfilePicker'
+import { ProfilePicker } from './ProfilePicker'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { ProfilePicker } = ProfilePickerModule
 
 const profileOf = (name: string, at: number): ViewerProfile => ({
   id: `00000000-0000-4000-8000-${at.toString().padStart(12, '0')}`,

@@ -1,11 +1,8 @@
 import { z } from 'zod'
-import JsonValueModule from '@FluxContracts/schemas/JsonValue'
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-import readTitleFromPathModule from './readTitleFromPath'
+import { readTitleFromPath } from './readTitleFromPath'
 import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider'
-
-const { readTitleFromPath } = readTitleFromPathModule
-const { JsonValueSchema } = JsonValueModule
 
 /**
  * Where the catalogue lives.
@@ -396,4 +393,4 @@ const createCatalogueMetadataProvider = ({
 
 export type { CreateCatalogueMetadataProviderOptions, Fetcher }
 
-export default { createCatalogueMetadataProvider, readYear, imageUrl, CAST_LIMIT }
+export { createCatalogueMetadataProvider, readYear, imageUrl, CAST_LIMIT }

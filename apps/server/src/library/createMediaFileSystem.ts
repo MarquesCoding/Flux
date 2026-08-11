@@ -60,4 +60,4 @@ const createMediaFileSystem = (): MediaFileSystem => ({
   listFiles: (root) => walk(root, 0),
 })
 
-export default { createMediaFileSystem, MAX_DEPTH }
+export { createMediaFileSystem, MAX_DEPTH }

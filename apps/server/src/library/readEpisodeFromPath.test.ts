@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import readEpisodeFromPathModule from './readEpisodeFromPath'
-
-const { readEpisodeFromPath, readSeasonDirectory, isSameSeason } = readEpisodeFromPathModule
+import { readEpisodeFromPath, readSeasonDirectory, isSameSeason } from './readEpisodeFromPath'
 
 describe('readSeasonDirectory', () => {
   it('reads a season written out', () => {

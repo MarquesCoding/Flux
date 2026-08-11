@@ -104,7 +104,7 @@ const previewTrack = (tracks: SubtitleTrack[], language: string): SubtitleTrack 
 
 export type { SubtitleTrack }
 
-export default {
+export {
   fetchSubtitleTracks,
   subtitleTrackUrl,
   defaultTrackId,

@@ -103,4 +103,4 @@ const nextEpisode = (items: MediaSummary[], after: MediaSummary): MediaSummary |
   return findSiblings(items, after).find((item) => (item.episodeNumber ?? 0) > at) ?? null
 }
 
-export default { pickFeatured, isEarlier, findSiblings, nextEpisode }
+export { pickFeatured, isEarlier, findSiblings, nextEpisode }

@@ -2,9 +2,7 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import createSidecarSubtitleServiceModule from './createSidecarSubtitleService'
-
-const { createSidecarSubtitleService } = createSidecarSubtitleServiceModule
+import { createSidecarSubtitleService } from './createSidecarSubtitleService'
 
 const MEDIA_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
 

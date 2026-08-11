@@ -1,28 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import ButtonModule from '@FluxUI/Button'
-import revealModule from '@FluxUI/animations/reveal'
-import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
-import SpinnerModule from '@FluxUI/Spinner'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import RailModule from '@FluxUI/Rail'
-import HeroModule from '@FluxWeb/components/Hero/Hero'
-import groupIntoRailsModule from '@FluxWeb/library/groupIntoRails'
-import pickFeaturedModule from '@FluxWeb/library/pickFeatured'
-import watchProgressModule from '@FluxWeb/playback/watchProgress'
-import WatchProgressContract from '@FluxContracts/schemas/WatchProgress'
+import { Button } from '@FluxUI/Button'
+import { staggerVariants } from '@FluxUI/animations/reveal'
+import { RailCard } from '@FluxWeb/components/RailCard/RailCard'
+import { Spinner } from '@FluxUI/Spinner'
+import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary'
+import { Rail } from '@FluxUI/Rail'
+import { Hero } from '@FluxWeb/components/Hero/Hero'
+import { groupIntoRails } from '@FluxWeb/library/groupIntoRails'
+import { pickFeatured } from '@FluxWeb/library/pickFeatured'
+import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress'
+import { watchedFraction, isWorthResuming } from '@FluxContracts/schemas/WatchProgress'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress'
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types'
-
-const { Button } = ButtonModule
-const { RailCard } = RailCardModule
-const { Hero } = HeroModule
-const { Rail } = RailModule
-const { groupIntoRails } = groupIntoRailsModule
-const { pickFeatured } = pickFeaturedModule
-const { fetchWatchProgress, byMediaId } = watchProgressModule
-const { watchedFraction, isWorthResuming } = WatchProgressContract
 
 /**
  * How many items the hero rotates between.
@@ -30,10 +21,6 @@ const { watchedFraction, isWorthResuming } = WatchProgressContract
  * A handful: a carousel of thirty is a carousel nobody reaches the end of.
  */
 const HERO_COUNT = 5
-const { Spinner } = SpinnerModule
-const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
-const { staggerVariants } = revealModule
-
 const PAGE_SIZE = 60
 const SEARCH_DEBOUNCE_MS = 250
 
@@ -301,4 +288,4 @@ const LibraryBrowser = ({
 
 LibraryBrowser.displayName = 'LibraryBrowser'
 
-export default { LibraryBrowser }
+export { LibraryBrowser }

@@ -1,12 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import captionStyleModule from '@FluxWeb/playback/captionStyle'
-import PlayerControlsModule from './PlayerControls'
+import { DEFAULT_CAPTION_STYLE } from '@FluxWeb/playback/captionStyle'
+import { PlayerControls } from './PlayerControls'
 import type { PlayerControlsProps } from './PlayerControls.types'
-
-const { PlayerControls } = PlayerControlsModule
-const { DEFAULT_CAPTION_STYLE } = captionStyleModule
 
 const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
   const props: PlayerControlsProps = {

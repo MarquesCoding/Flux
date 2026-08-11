@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import authenticateWithPasskeyModule from './authenticateWithPasskey'
+import { authenticateWithPasskey } from './authenticateWithPasskey'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { authenticateWithPasskey } = authenticateWithPasskeyModule
 
 const startAuthenticationMock = vi.hoisted(() => vi.fn())
 

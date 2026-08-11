@@ -1,7 +1,5 @@
-import SessionModule from '@FluxContracts/schemas/Session'
+import { GetSessionResponseSchema } from '@FluxContracts/schemas/Session'
 import type { SessionUser } from '@FluxContracts/schemas/Session'
-
-const { GetSessionResponseSchema } = SessionModule
 
 /**
  * Reads the current session.
@@ -26,4 +24,4 @@ const fetchSession = async (): Promise<SessionUser | null> => {
   return parsed === null ? null : parsed.user
 }
 
-export default { fetchSession }
+export { fetchSession }

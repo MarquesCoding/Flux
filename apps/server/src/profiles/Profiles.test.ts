@@ -1,24 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import AppModule from '@FluxServer/App'
-import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
-import createMemoryLibraryServiceModule from '@FluxServer/library/createMemoryLibraryService'
-import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
-import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
-import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
-import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
-import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
-import createMemoryProfileServiceModule from './createMemoryProfileService'
-
-const { createApp } = AppModule
-const { createMemoryAuth } = createMemoryAuthModule
-const { createMemoryLibraryService } = createMemoryLibraryServiceModule
-const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
-const { createMemorySegmentService } = createMemorySegmentServiceModule
-const { createMemorySubtitleService } = createMemorySubtitleServiceModule
-const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
-const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
-const { createMemoryProfileService } = createMemoryProfileServiceModule
+import { createApp } from '@FluxServer/App'
+import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth'
+import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService'
+import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService'
+import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService'
+import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService'
+import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService'
+import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService'
+import { createMemoryProfileService } from './createMemoryProfileService'
 
 const BASE = 'http://localhost:8420'
 

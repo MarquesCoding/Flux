@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import SpinnerModule from './Spinner'
-
-const { Spinner } = SpinnerModule
+import { Spinner } from './Spinner'
 
 describe('Spinner', () => {
   it('exposes itself as a status region named by its label', () => {

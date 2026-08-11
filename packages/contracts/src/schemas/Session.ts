@@ -52,9 +52,4 @@ export type GetSessionResponse = z.infer<typeof GetSessionResponseSchema>
 export type SignInRequest = z.infer<typeof SignInRequestSchema>
 export type SignInResponse = z.infer<typeof SignInResponseSchema>
 
-export default {
-  SessionUserSchema,
-  GetSessionResponseSchema,
-  SignInRequestSchema,
-  SignInResponseSchema,
-}
+export { SessionUserSchema, GetSessionResponseSchema, SignInRequestSchema, SignInResponseSchema }

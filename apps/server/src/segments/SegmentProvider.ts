@@ -142,4 +142,4 @@ const resolveSegments = async (
 
 export type { SegmentCandidate, SegmentProvider }
 
-export default { resolveSegments, isPlausible, INTRO_BOUNDS, CREDITS_BOUNDS }
+export { resolveSegments, isPlausible, INTRO_BOUNDS, CREDITS_BOUNDS }

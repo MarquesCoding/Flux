@@ -1,9 +1,6 @@
-import cnModule from '@FluxUI/cn'
-import SpinnerModule from '@FluxUI/Spinner'
+import { cn } from '@FluxUI/cn'
+import { Spinner } from '@FluxUI/Spinner'
 import type { ButtonProps, ButtonSize, ButtonVariant } from './Button.types'
-
-const { cn } = cnModule
-const { Spinner } = SpinnerModule
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: 'bg-accent text-accent-contrast hover:opacity-90',
@@ -65,4 +62,4 @@ const Button = ({
 
 Button.displayName = 'Button'
 
-export default { Button }
+export { Button }

@@ -1,7 +1,10 @@
 import { createRoute } from '@hono/zod-openapi'
-import SetupModule from '@FluxContracts/schemas/Setup'
-
-const { SetupStatusSchema, SetupRequestSchema, SetupResultSchema, SetupErrorSchema } = SetupModule
+import {
+  SetupStatusSchema,
+  SetupRequestSchema,
+  SetupResultSchema,
+  SetupErrorSchema,
+} from '@FluxContracts/schemas/Setup'
 
 const StatusResponse = SetupStatusSchema.openapi('SetupStatus')
 const SetupRequest = SetupRequestSchema.openapi('SetupRequest')
@@ -58,4 +61,4 @@ const setupCompleteRoute = createRoute({
   },
 })
 
-export default { setupStatusRoute, setupCompleteRoute }
+export { setupStatusRoute, setupCompleteRoute }

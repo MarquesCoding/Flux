@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import blendLightsModule from './blendLights'
-
-const { blendLights } = blendLightsModule
+import { blendLights } from './blendLights'
 
 describe('blendLights', () => {
   it('moves each light part of the way towards where it is going', () => {

@@ -37,4 +37,4 @@ const trackId = (path: string): string =>
 
 export type { SubtitleService, SubtitleTrack }
 
-export default { trackId }
+export { trackId }

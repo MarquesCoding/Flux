@@ -1,23 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import AppModule from '@FluxServer/App'
-import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
-import createMemoryLibraryServiceModule from '@FluxServer/library/createMemoryLibraryService'
-import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
-import createMemoryProfileServiceModule from '@FluxServer/profiles/createMemoryProfileService'
-import createMemoryProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
-import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
-import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
-import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
-
-const { createApp } = AppModule
-const { createMemoryAuth } = createMemoryAuthModule
-const { createMemoryLibraryService } = createMemoryLibraryServiceModule
-const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
-const { createMemoryProfileService } = createMemoryProfileServiceModule
-const { createMemoryWatchProgressService } = createMemoryProgressServiceModule
-const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
-const { createMemorySegmentService } = createMemorySegmentServiceModule
-const { createMemorySubtitleService } = createMemorySubtitleServiceModule
+import { createApp } from '@FluxServer/App'
+import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth'
+import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService'
+import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService'
+import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService'
+import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService'
+import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService'
+import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService'
+import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService'
 
 const BASE = 'http://localhost:8420'
 

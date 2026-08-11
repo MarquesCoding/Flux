@@ -64,4 +64,4 @@ const ownOrigins = (configured: string[], fallbackPort: number): string[] => {
   )
 }
 
-export default { ownOrigins, ownAddresses, portsIn }
+export { ownOrigins, ownAddresses, portsIn }

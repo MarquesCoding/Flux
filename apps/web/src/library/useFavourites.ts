@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import fetchFavouritesModule from '@FluxWeb/library/fetchFavourites'
-
-const { fetchFavourites, setFavourite } = fetchFavouritesModule
+import { fetchFavourites, setFavourite } from '@FluxWeb/library/fetchFavourites'
 
 type Favourites = {
   kept: Set<string>
@@ -93,4 +91,4 @@ const useFavourites = (): Favourites => {
 
 export type { Favourites }
 
-export default { useFavourites }
+export { useFavourites }

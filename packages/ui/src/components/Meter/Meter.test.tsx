@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import MeterModule from './Meter'
-
-const { Meter } = MeterModule
+import { Meter } from './Meter'
 
 const barOf = (container: HTMLElement): HTMLElement | null =>
   container.querySelector('[role="presentation"]')

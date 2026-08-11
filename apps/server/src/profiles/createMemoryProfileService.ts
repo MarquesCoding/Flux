@@ -1,11 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
-import drawAvatarModule from './drawAvatar'
+import { PROFILE_COLOURS } from '@FluxContracts/schemas/ViewerProfile'
+import { drawAvatar, isAvatarStyle } from './drawAvatar'
 import type { ProfileService } from './ProfileService'
 import type { Avatar, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { PROFILE_COLOURS } = ViewerProfileModule
-const { drawAvatar, isAvatarStyle } = drawAvatarModule
 
 /**
  * A profile and the account it hangs on.
@@ -177,4 +174,4 @@ const createMemoryProfileService = (
 
 export type { Held, MemoryState }
 
-export default { createMemoryProfileService }
+export { createMemoryProfileService }

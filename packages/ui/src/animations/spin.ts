@@ -16,4 +16,4 @@ const reducedSpinTransition: Transition = {
   repeat: 0,
 }
 
-export default { spinVariants, spinTransition, reducedSpinTransition }
+export { spinVariants, spinTransition, reducedSpinTransition }

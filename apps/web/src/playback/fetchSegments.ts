@@ -1,8 +1,6 @@
 import { z } from 'zod'
-import MediaSegmentModule from '@FluxContracts/schemas/MediaSegment'
+import { MediaSegmentSchema } from '@FluxContracts/schemas/MediaSegment'
 import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
-
-const { MediaSegmentSchema } = MediaSegmentModule
 
 const SegmentListSchema = z.object({ segments: z.array(MediaSegmentSchema) })
 
@@ -69,4 +67,4 @@ const describeSkip = (segment: MediaSegment): string => {
 
 export type { MediaSegment }
 
-export default { fetchSegments, skippableAt, describeSkip, OFFER_SECONDS }
+export { fetchSegments, skippableAt, describeSkip, OFFER_SECONDS }

@@ -1,10 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
 import { Slider as BaseSlider } from '@base-ui-components/react/slider'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { SliderProps, SliderTone } from './Slider.types'
-
-const { cn } = cnModule
 
 const TRACK_CLASSES: Record<SliderTone, string> = {
   default: 'bg-surface-raised',
@@ -139,4 +137,4 @@ const Slider = ({
 
 Slider.displayName = 'Slider'
 
-export default { Slider }
+export { Slider }

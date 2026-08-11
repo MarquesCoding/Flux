@@ -31,4 +31,4 @@ const createMemoryWatchProgressService = (
 
 export type { MemoryState }
 
-export default { createMemoryWatchProgressService }
+export { createMemoryWatchProgressService }

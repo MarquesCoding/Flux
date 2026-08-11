@@ -1,8 +1,6 @@
 import { startRegistration } from '@simplewebauthn/browser'
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser'
-import PasskeyOptionsModule from './PasskeyOptions'
-
-const { PasskeyRegistrationOptionsSchema } = PasskeyOptionsModule
+import { PasskeyRegistrationOptionsSchema } from './PasskeyOptions'
 
 type RegisterOutcome =
   { kind: 'registered' } | { kind: 'cancelled' } | { kind: 'failed'; reason: string }
@@ -60,4 +58,4 @@ const registerPasskey = async (name: string): Promise<RegisterOutcome> => {
 
 export type { RegisterOutcome }
 
-export default { registerPasskey }
+export { registerPasskey }

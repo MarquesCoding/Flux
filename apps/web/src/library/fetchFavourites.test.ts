@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import fetchFavouritesModule from './fetchFavourites'
+import { fetchFavourites, setFavourite } from './fetchFavourites'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { fetchFavourites, setFavourite } = fetchFavouritesModule
 
 type FetchLike = (
   input: string,

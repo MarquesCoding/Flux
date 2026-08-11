@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import findSharedAudioModule from './findSharedAudio'
+import { findSharedAudio, agreeRange, bitsDiffering, overlaps } from './findSharedAudio'
 import type { Range } from './findSharedAudio'
-
-const { findSharedAudio, agreeRange, bitsDiffering, overlaps } = findSharedAudioModule
 
 const FPS = 10
 

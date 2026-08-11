@@ -1,10 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import TwoFactorChallengeModule from './TwoFactorChallenge'
+import { TwoFactorChallenge } from './TwoFactorChallenge'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { TwoFactorChallenge } = TwoFactorChallengeModule
 
 type FetchLike = (
   input: string,

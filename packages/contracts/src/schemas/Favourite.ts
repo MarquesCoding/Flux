@@ -21,4 +21,4 @@ type Favourite = z.infer<typeof FavouriteSchema>
 
 export type { Favourite }
 
-export default { FavouriteSchema, FavouriteListSchema }
+export { FavouriteSchema, FavouriteListSchema }

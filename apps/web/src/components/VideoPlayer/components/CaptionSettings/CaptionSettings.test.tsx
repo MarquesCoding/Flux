@@ -1,12 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import CaptionSettingsModule from './CaptionSettings'
-import captionStyleModule from '@FluxWeb/playback/captionStyle'
+import { CaptionSettings } from './CaptionSettings'
+import { DEFAULT_CAPTION_STYLE } from '@FluxWeb/playback/captionStyle'
 import type { CaptionSettingsProps } from './CaptionSettings.types'
-
-const { CaptionSettings } = CaptionSettingsModule
-const { DEFAULT_CAPTION_STYLE } = captionStyleModule
 
 const draw = (overrides: Partial<CaptionSettingsProps> = {}) => {
   const props: CaptionSettingsProps = {

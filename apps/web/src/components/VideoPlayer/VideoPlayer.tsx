@@ -6,33 +6,52 @@ import {
   IconPlayerTrackNext,
   IconX,
 } from '@tabler/icons-react'
-import ButtonModule from '@FluxUI/Button'
-import IconButtonModule from '@FluxUI/IconButton'
-import SpinnerModule from '@FluxUI/Spinner'
-import VideoSurfaceModule from '@FluxUI/VideoSurface'
-import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
-import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
-import attachShakaModule from '@FluxWeb/playback/attachShaka'
-import castPlaybackModule from '@FluxWeb/playback/castPlayback'
-import handOverToDeviceModule from '@FluxWeb/playback/handOverToDevice'
-import castSenderModule from '@FluxWeb/playback/castSender'
-import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
-import popOutWithCaptionsModule from '@FluxWeb/playback/popOutWithCaptions'
-import captureFrameModule from '@FluxWeb/playback/captureFrame'
-import readPlaybackHealthModule from '@FluxWeb/playback/readPlaybackHealth'
-import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
-import captionStyleModule from '@FluxWeb/playback/captionStyle'
-import qualityPreferenceModule from '@FluxWeb/playback/qualityPreference'
-import fetchSegmentsModule from '@FluxWeb/playback/fetchSegments'
-import watchProgressModule from '@FluxWeb/playback/watchProgress'
-import playbackPreferencesModule from '@FluxWeb/playback/playbackPreferences'
-import liftCuesModule from '@FluxWeb/playback/liftCues'
-import describeTrackModule from '@FluxCore/functions/describeTrack'
-import listAvailableQualityStepsModule from '@FluxCore/functions/listAvailableQualitySteps'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
-import PlayerControlsModule from './components/PlayerControls/PlayerControls'
-import StreamStatsModule from './components/StreamStats/StreamStats'
+import { Button } from '@FluxUI/Button'
+import { IconButton } from '@FluxUI/IconButton'
+import { Spinner } from '@FluxUI/Spinner'
+import { VideoSurface } from '@FluxUI/VideoSurface'
+import { detectFromBrowser } from '@FluxWeb/playback/detectDeviceProfile'
+import { startPlaybackSession, stopPlaybackSession } from '@FluxWeb/playback/startPlaybackSession'
+import { attachShaka } from '@FluxWeb/playback/attachShaka'
+import {
+  watchCastState,
+  isReachableOrigin,
+  promptForDevice,
+  absoluteStreamUrl,
+} from '@FluxWeb/playback/castPlayback'
+import { handOverToDevice } from '@FluxWeb/playback/handOverToDevice'
+import { loadCastSender, castStateOf, castStream } from '@FluxWeb/playback/castSender'
+import { fetchTrickplay } from '@FluxWeb/playback/fetchTrickplay'
+import { popOutWithCaptions } from '@FluxWeb/playback/popOutWithCaptions'
+import { captureFrame } from '@FluxWeb/playback/captureFrame'
+import { readPlaybackHealth, encodedSeconds } from '@FluxWeb/playback/readPlaybackHealth'
+import {
+  fetchSubtitleTracks,
+  subtitleTrackUrl,
+  defaultTrackId,
+  trackForLanguage,
+  SUBTITLES_OFF,
+} from '@FluxWeb/playback/fetchSubtitles'
+import {
+  toCueCss,
+  readCaptionStyle,
+  saveCaptionStyle,
+  DEFAULT_CAPTION_STYLE,
+} from '@FluxWeb/playback/captionStyle'
+import { readQualityPreference, saveQualityPreference } from '@FluxWeb/playback/qualityPreference'
+import { fetchSegments, skippableAt, describeSkip } from '@FluxWeb/playback/fetchSegments'
+import { reportWatchProgress, REPORT_EVERY_MILLISECONDS } from '@FluxWeb/playback/watchProgress'
+import {
+  readPlaybackPreferences,
+  writePlaybackPreferences,
+} from '@FluxWeb/playback/playbackPreferences'
+import { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } from '@FluxWeb/playback/liftCues'
+import { describeAudioTrack } from '@FluxCore/functions/describeTrack'
+import { listAvailableQualitySteps } from '@FluxCore/functions/listAvailableQualitySteps'
+import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary'
+import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview'
+import { PlayerControls } from './components/PlayerControls/PlayerControls'
+import { StreamStats } from './components/StreamStats/StreamStats'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions'
 import type { CastState } from '@FluxWeb/playback/castPlayback.types'
@@ -44,35 +63,6 @@ import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
 import type { PlaybackHealth } from './components/StreamStats/StreamStats.types'
 import type { QualityPreference } from '@FluxWeb/playback/qualityPreference'
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types'
-
-const { Button } = ButtonModule
-const { IconButton } = IconButtonModule
-const { Spinner } = SpinnerModule
-const { VideoSurface } = VideoSurfaceModule
-const { detectFromBrowser } = detectDeviceProfileModule
-const { startPlaybackSession, stopPlaybackSession } = startPlaybackSessionModule
-const { attachShaka } = attachShakaModule
-const { watchCastState, isReachableOrigin, promptForDevice, absoluteStreamUrl } = castPlaybackModule
-const { handOverToDevice } = handOverToDeviceModule
-const { loadCastSender, castStateOf, castStream } = castSenderModule
-const { fetchTrickplay } = fetchTrickplayModule
-const { popOutWithCaptions } = popOutWithCaptionsModule
-const { captureFrame } = captureFrameModule
-const { readPlaybackHealth, encodedSeconds } = readPlaybackHealthModule
-const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, trackForLanguage, SUBTITLES_OFF } =
-  fetchSubtitlesModule
-const { fetchMediaDetail } = fetchLibraryModule
-const { TrickplayPreview } = TrickplayPreviewModule
-const { PlayerControls } = PlayerControlsModule
-const { StreamStats } = StreamStatsModule
-const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
-const { readQualityPreference, saveQualityPreference } = qualityPreferenceModule
-const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
-const { describeAudioTrack } = describeTrackModule
-const { listAvailableQualitySteps } = listAvailableQualityStepsModule
-const { reportWatchProgress, REPORT_EVERY_MILLISECONDS } = watchProgressModule
-const { readPlaybackPreferences, writePlaybackPreferences } = playbackPreferencesModule
-const { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } = liftCuesModule
 
 /**
  * An element that may be able to go full screen.
@@ -1646,4 +1636,4 @@ const VideoPlayer = ({
 
 VideoPlayer.displayName = 'VideoPlayer'
 
-export default { VideoPlayer }
+export { VideoPlayer }

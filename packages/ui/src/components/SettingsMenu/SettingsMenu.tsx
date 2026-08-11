@@ -2,17 +2,14 @@ import { useState } from 'react'
 import { Popover } from '@base-ui-components/react/popover'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
-import cnModule from '@FluxUI/cn'
-import TooltipModule from '@FluxUI/Tooltip'
+import { cn } from '@FluxUI/cn'
+import { Tooltip } from '@FluxUI/Tooltip'
 import type {
   SettingsChoiceRow,
   SettingsMenuProps,
   SettingsPanelRow,
   SettingsRow,
 } from './SettingsMenu.types'
-
-const { cn } = cnModule
-const { Tooltip } = TooltipModule
 
 /**
  * The class every row shares.
@@ -291,4 +288,4 @@ const SettingsMenu = ({
 
 SettingsMenu.displayName = 'SettingsMenu'
 
-export default { SettingsMenu }
+export { SettingsMenu }

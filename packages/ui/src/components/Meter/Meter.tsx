@@ -1,7 +1,5 @@
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { MeterProps } from './Meter.types'
-
-const { cn } = cnModule
 
 /**
  * How much of something is being used.
@@ -38,4 +36,4 @@ const Meter = ({ label, fraction, value, className }: MeterProps) => {
 
 Meter.displayName = 'Meter'
 
-export default { Meter }
+export { Meter }

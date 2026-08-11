@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import shiftWebVttModule from './shiftWebVtt'
-
-const { shiftWebVtt, readTimestamp, writeTimestamp } = shiftWebVttModule
+import { shiftWebVtt, readTimestamp, writeTimestamp } from './shiftWebVtt'
 
 const FILE = [
   'WEBVTT',

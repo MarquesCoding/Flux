@@ -18,4 +18,4 @@ const readTotpSecret = (totpURI: string): string => {
  */
 const formatTotpSecret = (secret: string): string => (secret.match(/.{1,4}/g) ?? []).join(' ')
 
-export default { readTotpSecret, formatTotpSecret }
+export { readTotpSecret, formatTotpSecret }

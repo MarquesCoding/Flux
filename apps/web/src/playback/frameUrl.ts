@@ -15,4 +15,4 @@ const FRAME_WIDTH = 1280
 const frameUrl = (mediaId: string, seconds: number, width = FRAME_WIDTH): string =>
   `/api/playback/${mediaId}/frame?seconds=${Math.max(0, Math.floor(seconds)).toString()}&width=${width.toString()}`
 
-export default { frameUrl, FRAME_WIDTH }
+export { frameUrl, FRAME_WIDTH }

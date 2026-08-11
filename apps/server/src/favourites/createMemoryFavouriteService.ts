@@ -33,4 +33,4 @@ const createMemoryFavouriteService = (
 
 export type { MemoryState }
 
-export default { createMemoryFavouriteService }
+export { createMemoryFavouriteService }

@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import ProfileFaceModule from './ProfileFace'
+import { ProfileFace } from './ProfileFace'
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { ProfileFace } = ProfileFaceModule
 
 const PROFILE: ViewerProfile = {
   id: '00000000-0000-4000-8000-000000000001',

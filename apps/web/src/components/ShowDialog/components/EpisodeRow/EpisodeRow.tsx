@@ -1,10 +1,7 @@
 import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react'
-import IconButtonModule from '@FluxUI/IconButton'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
+import { IconButton } from '@FluxUI/IconButton'
+import { formatDuration } from '@FluxCore/functions/formatDuration'
 import type { EpisodeRowProps } from './EpisodeRow.types'
-
-const { IconButton } = IconButtonModule
-const { formatDuration } = formatDurationModule
 
 /**
  * Where the still for an episode comes from.
@@ -98,4 +95,4 @@ const EpisodeRow = ({
 
 EpisodeRow.displayName = 'EpisodeRow'
 
-export default { EpisodeRow }
+export { EpisodeRow }

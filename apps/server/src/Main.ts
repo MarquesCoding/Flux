@@ -3,54 +3,31 @@ import { z } from 'zod'
 import { serve } from '@hono/node-server'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { count, eq } from 'drizzle-orm'
-import AppModule from './App'
-import AuthModule from '@FluxServer/auth/Auth'
-import DatabaseModule from '@FluxServer/db/Database'
-import SchemaModule from '@FluxServer/db/Schema'
-import EnvModule from '@FluxServer/env/Env'
-import createDatabaseSettingsStoreModule from '@FluxServer/settings/createDatabaseSettingsStore'
-import createDatabaseLibraryServiceModule from '@FluxServer/library/createDatabaseLibraryService'
-import createCatalogueMetadataProviderModule from '@FluxServer/library/createCatalogueMetadataProvider'
-import createFilenameMetadataProviderModule from '@FluxServer/library/createFilenameMetadataProvider'
-import createMediaFileSystemModule from '@FluxServer/library/createMediaFileSystem'
-import TranscoderClientModule from '@FluxServer/transcoder/TranscoderClient'
-import createImageCacheModule from '@FluxServer/images/createImageCache'
-import detectLibrarySegmentsModule from '@FluxServer/segments/detectLibrarySegments'
-import createDatabaseWatchProgressServiceModule from '@FluxServer/progress/createDatabaseWatchProgressService'
-import createDatabaseFavouriteServiceModule from '@FluxServer/favourites/createDatabaseFavouriteService'
-import createDatabaseSegmentServiceModule from '@FluxServer/segments/createDatabaseSegmentService'
-import createChapterSegmentProviderModule from '@FluxServer/segments/createChapterSegmentProvider'
-import createFingerprintSegmentProviderModule from '@FluxServer/segments/createFingerprintSegmentProvider'
-import createSidecarSubtitleServiceModule from '@FluxServer/subtitles/createSidecarSubtitleService'
-import createDatabaseProfileServiceModule from '@FluxServer/profiles/createDatabaseProfileService'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
-import createEmbeddedSubtitleServiceModule from '@FluxServer/subtitles/createEmbeddedSubtitleService'
-import createLayeredSubtitleServiceModule from '@FluxServer/subtitles/createLayeredSubtitleService'
-import createPlaybackServiceModule from '@FluxServer/playback/createPlaybackService'
-import createJobQueueModule from '@FluxServer/jobs/createJobQueue'
-
-const { createApp } = AppModule
-const { createAuth } = AuthModule
-const { createDatabase } = DatabaseModule
-const { user, mediaItem, userProfile, viewerProfile } = SchemaModule
-const { readEnv } = EnvModule
-const { createDatabaseSettingsStore } = createDatabaseSettingsStoreModule
-const { createDatabaseLibraryService } = createDatabaseLibraryServiceModule
-const { createMediaFileSystem } = createMediaFileSystemModule
-const { createCatalogueMetadataProvider } = createCatalogueMetadataProviderModule
-const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
-const { createTranscoderClient } = TranscoderClientModule
-const { createPlaybackService } = createPlaybackServiceModule
-const { createSidecarSubtitleService } = createSidecarSubtitleServiceModule
-const { createDatabaseProfileService } = createDatabaseProfileServiceModule
-const { ViewerProfileSchema } = ViewerProfileModule
-const { createEmbeddedSubtitleService } = createEmbeddedSubtitleServiceModule
-const { createLayeredSubtitleService } = createLayeredSubtitleServiceModule
-const { createImageCache } = createImageCacheModule
-const { createDatabaseSegmentService } = createDatabaseSegmentServiceModule
-const { createDatabaseWatchProgressService } = createDatabaseWatchProgressServiceModule
-const { createDatabaseFavouriteService } = createDatabaseFavouriteServiceModule
-const { detectLibrarySegments } = detectLibrarySegmentsModule
+import { createApp } from './App'
+import { createAuth } from '@FluxServer/auth/Auth'
+import { createDatabase } from '@FluxServer/db/Database'
+import { user, mediaItem, userProfile, viewerProfile } from '@FluxServer/db/Schema'
+import { readEnv } from '@FluxServer/env/Env'
+import { createDatabaseSettingsStore } from '@FluxServer/settings/createDatabaseSettingsStore'
+import { createDatabaseLibraryService } from '@FluxServer/library/createDatabaseLibraryService'
+import { createCatalogueMetadataProvider } from '@FluxServer/library/createCatalogueMetadataProvider'
+import { createFilenameMetadataProvider } from '@FluxServer/library/createFilenameMetadataProvider'
+import { createMediaFileSystem } from '@FluxServer/library/createMediaFileSystem'
+import { createTranscoderClient } from '@FluxServer/transcoder/TranscoderClient'
+import { createImageCache } from '@FluxServer/images/createImageCache'
+import { detectLibrarySegments } from '@FluxServer/segments/detectLibrarySegments'
+import { createDatabaseWatchProgressService } from '@FluxServer/progress/createDatabaseWatchProgressService'
+import { createDatabaseFavouriteService } from '@FluxServer/favourites/createDatabaseFavouriteService'
+import { createDatabaseSegmentService } from '@FluxServer/segments/createDatabaseSegmentService'
+import { createChapterSegmentProvider } from '@FluxServer/segments/createChapterSegmentProvider'
+import { createFingerprintSegmentProvider } from '@FluxServer/segments/createFingerprintSegmentProvider'
+import { createSidecarSubtitleService } from '@FluxServer/subtitles/createSidecarSubtitleService'
+import { createDatabaseProfileService } from '@FluxServer/profiles/createDatabaseProfileService'
+import { ViewerProfileSchema } from '@FluxContracts/schemas/ViewerProfile'
+import { createEmbeddedSubtitleService } from '@FluxServer/subtitles/createEmbeddedSubtitleService'
+import { createLayeredSubtitleService } from '@FluxServer/subtitles/createLayeredSubtitleService'
+import { createPlaybackService } from '@FluxServer/playback/createPlaybackService'
+import { createJobQueue } from '@FluxServer/jobs/createJobQueue'
 
 /**
  * Chapters as they were stored, which may be from an older shape.
@@ -62,10 +39,6 @@ const ChapterListSchema = z.array(
     endSeconds: z.number(),
   }),
 )
-const { createChapterSegmentProvider } = createChapterSegmentProviderModule
-const { createFingerprintSegmentProvider } = createFingerprintSegmentProviderModule
-const { createJobQueue } = createJobQueueModule
-
 const env = readEnv(process.env)
 const { db, schema } = createDatabase(env.DATABASE_URL)
 

@@ -26,4 +26,4 @@ const showSlug = (seriesTitle: string): string =>
     .replace(/^-+|-+$/g, '')
     .slice(0, LONGEST)
 
-export default { showSlug, LONGEST }
+export { showSlug, LONGEST }

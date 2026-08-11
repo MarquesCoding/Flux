@@ -1,7 +1,5 @@
-import PasskeyModule from '@FluxContracts/schemas/Passkey'
+import { PasskeyListSchema } from '@FluxContracts/schemas/Passkey'
 import type { Passkey } from '@FluxContracts/schemas/Passkey'
-
-const { PasskeyListSchema } = PasskeyModule
 
 /**
  * Lists the passkeys registered to the signed-in user.
@@ -47,4 +45,4 @@ const renamePasskey = async (id: string, name: string): Promise<boolean> => {
   return response.ok
 }
 
-export default { listPasskeys, deletePasskey, renamePasskey }
+export { listPasskeys, deletePasskey, renamePasskey }

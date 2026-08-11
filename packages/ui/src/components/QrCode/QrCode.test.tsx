@@ -1,8 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import QrCodeModule from './QrCode'
-
-const { QrCode } = QrCodeModule
+import { QrCode } from './QrCode'
 
 const OTP_URI = 'otpauth://totp/Flux:admin@flux.test?secret=JBSWY3DPEHPK3PXP&issuer=Flux'
 

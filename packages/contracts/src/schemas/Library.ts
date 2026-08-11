@@ -1,7 +1,5 @@
 import { z } from 'zod'
-import MediaItemModule from './MediaItem'
-
-const { MediaItemSchema } = MediaItemModule
+import { MediaItemSchema } from './MediaItem'
 
 /**
  * The library kinds, as a tuple.
@@ -144,7 +142,7 @@ export type MediaMetadata = z.infer<typeof MediaMetadataSchema>
 export type CastMember = z.infer<typeof CastMemberSchema>
 export type ScanResult = z.infer<typeof ScanResultSchema>
 
-export default {
+export {
   LIBRARY_KINDS,
   LibraryKindSchema,
   LibrarySchema,

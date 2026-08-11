@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import pickAnythingModule from './pickAnything'
+import { pickAnything } from './pickAnything'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { pickAnything } = pickAnythingModule
 
 type Page = { items: MediaSummary[]; total: number }
 
@@ -11,11 +9,9 @@ const fetchLibraryItems =
   vi.fn<(libraryId: string, options?: { limit?: number; offset?: number }) => Promise<Page>>()
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
-  default: {
-    fetchLibraries: () => fetchLibraries(),
-    fetchLibraryItems: (libraryId: string, options?: { limit?: number; offset?: number }) =>
-      fetchLibraryItems(libraryId, options),
-  },
+  fetchLibraries: () => fetchLibraries(),
+  fetchLibraryItems: (libraryId: string, options?: { limit?: number; offset?: number }) =>
+    fetchLibraryItems(libraryId, options),
 }))
 
 const item = (id: string): MediaSummary => ({

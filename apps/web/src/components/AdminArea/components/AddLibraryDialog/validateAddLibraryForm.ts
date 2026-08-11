@@ -28,4 +28,4 @@ const validateAddLibraryForm = (values: AddLibraryFormValues): AddLibraryFormErr
 
 export type { AddLibraryFormValues }
 
-export default { validateAddLibraryForm }
+export { validateAddLibraryForm }

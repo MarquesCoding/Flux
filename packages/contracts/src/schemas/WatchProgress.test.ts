@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import WatchProgressModule from './WatchProgress'
-import type { WatchProgress } from './WatchProgress'
-
-const {
+import {
   WatchProgressSchema,
   WatchProgressListSchema,
   isWorthResuming,
   watchedFraction,
   STARTED_AFTER_SECONDS,
   FINISHED_WITHIN_SECONDS,
-} = WatchProgressModule
+} from './WatchProgress'
+import type { WatchProgress } from './WatchProgress'
 
 const progressOf = (changes: Partial<WatchProgress> = {}): WatchProgress => ({
   mediaId: '0a1b2c3d-4e5f-4a7b-8c9d-0e1f2a3b4c5d',

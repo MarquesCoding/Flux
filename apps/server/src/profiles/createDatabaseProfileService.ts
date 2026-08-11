@@ -2,16 +2,12 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 import { and, asc, eq } from 'drizzle-orm'
-import drawAvatarModule from './drawAvatar'
-import SchemaModule from '@FluxServer/db/Schema'
-import ViewerProfileModule from '@FluxContracts/schemas/ViewerProfile'
+import { drawAvatar, isAvatarStyle } from './drawAvatar'
+import { viewerProfile, user } from '@FluxServer/db/Schema'
+import { ProfileColourSchema, PROFILE_COLOURS } from '@FluxContracts/schemas/ViewerProfile'
 import type { FluxDatabase } from '@FluxServer/db/Database'
 import type { ProfileService } from './ProfileService'
 import type { ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
-
-const { viewerProfile, user } = SchemaModule
-const { ProfileColourSchema, PROFILE_COLOURS } = ViewerProfileModule
-const { drawAvatar, isAvatarStyle } = drawAvatarModule
 
 /**
  * The picture formats a profile photograph may arrive in.
@@ -424,4 +420,4 @@ const createDatabaseProfileService = (
   }
 }
 
-export default { createDatabaseProfileService, LIMIT }
+export { createDatabaseProfileService, LIMIT }

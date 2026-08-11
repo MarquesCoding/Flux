@@ -79,4 +79,4 @@ const readSubtitleRoute = createRoute({
   },
 })
 
-export default { listSubtitlesRoute, readSubtitleRoute }
+export { listSubtitlesRoute, readSubtitleRoute }

@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import handOverToDeviceModule from './handOverToDevice'
-
-const { handOverToDevice } = handOverToDeviceModule
+import { handOverToDevice } from './handOverToDevice'
 
 const REACHABLE = 'http://flux.local:5173'
 

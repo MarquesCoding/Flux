@@ -1,7 +1,5 @@
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
+import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { fetchLibraries, fetchLibraryItems } = fetchLibraryModule
 
 /**
  * Something to watch, chosen by nobody.
@@ -59,4 +57,4 @@ const pickAnything = async (): Promise<MediaSummary | null> => {
   }
 }
 
-export default { pickAnything }
+export { pickAnything }

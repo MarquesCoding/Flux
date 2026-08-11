@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import CastGridModule from './CastGrid'
-
-const { CastGrid } = CastGridModule
+import { CastGrid } from './CastGrid'
 
 const members = Array.from({ length: 14 }, (_, at) => ({
   name: `Player ${(at + 1).toString()}`,

@@ -48,4 +48,4 @@ const blendLights = (from: MoodLight[], to: MoodLight[], amount: number): MoodLi
     }
   })
 
-export default { blendLights }
+export { blendLights }

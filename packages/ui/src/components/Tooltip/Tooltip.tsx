@@ -84,4 +84,4 @@ const Tooltip = ({ label, children, side = 'top', isDisabled = false }: TooltipP
 
 Tooltip.displayName = 'Tooltip'
 
-export default { Tooltip, DELAY_MILLISECONDS }
+export { Tooltip, DELAY_MILLISECONDS }

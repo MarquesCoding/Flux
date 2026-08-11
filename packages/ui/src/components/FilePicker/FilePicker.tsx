@@ -1,8 +1,6 @@
 import { useId, useRef } from 'react'
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { FilePickerProps } from './FilePicker.types'
-
-const { cn } = cnModule
 
 /**
  * A control for choosing one file.
@@ -63,4 +61,4 @@ const FilePicker = ({
 
 FilePicker.displayName = 'FilePicker'
 
-export default { FilePicker }
+export { FilePicker }

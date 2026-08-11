@@ -1,10 +1,8 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import RailCardModule from './RailCard'
+import { RailCard } from './RailCard'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
-
-const { RailCard } = RailCardModule
 
 const MEDIA: MediaSummary = {
   id: '9c858901-8a57-4791-81fe-4c455b099bc9',

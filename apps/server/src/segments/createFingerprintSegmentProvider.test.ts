@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import createFingerprintSegmentProviderModule from './createFingerprintSegmentProvider'
+import { createFingerprintSegmentProvider } from './createFingerprintSegmentProvider'
 import type { SegmentCandidate } from './SegmentProvider'
 import type { Fingerprint, MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient'
-
-const { createFingerprintSegmentProvider } = createFingerprintSegmentProviderModule
 
 const FPS = 15.625
 

@@ -1,6 +1,4 @@
-import FavouriteContract from '@FluxContracts/schemas/Favourite'
-
-const { FavouriteListSchema } = FavouriteContract
+import { FavouriteListSchema } from '@FluxContracts/schemas/Favourite'
 
 /**
  * Everything this viewer has kept.
@@ -42,4 +40,4 @@ const setFavourite = async (mediaId: string, isKept: boolean): Promise<boolean> 
   return response !== null && response.ok
 }
 
-export default { fetchFavourites, setFavourite }
+export { fetchFavourites, setFavourite }

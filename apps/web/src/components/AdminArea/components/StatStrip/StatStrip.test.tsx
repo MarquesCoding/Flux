@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { IconStack2 } from '@tabler/icons-react'
-import StatStripModule from './StatStrip'
-
-const { StatStrip } = StatStripModule
+import { StatStrip } from './StatStrip'
 
 /**
  * How far the bar beside a figure is filled.

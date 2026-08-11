@@ -1,9 +1,6 @@
-import toWebVttModule from '@FluxCore/functions/toWebVtt'
-import SubtitleServiceModule from './SubtitleService'
+import { toWebVtt } from '@FluxCore/functions/toWebVtt'
+import { trackId } from './SubtitleService'
 import type { SubtitleService, SubtitleTrack } from './SubtitleService'
-
-const { toWebVtt } = toWebVttModule
-const { trackId } = SubtitleServiceModule
 
 type MemorySubtitle = {
   path: string
@@ -54,4 +51,4 @@ const createMemorySubtitleService = (state: MemoryState = {}): SubtitleService =
 
 export type { MemoryState, MemorySubtitle }
 
-export default { createMemorySubtitleService }
+export { createMemorySubtitleService }

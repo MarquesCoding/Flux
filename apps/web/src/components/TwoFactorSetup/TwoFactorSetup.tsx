@@ -1,16 +1,10 @@
 import { useState } from 'react'
-import ButtonModule from '@FluxUI/Button'
-import QrCodeModule from '@FluxUI/QrCode'
-import TextFieldModule from '@FluxUI/TextField'
-import TwoFactorModule from '@FluxContracts/schemas/TwoFactor'
-import readTotpSecretModule from './readTotpSecret'
+import { Button } from '@FluxUI/Button'
+import { QrCode } from '@FluxUI/QrCode'
+import { TextField } from '@FluxUI/TextField'
+import { TwoFactorEnableResponseSchema } from '@FluxContracts/schemas/TwoFactor'
+import { readTotpSecret, formatTotpSecret } from './readTotpSecret'
 import type { Enrollment, SetupStage, TwoFactorSetupProps } from './TwoFactorSetup.types'
-
-const { Button } = ButtonModule
-const { QrCode } = QrCodeModule
-const { TextField } = TextFieldModule
-const { TwoFactorEnableResponseSchema } = TwoFactorModule
-const { readTotpSecret, formatTotpSecret } = readTotpSecretModule
 
 /**
  * Two-factor enrollment and removal.
@@ -268,4 +262,4 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
 
 TwoFactorSetup.displayName = 'TwoFactorSetup'
 
-export default { TwoFactorSetup }
+export { TwoFactorSetup }

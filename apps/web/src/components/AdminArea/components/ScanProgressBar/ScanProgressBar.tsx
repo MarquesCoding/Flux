@@ -1,7 +1,5 @@
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { ScanProgressBarProps } from './ScanProgressBar.types'
-
-const { cn } = cnModule
 
 /**
  * What the server calls a phase, in words an operator reads.
@@ -59,4 +57,4 @@ const ScanProgressBar = ({ label, phase, processed, total }: ScanProgressBarProp
 
 ScanProgressBar.displayName = 'ScanProgressBar'
 
-export default { ScanProgressBar }
+export { ScanProgressBar }

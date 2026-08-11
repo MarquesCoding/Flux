@@ -1,7 +1,5 @@
-import cnModule from '@FluxUI/cn'
+import { cn } from '@FluxUI/cn'
 import type { SparklineProps } from './Sparkline.types'
-
-const { cn } = cnModule
 
 /**
  * A short history, drawn as columns.
@@ -35,4 +33,4 @@ const Sparkline = ({ values, ceiling, label, className }: SparklineProps) => {
 
 Sparkline.displayName = 'Sparkline'
 
-export default { Sparkline }
+export { Sparkline }

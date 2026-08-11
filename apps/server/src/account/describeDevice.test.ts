@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import describeDeviceModule from './describeDevice'
-
-const { describeDevice } = describeDeviceModule
+import { describeDevice } from './describeDevice'
 
 describe('describeDevice', () => {
   it('names the browser and the machine it is on', () => {

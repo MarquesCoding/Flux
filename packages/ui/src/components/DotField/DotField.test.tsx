@@ -1,8 +1,6 @@
 import { render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import DotFieldModule from './DotField'
-
-const { DotField } = DotFieldModule
+import { DotField } from './DotField'
 
 const context = {
   clearRect: vi.fn(),

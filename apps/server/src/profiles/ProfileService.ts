@@ -80,5 +80,3 @@ type ProfileService = {
 }
 
 export type { ProfileRequest, ProfileService }
-
-export default {}

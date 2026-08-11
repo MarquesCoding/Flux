@@ -1,28 +1,16 @@
 import { z } from 'zod'
 import { describe, expect, it } from 'vitest'
-import AppModule from '@FluxServer/App'
-import createMemoryAuthModule from '@FluxServer/auth/createMemoryAuth'
-import createMemoryLibraryServiceModule from './createMemoryLibraryService'
-import createMemoryWatchProgressServiceModule from '@FluxServer/progress/createMemoryWatchProgressService'
-import createMemoryFavouriteServiceModule from '@FluxServer/favourites/createMemoryFavouriteService'
-import createMemorySegmentServiceModule from '@FluxServer/segments/createMemorySegmentService'
-import createMemorySubtitleServiceModule from '@FluxServer/subtitles/createMemorySubtitleService'
-import createMemoryPlaybackServiceModule from '@FluxServer/playback/createMemoryPlaybackService'
-import LibraryContract from '@FluxContracts/schemas/Library'
-import JsonValueModule from '@FluxContracts/schemas/JsonValue'
+import { createApp } from '@FluxServer/App'
+import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth'
+import { createMemoryLibraryService } from './createMemoryLibraryService'
+import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService'
+import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService'
+import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService'
+import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService'
+import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService'
+import { MediaSummarySchema } from '@FluxContracts/schemas/Library'
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
-
-const { createApp } = AppModule
-const { createMemoryAuth } = createMemoryAuthModule
-const { createMemoryLibraryService } = createMemoryLibraryServiceModule
-const { createMemoryPlaybackService } = createMemoryPlaybackServiceModule
-const { createMemorySubtitleService } = createMemorySubtitleServiceModule
-const { createMemorySegmentService } = createMemorySegmentServiceModule
-const { createMemoryWatchProgressService } = createMemoryWatchProgressServiceModule
-const { createMemoryFavouriteService } = createMemoryFavouriteServiceModule
-
-const { MediaSummarySchema } = LibraryContract
-const { JsonValueSchema } = JsonValueModule
 
 const BASE = 'http://localhost:8420'
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'

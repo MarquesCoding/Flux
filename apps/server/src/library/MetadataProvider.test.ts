@@ -1,11 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import MetadataProviderModule from './MetadataProvider'
-import createFilenameMetadataProviderModule from './createFilenameMetadataProvider'
+import { resolveMetadata } from './MetadataProvider'
+import { createFilenameMetadataProvider } from './createFilenameMetadataProvider'
 import type { MediaFacts, MetadataProvider } from './MetadataProvider'
 import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient'
-
-const { resolveMetadata } = MetadataProviderModule
-const { createFilenameMetadataProvider } = createFilenameMetadataProviderModule
 
 const probe: MediaProbe = {
   container: 'mkv',

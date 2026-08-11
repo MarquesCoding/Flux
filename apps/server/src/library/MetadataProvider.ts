@@ -100,4 +100,4 @@ const resolveMetadata = async (
 
 export type { CastMember, MediaFacts, Metadata, MetadataProvider }
 
-export default { resolveMetadata }
+export { resolveMetadata }

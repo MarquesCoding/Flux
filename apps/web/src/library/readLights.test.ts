@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import readLightsModule from './readLights'
-
-const { readLights, READ_AT, ZONES } = readLightsModule
+import { readLights, READ_AT, ZONES } from './readLights'
 
 /**
  * A canvas that answers with a picture divided into quarters.

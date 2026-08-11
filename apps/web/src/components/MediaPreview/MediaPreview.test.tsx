@@ -1,9 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import MediaPreviewModule from './MediaPreview'
-
-const { MediaPreview } = MediaPreviewModule
+import { MediaPreview } from './MediaPreview'
 
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9'
 

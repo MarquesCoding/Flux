@@ -1,9 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import fetchSegmentsModule from './fetchSegments'
+import { fetchSegments, skippableAt, describeSkip } from './fetchSegments'
 import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
-
-const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
 
 const intro: MediaSegment = {
   kind: 'intro',

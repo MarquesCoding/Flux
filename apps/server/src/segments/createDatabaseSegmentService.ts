@@ -1,13 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { eq } from 'drizzle-orm'
-import MediaSegmentModule from '@FluxContracts/schemas/MediaSegment'
-import SchemaModule from '@FluxServer/db/Schema'
+import { MediaSegmentSchema } from '@FluxContracts/schemas/MediaSegment'
+import { mediaSegment } from '@FluxServer/db/Schema'
 import type { FluxDatabase } from '@FluxServer/db/Database'
 import type { SegmentService } from './SegmentService'
 import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment'
-
-const { mediaSegment } = SchemaModule
-const { MediaSegmentSchema } = MediaSegmentModule
 
 /**
  * Segments held in Postgres.
@@ -56,4 +53,4 @@ const createDatabaseSegmentService = (db: FluxDatabase): SegmentService => ({
 
 export type { MediaSegment }
 
-export default { createDatabaseSegmentService }
+export { createDatabaseSegmentService }

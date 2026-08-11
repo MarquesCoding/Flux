@@ -13,38 +13,28 @@ import {
   IconStack2,
   IconTrash,
 } from '@tabler/icons-react'
-import SparklineModule from '@FluxUI/Sparkline'
-import BadgeModule from '@FluxUI/Badge'
-import ButtonModule from '@FluxUI/Button'
-import TabBarModule from '@FluxUI/TabBar'
-import TextFieldModule from '@FluxUI/TextField'
-import revealModule from '@FluxUI/animations/reveal'
-import fetchAdminModule from '@FluxWeb/admin/fetchAdmin'
-import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
-import waitForScanCompletionModule from '@FluxWeb/library/waitForScanCompletion'
-import StatStripModule from './components/StatStrip/StatStrip'
-import AddLibraryDialogModule from './components/AddLibraryDialog/AddLibraryDialog'
-import ScanProgressBarModule from './components/ScanProgressBar/ScanProgressBar'
-import ResetLibrariesDialogModule from './components/ResetLibrariesDialog/ResetLibrariesDialog'
-import formatBytesModule from './formatBytes'
+import { Sparkline } from '@FluxUI/Sparkline'
+import { Badge } from '@FluxUI/Badge'
+import { Button } from '@FluxUI/Button'
+import { TabBar } from '@FluxUI/TabBar'
+import { TextField } from '@FluxUI/TextField'
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
+import {
+  fetchAdminOverview,
+  fetchMonitor,
+  watchMonitor,
+  saveCatalogueKey,
+} from '@FluxWeb/admin/fetchAdmin'
+import { fetchLibraries, scanLibrary, resetLibrary } from '@FluxWeb/library/fetchLibrary'
+import { waitForScanCompletion } from '@FluxWeb/library/waitForScanCompletion'
+import { StatStrip } from './components/StatStrip/StatStrip'
+import { AddLibraryDialog } from './components/AddLibraryDialog/AddLibraryDialog'
+import { ScanProgressBar } from './components/ScanProgressBar/ScanProgressBar'
+import { ResetLibrariesDialog } from './components/ResetLibrariesDialog/ResetLibrariesDialog'
+import { formatBytes } from './formatBytes'
 import type { Library } from '@FluxContracts/schemas/Library'
 import type { AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin'
 import type { AdminAreaProps } from './AdminArea.types'
-
-const { Sparkline } = SparklineModule
-const { Badge } = BadgeModule
-const { Button } = ButtonModule
-const { TabBar } = TabBarModule
-const { TextField } = TextFieldModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey } = fetchAdminModule
-const { fetchLibraries, scanLibrary, resetLibrary } = fetchLibraryModule
-const { waitForScanCompletion } = waitForScanCompletionModule
-const { StatStrip } = StatStripModule
-const { AddLibraryDialog } = AddLibraryDialogModule
-const { ScanProgressBar } = ScanProgressBarModule
-const { ResetLibrariesDialog } = ResetLibrariesDialogModule
-const { formatBytes } = formatBytesModule
 
 /**
  * How many readings stay on screen.
@@ -729,4 +719,4 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
 
 AdminArea.displayName = 'AdminArea'
 
-export default { AdminArea }
+export { AdminArea }

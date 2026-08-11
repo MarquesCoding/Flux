@@ -1,33 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { IconInfoCircle, IconPlayerPlayFilled, IconX } from '@tabler/icons-react'
-import DialogModule from '@FluxUI/Dialog'
-import ButtonModule from '@FluxUI/Button'
-import IconButtonModule from '@FluxUI/IconButton'
-import BadgeModule from '@FluxUI/Badge'
-import SpinnerModule from '@FluxUI/Spinner'
-import revealModule from '@FluxUI/animations/reveal'
-import formatDurationModule from '@FluxCore/functions/formatDuration'
-import fetchShowsModule from '@FluxWeb/library/fetchShows'
-import MediaPreviewModule from '@FluxWeb/components/MediaPreview/MediaPreview'
-import scrollToTopOfModule from '@FluxWeb/navigation/scrollToTopOf'
-import pickUpFromModule from './pickUpFrom'
-import EpisodeRowModule from './components/EpisodeRow/EpisodeRow'
+import { Dialog } from '@FluxUI/Dialog'
+import { Button } from '@FluxUI/Button'
+import { IconButton } from '@FluxUI/IconButton'
+import { Badge } from '@FluxUI/Badge'
+import { Spinner } from '@FluxUI/Spinner'
+import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal'
+import { formatDuration } from '@FluxCore/functions/formatDuration'
+import { fetchShow } from '@FluxWeb/library/fetchShows'
+import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview'
+import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf'
+import { pickUpFrom } from './pickUpFrom'
+import { EpisodeRow } from './components/EpisodeRow/EpisodeRow'
 import type { ShowDetail } from '@FluxContracts/schemas/Show'
 import type { ShowDialogProps } from './ShowDialog.types'
-
-const { Dialog } = DialogModule
-const { Button } = ButtonModule
-const { IconButton } = IconButtonModule
-const { Badge } = BadgeModule
-const { Spinner } = SpinnerModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
-const { formatDuration } = formatDurationModule
-const { fetchShow } = fetchShowsModule
-const { MediaPreview } = MediaPreviewModule
-const { scrollToTopOf } = scrollToTopOfModule
-const { pickUpFrom } = pickUpFromModule
-const { EpisodeRow } = EpisodeRowModule
 
 /**
  * Where the artwork of a show comes from.
@@ -289,4 +276,4 @@ const ShowDialog = ({
 
 ShowDialog.displayName = 'ShowDialog'
 
-export default { ShowDialog }
+export { ShowDialog }

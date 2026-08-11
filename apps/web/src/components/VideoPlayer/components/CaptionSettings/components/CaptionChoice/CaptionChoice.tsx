@@ -1,7 +1,5 @@
-import ButtonModule from '@FluxUI/Button'
+import { Button } from '@FluxUI/Button'
 import type { CaptionChoiceProps } from './CaptionChoice.types'
-
-const { Button } = ButtonModule
 
 /**
  * One decision about how captions look, laid out flat.
@@ -43,4 +41,4 @@ const CaptionChoice = ({ label, options, selectedId, onSelect }: CaptionChoicePr
 
 CaptionChoice.displayName = 'CaptionChoice'
 
-export default { CaptionChoice }
+export { CaptionChoice }
