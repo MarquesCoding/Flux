@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CastGrid } from './CastGrid';
 
 const members = Array.from({ length: 14 }, (_, at) => ({
@@ -10,63 +10,78 @@ const members = Array.from({ length: 14 }, (_, at) => ({
 }));
 
 /**
- * jsdom lays nothing out, so how wide the panel is has to be described. Six
- * faces at a hundred and seventy apiece, with the air between them.
+ * jsdom lays nothing out and scrolls nothing, so the row has to be told how
+ * wide it is and how much of it runs off the edge.
  */
-const widthOf = (width: number) => {
+const rowOf = (visible: number, whole: number) => {
   Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
     configurable: true,
-    value: width,
+    value: visible,
+  });
+  Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+    configurable: true,
+    value: whole,
   });
 };
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('CastGrid', () => {
-  it('shows as many faces as fit and no more', () => {
-    widthOf(1100);
+  it('draws everybody, since the row scrolls rather than swapping who is on it', () => {
+    rowOf(1100, 2400);
     render(<CastGrid members={members} />);
 
-    expect(screen.getAllByText(/^Player /)).toHaveLength(6);
+    expect(screen.getAllByText(/^Player /)).toHaveLength(14);
   });
 
-  it('says how many there are in total, so a page reads as the top of a list', () => {
-    widthOf(1100);
+  it('keeps the last face in the document, where a swapped page would drop it', () => {
+    rowOf(1100, 2400);
+    render(<CastGrid members={members} />);
+
+    expect(screen.getByText('Player 14')).toBeInTheDocument();
+  });
+
+  it('scrolls rather than jumping, so a page turn is the row moving', () => {
+    rowOf(1100, 2400);
+    render(<CastGrid members={members} />);
+
+    const track = screen.getByText('Player 1').closest('ul');
+
+    expect(track).toHaveClass('overflow-x-auto');
+    expect(track).toHaveClass('scroll-smooth');
+  });
+
+  it('takes a marker as a request to scroll there', async () => {
+    const scrollTo = vi.fn();
+
+    Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
+      configurable: true,
+      value: scrollTo,
+    });
+    rowOf(1100, 2400);
+
+    const user = userEvent.setup();
+    render(<CastGrid members={members} />);
+
+    await user.click(screen.getByRole('button', { name: 'Show page 2' }));
+
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }));
+  });
+
+  it('says how many there are in total, once there are more than one page of them', () => {
+    rowOf(1100, 2400);
     render(<CastGrid members={members} />);
 
     expect(screen.getByText('14')).toBeInTheDocument();
   });
 
-  it('turns to the rest a page at a time', async () => {
-    const user = userEvent.setup();
-
-    widthOf(1100);
-    render(<CastGrid members={members} />);
-
-    await user.click(screen.getByRole('button', { name: 'Show page 2' }));
-
-    expect(screen.getByText('Player 7')).toBeInTheDocument();
-    expect(screen.queryByText('Player 1')).not.toBeInTheDocument();
-  });
-
   it('offers nowhere to turn when everybody already fits', () => {
-    widthOf(1100);
+    rowOf(1100, 1100);
     render(<CastGrid members={members.slice(0, 4)} />);
 
     expect(screen.queryByRole('button', { name: /Show page/ })).not.toBeInTheDocument();
-  });
-
-  it('puts three on a line where there is no room for six', () => {
-    widthOf(320);
-    render(<CastGrid members={members} />);
-
-    expect(screen.getAllByText(/^Player /)).toHaveLength(3);
-  });
-
-  it('names each person and what they played', () => {
-    widthOf(1100);
-    render(<CastGrid members={members} />);
-
-    expect(screen.getByText('Player 1')).toBeInTheDocument();
-    expect(screen.getByText('Part 1')).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {
