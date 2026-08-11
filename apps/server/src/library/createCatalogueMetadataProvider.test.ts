@@ -210,6 +210,101 @@ describe('createCatalogueMetadataProvider', () => {
     expect(found).not.toHaveProperty('cast')
   })
 
+  it("prefers an exact title match over the catalogue's own popularity ranking", async () => {
+    const { instance, calls } = provider({
+      '/search/tv': {
+        results: [
+          { id: 999, name: 'Ted Lasso', first_air_date: '2020-08-14' },
+          { id: 111, name: 'Ted', first_air_date: '2024-01-01' },
+        ],
+      },
+      '/tv/111': { id: 111, name: 'Ted', genres: [] },
+    })
+
+    const found = await instance.describe(
+      facts('/media/Ted/Season 1/Ted.S01E01.mkv', {
+        seriesTitle: 'Ted',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      }),
+    )
+
+    expect(calls.some((call) => call.includes('/tv/111'))).toBe(true)
+    expect(calls.some((call) => call.includes('/tv/999'))).toBe(false)
+    expect(found?.seriesTitle).toBe('Ted')
+  })
+
+  it('falls back to the top result when nothing matches the title exactly', async () => {
+    const { instance, calls } = provider({
+      '/search/movie': {
+        results: [{ id: 42, title: 'Arrival of a Train', release_date: '1896-01-01' }],
+      },
+      '/movie/42': { id: 42, title: 'Arrival of a Train', genres: [] },
+    })
+
+    await instance.describe(facts('/media/Arrival.mkv'))
+
+    expect(calls.some((call) => call.includes('/movie/42'))).toBe(true)
+  })
+
+  it('refuses an episode whose title disagrees entirely with what the filename said', async () => {
+    const { instance } = provider({
+      '/tv/5/season/1/episode/2': { name: 'Biscuits with the Boss' },
+      '/search/tv': { results: [{ id: 5, name: 'Ted Lasso', first_air_date: '2020-08-14' }] },
+      '/tv/5': { id: 5, name: 'Ted Lasso', genres: [] },
+    })
+
+    const found = await instance.describe(
+      facts('/media/Ted/Season 1/Ted - S01E02 - Pilot.mkv', {
+        seriesTitle: 'Ted',
+        seasonNumber: 1,
+        episodeNumber: 2,
+        episodeTitle: 'Pilot',
+      }),
+    )
+
+    expect(found).toBeNull()
+  })
+
+  it('accepts an episode title that only roughly agrees, not just an identical one', async () => {
+    const { instance } = provider({
+      '/tv/5/season/1/episode/2': { name: 'The Biscuits Special' },
+      '/search/tv': { results: [{ id: 5, name: 'Some Show', first_air_date: '2020-08-14' }] },
+      '/tv/5': { id: 5, name: 'Some Show', genres: [] },
+    })
+
+    const found = await instance.describe(
+      facts('/media/Some Show/Season 1/Some.Show.S01E02.Biscuits.mkv', {
+        seriesTitle: 'Some Show',
+        seasonNumber: 1,
+        episodeNumber: 2,
+        episodeTitle: 'Biscuits',
+      }),
+    )
+
+    expect(found).not.toBeNull()
+    expect(found?.title).toBe('The Biscuits Special')
+  })
+
+  it('does not refuse a match when the filename named no episode title to check against', async () => {
+    const { instance } = provider({
+      '/tv/5/season/1/episode/2': { name: 'Whatever This One Is Called' },
+      '/search/tv': { results: [{ id: 5, name: 'Some Show', first_air_date: '2020-08-14' }] },
+      '/tv/5': { id: 5, name: 'Some Show', genres: [] },
+    })
+
+    const found = await instance.describe(
+      facts('/media/Some Show/Season 1/Some.Show.S01E02.1080p.WEB-DL.mkv', {
+        seriesTitle: 'Some Show',
+        seasonNumber: 1,
+        episodeNumber: 2,
+        episodeTitle: null,
+      }),
+    )
+
+    expect(found).not.toBeNull()
+  })
+
   it('never names more of the cast than anyone reads', async () => {
     const crowded = {
       ...DETAIL,

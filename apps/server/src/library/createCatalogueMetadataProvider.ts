@@ -116,6 +116,37 @@ const readYear = (date: string | undefined): number | null => {
 }
 
 /**
+ * A title stripped to the words in it, for comparing two spellings of the
+ * same thing rather than two exact strings.
+ */
+const normalizeTitle = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+/**
+ * Whether two titles have a real word in common.
+ *
+ * Wording between a release and a catalogue drifts — "Marvel's Daredevil"
+ * against "Daredevil" — so exact equality would refuse matches that are
+ * plainly right. A word under four letters agrees by accident too often to
+ * count as agreement at all.
+ */
+const shareASignificantWord = (left: string, right: string): boolean => {
+  const wordsOf = (value: string): Set<string> =>
+    new Set(
+      normalizeTitle(value)
+        .split(' ')
+        .filter((word) => word.length >= 4),
+    )
+
+  const leftWords = wordsOf(left)
+
+  return [...wordsOf(right)].some((word) => leftWords.has(word))
+}
+
+/**
  * Builds an image address at a sensible width.
  *
  * Catalogues serve originals at print resolution. A poster is drawn a few
@@ -207,7 +238,17 @@ const createCatalogueMetadataProvider = ({
       }
 
       const results = SearchResponseSchema.safeParse(searched)
-      const first = results.success ? results.data.results[0] : undefined
+      const candidates = results.success ? results.data.results : []
+
+      // The catalogue sorts by popularity, not by which title matches best —
+      // searching "Ted" can rank "Ted Lasso" above "Ted" itself. An exact
+      // title is trusted over the ranking whenever the search actually found
+      // one, and only falls back to "whatever came first" when it did not.
+      const wanted = normalizeTitle(searchTitle)
+      const exact = candidates.find(
+        (entry) => normalizeTitle(entry.title ?? entry.name ?? '') === wanted,
+      )
+      const first = exact ?? candidates[0]
 
       if (first === undefined) {
         return null
@@ -254,15 +295,33 @@ const createCatalogueMetadataProvider = ({
           )
         : null
 
+      // A second check, past the series title: two shows can share a name, or
+      // neither search result may have matched exactly, and either way the
+      // wrong series answers with a real episode at this season and number —
+      // just not the one the filename already named. Refusing here falls
+      // back to what the filename said, rather than keeping a confident
+      // answer about the wrong show.
+      const knownEpisodeTitle = facts.episode?.episodeTitle ?? null
+      const catalogueEpisodeName =
+        episode?.success === true && episode.data.name !== undefined && episode.data.name !== ''
+          ? episode.data.name
+          : null
+
+      if (
+        isEpisode &&
+        knownEpisodeTitle !== null &&
+        catalogueEpisodeName !== null &&
+        !shareASignificantWord(knownEpisodeTitle, catalogueEpisodeName)
+      ) {
+        return null
+      }
+
       const still =
         episode?.success === true ? imageUrl(imageBaseUrl, episode.data.still_path, 'w780') : null
       const backdrop = still ?? imageUrl(imageBaseUrl, found.backdrop_path, 'w1280')
 
       const seriesName = found.title ?? found.name ?? searchTitle
-      const episodeName =
-        episode?.success === true && episode.data.name !== undefined && episode.data.name !== ''
-          ? episode.data.name
-          : (facts.episode?.episodeTitle ?? null)
+      const episodeName = catalogueEpisodeName ?? knownEpisodeTitle
 
       const overview =
         episode?.success === true &&
