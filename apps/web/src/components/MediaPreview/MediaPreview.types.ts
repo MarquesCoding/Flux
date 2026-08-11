@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { MoodLight } from '@FluxUI/MoodBackground.types'
 type MediaPreviewProps = {
   mediaId: string
@@ -70,6 +71,14 @@ type MediaPreviewProps = {
    * lit by at this moment.
    */
   onPalette?: (lights: MoodLight[]) => void
+  /**
+   * Controls of the caller's own, set beside the preview's.
+   *
+   * For things done to the item rather than to the clip — keeping it, say.
+   * They belong in the same cluster because a viewer looking for something to
+   * press should have one place to look.
+   */
+  actions?: ReactNode
 }
 
 export type { MediaPreviewProps }

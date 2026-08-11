@@ -157,6 +157,29 @@ const MediaDetailDialog = ({
             durationSeconds={shown.durationSeconds}
             hasSound
             hasSubtitles
+            {...(onToggleKept === undefined
+              ? {}
+              : {
+                  // Over the picture with the other controls rather than in
+                  // the row of words below. Keeping something is a mark made
+                  // on it, not one of the two things you might do next.
+                  actions: (
+                    <IconButton
+                      label={isKept ? `Stop keeping ${shown.title}` : `Keep ${shown.title}`}
+                      isActive={isKept}
+                      className="bg-black/50 text-white backdrop-blur"
+                      onClick={() => {
+                        onToggleKept(shown)
+                      }}
+                    >
+                      {isKept ? (
+                        <IconHeartFilled size={18} aria-hidden />
+                      ) : (
+                        <IconHeart size={18} aria-hidden />
+                      )}
+                    </IconButton>
+                  ),
+                })}
             // Once, then back to the picture and the words about it. A clip
             // that keeps restarting behind everything somebody is trying to
             // read is a clip competing with the page it belongs to.
@@ -170,7 +193,7 @@ const MediaDetailDialog = ({
             Covering the whole picture dimmed everything drawn inside it —
             subtitles included, since a browser draws those within the video
             rather than over it. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-surface via-surface/50 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-surface via-surface/80 to-transparent" />
 
         <div className="absolute right-4 top-4">
           <IconButton label="Close" onClick={onClose} className="bg-black/50 text-white">
@@ -206,7 +229,11 @@ const MediaDetailDialog = ({
             {genres.length === 0 ? null : (
               <span className="flex flex-wrap gap-1.5">
                 {genres.map((label) => (
-                  <Badge key={label} size="sm">
+                  // Carrying their own backdrop. Everything else here is
+                  // written on a fade to the page's own colour; a badge sits
+                  // above where that fade has reached, and an outline on a
+                  // bright still is an outline nobody can read.
+                  <Badge key={label} size="sm" className="bg-surface/70 backdrop-blur">
                     {label}
                   </Badge>
                 ))}
@@ -263,27 +290,6 @@ const MediaDetailDialog = ({
             >
               <IconRotateClockwise size={18} aria-hidden />
               Start again
-            </Button>
-          )}
-
-          {/* Kept, on the page about the thing. This is where somebody decides
-              what they think of an item, which is the moment they want to say
-              so. */}
-          {onToggleKept === undefined ? null : (
-            <Button
-              variant={isKept ? 'glossy' : 'secondary'}
-              size="lg"
-              isPill
-              onClick={() => {
-                onToggleKept(shown)
-              }}
-            >
-              {isKept ? (
-                <IconHeartFilled size={18} aria-hidden />
-              ) : (
-                <IconHeart size={18} aria-hidden />
-              )}
-              {isKept ? 'Kept' : 'Keep'}
             </Button>
           )}
         </div>
