@@ -1,8 +1,7 @@
 import {
   IconAdjustmentsHorizontal,
   IconBadgeCc,
-  IconDeviceTv,
-  IconDeviceTvFilled,
+  IconCast,
   IconBadgeCcFilled,
   IconChartDots,
   IconClock,
@@ -421,11 +420,7 @@ const PlayerControls = ({
           onClick={onCast}
           size="md"
         >
-          {castState === 'connected' ? (
-            <IconDeviceTvFilled size={20} aria-hidden />
-          ) : (
-            <IconDeviceTv size={20} aria-hidden />
-          )}
+          <IconCast size={20} aria-hidden />
         </IconButton>
       )}
 
