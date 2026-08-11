@@ -22,6 +22,7 @@ import qualityPreferenceModule from '@FluxWeb/playback/qualityPreference'
 import fetchSegmentsModule from '@FluxWeb/playback/fetchSegments'
 import watchProgressModule from '@FluxWeb/playback/watchProgress'
 import playbackPreferencesModule from '@FluxWeb/playback/playbackPreferences'
+import liftCuesModule from '@FluxWeb/playback/liftCues'
 import describeTrackModule from '@FluxCore/functions/describeTrack'
 import listAvailableQualityStepsModule from '@FluxCore/functions/listAvailableQualitySteps'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
@@ -62,6 +63,7 @@ const { describeAudioTrack } = describeTrackModule
 const { listAvailableQualitySteps } = listAvailableQualityStepsModule
 const { reportWatchProgress, REPORT_EVERY_MILLISECONDS } = watchProgressModule
 const { readPlaybackPreferences, writePlaybackPreferences } = playbackPreferencesModule
+const { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } = liftCuesModule
 
 /**
  * An element that may be able to go full screen.
@@ -894,6 +896,43 @@ const VideoPlayer = ({
 
     void target.requestFullscreen?.()
   }, [isFullscreen])
+
+  // Subtitles sit above the bar while the bar is up, and drop back down when
+  // it goes. A browser lifts cues over its own controls and knows nothing
+  // about ours, so the line somebody is reading was sitting underneath them.
+  //
+  // Read through a ref rather than listed as a dependency: the cues are moved
+  // as they change, and rebuilding the listeners every time the bar fades
+  // would drop the ones that are on screen at that moment.
+  const isIdleRef = useRef(isIdle)
+  const cuesRef = useRef<{ stop: () => void; apply: () => void } | null>(null)
+
+  isIdleRef.current = isIdle
+
+  useEffect(() => {
+    const element = videoRef.current
+
+    if (element === null || selectedSubtitleId === SUBTITLES_OFF) {
+      return
+    }
+
+    const lifted = liftCues(element, () =>
+      isIdleRef.current ? CUE_LINE_CLEAR : CUE_LINE_ABOVE_CONTROLS,
+    )
+
+    cuesRef.current = lifted
+
+    return () => {
+      cuesRef.current = null
+      lifted.stop()
+    }
+  }, [selectedSubtitleId, session])
+
+  // The bar appearing or going is a change of line for whatever is on screen
+  // at that moment, not only for the cue after it.
+  useEffect(() => {
+    cuesRef.current?.apply()
+  }, [isIdle])
 
   // What one frame of this film is worth, taken from the film. Two consecutive
   // frames are enough: the gap between the moments they cover is the frame

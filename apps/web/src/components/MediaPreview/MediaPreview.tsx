@@ -9,12 +9,14 @@ import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import IconButtonModule from '@FluxUI/IconButton'
 import frameUrlModule from '@FluxWeb/playback/frameUrl'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
+import liftCuesModule from '@FluxWeb/playback/liftCues'
 import type { MediaPreviewProps } from './MediaPreview.types'
 
 const { VideoSurface } = VideoSurfaceModule
 const { IconButton } = IconButtonModule
 const { frameUrl } = frameUrlModule
 const { fetchSubtitleTracks, subtitleTrackUrl, previewTrack } = fetchSubtitlesModule
+const { liftCues } = liftCuesModule
 
 /**
  * How long the page waits before starting anything.
@@ -177,39 +179,7 @@ const MediaPreview = ({
       return
     }
 
-    const lift = () => {
-      for (const track of Array.from(element.textTracks)) {
-        for (const cue of Array.from(track.cues ?? [])) {
-          if ('line' in cue && 'snapToLines' in cue) {
-            cue.snapToLines = false
-            cue.line = CUE_LINE
-          }
-        }
-      }
-    }
-
-    // Cues arrive after the track does, so lifting once on mount lifts
-    // nothing. Every moment a cue changes is a moment there are cues to move,
-    // which makes this the one event that can be relied on.
-    const watch = () => {
-      lift()
-
-      for (const track of Array.from(element.textTracks)) {
-        track.addEventListener('cuechange', lift)
-      }
-    }
-
-    watch()
-
-    element.textTracks.addEventListener('addtrack', watch)
-
-    return () => {
-      element.textTracks.removeEventListener('addtrack', watch)
-
-      for (const track of Array.from(element.textTracks)) {
-        track.removeEventListener('cuechange', lift)
-      }
-    }
+    return liftCues(element, () => CUE_LINE).stop
   }, [subtitles])
 
   return (

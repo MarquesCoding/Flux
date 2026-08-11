@@ -7,16 +7,40 @@ const FONT_FAMILIES = {
   casual: '"Comic Sans MS", "Chalkboard SE", cursive',
 } as const
 
-const EDGE_STYLES = {
-  none: 'none',
-  // A drop shadow reads on a bright scene; an outline reads on a busy one.
-  // Both are built from text-shadow, which is the only edge treatment WebVTT
-  // cues honour across browsers.
-  outline:
-    '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 3px rgba(0,0,0,0.9)',
-  shadow: '2px 2px 4px rgba(0, 0, 0, 0.9)',
-  raised: '1px 1px 0 rgba(255,255,255,0.4), 2px 2px 3px rgba(0,0,0,0.9)',
-} as const
+/**
+ * The edge drawn behind the lettering, at a given strength.
+ *
+ * Faded along with the text it belongs to. An outline that stayed solid while
+ * the letters were turned down would keep the caption exactly as heavy as it
+ * was — which is why the opacity control looked like it did nothing.
+ *
+ * A drop shadow reads on a bright scene; an outline reads on a busy one. Both
+ * are built from text-shadow, which is the only edge treatment WebVTT cues
+ * honour across browsers.
+ */
+const edgeStyle = (edge: CaptionStyle['edgeStyle'], opacity: number): string => {
+  const ink = (strength: number): string => `rgba(0, 0, 0, ${(strength * opacity).toFixed(2)})`
+
+  if (edge === 'none') {
+    return 'none'
+  }
+
+  if (edge === 'shadow') {
+    return `2px 2px 4px ${ink(0.9)}`
+  }
+
+  if (edge === 'raised') {
+    return `1px 1px 0 rgba(255, 255, 255, ${(0.4 * opacity).toFixed(2)}), 2px 2px 3px ${ink(0.9)}`
+  }
+
+  return [
+    `-1px -1px 0 ${ink(1)}`,
+    `1px -1px 0 ${ink(1)}`,
+    `-1px 1px 0 ${ink(1)}`,
+    `1px 1px 0 ${ink(1)}`,
+    `0 0 3px ${ink(0.9)}`,
+  ].join(', ')
+}
 
 const CaptionStyleSchema = z.object({
   fontFamily: z.enum(['sans', 'serif', 'mono', 'casual']).default('sans'),
@@ -84,7 +108,7 @@ const toCueDeclarations = (style: CaptionStyle): CueDeclarations => ({
   fontSize: `${style.fontScale.toString()}%`,
   color: withOpacity(style.color, style.opacity),
   backgroundColor: withOpacity(style.backgroundColor, style.backgroundOpacity),
-  textShadow: EDGE_STYLES[style.edgeStyle],
+  textShadow: edgeStyle(style.edgeStyle, style.opacity),
 })
 
 /**
@@ -150,7 +174,7 @@ export default {
   CaptionStyleSchema,
   DEFAULT_CAPTION_STYLE,
   FONT_FAMILIES,
-  EDGE_STYLES,
+  edgeStyle,
   STORAGE_KEY,
   toCueCss,
   toCueDeclarations,
