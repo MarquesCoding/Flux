@@ -42,7 +42,6 @@ const AppShell = ({
   section,
   onSectionChange,
   children,
-  viewKey,
   moodLights = [],
   isAdministrator = false,
 }: AppShellProps) => {
@@ -94,7 +93,12 @@ const AppShell = ({
       <MoodBackground lights={moodLights} />
 
       <motion.main
-        key={viewKey ?? section}
+        // One key per section. Home and search once drew the same library and
+        // shared a page between them; search has its own now, and holding them
+        // together meant swapping one page's contents for another's inside a
+        // subtree that never changed — which reads as the page breaking rather
+        // than as going somewhere.
+        key={section}
         variants={staggerVariants}
         initial="hidden"
         animate="shown"

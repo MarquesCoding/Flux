@@ -16,15 +16,6 @@ type AppShellProps = {
   onSectionChange: (section: ShellSection) => void
   children: ReactNode
   /**
-   * What counts as a different page for the purposes of animating between
-   * them.
-   *
-   * Sections that draw the same thing — a library, whether browsed or searched
-   * — share a key, so moving between them keeps the page rather than throwing
-   * it away and fetching it again. Defaults to the section itself.
-   */
-  viewKey?: string
-  /**
    * The colours the page is lit by, read from what is on screen.
    */
   moodLights?: MoodLight[]

@@ -300,9 +300,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         // the page having broken.
         go({ section: next, search: next === 'search' ? place.search : '' })
       }}
-      // Home and search draw the same library, so moving between them keeps
-      // the page rather than fetching it all over again.
-      viewKey={section === 'home' || section === 'search' ? 'library' : section}
       // The page takes its light from whatever the viewer is looking at, read
       // out of the picture itself — and only where there is something to look
       // at. A page of results or an account form has nothing to spill onto it,

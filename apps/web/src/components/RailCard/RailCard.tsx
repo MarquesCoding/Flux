@@ -295,9 +295,13 @@ const RailCard = ({
                 rotateX,
                 rotateY,
               }}
-              className="fixed z-40 max-h-[calc(100svh-1.5rem)] overflow-hidden rounded-2xl bg-surface-raised shadow-2xl ring-1 ring-white/10"
+              // A column that gives up the description before it gives up the
+              // buttons. A card opened near the foot of a tall row is exactly
+              // the one that runs out of screen, and the thing to lose there is
+              // the third line of a synopsis, not the way to play it.
+              className="fixed z-40 flex max-h-[calc(100svh-1.5rem)] flex-col overflow-hidden rounded-2xl bg-surface-raised shadow-2xl ring-1 ring-white/10"
             >
-              <div className="aspect-video w-full">
+              <div className="aspect-video max-h-[42svh] w-full shrink-0 overflow-hidden">
                 <MediaPreview
                   mediaId={media.id}
                   backdropUrl={artworkUrl ?? null}
@@ -318,7 +322,7 @@ const RailCard = ({
                 onClick={() => {
                   onInspect(media)
                 }}
-                className="flex w-full flex-col gap-3 p-4 text-left"
+                className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 text-left"
               >
                 <span className="flex flex-col gap-1">
                   {detail?.metadata.seriesTitle === undefined ||
@@ -364,7 +368,7 @@ const RailCard = ({
                 {detail?.metadata.overview === undefined ||
                 detail.metadata.overview === null ||
                 detail.metadata.overview === '' ? null : (
-                  <span className="line-clamp-3 text-xs leading-relaxed text-text-muted">
+                  <span className="line-clamp-3 min-h-0 shrink overflow-hidden text-xs leading-relaxed text-text-muted">
                     {detail.metadata.overview}
                   </span>
                 )}
@@ -374,7 +378,7 @@ const RailCard = ({
                     offering, said plainly rather than left to be guessed at.
                     The same controls as everywhere else — a card is not the
                     place to invent a second shape of play button. */}
-                <span className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="flex shrink-0 flex-wrap items-center gap-2 pt-1">
                   <Button
                     variant="glossy"
                     size="sm"
