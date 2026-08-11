@@ -7,6 +7,7 @@ import type {
   SubtitleDecision,
   VideoDecision,
 } from '@FluxContracts/schemas/PlaybackPlan'
+import type { QualityClamp } from './resolveQualityStep'
 
 const IMAGE_SUBTITLE_FORMATS: readonly SubtitleFormat[] = ['pgs', 'vobsub', 'dvbsub']
 
@@ -35,24 +36,38 @@ const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDec
   }
 }
 
-const decideVideo = (media: MediaItem, profile: DeviceProfile): VideoDecision => {
+const decideVideo = (
+  media: MediaItem,
+  profile: DeviceProfile,
+  qualityClamp?: QualityClamp | null,
+): VideoDecision => {
   const fallback = profile.transcodingProfiles[0]
   const targetCodec = fallback === undefined ? 'h264' : fallback.videoCodec
+  const clamp = qualityClamp ?? null
+
+  const maxBitrateKbps =
+    clamp === null
+      ? profile.maxBitrateKbps
+      : Math.min(profile.maxBitrateKbps, clamp.maxVideoBitrateKbps)
+  const maxWidth = clamp === null ? profile.maxWidth : Math.min(profile.maxWidth, clamp.maxWidth)
+  const maxHeight =
+    clamp === null ? profile.maxHeight : Math.min(profile.maxHeight, clamp.maxHeight)
 
   const transcodeTo = (
     code:
       | 'VideoCodecNotSupported'
       | 'VideoBitrateAboveLimit'
       | 'VideoResolutionAboveLimit'
-      | 'VideoRangeNotSupported',
+      | 'VideoRangeNotSupported'
+      | 'UserForcedTranscode',
     detail: string,
   ): VideoDecision => ({
     kind: 'transcode',
     codec: targetCodec,
     range: profile.supportedVideoRanges.includes(media.videoRange) ? media.videoRange : 'SDR',
-    maxBitrateKbps: profile.maxBitrateKbps,
-    maxWidth: profile.maxWidth,
-    maxHeight: profile.maxHeight,
+    maxBitrateKbps,
+    maxWidth,
+    maxHeight,
     reason: { code, detail },
   })
 
@@ -74,18 +89,33 @@ const decideVideo = (media: MediaItem, profile: DeviceProfile): VideoDecision =>
     )
   }
 
-  if (media.bitrateKbps > profile.maxBitrateKbps) {
-    return transcodeTo(
-      'VideoBitrateAboveLimit',
-      `Source bitrate ${media.bitrateKbps.toString()}kbps exceeds the client limit of ${profile.maxBitrateKbps.toString()}kbps`,
-    )
+  if (media.bitrateKbps > maxBitrateKbps) {
+    const forcedByQuality = clamp !== null && clamp.maxVideoBitrateKbps < profile.maxBitrateKbps
+
+    return forcedByQuality
+      ? transcodeTo(
+          'UserForcedTranscode',
+          `Quality step limits bitrate to ${maxBitrateKbps.toString()}kbps`,
+        )
+      : transcodeTo(
+          'VideoBitrateAboveLimit',
+          `Source bitrate ${media.bitrateKbps.toString()}kbps exceeds the client limit of ${maxBitrateKbps.toString()}kbps`,
+        )
   }
 
-  if (media.width > profile.maxWidth || media.height > profile.maxHeight) {
-    return transcodeTo(
-      'VideoResolutionAboveLimit',
-      `Source resolution ${media.width.toString()}x${media.height.toString()} exceeds the client limit`,
-    )
+  if (media.width > maxWidth || media.height > maxHeight) {
+    const forcedByQuality =
+      clamp !== null && (clamp.maxWidth < profile.maxWidth || clamp.maxHeight < profile.maxHeight)
+
+    return forcedByQuality
+      ? transcodeTo(
+          'UserForcedTranscode',
+          `Quality step limits resolution to ${maxWidth.toString()}x${maxHeight.toString()}`,
+        )
+      : transcodeTo(
+          'VideoResolutionAboveLimit',
+          `Source resolution ${media.width.toString()}x${media.height.toString()} exceeds the client limit`,
+        )
   }
 
   return {
@@ -97,10 +127,16 @@ const decideVideo = (media: MediaItem, profile: DeviceProfile): VideoDecision =>
   }
 }
 
-const decideAudio = (media: MediaItem, profile: DeviceProfile): AudioDecision => {
+const decideAudio = (
+  media: MediaItem,
+  profile: DeviceProfile,
+  qualityClamp?: QualityClamp | null,
+): AudioDecision => {
   const stream = media.audioStreams[0]
   const fallback = profile.transcodingProfiles[0]
   const targetCodec = fallback === undefined ? 'aac' : fallback.audioCodec
+  const compressedBitrateKbps = qualityClamp?.maxAudioBitrateKbps ?? null
+  const maxBitrateKbps = compressedBitrateKbps ?? 384
 
   if (stream === undefined) {
     return {
@@ -118,7 +154,7 @@ const decideAudio = (media: MediaItem, profile: DeviceProfile): AudioDecision =>
       kind: 'transcode',
       codec: targetCodec,
       channels: Math.min(stream.channels, profile.maxAudioChannels),
-      maxBitrateKbps: 384,
+      maxBitrateKbps,
       reason: {
         code: 'AudioCodecNotSupported',
         detail: `Client does not support the ${stream.codec} audio codec`,
@@ -131,10 +167,23 @@ const decideAudio = (media: MediaItem, profile: DeviceProfile): AudioDecision =>
       kind: 'transcode',
       codec: targetCodec,
       channels: profile.maxAudioChannels,
-      maxBitrateKbps: 384,
+      maxBitrateKbps,
       reason: {
         code: 'AudioChannelsAboveLimit',
         detail: `Source has ${stream.channels.toString()} channels, client supports ${profile.maxAudioChannels.toString()}`,
+      },
+    }
+  }
+
+  if (compressedBitrateKbps !== null) {
+    return {
+      kind: 'transcode',
+      codec: targetCodec,
+      channels: Math.min(stream.channels, profile.maxAudioChannels),
+      maxBitrateKbps: compressedBitrateKbps,
+      reason: {
+        code: 'UserForcedTranscode',
+        detail: `Quality step compresses audio to ${compressedBitrateKbps.toString()}kbps`,
       },
     }
   }
@@ -198,14 +247,24 @@ const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDeci
  * re-encode on another. This is what prevents the class of bug where an
  * unsupported video range silently strips lossless or Atmos audio.
  *
- * Pure by design: it depends only on the item, the profile, and nothing else.
- * That is what makes the dry-run explainer possible. See ADR-0011.
+ * `qualityClamp` layers a viewer-picked quality step on top of the device's
+ * own capability: it can only tighten the effective limit, never loosen it
+ * beyond what the device already declared, and a transcode it alone causes
+ * is reported as `UserForcedTranscode` rather than a capability mismatch.
+ *
+ * Pure by design: it depends only on the item, the profile, the clamp, and
+ * nothing else. That is what makes the dry-run explainer possible. See
+ * ADR-0011.
  */
-const negotiatePlayback = (media: MediaItem, profile: DeviceProfile): PlaybackPlan => ({
+const negotiatePlayback = (
+  media: MediaItem,
+  profile: DeviceProfile,
+  qualityClamp?: QualityClamp | null,
+): PlaybackPlan => ({
   mediaId: media.id,
   container: decideContainer(media, profile),
-  video: decideVideo(media, profile),
-  audio: decideAudio(media, profile),
+  video: decideVideo(media, profile, qualityClamp),
+  audio: decideAudio(media, profile, qualityClamp),
   subtitles: decideSubtitles(media, profile),
 })
 

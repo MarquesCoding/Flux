@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
+import type { QualityPreference } from '@FluxWeb/playback/qualityPreference'
+import type { QualityStepId } from '@FluxContracts/schemas/QualityStep'
 
 /**
  * An audio stream a viewer can choose between.
@@ -33,6 +35,8 @@ type PlayerControlsProps = {
   selectedSubtitleId: string
   audioTracks: AudioTrack[]
   selectedAudioIndex: number | null
+  availableQualitySteps: QualityStepId[]
+  selectedQuality: QualityPreference
   isDisabled?: boolean
   onTogglePlay: () => void
   onSeek: (seconds: number) => void
@@ -40,6 +44,7 @@ type PlayerControlsProps = {
   onPlaybackRateChange: (rate: number) => void
   onSubtitleChange: (trackId: string) => void
   onAudioChange: (streamIndex: number) => void
+  onQualityChange: (quality: QualityPreference) => void
   onEditCaptions: () => void
   onVolumeChange: (volume: number) => void
   onToggleMute: () => void
