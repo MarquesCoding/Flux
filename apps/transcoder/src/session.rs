@@ -113,6 +113,18 @@ impl Session {
         self.last_touched = Instant::now();
     }
 
+    /// Marks the session as recently used.
+    ///
+    /// The heartbeat, not segment fetching, is the authoritative liveness
+    /// signal: it arrives on a fixed interval regardless of play state, so a
+    /// paused-but-open tab keeps a session alive the same way a playing one
+    /// does. Play state itself is presence's concern now, not the
+    /// transcoder's — accepted here only to keep the wire format the client
+    /// already sends, and otherwise unused.
+    pub fn heartbeat(&mut self, _is_playing: bool) {
+        self.last_touched = Instant::now();
+    }
+
     /// How long since anything asked for this session.
     #[must_use]
     pub fn idle_for(&self) -> Duration {
@@ -145,7 +157,13 @@ impl Default for SessionConfig {
         Self {
             ffmpeg: "ffmpeg".to_owned(),
             cache_root: std::env::temp_dir().join("flux-transcodes"),
-            idle_timeout: Duration::from_secs(300),
+            // Three missed heartbeats (30s apart) rather than the old 300s: the
+            // heartbeat is now the thing that keeps a paused-but-open session
+            // alive, so idle collection only needs to catch a client that has
+            // genuinely stopped reporting in — a network drop or a crash, not
+            // a browser closed cleanly, which the pagehide stop handles
+            // immediately.
+            idle_timeout: Duration::from_secs(90),
             // Deliberately low. A homelab box that becomes unresponsive because
             // four people pressed play is the classic failure of this software
             // class. See ADR-0006.
@@ -265,6 +283,22 @@ impl SessionRegistry {
         session.touch();
 
         Some(session.directory.clone())
+    }
+
+    /// Records a player's heartbeat: alive, and playing or paused.
+    ///
+    /// `false` means no such session — the caller should stop sending
+    /// heartbeats for an id the server no longer recognises.
+    pub async fn heartbeat(&self, id: &str, is_playing: bool) -> bool {
+        let mut sessions = self.sessions.lock().await;
+
+        let Some(session) = sessions.get_mut(id) else {
+            return false;
+        };
+
+        session.heartbeat(is_playing);
+
+        true
     }
 
     /// Stops and forgets a session, leaving its segments on disk.
@@ -486,5 +520,19 @@ mod tests {
         let registry = SessionRegistry::new(SessionConfig::default());
 
         assert!(registry.touch("does-not-exist").await.is_none());
+    }
+
+    #[tokio::test]
+    async fn heartbeating_an_unknown_session_reports_nothing() {
+        let registry = SessionRegistry::new(SessionConfig::default());
+
+        assert!(!registry.heartbeat("does-not-exist", true).await);
+    }
+
+    #[test]
+    fn keeps_a_session_alive_through_three_missed_heartbeats_worth_of_idle_time() {
+        // Three heartbeats (30s apart) is the assumption the default is built
+        // on — asserted here so a change to one without the other is caught.
+        assert_eq!(SessionConfig::default().idle_timeout.as_secs(), 90);
     }
 }

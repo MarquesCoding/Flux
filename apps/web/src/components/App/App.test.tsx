@@ -38,6 +38,8 @@ const aLibraryWithArrival = {
       path: '/media',
       itemCount: 1,
       lastScannedAt: null,
+
+      defaultAudioLanguage: null,
     },
   ],
   items: {
@@ -113,6 +115,21 @@ const serverState = (options: {
   })
 }
 
+/**
+ * Stands in for presence's connection, opened once a viewer is signed in.
+ *
+ * Nothing here asserts against it — these are routing tests — but jsdom has
+ * no `EventSource` of its own, and opening one for real would leave a
+ * dangling connection every test would otherwise have to account for.
+ */
+class FakeEventSource {
+  onmessage: ((event: MessageEvent<string>) => void) | null = null
+
+  close() {
+    /* nothing to release */
+  }
+}
+
 beforeEach(() => {
   // Navigation lives in the address bar now, so each test has to start from
   // the front door rather than wherever the last one ended up.
@@ -120,6 +137,7 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
+  vi.stubGlobal('EventSource', FakeEventSource)
 })
 
 afterEach(() => {

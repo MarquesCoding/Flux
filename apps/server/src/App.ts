@@ -10,9 +10,12 @@ import type { SegmentService } from '@FluxServer/segments/SegmentService'
 import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService'
 import type { FavouriteService } from '@FluxServer/favourites/FavouriteService'
 import type { PlaybackService } from '@FluxServer/playback/PlaybackService'
+import PresenceServiceModule from '@FluxServer/presence/PresenceService'
+import type { PresenceService } from '@FluxServer/presence/PresenceService'
 import HealthRouteModule from './routes/HealthRoute'
 import LibraryRouteModule from './routes/LibraryRoute'
 import PlaybackRouteModule from './routes/PlaybackRoute'
+import PresenceRouteModule from '@FluxServer/routes/PresenceRoute'
 import ImageRouteModule from '@FluxServer/routes/ImageRoute'
 import SegmentRouteModule from '@FluxServer/routes/SegmentRoute'
 import ProgressRouteModule from '@FluxServer/routes/ProgressRoute'
@@ -23,6 +26,12 @@ import describeDeviceModule from '@FluxServer/account/describeDevice'
 import ProfileRouteModule from '@FluxServer/routes/ProfileRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
+import JobDefinitionsModule from '@FluxServer/jobs/jobDefinitions'
+import JobQueueModule from '@FluxServer/jobs/JobQueue'
+import createMemoryMaintenanceServiceModule from '@FluxServer/maintenance/createMemoryMaintenanceService'
+import type { MaintenanceService } from '@FluxServer/maintenance/MaintenanceService'
+import createMemoryJobScheduleServiceModule from '@FluxServer/jobs/createMemoryJobScheduleService'
+import type { JobScheduleService } from '@FluxServer/jobs/JobScheduleService'
 import JsonValueModule from '@FluxContracts/schemas/JsonValue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 import drawAvatarModule from '@FluxServer/profiles/drawAvatar'
@@ -36,11 +45,13 @@ const { DEFAULT_LIMIT } = LibraryServiceModule
 const {
   listLibrariesRoute,
   createLibraryRoute,
+  updateLibraryRoute,
   listItemsRoute,
   getMediaRoute,
   scanLibraryRoute,
   scanStateRoute,
   resetLibraryRoute,
+  regeneratePreviewsRoute,
 } = LibraryRouteModule
 const {
   explainRoute,
@@ -51,6 +62,7 @@ const {
   trickplayFileRoute,
   frameRoute,
   stopRoute,
+  heartbeatRoute,
 } = PlaybackRouteModule
 const { setupStatusRoute, setupCompleteRoute } = SetupRouteModule
 const { listSubtitlesRoute, readSubtitleRoute } = SubtitleRouteModule
@@ -58,9 +70,35 @@ const { mediaImageRoute } = ImageRouteModule
 const { listSegmentsRoute } = SegmentRouteModule
 const { listProgressRoute, recordProgressRoute, forgetProgressRoute } = ProgressRouteModule
 const { listFavouritesRoute, keepFavouriteRoute, dropFavouriteRoute } = FavouriteRouteModule
-const { adminOverviewRoute, adminSettingsRoute } = AdminRouteModule
+const {
+  adminOverviewRoute,
+  adminSettingsRoute,
+  adminSessionsRoute,
+  adminStopSessionRoute,
+  adminPauseSessionRoute,
+  adminResumeSessionRoute,
+  adminJobDefinitionsRoute,
+  adminRunJobRoute,
+  adminJobSchedulesRoute,
+  adminAddJobTriggerRoute,
+  adminRemoveJobTriggerRoute,
+} = AdminRouteModule
+const { JOB_DEFINITIONS, RESET_LIBRARY_JOB } = JobDefinitionsModule
+const {
+  SCAN_LIBRARY_JOB,
+  REGENERATE_PREVIEWS_JOB,
+  REGENERATE_TRICKPLAY_JOB,
+  DETECT_SEGMENTS_JOB,
+  CLEANUP_IMAGE_CACHE_JOB,
+  CLEANUP_SESSIONS_JOB,
+  CHECK_CATALOGUE_CONNECTIVITY_JOB,
+} = JobQueueModule
 const { listDevicesRoute, endDeviceRoute, endOtherDevicesRoute } = DeviceRouteModule
 const { describeDevice } = describeDeviceModule
+const { presenceHeartbeatRoute, presenceStopWatchingRoute } = PresenceRouteModule
+const { createPresenceService } = PresenceServiceModule
+const { createMemoryMaintenanceService } = createMemoryMaintenanceServiceModule
+const { createMemoryJobScheduleService } = createMemoryJobScheduleServiceModule
 const {
   listProfilesRoute,
   createProfileRoute,
@@ -115,6 +153,28 @@ type CreateAppOptions = {
   promoteToAdmin: (email: string) => Promise<void>
   library: LibraryService
   playback: PlaybackService
+  /**
+   * Server-wide upkeep an admin can start on demand — cache cleanup, session
+   * cleanup, catalogue connectivity.
+   *
+   * Optional for the same reason `presence` is: most tests exercise routes
+   * that never touch it, and a memory implementation is made when none is
+   * given.
+   */
+  maintenance?: MaintenanceService
+  /**
+   * How often each job runs on its own.
+   *
+   * Optional for the same reason `maintenance` is.
+   */
+  schedules?: JobScheduleService
+  /**
+   * Who has the app open right now.
+   *
+   * Optional because most tests exercise routes that never touch presence;
+   * a fresh in-memory registry is made when none is given.
+   */
+  presence?: PresenceService
   subtitles: SubtitleService
   segments: SegmentService
   progress: WatchProgressService
@@ -175,6 +235,9 @@ const createApp = ({
   promoteToAdmin,
   library,
   playback,
+  maintenance = createMemoryMaintenanceService(),
+  schedules = createMemoryJobScheduleService(),
+  presence = createPresenceService(),
   subtitles,
   segments,
   progress,
@@ -250,6 +313,16 @@ const createApp = ({
     return context.json(created, 201)
   })
 
+  app.openapi(updateLibraryRoute, async (context) => {
+    const updated = await library.update(context.req.valid('param').id, context.req.valid('json'))
+
+    if (updated === null) {
+      return context.json({ error: 'No such library.' }, 404)
+    }
+
+    return context.json(updated, 200)
+  })
+
   app.openapi(listItemsRoute, async (context) => {
     const { id } = context.req.valid('param')
     const { search, kind, genre, ids, order, limit, offset } = context.req.valid('query')
@@ -313,6 +386,16 @@ const createApp = ({
     return context.json(reset, 202)
   })
 
+  app.openapi(regeneratePreviewsRoute, async (context) => {
+    const queued = await library.regeneratePreviews(context.req.valid('param').id)
+
+    if (queued === null) {
+      return context.json({ error: 'No such library.' }, 404)
+    }
+
+    return context.json(queued, 202)
+  })
+
   app.openapi(healthRoute, async (context) => {
     const transcoderReachable = await isTranscoderReachable()
 
@@ -345,7 +428,7 @@ const createApp = ({
 
   app.openapi(startRoute, async (context) => {
     const { mediaId } = context.req.valid('param')
-    const { deviceProfile, startSeconds, audioStreamIndex, requestedQuality } =
+    const { deviceProfile, clientId, startSeconds, audioStreamIndex, requestedQuality } =
       context.req.valid('json')
 
     const outcome = await playback.start(
@@ -366,6 +449,23 @@ const createApp = ({
 
     if (outcome.kind === 'failed') {
       return context.json({ error: outcome.reason }, 500)
+    }
+
+    if (clientId !== undefined) {
+      const item = await library.getMedia(mediaId)
+
+      if (item !== null) {
+        presence.startPlayback(clientId, {
+          mediaId,
+          mediaTitle: item.title,
+          hasPoster: item.metadata.hasPoster,
+          hasBackdrop: item.metadata.hasBackdrop,
+          mode: outcome.session.delivery.kind === 'direct' ? 'direct' : 'transcode',
+          transcoderSessionId:
+            outcome.session.delivery.kind === 'hls' ? outcome.session.sessionId : null,
+          plan: outcome.session.plan,
+        })
+      }
     }
 
     return context.json(outcome.session, 200)
@@ -816,6 +916,158 @@ const createApp = ({
     )
   })
 
+  app.openapi(adminSessionsRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    return context.json(presence.list(), 200)
+  })
+
+  app.openapi(adminStopSessionRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const { clientId } = context.req.valid('param')
+    const transcoderSessionId = presence.list().find((entry) => entry.clientId === clientId)
+      ?.playback?.transcoderSessionId
+
+    if (transcoderSessionId !== null && transcoderSessionId !== undefined) {
+      await playback.stop(transcoderSessionId)
+    }
+
+    if (!presence.stop(clientId, 'This stream was stopped by an admin.')) {
+      return context.json({ error: 'That tab is not open.' }, 404)
+    }
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(adminPauseSessionRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const { clientId } = context.req.valid('param')
+    const entry = presence.list().find((candidate) => candidate.clientId === clientId)
+
+    if (entry === undefined) {
+      return context.json({ error: 'That tab is not open.' }, 404)
+    }
+
+    if (!presence.pause(clientId, 'This stream was paused by an admin.')) {
+      return context.json({ error: 'That tab is not watching anything.' }, 409)
+    }
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(adminResumeSessionRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    if (!presence.resume(context.req.valid('param').clientId)) {
+      return context.json({ error: 'That tab is not open.' }, 404)
+    }
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(adminJobDefinitionsRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    return context.json({ definitions: JOB_DEFINITIONS }, 200)
+  })
+
+  app.openapi(adminRunJobRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const { kind } = context.req.valid('param')
+    const { libraryId, force } = context.req.valid('json')
+
+    const maintenanceRunners: Record<string, () => Promise<{ jobId: string; state: string }>> = {
+      [CLEANUP_IMAGE_CACHE_JOB]: () => maintenance.cleanupImageCache(),
+      [CLEANUP_SESSIONS_JOB]: () => maintenance.cleanupSessions(),
+      [CHECK_CATALOGUE_CONNECTIVITY_JOB]: () => maintenance.checkCatalogueConnectivity(),
+    }
+
+    const maintenanceRunner = maintenanceRunners[kind]
+
+    if (maintenanceRunner !== undefined) {
+      return context.json(await maintenanceRunner(), 202)
+    }
+
+    if (libraryId === undefined) {
+      return context.json({ error: 'That job needs a library.' }, 404)
+    }
+
+    const libraryRunners: Record<string, () => Promise<{ jobId: string; state: string } | null>> = {
+      [SCAN_LIBRARY_JOB]: () => library.scan(libraryId, force ?? false),
+      [REGENERATE_PREVIEWS_JOB]: () => library.regeneratePreviews(libraryId),
+      [REGENERATE_TRICKPLAY_JOB]: () => library.regenerateTrickplay(libraryId),
+      [DETECT_SEGMENTS_JOB]: () => library.detectSegments(libraryId),
+      [RESET_LIBRARY_JOB]: () => library.reset(libraryId),
+    }
+
+    const runner = libraryRunners[kind]
+
+    if (runner === undefined) {
+      return context.json({ error: 'No such job kind.' }, 404)
+    }
+
+    const queued = await runner()
+
+    if (queued === null) {
+      return context.json({ error: 'No such library.' }, 404)
+    }
+
+    return context.json(queued, 202)
+  })
+
+  app.openapi(adminJobSchedulesRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    return context.json({ schedules: await schedules.list() }, 200)
+  })
+
+  app.openapi(adminAddJobTriggerRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const { kind } = context.req.valid('param')
+    const { trigger } = context.req.valid('json')
+    const added = await schedules.add(kind, trigger)
+
+    if (added === null) {
+      return context.json({ error: 'No such job kind.' }, 404)
+    }
+
+    return context.json(added, 201)
+  })
+
+  app.openapi(adminRemoveJobTriggerRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403)
+    }
+
+    const { kind, triggerId } = context.req.valid('param')
+
+    if (!(await schedules.remove(kind, triggerId))) {
+      return context.json({ error: 'No such trigger.' }, 404)
+    }
+
+    return context.body(null, 204)
+  })
+
   /**
    * Everywhere this account is signed in.
    *
@@ -1089,13 +1341,117 @@ const createApp = ({
   })
 
   app.openapi(stopRoute, async (context) => {
-    const stopped = await playback.stop(context.req.valid('param').sessionId)
+    const { sessionId } = context.req.valid('param')
+
+    const stopped = await playback.stop(sessionId)
 
     if (!stopped) {
       return context.json({ error: 'No such session.' }, 404)
     }
 
     return context.body(null, 204)
+  })
+
+  app.openapi(heartbeatRoute, async (context) => {
+    const { sessionId } = context.req.valid('param')
+    const { isPlaying } = context.req.valid('json')
+
+    const known = await playback.heartbeat(sessionId, isPlaying)
+
+    if (!known) {
+      return context.json({ error: 'No such session.' }, 404)
+    }
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(presenceHeartbeatRoute, async (context) => {
+    if ((await readAccount(context.req.raw.headers)) === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const { clientId } = context.req.valid('param')
+    const { isPlaying, health } = context.req.valid('json')
+
+    presence.heartbeatPlayback(clientId, isPlaying, health)
+
+    return context.body(null, 204)
+  })
+
+  app.openapi(presenceStopWatchingRoute, async (context) => {
+    if ((await readAccount(context.req.raw.headers)) === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    presence.stopPlayback(context.req.valid('param').clientId)
+
+    return context.body(null, 204)
+  })
+
+  /**
+   * A tab's own presence connection.
+   *
+   * Opened once when the app loads and kept open for as long as the tab is —
+   * the connection itself is what makes a tab "present", and it doubles as
+   * the channel an admin's stop/pause/resume are pushed down. Outside the
+   * OpenAPI routes for the same reason the monitor stream is: an event
+   * stream is not a JSON response.
+   */
+  app.get('/api/presence/stream', async (context) => {
+    const account = await readAccount(context.req.raw.headers)
+
+    if (account === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const clientId = context.req.query('clientId')
+    const deviceLabel = context.req.query('deviceLabel') ?? 'Unknown device'
+
+    if (clientId === undefined) {
+      return context.json({ error: 'A clientId is required.' }, 400)
+    }
+
+    const profileId = await readProfileId(context.req.raw.headers)
+    const ownProfiles = profileId === null ? [] : await (profiles?.list(account.id) ?? [])
+    const profileName = ownProfiles.find((profile) => profile.id === profileId)?.name ?? null
+
+    let close = () => {
+      /* replaced once the stream starts */
+    }
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder()
+        const ping = setInterval(() => {
+          controller.enqueue(encoder.encode(': ping\n\n'))
+        }, 20000)
+
+        presence.connect(clientId, profileId, profileName, deviceLabel, (event) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
+        })
+
+        close = () => {
+          clearInterval(ping)
+          presence.disconnect(clientId)
+          controller.close()
+        }
+      },
+      cancel() {
+        close()
+      },
+    })
+
+    context.req.raw.signal.addEventListener('abort', () => {
+      close()
+    })
+
+    return new Response(stream, {
+      headers: {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      },
+    })
   })
 
   app.doc('/api/openapi.json', {

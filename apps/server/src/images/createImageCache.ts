@@ -7,9 +7,7 @@ type CachedImage = {
   contentType: string
 }
 
-type ImageFetcher = (
-  url: string,
-) => Promise<{
+type ImageFetcher = (url: string) => Promise<{
   ok: boolean
   status: number
   headers: { get: (name: string) => string | null }

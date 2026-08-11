@@ -302,6 +302,34 @@ describe('playback sessions', () => {
     expect(response.status).toBe(404)
   })
 
+  it('accepts a heartbeat for a running session', async () => {
+    const { app } = build()
+
+    const started = StartSchema.parse(
+      await (
+        await app.request(
+          post(`/api/playback/${MEDIA_ID}/session`, { deviceProfile: modestProfile }),
+        )
+      ).json(),
+    )
+
+    const response = await app.request(
+      post(`/api/playback/session/${started.sessionId}/heartbeat`, { isPlaying: false }),
+    )
+
+    expect(response.status).toBe(204)
+  })
+
+  it('reports a heartbeat for an unknown session', async () => {
+    const { app } = build()
+
+    const response = await app.request(
+      post('/api/playback/session/nope/heartbeat', { isPlaying: true }),
+    )
+
+    expect(response.status).toBe(404)
+  })
+
   it('accepts a seek position', async () => {
     const { app } = build()
 

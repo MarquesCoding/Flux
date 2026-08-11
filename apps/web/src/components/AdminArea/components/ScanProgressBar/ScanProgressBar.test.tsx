@@ -32,6 +32,18 @@ describe('ScanProgressBar', () => {
     expect(screen.getByText('detecting')).toBeInTheDocument()
   })
 
+  it('names a stage with nothing to do, rather than going blank and pulsing', () => {
+    render(<ScanProgressBar label="Scanning Movies" phase="trickplay" processed={0} total={0} />)
+
+    // A stage that finds nothing outstanding has succeeded, and used to draw
+    // an unlabelled pulsing bar — indistinguishable from a job that had hung.
+    expect(
+      screen.getByRole('progressbar', { name: 'Scanning Movies: Generating thumbnails' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Generating thumbnails')).toBeInTheDocument()
+    expect(screen.queryByText(/\//)).not.toBeInTheDocument()
+  })
+
   it('has no phase or numeric value before the scan has reported anything', () => {
     render(<ScanProgressBar label="Scanning Movies" phase={null} processed={null} total={null} />)
 

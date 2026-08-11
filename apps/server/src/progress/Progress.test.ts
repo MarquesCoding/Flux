@@ -73,6 +73,7 @@ const build = () => {
           path: '/media/films',
           itemCount: 1,
           lastScannedAt: null,
+          defaultAudioLanguage: null,
         },
       ],
       media: [FILM],

@@ -1,39 +1,21 @@
 import { IconX } from '@tabler/icons-react'
 import IconButtonModule from '@FluxUI/IconButton'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
-import type { AudioDecision, VideoDecision } from '@FluxContracts/schemas/PlaybackPlan'
+import describePlaybackAxisModule from '@FluxCore/functions/describePlaybackAxis'
 import type { StreamStatsProps } from './StreamStats.types'
 
 const { IconButton } = IconButtonModule
 const { formatDuration } = formatDurationModule
+const {
+  describeAxis: axis,
+  describeVideoAxis: videoAxis,
+  describeAudioAxis: audioAxis,
+} = describePlaybackAxisModule
 
 /**
  * Rounds a number of seconds for display without pretending to precision.
  */
 const seconds = (value: number): string => `${value.toFixed(1)}s`
-
-/**
- * Reads a plan axis as the decision plus the reason behind it.
- */
-const axis = (kind: string, detail: string): string => `${kind} — ${detail}`
-
-/**
- * Reads the video axis with the resolution/bitrate ceiling actually being
- * encoded to, when it is transcoding.
- *
- * `plan.video` already carries these numbers whether the transcode came from
- * device capability or a chosen quality step; this is the only place they
- * were not already shown.
- */
-const videoAxis = (video: VideoDecision): string =>
-  video.kind === 'passthrough'
-    ? axis(video.kind, video.reason.detail)
-    : `${axis(video.kind, video.reason.detail)} (${video.maxWidth.toString()}x${video.maxHeight.toString()} @ ${video.maxBitrateKbps.toString()}kbps)`
-
-const audioAxis = (audio: AudioDecision): string =>
-  audio.kind === 'passthrough'
-    ? axis(audio.kind, audio.reason.detail)
-    : `${axis(audio.kind, audio.reason.detail)} (${audio.maxBitrateKbps.toString()}kbps)`
 
 type RowProps = {
   name: string
