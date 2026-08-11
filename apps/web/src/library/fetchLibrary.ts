@@ -7,6 +7,12 @@ const { LibrarySchema, MediaPageSchema, MediaDetailSchema } = LibraryContract
 const LibraryListSchema = z.array(LibrarySchema)
 const ErrorBodySchema = z.object({ error: z.string() })
 
+const ScanStateSchema = z.enum(['queued', 'running', 'completed', 'failed', 'unknown'])
+const ScanJobSchema = z.object({ jobId: z.string(), state: ScanStateSchema })
+
+type ScanState = z.infer<typeof ScanStateSchema>
+type ScanJob = z.infer<typeof ScanJobSchema>
+
 type ListItemsOptions = {
   search?: string
   limit?: number
@@ -112,18 +118,49 @@ const fetchMediaDetail = async (mediaId: string): Promise<MediaDetail | null> =>
  * Asks the server to queue a rescan.
  *
  * Answers as soon as the scan is queued, not when it finishes: a real library
- * takes minutes to walk and probe.
+ * takes minutes to walk and probe. Returns the job so a caller that wants to
+ * know when the walk is actually done can poll `readScanState`.
  *
  * A forced scan probes every file again rather than only those that changed on
  * disk, which is what picks up a change in how Flux reads files.
  */
-const scanLibrary = async (libraryId: string, force = false): Promise<boolean> => {
+const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | null> => {
   const query = force ? '?force=true' : ''
   const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, { method: 'POST' })
 
-  return response.ok
+  if (!response.ok) {
+    return null
+  }
+
+  return ScanJobSchema.parse(await response.json())
 }
 
-export type { ListItemsOptions, CreateLibraryInput }
+/**
+ * Reads how a queued scan is getting on.
+ *
+ * A scan the server no longer knows about — restarted since, or the id was
+ * never real — is reported as `unknown` rather than thrown on, since that is
+ * itself a terminal answer: whatever was watching it should stop.
+ */
+const readScanState = async (jobId: string): Promise<ScanState> => {
+  const response = await fetch(`/api/libraries/scans/${jobId}`, {
+    headers: { accept: 'application/json' },
+  })
 
-export default { fetchLibraries, createLibrary, fetchLibraryItems, fetchMediaDetail, scanLibrary }
+  if (!response.ok) {
+    return 'unknown'
+  }
+
+  return ScanJobSchema.parse(await response.json()).state
+}
+
+export type { ListItemsOptions, CreateLibraryInput, ScanJob, ScanState }
+
+export default {
+  fetchLibraries,
+  createLibrary,
+  fetchLibraryItems,
+  fetchMediaDetail,
+  scanLibrary,
+  readScanState,
+}

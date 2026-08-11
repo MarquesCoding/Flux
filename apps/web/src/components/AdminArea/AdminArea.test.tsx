@@ -91,6 +91,20 @@ const CREATED_LIBRARY: Library = {
   lastScannedAt: null,
 }
 
+const SHOWS_LIBRARY_ID = '22222222-2222-4222-8222-222222222222'
+
+const TWO_LIBRARIES: Library[] = [
+  ...LIBRARIES,
+  {
+    id: SHOWS_LIBRARY_ID,
+    name: 'Shows',
+    kind: 'shows',
+    path: '/media/shows',
+    itemCount: 5,
+    lastScannedAt: null,
+  },
+]
+
 const fetchMock = vi.fn()
 
 /**
@@ -103,10 +117,17 @@ const fetchMock = vi.fn()
 const respondWith =
   (overview: typeof OVERVIEW = OVERVIEW) =>
   (input: string, init?: RequestInit) => {
+    if (input.includes('/scans/')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ jobId: 'scan-job', state: 'completed' }),
+      })
+    }
+
     if (input.includes('/scan')) {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ added: 0, updated: 0, removed: 0, failed: 0 }),
+        json: () => Promise.resolve({ jobId: 'scan-job', state: 'queued' }),
       })
     }
 
@@ -334,6 +355,49 @@ describe('AdminArea', () => {
         { method: 'POST' },
       )
     })
+  })
+
+  it('shows a progress bar in place of the button while a library is scanning', async () => {
+    const scanUrl = `/api/libraries/${MOVIES_LIBRARY_ID}/scan`
+
+    fetchMock.mockImplementation((input: string, init?: RequestInit) =>
+      input === scanUrl ? new Promise(() => undefined) : respondWith()(input, init),
+    )
+
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan' }))
+
+    expect(await screen.findByRole('progressbar', { name: 'Scanning Movies' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Scan' })).not.toBeInTheDocument()
+  })
+
+  it('replaces every scan button with its own progress bar when scanning all libraries', async () => {
+    fetchMock.mockImplementation((input: string, init?: RequestInit) => {
+      if (input === '/api/libraries' && init?.method !== 'POST') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(TWO_LIBRARIES) })
+      }
+
+      if (input.includes('/scan?force=true')) {
+        return new Promise(() => undefined)
+      }
+
+      return respondWith()(input, init)
+    })
+
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan all libraries' }))
+
+    expect(await screen.findByRole('progressbar', { name: 'Scanning Movies' })).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Scanning Shows' })).toBeInTheDocument()
+    expect(screen.queryAllByRole('button', { name: 'Scan' })).toHaveLength(0)
   })
 
   it('guides the operator when there are no libraries', async () => {

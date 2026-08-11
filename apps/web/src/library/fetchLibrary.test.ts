@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import fetchLibraryModule from './fetchLibrary'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
-const { fetchLibraries, createLibrary, fetchLibraryItems, scanLibrary } = fetchLibraryModule
+const { fetchLibraries, createLibrary, fetchLibraryItems, scanLibrary, readScanState } =
+  fetchLibraryModule
 
 type FetchLike = (
   input: string,
@@ -152,20 +153,20 @@ describe('fetchLibraryItems', () => {
 })
 
 describe('scanLibrary', () => {
-  it('reports success', async () => {
-    fetchMock.mockResolvedValue(ok({ added: 1, updated: 0, removed: 0, failed: 0 }))
+  it('returns the queued job', async () => {
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }))
 
-    await expect(scanLibrary(library.id)).resolves.toBe(true)
+    await expect(scanLibrary(library.id)).resolves.toEqual({ jobId: 'job-1', state: 'queued' })
   })
 
   it('reports failure without throwing', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) })
 
-    await expect(scanLibrary(library.id)).resolves.toBe(false)
+    await expect(scanLibrary(library.id)).resolves.toBeNull()
   })
 
   it('asks for an ordinary scan by default', async () => {
-    fetchMock.mockResolvedValue(ok({ added: 0, updated: 0, removed: 0, failed: 0 }))
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }))
 
     await scanLibrary(library.id)
 
@@ -173,12 +174,26 @@ describe('scanLibrary', () => {
   })
 
   it('asks for everything to be probed again when forced', async () => {
-    fetchMock.mockResolvedValue(ok({ added: 0, updated: 0, removed: 0, failed: 0 }))
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }))
 
     await scanLibrary(library.id, true)
 
     expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${library.id}/scan?force=true`, {
       method: 'POST',
     })
+  })
+})
+
+describe('readScanState', () => {
+  it('returns the state of a queued scan', async () => {
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'running' }))
+
+    await expect(readScanState('job-1')).resolves.toBe('running')
+  })
+
+  it('reports unknown rather than throwing when the server errors', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) })
+
+    await expect(readScanState('job-1')).resolves.toBe('unknown')
   })
 })
