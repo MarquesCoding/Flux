@@ -1,4 +1,5 @@
 import type { MoodLight } from '@FluxUI/MoodBackground.types'
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
@@ -6,6 +7,9 @@ import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrow
 import SearchAreaModule from '@FluxWeb/components/SearchArea/SearchArea'
 import BrowseAreaModule from '@FluxWeb/components/BrowseArea/BrowseArea'
 import useFavouritesModule from '@FluxWeb/library/useFavourites'
+import ProfileFaceModule from '@FluxWeb/components/ProfileFace/ProfileFace'
+import fetchProfilesModule from '@FluxWeb/profiles/fetchProfiles'
+import currentProfileModule from '@FluxWeb/profiles/currentProfile'
 import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
 import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
 import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
@@ -32,6 +36,9 @@ const { LibraryBrowser } = LibraryBrowserModule
 const { SearchArea } = SearchAreaModule
 const { BrowseArea } = BrowseAreaModule
 const { useFavourites } = useFavouritesModule
+const { ProfileFace } = ProfileFaceModule
+const { fetchProfiles } = fetchProfilesModule
+const { readCurrentProfile } = currentProfileModule
 const { VideoPlayer } = VideoPlayerModule
 const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
@@ -73,6 +80,24 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   // decided when the file was imported.
   const [moodLights, setMoodLights] = useState<MoodLight[]>([])
   const favourites = useFavourites()
+  // Who is watching, for the face on the account button. Read here rather than
+  // in the shell: the shell draws a frame and should not be the thing that
+  // knows how profiles work.
+  const [watcher, setWatcher] = useState<ViewerProfile | null>(null)
+
+  useEffect(() => {
+    const chosen = readCurrentProfile()
+
+    if (chosen === null) {
+      setWatcher(null)
+
+      return
+    }
+
+    void fetchProfiles().then((people) => {
+      setWatcher(people.find((person) => person.id === chosen) ?? null)
+    })
+  }, [user])
   // Everything the library has shown, so an address naming an item can be
   // turned back into one without asking the server a second time.
   const [known, setKnown] = useState(new Map<string, MediaSummary>())
@@ -312,6 +337,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       // film the viewer has navigated away from.
       moodLights={section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
+      {...(watcher === null
+        ? {}
+        : { avatar: <ProfileFace profile={watcher} className="size-7 rounded-full text-xs" /> })}
     >
       <MediaDetailDialog
         media={inspecting}

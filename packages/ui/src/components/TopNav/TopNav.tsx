@@ -48,12 +48,17 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
               <li key={item.id} className="shrink-0">
                 <button
                   type="button"
+                  aria-label={item.label}
                   aria-current={isCurrent ? 'page' : undefined}
+                  title={item.label}
                   onClick={() => {
                     onSelect(item.id)
                   }}
                   className={cn(
-                    'relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors duration-200',
+                    // The same height as a tool, so the two capsules are the
+                    // same capsule at different lengths rather than two
+                    // near-misses sitting beside each other.
+                    'relative flex h-10 items-center gap-1.5 rounded-full px-3 text-sm transition-colors duration-200',
                     isCurrent
                       ? 'font-medium text-text'
                       : 'text-text-muted hover:text-text focus-visible:text-text',
@@ -74,21 +79,27 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                     />
                   )}
 
+                  {item.icon === undefined ? null : (
+                    <span className="flex shrink-0 items-center">{item.icon}</span>
+                  )}
+
+                  {/* The name only where it is being stood on. An icon is
+                      enough to point at a place; a word is what tells you
+                      where you are, and five words all the time is a strip of
+                      words. */}
                   <AnimatePresence initial={false}>
-                    {!isCurrent || item.icon === undefined ? null : (
+                    {!isCurrent ? null : (
                       <motion.span
                         initial={{ opacity: 0, width: 0 }}
                         animate={{ opacity: 1, width: 'auto' }}
                         exit={{ opacity: 0, width: 0 }}
-                        transition={{ duration: prefersReducedMotion === true ? 0 : 0.2 }}
-                        className="flex items-center overflow-hidden"
+                        transition={{ duration: prefersReducedMotion === true ? 0 : 0.24 }}
+                        className="overflow-hidden whitespace-nowrap"
                       >
-                        {item.icon}
+                        {item.label}
                       </motion.span>
                     )}
                   </AnimatePresence>
-
-                  <span className="whitespace-nowrap">{item.label}</span>
                 </button>
               </li>
             )
@@ -105,7 +116,7 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                 aria-current={action.isCurrent === true ? 'page' : undefined}
                 onClick={action.onSelect}
                 className={cn(
-                  'relative flex size-9 items-center justify-center rounded-full transition-colors duration-200',
+                  'relative flex size-10 items-center justify-center rounded-full transition-colors duration-200',
                   action.isCurrent === true
                     ? 'bg-white/15 text-text'
                     : 'text-text-muted hover:bg-white/10 hover:text-text',

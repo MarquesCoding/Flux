@@ -29,14 +29,14 @@ const { BROWSE_SECTIONS } = AppShellTypesModule
  * The mark each place carries while it is the one being stood on.
  */
 const SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <IconHome size={16} aria-hidden />,
-  shows: <IconClock size={16} aria-hidden />,
-  films: <IconMovie size={16} aria-hidden />,
-  new: <IconTrendingUp size={16} aria-hidden />,
-  favourites: <IconHeart size={16} aria-hidden />,
-  search: <IconSearch size={16} aria-hidden />,
-  account: <IconUserCircle size={16} aria-hidden />,
-  admin: <IconSettings size={16} aria-hidden />,
+  home: <IconHome size={18} aria-hidden />,
+  shows: <IconClock size={18} aria-hidden />,
+  films: <IconMovie size={18} aria-hidden />,
+  new: <IconTrendingUp size={18} aria-hidden />,
+  favourites: <IconHeart size={18} aria-hidden />,
+  search: <IconSearch size={18} aria-hidden />,
+  account: <IconUserCircle size={18} aria-hidden />,
+  admin: <IconSettings size={18} aria-hidden />,
 }
 
 const SECTION_LABELS: Record<ShellSection, string> = {
