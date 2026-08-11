@@ -36,9 +36,7 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
         }}
       />
 
-      <figcaption className="text-center text-xs tabular-nums sm:text-sm">
-        {formatDuration(seconds)}
-      </figcaption>
+      <figcaption className="text-center text-md mt-2">{formatDuration(seconds)}</figcaption>
     </figure>
   )
 }
