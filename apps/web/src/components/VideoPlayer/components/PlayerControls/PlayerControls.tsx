@@ -1,7 +1,7 @@
 import {
   IconAdjustmentsHorizontal,
   IconBadgeCc,
-  IconCast,
+  IconShareplay,
   IconBadgeCcFilled,
   IconChartDots,
   IconClock,
@@ -427,7 +427,7 @@ const PlayerControls = ({
           onClick={onCast}
           size="md"
         >
-          <IconCast size={20} aria-hidden />
+          <IconShareplay size={20} aria-hidden />
         </IconButton>
       )}
 

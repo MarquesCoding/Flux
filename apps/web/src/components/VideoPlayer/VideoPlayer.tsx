@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   IconAlertTriangle,
-  IconDeviceTvFilled,
+  IconShareplay,
   IconPictureInPicture,
   IconPlayerTrackNext,
   IconX,
@@ -1418,7 +1418,7 @@ const VideoPlayer = ({
             working, since those controls now drive the device. */}
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
-            <IconDeviceTvFilled size={32} className="text-text-muted" aria-hidden />
+            <IconShareplay size={32} className="text-text-muted" aria-hidden />
 
             <p className="text-sm text-text-muted">Playing on another device</p>
 
