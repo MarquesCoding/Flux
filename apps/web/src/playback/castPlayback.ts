@@ -51,6 +51,9 @@ const absoluteStreamUrl = (url: string, origin: string): string | null => {
  * predates it. A browser has one or the other, never both, and the caller
  * should not have to know which.
  *
+ * Says nothing at all where the browser has neither, which is the only way a
+ * caller learns there is nothing to offer.
+ *
  * Answers with the function that stops watching.
  */
 const watchCastState = (
@@ -104,8 +107,13 @@ const watchCastState = (
     remote.addEventListener('disconnect', onDisconnect)
 
     void remote
-      .watchAvailability((isAvailable) => {
-        onChange(isAvailable ? 'available' : 'unavailable')
+      .watchAvailability(() => {
+        // Only ever a reveal, never a hiding. A browser feeding a media engine
+        // reports nothing available whatever is on the network, because it
+        // cannot remote what it is decoding — and casting works anyway, since
+        // handing over stops it decoding first. A control that disappears for
+        // that reason is a control nobody can find.
+        onChange('available')
       })
       .then((watch) => {
         stops.push(() => {

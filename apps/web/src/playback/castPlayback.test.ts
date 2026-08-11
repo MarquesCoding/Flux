@@ -110,13 +110,17 @@ describe('watchCastState', () => {
     expect(said).toContain('connected')
   })
 
-  it('says there is nowhere to send it where the browser says so', () => {
+  it('keeps offering somewhere to send it even when the browser reports none', () => {
+    // A browser feeding a media engine says nothing is available whatever is
+    // on the network, because it cannot remote what it is decoding. Casting
+    // works anyway, since handing over stops it decoding first.
     const { element } = standard('disconnected', false)
     const said: CastState[] = []
 
     watchCastState(element, (state) => said.push(state))
 
-    expect(said).toContain('unavailable')
+    expect(said).toContain('available')
+    expect(said).not.toContain('unavailable')
   })
 
   it('stops watching on request', async () => {

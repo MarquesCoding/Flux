@@ -256,6 +256,9 @@ const VideoPlayer = ({
   const [isPoppedOut, setIsPoppedOut] = useState(false)
   // Where the playing is: here, or on something else on the network.
   const [castState, setCastState] = useState<CastState>('unavailable')
+  // Why casting did not happen, for the one case where the answer is something
+  // the viewer can act on.
+  const [castNote, setCastNote] = useState<string | null>(null)
   // What the media engine, if there is one, needs told before the element can
   // be pointed at a device.
   const releaseRef = useRef<(() => Promise<void>) | null>(null)
@@ -345,14 +348,15 @@ const VideoPlayer = ({
     }
   }, [subtitleOffset, selectedSubtitleId, position])
 
-  // Somewhere to send it, and whether it has been sent. Only worth watching
-  // where a device could reach this server at all: a page read on the machine
-  // running it can offer a picker, but everything in that picker would be
-  // handed an address that means itself.
+  // Somewhere to send it, and whether it has been sent. Watched wherever the
+  // browser can answer at all, including where the address of this page is one
+  // no device could follow: a control that is missing teaches nobody anything,
+  // where one that says why it cannot be used says exactly what to do about
+  // it.
   useEffect(() => {
     const element = videoRef.current
 
-    if (element === null || !isReachableOrigin(window.location.origin)) {
+    if (element === null) {
       return
     }
 
@@ -1292,6 +1296,16 @@ const VideoPlayer = ({
           </div>
         )}
 
+        {/* Why a press did nothing. Above the bar, out of the way of the
+            picture, and gone as soon as something else is tried. */}
+        {castNote === null ? null : (
+          <div className="pointer-events-none absolute inset-x-0 bottom-24 z-30 flex justify-center px-4">
+            <p className="flux-glass max-w-md rounded-2xl px-4 py-2 text-center text-sm text-white">
+              {castNote}
+            </p>
+          </div>
+        )}
+
         {/* Playing somewhere else. The picture here is blank whatever we draw
             over it — the element is feeding a television rather than this
             screen — so it says where the film went and leaves the bar below
@@ -1441,6 +1455,18 @@ const VideoPlayer = ({
             onToggleFullscreen={toggleFullscreen}
             castState={castState}
             onCast={() => {
+              if (!isReachableOrigin(window.location.origin)) {
+                // The one refusal a viewer can do something about, so it is
+                // said rather than swallowed.
+                setCastNote(
+                  'Open Flux at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
+                )
+
+                return
+              }
+
+              setCastNote(null)
+
               const element = videoRef.current
               const address =
                 session === null
@@ -1450,6 +1476,14 @@ const VideoPlayer = ({
                     : session.delivery.manifestUrl
 
               if (element === null || address === null) {
+                return
+              }
+
+              if (!isReachableOrigin(window.location.origin)) {
+                setCastNote(
+                  'Open Flux at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
+                )
+
                 return
               }
 
