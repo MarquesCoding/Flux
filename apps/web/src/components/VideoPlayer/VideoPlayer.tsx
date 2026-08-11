@@ -370,14 +370,12 @@ const VideoPlayer = ({
       const said = () => {
         const state = castStateOf(context)
 
+        // A library that loaded is a way to cast, whatever it says about
+        // devices. Chrome reports none while its own menu lists three, so
+        // taking that answer literally hides the control at exactly the moment
+        // it is wanted — and its picker opens and finds them regardless.
         setCastState(
-          state === 'CONNECTED'
-            ? 'connected'
-            : state === 'CONNECTING'
-              ? 'connecting'
-              : state === 'NO_DEVICES_AVAILABLE'
-                ? 'unavailable'
-                : 'available',
+          state === 'CONNECTED' ? 'connected' : state === 'CONNECTING' ? 'connecting' : 'available',
         )
       }
 
