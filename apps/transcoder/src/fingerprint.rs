@@ -88,6 +88,8 @@ pub enum FingerprintError {
     Read(std::io::Error),
     #[error("that file has no audio to fingerprint")]
     Silent,
+    #[error("the fingerprinting itself did not finish")]
+    Abandoned,
 }
 
 /// How many frames a second the fingerprint carries.
@@ -256,6 +258,12 @@ pub fn fingerprint_samples(samples: &[f32]) -> Vec<u32> {
 
 /// Fingerprints a window of a file's audio.
 ///
+/// The arithmetic runs on a blocking thread rather than here. Reducing ten
+/// minutes of audio to hashes is minutes of solid computation, and doing it on
+/// an executor thread holds that thread for every one of them — the service
+/// stops answering anything at all, including whether it is still alive, which
+/// is indistinguishable from having died.
+///
 /// # Errors
 ///
 /// Returns [`FingerprintError`] when ffmpeg cannot be started, its output
@@ -282,8 +290,13 @@ pub async fn fingerprint(
 
     let _ = child.wait().await;
 
-    let samples = read_samples(&decoded);
-    let hashes = fingerprint_samples(&samples);
+    let hashes = tokio::task::spawn_blocking(move || {
+        let samples = read_samples(&decoded);
+
+        fingerprint_samples(&samples)
+    })
+    .await
+    .map_err(|_| FingerprintError::Abandoned)?;
 
     if hashes.is_empty() {
         return Err(FingerprintError::Silent);
