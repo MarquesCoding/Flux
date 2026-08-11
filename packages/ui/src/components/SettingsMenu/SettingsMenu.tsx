@@ -3,6 +3,7 @@ import { Popover } from '@base-ui-components/react/popover'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import cnModule from '@FluxUI/cn'
+import TooltipModule from '@FluxUI/Tooltip'
 import type {
   SettingsChoiceRow,
   SettingsMenuProps,
@@ -11,6 +12,7 @@ import type {
 } from './SettingsMenu.types'
 
 const { cn } = cnModule
+const { Tooltip } = TooltipModule
 
 /**
  * The class every row shares.
@@ -104,19 +106,20 @@ const SettingsMenu = ({
         onOpenChange?.(open)
       }}
     >
-      <Popover.Trigger
-        aria-label={label}
-        title={label}
-        disabled={isDisabled}
-        className={cn(
-          'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
-          'text-current transition-colors hover:bg-white/15',
-          'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
-          className,
-        )}
-      >
-        {isOpen ? (triggerWhenOpen ?? trigger) : trigger}
-      </Popover.Trigger>
+      <Tooltip label={label}>
+        <Popover.Trigger
+          aria-label={label}
+          disabled={isDisabled}
+          className={cn(
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
+            'text-current transition-colors hover:bg-white/15',
+            'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
+            className,
+          )}
+        >
+          {isOpen ? (triggerWhenOpen ?? trigger) : trigger}
+        </Popover.Trigger>
+      </Tooltip>
 
       <Popover.Portal>
         {/* Above the bar and pinned to its own button, with room kept at the

@@ -1,8 +1,10 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import cnModule from '@FluxUI/cn'
+import TooltipModule from '@FluxUI/Tooltip'
 import type { TopNavProps } from './TopNav.types'
 
 const { cn } = cnModule
+const { Tooltip } = TooltipModule
 
 /**
  * The bar across the top, as two things rather than one.
@@ -46,61 +48,66 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
 
             return (
               <li key={item.id} className="shrink-0">
-                <button
-                  type="button"
-                  aria-label={item.label}
-                  aria-current={isCurrent ? 'page' : undefined}
-                  title={item.label}
-                  onClick={() => {
-                    onSelect(item.id)
-                  }}
-                  className={cn(
-                    // The same height as a tool, so the two capsules are the
-                    // same capsule at different lengths rather than two
-                    // near-misses sitting beside each other.
-                    'relative flex h-10 items-center gap-1.5 rounded-full px-3 text-sm transition-colors duration-200',
-                    isCurrent
-                      ? 'font-medium text-text'
-                      : 'text-text-muted hover:text-text focus-visible:text-text',
-                  )}
-                >
-                  {/* Under the word rather than around it, so the capsule
+                {/* Named on hover only while the name is not already
+                    there. The place being stood on writes itself out beside
+                    its icon, and a tooltip repeating it is the same word
+                    twice. */}
+                <Tooltip label={item.label} side="bottom" isDisabled={isCurrent}>
+                  <button
+                    type="button"
+                    aria-label={item.label}
+                    aria-current={isCurrent ? 'page' : undefined}
+                    onClick={() => {
+                      onSelect(item.id)
+                    }}
+                    className={cn(
+                      // The same height as a tool, so the two capsules are the
+                      // same capsule at different lengths rather than two
+                      // near-misses sitting beside each other.
+                      'relative flex h-10 items-center gap-1.5 rounded-full px-3 text-sm transition-colors duration-200',
+                      isCurrent
+                        ? 'font-medium text-text'
+                        : 'text-text-muted hover:text-text focus-visible:text-text',
+                    )}
+                  >
+                    {/* Under the word rather than around it, so the capsule
                       holds one moving highlight instead of five taking
                       turns. */}
-                  {!isCurrent ? null : (
-                    <motion.span
-                      layoutId="top-nav-current"
-                      transition={
-                        prefersReducedMotion === true
-                          ? { duration: 0 }
-                          : { type: 'spring', stiffness: 420, damping: 34 }
-                      }
-                      className="absolute inset-0 -z-10 rounded-full bg-white/15"
-                    />
-                  )}
+                    {!isCurrent ? null : (
+                      <motion.span
+                        layoutId="top-nav-current"
+                        transition={
+                          prefersReducedMotion === true
+                            ? { duration: 0 }
+                            : { type: 'spring', stiffness: 420, damping: 34 }
+                        }
+                        className="absolute inset-0 -z-10 rounded-full bg-white/15"
+                      />
+                    )}
 
-                  {item.icon === undefined ? null : (
-                    <span className="flex shrink-0 items-center">{item.icon}</span>
-                  )}
+                    {item.icon === undefined ? null : (
+                      <span className="flex shrink-0 items-center">{item.icon}</span>
+                    )}
 
-                  {/* The name only where it is being stood on. An icon is
+                    {/* The name only where it is being stood on. An icon is
                       enough to point at a place; a word is what tells you
                       where you are, and five words all the time is a strip of
                       words. */}
-                  <AnimatePresence initial={false}>
-                    {!isCurrent ? null : (
-                      <motion.span
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
-                        transition={{ duration: prefersReducedMotion === true ? 0 : 0.24 }}
-                        className="overflow-hidden whitespace-nowrap"
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </button>
+                    <AnimatePresence initial={false}>
+                      {!isCurrent ? null : (
+                        <motion.span
+                          initial={{ opacity: 0, width: 0 }}
+                          animate={{ opacity: 1, width: 'auto' }}
+                          exit={{ opacity: 0, width: 0 }}
+                          transition={{ duration: prefersReducedMotion === true ? 0 : 0.24 }}
+                          className="overflow-hidden whitespace-nowrap"
+                        >
+                          {item.label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                </Tooltip>
               </li>
             )
           })}
@@ -109,25 +116,26 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
         <div className="flux-glass pointer-events-auto flex shrink-0 items-center gap-0.5 justify-self-end rounded-full p-1">
           {actions.map((action) =>
             action.control === undefined ? (
-              <button
-                key={action.id}
-                type="button"
-                aria-label={action.label}
-                aria-current={action.isCurrent === true ? 'page' : undefined}
-                onClick={action.onSelect}
-                className={cn(
-                  'relative flex size-10 items-center justify-center rounded-full transition-colors duration-200',
-                  action.isCurrent === true
-                    ? 'bg-white/15 text-text'
-                    : 'text-text-muted hover:bg-white/10 hover:text-text',
-                )}
-              >
-                {action.icon}
+              <Tooltip key={action.id} label={action.label} side="bottom">
+                <button
+                  type="button"
+                  aria-label={action.label}
+                  aria-current={action.isCurrent === true ? 'page' : undefined}
+                  onClick={action.onSelect}
+                  className={cn(
+                    'relative flex size-10 items-center justify-center rounded-full transition-colors duration-200',
+                    action.isCurrent === true
+                      ? 'bg-white/15 text-text'
+                      : 'text-text-muted hover:bg-white/10 hover:text-text',
+                  )}
+                >
+                  {action.icon}
 
-                {action.badge === undefined ? null : (
-                  <span className="absolute -right-0.5 -top-0.5">{action.badge}</span>
-                )}
-              </button>
+                  {action.badge === undefined ? null : (
+                    <span className="absolute -right-0.5 -top-0.5">{action.badge}</span>
+                  )}
+                </button>
+              </Tooltip>
             ) : (
               <div key={action.id} className="flex items-center">
                 {action.control}

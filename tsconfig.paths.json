@@ -30,6 +30,7 @@
       "@FluxUI/SplashScreen": ["./packages/ui/src/components/SplashScreen/SplashScreen.tsx"],
       "@FluxUI/TabBar": ["./packages/ui/src/components/TabBar/TabBar.tsx"],
       "@FluxUI/TextField": ["./packages/ui/src/components/TextField/TextField.tsx"],
+      "@FluxUI/Tooltip": ["./packages/ui/src/components/Tooltip/Tooltip.tsx"],
       "@FluxUI/TopNav": ["./packages/ui/src/components/TopNav/TopNav.tsx"],
       "@FluxUI/TopNav.types": ["./packages/ui/src/components/TopNav/TopNav.types.ts"],
       "@FluxUI/VideoSurface": ["./packages/ui/src/components/VideoSurface/VideoSurface.tsx"],
