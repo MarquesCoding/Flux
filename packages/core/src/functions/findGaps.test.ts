@@ -41,7 +41,18 @@ describe('findGaps, told what the series contains', () => {
   const withShape = (
     seasons: { seasonNumber: number; episodes: number[] }[],
     shape: { seasonNumber: number; episodeCount: number }[],
-  ): ShowDetail => ({ ...show(seasons), shape });
+  ): ShowDetail => ({
+    ...show(seasons),
+    shape: shape.map((season) => ({
+      ...season,
+      episodes: Array.from({ length: season.episodeCount }, (_, index) => ({
+        episodeNumber: index + 1,
+        title: `Episode ${(index + 1).toString()}`,
+        stillUrl: null,
+        overview: null,
+      })),
+    })),
+  });
 
   it('sees the episodes missing off the end of a season', () => {
     const gaps = findGaps(

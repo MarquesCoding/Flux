@@ -59,6 +59,22 @@ const EpisodeResponseSchema = z.object({
   vote_average: z.number().optional(),
 });
 
+/**
+ * The episodes of one season, as the catalogue lists them.
+ */
+const SeasonResponseSchema = z.object({
+  episodes: z
+    .array(
+      z.object({
+        episode_number: z.number().int(),
+        name: z.string().optional(),
+        overview: z.string().optional(),
+        still_path: z.string().nullish(),
+      }),
+    )
+    .default([]),
+});
+
 const DetailResponseSchema = z.object({
   id: z.number(),
   title: z.string().optional(),
@@ -379,12 +395,34 @@ const createCatalogueMetadataProvider = ({
         return null;
       }
 
-      return {
-        seasons: detail.data.seasons.map((season) => ({
-          seasonNumber: season.season_number,
-          episodeCount: season.episode_count,
-        })),
-      };
+      const seasons = await Promise.all(
+        detail.data.seasons.map(async (season) => {
+          const listed = SeasonResponseSchema.safeParse(
+            await request(`/tv/${externalId}/season/${season.season_number.toString()}`, key, {}),
+          );
+
+          return {
+            seasonNumber: season.season_number,
+            episodeCount: season.episode_count,
+            episodes: !listed.success
+              ? []
+              : listed.data.episodes.map((episode) => ({
+                  episodeNumber: episode.episode_number,
+                  title:
+                    episode.name === undefined || episode.name === ''
+                      ? `Episode ${episode.episode_number.toString()}`
+                      : episode.name,
+                  stillUrl: imageUrl(imageBaseUrl, episode.still_path, 'w780'),
+                  overview:
+                    episode.overview === undefined || episode.overview === ''
+                      ? null
+                      : episode.overview,
+                })),
+          };
+        }),
+      );
+
+      return { seasons };
     },
   };
 };
