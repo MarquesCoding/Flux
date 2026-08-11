@@ -16,6 +16,8 @@ import ImageRouteModule from '@FluxServer/routes/ImageRoute'
 import SegmentRouteModule from '@FluxServer/routes/SegmentRoute'
 import ProgressRouteModule from '@FluxServer/routes/ProgressRoute'
 import AdminRouteModule from '@FluxServer/routes/AdminRoute'
+import DeviceRouteModule from '@FluxServer/routes/DeviceRoute'
+import describeDeviceModule from '@FluxServer/account/describeDevice'
 import ProfileRouteModule from '@FluxServer/routes/ProfileRoute'
 import SubtitleRouteModule from '@FluxServer/routes/SubtitleRoute'
 import SetupRouteModule from './routes/SetupRoute'
@@ -53,6 +55,8 @@ const { mediaImageRoute } = ImageRouteModule
 const { listSegmentsRoute } = SegmentRouteModule
 const { listProgressRoute, recordProgressRoute, forgetProgressRoute } = ProgressRouteModule
 const { adminOverviewRoute, adminSettingsRoute } = AdminRouteModule
+const { listDevicesRoute, endDeviceRoute, endOtherDevicesRoute } = DeviceRouteModule
+const { describeDevice } = describeDeviceModule
 const {
   listProfilesRoute,
   createProfileRoute,
@@ -789,6 +793,87 @@ const createApp = ({
       },
       200,
     )
+  })
+
+  /**
+   * Everywhere this account is signed in.
+   *
+   * A self-hosted server is shared with a household, and a household loses
+   * track of what is signed in where — a television at a friend's, a phone
+   * that was replaced, a browser on a machine at work.
+   */
+  app.openapi(listDevicesRoute, async (context) => {
+    const headers = context.req.raw.headers
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    if (session === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const held = await auth.api.listSessions({ headers }).catch(() => [])
+
+    return context.json(
+      {
+        devices: held.map((one) => ({
+          id: one.id,
+          name: describeDevice(one.userAgent),
+          address: one.ipAddress ?? null,
+          signedInAt: one.createdAt.toISOString(),
+          expiresAt: one.expiresAt.toISOString(),
+          // Compared by token rather than by identifier, because the token is
+          // the thing this browser is actually holding.
+          isCurrent: one.token === session.session.token,
+        })),
+      },
+      200,
+    )
+  })
+
+  /**
+   * Ends one of them.
+   *
+   * Asked for by identifier and matched here against the sessions this account
+   * holds, so the token — which is what a browser signs in with — never
+   * travels to a page that lists them.
+   */
+  app.openapi(endDeviceRoute, async (context) => {
+    const headers = context.req.raw.headers
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    if (session === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    const held = await auth.api.listSessions({ headers }).catch(() => [])
+    const asked = held.find((one) => one.id === context.req.valid('param').id)
+
+    if (asked !== undefined) {
+      await auth.api.revokeSession({ headers, body: { token: asked.token } }).catch(() => undefined)
+    }
+
+    // The same answer either way: whether it was already gone or never
+    // existed, what the asker wanted is now true.
+    return context.body(null, 204)
+  })
+
+  /**
+   * Ends all of them but this one.
+   *
+   * What somebody wants after losing a laptop. It deliberately spares the
+   * session asking: being signed out of the page you are using to sign
+   * everything else out is its own small disaster.
+   */
+  app.openapi(endOtherDevicesRoute, async (context) => {
+    const headers = context.req.raw.headers
+    const session = await auth.api.getSession({ headers }).catch(() => null)
+
+    if (session === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401)
+    }
+
+    await auth.api.revokeOtherSessions({ headers }).catch(() => undefined)
+
+    return context.body(null, 204)
   })
 
   /**
