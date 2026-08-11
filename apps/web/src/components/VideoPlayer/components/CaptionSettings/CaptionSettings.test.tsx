@@ -13,7 +13,6 @@ const draw = (overrides: Partial<CaptionSettingsProps> = {}) => {
     style: DEFAULT_CAPTION_STYLE,
     onChange: vi.fn(),
     onReset: vi.fn(),
-    onClose: vi.fn(),
     ...overrides,
   }
 
@@ -117,13 +116,10 @@ describe('CaptionSettings', () => {
     expect(props.onReset).toHaveBeenCalledTimes(1)
   })
 
-  it('closes on request', async () => {
-    const user = userEvent.setup()
-    const props = draw()
+  it('brings no way out of its own, since the panel around it has one', () => {
+    draw()
 
-    await user.click(screen.getByRole('button', { name: 'Close caption settings' }))
-
-    expect(props.onClose).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: 'Close caption settings' })).not.toBeInTheDocument()
   })
 
   it('sets a display name so devtools can identify it', () => {
