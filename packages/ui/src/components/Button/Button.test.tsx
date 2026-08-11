@@ -98,4 +98,153 @@ describe('Button', () => {
 
     expect(screen.getByRole('button', { name: 'Watch now' })).toHaveClass('h-14');
   });
+
+  describe('wearing only an icon', () => {
+    it('takes its accessible name from the label, since a glyph has none', () => {
+      render(
+        <Button isIconOnly label="Mute">
+          <span aria-hidden>x</span>
+        </Button>,
+      );
+
+      expect(screen.getByRole('button', { name: 'Mute' })).toBeInTheDocument();
+    });
+
+    it('becomes square rather than a box with words in it', () => {
+      render(
+        <Button isIconOnly size="md" label="Mute">
+          <span aria-hidden>x</span>
+        </Button>,
+      );
+
+      const button = screen.getByRole('button', { name: 'Mute' });
+
+      expect(button).toHaveClass('size-10');
+      expect(button).not.toHaveClass('px-4');
+    });
+
+    it('rounds fully without being asked, because a square icon reads as a disc', () => {
+      render(
+        <Button isIconOnly label="Mute">
+          <span aria-hidden>x</span>
+        </Button>,
+      );
+
+      expect(screen.getByRole('button', { name: 'Mute' })).toHaveClass('rounded-full');
+    });
+
+    it('still calls onClick', async () => {
+      const onClick = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <Button isIconOnly label="Mute" onClick={onClick}>
+          <span aria-hidden>x</span>
+        </Button>,
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Mute' }));
+
+      expect(onClick).toHaveBeenCalledOnce();
+    });
+
+    it('still refuses to be pressed when disabled', async () => {
+      const onClick = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <Button isIconOnly label="Mute" disabled onClick={onClick}>
+          <span aria-hidden>x</span>
+        </Button>,
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Mute' }));
+
+      expect(onClick).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('naming itself', () => {
+    it('shows the label to whoever rests a pointer on it', async () => {
+      const user = userEvent.setup();
+      render(
+        <Button isIconOnly label="Mute">
+          <span aria-hidden>x</span>
+        </Button>,
+      );
+
+      await user.hover(screen.getByRole('button', { name: 'Mute' }));
+
+      expect(await screen.findByText('Mute')).toBeInTheDocument();
+    });
+
+    it('keeps quiet when the name is already written beside it', async () => {
+      const user = userEvent.setup();
+      render(
+        <Button label="Mute" hasTooltip={false}>
+          Mute
+        </Button>,
+      );
+
+      await user.hover(screen.getByRole('button', { name: 'Mute' }));
+
+      // The word appears once — on the button itself — rather than twice.
+      expect(screen.getAllByText('Mute')).toHaveLength(1);
+    });
+  });
+
+  describe('saying what is in force', () => {
+    it('says it is pressed rather than only looking it', () => {
+      render(<Button isActive>Subtitles</Button>);
+
+      expect(screen.getByRole('button', { name: 'Subtitles' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+    });
+
+    it('claims nothing when it is not a toggle', () => {
+      render(<Button>Subtitles</Button>);
+
+      expect(screen.getByRole('button', { name: 'Subtitles' })).not.toHaveAttribute('aria-pressed');
+    });
+  });
+
+  describe('painted by its caller', () => {
+    it('brings no skin of its own when bare', () => {
+      render(
+        <Button variant="bare" size="none" className="text-left">
+          Season 2
+        </Button>,
+      );
+
+      const button = screen.getByRole('button', { name: 'Season 2' });
+
+      expect(button).not.toHaveClass('bg-accent');
+      expect(button).not.toHaveClass('h-10');
+      expect(button).toHaveClass('text-left');
+    });
+
+    it('keeps the behaviour of a button while wearing none of its look', async () => {
+      const onClick = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <Button variant="bare" size="none" onClick={onClick}>
+          Season 2
+        </Button>,
+      );
+
+      const button = screen.getByRole('button', { name: 'Season 2' });
+
+      expect(button).toHaveAttribute('type', 'button');
+
+      await user.click(button);
+
+      expect(onClick).toHaveBeenCalledOnce();
+    });
+
+    it('can be its own content, for a control that is a coloured square', () => {
+      render(<Button variant="bare" size="none" label="Use red" />);
+
+      expect(screen.getByRole('button', { name: 'Use red' })).toBeEmptyDOMElement();
+    });
+  });
 });
