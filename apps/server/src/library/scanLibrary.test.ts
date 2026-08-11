@@ -89,6 +89,7 @@ const harness = (options: {
       }),
     readTrickplayFile: () => Promise.resolve(null),
     stopSession: () => Promise.resolve(true),
+    heartbeatSession: () => Promise.resolve(true),
     readSubtitle: () => Promise.resolve('WEBVTT\n'),
     readFrame: () => Promise.resolve(new ArrayBuffer(0)),
     requestPreview: (request) => {
@@ -275,6 +276,7 @@ describe('scanLibrary', () => {
           }),
         readTrickplayFile: () => Promise.resolve(null),
         stopSession: () => Promise.resolve(true),
+        heartbeatSession: () => Promise.resolve(true),
         readSubtitle: () => Promise.resolve('WEBVTT\n'),
         readFrame: () => Promise.resolve(new ArrayBuffer(0)),
         requestPreview: () => Promise.resolve({ id: 'p', url: '/p', isReady: true }),

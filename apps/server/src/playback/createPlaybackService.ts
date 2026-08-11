@@ -290,6 +290,8 @@ const createPlaybackService = ({
     readTrickplayFile: (trickplayId, name) => transcoder.readTrickplayFile(trickplayId, name),
 
     stop: (sessionId) => transcoder.stopSession(sessionId),
+
+    heartbeat: (sessionId, isPlaying) => transcoder.heartbeatSession(sessionId, isPlaying),
   }
 }
 

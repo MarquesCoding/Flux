@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import PlaybackPlanModule from '@FluxContracts/schemas/PlaybackPlan'
+
+const { PlaybackPlanSchema } = PlaybackPlanModule
 
 const AdminUserSchema = z.object({
   id: z.string(),
@@ -72,9 +75,40 @@ const MonitorSchema = z.object({
   ),
 })
 
+const ActiveSessionSchema = z.object({
+  clientId: z.string(),
+  profileId: z.string().nullable(),
+  profileName: z.string().nullable(),
+  deviceLabel: z.string(),
+  connectedAt: z.number(),
+  playback: z
+    .object({
+      mediaId: z.string(),
+      mediaTitle: z.string(),
+      hasPoster: z.boolean(),
+      hasBackdrop: z.boolean(),
+      mode: z.enum(['direct', 'transcode']),
+      plan: PlaybackPlanSchema,
+      isPlaying: z.boolean(),
+      pausedByAdmin: z.boolean(),
+      startedAt: z.number(),
+      health: z
+        .object({
+          positionSeconds: z.number(),
+          durationSeconds: z.number(),
+          bufferedAheadSeconds: z.number(),
+          presentedWidth: z.number(),
+          presentedHeight: z.number(),
+        })
+        .nullable(),
+    })
+    .nullable(),
+})
+
 type AdminOverview = z.infer<typeof AdminOverviewSchema>
 type Monitor = z.infer<typeof MonitorSchema>
 type Job = z.infer<typeof JobSchema>
+type ActiveSession = z.infer<typeof ActiveSessionSchema>
 
 /**
  * Reads the state of the server.
@@ -136,6 +170,57 @@ const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
 }
 
 /**
+ * Reads every tab that has the app open right now.
+ */
+const fetchActiveSessions = async (): Promise<ActiveSession[]> => {
+  const response = await fetch('/api/admin/sessions', { credentials: 'same-origin' }).catch(
+    () => null,
+  )
+
+  if (response === null || !response.ok) {
+    return []
+  }
+
+  return z.array(ActiveSessionSchema).parse(await response.json())
+}
+
+/**
+ * Stops someone else's stream, kicking them out of the player.
+ */
+const stopSession = async (clientId: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/sessions/${clientId}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  }).catch(() => null)
+
+  return response !== null && response.ok
+}
+
+/**
+ * Pauses someone else's stream. Not a lock — they can press play again.
+ */
+const pauseSession = async (clientId: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/sessions/${clientId}/pause`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  }).catch(() => null)
+
+  return response !== null && response.ok
+}
+
+/**
+ * Resumes a stream this admin paused.
+ */
+const resumeSession = async (clientId: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/sessions/${clientId}/resume`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  }).catch(() => null)
+
+  return response !== null && response.ok
+}
+
+/**
  * Saves a setting an operator owns.
  */
 const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
@@ -149,6 +234,15 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
   return response !== null && response.ok
 }
 
-export type { AdminOverview, Job, Monitor }
+export type { ActiveSession, AdminOverview, Job, Monitor }
 
-export default { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey }
+export default {
+  fetchAdminOverview,
+  fetchMonitor,
+  watchMonitor,
+  saveCatalogueKey,
+  fetchActiveSessions,
+  stopSession,
+  pauseSession,
+  resumeSession,
+}
