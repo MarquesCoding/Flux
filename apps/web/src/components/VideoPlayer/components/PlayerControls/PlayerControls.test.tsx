@@ -1,10 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import captionStyleModule from '@FluxWeb/playback/captionStyle'
 import PlayerControlsModule from './PlayerControls'
 import type { PlayerControlsProps } from './PlayerControls.types'
 
 const { PlayerControls } = PlayerControlsModule
+const { DEFAULT_CAPTION_STYLE } = captionStyleModule
 
 const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
   const props: PlayerControlsProps = {
@@ -39,7 +41,9 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
     onSubtitleChange: vi.fn(),
     onAudioChange: vi.fn(),
     onQualityChange: vi.fn(),
-    onEditCaptions: vi.fn(),
+    captionStyle: DEFAULT_CAPTION_STYLE,
+    onCaptionStyleChange: vi.fn(),
+    onCaptionStyleReset: vi.fn(),
     onVolumeChange: vi.fn(),
     onToggleMute: vi.fn(),
     onToggleFullscreen: vi.fn(),
@@ -179,7 +183,9 @@ describe('PlayerControls', () => {
         onSkip={vi.fn()}
         onPlaybackRateChange={vi.fn()}
         onSubtitleChange={vi.fn()}
-        onEditCaptions={vi.fn()}
+        captionStyle={DEFAULT_CAPTION_STYLE}
+        onCaptionStyleChange={vi.fn()}
+        onCaptionStyleReset={vi.fn()}
         onVolumeChange={vi.fn()}
         onToggleMute={vi.fn()}
         onToggleFullscreen={vi.fn()}
@@ -267,14 +273,15 @@ describe('PlayerControls', () => {
     expect(screen.queryByRole('button', { name: /English/ })).not.toBeInTheDocument()
   })
 
-  it('opens the caption settings on request', async () => {
+  it('opens the caption settings as a page of the panel rather than over the film', async () => {
     const user = userEvent.setup()
-    const props = draw()
+
+    draw()
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
     await user.click(await screen.findByRole('button', { name: /Caption settings/ }))
 
-    expect(props.onEditCaptions).toHaveBeenCalled()
+    expect(await screen.findByRole('region', { name: 'Caption settings' })).toBeInTheDocument()
   })
 
   it('offers nothing to choose when a file carries one soundtrack', async () => {

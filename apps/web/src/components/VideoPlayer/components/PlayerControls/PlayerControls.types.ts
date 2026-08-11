@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { CaptionStyle } from '@FluxWeb/playback/captionStyle'
 import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
 import type { QualityPreference } from '@FluxWeb/playback/qualityPreference'
 import type { QualityStepId } from '@FluxContracts/schemas/QualityStep'
@@ -45,7 +46,15 @@ type PlayerControlsProps = {
   onSubtitleChange: (trackId: string) => void
   onAudioChange: (streamIndex: number) => void
   onQualityChange: (quality: QualityPreference) => void
-  onEditCaptions: () => void
+  /**
+   * How captions are drawn, and how to change it.
+   *
+   * Carried through the bar because the settings panel is where it is edited:
+   * a page inside the panel is one less thing floating over the film.
+   */
+  captionStyle: CaptionStyle
+  onCaptionStyleChange: (style: CaptionStyle) => void
+  onCaptionStyleReset: () => void
   onVolumeChange: (volume: number) => void
   onToggleMute: () => void
   onToggleFullscreen: () => void
