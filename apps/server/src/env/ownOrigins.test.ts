@@ -48,13 +48,24 @@ describe('ownOrigins', () => {
   it('trusts this machine at every address and port it can be read at', () => {
     expect(ownOrigins(['http://localhost:5173'], 8420)).toEqual([
       'http://192.168.1.165:5173',
+      'https://192.168.1.165:5173',
       'http://192.168.1.165:8420',
+      'https://192.168.1.165:8420',
     ])
+  })
+
+  it('trusts either scheme, since a certificate can appear at any time', () => {
+    // Casting is offered by browsers only over a secure connection, so a home
+    // server grows a certificate the moment somebody wants to use it.
+    expect(ownOrigins([], 8420)).toContain('https://192.168.1.165:8420')
   })
 
   it('trusts only addresses this machine actually holds', () => {
     // A different thing from trusting the network: somebody else's laptop
     // cannot borrow this by asking.
-    expect(ownOrigins([], 8420)).toEqual(['http://192.168.1.165:8420'])
+    expect(ownOrigins([], 8420)).toEqual([
+      'http://192.168.1.165:8420',
+      'https://192.168.1.165:8420',
+    ])
   })
 })
