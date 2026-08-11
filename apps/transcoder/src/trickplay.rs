@@ -61,9 +61,6 @@ impl Default for TrickplayRequest {
     fn default() -> Self {
         Self {
             input_path: String::new(),
-            // Ten seconds is roughly where Jellyfin and Plex sit: fine enough
-            // to be useful when scrubbing, coarse enough that a film costs
-            // seconds of decoding rather than minutes.
             interval_seconds: 10,
             tile_width: 320,
             columns: 10,
@@ -168,8 +165,6 @@ pub fn thumbnail_count(duration_seconds: f64, interval_seconds: u32) -> u32 {
         return u32::MAX;
     }
 
-    // Finite, at least one and below the ceiling checked above, so the cast
-    // cannot truncate or change sign.
     #[allow(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
@@ -344,8 +339,6 @@ impl TrickplayRegistry {
     async fn release(&self, id: &str) {
         let mut in_flight = self.in_flight.lock().await;
 
-        // Two is this map's reference plus the caller's own. Anything more
-        // means another request is still waiting on the gate and needs it.
         if in_flight
             .get(id)
             .is_some_and(|gate| Arc::strong_count(gate) <= 2)

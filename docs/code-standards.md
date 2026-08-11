@@ -202,10 +202,18 @@ issue where it can be tracked, not in a comment where it cannot.
 
 ### How this is enforced
 
-`flux/no-comments` in `tools/eslint/noComments.ts` fails the build on any
-comment that is not one of the exceptions above, and removes it under `--fix`.
-TSDoc counts only when it sits on a declaration: a `/** */` block floating
-inside a function body is prose in a costume, and is rejected as prose.
+Two checks, because no one linter reads every language here.
+
+`flux/no-comments` in `tools/eslint/noComments.ts` covers TypeScript. It fails
+on any comment that is not one of the exceptions above, and removes it under
+`--fix`. TSDoc counts only when it sits on a declaration: a `/** */` block
+floating inside a function body is prose in a costume, and is rejected as prose.
+A third slash means `/// <reference>` and nothing else: `/// prose` is Rust
+syntax in the wrong language, and is rejected too.
+
+`tools/comments/checkComments.ts` covers Rust and CSS, which ESLint cannot see
+at all. It parses rather than pattern-matches, so a `//` inside a string literal
+stays where it is. Both run under `pnpm lint`, which runs on every commit.
 
 The rule also fails a lint directive that does not say why, after `--`.
 

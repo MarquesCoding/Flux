@@ -84,9 +84,6 @@ pub async fn extract_subtitle(
 
     let content = String::from_utf8_lossy(&output.stdout).into_owned();
 
-    // A header and nothing else is what an empty stream, or one ffmpeg
-    // silently declined, produces. Saying so beats handing a player a file
-    // with no cues in it.
     if content.trim().len() <= "WEBVTT".len() {
         return Err(SubtitleError::Empty);
     }

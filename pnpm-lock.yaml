@@ -309,6 +309,18 @@ importers:
         specifier: ^3.0.2
         version: 3.2.7(@types/debug@4.1.13)(@types/node@24.13.3)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.23.11)(yaml@2.9.0)
 
+  tools:
+    devDependencies:
+      '@typescript-eslint/utils':
+        specifier: ^8.66.0
+        version: 8.67.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.11
+      vitest:
+        specifier: ^3.0.2
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@24.13.3)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.23.11)(yaml@2.9.0)
+
 packages:
   '@adobe/css-tools@4.5.0':
     resolution:
