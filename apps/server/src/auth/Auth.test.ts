@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import createMemoryAuthModule from './createMemoryAuth'
+import ownOriginsModule from '@FluxServer/env/ownOrigins'
 
 const { createMemoryAuth } = createMemoryAuthModule
+const { ownAddresses } = ownOriginsModule
 
 const BASE_URL = 'http://localhost:8420'
 
@@ -212,6 +214,29 @@ describe('createAuth', () => {
 
     expect(response.status).toBe(403)
     expect(await response.json()).toMatchObject({ code: 'INVALID_CALLBACK_URL' })
+  })
+
+  it('allows a redirect to an address this machine actually answers on', async () => {
+    // Nobody configured this one. A self-hosted server is reached from the
+    // sofa at whatever address the router handed out, and being refused there
+    // with nothing but a failed sign-in is the most tedious way for this to
+    // appear broken.
+    const [own] = ownAddresses()
+
+    if (own === undefined) {
+      return
+    }
+
+    const { auth } = createProductionAuth({ TRUSTED_ORIGINS: 'http://localhost:8420' })
+
+    const response = await auth.handler(
+      post('/api/auth/sign-up/email', {
+        ...credentials,
+        callbackURL: `http://${own}:8420/library`,
+      }),
+    )
+
+    expect(response.status).toBe(200)
   })
 
   it('allows a redirect to a configured trusted origin', async () => {
