@@ -11,8 +11,11 @@ import {
 } from 'better-auth/plugins'
 import { apiKey } from '@better-auth/api-key'
 import { passkey } from '@better-auth/passkey'
+import ownOriginsModule from '@FluxServer/env/ownOrigins'
 import type { Env } from '@FluxServer/env/Env'
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings'
+
+const { ownOrigins } = ownOriginsModule
 
 type AuthDatabase = DBAdapter | DBAdapterInstance
 
@@ -59,7 +62,14 @@ const createAuth = ({
     database,
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
-    trustedOrigins: async () => (await settings.read()).trustedOrigins,
+    // What has been configured, and wherever this machine can be reached.
+    // Asked on every request rather than read once, so an address handed out
+    // by a router after the server started is trusted without a restart.
+    trustedOrigins: async () => {
+      const configured = (await settings.read()).trustedOrigins
+
+      return [...configured, ...ownOrigins(configured, env.PORT)]
+    },
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 10,
