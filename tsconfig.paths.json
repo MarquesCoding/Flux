@@ -50,6 +50,7 @@
       "@FluxUI/animations/spin": ["./packages/ui/src/animations/spin.ts"],
       "@FluxUI/blendLights": ["./packages/ui/src/functions/blendLights.ts"],
       "@FluxUI/hasFinePointer": ["./packages/ui/src/functions/hasFinePointer.ts"],
+      "@FluxUI/usePagedScroller": ["./packages/ui/src/functions/usePagedScroller.ts"],
       "@FluxUI/cn": ["./packages/ui/src/functions/cn.ts"],
       "@FluxUI/tokens": ["./packages/ui/src/tokens/tokens.ts"],
       "@FluxWeb/*": ["./apps/web/src/*"]
