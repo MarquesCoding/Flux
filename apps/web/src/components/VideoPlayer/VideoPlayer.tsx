@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   IconAlertTriangle,
   IconPictureInPicture,
@@ -377,6 +377,21 @@ const VideoPlayer = ({
     }, START_RETRY_MILLISECONDS)
   }, [])
 
+  // The last frame of the episode being left, kept up while the next one is
+  // asked for. Tearing a session down blanks the element, and a black
+  // rectangle between two episodes reads as the player breaking rather than
+  // as one thing following another.
+  //
+  // A layout effect because it has to happen before the session's own cleanup
+  // clears the element out from under it.
+  useLayoutEffect(() => {
+    const element = videoRef.current
+
+    if (element !== null && element.readyState > 1) {
+      setHeldFrame(captureFrame(element, document.createElement('canvas')))
+    }
+  }, [media.id])
+
   if (request.mediaId !== media.id) {
     setRequest({
       mediaId: media.id,
@@ -399,10 +414,6 @@ const VideoPlayer = ({
     setIsPlaying(false)
     setPosition(request.startSeconds)
     setReportedDuration(0)
-
-    if (request.startSeconds === 0) {
-      setHeldFrame(null)
-    }
 
     const controller = new AbortController()
     const isAbandoned = () => controller.signal.aborted
