@@ -86,4 +86,21 @@ const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] =
     .sort((left, right) => (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0))
 }
 
-export default { pickFeatured, isEarlier, findSiblings }
+/**
+ * What follows an episode.
+ *
+ * The next one in the same season, and nothing at all for a film or for the
+ * last episode there is. A season that runs on into whatever happened to be
+ * listed next would be worse than stopping.
+ */
+const nextEpisode = (items: MediaSummary[], after: MediaSummary): MediaSummary | null => {
+  const at = after.episodeNumber ?? null
+
+  if (at === null) {
+    return null
+  }
+
+  return findSiblings(items, after).find((item) => (item.episodeNumber ?? 0) > at) ?? null
+}
+
+export default { pickFeatured, isEarlier, findSiblings, nextEpisode }

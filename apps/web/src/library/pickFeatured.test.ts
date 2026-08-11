@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import pickFeaturedModule from './pickFeatured'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 
-const { pickFeatured, isEarlier, findSiblings } = pickFeaturedModule
+const { pickFeatured, isEarlier, findSiblings, nextEpisode } = pickFeaturedModule
 
 let counter = 0
 
@@ -133,5 +133,46 @@ describe('findSiblings', () => {
     const film = itemOf()
 
     expect(findSiblings([film, itemOf()], film)).toEqual([])
+  })
+})
+
+describe('nextEpisode', () => {
+  it('finds the one after this', () => {
+    const second = episodeOf('Show', 1, 2)
+
+    expect(
+      nextEpisode([episodeOf('Show', 1, 1), second, episodeOf('Show', 1, 3)], second)
+        ?.episodeNumber,
+    ).toBe(3)
+  })
+
+  it('finds nothing after the last one there is', () => {
+    const last = episodeOf('Show', 1, 2)
+
+    expect(nextEpisode([episodeOf('Show', 1, 1), last], last)).toBeNull()
+  })
+
+  it('does not run on into the next season, which would be worse than stopping', () => {
+    const finale = episodeOf('Show', 1, 2)
+
+    expect(nextEpisode([finale, episodeOf('Show', 2, 1)], finale)).toBeNull()
+  })
+
+  it('does not run on into another show', () => {
+    const finale = episodeOf('Show', 1, 1)
+
+    expect(nextEpisode([finale, episodeOf('Other', 1, 2)], finale)).toBeNull()
+  })
+
+  it('has nothing to follow a film with', () => {
+    const film = itemOf()
+
+    expect(nextEpisode([film, itemOf()], film)).toBeNull()
+  })
+
+  it('skips a gap where an episode is missing from the library', () => {
+    const first = episodeOf('Show', 1, 1)
+
+    expect(nextEpisode([first, episodeOf('Show', 1, 4)], first)?.episodeNumber).toBe(4)
   })
 })

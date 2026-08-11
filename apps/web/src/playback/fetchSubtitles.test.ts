@@ -3,7 +3,7 @@ import fetchSubtitlesModule from './fetchSubtitles'
 import type { SubtitleTrack } from './fetchSubtitles'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
-const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, SUBTITLES_OFF } =
+const { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, trackForLanguage, SUBTITLES_OFF } =
   fetchSubtitlesModule
 
 const track = (overrides: Partial<SubtitleTrack> = {}): SubtitleTrack => ({
@@ -74,5 +74,29 @@ describe('fetchSubtitleTracks', () => {
     respondWith({ ok: true, body: { tracks: [{ id: 42 }] } })
 
     await expect(fetchSubtitleTracks('media-1')).resolves.toEqual([])
+  })
+})
+
+describe('trackForLanguage', () => {
+  it('continues the language a viewer was already reading', () => {
+    const english = track({ id: 'a', language: 'en' })
+
+    expect(trackForLanguage([track({ id: 'b', language: 'fr' }), english], 'en')?.id).toBe('a')
+  })
+
+  it('matches a language whatever a file calls the region', () => {
+    expect(trackForLanguage([track({ id: 'a', language: 'en-GB' })], 'en')?.id).toBe('a')
+  })
+
+  it('answers with nothing where nobody has chosen a language yet', () => {
+    expect(trackForLanguage([track({ id: 'a', language: 'en' })], null)).toBeNull()
+  })
+
+  it('answers with nothing rather than something else, since a track in a language somebody cannot read is worse than none', () => {
+    expect(trackForLanguage([track({ id: 'a', language: 'hu' })], 'en')).toBeNull()
+  })
+
+  it('answers with nothing for a file that carries no subtitles', () => {
+    expect(trackForLanguage([], 'en')).toBeNull()
   })
 })

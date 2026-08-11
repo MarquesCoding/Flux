@@ -41,9 +41,9 @@ type RowProps = {
 }
 
 const Row = ({ name, children }: RowProps) => (
-  <div className="flex gap-3 py-0.5">
+  <div className="flex gap-3 rounded-md px-1 py-1 transition-colors hover:bg-white/5">
     <dt className="w-40 shrink-0 text-white/50">{name}</dt>
-    <dd className="min-w-0 break-words text-white">{children}</dd>
+    <dd className="min-w-0 break-words font-medium tabular-nums text-white">{children}</dd>
   </div>
 )
 
@@ -72,10 +72,12 @@ const StreamStats = ({
   return (
     <section
       aria-label="Stats for nerds"
-      className="pointer-events-auto max-h-full w-full max-w-lg overflow-y-auto rounded-xl bg-black/70 p-4 text-xs text-white backdrop-blur-md"
+      // The same glass as the bar and the settings panel. These are notes
+      // laid over a film, not a console pasted onto one.
+      className="flux-glass pointer-events-auto max-h-full w-full max-w-lg overflow-y-auto rounded-2xl p-4 text-xs text-white"
     >
-      <header className="mb-2 flex items-center justify-between gap-4">
-        <h3 className="text-sm font-medium">Stats for nerds</h3>
+      <header className="mb-3 flex items-center justify-between gap-4 border-b border-white/10 pb-2">
+        <h3 className="text-sm font-medium tracking-tight">Stats for nerds</h3>
 
         <IconButton label="Close stats" size="sm" onClick={onClose}>
           <IconX size={16} aria-hidden />

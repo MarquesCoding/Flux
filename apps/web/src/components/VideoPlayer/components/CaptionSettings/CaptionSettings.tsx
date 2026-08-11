@@ -1,12 +1,9 @@
-import { IconX } from '@tabler/icons-react'
-import IconButtonModule from '@FluxUI/IconButton'
 import ButtonModule from '@FluxUI/Button'
 import SliderModule from '@FluxUI/Slider'
 import OptionMenuModule from '@FluxUI/OptionMenu'
 import captionStyleModule from '@FluxWeb/playback/captionStyle'
 import type { CaptionSettingsProps } from './CaptionSettings.types'
 
-const { IconButton } = IconButtonModule
 const { Button } = ButtonModule
 const { Slider } = SliderModule
 const { OptionMenu } = OptionMenuModule
@@ -46,19 +43,13 @@ const nameOf = (options: readonly { id: string; label: string }[], id: string): 
  * laptop at arm's length wants neither. The preview is styled with the same
  * CSS the cues get, so what is chosen here is what appears on the film.
  */
-const CaptionSettings = ({ style, onChange, onReset, onClose }: CaptionSettingsProps) => (
+const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => (
   <section
     aria-label="Caption settings"
-    className="pointer-events-auto flex max-h-full w-full max-w-sm flex-col gap-4 overflow-y-auto rounded-xl bg-black/80 p-4 text-sm text-white backdrop-blur-md"
+    // No chrome of its own: this is a page inside the settings panel, and the
+    // panel already carries the glass, the name and the way back.
+    className="flex w-full flex-col gap-4 text-sm text-white"
   >
-    <header className="flex items-center justify-between gap-4">
-      <h3 className="text-base font-medium">Captions</h3>
-
-      <IconButton label="Close caption settings" size="sm" onClick={onClose}>
-        <IconX size={16} aria-hidden />
-      </IconButton>
-    </header>
-
     <p
       aria-label="Caption preview"
       className="rounded-md px-3 py-2 text-center"

@@ -62,7 +62,12 @@ const startPlaybackSession = async (
 
     return {
       kind: 'failed',
-      reason: body.success ? body.data.error : 'Playback could not be started.',
+      // A body that is not an error message is the server rejecting the shape
+      // of the request, which is Flux's fault rather than the file's. Saying
+      // so points whoever is debugging it at the right side.
+      reason: body.success
+        ? body.data.error
+        : `Flux asked for something the server would not accept (${response.status.toString()}).`,
     }
   }
 

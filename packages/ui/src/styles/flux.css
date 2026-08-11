@@ -297,6 +297,21 @@ body {
 }
 
 /*
+ * Glass laid over a film.
+ *
+ * Everything on the player writes in white, whatever the page's theme, because
+ * what is behind it is a picture rather than a page. The light theme's glass
+ * brightens its backdrop, which over a pale frame leaves a white panel with
+ * white lettering on it — so an overlay on film keeps the dark treatment
+ * whichever way the rest of the interface is set.
+ */
+.flux-glass--film {
+  --glass-tint: color-mix(in oklab, black 45%, transparent);
+  --glass-edge: color-mix(in oklab, white 16%, transparent);
+  --glass-brightness: 0.5;
+}
+
+/*
  * Gloss.
  *
  * A control lit from above: brighter at the top, a highlight along its lip,
