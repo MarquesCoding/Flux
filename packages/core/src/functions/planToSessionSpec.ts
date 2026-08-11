@@ -34,7 +34,20 @@ type SessionSpec = {
     | { kind: 'copy' }
     | { kind: 'encode'; encoder: string; channels: number; maxBitrateKbps: number };
   audioStreamIndex?: number;
-  subtitles: { kind: 'none' } | { kind: 'burnIn'; streamIndex: number; isImageBased: boolean };
+  subtitles:
+    | { kind: 'none' }
+    | {
+        kind: 'burnIn';
+        /**
+         * Which subtitle stream, counting only the subtitle streams.
+         *
+         * Not the stream's index in the container. ffmpeg's `subtitles` filter
+         * and its `[0:s:N]` specifier both count subtitles alone, so a file
+         * whose only subtitles sit at container index 2 wants nought here.
+         */
+        subtitleIndex: number;
+        isImageBased: boolean;
+      };
 };
 
 type PlanToSessionSpecOptions = {
@@ -42,6 +55,11 @@ type PlanToSessionSpecOptions = {
   inputPath: string;
   sourceRange: string;
   imageSubtitleIndexes?: number[];
+  /**
+   * Every subtitle stream's container index, in the order the container holds
+   * them, so the one being burned in can be counted among its own kind.
+   */
+  subtitleIndexes?: number[];
   capabilities: Capabilities;
   startSeconds: number;
   segmentSeconds: number;
@@ -129,6 +147,7 @@ const planToSessionSpec = ({
   segmentSeconds,
   audioStreamIndex,
   imageSubtitleIndexes = [],
+  subtitleIndexes = [],
 }: PlanToSessionSpecOptions): SpecOutcome => {
   const isImageBased =
     plan.subtitles.kind === 'burnIn' && imageSubtitleIndexes.includes(plan.subtitles.streamIndex);
@@ -150,7 +169,7 @@ const planToSessionSpec = ({
     plan.subtitles.kind === 'burnIn' && canBurn
       ? {
           kind: 'burnIn',
-          streamIndex: plan.subtitles.streamIndex,
+          subtitleIndex: Math.max(0, subtitleIndexes.indexOf(plan.subtitles.streamIndex)),
           isImageBased,
         }
       : { kind: 'none' };

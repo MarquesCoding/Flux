@@ -237,7 +237,41 @@ describe('planToSessionSpec', () => {
 
     expect(outcome).toMatchObject({
       kind: 'ok',
-      spec: { subtitles: { kind: 'burnIn', streamIndex: 2, isImageBased: false } },
+      spec: { subtitles: { kind: 'burnIn', isImageBased: false } },
+    });
+  });
+
+  it('counts the subtitle among its own kind, not among every stream', () => {
+    const outcome = planToSessionSpec({
+      plan: { ...directPlay, subtitles: { kind: 'burnIn', streamIndex: 4, reason } },
+      inputPath: '/media/a.mkv',
+      sourceRange: 'SDR',
+      capabilities,
+      startSeconds: 0,
+      segmentSeconds: 4,
+      subtitleIndexes: [2, 4, 5],
+    });
+
+    expect(outcome).toMatchObject({
+      kind: 'ok',
+      spec: { subtitles: { kind: 'burnIn', subtitleIndex: 1 } },
+    });
+  });
+
+  it('asks for the first subtitle when a file has exactly one, wherever it sits', () => {
+    const outcome = planToSessionSpec({
+      plan: { ...directPlay, subtitles: { kind: 'burnIn', streamIndex: 2, reason } },
+      inputPath: '/media/a.mkv',
+      sourceRange: 'SDR',
+      capabilities,
+      startSeconds: 0,
+      segmentSeconds: 4,
+      subtitleIndexes: [2],
+    });
+
+    expect(outcome).toMatchObject({
+      kind: 'ok',
+      spec: { subtitles: { kind: 'burnIn', subtitleIndex: 0 } },
     });
   });
 
