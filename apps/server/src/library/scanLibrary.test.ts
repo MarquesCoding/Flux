@@ -57,6 +57,7 @@ const harness = (options: {
   providers?: MetadataProvider[]
   force?: boolean
   onProblem?: (path: string, reason: string) => void
+  onProgress?: (processed: number, total: number) => void
 }) => {
   const rows: MediaRow[] = []
   const removedPaths: string[] = []
@@ -117,6 +118,7 @@ const harness = (options: {
       ...(options.providers === undefined ? {} : { providers: options.providers }),
       ...(options.force === undefined ? {} : { force: options.force }),
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
+      ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
     })
 
   return { run, rows, removedPaths, markScanned }
@@ -359,5 +361,34 @@ describe('scanLibrary', () => {
 
     expect(removedPaths).toEqual(['/gone.mkv'])
     expect(result.removed).toBe(1)
+  })
+
+  it('reports progress against the files it is actually walking, not everything on disk', async () => {
+    const onProgress = vi.fn()
+    const { run } = harness({
+      found: [file('/a.mkv'), file('/b.mkv')],
+      existing: [stored('/a.mkv')],
+      onProgress,
+    })
+
+    await run()
+
+    expect(onProgress).toHaveBeenCalledWith(0, 1)
+    expect(onProgress).toHaveBeenCalledWith(1, 1)
+    expect(onProgress).toHaveBeenCalledTimes(2)
+  })
+
+  it('still counts a failed probe toward progress', async () => {
+    const onProgress = vi.fn()
+    const { run } = harness({
+      found: [file('/a.mkv'), file('/b.mkv')],
+      probeImpl: (path) =>
+        path === '/a.mkv' ? Promise.reject(new Error('boom')) : Promise.resolve(probe()),
+      onProgress,
+    })
+
+    await run()
+
+    expect(onProgress).toHaveBeenLastCalledWith(2, 2)
   })
 })

@@ -9,9 +9,16 @@ const ErrorBodySchema = z.object({ error: z.string() })
 
 const ScanStateSchema = z.enum(['queued', 'running', 'completed', 'failed', 'unknown'])
 const ScanJobSchema = z.object({ jobId: z.string(), state: ScanStateSchema })
+const ScanProgressSchema = z.object({
+  jobId: z.string(),
+  state: ScanStateSchema,
+  processed: z.number().int().nonnegative().nullable(),
+  total: z.number().int().nonnegative().nullable(),
+})
 
 type ScanState = z.infer<typeof ScanStateSchema>
 type ScanJob = z.infer<typeof ScanJobSchema>
+type ScanProgress = z.infer<typeof ScanProgressSchema>
 
 type ListItemsOptions = {
   search?: string
@@ -142,19 +149,19 @@ const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | 
  * never real — is reported as `unknown` rather than thrown on, since that is
  * itself a terminal answer: whatever was watching it should stop.
  */
-const readScanState = async (jobId: string): Promise<ScanState> => {
+const readScanState = async (jobId: string): Promise<ScanProgress> => {
   const response = await fetch(`/api/libraries/scans/${jobId}`, {
     headers: { accept: 'application/json' },
   })
 
   if (!response.ok) {
-    return 'unknown'
+    return { jobId, state: 'unknown', processed: null, total: null }
   }
 
-  return ScanJobSchema.parse(await response.json()).state
+  return ScanProgressSchema.parse(await response.json())
 }
 
-export type { ListItemsOptions, CreateLibraryInput, ScanJob, ScanState }
+export type { ListItemsOptions, CreateLibraryInput, ScanJob, ScanState, ScanProgress }
 
 export default {
   fetchLibraries,

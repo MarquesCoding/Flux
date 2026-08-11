@@ -9,6 +9,13 @@ vi.mock('./fetchLibrary', () => ({
 
 const { waitForScanCompletion } = waitForScanCompletionModule
 
+const progress = (state: string, processed: number | null = null, total: number | null = null) => ({
+  jobId: 'job-1',
+  state,
+  processed,
+  total,
+})
+
 beforeEach(() => {
   readScanStateMock.mockReset()
   vi.useFakeTimers()
@@ -20,7 +27,7 @@ afterEach(() => {
 
 describe('waitForScanCompletion', () => {
   it('returns immediately when the scan is already done', async () => {
-    readScanStateMock.mockResolvedValue('completed')
+    readScanStateMock.mockResolvedValue(progress('completed'))
 
     await waitForScanCompletion('job-1')
 
@@ -29,9 +36,9 @@ describe('waitForScanCompletion', () => {
 
   it('keeps checking in until the scan reaches a terminal state', async () => {
     readScanStateMock
-      .mockResolvedValueOnce('queued')
-      .mockResolvedValueOnce('running')
-      .mockResolvedValueOnce('completed')
+      .mockResolvedValueOnce(progress('queued'))
+      .mockResolvedValueOnce(progress('running', 4, 10))
+      .mockResolvedValueOnce(progress('completed', 10, 10))
 
     const settled = waitForScanCompletion('job-1')
 
@@ -42,7 +49,9 @@ describe('waitForScanCompletion', () => {
   })
 
   it('stops on failure rather than waiting forever', async () => {
-    readScanStateMock.mockResolvedValueOnce('running').mockResolvedValueOnce('failed')
+    readScanStateMock
+      .mockResolvedValueOnce(progress('running', 1, 10))
+      .mockResolvedValueOnce(progress('failed', 2, 10))
 
     const settled = waitForScanCompletion('job-1')
 
@@ -50,5 +59,22 @@ describe('waitForScanCompletion', () => {
     await settled
 
     expect(readScanStateMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('hands every reading to onProgress as it arrives', async () => {
+    readScanStateMock
+      .mockResolvedValueOnce(progress('running', 0, 10))
+      .mockResolvedValueOnce(progress('running', 5, 10))
+      .mockResolvedValueOnce(progress('completed', 10, 10))
+
+    const onProgress = vi.fn()
+    const settled = waitForScanCompletion('job-1', onProgress)
+
+    await vi.runAllTimersAsync()
+    await settled
+
+    expect(onProgress).toHaveBeenNthCalledWith(1, progress('running', 0, 10))
+    expect(onProgress).toHaveBeenNthCalledWith(2, progress('running', 5, 10))
+    expect(onProgress).toHaveBeenNthCalledWith(3, progress('completed', 10, 10))
   })
 })

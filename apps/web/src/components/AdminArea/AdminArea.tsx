@@ -117,7 +117,9 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
   const [isSaving, setIsSaving] = useState(false)
   const [libraries, setLibraries] = useState<Library[]>([])
   const [isAddingLibrary, setIsAddingLibrary] = useState(false)
-  const [scanningLibraryIds, setScanningLibraryIds] = useState<ReadonlySet<string>>(new Set())
+  const [scanProgress, setScanProgress] = useState<
+    ReadonlyMap<string, { processed: number | null; total: number | null }>
+  >(new Map())
   const [isScanningAll, setIsScanningAll] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
@@ -126,30 +128,43 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
     setIsAddingLibrary(false)
   }
 
+  const trackProgress = (libraryId: string, processed: number | null, total: number | null) => {
+    setScanProgress((current) => new Map(current).set(libraryId, { processed, total }))
+  }
+
+  const untrackProgress = (libraryId: string) => {
+    setScanProgress((current) => {
+      const next = new Map(current)
+      next.delete(libraryId)
+
+      return next
+    })
+  }
+
   const rescan = async (libraryId: string) => {
-    setScanningLibraryIds((current) => new Set(current).add(libraryId))
+    trackProgress(libraryId, null, null)
 
     try {
       const job = await scanLibrary(libraryId)
 
       if (job !== null) {
-        await waitForScanCompletion(job.jobId)
+        await waitForScanCompletion(job.jobId, (progress) => {
+          trackProgress(libraryId, progress.processed, progress.total)
+        })
       }
 
       setLibraries(await fetchLibraries())
     } finally {
-      setScanningLibraryIds((current) => {
-        const next = new Set(current)
-        next.delete(libraryId)
-
-        return next
-      })
+      untrackProgress(libraryId)
     }
   }
 
   const rescanAll = async () => {
     setIsScanningAll(true)
-    setScanningLibraryIds(new Set(libraries.map((library) => library.id)))
+
+    for (const library of libraries) {
+      trackProgress(library.id, null, null)
+    }
 
     try {
       await Promise.all(
@@ -157,15 +172,19 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
           const job = await scanLibrary(library.id, true)
 
           if (job !== null) {
-            await waitForScanCompletion(job.jobId)
+            await waitForScanCompletion(job.jobId, (progress) => {
+              trackProgress(library.id, progress.processed, progress.total)
+            })
           }
+
+          untrackProgress(library.id)
         }),
       )
 
       setLibraries(await fetchLibraries())
     } finally {
       setIsScanningAll(false)
-      setScanningLibraryIds(new Set())
+      setScanProgress(new Map())
     }
   }
 
@@ -478,7 +497,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                       size="sm"
                       isPill
                       isLoading={isScanningAll}
-                      disabled={libraries.length === 0 || scanningLibraryIds.size > 0}
+                      disabled={libraries.length === 0 || scanProgress.size > 0}
                       onClick={() => {
                         void rescanAll()
                       }}
@@ -508,6 +527,8 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                 ) : (
                   <ul className="divide-y divide-white/5">
                     {libraries.map((library) => {
+                      const progress = scanProgress.get(library.id)
+
                       return (
                         <li
                           key={library.id}
@@ -528,9 +549,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                           </div>
 
                           <div className="flex shrink-0 items-center gap-2">
-                            {scanningLibraryIds.has(library.id) ? (
-                              <ScanProgressBar label={`Scanning ${library.name}`} />
-                            ) : (
+                            {progress === undefined ? (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -542,6 +561,12 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                                 <IconRefresh size={16} aria-hidden />
                                 Scan
                               </Button>
+                            ) : (
+                              <ScanProgressBar
+                                label={`Scanning ${library.name}`}
+                                processed={progress.processed}
+                                total={progress.total}
+                              />
                             )}
                           </div>
                         </li>

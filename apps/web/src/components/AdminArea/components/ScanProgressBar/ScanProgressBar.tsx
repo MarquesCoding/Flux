@@ -1,19 +1,47 @@
+import cnModule from '@FluxUI/cn'
 import type { ScanProgressBarProps } from './ScanProgressBar.types'
 
+const { cn } = cnModule
+
 /**
- * Shows that a scan is under way.
+ * How far through a scan actually is.
  *
- * Fills without a fraction because a scan does not report one: nothing about
- * walking a directory says how far through it is until it is done. What this
- * says is that it is still going, not how much is left.
+ * Filled by a real fraction once the walk has counted its files, rather than
+ * an animation standing in for one: an operator watching a library of ten
+ * thousand files wants to know it is nearly there, not just that it is still
+ * going.
  */
-const ScanProgressBar = ({ label }: ScanProgressBarProps) => (
-  <div role="progressbar" aria-label={label} className="flex w-32 shrink-0 flex-col justify-center">
-    <span className="block h-1.5 overflow-hidden rounded-full bg-white/10">
-      <span className="block h-full w-full animate-pulse rounded-full bg-accent" />
-    </span>
-  </div>
-)
+const ScanProgressBar = ({ label, processed, total }: ScanProgressBarProps) => {
+  const isKnown = processed !== null && total !== null && total > 0
+  const fraction = isKnown ? Math.min(processed / total, 1) : 0
+
+  return (
+    <div
+      role="progressbar"
+      aria-label={label}
+      {...(isKnown
+        ? { 'aria-valuenow': processed, 'aria-valuemin': 0, 'aria-valuemax': total }
+        : {})}
+      className="flex w-32 shrink-0 items-center gap-2"
+    >
+      <span className="block h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+        <span
+          style={isKnown ? { width: `${(fraction * 100).toString()}%` } : undefined}
+          className={cn(
+            'block h-full rounded-full bg-accent',
+            isKnown ? 'transition-[width] duration-300' : 'w-full animate-pulse',
+          )}
+        />
+      </span>
+
+      {isKnown ? (
+        <span className="shrink-0 text-xs tabular-nums text-text-muted">
+          {processed}/{total}
+        </span>
+      ) : null}
+    </div>
+  )
+}
 
 ScanProgressBar.displayName = 'ScanProgressBar'
 

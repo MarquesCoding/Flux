@@ -1,5 +1,5 @@
 import fetchLibraryModule from './fetchLibrary'
-import type { ScanState } from './fetchLibrary'
+import type { ScanProgress, ScanState } from './fetchLibrary'
 
 const { readScanState } = fetchLibraryModule
 
@@ -12,17 +12,23 @@ const POLL_INTERVAL_MS = 800
  * A scan is queued and answered for immediately, long before the walk it
  * describes is done. Polled rather than pushed: one more scan is not worth a
  * stream of its own, so this checks in occasionally until the state stops
- * changing.
+ * changing, handing each reading to `onProgress` along the way.
  */
-const waitForScanCompletion = async (jobId: string): Promise<void> => {
-  let state = await readScanState(jobId)
+const waitForScanCompletion = async (
+  jobId: string,
+  onProgress?: (progress: ScanProgress) => void,
+): Promise<void> => {
+  let progress = await readScanState(jobId)
 
-  while (!TERMINAL_STATES.has(state)) {
+  onProgress?.(progress)
+
+  while (!TERMINAL_STATES.has(progress.state)) {
     await new Promise((resolve) => {
       setTimeout(resolve, POLL_INTERVAL_MS)
     })
 
-    state = await readScanState(jobId)
+    progress = await readScanState(jobId)
+    onProgress?.(progress)
   }
 }
 
