@@ -50,7 +50,7 @@ const PopoverPanel = ({
         <Popover.Popup
           aria-label={label}
           className={cn(
-            'flux-glass flex max-h-[70vh] flex-col overflow-hidden rounded-2xl p-3 text-white',
+            'flux-glass flux-glass--film flex max-h-[70vh] flex-col overflow-hidden rounded-2xl p-3 text-white',
             className,
           )}
         >
