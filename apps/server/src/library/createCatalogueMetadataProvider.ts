@@ -361,4 +361,4 @@ const createCatalogueMetadataProvider = ({
 
 export type { CreateCatalogueMetadataProviderOptions, Fetcher };
 
-export { createCatalogueMetadataProvider, readYear, imageUrl, CAST_LIMIT };
+export { createCatalogueMetadataProvider, readYear, imageUrl, CAST_LIMIT, isAccessToken };

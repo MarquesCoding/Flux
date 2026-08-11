@@ -76,30 +76,24 @@ type ScanLibraryOptions = {
    * files better, the only way to pick the change up is to ask again.
    */
   force?: boolean;
-  /**
-   * What seek previews should look like.
-   *
-   * Rendered here rather than when someone presses play, because a feature
-   * length film takes minutes to draw and a viewer must never wait on it.
-   * Omitted, no previews are drawn — which is what the tests want.
-   */
-  trickplay?: {
-    intervalSeconds: number;
-    tileWidth: number;
-    columns: number;
-    rows: number;
-  };
   onProblem?: (path: string, reason: string) => void;
   /**
-   * Told after every file, changed or not, how far the current stage is —
-   * probing files, then generating trickplay and previews for what was
-   * imported. Each stage counts from zero rather than continuing the last
-   * one's total, since they are different work with different sizes.
+   * Told after every file how far probing has got.
    */
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
 };
 
-const SCAN_PHASES = ['probing', 'previews'] as const;
+/**
+ * Bringing the database in line with the filesystem is all this does.
+ *
+ * Previews, thumbnail sheets and intro detection used to be rendered from
+ * here, for whatever a scan happened to import. That made them unreachable
+ * for anything a scan did not touch — a file whose render failed once looked
+ * scanned forever and was never tried again. They are their own jobs now,
+ * each working from what is outstanding rather than from what was just
+ * imported, and the scan job runs them in turn. See `mediaItemJob`.
+ */
+const SCAN_PHASES = ['probing'] as const;
 
 type ScanPhase = (typeof SCAN_PHASES)[number];
 
@@ -147,7 +141,6 @@ const scanLibrary = async ({
   transcoder,
   providers = [createFilenameMetadataProvider()],
   force = false,
-  trickplay,
   onProblem,
   onProgress,
 }: ScanLibraryOptions): Promise<ScanResult> => {
@@ -160,7 +153,6 @@ const scanLibrary = async ({
   const knownPaths = new Set(stored.map((item) => item.path));
   const storedByPath = new Map(stored.map((item) => [item.path, item]));
 
-  const imported: string[] = [];
   let added = 0;
   let updated = 0;
   let failed = 0;
@@ -209,8 +201,6 @@ const scanLibrary = async ({
         episode,
       });
 
-      imported.push(file.path);
-
       if (knownPaths.has(file.path)) {
         updated += 1;
       } else {
@@ -222,27 +212,6 @@ const scanLibrary = async ({
     } finally {
       probed += 1;
       onProgress?.('probing', probed, changed.length);
-    }
-  }
-
-  if (trickplay !== undefined) {
-    let previewed = 0;
-
-    onProgress?.('previews', previewed, imported.length);
-
-    for (const path of imported) {
-      await transcoder
-        .requestTrickplay({ inputPath: path, ...trickplay, wait: true })
-        .catch((error: Error) => {
-          onProblem?.(path, error.message);
-        });
-
-      await transcoder.requestPreview({ inputPath: path, wait: true }).catch((error: Error) => {
-        onProblem?.(path, error.message);
-      });
-
-      previewed += 1;
-      onProgress?.('previews', previewed, imported.length);
     }
   }
 

@@ -10,7 +10,16 @@ import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
 import { VideoSurface } from '@FluxUI/VideoSurface';
 import { detectFromBrowser } from '@FluxWeb/playback/detectDeviceProfile';
-import { startPlaybackSession, stopPlaybackSession } from '@FluxWeb/playback/startPlaybackSession';
+import { detectFromNavigator } from '@FluxWeb/playback/detectClientLabel';
+import { readClientId } from '@FluxWeb/presence/clientIdentity';
+import { onPresenceEvent } from '@FluxWeb/presence/presenceEvents';
+import {
+  startPlaybackSession,
+  stopPlaybackSession,
+  stopWatching,
+  heartbeatPlaybackSession,
+  sendPresenceHeartbeat,
+} from '@FluxWeb/playback/startPlaybackSession';
 import { attachShaka } from '@FluxWeb/playback/attachShaka';
 import {
   watchCastState,
@@ -51,6 +60,7 @@ import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
 import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview';
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
+import { AdminMessageOverlay } from './components/AdminMessageOverlay/AdminMessageOverlay';
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay';
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions';
 import type { CastState } from '@FluxWeb/playback/castPlayback.types';
@@ -97,6 +107,25 @@ const JUMP_SECONDS = 30;
 const FINISHED_WITHIN_SECONDS = 90;
 
 const HEALTH_INTERVAL_MILLISECONDS = 500;
+
+/**
+ * How often the player tells the server a session is still wanted.
+ *
+ * Sent regardless of pause state — the server's idle timeout allows three
+ * missed heartbeats, so this has to be well under a third of that to give a
+ * genuine hiccup room to recover before a session is reaped.
+ */
+const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000;
+
+/**
+ * How often presence is told where this tab actually is in the film.
+ *
+ * Much faster than the liveness heartbeat above: that one only has to arrive
+ * before the idle reaper's patience runs out, but an admin watching a
+ * progress bar notices anything slower than about a second, and a scrub
+ * jumps the position outside the normal rate of change entirely.
+ */
+const PRESENCE_HEALTH_INTERVAL_MILLISECONDS = 1000;
 
 /**
  * How long to let a change settle before asking for the cue again.
@@ -165,6 +194,10 @@ const VideoPlayer = ({
   const [session, setSession] = useState<StartedSession | null>(null);
   const [state, setState] = useState<PlayerState>('starting');
   const [problem, setProblem] = useState<string | null>(null);
+  const [adminMessage, setAdminMessage] = useState<{
+    kind: 'stopped' | 'paused';
+    reason: string;
+  } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [reportedDuration, setReportedDuration] = useState(0);
@@ -510,6 +543,46 @@ const VideoPlayer = ({
     });
   }
 
+  /**
+   * Tells presence whether this tab is playing, and what it can measure
+   * about the stream right now.
+   *
+   * Shared by the periodic heartbeat and the immediate one sent on every
+   * play/pause and session change, so a track or quality change — which
+   * tears the old session down and starts a new one — never leaves the
+   * admin's progress bar without a position for up to a whole heartbeat
+   * interval.
+   */
+  const reportPresenceHeartbeat = useCallback(
+    (clientId: string, startSeconds: number) => {
+      const current = videoRef.current;
+      const playing = current !== null && !current.paused;
+
+      if (current === null) {
+        void sendPresenceHeartbeat(clientId, playing);
+
+        return;
+      }
+
+      const measured = readPlaybackHealth(current, startSeconds);
+      const totalDuration =
+        media.durationSeconds > 0
+          ? media.durationSeconds
+          : Number.isFinite(current.duration)
+            ? current.duration
+            : 0;
+
+      void sendPresenceHeartbeat(clientId, playing, {
+        positionSeconds: measured.positionSeconds,
+        durationSeconds: totalDuration,
+        bufferedAheadSeconds: measured.bufferedAheadSeconds,
+        presentedWidth: measured.presentedWidth,
+        presentedHeight: measured.presentedHeight,
+      });
+    },
+    [media.durationSeconds],
+  );
+
   useEffect(() => {
     setSession(null);
     setState('starting');
@@ -522,11 +595,28 @@ const VideoPlayer = ({
     const isAbandoned = () => controller.signal.aborted;
     let teardown: (() => Promise<void>) | null = null;
     let startedId: string | null = null;
+    let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+    let presenceHealthInterval: ReturnType<typeof setInterval> | null = null;
+    const clientId = readClientId();
+
+    const onPageHide = () => {
+      if (startedId !== null) {
+        void fetch(`/api/playback/session/${startedId}`, {
+          method: 'DELETE',
+          keepalive: true,
+        }).catch(() => undefined);
+      }
+
+      void stopWatching(clientId, true);
+    };
+
+    window.addEventListener('pagehide', onPageHide);
 
     const run = async () => {
       const outcome = await startPlaybackSession(
         request.mediaId,
-        detectFromBrowser(),
+        detectFromBrowser(detectFromNavigator()),
+        clientId,
         request.startSeconds,
         request.audioStreamIndex,
         request.requestedQuality,
@@ -545,6 +635,22 @@ const VideoPlayer = ({
 
       startedId = outcome.session.sessionId;
       setSession(outcome.session);
+
+      const sessionId = startedId;
+      const isHls = outcome.session.delivery.kind !== 'direct';
+
+      heartbeatInterval = setInterval(() => {
+        if (isHls) {
+          const current = videoRef.current;
+          const playing = current !== null && !current.paused;
+
+          void heartbeatPlaybackSession(sessionId, playing);
+        }
+      }, HEARTBEAT_INTERVAL_MILLISECONDS);
+
+      presenceHealthInterval = setInterval(() => {
+        reportPresenceHeartbeat(clientId, request.startSeconds);
+      }, PRESENCE_HEALTH_INTERVAL_MILLISECONDS);
 
       const element = videoRef.current;
 
@@ -581,8 +687,11 @@ const VideoPlayer = ({
 
     return () => {
       controller.abort();
+      window.removeEventListener('pagehide', onPageHide);
       clearInterval(startTimerRef.current ?? undefined);
       startTimerRef.current = null;
+      clearInterval(heartbeatInterval ?? undefined);
+      clearInterval(presenceHealthInterval ?? undefined);
       void teardown?.();
       releaseRef.current = null;
 
@@ -591,6 +700,46 @@ const VideoPlayer = ({
       }
     };
   }, [request, start]);
+
+  useEffect(
+    () =>
+      onPresenceEvent((event) => {
+        const element = videoRef.current;
+
+        if (event.kind === 'stopped') {
+          element?.pause();
+          setAdminMessage({ kind: 'stopped', reason: event.reason });
+
+          return;
+        }
+
+        if (event.kind === 'paused') {
+          element?.pause();
+          setAdminMessage({ kind: 'paused', reason: event.reason });
+
+          return;
+        }
+
+        setAdminMessage((current) => (current?.kind === 'paused' ? null : current));
+        void element?.play();
+      }),
+    [],
+  );
+
+  useEffect(() => {
+    if (session === null) {
+      return;
+    }
+
+    void sendPresenceHeartbeat(readClientId(), isPlaying);
+  }, [isPlaying, session]);
+
+  useEffect(
+    () => () => {
+      void stopWatching(readClientId());
+    },
+    [],
+  );
 
   useEffect(() => {
     let abandoned = false;
@@ -1168,6 +1317,22 @@ const VideoPlayer = ({
               Bring it back
             </Button>
           </div>
+        )}
+
+        {adminMessage === null ? null : (
+          <AdminMessageOverlay
+            kind={adminMessage.kind}
+            reason={adminMessage.reason}
+            onDismiss={() => {
+              const wasStopped = adminMessage.kind === 'stopped';
+
+              setAdminMessage(null);
+
+              if (wasStopped) {
+                onClose();
+              }
+            }}
+          />
         )}
 
         {castNote === null ? null : (

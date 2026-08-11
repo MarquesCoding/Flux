@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { startPlaybackSession, stopPlaybackSession, describeWhy } from './startPlaybackSession';
+import {
+  startPlaybackSession,
+  stopPlaybackSession,
+  stopWatching,
+  heartbeatPlaybackSession,
+  sendPresenceHeartbeat,
+  describeWhy,
+} from './startPlaybackSession';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
@@ -16,6 +23,7 @@ const fetchMock = vi.fn<FetchLike>();
 
 const SentBodySchema = z.object({
   deviceProfile: z.object({ name: z.string() }),
+  clientId: z.string(),
   startSeconds: z.number(),
   requestedQuality: z.string().optional(),
 });
@@ -28,7 +36,7 @@ const plan: PlaybackPlan = {
   mediaId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
   container: { kind: 'passthrough', reason },
   video: { kind: 'passthrough', reason },
-  audio: { kind: 'passthrough', reason },
+  audio: { kind: 'passthrough', streamIndex: 1, reason },
   subtitles: { kind: 'none', reason },
 };
 
@@ -67,31 +75,31 @@ afterEach(() => {
 
 describe('startPlaybackSession', () => {
   it('returns the session on success', async () => {
-    const outcome = await startPlaybackSession('media-1', profile);
+    const outcome = await startPlaybackSession('media-1', profile, 'client-1');
 
     expect(outcome).toMatchObject({ kind: 'started', session: { sessionId: 'abc' } });
   });
 
   it('sends the device profile with the request', async () => {
-    await startPlaybackSession('media-1', profile);
+    await startPlaybackSession('media-1', profile, 'client-1');
 
     expect(sentBody()).toMatchObject({ deviceProfile: { name: 'Browser' }, startSeconds: 0 });
   });
 
   it('sends a seek position when given one', async () => {
-    await startPlaybackSession('media-1', profile, 120);
+    await startPlaybackSession('media-1', profile, 'client-1', 120);
 
     expect(sentBody()).toMatchObject({ startSeconds: 120 });
   });
 
   it('sends the requested quality when it is not Original', async () => {
-    await startPlaybackSession('media-1', profile, 0, undefined, '720p');
+    await startPlaybackSession('media-1', profile, 'client-1', 0, undefined, '720p');
 
     expect(sentBody().requestedQuality).toBe('720p');
   });
 
   it('omits the requested quality for Original', async () => {
-    await startPlaybackSession('media-1', profile, 0, undefined, 'original');
+    await startPlaybackSession('media-1', profile, 'client-1', 0, undefined, 'original');
 
     expect(sentBody().requestedQuality).toBeUndefined();
   });
@@ -103,7 +111,7 @@ describe('startPlaybackSession', () => {
       json: () => Promise.resolve({ error: 'This server has no working encoder for h264.' }),
     });
 
-    await expect(startPlaybackSession('media-1', profile)).resolves.toMatchObject({
+    await expect(startPlaybackSession('media-1', profile, 'client-1')).resolves.toMatchObject({
       kind: 'failed',
       reason: 'This server has no working encoder for h264.',
     });
@@ -112,7 +120,7 @@ describe('startPlaybackSession', () => {
   it('reports an unreachable server', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(startPlaybackSession('media-1', profile)).resolves.toMatchObject({
+    await expect(startPlaybackSession('media-1', profile, 'client-1')).resolves.toMatchObject({
       kind: 'failed',
       reason: 'Could not reach the server.',
     });
@@ -129,7 +137,7 @@ describe('startPlaybackSession', () => {
         }),
     });
 
-    await expect(startPlaybackSession('media-1', profile)).resolves.toMatchObject({
+    await expect(startPlaybackSession('media-1', profile, 'client-1')).resolves.toMatchObject({
       kind: 'started',
       session: { delivery: { kind: 'direct' } },
     });
@@ -142,7 +150,7 @@ describe('startPlaybackSession', () => {
       json: () => Promise.resolve({ sessionId: 'abc' }),
     });
 
-    const outcome = await startPlaybackSession('media-1', profile);
+    const outcome = await startPlaybackSession('media-1', profile, 'client-1');
 
     expect(outcome).toMatchObject({
       kind: 'failed',
@@ -162,6 +170,68 @@ describe('stopPlaybackSession', () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
     await expect(stopPlaybackSession('abc')).resolves.toBeUndefined();
+  });
+});
+
+describe('stopWatching', () => {
+  it('tells presence a tab has genuinely stopped watching', async () => {
+    await stopWatching('client-1');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/presence/client-1/watching', {
+      method: 'DELETE',
+      keepalive: false,
+    });
+  });
+
+  it('can be sent with keepalive, for a tab that is actually closing', async () => {
+    await stopWatching('client-1', true);
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/presence/client-1/watching', {
+      method: 'DELETE',
+      keepalive: true,
+    });
+  });
+
+  it('does not throw when the server is unreachable', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(stopWatching('client-1')).resolves.toBeUndefined();
+  });
+});
+
+describe('heartbeatPlaybackSession', () => {
+  it('tells the server the session is still wanted, and whether it is playing', async () => {
+    await heartbeatPlaybackSession('abc', false);
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc/heartbeat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ isPlaying: false }),
+    });
+  });
+
+  it('does not throw when the server is unreachable', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(heartbeatPlaybackSession('abc', true)).resolves.toBeUndefined();
+  });
+});
+
+describe('sendPresenceHeartbeat', () => {
+  it('tells presence whether this tab is playing', async () => {
+    await sendPresenceHeartbeat('client-1', true);
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/presence/client-1/heartbeat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ isPlaying: true }),
+    });
+  });
+
+  it('does not throw when the server is unreachable', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(sendPresenceHeartbeat('client-1', true)).resolves.toBeUndefined();
   });
 });
 
@@ -197,6 +267,7 @@ describe('describeWhy', () => {
       },
       audio: {
         kind: 'transcode',
+        streamIndex: 1,
         codec: 'aac',
         channels: 2,
         maxBitrateKbps: 256,

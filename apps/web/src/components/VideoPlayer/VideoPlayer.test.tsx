@@ -9,6 +9,9 @@ import type * as TrickplayModule from '@FluxWeb/playback/fetchTrickplay';
 
 const startMock = vi.hoisted(() => vi.fn());
 const stopMock = vi.hoisted(() => vi.fn());
+const stopWatchingMock = vi.hoisted(() => vi.fn());
+const heartbeatMock = vi.hoisted(() => vi.fn());
+const presenceHeartbeatMock = vi.hoisted(() => vi.fn());
 const attachMock = vi.hoisted(() => vi.fn());
 const teardownMock = vi.hoisted(() => vi.fn());
 const trickplayMock = vi.hoisted(() => vi.fn());
@@ -25,6 +28,9 @@ vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   return {
     startPlaybackSession: startMock,
     stopPlaybackSession: stopMock,
+    stopWatching: stopWatchingMock,
+    heartbeatPlaybackSession: heartbeatMock,
+    sendPresenceHeartbeat: presenceHeartbeatMock,
     describeWhy: actual.describeWhy,
   };
 });
@@ -35,6 +41,10 @@ vi.mock('@FluxWeb/playback/attachShaka', () => ({
 
 vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
   detectFromBrowser: () => ({ name: 'Browser' }),
+}));
+
+vi.mock('@FluxWeb/presence/clientIdentity', () => ({
+  readClientId: () => 'client-1',
 }));
 
 vi.mock('@FluxWeb/playback/captureFrame', () => ({
@@ -80,7 +90,7 @@ const transcodingPlan: PlaybackPlan = {
     maxHeight: 1080,
     reason: { code: 'VideoCodecNotSupported', detail: 'Client does not support hevc' },
   },
-  audio: { kind: 'passthrough', reason },
+  audio: { kind: 'passthrough', streamIndex: 1, reason },
   subtitles: { kind: 'none', reason },
 };
 
@@ -135,6 +145,7 @@ const startedSession: {
 beforeEach(() => {
   startMock.mockReset();
   stopMock.mockReset();
+  stopWatchingMock.mockReset();
   attachMock.mockReset();
   teardownMock.mockReset();
   trickplayMock.mockReset();
@@ -151,6 +162,10 @@ beforeEach(() => {
   startMock.mockResolvedValue({ kind: 'started', session: startedSession });
   attachMock.mockResolvedValue(teardownMock);
   stopMock.mockResolvedValue(undefined);
+  stopWatchingMock.mockResolvedValue(undefined);
+
+  heartbeatMock.mockReset();
+  heartbeatMock.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -179,6 +194,7 @@ describe('VideoPlayer', () => {
       expect(startMock).toHaveBeenCalledWith(
         'media-1',
         { name: 'Browser' },
+        'client-1',
         0,
         undefined,
         'original',
@@ -278,6 +294,124 @@ describe('VideoPlayer', () => {
       expect(stopMock).toHaveBeenCalledWith('abc');
     });
     expect(teardownMock).toHaveBeenCalled();
+    expect(stopWatchingMock).toHaveBeenCalledWith('client-1');
+  });
+
+  it('does not say a tab has stopped watching just for changing quality or track', async () => {
+    const actor = userEvent.setup();
+    detailMock.mockResolvedValue({
+      id: 'media-1',
+      libraryId: 'library-1',
+      title: 'Arrival',
+      year: 2016,
+      container: 'mkv',
+      durationSeconds: 7200,
+      videoCodec: 'hevc',
+      videoRange: 'HDR10',
+      width: 1920,
+      height: 1080,
+      bitrateKbps: 12000,
+      subtitleStreams: [],
+      addedAt: '2026-08-10T00:00:00.000Z',
+      metadata: { hasPoster: false, hasBackdrop: false },
+      audioStreams: [
+        { index: 1, codec: 'aac', channels: 2, language: 'jpn', isDefault: true, isAtmos: false },
+        { index: 2, codec: 'ac3', channels: 6, language: 'eng', isDefault: false, isAtmos: false },
+      ],
+    });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    await settled();
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Audio track/ }));
+    await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }));
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(2);
+    });
+
+    expect(stopWatchingMock).not.toHaveBeenCalled();
+  });
+
+  it('sends a heartbeat on a fixed interval, whether or not the player is paused', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    await act(async () => {
+      await vi.waitFor(() => expect(attachMock).toHaveBeenCalled());
+    });
+
+    const element = document.querySelector('video');
+
+    Object.defineProperty(element, 'paused', { configurable: true, value: true });
+
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+
+    expect(heartbeatMock).toHaveBeenCalledWith('abc', false);
+
+    vi.useRealTimers();
+  });
+
+  it('stops sending heartbeats once the session ends', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    const { unmount } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    await act(async () => {
+      await vi.waitFor(() => expect(attachMock).toHaveBeenCalled());
+    });
+
+    unmount();
+    heartbeatMock.mockClear();
+
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+
+    expect(heartbeatMock).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+
+  it('stops the session with a keepalive request when the tab actually closes', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(attachMock).toHaveBeenCalled();
+    });
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc', {
+      method: 'DELETE',
+      keepalive: true,
+    });
+    expect(stopWatchingMock).toHaveBeenCalledWith('client-1', true);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('does not send a keepalive stop before a session has actually started', () => {
+    const fetchMock = vi.fn();
+
+    vi.stubGlobal('fetch', fetchMock);
+    startMock.mockReturnValue(new Promise(() => undefined));
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    expect(stopWatchingMock).toHaveBeenCalledWith('client-1', true);
+
+    vi.unstubAllGlobals();
   });
 
   it('can be closed', async () => {
@@ -466,6 +600,7 @@ describe('VideoPlayer', () => {
       expect(startMock).toHaveBeenCalledWith(
         'media-1',
         { name: 'Browser' },
+        'client-1',
         3600,
         undefined,
         'original',
@@ -502,6 +637,7 @@ describe('VideoPlayer', () => {
       expect(startMock).toHaveBeenCalledWith(
         'media-1',
         { name: 'Browser' },
+        'client-1',
         3600,
         undefined,
         'original',
@@ -886,7 +1022,14 @@ describe('VideoPlayer', () => {
     await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }));
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith('media-1', { name: 'Browser' }, 2400, 2, 'original');
+      expect(startMock).toHaveBeenCalledWith(
+        'media-1',
+        { name: 'Browser' },
+        'client-1',
+        2400,
+        2,
+        'original',
+      );
     });
   });
 
@@ -958,7 +1101,7 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} startSeconds={2103.4567} onClose={vi.fn()} />);
     await settled();
 
-    expect(startMock.mock.calls.at(-1)?.[2]).toBe(2103);
+    expect(startMock.mock.calls.at(-1)?.[3]).toBe(2103);
   });
 
   it('says where the viewer has got to as they get there', async () => {

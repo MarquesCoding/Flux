@@ -10,6 +10,9 @@ import type { TextFieldProps } from './TextField.types';
  * UI's `Field`, which owns the part that is easy to get subtly wrong: which
  * element describes which, and what a reader is told when a field goes invalid.
  * What is left here is what the field looks like.
+ *
+ * A `time` field is told the surface under it is dark, because the browser
+ * paints the clock button it draws for itself for a light page otherwise.
  */
 const TextField = ({
   label,
@@ -21,6 +24,8 @@ const TextField = ({
   placeholder,
   required = false,
   disabled = false,
+  min,
+  max,
   autoComplete,
   isPill = false,
   size = 'md',
@@ -52,6 +57,8 @@ const TextField = ({
         placeholder={placeholder}
         required={required}
         {...(autoComplete === undefined ? {} : { autoComplete })}
+        {...(min === undefined ? {} : { min })}
+        {...(max === undefined ? {} : { max })}
         onValueChange={(next) => {
           onValueChange(next);
         }}
@@ -71,6 +78,7 @@ const TextField = ({
                 ? 'h-16 px-6 text-lg'
                 : 'h-10 px-3 text-sm',
           isBare && size === 'xl' ? 'text-2xl tracking-tight sm:text-3xl' : '',
+          type === 'time' ? '[color-scheme:dark]' : '',
           isBare ? '' : isPill ? 'rounded-full' : 'rounded-xl',
           error === undefined ? '' : 'border-danger',
         )}

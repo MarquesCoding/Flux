@@ -17,6 +17,8 @@ const films: Library = {
   path: '/media/films',
   itemCount: 0,
   lastScannedAt: null,
+
+  defaultAudioLanguage: null,
 };
 
 beforeEach(() => {

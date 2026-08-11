@@ -256,8 +256,28 @@ async fn read_version(ffmpeg: &str) -> String {
         .to_owned()
 }
 
+/// Cached across every call for the life of the process.
+///
+/// What a machine can encode does not change between one request and the
+/// next, but detecting it verifies each candidate by actually running it
+/// through `FFmpeg` — a handful of process spawns that make every admin page
+/// load feel slow if repeated on every request. There is exactly one `FFmpeg`
+/// binary configured for the process's whole life, so a single cache is
+/// correct regardless of how many callers ask.
+static CACHE: tokio::sync::OnceCell<Capabilities> = tokio::sync::OnceCell::const_new();
+
 /// Detects what this machine can encode, verifying each candidate by encoding.
+///
+/// Only actually runs the detection once; every call after the first reuses
+/// the cached result. See `CACHE`.
 pub async fn detect_capabilities(ffmpeg: &str) -> Capabilities {
+    CACHE
+        .get_or_init(|| detect_capabilities_uncached(ffmpeg))
+        .await
+        .clone()
+}
+
+async fn detect_capabilities_uncached(ffmpeg: &str) -> Capabilities {
     let listed = match Command::new(ffmpeg)
         .args(["-hide_banner", "-encoders"])
         .output()

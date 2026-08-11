@@ -55,6 +55,10 @@ type CreateLibraryInput = {
   path: string;
 };
 
+type UpdateLibraryInput = {
+  defaultAudioLanguage: string | null;
+};
+
 /**
  * The library as the HTTP layer sees it.
  *
@@ -65,6 +69,13 @@ type CreateLibraryInput = {
 type LibraryService = ShowService & {
   list: () => Promise<Library[]>;
   create: (input: CreateLibraryInput) => Promise<Library | null>;
+  /**
+   * Changes a library's settings, such as which language its audio track
+   * selection should prefer.
+   *
+   * Null means there is no such library.
+   */
+  update: (libraryId: string, input: UpdateLibraryInput) => Promise<Library | null>;
   listItems: (
     libraryId: string,
     options: ListItemsOptions,
@@ -90,6 +101,27 @@ type LibraryService = ShowService & {
    */
   reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   /**
+   * Queues preview regeneration against the library's current forced audio
+   * language, without a full rescan.
+   *
+   * Null means there is no such library.
+   */
+  regeneratePreviews: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
+  /**
+   * Queues regeneration of every scrubbing thumbnail sheet, without a full
+   * rescan.
+   *
+   * Null means there is no such library.
+   */
+  regenerateTrickplay: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
+  /**
+   * Queues intro/outro (segment) detection against already-scanned media,
+   * without a full rescan.
+   *
+   * Null means there is no such library.
+   */
+  detectSegments: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
+  /**
    * How a queued scan is getting on.
    *
    * `phase`/`processed`/`total` are null until the scan has reported
@@ -113,6 +145,6 @@ type LibraryService = ShowService & {
 
 const DEFAULT_LIMIT = 60;
 
-export type { CreateLibraryInput, LibraryService, ListItemsOptions };
+export type { CreateLibraryInput, LibraryService, ListItemsOptions, UpdateLibraryInput };
 
 export { DEFAULT_LIMIT };

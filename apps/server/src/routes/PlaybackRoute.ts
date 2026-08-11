@@ -3,7 +3,6 @@ import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
 import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile';
 import { QualityStepIdSchema } from '@FluxContracts/schemas/QualityStep';
 import { PLAYBACK_MODES } from '@FluxContracts/functions/describePlaybackMode';
-
 const PlaybackError = z.object({ error: z.string() }).openapi('PlaybackError');
 
 const ExplainResponse = z
@@ -13,6 +12,7 @@ const ExplainResponse = z
 const StartRequest = z
   .object({
     deviceProfile: DeviceProfileSchema,
+    clientId: z.string().min(1).optional(),
     startSeconds: z.number().int().nonnegative().optional(),
     audioStreamIndex: z.number().int().nonnegative().optional(),
     requestedQuality: QualityStepIdSchema.optional(),
@@ -121,9 +121,43 @@ const stopRoute = createRoute({
   path: '/api/playback/session/{sessionId}',
   tags: ['Playback'],
   summary: 'Stop a playback session',
-  request: { params: z.object({ sessionId: z.string().min(1) }) },
+  request: {
+    params: z.object({ sessionId: z.string().min(1) }),
+  },
   responses: {
     204: { description: 'The session was stopped' },
+    404: {
+      description: 'No such session',
+      content: { 'application/json': { schema: PlaybackError } },
+    },
+  },
+});
+
+const HeartbeatRequest = z
+  .object({
+    isPlaying: z.boolean(),
+  })
+  .openapi('PlaybackHeartbeatRequest');
+
+/**
+ * Tells the server a session is still wanted.
+ *
+ * The authoritative liveness signal, sent on a fixed interval regardless of
+ * play state — unlike segment fetching, which a paused player stops doing.
+ * Without this, idle collection could not tell a viewer who is letting the
+ * buffer fill apart from one who closed the tab.
+ */
+const heartbeatRoute = createRoute({
+  method: 'post',
+  path: '/api/playback/session/{sessionId}/heartbeat',
+  tags: ['Playback'],
+  summary: 'Report that a session is still wanted, and whether it is playing',
+  request: {
+    params: z.object({ sessionId: z.string().min(1) }),
+    body: { content: { 'application/json': { schema: HeartbeatRequest } } },
+  },
+  responses: {
+    204: { description: 'The heartbeat was recorded' },
     404: {
       description: 'No such session',
       content: { 'application/json': { schema: PlaybackError } },
@@ -252,4 +286,5 @@ export {
   trickplayFileRoute,
   frameRoute,
   stopRoute,
+  heartbeatRoute,
 };

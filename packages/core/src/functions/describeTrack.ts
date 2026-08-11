@@ -230,6 +230,40 @@ const describeAudioTrack = (track: AudioTrackFacts, position: number): string =>
   return `${named} · ${qualities.join(' · ')}`;
 };
 
+type SelectableAudioStream = {
+  index: number;
+  language?: string | null | undefined;
+  isDefault?: boolean | undefined;
+};
+
+/**
+ * Picks which of a file's audio streams should be used, when one language is
+ * preferred over the others.
+ *
+ * A stream in the preferred language wins when the file has one. Otherwise
+ * this file is left exactly as it would have been without a preference: its
+ * own default stream, or its first, so a preference that does not apply to
+ * this file cannot break it. Shared between playback negotiation and the
+ * scanner's preview generation, so the two never pick differently for the
+ * same file.
+ */
+const selectAudioStream = <TStream extends SelectableAudioStream>(
+  streams: TStream[],
+  preferredLanguage?: string | null,
+): TStream | undefined => {
+  const preferred =
+    preferredLanguage === null || preferredLanguage === undefined
+      ? null
+      : readLanguage(preferredLanguage);
+
+  const matching =
+    preferred === null
+      ? undefined
+      : streams.find((stream) => readLanguage(stream.language) === preferred);
+
+  return matching ?? streams.find((stream) => stream.isDefault === true) ?? streams[0];
+};
+
 export type { AudioTrackFacts };
 
 export {
@@ -237,6 +271,7 @@ export {
   describeLanguage,
   describeChannels,
   readLanguage,
+  selectAudioStream,
   LANGUAGE_NAMES,
   LANGUAGE_CODES,
   CHANNEL_NAMES,

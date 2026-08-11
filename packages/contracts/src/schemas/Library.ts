@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { MediaItemSchema } from './MediaItem';
-
 /**
  * The library kinds, as a tuple.
  *
@@ -26,6 +25,14 @@ const LibrarySchema = z.object({
   path: z.string().min(1),
   itemCount: z.number().int().nonnegative(),
   lastScannedAt: z.string().datetime().nullable(),
+  defaultAudioLanguage: z.string().nullable(),
+});
+
+/**
+ * The library settings a dialog can change after creation.
+ */
+const UpdateLibraryRequestSchema = z.object({
+  defaultAudioLanguage: z.string().nullable(),
 });
 
 /**
@@ -109,6 +116,7 @@ const ScanResultSchema = z.object({
 
 export type LibraryKind = z.infer<typeof LibraryKindSchema>;
 export type Library = z.infer<typeof LibrarySchema>;
+export type UpdateLibraryRequest = z.infer<typeof UpdateLibraryRequestSchema>;
 export type MediaSummary = z.infer<typeof MediaSummarySchema>;
 export type MediaPage = z.infer<typeof MediaPageSchema>;
 export type MediaDetail = z.infer<typeof MediaDetailSchema>;
@@ -120,6 +128,7 @@ export {
   LIBRARY_KINDS,
   LibraryKindSchema,
   LibrarySchema,
+  UpdateLibraryRequestSchema,
   MediaSummarySchema,
   MediaPageSchema,
   MediaDetailSchema,

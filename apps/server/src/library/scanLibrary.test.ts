@@ -58,10 +58,12 @@ const harness = (options: {
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
   trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number };
+  defaultAudioLanguage?: string | null;
 }) => {
   const rows: MediaRow[] = [];
   const removedPaths: string[] = [];
   const markScanned = vi.fn(() => Promise.resolve());
+  const previewRequests: { inputPath: string; audioStreamIndex?: number }[] = [];
 
   const transcoder: Transcoder = {
     isReachable: () => Promise.resolve(true),
@@ -84,9 +86,14 @@ const harness = (options: {
       }),
     readTrickplayFile: () => Promise.resolve(null),
     stopSession: () => Promise.resolve(true),
+    heartbeatSession: () => Promise.resolve(true),
     readSubtitle: () => Promise.resolve('WEBVTT\n'),
     readFrame: () => Promise.resolve(new ArrayBuffer(0)),
-    requestPreview: () => Promise.resolve({ id: 'p', url: '/p', isReady: true }),
+    requestPreview: (request) => {
+      previewRequests.push(request);
+
+      return Promise.resolve({ id: 'p', url: '/p', isReady: true });
+    },
     readPreviewFile: () => Promise.resolve(null),
     readMonitor: () => Promise.resolve({}),
     openMonitorStream: () => Promise.resolve(null),
@@ -114,6 +121,9 @@ const harness = (options: {
         markScanned,
       },
       transcoder,
+      ...(options.defaultAudioLanguage === undefined
+        ? {}
+        : { defaultAudioLanguage: options.defaultAudioLanguage }),
       ...(options.providers === undefined ? {} : { providers: options.providers }),
       ...(options.force === undefined ? {} : { force: options.force }),
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
@@ -121,7 +131,7 @@ const harness = (options: {
       ...(options.trickplay === undefined ? {} : { trickplay: options.trickplay }),
     });
 
-  return { run, rows, removedPaths, markScanned };
+  return { run, rows, removedPaths, markScanned, previewRequests };
 };
 
 describe('selectChanged', () => {
@@ -262,6 +272,7 @@ describe('scanLibrary', () => {
           }),
         readTrickplayFile: () => Promise.resolve(null),
         stopSession: () => Promise.resolve(true),
+        heartbeatSession: () => Promise.resolve(true),
         readSubtitle: () => Promise.resolve('WEBVTT\n'),
         readFrame: () => Promise.resolve(new ArrayBuffer(0)),
         requestPreview: () => Promise.resolve({ id: 'p', url: '/p', isReady: true }),
@@ -431,20 +442,5 @@ describe('scanLibrary', () => {
     await run();
 
     expect(onProgress).toHaveBeenLastCalledWith('probing', 2, 2);
-  });
-
-  it('moves on to a fresh previews phase rather than stopping once every file is probed', async () => {
-    const onProgress = vi.fn();
-    const { run } = harness({
-      found: [file('/a.mkv'), file('/b.mkv')],
-      onProgress,
-      trickplay: { intervalSeconds: 10, tileWidth: 320, columns: 10, rows: 10 },
-    });
-
-    await run();
-
-    expect(onProgress).toHaveBeenCalledWith('probing', 2, 2);
-    expect(onProgress).toHaveBeenCalledWith('previews', 0, 2);
-    expect(onProgress).toHaveBeenLastCalledWith('previews', 2, 2);
   });
 });

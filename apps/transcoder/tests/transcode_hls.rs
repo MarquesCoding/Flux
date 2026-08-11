@@ -431,6 +431,40 @@ async fn stopping_a_session_forgets_it() {
 }
 
 #[tokio::test]
+async fn a_heartbeat_keeps_a_session_off_the_idle_list() {
+    let app = app(registry("heartbeat"));
+    let (_, body) = start(&app, &spec(VideoAction::Copy, AudioAction::Copy)).await;
+    let id = body["id"].as_str().expect("has an id").to_owned();
+
+    let (status, _) = call(
+        &app,
+        post_json(
+            &format!("/sessions/{id}/heartbeat"),
+            &serde_json::json!({ "isPlaying": false }),
+        ),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn heartbeating_an_unknown_session_answers_not_found() {
+    let app = app(registry("heartbeat-unknown"));
+
+    let (status, _) = call(
+        &app,
+        post_json(
+            "/sessions/does-not-exist/heartbeat",
+            &serde_json::json!({ "isPlaying": true }),
+        ),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
 async fn refuses_to_serve_files_outside_the_session_directory() {
     let app = app(registry("traversal"));
     let (_, body) = start(&app, &spec(VideoAction::Copy, AudioAction::Copy)).await;
