@@ -351,6 +351,76 @@ describe('scanLibrary', () => {
     expect(seenKnownExternalId).toBe('329');
   });
 
+  it('keeps what a catalogue said before rather than writing a filename over it', async () => {
+    const { run, rows } = harness({
+      found: [file('/media/films/arrival.2016.1080p.mkv')],
+      existing: [stored('/media/films/arrival.2016.1080p.mkv', { externalId: '329' })],
+      force: true,
+      providers: [
+        {
+          name: 'filename',
+          describe: () => Promise.resolve({ title: 'arrival.2016.1080p', year: null }),
+        },
+      ],
+    });
+
+    const result = await run();
+
+    expect(rows).toHaveLength(0);
+    expect(result.failed).toBe(1);
+  });
+
+  it('says why it kept what it had, rather than passing over it in silence', async () => {
+    const problems: string[] = [];
+    const { run } = harness({
+      found: [file('/media/films/arrival.2016.1080p.mkv')],
+      existing: [stored('/media/films/arrival.2016.1080p.mkv', { externalId: '329' })],
+      force: true,
+      providers: [
+        {
+          name: 'filename',
+          describe: () => Promise.resolve({ title: 'arrival.2016.1080p', year: null }),
+        },
+      ],
+      onProblem: (_path, reason) => problems.push(reason),
+    });
+
+    await run();
+
+    expect(problems.join(' ')).toContain('catalogue did not answer');
+  });
+
+  it('still writes the answer when the catalogue is the one giving it', async () => {
+    const { run, rows } = harness({
+      found: [file('/media/films/arrival.2016.1080p.mkv')],
+      existing: [stored('/media/films/arrival.2016.1080p.mkv', { externalId: '329' })],
+      force: true,
+      providers: [
+        {
+          name: 'catalogue',
+          describe: () => Promise.resolve({ title: 'Arrival', year: 2016, externalId: '329' }),
+        },
+      ],
+    });
+
+    await run();
+
+    expect(rows).toHaveLength(1);
+  });
+
+  it('writes a filename answer for a file nothing had matched before', async () => {
+    const { run, rows } = harness({
+      found: [file('/media/films/unknown.mkv')],
+      providers: [
+        { name: 'filename', describe: () => Promise.resolve({ title: 'unknown', year: null }) },
+      ],
+    });
+
+    await run();
+
+    expect(rows).toHaveLength(1);
+  });
+
   it('tells a provider nothing was known yet for a file never matched before', async () => {
     let seenKnownExternalId: string | null | undefined;
     const { run } = harness({
