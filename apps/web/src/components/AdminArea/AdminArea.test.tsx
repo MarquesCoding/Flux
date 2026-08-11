@@ -79,6 +79,8 @@ const LIBRARIES: Library[] = [
     path: '/media/movies',
     itemCount: 42,
     lastScannedAt: null,
+
+    defaultAudioLanguage: null,
   },
 ]
 
@@ -89,6 +91,8 @@ const CREATED_LIBRARY: Library = {
   path: '/media/shows',
   itemCount: 0,
   lastScannedAt: null,
+
+  defaultAudioLanguage: null,
 }
 
 const SHOWS_LIBRARY_ID = '22222222-2222-4222-8222-222222222222'
@@ -102,6 +106,8 @@ const TWO_LIBRARIES: Library[] = [
     path: '/media/shows',
     itemCount: 5,
     lastScannedAt: null,
+
+    defaultAudioLanguage: null,
   },
 ]
 
@@ -317,6 +323,18 @@ describe('AdminArea', () => {
 
     expect(screen.getByText('Movies')).toBeInTheDocument()
     expect(screen.getByText(/\/media\/movies/)).toBeInTheDocument()
+  })
+
+  it("opens a library's settings from its name", async () => {
+    const actor = userEvent.setup()
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Movies' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Movies settings' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Force default audio track' })).toBeInTheDocument()
   })
 
   it('adds a library from the dialog', async () => {

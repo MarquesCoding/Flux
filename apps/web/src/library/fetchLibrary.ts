@@ -33,6 +33,10 @@ type CreateLibraryInput = {
   path: string
 }
 
+type UpdateLibraryInput = {
+  defaultAudioLanguage: string | null
+}
+
 /**
  * Reads every library on this server.
  */
@@ -55,6 +59,30 @@ const fetchLibraries = async (): Promise<Library[]> => {
 const createLibrary = async (input: CreateLibraryInput): Promise<Library> => {
   const response = await fetch('/api/libraries', {
     method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    const parsed = ErrorBodySchema.safeParse(await response.json().catch(() => null))
+
+    throw new Error(
+      parsed.success
+        ? parsed.data.error
+        : `Library request failed with status ${response.status.toString()}`,
+    )
+  }
+
+  return LibrarySchema.parse(await response.json())
+}
+
+/**
+ * Changes a library's settings, such as which language its audio track
+ * selection should prefer.
+ */
+const updateLibrary = async (libraryId: string, input: UpdateLibraryInput): Promise<Library> => {
+  const response = await fetch(`/api/libraries/${libraryId}`, {
+    method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
   })
@@ -180,14 +208,42 @@ const resetLibrary = async (libraryId: string): Promise<ScanJob | null> => {
   return ScanJobSchema.parse(await response.json())
 }
 
-export type { ListItemsOptions, CreateLibraryInput, ScanJob, ScanState, ScanProgress }
+/**
+ * Asks the server to re-render preview clips against the library's current
+ * forced audio language.
+ *
+ * Lighter than a rescan: nothing is re-probed, re-matched against a
+ * catalogue, or re-sampled for colour — only the previews are redrawn.
+ */
+const regenerateLibraryPreviews = async (libraryId: string): Promise<ScanJob | null> => {
+  const response = await fetch(`/api/libraries/${libraryId}/regenerate-previews`, {
+    method: 'POST',
+  })
+
+  if (!response.ok) {
+    return null
+  }
+
+  return ScanJobSchema.parse(await response.json())
+}
+
+export type {
+  ListItemsOptions,
+  CreateLibraryInput,
+  UpdateLibraryInput,
+  ScanJob,
+  ScanState,
+  ScanProgress,
+}
 
 export default {
   fetchLibraries,
   createLibrary,
+  updateLibrary,
   fetchLibraryItems,
   fetchMediaDetail,
   scanLibrary,
   readScanState,
   resetLibrary,
+  regenerateLibraryPreviews,
 }

@@ -30,7 +30,7 @@ const plan: PlaybackPlan = {
   mediaId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
   container: { kind: 'passthrough', reason },
   video: { kind: 'passthrough', reason },
-  audio: { kind: 'passthrough', reason },
+  audio: { kind: 'passthrough', streamIndex: 1, reason },
   subtitles: { kind: 'none', reason },
 }
 
@@ -199,6 +199,7 @@ describe('describeWhy', () => {
       },
       audio: {
         kind: 'transcode',
+        streamIndex: 1,
         codec: 'aac',
         channels: 2,
         maxBitrateKbps: 256,

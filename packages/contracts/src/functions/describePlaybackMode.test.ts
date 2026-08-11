@@ -10,7 +10,7 @@ const directPlay: PlaybackPlan = {
   mediaId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
   container: { kind: 'passthrough', reason },
   video: { kind: 'passthrough', reason },
-  audio: { kind: 'passthrough', reason },
+  audio: { kind: 'passthrough', streamIndex: 1, reason },
   subtitles: { kind: 'none', reason },
 }
 
@@ -31,7 +31,14 @@ describe('describePlaybackMode', () => {
   it('reports DirectStream when only the audio is re-encoded', () => {
     const plan: PlaybackPlan = {
       ...directPlay,
-      audio: { kind: 'transcode', codec: 'aac', channels: 2, maxBitrateKbps: 256, reason },
+      audio: {
+        kind: 'transcode',
+        streamIndex: 1,
+        codec: 'aac',
+        channels: 2,
+        maxBitrateKbps: 256,
+        reason,
+      },
     }
 
     expect(describePlaybackMode(plan)).toBe('DirectStream')
@@ -75,7 +82,14 @@ describe('describePlaybackMode', () => {
         maxHeight: 1080,
         reason,
       },
-      audio: { kind: 'transcode', codec: 'aac', channels: 2, maxBitrateKbps: 256, reason },
+      audio: {
+        kind: 'transcode',
+        streamIndex: 1,
+        codec: 'aac',
+        channels: 2,
+        maxBitrateKbps: 256,
+        reason,
+      },
     }
 
     expect(describePlaybackMode(plan)).toBe('Transcode')

@@ -5,6 +5,7 @@ import SchemaModule from '@FluxServer/db/Schema'
 import LibraryContract from '@FluxContracts/schemas/Library'
 import createMediaStoreModule from './createMediaStore'
 import scanLibraryModule from './scanLibrary'
+import regeneratePreviewsModule from './regeneratePreviews'
 import PlaybackServiceModule from '@FluxServer/playback/PlaybackService'
 import type { FluxDatabase } from '@FluxServer/db/Database'
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library'
@@ -15,8 +16,9 @@ import type { LibraryService } from './LibraryService'
 import type { JobQueue } from '@FluxServer/jobs/JobQueue'
 
 const { library, mediaItem } = SchemaModule
-const { createMediaStore } = createMediaStoreModule
+const { createMediaStore, listForPreviewRegeneration } = createMediaStoreModule
 const { scanLibrary } = scanLibraryModule
+const { regeneratePreviews } = regeneratePreviewsModule
 const { TRICKPLAY_INTERVAL_SECONDS, TRICKPLAY_TILE_WIDTH, TRICKPLAY_COLUMNS, TRICKPLAY_ROWS } =
   PlaybackServiceModule
 const { MediaDetailSchema } = LibraryContract
@@ -57,6 +59,11 @@ const createDatabaseLibraryService = ({
   onProblem,
 }: CreateDatabaseLibraryServiceOptions): LibraryService & {
   runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>
+  runRegeneratePreviews: (
+    libraryId: string,
+    defaultAudioLanguage: string | null,
+    jobId?: string,
+  ) => Promise<void>
 } => {
   const store = createMediaStore(db)
 
@@ -75,6 +82,7 @@ const createDatabaseLibraryService = ({
           kind: library.kind,
           path: library.path,
           lastScannedAt: library.lastScannedAt,
+          defaultAudioLanguage: library.defaultAudioLanguage,
           itemCount: sql<number>`count(${mediaItem.id})::int`,
         })
         .from(library)
@@ -89,6 +97,7 @@ const createDatabaseLibraryService = ({
         path: row.path,
         itemCount: row.itemCount,
         lastScannedAt: toIso(row.lastScannedAt),
+        defaultAudioLanguage: row.defaultAudioLanguage,
       })) satisfies Library[]
     },
 
@@ -108,7 +117,47 @@ const createDatabaseLibraryService = ({
 
       await db.insert(library).values(created)
 
-      return { ...created, itemCount: 0, lastScannedAt: null }
+      return { ...created, itemCount: 0, lastScannedAt: null, defaultAudioLanguage: null }
+    },
+
+    update: async (libraryId, input) => {
+      if ((await findLibrary(libraryId)) === null) {
+        return null
+      }
+
+      await db
+        .update(library)
+        .set({ defaultAudioLanguage: input.defaultAudioLanguage })
+        .where(eq(library.id, libraryId))
+
+      const [row] = await db
+        .select({
+          id: library.id,
+          name: library.name,
+          kind: library.kind,
+          path: library.path,
+          lastScannedAt: library.lastScannedAt,
+          defaultAudioLanguage: library.defaultAudioLanguage,
+          itemCount: sql<number>`count(${mediaItem.id})::int`,
+        })
+        .from(library)
+        .leftJoin(mediaItem, eq(mediaItem.libraryId, library.id))
+        .where(eq(library.id, libraryId))
+        .groupBy(library.id)
+
+      if (row === undefined) {
+        return null
+      }
+
+      return {
+        id: row.id,
+        name: row.name,
+        kind: LibraryContract.LibraryKindSchema.parse(row.kind),
+        path: row.path,
+        itemCount: row.itemCount,
+        lastScannedAt: toIso(row.lastScannedAt),
+        defaultAudioLanguage: row.defaultAudioLanguage,
+      }
     },
 
     listItems: async (libraryId, options) => {
@@ -244,6 +293,18 @@ const createDatabaseLibraryService = ({
       return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
     },
 
+    regeneratePreviews: async (libraryId) => {
+      const found = await findLibrary(libraryId)
+
+      if (found === null) {
+        return null
+      }
+
+      const jobId = await jobs.enqueueRegeneratePreviews(libraryId, found.defaultAudioLanguage)
+
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' }
+    },
+
     readScanState: async (jobId) => {
       const state = await jobs.readState(jobId)
       const progress = jobs.readProgress(jobId)
@@ -270,6 +331,7 @@ const createDatabaseLibraryService = ({
         store,
         transcoder,
         force,
+        defaultAudioLanguage: found.defaultAudioLanguage,
         trickplay: {
           intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
           tileWidth: TRICKPLAY_TILE_WIDTH,
@@ -283,6 +345,22 @@ const createDatabaseLibraryService = ({
           : {
               onProgress: (phase, processed, total) =>
                 jobs.reportProgress(jobId, phase, processed, total),
+            }),
+      })
+    },
+
+    runRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {
+      await regeneratePreviews({
+        libraryId,
+        store: { listForRegeneration: (id) => listForPreviewRegeneration(db, id) },
+        transcoder,
+        defaultAudioLanguage,
+        ...(onProblem === undefined ? {} : { onProblem }),
+        ...(jobId === undefined
+          ? {}
+          : {
+              onProgress: (processed, total) =>
+                jobs.reportProgress(jobId, 'previews', processed, total),
             }),
       })
     },

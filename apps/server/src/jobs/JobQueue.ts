@@ -20,6 +20,24 @@ const ScanLibraryJobSchema = z.object({
 type ScanLibraryJob = z.infer<typeof ScanLibraryJobSchema>
 
 /**
+ * Re-renders preview clips for a library's already-scanned media, without a
+ * full rescan.
+ *
+ * A separate job from `library.scan` on purpose: changing a library's forced
+ * audio language should not re-probe every file, re-run metadata providers
+ * and re-sample colours just to pick up a different audio track in the
+ * previews.
+ */
+const REGENERATE_PREVIEWS_JOB = 'library.regeneratePreviews'
+
+const RegeneratePreviewsJobSchema = z.object({
+  libraryId: z.string().uuid(),
+  defaultAudioLanguage: z.string().nullable(),
+})
+
+type RegeneratePreviewsJob = z.infer<typeof RegeneratePreviewsJobSchema>
+
+/**
  * Where a queued job has got to.
  */
 const JobStateSchema = z.enum(['queued', 'running', 'completed', 'failed', 'unknown'])
@@ -47,6 +65,15 @@ type JobProgress = {
  */
 type JobQueue = {
   enqueueScan: (libraryId: string, force?: boolean) => Promise<string | null>
+  /**
+   * Queues a preview regeneration and reports the job.
+   *
+   * Null means one is already queued for this library.
+   */
+  enqueueRegeneratePreviews: (
+    libraryId: string,
+    defaultAudioLanguage: string | null,
+  ) => Promise<string | null>
   readState: (jobId: string) => Promise<JobState>
   /**
    * What a running job last reported about itself.
@@ -59,6 +86,12 @@ type JobQueue = {
   stop: () => Promise<void>
 }
 
-export type { JobProgress, JobQueue, JobState, ScanLibraryJob }
+export type { JobProgress, JobQueue, JobState, RegeneratePreviewsJob, ScanLibraryJob }
 
-export default { SCAN_LIBRARY_JOB, ScanLibraryJobSchema, JobStateSchema }
+export default {
+  SCAN_LIBRARY_JOB,
+  ScanLibraryJobSchema,
+  REGENERATE_PREVIEWS_JOB,
+  RegeneratePreviewsJobSchema,
+  JobStateSchema,
+}

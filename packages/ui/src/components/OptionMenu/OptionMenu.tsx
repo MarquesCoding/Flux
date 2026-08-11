@@ -6,6 +6,21 @@ import type { OptionMenuProps } from './OptionMenu.types'
 const { cn } = cnModule
 
 /**
+ * How the popup arrives and leaves.
+ *
+ * The same fade-and-settle Dialog uses, scaled down for a menu rather than a
+ * full panel: a menu that snaps open reads as broken next to everything else
+ * on the platform that eases in.
+ */
+const POPUP_MOTION = [
+  'transition-[opacity,transform] duration-150 ease-out',
+  'data-[starting-style]:opacity-0 data-[starting-style]:scale-95',
+  'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
+  'motion-reduce:transition-opacity',
+  'motion-reduce:data-[starting-style]:scale-100 motion-reduce:data-[ending-style]:scale-100',
+].join(' ')
+
+/**
  * A menu of mutually exclusive choices, in one or more columns.
  *
  * Built on the Base UI menu so focus handling, escape, outside clicks and the
@@ -19,6 +34,8 @@ const OptionMenu = ({
   footer,
   isDisabled = false,
   className,
+  align = 'end',
+  matchTriggerWidth = false,
 }: OptionMenuProps) => (
   <Menu.Root>
     <Menu.Trigger
@@ -36,16 +53,20 @@ const OptionMenu = ({
     </Menu.Trigger>
 
     <Menu.Portal>
-      <Menu.Positioner sideOffset={8} align="end" className="z-50">
+      <Menu.Positioner sideOffset={8} align={align} className="z-50">
         <Menu.Popup
           aria-label={label}
-          className="flex max-h-80 flex-col overflow-hidden rounded-xl bg-neutral-900/95 text-sm text-white shadow-xl backdrop-blur-md"
+          {...(matchTriggerWidth ? { style: { minWidth: 'var(--anchor-width)' } } : {})}
+          className={cn(
+            'flex max-h-80 flex-col overflow-hidden rounded-xl bg-neutral-900/95 text-sm text-white shadow-xl backdrop-blur-md',
+            POPUP_MOTION,
+          )}
         >
           <div className="flex overflow-hidden">
             {groups.map((group) => (
               <Menu.Group
                 key={group.name}
-                className="flex min-w-44 flex-col overflow-y-auto border-l border-white/10 first:border-l-0"
+                className="flex min-w-44 flex-1 flex-col overflow-y-auto border-l border-white/10 first:border-l-0"
               >
                 <Menu.GroupLabel className="px-4 py-3 text-base font-medium">
                   {group.name}
@@ -62,6 +83,7 @@ const OptionMenu = ({
                     <Menu.RadioItem
                       key={option.id}
                       value={option.id}
+                      closeOnClick
                       className={cn(
                         'flex cursor-default items-center justify-between gap-4 px-4 py-2.5',
                         'outline-none data-[highlighted]:bg-white/10 data-[checked]:bg-white/5',

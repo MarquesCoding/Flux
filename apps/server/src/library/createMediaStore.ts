@@ -1,10 +1,14 @@
 import { randomUUID } from 'node:crypto'
+import { z } from 'zod'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import SchemaModule from '@FluxServer/db/Schema'
+import MediaItemModule from '@FluxContracts/schemas/MediaItem'
 import type { FluxDatabase } from '@FluxServer/db/Database'
+import type { AudioStream } from '@FluxContracts/schemas/MediaItem'
 import type { MediaStore } from './scanLibrary'
 
 const { mediaItem, library } = SchemaModule
+const { AudioStreamSchema } = MediaItemModule
 
 /**
  * The library tables, for the scanner.
@@ -126,4 +130,27 @@ const countItems = async (db: FluxDatabase, libraryId: string): Promise<number> 
   return rows[0]?.total ?? 0
 }
 
-export default { createMediaStore, countItems }
+/**
+ * Every stored item's path and audio streams, for regenerating previews.
+ *
+ * Deliberately narrow: previews are re-rendered from what a previous scan
+ * already probed, so nothing here touches the filesystem, re-runs metadata
+ * providers, or re-samples a colour — the whole point of a dedicated
+ * regeneration job rather than a forced rescan.
+ */
+const listForPreviewRegeneration = async (
+  db: FluxDatabase,
+  libraryId: string,
+): Promise<{ path: string; audioStreams: AudioStream[] }[]> => {
+  const rows = await db
+    .select({ path: mediaItem.path, audioStreams: mediaItem.audioStreams })
+    .from(mediaItem)
+    .where(eq(mediaItem.libraryId, libraryId))
+
+  return rows.map((row) => ({
+    path: row.path,
+    audioStreams: z.array(AudioStreamSchema).parse(row.audioStreams),
+  }))
+}
+
+export default { createMediaStore, countItems, listForPreviewRegeneration }

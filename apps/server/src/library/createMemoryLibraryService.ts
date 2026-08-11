@@ -35,11 +35,24 @@ const createMemoryLibraryService = (
       path: input.path,
       itemCount: 0,
       lastScannedAt: null,
+      defaultAudioLanguage: null,
     }
 
     state.libraries.push(created)
 
     return Promise.resolve(created)
+  },
+
+  update: (libraryId, input) => {
+    const found = state.libraries.find((entry) => entry.id === libraryId)
+
+    if (found === undefined) {
+      return Promise.resolve(null)
+    }
+
+    found.defaultAudioLanguage = input.defaultAudioLanguage
+
+    return Promise.resolve(found)
   },
 
   listItems: (libraryId, options) => {
@@ -93,6 +106,13 @@ const createMemoryLibraryService = (
 
     return Promise.resolve({ jobId: `reset-${libraryId}`, state: 'queued' })
   },
+
+  regeneratePreviews: (libraryId) =>
+    Promise.resolve(
+      state.libraries.some((entry) => entry.id === libraryId)
+        ? { jobId: `regenerate-previews-${libraryId}`, state: 'queued' }
+        : null,
+    ),
 
   readScanState: () =>
     Promise.resolve({ state: 'completed', phase: null, processed: null, total: null }),

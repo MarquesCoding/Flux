@@ -42,16 +42,37 @@ const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub'])
  * Every axis passing through means the file can be sent as it is, which is
  * cheaper than even a remux and puts no load on the media service at all.
  */
-const isDirectPlay = (plan: Parameters<typeof describePlaybackMode>[0]): boolean =>
+/**
+ * The audio stream a raw file serve would carry, with no say from Flux.
+ *
+ * A browser given the file directly plays whichever stream the container
+ * itself marks default, or its first. This is that same rule, computed here
+ * so a direct serve can be trusted only when it would land on the stream
+ * negotiation actually chose.
+ */
+const naturalAudioStreamIndex = (item: Parameters<typeof negotiatePlayback>[0]): number | null =>
+  (item.audioStreams.find((stream) => stream.isDefault) ?? item.audioStreams[0])?.index ?? null
+
+const isDirectPlay = (
+  plan: Parameters<typeof describePlaybackMode>[0],
+  item: Parameters<typeof negotiatePlayback>[0],
+): boolean =>
   plan.container.kind === 'passthrough' &&
   plan.video.kind === 'passthrough' &&
   plan.audio.kind === 'passthrough' &&
+  plan.audio.streamIndex === naturalAudioStreamIndex(item) &&
   plan.subtitles.kind !== 'burnIn'
 
 type MediaLookup = {
-  findForPlayback: (
-    mediaId: string,
-  ) => Promise<{ item: Parameters<typeof negotiatePlayback>[0]; path: string } | null>
+  findForPlayback: (mediaId: string) => Promise<{
+    item: Parameters<typeof negotiatePlayback>[0]
+    path: string
+    /**
+     * The language the item's library forces audio selection toward, when an
+     * operator has set one.
+     */
+    defaultAudioLanguage: string | null
+  } | null>
 }
 
 type CreatePlaybackServiceOptions = {
@@ -111,7 +132,7 @@ const createPlaybackService = ({
       }
 
       const qualityClamp = resolveQualityStep(found.item, requestedQuality ?? 'original')
-      const plan = negotiatePlayback(found.item, profile, qualityClamp)
+      const plan = negotiatePlayback(found.item, profile, qualityClamp, found.defaultAudioLanguage)
 
       return { mode: describePlaybackMode(plan), plan }
     },
@@ -124,12 +145,14 @@ const createPlaybackService = ({
       }
 
       const qualityClamp = resolveQualityStep(found.item, requestedQuality ?? 'original')
-      const plan = negotiatePlayback(found.item, profile, qualityClamp)
+      const plan = negotiatePlayback(found.item, profile, qualityClamp, found.defaultAudioLanguage)
 
       // A viewer who picked a track needs that track selected, which the
       // original file cannot do: it carries every stream and the browser picks
-      // the default. Choosing one therefore means transcoding.
-      if (isDirectPlay(plan) && audioStreamIndex === undefined) {
+      // the default. Choosing one therefore means transcoding. A library that
+      // forces a language behaves the same way whenever the forced track is
+      // not what the file would default to on its own.
+      if (isDirectPlay(plan, found.item) && audioStreamIndex === undefined) {
         return {
           kind: 'started',
           session: {
@@ -152,7 +175,16 @@ const createPlaybackService = ({
         capabilities: await capabilities(),
         startSeconds,
         segmentSeconds: SEGMENT_SECONDS,
-        ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
+        // A viewer's explicit pick wins. Otherwise the session must still be
+        // told which stream negotiation chose — leaving this out would let
+        // the media service fall back to its own default, undoing a forced
+        // library language the moment a session (rather than a direct file
+        // serve) is needed.
+        ...(audioStreamIndex !== undefined
+          ? { audioStreamIndex }
+          : plan.audio.streamIndex === null
+            ? {}
+            : { audioStreamIndex: plan.audio.streamIndex }),
       })
 
       if (outcome.kind === 'unsupported') {
