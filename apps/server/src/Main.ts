@@ -532,6 +532,7 @@ const app = createApp({
 
     return rows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }));
   },
+  permissions,
   capabilities: () => transcoder.capabilities(),
   monitor: () => transcoder.readMonitor(),
   monitorStream: () => transcoder.openMonitorStream(),

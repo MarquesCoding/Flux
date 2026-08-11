@@ -56,6 +56,7 @@ const DEFAULT_ROLES: readonly DefaultRole[] = [
       'sharing.party',
       'download.media',
       'server.logs',
+      'server.monitor',
     ],
   },
   {

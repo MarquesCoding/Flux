@@ -102,6 +102,9 @@ import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt';
 import type { ProfileService } from '@FluxServer/profiles/ProfileService';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import { createSessionGate } from '@FluxServer/auth/createSessionGate';
+import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
+import type { PermissionService } from '@FluxServer/auth/PermissionService';
+import type { Permission } from '@FluxContracts/schemas/Permission';
 
 /**
  * The header a browser names the watching profile in.
@@ -145,6 +148,16 @@ type CreateAppOptions = {
   promoteToAdmin: (email: string) => Promise<void>;
   library: LibraryService;
   playback: PlaybackService;
+  /**
+   * What each account may do.
+   *
+   * Optional so that a suite exercising an unrelated route need not build one,
+   * and a fresh in-memory service is made when none is given. Note what that
+   * default means: it holds the standard roles and assigns none of them, so
+   * every guarded route refuses until somebody is given a role. Refusing by
+   * default is the only safe way for this particular option to be missing.
+   */
+  permissions?: PermissionService;
   /**
    * Server-wide upkeep an admin can start on demand — cache cleanup, session
    * cleanup, catalogue connectivity.
@@ -242,24 +255,35 @@ const createApp = ({
   monitorStream,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
+  permissions = createMemoryPermissionService(),
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
   app.use('/api/*', createSessionGate(auth));
 
   /**
-   * Whether the viewer administers the server.
+   * Whether whoever is asking holds a particular permission.
    *
    * Checked per request rather than trusted from the browser: an interface
    * that hides a section is a courtesy, not a permission.
    *
+   * Named after what a route needs rather than who somebody is, which is the
+   * whole point of the change from a single administrator flag. `administrator`
+   * still implies everything, so the operator running the server keeps working
+   * without holding twenty separate grants — but a route now says what it
+   * actually requires, and a role can be built that grants exactly that.
+   *
    * Declared above the routes that ask it, so that reading down this file
    * shows what a route requires before it shows what the route does.
    */
-  const isAdministrator = async (headers: Headers): Promise<boolean> => {
+  const requires = async (headers: Headers, permission: Permission): Promise<boolean> => {
     const session = await auth.api.getSession({ headers }).catch(() => null);
 
-    return session?.user.role === 'admin';
+    if (session === null) {
+      return false;
+    }
+
+    return (await permissions.resolve(session.user.id)).has(permission);
   };
 
   app.on(['GET', 'POST'], '/api/auth/*', (context) => auth.handler(context.req.raw));
@@ -313,7 +337,7 @@ const createApp = ({
   app.openapi(listLibrariesRoute, async (context) => context.json(await library.list(), 200));
 
   app.openapi(createLibraryRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'library.create'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -327,7 +351,7 @@ const createApp = ({
   });
 
   app.openapi(updateLibraryRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'library.edit'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -393,7 +417,7 @@ const createApp = ({
   });
 
   app.openapi(scanLibraryRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -417,7 +441,7 @@ const createApp = ({
   });
 
   app.openapi(resetLibraryRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.runDestructive'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -431,7 +455,7 @@ const createApp = ({
   });
 
   app.openapi(regeneratePreviewsRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -733,7 +757,7 @@ const createApp = ({
   });
 
   app.openapi(promoteProfileRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'account.manage'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -835,7 +859,7 @@ const createApp = ({
   });
 
   app.openapi(adminOverviewRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -869,7 +893,7 @@ const createApp = ({
   });
 
   app.openapi(adminSettingsRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'server.settings'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -890,7 +914,7 @@ const createApp = ({
   });
 
   app.openapi(adminSessionsRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'streaming.view'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -898,7 +922,7 @@ const createApp = ({
   });
 
   app.openapi(adminStopSessionRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'streaming.stop'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -918,7 +942,7 @@ const createApp = ({
   });
 
   app.openapi(adminPauseSessionRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'streaming.pause'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -937,7 +961,7 @@ const createApp = ({
   });
 
   app.openapi(adminResumeSessionRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'streaming.pause'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -949,7 +973,7 @@ const createApp = ({
   });
 
   app.openapi(adminJobDefinitionsRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -957,7 +981,7 @@ const createApp = ({
   });
 
   app.openapi(adminRunJobRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1004,7 +1028,7 @@ const createApp = ({
   });
 
   app.openapi(adminJobSchedulesRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.schedule'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1012,7 +1036,7 @@ const createApp = ({
   });
 
   app.openapi(adminAddJobTriggerRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.schedule'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1028,7 +1052,7 @@ const createApp = ({
   });
 
   app.openapi(adminRemoveJobTriggerRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.schedule'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1100,7 +1124,7 @@ const createApp = ({
   });
 
   app.get('/api/admin/monitor', async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1116,7 +1140,7 @@ const createApp = ({
   });
 
   app.get('/api/admin/monitor/stream', async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 

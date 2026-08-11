@@ -53,6 +53,7 @@ const PERMISSIONS = [
   'server.settings',
   'server.backup',
   'server.logs',
+  'server.monitor',
 ] as const;
 
 const PermissionSchema = z.enum(PERMISSIONS);
