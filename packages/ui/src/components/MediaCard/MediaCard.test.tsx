@@ -64,4 +64,26 @@ describe('MediaCard', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(MediaCard.displayName).toBe('MediaCard')
   })
+
+  it('sets a lead card apart by wearing its title over the artwork', () => {
+    render(
+      <MediaCard title="Arrival" subtitle="2016" emphasis="lead" shape="wide" onSelect={vi.fn()} />,
+    )
+
+    const card = screen.getByRole('button', { name: /Arrival/ })
+    const title = screen.getByText('Arrival')
+
+    // Over the picture rather than beneath it, which is what gives a row its
+    // shape: the eye lands on the large one and reads outwards.
+    expect(card.querySelector('img, span[aria-hidden]')).not.toBeNull()
+    expect(title.className).toContain('text-white')
+  })
+
+  it('shows badges over the artwork, where they stay readable', () => {
+    render(
+      <MediaCard title="Arrival" subtitle="2016" badges={['4K', 'HDR10']} onSelect={vi.fn()} />,
+    )
+
+    expect(screen.getByText('4K')).toHaveClass('bg-black/60')
+  })
 })

@@ -27,6 +27,7 @@ describe('readEpisodeFromPath', () => {
       seriesTitle: 'Some Show',
       seasonNumber: 1,
       episodeNumber: 2,
+      episodeTitle: null,
     })
   })
 
@@ -43,9 +44,19 @@ describe('readEpisodeFromPath', () => {
     ).toMatchObject({ seasonNumber: 2, episodeNumber: 5 })
   })
 
-  it('takes the series name from above the season directory', () => {
+  // The name in the file wins, because a folder is what somebody happened to
+  // sort by and a filename is what the release actually calls itself. The
+  // folder is still there for a file that names nothing.
+  it('takes the series name from the filename, ahead of the folder above it', () => {
     expect(
-      readEpisodeFromPath('/media/tv/Another Show (2019)/Season 3/whatever.s03e07.mkv').seriesTitle,
+      readEpisodeFromPath('/media/tv/Another Show (2019)/Season 3/Another.Show.s03e07.mkv')
+        .seriesTitle,
+    ).toBe('Another Show')
+  })
+
+  it('falls back to the folder above the season for a file that names nothing', () => {
+    expect(
+      readEpisodeFromPath('/media/tv/Another Show (2019)/Season 3/s03e07.mkv').seriesTitle,
     ).toBe('Another Show 2019')
   })
 
@@ -75,6 +86,7 @@ describe('readEpisodeFromPath', () => {
       seriesTitle: null,
       seasonNumber: null,
       episodeNumber: null,
+      episodeTitle: null,
     })
   })
 

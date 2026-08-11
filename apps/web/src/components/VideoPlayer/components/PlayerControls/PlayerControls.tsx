@@ -2,7 +2,11 @@ import {
   IconAdjustmentsHorizontal,
   IconBadgeCc,
   IconMaximize,
+  IconMinus,
+  IconPictureInPicture,
   IconMinimize,
+  IconPlus,
+  IconRefresh,
   IconPlayerPause,
   IconPlayerPlay,
   IconRotate,
@@ -29,6 +33,14 @@ const { SUBTITLES_OFF } = fetchSubtitlesModule
  * Formats a rate the way a viewer reads it, not the way a float prints.
  */
 const rateLabel = (rate: number): string => `${rate.toString()}x`
+
+/**
+ * How far one press moves the subtitles.
+ *
+ * A quarter of a second is about the smallest gap anybody can see, and small
+ * enough that overshooting costs one press back.
+ */
+const SUBTITLE_STEP_SECONDS = 0.25
 
 /**
  * The bar that sits over the bottom of the video.
@@ -62,161 +74,237 @@ const PlayerControls = ({
   onVolumeChange,
   onToggleMute,
   onToggleFullscreen,
+  onPopOut,
   onToggleStats,
+  subtitleOffsetSeconds = 0,
+  onSubtitleOffsetChange,
   renderPreview,
 }: PlayerControlsProps) => (
-  <div className="flex items-center gap-3 rounded-xl bg-black/45 px-3 py-2 text-white backdrop-blur-md">
-    <IconButton
-      label={`Back ${SKIP_SECONDS.toString()} seconds`}
-      onClick={() => {
-        onSkip(-SKIP_SECONDS)
-      }}
-      disabled={isDisabled}
-      size="md"
-    >
-      <IconRotate size={22} aria-hidden />
-    </IconButton>
+  <div className="flux-glass flex flex-col gap-1 rounded-2xl px-3 py-2 text-white sm:px-4">
+    {/* The scrub bar gets a line of its own on every size. Squeezing it in
+        beside ten controls leaves a phone with a bar too short to aim at. */}
+    <div className="flex items-center gap-3">
+      <Slider
+        label={`Seek through ${title}`}
+        value={position}
+        max={duration}
+        onValueChange={onSeek}
+        tone="overlay"
+        className="min-w-0 flex-1"
+        {...(renderPreview === undefined ? {} : { renderPreview })}
+      />
 
-    <IconButton
-      label={isPlaying ? 'Pause' : 'Play'}
-      onClick={onTogglePlay}
-      disabled={isDisabled}
-      size="md"
-    >
-      {isPlaying ? (
-        <IconPlayerPause size={22} fill="currentColor" aria-hidden />
-      ) : (
-        <IconPlayerPlay size={22} fill="currentColor" aria-hidden />
-      )}
-    </IconButton>
+      <span className="shrink-0 text-xs tabular-nums sm:text-sm">
+        {formatDuration(position)}{' '}
+        <span className="text-white/50">/ {formatDuration(duration)}</span>
+      </span>
+    </div>
 
-    <IconButton
-      label={`Forward ${SKIP_SECONDS.toString()} seconds`}
-      onClick={() => {
-        onSkip(SKIP_SECONDS)
-      }}
-      disabled={isDisabled}
-      size="md"
-    >
-      <IconRotateClockwise size={22} aria-hidden />
-    </IconButton>
+    <div className="flex items-center gap-1 sm:gap-2">
+      <IconButton
+        label={`Back ${SKIP_SECONDS.toString()} seconds`}
+        onClick={() => {
+          onSkip(-SKIP_SECONDS)
+        }}
+        disabled={isDisabled}
+        size="md"
+      >
+        <IconRotate size={22} aria-hidden />
+      </IconButton>
 
-    <Slider
-      label={`Seek through ${title}`}
-      value={position}
-      max={duration}
-      onValueChange={onSeek}
-      tone="overlay"
-      className="min-w-0 flex-1"
-      {...(renderPreview === undefined ? {} : { renderPreview })}
-    />
-
-    <span className="shrink-0 text-sm tabular-nums">
-      {formatDuration(position)} <span className="text-white/60">/ {formatDuration(duration)}</span>
-    </span>
-
-    <div className="group/volume flex items-center gap-1">
-      <IconButton label={isMuted ? 'Unmute' : 'Mute'} onClick={onToggleMute} size="md">
-        {isMuted || volume === 0 ? (
-          <IconVolumeOff size={20} aria-hidden />
+      <IconButton
+        label={isPlaying ? 'Pause' : 'Play'}
+        onClick={onTogglePlay}
+        disabled={isDisabled}
+        size="md"
+      >
+        {isPlaying ? (
+          <IconPlayerPause size={22} fill="currentColor" aria-hidden />
         ) : (
-          <IconVolume size={20} aria-hidden />
+          <IconPlayerPlay size={22} fill="currentColor" aria-hidden />
         )}
       </IconButton>
 
-      <Slider
-        label="Volume"
-        value={isMuted ? 0 : Math.round(volume * 100)}
-        max={100}
-        tone="overlay"
-        onValueChange={(next) => {
-          onVolumeChange(next / 100)
+      <IconButton
+        label={`Forward ${SKIP_SECONDS.toString()} seconds`}
+        onClick={() => {
+          onSkip(SKIP_SECONDS)
         }}
-        className="w-0 overflow-hidden transition-all group-hover/volume:w-20 group-focus-within/volume:w-20"
-      />
-    </div>
+        disabled={isDisabled}
+        size="md"
+      >
+        <IconRotateClockwise size={22} aria-hidden />
+      </IconButton>
 
-    <OptionMenu
-      label="Subtitles"
-      isDisabled={false}
-      trigger={
-        <IconBadgeCc
-          size={22}
-          className={selectedSubtitleId === SUBTITLES_OFF ? 'opacity-60' : ''}
-          aria-hidden
+      <span className="flex-1" />
+
+      <div className="group/volume hidden items-center gap-1 sm:flex">
+        <IconButton label={isMuted ? 'Unmute' : 'Mute'} onClick={onToggleMute} size="md">
+          {isMuted || volume === 0 ? (
+            <IconVolumeOff size={20} aria-hidden />
+          ) : (
+            <IconVolume size={20} aria-hidden />
+          )}
+        </IconButton>
+
+        <Slider
+          label="Volume"
+          value={isMuted ? 0 : Math.round(volume * 100)}
+          max={100}
+          tone="overlay"
+          onValueChange={(next) => {
+            onVolumeChange(next / 100)
+          }}
+          // The clip is what lets it slide open, and it is also what cut the
+          // handle in half at either end: the handle is centred on the track,
+          // so half of it sits outside. The padding gives that half back — but
+          // only once open, since padding on a closed control is a sliver of
+          // handle sitting next to the speaker.
+          className="w-0 overflow-hidden px-0 transition-all group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
         />
-      }
-      groups={[
-        ...(audioTracks.length < 2
-          ? []
-          : [
-              {
-                name: 'Audio',
-                selectedId: (selectedAudioIndex ?? audioTracks[0]?.index ?? 0).toString(),
-                onSelect: (id: string) => {
-                  onAudioChange(Number(id))
+      </div>
+
+      <OptionMenu
+        label="Subtitles"
+        isDisabled={false}
+        trigger={
+          <IconBadgeCc
+            size={22}
+            className={selectedSubtitleId === SUBTITLES_OFF ? 'opacity-60' : ''}
+            aria-hidden
+          />
+        }
+        groups={[
+          ...(audioTracks.length < 2
+            ? []
+            : [
+                {
+                  name: 'Audio',
+                  selectedId: (selectedAudioIndex ?? audioTracks[0]?.index ?? 0).toString(),
+                  onSelect: (id: string) => {
+                    onAudioChange(Number(id))
+                  },
+                  options: audioTracks.map((track) => ({
+                    id: track.index.toString(),
+                    label: track.label,
+                  })),
                 },
-                options: audioTracks.map((track) => ({
-                  id: track.index.toString(),
-                  label: track.label,
-                })),
-              },
-            ]),
-        {
-          name: 'Subtitles/CC',
-          selectedId: selectedSubtitleId,
-          onSelect: onSubtitleChange,
-          options: [
-            { id: SUBTITLES_OFF, label: 'Off' },
-            ...subtitleTracks.map((track) => ({
-              id: track.id,
-              label: track.label,
-              ...(track.format === '' ? {} : { detail: track.format.toUpperCase() }),
-            })),
-          ],
-        },
-        {
-          name: 'Appearance',
-          selectedId: '',
-          onSelect: onEditCaptions,
-          options: [{ id: 'style', label: 'Caption settings…' }],
-        },
-      ]}
-    />
-
-    <OptionMenu
-      label="Playback speed"
-      trigger={<span className="text-sm font-medium">{rateLabel(playbackRate)}</span>}
-      groups={[
-        {
-          name: 'Playback Speed',
-          selectedId: playbackRate.toString(),
-          onSelect: (id) => {
-            onPlaybackRateChange(Number(id))
+              ]),
+          {
+            name: 'Subtitles/CC',
+            selectedId: selectedSubtitleId,
+            onSelect: onSubtitleChange,
+            options: [
+              { id: SUBTITLES_OFF, label: 'Off' },
+              ...subtitleTracks.map((track) => ({
+                id: track.id,
+                label: track.label,
+                ...(track.format === '' ? {} : { detail: track.format.toUpperCase() }),
+              })),
+            ],
           },
-          options: PLAYBACK_RATES.map((rate) => ({
-            id: rate.toString(),
-            label: rateLabel(rate),
-          })),
-        },
-      ]}
-    />
+          {
+            name: 'Appearance',
+            selectedId: '',
+            onSelect: onEditCaptions,
+            options: [{ id: 'style', label: 'Caption settings…' }],
+          },
+        ]}
+        {...(selectedSubtitleId === SUBTITLES_OFF || onSubtitleOffsetChange === undefined
+          ? {}
+          : {
+              footer: (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="flex flex-col">
+                    Timing
+                    <span className="text-xs text-white/50">
+                      {subtitleOffsetSeconds === 0
+                        ? 'In time'
+                        : `${subtitleOffsetSeconds > 0 ? '+' : ''}${subtitleOffsetSeconds.toFixed(2)}s`}
+                    </span>
+                  </span>
 
-    <IconButton label="Stats for nerds" isActive={isShowingStats} onClick={onToggleStats} size="md">
-      <IconAdjustmentsHorizontal size={20} aria-hidden />
-    </IconButton>
+                  <span className="flex items-center gap-1">
+                    <IconButton
+                      label="Subtitles earlier"
+                      size="sm"
+                      onClick={() => {
+                        onSubtitleOffsetChange(subtitleOffsetSeconds - SUBTITLE_STEP_SECONDS)
+                      }}
+                    >
+                      <IconMinus size={16} aria-hidden />
+                    </IconButton>
 
-    <IconButton
-      label={isFullscreen ? 'Exit full screen' : 'Full screen'}
-      onClick={onToggleFullscreen}
-      size="md"
-    >
-      {isFullscreen ? (
-        <IconMinimize size={20} aria-hidden />
-      ) : (
-        <IconMaximize size={20} aria-hidden />
+                    <IconButton
+                      label="Subtitles in time"
+                      size="sm"
+                      onClick={() => {
+                        onSubtitleOffsetChange(0)
+                      }}
+                    >
+                      <IconRefresh size={16} aria-hidden />
+                    </IconButton>
+
+                    <IconButton
+                      label="Subtitles later"
+                      size="sm"
+                      onClick={() => {
+                        onSubtitleOffsetChange(subtitleOffsetSeconds + SUBTITLE_STEP_SECONDS)
+                      }}
+                    >
+                      <IconPlus size={16} aria-hidden />
+                    </IconButton>
+                  </span>
+                </div>
+              ),
+            })}
+      />
+
+      <OptionMenu
+        label="Playback speed"
+        trigger={<span className="text-sm font-medium">{rateLabel(playbackRate)}</span>}
+        groups={[
+          {
+            name: 'Playback Speed',
+            selectedId: playbackRate.toString(),
+            onSelect: (id) => {
+              onPlaybackRateChange(Number(id))
+            },
+            options: PLAYBACK_RATES.map((rate) => ({
+              id: rate.toString(),
+              label: rateLabel(rate),
+            })),
+          },
+        ]}
+      />
+
+      <IconButton
+        label="Stats for nerds"
+        isActive={isShowingStats}
+        onClick={onToggleStats}
+        size="md"
+      >
+        <IconAdjustmentsHorizontal size={20} aria-hidden />
+      </IconButton>
+
+      {onPopOut === undefined ? null : (
+        <IconButton label="Pop out" onClick={onPopOut} size="md">
+          <IconPictureInPicture size={20} aria-hidden />
+        </IconButton>
       )}
-    </IconButton>
+
+      <IconButton
+        label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+        onClick={onToggleFullscreen}
+        size="md"
+      >
+        {isFullscreen ? (
+          <IconMinimize size={20} aria-hidden />
+        ) : (
+          <IconMaximize size={20} aria-hidden />
+        )}
+      </IconButton>
+    </div>
   </div>
 )
 

@@ -141,6 +141,13 @@ pub struct SubtitleStream {
     pub index: u32,
     pub format: String,
     pub language: Option<String>,
+    /// What the file calls this track.
+    ///
+    /// Often the only thing telling two tracks of one language apart:
+    /// "Signs & Songs" and "Full" carry no language of their own.
+    pub title: Option<String>,
+    /// Whether the container marks this as the track to show.
+    pub is_default: bool,
     pub is_forced: bool,
     /// Image based subtitles cannot be converted to text and must be burned in
     /// when the client cannot render them.
