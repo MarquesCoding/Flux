@@ -62,6 +62,8 @@ import { createDatabaseJobTriggerStore } from '@FluxServer/jobs/createDatabaseJo
 import { markJobComplete } from '@FluxServer/library/createMediaStore';
 import { createWorkLock } from '@FluxServer/jobs/createWorkLock';
 import { seedDefaultJobTriggers } from '@FluxServer/jobs/seedDefaultJobTriggers';
+import { seedDefaultRoles } from '@FluxServer/auth/seedDefaultRoles';
+import { createDatabasePermissionService } from '@FluxServer/auth/createDatabasePermissionService';
 /**
  * Chapters as they were stored, which may be from an older shape.
  */
@@ -83,6 +85,7 @@ const settings = createDatabaseSettingsStore({
     setupCompletedAt: null,
     catalogueApiKey: env.CATALOGUE_API_KEY,
     seededJobTriggerKinds: [],
+    seededRoleNames: [],
   },
 });
 
@@ -113,6 +116,7 @@ const promoteToAdmin = async (email: string): Promise<void> => {
   await db.update(user).set({ role: 'admin' }).where(eq(user.email, email));
 };
 
+const permissions = createDatabasePermissionService(db);
 const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR, 'profiles'));
 
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL });
@@ -534,6 +538,26 @@ const app = createApp({
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
 });
+
+const seededRoles = await seedDefaultRoles({
+  permissions,
+  settings,
+  accounts: async () =>
+    (await db.select({ id: user.id, role: user.role }).from(user)).map((row) => ({
+      id: row.id,
+      role: row.role ?? null,
+    })),
+});
+
+if (seededRoles.rolesCreated.length > 0) {
+  process.stdout.write(`roles: created ${seededRoles.rolesCreated.join(', ')}\n`);
+}
+
+if (seededRoles.administratorsCarried > 0 || seededRoles.membersAssigned > 0) {
+  process.stdout.write(
+    `roles: carried ${seededRoles.administratorsCarried.toString()} administrator(s) and gave ${seededRoles.membersAssigned.toString()} account(s) the default role\n`,
+  );
+}
 
 const seededKinds = await seedDefaultJobTriggers({ schedules, settings });
 
