@@ -19,7 +19,7 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { Monitor } from './fetchAdmin';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 
-type Answer = { ok: boolean; json: () => Promise<JsonValue> };
+type Answer = { ok: boolean; status: number; json: () => Promise<JsonValue> };
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Answer>;
 
@@ -71,7 +71,11 @@ const sentBody = (): JsonValue => {
 };
 
 const answerWith = (body: JsonValue, ok = true) => {
-  fetchMock.mockResolvedValue({ ok, json: () => Promise.resolve(body) });
+  fetchMock.mockResolvedValue({
+    ok,
+    status: ok ? 200 : 403,
+    json: () => Promise.resolve(body),
+  });
 };
 
 beforeEach(() => {
@@ -87,19 +91,40 @@ describe('fetchAdminOverview', () => {
   it('reads the state of the server', async () => {
     answerWith(OVERVIEW);
 
-    await expect(fetchAdminOverview()).resolves.toEqual(OVERVIEW);
+    await expect(fetchAdminOverview()).resolves.toEqual({ overview: OVERVIEW, problem: null });
   });
 
-  it('says nothing when the server refuses, since only an admin may ask', async () => {
+  it('says which answer it got when the server refuses', async () => {
     answerWith({}, false);
 
-    await expect(fetchAdminOverview()).resolves.toBeNull();
+    const outcome = await fetchAdminOverview();
+
+    expect(outcome.overview).toBeNull();
+    expect(outcome.problem).toContain('answered');
   });
 
-  it('says nothing when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached at all', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchAdminOverview()).resolves.toBeNull();
+    const outcome = await fetchAdminOverview();
+
+    expect(outcome.overview).toBeNull();
+    expect(outcome.problem).toContain('could not be reached');
+  });
+
+  it('names the field it did not understand rather than throwing it away', async () => {
+    answerWith({ ...OVERVIEW, transcoder: { isReachable: 'yes' } });
+
+    const outcome = await fetchAdminOverview();
+
+    expect(outcome.overview).toBeNull();
+    expect(outcome.problem).toContain('transcoder');
+  });
+
+  it('does not reject, so a page cannot be left waiting for ever', async () => {
+    answerWith({ nonsense: true });
+
+    await expect(fetchAdminOverview()).resolves.toBeDefined();
   });
 });
 
