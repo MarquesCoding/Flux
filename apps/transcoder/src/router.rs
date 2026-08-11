@@ -711,11 +711,12 @@ async fn monitor_stream(State(state): State<AppState>) -> Response {
                 logs: state.monitor.journal().read().await,
             };
 
-            match serde_json::to_string(&report) {
-                Ok(payload) => yield Ok::<_, std::convert::Infallible>(
+            // A reading that cannot be written is skipped rather than ending
+            // the stream: the next one is a second away.
+            if let Ok(payload) = serde_json::to_string(&report) {
+                yield Ok::<_, std::convert::Infallible>(
                     axum::response::sse::Event::default().data(payload),
-                ),
-                Err(_) => continue,
+                );
             }
         }
     };

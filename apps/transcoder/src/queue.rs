@@ -142,8 +142,13 @@ impl WorkQueue {
     /// Runs a piece of work when there is room for it.
     ///
     /// The caller still awaits its own result, so this changes when the work
-    /// happens rather than how it is asked for. Failure is recorded and handed
-    /// straight back: the queue observes, it does not swallow.
+    /// happens rather than how it is asked for.
+    ///
+    /// # Errors
+    ///
+    /// Whatever the work itself failed with, unchanged. The failure is written
+    /// into the job's history on the way past: the queue observes, it does not
+    /// swallow.
     pub async fn run<T, E, F>(&self, kind: &str, subject: &str, work: F) -> Result<T, E>
     where
         F: Future<Output = Result<T, E>>,

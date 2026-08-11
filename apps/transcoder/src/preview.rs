@@ -117,7 +117,9 @@ impl PreviewRequest {
         let mut id = String::with_capacity(32);
 
         for byte in digest.iter().take(16) {
-            id.push_str(&format!("{byte:02x}"));
+            use std::fmt::Write;
+
+            let _ = write!(id, "{byte:02x}");
         }
 
         id
@@ -132,7 +134,7 @@ impl PreviewRequest {
             reason = "a position inside a running time is far below the limits of the cast"
         )]
         self.at_seconds
-            .unwrap_or_else(|| (duration_seconds * DEFAULT_POSITION) as u32)
+            .unwrap_or((duration_seconds * DEFAULT_POSITION) as u32)
     }
 }
 
@@ -262,8 +264,7 @@ pub async fn generate(
 
     let written = tokio::fs::metadata(&output)
         .await
-        .map(|file| file.len())
-        .unwrap_or(0);
+        .map_or(0, |file| file.len());
 
     if !outcome.status.success() || written == 0 {
         return Err(PreviewError::NoOutput(
