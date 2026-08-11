@@ -148,6 +148,18 @@
   }
 }
 
+/*
+ * The page stops at its own ends.
+ *
+ * No rubber banding past the top or bottom, and no handing a scroll on to
+ * whatever is behind the page. A hero that holds the page still while it draws
+ * itself into a card is undone by a browser that bounces the whole document
+ * while it happens.
+ */
+:root {
+  overscroll-behavior: none;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--color-surface);
