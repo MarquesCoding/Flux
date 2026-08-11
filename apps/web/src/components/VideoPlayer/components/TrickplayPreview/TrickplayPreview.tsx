@@ -19,11 +19,13 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
   }
 
   return (
-    <figure className="overflow-hidden rounded-md border border-border bg-surface-raised shadow-lg">
+    // The same glass as the bar it hangs over, so a frame of the film sits in
+    // the interface rather than on top of it.
+    <figure className="flux-glass overflow-hidden rounded-2xl p-1 text-white">
       <div
         role="img"
         aria-label={`Preview at ${formatDuration(seconds)}`}
-        className="bg-black bg-no-repeat"
+        className="rounded-xl bg-black bg-no-repeat"
         style={{
           width: `${thumbnail.width.toString()}px`,
           height: `${thumbnail.height.toString()}px`,
@@ -32,7 +34,7 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
         }}
       />
 
-      <figcaption className="px-2 py-1 text-center text-xs tabular-nums text-text-muted">
+      <figcaption className="px-2 pb-0.5 pt-1.5 text-center text-xs font-medium tabular-nums text-white/80">
         {formatDuration(seconds)}
       </figcaption>
     </figure>
