@@ -37,6 +37,81 @@ const show = (seasons: { seasonNumber: number | null; episodes: number[] }[]): S
   })),
 });
 
+describe('findGaps, told what the series contains', () => {
+  const withShape = (
+    seasons: { seasonNumber: number; episodes: number[] }[],
+    shape: { seasonNumber: number; episodeCount: number }[],
+  ): ShowDetail => ({ ...show(seasons), shape });
+
+  it('sees the episodes missing off the end of a season', () => {
+    const gaps = findGaps(
+      withShape([{ seasonNumber: 1, episodes: [1, 2, 3] }], [{ seasonNumber: 1, episodeCount: 5 }]),
+    );
+
+    expect(gaps.episodes.get(1)).toEqual([4, 5]);
+  });
+
+  it('sees a season held by nobody, which numbering alone never could', () => {
+    const gaps = findGaps(
+      withShape(
+        [{ seasonNumber: 1, episodes: [1] }],
+        [
+          { seasonNumber: 1, episodeCount: 1 },
+          { seasonNumber: 2, episodeCount: 12 },
+        ],
+      ),
+    );
+
+    expect(gaps.seasons).toEqual([2]);
+  });
+
+  it('counts specials like any other season once a catalogue names them', () => {
+    const gaps = findGaps(
+      withShape(
+        [{ seasonNumber: 1, episodes: [1] }],
+        [
+          { seasonNumber: 0, episodeCount: 2 },
+          { seasonNumber: 1, episodeCount: 1 },
+        ],
+      ),
+    );
+
+    expect(gaps.seasons).toContain(0);
+  });
+
+  it('says a complete series is complete', () => {
+    const gaps = findGaps(
+      withShape([{ seasonNumber: 1, episodes: [1, 2] }], [{ seasonNumber: 1, episodeCount: 2 }]),
+    );
+
+    expect(gaps.seasons).toEqual([]);
+    expect(gaps.episodes.size).toBe(0);
+  });
+
+  it('ignores a season the catalogue says is empty, which is one not yet aired', () => {
+    const gaps = findGaps(
+      withShape(
+        [{ seasonNumber: 1, episodes: [1] }],
+        [
+          { seasonNumber: 1, episodeCount: 1 },
+          { seasonNumber: 2, episodeCount: 0 },
+        ],
+      ),
+    );
+
+    expect(gaps.seasons).toEqual([]);
+  });
+
+  it('says where its answer came from', () => {
+    const told = findGaps(
+      withShape([{ seasonNumber: 1, episodes: [1] }], [{ seasonNumber: 1, episodeCount: 2 }]),
+    );
+
+    expect(told.isFromCatalogue).toBe(true);
+    expect(findGaps(show([{ seasonNumber: 1, episodes: [1] }])).isFromCatalogue).toBe(false);
+  });
+});
+
 describe('findGaps', () => {
   it('finds an episode skipped in the middle of a season', () => {
     const gaps = findGaps(show([{ seasonNumber: 1, episodes: [1, 2, 4] }]));

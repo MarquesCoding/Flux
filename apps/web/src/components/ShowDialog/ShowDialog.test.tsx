@@ -131,6 +131,43 @@ describe('ShowDialog', () => {
     expect(screen.getByRole('button', { name: 'Season 1' })).toBeInTheDocument();
   });
 
+  it('shows the episodes missing off the end when the catalogue says how many there are', async () => {
+    fetchShowMock.mockResolvedValue({
+      ...detail([{ seasonNumber: 1, episodes: [1, 2] }]),
+      shape: [{ seasonNumber: 1, episodeCount: 4 }],
+    });
+    render(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await screen.findByText('Episode 3');
+
+    expect(screen.getByText('Episode 4')).toBeInTheDocument();
+  });
+
+  it('names the specials a series has and this library does not', async () => {
+    fetchShowMock.mockResolvedValue({
+      ...detail([{ seasonNumber: 1, episodes: [1] }]),
+      shape: [
+        { seasonNumber: 0, episodeCount: 3 },
+        { seasonNumber: 1, episodeCount: 1 },
+      ],
+    });
+    render(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(await screen.findByText('Specials missing')).toBeInTheDocument();
+  });
+
+  it('says nothing is missing from a series the catalogue says is complete', async () => {
+    fetchShowMock.mockResolvedValue({
+      ...detail([{ seasonNumber: 1, episodes: [1, 2] }]),
+      shape: [{ seasonNumber: 1, episodeCount: 2 }],
+    });
+    render(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await screen.findByRole('button', { name: /Play Episode 1/ });
+
+    expect(screen.queryByText('Not in this library')).not.toBeInTheDocument();
+  });
+
   it('plays the episode that was pressed', async () => {
     const onPlay = vi.fn();
     const user = userEvent.setup();

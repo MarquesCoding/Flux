@@ -30,18 +30,37 @@ const ShowSeasonSchema = z.object({
 });
 
 /**
- * Everything the library holds about a series.
+ * What a catalogue says a season of the series contains.
+ *
+ * The count is what should be there, against which what is held can be
+ * measured. Season nought is the specials, which a catalogue numbers even
+ * where the people making them did not.
+ */
+const SeasonShapeSchema = z.object({
+  seasonNumber: z.number().int().nonnegative(),
+  episodeCount: z.number().int().nonnegative(),
+});
+
+/**
+ * Everything the library holds about a series, and what it ought to hold.
+ *
+ * `shape` is absent when nothing can say: no catalogue is configured, the
+ * series was never matched to one, or it could not be reached. Absent means
+ * unknown rather than complete, and nothing downstream may read it as a
+ * series being whole.
  */
 const ShowDetailSchema = ShowSummarySchema.extend({
   seasons: z.array(ShowSeasonSchema),
+  shape: z.array(SeasonShapeSchema).nullish(),
 });
 
 const ShowListSchema = z.object({ shows: z.array(ShowSummarySchema) });
 
+type SeasonShape = z.infer<typeof SeasonShapeSchema>;
 type ShowSummary = z.infer<typeof ShowSummarySchema>;
 type ShowSeason = z.infer<typeof ShowSeasonSchema>;
 type ShowDetail = z.infer<typeof ShowDetailSchema>;
 
-export type { ShowDetail, ShowSeason, ShowSummary };
+export type { SeasonShape, ShowDetail, ShowSeason, ShowSummary };
 
-export { ShowSummarySchema, ShowSeasonSchema, ShowDetailSchema, ShowListSchema };
+export { ShowSummarySchema, ShowSeasonSchema, SeasonShapeSchema, ShowDetailSchema, ShowListSchema };
