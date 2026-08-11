@@ -9,8 +9,8 @@ import {
   IconRefresh,
   IconPlayerPause,
   IconPlayerPlay,
-  IconRewindBackward10,
-  IconRewindForward10,
+  IconRotate,
+  IconRotateClockwise,
   IconVolume,
   IconVolumeOff,
 } from '@tabler/icons-react'
@@ -109,7 +109,9 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        <IconRewindBackward10 size={22} aria-hidden />
+        {/* Mirrored: the arrow has to curl back the way the film is going,
+            and the icon as drawn points the other way. */}
+        <IconRotateClockwise size={22} aria-hidden className="-scale-x-100" />
       </IconButton>
 
       <IconButton
@@ -133,7 +135,7 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        <IconRewindForward10 size={22} aria-hidden />
+        <IconRotate size={22} aria-hidden className="-scale-x-100" />
       </IconButton>
 
       <span className="flex-1" />
