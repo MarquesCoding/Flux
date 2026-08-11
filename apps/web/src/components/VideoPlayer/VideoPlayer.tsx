@@ -180,6 +180,10 @@ const VideoPlayer = ({
   )
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isShowingStats, setIsShowingStats] = useState(false)
+  // Whether a menu on the bar is open. The bar stays up while one is: fading
+  // out from under an open menu takes the menu with it, and somebody reading a
+  // list of episodes has not stopped using the player.
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH)
   const [isIdle, setIsIdle] = useState(false)
   // Where the pointer was last seen, so a move that did not move can be told
@@ -904,10 +908,12 @@ const VideoPlayer = ({
   // Read through a ref rather than listed as a dependency: the cues are moved
   // as they change, and rebuilding the listeners every time the bar fades
   // would drop the ones that are on screen at that moment.
-  const isIdleRef = useRef(isIdle)
+  // Whether the controls are on screen, which is what the cues have to clear.
+  const isBarUp = !isIdle || isShowingStats || isMenuOpen
+  const isBarUpRef = useRef(isBarUp)
   const cuesRef = useRef<{ stop: () => void; apply: () => void } | null>(null)
 
-  isIdleRef.current = isIdle
+  isBarUpRef.current = isBarUp
 
   useEffect(() => {
     const element = videoRef.current
@@ -917,7 +923,7 @@ const VideoPlayer = ({
     }
 
     const lifted = liftCues(element, () =>
-      isIdleRef.current ? CUE_LINE_CLEAR : CUE_LINE_ABOVE_CONTROLS,
+      isBarUpRef.current ? CUE_LINE_ABOVE_CONTROLS : CUE_LINE_CLEAR,
     )
 
     cuesRef.current = lifted
@@ -935,7 +941,7 @@ const VideoPlayer = ({
   // somebody says the next line.
   useEffect(() => {
     cuesRef.current?.apply()
-  }, [isIdle, captionStyle])
+  }, [isBarUp, captionStyle])
 
   // What one frame of this film is worth, taken from the film. Two consecutive
   // frames are enough: the gap between the moments they cover is the frame
@@ -1104,7 +1110,7 @@ const VideoPlayer = ({
         className={
           isImmersive
             ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-opacity duration-500 ease-out ${
-                isIdle && !isShowingStats ? 'opacity-0' : 'opacity-100'
+                isIdle && !isShowingStats && !isMenuOpen ? 'opacity-0' : 'opacity-100'
               }`
             : 'flex items-center justify-between gap-4'
         }
@@ -1137,7 +1143,7 @@ const VideoPlayer = ({
           isImmersive
             ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black'
             : 'relative overflow-hidden rounded-lg bg-black'
-        } ${isIdle && !isShowingStats ? 'cursor-none' : 'cursor-default'} outline-none`}
+        } ${isIdle && !isShowingStats && !isMenuOpen ? 'cursor-none' : 'cursor-default'} outline-none`}
       >
         <VideoSurface
           label={media.title}
@@ -1263,7 +1269,9 @@ const VideoPlayer = ({
 
         <div
           className={`absolute inset-x-3 bottom-3 transition-opacity duration-500 ease-out ${
-            isIdle && !isShowingStats ? 'flux-glass-clearing opacity-0' : 'opacity-100'
+            isIdle && !isShowingStats && !isMenuOpen
+              ? 'flux-glass-clearing opacity-0'
+              : 'opacity-100'
           }`}
         >
           <PlayerControls
@@ -1294,6 +1302,7 @@ const VideoPlayer = ({
             onSubtitleChange={chooseSubtitle}
             onAudioChange={changeAudio}
             onQualityChange={changeQuality}
+            onMenuOpenChange={setIsMenuOpen}
             isShowingRemaining={isShowingRemaining}
             onToggleTimeDisplay={() => {
               setIsShowingRemaining((showing) => {

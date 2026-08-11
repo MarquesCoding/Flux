@@ -66,6 +66,13 @@ type PlayerControlsProps = {
   /**
    * Whether the clock counts down to the end rather than up from the start.
    */
+  /**
+   * Says when a menu on the bar is open.
+   *
+   * The player keeps the controls up while one is, since a bar that fades out
+   * from under an open menu takes the menu with it.
+   */
+  onMenuOpenChange?: (isOpen: boolean) => void
   isShowingRemaining: boolean
   onToggleTimeDisplay: () => void
   captionStyle: CaptionStyle

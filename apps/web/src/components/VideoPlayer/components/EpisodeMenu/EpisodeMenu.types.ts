@@ -17,6 +17,10 @@ type EpisodeMenuProps = {
    * How far through each one this viewer is.
    */
   watchedFractionFor?: (mediaId: string) => number | undefined
+  /**
+   * Says when the list opens and closes, so the bar under it can stay up.
+   */
+  onOpenChange?: (isOpen: boolean) => void
   isDisabled?: boolean
 }
 

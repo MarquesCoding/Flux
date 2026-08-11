@@ -88,6 +88,13 @@ type SettingsMenuProps = {
   label: string
   trigger: ReactNode
   rows: SettingsRow[]
+  /**
+   * Says when the panel opens and closes.
+   *
+   * What is underneath may need to stay put while it is open — a bar that
+   * fades out from under an open menu takes the menu with it.
+   */
+  onOpenChange?: (isOpen: boolean) => void
   isDisabled?: boolean
   className?: string
 }
