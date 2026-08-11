@@ -95,6 +95,36 @@ if (typeof HTMLMediaElement !== 'undefined') {
   })
 }
 
+/**
+ * jsdom has no layout, so it cannot scroll, and no media pipeline, so it
+ * cannot load. Both are things the application does for real reasons — a new
+ * section starts at its top, and a stream that has not produced a segment is
+ * asked again — and neither should have to check whether it is being tested.
+ */
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'scrollTo', {
+    configurable: true,
+    writable: true,
+    value: () => undefined,
+  })
+}
+
+if (typeof Element !== 'undefined') {
+  Object.defineProperty(Element.prototype, 'scrollIntoView', {
+    configurable: true,
+    writable: true,
+    value: () => undefined,
+  })
+}
+
+if (typeof HTMLMediaElement !== 'undefined') {
+  Object.defineProperty(HTMLMediaElement.prototype, 'load', {
+    configurable: true,
+    writable: true,
+    value: () => undefined,
+  })
+}
+
 afterEach(() => {
   cleanup()
 })
