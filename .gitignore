@@ -16,3 +16,7 @@ target/
 
 # Astro generated types
 .astro/
+
+# Certificates for reading Flux over TLS in development. Made by mkcert,
+# never shared: a key in a repository is a key that has escaped.
+apps/web/certificates/

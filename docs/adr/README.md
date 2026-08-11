@@ -41,6 +41,7 @@ more valuable than a tidy directory.
 | [0012](0012-media-test-corpus-external-fixtures.md)    | Media test corpus as external fixture download            | Accepted |
 | [0013](0013-fluxui-component-stack.md)                 | FluxUI built on Base UI + Tailwind, not shadcn            | Accepted |
 | [0014](0014-lint-and-commit-enforcement.md)            | Lint and commit enforcement with oxlint, ESLint and husky | Accepted |
+| [0015](0015-casting-to-devices.md)                     | Cast by handing devices an address, with Google's sender  | Accepted |
 
 ## Format
 

@@ -1,3 +1,4 @@
+import type { CastState } from '@FluxWeb/playback/castPlayback.types'
 import type { ReactNode } from 'react'
 import type { MediaSummary } from '@FluxContracts/schemas/Library'
 import type { CaptionStyle } from '@FluxWeb/playback/captionStyle'
@@ -97,6 +98,14 @@ type PlayerControlsProps = {
    * Absent where the browser has no such window, so the control is not shown
    * at all rather than shown and inert.
    */
+  /**
+   * Where the playing is: here, or on something else on the network.
+   *
+   * The control is not drawn at all where there is nowhere to send it. A cast
+   * button that opens an empty list is a button that has wasted a press.
+   */
+  castState?: CastState
+  onCast?: () => void
   onPopOut?: () => void
   /**
    * Whether the film is already playing in its own window, so the control can
