@@ -22,13 +22,7 @@ type CreateAuthOptions = {
   database: AuthDatabase;
   settings: SettingsStore;
   cookieSecure: boolean;
-  /// Called after a user is created, so Flux can give them a profile row.
   onUserCreated?: (userId: string) => Promise<void>;
-  /// Called when someone asks to reset a password.
-  ///
-  /// Given the reset URL rather than sending mail, because a self-hosted
-  /// instance usually has no mail server. The administrator hands the link
-  /// over, or reads it from the log.
   onPasswordResetRequested?: (email: string, url: string) => Promise<void>;
 };
 

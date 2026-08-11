@@ -56,12 +56,23 @@ const DOCUMENTABLE = [
 ] as const;
 
 /**
+ * A triple-slash directive, which is the only thing a third slash may mean.
+ *
+ * `/// <reference ... />` is read by the compiler. `/// anything else` is Rust
+ * doc syntax written in the wrong language, and is prose wearing a third
+ * slash — which is exactly how nine of them survived the first sweep.
+ */
+const TRIPLE_SLASH = /^\/\s*<(reference|amd-module|amd-dependency)\b/;
+
+/**
  * Whether a comment is addressed to a tool.
  */
 const isDirective = (text: string): boolean => {
   const trimmed = text.trim();
 
-  return trimmed.startsWith('/') || DIRECTIVES.some((directive) => trimmed.startsWith(directive));
+  return (
+    TRIPLE_SLASH.test(trimmed) || DIRECTIVES.some((directive) => trimmed.startsWith(directive))
+  );
 };
 
 /**

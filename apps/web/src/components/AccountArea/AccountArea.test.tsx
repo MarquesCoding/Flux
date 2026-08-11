@@ -75,7 +75,7 @@ describe('AccountArea', () => {
 
     expect(screen.getByText('How you appear')).toBeInTheDocument();
 
-    await actor.click(screen.getByRole('button', { name: 'Security' }));
+    await actor.click(screen.getByRole('tab', { name: 'Security' }));
 
     expect(screen.queryByText('How you appear')).not.toBeInTheDocument();
     expect(screen.getByText('Getting in')).toBeInTheDocument();
