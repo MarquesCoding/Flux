@@ -5,8 +5,6 @@ type Tab = {
 
 type TabBarProps = {
   tabs: Tab[];
-  selectedId: string;
-  onSelect: (id: string) => void;
   label: string;
   className?: string;
 };

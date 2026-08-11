@@ -20,8 +20,6 @@ type Delivery = { kind: 'hls'; manifestUrl: string } | { kind: 'direct'; url: st
 type StartedSession = Explanation & {
   sessionId: string;
   delivery: Delivery;
-  /// Things the viewer should know that are not failures, such as a server
-  /// that cannot tone map the HDR source it is about to convert.
   warnings: string[];
 };
 
@@ -36,7 +34,6 @@ type SessionFile = {
   contentType: string;
 };
 
-/// A byte range answer from the media service.
 type RangedFile = {
   body: ArrayBuffer;
   contentType: string;

@@ -4,6 +4,8 @@ import { IconLogout, IconPencil, IconShieldLock, IconUser } from '@tabler/icons-
 import { Button } from '@FluxUI/Button';
 import { Badge } from '@FluxUI/Badge';
 import { TabBar } from '@FluxUI/TabBar';
+import { TabPanel } from '@FluxUI/TabPanel';
+import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
@@ -55,53 +57,55 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
       animate="shown"
       className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-5 pb-16 pt-14 sm:px-10"
     >
-      <motion.header
-        variants={revealVariants(prefersReducedMotion)}
-        transition={revealTransition(prefersReducedMotion, 'heavy')}
-        className="flex flex-wrap items-end justify-between gap-6"
+      <Tabs
+        value={panel}
+        onValueChange={(next) => {
+          const found = PANELS.find((candidate) => candidate.id === next);
+
+          if (found !== undefined) {
+            setPanel(found.id);
+          }
+        }}
       >
-        <div className="flex items-center gap-5">
-          {profile === null ? (
-            <span className="size-20 shrink-0 rounded-3xl bg-white/5 sm:size-24" />
-          ) : (
-            <ProfileFace
-              profile={profile}
-              className="size-20 shrink-0 rounded-3xl text-3xl shadow-xl sm:size-24"
-            />
-          )}
-
-          <div className="flex flex-col gap-1">
-            <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">
-              {profile?.name ?? user.name}
-            </h1>
-
-            <p className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
-              {user.email}
-              {user.role !== 'admin' ? null : <Badge size="sm">admin</Badge>}
-            </p>
-          </div>
-        </div>
-
-        <TabBar
-          tabs={[...PANELS]}
-          selectedId={panel}
-          onSelect={(id) => {
-            const found = PANELS.find((candidate) => candidate.id === id);
-
-            if (found !== undefined) {
-              setPanel(found.id);
-            }
-          }}
-          label="What to change"
-        />
-      </motion.header>
-
-      {panel !== 'profile' ? null : (
-        <motion.section
+        <motion.header
           variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion)}
-          aria-label="Profile"
+          transition={revealTransition(prefersReducedMotion, 'heavy')}
+          className="flex flex-wrap items-end justify-between gap-6"
+        >
+          <div className="flex items-center gap-5">
+            {profile === null ? (
+              <span className="size-20 shrink-0 rounded-3xl bg-white/5 sm:size-24" />
+            ) : (
+              <ProfileFace
+                profile={profile}
+                className="size-20 shrink-0 rounded-3xl text-3xl shadow-xl sm:size-24"
+              />
+            )}
+
+            <div className="flex flex-col gap-1">
+              <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">
+                {profile?.name ?? user.name}
+              </h1>
+
+              <p className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
+                {user.email}
+                {user.role !== 'admin' ? null : <Badge size="sm">admin</Badge>}
+              </p>
+            </div>
+          </div>
+
+          <TabBar tabs={[...PANELS]} label="What to change" />
+        </motion.header>
+
+        <TabPanel
+          value="profile"
           className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+          render={
+            <motion.section
+              variants={revealVariants(prefersReducedMotion)}
+              transition={revealTransition(prefersReducedMotion)}
+            />
+          }
         >
           <header className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-text-muted">
@@ -144,26 +148,30 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
               watching. Changing it changes nothing about how you sign in.
             </p>
           )}
-        </motion.section>
-      )}
+        </TabPanel>
 
-      {panel !== 'devices' ? null : (
-        <motion.section
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion)}
-          aria-label="Devices"
+        <TabPanel
+          value="devices"
           className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+          render={
+            <motion.section
+              variants={revealVariants(prefersReducedMotion)}
+              transition={revealTransition(prefersReducedMotion)}
+            />
+          }
         >
           <DeviceList />
-        </motion.section>
-      )}
+        </TabPanel>
 
-      {panel !== 'security' ? null : (
-        <motion.section
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion)}
-          aria-label="Security"
+        <TabPanel
+          value="security"
           className="flex flex-col gap-6"
+          render={
+            <motion.section
+              variants={revealVariants(prefersReducedMotion)}
+              transition={revealTransition(prefersReducedMotion)}
+            />
+          }
         >
           <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
             <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-text-muted">
@@ -177,23 +185,23 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
           <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
             <PasskeySetup onChanged={onChanged} />
           </div>
-        </motion.section>
-      )}
+        </TabPanel>
 
-      <motion.footer
-        variants={revealVariants(prefersReducedMotion)}
-        transition={revealTransition(prefersReducedMotion)}
-        className="flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6"
-      >
-        <p className="text-xs text-text-muted">
-          Signing out returns to the wall of faces. Nothing about what you have watched is lost.
-        </p>
+        <motion.footer
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion)}
+          className="flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6"
+        >
+          <p className="text-xs text-text-muted">
+            Signing out returns to the wall of faces. Nothing about what you have watched is lost.
+          </p>
 
-        <Button variant="ghost" size="sm" isPill onClick={onSignOut}>
-          <IconLogout size={16} aria-hidden />
-          Sign out
-        </Button>
-      </motion.footer>
+          <Button variant="ghost" size="sm" isPill onClick={onSignOut}>
+            <IconLogout size={16} aria-hidden />
+            Sign out
+          </Button>
+        </motion.footer>
+      </Tabs>
     </motion.div>
   );
 };
