@@ -39,7 +39,7 @@ describe('handOverToDevice', () => {
     expect(element.src).toBe('http://flux.local:5173/api/playback/session/abc/index.m3u8')
   })
 
-  it('lets go of the media engine first', async () => {
+  it('lets go of the media engine, without waiting on it first', async () => {
     const element = castable()
     const release = vi.fn(() => Promise.resolve())
 
