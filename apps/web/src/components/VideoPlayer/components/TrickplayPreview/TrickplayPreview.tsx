@@ -22,8 +22,9 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
     // Built like the bar it hangs over, down to the padding, the corner and
     // the way the time is set: the frame under the pointer belongs to the
     // controls somebody is already using rather than to a tooltip that
-    // happens to be nearby.
-    <figure className="flux-glass flux-glass--film flex flex-col gap-1 rounded-3xl px-2 py-2 mb-2 text-white">
+    // happens to be nearby. The bar's own glass, so it adapts to the theme
+    // with it rather than staying dark while the bar lightens.
+    <figure className="flux-glass mb-2 flex flex-col gap-1 rounded-3xl px-2 py-2 text-white">
       <div
         role="img"
         aria-label={`Preview at ${formatDuration(seconds)}`}

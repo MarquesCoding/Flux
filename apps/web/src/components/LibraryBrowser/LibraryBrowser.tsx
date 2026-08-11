@@ -181,7 +181,7 @@ const LibraryBrowser = ({
   if (state === 'loading') {
     return (
       <div className="flex justify-center p-12">
-        <Spinner label="Loading your library" size="lg" />
+        <Spinner label="Reading your library" size="lg" />
       </div>
     )
   }

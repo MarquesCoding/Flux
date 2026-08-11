@@ -1,12 +1,12 @@
 import ButtonModule from '@FluxUI/Button'
 import SliderModule from '@FluxUI/Slider'
-import OptionMenuModule from '@FluxUI/OptionMenu'
+import CaptionChoiceModule from './components/CaptionChoice/CaptionChoice'
 import captionStyleModule from '@FluxWeb/playback/captionStyle'
 import type { CaptionSettingsProps } from './CaptionSettings.types'
 
 const { Button } = ButtonModule
 const { Slider } = SliderModule
-const { OptionMenu } = OptionMenuModule
+const { CaptionChoice } = CaptionChoiceModule
 const { toCueDeclarations } = captionStyleModule
 
 const FONTS = [
@@ -32,9 +32,6 @@ const COLOURS = [
   { id: '#000000', label: 'Black' },
 ] as const
 
-const nameOf = (options: readonly { id: string; label: string }[], id: string): string =>
-  options.find((option) => option.id === id)?.label ?? id
-
 /**
  * How captions should look, decided by the person reading them.
  *
@@ -58,25 +55,14 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
       The quick brown fox
     </p>
 
-    <div className="flex items-center justify-between gap-3">
-      <span>Font</span>
-
-      <OptionMenu
-        label="Caption font"
-        trigger={<span className="text-xs">{nameOf(FONTS, style.fontFamily)}</span>}
-        className="w-auto px-3"
-        groups={[
-          {
-            name: 'Font',
-            selectedId: style.fontFamily,
-            onSelect: (id) => {
-              onChange({ ...style, fontFamily: FONTS.find((font) => font.id === id)?.id ?? 'sans' })
-            },
-            options: FONTS.map((font) => ({ id: font.id, label: font.label })),
-          },
-        ]}
-      />
-    </div>
+    <CaptionChoice
+      label="Font"
+      options={FONTS}
+      selectedId={style.fontFamily}
+      onSelect={(id) => {
+        onChange({ ...style, fontFamily: FONTS.find((font) => font.id === id)?.id ?? 'sans' })
+      }}
+    />
 
     <label className="flex flex-col gap-1">
       <span>Size — {style.fontScale}%</span>
@@ -93,33 +79,23 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
       />
     </label>
 
-    <div className="flex items-center justify-between gap-3">
-      <span>Colour</span>
+    <CaptionChoice
+      label="Text colour"
+      options={COLOURS}
+      selectedId={style.color}
+      onSelect={(id) => {
+        onChange({ ...style, color: id })
+      }}
+    />
 
-      <OptionMenu
-        label="Caption colour"
-        trigger={<span className="text-xs">{nameOf(COLOURS, style.color)}</span>}
-        className="w-auto px-3"
-        groups={[
-          {
-            name: 'Text',
-            selectedId: style.color,
-            onSelect: (id) => {
-              onChange({ ...style, color: id })
-            },
-            options: COLOURS.map((colour) => ({ id: colour.id, label: colour.label })),
-          },
-          {
-            name: 'Background',
-            selectedId: style.backgroundColor,
-            onSelect: (id) => {
-              onChange({ ...style, backgroundColor: id })
-            },
-            options: COLOURS.map((colour) => ({ id: colour.id, label: colour.label })),
-          },
-        ]}
-      />
-    </div>
+    <CaptionChoice
+      label="Background colour"
+      options={COLOURS}
+      selectedId={style.backgroundColor}
+      onSelect={(id) => {
+        onChange({ ...style, backgroundColor: id })
+      }}
+    />
 
     <label className="flex flex-col gap-1">
       <span>Background opacity — {Math.round(style.backgroundOpacity * 100)}%</span>
@@ -136,28 +112,14 @@ const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => 
       />
     </label>
 
-    <div className="flex items-center justify-between gap-3">
-      <span>Edge</span>
-
-      <OptionMenu
-        label="Caption edge"
-        trigger={<span className="text-xs">{nameOf(EDGES, style.edgeStyle)}</span>}
-        className="w-auto px-3"
-        groups={[
-          {
-            name: 'Edge',
-            selectedId: style.edgeStyle,
-            onSelect: (id) => {
-              onChange({
-                ...style,
-                edgeStyle: EDGES.find((edge) => edge.id === id)?.id ?? 'outline',
-              })
-            },
-            options: EDGES.map((edge) => ({ id: edge.id, label: edge.label })),
-          },
-        ]}
-      />
-    </div>
+    <CaptionChoice
+      label="Edge"
+      options={EDGES}
+      selectedId={style.edgeStyle}
+      onSelect={(id) => {
+        onChange({ ...style, edgeStyle: EDGES.find((edge) => edge.id === id)?.id ?? 'outline' })
+      }}
+    />
 
     <Button variant="secondary" size="sm" onClick={onReset}>
       Reset to defaults

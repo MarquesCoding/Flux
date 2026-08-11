@@ -55,7 +55,9 @@ const Button = ({
       )}
       {...rest}
     >
-      {isLoading ? <Spinner size={size === 'sm' ? 'sm' : 'md'} label="Loading" /> : null}
+      {/* Named for what a button does rather than for what a page does: this
+          turns while the thing the button asked for is happening. */}
+      {isLoading ? <Spinner size={size === 'sm' ? 'sm' : 'md'} label="Working" /> : null}
       {children}
     </button>
   )

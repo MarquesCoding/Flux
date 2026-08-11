@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import {
   IconClock,
   IconHeart,
@@ -91,11 +91,31 @@ const AppShell = ({
     }
   }, [section, onSectionChange])
 
-  // A new section starts at the top of itself. Arriving at search from halfway
-  // down the library and landing halfway down the results is a page that has
-  // kept somebody else's place.
+  // Each section keeps its own place. Arriving at search from halfway down the
+  // library and landing halfway down the results is a page that has kept
+  // somebody else's place — but coming back to the library after a look at an
+  // account page and being thrown to the top is a page that has forgotten
+  // yours. So the offset is remembered per section and given back.
+  const placesRef = useRef<Record<string, number>>({})
+  const leavingRef = useRef(section)
+
   useEffect(() => {
-    window.scrollTo({ top: 0 })
+    const left = leavingRef.current
+
+    if (left !== section) {
+      placesRef.current[left] = window.scrollY
+      leavingRef.current = section
+    }
+
+    // After the page has been drawn, not before: restoring a place on a page
+    // that is still a screen tall scrolls to the bottom of nothing.
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ top: placesRef.current[section] ?? 0 })
+    })
+
+    return () => {
+      cancelAnimationFrame(frame)
+    }
   }, [section])
 
   const items: TopNavItem[] = BROWSE_SECTIONS.map((id) => ({
