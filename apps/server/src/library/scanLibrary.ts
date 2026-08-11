@@ -22,6 +22,14 @@ type StoredItem = {
   path: string
   sizeBytes: number
   modifiedAtMs: number
+  /**
+   * What a provider previously said this item's id was, there.
+   *
+   * Carried forward so a rescan can ask that provider for it directly rather
+   * than searching for it again by name — the same search that risks matching
+   * the wrong thing in the first place.
+   */
+  externalId: string | null
 }
 
 type MediaRow = {
@@ -159,6 +167,7 @@ const scanLibrary = async ({
     ? { changed: found, missing: selectChanged(found, stored).missing }
     : selectChanged(found, stored)
   const knownPaths = new Set(stored.map((item) => item.path))
+  const storedByPath = new Map(stored.map((item) => [item.path, item]))
 
   const imported: string[] = []
   let added = 0
@@ -180,10 +189,11 @@ const scanLibrary = async ({
       }
 
       const episode = readEpisodeFromPath(file.path)
+      const knownExternalId = storedByPath.get(file.path)?.externalId ?? null
 
       const metadata = await resolveMetadata(
         providers,
-        { path: file.path, probe, episode },
+        { path: file.path, probe, episode, knownExternalId },
         (name, reason) => onProblem?.(file.path, `Metadata provider ${name} failed: ${reason}`),
       )
 
