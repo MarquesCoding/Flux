@@ -23,7 +23,7 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
     // the way the time is set: the frame under the pointer belongs to the
     // controls somebody is already using rather than to a tooltip that
     // happens to be nearby.
-    <figure className="flux-glass flex flex-col gap-1 rounded-2xl px-3 py-2 text-white">
+    <figure className="flux-glass flux-glass--film flex flex-col gap-1 rounded-3xl px-2 py-2 mb-2 text-white">
       <div
         role="img"
         aria-label={`Preview at ${formatDuration(seconds)}`}
