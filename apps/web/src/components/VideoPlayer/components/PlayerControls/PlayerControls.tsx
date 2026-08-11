@@ -1,6 +1,8 @@
 import {
   IconAdjustmentsHorizontal,
   IconBadgeCc,
+  IconDeviceTv,
+  IconDeviceTvFilled,
   IconBadgeCcFilled,
   IconChartDots,
   IconClock,
@@ -112,6 +114,8 @@ const PlayerControls = ({
   onToggleFullscreen,
   onPopOut,
   isPoppedOut = false,
+  castState = 'unavailable',
+  onCast,
   onToggleStats,
   subtitleOffsetSeconds = 0,
   onSubtitleOffsetChange,
@@ -406,6 +410,24 @@ const PlayerControls = ({
           },
         ]}
       />
+
+      {/* Only where there is somewhere to send it. The list belongs to the
+          browser, which is the only thing that knows what is on the network. */}
+      {onCast === undefined || castState === 'unavailable' ? null : (
+        <IconButton
+          label={castState === 'connected' ? 'Playing on another device' : 'Play on a device'}
+          isActive={castState === 'connected'}
+          disabled={castState === 'connecting'}
+          onClick={onCast}
+          size="md"
+        >
+          {castState === 'connected' ? (
+            <IconDeviceTvFilled size={20} aria-hidden />
+          ) : (
+            <IconDeviceTv size={20} aria-hidden />
+          )}
+        </IconButton>
+      )}
 
       {onPopOut === undefined ? null : (
         <IconButton label="Pop out" onClick={onPopOut} isActive={isPoppedOut} size="md">

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   IconAlertTriangle,
+  IconDeviceTvFilled,
   IconPictureInPicture,
   IconPlayerTrackNext,
   IconX,
@@ -12,6 +13,8 @@ import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import detectDeviceProfileModule from '@FluxWeb/playback/detectDeviceProfile'
 import startPlaybackSessionModule from '@FluxWeb/playback/startPlaybackSession'
 import attachShakaModule from '@FluxWeb/playback/attachShaka'
+import castPlaybackModule from '@FluxWeb/playback/castPlayback'
+import handOverToDeviceModule from '@FluxWeb/playback/handOverToDevice'
 import fetchTrickplayModule from '@FluxWeb/playback/fetchTrickplay'
 import popOutWithCaptionsModule from '@FluxWeb/playback/popOutWithCaptions'
 import captureFrameModule from '@FluxWeb/playback/captureFrame'
@@ -31,6 +34,7 @@ import PlayerControlsModule from './components/PlayerControls/PlayerControls'
 import StreamStatsModule from './components/StreamStats/StreamStats'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions'
+import type { CastState } from '@FluxWeb/playback/castPlayback.types'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
 import type { MediaDetail } from '@FluxContracts/schemas/Library'
 import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles'
@@ -46,6 +50,8 @@ const { VideoSurface } = VideoSurfaceModule
 const { detectFromBrowser } = detectDeviceProfileModule
 const { startPlaybackSession, stopPlaybackSession } = startPlaybackSessionModule
 const { attachShaka } = attachShakaModule
+const { watchCastState, isReachableOrigin } = castPlaybackModule
+const { handOverToDevice } = handOverToDeviceModule
 const { fetchTrickplay } = fetchTrickplayModule
 const { popOutWithCaptions } = popOutWithCaptionsModule
 const { captureFrame } = captureFrameModule
@@ -248,6 +254,11 @@ const VideoPlayer = ({
   // depends on it.
   const poppedRef = useRef<PoppedOut | null>(null)
   const [isPoppedOut, setIsPoppedOut] = useState(false)
+  // Where the playing is: here, or on something else on the network.
+  const [castState, setCastState] = useState<CastState>('unavailable')
+  // What the media engine, if there is one, needs told before the element can
+  // be pointed at a device.
+  const releaseRef = useRef<(() => Promise<void>) | null>(null)
 
   const popOut = useCallback(() => {
     const element = videoRef.current
@@ -333,6 +344,20 @@ const VideoPlayer = ({
       appliedOffsetRef.current = subtitleOffset
     }
   }, [subtitleOffset, selectedSubtitleId, position])
+
+  // Somewhere to send it, and whether it has been sent. Only worth watching
+  // where a device could reach this server at all: a page read on the machine
+  // running it can offer a picker, but everything in that picker would be
+  // handed an address that means itself.
+  useEffect(() => {
+    const element = videoRef.current
+
+    if (element === null || !isReachableOrigin(window.location.origin)) {
+      return
+    }
+
+    return watchCastState(element, setCastState)
+  }, [])
 
   // The window can be closed from its own controls as well as from ours, so
   // the page listens rather than assuming it is the only thing that ends this.
@@ -511,6 +536,11 @@ const VideoPlayer = ({
             element,
             manifestUrl: outcome.session.delivery.manifestUrl,
           })
+
+          // Kept so casting can let go of it: a device is handed an address
+          // and fetches the stream itself, which cannot happen while an engine
+          // here is feeding the same element.
+          releaseRef.current = teardown
         }
 
         if (!isAbandoned()) {
@@ -1216,6 +1246,22 @@ const VideoPlayer = ({
           </div>
         )}
 
+        {/* Playing somewhere else. The picture here is blank whatever we draw
+            over it — the element is feeding a television rather than this
+            screen — so it says where the film went and leaves the bar below
+            working, since those controls now drive the device. */}
+        {castState !== 'connected' ? null : (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
+            <IconDeviceTvFilled size={32} className="text-text-muted" aria-hidden />
+
+            <p className="text-sm text-text-muted">Playing on another device</p>
+
+            <p className="max-w-xs text-xs text-text-muted/70">
+              The controls below still work. Stopping the cast from the device brings it back here.
+            </p>
+          </div>
+        )}
+
         {heldFrame === null ? null : (
           <div
             role="presentation"
@@ -1347,6 +1393,34 @@ const VideoPlayer = ({
               setIsMuted((muted) => !muted)
             }}
             onToggleFullscreen={toggleFullscreen}
+            castState={castState}
+            onCast={() => {
+              const element = videoRef.current
+              const address =
+                session === null
+                  ? null
+                  : session.delivery.kind === 'direct'
+                    ? session.delivery.url
+                    : session.delivery.manifestUrl
+
+              if (element === null || address === null) {
+                return
+              }
+
+              void handOverToDevice({
+                element,
+                url: address,
+                origin: window.location.origin,
+                ...(releaseRef.current === null
+                  ? {}
+                  : {
+                      release: async () => {
+                        await releaseRef.current?.()
+                        releaseRef.current = null
+                      },
+                    }),
+              })
+            }}
             {...(canPopOut ? { onPopOut: popOut } : {})}
             isPoppedOut={isPoppedOut}
             onToggleStats={() => {
