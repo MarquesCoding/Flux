@@ -74,6 +74,10 @@ const groupBySeason = (candidates: GroupedCandidate[]): Map<string, GroupedCandi
  * takes to walk a directory, and listening to a season takes far longer than
  * that.
  *
+ * A season nothing could be asked about is left outstanding rather than marked
+ * done. A media service that is down must cost a library a delay, not its
+ * intros: marking those files complete is a decision nothing ever revisits.
+ *
  * Only the seasons with something outstanding, but each of those in full. A
  * season is the unit of comparison — an episode fingerprinted on its own has
  * nothing to match against — so one new episode brings its whole season back
@@ -102,7 +106,7 @@ const detectLibrarySegments = async ({
   for (const [, group] of groups) {
     const baseline = processed;
 
-    const found = await resolveSegments(providers, group, onProblem, () => {
+    const { segments: found, wasAsked } = await resolveSegments(providers, group, onProblem, () => {
       processed += 1;
       onProgress?.(Math.min(processed, baseline + group.length), total);
     });
@@ -112,8 +116,10 @@ const detectLibrarySegments = async ({
       marked += 1;
     }
 
-    for (const candidate of group) {
-      await markComplete(candidate.mediaId);
+    if (wasAsked) {
+      for (const candidate of group) {
+        await markComplete(candidate.mediaId);
+      }
     }
 
     processed = baseline + group.length;
