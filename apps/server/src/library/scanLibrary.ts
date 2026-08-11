@@ -132,6 +132,13 @@ const selectChanged = (
  * A file that cannot be probed is counted and reported rather than aborting
  * the scan: one unreadable file in a library of thousands must not stop the
  * other thousands from appearing.
+ *
+ * A file the catalogue has named before is left exactly as it is when the
+ * catalogue cannot be reached now. That is a network failure, not a discovery
+ * that the file is nameless, and writing the filename over a catalogue's
+ * answer costs the title, the artwork, and the id that lets the next scan ask
+ * again cheaply — so a rescan on a bad connection would quietly strip a
+ * library of everything that made it readable.
  */
 const scanLibrary = async ({
   libraryId,
@@ -183,6 +190,16 @@ const scanLibrary = async ({
       if (metadata === null) {
         failed += 1;
         onProblem?.(file.path, 'No metadata provider could name this file.');
+
+        continue;
+      }
+
+      if (knownExternalId !== null && (metadata.externalId ?? null) === null) {
+        failed += 1;
+        onProblem?.(
+          file.path,
+          'The catalogue did not answer. Keeping what was already known about this file.',
+        );
 
         continue;
       }

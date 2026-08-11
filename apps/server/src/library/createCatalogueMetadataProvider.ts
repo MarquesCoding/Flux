@@ -31,6 +31,31 @@ const DEFAULT_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
  */
 const CAST_LIMIT = 12;
 
+/**
+ * How many times a request is tried again before giving up.
+ *
+ * A catalogue rate-limits a scan long before a library is large, and one
+ * refused request used to cost a file its title and its artwork until somebody
+ * noticed and scanned again.
+ */
+const RETRIES = 3;
+
+/**
+ * The shortest wait between attempts, doubled each time.
+ */
+const BACKOFF_MILLISECONDS = 500;
+
+/**
+ * Whether answering again is worth anything.
+ *
+ * Too many requests and a service in trouble will both pass; a refusal or a
+ * missing title will not, however many times it is asked.
+ */
+const isWorthRetrying = (status: number): boolean => status === 429 || status >= 500;
+
+const wait = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
 const SearchResultSchema = z.object({
   id: z.number(),
   title: z.string().optional(),
@@ -212,18 +237,26 @@ const createCatalogueMetadataProvider = ({
     const isToken = isAccessToken(key);
     const parameters = new URLSearchParams(isToken ? query : { api_key: key, ...query });
 
-    const response = await call(
-      `${baseUrl}${path}?${parameters.toString()}`,
-      isToken ? { authorization: `Bearer ${key}` } : undefined,
-    );
+    for (let attempt = 0; attempt <= RETRIES; attempt += 1) {
+      const response = await call(
+        `${baseUrl}${path}?${parameters.toString()}`,
+        isToken ? { authorization: `Bearer ${key}` } : undefined,
+      );
 
-    if (!response.ok) {
-      onProblem?.(`The catalogue answered ${response.status.toString()} for ${path}.`);
+      if (response.ok) {
+        return response.json();
+      }
 
-      return null;
+      if (!isWorthRetrying(response.status) || attempt === RETRIES) {
+        onProblem?.(`The catalogue answered ${response.status.toString()} for ${path}.`);
+
+        return null;
+      }
+
+      await wait(BACKOFF_MILLISECONDS * 2 ** attempt);
     }
 
-    return response.json();
+    return null;
   };
 
   return {
