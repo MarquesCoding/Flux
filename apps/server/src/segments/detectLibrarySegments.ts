@@ -9,6 +9,13 @@ type GroupedCandidate = SegmentCandidate & {
    */
   seriesTitle: string | null;
   seasonNumber: number | null;
+  /**
+   * Whether this file has already been listened to.
+   *
+   * Per file rather than per season, but acted on per season — see
+   * `detectLibrarySegments`.
+   */
+  isComplete: boolean;
 };
 
 type DetectLibrarySegmentsOptions = {
@@ -16,6 +23,15 @@ type DetectLibrarySegmentsOptions = {
   providers: SegmentProvider[];
   segments: SegmentService;
   listCandidates: (libraryId: string) => Promise<GroupedCandidate[]>;
+  /**
+   * Records that a file has been listened to, whatever was or was not found
+   * in it.
+   *
+   * An episode with no intro is still an episode that has been checked, so
+   * finding nothing marks it done — otherwise the one file in a season with
+   * no theme tune would be re-fingerprinted forever.
+   */
+  markComplete: (mediaId: string) => Promise<void>;
   onProblem?: (provider: string, reason: string) => void;
   /**
    * Told after every season, how many of the library's episodes have been
@@ -57,17 +73,27 @@ const groupBySeason = (candidates: GroupedCandidate[]): Map<string, GroupedCandi
  * Runs after a scan rather than during one: a scan should finish in the time it
  * takes to walk a directory, and listening to a season takes far longer than
  * that.
+ *
+ * Only the seasons with something outstanding, but each of those in full. A
+ * season is the unit of comparison — an episode fingerprinted on its own has
+ * nothing to match against — so one new episode brings its whole season back
+ * through, and every episode in that season is marked afterwards. A library
+ * where nothing has changed does no listening at all, which is what makes a
+ * nightly run of this affordable.
  */
 const detectLibrarySegments = async ({
   libraryId,
   providers,
   segments,
   listCandidates,
+  markComplete,
   onProblem,
   onProgress,
 }: DetectLibrarySegmentsOptions): Promise<number> => {
-  const groups = groupBySeason(await listCandidates(libraryId));
-  const total = [...groups.values()].reduce((sum, group) => sum + group.length, 0);
+  const groups = [...groupBySeason(await listCandidates(libraryId))].filter(([, group]) =>
+    group.some((candidate) => !candidate.isComplete),
+  );
+  const total = groups.reduce((sum, [, group]) => sum + group.length, 0);
   let processed = 0;
   let marked = 0;
 
@@ -84,6 +110,10 @@ const detectLibrarySegments = async ({
     for (const [mediaId, detected] of found) {
       await segments.replace(mediaId, detected);
       marked += 1;
+    }
+
+    for (const candidate of group) {
+      await markComplete(candidate.mediaId);
     }
 
     processed = baseline + group.length;

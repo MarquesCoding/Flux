@@ -641,6 +641,26 @@ async fn stop_session(State(state): State<AppState>, AxumPath(id): AxumPath<Stri
     error(StatusCode::NOT_FOUND, "No such session.")
 }
 
+/// What a player reports about itself, on a fixed interval, so a paused tab
+/// left open is not mistaken for one that was closed.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HeartbeatRequest {
+    is_playing: bool,
+}
+
+async fn heartbeat_session(
+    State(state): State<AppState>,
+    AxumPath(id): AxumPath<String>,
+    Json(request): Json<HeartbeatRequest>,
+) -> Response {
+    if state.registry.heartbeat(&id, request.is_playing).await {
+        return (StatusCode::NO_CONTENT, Body::empty()).into_response();
+    }
+
+    error(StatusCode::NOT_FOUND, "No such session.")
+}
+
 /// Everything an operator watching the server reads.
 ///
 /// One request rather than four, because these are read together and read
@@ -703,6 +723,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/sessions", post(start_session))
         .route("/sessions/{id}/{name}", get(session_file))
         .route("/sessions/{id}", axum::routing::delete(stop_session))
+        .route(
+            "/sessions/{id}/heartbeat",
+            axum::routing::post(heartbeat_session),
+        )
         .route("/fingerprint", post(start_fingerprint))
         .route("/frame", post(start_frame))
         .route("/previews", post(start_preview))

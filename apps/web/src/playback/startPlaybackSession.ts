@@ -34,6 +34,7 @@ const ErrorSchema = z.object({ error: z.string() });
 const startPlaybackSession = async (
   mediaId: string,
   deviceProfile: DeviceProfile,
+  clientId: string,
   startSeconds = 0,
   audioStreamIndex?: number,
   requestedQuality?: QualityPreference,
@@ -43,6 +44,7 @@ const startPlaybackSession = async (
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       deviceProfile,
+      clientId,
       startSeconds,
       ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       ...(requestedQuality === undefined || requestedQuality === 'original'
@@ -81,9 +83,70 @@ const startPlaybackSession = async (
  * Best effort: a viewer closing the tab is the common case and there is
  * nothing useful to report if this does not arrive. The server reaps idle
  * sessions regardless.
+ *
+ * This only stops the session itself — it says nothing to presence. A
+ * quality or track change calls this to tear the old session down and then
+ * immediately starts a new one in the same tab, and presence should keep
+ * showing that tab as watching the whole time. See `stopWatching` for the
+ * call that actually says a tab has stopped.
  */
 const stopPlaybackSession = async (sessionId: string): Promise<void> => {
   await fetch(`/api/playback/session/${sessionId}`, { method: 'DELETE' }).catch(() => undefined);
+};
+
+/**
+ * Says a tab has genuinely stopped watching anything.
+ *
+ * Called once per player lifetime — on unmount, or when the tab actually
+ * closes — never on an internal session swap. `stopPlaybackSession` above
+ * covers the far more common case of tearing one session down to start
+ * another in the same tab, which must not read as the viewer leaving.
+ */
+const stopWatching = async (clientId: string, keepalive = false): Promise<void> => {
+  await fetch(`/api/presence/${clientId}/watching`, { method: 'DELETE', keepalive }).catch(
+    () => undefined,
+  );
+};
+
+/**
+ * Tells the server a session is still wanted, and whether it is playing.
+ *
+ * Sent on a fixed interval regardless of pause state — the authoritative
+ * liveness signal a paused-but-open tab needs, since it stops fetching
+ * segments the moment it pauses. Best effort, like the stop call above: a
+ * heartbeat that fails to arrive is exactly what the idle reaper exists for.
+ */
+const heartbeatPlaybackSession = async (sessionId: string, isPlaying: boolean): Promise<void> => {
+  await fetch(`/api/playback/session/${sessionId}/heartbeat`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ isPlaying }),
+  }).catch(() => undefined);
+};
+
+/**
+ * Tells presence whether this tab is actually playing right now.
+ *
+ * Presence's own heartbeat, separate from the one above: it fires for direct
+ * play too, since that never reaches the media service at all and the
+ * transcoder heartbeat above would have nothing to report to.
+ */
+const sendPresenceHeartbeat = async (
+  clientId: string,
+  isPlaying: boolean,
+  health?: {
+    positionSeconds: number;
+    durationSeconds: number;
+    bufferedAheadSeconds: number;
+    presentedWidth: number;
+    presentedHeight: number;
+  },
+): Promise<void> => {
+  await fetch(`/api/presence/${clientId}/heartbeat`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ isPlaying, ...(health === undefined ? {} : { health }) }),
+  }).catch(() => undefined);
 };
 
 /**
@@ -117,4 +180,12 @@ const describeWhy = (plan: PlaybackPlan): string[] => {
 
 export type { StartedSession, StartOutcome };
 
-export { startPlaybackSession, stopPlaybackSession, describeWhy, StartedSessionSchema };
+export {
+  startPlaybackSession,
+  stopPlaybackSession,
+  stopWatching,
+  heartbeatPlaybackSession,
+  sendPresenceHeartbeat,
+  describeWhy,
+  StartedSessionSchema,
+};

@@ -47,9 +47,14 @@ const VideoDecisionSchema = z.discriminatedUnion('kind', [
 ]);
 
 const AudioDecisionSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('passthrough'), reason: ReasonSchema }),
+  z.object({
+    kind: z.literal('passthrough'),
+    streamIndex: z.number().int().nullable(),
+    reason: ReasonSchema,
+  }),
   z.object({
     kind: z.literal('transcode'),
+    streamIndex: z.number().int().nullable(),
     codec: AudioCodecSchema,
     channels: z.number().int().positive(),
     maxBitrateKbps: z.number().int().positive(),

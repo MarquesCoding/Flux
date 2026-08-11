@@ -161,6 +161,46 @@ describe('negotiatePlayback', () => {
     expect(plan.subtitles.reason.detail).not.toBe('');
   });
 
+  describe('preferred audio language', () => {
+    const multilingual: MediaItem = {
+      ...media,
+      audioStreams: [
+        { index: 1, codec: 'truehd', channels: 8, language: 'deu', isDefault: true, isAtmos: true },
+        { index: 2, codec: 'aac', channels: 2, language: 'eng', isDefault: false, isAtmos: false },
+      ],
+    };
+
+    it('picks the stream matching the preferred language over the default', () => {
+      const plan = negotiatePlayback(multilingual, profile, null, 'en');
+
+      expect(plan.audio).toMatchObject({ streamIndex: 2 });
+    });
+
+    it('accepts language written in any of the forms a file might use', () => {
+      const plan = negotiatePlayback(multilingual, profile, null, 'english');
+
+      expect(plan.audio).toMatchObject({ streamIndex: 2 });
+    });
+
+    it('falls back to the default stream when no stream matches', () => {
+      const plan = negotiatePlayback(multilingual, profile, null, 'fr');
+
+      expect(plan.audio).toMatchObject({ streamIndex: 1 });
+    });
+
+    it('falls back to the default stream when no language is preferred', () => {
+      const plan = negotiatePlayback(multilingual, profile);
+
+      expect(plan.audio).toMatchObject({ streamIndex: 1 });
+    });
+
+    it('records the streamIndex actually chosen even with no preference at all', () => {
+      const plan = negotiatePlayback(media, profile);
+
+      expect(plan.audio).toMatchObject({ streamIndex: 1 });
+    });
+  });
+
   describe('quality clamp', () => {
     it('leaves the plan untouched when there is no clamp', () => {
       const plan = negotiatePlayback(media, profile, null);

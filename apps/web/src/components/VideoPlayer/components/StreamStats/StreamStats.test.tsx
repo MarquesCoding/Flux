@@ -23,7 +23,14 @@ const plan: PlaybackPlan = {
     maxHeight: 1080,
     reason,
   },
-  audio: { kind: 'transcode', codec: 'aac', channels: 2, maxBitrateKbps: 192, reason },
+  audio: {
+    kind: 'transcode',
+    streamIndex: 1,
+    codec: 'aac',
+    channels: 2,
+    maxBitrateKbps: 192,
+    reason,
+  },
   subtitles: { kind: 'none', reason },
 };
 
@@ -122,7 +129,7 @@ describe('StreamStats', () => {
         plan: {
           ...plan,
           video: { kind: 'passthrough', reason },
-          audio: { kind: 'passthrough', reason },
+          audio: { kind: 'passthrough', streamIndex: 1, reason },
         },
         warnings: [],
       },

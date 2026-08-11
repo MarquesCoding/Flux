@@ -8,7 +8,7 @@ import type {
   VideoDecision,
 } from '@FluxContracts/schemas/PlaybackPlan';
 import type { QualityClamp } from './resolveQualityStep';
-
+import { selectAudioStream } from './describeTrack';
 const IMAGE_SUBTITLE_FORMATS: readonly SubtitleFormat[] = ['pgs', 'vobsub', 'dvbsub'];
 
 const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDecision => {
@@ -131,8 +131,9 @@ const decideAudio = (
   media: MediaItem,
   profile: DeviceProfile,
   qualityClamp?: QualityClamp | null,
+  preferredLanguage?: string | null,
 ): AudioDecision => {
-  const stream = media.audioStreams[0];
+  const stream = selectAudioStream(media.audioStreams, preferredLanguage);
   const fallback = profile.transcodingProfiles[0];
   const targetCodec = fallback === undefined ? 'aac' : fallback.audioCodec;
   const compressedBitrateKbps = qualityClamp?.maxAudioBitrateKbps ?? null;
@@ -141,6 +142,7 @@ const decideAudio = (
   if (stream === undefined) {
     return {
       kind: 'passthrough',
+      streamIndex: null,
       reason: { code: 'ClientSupportsSource', detail: 'Source has no audio stream' },
     };
   }
@@ -152,6 +154,7 @@ const decideAudio = (
   if (!codecSupported) {
     return {
       kind: 'transcode',
+      streamIndex: stream.index,
       codec: targetCodec,
       channels: Math.min(stream.channels, profile.maxAudioChannels),
       maxBitrateKbps,
@@ -165,6 +168,7 @@ const decideAudio = (
   if (stream.channels > profile.maxAudioChannels) {
     return {
       kind: 'transcode',
+      streamIndex: stream.index,
       codec: targetCodec,
       channels: profile.maxAudioChannels,
       maxBitrateKbps,
@@ -178,6 +182,7 @@ const decideAudio = (
   if (compressedBitrateKbps !== null) {
     return {
       kind: 'transcode',
+      streamIndex: stream.index,
       codec: targetCodec,
       channels: Math.min(stream.channels, profile.maxAudioChannels),
       maxBitrateKbps: compressedBitrateKbps,
@@ -190,6 +195,7 @@ const decideAudio = (
 
   return {
     kind: 'passthrough',
+    streamIndex: stream.index,
     reason: {
       code: 'ClientSupportsSource',
       detail: `Client direct plays ${stream.codec} at ${stream.channels.toString()} channels`,
@@ -255,16 +261,21 @@ const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDeci
  * Pure by design: it depends only on the item, the profile, the clamp, and
  * nothing else. That is what makes the dry-run explainer possible. See
  * ADR-0011.
+ *
+ * `preferredAudioLanguage` comes from the item's library, not the device: a
+ * library operator forcing a language is a statement about the collection,
+ * not about what any one client can play.
  */
 const negotiatePlayback = (
   media: MediaItem,
   profile: DeviceProfile,
   qualityClamp?: QualityClamp | null,
+  preferredAudioLanguage?: string | null,
 ): PlaybackPlan => ({
   mediaId: media.id,
   container: decideContainer(media, profile),
   video: decideVideo(media, profile, qualityClamp),
-  audio: decideAudio(media, profile, qualityClamp),
+  audio: decideAudio(media, profile, qualityClamp, preferredAudioLanguage),
   subtitles: decideSubtitles(media, profile),
 });
 

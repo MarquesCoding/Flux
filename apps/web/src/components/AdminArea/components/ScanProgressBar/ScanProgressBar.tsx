@@ -1,4 +1,4 @@
-import { ProgressBar } from '@FluxUI/ProgressBar';
+import { cn } from '@FluxUI/cn';
 import type { ScanProgressBarProps } from './ScanProgressBar.types';
 
 /**
@@ -7,6 +7,7 @@ import type { ScanProgressBarProps } from './ScanProgressBar.types';
 const PHASE_LABELS: Record<string, string> = {
   probing: 'Probing',
   previews: 'Generating previews',
+  trickplay: 'Generating thumbnails',
   segments: 'Finding intros',
 };
 
@@ -19,30 +20,41 @@ const PHASE_LABELS: Record<string, string> = {
  * reads as moving on to the next stage, not as stalled.
  */
 const ScanProgressBar = ({ label, phase, processed, total }: ScanProgressBarProps) => {
-  const isKnown = processed !== null && total !== null && total > 0;
+  const isKnown = processed !== null && total !== null;
+  const fraction = !isKnown || total === 0 ? 0 : Math.min(processed / total, 1);
+  const isEmpty = isKnown && total === 0;
   const phaseLabel = phase === null ? null : (PHASE_LABELS[phase] ?? phase);
 
   return (
-    <ProgressBar
-      label={phaseLabel === null ? label : `${label}: ${phaseLabel}`}
-      value={isKnown ? processed : null}
-      {...(isKnown ? { max: total } : {})}
+    <div
+      role="progressbar"
+      aria-label={phaseLabel === null ? label : `${label}: ${phaseLabel}`}
       {...(isKnown
-        ? {
-            readout: (
-              <span className="shrink-0 text-xs tabular-nums text-text-muted">
-                {processed}/{total}
-              </span>
-            ),
-          }
+        ? { 'aria-valuenow': processed, 'aria-valuemin': 0, 'aria-valuemax': total }
         : {})}
+      className="flex shrink-0 items-center gap-2"
     >
       {phaseLabel === null ? null : (
-        <span aria-hidden className="shrink-0 text-xs text-text-muted">
-          {phaseLabel}
-        </span>
+        <span className="shrink-0 text-xs text-text-muted">{phaseLabel}</span>
       )}
-    </ProgressBar>
+
+      <span className="block h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-white/10">
+        <span
+          style={isKnown && !isEmpty ? { width: `${(fraction * 100).toString()}%` } : undefined}
+          className={cn(
+            'block h-full rounded-full bg-accent',
+            isKnown ? 'transition-[width] duration-300' : 'w-full animate-pulse',
+            isEmpty ? 'w-full' : '',
+          )}
+        />
+      </span>
+
+      {isKnown && !isEmpty ? (
+        <span className="shrink-0 text-xs tabular-nums text-text-muted">
+          {processed}/{total}
+        </span>
+      ) : null}
+    </div>
   );
 };
 

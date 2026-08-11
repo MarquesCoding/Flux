@@ -1,6 +1,10 @@
 import type { HTMLInputAutoCompleteAttribute, ReactNode } from 'react';
 
-type TextFieldType = 'text' | 'email' | 'password' | 'url' | 'search';
+/**
+ * `time` is a 24-hour `HH:MM` value, which the browser renders in whatever
+ * clock the viewer's locale uses while still handing back `HH:MM`.
+ */
+type TextFieldType = 'text' | 'email' | 'password' | 'url' | 'search' | 'number' | 'time';
 
 type TextFieldProps = {
   label: string;
@@ -12,6 +16,15 @@ type TextFieldProps = {
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  /**
+   * The smallest and largest value a `number` field accepts.
+   *
+   * Native browser hints — the spinner arrows stop at the bound and out of
+   * range shows as invalid — rather than validation this component does
+   * itself, which is still the caller's to do against the parsed value.
+   */
+  min?: number;
+  max?: number;
   /**
    * Whether the field is drawn as a pill.
    *

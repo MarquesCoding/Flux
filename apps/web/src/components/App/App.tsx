@@ -26,6 +26,7 @@ import { ProfileGate } from '@FluxWeb/components/ProfileGate/ProfileGate';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
 import { findSiblings, nextEpisode } from '@FluxWeb/library/pickFeatured';
 import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
+import { watchPresence } from '@FluxWeb/presence/watchPresence';
 import {
   isWorthResuming,
   watchedFraction,
@@ -199,6 +200,14 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       void readProgress();
     }
   }, [user, readProgress]);
+
+  useEffect(() => {
+    if (user === null) {
+      return;
+    }
+
+    return watchPresence();
+  }, [user]);
 
   if (loadState === 'loading') {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />;
@@ -381,7 +390,16 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       />
 
       {section === 'admin' ? (
-        <AdminArea />
+        <AdminArea
+          initialPanel={place.adminPanel}
+          onPanelChange={(panel) => {
+            replace({ adminPanel: panel });
+          }}
+          initialJob={place.adminJob}
+          onJobChange={(kind) => {
+            replace({ adminJob: kind });
+          }}
+        />
       ) : section === 'account' ? (
         <AccountArea
           user={user}

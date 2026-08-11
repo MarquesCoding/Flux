@@ -136,6 +136,8 @@ const createMemoryPlaybackService = (
 
     return Promise.resolve(true);
   },
+
+  heartbeat: (sessionId) => Promise.resolve(state.sessions[sessionId] !== undefined),
 });
 
 export type { MemoryPlaybackState };

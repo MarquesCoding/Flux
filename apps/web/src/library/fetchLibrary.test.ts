@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchLibraries,
   createLibrary,
+  updateLibrary,
   fetchLibraryItems,
   scanLibrary,
   readScanState,
   resetLibrary,
+  regenerateLibraryPreviews,
 } from './fetchLibrary';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
@@ -23,6 +25,8 @@ const library = {
   path: '/media/films',
   itemCount: 2,
   lastScannedAt: null,
+
+  defaultAudioLanguage: null,
 };
 
 const summary = {
@@ -103,6 +107,42 @@ describe('createLibrary', () => {
     fetchMock.mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve(null) });
 
     await expect(createLibrary(input)).rejects.toThrow(/500/);
+  });
+});
+
+describe('updateLibrary', () => {
+  it('returns the updated library', async () => {
+    fetchMock.mockResolvedValue(ok({ ...library, defaultAudioLanguage: 'de' }));
+
+    await expect(updateLibrary(library.id, { defaultAudioLanguage: 'de' })).resolves.toMatchObject({
+      defaultAudioLanguage: 'de',
+    });
+  });
+
+  it('sends the request body as json to the library endpoint', async () => {
+    fetchMock.mockResolvedValue(ok(library));
+
+    await updateLibrary(library.id, { defaultAudioLanguage: 'de' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/libraries/${library.id}`,
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ defaultAudioLanguage: 'de' }),
+      }),
+    );
+  });
+
+  it('surfaces the server error message', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ error: 'No such library.' }),
+    });
+
+    await expect(updateLibrary(library.id, { defaultAudioLanguage: 'de' })).rejects.toThrow(
+      'No such library.',
+    );
   });
 });
 
@@ -235,6 +275,33 @@ describe('resetLibrary', () => {
     await resetLibrary(library.id);
 
     expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${library.id}/reset`, {
+      method: 'POST',
+    });
+  });
+});
+
+describe('regenerateLibraryPreviews', () => {
+  it('returns the queued regeneration job', async () => {
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }));
+
+    await expect(regenerateLibraryPreviews(library.id)).resolves.toEqual({
+      jobId: 'job-1',
+      state: 'queued',
+    });
+  });
+
+  it('reports failure without throwing', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) });
+
+    await expect(regenerateLibraryPreviews(library.id)).resolves.toBeNull();
+  });
+
+  it('posts to the regenerate-previews endpoint for the library', async () => {
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'queued' }));
+
+    await regenerateLibraryPreviews(library.id);
+
+    expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${library.id}/regenerate-previews`, {
       method: 'POST',
     });
   });

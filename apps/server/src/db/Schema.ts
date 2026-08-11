@@ -5,6 +5,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   real,
   text,
   timestamp,
@@ -148,6 +149,7 @@ const library = pgTable('library', {
   path: text('path').notNull().unique(),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   lastScannedAt: timestamp('lastScannedAt'),
+  defaultAudioLanguage: text('defaultAudioLanguage'),
 });
 
 /**
@@ -287,6 +289,56 @@ const serverSetting = pgTable('server_setting', {
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 });
 
+/**
+ * Which per-file work has already been done for an item.
+ *
+ * The scanner knows a file is unchanged from its size and modification time,
+ * but that says nothing about whether its preview was ever drawn, its
+ * thumbnail sheet rendered, or its intro found — work that can fail on its
+ * own while the file sits there looking perfectly scanned. Without a record
+ * of what finished, a job either redoes the whole library or never retries
+ * anything, and Flux had both problems at once.
+ *
+ * A row per item per kind rather than a column per job, so a job added later
+ * needs no migration. Rows are deleted whenever the file changes: a new cut
+ * of the same episode invalidates every derived thing about it.
+ */
+const mediaItemJob = pgTable(
+  'media_item_job',
+  {
+    mediaItemId: text('mediaItemId')
+      .notNull()
+      .references(() => mediaItem.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    completedAt: timestamp('completedAt').notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.mediaItemId, table.kind] }),
+    index('media_item_job_kind_idx').on(table.kind),
+  ],
+);
+
+/**
+ * What makes a background job run on its own.
+ *
+ * Flux's own record rather than pg-boss's schedule table: a job holds a list
+ * of triggers, one of which — running at startup — is not a cron expression
+ * at all and has nowhere to live in pg-boss. Holding every trigger here keeps
+ * one source of truth, and lets the stored shape round-trip exactly instead
+ * of being parsed back out of cron. The cron-shaped ones are pushed into
+ * pg-boss from here — see `createJobScheduleService`.
+ */
+const jobTrigger = pgTable(
+  'job_trigger',
+  {
+    id: text('id').primaryKey(),
+    kind: text('kind').notNull(),
+    trigger: jsonb('trigger').notNull(),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+  },
+  (table) => [index('job_trigger_kind_idx').on(table.kind)],
+);
+
 const userProfile = pgTable('user_profile', {
   userId: text('userId')
     .primaryKey()
@@ -299,12 +351,28 @@ const userProfile = pgTable('user_profile', {
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 });
 
+const authSchema = {
+  user,
+  session,
+  account,
+  verification,
+  twoFactor,
+  passkey,
+  deviceCode,
+  jwks,
+  apikey,
+};
+
+const fluxSchema = { userProfile, viewerProfile, serverSetting, library, mediaItem };
+
 export {
   authSchema,
   fluxSchema,
   library,
   mediaItem,
   mediaSegment,
+  mediaItemJob,
+  jobTrigger,
   watchProgress,
   favourite,
   user,
@@ -320,17 +388,3 @@ export {
   userProfile,
   viewerProfile,
 };
-
-const authSchema = {
-  user,
-  session,
-  account,
-  verification,
-  twoFactor,
-  passkey,
-  deviceCode,
-  jwks,
-  apikey,
-};
-
-const fluxSchema = { userProfile, viewerProfile, serverSetting, library, mediaItem };

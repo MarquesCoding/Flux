@@ -5,6 +5,7 @@ const ServerSettingsSchema = z.object({
   cookieSecure: z.boolean(),
   setupCompletedAt: z.string().datetime().nullable(),
   catalogueApiKey: z.string().default(''),
+  seededJobTriggerKinds: z.array(z.string()).default([]),
 });
 
 type ServerSettings = z.infer<typeof ServerSettingsSchema>;

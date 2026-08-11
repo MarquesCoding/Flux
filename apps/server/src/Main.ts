@@ -1,12 +1,22 @@
 import { join } from 'node:path';
+import { readdir, unlink } from 'node:fs/promises';
 import { z } from 'zod';
 import { serve } from '@hono/node-server';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { count, eq } from 'drizzle-orm';
+import { and, count, eq, lt } from 'drizzle-orm';
 import { createApp } from './App';
 import { createAuth } from '@FluxServer/auth/Auth';
 import { createDatabase } from '@FluxServer/db/Database';
-import { user, mediaItem, userProfile, viewerProfile } from '@FluxServer/db/Schema';
+import {
+  user,
+  library,
+  mediaItem,
+  mediaItemJob,
+  userProfile,
+  viewerProfile,
+  session,
+  deviceCode,
+} from '@FluxServer/db/Schema';
 import { readEnv } from '@FluxServer/env/Env';
 import { createDatabaseSettingsStore } from '@FluxServer/settings/createDatabaseSettingsStore';
 import { createDatabaseLibraryService } from '@FluxServer/library/createDatabaseLibraryService';
@@ -28,7 +38,30 @@ import { createEmbeddedSubtitleService } from '@FluxServer/subtitles/createEmbed
 import { createLayeredSubtitleService } from '@FluxServer/subtitles/createLayeredSubtitleService';
 import { createPlaybackService } from '@FluxServer/playback/createPlaybackService';
 import { createJobQueue } from '@FluxServer/jobs/createJobQueue';
-
+import {
+  SCAN_LIBRARY_JOB,
+  ScanLibraryJobSchema,
+  REGENERATE_PREVIEWS_JOB,
+  RegeneratePreviewsJobSchema,
+  REGENERATE_TRICKPLAY_JOB,
+  RegenerateTrickplayJobSchema,
+  DETECT_SEGMENTS_JOB,
+  DetectSegmentsJobSchema,
+  CLEANUP_IMAGE_CACHE_JOB,
+  CLEANUP_SESSIONS_JOB,
+  CHECK_CATALOGUE_CONNECTIVITY_JOB,
+  scheduleTriggerKind,
+} from '@FluxServer/jobs/JobQueue';
+import { createDatabaseMaintenanceService } from '@FluxServer/maintenance/createDatabaseMaintenanceService';
+import { cleanupImageCache } from '@FluxServer/maintenance/cleanupImageCache';
+import { cleanupSessions } from '@FluxServer/maintenance/cleanupSessions';
+import { checkCatalogueConnectivity } from '@FluxServer/maintenance/checkCatalogueConnectivity';
+import { RESET_LIBRARY_JOB, scheduleQueueNameFor } from '@FluxServer/jobs/jobDefinitions';
+import { createJobScheduleService } from '@FluxServer/jobs/createJobScheduleService';
+import { createDatabaseJobTriggerStore } from '@FluxServer/jobs/createDatabaseJobTriggerStore';
+import { markJobComplete } from '@FluxServer/library/createMediaStore';
+import { createWorkLock } from '@FluxServer/jobs/createWorkLock';
+import { seedDefaultJobTriggers } from '@FluxServer/jobs/seedDefaultJobTriggers';
 /**
  * Chapters as they were stored, which may be from an older shape.
  */
@@ -49,6 +82,7 @@ const settings = createDatabaseSettingsStore({
     cookieSecure: env.COOKIE_SECURE,
     setupCompletedAt: null,
     catalogueApiKey: env.CATALOGUE_API_KEY,
+    seededJobTriggerKinds: [],
   },
 });
 
@@ -83,63 +117,252 @@ const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR
 
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL });
 
+/**
+ * Finds intros, outros and other skippable segments across a library's
+ * already-scanned media.
+ *
+ * Its own function rather than inline in a handler because it runs from two
+ * places: after every scan (walking a directory takes seconds; listening to
+ * a season takes minutes, and a library should be browsable long before its
+ * intros are known), and on its own from the Work tab, for redoing detection
+ * without a full rescan.
+ */
+const runDetectSegments = async (libraryId: string, jobId: string): Promise<void> => {
+  const marked = await detectLibrarySegments({
+    libraryId,
+    providers: segmentProviders,
+    segments: segmentService,
+    listCandidates: async (id) => {
+      const rows = await db
+        .select({
+          mediaId: mediaItem.id,
+          path: mediaItem.path,
+          durationSeconds: mediaItem.durationSeconds,
+          seriesTitle: mediaItem.seriesTitle,
+          seasonNumber: mediaItem.seasonNumber,
+          chapters: mediaItem.chapters,
+          container: mediaItem.container,
+          bitrateKbps: mediaItem.bitrateKbps,
+          completedAt: mediaItemJob.completedAt,
+        })
+        .from(mediaItem)
+        .leftJoin(
+          mediaItemJob,
+          and(
+            eq(mediaItemJob.mediaItemId, mediaItem.id),
+            eq(mediaItemJob.kind, DETECT_SEGMENTS_JOB),
+          ),
+        )
+        .where(eq(mediaItem.libraryId, id));
+
+      return rows.map((row) => ({
+        mediaId: row.mediaId,
+        path: row.path,
+        durationSeconds: row.durationSeconds,
+        seriesTitle: row.seriesTitle,
+        seasonNumber: row.seasonNumber,
+        isComplete: row.completedAt !== null,
+        probe: {
+          container: row.container,
+          durationSeconds: row.durationSeconds,
+          bitrateKbps: row.bitrateKbps,
+          video: null,
+          audioStreams: [],
+          subtitleStreams: [],
+          chapters: ChapterListSchema.catch([]).parse(row.chapters),
+        },
+      }));
+    },
+    markComplete: (mediaId) => markJobComplete(db, mediaId, DETECT_SEGMENTS_JOB),
+    onProblem: (provider, reason) => {
+      process.stderr.write(`segments: ${provider}: ${reason}\n`);
+    },
+    onProgress: (processed, total) => {
+      jobs.reportProgress(jobId, 'segments', processed, total);
+    },
+  });
+
+  if (marked > 0) {
+    process.stdout.write(`marked segments on ${marked.toString()} item(s)\n`);
+  }
+};
+
+/**
+ * Wraps a per-library job so a schedule can fire it against every current
+ * library, decided at the moment it runs rather than whatever existed when
+ * the schedule was set — see `scheduleTriggerKind`.
+ */
+const scheduleAcrossLibraries =
+  (run: (libraryId: string) => Promise<{ jobId: string; state: string } | null>) =>
+  async (): Promise<void> => {
+    const libraries = await libraryService.list();
+
+    await Promise.all(libraries.map((library) => run(library.id)));
+  };
+
+const libraryWork = createWorkLock();
+
 const jobs = await createJobQueue({
   connectionString: env.DATABASE_URL,
-  onScan: async (libraryId, force, jobId) => {
-    await libraryService.runScan(libraryId, force, jobId);
+  handlers: {
+    [SCAN_LIBRARY_JOB]: async (jobId, payload) => {
+      const parsed = ScanLibraryJobSchema.safeParse(payload);
 
-    const marked = await detectLibrarySegments({
-      libraryId,
-      providers: segmentProviders,
-      segments: segmentService,
-      listCandidates: async (id) => {
-        const rows = await db
-          .select({
-            mediaId: mediaItem.id,
-            path: mediaItem.path,
-            durationSeconds: mediaItem.durationSeconds,
-            seriesTitle: mediaItem.seriesTitle,
-            seasonNumber: mediaItem.seasonNumber,
-            chapters: mediaItem.chapters,
-            container: mediaItem.container,
-            bitrateKbps: mediaItem.bitrateKbps,
-          })
-          .from(mediaItem)
-          .where(eq(mediaItem.libraryId, id));
+      if (!parsed.success) {
+        process.stderr.write('job queue: a scan job carried data Flux could not read.\n');
 
-        return rows.map((row) => ({
-          mediaId: row.mediaId,
-          path: row.path,
-          durationSeconds: row.durationSeconds,
-          seriesTitle: row.seriesTitle,
-          seasonNumber: row.seasonNumber,
-          probe: {
-            container: row.container,
-            durationSeconds: row.durationSeconds,
-            bitrateKbps: row.bitrateKbps,
-            video: null,
-            audioStreams: [],
-            subtitleStreams: [],
-            chapters: ChapterListSchema.catch([]).parse(row.chapters),
+        return;
+      }
+
+      const { libraryId, force } = parsed.data;
+
+      await libraryWork.run(libraryId, async () => {
+        const libraries = await libraryService.list();
+        const language = libraries.find((entry) => entry.id === libraryId)?.defaultAudioLanguage;
+
+        await libraryService.runScan(libraryId, force, jobId);
+        await libraryService.runRegeneratePreviews(libraryId, language ?? null, jobId);
+        await libraryService.runRegenerateTrickplay(libraryId, jobId);
+        await runDetectSegments(libraryId, jobId);
+      });
+    },
+    [REGENERATE_PREVIEWS_JOB]: async (jobId, payload) => {
+      const parsed = RegeneratePreviewsJobSchema.safeParse(payload);
+
+      if (!parsed.success) {
+        process.stderr.write(
+          'job queue: a preview regeneration job carried data Flux could not read.\n',
+        );
+
+        return;
+      }
+
+      await libraryWork.run(parsed.data.libraryId, () =>
+        libraryService.runRegeneratePreviews(
+          parsed.data.libraryId,
+          parsed.data.defaultAudioLanguage,
+          jobId,
+        ),
+      );
+    },
+    [REGENERATE_TRICKPLAY_JOB]: async (jobId, payload) => {
+      const parsed = RegenerateTrickplayJobSchema.safeParse(payload);
+
+      if (!parsed.success) {
+        process.stderr.write('job queue: a trickplay job carried data Flux could not read.\n');
+
+        return;
+      }
+
+      await libraryWork.run(parsed.data.libraryId, () =>
+        libraryService.runRegenerateTrickplay(parsed.data.libraryId, jobId),
+      );
+    },
+    [DETECT_SEGMENTS_JOB]: async (jobId, payload) => {
+      const parsed = DetectSegmentsJobSchema.safeParse(payload);
+
+      if (!parsed.success) {
+        process.stderr.write(
+          'job queue: a segment detection job carried data Flux could not read.\n',
+        );
+
+        return;
+      }
+
+      await libraryWork.run(parsed.data.libraryId, () =>
+        runDetectSegments(parsed.data.libraryId, jobId),
+      );
+    },
+    [CLEANUP_IMAGE_CACHE_JOB]: async (jobId) => {
+      const removed = await cleanupImageCache({
+        imageCacheDir: env.IMAGE_CACHE_DIR,
+        profilesDir: join(env.IMAGE_CACHE_DIR, 'profiles'),
+        files: {
+          list: async (directory) => {
+            const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
+
+            return entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
           },
-        }));
-      },
-      onProblem: (provider, reason) => {
-        process.stderr.write(`segments: ${provider}: ${reason}\n`);
-      },
-      onProgress: (processed, total) => {
-        jobs.reportProgress(jobId, 'segments', processed, total);
-      },
-    });
+          remove: (path) => unlink(path),
+        },
+        nameFor: images.nameFor,
+        listMediaImageUrls: () =>
+          db
+            .select({ posterUrl: mediaItem.posterUrl, backdropUrl: mediaItem.backdropUrl })
+            .from(mediaItem),
+        listProfilePhotoPaths: async () => {
+          const rows = await db.select({ photoPath: viewerProfile.photoPath }).from(viewerProfile);
 
-    if (marked > 0) {
-      process.stdout.write(`marked segments on ${marked.toString()} item(s)\n`);
-    }
+          return rows.map((row) => row.photoPath);
+        },
+        onProblem: (path, reason) => {
+          process.stderr.write(`image cache: ${path}: ${reason}\n`);
+        },
+        onProgress: (phase, processed, total) => {
+          jobs.reportProgress(jobId, phase, processed, total);
+        },
+      });
+
+      process.stdout.write(`image cache cleanup: removed ${removed.toString()} file(s)\n`);
+    },
+    [CLEANUP_SESSIONS_JOB]: async (jobId) => {
+      const removed = await cleanupSessions({
+        deleteExpiredSessions: async () => {
+          const rows = await db
+            .delete(session)
+            .where(lt(session.expiresAt, new Date()))
+            .returning({ id: session.id });
+
+          return rows.length;
+        },
+        deleteExpiredDeviceCodes: async () => {
+          const rows = await db
+            .delete(deviceCode)
+            .where(lt(deviceCode.expiresAt, new Date()))
+            .returning({ id: deviceCode.id });
+
+          return rows.length;
+        },
+        onProgress: (phase, processed, total) => {
+          jobs.reportProgress(jobId, phase, processed, total);
+        },
+      });
+
+      process.stdout.write(`session cleanup: removed ${removed.toString()} row(s)\n`);
+    },
+    [CHECK_CATALOGUE_CONNECTIVITY_JOB]: async (jobId) => {
+      jobs.reportProgress(jobId, 'checking', 0, 1);
+
+      const reachable = await checkCatalogueConnectivity({
+        readApiKey: async () => (await settings.read()).catalogueApiKey,
+      });
+
+      jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
+      process.stdout.write(`catalogue connectivity: ${reachable ? 'reachable' : 'unreachable'}\n`);
+    },
+    [scheduleTriggerKind(SCAN_LIBRARY_JOB)]: scheduleAcrossLibraries((id) =>
+      libraryService.scan(id, false),
+    ),
+    [scheduleTriggerKind(REGENERATE_PREVIEWS_JOB)]: scheduleAcrossLibraries((id) =>
+      libraryService.regeneratePreviews(id),
+    ),
+    [scheduleTriggerKind(REGENERATE_TRICKPLAY_JOB)]: scheduleAcrossLibraries((id) =>
+      libraryService.regenerateTrickplay(id),
+    ),
+    [scheduleTriggerKind(DETECT_SEGMENTS_JOB)]: scheduleAcrossLibraries((id) =>
+      libraryService.detectSegments(id),
+    ),
+    [scheduleTriggerKind(RESET_LIBRARY_JOB)]: scheduleAcrossLibraries((id) =>
+      libraryService.reset(id),
+    ),
   },
   onProblem: (message) => {
     process.stderr.write(`job queue: ${message}\n`);
   },
 });
+
+const maintenance = createDatabaseMaintenanceService({ jobs });
+const schedules = createJobScheduleService({ store: createDatabaseJobTriggerStore(db), jobs });
 
 const catalogueProvider = createCatalogueMetadataProvider({
   readApiKey: async () => (await settings.read()).catalogueApiKey,
@@ -221,14 +444,17 @@ const playbackService = createPlaybackService({
       }
 
       const rows = await db
-        .select({ path: mediaItem.path })
+        .select({ path: mediaItem.path, defaultAudioLanguage: library.defaultAudioLanguage })
         .from(mediaItem)
+        .innerJoin(library, eq(library.id, mediaItem.libraryId))
         .where(eq(mediaItem.id, mediaId))
         .limit(1);
 
-      const path = rows[0]?.path;
+      const row = rows[0];
 
-      return path === undefined ? null : { item, path };
+      return row === undefined
+        ? null
+        : { item, path: row.path, defaultAudioLanguage: row.defaultAudioLanguage };
     },
   },
   transcoder,
@@ -244,6 +470,8 @@ const app = createApp({
   promoteToAdmin,
   library: libraryService,
   playback: playbackService,
+  maintenance,
+  schedules,
   subtitles: subtitleService,
   segments: segmentService,
   progress: createDatabaseWatchProgressService(db),
@@ -306,6 +534,17 @@ const app = createApp({
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
 });
+
+const seededKinds = await seedDefaultJobTriggers({ schedules, settings });
+
+if (seededKinds.length > 0) {
+  process.stdout.write(`schedule: default triggers set for ${seededKinds.join(', ')}\n`);
+}
+
+for (const kind of await schedules.sync()) {
+  await jobs.enqueue(scheduleQueueNameFor(kind), {});
+  process.stdout.write(`schedule: running ${kind} on startup\n`);
+}
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   const origin = `http://localhost:${info.port.toString()}`;

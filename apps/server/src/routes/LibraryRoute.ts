@@ -1,6 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   LibrarySchema,
+  UpdateLibraryRequestSchema,
   MediaSummarySchema,
   MediaDetailSchema,
   LIBRARY_KINDS,
@@ -25,6 +26,8 @@ const CreateLibraryRequest = z
     path: z.string().min(1),
   })
   .openapi('CreateLibraryRequest');
+
+const UpdateLibraryRequest = UpdateLibraryRequestSchema.openapi('UpdateLibraryRequest');
 
 const listLibrariesRoute = createRoute({
   method: 'get',
@@ -52,6 +55,31 @@ const createLibraryRoute = createRoute({
     },
     400: {
       description: 'The path is not a readable directory',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+});
+
+/**
+ * Changes a library's settings, such as which language its audio track
+ * selection should prefer.
+ */
+const updateLibraryRoute = createRoute({
+  method: 'patch',
+  path: '/api/libraries/{id}',
+  tags: ['Library'],
+  summary: "Change a library's settings",
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: UpdateLibraryRequest } } },
+  },
+  responses: {
+    200: {
+      description: 'The library was updated',
+      content: { 'application/json': { schema: Library } },
+    },
+    404: {
+      description: 'No such library',
       content: { 'application/json': { schema: NotFound } },
     },
   },
@@ -255,9 +283,37 @@ const resetLibraryRoute = createRoute({
   },
 });
 
+/**
+ * Re-renders preview clips against the library's current forced audio
+ * language, without probing files or touching metadata.
+ *
+ * A lighter alternative to a rescan, for the one thing changing the forced
+ * language actually invalidates.
+ */
+const regeneratePreviewsRoute = createRoute({
+  method: 'post',
+  path: '/api/libraries/{id}/regenerate-previews',
+  tags: ['Library'],
+  summary: "Queue preview regeneration for a library's current forced audio language",
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    202: {
+      description: 'Preview regeneration was queued',
+      content: { 'application/json': { schema: ScanAccepted } },
+    },
+    404: {
+      description: 'No such library',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+});
+
+export { ScanAccepted };
+
 export {
   listLibrariesRoute,
   createLibraryRoute,
+  updateLibraryRoute,
   listItemsRoute,
   getMediaRoute,
   scanLibraryRoute,
@@ -265,4 +321,5 @@ export {
   resetLibraryRoute,
   listShowsRoute,
   getShowRoute,
+  regeneratePreviewsRoute,
 };
