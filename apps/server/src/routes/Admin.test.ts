@@ -33,10 +33,13 @@ const LIBRARY = {
   defaultAudioLanguage: null,
 };
 
-const build = () => {
+const build = (waiting: { isTranscoderReachable?: () => Promise<boolean> } = {}) => {
   const { auth, settings, store } = createMemoryAuth();
 
   const app = createApp({
+    ...(waiting.isTranscoderReachable === undefined
+      ? {}
+      : { isTranscoderReachable: waiting.isTranscoderReachable }),
     auth,
     settings,
     countUsers: () => Promise.resolve(1),
@@ -614,4 +617,32 @@ describe('administration over HTTP', () => {
 
     expect(response.status).toBe(404);
   });
+});
+
+describe('an admin page while the media service is not answering', () => {
+  it('still draws, rather than waiting for ever on a service that never replies', async () => {
+    const { app, store } = build({
+      isTranscoderReachable: () => new Promise<boolean>(() => undefined),
+    });
+    const cookie = await signedInAsAdmin(app, store);
+
+    const response = await app.request(`${BASE}/api/admin/overview`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+  }, 20_000);
+
+  it('reports the media service as unreachable rather than guessing it is fine', async () => {
+    const { app, store } = build({
+      isTranscoderReachable: () => new Promise<boolean>(() => undefined),
+    });
+    const cookie = await signedInAsAdmin(app, store);
+
+    const body = await (
+      await app.request(`${BASE}/api/admin/overview`, { headers: { cookie, origin: BASE } })
+    ).json();
+
+    expect(body).toMatchObject({ transcoder: { isReachable: false } });
+  }, 20_000);
 });

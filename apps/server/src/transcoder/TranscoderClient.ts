@@ -320,8 +320,30 @@ const narrow = <TBody>(response: {
  */
 const httpFetch: FetchLike = async (url, init) => narrow(await fetch(url, init));
 
+/**
+ * How long a request to the media service may take before it is abandoned.
+ *
+ * Generous, because probing a large file over a slow disk is genuinely slow.
+ * Finite, because the alternative is what this replaced: a request that hangs
+ * for ever if the service accepts a connection and then never answers, which
+ * leaves the page that asked waiting for ever with nothing to report.
+ */
+const REQUEST_TIMEOUT_MILLISECONDS = 60_000;
+
+/**
+ * How long a question about whether the service is alive may take.
+ *
+ * Much shorter: this one is asked to draw a page, and an answer that arrives
+ * after a minute is no use to anybody looking at it.
+ */
+const HEALTH_TIMEOUT_MILLISECONDS = 5_000;
+
 const createSocketFetch = (socketPath: string): FetchLike => {
-  const agent = new Agent({ connect: { socketPath } });
+  const agent = new Agent({
+    connect: { socketPath },
+    headersTimeout: REQUEST_TIMEOUT_MILLISECONDS,
+    bodyTimeout: REQUEST_TIMEOUT_MILLISECONDS,
+  });
 
   return async (url, init) => narrow(await undiciFetch(url, { ...init, dispatcher: agent }));
 };
@@ -392,7 +414,14 @@ const createTranscoderClient = ({
 
   return {
     isReachable: async () => {
-      const response = await call2(`${origin}/health`).catch(() => null);
+      const response = await Promise.race([
+        call2(`${origin}/health`).catch(() => null),
+        new Promise<null>((resolve) => {
+          setTimeout(() => {
+            resolve(null);
+          }, HEALTH_TIMEOUT_MILLISECONDS).unref();
+        }),
+      ]);
 
       return response !== null && response.ok;
     },
