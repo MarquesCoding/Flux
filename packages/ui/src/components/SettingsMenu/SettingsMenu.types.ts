@@ -65,7 +65,24 @@ type SettingsCustomRow = {
   control: ReactNode
 }
 
-type SettingsRow = SettingsChoiceRow | SettingsToggleRow | SettingsActionRow | SettingsCustomRow
+/**
+ * A row that opens a screen of its own.
+ *
+ * For a setting that is a dozen controls rather than a list of five things:
+ * caption appearance is a page, and a page inside the panel is one less thing
+ * covering the film than a page floating over it.
+ */
+type SettingsPanelRow = {
+  kind: 'panel'
+  id: string
+  label: string
+  icon: ReactNode
+  detail?: string
+  content: ReactNode
+}
+
+type SettingsRow =
+  SettingsChoiceRow | SettingsToggleRow | SettingsActionRow | SettingsCustomRow | SettingsPanelRow
 
 type SettingsMenuProps = {
   label: string
@@ -81,6 +98,7 @@ export type {
   SettingsChoiceRow,
   SettingsCustomRow,
   SettingsMenuProps,
+  SettingsPanelRow,
   SettingsRow,
   SettingsToggleRow,
 }

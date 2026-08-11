@@ -26,12 +26,14 @@ import SettingsMenuModule from '@FluxUI/SettingsMenu'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import QualityStepModule from '@FluxContracts/schemas/QualityStep'
+import CaptionSettingsModule from '@FluxWeb/components/VideoPlayer/components/CaptionSettings/CaptionSettings'
 import PlayerControlsTypes from './PlayerControls.types'
 import type { PlayerControlsProps } from './PlayerControls.types'
 
 const { IconButton } = IconButtonModule
 const { Slider } = SliderModule
 const { SettingsMenu } = SettingsMenuModule
+const { CaptionSettings } = CaptionSettingsModule
 const { formatDuration } = formatDurationModule
 const { SKIP_SECONDS, PLAYBACK_RATES } = PlayerControlsTypes
 const { SUBTITLES_OFF } = fetchSubtitlesModule
@@ -90,7 +92,9 @@ const PlayerControls = ({
   onSubtitleChange,
   onAudioChange,
   onQualityChange,
-  onEditCaptions,
+  captionStyle,
+  onCaptionStyleChange,
+  onCaptionStyleReset,
   onVolumeChange,
   onToggleMute,
   onToggleFullscreen,
@@ -298,11 +302,17 @@ const PlayerControls = ({
                 },
               ]),
           {
-            kind: 'action' as const,
+            kind: 'panel' as const,
             id: 'appearance',
             label: 'Caption settings',
             icon: <IconTypography size={18} aria-hidden />,
-            onSelect: onEditCaptions,
+            content: (
+              <CaptionSettings
+                style={captionStyle}
+                onChange={onCaptionStyleChange}
+                onReset={onCaptionStyleReset}
+              />
+            ),
           },
           {
             kind: 'choice' as const,

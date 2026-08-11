@@ -28,7 +28,6 @@ import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
 import TrickplayPreviewModule from './components/TrickplayPreview/TrickplayPreview'
 import PlayerControlsModule from './components/PlayerControls/PlayerControls'
 import StreamStatsModule from './components/StreamStats/StreamStats'
-import CaptionSettingsModule from './components/CaptionSettings/CaptionSettings'
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay'
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions'
 import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession'
@@ -56,7 +55,6 @@ const { fetchMediaDetail } = fetchLibraryModule
 const { TrickplayPreview } = TrickplayPreviewModule
 const { PlayerControls } = PlayerControlsModule
 const { StreamStats } = StreamStatsModule
-const { CaptionSettings } = CaptionSettingsModule
 const { toCueCss, readCaptionStyle, saveCaptionStyle, DEFAULT_CAPTION_STYLE } = captionStyleModule
 const { readQualityPreference, saveQualityPreference } = qualityPreferenceModule
 const { fetchSegments, skippableAt, describeSkip } = fetchSegmentsModule
@@ -182,7 +180,6 @@ const VideoPlayer = ({
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([])
   const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF)
   const [captionStyle, setCaptionStyle] = useState(readCaptionStyle)
-  const [isEditingCaptions, setIsEditingCaptions] = useState(false)
   // How far the subtitles have been nudged, and how far that nudge has already
   // been applied to the cues on screen. Both are needed: the cues are moved by
   // the difference, because a track carries its own times and there is nothing
@@ -1026,9 +1023,7 @@ const VideoPlayer = ({
           isImmersive
             ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black'
             : 'relative overflow-hidden rounded-lg bg-black'
-        } ${
-          isIdle && !isShowingStats && !isEditingCaptions ? 'cursor-none' : 'cursor-default'
-        } outline-none`}
+        } ${isIdle && !isShowingStats ? 'cursor-none' : 'cursor-default'} outline-none`}
         onPointerMove={() => {
           setIsIdle(false)
           setActivity((count) => count + 1)
@@ -1116,21 +1111,6 @@ const VideoPlayer = ({
             address any other way. */}
         <style>{`::cue { ${toCueCss(captionStyle)} }`}</style>
 
-        {isEditingCaptions ? (
-          <div className="pointer-events-none absolute inset-x-3 top-3 flex justify-end">
-            <CaptionSettings
-              style={captionStyle}
-              onChange={setCaptionStyle}
-              onReset={() => {
-                setCaptionStyle(DEFAULT_CAPTION_STYLE)
-              }}
-              onClose={() => {
-                setIsEditingCaptions(false)
-              }}
-            />
-          </div>
-        ) : null}
-
         {/* Under the title rather than opposite it: these are notes about what
             is playing, and they belong beside its name. */}
         {isShowingStats ? (
@@ -1193,8 +1173,10 @@ const VideoPlayer = ({
             onSubtitleChange={chooseSubtitle}
             onAudioChange={changeAudio}
             onQualityChange={changeQuality}
-            onEditCaptions={() => {
-              setIsEditingCaptions((editing) => !editing)
+            captionStyle={captionStyle}
+            onCaptionStyleChange={setCaptionStyle}
+            onCaptionStyleReset={() => {
+              setCaptionStyle(DEFAULT_CAPTION_STYLE)
             }}
             onVolumeChange={(next) => {
               setVolume(next)
