@@ -30,10 +30,11 @@ describe('MoodBackground', () => {
     expect(blooms(container)[0]?.style.background).toContain('rgb(120, 40, 200)')
   })
 
-  it('leaves the page its own light when nothing is on screen yet', () => {
+  it('falls back to the house colour when nothing on screen has any light to give', () => {
     const { container } = render(<MoodBackground />)
 
-    expect(blooms(container)).toHaveLength(0)
+    expect(blooms(container).length).toBeGreaterThan(0)
+    expect(blooms(container)[0]?.style.background).toContain('rgb(56 68 150)')
   })
 
   it('ignores a colour that is not one', () => {

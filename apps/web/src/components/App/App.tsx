@@ -304,8 +304,11 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       // the page rather than fetching it all over again.
       viewKey={section === 'home' || section === 'search' ? 'library' : section}
       // The page takes its light from whatever the viewer is looking at, read
-      // out of the picture itself.
-      moodLights={moodLights}
+      // out of the picture itself — and only where there is something to look
+      // at. A page of results or an account form has nothing to spill onto it,
+      // so it goes back to the house colour rather than keeping the light of a
+      // film the viewer has navigated away from.
+      moodLights={section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
     >
       <MediaDetailDialog

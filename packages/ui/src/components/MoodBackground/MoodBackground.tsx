@@ -32,6 +32,25 @@ const BLOOMS = [
 const DRIFTS = ['34s', '46s', '58s', '41s', '52s'] as const
 
 /**
+ * The light a page is under when nothing on it has any to give.
+ *
+ * The house colour, in the same places as everything else, so a page of
+ * results or a form is lit rather than flat — and so navigating off a film
+ * eases back to it instead of holding that film's light over a page it has
+ * nothing to do with. One per place, so the way back is the same easing as the
+ * way there rather than a swap.
+ */
+const HOUSE = [
+  'rgb(56 68 150)',
+  'rgb(48 60 138)',
+  'rgb(44 54 124)',
+  'rgb(50 62 142)',
+  'rgb(40 50 118)',
+] as const
+
+const DEFAULT_LIGHTS: MoodLight[] = HOUSE.map((color) => ({ color }))
+
+/**
  * How far the light moves towards where it is going, each frame.
  *
  * Three hundredths, sixty times a second: about half a second to cover most of
@@ -75,7 +94,8 @@ const MoodBackground = ({
   isDrifting = false,
 }: MoodBackgroundProps) => {
   const prefersReducedMotion = useReducedMotion()
-  const lit = lights.filter((light) => light.color !== '')
+  const given = lights.filter((light) => light.color !== '')
+  const lit = given.length === 0 ? DEFAULT_LIGHTS : given
   const bloomsRef = useRef<(HTMLSpanElement | null)[]>([])
   const heldRef = useRef<MoodLight[]>([])
   const wantedRef = useRef<MoodLight[]>(lit)
@@ -126,7 +146,15 @@ const MoodBackground = ({
   }, [prefersReducedMotion])
 
   return (
-    <div role="presentation" className="pointer-events-none fixed inset-0 -z-10">
+    <div
+      role="presentation"
+      // At the top of the page rather than pinned to the screen. Light spilling
+      // off a picture belongs to that picture: it should slide away as the page
+      // is scrolled past it, not follow the reader down through a grid of
+      // artwork it has nothing to do with. Taller than a screen so the fade to
+      // the page's own colour finishes below the fold rather than across it.
+      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[140svh] overflow-hidden"
+    >
       <div className="absolute inset-0">
         {lit.slice(0, BLOOMS.length).map((light, at) => (
           <span
