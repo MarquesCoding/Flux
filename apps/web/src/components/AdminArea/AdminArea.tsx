@@ -20,8 +20,10 @@ import TextFieldModule from '@FluxUI/TextField'
 import revealModule from '@FluxUI/animations/reveal'
 import fetchAdminModule from '@FluxWeb/admin/fetchAdmin'
 import fetchLibraryModule from '@FluxWeb/library/fetchLibrary'
+import waitForScanCompletionModule from '@FluxWeb/library/waitForScanCompletion'
 import StatStripModule from './components/StatStrip/StatStrip'
 import AddLibraryDialogModule from './components/AddLibraryDialog/AddLibraryDialog'
+import ScanProgressBarModule from './components/ScanProgressBar/ScanProgressBar'
 import formatBytesModule from './formatBytes'
 import type { Library } from '@FluxContracts/schemas/Library'
 import type { AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin'
@@ -35,8 +37,10 @@ const { TextField } = TextFieldModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
 const { fetchAdminOverview, fetchMonitor, watchMonitor, saveCatalogueKey } = fetchAdminModule
 const { fetchLibraries, scanLibrary } = fetchLibraryModule
+const { waitForScanCompletion } = waitForScanCompletionModule
 const { StatStrip } = StatStripModule
 const { AddLibraryDialog } = AddLibraryDialogModule
+const { ScanProgressBar } = ScanProgressBarModule
 const { formatBytes } = formatBytesModule
 
 /**
@@ -113,7 +117,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
   const [isSaving, setIsSaving] = useState(false)
   const [libraries, setLibraries] = useState<Library[]>([])
   const [isAddingLibrary, setIsAddingLibrary] = useState(false)
-  const [scanningLibrary, setScanningLibrary] = useState<string | null>(null)
+  const [scanningLibraryIds, setScanningLibraryIds] = useState<ReadonlySet<string>>(new Set())
   const [isScanningAll, setIsScanningAll] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
@@ -123,22 +127,45 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
   }
 
   const rescan = async (libraryId: string) => {
-    setScanningLibrary(libraryId)
+    setScanningLibraryIds((current) => new Set(current).add(libraryId))
 
     try {
-      await scanLibrary(libraryId)
+      const job = await scanLibrary(libraryId)
+
+      if (job !== null) {
+        await waitForScanCompletion(job.jobId)
+      }
+
+      setLibraries(await fetchLibraries())
     } finally {
-      setScanningLibrary(null)
+      setScanningLibraryIds((current) => {
+        const next = new Set(current)
+        next.delete(libraryId)
+
+        return next
+      })
     }
   }
 
   const rescanAll = async () => {
     setIsScanningAll(true)
+    setScanningLibraryIds(new Set(libraries.map((library) => library.id)))
 
     try {
-      await Promise.all(libraries.map((library) => scanLibrary(library.id, true)))
+      await Promise.all(
+        libraries.map(async (library) => {
+          const job = await scanLibrary(library.id, true)
+
+          if (job !== null) {
+            await waitForScanCompletion(job.jobId)
+          }
+        }),
+      )
+
+      setLibraries(await fetchLibraries())
     } finally {
       setIsScanningAll(false)
+      setScanningLibraryIds(new Set())
     }
   }
 
@@ -451,7 +478,7 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                       size="sm"
                       isPill
                       isLoading={isScanningAll}
-                      disabled={libraries.length === 0}
+                      disabled={libraries.length === 0 || scanningLibraryIds.size > 0}
                       onClick={() => {
                         void rescanAll()
                       }}
@@ -501,19 +528,21 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                           </div>
 
                           <div className="flex shrink-0 items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              isPill
-                              isLoading={scanningLibrary === library.id}
-                              disabled={isScanningAll}
-                              onClick={() => {
-                                void rescan(library.id)
-                              }}
-                            >
-                              <IconRefresh size={16} aria-hidden />
-                              Scan
-                            </Button>
+                            {scanningLibraryIds.has(library.id) ? (
+                              <ScanProgressBar label={`Scanning ${library.name}`} />
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                isPill
+                                onClick={() => {
+                                  void rescan(library.id)
+                                }}
+                              >
+                                <IconRefresh size={16} aria-hidden />
+                                Scan
+                              </Button>
+                            )}
                           </div>
                         </li>
                       )
