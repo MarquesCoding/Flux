@@ -185,15 +185,25 @@ describe('scanLibrary', () => {
 })
 
 describe('readScanState', () => {
-  it('returns the state of a queued scan', async () => {
-    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'running' }))
+  it('returns the state and progress of a queued scan', async () => {
+    fetchMock.mockResolvedValue(ok({ jobId: 'job-1', state: 'running', processed: 4, total: 10 }))
 
-    await expect(readScanState('job-1')).resolves.toBe('running')
+    await expect(readScanState('job-1')).resolves.toEqual({
+      jobId: 'job-1',
+      state: 'running',
+      processed: 4,
+      total: 10,
+    })
   })
 
   it('reports unknown rather than throwing when the server errors', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) })
 
-    await expect(readScanState('job-1')).resolves.toBe('unknown')
+    await expect(readScanState('job-1')).resolves.toEqual({
+      jobId: 'job-1',
+      state: 'unknown',
+      processed: null,
+      total: null,
+    })
   })
 })

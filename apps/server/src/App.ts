@@ -282,8 +282,9 @@ const createApp = ({
 
   app.openapi(scanStateRoute, async (context) => {
     const { jobId } = context.req.valid('param')
+    const { state, processed, total } = await library.readScanState(jobId)
 
-    return context.json({ jobId, state: await library.readScanState(jobId) }, 200)
+    return context.json({ jobId, state, processed, total }, 200)
   })
 
   app.openapi(healthRoute, async (context) => {

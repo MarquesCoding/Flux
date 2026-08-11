@@ -1,14 +1,14 @@
 import { PgBoss } from 'pg-boss'
 import type { Job } from 'pg-boss'
 import JobQueueModule from './JobQueue'
-import type { JobQueue, JobState } from './JobQueue'
+import type { JobProgress, JobQueue, JobState } from './JobQueue'
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
 const { SCAN_LIBRARY_JOB, ScanLibraryJobSchema } = JobQueueModule
 
 type CreateJobQueueOptions = {
   connectionString: string
-  onScan: (libraryId: string, force: boolean) => Promise<void>
+  onScan: (libraryId: string, force: boolean, jobId: string) => Promise<void>
   onProblem?: (message: string) => void
 }
 
@@ -48,6 +48,12 @@ const createJobQueue = async ({
 }: CreateJobQueueOptions): Promise<JobQueue> => {
   const boss = new PgBoss({ connectionString, schema: 'flux_jobs' })
 
+  // Kept alongside pg-boss rather than in it: progress is a running number a
+  // job reports about itself mid-flight, not the job's own queued/completed
+  // lifecycle, and pg-boss has nowhere to put that. Lost on restart, which is
+  // fine — a job that outlives the process reports from wherever it resumes.
+  const progressByJobId = new Map<string, JobProgress>()
+
   boss.on('error', (error: Error) => {
     onProblem?.(error.message)
   })
@@ -65,7 +71,7 @@ const createJobQueue = async ({
         continue
       }
 
-      await onScan(parsed.data.libraryId, parsed.data.force)
+      await onScan(parsed.data.libraryId, parsed.data.force, job.id)
     }
   })
 
@@ -95,6 +101,12 @@ const createJobQueue = async ({
       const job = await boss.getJobById(SCAN_LIBRARY_JOB, jobId)
 
       return job === null ? 'unknown' : (PG_BOSS_STATES[job.state] ?? 'unknown')
+    },
+
+    readProgress: (jobId) => progressByJobId.get(jobId) ?? null,
+
+    reportProgress: (jobId, processed, total) => {
+      progressByJobId.set(jobId, { processed, total })
     },
 
     stop: async () => {

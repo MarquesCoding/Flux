@@ -91,6 +91,10 @@ type ScanLibraryOptions = {
     rows: number
   }
   onProblem?: (path: string, reason: string) => void
+  /**
+   * Told after every file, changed or not, how far through the walk is.
+   */
+  onProgress?: (processed: number, total: number) => void
 }
 
 /**
@@ -139,6 +143,7 @@ const scanLibrary = async ({
   force = false,
   trickplay,
   onProblem,
+  onProgress,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path))
   const stored = await store.listStored(libraryId)
@@ -152,6 +157,9 @@ const scanLibrary = async ({
   let added = 0
   let updated = 0
   let failed = 0
+  let processed = 0
+
+  onProgress?.(processed, changed.length)
 
   for (const file of changed) {
     try {
@@ -212,6 +220,9 @@ const scanLibrary = async ({
     } catch (error) {
       failed += 1
       onProblem?.(file.path, error instanceof Error ? error.message : 'Probe failed.')
+    } finally {
+      processed += 1
+      onProgress?.(processed, changed.length)
     }
   }
 

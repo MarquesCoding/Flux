@@ -120,7 +120,8 @@ const respondWith =
     if (input.includes('/scans/')) {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ jobId: 'scan-job', state: 'completed' }),
+        json: () =>
+          Promise.resolve({ jobId: 'scan-job', state: 'completed', processed: 1, total: 1 }),
       })
     }
 
@@ -373,6 +374,54 @@ describe('AdminArea', () => {
 
     expect(await screen.findByRole('progressbar', { name: 'Scanning Movies' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Scan' })).not.toBeInTheDocument()
+  })
+
+  it('reports how many files have actually been probed as the scan goes', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
+    const scanUrl = `/api/libraries/${MOVIES_LIBRARY_ID}/scan`
+    let readings = 0
+
+    fetchMock.mockImplementation((input: string, init?: RequestInit) => {
+      if (input === scanUrl) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ jobId: 'scan-job', state: 'queued' }),
+        })
+      }
+
+      if (input.includes('/scans/')) {
+        readings += 1
+
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve(
+              readings === 1
+                ? { jobId: 'scan-job', state: 'running', processed: 3, total: 10 }
+                : { jobId: 'scan-job', state: 'completed', processed: 10, total: 10 },
+            ),
+        })
+      }
+
+      return respondWith()(input, init)
+    })
+
+    render(<AdminArea />)
+
+    await actor.click(await screen.findByRole('button', { name: 'Libraries' }))
+    await actor.click(screen.getByRole('button', { name: 'Scan' }))
+
+    expect(await screen.findByText('3/10')).toBeInTheDocument()
+
+    await vi.advanceTimersByTimeAsync(1000)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Scan' })).toBeInTheDocument()
+    })
+
+    vi.useRealTimers()
   })
 
   it('replaces every scan button with its own progress bar when scanning all libraries', async () => {

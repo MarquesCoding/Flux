@@ -37,7 +37,15 @@ type LibraryService = {
    * or modification time changed.
    */
   scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>
-  readScanState: (jobId: string) => Promise<string>
+  /**
+   * How a queued scan is getting on.
+   *
+   * `processed`/`total` are null until the walk has counted its files, and
+   * for a service — like the in-memory one — that never tracked them at all.
+   */
+  readScanState: (
+    jobId: string,
+  ) => Promise<{ state: string; processed: number | null; total: number | null }>
   /**
    * Where an item's artwork lives at the catalogue it came from.
    *

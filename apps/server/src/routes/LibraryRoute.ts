@@ -103,6 +103,21 @@ const getMediaRoute = createRoute({
 const ScanAccepted = z.object({ jobId: z.string(), state: z.string() }).openapi('ScanAccepted')
 
 /**
+ * How many of a scan's files have been probed.
+ *
+ * Null rather than zero until the walk has counted its files: a scan sitting
+ * at 0 of 0 reads as finished, not as not yet started.
+ */
+const ScanState = z
+  .object({
+    jobId: z.string(),
+    state: z.string(),
+    processed: z.number().int().nonnegative().nullable(),
+    total: z.number().int().nonnegative().nullable(),
+  })
+  .openapi('ScanState')
+
+/**
  * Queues a scan.
  *
  * Answers 202 rather than waiting: walking and probing a real library takes
@@ -144,7 +159,7 @@ const scanStateRoute = createRoute({
   responses: {
     200: {
       description: 'The state of the scan',
-      content: { 'application/json': { schema: ScanAccepted } },
+      content: { 'application/json': { schema: ScanState } },
     },
   },
 })
