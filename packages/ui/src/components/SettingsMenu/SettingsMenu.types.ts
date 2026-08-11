@@ -87,6 +87,14 @@ type SettingsRow =
 type SettingsMenuProps = {
   label: string
   trigger: ReactNode
+  /**
+   * The trigger while the panel is open.
+   *
+   * A control that is doing something should look like it: the filled form of
+   * the same mark, so it reads as the same control rather than a different
+   * one. Left out where the mark has no filled form.
+   */
+  triggerWhenOpen?: ReactNode
   rows: SettingsRow[]
   /**
    * Says when the panel opens and closes.

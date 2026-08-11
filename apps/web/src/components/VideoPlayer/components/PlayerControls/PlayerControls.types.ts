@@ -98,6 +98,11 @@ type PlayerControlsProps = {
    * at all rather than shown and inert.
    */
   onPopOut?: () => void
+  /**
+   * Whether the film is already playing in its own window, so the control can
+   * say it is on rather than only that it exists.
+   */
+  isPoppedOut?: boolean
   renderPreview?: (seconds: number) => ReactNode
 }
 

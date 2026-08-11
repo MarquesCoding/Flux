@@ -1348,6 +1348,7 @@ const VideoPlayer = ({
             }}
             onToggleFullscreen={toggleFullscreen}
             {...(canPopOut ? { onPopOut: popOut } : {})}
+            isPoppedOut={isPoppedOut}
             onToggleStats={() => {
               setIsShowingStats((showing) => !showing)
             }}

@@ -65,6 +65,7 @@ const opensSomething = (row: SettingsRow): row is SettingsChoiceRow | SettingsPa
 const SettingsMenu = ({
   label,
   trigger,
+  triggerWhenOpen,
   rows,
   onOpenChange,
   isDisabled = false,
@@ -73,6 +74,7 @@ const SettingsMenu = ({
   // Which row is open, if any. Held here rather than by the caller because it
   // is a thing about this panel rather than about what it describes.
   const [openId, setOpenId] = useState<string | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
   const opened =
@@ -91,14 +93,15 @@ const SettingsMenu = ({
 
   return (
     <Popover.Root
-      onOpenChange={(isOpen) => {
+      onOpenChange={(open) => {
         // Closing forgets where it was. Reopening onto the subsection somebody
         // was last in reads as the panel having got stuck.
-        if (!isOpen) {
+        if (!open) {
           close()
         }
 
-        onOpenChange?.(isOpen)
+        setIsOpen(open)
+        onOpenChange?.(open)
       }}
     >
       <Popover.Trigger
@@ -112,7 +115,7 @@ const SettingsMenu = ({
           className,
         )}
       >
-        {trigger}
+        {isOpen ? (triggerWhenOpen ?? trigger) : trigger}
       </Popover.Trigger>
 
       <Popover.Portal>

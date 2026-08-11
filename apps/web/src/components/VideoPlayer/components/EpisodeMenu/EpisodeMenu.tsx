@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconArticle } from '@tabler/icons-react'
+import { IconArticle, IconArticleFilled } from '@tabler/icons-react'
 import PopoverPanelModule from '@FluxUI/PopoverPanel'
 import MediaCardModule from '@FluxUI/MediaCard'
 import formatDurationModule from '@FluxCore/functions/formatDuration'
@@ -60,7 +60,9 @@ const EpisodeMenu = ({
       isDisabled={isDisabled}
       isOpen={isOpen}
       onOpenChange={show}
-      trigger={<IconArticle size={20} aria-hidden />}
+      trigger={
+        isOpen ? <IconArticleFilled size={20} aria-hidden /> : <IconArticle size={20} aria-hidden />
+      }
       className="w-80 sm:w-96 mb-7.5"
     >
       <ul className="flex flex-col gap-3">
