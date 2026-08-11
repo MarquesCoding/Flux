@@ -199,10 +199,26 @@ const RailCard = ({
       return
     }
 
-    const fitted = fitInside(anchor.top, panel.offsetHeight)
+    const fit = () => {
+      const fitted = fitInside(anchor.top, panel.offsetHeight)
 
-    if (Math.abs(fitted - anchor.top) > 1) {
-      setAnchor({ ...anchor, top: fitted })
+      if (Math.abs(fitted - anchor.top) > 1) {
+        setAnchor({ ...anchor, top: fitted })
+      }
+    }
+
+    fit()
+
+    // And again whenever it changes size. What a card knows about itself —
+    // its genres, its synopsis — arrives after it has opened, so the panel
+    // measured on the way in is shorter than the one being looked at a moment
+    // later, and the difference is exactly the part that falls off the bottom.
+    const watcher = new ResizeObserver(fit)
+
+    watcher.observe(panel)
+
+    return () => {
+      watcher.disconnect()
     }
   }, [anchor])
 
@@ -299,7 +315,7 @@ const RailCard = ({
               // buttons. A card opened near the foot of a tall row is exactly
               // the one that runs out of screen, and the thing to lose there is
               // the third line of a synopsis, not the way to play it.
-              className="fixed z-40 flex max-h-[calc(100svh-1.5rem)] flex-col overflow-hidden rounded-2xl bg-surface-raised shadow-2xl ring-1 ring-white/10"
+              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-2xl bg-surface-raised shadow-2xl ring-1 ring-white/10"
             >
               <div className="aspect-video max-h-[42svh] w-full shrink-0 overflow-hidden">
                 <MediaPreview
