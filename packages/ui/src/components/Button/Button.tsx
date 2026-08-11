@@ -11,7 +11,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     'flux-gloss bg-white text-black hover:brightness-105 hover:shadow-[0_10px_30px_-6px_rgba(255,255,255,0.35)]',
   secondary: 'flux-glass text-text hover:brightness-125',
   ghost: 'bg-transparent text-text hover:bg-white/10',
-  danger: 'flux-gloss bg-danger text-accent-contrast hover:brightness-110',
+  danger: 'flux-gloss bg-danger text-white hover:brightness-110',
 }
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
