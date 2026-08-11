@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import cnModule from '@FluxUI/cn'
 import revealModule from '@FluxUI/animations/reveal'
@@ -5,6 +6,11 @@ import type { DockProps } from './Dock.types'
 
 const { cn } = cnModule
 const { revealTransition, liquidSpring, settleTween, stillTransition } = revealModule
+
+/**
+ * Where the highlight sits, in the dock's own terms.
+ */
+type Box = { left: number; top: number; width: number; height: number }
 
 /**
  * The floating bar of places to go.
@@ -21,6 +27,58 @@ const { revealTransition, liquidSpring, settleTween, stillTransition } = revealM
  */
 const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
   const prefersReducedMotion = useReducedMotion()
+  const listRef = useRef<HTMLUListElement>(null)
+  const itemsRef = useRef(new Map<string, HTMLLIElement>())
+  // Where the highlight should be, measured from the dock rather than inferred
+  // from the page. A shared layout animation would do this by itself, but it
+  // measures in page coordinates, and the dock does not live in the page — it
+  // is fixed over it, so scrolling and then changing section sent the
+  // highlight travelling in from wherever the page had been.
+  const [highlightBox, setHighlightBox] = useState<Box | null>(null)
+
+  const measure = useCallback(() => {
+    const item = itemsRef.current.get(selectedId)
+
+    if (item === undefined) {
+      return
+    }
+
+    // Offsets rather than a rectangle: an absolutely placed child starts from
+    // its parent's padding box, and a rectangle is measured from the border
+    // box — so the highlight sat the dock's own padding down and to the right
+    // of the thing it was meant to be around.
+    setHighlightBox({
+      left: item.offsetLeft,
+      top: item.offsetTop,
+      width: item.offsetWidth,
+      height: item.offsetHeight,
+    })
+  }, [selectedId])
+
+  // Measured again as the dock changes shape, not only when the selection
+  // does: the name of the place unrolls after it is chosen, and a highlight
+  // that stopped at the old width would sit under half a word.
+  useEffect(() => {
+    measure()
+
+    const list = listRef.current
+
+    if (list === null || typeof ResizeObserver === 'undefined') {
+      return
+    }
+
+    const observer = new ResizeObserver(measure)
+
+    observer.observe(list)
+
+    for (const item of itemsRef.current.values()) {
+      observer.observe(item)
+    }
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [measure, items.length])
   // The highlight and the label want opposite things: the highlight should
   // overshoot and settle, and the label should not move a millimetre further
   // than it has to.
@@ -39,12 +97,6 @@ const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
       {/* Arrives after the page rather than with it: the dock is an offer, and
           an offer that lands before the thing it is about competes with it. */}
       <motion.ul
-        // The dock is measured against itself rather than against the page.
-        // The highlight travels from one item to the next as a shared layout,
-        // and a shared layout inside a fixed element is otherwise measured in
-        // page coordinates — so changing section from halfway down a scrolled
-        // page sent the pill in from wherever the page had been.
-        layoutRoot
         initial={
           prefersReducedMotion === true
             ? { opacity: 0 }
@@ -55,21 +107,42 @@ const Dock = ({ items, selectedId, onSelect, className }: DockProps) => {
           ...revealTransition(prefersReducedMotion, 'heavy'),
           delay: prefersReducedMotion === true ? 0 : 0.35,
         }}
-        className="flux-glass pointer-events-auto flex items-center gap-1 rounded-full p-1.5"
+        ref={listRef}
+        className="flux-glass pointer-events-auto relative flex items-center gap-1 rounded-full p-1.5"
       >
+        {highlightBox === null ? null : (
+          <motion.span
+            aria-hidden
+            // One highlight that moves, rather than one per item appearing
+            // where the last disappeared. It is told where to go in numbers
+            // taken from the dock, so nothing about the page can move it.
+            initial={false}
+            animate={{
+              x: highlightBox.left,
+              y: highlightBox.top,
+              width: highlightBox.width,
+              height: highlightBox.height,
+            }}
+            transition={highlight}
+            className="pointer-events-none absolute left-0 top-0 rounded-full bg-white/15"
+          />
+        )}
+
         {items.map((item) => {
           const isSelected = item.id === selectedId
 
           return (
-            <li key={item.id} className="relative">
-              {isSelected ? (
-                <motion.span
-                  layoutId="dock-selection"
-                  transition={highlight}
-                  className="absolute inset-0 rounded-full bg-white/15"
-                />
-              ) : null}
-
+            <li
+              key={item.id}
+              ref={(element) => {
+                if (element === null) {
+                  itemsRef.current.delete(item.id)
+                } else {
+                  itemsRef.current.set(item.id, element)
+                }
+              }}
+              className="relative"
+            >
               <motion.button
                 type="button"
                 // Deliberately not a layout animation: that resizes by
