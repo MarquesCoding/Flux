@@ -1,3 +1,4 @@
+import type { MoodLight } from '@FluxUI/MoodBackground.types'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
@@ -63,7 +64,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   // which is why watching something and closing it sometimes left the bar
   // where it had been an hour ago.
   const reportedRef = useRef(new Map<string, WatchProgress>())
-  const [featured, setFeatured] = useState<MediaSummary | null>(null)
+  const [, setFeatured] = useState<MediaSummary | null>(null)
+  // What the page is lit by, read from whatever is on screen rather than
+  // decided when the file was imported.
+  const [moodLights, setMoodLights] = useState<MoodLight[]>([])
   // Everything the library has shown, so an address naming an item can be
   // turned back into one without asking the server a second time.
   const [known, setKnown] = useState(new Map<string, MediaSummary>())
@@ -299,9 +303,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       // Home and search draw the same library, so moving between them keeps
       // the page rather than fetching it all over again.
       viewKey={section === 'home' || section === 'search' ? 'library' : section}
-      // The page takes its colour from whatever the viewer is looking at:
-      // what they have opened, or failing that what the hero is showing.
-      moodColor={inspecting?.accentColor ?? featured?.accentColor ?? null}
+      // The page takes its light from whatever the viewer is looking at, read
+      // out of the picture itself.
+      moodLights={moodLights}
       isAdministrator={user.role === 'admin'}
     >
       <MediaDetailDialog
@@ -378,6 +382,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           // opens with a hero. Searching has a page of its own now.
           hasHero
           onFeatureChange={setFeatured}
+          onPalette={setMoodLights}
         />
       )}
     </AppShell>

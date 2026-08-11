@@ -51,6 +51,7 @@ const LibraryBrowser = ({
   search = '',
   hasHero = false,
   onFeatureChange,
+  onPalette,
   onItemsLoaded,
   onPlay,
   onWatch,
@@ -226,6 +227,7 @@ const LibraryBrowser = ({
           resumeFor={resumeFor}
           onInspect={onPlay}
           {...(onFeatureChange === undefined ? {} : { onFeatureChange })}
+          {...(onPalette === undefined ? {} : { onPalette })}
         />
       ) : null}
 

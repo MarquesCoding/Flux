@@ -43,7 +43,7 @@ const AppShell = ({
   onSectionChange,
   children,
   viewKey,
-  moodColor,
+  moodLights = [],
   isAdministrator = false,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion()
@@ -91,7 +91,7 @@ const AppShell = ({
       {/* The wash, without the grid. A field of dots belongs to the way in,
           where there is nothing else on the screen to compete with it; behind
           a library it is a texture under artwork. */}
-      <MoodBackground color={moodColor ?? null} />
+      <MoodBackground lights={moodLights} />
 
       <motion.main
         key={viewKey ?? section}

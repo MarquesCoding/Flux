@@ -296,7 +296,11 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
 
   return (
     <main className="relative flex min-h-svh flex-col items-center justify-center gap-8 px-6 py-16">
-      <MoodBackground color={chosen?.colour ?? null} hasGrid isDrifting />
+      <MoodBackground
+        lights={chosen === null ? [] : [{ color: chosen.colour }]}
+        hasGrid
+        isDrifting
+      />
 
       {/* The one mark, in both places. It opens the screen on its own and
           then moves to sit above the question — a layout animation rather

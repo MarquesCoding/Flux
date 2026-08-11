@@ -1,3 +1,15 @@
+/**
+ * One light on the page, and where it comes from.
+ *
+ * The place is part of the colour. Light off a screen showing a red coat on
+ * the left falls on the left, and a wash that ignores that reads as a tint
+ * somebody chose rather than as spill from the picture.
+ */
+type MoodLight = {
+  color: string
+  at?: string
+}
+
 type MoodBackgroundProps = {
   /**
    * Whether the wash carries its grid of dots.
@@ -14,12 +26,13 @@ type MoodBackgroundProps = {
    */
   isDrifting?: boolean
   /**
-   * The colour the page takes its light from, as any CSS colour.
+   * The lights the page is under.
    *
-   * Left out means the accent, so a library with no artwork still looks
-   * deliberate rather than unfinished.
+   * Read out of whatever is on screen, corner by corner, rather than chosen in
+   * advance. An empty list means the page keeps its own light, so a library
+   * with no artwork still looks deliberate rather than unfinished.
    */
-  color?: string | null
+  lights?: MoodLight[]
 }
 
-export type { MoodBackgroundProps }
+export type { MoodBackgroundProps, MoodLight }

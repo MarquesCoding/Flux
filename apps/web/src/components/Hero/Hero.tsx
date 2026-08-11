@@ -71,6 +71,7 @@ const Hero = ({
   items,
   onPlay,
   onInspect,
+  onPalette,
   onFeatureChange,
   resumeFor,
   rotateAfterMilliseconds = ROTATE_AFTER_MILLISECONDS,
@@ -238,6 +239,7 @@ const Hero = ({
                 settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
                 tint={featured.accentColor ?? null}
                 onEnded={showNext}
+                {...(onPalette === undefined ? {} : { onPalette })}
                 fills
               />
             </motion.div>

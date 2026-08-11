@@ -98,15 +98,6 @@
   --radius-xl: 1.25rem;
   --radius-pill: 999px;
 
-  /*
-   * The wash behind everything.
-   *
-   * Set per page from the artwork on screen, so the shell takes on the mood of
-   * what is being shown. Falls back to the accent so a library with no artwork
-   * still looks deliberate rather than broken.
-   */
-  --color-mood: oklch(0.45 0.13 264);
-
   /* Layered translucency, which is what makes glass read as glass. */
   --glass-tint: color-mix(in oklab, var(--color-surface-raised) 62%, transparent);
   --glass-edge: color-mix(in oklab, white 22%, transparent);
@@ -167,94 +158,62 @@ body {
 }
 
 /*
- * The page's own atmosphere.
+ * One of the lights a page is under.
  *
- * Two soft pools of the mood colour rather than a flat tint: a single wash
- * reads as a coloured rectangle, while light falling from two directions reads
- * as a room. Fixed, so scrolling moves the content through the light rather
- * than dragging the light along with it.
+ * A soft bloom of colour read out of whatever is on screen. Oversized first,
+ * because a gradient can only be moved within its own box, and one sized to
+ * the screen has nowhere to travel.
  */
-.flux-mood {
+.flux-bloom {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(
-      70rem 45rem at 15% -10%,
-      color-mix(in oklab, var(--color-mood) 55%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      55rem 40rem at 95% 10%,
-      color-mix(in oklab, var(--color-mood) 32%, transparent),
-      transparent 65%
-    ),
-    linear-gradient(180deg, transparent 0%, var(--color-surface) 65%);
-}
-
-/*
- * The same wash, unable to keep still.
- *
- * The two lit corners drift across each other while the fade to the page
- * colour stays where it is — moving that would take the bottom of the screen
- * with it. Nothing is added: this is the gradient that was already there,
- * given somewhere to go.
- *
- * Every layer is oversized first, because a gradient can only be moved within
- * its own box and one sized to the screen has nowhere to travel.
- */
-.flux-mood--drift {
-  /*
-   * Only a little larger than the screen. The wider the layer, the further
-   * the light can wander off the edge — enough room to move, not enough to
-   * leave.
-   */
-  background-size:
-    135% 135%,
-    135% 135%,
-    100% 100%;
   background-repeat: no-repeat;
-  animation: flux-mood-drift 28s ease-in-out infinite alternate;
+  background-size: 150% 150%;
+  background-position: 50% 50%;
+  transition: background 1200ms linear;
 }
 
 /*
- * Every position stays well inside the layer, so both lit areas remain on
- * screen throughout: a wash that wanders off the edge leaves the page flat.
+ * Given somewhere to go.
+ *
+ * Each bloom is told its own length by whatever draws it, so three lights do
+ * not move in step — which would read as one light in three places.
  */
-@keyframes flux-mood-drift {
+.flux-bloom--drift {
+  animation: flux-bloom-drift 40s ease-in-out infinite alternate;
+}
+
+@keyframes flux-bloom-drift {
   0% {
-    background-position:
-      30% 30%,
-      70% 35%,
-      0% 0%;
+    background-position: 34% 32%;
   }
-  25% {
-    background-position:
-      55% 40%,
-      45% 55%,
-      0% 0%;
+  33% {
+    background-position: 62% 44%;
   }
-  50% {
-    background-position:
-      65% 60%,
-      35% 40%,
-      0% 0%;
-  }
-  75% {
-    background-position:
-      40% 65%,
-      60% 65%,
-      0% 0%;
+  66% {
+    background-position: 44% 64%;
   }
   100% {
-    background-position:
-      35% 45%,
-      65% 30%,
-      0% 0%;
+    background-position: 60% 36%;
   }
+}
+
+/*
+ * The page's own colour, under the light rather than over it, so the foot of
+ * the screen is the page rather than whatever the picture was made of.
+ */
+.flux-mood-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, var(--color-surface) 72%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flux-mood--drift {
+  .flux-bloom {
+    transition: none;
+  }
+
+  .flux-bloom--drift {
     animation: none;
   }
 }

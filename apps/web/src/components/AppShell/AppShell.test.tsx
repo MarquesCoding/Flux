@@ -62,15 +62,12 @@ describe('AppShell', () => {
   })
 
   it('lights the page with the colour of what is being shown', () => {
-    const { view } = draw({ moodColor: '#5a3c8c' })
+    const { view } = draw({ moodLights: [{ color: '#5a3c8c', at: '20% 30%' }] })
 
-    // On the wash itself rather than the element positioning it: a custom
-    // property is not something the animation library's style type carries.
-    expect(
-      view.container
-        .querySelector<HTMLElement>('.flux-mood')
-        ?.style.getPropertyValue('--color-mood'),
-    ).toBe('#5a3c8c')
+    const bloom = view.container.querySelector<HTMLElement>('.flux-bloom')
+
+    expect(bloom?.style.background).toContain('#5a3c8c')
+    expect(bloom?.style.background).toContain('20% 30%')
   })
 
   it('leaves room beneath the page for what floats over it', () => {

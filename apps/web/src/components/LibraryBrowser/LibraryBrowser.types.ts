@@ -1,3 +1,4 @@
+import type { MoodLight } from '@FluxUI/MoodBackground.types'
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library'
 
 type LibraryBrowserProps = {
@@ -17,6 +18,11 @@ type LibraryBrowserProps = {
    * Told which item the hero is showing, so the page can be lit by it.
    */
   onFeatureChange?: (media: MediaSummary) => void
+  /**
+   * Called with the colours the hero is showing, so the page can be lit by
+   * what is actually on screen rather than by a colour chosen in advance.
+   */
+  onPalette?: (lights: MoodLight[]) => void
   onPlay: (media: MediaSummary) => void
   /**
    * Starts something, rather than opening the page about it.

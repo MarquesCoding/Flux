@@ -1,3 +1,4 @@
+import type { MoodLight } from '@FluxUI/MoodBackground.types'
 type MediaPreviewProps = {
   mediaId: string
   /**
@@ -69,6 +70,14 @@ type MediaPreviewProps = {
    * itself.
    */
   onPlayingChange?: (isPlaying: boolean) => void
+  /**
+   * Called with the colours whatever is showing is made of.
+   *
+   * The preview owns the pixels — the clip while it runs, the still before and
+   * after it — so it is the only thing that can answer what the page should be
+   * lit by at this moment.
+   */
+  onPalette?: (lights: MoodLight[]) => void
 }
 
 export type { MediaPreviewProps }

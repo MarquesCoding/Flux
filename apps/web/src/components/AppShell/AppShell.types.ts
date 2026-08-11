@@ -1,3 +1,4 @@
+import type { MoodLight } from '@FluxUI/MoodBackground.types'
 import type { ReactNode } from 'react'
 
 /**
@@ -24,9 +25,9 @@ type AppShellProps = {
    */
   viewKey?: string
   /**
-   * The colour the page is lit with, taken from whatever is being shown.
+   * The colours the page is lit by, read from what is on screen.
    */
-  moodColor?: string | null
+  moodLights?: MoodLight[]
   /**
    * Whether this viewer administers the server. The section is hidden from
    * everyone else rather than shown and refused.

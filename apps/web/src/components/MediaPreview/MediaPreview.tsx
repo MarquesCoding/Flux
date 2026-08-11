@@ -8,6 +8,7 @@ import {
 import VideoSurfaceModule from '@FluxUI/VideoSurface'
 import IconButtonModule from '@FluxUI/IconButton'
 import frameUrlModule from '@FluxWeb/playback/frameUrl'
+import readLightsModule from '@FluxWeb/library/readLights'
 import fetchSubtitlesModule from '@FluxWeb/playback/fetchSubtitles'
 import liftCuesModule from '@FluxWeb/playback/liftCues'
 import type { MediaPreviewProps } from './MediaPreview.types'
@@ -15,6 +16,7 @@ import type { MediaPreviewProps } from './MediaPreview.types'
 const { VideoSurface } = VideoSurfaceModule
 const { IconButton } = IconButtonModule
 const { frameUrl } = frameUrlModule
+const { readLights } = readLightsModule
 const { fetchSubtitleTracks, subtitleTrackUrl, previewTrack } = fetchSubtitlesModule
 const { liftCues } = liftCuesModule
 
@@ -40,6 +42,16 @@ const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`
  * the very gradient that hides it.
  */
 const CUE_LINE = 80
+
+/**
+ * How often to look at what is showing.
+ *
+ * Close enough to the cut rate of a trailer that the room changes with the
+ * scene rather than a beat after it. The cost is a draw of a twenty-four pixel
+ * square and a read of it, which is small enough to do three times a second
+ * and still be nothing next to painting the clip itself.
+ */
+const LOOK_EVERY_MILLISECONDS = 350
 
 /**
  * A glimpse of what an item looks like.
@@ -71,8 +83,10 @@ const MediaPreview = ({
   repeats,
   onEnded,
   onPlayingChange,
+  onPalette,
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const stillRef = useRef<HTMLImageElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   // Whether the clip has finished. Together with whether it has started, this
   // is the only thing that decides which of the two pictures is on top —
@@ -182,6 +196,39 @@ const MediaPreview = ({
     return liftCues(element, () => CUE_LINE).stop
   }, [subtitles])
 
+  // The light the page is under, read from whatever this is showing: the clip
+  // as it runs, and the still while it is not. Read corner by corner, so what
+  // lands on the left of the page came from the left of the picture.
+  useEffect(() => {
+    if (onPalette === undefined) {
+      return
+    }
+
+    const look = () => {
+      const element = videoRef.current
+      const still = stillRef.current
+
+      const found =
+        element !== null && !isShowingFrame && element.readyState > 1
+          ? readLights(element)
+          : still !== null && still.complete
+            ? readLights(still)
+            : []
+
+      if (found.length > 0) {
+        onPalette(found)
+      }
+    }
+
+    look()
+
+    const timer = setInterval(look, LOOK_EVERY_MILLISECONDS)
+
+    return () => {
+      clearInterval(timer)
+    }
+  }, [onPalette, isShowingFrame, mediaId])
+
   return (
     <div
       // Tinted rather than black, and tinted before anything has loaded, so
@@ -197,6 +244,8 @@ const MediaPreview = ({
           item a catalogue has never heard of — good enough to stand in, but
           not what anybody chose to represent the thing. */}
       <img
+        ref={stillRef}
+        crossOrigin="anonymous"
         src={backdropUrl ?? frameUrl(mediaId, startSeconds)}
         alt=""
         aria-hidden
