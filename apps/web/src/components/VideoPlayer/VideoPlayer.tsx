@@ -1129,8 +1129,8 @@ const VideoPlayer = ({
       <header
         className={
           isImmersive
-            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-opacity duration-500 ease-out ${
-                isIdle && !isShowingStats && !isMenuOpen ? 'opacity-0' : 'opacity-100'
+            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-transform duration-500 ease-out ${
+                isBarUp ? 'translate-y-0' : '-translate-y-full'
               }`
             : 'flex items-center justify-between gap-4'
         }
@@ -1288,10 +1288,13 @@ const VideoPlayer = ({
         )}
 
         <div
-          className={`absolute inset-x-3 bottom-3 transition-opacity duration-500 ease-out ${
-            isIdle && !isShowingStats && !isMenuOpen
-              ? 'flux-glass-clearing opacity-0'
-              : 'opacity-100'
+          // Pushed out of the picture rather than faded. Fading glass means
+          // fading a backdrop filter, and a filter does not fade the way a
+          // colour does — it goes at its own pace, which reads as the bar
+          // changing shade on its way out. Sliding it away moves it without
+          // touching how it is drawn.
+          className={`absolute inset-x-3 bottom-3 transition-transform duration-500 ease-out ${
+            isBarUp ? 'translate-y-0' : 'translate-y-[calc(100%+1.5rem)]'
           }`}
         >
           <PlayerControls
