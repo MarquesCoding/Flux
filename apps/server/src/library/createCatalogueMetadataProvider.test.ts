@@ -330,6 +330,48 @@ describe('createCatalogueMetadataProvider', () => {
     expect(found?.title).toBe('The Biscuits Special');
   });
 
+  it('keeps a translated release, where the title differs because the language does', async () => {
+    const { instance } = provider({
+      '/tv/5/season/1/episode/2': { name: 'To Affection', still_path: '/still.jpg' },
+      '/search/tv': {
+        results: [{ id: 5, name: 'A Sign of Affection', first_air_date: '2024-01-06' }],
+      },
+      '/tv/5': { id: 5, name: 'A Sign of Affection', genres: [] },
+    });
+
+    const found = await instance.describe(
+      facts('/media/A Sign of Affection - 1x02 - Affetto - 1080p.mkv', {
+        seriesTitle: 'A Sign of Affection',
+        seasonNumber: 1,
+        episodeNumber: 2,
+        episodeTitle: 'Affetto',
+      }),
+    );
+
+    expect(found?.title).toBe('To Affection');
+    expect(found?.externalId).toBe('5');
+    expect(found?.backdropUrl).not.toBeNull();
+  });
+
+  it('still refuses a disagreeing episode when the series was only the best guess', async () => {
+    const { instance } = provider({
+      '/tv/5/season/1/episode/2': { name: 'Biscuits with the Boss' },
+      '/search/tv': { results: [{ id: 5, name: 'Ted Lasso', first_air_date: '2020-08-14' }] },
+      '/tv/5': { id: 5, name: 'Ted Lasso', genres: [] },
+    });
+
+    const found = await instance.describe(
+      facts('/media/Ted/Season 1/Ted - S01E02 - Pilot.mkv', {
+        seriesTitle: 'Ted',
+        seasonNumber: 1,
+        episodeNumber: 2,
+        episodeTitle: 'Pilot',
+      }),
+    );
+
+    expect(found).toBeNull();
+  });
+
   it('does not refuse a match when the filename named no episode title to check against', async () => {
     const { instance } = provider({
       '/tv/5/season/1/episode/2': { name: 'Whatever This One Is Called' },
