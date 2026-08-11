@@ -21,6 +21,11 @@ type MediaDetailDialogProps = {
    */
   siblings?: MediaSummary[]
   onSelectSibling?: (media: MediaSummary) => void
+  /**
+   * Whether this viewer has kept it, and how they say otherwise.
+   */
+  isKept?: boolean
+  onToggleKept?: (media: MediaSummary) => void
 }
 
 export type { MediaDetailDialogProps }

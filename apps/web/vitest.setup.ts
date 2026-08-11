@@ -125,6 +125,23 @@ if (typeof HTMLMediaElement !== 'undefined') {
   })
 }
 
+/*
+ * jsdom draws nothing, and says so loudly: asking it for a drawing context
+ * raises an error it never handles, which fails a run in which every test
+ * passed. The interface reads the light it is under off whatever is on screen,
+ * so a great many tests ask.
+ *
+ * Answers with nothing, which is the same answer a browser refusing a context
+ * gives, and the same one everything reading a frame is written to expect.
+ */
+if (typeof HTMLCanvasElement !== 'undefined') {
+  Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+    configurable: true,
+    writable: true,
+    value: () => null,
+  })
+}
+
 afterEach(() => {
   cleanup()
 })

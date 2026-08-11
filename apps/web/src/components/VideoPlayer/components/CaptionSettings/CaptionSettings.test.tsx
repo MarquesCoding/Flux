@@ -73,8 +73,7 @@ describe('CaptionSettings', () => {
     const user = userEvent.setup()
     const props = draw()
 
-    await user.click(screen.getByRole('button', { name: 'Caption font' }))
-    await user.click(await screen.findByRole('menuitemradio', { name: 'Monospace' }))
+    await user.click(screen.getByRole('button', { name: 'Monospace' }))
 
     expect(props.onChange).toHaveBeenCalledWith(expect.objectContaining({ fontFamily: 'mono' }))
   })
@@ -83,8 +82,7 @@ describe('CaptionSettings', () => {
     const user = userEvent.setup()
     const props = draw()
 
-    await user.click(screen.getByRole('button', { name: 'Caption edge' }))
-    await user.click(await screen.findByRole('menuitemradio', { name: 'Drop shadow' }))
+    await user.click(screen.getByRole('button', { name: 'Drop shadow' }))
 
     expect(props.onChange).toHaveBeenCalledWith(expect.objectContaining({ edgeStyle: 'shadow' }))
   })
@@ -93,9 +91,9 @@ describe('CaptionSettings', () => {
     const user = userEvent.setup()
     const props = draw()
 
-    await user.click(screen.getByRole('button', { name: 'Caption colour' }))
-
-    const [text, background] = await screen.findAllByRole('menuitemradio', { name: 'Yellow' })
+    // Two rows of the same colours, one for the lettering and one for what is
+    // behind it. The second belongs to the background.
+    const [text, background] = screen.getAllByRole('button', { name: 'Yellow' })
 
     expect(text).toBeInTheDocument()
     expect(background).toBeInTheDocument()

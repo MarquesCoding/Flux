@@ -13,6 +13,13 @@ type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'
   children: ReactNode
   size?: IconButtonSize
   isActive?: boolean
+  /**
+   * Whether resting a pointer on it shows the label.
+   *
+   * On by default. Off for a control whose name is already written beside it,
+   * where a tooltip repeats a word the viewer is looking at.
+   */
+  hasTooltip?: boolean
   className?: string
 }
 

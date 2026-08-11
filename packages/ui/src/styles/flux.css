@@ -68,12 +68,53 @@
   font-display: swap;
 }
 
+/*
+ * The reading face.
+ *
+ * Gilroy sets the interface — names, controls, headings — and Manrope sets the
+ * prose underneath it: synopses, captions, the lines that place an item. A
+ * display face is drawn to be recognised at a glance and a text face to be
+ * read at length, and a paragraph in a display face is a paragraph somebody
+ * skims.
+ *
+ * One file for the whole weight range, so asking for a semibold caption costs
+ * nothing beyond what has already been fetched.
+ */
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/Manrope-Variable.woff2') format('woff2');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/Manrope-Variable-Ext.woff2') format('woff2');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
 @theme {
   /*
    * One name for the typeface, so replacing it — with a licensed copy, or
    * with something else entirely — is this line rather than every component.
    */
   --font-sans: 'Gilroy', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /*
+   * What prose is set in. One name here, so changing the reading face is this
+   * line rather than every paragraph.
+   */
+  --font-body: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --color-surface: oklch(0.99 0 0);
   --color-surface-raised: oklch(0.97 0.002 260);
@@ -97,15 +138,6 @@
   --radius-lg: 0.875rem;
   --radius-xl: 1.25rem;
   --radius-pill: 999px;
-
-  /*
-   * The wash behind everything.
-   *
-   * Set per page from the artwork on screen, so the shell takes on the mood of
-   * what is being shown. Falls back to the accent so a library with no artwork
-   * still looks deliberate rather than broken.
-   */
-  --color-mood: oklch(0.45 0.13 264);
 
   /* Layered translucency, which is what makes glass read as glass. */
   --glass-tint: color-mix(in oklab, var(--color-surface-raised) 62%, transparent);
@@ -148,6 +180,34 @@
   }
 }
 
+/*
+ * The page stops at its own ends.
+ *
+ * No rubber banding past the top or bottom, and no handing a scroll on to
+ * whatever is behind the page. A hero that holds the page still while it draws
+ * itself into a card is undone by a browser that bounces the whole document
+ * while it happens.
+ */
+:root {
+  overscroll-behavior: none;
+}
+
+/*
+ * Prose reads in the text face, wherever it is.
+ *
+ * Set on the elements that carry prose rather than component by component: a
+ * synopsis is a paragraph whether it is in a dialog, a card or an empty state,
+ * and a rule that has to be remembered at each call site is a rule that will
+ * be forgotten at one of them.
+ */
+p,
+figcaption,
+blockquote,
+li > p {
+  font-family: var(--font-body);
+  letter-spacing: 0.005em;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--color-surface);
@@ -155,94 +215,61 @@ body {
 }
 
 /*
- * The page's own atmosphere.
+ * One of the lights a page is under.
  *
- * Two soft pools of the mood colour rather than a flat tint: a single wash
- * reads as a coloured rectangle, while light falling from two directions reads
- * as a room. Fixed, so scrolling moves the content through the light rather
- * than dragging the light along with it.
+ * A soft bloom of colour read out of whatever is on screen. Oversized first,
+ * because a gradient can only be moved within its own box, and one sized to
+ * the screen has nowhere to travel.
  */
-.flux-mood {
+.flux-bloom {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(
-      70rem 45rem at 15% -10%,
-      color-mix(in oklab, var(--color-mood) 55%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      55rem 40rem at 95% 10%,
-      color-mix(in oklab, var(--color-mood) 32%, transparent),
-      transparent 65%
-    ),
-    linear-gradient(180deg, transparent 0%, var(--color-surface) 65%);
-}
-
-/*
- * The same wash, unable to keep still.
- *
- * The two lit corners drift across each other while the fade to the page
- * colour stays where it is — moving that would take the bottom of the screen
- * with it. Nothing is added: this is the gradient that was already there,
- * given somewhere to go.
- *
- * Every layer is oversized first, because a gradient can only be moved within
- * its own box and one sized to the screen has nowhere to travel.
- */
-.flux-mood--drift {
-  /*
-   * Only a little larger than the screen. The wider the layer, the further
-   * the light can wander off the edge — enough room to move, not enough to
-   * leave.
-   */
-  background-size:
-    135% 135%,
-    135% 135%,
-    100% 100%;
   background-repeat: no-repeat;
-  animation: flux-mood-drift 28s ease-in-out infinite alternate;
+  background-size: 150% 150%;
+  background-position: 50% 50%;
 }
 
 /*
- * Every position stays well inside the layer, so both lit areas remain on
- * screen throughout: a wash that wanders off the edge leaves the page flat.
+ * Given somewhere to go.
+ *
+ * Each bloom is told its own length by whatever draws it, so three lights do
+ * not move in step — which would read as one light in three places.
  */
-@keyframes flux-mood-drift {
+.flux-bloom--drift {
+  animation: flux-bloom-drift 40s ease-in-out infinite alternate;
+}
+
+@keyframes flux-bloom-drift {
   0% {
-    background-position:
-      30% 30%,
-      70% 35%,
-      0% 0%;
+    background-position: 34% 32%;
   }
-  25% {
-    background-position:
-      55% 40%,
-      45% 55%,
-      0% 0%;
+  33% {
+    background-position: 62% 44%;
   }
-  50% {
-    background-position:
-      65% 60%,
-      35% 40%,
-      0% 0%;
-  }
-  75% {
-    background-position:
-      40% 65%,
-      60% 65%,
-      0% 0%;
+  66% {
+    background-position: 44% 64%;
   }
   100% {
-    background-position:
-      35% 45%,
-      65% 30%,
-      0% 0%;
+    background-position: 60% 36%;
   }
+}
+
+/*
+ * The page's own colour, under the light rather than over it, so the foot of
+ * the screen is the page rather than whatever the picture was made of.
+ */
+.flux-mood-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, var(--color-surface) 72%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flux-mood--drift {
+  .flux-bloom {
+    transition: none;
+  }
+
+  .flux-bloom--drift {
     animation: none;
   }
 }

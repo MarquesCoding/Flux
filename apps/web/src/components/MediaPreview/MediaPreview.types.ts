@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+import type { MoodLight } from '@FluxUI/MoodBackground.types'
 type MediaPreviewProps = {
   mediaId: string
   /**
@@ -22,14 +24,6 @@ type MediaPreviewProps = {
    */
   startFraction?: number
   durationSeconds: number
-  /**
-   * The colour to hold while nothing has been drawn yet.
-   *
-   * Black is what an empty video element is, and a black rectangle where a
-   * picture is about to be reads as broken. A shade taken from the film reads
-   * as the picture arriving.
-   */
-  tint?: string | null
   /**
    * Whether the preview offers to turn its sound on.
    *
@@ -69,6 +63,22 @@ type MediaPreviewProps = {
    * itself.
    */
   onPlayingChange?: (isPlaying: boolean) => void
+  /**
+   * Called with the colours whatever is showing is made of.
+   *
+   * The preview owns the pixels — the clip while it runs, the still before and
+   * after it — so it is the only thing that can answer what the page should be
+   * lit by at this moment.
+   */
+  onPalette?: (lights: MoodLight[]) => void
+  /**
+   * Controls of the caller's own, set beside the preview's.
+   *
+   * For things done to the item rather than to the clip — keeping it, say.
+   * They belong in the same cluster because a viewer looking for something to
+   * press should have one place to look.
+   */
+  actions?: ReactNode
 }
 
 export type { MediaPreviewProps }

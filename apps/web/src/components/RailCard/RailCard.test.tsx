@@ -128,7 +128,7 @@ afterEach(() => {
 
 describe('RailCard', () => {
   it('draws the item it stands for', () => {
-    render(<RailCard media={MEDIA} subtitle="2019" onPlay={vi.fn()} onInspect={vi.fn()} />)
+    render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />)
 
     expect(screen.getByText('Parasite')).toBeInTheDocument()
   })
@@ -137,7 +137,7 @@ describe('RailCard', () => {
     const onInspect = vi.fn()
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-    render(<RailCard media={MEDIA} subtitle="2019" onPlay={vi.fn()} onInspect={onInspect} />)
+    render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={onInspect} />)
 
     await actor.click(screen.getByRole('button', { name: /Parasite/ }))
 
@@ -145,9 +145,7 @@ describe('RailCard', () => {
   })
 
   it('does not open on the way past, only where a pointer rests', () => {
-    const { container } = render(
-      <RailCard media={MEDIA} subtitle="2019" onPlay={vi.fn()} onInspect={vi.fn()} />,
-    )
+    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />)
 
     act(() => {
       cardHolder(container).dispatchEvent(pointerEvent('pointerover', 'mouse'))
@@ -157,9 +155,7 @@ describe('RailCard', () => {
   })
 
   it('opens once a pointer has rested on it', async () => {
-    const { container } = render(
-      <RailCard media={MEDIA} subtitle="2019" onPlay={vi.fn()} onInspect={vi.fn()} />,
-    )
+    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />)
 
     await restOn(cardHolder(container))
 
@@ -167,9 +163,7 @@ describe('RailCard', () => {
   })
 
   it('does not open for a finger, which has nowhere to rest', async () => {
-    const { container } = render(
-      <RailCard media={MEDIA} subtitle="2019" onPlay={vi.fn()} onInspect={vi.fn()} />,
-    )
+    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />)
 
     await restOn(cardHolder(container), 'touch')
 
@@ -177,9 +171,7 @@ describe('RailCard', () => {
   })
 
   it('reads the rest of what is known about the item once it is open', async () => {
-    const { container } = render(
-      <RailCard media={MEDIA} subtitle="2019" onPlay={vi.fn()} onInspect={vi.fn()} />,
-    )
+    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />)
 
     await restOn(cardHolder(container))
     await flush()
@@ -188,9 +180,7 @@ describe('RailCard', () => {
   })
 
   it('names the genres, up to the number worth naming', async () => {
-    const { container } = render(
-      <RailCard media={MEDIA} subtitle="2019" onPlay={vi.fn()} onInspect={vi.fn()} />,
-    )
+    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />)
 
     await restOn(cardHolder(container))
     await flush()
@@ -201,9 +191,7 @@ describe('RailCard', () => {
   it('opens the page from anywhere on the open card, not from a small button', async () => {
     const onInspect = vi.fn()
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    const { container } = render(
-      <RailCard media={MEDIA} subtitle="2019" onPlay={vi.fn()} onInspect={onInspect} />,
-    )
+    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={onInspect} />)
 
     await restOn(cardHolder(container))
     await actor.click(screen.getByRole('button', { name: 'About Parasite' }))
@@ -215,9 +203,7 @@ describe('RailCard', () => {
     const onPlay = vi.fn()
     const onInspect = vi.fn()
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    const { container } = render(
-      <RailCard media={MEDIA} subtitle="2019" onPlay={onPlay} onInspect={onInspect} />,
-    )
+    const { container } = render(<RailCard media={MEDIA} onPlay={onPlay} onInspect={onInspect} />)
 
     await restOn(cardHolder(container))
     await actor.click(screen.getByRole('button', { name: 'Play' }))
@@ -232,7 +218,7 @@ describe('RailCard', () => {
     const { container } = render(
       <RailCard
         media={MEDIA}
-        subtitle="2019"
+
         resumeSeconds={2103}
         onPlay={onPlay}
         onInspect={vi.fn()}
@@ -246,9 +232,7 @@ describe('RailCard', () => {
   })
 
   it('closes when the pointer leaves', async () => {
-    const { container } = render(
-      <RailCard media={MEDIA} subtitle="2019" onPlay={vi.fn()} onInspect={vi.fn()} />,
-    )
+    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />)
 
     await restOn(cardHolder(container))
 

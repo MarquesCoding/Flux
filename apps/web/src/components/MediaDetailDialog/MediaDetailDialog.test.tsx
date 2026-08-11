@@ -121,9 +121,21 @@ describe('MediaDetailDialog', () => {
 
   it('says which episode this is when it is one', async () => {
     detailMock.mockResolvedValue(detail({ seasonNumber: 2, episodeNumber: 5 }))
-    render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />)
+    render(
+      <MediaDetailDialog
+        media={{ ...summary, seriesTitle: 'Story of Us', seasonNumber: 2, episodeNumber: 5 }}
+        onClose={vi.fn()}
+        onPlay={vi.fn()}
+      />,
+    )
 
-    expect(await screen.findByText(/Season 2, episode 5/)).toBeInTheDocument()
+    // Said the way every other card and the hero say it, rather than in a
+    // sentence of its own.
+    expect(await screen.findByText('EP5')).toBeInTheDocument()
+    expect(screen.getByText('S2')).toBeInTheDocument()
+
+    // The show is the heading and the episode is the line above it.
+    expect(screen.getByRole('heading', { name: 'Story of Us' })).toBeInTheDocument()
   })
 
   it('offers the rest of the season', async () => {

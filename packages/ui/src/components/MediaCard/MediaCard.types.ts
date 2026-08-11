@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 /**
  * How the artwork is shaped.
  *
@@ -18,7 +20,20 @@ type MediaCardEmphasis = 'lead' | 'standard'
 
 type MediaCardProps = {
   title: string
-  subtitle: string
+  /**
+   * The line above the title, smaller and in capitals.
+   *
+   * What is being offered, where the title is what makes it recognisable: an
+   * episode over the show it belongs to. Films have nothing here.
+   */
+  eyebrow?: ReactNode
+  /**
+   * The line below the title.
+   *
+   * Anything renderable rather than a string: what places an item is a list of
+   * facts, and one of them is a rating, which is a mark as well as a number.
+   */
+  subtitle: ReactNode
   badges?: string[]
   imageUrl?: string
   shape?: MediaCardShape

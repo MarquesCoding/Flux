@@ -1,26 +1,51 @@
-import { useEffect } from 'react'
-import { IconHome, IconSearch, IconSettings, IconUserCircle } from '@tabler/icons-react'
+import { useEffect, useRef } from 'react'
+import {
+  IconClock,
+  IconDice5,
+  IconHeart,
+  IconHome,
+  IconMovie,
+  IconSearch,
+  IconSettings,
+  IconTrendingUp,
+  IconUserCircle,
+} from '@tabler/icons-react'
 import { motion, useReducedMotion } from 'motion/react'
-import DockModule from '@FluxUI/Dock'
+import TopNavModule from '@FluxUI/TopNav'
 import MoodBackgroundModule from '@FluxUI/MoodBackground'
 import revealModule from '@FluxUI/animations/reveal'
+import NotificationBellModule from './components/NotificationBell/NotificationBell'
+import AppShellTypesModule from './AppShell.types'
 import type { ReactNode } from 'react'
-import type { DockItem } from '@FluxUI/Dock.types'
+import type { TopNavAction, TopNavItem } from '@FluxUI/TopNav.types'
 import type { AppShellProps, ShellSection } from './AppShell.types'
 
-const { Dock } = DockModule
+const { TopNav } = TopNavModule
 const { MoodBackground } = MoodBackgroundModule
 const { revealVariants, revealTransition, staggerVariants } = revealModule
+const { NotificationBell } = NotificationBellModule
+const { BROWSE_SECTIONS } = AppShellTypesModule
 
+/**
+ * The mark each place carries while it is the one being stood on.
+ */
 const SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <IconHome size={22} aria-hidden />,
-  search: <IconSearch size={22} aria-hidden />,
-  account: <IconUserCircle size={22} aria-hidden />,
-  admin: <IconSettings size={22} aria-hidden />,
+  home: <IconHome size={18} aria-hidden />,
+  shows: <IconClock size={18} aria-hidden />,
+  films: <IconMovie size={18} aria-hidden />,
+  new: <IconTrendingUp size={18} aria-hidden />,
+  favourites: <IconHeart size={18} aria-hidden />,
+  search: <IconSearch size={18} aria-hidden />,
+  account: <IconUserCircle size={18} aria-hidden />,
+  admin: <IconSettings size={18} aria-hidden />,
 }
 
 const SECTION_LABELS: Record<ShellSection, string> = {
   home: 'Home',
+  shows: 'Shows',
+  films: 'Films',
+  new: 'New & Popular',
+  favourites: 'Favourites',
   search: 'Search',
   account: 'Account',
   admin: 'Admin',
@@ -29,11 +54,10 @@ const SECTION_LABELS: Record<ShellSection, string> = {
 /**
  * The frame everything is drawn inside.
  *
- * There is no chrome down the side and none across the top: the library gets
- * the whole surface, and the few places worth going float over it in a dock at
- * the bottom, where a thumb already is. The same arrangement works on a phone
- * and on a desktop, which is why it is the arrangement — a rail that collapses
- * is two designs pretending to be one.
+ * A bar across the top rather than a dock at the bottom, and sectioned: the
+ * places in the middle, the tools at the right. The library still gets the
+ * whole surface — the bar is lettering over the artwork until the page moves
+ * under it, at which point it earns a background.
  *
  * Sections arrive rather than appear. The page is keyed on the section, so
  * moving between them animates out and in instead of swapping silently.
@@ -42,9 +66,10 @@ const AppShell = ({
   section,
   onSectionChange,
   children,
-  viewKey,
-  moodColor,
+  moodLights = [],
   isAdministrator = false,
+  avatar,
+  onSurprise,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion()
 
@@ -68,35 +93,125 @@ const AppShell = ({
     }
   }, [section, onSectionChange])
 
-  // A new section starts at the top of itself. Arriving at search from halfway
-  // down the library and landing halfway down the results is a page that has
-  // kept somebody else's place, and it drags the dock's highlight across a
-  // page moving underneath it.
+  // Each section keeps its own place. Arriving at search from halfway down the
+  // library and landing halfway down the results is a page that has kept
+  // somebody else's place — but coming back to the library after a look at an
+  // account page and being thrown to the top is a page that has forgotten
+  // yours. So the offset is remembered per section and given back.
+  const placesRef = useRef<Record<string, number>>({})
+  const leavingRef = useRef(section)
+
   useEffect(() => {
-    window.scrollTo({ top: 0 })
+    const left = leavingRef.current
+
+    if (left !== section) {
+      placesRef.current[left] = window.scrollY
+      leavingRef.current = section
+    }
+
+    // After the page has been drawn, not before: restoring a place on a page
+    // that is still a screen tall scrolls to the bottom of nothing.
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ top: placesRef.current[section] ?? 0 })
+    })
+
+    return () => {
+      cancelAnimationFrame(frame)
+    }
   }, [section])
 
-  const sections: ShellSection[] = isAdministrator
-    ? ['home', 'search', 'account', 'admin']
-    : ['home', 'search', 'account']
-
-  const items: DockItem[] = sections.map((id) => ({
+  const items: TopNavItem[] = BROWSE_SECTIONS.map((id) => ({
     id,
     label: SECTION_LABELS[id],
     icon: SECTION_ICONS[id],
   }))
 
+  const actions: TopNavAction[] = [
+    {
+      id: 'search',
+      label: 'Search',
+      icon: <IconSearch size={20} aria-hidden />,
+      isCurrent: section === 'search',
+      onSelect: () => {
+        onSectionChange('search')
+      },
+    },
+    ...(onSurprise === undefined
+      ? []
+      : [
+          {
+            id: 'surprise',
+            label: 'Watch something at random',
+            icon: <IconDice5 size={20} aria-hidden />,
+            onSelect: onSurprise,
+          },
+        ]),
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      icon: null,
+      // Its own control: the bell opens a panel where it stands rather than
+      // going anywhere, and a button inside a button is not a thing a browser
+      // will make sense of.
+      control: <NotificationBell />,
+      onSelect: () => {
+        // Nothing to go to.
+      },
+    },
+    ...(isAdministrator
+      ? [
+          {
+            id: 'admin',
+            label: 'Admin',
+            icon: <IconSettings size={20} aria-hidden />,
+            isCurrent: section === 'admin',
+            onSelect: () => {
+              onSectionChange('admin')
+            },
+          },
+        ]
+      : []),
+    {
+      id: 'account',
+      label: 'Account',
+      icon: avatar ?? <IconUserCircle size={22} aria-hidden />,
+      isCurrent: section === 'account',
+      onSelect: () => {
+        onSectionChange('account')
+      },
+    },
+  ]
+
   return (
     <div className="relative min-h-screen text-text">
-      <MoodBackground color={moodColor ?? null} hasGrid={section === 'home'} />
+      {/* The wash, without the grid. A field of dots belongs to the way in,
+          where there is nothing else on the screen to compete with it; behind
+          a library it is a texture under artwork. */}
+      <MoodBackground lights={moodLights} />
+
+      <TopNav
+        items={items}
+        selectedId={section}
+        actions={actions}
+        onSelect={(id) => {
+          const chosen = BROWSE_SECTIONS.find((candidate) => candidate === id)
+
+          if (chosen !== undefined) {
+            onSectionChange(chosen)
+          }
+        }}
+      />
 
       <motion.main
-        key={viewKey ?? section}
+        // One key per section. Home and search once drew the same library and
+        // shared a page between them; search has its own now, and holding them
+        // together meant swapping one page's contents for another's inside a
+        // subtree that never changed — which reads as the page breaking rather
+        // than as going somewhere.
+        key={section}
         variants={staggerVariants}
         initial="hidden"
         animate="shown"
-        // Room for the dock, which floats over the top of the page rather
-        // than taking a strip of it.
         className="min-h-screen pb-16"
       >
         <motion.div
@@ -106,18 +221,6 @@ const AppShell = ({
           {children}
         </motion.div>
       </motion.main>
-
-      <Dock
-        items={items}
-        selectedId={section}
-        onSelect={(id) => {
-          const chosen = sections.find((candidate) => candidate === id)
-
-          if (chosen !== undefined) {
-            onSectionChange(chosen)
-          }
-        }}
-      />
     </div>
   )
 }

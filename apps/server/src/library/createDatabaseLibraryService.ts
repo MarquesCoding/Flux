@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { stat } from 'node:fs/promises'
-import { and, asc, eq, ilike, sql } from 'drizzle-orm'
+import { z } from 'zod'
+import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import SchemaModule from '@FluxServer/db/Schema'
 import LibraryContract from '@FluxContracts/schemas/Library'
+import JsonValueModule from '@FluxContracts/schemas/JsonValue'
 import createMediaStoreModule from './createMediaStore'
 import scanLibraryModule from './scanLibrary'
 import regeneratePreviewsModule from './regeneratePreviews'
@@ -14,8 +16,13 @@ import type { MetadataProvider } from './MetadataProvider'
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient'
 import type { LibraryService } from './LibraryService'
 import type { JobQueue } from '@FluxServer/jobs/JobQueue'
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue'
 
 const { library, mediaItem } = SchemaModule
+
+const { JsonValueSchema } = JsonValueModule
+
+const GenresSchema = z.array(z.string())
 const { createMediaStore, listForPreviewRegeneration } = createMediaStoreModule
 const { scanLibrary } = scanLibraryModule
 const { regeneratePreviews } = regeneratePreviewsModule
@@ -50,6 +57,19 @@ const toIso = (value: Date | null): string | null => value?.toISOString() ?? nul
 /**
  * The library backed by Postgres, plus the worker body the queue calls.
  */
+/**
+ * The genres a stored row carries.
+ *
+ * Read through a schema because the column is JSON: whatever a catalogue put
+ * there years ago is not something to hand to a browser unchecked, and a row
+ * that no longer parses is an item with no genres rather than a failed page.
+ */
+const readGenres = (stored: JsonValue): string[] | null => {
+  const parsed = GenresSchema.safeParse(stored)
+
+  return parsed.success ? parsed.data : null
+}
+
 const createDatabaseLibraryService = ({
   db,
   files,
@@ -165,10 +185,36 @@ const createDatabaseLibraryService = ({
         return null
       }
 
-      const filters =
-        options.search === undefined || options.search.trim() === ''
-          ? eq(mediaItem.libraryId, libraryId)
-          : and(eq(mediaItem.libraryId, libraryId), ilike(mediaItem.title, `%${options.search}%`))
+      const asked = [
+        eq(mediaItem.libraryId, libraryId),
+        ...(options.search === undefined || options.search.trim() === ''
+          ? []
+          : [ilike(mediaItem.title, `%${options.search}%`)]),
+        // A programme is a file that belongs to a series and a film is one
+        // that does not, which is the only difference the library can see.
+        ...(options.kind === undefined
+          ? []
+          : [
+              options.kind === 'shows'
+                ? isNotNull(mediaItem.seriesTitle)
+                : isNull(mediaItem.seriesTitle),
+            ]),
+        // Asked of the column rather than of every row in turn: the genres are
+        // stored as JSON, and Postgres can answer whether a list contains
+        // something without the server reading the list.
+        ...(options.genre === undefined || options.genre === ''
+          ? []
+          : [sql`${mediaItem.genres} @> ${JSON.stringify([options.genre])}::jsonb`]),
+        // An empty list of names is a question with no answer, and `in ()` is
+        // not something a database will take kindly to being asked.
+        ...(options.ids === undefined
+          ? []
+          : options.ids.length === 0
+            ? [sql`false`]
+            : [inArray(mediaItem.id, options.ids)]),
+      ]
+
+      const filters = and(...asked)
 
       const [totals] = await db
         .select({ total: sql<number>`count(*)::int` })
@@ -189,23 +235,24 @@ const createDatabaseLibraryService = ({
           addedAt: mediaItem.addedAt,
           posterUrl: mediaItem.posterUrl,
           backdropUrl: mediaItem.backdropUrl,
-          accentColor: mediaItem.accentColor,
           seriesTitle: mediaItem.seriesTitle,
           seasonNumber: mediaItem.seasonNumber,
           episodeNumber: mediaItem.episodeNumber,
           rating: mediaItem.rating,
+          genres: mediaItem.genres,
         })
         .from(mediaItem)
         .where(filters)
-        .orderBy(asc(mediaItem.title))
+        .orderBy(options.order === 'newest' ? desc(mediaItem.addedAt) : asc(mediaItem.title))
         .limit(options.limit)
         .offset(options.offset)
 
-      const items = rows.map(({ posterUrl, backdropUrl, ...row }) => ({
+      const items = rows.map(({ posterUrl, backdropUrl, genres, ...row }) => ({
         ...row,
         addedAt: row.addedAt.toISOString(),
         hasPoster: posterUrl !== null,
         hasBackdrop: backdropUrl !== null,
+        genres: readGenres(JsonValueSchema.parse(genres ?? null)),
       })) satisfies MediaSummary[]
 
       return { items, total: totals?.total ?? 0 }
@@ -242,7 +289,6 @@ const createDatabaseLibraryService = ({
           rating: row.rating,
           hasPoster: row.posterUrl !== null,
           hasBackdrop: row.backdropUrl !== null,
-          accentColor: row.accentColor,
           seriesTitle: row.seriesTitle,
           seasonNumber: row.seasonNumber,
           episodeNumber: row.episodeNumber,
