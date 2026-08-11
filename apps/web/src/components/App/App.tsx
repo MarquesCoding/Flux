@@ -32,9 +32,9 @@ const { AdminArea } = AdminAreaModule
 const { AccountArea } = AccountAreaModule
 const { ProfileGate } = ProfileGateModule
 const { usePlace } = usePlaceModule
-const { findSiblings } = pickFeaturedModule
+const { findSiblings, nextEpisode } = pickFeaturedModule
 const { fetchWatchProgress, byMediaId } = watchProgressModule
-const { isWorthResuming, watchedFraction } = WatchProgressContract
+const { isWorthResuming, watchedFraction, FINISHED_WITHIN_SECONDS } = WatchProgressContract
 
 /**
  * How long the opening title stays up.
@@ -209,6 +209,38 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           media={playing}
           startSeconds={place.startSeconds}
           isImmersive
+          // Kept here as it happens rather than read back afterwards: the
+          // server is told on a timer, and a card that waits for that round
+          // trip shows the wrong place every time somebody closes a film.
+          onProgress={(positionSeconds, durationSeconds) => {
+            setProgress((current) => {
+              const next = new Map(current)
+
+              next.set(playing.id, {
+                mediaId: playing.id,
+                positionSeconds,
+                durationSeconds,
+                isFinished: positionSeconds >= durationSeconds - FINISHED_WITHIN_SECONDS,
+                updatedAt: new Date().toISOString(),
+              })
+
+              return next
+            })
+          }}
+          // One episode runs into the next, which is the whole point of a
+          // season. A film has nothing after it, so the player closes back to
+          // the page about it.
+          onEnded={() => {
+            const following = nextEpisode([...known.values()], playing)
+
+            if (following === null) {
+              go({ playing: null, startSeconds: 0, inspecting: playing.id })
+
+              return
+            }
+
+            go({ playing: following.id, startSeconds: 0, inspecting: null })
+          }}
           onClose={() => {
             // Back to where they came from, not out to the library: someone
             // leaving a film usually wants the page about it, whether to read

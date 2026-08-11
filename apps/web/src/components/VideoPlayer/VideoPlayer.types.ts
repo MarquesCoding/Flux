@@ -18,6 +18,23 @@ type VideoPlayerProps = {
    */
   startSeconds?: number
   onClose: () => void
+  /**
+   * Says where this viewer has got to, as they get there.
+   *
+   * The server is told on a timer, but a page showing a progress bar cannot
+   * wait for a round trip to be right: closing a film and finding the card
+   * behind it still showing where you were an hour ago reads as nothing
+   * having been saved at all.
+   */
+  onProgress?: (positionSeconds: number, durationSeconds: number) => void
+  /**
+   * Called when the film runs out.
+   *
+   * What happens next belongs to whoever knows what else there is — an
+   * episode is followed by the next episode, and a film is followed by
+   * nothing.
+   */
+  onEnded?: () => void
 }
 
 type PlayerState = 'starting' | 'playing' | 'failed'
