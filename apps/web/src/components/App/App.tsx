@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import SetupWizardModule from '@FluxWeb/components/SetupWizard/SetupWizard'
 import LibraryBrowserModule from '@FluxWeb/components/LibraryBrowser/LibraryBrowser'
+import SearchAreaModule from '@FluxWeb/components/SearchArea/SearchArea'
 import VideoPlayerModule from '@FluxWeb/components/VideoPlayer/VideoPlayer'
 import MediaDetailDialogModule from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog'
 import AppShellModule from '@FluxWeb/components/AppShell/AppShell'
@@ -25,6 +26,7 @@ import type { AppProps } from './App.types'
 
 const { SetupWizard } = SetupWizardModule
 const { LibraryBrowser } = LibraryBrowserModule
+const { SearchArea } = SearchAreaModule
 const { VideoPlayer } = VideoPlayerModule
 const { MediaDetailDialog } = MediaDetailDialogModule
 const { AppShell } = AppShellModule
@@ -340,6 +342,28 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             })
           }}
         />
+      ) : section === 'search' ? (
+        <SearchArea
+          search={place.search}
+          onSearchChange={(next) => {
+            // Replaced rather than pushed: a search box would otherwise fill
+            // the history with one entry per letter typed.
+            replace({ search: next })
+          }}
+          onPlay={(media, startSeconds) => {
+            go({ playing: media.id, startSeconds: Math.floor(startSeconds) })
+          }}
+          onInspect={(media) => {
+            go({ inspecting: media.id })
+          }}
+          onItemsLoaded={rememberItems}
+          watchedFractionFor={(mediaId) => {
+            const found = progress.get(mediaId)
+
+            return found === undefined ? undefined : watchedFraction(found)
+          }}
+          resumeFor={resumeFor}
+        />
       ) : (
         <LibraryBrowser
           search={place.search}
@@ -350,16 +374,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             go({ playing: media.id, startSeconds })
           }}
           onItemsLoaded={rememberItems}
-          // Only the home section opens with a hero. Films and series are
-          // places someone arrived at looking for something, and a screen of
-          // artwork between them and the list is in the way.
-          hasHero={section === 'home' && place.search === ''}
-          isSearching={section === 'search'}
-          onSearchChange={(next) => {
-            // Replaced rather than pushed: a search box would otherwise fill
-            // the history with one entry per letter typed.
-            replace({ search: next })
-          }}
+          // The only section left that draws the library is home, and home
+          // opens with a hero. Searching has a page of its own now.
+          hasHero
           onFeatureChange={setFeatured}
         />
       )}

@@ -2,6 +2,18 @@ import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/
 
 type ListItemsOptions = {
   search?: string
+  /**
+   * Whether to answer with films or with episodes.
+   *
+   * Told apart by whether a file belongs to a series, which is the only thing
+   * the library actually knows: a folder of films and a folder of programmes
+   * are the same shape on disk.
+   */
+  kind?: 'films' | 'shows'
+  /**
+   * A genre the item must carry, as a catalogue named it.
+   */
+  genre?: string
   limit: number
   offset: number
 }

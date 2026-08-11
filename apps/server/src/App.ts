@@ -242,10 +242,12 @@ const createApp = ({
 
   app.openapi(listItemsRoute, async (context) => {
     const { id } = context.req.valid('param')
-    const { search, limit, offset } = context.req.valid('query')
+    const { search, kind, genre, limit, offset } = context.req.valid('query')
 
     const page = await library.listItems(id, {
       ...(search === undefined ? {} : { search }),
+      ...(kind === undefined ? {} : { kind }),
+      ...(genre === undefined ? {} : { genre }),
       limit: limit ?? DEFAULT_LIMIT,
       offset: offset ?? 0,
     })

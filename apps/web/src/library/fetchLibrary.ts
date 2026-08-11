@@ -8,6 +8,11 @@ const LibraryListSchema = z.array(LibrarySchema)
 
 type ListItemsOptions = {
   search?: string
+  /**
+   * Films or programmes, told apart by whether a file belongs to a series.
+   */
+  kind?: 'films' | 'shows'
+  genre?: string
   limit?: number
   offset?: number
 }
@@ -33,12 +38,23 @@ const fetchLibraries = async (): Promise<Library[]> => {
  */
 const fetchLibraryItems = async (
   libraryId: string,
-  { search, limit = 60, offset = 0 }: ListItemsOptions = {},
+  { search, kind, genre, limit = 60, offset = 0 }: ListItemsOptions = {},
 ): Promise<MediaPage> => {
   const query = new URLSearchParams({ limit: String(limit), offset: String(offset) })
 
   if (search !== undefined && search.trim() !== '') {
     query.set('search', search.trim())
+  }
+
+  // Asked of the server rather than sifted here: a library is longer than a
+  // page of it, and filtering what happened to arrive would answer with
+  // whatever the first sixty items were.
+  if (kind !== undefined) {
+    query.set('kind', kind)
+  }
+
+  if (genre !== undefined && genre !== '') {
+    query.set('genre', genre)
   }
 
   const response = await fetch(`/api/libraries/${libraryId}/items?${query.toString()}`, {

@@ -62,6 +62,11 @@ const listItemsRoute = createRoute({
     params: z.object({ id: z.string().uuid() }),
     query: z.object({
       search: z.string().optional(),
+      /**
+       * Films or programmes, told apart by whether a file belongs to a series.
+       */
+      kind: z.enum(['films', 'shows']).optional(),
+      genre: z.string().optional(),
       limit: z.coerce.number().int().positive().max(200).optional(),
       offset: z.coerce.number().int().nonnegative().optional(),
     }),

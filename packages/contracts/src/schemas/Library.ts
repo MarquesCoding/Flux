@@ -77,6 +77,14 @@ const MediaSummarySchema = z.object({
   seriesTitle: z.string().nullish(),
   seasonNumber: z.number().int().nullish(),
   episodeNumber: z.number().int().nullish(),
+  /**
+   * What a catalogue calls it.
+   *
+   * In the summary because searching is done by them: a page that has to ask
+   * about every item before it can offer "Drama" is a page that asks a hundred
+   * questions to draw one row of buttons.
+   */
+  genres: z.array(z.string()).nullish(),
 })
 
 /**

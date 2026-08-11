@@ -52,6 +52,19 @@ const createMemoryLibraryService = (
     const matching = state.media
       .filter((item) => item.libraryId === libraryId)
       .filter((item) => search === '' || item.title.toLowerCase().includes(search))
+      // A programme belongs to a series and a film does not, which is the only
+      // difference a library can see.
+      .filter(
+        (item) =>
+          options.kind === undefined ||
+          (options.kind === 'shows'
+            ? (item.metadata.seriesTitle ?? null) !== null
+            : (item.metadata.seriesTitle ?? null) === null),
+      )
+      .filter(
+        (item) =>
+          options.genre === undefined || (item.metadata.genres ?? []).includes(options.genre),
+      )
 
     const items = matching.slice(options.offset, options.offset + options.limit).map((item) => ({
       id: item.id,
@@ -70,6 +83,7 @@ const createMemoryLibraryService = (
       seriesTitle: item.metadata.seriesTitle ?? null,
       seasonNumber: item.metadata.seasonNumber ?? null,
       episodeNumber: item.metadata.episodeNumber ?? null,
+      genres: item.metadata.genres ?? null,
     }))
 
     return Promise.resolve({ items, total: matching.length })

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   AnimatePresence,
@@ -97,6 +97,21 @@ const placeOver = (rect: DOMRect): Anchor => {
 }
 
 /**
+ * Moves an opened card back inside the window.
+ *
+ * The panel is taller than the card it grew from — that is the point of it —
+ * and a row near the foot of the screen grows straight past the bottom edge,
+ * where the description and the buttons are simply not there. Measured after
+ * it is drawn, because how tall it is depends on how much is known about the
+ * item.
+ */
+const fitInside = (top: number, height: number): number => {
+  const lowest = window.innerHeight - height - MARGIN
+
+  return Math.max(Math.min(top, lowest), MARGIN)
+}
+
+/**
  * A card in a row that opens when a pointer rests on it.
  *
  * The open card is drawn in a portal at the position of the card it grew
@@ -172,6 +187,25 @@ const RailCard = ({
     }
   }, [anchor, detail, media.id])
 
+  // Measured once it exists and moved up if it would hang off the bottom. A
+  // card at the foot of the screen is exactly the one somebody has scrolled to
+  // look at.
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+
+    if (anchor === null || panel === null) {
+      return
+    }
+
+    const fitted = fitInside(anchor.top, panel.offsetHeight)
+
+    if (Math.abs(fitted - anchor.top) > 1) {
+      setAnchor({ ...anchor, top: fitted })
+    }
+  }, [anchor])
+
   const open = useCallback(() => {
     const holder = holderRef.current
 
@@ -245,6 +279,7 @@ const RailCard = ({
           {anchor === null ? null : (
             <motion.div
               key={media.id}
+              ref={panelRef}
               initial={{ opacity: 0, scale: 1 / GROWTH }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1 / GROWTH }}
@@ -260,7 +295,7 @@ const RailCard = ({
                 rotateX,
                 rotateY,
               }}
-              className="fixed z-40 overflow-hidden rounded-2xl bg-surface-raised shadow-2xl ring-1 ring-white/10"
+              className="fixed z-40 max-h-[calc(100svh-1.5rem)] overflow-hidden rounded-2xl bg-surface-raised shadow-2xl ring-1 ring-white/10"
             >
               <div className="aspect-video w-full">
                 <MediaPreview

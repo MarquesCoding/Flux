@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { IconRefresh, IconRefreshAlert, IconSearch } from '@tabler/icons-react'
+import { motion } from 'motion/react'
+import { IconRefresh, IconRefreshAlert } from '@tabler/icons-react'
 import ButtonModule from '@FluxUI/Button'
 import revealModule from '@FluxUI/animations/reveal'
 import RailCardModule from '@FluxWeb/components/RailCard/RailCard'
@@ -34,7 +34,7 @@ const { watchedFraction, isWorthResuming } = WatchProgressContract
 const HERO_COUNT = 5
 const { Spinner } = SpinnerModule
 const { fetchLibraries, fetchLibraryItems, scanLibrary } = fetchLibraryModule
-const { revealVariants, revealTransition, staggerVariants } = revealModule
+const { staggerVariants } = revealModule
 const { describeMedia } = describeMediaModule
 
 const PAGE_SIZE = 60
@@ -50,8 +50,6 @@ const SEARCH_DEBOUNCE_MS = 250
 const LibraryBrowser = ({
   search = '',
   hasHero = false,
-  isSearching = false,
-  onSearchChange,
   onFeatureChange,
   onItemsLoaded,
   onPlay,
@@ -74,7 +72,6 @@ const LibraryBrowser = ({
   }
   const [state, setState] = useState<BrowserState>('loading')
   const [isScanning, setIsScanning] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
 
   // Held in a ref rather than depended upon. A caller that passes a fresh
   // function every render — which is what an inline arrow is — would
@@ -211,38 +208,11 @@ const LibraryBrowser = ({
       // library and search plays a transition. The component itself stays
       // mounted underneath: remounting it would refetch everything and show a
       // spinner where a transition should be.
-      key={isSearching ? 'search' : 'browse'}
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
       className="flex flex-col gap-8"
     >
-      {isSearching ? (
-        <motion.div
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion, 'heavy')}
-          className="flex flex-col gap-4 px-5 pt-14 sm:px-10"
-        >
-          <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl">Search</h1>
-
-          <label className="flex items-center gap-3 border-b border-white/15 pb-3">
-            <IconSearch size={28} className="shrink-0 text-text-muted" aria-hidden />
-            <span className="sr-only">Search the library</span>
-
-            <input
-              type="search"
-              autoFocus
-              value={search}
-              placeholder="Everything you own"
-              onChange={(event) => {
-                onSearchChange?.(event.target.value)
-              }}
-              className="w-full bg-transparent text-2xl tracking-tight text-text outline-none placeholder:text-text-muted/50 sm:text-3xl"
-            />
-          </label>
-        </motion.div>
-      ) : null}
-
       {hasHero && items.length > 0 ? (
         <Hero
           items={pickFeatured(items, HERO_COUNT)}
