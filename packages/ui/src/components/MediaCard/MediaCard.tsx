@@ -118,7 +118,7 @@ const MediaCard = ({
             <span className="text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl">
               {title}
             </span>
-            <span className="text-xs text-white/70">{subtitle}</span>
+            <span className="font-body text-xs text-white/70">{subtitle}</span>
           </span>
         ) : null}
       </span>
@@ -135,7 +135,7 @@ const MediaCard = ({
           )}
 
           <span className="line-clamp-1 text-sm font-medium text-text">{title}</span>
-          <span className="line-clamp-1 text-xs text-text-muted">{subtitle}</span>
+          <span className="line-clamp-1 font-body text-xs text-text-muted">{subtitle}</span>
         </span>
       )}
     </motion.button>

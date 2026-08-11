@@ -105,7 +105,9 @@ const CastGrid = ({ members }: CastGridProps) => {
 
               <span className="flex flex-col items-center gap-0.5 text-center">
                 <span className="text-sm font-medium leading-tight text-text">{member.name}</span>
-                <span className="text-xs leading-tight text-text-muted">{member.role}</span>
+                <span className="font-body text-xs leading-tight text-text-muted">
+                  {member.role}
+                </span>
               </span>
             </li>
           ))}
