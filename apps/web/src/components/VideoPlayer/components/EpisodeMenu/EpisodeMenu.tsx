@@ -55,7 +55,7 @@ const EpisodeMenu = ({
       isOpen={isOpen}
       onOpenChange={setIsOpen}
       trigger={<IconArticle size={20} aria-hidden />}
-      className="w-80 sm:w-96"
+      className="w-80 sm:w-96 mb-7.5"
     >
       <ul className="flex flex-col gap-3">
         {episodes.map((episode) => (
