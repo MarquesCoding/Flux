@@ -1031,7 +1031,33 @@ const VideoPlayer = ({
   }, [isImmersive, isFullscreen, onClose])
 
   return (
-    <section className={isImmersive ? 'flex h-full flex-col' : 'flex flex-col gap-3'}>
+    // The whole player is the surface, not just the picture. The title and the
+    // way out sit above the film rather than inside it, so watching for the
+    // pointer on the picture alone faded the controls out from under anybody
+    // reaching for them.
+    <section
+      className={isImmersive ? 'relative flex h-full flex-col' : 'flex flex-col gap-3'}
+      onPointerMove={(event) => {
+        // Only a pointer that actually moved counts. Hiding the cursor makes a
+        // browser emit another move at the same coordinates, which woke the
+        // bar, which showed the cursor, which hid it again — the flicker was
+        // the interface arguing with itself.
+        const last = pointRef.current
+
+        if (last !== null && last.x === event.clientX && last.y === event.clientY) {
+          return
+        }
+
+        pointRef.current = { x: event.clientX, y: event.clientY }
+
+        setIsIdle(false)
+        setActivity((count) => count + 1)
+      }}
+      onPointerLeave={() => {
+        pointRef.current = null
+        setIsIdle(isPlaying)
+      }}
+    >
       <header
         className={
           isImmersive
@@ -1070,26 +1096,6 @@ const VideoPlayer = ({
             ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black'
             : 'relative overflow-hidden rounded-lg bg-black'
         } ${isIdle && !isShowingStats ? 'cursor-none' : 'cursor-default'} outline-none`}
-        onPointerMove={(event) => {
-          // Only a pointer that actually moved counts. Hiding the cursor
-          // makes a browser emit another move at the same coordinates, which
-          // woke the bar, which showed the cursor, which hid it again — the
-          // flicker was the interface arguing with itself.
-          const last = pointRef.current
-
-          if (last !== null && last.x === event.clientX && last.y === event.clientY) {
-            return
-          }
-
-          pointRef.current = { x: event.clientX, y: event.clientY }
-
-          setIsIdle(false)
-          setActivity((count) => count + 1)
-        }}
-        onPointerLeave={() => {
-          pointRef.current = null
-          setIsIdle(isPlaying)
-        }}
       >
         <VideoSurface
           label={media.title}
