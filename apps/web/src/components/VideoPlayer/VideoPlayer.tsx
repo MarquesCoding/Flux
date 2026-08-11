@@ -50,7 +50,7 @@ const { VideoSurface } = VideoSurfaceModule
 const { detectFromBrowser } = detectDeviceProfileModule
 const { startPlaybackSession, stopPlaybackSession } = startPlaybackSessionModule
 const { attachShaka } = attachShakaModule
-const { watchCastState, isReachableOrigin } = castPlaybackModule
+const { watchCastState, isReachableOrigin, promptForDevice } = castPlaybackModule
 const { handOverToDevice } = handOverToDeviceModule
 const { fetchTrickplay } = fetchTrickplayModule
 const { popOutWithCaptions } = popOutWithCaptionsModule
@@ -362,6 +362,39 @@ const VideoPlayer = ({
 
     return watchCastState(element, setCastState)
   }, [])
+
+  // A device has taken it. Only now is the media engine let go of and the
+  // element pointed at the stream: an engine feeding this element re-attaches
+  // itself the moment anything else is assigned, so doing this before a device
+  // exists undoes itself and leaves nothing cast.
+  useEffect(() => {
+    if (castState !== 'connected') {
+      return
+    }
+
+    const element = videoRef.current
+
+    if (element === null || session === null) {
+      return
+    }
+
+    const address =
+      session.delivery.kind === 'direct' ? session.delivery.url : session.delivery.manifestUrl
+
+    void handOverToDevice({
+      element,
+      url: address,
+      origin: window.location.origin,
+      ...(releaseRef.current === null
+        ? {}
+        : {
+            release: async () => {
+              await releaseRef.current?.()
+              releaseRef.current = null
+            },
+          }),
+    })
+  }, [castState, session])
 
   // Coming back from a device. Handing one the stream meant letting go of the
   // media engine, and a browser that cannot play this format on its own — most
@@ -1455,9 +1488,13 @@ const VideoPlayer = ({
             onToggleFullscreen={toggleFullscreen}
             castState={castState}
             onCast={() => {
+              const element = videoRef.current
+
+              if (element === null) {
+                return
+              }
+
               if (!isReachableOrigin(window.location.origin)) {
-                // The one refusal a viewer can do something about, so it is
-                // said rather than swallowed.
                 setCastNote(
                   'Open Flux at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
                 )
@@ -1467,51 +1504,19 @@ const VideoPlayer = ({
 
               setCastNote(null)
 
-              const element = videoRef.current
-              const address =
-                session === null
-                  ? null
-                  : session.delivery.kind === 'direct'
-                    ? session.delivery.url
-                    : session.delivery.manifestUrl
-
-              if (element === null || address === null) {
-                return
-              }
-
-              if (!isReachableOrigin(window.location.origin)) {
-                setCastNote(
-                  'Open Flux at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
-                )
-
-                return
-              }
-
-              void handOverToDevice({
-                element,
-                url: address,
-                origin: window.location.origin,
-                ...(releaseRef.current === null
-                  ? {}
-                  : {
-                      release: async () => {
-                        await releaseRef.current?.()
-                        releaseRef.current = null
-                      },
-                    }),
-              }).then((outcome) => {
+              // Asked for immediately, with nothing awaited first: a browser
+              // opens its picker only during the press that asked for one.
+              // Whatever is playing is left exactly as it is — the handover
+              // happens if and when a device is actually chosen, which is what
+              // the connection below is watching for.
+              void promptForDevice(element).then((outcome) => {
                 if (outcome === 'shown' || outcome === 'dismissed') {
                   return
                 }
 
-                // The browser declined to open its picker. The usual reason is
-                // the connection: casting is offered over HTTPS and over
-                // localhost, and a server read at its address on the network
-                // over plain HTTP is neither — which is exactly how it has to
-                // be read for a television to fetch anything from it.
                 setCastNote(
                   window.location.protocol === 'https:'
-                    ? 'This browser would not offer a device. Safari casts over AirPlay; Chrome needs a Chromecast on the same network.'
+                    ? 'This browser offered no device. Safari casts to AirPlay receivers; Chrome needs a Chromecast, and finds nothing else.'
                     : 'This browser only casts over a secure connection. Serve Flux over HTTPS, or use Safari, which will cast from here as it is.',
                 )
               })

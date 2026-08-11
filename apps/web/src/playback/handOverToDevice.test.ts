@@ -43,7 +43,7 @@ describe('handOverToDevice', () => {
     expect(element.src).toBe('http://flux.local:5173/api/playback/session/abc/index.m3u8')
   })
 
-  it('lets go of the media engine, without waiting on it first', async () => {
+  it('lets go of the media engine', async () => {
     const element = castable()
     const release = vi.fn(() => Promise.resolve())
 
@@ -90,19 +90,33 @@ describe('handOverToDevice', () => {
 
     // Nothing torn down, so a viewer who cannot cast is left watching what
     // they were watching.
-    expect(shown).toBe('unsupported')
+    expect(shown).toBe(false)
     expect(release).not.toHaveBeenCalled()
   })
 
-  it('says so when the viewer closed the picker', async () => {
-    const element = castable(true)
+  it('lets go of the engine before pointing the element anywhere', async () => {
+    const element = castable()
+    const order: string[] = []
 
-    await expect(
-      handOverToDevice({
-        element,
-        url: '/api/playback/session/abc/index.m3u8',
-        origin: REACHABLE,
-      }),
-    ).resolves.toBe('dismissed')
+    Object.defineProperty(element, 'src', {
+      configurable: true,
+      set: () => order.push('pointed'),
+      get: () => '',
+    })
+
+    await handOverToDevice({
+      element,
+      url: '/api/playback/session/abc/index.m3u8',
+      origin: REACHABLE,
+      release: () => {
+        order.push('released')
+
+        return Promise.resolve()
+      },
+    })
+
+    // An engine feeding this element re-attaches itself the moment anything
+    // else is assigned, so the order is the whole point.
+    expect(order).toEqual(['released', 'pointed'])
   })
 })

@@ -1,7 +1,6 @@
 import castPlaybackModule from '@FluxWeb/playback/castPlayback'
-import type { PromptOutcome } from '@FluxWeb/playback/castPlayback'
 
-const { absoluteStreamUrl, promptForDevice } = castPlaybackModule
+const { absoluteStreamUrl } = castPlaybackModule
 
 type HandOverOptions = {
   element: HTMLVideoElement
@@ -24,52 +23,38 @@ type HandOverOptions = {
 }
 
 /**
- * Gives what is playing to a device on the network.
+ * Points the element at the stream, so a device can fetch it.
  *
- * A browser cannot remote what it is decoding itself. Both mechanisms hand the
- * receiver an address and let it fetch the stream, which means the page has to
- * stop being a media engine first: the element is pointed at the stream
- * directly, the position is put back so the film carries on from where it was,
- * and the engine is let go of afterwards.
+ * Done once a device has actually been chosen rather than while asking for
+ * one. A media engine feeding this element re-attaches itself the moment
+ * anything else is assigned — proved in the browser: setting a source while
+ * Shaka held the element left the element holding a fresh Shaka source a
+ * moment later — so the engine is let go of first, and only then is the
+ * element told where the stream is.
  *
- * Answers with what the browser did about the picker, so a caller can say why
- * nothing happened. Nothing is torn down when there was no address to give, so
- * a viewer who cannot cast is left watching what they were watching.
+ * The position is put back, so the film carries on from where the viewer was
+ * rather than from the beginning.
  */
-const handOverToDevice = ({
+const handOverToDevice = async ({
   element,
   url,
   origin,
   release,
-}: HandOverOptions): Promise<PromptOutcome> => {
+}: HandOverOptions): Promise<boolean> => {
   const address = absoluteStreamUrl(url, origin)
 
   if (address === null) {
-    return Promise.resolve('unsupported')
+    return false
   }
 
   const at = element.currentTime
 
-  // Nothing is awaited before the picker is asked for. A browser only opens
-  // one while the press that asked for it still counts as a press, and waiting
-  // on a media engine to tear itself down — however briefly — spends that.
-  // Pointing the element at an address is what detaches the engine's buffers
-  // as far as the browser is concerned, and it takes effect at once.
+  await release?.()
+
   element.src = address
   element.currentTime = at
 
-  const shown = promptForDevice(element)
-
-  void release?.().then(() => {
-    // An engine tearing down after the fact can clear what it was attached to.
-    // Whatever it does, this element is pointed at the stream.
-    if (element.src !== address) {
-      element.src = address
-      element.currentTime = at
-    }
-  })
-
-  return shown
+  return true
 }
 
 export default { handOverToDevice }
