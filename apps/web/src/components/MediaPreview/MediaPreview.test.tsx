@@ -46,8 +46,6 @@ beforeEach(() => {
 
   Object.defineProperty(HTMLMediaElement.prototype, 'play', { configurable: true, value: play });
   Object.defineProperty(HTMLMediaElement.prototype, 'pause', { configurable: true, value: pause });
-  // jsdom never plays anything, so its element would always report itself
-  // paused and the pause button would read as a play button.
   Object.defineProperty(HTMLMediaElement.prototype, 'paused', {
     configurable: true,
     get: () => false,

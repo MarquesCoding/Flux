@@ -68,9 +68,6 @@ const detectDeviceProfile = ({
   const video = videoCodecs.length > 0 ? [...videoCodecs] : ['h264'];
   const audio = audioCodecs.length > 0 ? [...audioCodecs] : ['aac'];
 
-  // Parsed rather than asserted: the profile Flux sends must satisfy the same
-  // contract the server validates it against, so a mistake here fails in the
-  // client that made it rather than as a 400 the user cannot act on.
   return DeviceProfileSchema.parse({
     schemaVersion: 1,
     name,
@@ -112,9 +109,6 @@ const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
       ? (mimeType) => window.MediaSource.isTypeSupported(mimeType)
       : () => false;
 
-  // Asked through a shape that admits the answer might be missing. A browser
-  // without media queries cannot answer the question, and a capability probe
-  // that throws takes playback down with it.
   const queries: MediaQuerySource = window;
 
   return detectDeviceProfile({

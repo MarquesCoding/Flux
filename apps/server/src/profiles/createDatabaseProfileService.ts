@@ -20,8 +20,6 @@ const PHOTO_TYPES: Record<string, string> = {
   'image/png': '.png',
   'image/webp': '.webp',
   'image/avif': '.avif',
-  // Pictures that move. A GIF is one a browser draws like any other; a WebM
-  // is a video, and needs an element that can play it.
   'image/gif': '.gif',
   'video/webm': '.webm',
   'video/mp4': '.mp4',
@@ -133,8 +131,6 @@ const avatarColumns = (
     return { avatarStyle: null, avatarSeed: null, photoPath: null };
   }
 
-  // A photograph is chosen by uploading one, not by asking for it. Saying
-  // "photo" without having sent a photograph changes nothing.
   return null;
 };
 
@@ -155,13 +151,7 @@ const COLUMNS = {
   updatedAt: viewerProfile.updatedAt,
 };
 
-const createDatabaseProfileService = (
-  db: FluxDatabase,
-  /**
-   * Where uploaded photographs are kept.
-   */
-  photoDirectory: string,
-): ProfileService => {
+const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string): ProfileService => {
   const listFor = async (userId: string): Promise<ViewerProfile[]> => {
     const rows = await db
       .select(COLUMNS)
@@ -192,8 +182,6 @@ const createDatabaseProfileService = (
 
     await db.insert(viewerProfile).values(created);
 
-    // Only what the contract describes. The owning account is Flux's
-    // business, not the browser's.
     return {
       id: created.id,
       name: created.name,
@@ -255,9 +243,6 @@ const createDatabaseProfileService = (
     remove: async (userId, profileId) => {
       const existing = await listFor(userId);
 
-      // The last one is not removable. Somewhere to record viewing is not
-      // optional, and an account with no profiles would silently stop
-      // remembering where anybody had got to.
       if (existing.length <= 1) {
         return false;
       }
@@ -281,9 +266,6 @@ const createDatabaseProfileService = (
     },
 
     listEveryone: async () => {
-      // Every account, whether or not it has been looked at. A profile is made
-      // for one that has none, because the wall is the only way in: an account
-      // that is invisible until it signs in can never sign in.
       const rows = await db
         .select({
           userId: user.id,
@@ -369,8 +351,6 @@ const createDatabaseProfileService = (
         }
       }
 
-      // A letter on a colour is drawn by the browser, which already knows the
-      // name and the colour. There is no picture to serve.
       return null;
     },
 
@@ -393,9 +373,6 @@ const createDatabaseProfileService = (
 
       await mkdir(photoDirectory, { recursive: true });
 
-      // Named after the profile rather than after the upload, so a second
-      // photograph replaces the first instead of leaving the old one on disk
-      // with nothing pointing at it.
       const path = join(photoDirectory, `${profileId}${extension}`);
 
       await writeFile(path, photo.body);

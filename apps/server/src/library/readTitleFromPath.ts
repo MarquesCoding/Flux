@@ -98,10 +98,6 @@ const stripExtension = (fileName: string): string => {
 const findYear = (text: string): { year: number; index: number } | null => {
   const matches = [...text.matchAll(/(?<open>[([])?\b(?<year>19\d{2}|20\d{2})\b\)?]?/g)];
 
-  // A title can contain a year: "Blade Runner 2049 (2017)". A bracketed year
-  // is the release year by convention, and failing that the last one is, since
-  // the title comes first. Taking the first match reads 2049 as the year and
-  // truncates the title.
   const yearMatch =
     matches.find((match) => match.groups?.open !== undefined) ?? matches[matches.length - 1];
 

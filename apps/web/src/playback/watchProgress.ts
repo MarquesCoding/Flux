@@ -50,9 +50,7 @@ const reportWatchProgress = async (
       headers: { 'content-type': 'application/json', ...profileHeaders() },
       body: JSON.stringify({ isFinished: false, ...report }),
     });
-  } catch {
-    // Nothing useful to say, and nothing worth saying it over.
-  }
+  } catch {}
 };
 
 /**

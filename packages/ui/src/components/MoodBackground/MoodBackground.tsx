@@ -101,9 +101,6 @@ const MoodBackground = ({
   wantedRef.current = lit;
 
   useEffect(() => {
-    // The first light is arrived at rather than eased into. Coming up to it
-    // from black would be a wash sliding in from a colour nothing on screen
-    // has anything to do with.
     if (heldRef.current.length === 0) {
       heldRef.current = wantedRef.current;
     }
@@ -122,10 +119,6 @@ const MoodBackground = ({
         const element = bloomsRef.current[at];
         const painted = paint(light, at);
 
-        // Only when it has actually moved. Easing settles within a step of
-        // where it was going and then stops changing, and writing the same
-        // gradient back sixty times a second would keep the browser painting a
-        // screen-sized bloom long after it had finished arriving.
         if (element !== null && element !== undefined && paintedRef.current[at] !== painted) {
           paintedRef.current[at] = painted;
           element.style.background = painted;
@@ -145,11 +138,6 @@ const MoodBackground = ({
   return (
     <div
       role="presentation"
-      // At the top of the page rather than pinned to the screen. Light spilling
-      // off a picture belongs to that picture: it should slide away as the page
-      // is scrolled past it, not follow the reader down through a grid of
-      // artwork it has nothing to do with. Taller than a screen so the fade to
-      // the page's own colour finishes below the fold rather than across it.
       className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[140svh] overflow-hidden"
     >
       <div className="absolute inset-0">
@@ -171,9 +159,6 @@ const MoodBackground = ({
           />
         ))}
 
-        {/* The page's own colour underneath the light, so the foot of the
-            screen is the page rather than whatever the picture was made
-            of. */}
         <span className="flux-mood-fade" />
       </div>
 

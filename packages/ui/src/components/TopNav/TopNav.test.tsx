@@ -35,8 +35,6 @@ describe('TopNav', () => {
   it('writes out the name of the place being stood on, and only that one', () => {
     render(<TopNav items={items} selectedId="shows" onSelect={vi.fn()} />);
 
-    // The others are their icons alone until they are stood on. Their names
-    // are still said to a screen reader, which is what the labels are for.
     expect(screen.getByText('Shows')).toBeInTheDocument();
     expect(screen.queryByText('Films')).not.toBeInTheDocument();
   });

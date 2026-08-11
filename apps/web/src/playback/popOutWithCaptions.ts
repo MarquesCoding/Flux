@@ -49,9 +49,6 @@ const currentLines = (video: HTMLVideoElement): string[] => {
     }
 
     for (const cue of Array.from(track.activeCues ?? [])) {
-      // A cue's text carries WebVTT markup — voices, italics, positioning.
-      // None of it survives being drawn as plain text, so the tags are
-      // dropped rather than printed.
       const text = 'text' in cue && typeof cue.text === 'string' ? cue.text : '';
 
       for (const line of text.replaceAll(/<[^>]*>/g, '').split('\n')) {
@@ -88,8 +85,6 @@ const compose = (
   context.textAlign = 'center';
   context.textBaseline = 'bottom';
   context.lineJoin = 'round';
-  // Drawn as thick outline first and fill second, which is how every subtitle
-  // renderer keeps white text readable over a white shirt.
   context.lineWidth = Math.max(2, size * 0.16);
   context.strokeStyle = 'rgba(0, 0, 0, 0.85)';
   context.fillStyle = '#ffffff';
@@ -143,8 +138,6 @@ const popOutWithCaptions = async (video: HTMLVideoElement): Promise<PoppedOut | 
 
   const surface = document.createElement('video');
 
-  // Off screen rather than hidden: a browser will not float an element it has
-  // been told not to render.
   surface.style.position = 'fixed';
   surface.style.opacity = '0';
   surface.style.pointerEvents = 'none';
@@ -169,17 +162,12 @@ const popOutWithCaptions = async (video: HTMLVideoElement): Promise<PoppedOut | 
     surface.remove();
   };
 
-  // The little window's own controls act on the copy, so they are passed
-  // through to the film. Without this, pausing it would freeze the picture
-  // while the sound carried on.
   surface.addEventListener('pause', () => {
     video.pause();
   });
 
   surface.addEventListener('play', () => {
-    void video.play().catch(() => {
-      // Refused by the browser; the copy carries on showing frames either way.
-    });
+    void video.play().catch(() => {});
   });
 
   surface.addEventListener('leavepictureinpicture', stop, { once: true });

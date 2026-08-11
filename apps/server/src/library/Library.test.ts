@@ -136,8 +136,6 @@ describe('library routes', () => {
   });
 
   it('answers with nothing where the list of names is empty', async () => {
-    // A page of favourites belonging to somebody who has kept nothing asks
-    // this, and the honest answer is nothing rather than everything.
     const { app } = build([detail()]);
 
     const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?ids=`);

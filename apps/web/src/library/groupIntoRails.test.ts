@@ -160,8 +160,6 @@ describe('groupIntoRails', () => {
   });
 
   it('invents no row it cannot fill', () => {
-    // A row that is always empty teaches people to ignore rows, so nothing is
-    // offered for what Flux does not know — such as what anyone has watched.
     const rails = groupIntoRails([media()], NOW);
 
     expect(rails.every((rail) => rail.items.length > 0)).toBe(true);

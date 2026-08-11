@@ -36,9 +36,6 @@ const pickAnything = async (): Promise<MediaSummary | null> => {
       return null;
     }
 
-    // One number across every library rather than a library and then an item
-    // within it: choosing the shelf first would give a shelf of three the same
-    // chance as a shelf of three thousand.
     let at = Math.floor(Math.random() * total);
 
     for (const entry of counts) {

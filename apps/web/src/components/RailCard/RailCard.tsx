@@ -125,14 +125,8 @@ const RailCard = ({
   isKept = false,
   onToggleKept,
 }: RailCardProps) => {
-  // Read only once a card has actually been opened. A row of twenty cards
-  // asking the server about themselves on the way past would be twenty
-  // requests for a page nobody has stopped on.
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const holderRef = useRef<HTMLDivElement>(null);
-  // Where the pointer is over the card, from -0.5 at one edge to 0.5 at the
-  // other. Motion values rather than state: this changes on every mouse move,
-  // and re-rendering a panel with a video in it that often would be absurd.
   const towardsX = useMotionValue(0);
   const towardsY = useMotionValue(0);
   const leanX = useSpring(towardsX, LEAN);
@@ -151,9 +145,6 @@ const RailCard = ({
       return;
     }
 
-    // Scrolling the row, or the page, moves the card out from under its own
-    // expansion. Following it would mean measuring on every frame; closing is
-    // both cheaper and what someone scrolling actually wants.
     window.addEventListener('scroll', close, { capture: true, passive: true });
 
     return () => {
@@ -179,9 +170,6 @@ const RailCard = ({
     };
   }, [anchor, detail, media.id]);
 
-  // Measured once it exists and moved up if it would hang off the bottom. A
-  // card at the foot of the screen is exactly the one somebody has scrolled to
-  // look at.
   const panelRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -201,10 +189,6 @@ const RailCard = ({
 
     fit();
 
-    // And again whenever it changes size. What a card knows about itself —
-    // its genres, its synopsis — arrives after it has opened, so the panel
-    // measured on the way in is shorter than the one being looked at a moment
-    // later, and the difference is exactly the part that falls off the bottom.
     const watcher = new ResizeObserver(fit);
 
     watcher.observe(panel);
@@ -270,10 +254,6 @@ const RailCard = ({
         towardsY.set((event.clientY - box.top) / box.height - 0.5);
       }}
     >
-      {/* Named the way the hero names things: the episode above in capitals,
-          the show as the title, and everything that places it on the line
-          below. A grid where the episode is the title is a grid of names
-          nobody recognises. */}
       <MediaCard
         {...(media.seriesTitle === null || media.seriesTitle === undefined
           ? {}
@@ -304,21 +284,10 @@ const RailCard = ({
                 left: anchor.left,
                 top: anchor.top,
                 width: anchor.width,
-                // Perspective on the panel itself, so leaning towards the
-                // pointer reads as depth rather than as a squash.
                 transformPerspective: 900,
                 rotateX,
                 rotateY,
               }}
-              // A column that gives up the description before it gives up the
-              // buttons. A card opened near the foot of a tall row is exactly
-              // the one that runs out of screen, and the thing to lose there is
-              // the third line of a synopsis, not the way to play it.
-              // Two shadows rather than one: a tight dark edge that separates
-              // the panel from the artwork it is lying on, and a wide soft one
-              // that puts it well above the row. The stock shadow does the
-              // second without the first, so an opened card floating over
-              // another poster read as part of it.
               className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-2xl bg-surface-raised shadow-[0_2px_10px_rgb(0_0_0/0.4),0_40px_90px_-24px_rgb(0_0_0/0.85)] ring-1 ring-white/10"
             >
               <div className="aspect-video max-h-[42svh] w-full shrink-0 overflow-hidden">
@@ -331,20 +300,7 @@ const RailCard = ({
                 />
               </div>
 
-              {/* The whole panel opens the page. Somebody who has stopped
-                    on a card and read it wants to know more about it, and
-                    making them find a small button to say so is a puzzle
-                    rather than an interface. */}
-              {/* A column rather than one enormous button, because the show's
-                  name inside it is a way to the programme and a button cannot
-                  hold another. Everything else about the item still opens the
-                  page about it. */}
               <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 text-left">
-                {/* The episode and the genres share the top line: one says
-                    what this is, the other says what sort of thing it is, and
-                    both are read at a glance rather than in sentences. Set
-                    apart so the title underneath has the width to be a
-                    title. */}
                 <span className="flex items-start justify-between gap-3">
                   <span className="min-w-0 text-xs uppercase tracking-[0.16em] text-text-muted">
                     {media.seriesTitle === null || media.seriesTitle === undefined
@@ -363,10 +319,6 @@ const RailCard = ({
                   )}
                 </span>
 
-                {/* The show, at the size of a heading. What somebody stopped on
-                    a card is looking for is what this is, and a name set at the
-                    size of the line beneath it makes them read both to find
-                    out. */}
                 {onOpenShow === undefined ||
                 media.seriesTitle === null ||
                 media.seriesTitle === undefined ? (
@@ -411,19 +363,12 @@ const RailCard = ({
                   )}
                 </Button>
 
-                {/* At the foot, after the reading: somebody decides what to do
-                    with a thing once they know what it is. Two things worth
-                    offering, said plainly rather than left to be guessed at.
-                    The same controls as everywhere else — a card is not the
-                    place to invent a second shape of play button. */}
                 <span className="flex shrink-0 flex-wrap items-center gap-2 pt-1">
                   <Button
                     variant="glossy"
                     size="sm"
                     isPill
                     onClick={(event) => {
-                      // Inside the panel, so its press must not also read as a
-                      // press on the panel behind it.
                       event.stopPropagation();
                       onPlay(media, resumeSeconds ?? 0);
                     }}
@@ -447,9 +392,6 @@ const RailCard = ({
                     More info
                   </Button>
 
-                  {/* Kept or not, in the place a viewer has already stopped
-                      to read. A heart on every poster in a row would be a row
-                      of hearts; here it is one decision about one thing. */}
                   {onToggleKept === undefined ? null : (
                     <Button
                       isIconOnly

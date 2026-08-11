@@ -85,27 +85,10 @@ const MediaPreview = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const stillRef = useRef<HTMLImageElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  // Whether the clip has finished. Together with whether it has started, this
-  // is the only thing that decides which of the two pictures is on top —
-  // pausing is not one of them, because a paused video is still a frame of the
-  // film and covering it with a still is covering a picture with a picture.
   const [hasEnded, setHasEnded] = useState(false);
-  // Whether the picture has arrived. Kept so nothing can flash a half drawn
-  // image, but never a reason to hide the still: an item whose artwork is
-  // slow should show black, not a video that is not ready either.
   const [, setHasFrame] = useState(false);
-  // Silent until somebody asks otherwise. Opening an item is a deliberate act
-  // but it is not a request to be talked at, and a dialog that starts making
-  // noise over whatever else is playing is a dialog people close.
   const [isMuted, setIsMuted] = useState(true);
-  // Whether the clip has ever run. The controls appear once it has and stay,
-  // because a pause button that vanishes the moment it is pressed is a pause
-  // button nobody can undo.
   const [hasStarted, setHasStarted] = useState(false);
-  // The track to draw over the clip, once it is known. A preview of a film in
-  // a language somebody does not speak is a preview of nothing, so the
-  // subtitles a viewer would get if they pressed play are the subtitles they
-  // get while deciding whether to.
   const [subtitles, setSubtitles] = useState<{ id: string; language: string } | null>(null);
 
   /**
@@ -116,11 +99,6 @@ const MediaPreview = ({
    * flickers with every pause, stall and buffer, and each flicker used to
    * throw the still back over a picture that was perfectly good.
    */
-  // Nobody waiting for the clip to finish means nothing to hand over to, so
-  // it runs again rather than falling back to a still. A hero passes a
-  // handler because it rotates; a dialog and a hovered card have nowhere to
-  // go, and dropping them back to a photograph after twenty four seconds
-  // reads as the preview breaking.
   const loops = repeats ?? onEnded === undefined;
 
   const isShowingFrame = !hasStarted || hasEnded;
@@ -154,14 +132,10 @@ const MediaPreview = ({
     }
 
     const play = async () => {
-      // Muted, which is also the only way a browser will let a page start a
-      // video by itself. Sound is a thing to be turned on.
       element.muted = true;
       element.src = previewUrl(mediaId);
 
-      await element.play().catch(() => {
-        // The still frame is a perfectly good answer.
-      });
+      await element.play().catch(() => {});
     };
 
     const timer = setTimeout(() => {
@@ -179,10 +153,6 @@ const MediaPreview = ({
     };
   }, [mediaId, settleMilliseconds]);
 
-  // Cues sit where the picture is, not where the page fades it out. A preview
-  // is masked into the surface along its bottom edge, and a subtitle placed on
-  // the last line lands inside that fade — technically drawn, practically
-  // invisible.
   useEffect(() => {
     const element = videoRef.current;
 
@@ -193,9 +163,6 @@ const MediaPreview = ({
     return liftCues(element, () => CUE_LINE).stop;
   }, [subtitles]);
 
-  // The light the page is under, read from whatever this is showing: the clip
-  // as it runs, and the still while it is not. Read corner by corner, so what
-  // lands on the left of the page came from the left of the picture.
   useEffect(() => {
     if (onPalette === undefined) {
       return;
@@ -228,16 +195,10 @@ const MediaPreview = ({
 
   return (
     <div
-      // Black under whatever is being shown, so a still that has not arrived
-      // yet is a dark frame rather than a hole through to the page.
       className={`relative overflow-hidden bg-black ${
         fills ? 'h-full w-full' : 'aspect-video w-full'
       }`}
     >
-      {/* The item's own artwork, which is what it should look like when it is
-          not playing. A frame pulled out of the file is the fallback for an
-          item a catalogue has never heard of — good enough to stand in, but
-          not what anybody chose to represent the thing. */}
       <img
         ref={stillRef}
         crossOrigin="anonymous"
@@ -258,10 +219,6 @@ const MediaPreview = ({
         className={`flux-preview h-full w-full object-cover transition-opacity duration-700 ${
           isShowingFrame ? 'opacity-0' : 'opacity-100'
         }`}
-        // Whether something is playing is the element's own business, not a
-        // flag kept beside it. Tracking it separately meant the two could
-        // disagree — and when they did, the still came back over a clip that
-        // was still running, which is the one state that must be impossible.
         onPlayingChange={(playing) => {
           setIsPlaying(playing);
 
@@ -279,47 +236,28 @@ const MediaPreview = ({
                 id: subtitles.id,
                 label: 'Subtitles',
                 language: subtitles.language,
-                // Shifted to where the clip starts, since a preview begins a
-                // fifth of the way into the film and the cues count from its
-                // beginning.
                 src: subtitleTrackUrl(mediaId, subtitles.id, startSeconds),
               },
             })}
         loops={loops}
         onEnded={() => {
-          // Started again here as well as by the element's own loop: a clip
-          // that stops where nothing is waiting for it has nowhere to hand
-          // over to, and falling back to a photograph reads as the preview
-          // breaking rather than as it finishing.
           if (loops) {
             const element = videoRef.current;
 
             if (element !== null) {
               element.currentTime = 0;
 
-              void element.play().catch(() => {
-                // Refused; the frame underneath is a fair answer.
-              });
+              void element.play().catch(() => {});
             }
 
             return;
           }
 
-          // Back to the frame first, and only then is whoever owns this told:
-          // a rotation that begins while the video is on screen is a cut, and
-          // one that begins from the frame is a dissolve. Not everything that
-          // plays once has somebody waiting — a page about one item simply
-          // goes back to being a page about one item.
           setHasEnded(true);
           onEnded?.();
         }}
       />
 
-      {/* Offered only once there is something to control. A preview that
-          cannot be stopped is a page that will not stop talking. Anything the
-          caller wants said about the item itself sits in the same cluster:
-          these are all things done to what is on screen, and a second cluster
-          somewhere else is a second place to look. */}
       {actions === undefined && (!hasSound || !hasStarted) ? null : (
         <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
           {actions}
@@ -338,9 +276,7 @@ const MediaPreview = ({
                   }
 
                   if (element.paused) {
-                    void element.play().catch(() => {
-                      // Refused, which the still frame already reflects.
-                    });
+                    void element.play().catch(() => {});
                   } else {
                     element.pause();
                   }

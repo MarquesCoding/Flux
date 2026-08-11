@@ -97,9 +97,6 @@ const fetchLibraryItems = async (
     query.set('search', search.trim());
   }
 
-  // Asked of the server rather than sifted here: a library is longer than a
-  // page of it, and filtering what happened to arrive would answer with
-  // whatever the first sixty items were.
   if (kind !== undefined) {
     query.set('kind', kind);
   }

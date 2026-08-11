@@ -93,8 +93,6 @@ describe('Hero', () => {
   it('comes back round to the beginning', async () => {
     render(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
-    // One turn at a time: each rotation reschedules the next, and a single
-    // long jump would fire the first timer and never see the ones it sets.
     for (let turn = 0; turn < items.length; turn += 1) {
       act(() => {
         vi.advanceTimersByTime(150);
@@ -120,9 +118,6 @@ describe('Hero', () => {
   it('holds still while someone is tabbing through it', () => {
     render(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
-    // Focusing and waiting have to be separate: the effect that cancels the
-    // rotation only runs once React has flushed the focus, and doing both in
-    // one go lets the timer fire first.
     act(() => {
       screen.getByRole('button', { name: /Play/ }).focus();
     });

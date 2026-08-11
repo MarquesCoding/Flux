@@ -286,8 +286,6 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
           tabs={[...PANELS]}
           selectedId={panel}
           onSelect={(id) => {
-            // Matched against the same list the bar was given rather than
-            // trusted: anything else is not a panel this page has.
             const found = PANELS.find((candidate) => candidate.id === id);
 
             if (found !== undefined) {
@@ -404,9 +402,6 @@ const AdminArea = ({ historyLength = HISTORY_LENGTH }: AdminAreaProps) => {
                             </span>
                           </span>
 
-                          {/* Measured against every core rather than one, so a
-                              process reported at 380% reads as what it is: a
-                              fair share of an eighteen core machine. */}
                           <span className="block h-1 overflow-hidden rounded-full bg-white/10">
                             <span
                               role="presentation"

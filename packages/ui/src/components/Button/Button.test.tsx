@@ -186,7 +186,6 @@ describe('Button', () => {
 
       await user.hover(screen.getByRole('button', { name: 'Mute' }));
 
-      // The word appears once — on the button itself — rather than twice.
       expect(screen.getAllByText('Mute')).toHaveLength(1);
     });
   });

@@ -58,9 +58,6 @@ const EpisodeRow = ({
           <IconPlayerPlayFilled size={20} className="text-white" aria-hidden />
         </span>
 
-        {/* How far in, along the foot of the still. Absent rather than nought
-            for something unwatched: a bar at zero on every episode is a column
-            of noise. */}
         {watchedFraction === undefined ? null : (
           <span className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
             <span

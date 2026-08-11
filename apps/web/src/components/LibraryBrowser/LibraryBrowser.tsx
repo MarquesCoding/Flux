@@ -60,10 +60,6 @@ const LibraryBrowser = ({
   };
   const [state, setState] = useState<BrowserState>('loading');
 
-  // Held in a ref rather than depended upon. A caller that passes a fresh
-  // function every render — which is what an inline arrow is — would
-  // otherwise make this effect run on every render, and the state it sets
-  // renders again: an update loop that never settles.
   const reportItems = useRef(onItemsLoaded);
 
   reportItems.current = onItemsLoaded;
@@ -101,9 +97,6 @@ const LibraryBrowser = ({
   useEffect(() => {
     let abandoned = false;
 
-    // Fetched once for the whole library rather than per card: a page of
-    // hundreds would otherwise open hundreds of connections to draw hundreds
-    // of thin bars.
     void fetchWatchProgress().then((found) => {
       if (!abandoned) {
         setProgress(byMediaId(found));
@@ -176,10 +169,6 @@ const LibraryBrowser = ({
 
   return (
     <motion.div
-      // Keyed on which of the two the browser is being, so moving between the
-      // library and search plays a transition. The component itself stays
-      // mounted underneath: remounting it would refetch everything and show a
-      // spinner where a transition should be.
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
@@ -257,10 +246,6 @@ const LibraryBrowser = ({
                       {...(resumeFor(media.id) === null
                         ? {}
                         : { resumeSeconds: Math.floor(resumeFor(media.id) ?? 0) })}
-                      // Playing plays and reading opens the page. They were
-                      // both wired to the same handler, so the play button on
-                      // a card opened the page about the film instead of
-                      // starting it.
                       onPlay={(media, startSeconds) => {
                         if (onWatch === undefined) {
                           onPlay(media);

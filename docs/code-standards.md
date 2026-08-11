@@ -200,6 +200,19 @@ Everything else — explanatory comments, section banners, commented-out code,
 in a name, a type, or a TSDoc block. If work is outstanding, it belongs in an
 issue where it can be tracked, not in a comment where it cannot.
 
+### How this is enforced
+
+`flux/no-comments` in `tools/eslint/noComments.ts` fails the build on any
+comment that is not one of the exceptions above, and removes it under `--fix`.
+TSDoc counts only when it sits on a declaration: a `/** */` block floating
+inside a function body is prose in a costume, and is rejected as prose.
+
+The rule also fails a lint directive that does not say why, after `--`.
+
+This is a rule that was written down and then ignored for a year, by people and
+by coding agents alike. Documentation does not enforce itself; a failing build
+does.
+
 ---
 
 ## 7. Naming and file layout

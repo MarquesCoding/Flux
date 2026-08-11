@@ -97,8 +97,6 @@ describe('StreamStats', () => {
     draw();
 
     expect(screen.getByText(/^remux —/)).toBeInTheDocument();
-    // Video and audio are decided independently and both landed on transcode,
-    // so both rows carry the same sentence.
     expect(screen.getAllByText(/^transcode — Client does not support hevc/)).toHaveLength(2);
     expect(screen.getByText(/^none —/)).toBeInTheDocument();
   });

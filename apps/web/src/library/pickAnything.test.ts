@@ -55,8 +55,6 @@ describe('pickAnything', () => {
     fetchLibraryItems.mockImplementation((libraryId: string) =>
       Promise.resolve({ items: [item(libraryId)], total: libraryId === 'small' ? 1 : 99 }),
     );
-    // Halfway through a hundred items, which is inside the shelf holding
-    // ninety-nine of them rather than the one holding a single item.
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
 
     await expect(pickAnything()).resolves.toMatchObject({ id: 'large' });

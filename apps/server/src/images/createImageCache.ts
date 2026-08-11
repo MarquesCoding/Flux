@@ -46,12 +46,6 @@ const createImageCache = ({ directory, fetchImpl, onProblem }: CreateImageCacheO
   const nameFor = (url: string): string => createHash('sha256').update(url).digest('hex');
 
   return {
-    /**
-     * Reads artwork, fetching and keeping it the first time it is asked for.
-     *
-     * Answers with nothing rather than throwing: a missing poster should leave
-     * a gap in a grid, not an error page.
-     */
     read: async (url: string): Promise<CachedImage | null> => {
       const name = nameFor(url);
       const path = join(directory, name);
@@ -64,9 +58,7 @@ const createImageCache = ({ directory, fetchImpl, onProblem }: CreateImageCacheO
           body: cached.buffer.slice(cached.byteOffset, cached.byteOffset + cached.byteLength),
           contentType: type,
         };
-      } catch {
-        // Not cached yet, which is the normal path the first time.
-      }
+      } catch {}
 
       try {
         const response = await call(url);

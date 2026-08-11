@@ -79,8 +79,6 @@ const createMemoryLibraryService = (
     const matching = state.media
       .filter((item) => item.libraryId === libraryId)
       .filter((item) => search === '' || item.title.toLowerCase().includes(search))
-      // A programme belongs to a series and a film does not, which is the only
-      // difference a library can see.
       .filter(
         (item) =>
           options.kind === undefined ||
@@ -93,8 +91,6 @@ const createMemoryLibraryService = (
           options.genre === undefined || (item.metadata.genres ?? []).includes(options.genre),
       )
       .filter((item) => options.ids === undefined || options.ids.includes(item.id))
-      // The same order the database answers in, so what the routes are proved
-      // to do here is what they do against a real one.
       .sort((left, right) =>
         options.order === 'newest'
           ? right.addedAt.localeCompare(left.addedAt)

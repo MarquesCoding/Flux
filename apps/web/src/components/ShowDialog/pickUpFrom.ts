@@ -50,8 +50,6 @@ const pickUpFrom = (
     };
   }
 
-  // Everything watched means the series is finished, and the offer is to see
-  // it again from the beginning rather than nothing at all.
   const next = episodes.find((episode) => isFinished?.(episode.id) !== true) ?? episodes[0];
 
   return next === undefined ? null : { episode: next, startSeconds: 0, isResuming: false };

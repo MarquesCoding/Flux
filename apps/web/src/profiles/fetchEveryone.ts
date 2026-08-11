@@ -54,11 +54,6 @@ const signInAsProfile = async (
     return { kind: 'refused', reason: 'That password is not right.' };
   }
 
-  // A right password is not always a session. An account with a second factor
-  // gets a short-lived cookie and a redirect instead, and is not signed in
-  // until a code is accepted.
-  // Read as text and parsed here rather than through the router's own reader,
-  // which is typed as anything: untrusted input enters through a schema.
   const body = await response.text().catch(() => '');
 
   return TwoFactorPendingSchema.safeParse(JSON.parse(body === '' ? 'null' : body)).success

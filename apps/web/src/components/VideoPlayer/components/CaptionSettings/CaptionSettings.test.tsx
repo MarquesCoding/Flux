@@ -88,8 +88,6 @@ describe('CaptionSettings', () => {
     const user = userEvent.setup();
     const props = draw();
 
-    // Two rows of the same colours, one for the lettering and one for what is
-    // behind it. The second belongs to the background.
     const [text, background] = screen.getAllByRole('button', { name: 'Yellow' });
 
     expect(text).toBeInTheDocument();

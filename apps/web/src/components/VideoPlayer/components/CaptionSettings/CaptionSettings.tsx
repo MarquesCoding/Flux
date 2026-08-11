@@ -36,12 +36,7 @@ const COLOURS = [
  * CSS the cues get, so what is chosen here is what appears on the film.
  */
 const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => (
-  <section
-    aria-label="Caption settings"
-    // No chrome of its own: this is a page inside the settings panel, and the
-    // panel already carries the glass, the name and the way back.
-    className="flex w-full flex-col gap-4 text-sm text-white"
-  >
+  <section aria-label="Caption settings" className="flex w-full flex-col gap-4 text-sm text-white">
     <p
       aria-label="Caption preview"
       className="rounded-md px-3 py-2 text-center"

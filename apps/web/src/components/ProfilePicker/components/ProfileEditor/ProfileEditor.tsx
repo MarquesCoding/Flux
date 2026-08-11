@@ -63,8 +63,6 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
         ? await createProfile(trimmed, colour, chosen)
         : await saveProfile(profile.id, trimmed, colour, chosen);
 
-    // The photograph goes second because a new profile has no identifier to
-    // hang one on until it exists.
     if (saved && photo !== null && profile !== null) {
       await uploadProfilePhoto(profile.id, photo);
     }
@@ -196,9 +194,6 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
             size="sm"
             isPill
             onClick={() => {
-              // A new seed is a new face in every style at once, which is what
-              // somebody means when they press this: not "a different style"
-              // but "not that one".
               const next = Math.random().toString(36).slice(2, 10);
 
               setSeed(next);

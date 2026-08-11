@@ -93,8 +93,6 @@ describe('popOutWithCaptions', () => {
     context.fillText.mockClear();
     requestPictureInPicture.mockClear().mockResolvedValue(undefined);
 
-    // Defined rather than spied on: jsdom draws nothing and floats nothing,
-    // so none of these exist on it to be replaced.
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
       configurable: true,
       value: () => context,

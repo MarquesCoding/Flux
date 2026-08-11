@@ -14,12 +14,6 @@ const AdminUserSchema = z
 
 const AdminSettingsSchema = z
   .object({
-    /**
-     * Whether a catalogue key is configured, never the key itself.
-     *
-     * An administration page has no business handing a secret back to a
-     * browser: it is there to say whether one is set, not to show it.
-     */
     hasCatalogueKey: z.boolean(),
     trustedOrigins: z.array(z.string()),
     cookieSecure: z.boolean(),

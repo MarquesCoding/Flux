@@ -74,8 +74,6 @@ describe('MediaCard', () => {
     const card = screen.getByRole('button', { name: /Arrival/ });
     const title = screen.getByText('Arrival');
 
-    // Over the picture rather than beneath it, which is what gives a row its
-    // shape: the eye lands on the large one and reads outwards.
     expect(card.querySelector('img, span[aria-hidden]')).not.toBeNull();
     expect(title.className).toContain('text-white');
   });

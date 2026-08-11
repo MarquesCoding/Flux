@@ -37,8 +37,6 @@ vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
   detectFromBrowser: () => ({ name: 'Browser' }),
 }));
 
-// jsdom has no 2d context, so a real capture can only ever answer with
-// nothing here. What it does with a frame is covered where the capture lives.
 vi.mock('@FluxWeb/playback/captureFrame', () => ({
   captureFrame: captureMock,
 }));
@@ -553,8 +551,6 @@ describe('VideoPlayer', () => {
       target: { value: '3600' },
     });
 
-    // The centred spinner is what covers the video. While a frame is held, the
-    // wait has to be reported without hiding what it is waiting on.
     expect(await screen.findByRole('status', { name: 'Seeking' })).toBeInTheDocument();
     expect(screen.queryByRole('status', { name: 'Preparing playback' })).not.toBeInTheDocument();
   });
@@ -765,8 +761,6 @@ describe('VideoPlayer', () => {
     await actor.click(screen.getByRole('button', { name: 'Settings' }));
     await actor.click(await screen.findByRole('button', { name: /Caption settings/ }));
 
-    // Chosen rather than merely present: every edge is on screen now, and what
-    // says which one is in force is which of them is pressed.
     expect(await screen.findByRole('button', { name: 'Drop shadow' })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -910,9 +904,6 @@ describe('VideoPlayer', () => {
 
       fireEvent.play(element);
 
-      // Playback carries on, which moves the position several times a second.
-      // That must not count as a viewer being present, or the controls would
-      // never leave for the whole film.
       for (const seconds of [1, 2, 3, 4]) {
         Object.defineProperty(element, 'currentTime', { configurable: true, value: seconds });
         fireEvent.timeUpdate(element);
@@ -967,9 +958,6 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} startSeconds={2103.4567} onClose={vi.fn()} />);
     await settled();
 
-    // The third thing it is asked for is where to start, and it has to be a
-    // whole number: the contract says so, and a rejected request is the
-    // "playback could not be started" a viewer used to meet on resuming.
     expect(startMock.mock.calls.at(-1)?.[2]).toBe(2103);
   });
 
@@ -1028,7 +1016,6 @@ describe('VideoPlayer', () => {
 
     await actor.keyboard('{ArrowRight}');
 
-    // A fraction of a second on, rather than a new session a few seconds away.
     const at = element instanceof HTMLVideoElement ? element.currentTime : 0;
 
     expect(at).toBeGreaterThan(10);
@@ -1086,9 +1073,6 @@ describe('VideoPlayer', () => {
   it('takes the floating window with it, however the player is left', async () => {
     const exit = vi.fn().mockResolvedValue(undefined);
 
-    // Put back afterwards: a document that still claims it can float things,
-    // with nothing left to do it, breaks every test that unmounts a player
-    // after this one.
     const asBrowserWithout = () => {
       Object.defineProperty(document, 'pictureInPictureEnabled', {
         configurable: true,
@@ -1128,9 +1112,6 @@ describe('VideoPlayer', () => {
     try {
       const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-      // The stream is nudged until it starts, which means asking the element
-      // to play — and this test runs after ones that have had their hands on
-      // it.
       vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
 
       render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
@@ -1144,8 +1125,6 @@ describe('VideoPlayer', () => {
         vi.advanceTimersByTime(6000);
       });
 
-      // The bar has not been pushed out of the picture: a bar that left from
-      // under an open menu would take the menu with it.
       const bar = screen.getByRole('button', { name: 'Settings' }).closest('.absolute');
 
       expect(bar?.className).toContain('translate-y-0');

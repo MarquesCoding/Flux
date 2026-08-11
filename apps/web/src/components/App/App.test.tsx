@@ -112,8 +112,6 @@ const serverState = (options: {
 };
 
 beforeEach(() => {
-  // Navigation lives in the address bar now, so each test has to start from
-  // the front door rather than wherever the last one ended up.
   window.history.replaceState(null, '', '/');
   vi.useFakeTimers({ shouldAdvanceTime: true });
   fetchMock.mockReset();
@@ -132,8 +130,6 @@ afterEach(() => {
  * drawn until it has had its moment.
  */
 const arrive = async () => {
-  // Twice: the way in has a hold of its own, and its timer is not set until
-  // the splash has finished and it has been drawn.
   for (let pass = 0; pass < 2; pass += 1) {
     await act(async () => {
       vi.advanceTimersByTime(10_000);
@@ -182,7 +178,6 @@ describe('App routing', () => {
 
     await arrive();
 
-    // The library owns the whole surface: the only chrome is the dock.
     expect(await screen.findByRole('navigation', { name: 'Sections' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
   });
@@ -193,8 +188,6 @@ describe('App routing', () => {
 
     await arrive();
 
-    // On the way in rather than on the account page: the account page is
-    // about the person, and their own name is what belongs at the top of it.
     expect(screen.getAllByText(/Living Room/).length).toBeGreaterThan(0);
   });
 
@@ -254,15 +247,11 @@ describe('App routing', () => {
 
     await arrive();
 
-    // The library groups into rows, and an item appears in more than one of
-    // them, so the row has to be named for the query to mean anything.
     const rail = await screen.findByRole('region', { name: 'Recently added' });
 
     await actor.click(within(rail).getByRole('button', { name: /Arrival/ }));
 
     expect(await screen.findByRole('dialog', { name: 'Arrival' })).toBeInTheDocument();
-    // The dialog carries the same name, so the player is identified by the
-    // one control only it has.
     expect(screen.queryByRole('slider', { name: /Seek through/ })).not.toBeInTheDocument();
   });
 
@@ -273,8 +262,6 @@ describe('App routing', () => {
 
     await arrive();
 
-    // The library groups into rows, and an item appears in more than one of
-    // them, so the row has to be named for the query to mean anything.
     const rail = await screen.findByRole('region', { name: 'Recently added' });
 
     await actor.click(within(rail).getByRole('button', { name: /Arrival/ }));
@@ -289,9 +276,6 @@ describe('App routing', () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const arrival = aLibraryWithArrival.items.items[0];
 
-    // The server is a step behind: it answers with nothing while the player is
-    // reporting, which is the race that used to blank a progress bar the
-    // moment a film was closed.
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
     render(<App />);
 
@@ -313,11 +297,8 @@ describe('App routing', () => {
 
     await actor.click(screen.getByRole('button', { name: 'Close' }));
 
-    // Back on the page about it, offering to resume rather than to start over.
     expect(arrival?.id).toBeDefined();
 
-    // Half an hour in, which is what the player last said rather than what the
-    // server had on file.
     await waitFor(() => {
       expect(screen.getByText(/Resume from 30:00/)).toBeInTheDocument();
     });

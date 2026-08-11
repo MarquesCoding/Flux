@@ -21,8 +21,6 @@ describe('revealVariants', () => {
   });
 
   it('still transitions when movement is unwelcome, rather than snapping', () => {
-    // Something that appears instantly is harder to follow than something that
-    // fades. What a preference removes is the travel, not the transition.
     expect(fadeVariants.hidden).toMatchObject({ opacity: 0 });
     expect(fadeVariants.shown).toMatchObject({ opacity: 1 });
     expect(fadeVariants.hidden).not.toHaveProperty('y');
@@ -35,8 +33,6 @@ describe('revealTransition', () => {
   });
 
   it('takes longer to settle the larger the thing moving is', () => {
-    // A hero moving on a button's spring reads as flapping, so the heavier
-    // spring is the slacker one.
     expect(revealTransition(false, 'heavy')).toMatchObject({
       type: 'spring',
       stiffness: 180,

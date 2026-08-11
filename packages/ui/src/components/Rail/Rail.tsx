@@ -21,12 +21,14 @@ const SCROLL_FRACTION = 0.85;
  * screen and a keyboard all work without being taught to. The markers exist
  * for a mouse, which has none of those, and they are told where they are by
  * whatever else did the scrolling.
+ *
+ * The track's `-my-6 py-6` is load-bearing: a browser will not give one axis a
+ * scrollbar and leave the other free, so scrolling sideways clips the top of a
+ * card that lifts on hover. The padding is the room it lifts into and the
+ * negative margin gives that space back to the page.
  */
 const Rail = ({ title, children, action, className }: RailProps) => {
   const trackRef = useRef<HTMLUListElement>(null);
-  // How many screenfuls the row is, and which one is being looked at. Worked
-  // out from the scroller rather than from the number of items, because how
-  // many fit is a question about this window rather than about this row.
   const [pages, setPages] = useState({ count: 1, at: 0 });
 
   const measure = useCallback(() => {
@@ -79,9 +81,6 @@ const Rail = ({ title, children, action, className }: RailProps) => {
         <div className="flex items-center gap-2">
           {action}
 
-          {/* The same markers as everywhere else, rather than two arrows.
-              They say how much row there is as well as where in it you are,
-              and reaching the far end is one press instead of six. */}
           <PageDots
             count={pages.count}
             selectedIndex={pages.at}
@@ -96,11 +95,6 @@ const Rail = ({ title, children, action, className }: RailProps) => {
         <ul
           ref={trackRef}
           onScroll={measure}
-          // Scrolling sideways clips vertically too — a browser will not give one
-          // axis a scrollbar and leave the other free — so a card that lifts on
-          // hover loses its top edge and its shadow. The padding is the room it
-          // lifts into; the negative margin gives that space back to the page so
-          // rows are not pushed apart by it.
           className="flux-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
         >
           {children}

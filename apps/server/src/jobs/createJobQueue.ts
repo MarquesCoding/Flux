@@ -46,10 +46,6 @@ const createJobQueue = async ({
 }: CreateJobQueueOptions): Promise<JobQueue> => {
   const boss = new PgBoss({ connectionString, schema: 'flux_jobs' });
 
-  // Kept alongside pg-boss rather than in it: progress is a running number a
-  // job reports about itself mid-flight, not the job's own queued/completed
-  // lifecycle, and pg-boss has nowhere to put that. Lost on restart, which is
-  // fine — a job that outlives the process reports from wherever it resumes.
   const progressByJobId = new Map<string, JobProgress>();
 
   boss.on('error', (error: Error) => {
@@ -79,18 +75,9 @@ const createJobQueue = async ({
         SCAN_LIBRARY_JOB,
         { libraryId, force },
         {
-          // Keyed on the library alone, so a forced scan and an ordinary one
-          // never walk the same directory at once writing the same rows. A
-          // forced scan asked for while one is already queued therefore joins
-          // that scan rather than starting a second.
           singletonKey: libraryId,
           retryLimit: 2,
           retryBackoff: true,
-          // A scan that stops without saying so — the server restarted, the
-          // process was killed — would otherwise hold the key for that library
-          // forever, and every later scan would queue behind something that is
-          // never coming back. This is the longest a scan may run before it is
-          // treated as gone.
           expireInSeconds: SCAN_EXPIRES_AFTER_SECONDS,
         },
       ),

@@ -94,7 +94,6 @@ const createMemoryProfileService = (
     },
 
     remove: (userId, profileId) => {
-      // The last one stays, because viewing has to hang on something.
       if (listFor(userId).length <= 1) {
         return Promise.resolve(false);
       }

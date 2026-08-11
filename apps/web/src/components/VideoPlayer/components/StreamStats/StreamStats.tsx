@@ -69,8 +69,6 @@ const StreamStats = ({
   return (
     <section
       aria-label="Stats for nerds"
-      // The same glass as the bar and the settings panel. These are notes
-      // laid over a film, not a console pasted onto one.
       className="flux-glass pointer-events-auto max-h-full w-full max-w-lg overflow-y-auto rounded-2xl p-4 text-xs text-white"
     >
       <header className="mb-3 flex items-center justify-between gap-4 border-b border-white/10 pb-2">

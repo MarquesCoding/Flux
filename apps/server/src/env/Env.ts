@@ -19,16 +19,7 @@ const EnvSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
-  // Either `unix:/path/to.sock` or an `http://` address. A socket is the
-  // default because the media service has no authentication of its own and
-  // should not be reachable from the network. See ADR-0006.
   TRANSCODER_URL: z.string().min(1).default('unix:/run/flux-transcoder.sock'),
-  /**
-   * A starting value for the metadata catalogue key.
-   *
-   * Settings win once an operator has saved one, so this is only the initial
-   * value for a fresh install driven entirely by environment.
-   */
   CATALOGUE_API_KEY: z.string().default(''),
   IMAGE_CACHE_DIR: z.string().default('/cache/images'),
   AUTH_RATE_LIMIT_ENABLED: z

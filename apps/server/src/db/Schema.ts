@@ -169,22 +169,9 @@ const viewerProfile = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
-    /**
-     * The colour this profile is drawn in, as a hex string.
-     */
     colour: text('colour').notNull(),
-    /**
-     * Which drawn avatar this profile wears, if it wears one.
-     *
-     * The style and the seed rather than the picture: a few bytes that
-     * regenerate the same face every time, where a stored image would be
-     * kilobytes of something reproducible.
-     */
     avatarStyle: text('avatarStyle'),
     avatarSeed: text('avatarSeed'),
-    /**
-     * Where an uploaded photograph was put, when somebody used their own.
-     */
     photoPath: text('photoPath'),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
@@ -196,13 +183,6 @@ const watchProgress = pgTable(
   'watch_progress',
   {
     id: text('id').primaryKey(),
-    /**
-     * Which person this belongs to, rather than which account.
-     *
-     * Keyed on the profile so that promoting one to an account of its own is a
-     * change of owner and nothing else: the viewing follows the person, which
-     * is the whole point of being able to move them out.
-     */
     profileId: text('profileId')
       .notNull()
       .references(() => viewerProfile.id, { onDelete: 'cascade' }),
@@ -211,13 +191,6 @@ const watchProgress = pgTable(
       .references(() => mediaItem.id, { onDelete: 'cascade' }),
     positionSeconds: real('positionSeconds').notNull(),
     durationSeconds: real('durationSeconds').notNull(),
-    /**
-     * Whether this was watched to the end.
-     *
-     * Recorded rather than inferred from the position, because someone who
-     * stops two minutes from the end has finished it and someone who skips to
-     * the last frame has not.
-     */
     isFinished: boolean('isFinished').notNull().default(false),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
@@ -231,10 +204,6 @@ const favourite = pgTable(
   'favourite',
   {
     id: text('id').primaryKey(),
-    /**
-     * Which person kept it, rather than which account. A household sharing one
-     * login does not share a taste in films.
-     */
     profileId: text('profileId')
       .notNull()
       .references(() => viewerProfile.id, { onDelete: 'cascade' }),

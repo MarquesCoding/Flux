@@ -75,8 +75,6 @@ const CastGrid = ({ members }: CastGridProps) => {
           )}
         </h3>
 
-        {/* The same markers the hero and the wall of faces use: how much
-            there is, where you are in it, and a press to anywhere else. */}
         <PageDots count={pages} selectedIndex={at} label="Cast pages" onSelect={setPage} />
       </header>
 
@@ -87,9 +85,6 @@ const CastGrid = ({ members }: CastGridProps) => {
               key={`${member.name}-${member.role}`}
               className="flex min-w-0 flex-1 flex-col gap-3"
             >
-              {/* Upright rather than round, and as wide as its share of the
-                  line. A face the size of a thumbnail is a face nobody
-                  recognises, which is the only thing a cast list is for. */}
               <span className="aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface-raised ring-1 ring-white/10">
                 {member.imageUrl === null ? null : (
                   <img
@@ -110,9 +105,6 @@ const CastGrid = ({ members }: CastGridProps) => {
             </li>
           ))}
 
-          {/* A last page with two people on it should not draw them at the
-              width of six. The empty places are held rather than closed up, so
-              a face is the same size on every page. */}
           {Array.from({ length: Math.max(0, perPage - shown.length) }, (_, index) => index).map(
             (index) => (
               <li key={`empty-${index.toString()}`} aria-hidden className="min-w-0 flex-1" />

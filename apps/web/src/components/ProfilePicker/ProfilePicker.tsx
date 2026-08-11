@@ -34,9 +34,6 @@ const ProfilePicker = ({
   onChanged,
   isEditable = false,
 }: ProfilePickerProps) => {
-  // Null means nothing is being edited; a profile means that one is; and the
-  // string means a new one is being made. Three states in one, because they
-  // are three states of the same screen.
   const [editing, setEditing] = useState<ViewerProfile | 'new' | null>(null);
   const prefersReducedMotion = useReducedMotion();
 

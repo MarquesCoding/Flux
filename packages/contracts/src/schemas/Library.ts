@@ -45,38 +45,12 @@ const MediaSummarySchema = z.object({
   videoCodec: z.string(),
   videoRange: z.string(),
   addedAt: z.string().datetime(),
-  /**
-   * Whether artwork exists, rather than where it lives.
-   *
-   * The address is the server's own, derived from the item's id, so a grid
-   * needs only to know whether to ask for it.
-   */
   hasPoster: z.boolean().default(false),
   hasBackdrop: z.boolean().default(false),
-  /**
-   * What a catalogue thinks of it, out of ten.
-   *
-   * In the summary because a hero and a card both show it, and neither is
-   * worth a second request to find one number.
-   */
   rating: z.number().nullish(),
-  /**
-   * Where this sits in a series, when the path said it sits in one.
-   *
-   * Carried in the summary rather than only in the detail because a library is
-   * grouped by it: a row per season needs to know which items belong to which
-   * without asking about every item first.
-   */
   seriesTitle: z.string().nullish(),
   seasonNumber: z.number().int().nullish(),
   episodeNumber: z.number().int().nullish(),
-  /**
-   * What a catalogue calls it.
-   *
-   * In the summary because searching is done by them: a page that has to ask
-   * about every item before it can offer "Drama" is a page that asks a hundred
-   * questions to draw one row of buttons.
-   */
   genres: z.array(z.string()).nullish(),
 });
 

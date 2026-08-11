@@ -28,17 +28,6 @@ const VideoSurface = ({
   const trackId = textTrack?.id ?? null;
   const trackRef = useRef<HTMLTrackElement>(null);
 
-  // `default` only means anything while the element is loading, and a track
-  // chosen from a menu arrives long after that: the browser mounts it and
-  // leaves it disabled, which reads as subtitles that do nothing. Turning it
-  // on explicitly is the only thing that shows a late track.
-  //
-  // One track, named rather than counted. A video keeps the tracks of elements
-  // it has already been given, so turning on everything it holds turns on
-  // every language that has ever been chosen — which is how switching twice
-  // ended with two sets of subtitles on top of each other. Everything is
-  // turned off, then the one belonging to this element is turned on, which is
-  // also what makes turning subtitles off actually turn them off.
   useEffect(() => {
     const element = videoRef.current;
 
@@ -60,8 +49,6 @@ const VideoSurface = ({
 
     show();
 
-    // Again once the cues have actually loaded: a track set to showing before
-    // its file arrives can be reset when it does.
     element.textTracks.addEventListener('addtrack', show);
 
     return () => {

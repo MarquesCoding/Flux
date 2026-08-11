@@ -137,9 +137,6 @@ const planToSessionSpec = ({
     ? capabilities.canBurnImageSubtitles !== false
     : capabilities.canBurnTextSubtitles !== false;
 
-  // Dropping the subtitles is better than refusing to play. Someone who wanted
-  // them will notice they are missing; a player that will not start tells them
-  // nothing at all.
   const subtitleWarnings =
     plan.subtitles.kind === 'burnIn' && !canBurn
       ? [

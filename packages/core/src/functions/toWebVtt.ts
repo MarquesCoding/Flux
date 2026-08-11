@@ -113,8 +113,6 @@ const fromAdvancedSubStation = (source: string): string => {
     const fields = line.slice('Dialogue:'.length).split(',');
     const start = readAssTimestamp(fields[startColumn] ?? '');
     const end = readAssTimestamp(fields[endColumn] ?? '');
-    // Text is last because dialogue itself may contain commas, so the field
-    // cannot be split on them like the others.
     const text = stripAssMarkup(fields.slice(textColumn).join(','));
 
     if (start === null || end === null || text === '') {

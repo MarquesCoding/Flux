@@ -41,9 +41,7 @@ const readQualityPreference = (): QualityPreference => {
 const saveQualityPreference = (preference: QualityPreference): void => {
   try {
     window.localStorage.setItem(STORAGE_KEY, preference);
-  } catch {
-    // A browser refusing storage is not a reason to stop playback.
-  }
+  } catch {}
 };
 
 export type { QualityPreference };

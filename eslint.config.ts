@@ -1,4 +1,11 @@
 import tseslint from 'typescript-eslint';
+import { noComments } from './tools/eslint/noComments';
+
+const flux = {
+  rules: {
+    'no-comments': noComments,
+  },
+};
 
 export default tseslint.config(
   {
@@ -19,7 +26,9 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    plugins: { flux },
     rules: {
+      'flux/no-comments': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/no-unnecessary-condition': 'error',
@@ -58,9 +67,6 @@ export default tseslint.config(
     },
   },
   {
-    // A test that hands a component an arbitrary child is standing in for a
-    // caller, and a raw element is the plainest stand-in there is. The rule is
-    // about what ships.
     files: ['**/*.test.ts', '**/*.test.tsx'],
     rules: {
       '@typescript-eslint/no-unnecessary-condition': 'off',
@@ -79,8 +85,6 @@ export default tseslint.config(
     },
   },
   {
-    // The components that own each primitive, and the only place each element
-    // is written. See code standards section 9.
     files: [
       'packages/ui/src/components/Button/Button.tsx',
       'packages/ui/src/components/TextField/TextField.tsx',

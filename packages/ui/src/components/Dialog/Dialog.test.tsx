@@ -49,9 +49,6 @@ describe('Dialog', () => {
       </Dialog>,
     );
 
-    // Driven by the state attributes the dialog sets on itself, because it
-    // already holds the element mounted until the transition finishes —
-    // anything animating it from outside would be racing that.
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
     expect(panel.className).toContain('data-[starting-style]:opacity-0');

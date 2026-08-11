@@ -32,8 +32,6 @@ const EpisodeMenu = ({
   onOpenChange,
   isDisabled = false,
 }: EpisodeMenuProps) => {
-  // Closed by picking something. A list that navigates should not still be
-  // sitting over what it navigated to.
   const [isOpen, setIsOpen] = useState(false);
 
   const show = (next: boolean) => {
@@ -41,8 +39,6 @@ const EpisodeMenu = ({
     onOpenChange?.(next);
   };
 
-  // A film has no season to list. The button is not drawn at all rather than
-  // drawn and disabled: a control that can never do anything is furniture.
   if (episodes.length === 0) {
     return null;
   }

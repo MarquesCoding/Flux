@@ -113,9 +113,6 @@ const createSidecarSubtitleService = ({
       }
 
       try {
-        // Read as UTF-8 and let a mis-encoded file arrive as replacement
-        // characters rather than failing: a track with mangled accents is
-        // still better than no subtitles at all.
         return toWebVtt(await readFile(track.path, 'utf8'), track.format);
       } catch (error) {
         onProblem?.(track.path, error instanceof Error ? error.message : 'Unreadable.');

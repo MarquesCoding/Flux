@@ -111,8 +111,6 @@ const PlayerControls = ({
   renderPreview,
 }: PlayerControlsProps) => (
   <div className="flux-glass flex flex-col gap-1 rounded-2xl px-3 py-2 text-white sm:px-4">
-    {/* The scrub bar gets a line of its own on every size. Squeezing it in
-        beside ten controls leaves a phone with a bar too short to aim at. */}
     <div className="flex items-center gap-3">
       <Slider
         label={`Seek through ${title}`}
@@ -124,9 +122,6 @@ const PlayerControls = ({
         {...(renderPreview === undefined ? {} : { renderPreview })}
       />
 
-      {/* The clock is a control. Everybody wants one of two numbers from it —
-          how far in they are, or how much is left — and which one depends on
-          whether they are enjoying it or deciding whether there is time. */}
       <Button
         variant="bare"
         size="none"
@@ -152,8 +147,6 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        {/* Mirrored: the arrow has to curl back the way the film is going,
-            and the icon as drawn points the other way. */}
         <IconRotateClockwise size={22} aria-hidden className="-scale-x-100" />
       </Button>
 
@@ -210,11 +203,6 @@ const PlayerControls = ({
           onValueChange={(next) => {
             onVolumeChange(next / 100);
           }}
-          // The clip is what lets it slide open, and it is also what cut the
-          // handle in half at either end: the handle is centred on the track,
-          // so half of it sits outside. The padding gives that half back — but
-          // only once open, since padding on a closed control is a sliver of
-          // handle sitting next to the speaker.
           className="w-0 overflow-hidden px-0 transition-all group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
         />
       </div>
@@ -230,9 +218,6 @@ const PlayerControls = ({
         />
       )}
 
-      {/* Subtitles keep a button of their own. Turning them on is the one
-          setting somebody changes mid-sentence, and a panel to open first is
-          a panel between them and the line they missed. */}
       {subtitleTracks.length === 0 ? null : (
         <Button
           isIconOnly
@@ -257,10 +242,6 @@ const PlayerControls = ({
         </Button>
       )}
 
-      {/* Everything about what is playing, behind one control. A bar with a
-          button per setting asks a viewer to learn a row of icons; a bar with
-          one asks them to open it and read, which is what somebody changing a
-          setting is doing anyway. */}
       <SettingsMenu
         label="Settings"
         {...(onMenuOpenChange === undefined ? {} : { onOpenChange: onMenuOpenChange })}
@@ -423,15 +404,10 @@ const PlayerControls = ({
         ]}
       />
 
-      {/* Only where there is somewhere to send it. The list belongs to the
-          browser, which is the only thing that knows what is on the network. */}
       {onCast === undefined || castState === 'unavailable' ? null : (
         <Button
           isIconOnly
           variant="ghost"
-          // Named for what the press does rather than for what it opens: the
-          // list belongs to the browser, and no page is allowed to know what is
-          // on somebody's network.
           label={
             castState === 'connected'
               ? 'Playing on another device'

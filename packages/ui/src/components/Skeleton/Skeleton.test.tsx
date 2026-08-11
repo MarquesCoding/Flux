@@ -4,7 +4,6 @@ import { Skeleton } from './Skeleton';
 
 describe('Skeleton', () => {
   it('says nothing to a screen reader by default', () => {
-    // Five grey rectangles announced one by one is worse than silence.
     const { container } = render(<Skeleton />);
 
     expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true');

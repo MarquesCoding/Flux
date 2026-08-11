@@ -71,8 +71,6 @@ const SettingsMenu = ({
   isDisabled = false,
   className,
 }: SettingsMenuProps) => {
-  // Which row is open, if any. Held here rather than by the caller because it
-  // is a thing about this panel rather than about what it describes.
   const [openId, setOpenId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
@@ -83,8 +81,6 @@ const SettingsMenu = ({
         opensSomething(row) && row.id === openId,
     ) ?? null;
 
-  // Going in comes from the right and coming back from the left, so the
-  // movement says which way the panel went rather than only that it changed.
   const travel = prefersReducedMotion === true ? 0 : SLIDE;
 
   const close = () => {
@@ -94,8 +90,6 @@ const SettingsMenu = ({
   return (
     <Popover.Root
       onOpenChange={(open) => {
-        // Closing forgets where it was. Reopening onto the subsection somebody
-        // was last in reads as the panel having got stuck.
         if (!open) {
           close();
         }
@@ -120,9 +114,6 @@ const SettingsMenu = ({
       </Tooltip>
 
       <Popover.Portal>
-        {/* Above the bar and pinned to its own button, with room kept at the
-            edges: a panel that opens past the side of the window is a panel
-            with half its answers off screen. */}
         <Popover.Positioner
           side="top"
           sideOffset={12}
@@ -132,8 +123,6 @@ const SettingsMenu = ({
         >
           <Popover.Popup
             aria-label={label}
-            // The same glass as the bar it belongs to, rather than a dark
-            // rectangle sitting on top of one.
             className="flux-glass flex w-80 flex-col overflow-hidden rounded-2xl p-2 text-white"
           >
             <AnimatePresence initial={false} mode="wait">
@@ -216,9 +205,6 @@ const SettingsMenu = ({
                           <span className="shrink-0 text-white/80">{row.icon}</span>
                           <span className="shrink-0">{row.label}</span>
 
-                          {/* The answer gives way first. A track called
-                              "English · Dialogues [Forced]" would otherwise
-                              push the name of the setting off its own row. */}
                           <span className="flex min-w-0 flex-1 items-center justify-end gap-1 text-white/60">
                             <span className="truncate" title={answer ?? undefined}>
                               {answer}
@@ -229,9 +215,6 @@ const SettingsMenu = ({
                       );
                     })
                   : [
-                      // The way back is the heading. A panel that replaced
-                      // itself and offered no way out would be a trap, and a
-                      // back button beside a title is two things saying one.
                       <Button
                         key="back"
                         variant="bare"

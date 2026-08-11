@@ -95,7 +95,6 @@ describe('findSharedAudio', () => {
 
   it('holds a run together across a brief interruption', () => {
     const theme = distinct(1, 100);
-    // A title card spoken over the theme: three frames of something else.
     const interrupted = [...theme];
     interrupted.splice(50, 3, ...distinct(9, 3));
 
@@ -158,7 +157,6 @@ describe('agreeRange', () => {
   });
 
   it('still finds the run when the sequences are too long to try every alignment', () => {
-    // Past the exhaustive limit, alignments are proposed rather than swept.
     const theme = distinct(1, 900);
     const left = [...distinct(2, 400), ...theme, ...distinct(3, 1500)];
     const right = [...distinct(4, 900), ...theme, ...distinct(5, 1000)];

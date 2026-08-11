@@ -69,9 +69,6 @@ describe('createTranscoderClient', () => {
   });
 
   it('carries every audio stream detail through, rather than dropping what it forgot to declare', async () => {
-    // A schema that omits a field silently strips it, so the field reaches
-    // nothing downstream and the loss shows up as a wrong label rather than an
-    // error.
     const client = createTranscoderClient({
       baseUrl: 'http://127.0.0.1:8477',
       fetchImpl: () =>

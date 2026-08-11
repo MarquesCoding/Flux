@@ -14,15 +14,7 @@ const ShowSummarySchema = z.object({
   title: z.string().min(1),
   seasonCount: z.number().int().nonnegative(),
   episodeCount: z.number().int().nonnegative(),
-  /**
-   * When the most recent episode arrived, so a shelf can be ordered by what is
-   * new rather than by what is alphabetical.
-   */
   latestAddedAt: z.string(),
-  /**
-   * The episode whose artwork stands for the show, and which a viewer is
-   * offered first.
-   */
   coverMediaId: z.string().uuid(),
   year: z.number().int().nullish(),
   rating: z.number().nullish(),

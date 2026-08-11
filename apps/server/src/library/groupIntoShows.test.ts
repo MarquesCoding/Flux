@@ -47,8 +47,6 @@ describe('groupIntoShows', () => {
   });
 
   it('stands for a series with the episode that opens it', () => {
-    // Not the newest: anybody meeting a show for the first time is offered
-    // episode one, and its picture is the one that means the show.
     const shows = groupIntoShows([
       episode({ id: identified(9), episodeNumber: 9 }),
       episode({ id: identified(1), episodeNumber: 1 }),

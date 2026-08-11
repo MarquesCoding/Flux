@@ -84,22 +84,12 @@ const Hero = ({
     }
   }, [featured, onFeatureChange]);
 
-  // How far the page has been read, as a number between the two shapes. The
-  // window rather than the section, because the hero is what is being scrolled
-  // away from rather than into.
   const runwayRef = useRef<HTMLDivElement>(null);
-  // Measured across exactly the scrolling the hero is pinned for. The runway's
-  // bottom reaching the bottom of the screen is the moment the picture stops
-  // being stuck, so that is the moment the card has to be finished — anything
-  // longer and the page starts moving with a half-drawn card on it.
   const { scrollYProgress } = useScroll({
     target: runwayRef,
     offset: ['start start', 'end end'],
   });
 
-  // The card is drawn inside a slot that never changes size, so nothing below
-  // it moves while it forms. Only once it has finished does the runway end and
-  // the library begin to come up.
   const inset = useTransform(scrollYProgress, [0, 1], ['0px', '40px']);
   const lift = useTransform(scrollYProgress, [0, 1], ['0px', '72px']);
   const foot = useTransform(scrollYProgress, [0, 1], ['0px', FOOT_OF_THE_CARD]);
@@ -111,10 +101,6 @@ const Hero = ({
     }
   }, [items.length, isHeld]);
 
-  // A backstop rather than the clock the hero runs on. The preview says when
-  // it has finished and the hero moves on then, which is what makes it change
-  // on a still frame instead of mid-shot; this only covers an item whose clip
-  // never arrives, so a hero without previews still rotates.
   useEffect(() => {
     if (items.length < 2 || rotateAfterMilliseconds <= 0 || isHeld) {
       return;
@@ -140,9 +126,6 @@ const Hero = ({
   }
 
   return (
-    // The runway. It is taller than the screen by exactly the scrolling the
-    // hero holds on to, and the hero sticks to the top of it — so the page
-    // does not begin to move until the picture has finished becoming a card.
     <div
       ref={runwayRef}
       className="relative"
@@ -154,9 +137,6 @@ const Hero = ({
         marginBottom: `-${FOOT_OF_THE_CARD}`,
       }}
     >
-      {/* The slot the card is drawn in. It is the whole screen and stays the
-          whole screen: the card shrinks inside it, so nothing underneath moves
-          until the picture has finished becoming one. */}
       <div className="sticky top-0 h-svh">
         <motion.section
           aria-label="Featured"
@@ -164,8 +144,6 @@ const Hero = ({
           onPointerLeave={release}
           onFocusCapture={hold}
           onBlurCapture={release}
-          // Nobody who asked for less movement gets any: they get the card, at
-          // the size and shape the scrolling would have arrived at.
           style={
             prefersReducedMotion === true
               ? {
@@ -177,18 +155,11 @@ const Hero = ({
                 }
               : { top: lift, left: inset, right: inset, bottom: foot, borderRadius: corner }
           }
-          // It opens as the whole screen and draws itself in as the page moves:
-          // arriving is an opening shot, and reading is a library with something
-          // at the top of it. Driven by the scroll rather than switched by a
-          // class, because halfway between the two shapes is a real state.
           className={cn(
             'absolute flex flex-col justify-end overflow-hidden',
             'ring-1 ring-white/10 shadow-[0_40px_80px_-40px_rgba(0,0,0,0.9)]',
           )}
         >
-          {/* The picture crossfades under the text rather than cutting, so a
-          rotation reads as one screen changing its mind rather than as two
-          screens swapping. */}
           <AnimatePresence initial={false} mode="popLayout">
             <motion.div
               key={featured.id}
@@ -213,23 +184,13 @@ const Hero = ({
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-surface/85 via-transparent to-transparent" />
 
-          {/* Keyed rather than held in a presence: waiting for the old text to
-          leave before the new arrives leaves a beat with no title at all, and
-          the picture crossfading underneath already carries the change. */}
           <motion.div
             key={featured.id}
             variants={staggerVariants}
             initial="hidden"
             animate="shown"
-            // On the same line as the markers opposite it, so the foot of the
-            // picture reads as one row rather than as two things at different
-            // heights.
             className="relative flex flex-col gap-3 px-5 pb-8 pt-24 sm:px-10"
           >
-            {/* The episode above the show, small and set in capitals: it is what
-            is being offered, and the show underneath is what makes it
-            recognisable. A film has nothing here, since its own name is the
-            title below. */}
             {featured.seriesTitle === null || featured.seriesTitle === undefined ? null : (
               <motion.p
                 variants={revealVariants(prefersReducedMotion)}
@@ -243,18 +204,11 @@ const Hero = ({
             <motion.h1
               variants={revealVariants(prefersReducedMotion)}
               transition={revealTransition(prefersReducedMotion, 'heavy')}
-              // Sized against the viewport rather than in steps, so the title is
-              // as large as the screen allows at every width instead of jumping
-              // between three fixed sizes.
               className="max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text"
             >
               {featured.seriesTitle ?? featured.title}
             </motion.h1>
 
-            {/* Everything that places it, on one line and in one voice: where it
-            sits in the series, what it scored, and when it was made. Separated
-            by dots rather than by space alone, so four facts read as a list
-            rather than as a row of unrelated numbers. */}
             <motion.p
               variants={revealVariants(prefersReducedMotion)}
               transition={revealTransition(prefersReducedMotion)}
@@ -270,9 +224,6 @@ const Hero = ({
               transition={revealTransition(prefersReducedMotion)}
               className="flex flex-wrap items-center gap-3 pt-2"
             >
-              {/* One button, because there is only one thing anybody wants from a
-              hero. What it says depends on whether they have been here
-              before. */}
               <Button
                 variant="glossy"
                 size="lg"
@@ -285,8 +236,6 @@ const Hero = ({
                 {resume === null ? 'Play' : `Resume from ${formatDuration(resume)}`}
               </Button>
 
-              {/* Two things worth offering: watch it, or find out what it is. A
-              hero that only plays makes somebody guess before committing. */}
               {onInspect === undefined ? null : (
                 <Button
                   variant="secondary"
@@ -309,10 +258,6 @@ const Hero = ({
             labels={items.map((item) => item.title)}
             label="Featured items"
             onSelect={setIndex}
-            // Below the buttons on a phone and beside them on anything
-            // wider. Floated over the bottom corner of a narrow screen, the
-            // markers land on top of the one control the hero exists to
-            // offer.
             className="mb-8 mr-5 self-end sm:absolute sm:bottom-8 sm:right-10 sm:mb-0 sm:mr-0"
           />
         </motion.section>

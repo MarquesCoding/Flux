@@ -30,9 +30,6 @@ const ProfileFace = ({ profile, pending = null, className }: ProfileFaceProps) =
     setChosen(address);
 
     return () => {
-      // Released rather than left behind: an object URL holds the whole file
-      // in memory until it is revoked, and somebody trying pictures would
-      // otherwise accumulate every one they looked at.
       URL.revokeObjectURL(address);
     };
   }, [pending]);

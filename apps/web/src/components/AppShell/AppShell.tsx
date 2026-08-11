@@ -72,8 +72,6 @@ const AppShell = ({
       return;
     }
 
-    // Escape is what everyone tries to get out of a place they have wandered
-    // into. Home is where it lets them out.
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onSectionChange('home');
@@ -87,11 +85,6 @@ const AppShell = ({
     };
   }, [section, onSectionChange]);
 
-  // Each section keeps its own place. Arriving at search from halfway down the
-  // library and landing halfway down the results is a page that has kept
-  // somebody else's place — but coming back to the library after a look at an
-  // account page and being thrown to the top is a page that has forgotten
-  // yours. So the offset is remembered per section and given back.
   const placesRef = useRef<Record<string, number>>({});
   const leavingRef = useRef(section);
 
@@ -103,8 +96,6 @@ const AppShell = ({
       leavingRef.current = section;
     }
 
-    // After the page has been drawn, not before: restoring a place on a page
-    // that is still a screen tall scrolls to the bottom of nothing.
     const frame = requestAnimationFrame(() => {
       window.scrollTo({ top: placesRef.current[section] ?? 0 });
     });
@@ -144,13 +135,8 @@ const AppShell = ({
       id: 'notifications',
       label: 'Notifications',
       icon: null,
-      // Its own control: the bell opens a panel where it stands rather than
-      // going anywhere, and a button inside a button is not a thing a browser
-      // will make sense of.
       control: <NotificationBell />,
-      onSelect: () => {
-        // Nothing to go to.
-      },
+      onSelect: () => {},
     },
     ...(isAdministrator
       ? [
@@ -178,9 +164,6 @@ const AppShell = ({
 
   return (
     <div className="relative min-h-screen text-text">
-      {/* The grid belongs where a page is mostly its own background: the way
-          in, and home behind the hero. A page of results or a form is already
-          full of things, and a texture under them is noise. */}
       <MoodBackground lights={moodLights} hasGrid={section === 'home'} />
 
       <TopNav
@@ -197,11 +180,6 @@ const AppShell = ({
       />
 
       <motion.main
-        // One key per section. Home and search once drew the same library and
-        // shared a page between them; search has its own now, and holding them
-        // together meant swapping one page's contents for another's inside a
-        // subtree that never changed — which reads as the page breaking rather
-        // than as going somewhere.
         key={section}
         variants={staggerVariants}
         initial="hidden"

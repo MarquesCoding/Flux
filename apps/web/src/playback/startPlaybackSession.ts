@@ -60,18 +60,12 @@ const startPlaybackSession = async (
 
     return {
       kind: 'failed',
-      // A body that is not an error message is the server rejecting the shape
-      // of the request, which is Flux's fault rather than the file's. Saying
-      // so points whoever is debugging it at the right side.
       reason: body.success
         ? body.data.error
         : `Flux asked for something the server would not accept (${response.status.toString()}).`,
     };
   }
 
-  // A response that does not match the contract is a server fault, not a
-  // network one. Reporting it as "could not reach the server" would send
-  // whoever is debugging it in entirely the wrong direction.
   const parsed = StartedSessionSchema.safeParse(await response.json());
 
   if (!parsed.success) {

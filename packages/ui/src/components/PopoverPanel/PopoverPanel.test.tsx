@@ -67,8 +67,6 @@ describe('PopoverPanel', () => {
 
     await actor.click(screen.getByRole('button', { name: 'Episodes' }));
 
-    // The library hands its own details along with the answer, which callers
-    // are typed not to see.
     expect(onOpenChange.mock.calls.at(-1)?.[0]).toBe(true);
   });
 

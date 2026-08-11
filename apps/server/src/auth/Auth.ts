@@ -60,9 +60,6 @@ const createAuth = ({
     database,
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
-    // What has been configured, and wherever this machine can be reached.
-    // Asked on every request rather than read once, so an address handed out
-    // by a router after the server started is trusted without a restart.
     trustedOrigins: async () => {
       const configured = (await settings.read()).trustedOrigins;
 
@@ -71,10 +68,6 @@ const createAuth = ({
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 10,
-      // A self-hosted server usually has no mail configured, so a reset link
-      // would go nowhere. Recovery therefore runs through the administrator,
-      // who is standing next to the machine. The alternative — no recovery at
-      // all — means one forgotten password loses the account permanently.
       sendResetPassword: async ({ user, url }) => {
         await onPasswordResetRequested?.(user.email, url);
       },
@@ -94,9 +87,6 @@ const createAuth = ({
     databaseHooks: {
       user: {
         create: {
-          // Every user gets a profile row the moment they exist, so nothing
-          // downstream has to cope with a user who has none. Playback
-          // preferences and request quotas both hang off it.
           after: async (created) => {
             await onUserCreated?.(created.id);
           },

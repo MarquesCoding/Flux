@@ -76,11 +76,6 @@ const detectLibrarySegments = async ({
   for (const [, group] of groups) {
     const baseline = processed;
 
-    // A provider that reports per item — fingerprinting, the slow one — moves
-    // the bar as each episode's audio is actually decoded, rather than
-    // leaving it frozen for the whole season. Clamped to the group's own
-    // size: `onItemDone` is a courtesy a provider can call more of than it
-    // strictly should without this reading as further along than it is.
     const found = await resolveSegments(providers, group, onProblem, () => {
       processed += 1;
       onProgress?.(Math.min(processed, baseline + group.length), total);

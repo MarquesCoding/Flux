@@ -25,8 +25,6 @@ import type { TopNavProps } from './TopNav.types';
  */
 const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }: TopNavProps) => {
   const prefersReducedMotion = useReducedMotion();
-  // Closed when a place is chosen: a menu still sitting over the page it
-  // navigated to is a menu somebody has to dismiss to see what they asked for.
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -35,20 +33,10 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
     >
       <nav
         aria-label="Sections"
-        // Three columns where there is room for three: the places belong in
-        // the middle of the screen, not in the middle of whatever is left over
-        // once the tools have taken their width. On a phone there is no such
-        // room — three columns there means a middle one too wide to fit,
-        // pushed off both edges — so it is a row, and the places take what is
-        // left and scroll within it.
         className="mx-auto flex max-w-[1800px] items-center justify-between gap-2 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:gap-3"
       >
         <div className="pointer-events-auto hidden min-w-0 items-center sm:flex">{brand}</div>
 
-        {/* On a phone the places fold into one control. Two capsules and eight
-            icons do not fit across a phone, and the honest answer to not
-            fitting is to put the less urgent group away rather than to let it
-            run off both edges. */}
         <div className="flux-glass pointer-events-auto flex shrink-0 items-center rounded-full p-1 sm:hidden">
           <PopoverPanel
             label="Where to go"
@@ -92,10 +80,6 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
 
             return (
               <li key={item.id} className="shrink-0">
-                {/* Named on hover only while the name is not already
-                    there. The place being stood on writes itself out beside
-                    its icon, and a tooltip repeating it is the same word
-                    twice. */}
                 <Tooltip label={item.label} side="bottom" isDisabled={isCurrent}>
                   <Button
                     variant="bare"
@@ -106,18 +90,12 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                       onSelect(item.id);
                     }}
                     className={cn(
-                      // The same height as a tool, so the two capsules are the
-                      // same capsule at different lengths rather than two
-                      // near-misses sitting beside each other.
                       'relative flex h-10 items-center gap-1.5 rounded-full px-3 text-sm transition-colors duration-200',
                       isCurrent
                         ? 'font-medium text-text'
                         : 'text-text-muted hover:text-text focus-visible:text-text',
                     )}
                   >
-                    {/* Under the word rather than around it, so the capsule
-                      holds one moving highlight instead of five taking
-                      turns. */}
                     {!isCurrent ? null : (
                       <motion.span
                         layoutId="top-nav-current"
@@ -134,10 +112,6 @@ const TopNav = ({ brand, items, selectedId, onSelect, actions = [], className }:
                       <span className="flex shrink-0 items-center">{item.icon}</span>
                     )}
 
-                    {/* The name only where it is being stood on. An icon is
-                      enough to point at a place; a word is what tells you
-                      where you are, and five words all the time is a strip of
-                      words. */}
                     <AnimatePresence initial={false}>
                       {!isCurrent ? null : (
                         <motion.span

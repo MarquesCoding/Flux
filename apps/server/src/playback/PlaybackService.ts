@@ -55,24 +55,12 @@ type PlaybackService = {
   explain: (
     mediaId: string,
     profile: DeviceProfile,
-    /**
-     * A quality step the viewer picked, below the device's own capability.
-     *
-     * `undefined` or `'original'` means whatever device negotiation alone
-     * would decide, unchanged.
-     */
     requestedQuality?: QualityStepId,
   ) => Promise<Explanation | null>;
   start: (
     mediaId: string,
     profile: DeviceProfile,
     startSeconds: number,
-    /**
-     * The audio stream a viewer chose, when they chose one.
-     *
-     * Choosing one rules out direct play: the original file carries every
-     * stream and the browser picks for itself.
-     */
     audioStreamIndex?: number,
     requestedQuality?: QualityStepId,
   ) => Promise<StartOutcome>;

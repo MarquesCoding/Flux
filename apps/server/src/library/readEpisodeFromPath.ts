@@ -117,14 +117,8 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
     };
   }
 
-  // Everything the filename says before it names the episode. This is where
-  // the show's name actually is on most files, and a folder is only a
-  // fallback: a library kept flat would otherwise be searched for as though
-  // every show were called "media".
   const fromFileName = tidy(fileName.slice(0, numbering.index).replace(/[-–—\s]+$/, ''));
 
-  // A season directory means the one above it names the show. Without one, the
-  // immediate parent is the best guess available.
   const seriesDirectory = parentSeason === null ? parentName : grandparentName;
   const directoryYear = findYear(seriesDirectory);
   const tidiedDirectory = tidy(
@@ -133,8 +127,6 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
   const seriesTitle = fromFileName === '' ? tidiedDirectory : fromFileName;
   const seriesYear = directoryYear?.year ?? null;
 
-  // Whatever follows the numbering, less the extension and the release group
-  // that so often trails it.
   const afterNumbering = fileName.slice(numbering.index + numbering[0].length);
   const spoken = afterNumbering.replace(/\.[a-z0-9]{2,4}$/i, '').replace(/^[-–—\s._]+/, '');
 

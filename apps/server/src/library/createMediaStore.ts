@@ -52,8 +52,6 @@ const createMediaStore = (
       audioStreams: row.probe.audioStreams,
       subtitleStreams: row.probe.subtitleStreams,
       chapters: row.probe.chapters,
-      // What the catalogue calls the show wins over what the path suggested:
-      // one is a name, the other is a folder somebody happened to choose.
       seriesTitle: row.metadata.seriesTitle ?? row.episode.seriesTitle,
       seasonNumber: row.episode.seasonNumber,
       episodeNumber: row.episode.episodeNumber,
@@ -71,11 +69,6 @@ const createMediaStore = (
     await db
       .insert(mediaItem)
       .values({ id: randomUUID(), ...changeable })
-      // Everything the scan just worked out, not a subset of it. This clause
-      // was written when a row was only what a probe said, and it never
-      // learned about metadata — so an item that already existed could never
-      // gain a poster, a synopsis or a cast, and a catalogue key added after
-      // the first scan appeared to do nothing at all.
       .onConflictDoUpdate({
         target: [mediaItem.libraryId, mediaItem.path],
         set: changeable,
@@ -99,8 +92,6 @@ const createMediaStore = (
     await db.update(library).set({ lastScannedAt: new Date() }).where(eq(library.id, libraryId));
   },
 
-  // Watch progress and segments cascade with the item they belong to, so a
-  // clear leaves nothing behind for a rebuilt item to inherit by accident.
   clear: async (libraryId) => {
     const removed = await db
       .delete(mediaItem)

@@ -43,18 +43,12 @@ type SegmentProvider = {
 const INTRO_BOUNDS = {
   minSeconds: 10,
   maxSeconds: 180,
-  /**
-   * How far into a runtime an intro may begin, as a fraction.
-   */
   maxStartFraction: 0.4,
 } as const;
 
 const CREDITS_BOUNDS = {
   minSeconds: 15,
   maxSeconds: 300,
-  /**
-   * How late credits must begin to be credits rather than a theme.
-   */
   minStartFraction: 0.6,
 } as const;
 
