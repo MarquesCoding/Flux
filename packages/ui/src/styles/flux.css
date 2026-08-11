@@ -289,36 +289,11 @@ body {
    */
   backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));
   -webkit-backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));
-  /*
-   * The filter fades with the pane rather than after it. Opacity does not
-   * reach a backdrop filter until the element is fully transparent, so glass
-   * that fades out leaves its darkened backdrop behind for the length of the
-   * transition — which reads as the bar turning black on its way out.
-   */
-  transition:
-    backdrop-filter 400ms ease-out,
-    -webkit-backdrop-filter 400ms ease-out;
   border: 1px solid var(--glass-edge);
   box-shadow:
     inset 0 1px 0 0 color-mix(in oklab, white 28%, transparent),
     inset 0 -1px 0 0 rgb(0 0 0 / 0.25),
     var(--glass-shadow);
-}
-
-/*
- * Glass on its way out.
- *
- * Put on whatever contains the panes rather than on each of them, because what
- * is fading is a bar of controls, not one pane at a time.
- */
-.flux-glass-clearing .flux-glass {
-  /*
-   * The same filter with nothing left in it, rather than `none`. A filter
-   * cannot be interpolated towards `none` — it snaps — and a pane that loses
-   * its blur in one frame and then fades is a flicker rather than a fade.
-   */
-  backdrop-filter: blur(0px) saturate(100%) brightness(1);
-  -webkit-backdrop-filter: blur(0px) saturate(100%) brightness(1);
 }
 
 /*
