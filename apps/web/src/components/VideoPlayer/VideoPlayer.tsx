@@ -928,11 +928,14 @@ const VideoPlayer = ({
     }
   }, [selectedSubtitleId, session])
 
-  // The bar appearing or going is a change of line for whatever is on screen
-  // at that moment, not only for the cue after it.
+  // The bar appearing or going, and the way captions are drawn, both change
+  // what is already on screen rather than only what comes next. A browser lays
+  // a cue out when it appears and does not look at it again, so both need the
+  // cue asking for afresh — otherwise a setting appears to do nothing until
+  // somebody says the next line.
   useEffect(() => {
     cuesRef.current?.apply()
-  }, [isIdle])
+  }, [isIdle, captionStyle])
 
   // What one frame of this film is worth, taken from the film. Two consecutive
   // frames are enough: the gap between the moments they cover is the frame
