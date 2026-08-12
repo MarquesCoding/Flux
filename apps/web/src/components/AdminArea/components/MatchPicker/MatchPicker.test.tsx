@@ -6,9 +6,13 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 const searchCatalogueMock = vi.hoisted(() => vi.fn());
 const correctMatchMock = vi.hoisted(() => vi.fn());
+const forgetCorrectionMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@FluxWeb/admin/fetchAdmin', () => ({ searchCatalogue: searchCatalogueMock }));
-vi.mock('@FluxWeb/library/fetchLibrary', () => ({ correctMatch: correctMatchMock }));
+vi.mock('@FluxWeb/library/fetchLibrary', () => ({
+  correctMatch: correctMatchMock,
+  forgetCorrection: forgetCorrectionMock,
+}));
 
 const episode: MediaSummary = {
   id: '9c858901-8a57-4791-81fe-4c455b099bc9',
@@ -42,6 +46,8 @@ const MATCH = {
 beforeEach(() => {
   searchCatalogueMock.mockReset();
   correctMatchMock.mockReset();
+  forgetCorrectionMock.mockReset();
+  forgetCorrectionMock.mockResolvedValue({ corrected: 10 });
   searchCatalogueMock.mockResolvedValue([MATCH]);
   correctMatchMock.mockResolvedValue({ corrected: 10 });
 });
@@ -129,6 +135,52 @@ describe('MatchPicker', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('administrators');
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('puts an item back under the catalogue, for a correction that turned out wrong', async () => {
+    const user = userEvent.setup();
+    render(<MatchPicker media={episode} onClose={vi.fn()} onCorrected={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Forget the correction/ }));
+
+    expect(forgetCorrectionMock).toHaveBeenCalledWith(episode.id);
+  });
+
+  it('closes and tells the page once the correction is forgotten', async () => {
+    const onClose = vi.fn();
+    const onCorrected = vi.fn();
+    const user = userEvent.setup();
+    render(<MatchPicker media={episode} onClose={onClose} onCorrected={onCorrected} />);
+
+    await user.click(screen.getByRole('button', { name: /Forget the correction/ }));
+
+    await waitFor(() => {
+      expect(onCorrected).toHaveBeenCalled();
+    });
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('stays open and says so when it could not be put back', async () => {
+    forgetCorrectionMock.mockResolvedValue(null);
+
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<MatchPicker media={episode} onClose={onClose} onCorrected={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Forget the correction/ }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be put back');
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('does not need a search before it will put something back', async () => {
+    const user = userEvent.setup();
+    render(<MatchPicker media={episode} onClose={vi.fn()} onCorrected={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Forget the correction/ }));
+
+    expect(searchCatalogueMock).not.toHaveBeenCalled();
   });
 
   it('says a correction reaches the whole series', () => {

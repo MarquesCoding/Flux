@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { IconSearch } from '@tabler/icons-react';
+import { IconArrowBackUp, IconSearch } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { Spinner } from '@FluxUI/Spinner';
 import { TextField } from '@FluxUI/TextField';
 import { searchCatalogue } from '@FluxWeb/admin/fetchAdmin';
-import { correctMatch } from '@FluxWeb/library/fetchLibrary';
+import { correctMatch, forgetCorrection } from '@FluxWeb/library/fetchLibrary';
 import type { CatalogueMatch } from '@FluxWeb/admin/fetchAdmin';
 import type { MatchPickerProps } from './MatchPicker.types';
 
@@ -18,6 +18,10 @@ import type { MatchPickerProps } from './MatchPicker.types';
  * the confirmation step: the poster and the year say whether this is the one.
  *
  * A correction here reaches the whole series, since the id names a programme.
+ *
+ * Forgetting one is deleting a row rather than fetching anything: the
+ * catalogue's own answer was never overwritten, so putting a file back is
+ * letting the matcher speak again rather than restoring a copy.
  */
 const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
   const isEpisode = media?.seriesTitle !== null && media?.seriesTitle !== undefined;
@@ -27,6 +31,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
   const [matches, setMatches] = useState<CatalogueMatch[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
+  const [isForgetting, setIsForgetting] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,6 +68,28 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
 
     if ('problem' in outcome) {
       setProblem(outcome.problem);
+
+      return;
+    }
+
+    onCorrected();
+    onClose();
+  };
+
+  const forget = async () => {
+    if (media === null) {
+      return;
+    }
+
+    setIsForgetting(true);
+    setProblem(null);
+
+    const outcome = await forgetCorrection(media.id);
+
+    setIsForgetting(false);
+
+    if (outcome === null) {
+      setProblem('That could not be put back.');
 
       return;
     }
@@ -109,6 +136,25 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
           >
             <IconSearch size={16} aria-hidden />
             Search
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+          <p className="min-w-0 font-body text-xs text-text-muted">
+            Or put it back and let the catalogue decide again.
+          </p>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            isPill
+            isLoading={isForgetting}
+            onClick={() => {
+              void forget();
+            }}
+          >
+            <IconArrowBackUp size={16} aria-hidden />
+            Forget the correction
           </Button>
         </div>
 
