@@ -61,6 +61,7 @@ describe('JobRunner', () => {
         progress={new Map()}
         working={[]}
         onRun={vi.fn()}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
@@ -82,6 +83,7 @@ describe('JobRunner', () => {
         progress={new Map()}
         working={[]}
         onRun={onRun}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
@@ -102,6 +104,7 @@ describe('JobRunner', () => {
         progress={new Map()}
         working={[]}
         onRun={vi.fn()}
+        onStop={vi.fn()}
         onOpenSchedule={onOpenSchedule}
       />,
     );
@@ -122,6 +125,7 @@ describe('JobRunner', () => {
         progress={new Map()}
         working={[]}
         onRun={onRun}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
@@ -143,6 +147,7 @@ describe('JobRunner', () => {
         progress={new Map()}
         working={[]}
         onRun={onRun}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
@@ -164,6 +169,7 @@ describe('JobRunner', () => {
         progress={new Map()}
         working={[]}
         onRun={onRun}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
@@ -177,7 +183,10 @@ describe('JobRunner', () => {
 
   it('says a job is running rather than offering to start it again', () => {
     const progress = new Map<string, ScanEntry>([
-      ['lib-movies', { kind: 'library.scan', phase: 'probing', processed: 1, total: 4 }],
+      [
+        'lib-movies',
+        { kind: 'library.scan', phase: 'probing', processed: 1, total: 4, jobId: 'job-1' },
+      ],
     ]);
 
     render(
@@ -187,6 +196,7 @@ describe('JobRunner', () => {
         progress={progress}
         working={[]}
         onRun={vi.fn()}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
@@ -197,8 +207,14 @@ describe('JobRunner', () => {
   it('says running once for a job spread across several libraries, not once each', () => {
     const shows = { ...MOVIES, id: 'lib-shows', name: 'Shows' };
     const progress = new Map<string, ScanEntry>([
-      ['lib-movies', { kind: 'library.scan', phase: 'previews', processed: 1, total: 4 }],
-      ['lib-shows', { kind: 'library.scan', phase: 'previews', processed: 2, total: 6 }],
+      [
+        'lib-movies',
+        { kind: 'library.scan', phase: 'previews', processed: 1, total: 4, jobId: 'job-1' },
+      ],
+      [
+        'lib-shows',
+        { kind: 'library.scan', phase: 'previews', processed: 2, total: 6, jobId: 'job-1' },
+      ],
     ]);
 
     render(
@@ -208,6 +224,7 @@ describe('JobRunner', () => {
         progress={progress}
         working={[]}
         onRun={vi.fn()}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
@@ -215,11 +232,15 @@ describe('JobRunner', () => {
     expect(screen.getAllByText('Running')).toHaveLength(1);
   });
 
-  it('refuses to start another job while one is going', async () => {
+  it('offers to stop a job that is running, and says which kind to stop', async () => {
     const user = userEvent.setup();
+    const onStop = vi.fn<(kind: string) => void>();
 
     const progress = new Map<string, ScanEntry>([
-      ['lib-movies', { kind: 'library.scan', phase: 'probing', processed: 1, total: 4 }],
+      [
+        'lib-movies',
+        { kind: 'library.scan', phase: 'probing', processed: 1, total: 4, jobId: 'job-1' },
+      ],
     ]);
 
     render(
@@ -229,6 +250,54 @@ describe('JobRunner', () => {
         progress={progress}
         working={[]}
         onRun={vi.fn()}
+        onStop={onStop}
+        onOpenSchedule={vi.fn()}
+      />,
+    );
+
+    await choose(user, 'Scan for changes', /Stop it/);
+
+    expect(onStop).toHaveBeenCalledWith('library.scan');
+  });
+
+  it('does not offer to stop a job that is not running', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <JobRunner
+        definitions={DEFINITIONS}
+        libraries={[MOVIES]}
+        progress={new Map()}
+        working={[]}
+        onRun={vi.fn()}
+        onStop={vi.fn()}
+        onOpenSchedule={vi.fn()}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Actions for Scan for changes' }));
+
+    expect(screen.queryByRole('menuitem', { name: /Stop it/ })).not.toBeInTheDocument();
+  });
+
+  it('refuses to start another job while one is going', async () => {
+    const user = userEvent.setup();
+
+    const progress = new Map<string, ScanEntry>([
+      [
+        'lib-movies',
+        { kind: 'library.scan', phase: 'probing', processed: 1, total: 4, jobId: 'job-1' },
+      ],
+    ]);
+
+    render(
+      <JobRunner
+        definitions={DEFINITIONS}
+        libraries={[MOVIES]}
+        progress={progress}
+        working={[]}
+        onRun={vi.fn()}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
@@ -263,6 +332,7 @@ describe('JobRunner', () => {
         progress={new Map()}
         working={[]}
         onRun={onRun}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
@@ -286,7 +356,10 @@ describe('JobRunner', () => {
       },
     ];
     const progress = new Map<string, ScanEntry>([
-      ['catalogue.rematch', { kind: 'catalogue.rematch', phase: null, processed: 3, total: 10 }],
+      [
+        'catalogue.rematch',
+        { kind: 'catalogue.rematch', phase: null, processed: 3, total: 10, jobId: 'job-1' },
+      ],
     ]);
 
     render(
@@ -296,6 +369,7 @@ describe('JobRunner', () => {
         progress={progress}
         working={[]}
         onRun={vi.fn()}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
@@ -312,6 +386,7 @@ describe('JobRunner', () => {
         progress={new Map()}
         working={[]}
         onRun={vi.fn()}
+        onStop={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );

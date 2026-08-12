@@ -48,6 +48,7 @@ const props = {
   viewingJobKind: null,
   schedules: new Map(),
   onRun: vi.fn(),
+  onStop: vi.fn(),
   onOpenSchedule: vi.fn(),
   onCloseSchedule: vi.fn(),
   onAddTrigger: vi.fn(),
