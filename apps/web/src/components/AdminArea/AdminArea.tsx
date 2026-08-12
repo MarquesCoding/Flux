@@ -37,7 +37,7 @@ import {
   addJobTrigger,
   removeJobTrigger,
 } from '@FluxWeb/admin/fetchAdmin';
-import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
+import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { AddLibraryDialog } from './components/AddLibraryDialog/AddLibraryDialog';
 import { ScanProgressBar } from './components/ScanProgressBar/ScanProgressBar';
@@ -57,6 +57,7 @@ import {
   runDefinedJob,
   runDefinedJobAll,
 } from './scanCoordinator';
+import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import { formatBytes } from './formatBytes';
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
 import type {
@@ -350,13 +351,8 @@ const AdminArea = ({
 
   const readMedia = useCallback(async () => {
     const found = await fetchLibraries().catch(() => []);
-    const pages = await Promise.all(
-      found.map((library) =>
-        fetchLibraryItems(library.id, { limit: 500, offset: 0 }).catch(() => null),
-      ),
-    );
-
-    const everything = pages.flatMap((page) => page?.items ?? []);
+    const shelves = await Promise.all(found.map((library) => readWholeLibrary(library.id)));
+    const everything = shelves.flat();
     const byThing = new Map<string, MediaSummary>();
 
     for (const item of everything) {
@@ -959,7 +955,7 @@ const AdminArea = ({
                   label="Find a programme or film"
                   isLabelHidden
                   type="search"
-                  placeholder="Find a programme or film"
+                  placeholder="Find a title"
                   value={mediaSearch}
                   onValueChange={setMediaSearch}
                   className="w-64 max-w-full"
