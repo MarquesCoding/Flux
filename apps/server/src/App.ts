@@ -102,7 +102,18 @@ import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt';
 import type { ProfileService } from '@FluxServer/profiles/ProfileService';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import { createSessionGate } from '@FluxServer/auth/createSessionGate';
+import { createBetterAuthAdminBlock } from '@FluxServer/auth/createBetterAuthAdminBlock';
 import { checkRoleChange } from '@FluxServer/auth/checkRoleChange';
+import { checkAccountAction } from '@FluxServer/auth/checkAccountAction';
+import type { AccountActionRefusal } from '@FluxServer/auth/checkAccountAction';
+import {
+  listAccountsRoute,
+  banAccountRoute,
+  unbanAccountRoute,
+  removeAccountRoute,
+  inviteAccountRoute,
+  editAccountRoute,
+} from '@FluxServer/routes/AccountRoute';
 import type { RoleChangeRefusal } from '@FluxServer/auth/checkRoleChange';
 import { PERMISSIONS } from '@FluxContracts/schemas/Permission';
 import {
@@ -159,6 +170,14 @@ const SERVER_VERSION = '0.0.0';
 /**
  * What to tell somebody whose change to a role was refused.
  */
+/**
+ * What to tell somebody whose action on an account was refused.
+ */
+const describeAccountRefusal = (refusal: AccountActionRefusal): string =>
+  refusal === 'self'
+    ? 'You cannot do that to your own account.'
+    : 'That account is at or above your own rank.';
+
 const describeRefusal = (refusal: RoleChangeRefusal): string =>
   refusal === 'outranked'
     ? 'That role is at or above your own.'
@@ -181,6 +200,31 @@ type CreateAppOptions = {
    * default is the only safe way for this particular option to be missing.
    */
   permissions?: PermissionService;
+  /**
+   * Stops an account signing in, ends its sessions, and answers whether there
+   * was one. Passed in because ending a session is better-auth's business.
+   */
+  banAccount?: (userId: string, reason: string) => Promise<boolean>;
+  unbanAccount?: (userId: string) => Promise<boolean>;
+  removeAccount?: (userId: string) => Promise<boolean>;
+  isAccountBanned?: (userId: string) => Promise<boolean>;
+  /**
+   * Creates an account, or answers null when the address is taken. Passed in
+   * because turning a password into a credential is better-auth's business.
+   */
+  inviteAccount?: (request: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<{ id: string; name: string; email: string; createdAt: string } | null>;
+  /**
+   * Changes what an account is called or reached at.
+   */
+  editAccount?: (
+    userId: string,
+    changes: { name?: string; email?: string },
+  ) => Promise<'changed' | 'missing' | 'taken'>;
+  readBanReason?: (userId: string) => Promise<string | null>;
   /**
    * Server-wide upkeep an admin can start on demand — cache cleanup, session
    * cleanup, catalogue connectivity.
@@ -279,6 +323,13 @@ const createApp = ({
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
   permissions = createMemoryPermissionService(),
+  banAccount,
+  unbanAccount,
+  removeAccount,
+  isAccountBanned,
+  readBanReason,
+  inviteAccount,
+  editAccount,
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
@@ -308,6 +359,8 @@ const createApp = ({
 
     return (await permissions.resolve(session.user.id)).has(permission);
   };
+
+  app.all('/api/auth/admin/*', createBetterAuthAdminBlock());
 
   app.on(['GET', 'POST'], '/api/auth/*', (context) => auth.handler(context.req.raw));
 
@@ -1432,6 +1485,198 @@ const createApp = ({
         { error: 'That would leave nobody able to administer this server.' },
         400,
       );
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(listAccountsRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.manage'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const listed = (await listUsers?.()) ?? [];
+
+    const accounts = await Promise.all(
+      listed.map(async (account) => {
+        const held = await permissions.rolesFor(account.id);
+        const resolved = await permissions.resolve(account.id);
+
+        return {
+          id: account.id,
+          name: account.name,
+          email: account.email,
+          createdAt: account.createdAt,
+          isBanned: (await isAccountBanned?.(account.id)) ?? false,
+          banReason: (await readBanReason?.(account.id)) ?? null,
+          position: held.length === 0 ? null : Math.max(...held.map((role) => role.position)),
+          isAdministrator: resolved.has('administrator'),
+        };
+      }),
+    );
+
+    return context.json({ accounts }, 200);
+  });
+
+  app.openapi(banAccountRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.ban')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+    const { reason } = context.req.valid('json');
+    const target = await permissions.rolesFor(userId);
+
+    const refusal = checkAccountAction({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      actorHighestPosition: actor.highestPosition,
+      targetId: userId,
+      targetHighestPosition:
+        target.length === 0 ? null : Math.max(...target.map((role) => role.position)),
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeAccountRefusal(refusal) }, 403);
+    }
+
+    if ((await permissions.resolve(userId)).has('administrator')) {
+      const administrators = await permissions.countAdministrators();
+
+      if (administrators <= 1) {
+        return context.json(
+          { error: 'That would leave nobody able to administer this server.' },
+          400,
+        );
+      }
+    }
+
+    if (!(await banAccount?.(userId, reason))) {
+      return context.json({ error: 'No such account.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(unbanAccountRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.ban'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    if (!(await unbanAccount?.(context.req.valid('param').userId))) {
+      return context.json({ error: 'No such account.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(removeAccountRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.manage')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+    const target = await permissions.rolesFor(userId);
+
+    const refusal = checkAccountAction({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      actorHighestPosition: actor.highestPosition,
+      targetId: userId,
+      targetHighestPosition:
+        target.length === 0 ? null : Math.max(...target.map((role) => role.position)),
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeAccountRefusal(refusal) }, 403);
+    }
+
+    if ((await permissions.resolve(userId)).has('administrator')) {
+      const administrators = await permissions.countAdministrators();
+
+      if (administrators <= 1) {
+        return context.json(
+          { error: 'That would leave nobody able to administer this server.' },
+          400,
+        );
+      }
+    }
+
+    if (!(await removeAccount?.(userId))) {
+      return context.json({ error: 'No such account.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(inviteAccountRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.invite'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const invited = await inviteAccount?.(context.req.valid('json'));
+
+    if (invited === undefined || invited === null) {
+      return context.json({ error: 'That address is already in use.' }, 400);
+    }
+
+    return context.json(
+      {
+        id: invited.id,
+        name: invited.name,
+        email: invited.email,
+        createdAt: invited.createdAt,
+        isBanned: false,
+        banReason: null,
+        position: null,
+        isAdministrator: false,
+      },
+      201,
+    );
+  });
+
+  app.openapi(editAccountRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.manage')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+
+    if (actor.id !== userId) {
+      const target = await permissions.rolesFor(userId);
+
+      const refusal = checkAccountAction({
+        actorId: actor.id,
+        actorPermissions: actor.permissions,
+        actorHighestPosition: actor.highestPosition,
+        targetId: userId,
+        targetHighestPosition:
+          target.length === 0 ? null : Math.max(...target.map((role) => role.position)),
+      });
+
+      if (refusal !== null) {
+        return context.json({ error: describeAccountRefusal(refusal) }, 403);
+      }
+    }
+
+    const body = context.req.valid('json');
+    const changed = await editAccount?.(userId, {
+      ...(body.name === undefined ? {} : { name: body.name }),
+      ...(body.email === undefined ? {} : { email: body.email }),
+    });
+
+    if (changed === undefined || changed === 'missing') {
+      return context.json({ error: 'No such account.' }, 404);
+    }
+
+    if (changed === 'taken') {
+      return context.json({ error: 'That address is already in use.' }, 400);
     }
 
     return context.body(null, 204);
