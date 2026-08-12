@@ -9,7 +9,7 @@ import {
   IconStack2,
 } from '@tabler/icons-react';
 import { Badge } from '@FluxUI/Badge';
-import { TabBar } from '@FluxUI/TabBar';
+import { SideNav } from '@FluxUI/SideNav';
 import { TabPanel } from '@FluxUI/TabPanel';
 import { EventsPanel } from './components/EventsPanel/EventsPanel';
 import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
@@ -70,16 +70,32 @@ const HISTORY_LENGTH = 60;
  */
 const SESSIONS_POLL_MILLISECONDS = 5000;
 
-const PANELS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'activity', label: 'Activity' },
-  { id: 'jobs', label: 'Jobs' },
-  { id: 'events', label: 'Events' },
-  { id: 'libraries', label: 'Libraries' },
-  { id: 'settings', label: 'Settings' },
+/**
+ * The sections, grouped as somebody looking for one would.
+ *
+ * Grouped rather than listed because this list is going to grow — logs, roles,
+ * accounts, backups and webhooks all want a place — and a flat column of
+ * fourteen is as hard to read as a row of fourteen was.
+ */
+const SECTIONS = [
+  { label: null, items: [{ id: 'overview', label: 'Overview' }] },
+  {
+    label: 'Activity',
+    items: [
+      { id: 'activity', label: 'Now' },
+      { id: 'jobs', label: 'Jobs' },
+      { id: 'events', label: 'Events' },
+    ],
+  },
+  { label: 'Content', items: [{ id: 'libraries', label: 'Libraries' }] },
+  { label: 'System', items: [{ id: 'settings', label: 'Settings' }] },
 ] as const;
 
-type PanelId = (typeof PANELS)[number]['id'];
+type PanelId = (typeof SECTIONS)[number]['items'][number]['id'];
+
+const PANELS: readonly { id: PanelId; label: string }[] = SECTIONS.flatMap((section) => [
+  ...section.items,
+]);
 
 /**
  * Every job's triggers, keyed by kind.
@@ -337,8 +353,6 @@ const AdminArea = ({
               ))}
             </p>
           </div>
-
-          <TabBar tabs={[...PANELS]} label="What to look at" />
         </motion.header>
 
         <motion.div
@@ -388,158 +402,168 @@ const AdminArea = ({
           />
         </motion.div>
 
-        <motion.section
+        <motion.div
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
-          className="min-h-[22rem] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
+          className="flex flex-col gap-4 lg:grid lg:grid-cols-[13rem_1fr] lg:items-start lg:gap-6"
         >
-          <TabPanel
-            value="overview"
-            render={
-              <motion.div
-                initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-              />
-            }
-          >
-            <OverviewPanel
-              overview={overview}
-              monitor={monitor}
-              libraries={libraries}
-              sessionCount={sessions.length}
-              onOpenPanel={(next) => {
-                const found = PANELS.find((candidate) => candidate.id === next);
+          <SideNav
+            groups={SECTIONS.map((section) => ({
+              label: section.label,
+              items: [...section.items],
+            }))}
+            label="What to look at"
+          />
 
-                if (found !== undefined) {
-                  setPanel(found.id);
-                  onPanelChange?.(found.id);
-                }
-              }}
-            />
-          </TabPanel>
+          <section className="min-h-[22rem] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+            <TabPanel
+              value="overview"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <OverviewPanel
+                overview={overview}
+                monitor={monitor}
+                libraries={libraries}
+                sessionCount={sessions.length}
+                onOpenPanel={(next) => {
+                  const found = PANELS.find((candidate) => candidate.id === next);
 
-          <TabPanel
-            value="activity"
-            render={
-              <motion.div
-                initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
+                  if (found !== undefined) {
+                    setPanel(found.id);
+                    onPanelChange?.(found.id);
+                  }
+                }}
               />
-            }
-          >
-            <ActivityPanel
-              history={history}
-              monitor={monitor}
-              sessions={sessions}
-              busyClientId={busyClientId}
-              onStop={(clientId) => {
-                void stopStream(clientId);
-              }}
-              onPause={(clientId) => {
-                void pauseStream(clientId);
-              }}
-              onResume={(clientId) => {
-                void resumeStream(clientId);
-              }}
-            />
-          </TabPanel>
+            </TabPanel>
 
-          <TabPanel
-            value="jobs"
-            render={
-              <motion.div
-                initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
+            <TabPanel
+              value="activity"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <ActivityPanel
+                history={history}
+                monitor={monitor}
+                sessions={sessions}
+                busyClientId={busyClientId}
+                onStop={(clientId) => {
+                  void stopStream(clientId);
+                }}
+                onPause={(clientId) => {
+                  void pauseStream(clientId);
+                }}
+                onResume={(clientId) => {
+                  void resumeStream(clientId);
+                }}
               />
-            }
-          >
-            <JobsPanel
-              definitions={jobDefinitions}
-              libraries={libraries}
-              progress={scanProgress}
-              monitor={monitor}
-              viewingJobKind={viewingJobKind}
-              schedules={jobSchedules}
-              onRun={(kind) => {
-                void runJob(kind);
-              }}
-              onOpenSchedule={openJobSchedule}
-              onCloseSchedule={closeJobSchedule}
-              onAddTrigger={(kind, trigger) => {
-                void addTrigger(kind, trigger);
-              }}
-              onRemoveTrigger={(kind, triggerId) => {
-                void removeTrigger(kind, triggerId);
-              }}
-            />
-          </TabPanel>
+            </TabPanel>
 
-          <TabPanel
-            value="events"
-            render={
-              <motion.div
-                initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
+            <TabPanel
+              value="jobs"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <JobsPanel
+                definitions={jobDefinitions}
+                libraries={libraries}
+                progress={scanProgress}
+                monitor={monitor}
+                viewingJobKind={viewingJobKind}
+                schedules={jobSchedules}
+                onRun={(kind) => {
+                  void runJob(kind);
+                }}
+                onOpenSchedule={openJobSchedule}
+                onCloseSchedule={closeJobSchedule}
+                onAddTrigger={(kind, trigger) => {
+                  void addTrigger(kind, trigger);
+                }}
+                onRemoveTrigger={(kind, triggerId) => {
+                  void removeTrigger(kind, triggerId);
+                }}
               />
-            }
-          >
-            <EventsPanel monitor={monitor} />
-          </TabPanel>
+            </TabPanel>
 
-          <TabPanel
-            value="libraries"
-            render={
-              <motion.div
-                initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-              />
-            }
-          >
-            <LibrariesPanel
-              libraries={libraries}
-              progress={scanProgress}
-              isScanningAll={isScanningAll}
-              isResettingAll={isResettingAll}
-              onScan={(libraryId) => {
-                void rescan(libraryId);
-              }}
-              onScanAll={() => {
-                void rescanAll();
-              }}
-              onResetAll={() => {
-                void resetAll();
-              }}
-              onRegeneratePreviews={(libraryId) => {
-                void regeneratePreviews(libraryId);
-              }}
-              onLibraryCreated={onLibraryCreated}
-              onLibraryUpdated={onLibraryUpdated}
-            />
-          </TabPanel>
+            <TabPanel
+              value="events"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <EventsPanel monitor={monitor} />
+            </TabPanel>
 
-          <TabPanel
-            value="settings"
-            render={
-              <motion.div
-                initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
+            <TabPanel
+              value="libraries"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <LibrariesPanel
+                libraries={libraries}
+                progress={scanProgress}
+                isScanningAll={isScanningAll}
+                isResettingAll={isResettingAll}
+                onScan={(libraryId) => {
+                  void rescan(libraryId);
+                }}
+                onScanAll={() => {
+                  void rescanAll();
+                }}
+                onResetAll={() => {
+                  void resetAll();
+                }}
+                onRegeneratePreviews={(libraryId) => {
+                  void regeneratePreviews(libraryId);
+                }}
+                onLibraryCreated={onLibraryCreated}
+                onLibraryUpdated={onLibraryUpdated}
               />
-            }
-          >
-            <SettingsPanel
-              overview={overview}
-              onCatalogueKeySaved={() => {
-                void fetchAdminOverview().then(setOverview);
-              }}
-            />
-          </TabPanel>
-        </motion.section>
+            </TabPanel>
+
+            <TabPanel
+              value="settings"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <SettingsPanel
+                overview={overview}
+                onCatalogueKeySaved={() => {
+                  void fetchAdminOverview().then(setOverview);
+                }}
+              />
+            </TabPanel>
+          </section>
+        </motion.div>
       </Tabs>
     </motion.div>
   );
