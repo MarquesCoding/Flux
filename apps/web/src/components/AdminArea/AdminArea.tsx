@@ -17,6 +17,7 @@ import { JobsPanel } from './components/JobsPanel/JobsPanel';
 import { ActivityPanel } from './components/ActivityPanel/ActivityPanel';
 import { LibrariesPanel } from './components/LibrariesPanel/LibrariesPanel';
 import { OverviewPanel } from './components/OverviewPanel/OverviewPanel';
+import { RolesPanel } from './components/RolesPanel/RolesPanel';
 import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import {
@@ -88,7 +89,13 @@ const SECTIONS = [
     ],
   },
   { label: 'Content', items: [{ id: 'libraries', label: 'Libraries' }] },
-  { label: 'System', items: [{ id: 'settings', label: 'Settings' }] },
+  {
+    label: 'System',
+    items: [
+      { id: 'roles', label: 'Roles' },
+      { id: 'settings', label: 'Settings' },
+    ],
+  },
 ] as const;
 
 type PanelId = (typeof SECTIONS)[number]['items'][number]['id'];
@@ -543,6 +550,19 @@ const AdminArea = ({
                 onLibraryCreated={onLibraryCreated}
                 onLibraryUpdated={onLibraryUpdated}
               />
+            </TabPanel>
+
+            <TabPanel
+              value="roles"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <RolesPanel accounts={overview?.users ?? []} />
             </TabPanel>
 
             <TabPanel
