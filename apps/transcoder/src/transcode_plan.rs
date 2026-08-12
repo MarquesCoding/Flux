@@ -395,6 +395,8 @@ impl TranscodePlan {
         args.push("-i".into());
         args.push(self.spec.input_path.clone());
 
+        let mut is_mapped = false;
+
         match &self.spec.video {
             VideoAction::Copy => {
                 args.push("-c:v".into());
@@ -433,7 +435,12 @@ impl TranscodePlan {
                     args.push("-map".into());
                     args.push("[v]".into());
                     args.push("-map".into());
-                    args.push("0:a?".into());
+                    args.push(match self.spec.audio_stream_index {
+                        Some(index) => format!("0:{index}"),
+                        None => "0:a?".into(),
+                    });
+
+                    is_mapped = true;
                 } else {
                     args.push("-vf".into());
                     args.push(chain);
@@ -442,10 +449,12 @@ impl TranscodePlan {
         }
 
         if let Some(index) = self.spec.audio_stream_index {
-            args.push("-map".into());
-            args.push("0:v:0".into());
-            args.push("-map".into());
-            args.push(format!("0:{index}"));
+            if !is_mapped {
+                args.push("-map".into());
+                args.push("0:v:0".into());
+                args.push("-map".into());
+                args.push(format!("0:{index}"));
+            }
         }
 
         match &self.spec.audio {
@@ -737,6 +746,81 @@ mod tests {
             !args.iter().any(|a| a == "-vf"),
             "a graph replaces the chain"
         );
+    }
+
+    #[test]
+    fn maps_each_stream_once_when_compositing_over_a_chosen_audio_track() {
+        let args = plan(SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "libx264".into(),
+                max_bitrate_kbps: 4000,
+                max_width: 1920,
+                max_height: 1080,
+                tone_map: None,
+            },
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: true,
+            },
+            audio_stream_index: Some(1),
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        assert_eq!(
+            args.iter().filter(|a| *a == "-map").count(),
+            2,
+            "mapping the source video alongside the composited one puts two \
+             video tracks in the output"
+        );
+        assert!(
+            !args.iter().any(|a| a == "0:v:0"),
+            "the composited graph is the video, not the source"
+        );
+    }
+
+    #[test]
+    fn sends_the_chosen_audio_track_through_the_graph_rather_than_all_of_them() {
+        let args = plan(SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "libx264".into(),
+                max_bitrate_kbps: 4000,
+                max_width: 1920,
+                max_height: 1080,
+                tone_map: None,
+            },
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: true,
+            },
+            audio_stream_index: Some(2),
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        assert!(args.iter().any(|a| a == "0:2"));
+        assert!(!args.iter().any(|a| a == "0:a?"));
+    }
+
+    #[test]
+    fn takes_every_audio_track_when_none_was_chosen() {
+        let args = plan(SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "libx264".into(),
+                max_bitrate_kbps: 4000,
+                max_width: 1920,
+                max_height: 1080,
+                tone_map: None,
+            },
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: true,
+            },
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        assert!(args.iter().any(|a| a == "0:a?"));
     }
 
     #[test]
