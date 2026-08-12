@@ -19,6 +19,7 @@ import {
 } from '@tabler/icons-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { NavDock } from '@FluxUI/NavDock';
+import { SiteFooter } from '@FluxWeb/components/SiteFooter/SiteFooter';
 import { MoodBackground } from '@FluxUI/MoodBackground';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { BROWSE_SECTIONS } from './AppShell.types';
@@ -72,10 +73,15 @@ const SECTION_LABELS: Record<ShellSection, string> = {
 /**
  * The frame everything is drawn inside.
  *
- * A bar across the top rather than a dock at the bottom, and sectioned: the
- * places in the middle, the tools at the right. The library still gets the
- * whole surface — the bar is lettering over the artwork until the page moves
- * under it, at which point it earns a background.
+ * One dock, floating at the bottom, sectioned: the places in the middle, the
+ * tools at the right. Two bars — one for places, one for tools — meant every
+ * arrival had to be read twice to find out where anything was. The library
+ * gets the whole surface behind it, which is what the dock floats over.
+ *
+ * The footer sits at the end of the scroll on every page but the admin one,
+ * which is a dashboard somebody works in rather than a page they read to the
+ * bottom of. It carries its own room for the dock; the admin page is given
+ * that room instead.
  *
  * Sections arrive rather than appear. The page is keyed on the section, so
  * moving between them animates out and in instead of swapping silently.
@@ -88,6 +94,8 @@ const AppShell = ({
   isAdministrator = false,
   avatar,
   onSurprise,
+  genres = [],
+  onGenre,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion();
 
@@ -205,7 +213,7 @@ const AppShell = ({
         variants={staggerVariants}
         initial="hidden"
         animate="shown"
-        className="min-h-screen pb-28"
+        className={section === 'admin' ? 'min-h-screen pb-28' : 'min-h-screen'}
       >
         <motion.div
           variants={revealVariants(prefersReducedMotion)}
@@ -213,6 +221,10 @@ const AppShell = ({
         >
           {children}
         </motion.div>
+
+        {section === 'admin' || onGenre === undefined ? null : (
+          <SiteFooter genres={genres} onSectionChange={onSectionChange} onGenre={onGenre} />
+        )}
       </motion.main>
     </div>
   );

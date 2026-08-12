@@ -41,14 +41,30 @@ beforeEach(() => {
 
 describe('SearchArea', () => {
   it('offers somewhere to type', async () => {
-    render(<SearchArea search="" onSearchChange={vi.fn()} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
 
     expect(await screen.findByRole('searchbox')).toBeInTheDocument();
   });
 
   it('asks the server rather than sifting what happened to arrive', async () => {
     render(
-      <SearchArea search="arrival" onSearchChange={vi.fn()} onPlay={vi.fn()} onInspect={vi.fn()} />,
+      <SearchArea
+        search="arrival"
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
     );
 
     await waitFor(() => {
@@ -62,7 +78,16 @@ describe('SearchArea', () => {
   it('narrows to one kind of thing on request', async () => {
     const user = userEvent.setup();
 
-    render(<SearchArea search="" onSearchChange={vi.fn()} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
     await user.click(await screen.findByRole('button', { name: 'Films' }));
 
     await waitFor(() => {
@@ -74,13 +99,31 @@ describe('SearchArea', () => {
   });
 
   it('offers the genres the library actually has', async () => {
-    render(<SearchArea search="" onSearchChange={vi.fn()} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
 
     expect(await screen.findByRole('button', { name: 'Science fiction' })).toBeInTheDocument();
   });
 
   it('shows what it found', async () => {
-    render(<SearchArea search="" onSearchChange={vi.fn()} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
 
     expect(await screen.findByRole('button', { name: /Arrival/ })).toBeInTheDocument();
   });
@@ -88,7 +131,16 @@ describe('SearchArea', () => {
   it('says how to get back when nothing matches everything asked', async () => {
     const user = userEvent.setup();
 
-    render(<SearchArea search="" onSearchChange={vi.fn()} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
     await user.click(await screen.findByRole('button', { name: 'Films' }));
     fetchLibraryItems.mockResolvedValue({ items: [], total: 0 });
 
@@ -103,6 +155,8 @@ describe('SearchArea', () => {
       <SearchArea
         search="arrival"
         onSearchChange={onSearchChange}
+        genre={null}
+        onGenreChange={vi.fn()}
         onPlay={vi.fn()}
         onInspect={vi.fn()}
       />,

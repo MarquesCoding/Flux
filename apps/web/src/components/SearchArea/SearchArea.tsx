@@ -5,6 +5,7 @@ import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { fetchGenres } from '@FluxWeb/library/fetchGenres';
 import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
 import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
@@ -46,6 +47,8 @@ const KINDS: { id: SearchKind; label: string }[] = [
 const SearchArea = ({
   search,
   onSearchChange,
+  genre,
+  onGenreChange,
   onPlay,
   onInspect,
   onItemsLoaded,
@@ -58,7 +61,6 @@ const SearchArea = ({
   const [items, setItems] = useState<MediaSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [kind, setKind] = useState<SearchKind>('everything');
-  const [genre, setGenre] = useState<string | null>(null);
   const [genres, setGenres] = useState<string[]>([]);
   const [isReading, setIsReading] = useState(false);
   const prefersReducedMotion = useReducedMotion();
@@ -110,22 +112,8 @@ const SearchArea = ({
   }, [read]);
 
   useEffect(() => {
-    if (libraryIds.length === 0) {
-      return;
-    }
-
-    void Promise.all(
-      libraryIds.map(async (libraryId) =>
-        fetchLibraryItems(libraryId, { limit: 200 }).catch(() => ({ items: [], total: 0 })),
-      ),
-    ).then((pages) => {
-      const named = new Set(
-        pages.flatMap((page) => page.items).flatMap((item) => item.genres ?? []),
-      );
-
-      setGenres([...named].sort((left, right) => left.localeCompare(right)));
-    });
-  }, [libraryIds]);
+    void fetchGenres().then(setGenres);
+  }, []);
 
   const isNarrowed = kind !== 'everything' || genre !== null || search.trim() !== '';
 
@@ -184,7 +172,7 @@ const SearchArea = ({
               isPill
               onClick={() => {
                 setKind('everything');
-                setGenre(null);
+                onGenreChange(null);
                 onSearchChange('');
               }}
             >
@@ -203,7 +191,7 @@ const SearchArea = ({
                   isPill
                   variant={named === genre ? 'glossy' : 'ghost'}
                   onClick={() => {
-                    setGenre(named === genre ? null : named);
+                    onGenreChange(named === genre ? null : named);
                   }}
                 >
                   {named}

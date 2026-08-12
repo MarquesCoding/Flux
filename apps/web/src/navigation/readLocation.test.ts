@@ -122,6 +122,7 @@ describe('writeLocation', () => {
       show: null,
       playing: null,
       startSeconds: 0,
+      genre: null,
       adminPanel: null,
       adminJob: null,
     } as const;
@@ -147,5 +148,21 @@ describe('writeLocation', () => {
 
   it('leaves the job out of any other section', () => {
     expect(writeLocation({ ...HOME, section: 'home', adminJob: 'library.scan' })).toBe('/');
+  });
+});
+
+describe('a genre kept in the address', () => {
+  it('writes the genre a search is narrowed to', () => {
+    expect(writeLocation({ ...HOME, section: 'search', genre: 'Science fiction' })).toBe(
+      '/search?genre=Science+fiction',
+    );
+  });
+
+  it('reads it back', () => {
+    expect(readLocation('http://flux.local/search?genre=Horror').genre).toBe('Horror');
+  });
+
+  it('has no genre when the address names none', () => {
+    expect(readLocation('http://flux.local/search').genre).toBeNull();
   });
 });

@@ -194,8 +194,12 @@ describe('App routing', () => {
 
     await arrive();
 
-    expect(await screen.findByRole('navigation', { name: 'Sections' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+    const dock = await screen.findByRole('navigation', { name: 'Sections' });
+
+    expect(within(dock).getByRole('button', { name: 'Home' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 
   it('calls the instance whatever it is configured to be called', async () => {
