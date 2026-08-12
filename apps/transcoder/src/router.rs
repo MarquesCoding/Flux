@@ -564,6 +564,40 @@ async fn sweep_trickplay(
     (StatusCode::OK, Json(report)).into_response()
 }
 
+/// What a forget answers.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ForgetReport {
+    /// Whether there was anything there to remove.
+    forgotten: bool,
+}
+
+/// Removes one clip, so the next request for it makes it again.
+///
+/// Takes the request rather than an address for the same reason the sweep does:
+/// the address is a hash of the request and belongs here, so there is no id for
+/// a caller to get wrong and nothing to escape a directory with.
+async fn forget_preview(
+    State(state): State<AppState>,
+    Json(request): Json<PreviewRequest>,
+) -> Response {
+    let root = state.registry.config().cache_root.join("previews");
+    let forgotten = cache_sweep::forget(&root, &request.id()).await;
+
+    (StatusCode::OK, Json(ForgetReport { forgotten })).into_response()
+}
+
+/// Removes one set of sheets, so the next request draws them again.
+async fn forget_trickplay(
+    State(state): State<AppState>,
+    Json(request): Json<TrickplayRequest>,
+) -> Response {
+    let root = state.registry.config().cache_root.join("trickplay");
+    let forgotten = cache_sweep::forget(&root, &request.id()).await;
+
+    (StatusCode::OK, Json(ForgetReport { forgotten })).into_response()
+}
+
 /// Serves a made clip.
 async fn preview_file(
     State(state): State<AppState>,
@@ -870,10 +904,12 @@ pub fn create_router(state: AppState) -> Router {
         .route("/frame", post(start_frame))
         .route("/previews", post(start_preview))
         .route("/previews/sweep", post(sweep_previews))
+        .route("/previews/forget", post(forget_preview))
         .route("/previews/{id}/{name}", get(preview_file))
         .route("/subtitles", post(start_subtitle))
         .route("/trickplay", post(start_trickplay))
         .route("/trickplay/sweep", post(sweep_trickplay))
+        .route("/trickplay/forget", post(forget_trickplay))
         .route("/trickplay/{id}/{name}", get(trickplay_file))
         .with_state(state)
 }

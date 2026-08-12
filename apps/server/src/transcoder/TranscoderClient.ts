@@ -129,6 +129,11 @@ const SubtitleTrackSchema = z.object({ content: z.string() });
  * alone whatever its name, because an artefact halfway through being written
  * looks exactly like an abandoned one.
  */
+/**
+ * Whether a forget found anything to remove.
+ */
+const ForgetReportSchema = z.object({ forgotten: z.boolean() });
+
 const SweepReportSchema = z.object({
   removed: z.number().int().nonnegative(),
   freedBytes: z.number().int().nonnegative(),
@@ -335,6 +340,18 @@ type Transcoder = {
    * Deletes thumbnail sheets nothing addresses any more.
    */
   sweepTrickplay: (keep: TrickplayRequest[]) => Promise<SweepReport>;
+  /**
+   * Removes one item's artefacts, so the next request makes them again.
+   *
+   * The safe kind of deletion, unlike a sweep: an operator points at one item
+   * rather than at a computed list of everything unwanted, and the worst case
+   * is that a clip is rendered a second time.
+   *
+   * Answers whether anything was there, so a caller can tell "removed it" from
+   * "there was nothing to remove".
+   */
+  forgetPreview: (request: PreviewSweepSubject) => Promise<boolean>;
+  forgetTrickplay: (request: TrickplayRequest) => Promise<boolean>;
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>;
   stopSession: (id: string) => Promise<boolean>;
   /**
@@ -626,6 +643,14 @@ const createTranscoderClient = ({
 
     sweepTrickplay: async (keep) =>
       SweepReportSchema.parse(await (await postJson('/trickplay/sweep', { keep })).json()),
+
+    forgetPreview: async (request) =>
+      ForgetReportSchema.parse(await (await postJson('/previews/forget', request)).json())
+        .forgotten,
+
+    forgetTrickplay: async (request) =>
+      ForgetReportSchema.parse(await (await postJson('/trickplay/forget', request)).json())
+        .forgotten,
 
     readMonitor: async () => (await call('/monitor')).json(),
 

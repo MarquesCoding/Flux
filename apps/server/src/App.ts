@@ -29,6 +29,7 @@ import {
   runningScansRoute,
   correctMatchRoute,
   forgetCorrectionRoute,
+  rebuildArtefactsRoute,
   resetLibraryRoute,
   regeneratePreviewsRoute,
 } from './routes/LibraryRoute';
@@ -640,6 +641,18 @@ const createApp = ({
     return forgotten === null
       ? context.json({ error: 'No such item.' }, 404)
       : context.json(forgotten, 200);
+  });
+
+  app.openapi(rebuildArtefactsRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'media.override'))) {
+      return context.json({ error: 'That is for administrators.' }, 404);
+    }
+
+    const rebuilt = await library.rebuildArtefacts(context.req.valid('param').id);
+
+    return rebuilt === null
+      ? context.json({ error: 'No such item.' }, 404)
+      : context.json(rebuilt, 200);
   });
 
   app.openapi(runningScansRoute, (context) =>

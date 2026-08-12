@@ -256,6 +256,34 @@ const forgetCorrection = async (mediaId: string): Promise<Correction | null> => 
   return body.success ? body.data : null;
 };
 
+/**
+ * What throwing away an item's artefacts found to throw away.
+ */
+const RebuiltArtefactsSchema = z.object({ preview: z.boolean(), trickplay: z.boolean() });
+
+type RebuiltArtefacts = z.infer<typeof RebuiltArtefactsSchema>;
+
+/**
+ * Throws away one item's preview and thumbnails, so they are made again.
+ *
+ * Null when the server would not do it. Both fields false is not a failure — it
+ * means the item had nothing cached, which is the state the operator wanted.
+ */
+const rebuildArtefacts = async (mediaId: string): Promise<RebuiltArtefacts | null> => {
+  const response = await fetch(`/api/media/${mediaId}/artefacts/rebuild`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  }).catch(() => null);
+
+  if (response === null || !response.ok) {
+    return null;
+  }
+
+  const body = RebuiltArtefactsSchema.safeParse(await response.json().catch(() => null));
+
+  return body.success ? body.data : null;
+};
+
 const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | null> => {
   const query = force ? '?force=true' : '';
   const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, { method: 'POST' });
@@ -331,6 +359,7 @@ export type {
   ScanJob,
   ScanState,
   ScanProgress,
+  RebuiltArtefacts,
 };
 
 export { ScanJobSchema };
@@ -347,4 +376,5 @@ export {
   regenerateLibraryPreviews,
   correctMatch,
   forgetCorrection,
+  rebuildArtefacts,
 };

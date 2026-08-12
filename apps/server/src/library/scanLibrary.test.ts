@@ -71,6 +71,8 @@ const harness = (options: {
   const transcoder: Transcoder = {
     isReachable: () => Promise.resolve(true),
     sweepPreviews: () => Promise.reject(new Error('not used')),
+    forgetPreview: () => Promise.reject(new Error('not used')),
+    forgetTrickplay: () => Promise.reject(new Error('not used')),
     sweepTrickplay: () => Promise.reject(new Error('not used')),
     probe: options.probeImpl ?? (() => Promise.resolve(probe())),
     startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
@@ -368,6 +370,8 @@ describe('scanLibrary', () => {
       transcoder: {
         isReachable: () => Promise.resolve(true),
         sweepPreviews: () => Promise.reject(new Error('not used')),
+        forgetPreview: () => Promise.reject(new Error('not used')),
+        forgetTrickplay: () => Promise.reject(new Error('not used')),
         sweepTrickplay: () => Promise.reject(new Error('not used')),
         probe: () => Promise.reject(new Error('moov atom not found')),
         startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),

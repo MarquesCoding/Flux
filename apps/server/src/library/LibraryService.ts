@@ -138,6 +138,17 @@ type LibraryService = ShowService & {
    */
   forgetCorrection: (mediaId: string) => Promise<Correction | null>;
   /**
+   * Throws away one item's preview and thumbnails so they are made again.
+   *
+   * The answer to "that one looks wrong". A reset rebuilds a whole library and a
+   * recipe change rebuilds every artefact of a kind; neither is a reasonable
+   * response to a single bad clip.
+   *
+   * Null when there is no such item. Both fields false means the item simply had
+   * nothing cached, which is the state the caller wanted anyway.
+   */
+  rebuildArtefacts: (mediaId: string) => Promise<{ preview: boolean; trickplay: boolean } | null>;
+  /**
    * Queues preview regeneration against the library's current forced audio
    * language, without a full rescan.
    *
