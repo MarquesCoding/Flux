@@ -9,6 +9,7 @@
 pub mod capability;
 pub mod fingerprint;
 pub mod frame;
+pub mod integrity;
 pub mod media;
 pub mod monitor;
 pub mod preview;

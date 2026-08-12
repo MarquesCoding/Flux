@@ -19,6 +19,7 @@ use thiserror::Error;
 use tokio::process::Command;
 
 use crate::capability::Capabilities;
+use crate::integrity::decodes;
 use crate::media::VideoRange;
 use crate::transcode_plan::{tone_map_filter, HardwareAccel, ToneMapping, NO_EMBEDDED_CAPTIONS};
 
@@ -135,6 +136,8 @@ pub enum PreviewError {
     Spawn(std::io::Error),
     #[error("ffmpeg produced no clip: {0}")]
     NoOutput(String),
+    #[error("the clip ffmpeg produced does not decode: {0}")]
+    Corrupt(String),
     #[error("could not mark the preview complete: {0}")]
     Marker(std::io::Error),
 }
@@ -294,10 +297,18 @@ pub fn preview_arguments(
 
 /// Makes the clip, or reuses the one already there.
 ///
+/// The clip is decoded before it is marked complete. An encoder that exits zero
+/// and writes a full-sized file can still have produced something that plays as
+/// black, and a preview is cached for as long as the library stands, so the
+/// check is what stops one bad encode becoming permanent. A clip that fails it
+/// is treated exactly like an encoder that refused to start, which means the
+/// software fallback below already handles it.
+///
 /// # Errors
 ///
-/// Returns [`PreviewError`] when the directory cannot be made, ffmpeg cannot
-/// be started, or it writes nothing.
+/// Returns [`PreviewError`] when the directory cannot be made, ffmpeg cannot be
+/// started, it writes nothing, or what it wrote will not decode even in
+/// software.
 pub async fn generate(
     ffmpeg: &str,
     cache_root: &Path,
@@ -354,12 +365,20 @@ pub async fn generate(
             .await
             .map_or(0, |file| file.len());
 
-        if outcome.status.success() && written > 0 {
-            break;
-        }
+        let failure = if outcome.status.success() && written > 0 {
+            decodes(ffmpeg, &output)
+                .await
+                .err()
+                .map(PreviewError::Corrupt)
+        } else {
+            Some(PreviewError::NoOutput(
+                String::from_utf8_lossy(&outcome.stderr).trim().to_owned(),
+            ))
+        };
 
-        let failure =
-            PreviewError::NoOutput(String::from_utf8_lossy(&outcome.stderr).trim().to_owned());
+        let Some(failure) = failure else {
+            break;
+        };
 
         if chosen == PreviewEncoder::Software {
             return Err(failure);
