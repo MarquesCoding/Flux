@@ -1,26 +1,21 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
-  IconActivity,
   IconAlertTriangle,
   IconCircleCheck,
   IconCpu,
   IconDatabase,
   IconPlayerPlay,
-  IconPlus,
-  IconRefresh,
-  IconRefreshAlert,
   IconStack2,
-  IconTrash,
 } from '@tabler/icons-react';
-import { Sparkline } from '@FluxUI/Sparkline';
 import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
 import { TabBar } from '@FluxUI/TabBar';
 import { TabPanel } from '@FluxUI/TabPanel';
 import { EventsPanel } from './components/EventsPanel/EventsPanel';
 import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { JobsPanel } from './components/JobsPanel/JobsPanel';
+import { ActivityPanel } from './components/ActivityPanel/ActivityPanel';
+import { LibrariesPanel } from './components/LibrariesPanel/LibrariesPanel';
 import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import {
@@ -38,11 +33,6 @@ import {
 } from '@FluxWeb/admin/fetchAdmin';
 import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
 import { StatStrip } from './components/StatStrip/StatStrip';
-import { AddLibraryDialog } from './components/AddLibraryDialog/AddLibraryDialog';
-import { ScanProgressBar } from './components/ScanProgressBar/ScanProgressBar';
-import { ResetLibrariesDialog } from './components/ResetLibrariesDialog/ResetLibrariesDialog';
-import { LibrarySettingsDialog } from './components/LibrarySettingsDialog/LibrarySettingsDialog';
-import { SessionCard } from './components/SessionCard/SessionCard';
 import {
   subscribe as subscribeToScans,
   getSnapshot as getScanSnapshot,
@@ -99,29 +89,6 @@ type PanelId = (typeof PANELS)[number]['id'];
 const readJobSchedules = async (): Promise<Map<string, JobTrigger[]>> =>
   new Map((await fetchJobSchedules()).map((entry) => [entry.kind, entry.triggers]));
 
-type SessionGroup = { key: string; label: string; sessions: ActiveSession[] };
-
-/**
- * Separates every open tab out by who has it open, so an admin can see every
- * session a given viewer has running rather than one flat list.
- */
-const groupSessionsByViewer = (sessions: ActiveSession[]): SessionGroup[] => {
-  const groups = new Map<string, SessionGroup>();
-
-  for (const session of sessions) {
-    const key = session.profileId ?? 'unknown';
-    const existing = groups.get(key);
-
-    if (existing === undefined) {
-      groups.set(key, { key, label: session.profileName ?? 'Unknown viewer', sessions: [session] });
-    } else {
-      existing.sessions.push(session);
-    }
-  }
-
-  return [...groups.values()];
-};
-
 /**
  * Trims what ffmpeg calls itself down to a version.
  *
@@ -165,14 +132,11 @@ const AdminArea = ({
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
   const [jobSchedules, setJobSchedules] = useState<Map<string, JobTrigger[]>>(new Map());
-  const [isAddingLibrary, setIsAddingLibrary] = useState(false);
   const {
     progress: scanProgress,
     isScanningAll,
     isResettingAll,
   } = useSyncExternalStore(subscribeToScans, getScanSnapshot);
-  const [isConfirmingReset, setIsConfirmingReset] = useState(false);
-  const [settingsLibraryId, setSettingsLibraryId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<ActiveSession[]>([]);
   const [busyClientId, setBusyClientId] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -183,7 +147,6 @@ const AdminArea = ({
 
   const onLibraryCreated = (library: Library) => {
     setLibraries((current) => [...current, library]);
-    setIsAddingLibrary(false);
   };
 
   const rescan = async (libraryId: string) => {
@@ -197,7 +160,6 @@ const AdminArea = ({
   };
 
   const resetAll = async () => {
-    setIsConfirmingReset(false);
     await startResetAll(libraries);
     setLibraries(await fetchLibraries());
   };
@@ -439,107 +401,21 @@ const AdminArea = ({
               />
             }
           >
-            <>
-              <div className="grid gap-px bg-white/10 lg:grid-cols-[1.4fr_1fr]">
-                <div className="flex flex-col gap-4 bg-surface/40 p-5">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-text-muted">
-                      <IconActivity size={14} aria-hidden />
-                      Last minute
-                    </h2>
-
-                    <span className="text-xs tabular-nums text-text-muted">
-                      {history.length.toString()} readings
-                    </span>
-                  </div>
-
-                  <Sparkline
-                    values={history}
-                    ceiling={100}
-                    label="Processor use over the last minute"
-                    className="h-32"
-                  />
-
-                  <p className="text-xs leading-relaxed text-text-muted">
-                    A reading a second. A tall run is something being converted; a flat floor is the
-                    server idling.
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3 bg-surface/40 p-5">
-                  <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
-                    Conversions
-                  </h2>
-
-                  {conversions.length === 0 ? (
-                    <p className="text-sm text-text-muted">Nothing is being converted.</p>
-                  ) : (
-                    <ul className="flex flex-col gap-3">
-                      {conversions.map((child) => (
-                        <li key={child.pid} className="flex flex-col gap-1.5">
-                          <span className="flex items-baseline justify-between gap-3 text-sm tabular-nums">
-                            <span className="text-text">ffmpeg {child.pid}</span>
-                            <span className="text-text-muted">
-                              {child.cpuPercent.toFixed(0)}% · {formatBytes(child.memoryBytes)}
-                            </span>
-                          </span>
-
-                          <span className="block h-1 overflow-hidden rounded-full bg-white/10">
-                            <span
-                              role="presentation"
-                              style={{
-                                width: `${Math.min(
-                                  (child.cpuPercent /
-                                    Math.max((resources?.cpuCount ?? 1) * 100, 1)) *
-                                    100,
-                                  100,
-                                ).toString()}%`,
-                              }}
-                              className="block h-full rounded-full bg-accent"
-                            />
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-5 border-t border-white/10 bg-surface/40 p-5">
-                <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
-                  Active Sessions
-                </h2>
-
-                {sessions.length === 0 ? (
-                  <p className="text-sm text-text-muted">Nobody has the app open right now.</p>
-                ) : (
-                  groupSessionsByViewer(sessions).map((group) => (
-                    <div key={group.key} className="flex flex-col gap-3">
-                      <h3 className="text-xs font-medium text-text">{group.label}</h3>
-
-                      <div className="flex flex-wrap gap-3">
-                        {group.sessions.map((session) => (
-                          <SessionCard
-                            key={session.clientId}
-                            session={session}
-                            isBusy={busyClientId === session.clientId}
-                            onStop={() => {
-                              void stopStream(session.clientId);
-                            }}
-                            onPause={() => {
-                              void pauseStream(session.clientId);
-                            }}
-                            onResume={() => {
-                              void resumeStream(session.clientId);
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </>
+            <ActivityPanel
+              history={history}
+              monitor={monitor}
+              sessions={sessions}
+              busyClientId={busyClientId}
+              onStop={(clientId) => {
+                void stopStream(clientId);
+              }}
+              onPause={(clientId) => {
+                void pauseStream(clientId);
+              }}
+              onResume={(clientId) => {
+                void resumeStream(clientId);
+              }}
+            />
           </TabPanel>
 
           <TabPanel
@@ -596,156 +472,26 @@ const AdminArea = ({
               />
             }
           >
-            <div className="flex flex-col">
-              <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
-                <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
-                  Library roots
-                </h2>
-
-                <div className="flex shrink-0 items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    isPill
-                    isLoading={isScanningAll}
-                    disabled={libraries.length === 0 || scanProgress.size > 0}
-                    onClick={() => {
-                      void rescanAll();
-                    }}
-                  >
-                    <IconRefreshAlert size={16} aria-hidden />
-                    Scan all libraries
-                  </Button>
-
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    isPill
-                    isLoading={isResettingAll}
-                    disabled={libraries.length === 0 || scanProgress.size > 0}
-                    onClick={() => {
-                      setIsConfirmingReset(true);
-                    }}
-                  >
-                    <IconTrash size={16} aria-hidden />
-                    Reset and rebuild
-                  </Button>
-
-                  <Button
-                    variant="glossy"
-                    size="sm"
-                    isPill
-                    onClick={() => {
-                      setIsAddingLibrary(true);
-                    }}
-                  >
-                    <IconPlus size={16} aria-hidden />
-                    Add library
-                  </Button>
-                </div>
-              </header>
-
-              {libraries.length === 0 ? (
-                <p className="p-5 text-sm text-text-muted">
-                  No libraries yet. Add one pointing at a folder of media.
-                </p>
-              ) : (
-                <ul className="divide-y divide-white/5">
-                  {libraries.map((library) => {
-                    const progress = scanProgress.get(library.id);
-
-                    return (
-                      <li
-                        key={library.id}
-                        className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
-                      >
-                        <div className="flex min-w-0 flex-col gap-0.5">
-                          <span className="flex items-center gap-2 text-sm text-text">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-auto rounded-none bg-transparent p-0 text-sm text-text hover:bg-transparent hover:underline"
-                              onClick={() => {
-                                setSettingsLibraryId(library.id);
-                              }}
-                            >
-                              {library.name}
-                            </Button>
-                            <Badge size="sm">{library.kind}</Badge>
-                          </span>
-
-                          <span className="truncate text-xs text-text-muted" title={library.path}>
-                            {library.path} ·{' '}
-                            {library.itemCount === 1
-                              ? '1 item'
-                              : `${library.itemCount.toString()} items`}
-                          </span>
-                        </div>
-
-                        <div className="flex shrink-0 items-center gap-2">
-                          {progress === undefined ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              isPill
-                              onClick={() => {
-                                void rescan(library.id);
-                              }}
-                            >
-                              <IconRefresh size={16} aria-hidden />
-                              Scan
-                            </Button>
-                          ) : (
-                            <ScanProgressBar
-                              label={
-                                progress.kind === 'scan'
-                                  ? `Scanning ${library.name}`
-                                  : `Regenerating previews for ${library.name}`
-                              }
-                              phase={progress.phase}
-                              processed={progress.processed}
-                              total={progress.total}
-                            />
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-
-              <AddLibraryDialog
-                isOpen={isAddingLibrary}
-                onClose={() => {
-                  setIsAddingLibrary(false);
-                }}
-                onCreated={onLibraryCreated}
-              />
-
-              <ResetLibrariesDialog
-                isOpen={isConfirmingReset}
-                isResetting={isResettingAll}
-                onClose={() => {
-                  setIsConfirmingReset(false);
-                }}
-                onConfirm={() => {
-                  void resetAll();
-                }}
-              />
-
-              <LibrarySettingsDialog
-                key={settingsLibraryId ?? 'none'}
-                library={libraries.find((entry) => entry.id === settingsLibraryId) ?? null}
-                isOpen={settingsLibraryId !== null}
-                onClose={() => {
-                  setSettingsLibraryId(null);
-                }}
-                onUpdated={onLibraryUpdated}
-                onRegenerate={(libraryId) => {
-                  void regeneratePreviews(libraryId);
-                }}
-              />
-            </div>
+            <LibrariesPanel
+              libraries={libraries}
+              progress={scanProgress}
+              isScanningAll={isScanningAll}
+              isResettingAll={isResettingAll}
+              onScan={(libraryId) => {
+                void rescan(libraryId);
+              }}
+              onScanAll={() => {
+                void rescanAll();
+              }}
+              onResetAll={() => {
+                void resetAll();
+              }}
+              onRegeneratePreviews={(libraryId) => {
+                void regeneratePreviews(libraryId);
+              }}
+              onLibraryCreated={onLibraryCreated}
+              onLibraryUpdated={onLibraryUpdated}
+            />
           </TabPanel>
 
           <TabPanel
