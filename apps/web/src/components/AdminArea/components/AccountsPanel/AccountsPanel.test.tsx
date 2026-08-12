@@ -35,6 +35,7 @@ const account = (overrides: Partial<Account> = {}): Account => ({
   banReason: null,
   position: 100,
   isAdministrator: false,
+  roles: ['Member'],
   ...overrides,
 });
 
@@ -108,12 +109,31 @@ describe('AccountsPanel', () => {
     expect(mocks.fetchAccountPermissions).not.toHaveBeenCalled();
   });
 
-  it('marks an administrator by what they resolve to, not by a column', async () => {
-    accountMocks.fetchAccounts.mockResolvedValue([account({ isAdministrator: true })]);
+  it('shows every role on the row, so a change is visible without opening it', async () => {
+    accountMocks.fetchAccounts.mockResolvedValue([account({ roles: ['Manager', 'Member'] })]);
 
     render(<AccountsPanel />);
 
-    expect(await screen.findByText('administrator')).toBeInTheDocument();
+    expect(await screen.findByText('Manager')).toBeInTheDocument();
+    expect(screen.getByText('Member')).toBeInTheDocument();
+  });
+
+  it('says so plainly when somebody holds none', async () => {
+    accountMocks.fetchAccounts.mockResolvedValue([account({ roles: [] })]);
+
+    render(<AccountsPanel />);
+
+    expect(await screen.findByText('No roles')).toBeInTheDocument();
+  });
+
+  it('marks an administrator by what they resolve to, not by a column', async () => {
+    accountMocks.fetchAccounts.mockResolvedValue([
+      account({ isAdministrator: true, roles: ['Administrator'] }),
+    ]);
+
+    render(<AccountsPanel />);
+
+    expect(await screen.findByText('Administrator')).toBeInTheDocument();
   });
 
   describe('banning', () => {

@@ -7,6 +7,8 @@ import { createRoute, z } from '@hono/zod-openapi';
  * holds none — what decides whether somebody else may act on it.
  * `isAdministrator` is resolved from its permissions rather than read from
  * the old `user.role` column, so it answers what the account can actually do.
+ * `roles` names what it holds, so a list can show a change the moment it
+ * lands rather than making somebody open the account to find out.
  */
 const Account = z
   .object({
@@ -18,6 +20,7 @@ const Account = z
     banReason: z.string().nullable(),
     position: z.number().nullable(),
     isAdministrator: z.boolean(),
+    roles: z.array(z.string()),
   })
   .openapi('Account');
 

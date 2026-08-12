@@ -10,6 +10,7 @@ const AccountSchema = z.object({
   banReason: z.string().nullable(),
   position: z.number().nullable(),
   isAdministrator: z.boolean(),
+  roles: z.array(z.string()),
 });
 
 type Account = z.infer<typeof AccountSchema>;
