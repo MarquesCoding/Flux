@@ -16,6 +16,7 @@ import { DialogContent } from '@FluxUI/DialogContent';
 import { DialogFooter } from '@FluxUI/DialogFooter';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { ScanProgressBar } from '@FluxWeb/components/AdminArea/components/ScanProgressBar/ScanProgressBar';
+import { describeQueueKind } from './describeQueueKind';
 import { summariseProgress } from './summariseProgress';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { JobDefinition } from '@FluxWeb/admin/fetchAdmin';
@@ -34,10 +35,14 @@ const WORKING_SHOWN = 4;
  * that is what it is doing, so a job has to be translated into the work it
  * causes to say which file it is on. A scan causes all of it, which is why it
  * is absent here: anything running belongs to it.
+ *
+ * These are the queue's own strings and must stay as it spells them, since they
+ * are matched against rather than shown. What an operator reads comes from
+ * `describeQueueKind`.
  */
 const QUEUED_AS: Record<string, string[]> = {
   'library.regeneratePreviews': ['preview'],
-  'library.regenerateTrickplay': ['thumbnails', 'trickplay'],
+  'library.regenerateTrickplay': ['thumbnails'],
   'library.detectSegments': ['fingerprint'],
 };
 
@@ -181,7 +186,9 @@ const JobRunner = ({
                           <span className="truncate text-xs text-text" title={job.subject}>
                             {job.subject}
                           </span>
-                          <span className="text-xs text-text-muted">{job.kind}</span>
+                          <span className="text-xs text-text-muted">
+                            {describeQueueKind(job.kind)}
+                          </span>
                         </li>
                       ))}
 

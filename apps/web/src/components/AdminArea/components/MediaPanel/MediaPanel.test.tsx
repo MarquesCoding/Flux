@@ -127,7 +127,7 @@ describe('MediaPanel', () => {
 
     render(<MediaPanel {...props} media={[item()]} onRebuildArtefacts={onRebuildArtefacts} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /Rebuild preview/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Rebuild previews/ }));
 
     expect(onRebuildArtefacts).toHaveBeenCalledWith(expect.objectContaining({ id: 'item-1' }));
   });
@@ -135,7 +135,7 @@ describe('MediaPanel', () => {
   it('says it will rebuild rather than that it has, because nothing is made yet', async () => {
     render(<MediaPanel {...props} media={[item()]} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /Rebuild preview/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Rebuild previews/ }));
 
     expect(await screen.findByRole('button', { name: /Will rebuild/ })).toBeInTheDocument();
   });
@@ -149,9 +149,9 @@ describe('MediaPanel', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Rebuild preview/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Rebuild previews/ }));
 
-    expect(await screen.findByRole('button', { name: /Rebuild preview/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Rebuild previews/ })).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

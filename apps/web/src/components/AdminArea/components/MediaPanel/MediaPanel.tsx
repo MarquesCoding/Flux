@@ -137,7 +137,7 @@ const MediaPanel = ({
                 ? 'Rebuilding…'
                 : rebuilt.has(row.original.id)
                   ? 'Will rebuild'
-                  : 'Rebuild preview'}
+                  : 'Rebuild previews'}
             </Button>
 
             <Button
