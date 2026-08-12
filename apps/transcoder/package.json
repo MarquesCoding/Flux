@@ -1,0 +1,12 @@
+{
+  "name": "@flux/transcoder",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx ../../tools/transcoder/serveTranscoder.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
+  }
+}

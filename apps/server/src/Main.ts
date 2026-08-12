@@ -664,6 +664,7 @@ const app = createApp({
   monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
+  transcoderAddress: env.TRANSCODER_URL,
   listRunningJobs: () => jobs.listRunning(),
   searchCatalogue: (query, kind) => catalogueProvider.search?.(query, kind) ?? Promise.resolve([]),
 });
@@ -709,4 +710,5 @@ serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   }
 
   process.stdout.write(`API reference at ${origin}/api/reference\n`);
+  process.stdout.write(`Media service dialled at ${env.TRANSCODER_URL}\n`);
 });
