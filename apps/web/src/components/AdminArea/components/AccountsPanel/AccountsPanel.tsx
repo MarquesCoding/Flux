@@ -266,18 +266,24 @@ const AccountsPanel = () => {
                     <IconSelector size={16} className="shrink-0 text-text-muted" aria-hidden />
                   </span>
                 }
-                groups={groupPermissions(catalogue).map((group) => ({
-                  name: group.label,
-                  options: group.permissions.map((permission) => ({
-                    id: permission,
-                    label: describePermission(permission),
-                    detail: permission,
-                  })),
-                  selectedId: addingPermission ?? '',
-                  onSelect: (id) => {
-                    setAddingPermission(catalogue.find((permission) => permission === id) ?? null);
+                groups={[
+                  {
+                    name: 'Permissions',
+                    options: groupPermissions(catalogue).flatMap((group) =>
+                      group.permissions.map((permission) => ({
+                        id: permission,
+                        label: describePermission(permission),
+                        detail: `${group.label} · ${permission}`,
+                      })),
+                    ),
+                    selectedId: addingPermission ?? '',
+                    onSelect: (id) => {
+                      setAddingPermission(
+                        catalogue.find((permission) => permission === id) ?? null,
+                      );
+                    },
                   },
-                }))}
+                ]}
               />
 
               <Button

@@ -179,7 +179,7 @@ const RolesPanel = () => {
               What {selected.name} grants
             </h3>
 
-            <div className="flex flex-wrap items-start gap-3">
+            <div className="flex flex-wrap items-end gap-3">
               <TextField
                 label="Name"
                 value={draftName}
@@ -193,15 +193,14 @@ const RolesPanel = () => {
                 min={0}
                 value={draftPosition}
                 onValueChange={setDraftPosition}
-                description="Higher manages lower"
-                className="w-28 shrink-0"
+                className="w-24 shrink-0"
               />
 
               <Button
-                variant="ghost"
+                variant="glossy"
                 size="sm"
                 isPill
-                className="mt-[1.6rem] shrink-0"
+                className="shrink-0"
                 disabled={
                   draftName === '' ||
                   (draftName === selected.name && draftPosition === selected.position.toString())
@@ -220,6 +219,10 @@ const RolesPanel = () => {
                 Save
               </Button>
             </div>
+
+            <p className="text-xs text-text-muted">
+              A higher rank manages a lower one. Nobody may touch a role at or above their own.
+            </p>
           </header>
 
           {groupPermissions(catalogue).map((group) => (
