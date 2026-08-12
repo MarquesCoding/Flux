@@ -56,8 +56,10 @@ import {
   startRegeneratePreviews,
   runDefinedJob,
   runDefinedJobAll,
+  watchJob,
 } from './scanCoordinator';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
+import { describeScanKind } from './describeScanKind';
 import { formatBytes } from './formatBytes';
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
 import type {
@@ -884,11 +886,7 @@ const AdminArea = ({
                             </>
                           ) : (
                             <ScanProgressBar
-                              label={
-                                progress.kind === 'scan'
-                                  ? `Scanning ${library.name}`
-                                  : `Regenerating previews for ${library.name}`
-                              }
+                              label={describeScanKind(progress.kind, library.name)}
                               phase={progress.phase}
                               processed={progress.processed}
                               total={progress.total}
@@ -1095,8 +1093,14 @@ const AdminArea = ({
         onClose={() => {
           setCorrecting(null);
         }}
-        onCorrected={() => {
-          void readMedia();
+        onCorrected={(jobId) => {
+          const libraryId = correcting?.libraryId ?? null;
+
+          void (
+            jobId === null || libraryId === null
+              ? Promise.resolve()
+              : watchJob(libraryId, 'library.readAgain', jobId)
+          ).then(readMedia);
         }}
       />
     </motion.div>

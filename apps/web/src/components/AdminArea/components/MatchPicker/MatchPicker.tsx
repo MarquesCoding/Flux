@@ -72,7 +72,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
       return;
     }
 
-    onCorrected();
+    onCorrected(outcome.jobId);
     onClose();
   };
 
@@ -94,7 +94,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
       return;
     }
 
-    onCorrected();
+    onCorrected(outcome.jobId);
     onClose();
   };
 

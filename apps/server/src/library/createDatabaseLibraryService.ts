@@ -24,13 +24,14 @@ import {
 } from '@FluxServer/playback/PlaybackService';
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
-import type { MediaFileSystem } from './scanLibrary';
+import type { MediaFileSystem, ScanPhase } from './scanLibrary';
 import type { MetadataProvider, SeriesShape } from './MetadataProvider';
 import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 import type { LibraryService } from './LibraryService';
 import {
   SCAN_LIBRARY_JOB,
+  READ_AGAIN_JOB,
   REGENERATE_PREVIEWS_JOB,
   REGENERATE_TRICKPLAY_JOB,
   DETECT_SEGMENTS_JOB,
@@ -89,6 +90,10 @@ const readGenres = (stored: JsonValue): string[] | null => {
  */
 type DatabaseLibraryService = LibraryService & {
   runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>;
+  /**
+   * Reads a few named files again, having been told what they are.
+   */
+  runReadAgain: (libraryId: string, paths: string[], jobId?: string) => Promise<void>;
   runRegeneratePreviews: (
     libraryId: string,
     defaultAudioLanguage: string | null,
@@ -203,7 +208,11 @@ const createDatabaseLibraryService = ({
    * library is large. The point of a correction is watching the page become
    * right, so only what was corrected is read again.
    */
-  const readAgain = async (libraryId: string, paths: string[]): Promise<void> => {
+  const readAgain = async (
+    libraryId: string,
+    paths: string[],
+    onProgress?: (phase: ScanPhase, processed: number, total: number) => void,
+  ): Promise<void> => {
     const rows = await db
       .select({
         path: mediaItem.path,
@@ -221,8 +230,30 @@ const createDatabaseLibraryService = ({
       transcoder,
       providers: providers ?? [],
       force: true,
+      isPartial: true,
       ...(onProblem === undefined ? {} : { onProblem }),
+      ...(onProgress === undefined ? {} : { onProgress }),
     });
+  };
+
+  /**
+   * Hands the re-read to the queue, so it is watchable rather than a request
+   * that hangs for as long as a series takes to fetch.
+   *
+   * Runs it here and now when the queue will not take it, which is how a
+   * server started without background jobs still applies a correction — the
+   * caller waits, but the correction lands either way.
+   */
+  const queueReadAgain = async (libraryId: string, paths: string[]): Promise<string | null> => {
+    const jobId = await jobs.enqueue(READ_AGAIN_JOB, { libraryId, paths }, libraryId);
+
+    if (jobId === null) {
+      await readAgain(libraryId, paths);
+
+      return null;
+    }
+
+    return jobId;
   };
 
   const findLibrary = async (id: string) => {
@@ -412,9 +443,9 @@ const createDatabaseLibraryService = ({
         });
       }
 
-      await readAgain(paths.libraryId, paths.paths);
+      const jobId = await queueReadAgain(paths.libraryId, paths.paths);
 
-      return { corrected: paths.paths.length };
+      return { corrected: paths.paths.length, jobId };
     },
 
     forgetCorrection: async (mediaId) => {
@@ -425,9 +456,10 @@ const createDatabaseLibraryService = ({
       }
 
       await store.removeOverrides(paths.libraryId, paths.paths);
-      await readAgain(paths.libraryId, paths.paths);
 
-      return { corrected: paths.paths.length };
+      const jobId = await queueReadAgain(paths.libraryId, paths.paths);
+
+      return { corrected: paths.paths.length, jobId };
     },
 
     getMedia: async (id) => {
@@ -554,6 +586,16 @@ const createDatabaseLibraryService = ({
         processed: progress?.processed ?? null,
         total: progress?.total ?? null,
       };
+    },
+
+    runReadAgain: async (libraryId, paths, jobId) => {
+      await readAgain(
+        libraryId,
+        paths,
+        jobId === undefined
+          ? undefined
+          : (phase, processed, total) => jobs.reportProgress(jobId, phase, processed, total),
+      );
     },
 
     runScan: async (libraryId, force = false, jobId) => {

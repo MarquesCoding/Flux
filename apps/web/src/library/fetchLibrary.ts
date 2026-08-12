@@ -185,7 +185,9 @@ const fetchMediaDetail = async (mediaId: string): Promise<MediaDetail | null> =>
  * A forced scan probes every file again rather than only those that changed on
  * disk, which is what picks up a change in how Flux reads files.
  */
-const CorrectionSchema = z.object({ corrected: z.number() });
+const CorrectionSchema = z.object({ corrected: z.number(), jobId: z.string().nullable() });
+
+type Correction = z.infer<typeof CorrectionSchema>;
 
 const ProblemSchema = z.object({ error: z.string() });
 
@@ -205,7 +207,7 @@ const correctMatch = async (
   mediaId: string,
   reference: string,
   kind?: 'tv' | 'movie',
-): Promise<{ corrected: number } | { problem: string }> => {
+): Promise<Correction | { problem: string }> => {
   const response = await fetch(`/api/media/${mediaId}/match`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -234,7 +236,7 @@ const correctMatch = async (
 /**
  * Forgets a correction, putting the file back to whatever the catalogue finds.
  */
-const forgetCorrection = async (mediaId: string): Promise<{ corrected: number } | null> => {
+const forgetCorrection = async (mediaId: string): Promise<Correction | null> => {
   const response = await fetch(`/api/media/${mediaId}/match`, {
     method: 'DELETE',
     credentials: 'same-origin',
@@ -319,6 +321,7 @@ const regenerateLibraryPreviews = async (libraryId: string): Promise<ScanJob | n
 export type {
   ListItemsOptions,
   CreateLibraryInput,
+  Correction,
   UpdateLibraryInput,
   ScanJob,
   ScanState,

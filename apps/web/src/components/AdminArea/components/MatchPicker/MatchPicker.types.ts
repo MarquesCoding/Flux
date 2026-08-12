@@ -8,9 +8,11 @@ type MatchPickerProps = {
   media: MediaSummary | null;
   onClose: () => void;
   /**
-   * Told once the correction is saved and the files read again.
+   * Told once the correction is saved, with the job reading the files again.
+   *
+   * Null when no queue took the work, which means it has already happened.
    */
-  onCorrected: () => void;
+  onCorrected: (jobId: string | null) => void;
 };
 
 export type { MatchPickerProps };
