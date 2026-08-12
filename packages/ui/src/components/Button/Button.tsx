@@ -7,19 +7,28 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: 'bg-accent text-accent-contrast hover:opacity-90',
   glossy:
     'flux-gloss bg-white text-black hover:brightness-105 hover:shadow-[0_10px_30px_-6px_rgba(255,255,255,0.35)]',
-  secondary: 'flux-glass text-text hover:brightness-125',
-  ghost: 'bg-transparent text-text hover:bg-white/10',
-  danger: 'flux-gloss bg-danger text-white hover:brightness-110',
+  secondary:
+    'border border-[var(--surface-line)] bg-surface-raised text-text hover:bg-[var(--surface-hover)]',
+  ghost: 'bg-transparent text-text hover:bg-[var(--surface-hover)]',
+  danger: 'bg-danger text-white hover:opacity-90',
   overlay: 'bg-scrim text-on-scrim backdrop-blur-md hover:brightness-125',
   link: 'bg-transparent text-text underline-offset-4 hover:underline',
   bare: '',
 };
 
+/**
+ * How big a button is allowed to be.
+ *
+ * Smaller than they were, and closer together: a page of controls at the old
+ * sizes read as a page of buttons rather than a page with buttons on it. The
+ * step between sizes is deliberately small, so that a row mixing two of them
+ * still looks like one row.
+ */
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-sm gap-1.5',
-  md: 'h-10 px-4 text-base gap-2',
-  lg: 'h-12 px-6 text-lg gap-2.5',
-  xl: 'h-14 px-8 text-lg gap-3 font-semibold',
+  sm: 'h-7 px-2.5 text-xs gap-1.5',
+  md: 'h-9 px-3.5 text-sm gap-2',
+  lg: 'h-10 px-5 text-sm gap-2',
+  xl: 'h-12 px-6 text-base gap-2.5 font-semibold',
   none: '',
 };
 
@@ -28,10 +37,10 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
  * set the width.
  */
 const ICON_SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: 'size-8',
-  md: 'size-10',
-  lg: 'size-12',
-  xl: 'size-14',
+  sm: 'size-7',
+  md: 'size-9',
+  lg: 'size-10',
+  xl: 'size-12',
   none: '',
 };
 
@@ -77,14 +86,15 @@ const Button = ({
       className={cn(
         'inline-flex font-medium',
         isBare ? '' : 'shrink-0 items-center justify-center',
-        'transition-[filter,box-shadow,transform,translate,scale,opacity,background-color,color] duration-200',
+        'transition-[filter,box-shadow,transform,translate,scale,opacity,background-color,color]',
+        'duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
         'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100',
         isBare ? '' : 'active:scale-[0.98]',
         isBare && !isPill && !isIconOnly
           ? ''
           : isPill || isIconOnly
             ? 'rounded-full'
-            : 'rounded-lg',
+            : 'rounded-md',
         VARIANT_CLASSES[variant],
         isIconOnly ? ICON_SIZE_CLASSES[size] : SIZE_CLASSES[size],
         isActive && !isBare ? 'bg-white/20' : '',
