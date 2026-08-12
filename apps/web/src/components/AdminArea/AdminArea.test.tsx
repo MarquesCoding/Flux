@@ -386,10 +386,16 @@ describe('AdminArea', () => {
     expect(await screen.findByText('Background work')).toBeInTheDocument();
   });
 
-  it('falls back to the first panel when the address names one it does not have', async () => {
+  it('opens on the overview when the address names no panel', async () => {
+    render(<AdminArea />);
+
+    expect(await screen.findByText('Needs attention')).toBeInTheDocument();
+  });
+
+  it('falls back to the overview when the address names one it does not have', async () => {
     render(<AdminArea initialPanel="not-a-real-panel" />);
 
-    expect(await screen.findByText('Last minute')).toBeInTheDocument();
+    expect(await screen.findByText('Needs attention')).toBeInTheDocument();
   });
 
   it('tells the address when the panel changes, so a reload can return to it', async () => {
@@ -592,11 +598,11 @@ describe('AdminArea', () => {
   it('draws something rather than nothing before the server has answered', () => {
     render(<AdminArea />);
 
-    expect(screen.getByText('Server')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Server' })).toBeInTheDocument();
   });
 
   it('says nobody has the app open when nobody does', async () => {
-    render(<AdminArea />);
+    render(<AdminArea initialPanel="activity" />);
 
     expect(await screen.findByText('Nobody has the app open right now.')).toBeInTheDocument();
   });
@@ -624,7 +630,7 @@ describe('AdminArea', () => {
 
     fetchMock.mockImplementation(respondWith(OVERVIEW, [session]));
 
-    render(<AdminArea />);
+    render(<AdminArea initialPanel="activity" />);
 
     expect(await screen.findByText(/Arrival/)).toBeInTheDocument();
     expect(screen.getByText('Playing')).toBeInTheDocument();
@@ -657,7 +663,7 @@ describe('AdminArea', () => {
     fetchMock.mockImplementation(respondWith(OVERVIEW, [session]));
 
     const actor = userEvent.setup();
-    render(<AdminArea />);
+    render(<AdminArea initialPanel="activity" />);
 
     await actor.click(await screen.findByRole('button', { name: /Stop/ }));
 

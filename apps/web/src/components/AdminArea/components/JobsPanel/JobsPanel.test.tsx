@@ -55,6 +55,13 @@ const props = {
 };
 
 describe('JobsPanel', () => {
+  it('tells failure apart from an empty queue', () => {
+    render(<JobsPanel {...props} isUnreachable />);
+
+    expect(screen.getByText(/could not be read from the server/)).toBeInTheDocument();
+    expect(screen.queryByText('Nothing queued.')).not.toBeInTheDocument();
+  });
+
   it('says nothing is queued before a reading arrives', () => {
     render(<JobsPanel {...props} />);
 

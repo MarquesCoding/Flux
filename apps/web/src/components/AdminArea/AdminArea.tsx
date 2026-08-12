@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   IconAlertTriangle,
@@ -9,6 +9,7 @@ import {
   IconStack2,
 } from '@tabler/icons-react';
 import { Badge } from '@FluxUI/Badge';
+import { Button } from '@FluxUI/Button';
 import { SideNav } from '@FluxUI/SideNav';
 import { TabPanel } from '@FluxUI/TabPanel';
 import { EventsPanel } from './components/EventsPanel/EventsPanel';
@@ -153,10 +154,11 @@ const AdminArea = ({
   const [monitor, setMonitor] = useState<Monitor | null>(null);
   const [history, setHistory] = useState<number[]>([]);
   const [panel, setPanel] = useState<PanelId>(
-    () => PANELS.find((candidate) => candidate.id === initialPanel)?.id ?? 'activity',
+    () => PANELS.find((candidate) => candidate.id === initialPanel)?.id ?? 'overview',
   );
   const [viewingJobKind, setViewingJobKind] = useState<string | null>(initialJob ?? null);
   const [libraries, setLibraries] = useState<Library[]>([]);
+  const [unreachable, setUnreachable] = useState<ReadonlySet<string>>(new Set());
   const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
   const [jobSchedules, setJobSchedules] = useState<Map<string, JobTrigger[]>>(new Map());
   const {
@@ -167,6 +169,39 @@ const AdminArea = ({
   const [sessions, setSessions] = useState<ActiveSession[]>([]);
   const [busyClientId, setBusyClientId] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  /**
+   * Reads one thing, and remembers when it could not be read.
+   *
+   * Failure has to be told apart from emptiness, because the two look
+   * identical on screen and only one of them means "add a library". A fetch
+   * that rejects used to leave the panel showing its empty state, which is
+   * advice rather than a mistake — it invites somebody to add a library they
+   * already have.
+   */
+  const loadInto = useCallback(
+    async <T,>(key: string, read: () => Promise<T>, apply: (value: T) => void) => {
+      try {
+        apply(await read());
+
+        setUnreachable((current) => new Set([...current].filter((name) => name !== key)));
+      } catch {
+        setUnreachable((current) => new Set([...current, key]));
+      }
+    },
+    [],
+  );
+
+  const loadAll = useCallback(async () => {
+    await Promise.all([
+      loadInto('overview', fetchAdminOverview, setOverview),
+      loadInto('monitor', fetchMonitor, setMonitor),
+      loadInto('libraries', fetchLibraries, setLibraries),
+      loadInto('sessions', fetchActiveSessions, setSessions),
+      loadInto('jobs', fetchJobDefinitions, setJobDefinitions),
+      loadInto('schedules', readJobSchedules, setJobSchedules),
+    ]);
+  }, [loadInto]);
 
   const onLibraryUpdated = (updated: Library) => {
     setLibraries((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)));
@@ -276,13 +311,8 @@ const AdminArea = ({
   };
 
   useEffect(() => {
-    void fetchAdminOverview().then(setOverview);
-    void fetchMonitor().then(setMonitor);
-    void fetchLibraries().then(setLibraries);
-    void fetchActiveSessions().then(setSessions);
-    void fetchJobDefinitions().then(setJobDefinitions);
-    void readJobSchedules().then(setJobSchedules);
-  }, []);
+    void loadAll();
+  }, [loadAll]);
 
   useEffect(() => {
     const poll = setInterval(() => {
@@ -410,6 +440,29 @@ const AdminArea = ({
             ]}
           />
         </motion.div>
+
+        {unreachable.size === 0 ? null : (
+          <motion.p
+            role="alert"
+            variants={revealVariants(prefersReducedMotion)}
+            transition={revealTransition(prefersReducedMotion)}
+            className="flex flex-wrap items-center gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
+          >
+            <IconAlertTriangle size={18} className="shrink-0 text-danger" aria-hidden />
+            Some of this could not be read from the server, so parts of the page may be missing
+            rather than empty.
+            <Button
+              variant="ghost"
+              size="sm"
+              isPill
+              onClick={() => {
+                void loadAll();
+              }}
+            >
+              Try again
+            </Button>
+          </motion.p>
+        )}
 
         <motion.div
           variants={revealVariants(prefersReducedMotion)}

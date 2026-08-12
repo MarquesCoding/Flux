@@ -39,6 +39,13 @@ const props = {
 };
 
 describe('LibrariesPanel', () => {
+  it('tells somebody not to add a library when the list simply could not be read', () => {
+    render(<LibrariesPanel {...props} isUnreachable />);
+
+    expect(screen.getByText(/could not be read from the server/)).toBeInTheDocument();
+    expect(screen.queryByText(/No libraries yet/)).not.toBeInTheDocument();
+  });
+
   it('says what to do when there are none', () => {
     render(<LibrariesPanel {...props} />);
 
