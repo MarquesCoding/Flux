@@ -214,6 +214,54 @@ pub fn parse_listed_encoders(output: &str) -> Vec<String> {
         .collect()
 }
 
+/// The smallest picture the encoders Flux drives are known to accept.
+///
+/// NVENC's H.264 minimum, which is the largest of them. A probe below this
+/// measures an encoder's tolerance for tiny pictures rather than whether the
+/// driver is there, which is the only thing it is meant to find out.
+pub const SMALLEST_USABLE_PROBE: (u32, u32) = (145, 49);
+
+/// How big a picture the probe asks for.
+///
+/// This was 128x128, which is under NVENC's floor, so **every NVIDIA card ever
+/// tested failed verification** — and unlike Intel, where `h264_qsv` sits ahead
+/// of VAAPI in the candidate list and rescues the machine, nothing sits behind
+/// NVENC. Those hosts dropped to `libx264` and stayed there.
+///
+/// Measured on an RTX 5080 with Debian's ffmpeg 5.1.9: `h264_nvenc` fails at
+/// 128x128, verifies at 320x240, and drives a full decode-scale-encode chain
+/// either way. The card was never the problem.
+///
+/// 640x480 leaves room for whatever the next backend's floor turns out to be.
+/// It is one frame, so the headroom costs nothing worth counting.
+const PROBE_SIZE: (u32, u32) = (640, 480);
+
+/// The arguments that ask an encoder to prove itself.
+///
+/// Separated from running them so the size can be held to
+/// [`SMALLEST_USABLE_PROBE`] by a test rather than by whoever reads it next.
+#[must_use]
+pub fn probe_arguments(encoder: &str) -> Vec<String> {
+    let (width, height) = PROBE_SIZE;
+
+    vec![
+        "-hide_banner".to_owned(),
+        "-loglevel".to_owned(),
+        "error".to_owned(),
+        "-f".to_owned(),
+        "lavfi".to_owned(),
+        "-i".to_owned(),
+        format!("testsrc2=size={width}x{height}:rate=1"),
+        "-frames:v".to_owned(),
+        "1".to_owned(),
+        "-c:v".to_owned(),
+        encoder.to_owned(),
+        "-f".to_owned(),
+        "null".to_owned(),
+        "-".to_owned(),
+    ]
+}
+
 /// Runs a one frame encode to prove an encoder works.
 ///
 /// Presence in `ffmpeg -encoders` means the binary was built with support, not
@@ -221,24 +269,12 @@ pub fn parse_listed_encoders(output: &str) -> Vec<String> {
 /// A machine that lists `h264_vaapi` with no usable render node will happily
 /// report the encoder and then fail every playback attempt, so Flux asks it to
 /// encode a frame instead. See ADR-0009.
+///
+/// The frame has to be big enough for the encoder to entertain it, which is
+/// what [`PROBE_SIZE`] is about.
 async fn verify_encoder(ffmpeg: &str, encoder: &str) -> bool {
     Command::new(ffmpeg)
-        .args([
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-f",
-            "lavfi",
-            "-i",
-            "testsrc2=size=128x128:rate=1",
-            "-frames:v",
-            "1",
-            "-c:v",
-            encoder,
-            "-f",
-            "null",
-            "-",
-        ])
+        .args(probe_arguments(encoder))
         .output()
         .await
         .is_ok_and(|output| output.status.success())
@@ -336,9 +372,73 @@ async fn detect_capabilities_uncached(ffmpeg: &str) -> Capabilities {
 #[cfg(test)]
 mod tests {
     use super::{
-        parse_listed_encoders, parse_listed_filters, select_tone_mapping, Capabilities,
-        VerifiedEncoder,
+        parse_listed_encoders, parse_listed_filters, probe_arguments, select_tone_mapping,
+        Capabilities, VerifiedEncoder, ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
     };
+
+    fn probe_size() -> (u32, u32) {
+        let arguments = probe_arguments("h264_nvenc");
+        let source = arguments
+            .iter()
+            .find(|argument| argument.starts_with("testsrc2="))
+            .expect("the probe names a source");
+
+        let size = source
+            .split("size=")
+            .nth(1)
+            .and_then(|rest| rest.split(':').next())
+            .expect("the source states a size");
+
+        let mut parts = size.split('x');
+        let width = parts.next().and_then(|part| part.parse().ok());
+        let height = parts.next().and_then(|part| part.parse().ok());
+
+        (width.expect("a width"), height.expect("a height"))
+    }
+
+    #[test]
+    fn probes_a_picture_every_encoder_will_accept() {
+        let (width, height) = probe_size();
+        let (least_width, least_height) = SMALLEST_USABLE_PROBE;
+
+        assert!(
+            width >= least_width && height >= least_height,
+            "a {width}x{height} probe is below NVENC's {least_width}x{least_height} floor, \
+             which fails every NVIDIA card for a reason that is not about the card"
+        );
+    }
+
+    #[test]
+    fn probes_the_encoder_it_was_asked_about() {
+        let arguments = probe_arguments("hevc_qsv");
+
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-c:v", "hevc_qsv"]));
+    }
+
+    #[test]
+    fn probes_one_frame_and_writes_nothing() {
+        let arguments = probe_arguments("h264_vaapi");
+
+        assert!(arguments.windows(2).any(|pair| pair == ["-frames:v", "1"]));
+        assert!(arguments.windows(2).any(|pair| pair == ["-f", "null"]));
+    }
+
+    #[test]
+    fn drops_no_candidate_for_being_unnamed() {
+        for candidate in ENCODER_CANDIDATES {
+            let arguments = probe_arguments(candidate.encoder);
+
+            assert!(
+                arguments
+                    .iter()
+                    .any(|argument| argument == candidate.encoder),
+                "{} is never actually probed",
+                candidate.encoder
+            );
+        }
+    }
     use crate::transcode_plan::{HardwareAccel, ToneMapping};
 
     const ENCODERS_OUTPUT: &str = "Encoders:\n V..... = Video\n ------\n V....D libx264              libx264 H.264\n V....D h264_videotoolbox    VideoToolbox H.264\n A....D aac                  AAC\n";
