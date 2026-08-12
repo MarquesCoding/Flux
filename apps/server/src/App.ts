@@ -69,6 +69,7 @@ import {
   adminResumeSessionRoute,
   adminJobDefinitionsRoute,
   adminRunJobRoute,
+  adminCancelJobRoute,
   adminJobSchedulesRoute,
   adminAddJobTriggerRoute,
   adminRemoveJobTriggerRoute,
@@ -333,6 +334,13 @@ type CreateAppOptions = {
    */
   listRunningJobs?: () => RunningJob[];
   /**
+   * Asks a job to stop, reporting whether there was one to ask.
+   *
+   * Absent where there is no queue behind the application, in which case
+   * nothing is running and there is nothing to stop.
+   */
+  cancelJob?: (jobId: string) => Promise<boolean>;
+  /**
    * What the catalogue offers under a name, for somebody correcting a match.
    */
   searchCatalogue?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
@@ -372,6 +380,7 @@ const createApp = ({
   isTranscoderReachable = () => Promise.resolve(false),
   transcoderAddress = '',
   listRunningJobs = () => [],
+  cancelJob = () => Promise.resolve(false),
   searchCatalogue = () => Promise.resolve([]),
   permissions = createMemoryPermissionService(),
   banAccount,
@@ -1261,6 +1270,18 @@ const createApp = ({
     }
 
     return context.json(queued, 202);
+  });
+
+  app.openapi(adminCancelJobRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { jobId } = context.req.valid('param');
+
+    return (await cancelJob(jobId))
+      ? context.json({ jobId }, 202)
+      : context.json({ error: 'Nothing is running under that id.' }, 404);
   });
 
   app.openapi(adminJobSchedulesRoute, async (context) => {

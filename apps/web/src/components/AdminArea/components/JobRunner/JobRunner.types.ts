@@ -25,6 +25,14 @@ type JobRunnerProps = {
   working: Job[];
   onRun: (kind: string) => void;
   /**
+   * Asks every run of a kind to stop.
+   *
+   * Offered only while something of that kind is running — a job that is not
+   * running has nothing to stop, and a menu item that does nothing is worse
+   * than one that is not there.
+   */
+  onStop: (kind: string) => void;
+  /**
    * Pressing a job's row anywhere but its Run button opens its own schedule
    * page — see `JobSchedulePage`, Jellyfin's scheduled-tasks page style.
    */

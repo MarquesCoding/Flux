@@ -1,5 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { IconCalendarClock, IconDots, IconInfoCircle, IconPlayerPlay } from '@tabler/icons-react';
+import {
+  IconCalendarClock,
+  IconDots,
+  IconInfoCircle,
+  IconPlayerPlay,
+  IconPlayerStop,
+} from '@tabler/icons-react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
@@ -51,6 +57,7 @@ const JobRunner = ({
   progress,
   working,
   onRun,
+  onStop,
   onOpenSchedule,
 }: JobRunnerProps) => {
   const [confirming, setConfirming] = useState<JobDefinition | null>(null);
@@ -98,9 +105,9 @@ const JobRunner = ({
    */
   const isBusy = definitions.some((definition) => summaryFor(definition.kind) !== null);
 
-  const live = useRef({ summaryFor, working, askOrRun, onOpenSchedule, isBusy });
+  const live = useRef({ summaryFor, working, askOrRun, onStop, onOpenSchedule, isBusy });
 
-  live.current = { summaryFor, working, askOrRun, onOpenSchedule, isBusy };
+  live.current = { summaryFor, working, askOrRun, onStop, onOpenSchedule, isBusy };
 
   const columns = useMemo<DataTableColumn<JobDefinition>[]>(
     () => [
@@ -220,6 +227,19 @@ const JobRunner = ({
                         live.current.askOrRun(row.original);
                       },
                     },
+                    ...(live.current.summaryFor(row.original.kind) === null
+                      ? []
+                      : [
+                          {
+                            id: 'stop',
+                            label: 'Stop it',
+                            icon: <IconPlayerStop size={15} aria-hidden />,
+                            isDestructive: true,
+                            onChoose: () => {
+                              live.current.onStop(row.original.kind);
+                            },
+                          },
+                        ]),
                     {
                       id: 'schedule',
                       label: 'Edit schedule',

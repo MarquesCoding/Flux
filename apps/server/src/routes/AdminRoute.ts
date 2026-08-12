@@ -339,6 +339,37 @@ const adminRunJobRoute = createRoute({
   },
 });
 
+/**
+ * Stops a job that is queued or already running.
+ *
+ * Addressed by job id rather than by kind, because what is being stopped is
+ * one run of the work and not the work itself — a nightly scan that is
+ * cancelled tonight still runs tomorrow.
+ */
+const adminCancelJobRoute = createRoute({
+  method: 'post',
+  path: '/api/admin/jobs/running/{jobId}/cancel',
+  tags: ['Admin'],
+  summary: 'Stop a job that is queued or running',
+  request: {
+    params: z.object({ jobId: z.string().min(1) }),
+  },
+  responses: {
+    202: {
+      description: 'The job was asked to stop',
+      content: { 'application/json': { schema: z.object({ jobId: z.string() }) } },
+    },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+    404: {
+      description: 'Nothing to stop under that id',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+});
+
 const AdminJobTriggerSchema = z
   .object({
     id: z.string(),
@@ -451,6 +482,7 @@ export {
   adminResumeSessionRoute,
   adminJobDefinitionsRoute,
   adminRunJobRoute,
+  adminCancelJobRoute,
   adminJobSchedulesRoute,
   adminAddJobTriggerRoute,
   adminRemoveJobTriggerRoute,

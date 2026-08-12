@@ -46,6 +46,7 @@ import {
   startRegeneratePreviews,
   runDefinedJob,
   runDefinedJobAll,
+  stopJobs,
 } from './scanCoordinator';
 import { formatBytes } from './formatBytes';
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
@@ -319,6 +320,10 @@ const AdminArea = ({
     },
     [runJob],
   );
+
+  const stopJob = useCallback((kind: string) => {
+    void stopJobs(kind);
+  }, []);
 
   const stopStream = async (clientId: string) => {
     setBusyClientId(clientId);
@@ -603,6 +608,7 @@ const AdminArea = ({
                 viewingJobKind={viewingJobKind}
                 schedules={jobSchedules}
                 onRun={startJob}
+                onStop={stopJob}
                 onOpenSchedule={openJobSchedule}
                 onCloseSchedule={closeJobSchedule}
                 onAddTrigger={(kind, trigger) => {

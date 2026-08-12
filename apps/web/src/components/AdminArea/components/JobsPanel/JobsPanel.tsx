@@ -33,6 +33,7 @@ const JobsPanel = ({
   viewingJobKind,
   schedules,
   onRun,
+  onStop,
   onOpenSchedule,
   onCloseSchedule,
   onAddTrigger,
@@ -100,6 +101,7 @@ const JobsPanel = ({
           libraries={libraries}
           progress={progress}
           onRun={onRun}
+          onStop={onStop}
           onOpenSchedule={onOpenSchedule}
         />
       </Card>

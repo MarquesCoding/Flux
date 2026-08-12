@@ -1,23 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createInertJobQueue } from '@FluxServer/jobs/createInertJobQueue';
 import { createDatabaseMaintenanceService } from './createDatabaseMaintenanceService';
-import type { JobQueue } from '@FluxServer/jobs/JobQueue';
-
-const stubJobQueue = (enqueue: JobQueue['enqueue']): JobQueue => ({
-  enqueue,
-  readState: () => Promise.resolve('unknown'),
-  readProgress: () => null,
-  listRunning: () => [],
-  reportProgress: () => {},
-  setSchedule: () => Promise.resolve(),
-  clearSchedule: () => Promise.resolve(),
-  listSchedules: () => Promise.resolve([]),
-  stop: () => Promise.resolve(),
-});
 
 describe('createDatabaseMaintenanceService', () => {
   it('queues image cache cleanup under its own kind as a singleton key', async () => {
     const enqueue = vi.fn(() => Promise.resolve('job-1'));
-    const maintenance = createDatabaseMaintenanceService({ jobs: stubJobQueue(enqueue) });
+    const maintenance = createDatabaseMaintenanceService({
+      jobs: createInertJobQueue({ enqueue }),
+    });
 
     const queued = await maintenance.cleanupImageCache();
 
@@ -31,7 +21,9 @@ describe('createDatabaseMaintenanceService', () => {
 
   it('queues session cleanup under its own kind', async () => {
     const enqueue = vi.fn(() => Promise.resolve('job-2'));
-    const maintenance = createDatabaseMaintenanceService({ jobs: stubJobQueue(enqueue) });
+    const maintenance = createDatabaseMaintenanceService({
+      jobs: createInertJobQueue({ enqueue }),
+    });
 
     await maintenance.cleanupSessions();
 
@@ -40,7 +32,9 @@ describe('createDatabaseMaintenanceService', () => {
 
   it('queues a catalogue connectivity check under its own kind', async () => {
     const enqueue = vi.fn(() => Promise.resolve('job-3'));
-    const maintenance = createDatabaseMaintenanceService({ jobs: stubJobQueue(enqueue) });
+    const maintenance = createDatabaseMaintenanceService({
+      jobs: createInertJobQueue({ enqueue }),
+    });
 
     await maintenance.checkCatalogueConnectivity();
 
@@ -53,7 +47,7 @@ describe('createDatabaseMaintenanceService', () => {
 
   it('falls back to a pending id when one is already queued', async () => {
     const maintenance = createDatabaseMaintenanceService({
-      jobs: stubJobQueue(() => Promise.resolve(null)),
+      jobs: createInertJobQueue({ enqueue: () => Promise.resolve(null) }),
     });
 
     const queued = await maintenance.cleanupSessions();

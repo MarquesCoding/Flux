@@ -429,6 +429,23 @@ const runJob = async (
 };
 
 /**
+ * Asks a job to stop.
+ *
+ * True when there was something to stop. False covers both a job that had
+ * already finished and one that was never there — from the page's side those
+ * are the same answer: there is nothing running to act on, so read the list
+ * again rather than reporting a failure.
+ */
+const cancelJob = async (jobId: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/jobs/running/${jobId}/cancel`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  }).catch(() => null);
+
+  return response !== null && response.ok;
+};
+
+/**
  * Reads what makes each job run on its own.
  */
 const fetchJobSchedules = async (): Promise<JobSchedule[]> => {
@@ -539,6 +556,7 @@ export {
   resumeSession,
   fetchJobDefinitions,
   runJob,
+  cancelJob,
   fetchJobSchedules,
   addJobTrigger,
   removeJobTrigger,

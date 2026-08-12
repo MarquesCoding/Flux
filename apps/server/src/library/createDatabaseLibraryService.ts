@@ -619,6 +619,7 @@ const createDatabaseLibraryService = ({
           : {
               onProgress: (phase, processed, total) =>
                 jobs.reportProgress(jobId, phase, processed, total),
+              isCancelled: () => jobs.isCancelled(jobId),
             }),
       });
     },
@@ -639,6 +640,7 @@ const createDatabaseLibraryService = ({
           : {
               onProgress: (processed, total) =>
                 jobs.reportProgress(jobId, 'previews', processed, total),
+              isCancelled: () => jobs.isCancelled(jobId),
             }),
       });
     },
@@ -664,6 +666,7 @@ const createDatabaseLibraryService = ({
           : {
               onProgress: (processed, total) =>
                 jobs.reportProgress(jobId, 'trickplay', processed, total),
+              isCancelled: () => jobs.isCancelled(jobId),
             }),
       });
     },

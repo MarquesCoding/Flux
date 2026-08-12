@@ -56,6 +56,7 @@ const harness = (options: {
   providers?: MetadataProvider[];
   force?: boolean;
   isPartial?: boolean;
+  isCancelled?: () => boolean;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
   trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number };
@@ -139,6 +140,7 @@ const harness = (options: {
       ...(options.providers === undefined ? {} : { providers: options.providers }),
       ...(options.force === undefined ? {} : { force: options.force }),
       ...(options.isPartial === undefined ? {} : { isPartial: options.isPartial }),
+      ...(options.isCancelled === undefined ? {} : { isCancelled: options.isCancelled }),
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
       ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
       ...(options.trickplay === undefined ? {} : { trickplay: options.trickplay }),
@@ -727,5 +729,55 @@ describe('a correction somebody made', () => {
     await run();
 
     expect(asked).toBe('777');
+  });
+});
+
+describe('a scan somebody stopped partway', () => {
+  it('keeps what it read and deletes nothing', async () => {
+    let seen = 0;
+
+    const { run, rows, removedPaths } = harness({
+      found: [file('/a.mkv'), file('/b.mkv')],
+      existing: [stored('/gone.mkv')],
+      isCancelled: () => {
+        seen += 1;
+
+        return seen > 1;
+      },
+    });
+
+    const result = await run();
+
+    expect(rows.map((row) => row.path)).toEqual(['/a.mkv']);
+    expect(removedPaths).toEqual([]);
+    expect(result.removed).toBe(0);
+  });
+
+  it('leaves the library unscanned so the next scan finishes the job', async () => {
+    const { run, markScanned } = harness({
+      found: [file('/a.mkv'), file('/b.mkv')],
+      isCancelled: () => true,
+    });
+
+    await run();
+
+    expect(markScanned).not.toHaveBeenCalled();
+  });
+
+  it('says that it was stopped rather than leaving it to be guessed at', async () => {
+    const problems: string[] = [];
+
+    const { run } = harness({
+      found: [file('/a.mkv')],
+      isCancelled: () => true,
+      onProblem: (_path, reason) => {
+        problems.push(reason);
+      },
+    });
+
+    await run();
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain('stopped');
   });
 });
