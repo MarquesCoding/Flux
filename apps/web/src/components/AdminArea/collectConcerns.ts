@@ -1,5 +1,6 @@
 import type { ActiveSession, AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin';
 import type { Library } from '@FluxContracts/schemas/Library';
+import { fluxCpuShare } from './fluxCpuShare';
 
 /**
  * How much somebody should care, which is what decides the order.
@@ -63,6 +64,15 @@ const CPU_PRESSURE = 90;
  * A reading a second, so this is the last quarter minute.
  */
 const CPU_READINGS = 15;
+
+/**
+ * The share of the machine Flux has to be using before the load is its doing.
+ *
+ * Half is enough to answer the question somebody asks when the box is hot:
+ * whether to look at Flux or at whatever else the machine runs. Below it,
+ * Flux is a passenger and the transcodes are the ones being starved.
+ */
+const FLUX_BLAME = 50;
 
 /**
  * How little buffer a playing stream can hold before it is in trouble.
@@ -163,11 +173,18 @@ const collectConcerns = ({
   const recent = history.slice(-CPU_READINGS);
 
   if (recent.length === CPU_READINGS && recent.every((reading) => reading > CPU_PRESSURE)) {
+    const share = fluxCpuShare(resources);
+
     concerns.push({
       id: 'cpu',
       tone: 'attention',
       title: 'The processor has been at full stretch',
-      detail: 'Playback that needs converting may stutter while it lasts.',
+      detail:
+        share === null
+          ? 'Playback that needs converting may stutter while it lasts.'
+          : share >= FLUX_BLAME
+            ? `Flux is using ${share.toFixed(0)}% of the machine, so this is its own work. Playback that needs converting may stutter while it lasts.`
+            : `Flux is using ${share.toFixed(0)}% of the machine, so most of this is something else on the box.`,
       panel: 'activity',
     });
   }
@@ -231,5 +248,12 @@ const collectConcerns = ({
   return [...concerns].sort((a, b) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone]);
 };
 
-export { collectConcerns, MEMORY_PRESSURE, CPU_PRESSURE, CPU_READINGS, STARVED_SECONDS };
+export {
+  collectConcerns,
+  MEMORY_PRESSURE,
+  CPU_PRESSURE,
+  CPU_READINGS,
+  FLUX_BLAME,
+  STARVED_SECONDS,
+};
 export type { Concern, ConcernTone };

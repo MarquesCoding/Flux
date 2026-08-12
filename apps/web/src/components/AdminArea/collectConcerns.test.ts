@@ -366,6 +366,48 @@ describe('collectConcerns', () => {
 
       expect(concerns).toEqual([]);
     });
+
+    it('says so when the load is Flux doing its own work', () => {
+      const monitor = healthyMonitor();
+      monitor.resources.children = [{ pid: 1, cpuPercent: 380, memoryBytes: 0 }];
+
+      const concerns = collectConcerns({
+        ...healthy,
+        monitor,
+        history: Array.from({ length: 15 }, () => 95),
+      });
+
+      expect(concerns.find((concern) => concern.id === 'cpu')?.detail).toContain(
+        'Flux is using 95% of the machine, so this is its own work',
+      );
+    });
+
+    it('points elsewhere when the machine is busy and Flux is not', () => {
+      const monitor = healthyMonitor();
+      monitor.resources.serviceCpuPercent = 20;
+
+      const concerns = collectConcerns({
+        ...healthy,
+        monitor,
+        history: Array.from({ length: 15 }, () => 95),
+      });
+
+      expect(concerns.find((concern) => concern.id === 'cpu')?.detail).toContain(
+        'so most of this is something else on the box',
+      );
+    });
+
+    it('blames nobody when there is no reading to blame them with', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        monitor: null,
+        history: Array.from({ length: 15 }, () => 95),
+      });
+
+      expect(concerns.find((concern) => concern.id === 'cpu')?.detail).toBe(
+        'Playback that needs converting may stutter while it lasts.',
+      );
+    });
   });
 
   describe('streams in trouble', () => {

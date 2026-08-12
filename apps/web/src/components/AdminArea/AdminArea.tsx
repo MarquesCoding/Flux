@@ -34,6 +34,7 @@ import { fetchLibraries, rebuildArtefacts } from '@FluxWeb/library/fetchLibrary'
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
+import { fluxCpuShare } from './fluxCpuShare';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
   resumeRunning,
@@ -383,6 +384,7 @@ const AdminArea = ({
       : resources.systemMemoryUsedBytes / resources.systemMemoryTotalBytes;
 
   const conversions = resources?.children ?? [];
+  const cpuShare = fluxCpuShare(resources);
 
   return (
     <motion.div
@@ -479,7 +481,9 @@ const AdminArea = ({
                 detail:
                   resources === null
                     ? '—'
-                    : `${resources.cpuCount.toString()} cores · load ${resources.loadAverage.toFixed(2)}`,
+                    : `${resources.cpuCount.toString()} cores · Flux ${
+                        cpuShare === null ? 'not measured' : `${cpuShare.toFixed(0)}%`
+                      }`,
               },
               {
                 label: 'Memory',

@@ -382,6 +382,12 @@ describe('AdminArea', () => {
     expect(await screen.findByText('42%')).toBeInTheDocument();
   });
 
+  it('says how much of the busy processor is Flux itself', async () => {
+    render(<AdminArea />);
+
+    expect(await screen.findByText('10 cores · Flux 19%')).toBeInTheDocument();
+  });
+
   it('watches rather than asking every second whether anything happened', () => {
     render(<AdminArea />);
 
