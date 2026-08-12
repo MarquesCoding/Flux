@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
 use std::time::Duration;
 
@@ -9,6 +10,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 
+use crate::cache_sweep;
 use crate::capability::{detect_capabilities, Capabilities};
 use crate::fingerprint::{fingerprint, FingerprintRequest};
 use crate::frame::{take_frame, FrameRequest};
@@ -525,6 +527,43 @@ async fn start_preview(
     }
 }
 
+/// What is still wanted, as the requests that would ask for it.
+///
+/// Requests rather than addresses, deliberately. The address is a hash of the
+/// request and belongs to the request type; a caller that computed it instead
+/// would be a second implementation of the naming scheme, and the first time the
+/// two disagreed the sweep would delete every artefact still in use.
+#[derive(Debug, Deserialize)]
+struct SweepRequest<T> {
+    keep: Vec<T>,
+}
+
+/// Removes preview clips nothing addresses any more.
+async fn sweep_previews(
+    State(state): State<AppState>,
+    Json(request): Json<SweepRequest<PreviewRequest>>,
+) -> Response {
+    let keep: HashSet<String> = request.keep.iter().map(PreviewRequest::id).collect();
+    let root = state.registry.config().cache_root.join("previews");
+
+    let report = cache_sweep::sweep(&root, &keep, cache_sweep::GRACE).await;
+
+    (StatusCode::OK, Json(report)).into_response()
+}
+
+/// Removes thumbnail sheets nothing addresses any more.
+async fn sweep_trickplay(
+    State(state): State<AppState>,
+    Json(request): Json<SweepRequest<TrickplayRequest>>,
+) -> Response {
+    let keep: HashSet<String> = request.keep.iter().map(TrickplayRequest::id).collect();
+    let root = state.registry.config().cache_root.join("trickplay");
+
+    let report = cache_sweep::sweep(&root, &keep, cache_sweep::GRACE).await;
+
+    (StatusCode::OK, Json(report)).into_response()
+}
+
 /// Serves a made clip.
 async fn preview_file(
     State(state): State<AppState>,
@@ -830,9 +869,11 @@ pub fn create_router(state: AppState) -> Router {
         .route("/fingerprint", post(start_fingerprint))
         .route("/frame", post(start_frame))
         .route("/previews", post(start_preview))
+        .route("/previews/sweep", post(sweep_previews))
         .route("/previews/{id}/{name}", get(preview_file))
         .route("/subtitles", post(start_subtitle))
         .route("/trickplay", post(start_trickplay))
+        .route("/trickplay/sweep", post(sweep_trickplay))
         .route("/trickplay/{id}/{name}", get(trickplay_file))
         .with_state(state)
 }
