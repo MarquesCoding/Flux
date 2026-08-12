@@ -58,21 +58,6 @@ pub const ENCODER_CANDIDATES: &[EncoderCandidate] = &[
     },
     EncoderCandidate {
         codec: "h264",
-        encoder: "h264_vaapi",
-        accel: HardwareAccel::Vaapi,
-    },
-    EncoderCandidate {
-        codec: "hevc",
-        encoder: "hevc_vaapi",
-        accel: HardwareAccel::Vaapi,
-    },
-    EncoderCandidate {
-        codec: "av1",
-        encoder: "av1_vaapi",
-        accel: HardwareAccel::Vaapi,
-    },
-    EncoderCandidate {
-        codec: "h264",
         encoder: "h264_amf",
         accel: HardwareAccel::Amf,
     },
@@ -90,6 +75,21 @@ pub const ENCODER_CANDIDATES: &[EncoderCandidate] = &[
         codec: "hevc",
         encoder: "hevc_rkmpp",
         accel: HardwareAccel::Rkmpp,
+    },
+    EncoderCandidate {
+        codec: "h264",
+        encoder: "h264_vaapi",
+        accel: HardwareAccel::Vaapi,
+    },
+    EncoderCandidate {
+        codec: "hevc",
+        encoder: "hevc_vaapi",
+        accel: HardwareAccel::Vaapi,
+    },
+    EncoderCandidate {
+        codec: "av1",
+        encoder: "av1_vaapi",
+        accel: HardwareAccel::Vaapi,
     },
     EncoderCandidate {
         codec: "h264",
@@ -216,6 +216,7 @@ pub fn parse_listed_encoders(output: &str) -> Vec<String> {
 
 /// The smallest picture the encoders Flux drives are known to accept.
 ///
+///
 /// NVENC's H.264 minimum, which is the largest of them. A probe below this
 /// measures an encoder's tolerance for tiny pictures rather than whether the
 /// driver is there, which is the only thing it is meant to find out.
@@ -240,26 +241,47 @@ const PROBE_SIZE: (u32, u32) = (640, 480);
 ///
 /// Separated from running them so the size can be held to
 /// [`SMALLEST_USABLE_PROBE`] by a test rather than by whoever reads it next.
+///
+/// A backend that needs a device is given one, and the frames are uploaded to
+/// it. Without that, `h264_vaapi` cannot open at all and the probe reports a
+/// working card as broken. Measured on an RX 580 whose driver was demonstrably
+/// healthy: every VAAPI encoder failed without a device and passed with one.
 #[must_use]
-pub fn probe_arguments(encoder: &str) -> Vec<String> {
+pub fn probe_arguments(candidate: &EncoderCandidate, device: &str) -> Vec<String> {
     let (width, height) = PROBE_SIZE;
-
-    vec![
+    let mut arguments = vec![
         "-hide_banner".to_owned(),
         "-loglevel".to_owned(),
         "error".to_owned(),
+    ];
+
+    if candidate.accel.needs_device_to_probe() {
+        arguments.extend(candidate.accel.device_arguments(device));
+    }
+
+    arguments.extend([
         "-f".to_owned(),
         "lavfi".to_owned(),
         "-i".to_owned(),
         format!("testsrc2=size={width}x{height}:rate=1"),
         "-frames:v".to_owned(),
         "1".to_owned(),
+    ]);
+
+    if candidate.accel.needs_uploaded_frames() {
+        arguments.push("-vf".to_owned());
+        arguments.push("format=nv12,hwupload".to_owned());
+    }
+
+    arguments.extend([
         "-c:v".to_owned(),
-        encoder.to_owned(),
+        candidate.encoder.to_owned(),
         "-f".to_owned(),
         "null".to_owned(),
         "-".to_owned(),
-    ]
+    ]);
+
+    arguments
 }
 
 /// Runs a one frame encode to prove an encoder works.
@@ -271,10 +293,11 @@ pub fn probe_arguments(encoder: &str) -> Vec<String> {
 /// encode a frame instead. See ADR-0009.
 ///
 /// The frame has to be big enough for the encoder to entertain it, which is
-/// what [`PROBE_SIZE`] is about.
-async fn verify_encoder(ffmpeg: &str, encoder: &str) -> bool {
+/// what [`PROBE_SIZE`] is about, and a backend that wants a device has to be
+/// handed one, which is what `device` is about.
+async fn verify_encoder(ffmpeg: &str, candidate: &EncoderCandidate, device: &str) -> bool {
     Command::new(ffmpeg)
-        .args(probe_arguments(encoder))
+        .args(probe_arguments(candidate, device))
         .output()
         .await
         .is_ok_and(|output| output.status.success())
@@ -306,14 +329,14 @@ static CACHE: tokio::sync::OnceCell<Capabilities> = tokio::sync::OnceCell::const
 ///
 /// Only actually runs the detection once; every call after the first reuses
 /// the cached result. See `CACHE`.
-pub async fn detect_capabilities(ffmpeg: &str) -> Capabilities {
+pub async fn detect_capabilities(ffmpeg: &str, device: &str) -> Capabilities {
     CACHE
-        .get_or_init(|| detect_capabilities_uncached(ffmpeg))
+        .get_or_init(|| detect_capabilities_uncached(ffmpeg, device))
         .await
         .clone()
 }
 
-async fn detect_capabilities_uncached(ffmpeg: &str) -> Capabilities {
+async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilities {
     let listed = match Command::new(ffmpeg)
         .args(["-hide_banner", "-encoders"])
         .output()
@@ -330,7 +353,7 @@ async fn detect_capabilities_uncached(ffmpeg: &str) -> Capabilities {
             continue;
         }
 
-        if !verify_encoder(ffmpeg, candidate.encoder).await {
+        if !verify_encoder(ffmpeg, candidate, device).await {
             continue;
         }
 
@@ -373,11 +396,24 @@ async fn detect_capabilities_uncached(ffmpeg: &str) -> Capabilities {
 mod tests {
     use super::{
         parse_listed_encoders, parse_listed_filters, probe_arguments, select_tone_mapping,
-        Capabilities, VerifiedEncoder, ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
+        Capabilities, EncoderCandidate, VerifiedEncoder, ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
     };
+    use crate::transcode_plan::HardwareAccel;
+    use crate::transcode_plan::DEFAULT_DEVICE;
+
+    fn candidate(encoder: &'static str, accel: HardwareAccel) -> EncoderCandidate {
+        EncoderCandidate {
+            codec: "h264",
+            encoder,
+            accel,
+        }
+    }
 
     fn probe_size() -> (u32, u32) {
-        let arguments = probe_arguments("h264_nvenc");
+        let arguments = probe_arguments(
+            &candidate("h264_nvenc", HardwareAccel::Nvenc),
+            DEFAULT_DEVICE,
+        );
         let source = arguments
             .iter()
             .find(|argument| argument.starts_with("testsrc2="))
@@ -409,8 +445,73 @@ mod tests {
     }
 
     #[test]
+    fn hands_vaapi_a_device_and_uploads_the_frame_to_it() {
+        let arguments = probe_arguments(
+            &candidate("h264_vaapi", HardwareAccel::Vaapi),
+            "/dev/dri/renderD128",
+        );
+
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-init_hw_device", "vaapi=va:/dev/dri/renderD128"]));
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-vf", "format=nv12,hwupload"]));
+    }
+
+    #[test]
+    fn leaves_qsv_to_find_its_own_device_when_probing() {
+        let arguments = probe_arguments(
+            &candidate("h264_qsv", HardwareAccel::Qsv),
+            "/dev/dri/renderD128",
+        );
+
+        assert!(
+            !arguments
+                .iter()
+                .any(|argument| argument == "-init_hw_device"),
+            "QSV verifies unaided; forcing a guessed node would reject a card on renderD129"
+        );
+    }
+
+    #[test]
+    fn asks_for_no_device_where_none_is_wanted() {
+        for accel in [
+            HardwareAccel::Nvenc,
+            HardwareAccel::VideoToolbox,
+            HardwareAccel::Qsv,
+            HardwareAccel::None,
+        ] {
+            let arguments = probe_arguments(&candidate("enc", accel), DEFAULT_DEVICE);
+
+            assert!(
+                !arguments
+                    .iter()
+                    .any(|argument| argument == "-init_hw_device"),
+                "{accel:?} opens its own device"
+            );
+            assert!(
+                !arguments.iter().any(|argument| argument == "-vf"),
+                "{accel:?} takes a software frame as it comes"
+            );
+        }
+    }
+
+    #[test]
+    fn probes_the_device_it_was_given() {
+        let arguments = probe_arguments(
+            &candidate("h264_vaapi", HardwareAccel::Vaapi),
+            "/dev/dri/renderD129",
+        );
+
+        assert!(arguments
+            .iter()
+            .any(|argument| argument == "vaapi=va:/dev/dri/renderD129"));
+    }
+
+    #[test]
     fn probes_the_encoder_it_was_asked_about() {
-        let arguments = probe_arguments("hevc_qsv");
+        let arguments = probe_arguments(&candidate("hevc_qsv", HardwareAccel::Qsv), DEFAULT_DEVICE);
 
         assert!(arguments
             .windows(2)
@@ -419,7 +520,10 @@ mod tests {
 
     #[test]
     fn probes_one_frame_and_writes_nothing() {
-        let arguments = probe_arguments("h264_vaapi");
+        let arguments = probe_arguments(
+            &candidate("h264_vaapi", HardwareAccel::Vaapi),
+            DEFAULT_DEVICE,
+        );
 
         assert!(arguments.windows(2).any(|pair| pair == ["-frames:v", "1"]));
         assert!(arguments.windows(2).any(|pair| pair == ["-f", "null"]));
@@ -428,7 +532,7 @@ mod tests {
     #[test]
     fn drops_no_candidate_for_being_unnamed() {
         for candidate in ENCODER_CANDIDATES {
-            let arguments = probe_arguments(candidate.encoder);
+            let arguments = probe_arguments(candidate, DEFAULT_DEVICE);
 
             assert!(
                 arguments
@@ -439,7 +543,7 @@ mod tests {
             );
         }
     }
-    use crate::transcode_plan::{HardwareAccel, ToneMapping};
+    use crate::transcode_plan::ToneMapping;
 
     const ENCODERS_OUTPUT: &str = "Encoders:\n V..... = Video\n ------\n V....D libx264              libx264 H.264\n V....D h264_videotoolbox    VideoToolbox H.264\n A....D aac                  AAC\n";
 

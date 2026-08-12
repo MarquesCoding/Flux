@@ -70,6 +70,7 @@ fn session_config(ffmpeg: String) -> SessionConfig {
 
     SessionConfig {
         ffmpeg,
+        device: from_env("FLUX_VAAPI_DEVICE").unwrap_or(defaults.device),
         cache_root: env::var("FLUX_TRANSCODE_DIR").map_or(defaults.cache_root, PathBuf::from),
         idle_timeout: env::var("FLUX_SESSION_IDLE_SECONDS")
             .ok()
@@ -205,7 +206,9 @@ async fn main() {
             }
         }
         Some((command, _)) if command == "capabilities" => {
-            let capabilities = capability::detect_capabilities(&ffmpeg).await;
+            let capabilities =
+                capability::detect_capabilities(&ffmpeg, &session_config(ffmpeg.clone()).device)
+                    .await;
 
             println!(
                 "{}",
