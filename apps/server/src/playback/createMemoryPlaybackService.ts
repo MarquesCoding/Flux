@@ -125,15 +125,15 @@ const createMemoryPlaybackService = (
         : null,
     ),
 
-  readDirectFile: (mediaId) =>
+  readDirectFile: (mediaId, range) =>
     Promise.resolve(
       state.media[mediaId] === undefined
         ? null
         : {
             body: new TextEncoder().encode('film').buffer,
             contentType: 'video/mp4',
-            status: 200,
-            contentRange: null,
+            status: range === null ? 200 : 206,
+            contentRange: range === null ? null : 'bytes 0-3/4',
           },
     ),
 

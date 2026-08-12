@@ -598,3 +598,134 @@ describe('library routes', () => {
     expect(response.status).toBe(400);
   });
 });
+
+describe('narrowing a library down', () => {
+  it('offers only what belongs to a series when shows are asked for', async () => {
+    const { app } = build([detail(), episodeOf()]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?kind=shows`);
+    const body = z.object({ items: z.array(MediaSummarySchema) }).parse(await response.json());
+
+    expect(body.items.map((one) => one.title)).toEqual(['Yuki’s World']);
+  });
+
+  it('offers only what stands on its own when films are asked for', async () => {
+    const { app } = build([detail(), episodeOf()]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?kind=films`);
+    const body = z.object({ items: z.array(MediaSummarySchema) }).parse(await response.json());
+
+    expect(body.items.map((one) => one.title)).toEqual(['Arrival']);
+  });
+
+  it('offers only what carries the genre asked for', async () => {
+    const { app } = build([
+      detail({ metadata: { hasPoster: false, hasBackdrop: false, genres: ['Drama'] } }),
+      detail({
+        id: '11111111-1111-4111-8111-111111111111',
+        title: 'Heat',
+        metadata: { hasPoster: false, hasBackdrop: false, genres: ['Crime'] },
+      }),
+    ]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?genre=Crime`);
+    const body = z.object({ items: z.array(MediaSummarySchema) }).parse(await response.json());
+
+    expect(body.items.map((one) => one.title)).toEqual(['Heat']);
+  });
+
+  it('offers nothing for a genre nothing carries', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?genre=Western`);
+    const body = z.object({ items: z.array(MediaSummarySchema) }).parse(await response.json());
+
+    expect(body.items).toEqual([]);
+  });
+});
+
+describe('saying what something actually is', () => {
+  it('takes a catalogue id and says how many files it reached', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: '329', kind: 'movie' }),
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('reads the kind out of a catalogue address, so pasting a link is enough', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: 'https://www.themoviedb.org/movie/329-arrival' }),
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('refuses something that is not a catalogue reference at all', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: 'the one with the aliens' }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('asks which kind a bare number is, since the same number is both', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: '329' }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('has nothing to correct about an item that is not there', async () => {
+    const { app } = build([]);
+
+    const response = await app.request(
+      `${BASE}/api/media/11111111-1111-4111-8111-111111111111/match`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reference: '329', kind: 'movie' }),
+      },
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it('forgets a correction, so the next scan reads the file as it finds it', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'DELETE',
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('has nothing to forget about an item that is not there', async () => {
+    const { app } = build([]);
+
+    const response = await app.request(
+      `${BASE}/api/media/11111111-1111-4111-8111-111111111111/match`,
+      { method: 'DELETE' },
+    );
+
+    expect(response.status).toBe(404);
+  });
+});

@@ -8,6 +8,7 @@ import { createMemoryWatchProgressService } from '@FluxServer/progress/createMem
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
+import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import { createMemoryPlaybackService } from './createMemoryPlaybackService';
 import { z } from 'zod';
 import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
@@ -547,5 +548,177 @@ describe('quality steps', () => {
       'properties',
       'requestedQuality',
     ]);
+  });
+});
+
+describe('serving the file itself', () => {
+  it('sends the whole file when nothing was asked for in particular', async () => {
+    const { app } = build();
+
+    const response = await app.request(`${BASE}/api/playback/${MEDIA_ID}/file`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('accept-ranges')).toBe('bytes');
+    expect(response.headers.get('content-type')).toBe('video/mp4');
+  });
+
+  it('sends only the part that was asked for, so seeking does not fetch the film', async () => {
+    const { app } = build();
+
+    const response = await app.request(`${BASE}/api/playback/${MEDIA_ID}/file`, {
+      headers: { range: 'bytes=0-3' },
+    });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get('content-range')).toBe('bytes 0-3/4');
+  });
+
+  it('has no file for something that is not in the library', async () => {
+    const { app } = build();
+
+    const response = await app.request(
+      `${BASE}/api/playback/22222222-2222-4222-8222-222222222222/file`,
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('the seek-bar previews', () => {
+  it('draws a single frame at a moment in the film', async () => {
+    const { app } = build();
+
+    const response = await app.request(
+      `${BASE}/api/playback/${MEDIA_ID}/frame?seconds=30&width=320`,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it('has no frame for something that is not in the library', async () => {
+    const { app } = build();
+
+    const response = await app.request(
+      `${BASE}/api/playback/22222222-2222-4222-8222-222222222222/frame?seconds=30&width=320`,
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it('sends a preview clip whole', async () => {
+    const { app } = build();
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/preview`);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('sends the part of a preview clip that was asked for', async () => {
+    const { app } = build();
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/preview`, {
+      headers: { range: 'bytes=0-3' },
+    });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get('content-range')).toBe('bytes 0-3/4');
+  });
+
+  it('has no clip for something that is not in the library', async () => {
+    const { app } = build();
+
+    const response = await app.request(
+      `${BASE}/api/media/22222222-2222-4222-8222-222222222222/preview`,
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it('offers a sheet of thumbnails, and the index that places them', async () => {
+    const { app } = build();
+
+    const response = await app.request(`${BASE}/api/playback/${MEDIA_ID}/trickplay`, {
+      method: 'POST',
+      headers: { origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ id: 'thumbs' });
+  });
+});
+
+describe('telling presence what is being watched', () => {
+  it('records what a tab started, so an admin can see it', async () => {
+    const presence = createPresenceService();
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    const app = signedInApp(
+      createApp({
+        auth,
+        settings,
+        permissions,
+        countUsers: () => Promise.resolve(1),
+        promoteToAdmin: () => Promise.resolve(),
+        library: createMemoryLibraryService({
+          libraries: [],
+          media: [
+            {
+              id: MEDIA_ID,
+              libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+              title: 'Arrival',
+              year: 2016,
+              container: 'mkv',
+              durationSeconds: 7200,
+              videoCodec: 'hevc',
+              videoRange: 'HDR10',
+              width: 3840,
+              height: 2160,
+              bitrateKbps: 24000,
+              audioStreams: [],
+              subtitleStreams: [],
+              addedAt: '2026-08-10T00:00:00.000Z',
+              metadata: { hasPoster: true, hasBackdrop: false },
+            },
+          ],
+        }),
+        subtitles: createMemorySubtitleService(),
+        segments: createMemorySegmentService(),
+        progress: createMemoryWatchProgressService(),
+        favourites: createMemoryFavouriteService(),
+        playback: createMemoryPlaybackService({
+          media: { [MEDIA_ID]: hdrMedia },
+          sessions: {},
+        }),
+        presence,
+      }),
+      { store, permissions, isAdministrator: true },
+    );
+
+    presence.connect('tab-1', null, null, 'Chrome on macOS', () => {});
+
+    const response = await app.request(
+      post(`/api/playback/${MEDIA_ID}/session`, {
+        deviceProfile: capableProfile,
+        clientId: 'tab-1',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(presence.list()[0]?.playback).toMatchObject({
+      mediaId: MEDIA_ID,
+      mediaTitle: 'Arrival',
+      hasPoster: true,
+    });
+  });
+
+  it('says nothing to presence about a tab that never said which one it is', async () => {
+    const { app } = build();
+
+    const response = await app.request(
+      post(`/api/playback/${MEDIA_ID}/session`, { deviceProfile: capableProfile }),
+    );
+
+    expect(response.status).toBe(200);
   });
 });

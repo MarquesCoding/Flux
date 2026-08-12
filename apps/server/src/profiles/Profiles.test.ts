@@ -403,3 +403,57 @@ describe('giving a profile an account of its own', () => {
     expect((await promote(context, cookie)).status).toBe(403);
   });
 });
+
+describe('a server built without profiles at all', () => {
+  /**
+   * The application with no profile service behind it.
+   *
+   * Every profile route asks for one before doing anything, and answers as
+   * though nobody is signed in when there is none — which is what a viewer
+   * would see on a deployment that left profiles out.
+   */
+  const withoutProfiles = () => {
+    const { auth, settings } = createMemoryAuth();
+
+    return createApp({
+      auth,
+      settings,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService(),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      subtitles: createMemorySubtitleService({}),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+    });
+  };
+
+  const PROFILE_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+  const asks: [string, string, object?][] = [
+    ['GET', '/api/profiles'],
+    ['POST', '/api/profiles', { name: 'Dan', colour: '#e8a33a' }],
+    ['PATCH', `/api/profiles/${PROFILE_ID}`, { name: 'Dan', colour: '#e8a33a' }],
+    ['DELETE', `/api/profiles/${PROFILE_ID}`],
+  ];
+
+  for (const [method, path, body] of asks) {
+    it(`answers ${method} ${path} as though nobody is signed in`, async () => {
+      const app = withoutProfiles();
+      const cookie = await signedIn(app);
+
+      const response = await app.request(`${BASE}${path}`, {
+        method,
+        headers: {
+          cookie,
+          origin: BASE,
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+
+      expect(response.status).toBe(401);
+    });
+  }
+});
