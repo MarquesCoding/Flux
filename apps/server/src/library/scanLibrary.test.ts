@@ -100,7 +100,14 @@ const harness = (options: {
     readMonitor: () => Promise.resolve({}),
     openMonitorStream: () => Promise.resolve(null),
     capabilities: () =>
-      Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
+      Promise.resolve({
+        ffmpegVersion: 'test',
+        encoders: [],
+        hardwareAccels: [],
+        toneMapping: 'unavailable' as const,
+        canBurnTextSubtitles: true,
+        canBurnImageSubtitles: true,
+      }),
   };
 
   const run = () =>
@@ -324,7 +331,14 @@ describe('scanLibrary', () => {
         readMonitor: () => Promise.resolve({}),
         openMonitorStream: () => Promise.resolve(null),
         capabilities: () =>
-          Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
+          Promise.resolve({
+            ffmpegVersion: 'test',
+            encoders: [],
+            hardwareAccels: [],
+            toneMapping: 'unavailable' as const,
+            canBurnTextSubtitles: true,
+            canBurnImageSubtitles: true,
+          }),
       },
       onProblem: (path, reason) => problems.push(`${path}: ${reason}`),
     });

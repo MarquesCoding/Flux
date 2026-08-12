@@ -28,7 +28,15 @@ const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcode
   readPreviewFile: () => Promise.resolve(null),
   readMonitor: () => Promise.resolve({}),
   openMonitorStream: () => Promise.resolve(null),
-  capabilities: () => Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
+  capabilities: () =>
+    Promise.resolve({
+      ffmpegVersion: 'test',
+      encoders: [],
+      hardwareAccels: [],
+      toneMapping: 'unavailable' as const,
+      canBurnTextSubtitles: true,
+      canBurnImageSubtitles: true,
+    }),
 });
 
 const harness = (items: { path: string; audioStreams: AudioStream[] }[]) => {

@@ -94,7 +94,15 @@ const transcoderThat = (
   readPreviewFile: () => Promise.resolve(null),
   readMonitor: () => Promise.resolve({}),
   openMonitorStream: () => Promise.resolve(null),
-  capabilities: () => Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
+  capabilities: () =>
+    Promise.resolve({
+      ffmpegVersion: 'test',
+      encoders: [],
+      hardwareAccels: [],
+      toneMapping: 'unavailable' as const,
+      canBurnTextSubtitles: true,
+      canBurnImageSubtitles: true,
+    }),
 });
 
 describe('createFingerprintSegmentProvider', () => {
