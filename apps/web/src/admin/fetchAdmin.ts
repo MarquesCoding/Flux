@@ -162,18 +162,6 @@ type ScheduleTrigger = z.infer<typeof ScheduleTriggerSchema>;
 type JobTrigger = z.infer<typeof JobTriggerSchema>;
 type JobSchedule = z.infer<typeof JobScheduleSchema>;
 
-/**
- * Reads the state of the server.
- */
-/**
- * Why the server could not be read, or nothing when it could.
- *
- * Reported rather than thrown. A page that cannot say what is wrong sends
- * somebody to the terminal to find out, and the answer is usually already in
- * the response it just threw away.
- */
-type OverviewOutcome = { overview: AdminOverview | null; problem: string | null };
-
 const RunningScansSchema = z.object({
   scans: z.array(
     z.object({
@@ -245,32 +233,28 @@ const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<Cat
   return parsed.success ? parsed.data.matches : [];
 };
 
-const fetchAdminOverview = async (): Promise<OverviewOutcome> => {
+/**
+ * Reads the state of the server.
+ *
+ * Throws with the reason rather than answering null, so that a page which
+ * could not read this says so. Returning nothing is indistinguishable from a
+ * server that holds nothing, and a page cannot tell an operator which it is
+ * looking at unless the difference reaches it.
+ */
+const fetchAdminOverview = async (): Promise<AdminOverview> => {
   const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
     () => null,
   );
 
   if (response === null) {
-    return { overview: null, problem: 'The server could not be reached.' };
+    throw new Error('The server could not be reached.');
   }
 
   if (!response.ok) {
-    return {
-      overview: null,
-      problem: `The server answered ${response.status.toString()}.`,
-    };
+    throw new Error(`The server answered ${response.status.toString()}.`);
   }
 
-  const parsed = AdminOverviewSchema.safeParse(await response.json().catch(() => null));
-
-  return parsed.success
-    ? { overview: parsed.data, problem: null }
-    : {
-        overview: null,
-        problem: `The server answered something this page did not understand: ${parsed.error.issues
-          .map((issue) => `${issue.path.join('.')} ${issue.message}`)
-          .join('; ')}`,
-      };
+  return AdminOverviewSchema.parse(await response.json());
 };
 
 /**
@@ -484,7 +468,6 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
 
 export type {
   CatalogueMatch,
-  OverviewOutcome,
   RunningScan,
   ActiveSession,
   AdminOverview,

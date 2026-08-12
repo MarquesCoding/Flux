@@ -79,6 +79,7 @@ const createMemoryAuth = (
     setupCompletedAt: null,
     catalogueApiKey: '',
     seededJobTriggerKinds: [],
+    seededRoleNames: [],
   });
 
   const auth = createAuth({

@@ -6,6 +6,7 @@ const ServerSettingsSchema = z.object({
   setupCompletedAt: z.string().datetime().nullable(),
   catalogueApiKey: z.string().default(''),
   seededJobTriggerKinds: z.array(z.string()).default([]),
+  seededRoleNames: z.array(z.string()).default([]),
 });
 
 type ServerSettings = z.infer<typeof ServerSettingsSchema>;

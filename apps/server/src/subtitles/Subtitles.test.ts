@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
+import { signedInApp } from '@FluxServer/auth/signUpForTest';
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
@@ -18,36 +19,38 @@ const SUB_RIP = '1\n00:00:01,000 --> 00:00:03,000\nHello\n';
 const build = () => {
   const { auth, settings } = createMemoryAuth();
 
-  return createApp({
-    auth,
-    settings,
-    countUsers: () => Promise.resolve(1),
-    promoteToAdmin: () => Promise.resolve(),
-    library: createMemoryLibraryService(),
-    playback: createMemoryPlaybackService(),
-    segments: createMemorySegmentService(),
-    progress: createMemoryWatchProgressService(),
-    favourites: createMemoryFavouriteService(),
-    subtitles: createMemorySubtitleService({
-      [MEDIA_ID]: [
-        {
-          path: '/media/Arrival (2016).en.srt',
-          language: 'en',
-          label: 'English',
-          format: 'srt',
-          contents: SUB_RIP,
-        },
-        {
-          path: '/media/Arrival (2016).fr.forced.srt',
-          language: 'fr',
-          label: 'Français (forced)',
-          format: 'srt',
-          contents: SUB_RIP,
-          isForced: true,
-        },
-      ],
+  return signedInApp(
+    createApp({
+      auth,
+      settings,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService(),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+      subtitles: createMemorySubtitleService({
+        [MEDIA_ID]: [
+          {
+            path: '/media/Arrival (2016).en.srt',
+            language: 'en',
+            label: 'English',
+            format: 'srt',
+            contents: SUB_RIP,
+          },
+          {
+            path: '/media/Arrival (2016).fr.forced.srt',
+            language: 'fr',
+            label: 'Français (forced)',
+            format: 'srt',
+            contents: SUB_RIP,
+            isForced: true,
+          },
+        ],
+      }),
     }),
-  });
+  );
 };
 
 const TrackListSchema = z.object({
