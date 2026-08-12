@@ -209,6 +209,42 @@ const fetchRunningScans = async (): Promise<RunningScan[]> => {
   return parsed.success ? parsed.data.scans : [];
 };
 
+const CatalogueMatchesSchema = z.object({
+  matches: z.array(
+    z.object({
+      externalId: z.string(),
+      kind: z.enum(['tv', 'movie']),
+      title: z.string(),
+      year: z.number().nullable(),
+      overview: z.string().nullable(),
+      posterUrl: z.string().nullable(),
+    }),
+  ),
+});
+
+type CatalogueMatch = z.infer<typeof CatalogueMatchesSchema>['matches'][number];
+
+/**
+ * Asks the catalogue what it holds under a name.
+ *
+ * For the moment somebody knows the match is wrong and wants to say what it
+ * should have been, in the words they would use rather than an id.
+ */
+const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<CatalogueMatch[]> => {
+  const parameters = new URLSearchParams({ query, kind });
+  const response = await fetch(`/api/admin/catalogue/search?${parameters.toString()}`, {
+    credentials: 'same-origin',
+  }).catch(() => null);
+
+  if (response === null || !response.ok) {
+    return [];
+  }
+
+  const parsed = CatalogueMatchesSchema.safeParse(await response.json().catch(() => null));
+
+  return parsed.success ? parsed.data.matches : [];
+};
+
 const fetchAdminOverview = async (): Promise<OverviewOutcome> => {
   const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
     () => null,
@@ -447,6 +483,7 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
 };
 
 export type {
+  CatalogueMatch,
   OverviewOutcome,
   RunningScan,
   ActiveSession,
@@ -462,6 +499,7 @@ export type {
 export {
   fetchAdminOverview,
   fetchRunningScans,
+  searchCatalogue,
   fetchMonitor,
   watchMonitor,
   saveCatalogueKey,

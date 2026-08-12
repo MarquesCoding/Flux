@@ -78,6 +78,18 @@ type Metadata = {
 /**
  * What a catalogue says a whole series contains.
  */
+/**
+ * One thing the catalogue offers as a possible answer.
+ */
+type CatalogueMatch = {
+  externalId: string;
+  kind: 'tv' | 'movie';
+  title: string;
+  year: number | null;
+  overview: string | null;
+  posterUrl: string | null;
+};
+
 type SeriesShape = {
   seasons: {
     seasonNumber: number;
@@ -107,6 +119,13 @@ type MetadataProvider = {
    * the whole reason this exists.
    */
   describeSeries?: (externalId: string) => Promise<SeriesShape | null>;
+  /**
+   * What the catalogue holds under a name, for somebody choosing by hand.
+   *
+   * Only a catalogue can answer. A provider that reads filenames knows nothing
+   * beyond the files it was given, which is exactly why a human is being asked.
+   */
+  search?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
 };
 
 /**
@@ -166,6 +185,6 @@ const resolveMetadata = async (
   return null;
 };
 
-export type { CastMember, MediaFacts, Metadata, MetadataProvider, SeriesShape };
+export type { CastMember, CatalogueMatch, MediaFacts, Metadata, MetadataProvider, SeriesShape };
 
 export { resolveMetadata, resolveSeriesShape };

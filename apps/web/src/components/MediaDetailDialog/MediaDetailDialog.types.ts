@@ -1,11 +1,6 @@
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 type MediaDetailDialogProps = {
-  /**
-   * Whether this viewer may correct what a file is. Only an administrator can,
-   * because a correction is global: a wrong title is wrong for everybody.
-   */
-  canCorrect?: boolean;
   media: MediaSummary | null;
   onClose: () => void;
   /**

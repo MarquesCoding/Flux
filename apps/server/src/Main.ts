@@ -536,6 +536,7 @@ const app = createApp({
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
   listRunningJobs: () => jobs.listRunning(),
+  searchCatalogue: (query, kind) => catalogueProvider.search?.(query, kind) ?? Promise.resolve([]),
 });
 
 const seededKinds = await seedDefaultJobTriggers({ schedules, settings });
