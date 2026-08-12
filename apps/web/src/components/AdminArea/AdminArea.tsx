@@ -216,8 +216,8 @@ const AdminArea = ({
     setIsAddingLibrary(false);
   };
 
-  const rescan = async (libraryId: string) => {
-    await startScan(libraryId);
+  const rescan = async (libraryId: string, force = false) => {
+    await startScan(libraryId, force);
     setLibraries(await fetchLibraries());
   };
 
@@ -815,17 +815,32 @@ const AdminArea = ({
 
                         <div className="flex shrink-0 items-center gap-2">
                           {progress === undefined ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              isPill
-                              onClick={() => {
-                                void rescan(library.id);
-                              }}
-                            >
-                              <IconRefresh size={16} aria-hidden />
-                              Scan
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                isPill
+                                label="Read every file again, not only the ones that changed"
+                                onClick={() => {
+                                  void rescan(library.id, true);
+                                }}
+                              >
+                                <IconRefreshAlert size={16} aria-hidden />
+                                Read again
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                isPill
+                                onClick={() => {
+                                  void rescan(library.id);
+                                }}
+                              >
+                                <IconRefresh size={16} aria-hidden />
+                                Scan
+                              </Button>
+                            </>
                           ) : (
                             <ScanProgressBar
                               label={

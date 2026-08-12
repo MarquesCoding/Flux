@@ -282,3 +282,35 @@ describe('a page opened while a scan is already running', () => {
     expect(getSnapshot().progress.size).toBe(0);
   });
 });
+
+describe('reading a library again', () => {
+  it('asks for every file, not only the ones that changed', async () => {
+    scanLibraryMock.mockResolvedValue({ jobId: 'job-4', state: 'queued' });
+    readScanStateMock.mockResolvedValue({
+      jobId: 'job-4',
+      state: 'completed',
+      phase: null,
+      processed: null,
+      total: null,
+    });
+
+    await startScan('library-1', true);
+
+    expect(scanLibraryMock).toHaveBeenCalledWith('library-1', true);
+  });
+
+  it('asks only about what changed by default, which is what a scan is for', async () => {
+    scanLibraryMock.mockResolvedValue({ jobId: 'job-5', state: 'queued' });
+    readScanStateMock.mockResolvedValue({
+      jobId: 'job-5',
+      state: 'completed',
+      phase: null,
+      processed: null,
+      total: null,
+    });
+
+    await startScan('library-1');
+
+    expect(scanLibraryMock).toHaveBeenCalledWith('library-1', false);
+  });
+});
