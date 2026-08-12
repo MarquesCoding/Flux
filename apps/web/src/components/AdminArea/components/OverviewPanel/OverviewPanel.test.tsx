@@ -24,6 +24,7 @@ const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
     address: 'unix:/tmp/flux-transcoder.sock',
     ffmpegVersion: '7.1',
     hardwareAccels: ['videotoolbox'],
+    rejectedEncoders: [],
   },
   library: { itemCount: 10, libraryCount: 1 },
   ...overrides,
@@ -144,6 +145,7 @@ describe('OverviewPanel', () => {
               address: 'unix:/tmp/flux-transcoder.sock',
               ffmpegVersion: null,
               hardwareAccels: [],
+              rejectedEncoders: [],
             },
           })}
         />,
@@ -272,6 +274,7 @@ describe('OverviewPanel', () => {
               address: 'unix:/tmp/flux-transcoder.sock',
               ffmpegVersion: '7.1',
               hardwareAccels: [],
+              rejectedEncoders: [],
             },
           })}
         />,
@@ -307,5 +310,27 @@ describe('OverviewPanel', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(OverviewPanel.displayName).toBe('OverviewPanel');
+  });
+
+  it('says why an encoder was not used, rather than hiding it', () => {
+    render(
+      <OverviewPanel
+        {...props}
+        overview={overview({
+          transcoder: {
+            isReachable: true,
+            address: 'unix:/tmp/flux-transcoder.sock',
+            ffmpegVersion: '8.1.2',
+            hardwareAccels: [],
+            rejectedEncoders: [
+              { encoder: 'h264_vaapi', reason: 'No VA display found for /dev/dri/renderD128.' },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/h264_vaapi was not used/)).toBeInTheDocument();
+    expect(screen.getByText(/No VA display found/)).toBeInTheDocument();
   });
 });

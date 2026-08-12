@@ -303,7 +303,11 @@ type CreateAppOptions = {
   listUsers?: () => Promise<
     { id: string; name: string; email: string; role: string | null; createdAt: string }[]
   >;
-  capabilities?: () => Promise<{ ffmpegVersion: string; hardwareAccels: string[] }>;
+  capabilities?: () => Promise<{
+    ffmpegVersion: string;
+    hardwareAccels: string[];
+    rejected?: { encoder: string; reason: string }[];
+  }>;
   /**
    * What the media service is doing right now.
    */
@@ -1077,6 +1081,7 @@ const createApp = ({
           address: transcoderAddress,
           ffmpegVersion: transcoderCapabilities?.ffmpegVersion ?? null,
           hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
+          rejectedEncoders: transcoderCapabilities?.rejected ?? [],
         },
         library: {
           libraryCount: libraries.length,

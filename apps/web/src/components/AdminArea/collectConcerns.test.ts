@@ -12,6 +12,7 @@ const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview 
     address: 'unix:/tmp/flux-transcoder.sock',
     ffmpegVersion: '7.1',
     hardwareAccels: [],
+    rejectedEncoders: [],
   },
   library: { itemCount: 10, libraryCount: 1 },
   ...overrides,
@@ -120,6 +121,7 @@ describe('collectConcerns', () => {
             address: 'unix:/tmp/flux-transcoder.sock',
             ffmpegVersion: null,
             hardwareAccels: [],
+            rejectedEncoders: [],
           },
         }),
       });
@@ -137,6 +139,7 @@ describe('collectConcerns', () => {
             address: 'unix:/tmp/flux-transcoder.sock',
             ffmpegVersion: null,
             hardwareAccels: [],
+            rejectedEncoders: [],
           },
         }),
       });
@@ -148,7 +151,13 @@ describe('collectConcerns', () => {
       const concerns = collectConcerns({
         ...healthy,
         overview: healthyOverview({
-          transcoder: { isReachable: false, address: '', ffmpegVersion: null, hardwareAccels: [] },
+          transcoder: {
+            isReachable: false,
+            address: '',
+            ffmpegVersion: null,
+            hardwareAccels: [],
+            rejectedEncoders: [],
+          },
         }),
       });
 
