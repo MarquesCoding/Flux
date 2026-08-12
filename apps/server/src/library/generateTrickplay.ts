@@ -21,6 +21,14 @@ type TrickplayParams = {
 
 type GenerateTrickplayOptions = {
   libraryId: string;
+  /**
+   * How many times this library has been reset.
+   *
+   * Addresses the sheets, so it has to be the same number a player will ask
+   * with. Taken from the library row rather than assumed, since a reset raises
+   * it and a rebuild that used the old one would redraw nothing.
+   */
+  generation: number;
   store: TrickplayStore;
   transcoder: Transcoder;
   trickplay: TrickplayParams;
@@ -49,6 +57,7 @@ type GenerateTrickplayOptions = {
  */
 const generateTrickplay = async ({
   libraryId,
+  generation,
   store,
   transcoder,
   trickplay,
@@ -68,7 +77,7 @@ const generateTrickplay = async ({
     }
 
     const rendered = await transcoder
-      .requestTrickplay({ inputPath: item.path, ...trickplay, wait: true })
+      .requestTrickplay({ inputPath: item.path, generation, ...trickplay, wait: true })
       .then(() => true)
       .catch((error: Error) => {
         onProblem?.(item.path, error.message);

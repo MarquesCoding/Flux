@@ -151,6 +151,14 @@ type TrickplayIndex = z.infer<typeof TrickplayIndexSchema>;
 
 type TrickplayRequest = {
   inputPath: string;
+  /**
+   * How many times the file's library has been reset.
+   *
+   * Required for the same reason as on a preview: it addresses the sheets, and
+   * a caller that omitted it would redraw a feature film's worth of them on
+   * every hover instead of once.
+   */
+  generation: number;
   intervalSeconds: number;
   tileWidth: number;
   columns: number;
@@ -258,6 +266,14 @@ type Transcoder = {
    */
   requestPreview: (request: {
     inputPath: string;
+    /**
+     * How many times the file's library has been reset.
+     *
+     * Required rather than optional, and required on purpose: it is part of the
+     * clip's address, so a call that left it out would ask for a different clip
+     * than the scan made and re-encode one on every request.
+     */
+    generation: number;
     wait?: boolean;
     /**
      * Which audio stream the clip should carry, when one was chosen for it.

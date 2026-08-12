@@ -107,6 +107,14 @@ pub fn preview_encoder(capabilities: &Capabilities) -> PreviewEncoder {
 #[serde(rename_all = "camelCase")]
 pub struct PreviewRequest {
     pub input_path: String,
+    /// How many times the library holding this file has been reset.
+    ///
+    /// Part of the clip's address, so a reset renames every clip and the next
+    /// scan makes them again. Deliberately **not** defaulted: a caller that
+    /// forgets it would otherwise ask for generation zero, miss the cache for
+    /// ever, and re-encode a clip on every request. A missing field failing the
+    /// request outright is the cheaper mistake by a long way.
+    pub generation: u32,
     /// Where to start, in seconds. Absent means a fifth of the way in.
     #[serde(default)]
     pub at_seconds: Option<u32>,
@@ -168,6 +176,7 @@ impl PreviewRequest {
         let mut hasher = Sha256::new();
 
         hasher.update(RECIPE.to_be_bytes());
+        hasher.update(self.generation.to_be_bytes());
         hasher.update(self.input_path.as_bytes());
         hasher.update(self.duration_seconds.to_be_bytes());
         hasher.update(self.width.to_be_bytes());
@@ -428,6 +437,7 @@ mod tests {
     fn request() -> PreviewRequest {
         PreviewRequest {
             input_path: "/media/film.mkv".to_owned(),
+            generation: 0,
             at_seconds: None,
             duration_seconds: 24,
             width: 1920,
@@ -614,6 +624,38 @@ mod tests {
     #[test]
     fn is_named_the_same_for_the_same_clip() {
         assert_eq!(request().id(), request().id());
+    }
+
+    #[test]
+    fn a_reset_library_addresses_its_clips_somewhere_new() {
+        let after_reset = PreviewRequest {
+            generation: 1,
+            ..request()
+        };
+
+        assert_ne!(
+            request().id(),
+            after_reset.id(),
+            "a reset that reused the address would reuse the clip"
+        );
+    }
+
+    #[test]
+    fn the_same_generation_still_reuses_the_clip() {
+        let again = PreviewRequest {
+            generation: 3,
+            ..request()
+        };
+        let and_again = PreviewRequest {
+            generation: 3,
+            ..request()
+        };
+
+        assert_eq!(
+            again.id(),
+            and_again.id(),
+            "an ordinary scan must not re-encode what it already has"
+        );
     }
 
     #[test]

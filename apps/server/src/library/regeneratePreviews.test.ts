@@ -73,6 +73,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
@@ -103,6 +104,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
@@ -117,6 +119,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
@@ -133,6 +136,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: 'en',
@@ -151,6 +155,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
@@ -166,6 +171,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: 'fr',
@@ -183,6 +189,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: 'en',
@@ -219,6 +226,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: 'en',
@@ -247,6 +255,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
@@ -275,6 +284,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
