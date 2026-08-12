@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
+import { signedInApp } from '@FluxServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
@@ -89,16 +91,19 @@ const modestMedia: MediaItem = {
 };
 
 const build = (options: { unsupported?: boolean } = {}) => {
-  const { auth, settings } = createMemoryAuth();
+  const { auth, settings, store } = createMemoryAuth();
   const playback = createMemoryPlaybackService({
     media: { [MEDIA_ID]: hdrMedia, [MODEST_MEDIA_ID]: modestMedia },
     sessions: {},
     ...(options.unsupported === true ? { unsupported: true } : {}),
   });
 
+  const permissions = createMemoryPermissionService();
+
   const app = createApp({
     auth,
     settings,
+    permissions,
     countUsers: () => Promise.resolve(1),
     promoteToAdmin: () => Promise.resolve(),
     library: createMemoryLibraryService(),
@@ -109,7 +114,7 @@ const build = (options: { unsupported?: boolean } = {}) => {
     playback,
   });
 
-  return { app, playback };
+  return { app: signedInApp(app, { store, permissions, isAdministrator: true }), playback };
 };
 
 const post = (path: string, body: object) =>

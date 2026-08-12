@@ -108,6 +108,36 @@ import { drawAvatar, isAvatarStyle } from '@FluxServer/profiles/drawAvatar';
 import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt';
 import type { ProfileService } from '@FluxServer/profiles/ProfileService';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import { createSessionGate } from '@FluxServer/auth/createSessionGate';
+import { createBetterAuthAdminBlock } from '@FluxServer/auth/createBetterAuthAdminBlock';
+import { checkRoleChange } from '@FluxServer/auth/checkRoleChange';
+import { checkAccountAction } from '@FluxServer/auth/checkAccountAction';
+import type { AccountActionRefusal } from '@FluxServer/auth/checkAccountAction';
+import {
+  listAccountsRoute,
+  banAccountRoute,
+  unbanAccountRoute,
+  removeAccountRoute,
+  inviteAccountRoute,
+  editAccountRoute,
+} from '@FluxServer/routes/AccountRoute';
+import type { RoleChangeRefusal } from '@FluxServer/auth/checkRoleChange';
+import { PERMISSIONS } from '@FluxContracts/schemas/Permission';
+import {
+  listPermissionsRoute,
+  listRolesRoute,
+  createRoleRoute,
+  updateRoleRoute,
+  deleteRoleRoute,
+  listAccountRolesRoute,
+  assignRoleRoute,
+  removeRoleRoute,
+  setOverrideRoute,
+  clearOverrideRoute,
+} from '@FluxServer/routes/RoleRoute';
+import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
+import type { PermissionService } from '@FluxServer/auth/PermissionService';
+import type { Permission } from '@FluxContracts/schemas/Permission';
 
 /**
  * The header a browser names the watching profile in.
@@ -166,6 +196,22 @@ const within = async <Answer>(work: Promise<Answer>, fallback: Answer): Promise<
     }),
   ]);
 
+/**
+ * What to tell somebody whose action on an account was refused.
+ */
+const describeAccountRefusal = (refusal: AccountActionRefusal): string =>
+  refusal === 'self'
+    ? 'You cannot do that to your own account.'
+    : 'That account is at or above your own rank.';
+
+/**
+ * What to tell somebody whose change to a role was refused.
+ */
+const describeRefusal = (refusal: RoleChangeRefusal): string =>
+  refusal === 'outranked'
+    ? 'That role is at or above your own.'
+    : 'You cannot grant a permission you do not hold.';
+
 type CreateAppOptions = {
   auth: FluxAuth;
   settings: SettingsStore;
@@ -173,6 +219,41 @@ type CreateAppOptions = {
   promoteToAdmin: (email: string) => Promise<void>;
   library: LibraryService;
   playback: PlaybackService;
+  /**
+   * What each account may do.
+   *
+   * Optional so that a suite exercising an unrelated route need not build one,
+   * and a fresh in-memory service is made when none is given. Note what that
+   * default means: it holds the standard roles and assigns none of them, so
+   * every guarded route refuses until somebody is given a role. Refusing by
+   * default is the only safe way for this particular option to be missing.
+   */
+  permissions?: PermissionService;
+  /**
+   * Stops an account signing in, ends its sessions, and answers whether there
+   * was one. Passed in because ending a session is better-auth's business.
+   */
+  banAccount?: (userId: string, reason: string) => Promise<boolean>;
+  unbanAccount?: (userId: string) => Promise<boolean>;
+  removeAccount?: (userId: string) => Promise<boolean>;
+  isAccountBanned?: (userId: string) => Promise<boolean>;
+  /**
+   * Creates an account, or answers null when the address is taken. Passed in
+   * because turning a password into a credential is better-auth's business.
+   */
+  inviteAccount?: (request: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<{ id: string; name: string; email: string; createdAt: string } | null>;
+  /**
+   * Changes what an account is called or reached at.
+   */
+  editAccount?: (
+    userId: string,
+    changes: { name?: string; email?: string },
+  ) => Promise<'changed' | 'missing' | 'taken'>;
+  readBanReason?: (userId: string) => Promise<string | null>;
   /**
    * Server-wide upkeep an admin can start on demand — cache cleanup, session
    * cleanup, catalogue connectivity.
@@ -280,8 +361,45 @@ const createApp = ({
   isTranscoderReachable = () => Promise.resolve(false),
   listRunningJobs = () => [],
   searchCatalogue = () => Promise.resolve([]),
+  permissions = createMemoryPermissionService(),
+  banAccount,
+  unbanAccount,
+  removeAccount,
+  isAccountBanned,
+  readBanReason,
+  inviteAccount,
+  editAccount,
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
+
+  app.use('/api/*', createSessionGate(auth));
+
+  /**
+   * Whether whoever is asking holds a particular permission.
+   *
+   * Checked per request rather than trusted from the browser: an interface
+   * that hides a section is a courtesy, not a permission.
+   *
+   * Named after what a route needs rather than who somebody is, which is the
+   * whole point of the change from a single administrator flag. `administrator`
+   * still implies everything, so the operator running the server keeps working
+   * without holding twenty separate grants — but a route now says what it
+   * actually requires, and a role can be built that grants exactly that.
+   *
+   * Declared above the routes that ask it, so that reading down this file
+   * shows what a route requires before it shows what the route does.
+   */
+  const requires = async (headers: Headers, permission: Permission): Promise<boolean> => {
+    const session = await auth.api.getSession({ headers }).catch(() => null);
+
+    if (session === null) {
+      return false;
+    }
+
+    return (await permissions.resolve(session.user.id)).has(permission);
+  };
+
+  app.all('/api/auth/admin/*', createBetterAuthAdminBlock());
 
   app.on(['GET', 'POST'], '/api/auth/*', (context) => auth.handler(context.req.raw));
 
@@ -334,6 +452,10 @@ const createApp = ({
   app.openapi(listLibrariesRoute, async (context) => context.json(await library.list(), 200));
 
   app.openapi(createLibraryRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'library.create'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const created = await library.create(context.req.valid('json'));
 
     if (created === null) {
@@ -344,6 +466,10 @@ const createApp = ({
   });
 
   app.openapi(updateLibraryRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'library.edit'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const updated = await library.update(context.req.valid('param').id, context.req.valid('json'));
 
     if (updated === null) {
@@ -406,6 +532,10 @@ const createApp = ({
   });
 
   app.openapi(scanLibraryRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const queued = await library.scan(
       context.req.valid('param').id,
       context.req.valid('query').force === 'true',
@@ -419,7 +549,7 @@ const createApp = ({
   });
 
   app.openapi(searchCatalogueRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'media.override'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -429,7 +559,7 @@ const createApp = ({
   });
 
   app.openapi(correctMatchRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'media.override'))) {
       return context.json({ error: 'That is for administrators.' }, 404);
     }
 
@@ -461,7 +591,7 @@ const createApp = ({
   });
 
   app.openapi(forgetCorrectionRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'media.override'))) {
       return context.json({ error: 'That is for administrators.' }, 404);
     }
 
@@ -496,6 +626,10 @@ const createApp = ({
   });
 
   app.openapi(resetLibraryRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'jobs.runDestructive'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const reset = await library.reset(context.req.valid('param').id);
 
     if (reset === null) {
@@ -506,6 +640,10 @@ const createApp = ({
   });
 
   app.openapi(regeneratePreviewsRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const queued = await library.regeneratePreviews(context.req.valid('param').id);
 
     if (queued === null) {
@@ -724,18 +862,6 @@ const createApp = ({
   };
 
   /**
-   * Whether the viewer administers the server.
-   *
-   * Checked per request rather than trusted from the browser: an interface
-   * that hides a section is a courtesy, not a permission.
-   */
-  const isAdministrator = async (headers: Headers): Promise<boolean> => {
-    const session = await auth.api.getSession({ headers }).catch(() => null);
-
-    return session?.user.role === 'admin';
-  };
-
-  /**
    * Who is signed in, for the routes that act on their own account.
    */
   const readAccount = async (headers: Headers) => {
@@ -816,7 +942,7 @@ const createApp = ({
   });
 
   app.openapi(promoteProfileRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'account.manage'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -918,7 +1044,7 @@ const createApp = ({
   });
 
   app.openapi(adminOverviewRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -953,7 +1079,7 @@ const createApp = ({
   });
 
   app.openapi(adminSettingsRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'server.settings'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -974,7 +1100,7 @@ const createApp = ({
   });
 
   app.openapi(adminSessionsRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'streaming.view'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -982,7 +1108,7 @@ const createApp = ({
   });
 
   app.openapi(adminStopSessionRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'streaming.stop'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1002,7 +1128,7 @@ const createApp = ({
   });
 
   app.openapi(adminPauseSessionRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'streaming.pause'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1021,7 +1147,7 @@ const createApp = ({
   });
 
   app.openapi(adminResumeSessionRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'streaming.pause'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1033,7 +1159,7 @@ const createApp = ({
   });
 
   app.openapi(adminJobDefinitionsRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1041,7 +1167,7 @@ const createApp = ({
   });
 
   app.openapi(adminRunJobRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1088,7 +1214,7 @@ const createApp = ({
   });
 
   app.openapi(adminJobSchedulesRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.schedule'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1096,7 +1222,7 @@ const createApp = ({
   });
 
   app.openapi(adminAddJobTriggerRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.schedule'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1112,7 +1238,7 @@ const createApp = ({
   });
 
   app.openapi(adminRemoveJobTriggerRoute, async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'jobs.schedule'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1120,6 +1246,549 @@ const createApp = ({
 
     if (!(await schedules.remove(kind, triggerId))) {
       return context.json({ error: 'No such trigger.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  /**
+   * Who is asking, and what they may do — resolved once for the role routes,
+   * which need both their permissions and their rank.
+   */
+  const readActor = async (headers: Headers) => {
+    const session = await auth.api.getSession({ headers }).catch(() => null);
+
+    if (session === null) {
+      return null;
+    }
+
+    const held = await permissions.rolesFor(session.user.id);
+
+    return {
+      id: session.user.id,
+      permissions: await permissions.resolve(session.user.id),
+      highestPosition: held.length === 0 ? null : Math.max(...held.map((role) => role.position)),
+    };
+  };
+
+  /**
+   * Whether taking something away would leave the server with nobody able to
+   * administer it.
+   *
+   * Asked after the change rather than reasoned about beforehand: the rules
+   * for who ends up holding `administrator` live in `resolvePermissions`, and
+   * working out the answer a second time here is how the two come to disagree.
+   * So the change is made, counted, and rolled back if it emptied the room.
+   *
+   * Counted before as well as after, because taking the last administrator
+   * away is the thing to refuse — an instance that had none to begin with is
+   * not made worse by an unrelated change, and blocking one would make a
+   * half-set-up server impossible to configure.
+   *
+   * Only safe where the undo genuinely restores what was there. Deleting a
+   * role is not such a change — the row takes every assignment to it away by
+   * cascade, and recreating it makes a different role with the same name — so
+   * that route refuses outright rather than trying to put it back.
+   */
+  const wouldStrandTheServer = async (apply: () => Promise<void>, undo: () => Promise<void>) => {
+    const before = await permissions.countAdministrators();
+
+    await apply();
+
+    if (before === 0 || (await permissions.countAdministrators()) > 0) {
+      return false;
+    }
+
+    await undo();
+
+    return true;
+  };
+
+  app.openapi(listPermissionsRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.roles'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    return context.json({ permissions: [...PERMISSIONS] }, 200);
+  });
+
+  app.openapi(listRolesRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.roles'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    return context.json({ roles: await permissions.listRoles() }, 200);
+  });
+
+  app.openapi(createRoleRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const body = context.req.valid('json');
+    const refusal = checkRoleChange({
+      actorHighestPosition: actor.highestPosition,
+      actorPermissions: actor.permissions,
+      targetPosition: body.position,
+      granting: body.permissions,
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeRefusal(refusal) }, 403);
+    }
+
+    return context.json(await permissions.createRole(body), 201);
+  });
+
+  app.openapi(updateRoleRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { id } = context.req.valid('param');
+    const body = context.req.valid('json');
+    const existing = (await permissions.listRoles()).find((role) => role.id === id);
+
+    if (existing === undefined) {
+      return context.json({ error: 'No such role.' }, 404);
+    }
+
+    const refusal = checkRoleChange({
+      actorHighestPosition: actor.highestPosition,
+      actorPermissions: actor.permissions,
+      targetPosition: Math.max(existing.position, body.position ?? existing.position),
+      granting: body.permissions ?? [],
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeRefusal(refusal) }, 403);
+    }
+
+    const before = existing.permissions;
+    const patch = {
+      ...(body.name === undefined ? {} : { name: body.name }),
+      ...(body.position === undefined ? {} : { position: body.position }),
+      ...(body.permissions === undefined ? {} : { permissions: body.permissions }),
+    };
+    const updated = await permissions.updateRole(id, patch);
+
+    if (updated === null) {
+      return context.json({ error: 'No such role.' }, 404);
+    }
+
+    const stranded = await wouldStrandTheServer(
+      () => Promise.resolve(),
+      async () => {
+        await permissions.updateRole(id, { permissions: before });
+      },
+    );
+
+    if (stranded) {
+      return context.json(
+        { error: 'That would leave nobody able to administer this server.' },
+        400,
+      );
+    }
+
+    return context.json(updated, 200);
+  });
+
+  app.openapi(deleteRoleRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { id } = context.req.valid('param');
+    const existing = (await permissions.listRoles()).find((role) => role.id === id);
+
+    if (existing === undefined) {
+      return context.json({ error: 'No such role.' }, 404);
+    }
+
+    const refusal = checkRoleChange({
+      actorHighestPosition: actor.highestPosition,
+      actorPermissions: actor.permissions,
+      targetPosition: existing.position,
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeRefusal(refusal) }, 403);
+    }
+
+    if (existing.permissions.includes('administrator')) {
+      return context.json(
+        {
+          error:
+            'A role granting administrator cannot be deleted. Change what it grants, or move its holders first.',
+        },
+        400,
+      );
+    }
+
+    await permissions.deleteRole(id);
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(listAccountRolesRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.roles'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+
+    return context.json(
+      {
+        roles: await permissions.rolesFor(userId),
+        overrides: await permissions.overridesFor(userId),
+        effective: [...(await permissions.resolve(userId))],
+      },
+      200,
+    );
+  });
+
+  app.openapi(assignRoleRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId, roleId } = context.req.valid('param');
+    const role = (await permissions.listRoles()).find((candidate) => candidate.id === roleId);
+
+    if (role === undefined) {
+      return context.json({ error: 'No such role.' }, 404);
+    }
+
+    const refusal = checkRoleChange({
+      actorHighestPosition: actor.highestPosition,
+      actorPermissions: actor.permissions,
+      targetPosition: role.position,
+      granting: role.permissions,
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeRefusal(refusal) }, 403);
+    }
+
+    await permissions.assignRole(userId, roleId);
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(removeRoleRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId, roleId } = context.req.valid('param');
+    const role = (await permissions.listRoles()).find((candidate) => candidate.id === roleId);
+
+    if (role !== undefined) {
+      const refusal = checkRoleChange({
+        actorHighestPosition: actor.highestPosition,
+        actorPermissions: actor.permissions,
+        targetPosition: role.position,
+      });
+
+      if (refusal !== null) {
+        return context.json({ error: describeRefusal(refusal) }, 403);
+      }
+    }
+
+    const stranded = await wouldStrandTheServer(
+      async () => {
+        await permissions.removeRole(userId, roleId);
+      },
+      async () => {
+        await permissions.assignRole(userId, roleId);
+      },
+    );
+
+    if (stranded) {
+      return context.json(
+        { error: 'That would leave nobody able to administer this server.' },
+        400,
+      );
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(setOverrideRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+    const grant = context.req.valid('json');
+
+    if (grant.effect === 'allow' && !actor.permissions.has(grant.permission)) {
+      return context.json({ error: describeRefusal('escalation') }, 403);
+    }
+
+    const previous = (await permissions.overridesFor(userId)).find(
+      (existing) => existing.permission === grant.permission,
+    );
+
+    const stranded = await wouldStrandTheServer(
+      async () => {
+        await permissions.setOverride(userId, grant);
+      },
+      async () => {
+        if (previous === undefined) {
+          await permissions.clearOverride(userId, grant.permission);
+
+          return;
+        }
+
+        await permissions.setOverride(userId, previous);
+      },
+    );
+
+    if (stranded) {
+      return context.json(
+        { error: 'That would leave nobody able to administer this server.' },
+        400,
+      );
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(clearOverrideRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.roles')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId, permission } = context.req.valid('param');
+    const previous = (await permissions.overridesFor(userId)).find(
+      (existing) => existing.permission === permission,
+    );
+
+    const stranded = await wouldStrandTheServer(
+      async () => {
+        await permissions.clearOverride(userId, permission);
+      },
+      async () => {
+        if (previous !== undefined) {
+          await permissions.setOverride(userId, previous);
+        }
+      },
+    );
+
+    if (stranded) {
+      return context.json(
+        { error: 'That would leave nobody able to administer this server.' },
+        400,
+      );
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(listAccountsRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.manage'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const listed = (await listUsers?.()) ?? [];
+
+    const accounts = await Promise.all(
+      listed.map(async (account) => {
+        const held = await permissions.rolesFor(account.id);
+        const resolved = await permissions.resolve(account.id);
+
+        return {
+          id: account.id,
+          name: account.name,
+          email: account.email,
+          createdAt: account.createdAt,
+          isBanned: (await isAccountBanned?.(account.id)) ?? false,
+          banReason: (await readBanReason?.(account.id)) ?? null,
+          position: held.length === 0 ? null : Math.max(...held.map((role) => role.position)),
+          isAdministrator: resolved.has('administrator'),
+          roles: held.map((role) => role.name),
+        };
+      }),
+    );
+
+    return context.json({ accounts }, 200);
+  });
+
+  app.openapi(banAccountRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.ban')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+    const { reason } = context.req.valid('json');
+    const target = await permissions.rolesFor(userId);
+
+    const refusal = checkAccountAction({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      actorHighestPosition: actor.highestPosition,
+      targetId: userId,
+      targetHighestPosition:
+        target.length === 0 ? null : Math.max(...target.map((role) => role.position)),
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeAccountRefusal(refusal) }, 403);
+    }
+
+    if ((await permissions.resolve(userId)).has('administrator')) {
+      const administrators = await permissions.countAdministrators();
+
+      if (administrators <= 1) {
+        return context.json(
+          { error: 'That would leave nobody able to administer this server.' },
+          400,
+        );
+      }
+    }
+
+    if (!(await banAccount?.(userId, reason))) {
+      return context.json({ error: 'No such account.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(unbanAccountRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.ban'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    if (!(await unbanAccount?.(context.req.valid('param').userId))) {
+      return context.json({ error: 'No such account.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(removeAccountRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.manage')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+    const target = await permissions.rolesFor(userId);
+
+    const refusal = checkAccountAction({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      actorHighestPosition: actor.highestPosition,
+      targetId: userId,
+      targetHighestPosition:
+        target.length === 0 ? null : Math.max(...target.map((role) => role.position)),
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeAccountRefusal(refusal) }, 403);
+    }
+
+    if ((await permissions.resolve(userId)).has('administrator')) {
+      const administrators = await permissions.countAdministrators();
+
+      if (administrators <= 1) {
+        return context.json(
+          { error: 'That would leave nobody able to administer this server.' },
+          400,
+        );
+      }
+    }
+
+    if (!(await removeAccount?.(userId))) {
+      return context.json({ error: 'No such account.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(inviteAccountRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.invite'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const invited = await inviteAccount?.(context.req.valid('json'));
+
+    if (invited === undefined || invited === null) {
+      return context.json({ error: 'That address is already in use.' }, 400);
+    }
+
+    return context.json(
+      {
+        id: invited.id,
+        name: invited.name,
+        email: invited.email,
+        createdAt: invited.createdAt,
+        isBanned: false,
+        banReason: null,
+        position: null,
+        isAdministrator: false,
+        roles: [],
+      },
+      201,
+    );
+  });
+
+  app.openapi(editAccountRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.manage')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+
+    if (actor.id !== userId) {
+      const target = await permissions.rolesFor(userId);
+
+      const refusal = checkAccountAction({
+        actorId: actor.id,
+        actorPermissions: actor.permissions,
+        actorHighestPosition: actor.highestPosition,
+        targetId: userId,
+        targetHighestPosition:
+          target.length === 0 ? null : Math.max(...target.map((role) => role.position)),
+      });
+
+      if (refusal !== null) {
+        return context.json({ error: describeAccountRefusal(refusal) }, 403);
+      }
+    }
+
+    const body = context.req.valid('json');
+    const changed = await editAccount?.(userId, {
+      ...(body.name === undefined ? {} : { name: body.name }),
+      ...(body.email === undefined ? {} : { email: body.email }),
+    });
+
+    if (changed === undefined || changed === 'missing') {
+      return context.json({ error: 'No such account.' }, 404);
+    }
+
+    if (changed === 'taken') {
+      return context.json({ error: 'That address is already in use.' }, 400);
     }
 
     return context.body(null, 204);
@@ -1184,7 +1853,7 @@ const createApp = ({
   });
 
   app.get('/api/admin/monitor', async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
@@ -1200,7 +1869,7 @@ const createApp = ({
   });
 
   app.get('/api/admin/monitor/stream', async (context) => {
-    if (!(await isAdministrator(context.req.raw.headers))) {
+    if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 

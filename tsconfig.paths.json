@@ -35,6 +35,8 @@
       "@FluxUI/SplashScreen": ["./packages/ui/src/components/SplashScreen/SplashScreen.tsx"],
       "@FluxUI/Switch": ["./packages/ui/src/components/Switch/Switch.tsx"],
       "@FluxUI/Switch.types": ["./packages/ui/src/components/Switch/Switch.types.ts"],
+      "@FluxUI/SideNav": ["./packages/ui/src/components/SideNav/SideNav.tsx"],
+      "@FluxUI/SideNav.types": ["./packages/ui/src/components/SideNav/SideNav.types.ts"],
       "@FluxUI/TabBar": ["./packages/ui/src/components/TabBar/TabBar.tsx"],
       "@FluxUI/TabBar.types": ["./packages/ui/src/components/TabBar/TabBar.types.ts"],
       "@FluxUI/TabPanel": ["./packages/ui/src/components/TabPanel/TabPanel.tsx"],

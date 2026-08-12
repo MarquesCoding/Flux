@@ -91,40 +91,25 @@ describe('fetchAdminOverview', () => {
   it('reads the state of the server', async () => {
     answerWith(OVERVIEW);
 
-    await expect(fetchAdminOverview()).resolves.toEqual({ overview: OVERVIEW, problem: null });
+    await expect(fetchAdminOverview()).resolves.toEqual(OVERVIEW);
   });
 
   it('says which answer it got when the server refuses', async () => {
     answerWith({}, false);
 
-    const outcome = await fetchAdminOverview();
-
-    expect(outcome.overview).toBeNull();
-    expect(outcome.problem).toContain('answered');
+    await expect(fetchAdminOverview()).rejects.toThrow('answered');
   });
 
   it('says so when the server cannot be reached at all', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    const outcome = await fetchAdminOverview();
-
-    expect(outcome.overview).toBeNull();
-    expect(outcome.problem).toContain('could not be reached');
+    await expect(fetchAdminOverview()).rejects.toThrow('could not be reached');
   });
 
-  it('names the field it did not understand rather than throwing it away', async () => {
+  it('refuses an answer it does not understand rather than reading past it', async () => {
     answerWith({ ...OVERVIEW, transcoder: { isReachable: 'yes' } });
 
-    const outcome = await fetchAdminOverview();
-
-    expect(outcome.overview).toBeNull();
-    expect(outcome.problem).toContain('transcoder');
-  });
-
-  it('does not reject, so a page cannot be left waiting for ever', async () => {
-    answerWith({ nonsense: true });
-
-    await expect(fetchAdminOverview()).resolves.toBeDefined();
+    await expect(fetchAdminOverview()).rejects.toThrow();
   });
 });
 
