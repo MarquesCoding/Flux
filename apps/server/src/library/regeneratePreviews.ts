@@ -1,5 +1,5 @@
 import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
-import { selectAudioStream } from '@FluxCore/functions/describeTrack';
+import { previewRequestFor } from './previewRequestFor';
 import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 
@@ -80,17 +80,10 @@ const regeneratePreviews = async ({
       return;
     }
 
-    const audioStreamIndex =
-      defaultAudioLanguage === null
-        ? undefined
-        : selectAudioStream(item.audioStreams, defaultAudioLanguage)?.index;
-
     const rendered = await transcoder
       .requestPreview({
-        inputPath: item.path,
-        generation,
+        ...previewRequestFor(item, generation, defaultAudioLanguage),
         wait: true,
-        ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       })
       .then(() => true)
       .catch((error: Error) => {

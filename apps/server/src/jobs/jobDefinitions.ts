@@ -5,6 +5,7 @@ import {
   REGENERATE_TRICKPLAY_JOB,
   DETECT_SEGMENTS_JOB,
   CLEANUP_IMAGE_CACHE_JOB,
+  CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   scheduleTriggerKind,
@@ -102,6 +103,14 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     destructive: false,
   },
   {
+    kind: CLEANUP_ARTEFACT_CACHE_JOB,
+    label: 'Clean up cached previews',
+    description:
+      'Removes preview clips and thumbnail sheets nothing addresses any more, freeing the space left behind by a reset or a change to how they are made.',
+    needsLibrary: false,
+    destructive: false,
+  },
+  {
     kind: CLEANUP_SESSIONS_JOB,
     label: 'Clean up sessions',
     description: 'Clears out expired sign-in sessions and device-authorization codes.',
@@ -143,6 +152,7 @@ const DEFAULT_JOB_TRIGGERS: Record<string, ScheduleTrigger[]> = {
   [CHECK_CATALOGUE_CONNECTIVITY_JOB]: [{ kind: 'daily', hour: 5, minute: 0 }],
   [CLEANUP_SESSIONS_JOB]: [{ kind: 'daily', hour: 5, minute: 30 }],
   [CLEANUP_IMAGE_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 0 }],
+  [CLEANUP_ARTEFACT_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 30 }],
 };
 
 /**

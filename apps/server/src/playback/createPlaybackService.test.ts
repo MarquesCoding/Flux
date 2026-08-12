@@ -56,6 +56,8 @@ const harness = (defaultAudioLanguage: string | null) => {
 
   const transcoder: Transcoder = {
     isReachable: () => Promise.resolve(true),
+    sweepPreviews: () => Promise.reject(new Error('not used')),
+    sweepTrickplay: () => Promise.reject(new Error('not used')),
     probe: () => Promise.reject(new Error('not used')),
     startSession: (spec) => {
       startedSpecs.push(spec);

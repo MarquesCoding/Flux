@@ -94,6 +94,15 @@ type DetectSegmentsJob = z.infer<typeof DetectSegmentsJobSchema>;
 const CLEANUP_IMAGE_CACHE_JOB = 'server.cleanupImageCache';
 
 /**
+ * Deletes preview clips and thumbnail sheets nothing in any library addresses.
+ *
+ * Not library-scoped, and cannot be: the cache is one flat directory of
+ * addresses shared by every library, so a sweep told about one of them would
+ * find every other library's artefacts unaddressed and delete them.
+ */
+const CLEANUP_ARTEFACT_CACHE_JOB = 'server.cleanupArtefactCache';
+
+/**
  * Clears out expired sign-in sessions and device-authorization codes.
  *
  * Not library-scoped — sessions and device codes belong to accounts, not
@@ -255,6 +264,7 @@ export {
   DETECT_SEGMENTS_JOB,
   DetectSegmentsJobSchema,
   CLEANUP_IMAGE_CACHE_JOB,
+  CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   scheduleTriggerKind,

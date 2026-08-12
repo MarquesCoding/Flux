@@ -13,6 +13,8 @@ const multilingual: AudioStream[] = [
 
 const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcoder => ({
   isReachable: () => Promise.resolve(true),
+  sweepPreviews: () => Promise.reject(new Error('not used')),
+  sweepTrickplay: () => Promise.reject(new Error('not used')),
   probe: () => Promise.reject(new Error('not used')),
   startSession: () => Promise.reject(new Error('not used')),
   readSessionFile: () => Promise.resolve(null),
