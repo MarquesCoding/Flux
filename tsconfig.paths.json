@@ -7,12 +7,50 @@
       "@FluxServer/*": ["./apps/server/src/*"],
       "@FluxUI/Badge": ["./packages/ui/src/components/Badge/Badge.tsx"],
       "@FluxUI/Button": ["./packages/ui/src/components/Button/Button.tsx"],
+      "@FluxUI/DataTable": ["./packages/ui/src/components/DataTable/DataTable.tsx"],
+      "@FluxUI/DataTable.types": ["./packages/ui/src/components/DataTable/DataTable.types.ts"],
+      "@FluxUI/StatTile": ["./packages/ui/src/components/StatTile/StatTile.tsx"],
+      "@FluxUI/TrendChart": ["./packages/ui/src/components/TrendChart/TrendChart.tsx"],
+      "@FluxUI/TabRow": ["./packages/ui/src/components/TabRow/TabRow.tsx"],
+      "@FluxUI/TabRow.types": ["./packages/ui/src/components/TabRow/TabRow.types.ts"],
+      "@FluxUI/TrendChart.types": ["./packages/ui/src/components/TrendChart/TrendChart.types.ts"],
+      "@FluxUI/StatTile.types": ["./packages/ui/src/components/StatTile/StatTile.types.ts"],
+      "@FluxUI/ActionMenu": ["./packages/ui/src/components/ActionMenu/ActionMenu.tsx"],
+      "@FluxUI/ActionMenu.types": ["./packages/ui/src/components/ActionMenu/ActionMenu.types.ts"],
+      "@FluxUI/Card": ["./packages/ui/src/components/Card/Card.tsx"],
+      "@FluxUI/ConfirmDialog": ["./packages/ui/src/components/ConfirmDialog/ConfirmDialog.tsx"],
+      "@FluxUI/ConfirmDialog.types": [
+        "./packages/ui/src/components/ConfirmDialog/ConfirmDialog.types.ts"
+      ],
+      "@FluxUI/CardHeader": ["./packages/ui/src/components/CardHeader/CardHeader.tsx"],
+      "@FluxUI/CardHeader.types": ["./packages/ui/src/components/CardHeader/CardHeader.types.ts"],
+      "@FluxUI/Card.types": ["./packages/ui/src/components/Card/Card.types.ts"],
+      "@FluxUI/HoverHighlight": ["./packages/ui/src/components/HoverHighlight/HoverHighlight.tsx"],
+      "@FluxUI/HoverCard": ["./packages/ui/src/components/HoverCard/HoverCard.tsx"],
+      "@FluxUI/HoverCard.types": ["./packages/ui/src/components/HoverCard/HoverCard.types.ts"],
+      "@FluxUI/HoverHighlight.types": [
+        "./packages/ui/src/components/HoverHighlight/HoverHighlight.types.ts"
+      ],
       "@FluxUI/Checkbox": ["./packages/ui/src/components/Checkbox/Checkbox.tsx"],
       "@FluxUI/Dialog": ["./packages/ui/src/components/Dialog/Dialog.tsx"],
+      "@FluxUI/DialogContent": ["./packages/ui/src/components/DialogContent/DialogContent.tsx"],
+      "@FluxUI/DialogContent.types": [
+        "./packages/ui/src/components/DialogContent/DialogContent.types.ts"
+      ],
+      "@FluxUI/DialogFooter": ["./packages/ui/src/components/DialogFooter/DialogFooter.tsx"],
+      "@FluxUI/DialogFooter.types": [
+        "./packages/ui/src/components/DialogFooter/DialogFooter.types.ts"
+      ],
+      "@FluxUI/DialogTitle": ["./packages/ui/src/components/DialogTitle/DialogTitle.tsx"],
+      "@FluxUI/DialogTitle.types": [
+        "./packages/ui/src/components/DialogTitle/DialogTitle.types.ts"
+      ],
       "@FluxUI/DotField": ["./packages/ui/src/components/DotField/DotField.tsx"],
       "@FluxUI/FilePicker": ["./packages/ui/src/components/FilePicker/FilePicker.tsx"],
       "@FluxUI/GlassPanel": ["./packages/ui/src/components/GlassPanel/GlassPanel.tsx"],
       "@FluxUI/MediaCard": ["./packages/ui/src/components/MediaCard/MediaCard.tsx"],
+      "@FluxUI/NavDock": ["./packages/ui/src/components/NavDock/NavDock.tsx"],
+      "@FluxUI/NavDock.types": ["./packages/ui/src/components/NavDock/NavDock.types.ts"],
       "@FluxUI/Meter": ["./packages/ui/src/components/Meter/Meter.tsx"],
       "@FluxUI/MoodBackground.types": [
         "./packages/ui/src/components/MoodBackground/MoodBackground.types.ts"
@@ -30,13 +68,10 @@
       "@FluxUI/SettingsMenu": ["./packages/ui/src/components/SettingsMenu/SettingsMenu.tsx"],
       "@FluxUI/Skeleton": ["./packages/ui/src/components/Skeleton/Skeleton.tsx"],
       "@FluxUI/Slider": ["./packages/ui/src/components/Slider/Slider.tsx"],
-      "@FluxUI/Sparkline": ["./packages/ui/src/components/Sparkline/Sparkline.tsx"],
       "@FluxUI/Spinner": ["./packages/ui/src/components/Spinner/Spinner.tsx"],
       "@FluxUI/SplashScreen": ["./packages/ui/src/components/SplashScreen/SplashScreen.tsx"],
       "@FluxUI/Switch": ["./packages/ui/src/components/Switch/Switch.tsx"],
       "@FluxUI/Switch.types": ["./packages/ui/src/components/Switch/Switch.types.ts"],
-      "@FluxUI/SideNav": ["./packages/ui/src/components/SideNav/SideNav.tsx"],
-      "@FluxUI/SideNav.types": ["./packages/ui/src/components/SideNav/SideNav.types.ts"],
       "@FluxUI/TabBar": ["./packages/ui/src/components/TabBar/TabBar.tsx"],
       "@FluxUI/TabBar.types": ["./packages/ui/src/components/TabBar/TabBar.types.ts"],
       "@FluxUI/TabPanel": ["./packages/ui/src/components/TabPanel/TabPanel.tsx"],
@@ -45,14 +80,13 @@
       "@FluxUI/Tabs.types": ["./packages/ui/src/components/Tabs/Tabs.types.ts"],
       "@FluxUI/TextField": ["./packages/ui/src/components/TextField/TextField.tsx"],
       "@FluxUI/Tooltip": ["./packages/ui/src/components/Tooltip/Tooltip.tsx"],
-      "@FluxUI/TopNav": ["./packages/ui/src/components/TopNav/TopNav.tsx"],
-      "@FluxUI/TopNav.types": ["./packages/ui/src/components/TopNav/TopNav.types.ts"],
       "@FluxUI/VideoSurface": ["./packages/ui/src/components/VideoSurface/VideoSurface.tsx"],
       "@FluxUI/animations/reveal": ["./packages/ui/src/animations/reveal.ts"],
       "@FluxUI/animations/spin": ["./packages/ui/src/animations/spin.ts"],
       "@FluxUI/blendLights": ["./packages/ui/src/functions/blendLights.ts"],
       "@FluxUI/hasFinePointer": ["./packages/ui/src/functions/hasFinePointer.ts"],
       "@FluxUI/usePagedScroller": ["./packages/ui/src/functions/usePagedScroller.ts"],
+      "@FluxUI/useSlidingHighlight": ["./packages/ui/src/functions/useSlidingHighlight.ts"],
       "@FluxUI/cn": ["./packages/ui/src/functions/cn.ts"],
       "@FluxUI/tokens": ["./packages/ui/src/tokens/tokens.ts"],
       "@FluxWeb/*": ["./apps/web/src/*"]

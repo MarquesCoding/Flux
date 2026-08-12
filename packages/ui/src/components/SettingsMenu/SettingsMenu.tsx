@@ -3,7 +3,9 @@ import { Popover } from '@base-ui/react/popover';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
+import { HoverHighlight } from '@FluxUI/HoverHighlight';
 import { Switch } from '@FluxUI/Switch';
+import { useSlidingHighlight } from '@FluxUI/useSlidingHighlight';
 import { cn } from '@FluxUI/cn';
 import { Tooltip } from '@FluxUI/Tooltip';
 import type {
@@ -20,8 +22,17 @@ import type {
  * where each row is laid out slightly differently is a panel that reads as a
  * list of unrelated things.
  */
+/**
+ * How the panel arrives, matching every other menu in Flux.
+ */
+const POPUP_MOTION = cn(
+  'origin-[var(--transform-origin)] transition-[transform,opacity] duration-[var(--duration-base)] ease-[var(--ease-soft)]',
+  'data-[starting-style]:scale-95 data-[starting-style]:opacity-0',
+  'data-[ending-style]:scale-95 data-[ending-style]:opacity-0',
+);
+
 const ROW =
-  'flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-left text-sm transition-colors';
+  'relative z-10 flex w-full items-center gap-4 rounded-[1.375rem] px-3 py-2.5 text-left text-sm';
 
 /**
  * How far a subsection slides in from.
@@ -75,6 +86,7 @@ const SettingsMenu = ({
   const [openId, setOpenId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
+  const { containerRef, rect, follow, clear } = useSlidingHighlight();
 
   const opened =
     rows.find(
@@ -105,8 +117,8 @@ const SettingsMenu = ({
           disabled={isDisabled}
           className={cn(
             'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
-            'text-current transition-colors hover:bg-white/15',
-            'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
+            'text-current transition-colors hover:bg-[var(--surface-hover)]',
+            'data-[popup-open]:bg-[var(--surface-active)] disabled:cursor-not-allowed disabled:opacity-50',
             className,
           )}
         >
@@ -124,7 +136,10 @@ const SettingsMenu = ({
         >
           <Popover.Popup
             aria-label={label}
-            className="flux-glass flex w-80 flex-col overflow-hidden rounded-2xl p-2 text-white"
+            className={cn(
+              'flux-glass flex w-80 flex-col overflow-hidden rounded-xl p-1.5 text-text',
+              POPUP_MOTION,
+            )}
           >
             <AnimatePresence initial={false} mode="wait">
               <motion.div
@@ -133,8 +148,15 @@ const SettingsMenu = ({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: opened === null ? travel : -travel }}
                 transition={{ duration: prefersReducedMotion === true ? 0 : 0.18, ease: 'easeOut' }}
-                className="flex max-h-[66vh] flex-col overflow-y-auto"
+                ref={containerRef}
+                onPointerMove={follow}
+                onPointerLeave={clear}
+                onFocusCapture={follow}
+                onBlurCapture={clear}
+                className="relative flex max-h-[66vh] flex-col overflow-y-auto"
               >
+                <HoverHighlight rect={rect} radius="nested" className="bg-[var(--surface-hover)]" />
+
                 {opened === null
                   ? rows.map((row) => {
                       const answer = answerOf(row);
@@ -143,25 +165,30 @@ const SettingsMenu = ({
                         return (
                           <Switch
                             key={row.id}
+                            data-highlight={row.id}
                             label={row.label}
                             isOn={row.isOn}
                             onToggle={row.onToggle}
                             icon={row.icon}
                             tone="overlay"
-                            className={cn(ROW, 'shrink-0 hover:bg-white/10')}
+                            className={cn(ROW, 'shrink-0 ')}
                           />
                         );
                       }
 
                       if (row.kind === 'custom') {
                         return (
-                          <div key={row.id} className={cn(ROW, 'shrink-0 cursor-default')}>
-                            <span className="shrink-0 text-white/80">{row.icon}</span>
+                          <div
+                            key={row.id}
+                            data-highlight={row.id}
+                            className={cn(ROW, 'shrink-0 cursor-default')}
+                          >
+                            <span className="shrink-0 text-text-muted">{row.icon}</span>
 
                             <span className="flex min-w-0 flex-1 flex-col">
                               <span className="truncate">{row.label}</span>
                               {answer === null ? null : (
-                                <span className="truncate text-xs text-white/60">{answer}</span>
+                                <span className="truncate text-xs text-text-muted">{answer}</span>
                               )}
                             </span>
 
@@ -173,6 +200,7 @@ const SettingsMenu = ({
                       return (
                         <Button
                           key={row.id}
+                          data-highlight={row.id}
                           variant="bare"
                           size="none"
                           onClick={() => {
@@ -184,12 +212,12 @@ const SettingsMenu = ({
 
                             setOpenId(row.id);
                           }}
-                          className={cn(ROW, 'shrink-0 hover:bg-white/10')}
+                          className={cn(ROW, 'shrink-0 ')}
                         >
-                          <span className="shrink-0 text-white/80">{row.icon}</span>
+                          <span className="shrink-0 text-text-muted">{row.icon}</span>
                           <span className="shrink-0">{row.label}</span>
 
-                          <span className="flex min-w-0 flex-1 items-center justify-end gap-1 text-white/60">
+                          <span className="flex min-w-0 flex-1 items-center justify-end gap-1 text-text-muted">
                             <span className="truncate" title={answer ?? undefined}>
                               {answer}
                             </span>
@@ -206,7 +234,7 @@ const SettingsMenu = ({
                         onClick={close}
                         className={cn(
                           ROW,
-                          'shrink-0 border-b border-white/10 font-medium hover:bg-white/10',
+                          'shrink-0 border-b border-[var(--surface-line)] font-medium ',
                         )}
                       >
                         <IconChevronLeft size={18} aria-hidden />
@@ -222,6 +250,7 @@ const SettingsMenu = ({
                         : opened.choices.map((choice) => (
                             <Button
                               key={choice.id}
+                              data-highlight={choice.id}
                               variant="bare"
                               size="none"
                               role="menuitemradio"
@@ -230,7 +259,7 @@ const SettingsMenu = ({
                                 opened.onSelect(choice.id);
                                 close();
                               }}
-                              className={cn(ROW, 'shrink-0 hover:bg-white/10')}
+                              className={cn(ROW, 'shrink-0 ')}
                             >
                               <span className="flex size-4 shrink-0 items-center justify-center">
                                 {choice.id === opened.selectedId ? (
@@ -241,7 +270,7 @@ const SettingsMenu = ({
                               <span className="flex min-w-0 flex-1 flex-col">
                                 <span className="truncate">{choice.label}</span>
                                 {choice.detail === undefined ? null : (
-                                  <span className="truncate text-xs text-white/60">
+                                  <span className="truncate text-xs text-text-muted">
                                     {choice.detail}
                                   </span>
                                 )}

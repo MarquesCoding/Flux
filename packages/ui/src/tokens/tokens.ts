@@ -1,3 +1,14 @@
+/**
+ * The curves everything moves on, as Motion wants them.
+ *
+ * Kept beside the CSS variables rather than only in them, since Motion
+ * animates in JavaScript and cannot read a custom property.
+ */
+const FLUX_EASE = {
+  soft: [0.22, 1, 0.36, 1],
+  spring: [0.34, 1.4, 0.64, 1],
+} as const;
+
 const FLUX_TOKENS = {
   color: {
     surface: 'var(--color-surface)',
@@ -12,19 +23,29 @@ const FLUX_TOKENS = {
     onScrim: 'var(--color-on-scrim)',
   },
   radius: {
+    xs: 'var(--radius-xs)',
     sm: 'var(--radius-sm)',
     md: 'var(--radius-md)',
     lg: 'var(--radius-lg)',
+    xl: 'var(--radius-xl)',
+    xxl: 'var(--radius-2xl)',
+    pill: 'var(--radius-pill)',
+  },
+  shadow: {
+    raised: 'var(--shadow-raised)',
+    lifted: 'var(--shadow-lifted)',
+    overlay: 'var(--shadow-overlay)',
   },
   duration: {
     fast: 0.12,
     normal: 0.22,
-    slow: 0.4,
+    slow: 0.38,
   },
+  ease: FLUX_EASE,
 } as const;
 
 type FluxTokens = typeof FLUX_TOKENS;
 
 export type { FluxTokens };
 
-export { FLUX_TOKENS };
+export { FLUX_EASE, FLUX_TOKENS };

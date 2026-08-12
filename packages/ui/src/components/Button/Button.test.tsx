@@ -86,7 +86,7 @@ describe('Button', () => {
   it('is a rounded box otherwise', () => {
     render(<Button>Save</Button>);
 
-    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('rounded-lg');
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('rounded-md');
   });
 
   it('offers a size for a hero control', () => {
@@ -96,7 +96,7 @@ describe('Button', () => {
       </Button>,
     );
 
-    expect(screen.getByRole('button', { name: 'Watch now' })).toHaveClass('h-14');
+    expect(screen.getByRole('button', { name: 'Watch now' })).toHaveClass('h-12');
   });
 
   describe('wearing only an icon', () => {
@@ -119,8 +119,8 @@ describe('Button', () => {
 
       const button = screen.getByRole('button', { name: 'Mute' });
 
-      expect(button).toHaveClass('size-10');
-      expect(button).not.toHaveClass('px-4');
+      expect(button).toHaveClass('size-9');
+      expect(button).not.toHaveClass('px-3.5');
     });
 
     it('rounds fully without being asked, because a square icon reads as a disc', () => {

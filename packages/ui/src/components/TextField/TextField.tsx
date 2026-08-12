@@ -48,7 +48,12 @@ const TextField = ({
       <Field.Description className="text-sm text-text-muted">{description}</Field.Description>
     )}
 
-    <span className={cn('flex items-center gap-3', isBare ? 'border-b border-white/15 pb-3' : '')}>
+    <span
+      className={cn(
+        'flex w-full items-center gap-3',
+        isBare ? 'border-b border-[var(--surface-line)] pb-3' : '',
+      )}
+    >
       {icon === undefined ? null : <span className="shrink-0 text-text-muted">{icon}</span>}
 
       <Field.Control
@@ -67,16 +72,19 @@ const TextField = ({
           'flux-field text-text',
           'transition-colors placeholder:text-text-muted',
           'disabled:cursor-not-allowed disabled:opacity-50',
+          'w-full',
           isBare
-            ? 'w-full bg-transparent outline-none'
-            : 'border border-white/10 bg-white/[0.04] backdrop-blur-xl hover:border-white/20',
+            ? 'bg-transparent outline-none'
+            : 'border border-[var(--surface-line)] bg-[var(--surface-hover)] backdrop-blur-xl hover:border-[var(--surface-divider)]',
           isBare
             ? ''
-            : size === 'lg'
-              ? 'h-14 px-5 text-base'
-              : size === 'xl'
-                ? 'h-16 px-6 text-lg'
-                : 'h-10 px-3 text-sm',
+            : size === 'sm'
+              ? 'h-7 px-2.5 text-xs'
+              : size === 'lg'
+                ? 'h-10 px-5 text-sm'
+                : size === 'xl'
+                  ? 'h-12 px-6 text-base'
+                  : 'h-9 px-3.5 text-sm',
           isBare && size === 'xl' ? 'text-2xl tracking-tight sm:text-3xl' : '',
           type === 'time' ? '[color-scheme:dark]' : '',
           isBare ? '' : isPill ? 'rounded-full' : 'rounded-xl',
