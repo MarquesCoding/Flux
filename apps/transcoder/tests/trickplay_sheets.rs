@@ -225,10 +225,15 @@ async fn refuses_a_file_outside_the_media_roots() {
     assert_eq!(status, StatusCode::FORBIDDEN);
 }
 
-/// An ffmpeg that records every time it is run before running the real one.
+/// An ffmpeg that records every sheet render before running the real one.
 ///
 /// Counting invocations is the only way to tell "the work was shared" from
 /// "both runs happened to agree", and both are green under a weaker check.
+///
+/// Only renders are counted, recognised by `-skip_frame`, which nothing else
+/// passes. The service also asks ffmpeg what it can do, and counting those
+/// would make this test fail whenever something unrelated to sharing work
+/// started or stopped probing.
 fn counting_ffmpeg(directory: &std::path::Path) -> (String, PathBuf) {
     use std::os::unix::fs::PermissionsExt;
 
@@ -240,7 +245,7 @@ fn counting_ffmpeg(directory: &std::path::Path) -> (String, PathBuf) {
     std::fs::write(
         &script,
         format!(
-            "#!/bin/sh\necho run >> {tally}\nexec {real} \"$@\"\n",
+            "#!/bin/sh\ncase \" $* \" in *\" -skip_frame \"*) echo run >> {tally} ;; esac\nexec {real} \"$@\"\n",
             tally = tally.display(),
             real = ffmpeg(),
         ),

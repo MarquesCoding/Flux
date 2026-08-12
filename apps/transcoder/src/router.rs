@@ -23,7 +23,8 @@ use crate::session::{await_manifest, SessionRegistry};
 use crate::subtitle::{extract_subtitle, SubtitleRequest};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
 use crate::trickplay::{
-    directory_for, is_complete, pending_index, tile_height_for, TrickplayRegistry, TrickplayRequest,
+    directory_for, is_complete, pending_index, tile_height_for, SheetSource, TrickplayRegistry,
+    TrickplayRequest,
 };
 
 const MANIFEST_TIMEOUT: Duration = Duration::from_secs(20);
@@ -404,7 +405,7 @@ async fn start_preview(
     };
 
     let range = video.range;
-    let tone_mapping = detect_capabilities(&config.ffmpeg).await.tone_mapping;
+    let capabilities = detect_capabilities(&config.ffmpeg).await;
     let duration = probe.duration_seconds;
 
     if !request.wait {
@@ -413,13 +414,14 @@ async fn start_preview(
         let queued = request.clone();
         let ffmpeg = config.ffmpeg.clone();
         let cache_root = config.cache_root.clone();
+        let found = capabilities.clone();
 
         tokio::spawn(async move {
             let _ = queue
                 .run(
                     "preview",
                     &subject,
-                    generate_preview(&ffmpeg, &cache_root, &queued, range, tone_mapping, duration),
+                    generate_preview(&ffmpeg, &cache_root, &queued, range, &found, duration),
                 )
                 .await;
         });
@@ -445,7 +447,7 @@ async fn start_preview(
                 &config.cache_root,
                 &request,
                 range,
-                tone_mapping,
+                &capabilities,
                 duration,
             ),
         )
@@ -550,6 +552,10 @@ async fn start_trickplay(
     };
 
     let config = state.registry.config();
+    let accel = detect_capabilities(&config.ffmpeg)
+        .await
+        .best_encoder("h264")
+        .and_then(|found| found.accel.ffmpeg_flag());
 
     if !request.wait {
         let id = request.id();
@@ -571,7 +577,17 @@ async fn start_trickplay(
                     .run(
                         "thumbnails",
                         &subject,
-                        trickplay.generate(&ffmpeg, &cache_root, &queued, width, height, duration),
+                        trickplay.generate(
+                            &ffmpeg,
+                            &cache_root,
+                            &queued,
+                            SheetSource {
+                                width,
+                                height,
+                                duration_seconds: duration,
+                            },
+                            accel,
+                        ),
                     )
                     .await;
             });
@@ -589,9 +605,12 @@ async fn start_trickplay(
                 &config.ffmpeg,
                 &config.cache_root,
                 &request,
-                video.width,
-                video.height,
-                probe.duration_seconds,
+                SheetSource {
+                    width: video.width,
+                    height: video.height,
+                    duration_seconds: probe.duration_seconds,
+                },
+                accel,
             ),
         )
         .await
