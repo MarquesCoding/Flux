@@ -338,6 +338,37 @@ describe('playback sessions', () => {
   });
 });
 
+describe('a preview clip', () => {
+  it('sends the whole clip when no range is asked for', async () => {
+    const { app } = build();
+
+    const response = await app.request(`/api/media/${MEDIA_ID}/preview`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('accept-ranges')).toBe('bytes');
+    expect(response.headers.get('content-range')).toBeNull();
+  });
+
+  it('passes a range on to the media service rather than slicing here', async () => {
+    const { app } = build();
+
+    const response = await app.request(`/api/media/${MEDIA_ID}/preview`, {
+      headers: { range: 'bytes=0-3' },
+    });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get('content-range')).toBe('bytes 0-3/4');
+  });
+
+  it('answers 404 for an item with no preview', async () => {
+    const { app } = build();
+
+    const response = await app.request(`/api/media/${MISSING_ID}/preview`);
+
+    expect(response.status).toBe(404);
+  });
+});
+
 describe('trickplay', () => {
   it('reports where the seek-bar previews live', async () => {
     const { app } = build();

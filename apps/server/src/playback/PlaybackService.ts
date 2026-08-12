@@ -76,7 +76,7 @@ type PlaybackService = {
    * Null while it is still being made: a page shows the still frame it
    * already has rather than waiting for something decorative.
    */
-  readPreview: (mediaId: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>;
+  readPreview: (mediaId: string, range: string | null) => Promise<RangedFile | null>;
   readTrickplayFile: (trickplayId: string, name: string) => Promise<SessionFile | null>;
   stop: (sessionId: string) => Promise<boolean>;
   /**
