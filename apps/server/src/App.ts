@@ -145,6 +145,35 @@ import type { Permission } from '@FluxContracts/schemas/Permission';
 const PROFILE_HEADER = 'x-flux-profile';
 
 /**
+ * The headers that carry a forwarded media file.
+ *
+ * The media service decided the status, the range and the length; the server's
+ * job is to repeat them rather than recompute them. Assembled in one place
+ * because whole media and preview clips are forwarded identically and differ
+ * only in whether they may be cached.
+ */
+const forwardedFileHeaders = (
+  file: { contentType: string; contentRange: string | null; contentLength: string | null },
+  extra: Record<string, string> = {},
+): Record<string, string> => {
+  const headers: Record<string, string> = {
+    'content-type': file.contentType,
+    'accept-ranges': 'bytes',
+    ...extra,
+  };
+
+  if (file.contentRange !== null) {
+    headers['content-range'] = file.contentRange;
+  }
+
+  if (file.contentLength !== null) {
+    headers['content-length'] = file.contentLength;
+  }
+
+  return headers;
+};
+
+/**
  * What signing in by face carries.
  */
 const SignInBodySchema = z.object({ password: z.string().min(1) });
@@ -735,16 +764,7 @@ const createApp = ({
       return context.json({ error: 'No such media item.' }, 404);
     }
 
-    const headers: Record<string, string> = {
-      'content-type': file.contentType,
-      'accept-ranges': 'bytes',
-    };
-
-    if (file.contentRange !== null) {
-      headers['content-range'] = file.contentRange;
-    }
-
-    return context.body(file.body, file.status === 206 ? 206 : 200, headers);
+    return context.body(file.body, file.status === 206 ? 206 : 200, forwardedFileHeaders(file));
   });
 
   app.openapi(trickplayRoute, async (context) => {
@@ -788,17 +808,11 @@ const createApp = ({
       return context.json({ error: 'No preview yet.' }, 404);
     }
 
-    const headers: Record<string, string> = {
-      'content-type': clip.contentType,
-      'accept-ranges': 'bytes',
-      'cache-control': 'public, max-age=86400',
-    };
-
-    if (clip.contentRange !== null) {
-      headers['content-range'] = clip.contentRange;
-    }
-
-    return context.body(clip.body, clip.status === 206 ? 206 : 200, headers);
+    return context.body(
+      clip.body,
+      clip.status === 206 ? 206 : 200,
+      forwardedFileHeaders(clip, { 'cache-control': 'public, max-age=86400' }),
+    );
   });
 
   app.openapi(trickplayFileRoute, async (context) => {

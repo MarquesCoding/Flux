@@ -367,6 +367,36 @@ describe('a preview clip', () => {
 
     expect(response.status).toBe(404);
   });
+
+  it('passes the length on so a player knows how much is coming', async () => {
+    const { app } = build();
+
+    const response = await app.request(`/api/media/${MEDIA_ID}/preview`);
+
+    expect(response.headers.get('content-length')).toBe('4');
+    expect(await response.text()).toBe('clip');
+  });
+});
+
+describe('a file served directly', () => {
+  it('forwards the clip whole, with its length', async () => {
+    const { app } = build();
+
+    const response = await app.request(`/api/playback/${MEDIA_ID}/file`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('accept-ranges')).toBe('bytes');
+    expect(response.headers.get('content-length')).toBe('4');
+    expect(await response.text()).toBe('film');
+  });
+
+  it('answers 404 for an item that does not exist', async () => {
+    const { app } = build();
+
+    const response = await app.request(`/api/playback/${MISSING_ID}/file`);
+
+    expect(response.status).toBe(404);
+  });
 });
 
 describe('trickplay', () => {
