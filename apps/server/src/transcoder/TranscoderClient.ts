@@ -172,6 +172,11 @@ type SessionSpec = {
   audio:
     | { kind: 'copy' }
     | { kind: 'encode'; encoder: string; channels: number; maxBitrateKbps: number };
+  /**
+   * The source picture's size, so the media service can size a hardware
+   * scaler without guessing at expression support across four backends.
+   */
+  sourceSize?: [number, number];
 };
 
 /**

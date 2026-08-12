@@ -48,12 +48,24 @@ type SessionSpec = {
         subtitleIndex: number;
         isImageBased: boolean;
       };
+  /**
+   * The source picture's size, so a hardware scaler can be given a number.
+   *
+   * The hardware scalers do not all accept `force_original_aspect_ratio`, and
+   * clamping each axis on its own squashes anything shaped differently from
+   * the box. The media service works the output size out from this instead.
+   */
+  sourceSize?: [number, number];
 };
 
 type PlanToSessionSpecOptions = {
   plan: PlaybackPlan;
   inputPath: string;
   sourceRange: string;
+  /**
+   * How big the source picture is, when it is known.
+   */
+  sourceSize?: [number, number];
   imageSubtitleIndexes?: number[];
   /**
    * Every subtitle stream's container index, in the order the container holds
@@ -142,6 +154,7 @@ const planToSessionSpec = ({
   plan,
   inputPath,
   sourceRange,
+  sourceSize,
   capabilities,
   startSeconds,
   segmentSeconds,
@@ -185,6 +198,7 @@ const planToSessionSpec = ({
         segmentSeconds,
         hardwareAccel: 'none',
         subtitles,
+        ...(sourceSize === undefined ? {} : { sourceSize }),
         ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
         video: { kind: 'copy' },
         audio:
@@ -235,6 +249,7 @@ const planToSessionSpec = ({
       segmentSeconds,
       hardwareAccel: chosen.accel,
       subtitles,
+      ...(sourceSize === undefined ? {} : { sourceSize }),
       ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       video: {
         kind: 'encode',

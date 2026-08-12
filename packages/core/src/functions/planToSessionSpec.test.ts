@@ -297,3 +297,25 @@ describe('planToSessionSpec', () => {
     });
   });
 });
+
+describe('sourceSize', () => {
+  it('carries the source size through so a hardware scaler can be sized', () => {
+    const outcome = planToSessionSpec({
+      plan: { ...directPlay, video: transcodeVideo },
+      inputPath: '/media/film.mkv',
+      sourceRange: 'SDR',
+      sourceSize: [1920, 800],
+      capabilities,
+      startSeconds: 0,
+      segmentSeconds: 4,
+    });
+
+    expect(outcome.kind === 'ok' && outcome.spec.sourceSize).toEqual([1920, 800]);
+  });
+
+  it('leaves it out when nobody said, rather than inventing one', () => {
+    const outcome = build({ ...directPlay, video: transcodeVideo });
+
+    expect(outcome.kind === 'ok' && 'sourceSize' in outcome.spec).toBe(false);
+  });
+});

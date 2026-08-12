@@ -153,6 +153,7 @@ const createPlaybackService = ({
         plan,
         inputPath: found.path,
         sourceRange: found.item.videoRange,
+        sourceSize: [found.item.width, found.item.height],
         imageSubtitleIndexes: found.item.subtitleStreams
           .filter((stream) => IMAGE_SUBTITLE_FORMATS.has(stream.format))
           .map((stream) => stream.index),
