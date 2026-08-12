@@ -729,3 +729,105 @@ describe('saying what something actually is', () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe('asking for work against a library that is not there', () => {
+  const MISSING = '22222222-2222-4222-8222-222222222222';
+
+  const asks: [string, string][] = [
+    ['POST', `/api/libraries/${MISSING}/reset`],
+    ['POST', `/api/libraries/${MISSING}/regenerate-previews`],
+  ];
+
+  for (const [method, path] of asks) {
+    it(`answers ${method} ${path} with nothing to work on`, async () => {
+      const { app } = build([detail()]);
+
+      const response = await app.request(`${BASE}${path}`, { method });
+
+      expect(response.status).toBe(404);
+    });
+  }
+
+  it('reaches every episode of a series when one of them is corrected', async () => {
+    const { app } = build([
+      episodeOf({ id: MEDIA_ID }),
+      episodeOf({ id: '33333333-3333-4333-8333-333333333333', episodeNumber: 2 }),
+    ]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: '5', kind: 'tv' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ corrected: 2 });
+  });
+
+  it('reaches only the film itself when a film is corrected', async () => {
+    const { app } = build([detail(), detail({ id: '33333333-3333-4333-8333-333333333333' })]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: '329', kind: 'movie' }),
+    });
+
+    expect(await response.json()).toMatchObject({ corrected: 1 });
+  });
+});
+
+describe('adding a library', () => {
+  it('refuses a path that is not a readable directory', async () => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+    const library = createMemoryLibraryService();
+
+    const app = signedInApp(
+      createApp({
+        auth,
+        settings,
+        permissions,
+        countUsers: () => Promise.resolve(1),
+        promoteToAdmin: () => Promise.resolve(),
+        library: { ...library, create: () => Promise.resolve(null) },
+        subtitles: createMemorySubtitleService(),
+        segments: createMemorySegmentService(),
+        progress: createMemoryWatchProgressService(),
+        favourites: createMemoryFavouriteService(),
+        playback: createMemoryPlaybackService(),
+      }),
+      { store, permissions, isAdministrator: true },
+    );
+
+    const response = await app.request(`${BASE}/api/libraries`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Films', kind: 'movies', path: '/nowhere' }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('adds one for a path that is there', async () => {
+    const { app } = build([]);
+
+    const response = await app.request(`${BASE}/api/libraries`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Shows', kind: 'shows', path: '/media/shows' }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ name: 'Shows', filesAtOnce: null });
+  });
+
+  it('reports an item with no year rather than leaving the field out', async () => {
+    const { app } = build([detail({ year: null })]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items`);
+    const body = z.object({ items: z.array(MediaSummarySchema) }).parse(await response.json());
+
+    expect(body.items[0]?.year).toBeNull();
+  });
+});

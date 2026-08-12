@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveMetadata } from './MetadataProvider';
+import { resolveMetadata, resolveSeriesShape } from './MetadataProvider';
 import { createFilenameMetadataProvider } from './createFilenameMetadataProvider';
 import type { MediaFacts, MetadataProvider } from './MetadataProvider';
 import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient';
@@ -81,5 +81,72 @@ describe('the filename provider', () => {
     );
 
     expect(found).toMatchObject({ title: 'Arrival', year: 2016 });
+  });
+});
+
+describe('resolveSeriesShape', () => {
+  const SHAPE = { seasons: [{ seasonNumber: 1, episodeCount: 2, episodes: [] }] };
+
+  const named = (name: string, describeSeries?: MetadataProvider['describeSeries']) => ({
+    name,
+    describe: () => Promise.resolve(null),
+    ...(describeSeries === undefined ? {} : { describeSeries }),
+  });
+
+  it('takes the first shape a provider offers', async () => {
+    const providers = [named('one', () => Promise.resolve(SHAPE))];
+
+    await expect(resolveSeriesShape(providers, '5')).resolves.toEqual(SHAPE);
+  });
+
+  it('skips a provider that does not describe series at all', async () => {
+    const providers = [named('filenames'), named('catalogue', () => Promise.resolve(SHAPE))];
+
+    await expect(resolveSeriesShape(providers, '5')).resolves.toEqual(SHAPE);
+  });
+
+  it('asks the next one when a provider has nothing to say', async () => {
+    const providers = [
+      named('one', () => Promise.resolve(null)),
+      named('two', () => Promise.resolve(SHAPE)),
+    ];
+
+    await expect(resolveSeriesShape(providers, '5')).resolves.toEqual(SHAPE);
+  });
+
+  it('reports a provider that failed and carries on', async () => {
+    const problems: string[] = [];
+    const providers = [
+      named('one', () => Promise.reject(new Error('catalogue is down'))),
+      named('two', () => Promise.resolve(SHAPE)),
+    ];
+
+    await expect(
+      resolveSeriesShape(providers, '5', (provider, reason) => {
+        problems.push(`${provider}: ${reason}`);
+      }),
+    ).resolves.toEqual(SHAPE);
+
+    expect(problems).toEqual(['one: catalogue is down']);
+  });
+
+  it('describes a failure that was not an error as a provider failing', async () => {
+    const problems: string[] = [];
+    const providers = [
+      named('one', () =>
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- The point of the test: a provider that rejects with something that is not an Error.
+        Promise.reject({ why: 'a plain object' }),
+      ),
+    ];
+
+    await resolveSeriesShape(providers, '5', (provider, reason) => {
+      problems.push(`${provider}: ${reason}`);
+    });
+
+    expect(problems).toEqual(['one: Provider failed.']);
+  });
+
+  it('has no shape when nothing could describe the series', async () => {
+    await expect(resolveSeriesShape([named('filenames')], '5')).resolves.toBeNull();
   });
 });

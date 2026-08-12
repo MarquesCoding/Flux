@@ -554,3 +554,89 @@ describe('reading the shape of a series', () => {
     await expect(instance.describeSeries?.('5')).resolves.toBeNull();
   });
 });
+
+describe('the two ways a catalogue key can be presented', () => {
+  const TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmbHV4In0.signature';
+
+  it('sends a v4 token as a bearer header rather than in the address', async () => {
+    const headers: (Record<string, string> | undefined)[] = [];
+
+    const instance = createCatalogueMetadataProvider({
+      readApiKey: () => Promise.resolve(TOKEN),
+      fetchImpl: (_url, sent) => {
+        headers.push(sent);
+
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ results: [] }),
+        });
+      },
+    });
+
+    await instance.search?.('Arrival', 'movie');
+
+    expect(headers[0]).toMatchObject({ authorization: `Bearer ${TOKEN}` });
+  });
+
+  it('keeps a v4 token out of the address, where it would be logged', async () => {
+    const asked: string[] = [];
+
+    const instance = createCatalogueMetadataProvider({
+      readApiKey: () => Promise.resolve(TOKEN),
+      fetchImpl: (url) => {
+        asked.push(url);
+
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ results: [] }),
+        });
+      },
+    });
+
+    await instance.search?.('Arrival', 'movie');
+
+    expect(asked.join(' ')).not.toContain(TOKEN);
+  });
+
+  it('sends a v3 key as a query parameter, which is how that one is presented', async () => {
+    const { instance, calls } = provider({ '/search/movie': { results: [] } });
+
+    await instance.search?.('Arrival', 'movie');
+
+    expect(calls[0]).toContain('api_key=a-key');
+  });
+});
+
+describe('matching a series, which the catalogue names differently from a film', () => {
+  it('takes the name and the first air date a series carries', async () => {
+    const { instance } = provider({
+      '/search/tv': {
+        results: [{ id: 5, name: 'A Sign of Affection', first_air_date: '2024-01-06' }],
+      },
+    });
+
+    const found = await instance.describe(
+      facts('/shows/a-sign-of-affection-s01e01.mkv', {
+        seriesTitle: 'A Sign of Affection',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      }),
+    );
+
+    expect(found).toMatchObject({ year: 2024 });
+  });
+
+  it('falls back to the first result when none of them match by name', async () => {
+    const { instance } = provider({
+      '/search/movie': {
+        results: [{ id: 1, title: 'Something Else', release_date: '1999-01-01' }],
+      },
+    });
+
+    const found = await instance.describe(facts('/films/Arrival (2016).mkv'));
+
+    expect(found).toMatchObject({ externalId: '1' });
+  });
+});

@@ -309,3 +309,45 @@ describe('every route that needs somebody signed in, asked by nobody', () => {
     });
   }
 });
+
+describe('the routes that read who is asking, asked by nobody at all', () => {
+  /**
+   * Routes that resolve the actor themselves rather than asking the
+   * permission service a question.
+   *
+   * They answer 401 rather than 403, because the session gate turns an
+   * unauthenticated request away before any route sees it. Their own
+   * "there is nobody here" branch is therefore unreachable over HTTP — it is
+   * a guard against being called another way, not a path a browser can take.
+   */
+  const ROLE_ROUTES: [string, string, object?][] = [
+    ['POST', '/api/admin/roles', { name: 'Staff', position: 10, permissions: [] }],
+    ['PATCH', '/api/admin/roles/role-1', { name: 'Staff' }],
+    ['DELETE', '/api/admin/roles/role-1'],
+    ['PUT', '/api/admin/accounts/usr_other/roles/role-1'],
+    ['DELETE', '/api/admin/accounts/usr_other/roles/role-1'],
+    [
+      'PUT',
+      '/api/admin/accounts/usr_other/overrides',
+      { permission: 'server.logs', effect: 'allow' },
+    ],
+    ['DELETE', '/api/admin/accounts/usr_other/overrides/server.logs'],
+  ];
+
+  for (const [method, path, body] of ROLE_ROUTES) {
+    it(`turns nobody away from ${method} ${path} before the route is reached`, async () => {
+      const { app } = build();
+
+      const response = await app.request(`${TEST_ORIGIN}${path}`, {
+        method,
+        headers: {
+          origin: TEST_ORIGIN,
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+
+      expect(response.status).toBe(401);
+    });
+  }
+});

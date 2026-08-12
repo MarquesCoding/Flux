@@ -529,3 +529,88 @@ describe('account administration', () => {
     });
   });
 });
+
+describe('a server with no way to act on accounts', () => {
+  /**
+   * The application without the account operations wired in.
+   *
+   * They are optional: a deployment can leave them out, and every route that
+   * needs one has to answer rather than crash when it is missing.
+   */
+  const withoutAccountActions = async () => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    const app = createApp({
+      auth,
+      settings,
+      permissions,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService(),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      subtitles: createMemorySubtitleService(),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+    });
+
+    const cookie = await signUpForTest(app);
+
+    await makeAdministrator(permissions, store.user[0]?.id ?? '');
+
+    return (path: string, method: string, body?: object) =>
+      app.request(`${TEST_ORIGIN}${path}`, {
+        method,
+        headers: {
+          cookie,
+          origin: TEST_ORIGIN,
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+  };
+
+  it('has no account to lift a ban from', async () => {
+    const request = await withoutAccountActions();
+
+    expect((await request('/api/admin/accounts/usr_other/ban', 'DELETE')).status).toBe(404);
+  });
+
+  it('has no account to remove', async () => {
+    const request = await withoutAccountActions();
+
+    expect((await request('/api/admin/accounts/usr_other', 'DELETE')).status).toBe(404);
+  });
+
+  it('has no account to ban', async () => {
+    const request = await withoutAccountActions();
+
+    const response = await request('/api/admin/accounts/usr_other/ban', 'POST', {
+      reason: 'Sharing the password around.',
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('refuses an invitation it has no way to accept', async () => {
+    const request = await withoutAccountActions();
+
+    const response = await request('/api/admin/accounts', 'POST', {
+      name: 'Alex',
+      email: 'alex@flux.local',
+      password: 'a-long-enough-password',
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('reports no accounts at all rather than failing', async () => {
+    const request = await withoutAccountActions();
+
+    const response = await request('/api/admin/accounts', 'GET');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ accounts: [] });
+  });
+});
