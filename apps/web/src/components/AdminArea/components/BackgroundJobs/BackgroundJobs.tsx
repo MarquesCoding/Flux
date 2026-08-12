@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react';
 import { Badge } from '@FluxUI/Badge';
 import { DataTable } from '@FluxUI/DataTable';
 import { describeElapsed } from '@FluxWeb/components/AdminArea/describeElapsed';
+import { describeQueueKind } from '@FluxWeb/components/AdminArea/describeQueueKind';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { Job } from '@FluxWeb/admin/fetchAdmin';
 import type { BackgroundJobsProps } from './BackgroundJobs.types';
@@ -73,8 +74,10 @@ const BackgroundJobs = ({ monitor, isUnreachable = false, pageSize }: Background
       {
         id: 'kind',
         header: 'Job',
-        accessorFn: (job) => job.kind,
-        cell: ({ row }) => <span className="text-text-muted">{row.original.kind}</span>,
+        accessorFn: (job) => describeQueueKind(job.kind),
+        cell: ({ row }) => (
+          <span className="text-text-muted">{describeQueueKind(row.original.kind)}</span>
+        ),
       },
       {
         id: 'subject',
