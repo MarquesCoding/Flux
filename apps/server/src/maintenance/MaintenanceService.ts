@@ -17,6 +17,14 @@ type MaintenanceService = {
    */
   cleanupImageCache: () => Promise<QueuedJob>;
   /**
+   * Queues removal of preview clips and thumbnail sheets nothing addresses.
+   *
+   * Server-wide rather than per library, and necessarily so: one flat directory
+   * of addresses holds every library's artefacts, so a sweep told about one
+   * library would find the rest unaddressed.
+   */
+  cleanupArtefactCache: () => Promise<QueuedJob>;
+  /**
    * Queues clearing out expired sign-in sessions and device-authorization
    * codes.
    */
