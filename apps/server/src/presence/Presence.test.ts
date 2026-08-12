@@ -131,4 +131,135 @@ describe('presence over HTTP', () => {
       { clientId: 'tab-1', playback: { mediaTitle: 'Arrival' } },
     ]);
   });
+
+  it('records a heartbeat from a tab that is signed in', async () => {
+    const { app, presence } = build();
+    const cookie = await signedIn(app);
+
+    presence.connect('tab-1', null, null, 'Chrome on macOS', vi.fn());
+    presence.startPlayback('tab-1', {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'direct',
+      transcoderSessionId: null,
+      plan,
+    });
+
+    const response = await app.request(`${BASE}/api/presence/tab-1/heartbeat`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({
+        isPlaying: false,
+        health: {
+          positionSeconds: 42,
+          durationSeconds: 7200,
+          bufferedAheadSeconds: 12,
+          presentedWidth: 1920,
+          presentedHeight: 1080,
+        },
+      }),
+    });
+
+    expect(response.status).toBe(204);
+    expect(presence.list()[0]?.playback).toMatchObject({
+      isPlaying: false,
+      health: { positionSeconds: 42 },
+    });
+  });
+
+  describe('the stream a tab holds open', () => {
+    const openStream = async (
+      app: ReturnType<typeof build>['app'],
+      cookie: string,
+      query = 'clientId=tab-1&deviceLabel=Chrome+on+macOS',
+    ) => {
+      const controller = new AbortController();
+
+      const response = await app.request(`${BASE}/api/presence/stream?${query}`, {
+        headers: { cookie, origin: BASE },
+        signal: controller.signal,
+      });
+
+      return {
+        response,
+        stop: () => {
+          controller.abort();
+        },
+      };
+    };
+
+    it('turns nobody signed in away', async () => {
+      const { app } = build();
+
+      const response = await app.request(`${BASE}/api/presence/stream?clientId=tab-1`, {
+        headers: { origin: BASE },
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('refuses a tab that will not say which one it is', async () => {
+      const { app } = build();
+      const cookie = await signedIn(app);
+
+      const { response } = await openStream(app, cookie, 'deviceLabel=Chrome');
+
+      expect(response.status).toBe(400);
+    });
+
+    it('holds the connection open as an event stream', async () => {
+      const { app, presence } = build();
+      const cookie = await signedIn(app);
+
+      const { response, stop } = await openStream(app, cookie);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/event-stream');
+      expect(presence.list()).toMatchObject([
+        { clientId: 'tab-1', deviceLabel: 'Chrome on macOS' },
+      ]);
+
+      stop();
+      await response.body?.cancel();
+    });
+
+    it('names the device as unknown when a tab does not say what it is', async () => {
+      const { app, presence } = build();
+      const cookie = await signedIn(app);
+
+      const { response, stop } = await openStream(app, cookie, 'clientId=tab-1');
+
+      expect(presence.list()).toMatchObject([{ deviceLabel: 'Unknown device' }]);
+
+      stop();
+      await response.body?.cancel();
+    });
+
+    it('sends what presence tells it, down the connection the tab is holding', async () => {
+      const { app, presence } = build();
+      const cookie = await signedIn(app);
+
+      const { response, stop } = await openStream(app, cookie);
+
+      expect(presence.stop('tab-1', 'An administrator stopped this stream.')).toBe(true);
+      expect(presence.list()).toMatchObject([{ clientId: 'tab-1', playback: null }]);
+
+      stop();
+      await response.body?.cancel();
+    });
+
+    it('forgets the tab once the connection is let go', async () => {
+      const { app, presence } = build();
+      const cookie = await signedIn(app);
+
+      const { response, stop } = await openStream(app, cookie);
+
+      stop();
+      await response.body?.cancel();
+
+      expect(presence.list()).toEqual([]);
+    });
+  });
 });

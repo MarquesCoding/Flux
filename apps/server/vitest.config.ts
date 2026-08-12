@@ -8,5 +8,8 @@ export default defineConfig({
     env: {
       NODE_ENV: 'production',
     },
+    coverage: {
+      thresholds: { lines: 85, functions: 79, branches: 75, statements: 85 },
+    },
   },
 });

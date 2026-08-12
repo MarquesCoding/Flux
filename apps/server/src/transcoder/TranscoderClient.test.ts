@@ -185,3 +185,226 @@ describe('createTranscoderClient', () => {
     expect(probe.audioStreams[0]).toMatchObject({ title: null, isDefault: false });
   });
 });
+
+describe('every question the client asks the media service', () => {
+  /**
+   * A media service that answers whatever the test says it does, and records
+   * what it was asked.
+   *
+   * The client is mostly a set of one-line calls whose entire behaviour is
+   * which address they use, what they send, and what they make of the answer.
+   * A scripted service is the only way to see any of that.
+   */
+  const scripted = (
+    answer: Partial<{
+      ok: boolean;
+      status: number;
+      body: JsonValue;
+      bytes: ArrayBuffer;
+      headers: Record<string, string>;
+    }> = {},
+  ) => {
+    const asked: { url: string; init?: { method?: string; body?: string } }[] = [];
+
+    const client = createTranscoderClient({
+      baseUrl: 'http://127.0.0.1:8477',
+      fetchImpl: (url, init) => {
+        asked.push({ url, ...(init === undefined ? {} : { init }) });
+
+        return Promise.resolve({
+          ok: answer.ok ?? true,
+          status: answer.status ?? 200,
+          headers: { get: (name: string) => answer.headers?.[name] ?? null },
+          json: () => Promise.resolve(answer.body ?? {}),
+          arrayBuffer: () => Promise.resolve(answer.bytes ?? new ArrayBuffer(8)),
+        });
+      },
+    });
+
+    return { client, asked };
+  };
+
+  it('starts a session by sending the whole specification', async () => {
+    const { client, asked } = scripted({ body: { id: 'session-1', manifest: 'index.m3u8' } });
+
+    const started = await client.startSession({
+      inputPath: '/media/a.mkv',
+      startSeconds: 0,
+      segmentSeconds: 4,
+      hardwareAccel: '',
+      video: { kind: 'copy' },
+      audio: { kind: 'copy' },
+    });
+
+    expect(started.id).toBe('session-1');
+    expect(asked[0]?.url).toBe('http://127.0.0.1:8477/sessions');
+    expect(asked[0]?.init?.method).toBe('POST');
+  });
+
+  it('ends a session, and says whether the service agreed', async () => {
+    const { client, asked } = scripted();
+
+    await expect(client.stopSession('session-1')).resolves.toBe(true);
+    expect(asked[0]?.init?.method).toBe('DELETE');
+  });
+
+  it('reports a session the service would not end', async () => {
+    const { client } = scripted({ ok: false, status: 404 });
+
+    await expect(client.stopSession('session-1')).resolves.toBe(false);
+  });
+
+  it('says a session is still being watched', async () => {
+    const { client, asked } = scripted();
+
+    await expect(client.heartbeatSession('session-1', true)).resolves.toBe(true);
+    expect(asked[0]?.url).toContain('/sessions/session-1/heartbeat');
+  });
+
+  it('reads a file belonging to a session', async () => {
+    const { client } = scripted({ headers: { 'content-type': 'video/mp2t' } });
+
+    const file = await client.readSessionFile('session-1', 'segment-0.ts');
+
+    expect(file).toMatchObject({ contentType: 'video/mp2t' });
+  });
+
+  it('has nothing for a session file the service does not have', async () => {
+    const { client } = scripted({ ok: false, status: 404 });
+
+    await expect(client.readSessionFile('session-1', 'missing.ts')).resolves.toBeNull();
+  });
+
+  it('asks for a fingerprint of a stretch of a file', async () => {
+    const { client, asked } = scripted({
+      body: { hashes: [1, 2, 3], framesPerSecond: 10, startSeconds: 0 },
+    });
+
+    const found = await client.fingerprint({
+      inputPath: '/media/a.mkv',
+      startSeconds: 0,
+      durationSeconds: 90,
+    });
+
+    expect(found.hashes).toEqual([1, 2, 3]);
+    expect(asked[0]?.url).toContain('/fingerprint');
+  });
+
+  it('reads a single frame as bytes rather than as words', async () => {
+    const { client, asked } = scripted({ bytes: new ArrayBuffer(16) });
+
+    const frame = await client.readFrame({
+      inputPath: '/media/a.mkv',
+      atSeconds: 12,
+      width: 320,
+    });
+
+    expect(frame.byteLength).toBe(16);
+    expect(asked[0]?.url).toContain('/frame');
+  });
+
+  it('asks for a preview clip', async () => {
+    const { client, asked } = scripted({
+      body: { id: 'clip-1', url: '/previews/clip-1/clip.mp4', isReady: true },
+    });
+
+    await client.requestPreview({ inputPath: '/media/a.mkv', wait: true });
+
+    expect(asked[0]?.url).toContain('/previews');
+  });
+
+  it('reads a preview file, and what range of it came back', async () => {
+    const { client } = scripted({
+      status: 206,
+      headers: { 'content-type': 'video/mp4', 'content-range': 'bytes 0-7/64' },
+    });
+
+    const file = await client.readPreviewFile('clip-1', 'clip.mp4', 'bytes=0-7');
+
+    expect(file).toMatchObject({ status: 206, contentRange: 'bytes 0-7/64' });
+  });
+
+  it('calls a preview file video when the service does not say what it is', async () => {
+    const { client } = scripted();
+
+    await expect(client.readPreviewFile('clip-1', 'clip.mp4', null)).resolves.toMatchObject({
+      contentType: 'video/mp4',
+    });
+  });
+
+  it('has nothing for a preview file that is not there', async () => {
+    const { client } = scripted({ ok: false, status: 404 });
+
+    await expect(client.readPreviewFile('clip-1', 'clip.mp4', null)).resolves.toBeNull();
+  });
+
+  it('asks for a sheet of thumbnails', async () => {
+    const { client, asked } = scripted({
+      body: {
+        id: 'sheet-1',
+        intervalSeconds: 10,
+        tileWidth: 160,
+        tileHeight: 90,
+        columns: 5,
+        rows: 5,
+        sheets: ['sheet-000.jpg'],
+        index: 'index.vtt',
+        isReady: true,
+      },
+    });
+
+    await client.requestTrickplay({
+      inputPath: '/media/a.mkv',
+      intervalSeconds: 10,
+      tileWidth: 160,
+      columns: 5,
+      rows: 5,
+    });
+
+    expect(asked[0]?.url).toContain('/trickplay');
+  });
+
+  it('reads a thumbnail sheet', async () => {
+    const { client } = scripted({ headers: { 'content-type': 'image/jpeg' } });
+
+    await expect(client.readTrickplayFile('sheet-1', 'sheet-000.jpg')).resolves.toMatchObject({
+      contentType: 'image/jpeg',
+    });
+  });
+
+  it('falls back to bytes for a sheet the service does not describe', async () => {
+    const { client } = scripted();
+
+    await expect(client.readTrickplayFile('sheet-1', 'sheet-000.jpg')).resolves.toMatchObject({
+      contentType: 'application/octet-stream',
+    });
+  });
+
+  it('has nothing for a sheet that is not there', async () => {
+    const { client } = scripted({ ok: false, status: 404 });
+
+    await expect(client.readTrickplayFile('sheet-1', 'sheet-000.jpg')).resolves.toBeNull();
+  });
+
+  it('reads a subtitle track as the text inside it', async () => {
+    const { client, asked } = scripted({ body: { content: 'WEBVTT\n\n' } });
+
+    await expect(client.readSubtitle({ inputPath: '/a.mkv', streamIndex: 2 })).resolves.toContain(
+      'WEBVTT',
+    );
+    expect(asked[0]?.url).toContain('/subtitles');
+  });
+
+  it('reads what the service says about how it is doing', async () => {
+    const { client, asked } = scripted({ body: { sessions: 2 } });
+
+    await expect(client.readMonitor()).resolves.toEqual({ sessions: 2 });
+    expect(asked[0]?.url).toContain('/monitor');
+  });
+
+  it('raises what the service refused, with the status it refused it with', async () => {
+    const { client } = scripted({ ok: false, status: 503 });
+
+    await expect(client.readMonitor()).rejects.toThrow(/rejected/);
+  });
+});
