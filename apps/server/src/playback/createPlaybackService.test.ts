@@ -80,6 +80,8 @@ const harness = (defaultAudioLanguage: string | null) => {
         ffmpegVersion: 'test',
         encoders: [],
         hardwareAccels: [],
+        hardwareScalers: [],
+        rejected: [],
         toneMapping: 'unavailable' as const,
         canBurnTextSubtitles: true,
         canBurnImageSubtitles: true,

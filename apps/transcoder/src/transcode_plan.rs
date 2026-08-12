@@ -344,6 +344,7 @@ pub fn software_equivalent(encoder: &str) -> &'static str {
 ///
 /// It says no when:
 ///
+/// - this build has no scaler for the backend's frames;
 /// - the backend has no end-to-end pipeline, which is `Amf`, `Rkmpp` and no
 ///   acceleration at all;
 /// - subtitles are being drawn on, since `subtitles` and `overlay` are
@@ -357,7 +358,11 @@ pub fn software_equivalent(encoder: &str) -> &'static str {
 /// that will not start, so each answer is a fact about the spec rather than a
 /// guess about the machine.
 #[must_use]
-pub fn keeps_frames_on_the_gpu(spec: &SessionSpec) -> bool {
+pub fn keeps_frames_on_the_gpu(spec: &SessionSpec, has_hardware_scaler: bool) -> bool {
+    if !has_hardware_scaler {
+        return false;
+    }
+
     if spec.hardware_accel.pipeline().is_none() {
         return false;
     }
@@ -569,6 +574,14 @@ pub struct TranscodePlan {
     /// not part of the session key: pointing Flux at a different card should
     /// not orphan every segment already on disk.
     pub device: String,
+    /// Whether this build has the scaler this backend's frames need.
+    ///
+    /// Asked rather than assumed. `scale_vt` arrived in `FFmpeg` 7.0 and some
+    /// builds ship `scale_npp` in place of `scale_cuda`, so the filter is a
+    /// property of the binary. Assuming it exists produces a chain that fails
+    /// and falls back to software, which costs most of the saving and says
+    /// nothing about why.
+    pub has_hardware_scaler: bool,
 }
 
 /// The manifest file every session writes.
@@ -610,7 +623,7 @@ impl TranscodePlan {
                         .map(|argument| (*argument).to_owned()),
                 );
                 if let (true, Some(pipeline), Some(source)) = (
-                    keeps_frames_on_the_gpu(&self.spec),
+                    keeps_frames_on_the_gpu(&self.spec, self.has_hardware_scaler),
                     self.spec.hardware_accel.pipeline(),
                     self.spec.source_size,
                 ) {
@@ -670,7 +683,7 @@ impl TranscodePlan {
             "error".into(),
         ];
 
-        let on_the_gpu = keeps_frames_on_the_gpu(&self.spec);
+        let on_the_gpu = keeps_frames_on_the_gpu(&self.spec, self.has_hardware_scaler);
 
         if on_the_gpu {
             args.extend(self.spec.hardware_accel.device_arguments(&self.device));
@@ -767,6 +780,10 @@ mod tests {
         }
     }
 
+    fn keeps_frames_on_the_gpu_of(spec: &SessionSpec) -> bool {
+        keeps_frames_on_the_gpu(spec, true)
+    }
+
     fn on_gpu(accel: HardwareAccel) -> SessionSpec {
         SessionSpec {
             hardware_accel: accel,
@@ -812,7 +829,7 @@ mod tests {
 
     #[test]
     fn keeps_frames_on_the_gpu_for_a_plain_rescale() {
-        assert!(keeps_frames_on_the_gpu(&on_gpu(
+        assert!(keeps_frames_on_the_gpu_of(&on_gpu(
             HardwareAccel::VideoToolbox
         )));
     }
@@ -827,7 +844,7 @@ mod tests {
             ..on_gpu(HardwareAccel::VideoToolbox)
         };
 
-        assert!(!keeps_frames_on_the_gpu(&spec));
+        assert!(!keeps_frames_on_the_gpu_of(&spec));
     }
 
     #[test]
@@ -843,7 +860,7 @@ mod tests {
             ..on_gpu(HardwareAccel::VideoToolbox)
         };
 
-        assert!(!keeps_frames_on_the_gpu(&spec));
+        assert!(!keeps_frames_on_the_gpu_of(&spec));
     }
 
     #[test]
@@ -853,7 +870,18 @@ mod tests {
             ..on_gpu(HardwareAccel::VideoToolbox)
         };
 
-        assert!(!keeps_frames_on_the_gpu(&spec));
+        assert!(!keeps_frames_on_the_gpu_of(&spec));
+    }
+
+    #[test]
+    fn stays_in_software_when_the_build_has_no_scaler() {
+        let spec = on_gpu(HardwareAccel::VideoToolbox);
+
+        assert!(keeps_frames_on_the_gpu(&spec, true));
+        assert!(
+            !keeps_frames_on_the_gpu(&spec, false),
+            "a chain that names a filter this build lacks fails and falls back for no reason"
+        );
     }
 
     #[test]
@@ -864,7 +892,7 @@ mod tests {
             HardwareAccel::None,
         ] {
             assert!(
-                !keeps_frames_on_the_gpu(&on_gpu(accel)),
+                !keeps_frames_on_the_gpu_of(&on_gpu(accel)),
                 "{accel:?} has no end to end pipeline"
             );
         }
@@ -875,6 +903,7 @@ mod tests {
         let plan = TranscodePlan {
             spec: on_gpu(HardwareAccel::Vaapi),
             output_directory: "/transcodes/abc".into(),
+            has_hardware_scaler: true,
             device: "/dev/dri/renderD129".into(),
         };
 
@@ -891,7 +920,7 @@ mod tests {
             ..on_gpu(HardwareAccel::VideoToolbox)
         };
 
-        assert!(!keeps_frames_on_the_gpu(&spec));
+        assert!(!keeps_frames_on_the_gpu_of(&spec));
     }
 
     #[test]
@@ -998,6 +1027,7 @@ mod tests {
     fn plan(spec: SessionSpec) -> TranscodePlan {
         TranscodePlan {
             device: DEFAULT_DEVICE.to_owned(),
+            has_hardware_scaler: true,
             spec,
             output_directory: "/transcodes/abc".into(),
         }

@@ -33,6 +33,8 @@ const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcode
       ffmpegVersion: 'test',
       encoders: [],
       hardwareAccels: [],
+      hardwareScalers: [],
+      rejected: [],
       toneMapping: 'unavailable' as const,
       canBurnTextSubtitles: true,
       canBurnImageSubtitles: true,

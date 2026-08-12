@@ -254,10 +254,25 @@ impl SessionRegistry {
             return Ok(id);
         }
 
+        let scaler = spec
+            .hardware_accel
+            .pipeline()
+            .map(|pipeline| pipeline.scaler);
+
         let plan = TranscodePlan {
             spec: spec.clone(),
             output_directory: directory.to_string_lossy().into_owned(),
             device: self.config.device.clone(),
+            has_hardware_scaler: match scaler {
+                Some(name) => {
+                    crate::capability::detect_capabilities(&self.config.ffmpeg, &self.config.device)
+                        .await
+                        .hardware_scalers
+                        .iter()
+                        .any(|found| found == name)
+                }
+                None => false,
+            },
         };
 
         drop(spawn_ffmpeg(&self.config.ffmpeg, &plan)?);
@@ -457,6 +472,7 @@ async fn supervise(config: SessionConfig, plan: TranscodePlan, mut cancel: onesh
             spec: attempt.spec.without_hardware(),
             output_directory: attempt.output_directory,
             device: attempt.device,
+            has_hardware_scaler: false,
         };
     }
 }

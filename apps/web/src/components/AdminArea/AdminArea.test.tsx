@@ -28,6 +28,7 @@ const OVERVIEW: AdminOverview = {
     address: 'unix:/tmp/flux-transcoder.sock',
     ffmpegVersion: '9.0.1',
     hardwareAccels: ['videotoolbox'],
+    rejectedEncoders: [],
   },
   library: { itemCount: 15, libraryCount: 2 },
 };
@@ -332,6 +333,7 @@ describe('AdminArea', () => {
           address: 'unix:/tmp/flux-transcoder.sock',
           ffmpegVersion: null,
           hardwareAccels: [],
+          rejectedEncoders: [],
         },
       }),
     );
