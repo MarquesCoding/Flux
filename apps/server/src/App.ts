@@ -313,6 +313,13 @@ type CreateAppOptions = {
   >;
   capabilities?: () => Promise<{
     ffmpegVersion: string;
+    /**
+     * Whether that version is one Flux vouches for.
+     *
+     * Optional so an older media service, which does not report it, reads as
+     * supported rather than as a warning nobody can act on.
+     */
+    ffmpegSupported?: boolean;
     hardwareAccels: string[];
     rejected?: { encoder: string; reason: string }[];
   }>;
@@ -1084,6 +1091,7 @@ const createApp = ({
           isReachable,
           address: transcoderAddress,
           ffmpegVersion: transcoderCapabilities?.ffmpegVersion ?? null,
+          ffmpegSupported: transcoderCapabilities?.ffmpegSupported ?? true,
           hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
           rejectedEncoders: transcoderCapabilities?.rejected ?? [],
         },

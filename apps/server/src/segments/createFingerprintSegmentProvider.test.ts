@@ -99,6 +99,7 @@ const transcoderThat = (
   capabilities: () =>
     Promise.resolve({
       ffmpegVersion: 'test',
+      ffmpegSupported: true,
       encoders: [],
       hardwareAccels: [],
       hardwareScalers: [],

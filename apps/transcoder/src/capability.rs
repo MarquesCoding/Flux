@@ -175,6 +175,14 @@ pub fn summarise_failure(stderr: &str, fallback: &str) -> String {
 #[serde(rename_all = "camelCase")]
 pub struct Capabilities {
     pub ffmpeg_version: String,
+    /// Whether that version is one Flux will vouch for.
+    ///
+    /// Reported rather than enforced. An older build mostly works, and refusing
+    /// to start would be a worse answer than saying so plainly — but it loses
+    /// filters that decide whether frames stay on the hardware, and that is
+    /// invisible from the outside. See [`MINIMUM_FFMPEG`].
+    #[serde(default = "assume_supported")]
+    pub ffmpeg_supported: bool,
     pub encoders: Vec<VerifiedEncoder>,
     pub hardware_accels: Vec<HardwareAccel>,
     /// How, or whether, this build can convert HDR to SDR.
@@ -381,6 +389,55 @@ async fn verify_encoder(
     ))
 }
 
+/// What a payload with no such field meant, which is that nobody had checked.
+const fn assume_supported() -> bool {
+    true
+}
+
+/// The oldest `FFmpeg` Flux will vouch for.
+///
+/// 7.0 is where `scale_vt` arrived. A build older than that loses the zero-copy
+/// path on Apple hardware without failing: frames come back to system memory for
+/// the scale, everything still works, and the machine simply does several times
+/// the work for the same output. Silence is the problem — an operator has no way
+/// to tell that from a slow computer.
+pub const MINIMUM_FFMPEG: (u32, u32) = (7, 0);
+
+/// The major and minor version out of an ffmpeg banner.
+///
+/// Builds label themselves freely — Debian appends `-0+deb12u1`, Jellyfin
+/// appends `-Jellyfin`, a git build may say `n7.1-dev`. So this reads the digits
+/// and stops at the first thing that is not one, rather than trying to
+/// understand the rest.
+#[must_use]
+pub fn version_numbers(banner: &str) -> Option<(u32, u32)> {
+    let digits = banner.split_whitespace().find_map(|word| {
+        let candidate = word.trim_start_matches('n');
+
+        candidate
+            .starts_with(|first: char| first.is_ascii_digit())
+            .then_some(candidate)
+    })?;
+
+    let mut parts = digits.split(['.', '-', '_']);
+
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next().and_then(|part| part.parse().ok()).unwrap_or(0);
+
+    Some((major, minor))
+}
+
+/// Whether a build is one Flux will vouch for.
+///
+/// An unreadable version is treated as supported. Refusing to work because a
+/// banner could not be parsed would be worse than the thing being guarded
+/// against, and a build too old to name itself clearly is rare next to a build
+/// that simply labels itself in a way nobody anticipated.
+#[must_use]
+pub fn meets_minimum(banner: &str) -> bool {
+    version_numbers(banner).is_none_or(|found| found >= MINIMUM_FFMPEG)
+}
+
 async fn read_version(ffmpeg: &str) -> String {
     let Ok(output) = Command::new(ffmpeg).arg("-version").output().await else {
         return "unknown".to_owned();
@@ -469,8 +526,11 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
         Err(_) => Vec::new(),
     };
 
+    let version = read_version(ffmpeg).await;
+
     Capabilities {
-        ffmpeg_version: read_version(ffmpeg).await,
+        ffmpeg_supported: meets_minimum(&version),
+        ffmpeg_version: version,
         encoders,
         hardware_accels,
         tone_mapping: select_tone_mapping(&filters),
@@ -656,9 +716,66 @@ mod tests {
         assert!(!names.iter().any(|name| name == "="));
     }
 
+    #[test]
+    fn reads_the_version_out_of_a_plain_banner() {
+        assert_eq!(
+            super::version_numbers("ffmpeg version 8.1.2 Copyright (c) 2000-2025"),
+            Some((8, 1))
+        );
+    }
+
+    #[test]
+    fn reads_it_past_whatever_the_packager_appended() {
+        for (banner, expected) in [
+            ("ffmpeg version 5.1.9-0+deb12u1 Copyright (c)", (5, 1)),
+            ("ffmpeg version 8.1.2-Jellyfin Copyright (c)", (8, 1)),
+            ("ffmpeg version n7.1-dev-1234 Copyright (c)", (7, 1)),
+            ("ffmpeg version 7 Copyright (c)", (7, 0)),
+        ] {
+            assert_eq!(super::version_numbers(banner), Some(expected), "{banner}");
+        }
+    }
+
+    #[test]
+    fn says_nothing_rather_than_guessing_at_an_unreadable_banner() {
+        assert_eq!(super::version_numbers("ffmpeg version unknown"), None);
+        assert_eq!(super::version_numbers(""), None);
+    }
+
+    #[test]
+    fn vouches_for_the_floor_and_anything_above_it() {
+        for banner in [
+            "ffmpeg version 7.0 Copyright",
+            "ffmpeg version 7.1.5 Copyright",
+            "ffmpeg version 8.1.2-Jellyfin Copyright",
+            "ffmpeg version 9.0 Copyright",
+        ] {
+            assert!(super::meets_minimum(banner), "{banner}");
+        }
+    }
+
+    #[test]
+    fn refuses_to_vouch_for_a_build_without_scale_vt() {
+        for banner in [
+            "ffmpeg version 5.1.9-0+deb12u1 Copyright",
+            "ffmpeg version 6.1 Copyright",
+        ] {
+            assert!(!super::meets_minimum(banner), "{banner}");
+        }
+    }
+
+    #[test]
+    fn treats_a_banner_it_cannot_read_as_supported() {
+        assert!(
+            super::meets_minimum("ffmpeg version unknown"),
+            "refusing on a banner nobody anticipated is worse than the fault guarded against"
+        );
+    }
+
     fn capabilities(encoders: Vec<VerifiedEncoder>) -> Capabilities {
         Capabilities {
             ffmpeg_version: "test".to_owned(),
+            ffmpeg_supported: true,
             encoders,
             hardware_accels: Vec::new(),
             tone_mapping: ToneMapping::Unavailable,

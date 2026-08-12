@@ -105,6 +105,7 @@ const harness = (options: {
     capabilities: () =>
       Promise.resolve({
         ffmpegVersion: 'test',
+        ffmpegSupported: true,
         encoders: [],
         hardwareAccels: [],
         hardwareScalers: [],
@@ -398,6 +399,7 @@ describe('scanLibrary', () => {
         capabilities: () =>
           Promise.resolve({
             ffmpegVersion: 'test',
+            ffmpegSupported: true,
             encoders: [],
             hardwareAccels: [],
             hardwareScalers: [],
