@@ -33,11 +33,20 @@ type SessionFile = {
   contentType: string;
 };
 
+/**
+ * A media file on its way to a viewer, forwarded as it arrives.
+ *
+ * Whole media and preview clips both come through here, and both are large
+ * enough that collecting one before sending it costs its own size in memory.
+ * The status and range headers are the media service's answer, passed on
+ * unchanged.
+ */
 type RangedFile = {
-  body: ArrayBuffer;
+  body: ReadableStream<Uint8Array>;
   contentType: string;
   status: number;
   contentRange: string | null;
+  contentLength: string | null;
 };
 
 /**
