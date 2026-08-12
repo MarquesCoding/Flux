@@ -19,14 +19,14 @@ import { Button } from '@FluxUI/Button';
 import { TabBar } from '@FluxUI/TabBar';
 import { TabPanel } from '@FluxUI/TabPanel';
 import { EventsPanel } from './components/EventsPanel/EventsPanel';
+import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
+import { JobsPanel } from './components/JobsPanel/JobsPanel';
 import { Tabs } from '@FluxUI/Tabs';
-import { TextField } from '@FluxUI/TextField';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import {
   fetchAdminOverview,
   fetchMonitor,
   watchMonitor,
-  saveCatalogueKey,
   fetchActiveSessions,
   stopSession,
   pauseSession,
@@ -43,8 +43,6 @@ import { ScanProgressBar } from './components/ScanProgressBar/ScanProgressBar';
 import { ResetLibrariesDialog } from './components/ResetLibrariesDialog/ResetLibrariesDialog';
 import { LibrarySettingsDialog } from './components/LibrarySettingsDialog/LibrarySettingsDialog';
 import { SessionCard } from './components/SessionCard/SessionCard';
-import { JobRunner } from './components/JobRunner/JobRunner';
-import { JobSchedulePage } from './components/JobSchedulePage/JobSchedulePage';
 import {
   subscribe as subscribeToScans,
   getSnapshot as getScanSnapshot,
@@ -60,7 +58,6 @@ import type { Library } from '@FluxContracts/schemas/Library';
 import type {
   ActiveSession,
   AdminOverview,
-  Job,
   JobDefinition,
   JobTrigger,
   Monitor,
@@ -91,28 +88,6 @@ const PANELS = [
 ] as const;
 
 type PanelId = (typeof PANELS)[number]['id'];
-
-const JOB_TONES: Record<Job['state'], 'quiet' | 'accent' | 'solid'> = {
-  queued: 'quiet',
-  running: 'accent',
-  finished: 'quiet',
-  failed: 'solid',
-};
-
-/**
- * How long a job took, or has been taking.
- */
-const describeElapsed = (job: Job, now: number): string => {
-  if (job.startedAtMs === null) {
-    return 'waiting';
-  }
-
-  const elapsed = (job.finishedAtMs ?? now) - job.startedAtMs;
-
-  return elapsed < 1000
-    ? `${elapsed.toString()} ms`
-    : `${(elapsed / 1000).toFixed(elapsed < 10_000 ? 1 : 0)} s`;
-};
 
 /**
  * Every job's triggers, keyed by kind.
@@ -187,8 +162,6 @@ const AdminArea = ({
     () => PANELS.find((candidate) => candidate.id === initialPanel)?.id ?? 'activity',
   );
   const [viewingJobKind, setViewingJobKind] = useState<string | null>(initialJob ?? null);
-  const [catalogueKey, setCatalogueKey] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
   const [jobSchedules, setJobSchedules] = useState<Map<string, JobTrigger[]>>(new Map());
@@ -343,19 +316,13 @@ const AdminArea = ({
     return stop;
   }, [historyLength]);
 
-  const now = Date.now();
   const resources = monitor?.resources ?? null;
   const memoryFraction =
     resources === null || resources.systemMemoryTotalBytes === 0
       ? 0
       : resources.systemMemoryUsedBytes / resources.systemMemoryTotalBytes;
 
-  const failures = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'failed').length;
   const conversions = resources?.children ?? [];
-  const viewingJobDefinition =
-    viewingJobKind === null
-      ? null
-      : (jobDefinitions.find((definition) => definition.kind === viewingJobKind) ?? null);
 
   return (
     <motion.div
@@ -585,83 +552,25 @@ const AdminArea = ({
               />
             }
           >
-            <div className="flex flex-col">
-              {viewingJobDefinition !== null ? (
-                <JobSchedulePage
-                  definition={viewingJobDefinition}
-                  triggers={jobSchedules.get(viewingJobDefinition.kind) ?? []}
-                  onAdd={(trigger) => {
-                    void addTrigger(viewingJobDefinition.kind, trigger);
-                  }}
-                  onRemove={(triggerId) => {
-                    void removeTrigger(viewingJobDefinition.kind, triggerId);
-                  }}
-                  onClose={closeJobSchedule}
-                />
-              ) : (
-                <>
-                  <header className="border-b border-white/10 px-5 py-3">
-                    <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
-                      Server Jobs
-                    </h2>
-                  </header>
-
-                  <JobRunner
-                    definitions={jobDefinitions}
-                    libraries={libraries}
-                    progress={scanProgress}
-                    onRun={(kind) => {
-                      void runJob(kind);
-                    }}
-                    onOpenSchedule={openJobSchedule}
-                  />
-
-                  <header className="flex flex-wrap items-baseline justify-between gap-3 border-y border-white/10 px-5 py-3">
-                    <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
-                      Background work
-                    </h2>
-
-                    <span className="text-xs text-text-muted">
-                      {monitor === null
-                        ? '—'
-                        : `${monitor.queue.running.toString()} running · ${monitor.queue.queued.toString()} waiting · ${monitor.queue.concurrency.toString()} at a time${
-                            failures === 0 ? '' : ` · ${failures.toString()} failed`
-                          }`}
-                    </span>
-                  </header>
-
-                  {monitor === null || monitor.queue.jobs.length === 0 ? (
-                    <p className="p-5 text-sm text-text-muted">Nothing queued.</p>
-                  ) : (
-                    <ul className="max-h-96 divide-y divide-white/5 overflow-y-auto">
-                      {monitor.queue.jobs.map((job) => (
-                        <li key={job.id} className="flex items-center gap-3 px-5 py-2.5 text-sm">
-                          <Badge size="sm" tone={JOB_TONES[job.state]}>
-                            {job.state}
-                          </Badge>
-
-                          <span className="w-24 shrink-0 text-text-muted">{job.kind}</span>
-
-                          <span className="min-w-0 flex-1 truncate text-text" title={job.subject}>
-                            {job.subject}
-                          </span>
-
-                          {job.detail === null ? null : (
-                            <span className="hidden max-w-64 truncate text-xs text-danger sm:block">
-                              {job.detail}
-                            </span>
-                          )}
-
-                          <span className="shrink-0 tabular-nums text-text-muted">
-                            {describeElapsed(job, now)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </>
-              )}
-            </div>
+            <JobsPanel
+              definitions={jobDefinitions}
+              libraries={libraries}
+              progress={scanProgress}
+              monitor={monitor}
+              viewingJobKind={viewingJobKind}
+              schedules={jobSchedules}
+              onRun={(kind) => {
+                void runJob(kind);
+              }}
+              onOpenSchedule={openJobSchedule}
+              onCloseSchedule={closeJobSchedule}
+              onAddTrigger={(kind, trigger) => {
+                void addTrigger(kind, trigger);
+              }}
+              onRemoveTrigger={(kind, triggerId) => {
+                void removeTrigger(kind, triggerId);
+              }}
+            />
           </TabPanel>
 
           <TabPanel
@@ -849,73 +758,12 @@ const AdminArea = ({
               />
             }
           >
-            <div className="grid gap-px bg-white/10 lg:grid-cols-2">
-              <div className="flex flex-col gap-4 bg-surface/40 p-5">
-                <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
-                  Metadata catalogue
-                </h2>
-
-                <p className="text-sm text-text-muted">
-                  {overview?.settings.hasCatalogueKey === true
-                    ? 'A key is set. Entering a new one replaces it.'
-                    : 'Without a key, titles and years come from filenames alone.'}
-                </p>
-
-                <TextField
-                  label="Catalogue key"
-                  type="password"
-                  value={catalogueKey}
-                  onValueChange={setCatalogueKey}
-                  placeholder="Paste a key"
-                />
-
-                <div>
-                  <Button
-                    variant="glossy"
-                    size="sm"
-                    isPill
-                    isLoading={isSaving}
-                    disabled={catalogueKey === ''}
-                    onClick={() => {
-                      setIsSaving(true);
-
-                      void saveCatalogueKey(catalogueKey).then(async (saved) => {
-                        setIsSaving(false);
-
-                        if (saved) {
-                          setCatalogueKey('');
-                          setOverview(await fetchAdminOverview());
-                        }
-                      });
-                    }}
-                  >
-                    Save key
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4 bg-surface/40 p-5">
-                <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Accounts</h2>
-
-                <ul className="flex flex-col divide-y divide-white/5 text-sm">
-                  {(overview?.users ?? []).map((account) => (
-                    <li key={account.id} className="flex items-center justify-between gap-3 py-2">
-                      <span className="min-w-0 truncate text-text">{account.email}</span>
-
-                      {account.role === null ? null : <Badge size="sm">{account.role}</Badge>}
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="text-xs leading-relaxed text-text-muted">
-                  {overview === null
-                    ? ''
-                    : `Cookies are ${
-                        overview.settings.cookieSecure ? 'secure' : 'not secure'
-                      }. Origins allowed to sign in: ${overview.settings.trustedOrigins.join(', ')}.`}
-                </p>
-              </div>
-            </div>
+            <SettingsPanel
+              overview={overview}
+              onCatalogueKeySaved={() => {
+                void fetchAdminOverview().then(setOverview);
+              }}
+            />
           </TabPanel>
         </motion.section>
       </Tabs>
