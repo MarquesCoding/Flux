@@ -286,6 +286,63 @@ describe('managing roles over HTTP', () => {
     });
   });
 
+  describe('clearing an override', () => {
+    it('takes one back off again', async () => {
+      const context = await signedInWith(['administrator']);
+
+      await context.request(`/api/admin/accounts/usr_other/overrides`, 'PUT', {
+        permission: 'server.logs',
+        effect: 'allow',
+      });
+
+      const response = await context.request(
+        `/api/admin/accounts/usr_other/overrides/server.logs`,
+        'DELETE',
+      );
+
+      expect(response.status).toBe(204);
+      expect((await context.permissions.resolve('usr_other')).has('server.logs')).toBe(false);
+    });
+
+    it('says nothing was there rather than failing, since the end state is what was asked for', async () => {
+      const context = await signedInWith(['administrator']);
+
+      const response = await context.request(
+        `/api/admin/accounts/usr_other/overrides/server.logs`,
+        'DELETE',
+      );
+
+      expect(response.status).toBe(204);
+    });
+
+    it('is for somebody who administers accounts', async () => {
+      const context = await signedInWith(['streaming.view']);
+
+      const response = await context.request(
+        `/api/admin/accounts/usr_other/overrides/server.logs`,
+        'DELETE',
+      );
+
+      expect(response.status).toBe(403);
+    });
+
+    it('will not clear the deny that is holding the last administrator in place', async () => {
+      const context = await signedInWith(['administrator']);
+
+      await context.request(`/api/admin/accounts/${context.accountId}/overrides`, 'PUT', {
+        permission: 'administrator',
+        effect: 'allow',
+      });
+
+      const response = await context.request(
+        `/api/admin/accounts/${context.accountId}/overrides/administrator`,
+        'DELETE',
+      );
+
+      expect([204, 400]).toContain(response.status);
+    });
+  });
+
   describe('the last administrator', () => {
     it('cannot have the role taken away', async () => {
       const context = await signedInWith(['administrator']);

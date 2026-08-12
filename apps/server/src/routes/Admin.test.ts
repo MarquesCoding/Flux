@@ -7,6 +7,8 @@ import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPerm
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
 import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
+import { createPresenceService } from '@FluxServer/presence/PresenceService';
+import type { Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
@@ -44,6 +46,7 @@ const build = (
 ) => {
   const { auth, settings, store } = createMemoryAuth();
   const permissions = createMemoryPermissionService();
+  const presence = createPresenceService();
 
   const app = createApp({
     ...(waiting.isTranscoderReachable === undefined
@@ -72,9 +75,10 @@ const build = (
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
     profiles: createMemoryProfileService(),
+    presence,
   });
 
-  return { app, settings, store, permissions };
+  return { app, settings, store, permissions, presence };
 };
 
 const signedIn = (app: ReturnType<typeof build>['app']): Promise<string> =>
@@ -694,4 +698,169 @@ describe('an admin page while the media service is not answering', () => {
 
     expect(body).toMatchObject({ transcoder: { isReachable: false } });
   }, 20_000);
+});
+
+const REASON: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };
+
+describe('watching and steering what is being watched', () => {
+  const watching = (presence: ReturnType<typeof build>['presence'], clientId = 'tab-1') => {
+    presence.connect(clientId, null, null, 'Chrome on macOS', () => {});
+    presence.startPlayback(clientId, {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'direct',
+      transcoderSessionId: null,
+      plan: {
+        mediaId: 'media-1',
+        container: { kind: 'passthrough', reason: REASON },
+        video: { kind: 'passthrough', reason: REASON },
+        audio: { kind: 'passthrough', streamIndex: 1, reason: REASON },
+        subtitles: { kind: 'none', reason: REASON },
+      },
+    });
+  };
+
+  it('lists who is watching what', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+
+    const response = await app.request(`${BASE}/api/admin/sessions`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject([{ clientId: 'tab-1' }]);
+  });
+
+  it('pauses somebody else’s stream', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1/pause`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(204);
+    expect(presence.list()[0]?.playback).toMatchObject({ pausedByAdmin: true });
+  });
+
+  it('has nothing to pause in a tab that is not open', async () => {
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/nobody/pause`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('refuses to pause a tab that is not watching anything', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    presence.connect('tab-1', null, null, 'Chrome on macOS', () => {});
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1/pause`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(409);
+  });
+
+  it('lets a paused stream go again', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+    presence.pause('tab-1', 'paused');
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1/resume`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(204);
+    expect(presence.list()[0]?.playback).toMatchObject({ pausedByAdmin: false });
+  });
+
+  it('has nothing to resume in a tab that is not open', async () => {
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/nobody/resume`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('stops somebody else’s stream', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(204);
+    expect(presence.list()[0]?.playback).toBeNull();
+  });
+
+  it('has nothing to stop in a tab that is not open', async () => {
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/nobody`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  describe('the session list an admin page keeps open', () => {
+    it('turns away somebody who may not watch streams', async () => {
+      const { app } = build();
+      const cookie = await signedIn(app);
+
+      const response = await app.request(`${BASE}/api/admin/sessions/stream`, {
+        headers: { cookie, origin: BASE },
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('sends the list as an event stream, and again whenever it changes', async () => {
+      const { app, store, permissions, presence } = build();
+      const cookie = await signedInAsAdmin(app, store, permissions);
+      const controller = new AbortController();
+
+      const response = await app.request(`${BASE}/api/admin/sessions/stream`, {
+        headers: { cookie, origin: BASE },
+        signal: controller.signal,
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/event-stream');
+
+      watching(presence);
+
+      controller.abort();
+      await response.body?.cancel();
+    });
+  });
 });

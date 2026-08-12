@@ -6,6 +6,8 @@ import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import type * as SegmentsModule from '@FluxWeb/playback/fetchSegments';
 import type * as SubtitlesModule from '@FluxWeb/playback/fetchSubtitles';
 import type * as TrickplayModule from '@FluxWeb/playback/fetchTrickplay';
+import type * as CastSenderModule from '@FluxWeb/playback/castSender';
+import type * as CastPlaybackModule from '@FluxWeb/playback/castPlayback';
 
 const startMock = vi.hoisted(() => vi.fn());
 const stopMock = vi.hoisted(() => vi.fn());
@@ -19,6 +21,10 @@ const captureMock = vi.hoisted(() => vi.fn());
 const subtitlesMock = vi.hoisted(() => vi.fn());
 const segmentsMock = vi.hoisted(() => vi.fn());
 const detailMock = vi.hoisted(() => vi.fn());
+const loadCastSenderMock = vi.hoisted(() => vi.fn());
+const castStateOfMock = vi.hoisted(() => vi.fn());
+const promptForDeviceMock = vi.hoisted(() => vi.fn());
+const isReachableOriginMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
@@ -38,6 +44,22 @@ vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
 vi.mock('@FluxWeb/playback/attachShaka', () => ({
   attachShaka: attachMock,
 }));
+
+vi.mock('@FluxWeb/playback/castSender', async () => {
+  const actual = await vi.importActual<typeof CastSenderModule>('@FluxWeb/playback/castSender');
+
+  return { ...actual, loadCastSender: loadCastSenderMock, castStateOf: castStateOfMock };
+});
+
+vi.mock('@FluxWeb/playback/castPlayback', async () => {
+  const actual = await vi.importActual<typeof CastPlaybackModule>('@FluxWeb/playback/castPlayback');
+
+  return {
+    ...actual,
+    promptForDevice: promptForDeviceMock,
+    isReachableOrigin: isReachableOriginMock,
+  };
+});
 
 vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
   detectFromBrowser: () => ({ name: 'Browser' }),
@@ -166,6 +188,15 @@ beforeEach(() => {
 
   heartbeatMock.mockReset();
   heartbeatMock.mockResolvedValue(undefined);
+
+  loadCastSenderMock.mockReset();
+  loadCastSenderMock.mockResolvedValue(null);
+  castStateOfMock.mockReset();
+  castStateOfMock.mockReturnValue('NOT_CONNECTED');
+  promptForDeviceMock.mockReset();
+  promptForDeviceMock.mockResolvedValue('unsupported');
+  isReachableOriginMock.mockReset();
+  isReachableOriginMock.mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -1288,5 +1319,96 @@ describe('VideoPlayer', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('playing on another device', () => {
+  const CAST_LABEL = 'Play on a device — your browser will ask which';
+
+  /**
+   * A cast framework that is present and idle, which is what makes the
+   * control appear at all.
+   */
+  const withACastFramework = (requestSession = vi.fn()) => {
+    loadCastSenderMock.mockResolvedValue({
+      addEventListener: vi.fn(),
+      requestSession,
+    });
+
+    return requestSession;
+  };
+
+  const castButton = async () => screen.findByRole('button', { name: CAST_LABEL });
+
+  it('offers nothing to cast to on a browser that cannot', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
+
+    expect(screen.queryByRole('button', { name: CAST_LABEL })).not.toBeInTheDocument();
+  });
+
+  it('asks the framework for a device when there is one', async () => {
+    const requestSession = withACastFramework(vi.fn().mockResolvedValue(undefined));
+    const user = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
+    await user.click(await castButton());
+
+    expect(requestSession).toHaveBeenCalled();
+  });
+
+  it('says where to open Flux from when it is being read on localhost', async () => {
+    withACastFramework();
+    isReachableOriginMock.mockReturnValue(false);
+
+    const user = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
+    await user.click(await castButton());
+
+    expect(await screen.findByText(/rather than as localhost/)).toBeInTheDocument();
+  });
+
+  it('takes the note away again rather than leaving it on the picture', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    withACastFramework();
+    isReachableOriginMock.mockReturnValue(false);
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
+    await user.click(await castButton());
+
+    expect(await screen.findByText(/rather than as localhost/)).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(7000);
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText(/rather than as localhost/)).not.toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
+  it('says nothing when the browser showed its own picker', async () => {
+    loadCastSenderMock.mockResolvedValue(null);
+    promptForDeviceMock.mockResolvedValue('shown');
+
+    const user = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
+
+    const control = screen.queryByRole('button', { name: CAST_LABEL });
+
+    if (control !== null) {
+      await user.click(control);
+    }
+
+    expect(screen.queryByText(/offered no device/)).not.toBeInTheDocument();
   });
 });
