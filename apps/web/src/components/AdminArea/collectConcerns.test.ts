@@ -6,7 +6,7 @@ import type { Library } from '@FluxContracts/schemas/Library';
 
 const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
   users: [],
-  settings: { hasCatalogueKey: true, cookieSecure: true, trustedOrigins: [] },
+  settings: { hasCatalogueKey: true, cookieSecure: true, hardwareAccel: '', trustedOrigins: [] },
   transcoder: {
     isReachable: true,
     address: 'unix:/tmp/flux-transcoder.sock',
@@ -260,7 +260,12 @@ describe('collectConcerns', () => {
       const concerns = collectConcerns({
         ...healthy,
         overview: healthyOverview({
-          settings: { hasCatalogueKey: false, cookieSecure: true, trustedOrigins: [] },
+          settings: {
+            hasCatalogueKey: false,
+            cookieSecure: true,
+            hardwareAccel: '',
+            trustedOrigins: [],
+          },
         }),
       });
 
@@ -322,7 +327,12 @@ describe('collectConcerns', () => {
   it('puts what is broken above what merely needs doing', () => {
     const concerns = collectConcerns({
       overview: healthyOverview({
-        settings: { hasCatalogueKey: false, cookieSecure: true, trustedOrigins: [] },
+        settings: {
+          hasCatalogueKey: false,
+          cookieSecure: true,
+          hardwareAccel: '',
+          trustedOrigins: [],
+        },
       }),
       monitor: healthyMonitor([failedJob()], { used: 99, total: 100 }),
       libraries: [library({ lastScannedAt: null })],

@@ -10,6 +10,7 @@ const emptySettings = () =>
     cookieSecure: false,
     setupCompletedAt: null,
     catalogueApiKey: '',
+    hardwareAccel: '',
     seededJobTriggerKinds: [],
     seededRoleNames: [],
   });

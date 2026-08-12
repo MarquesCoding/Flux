@@ -87,6 +87,7 @@ const settings = createDatabaseSettingsStore({
     cookieSecure: env.COOKIE_SECURE,
     setupCompletedAt: null,
     catalogueApiKey: env.CATALOGUE_API_KEY,
+    hardwareAccel: '',
     seededJobTriggerKinds: [],
     seededRoleNames: [],
   },
@@ -499,6 +500,7 @@ const playbackService = createPlaybackService({
   sessionUrlPrefix: '/api/playback/session',
   directUrlPrefix: '/api/playback',
   trickplayUrlPrefix: '/api/playback/trickplay',
+  forcedAccel: async () => (await settings.read()).hardwareAccel,
 });
 
 const app = createApp({

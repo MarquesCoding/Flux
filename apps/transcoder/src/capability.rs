@@ -136,6 +136,7 @@ pub struct VerifiedEncoder {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RejectedEncoder {
+    pub codec: String,
     pub encoder: String,
     pub accel: HardwareAccel,
     /// What ffmpeg said, trimmed to the part worth reading.
@@ -435,6 +436,7 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
                 eprintln!("capability: {} rejected — {reason}", candidate.encoder);
 
                 rejected.push(RejectedEncoder {
+                    codec: candidate.codec.to_owned(),
                     encoder: candidate.encoder.to_owned(),
                     accel: candidate.accel,
                     reason,
