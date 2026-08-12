@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { IconInfoCircle, IconPlayerPlayFilled, IconX } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
+import { DialogContent } from '@FluxUI/DialogContent';
 import { Badge } from '@FluxUI/Badge';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
@@ -157,167 +158,168 @@ const ShowDialog = ({
       onClose={onClose}
       className="h-full w-full max-w-none rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:w-[min(60rem,94vw)] sm:rounded-3xl"
     >
-      <div ref={topRef} className="relative">
-        <div className="h-[34vh] min-h-[14rem] sm:h-[22rem]">
-          <MediaPreview
-            mediaId={shown.coverMediaId}
-            backdropUrl={artworkUrl(shown.coverMediaId)}
-            durationSeconds={0}
-            settleMilliseconds={0}
-            fills
-          />
-        </div>
+      <DialogContent className="p-0">
+        <div ref={topRef} className="relative">
+          <div className="h-[34vh] min-h-[14rem] sm:h-[22rem]">
+            <MediaPreview
+              mediaId={shown.coverMediaId}
+              backdropUrl={artworkUrl(shown.coverMediaId)}
+              durationSeconds={0}
+              fills
+            />
+          </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-surface via-surface/80 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-surface via-surface/80 to-transparent" />
 
-        <div className="absolute right-4 top-4">
-          <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
-            <IconX size={20} aria-hidden />
-          </Button>
-        </div>
+          <div className="absolute right-4 top-4">
+            <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
+              <IconX size={20} aria-hidden />
+            </Button>
+          </div>
 
-        <motion.div
-          variants={staggerVariants}
-          initial="hidden"
-          animate="shown"
-          className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-5 sm:p-8"
-        >
           <motion.div
-            variants={revealVariants(prefersReducedMotion)}
-            transition={revealTransition(prefersReducedMotion)}
-            className="flex flex-wrap items-center justify-between gap-3"
+            variants={staggerVariants}
+            initial="hidden"
+            animate="shown"
+            className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-5 sm:p-8"
           >
-            <span className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted">
-              {shown.seasonCount === 1
-                ? `${shown.episodeCount.toString()} episodes`
-                : `${shown.seasonCount.toString()} seasons · ${shown.episodeCount.toString()} episodes`}
-            </span>
-
-            {(shown.genres ?? []).length === 0 ? null : (
-              <span className="flex flex-wrap gap-1.5">
-                {(shown.genres ?? []).slice(0, 3).map((genre) => (
-                  <Badge key={genre} size="sm" className="bg-surface/70 backdrop-blur">
-                    {genre}
-                  </Badge>
-                ))}
+            <motion.div
+              variants={revealVariants(prefersReducedMotion)}
+              transition={revealTransition(prefersReducedMotion)}
+              className="flex flex-wrap items-center justify-between gap-3"
+            >
+              <span className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted">
+                {shown.seasonCount === 1
+                  ? `${shown.episodeCount.toString()} episodes`
+                  : `${shown.seasonCount.toString()} seasons · ${shown.episodeCount.toString()} episodes`}
               </span>
-            )}
+
+              {(shown.genres ?? []).length === 0 ? null : (
+                <span className="flex flex-wrap gap-1.5">
+                  {(shown.genres ?? []).slice(0, 3).map((genre) => (
+                    <Badge key={genre} size="sm" className="bg-surface/70 backdrop-blur">
+                      {genre}
+                    </Badge>
+                  ))}
+                </span>
+              )}
+            </motion.div>
+
+            <motion.h2
+              variants={revealVariants(prefersReducedMotion)}
+              transition={revealTransition(prefersReducedMotion, 'heavy')}
+              className="max-w-[16ch] text-[clamp(2rem,6vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-text"
+            >
+              {shown.title}
+            </motion.h2>
           </motion.div>
-
-          <motion.h2
-            variants={revealVariants(prefersReducedMotion)}
-            transition={revealTransition(prefersReducedMotion, 'heavy')}
-            className="max-w-[16ch] text-[clamp(2rem,6vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-text"
-          >
-            {shown.title}
-          </motion.h2>
-        </motion.div>
-      </div>
-
-      <div className="flex flex-col gap-8 p-5 pb-10 sm:p-8">
-        <div className="flex flex-wrap items-center gap-3">
-          {carryingOn === null ? (
-            <Button variant="glossy" size="lg" isPill isLoading disabled>
-              Reading the episodes
-            </Button>
-          ) : (
-            <Button
-              variant="glossy"
-              size="lg"
-              isPill
-              onClick={() => {
-                onPlay(carryingOn.episode, carryingOn.startSeconds);
-              }}
-            >
-              <IconPlayerPlayFilled size={18} aria-hidden />
-              {carryingOn.isResuming
-                ? `Resume ${formatDuration(carryingOn.startSeconds)}`
-                : `Play ${nameSeason(carryingOn.episode.seasonNumber ?? null)}, episode ${(
-                    carryingOn.episode.episodeNumber ?? 1
-                  ).toString()}`}
-            </Button>
-          )}
-
-          {carryingOn === null || onInspect === undefined ? null : (
-            <Button
-              variant="secondary"
-              size="lg"
-              isPill
-              onClick={() => {
-                onInspect(carryingOn.episode);
-              }}
-            >
-              <IconInfoCircle size={18} aria-hidden />
-              About this episode
-            </Button>
-          )}
         </div>
 
-        <section className="flex flex-col gap-4">
-          <header className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
-              Episodes
-            </h3>
+        <div className="flex flex-col gap-8 p-5 pb-10 sm:p-8">
+          <div className="flex flex-wrap items-center gap-3">
+            {carryingOn === null ? (
+              <Button variant="glossy" size="lg" isPill isLoading disabled>
+                Reading the episodes
+              </Button>
+            ) : (
+              <Button
+                variant="glossy"
+                size="lg"
+                isPill
+                onClick={() => {
+                  onPlay(carryingOn.episode, carryingOn.startSeconds);
+                }}
+              >
+                <IconPlayerPlayFilled size={18} aria-hidden />
+                {carryingOn.isResuming
+                  ? `Resume ${formatDuration(carryingOn.startSeconds)}`
+                  : `Play ${nameSeason(carryingOn.episode.seasonNumber ?? null)}, episode ${(
+                      carryingOn.episode.episodeNumber ?? 1
+                    ).toString()}`}
+              </Button>
+            )}
 
-            {seasons.length < 2 && (gaps?.seasons ?? []).length === 0 ? null : (
-              <ul className="flux-rail flex items-center gap-2 overflow-x-auto">
-                {chooseFrom.map((one) => (
-                  <li key={one.seasonNumber ?? 'specials'}>
-                    <Button
-                      size="sm"
-                      isPill
-                      aria-pressed={one.seasonNumber === showing}
-                      variant={one.seasonNumber === showing ? 'glossy' : 'ghost'}
-                      className={one.isHeld ? '' : 'border border-dashed border-white/25'}
-                      onClick={() => {
-                        setChosenSeason(one.seasonNumber);
-                      }}
-                    >
-                      {nameSeason(one.seasonNumber)}
-                    </Button>
+            {carryingOn === null || onInspect === undefined ? null : (
+              <Button
+                variant="secondary"
+                size="lg"
+                isPill
+                onClick={() => {
+                  onInspect(carryingOn.episode);
+                }}
+              >
+                <IconInfoCircle size={18} aria-hidden />
+                About this episode
+              </Button>
+            )}
+          </div>
+
+          <section className="flex flex-col gap-4">
+            <header className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
+                Episodes
+              </h3>
+
+              {seasons.length < 2 && (gaps?.seasons ?? []).length === 0 ? null : (
+                <ul className="flux-rail flex items-center gap-2 overflow-x-auto">
+                  {chooseFrom.map((one) => (
+                    <li key={one.seasonNumber ?? 'specials'}>
+                      <Button
+                        size="sm"
+                        isPill
+                        aria-pressed={one.seasonNumber === showing}
+                        variant={one.seasonNumber === showing ? 'glossy' : 'ghost'}
+                        className={one.isHeld ? '' : 'border border-dashed border-white/25'}
+                        onClick={() => {
+                          setChosenSeason(one.seasonNumber);
+                        }}
+                      >
+                        {nameSeason(one.seasonNumber)}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </header>
+
+            {isLoading ? (
+              <Spinner label="Reading the episodes" size="sm" />
+            ) : inOrder.length === 0 ? (
+              <p className="text-sm text-text-muted">
+                Nothing here yet. Episodes appear as they are scanned.
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-white/5">
+                {inOrder.map(({ key, at, episode, listed }) => (
+                  <li key={key}>
+                    {episode === null ? (
+                      <MissingRow
+                        episodeNumber={at}
+                        {...(listed === null ? {} : { title: listed.title })}
+                        {...(listed?.stillUrl === null || listed?.stillUrl === undefined
+                          ? {}
+                          : { stillUrl: listed.stillUrl })}
+                      />
+                    ) : (
+                      <EpisodeRow
+                        episode={episode}
+                        onPlay={onPlay}
+                        {...(onInspect === undefined ? {} : { onInspect })}
+                        {...(watchedFractionFor?.(episode.id) === undefined
+                          ? {}
+                          : { watchedFraction: watchedFractionFor(episode.id) ?? 0 })}
+                        {...(resumeFor === undefined || resumeFor(episode.id) === null
+                          ? {}
+                          : { resumeSeconds: Math.floor(resumeFor(episode.id) ?? 0) })}
+                      />
+                    )}
                   </li>
                 ))}
               </ul>
             )}
-          </header>
-
-          {isLoading ? (
-            <Spinner label="Reading the episodes" size="sm" />
-          ) : inOrder.length === 0 ? (
-            <p className="text-sm text-text-muted">
-              Nothing here yet. Episodes appear as they are scanned.
-            </p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-white/5">
-              {inOrder.map(({ key, at, episode, listed }) => (
-                <li key={key}>
-                  {episode === null ? (
-                    <MissingRow
-                      episodeNumber={at}
-                      {...(listed === null ? {} : { title: listed.title })}
-                      {...(listed?.stillUrl === null || listed?.stillUrl === undefined
-                        ? {}
-                        : { stillUrl: listed.stillUrl })}
-                    />
-                  ) : (
-                    <EpisodeRow
-                      episode={episode}
-                      onPlay={onPlay}
-                      {...(onInspect === undefined ? {} : { onInspect })}
-                      {...(watchedFractionFor?.(episode.id) === undefined
-                        ? {}
-                        : { watchedFraction: watchedFractionFor(episode.id) ?? 0 })}
-                      {...(resumeFor === undefined || resumeFor(episode.id) === null
-                        ? {}
-                        : { resumeSeconds: Math.floor(resumeFor(episode.id) ?? 0) })}
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+          </section>
+        </div>
+      </DialogContent>
     </Dialog>
   );
 };

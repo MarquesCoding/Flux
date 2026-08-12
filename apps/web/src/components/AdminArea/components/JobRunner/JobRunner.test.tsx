@@ -40,6 +40,18 @@ const MOVIES: Library = {
   defaultAudioLanguage: null,
 };
 
+/**
+ * Chooses something from a job's actions menu.
+ *
+ * Run and Edit schedule used to be a button and a row press. They are two
+ * items behind one control now, which is one press more and one convention
+ * fewer.
+ */
+const choose = async (user: ReturnType<typeof userEvent.setup>, job: string, action: RegExp) => {
+  await user.click(await screen.findByRole('button', { name: `Actions for ${job}` }));
+  await user.click(await screen.findByRole('menuitem', { name: action }));
+};
+
 describe('JobRunner', () => {
   it('lists every job an admin can start', () => {
     render(
@@ -47,6 +59,7 @@ describe('JobRunner', () => {
         definitions={DEFINITIONS}
         libraries={[MOVIES]}
         progress={new Map()}
+        working={[]}
         onRun={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
@@ -67,12 +80,13 @@ describe('JobRunner', () => {
         definitions={DEFINITIONS}
         libraries={[MOVIES]}
         progress={new Map()}
+        working={[]}
         onRun={onRun}
         onOpenSchedule={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Run Scan for changes' }));
+    await choose(user, 'Scan for changes', /Run now/);
 
     expect(onRun).toHaveBeenCalledWith('library.scan');
   });
@@ -86,12 +100,13 @@ describe('JobRunner', () => {
         definitions={DEFINITIONS}
         libraries={[MOVIES]}
         progress={new Map()}
+        working={[]}
         onRun={vi.fn()}
         onOpenSchedule={onOpenSchedule}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'View schedule for Scan for changes' }));
+    await choose(user, 'Scan for changes', /Edit schedule/);
 
     expect(onOpenSchedule).toHaveBeenCalledWith('library.scan');
   });
@@ -105,12 +120,13 @@ describe('JobRunner', () => {
         definitions={DEFINITIONS}
         libraries={[MOVIES]}
         progress={new Map()}
+        working={[]}
         onRun={onRun}
         onOpenSchedule={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Run Reset and rebuild' }));
+    await choose(user, 'Reset and rebuild', /Run now/);
 
     expect(onRun).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Reset and rebuild?' })).toBeInTheDocument();
@@ -125,12 +141,13 @@ describe('JobRunner', () => {
         definitions={DEFINITIONS}
         libraries={[MOVIES]}
         progress={new Map()}
+        working={[]}
         onRun={onRun}
         onOpenSchedule={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Run Reset and rebuild' }));
+    await choose(user, 'Reset and rebuild', /Run now/);
     await user.click(screen.getByRole('button', { name: 'Reset and rebuild' }));
 
     expect(onRun).toHaveBeenCalledWith('library.reset');
@@ -145,19 +162,20 @@ describe('JobRunner', () => {
         definitions={DEFINITIONS}
         libraries={[MOVIES]}
         progress={new Map()}
+        working={[]}
         onRun={onRun}
         onOpenSchedule={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Run Reset and rebuild' }));
+    await choose(user, 'Reset and rebuild', /Run now/);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(onRun).not.toHaveBeenCalled();
     expect(screen.queryByRole('heading', { name: 'Reset and rebuild?' })).not.toBeInTheDocument();
   });
 
-  it('replaces the Run button with progress while a job is running', () => {
+  it('says a job is running rather than offering to start it again', () => {
     const progress = new Map<string, ScanEntry>([
       ['lib-movies', { kind: 'library.scan', phase: 'probing', processed: 1, total: 4 }],
     ]);
@@ -167,18 +185,16 @@ describe('JobRunner', () => {
         definitions={DEFINITIONS}
         libraries={[MOVIES]}
         progress={progress}
+        working={[]}
         onRun={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
 
-    expect(screen.queryByRole('button', { name: 'Run Scan for changes' })).toBeNull();
-    expect(
-      screen.getByRole('progressbar', { name: 'Scan for changes: Probing' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Running')).toBeInTheDocument();
   });
 
-  it('shows one bar for a job running across several libraries, not one each', () => {
+  it('says running once for a job spread across several libraries, not once each', () => {
     const shows = { ...MOVIES, id: 'lib-shows', name: 'Shows' };
     const progress = new Map<string, ScanEntry>([
       ['lib-movies', { kind: 'library.scan', phase: 'previews', processed: 1, total: 4 }],
@@ -190,19 +206,18 @@ describe('JobRunner', () => {
         definitions={DEFINITIONS}
         libraries={[MOVIES, shows]}
         progress={progress}
+        working={[]}
         onRun={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
 
-    const bars = screen.getAllByRole('progressbar');
-
-    expect(bars).toHaveLength(1);
-    expect(bars[0]).toHaveAttribute('aria-valuenow', '3');
-    expect(bars[0]).toHaveAttribute('aria-valuemax', '10');
+    expect(screen.getAllByText('Running')).toHaveLength(1);
   });
 
-  it('leaves every other row runnable while one job is going', () => {
+  it('refuses to start another job while one is going', async () => {
+    const user = userEvent.setup();
+
     const progress = new Map<string, ScanEntry>([
       ['lib-movies', { kind: 'library.scan', phase: 'probing', processed: 1, total: 4 }],
     ]);
@@ -212,17 +227,22 @@ describe('JobRunner', () => {
         definitions={DEFINITIONS}
         libraries={[MOVIES]}
         progress={progress}
+        working={[]}
         onRun={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
 
-    expect(
-      screen.getByRole('button', { name: 'Run Generate missing previews' }),
-    ).toBeInTheDocument();
+    await user.click(
+      await screen.findByRole('button', { name: 'Actions for Generate missing previews' }),
+    );
+
+    expect(await screen.findByRole('menuitem', { name: /Run now/ })).toHaveAttribute(
+      'data-disabled',
+    );
   });
 
-  it('separates a job that is not library-scoped from the library jobs', async () => {
+  it('says which jobs are server-wide rather than about the libraries', async () => {
     const onRun = vi.fn();
     const user = userEvent.setup();
     const definitions: JobDefinition[] = [
@@ -241,19 +261,20 @@ describe('JobRunner', () => {
         definitions={definitions}
         libraries={[MOVIES]}
         progress={new Map()}
+        working={[]}
         onRun={onRun}
         onOpenSchedule={vi.fn()}
       />,
     );
 
-    expect(screen.getByText('Server-wide')).toBeInTheDocument();
+    expect(screen.getAllByText('Server').length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole('button', { name: 'Run Re-match against the catalogue' }));
+    await choose(user, 'Re-match against the catalogue', /Run now/);
 
     expect(onRun).toHaveBeenCalledWith('catalogue.rematch');
   });
 
-  it('replaces Run with progress for a server-wide job, tracked under its own kind', () => {
+  it('says a server-wide job is running, tracked under its own kind', () => {
     const definitions: JobDefinition[] = [
       ...DEFINITIONS,
       {
@@ -273,15 +294,14 @@ describe('JobRunner', () => {
         definitions={definitions}
         libraries={[MOVIES]}
         progress={progress}
+        working={[]}
         onRun={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,
     );
 
     expect(screen.queryByRole('button', { name: 'Run Re-match against the catalogue' })).toBeNull();
-    expect(
-      screen.getByRole('progressbar', { name: 'Re-match against the catalogue' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Running')).toBeInTheDocument();
   });
 
   it('has no server-wide section when every job needs a library', () => {
@@ -290,6 +310,7 @@ describe('JobRunner', () => {
         definitions={DEFINITIONS}
         libraries={[MOVIES]}
         progress={new Map()}
+        working={[]}
         onRun={vi.fn()}
         onOpenSchedule={vi.fn()}
       />,

@@ -151,7 +151,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
 
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
                     onClick={() => {
                       setRenamingId(null);

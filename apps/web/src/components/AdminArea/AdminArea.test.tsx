@@ -311,6 +311,30 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/**
+ * Chooses something from a job's actions menu on the Jobs section.
+ */
+const chooseJob = async (
+  actor: ReturnType<typeof userEvent.setup>,
+  job: string,
+  action: RegExp,
+) => {
+  await actor.click(await screen.findByRole('button', { name: `Actions for ${job}` }));
+  await actor.click(await screen.findByRole('menuitem', { name: action }));
+};
+
+/**
+ * Chooses something from a library's actions menu.
+ */
+const chooseLibrary = async (
+  actor: ReturnType<typeof userEvent.setup>,
+  name: string,
+  action: RegExp,
+) => {
+  await actor.click(await screen.findByRole('button', { name: `Actions for ${name}` }));
+  await actor.click(await screen.findByRole('menuitem', { name: action }));
+};
+
 describe('AdminArea', () => {
   it('says whether the media service is up', async () => {
     render(<AdminArea />);
@@ -383,19 +407,19 @@ describe('AdminArea', () => {
   it('opens on the panel the address named, so a reload lands back where it was', async () => {
     render(<AdminArea initialPanel="jobs" />);
 
-    expect(await screen.findByText('Background work')).toBeInTheDocument();
+    expect(await screen.findByText('Background jobs')).toBeInTheDocument();
   });
 
   it('opens on the overview when the address names no panel', async () => {
     render(<AdminArea />);
 
-    expect(await screen.findByText('Needs attention')).toBeInTheDocument();
+    expect(await screen.findByText('Load, last minute')).toBeInTheDocument();
   });
 
   it('falls back to the overview when the address names one it does not have', async () => {
     render(<AdminArea initialPanel="not-a-real-panel" />);
 
-    expect(await screen.findByText('Needs attention')).toBeInTheDocument();
+    expect(await screen.findByText('Load, last minute')).toBeInTheDocument();
   });
 
   it('tells the address when the panel changes, so a reload can return to it', async () => {
@@ -416,7 +440,7 @@ describe('AdminArea', () => {
 
     await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
 
-    expect(screen.getByText('no such encoder')).toBeInTheDocument();
+    expect(screen.getAllByText('no such encoder').length).toBeGreaterThan(0);
   });
 
   it('lets an admin start any job on demand from the Work tab', async () => {
@@ -429,7 +453,7 @@ describe('AdminArea', () => {
     expect(await screen.findByText('Scan for changes')).toBeInTheDocument();
     expect(screen.getByText('Reset and rebuild')).toBeInTheDocument();
 
-    await actor.click(screen.getByRole('button', { name: 'Run Scan for changes' }));
+    await chooseJob(actor, 'Scan for changes', /Run now/);
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -451,7 +475,7 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
-    await actor.click(await screen.findByRole('button', { name: 'Run Scan for changes' }));
+    await chooseJob(actor, 'Scan for changes', /Run now/);
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -475,7 +499,7 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
-    await actor.click(await screen.findByRole('button', { name: 'Run Reset and rebuild' }));
+    await chooseJob(actor, 'Reset and rebuild', /Run now/);
 
     expect(await screen.findByRole('heading', { name: 'Reset and rebuild?' })).toBeInTheDocument();
 
@@ -485,18 +509,18 @@ describe('AdminArea', () => {
     );
   });
 
-  it('opens a job schedule page by pressing into its row, not its Run button', async () => {
+  it('opens a job schedule over the list by pressing into its row, not its Run button', async () => {
     const actor = userEvent.setup();
 
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
-    await actor.click(
-      await screen.findByRole('button', { name: 'View schedule for Scan for changes' }),
-    );
+    await chooseJob(actor, 'Scan for changes', /Edit schedule/);
 
-    expect(await screen.findByRole('heading', { name: 'Scan for changes' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Run Scan for changes' })).not.toBeInTheDocument();
+    const schedule = await screen.findByRole('dialog');
+
+    expect(within(schedule).getByText('Scan for changes')).toBeInTheDocument();
+    expect(screen.getByText('Background jobs')).toBeInTheDocument();
   });
 
   it('adds a trigger to a job from its own schedule page', async () => {
@@ -505,9 +529,7 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
-    await actor.click(
-      await screen.findByRole('button', { name: 'View schedule for Scan for changes' }),
-    );
+    await chooseJob(actor, 'Scan for changes', /Edit schedule/);
     await actor.click(await screen.findByRole('button', { name: 'Add trigger' }));
     await actor.click(await screen.findByRole('button', { name: 'Add' }));
 
@@ -530,9 +552,7 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
-    await actor.click(
-      await screen.findByRole('button', { name: 'View schedule for Scan for changes' }),
-    );
+    await chooseJob(actor, 'Scan for changes', /Edit schedule/);
     await actor.click(await screen.findByRole('button', { name: 'Add trigger' }));
     await actor.click(await screen.findByRole('button', { name: 'Add' }));
     await actor.click(await screen.findByRole('button', { name: 'Remove Daily at 03:00' }));
@@ -547,28 +567,20 @@ describe('AdminArea', () => {
     expect(screen.queryByText('Daily at 03:00')).toBeNull();
   });
 
-  it('returns to the job list when Back is pressed on a schedule page', async () => {
+  it('closes a schedule without leaving the job list', async () => {
     const actor = userEvent.setup();
 
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await chooseJob(actor, 'Scan for changes', /Edit schedule/);
     await actor.click(
-      await screen.findByRole('button', { name: 'View schedule for Scan for changes' }),
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Done' }),
     );
-    await actor.click(await screen.findByRole('button', { name: 'Back' }));
 
-    expect(await screen.findByRole('button', { name: 'Run Scan for changes' })).toBeInTheDocument();
-  });
-
-  it('shows what the server has been saying', async () => {
-    const actor = userEvent.setup();
-
-    render(<AdminArea />);
-
-    await actor.click(await screen.findByRole('tab', { name: 'Events' }));
-
-    expect(screen.getByText('Could not open the file')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Actions for Scan for changes' }),
+    ).toBeInTheDocument();
   });
 
   it('lets an operator set the catalogue key', async () => {
@@ -585,14 +597,15 @@ describe('AdminArea', () => {
     });
   });
 
-  it('lists who has an account', async () => {
+  it('keeps who has an account out of settings, since Accounts is where they live', async () => {
     const actor = userEvent.setup();
 
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Settings' }));
 
-    expect(screen.getByText('marques@flux.local')).toBeInTheDocument();
+    expect(await screen.findByText('Signing in')).toBeInTheDocument();
+    expect(screen.queryByText('marques@flux.local')).not.toBeInTheDocument();
   });
 
   it('draws something rather than nothing before the server has answered', () => {
@@ -633,10 +646,10 @@ describe('AdminArea', () => {
     render(<AdminArea initialPanel="activity" />);
 
     expect(await screen.findByText(/Arrival/)).toBeInTheDocument();
-    expect(screen.getByText('Playing')).toBeInTheDocument();
+    expect(screen.getByText(/Playing/)).toBeInTheDocument();
     expect(screen.getByText('Living room TV')).toBeInTheDocument();
     expect(screen.getAllByText('Dan').length).toBeGreaterThan(0);
-    expect(screen.getByText(/Direct play/)).toBeInTheDocument();
+    expect(screen.getByText('Direct')).toBeInTheDocument();
   });
 
   it('stops a stream on request', async () => {
@@ -692,7 +705,7 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
-    await actor.click(screen.getByRole('button', { name: 'Movies' }));
+    await chooseLibrary(actor, 'Movies', /Library settings/);
 
     expect(await screen.findByRole('dialog', { name: 'Movies settings' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Force default audio track' })).toBeInTheDocument();
@@ -725,7 +738,7 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
-    await actor.click(screen.getByRole('button', { name: 'Scan' }));
+    await chooseLibrary(actor, 'Movies', /Scan for changes/);
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${MOVIES_LIBRARY_ID}/scan`, {
@@ -824,9 +837,9 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
-    await actor.click(screen.getByRole('button', { name: 'Scan' }));
+    await chooseLibrary(actor, 'Movies', /Scan for changes/);
 
-    expect(await screen.findByRole('progressbar', { name: 'Scanning Movies' })).toBeInTheDocument();
+    expect(await screen.findByText('Reading')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Scan' })).not.toBeInTheDocument();
   });
 
@@ -871,15 +884,14 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
-    await actor.click(screen.getByRole('button', { name: 'Scan' }));
+    await chooseLibrary(actor, 'Movies', /Scan for changes/);
 
-    expect(await screen.findByText('3/10')).toBeInTheDocument();
-    expect(screen.getByText('Probing')).toBeInTheDocument();
+    expect(await screen.findByText('Reading')).toBeInTheDocument();
 
     await vi.advanceTimersByTimeAsync(1000);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Scan' })).toBeInTheDocument();
+      expect(screen.getByText('Idle')).toBeInTheDocument();
     });
 
     vi.useRealTimers();
@@ -925,24 +937,24 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
-    await actor.click(screen.getByRole('button', { name: 'Scan' }));
+    await chooseLibrary(actor, 'Movies', /Scan for changes/);
 
-    expect(await screen.findByText('Probing')).toBeInTheDocument();
+    expect(await screen.findByText('Reading')).toBeInTheDocument();
 
     await vi.advanceTimersByTimeAsync(1000);
 
-    expect(await screen.findByText('Generating previews')).toBeInTheDocument();
+    expect(await screen.findByText('Reading')).toBeInTheDocument();
 
     await vi.advanceTimersByTimeAsync(1000);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Scan' })).toBeInTheDocument();
+      expect(screen.getByText('Idle')).toBeInTheDocument();
     });
 
     vi.useRealTimers();
   });
 
-  it('replaces every scan button with its own progress bar when scanning all libraries', async () => {
+  it('says every library is being read when scanning them all', async () => {
     fetchMock.mockImplementation((input: string, init?: RequestInit) => {
       if (input === '/api/libraries' && init?.method !== 'POST') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve(TWO_LIBRARIES) });
@@ -962,9 +974,9 @@ describe('AdminArea', () => {
     await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
     await actor.click(screen.getByRole('button', { name: 'Scan all libraries' }));
 
-    expect(await screen.findByRole('progressbar', { name: 'Scanning Movies' })).toBeInTheDocument();
-    expect(screen.getByRole('progressbar', { name: 'Scanning Shows' })).toBeInTheDocument();
-    expect(screen.queryAllByRole('button', { name: 'Scan' })).toHaveLength(0);
+    await waitFor(() => {
+      expect(screen.getAllByText('Reading').length).toBeGreaterThan(1);
+    });
   });
 
   it('guides the operator when there are no libraries', async () => {

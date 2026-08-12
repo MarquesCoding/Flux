@@ -1,23 +1,29 @@
 import { useEffect, useRef } from 'react';
 import {
   IconClock,
+  IconClockFilled,
   IconDice5,
   IconHeart,
+  IconHeartFilled,
   IconHome,
+  IconHomeFilled,
   IconMovie,
   IconSearch,
+  IconSearchFilled,
   IconSettings,
+  IconSettingsFilled,
   IconTrendingUp,
   IconUserCircle,
+  IconUserFilled,
+  IconVideoFilled,
 } from '@tabler/icons-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { TopNav } from '@FluxUI/TopNav';
+import { NavDock } from '@FluxUI/NavDock';
 import { MoodBackground } from '@FluxUI/MoodBackground';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { NotificationBell } from './components/NotificationBell/NotificationBell';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
-import type { TopNavAction, TopNavItem } from '@FluxUI/TopNav.types';
+import type { NavDockAction, NavDockItem } from '@FluxUI/NavDock.types';
 import type { AppShellProps, ShellSection } from './AppShell.types';
 
 /**
@@ -32,6 +38,24 @@ const SECTION_ICONS: Record<ShellSection, ReactNode> = {
   search: <IconSearch size={18} aria-hidden />,
   account: <IconUserCircle size={18} aria-hidden />,
   admin: <IconSettings size={18} aria-hidden />,
+};
+
+/**
+ * The same mark, filled, for the place being stood on.
+ *
+ * Filled rather than a different glyph, so arriving somewhere changes the
+ * weight of a shape that was already there instead of swapping it for another
+ * drawing.
+ */
+const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
+  home: <IconHomeFilled size={18} aria-hidden />,
+  shows: <IconClockFilled size={18} aria-hidden />,
+  films: <IconVideoFilled size={18} aria-hidden />,
+  new: <IconTrendingUp size={18} stroke={3} aria-hidden />,
+  favourites: <IconHeartFilled size={18} aria-hidden />,
+  search: <IconSearchFilled size={18} aria-hidden />,
+  account: <IconUserFilled size={18} aria-hidden />,
+  admin: <IconSettingsFilled size={18} aria-hidden />,
 };
 
 const SECTION_LABELS: Record<ShellSection, string> = {
@@ -105,17 +129,19 @@ const AppShell = ({
     };
   }, [section]);
 
-  const items: TopNavItem[] = BROWSE_SECTIONS.map((id) => ({
+  const items: NavDockItem[] = BROWSE_SECTIONS.map((id) => ({
     id,
     label: SECTION_LABELS[id],
     icon: SECTION_ICONS[id],
+    activeIcon: ACTIVE_SECTION_ICONS[id],
   }));
 
-  const actions: TopNavAction[] = [
+  const actions: NavDockAction[] = [
     {
       id: 'search',
       label: 'Search',
       icon: <IconSearch size={20} aria-hidden />,
+      activeIcon: <IconSearchFilled size={20} aria-hidden />,
       isCurrent: section === 'search',
       onSelect: () => {
         onSectionChange('search');
@@ -126,24 +152,18 @@ const AppShell = ({
       : [
           {
             id: 'surprise',
-            label: 'Watch something at random',
+            label: 'Randomiser',
             icon: <IconDice5 size={20} aria-hidden />,
             onSelect: onSurprise,
           },
         ]),
-    {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: null,
-      control: <NotificationBell />,
-      onSelect: () => {},
-    },
     ...(isAdministrator
       ? [
           {
             id: 'admin',
             label: 'Admin',
             icon: <IconSettings size={20} aria-hidden />,
+            activeIcon: <IconSettingsFilled size={20} aria-hidden />,
             isCurrent: section === 'admin',
             onSelect: () => {
               onSectionChange('admin');
@@ -155,6 +175,7 @@ const AppShell = ({
       id: 'account',
       label: 'Account',
       icon: avatar ?? <IconUserCircle size={22} aria-hidden />,
+      activeIcon: avatar ?? <IconUserFilled size={20} aria-hidden />,
       isCurrent: section === 'account',
       onSelect: () => {
         onSectionChange('account');
@@ -166,7 +187,7 @@ const AppShell = ({
     <div className="relative min-h-screen text-text">
       <MoodBackground lights={moodLights} hasGrid={section === 'home'} />
 
-      <TopNav
+      <NavDock
         items={items}
         selectedId={section}
         actions={actions}
@@ -184,7 +205,7 @@ const AppShell = ({
         variants={staggerVariants}
         initial="hidden"
         animate="shown"
-        className="min-h-screen pb-16"
+        className="min-h-screen pb-28"
       >
         <motion.div
           variants={revealVariants(prefersReducedMotion)}

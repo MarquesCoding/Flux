@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
-import { IconDeviceTv, IconLogout } from '@tabler/icons-react';
-import { Button } from '@FluxUI/Button';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { IconDots, IconLogout } from '@tabler/icons-react';
+import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
+import { Button } from '@FluxUI/Button';
+import { Card } from '@FluxUI/Card';
+import { CardHeader } from '@FluxUI/CardHeader';
+import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
+import { DataTable } from '@FluxUI/DataTable';
 import { Spinner } from '@FluxUI/Spinner';
-import { fetchDevices, endDevice, endOtherDevices } from '@FluxWeb/account/fetchDevices';
+import { endDevice, endOtherDevices, fetchDevices } from '@FluxWeb/account/fetchDevices';
+import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { Device } from '@FluxWeb/account/fetchDevices';
 
 /**
@@ -28,10 +34,16 @@ const said = (when: string): string => {
  * The names are guesses read from what each browser said about itself. They
  * are labels rather than facts, which is enough for the job — telling one line
  * of a list from another.
+ *
+ * Signing something out asks first. The thing being ended might be the
+ * television somebody else in the house is watching, and there is no undo
+ * beyond walking over and signing in again.
  */
 const DeviceList = () => {
   const [devices, setDevices] = useState<Device[] | null>(null);
   const [isWorking, setIsWorking] = useState(false);
+  const [ending, setEnding] = useState<Device | null>(null);
+  const [isEndingRest, setIsEndingRest] = useState(false);
 
   const read = useCallback(() => {
     void fetchDevices().then(setDevices);
@@ -41,76 +53,155 @@ const DeviceList = () => {
 
   const elsewhere = (devices ?? []).filter((device) => !device.isCurrent);
 
-  return (
-    <div className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-text-muted">
-          <IconDeviceTv size={14} aria-hidden />
-          Where you are signed in
-        </h2>
+  const live = useRef({ onEnd: setEnding });
 
+  live.current = { onEnd: setEnding };
+
+  const columns = useMemo<DataTableColumn<Device>[]>(
+    () => [
+      {
+        id: 'name',
+        header: 'Device',
+        accessorFn: (device) => device.name,
+        cell: ({ row }) => (
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="truncate font-medium text-text">{row.original.name}</span>
+
+              {!row.original.isCurrent ? null : (
+                <Badge size="sm" tone="accent">
+                  This one
+                </Badge>
+              )}
+            </span>
+
+            {row.original.address === null ? null : (
+              <span className="truncate text-xs text-text-muted">{row.original.address}</span>
+            )}
+          </span>
+        ),
+      },
+      {
+        id: 'signedIn',
+        header: 'Signed in',
+        accessorFn: (device) => device.signedInAt,
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap text-xs text-text-muted">
+            {said(row.original.signedInAt)}
+          </span>
+        ),
+      },
+      {
+        id: 'act',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.isCurrent ? null : (
+            <span className="flex justify-end">
+              <ActionMenu
+                label={`Actions for ${row.original.name}`}
+                trigger={<IconDots size={16} aria-hidden />}
+                groups={[
+                  {
+                    items: [
+                      {
+                        id: 'end',
+                        label: 'Sign this out',
+                        icon: <IconLogout size={15} aria-hidden />,
+                        isDestructive: true,
+                        onChoose: () => {
+                          live.current.onEnd(row.original);
+                        },
+                      },
+                    ],
+                  },
+                ]}
+              />
+            </span>
+          ),
+      },
+    ],
+    [],
+  );
+
+  return (
+    <Card as="section" padding="none" className="flex flex-col">
+      <ConfirmDialog
+        title="Sign this device out?"
+        detail={
+          ending === null
+            ? ''
+            : `${ending.name} will be signed out and whoever is using it has to sign in again.`
+        }
+        confirmLabel="Sign it out"
+        isDestructive
+        isOpen={ending !== null}
+        onClose={() => {
+          setEnding(null);
+        }}
+        onConfirm={() => {
+          const device = ending;
+
+          setEnding(null);
+
+          if (device !== null) {
+            void endDevice(device.id).then(read);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        title="Sign out everywhere else?"
+        detail={`${elsewhere.length.toString()} other ${
+          elsewhere.length === 1 ? 'device' : 'devices'
+        } will be signed out. This one stays as it is.`}
+        confirmLabel="Sign them out"
+        isDestructive
+        isBusy={isWorking}
+        isOpen={isEndingRest}
+        onClose={() => {
+          setIsEndingRest(false);
+        }}
+        onConfirm={() => {
+          setIsWorking(true);
+
+          void endOtherDevices().then(() => {
+            setIsWorking(false);
+            setIsEndingRest(false);
+            read();
+          });
+        }}
+      />
+
+      <CardHeader title="Where you are signed in">
         {elsewhere.length === 0 ? null : (
           <Button
             variant="secondary"
             size="sm"
             isPill
-            isLoading={isWorking}
             onClick={() => {
-              setIsWorking(true);
-
-              void endOtherDevices().then(() => {
-                setIsWorking(false);
-                read();
-              });
+              setIsEndingRest(true);
             }}
           >
-            <IconLogout size={16} aria-hidden />
+            <IconLogout size={15} aria-hidden />
             Sign out everywhere else
           </Button>
         )}
-      </header>
+      </CardHeader>
 
       {devices === null ? (
-        <Spinner label="Reading your devices" size="sm" />
-      ) : devices.length === 0 ? (
-        <p className="text-sm text-text-muted">
-          Nothing is signed in, which cannot be true of the thing you are reading this on. Try again
-          in a moment.
-        </p>
+        <div className="p-4">
+          <Spinner label="Reading your devices" size="sm" />
+        </div>
       ) : (
-        <ul className="flex flex-col divide-y divide-white/10">
-          {devices.map((device) => (
-            <li key={device.id} className="flex flex-wrap items-center gap-3 py-3">
-              <span className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-sm font-medium text-text">{device.name}</span>
-
-                  {!device.isCurrent ? null : <Badge size="sm">This one</Badge>}
-                </span>
-
-                <span className="text-xs text-text-muted">
-                  Signed in {said(device.signedInAt)}
-                  {device.address === null ? '' : ` · ${device.address}`}
-                </span>
-              </span>
-
-              {device.isCurrent ? null : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  isPill
-                  onClick={() => {
-                    void endDevice(device.id).then(read);
-                  }}
-                >
-                  Sign out
-                </Button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <DataTable
+          label="Where you are signed in"
+          columns={columns}
+          rows={devices}
+          emptyMessage="Nothing is signed in, which cannot be true of the thing you are reading this on. Try again in a moment."
+        />
       )}
-    </div>
+    </Card>
   );
 };
 
