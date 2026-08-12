@@ -44,7 +44,7 @@ describe('ActivityPanel', () => {
   it('counts the readings it has, so a flat line is not mistaken for no data', () => {
     render(<ActivityPanel {...props} history={[1, 2, 3]} />);
 
-    expect(screen.getByText('3 readings')).toBeInTheDocument();
+    expect(screen.getByText(/3 readings/)).toBeInTheDocument();
   });
 
   it('says nothing is converting before a reading arrives', () => {
@@ -91,6 +91,13 @@ describe('ActivityPanel', () => {
     );
 
     expect(screen.getByRole('presentation')).toHaveStyle({ width: '100%' });
+  });
+
+  it('says which figures are live and which are checked on a timer', () => {
+    render(<ActivityPanel {...props} history={[1]} />);
+
+    expect(screen.getByText(/Live ·/)).toBeInTheDocument();
+    expect(screen.getByText('Checked every 5 seconds')).toBeInTheDocument();
   });
 
   it('says when nobody has the app open', () => {

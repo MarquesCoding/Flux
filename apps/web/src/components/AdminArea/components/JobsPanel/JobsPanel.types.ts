@@ -8,6 +8,10 @@ import type { Library } from '@FluxContracts/schemas/Library';
 import type { ScanEntry } from '@FluxWeb/components/AdminArea/scanCoordinator';
 
 type JobsPanelProps = {
+  /**
+   * Whether the job list could not be read, as opposed to there being none.
+   */
+  isUnreachable?: boolean;
   definitions: JobDefinition[];
   libraries: Library[];
   progress: ReadonlyMap<string, ScanEntry>;

@@ -95,6 +95,7 @@ const props = {
   monitor: monitor(),
   libraries: [library()],
   sessions: [],
+  history: [],
   onOpenPanel: vi.fn(),
 };
 

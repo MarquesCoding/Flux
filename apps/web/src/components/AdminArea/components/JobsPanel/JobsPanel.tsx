@@ -38,6 +38,7 @@ const describeElapsed = (job: Job, now: number): string => {
  * neither enough room.
  */
 const JobsPanel = ({
+  isUnreachable = false,
   definitions,
   libraries,
   progress,
@@ -97,7 +98,11 @@ const JobsPanel = ({
             </span>
           </header>
 
-          {monitor === null || monitor.queue.jobs.length === 0 ? (
+          {isUnreachable ? (
+            <p className="p-6 text-sm text-text-muted">
+              The queue could not be read from the server.
+            </p>
+          ) : monitor === null || monitor.queue.jobs.length === 0 ? (
             <p className="p-6 text-sm text-text-muted">Nothing queued.</p>
           ) : (
             <ul className="max-h-96 divide-y divide-white/5 overflow-y-auto">
