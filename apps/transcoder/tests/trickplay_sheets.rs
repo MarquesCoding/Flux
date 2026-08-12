@@ -112,6 +112,7 @@ fn request(body: &serde_json::Value) -> Request<Body> {
 fn body(interval: u32) -> serde_json::Value {
     serde_json::json!({
         "inputPath": source_file().to_string_lossy(),
+        "generation": 0,
         "intervalSeconds": interval,
         "tileWidth": 160,
         "columns": 2,

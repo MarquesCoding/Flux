@@ -79,7 +79,13 @@ describe('generateTrickplay', () => {
       { path: '/media/b.mkv' },
     ]);
 
-    await generateTrickplay({ libraryId: LIBRARY_ID, store, transcoder, trickplay: PARAMS });
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store,
+      transcoder,
+      trickplay: PARAMS,
+    });
 
     expect(completed).toEqual(['item-0', 'item-1']);
   });
@@ -106,6 +112,7 @@ describe('generateTrickplay', () => {
 
     await generateTrickplay({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       trickplay: PARAMS,
@@ -118,7 +125,13 @@ describe('generateTrickplay', () => {
   it('does nothing at all when a library has nothing outstanding', async () => {
     const { store, transcoder, trickplayRequests } = harness([]);
 
-    await generateTrickplay({ libraryId: LIBRARY_ID, store, transcoder, trickplay: PARAMS });
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store,
+      transcoder,
+      trickplay: PARAMS,
+    });
 
     expect(trickplayRequests).toEqual([]);
   });
@@ -129,7 +142,13 @@ describe('generateTrickplay', () => {
       { path: '/media/b.mkv' },
     ]);
 
-    await generateTrickplay({ libraryId: LIBRARY_ID, store, transcoder, trickplay: PARAMS });
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store,
+      transcoder,
+      trickplay: PARAMS,
+    });
 
     expect(trickplayRequests).toMatchObject([
       { inputPath: '/media/a.mkv' },
@@ -143,6 +162,7 @@ describe('generateTrickplay', () => {
 
     await generateTrickplay({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       trickplay: PARAMS,
@@ -179,6 +199,7 @@ describe('generateTrickplay', () => {
 
     await generateTrickplay({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       trickplay: PARAMS,

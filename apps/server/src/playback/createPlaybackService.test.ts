@@ -47,7 +47,7 @@ const harness = (defaultAudioLanguage: string | null) => {
     findForPlayback: (mediaId) =>
       Promise.resolve(
         mediaId === MEDIA_ID
-          ? { item: bilingual, path: '/media/arrival.mkv', defaultAudioLanguage }
+          ? { item: bilingual, path: '/media/arrival.mkv', defaultAudioLanguage, generation: 0 }
           : null,
       ),
   };

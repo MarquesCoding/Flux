@@ -18,6 +18,13 @@ type PreviewStore = {
 
 type RegeneratePreviewsOptions = {
   libraryId: string;
+  /**
+   * How many times this library has been reset.
+   *
+   * Addresses the clips, so it has to match what a library page will ask with.
+   * Read from the library row, alongside the forced language it sits next to.
+   */
+  generation: number;
   store: PreviewStore;
   transcoder: Transcoder;
   /**
@@ -54,6 +61,7 @@ type RegeneratePreviewsOptions = {
  */
 const regeneratePreviews = async ({
   libraryId,
+  generation,
   store,
   transcoder,
   defaultAudioLanguage,
@@ -80,6 +88,7 @@ const regeneratePreviews = async ({
     const rendered = await transcoder
       .requestPreview({
         inputPath: item.path,
+        generation,
         wait: true,
         ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       })
