@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RolesPanel } from './RolesPanel';
@@ -21,6 +21,27 @@ const ADMINISTRATOR = {
 };
 
 const MEMBER = { id: 'role_2', name: 'Member', position: 100, permissions: ['sharing.link'] };
+
+/**
+ * Opens a role's editor the way a person does: through its actions menu.
+ *
+ * Pressing the row itself used to open it. Editing is one of two things a row
+ * can do now, so both live behind one control.
+ */
+const edit = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(await screen.findByRole('button', { name: `Actions for ${name}` }));
+  await user.click(await screen.findByRole('menuitem', { name: /Edit role/ }));
+};
+
+/**
+ * Deletes a role the way a person does: through the menu, then the
+ * confirmation that guards it.
+ */
+const remove = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(await screen.findByRole('button', { name: `Actions for ${name}` }));
+  await user.click(await screen.findByRole('menuitem', { name: /Delete role/ }));
+  await user.click(await screen.findByRole('button', { name: 'Delete role' }));
+};
 
 describe('RolesPanel', () => {
   beforeEach(() => {
@@ -59,23 +80,49 @@ describe('RolesPanel', () => {
   });
 
   it('will not create a role with no name', async () => {
+    const user = userEvent.setup();
     render(<RolesPanel />);
 
-    expect(await screen.findByRole('button', { name: /Create/ })).toBeDisabled();
+    await user.click(await screen.findByRole('button', { name: /Create role/ }));
+
+    expect(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Create role' }),
+    ).toBeDisabled();
   });
 
   it('creates a role below everybody already using the server', async () => {
     const user = userEvent.setup();
     render(<RolesPanel />);
 
-    await user.type(await screen.findByLabelText('New role'), 'Housemate');
-    await user.click(screen.getByRole('button', { name: /Create/ }));
+    await user.click(await screen.findByRole('button', { name: /Create role/ }));
+
+    const asking = await screen.findByRole('dialog');
+
+    await user.type(within(asking).getByLabelText('Name'), 'Housemate');
+    await user.click(within(asking).getByRole('button', { name: 'Create role' }));
 
     expect(mocks.createRole).toHaveBeenCalledWith({
       name: 'Housemate',
       position: 50,
       permissions: [],
     });
+  });
+
+  it('sets the permissions a role starts with, rather than making them a second job', async () => {
+    const user = userEvent.setup();
+    render(<RolesPanel />);
+
+    await user.click(await screen.findByRole('button', { name: /Create role/ }));
+
+    const asking = await screen.findByRole('dialog');
+
+    await user.type(within(asking).getByLabelText('Name'), 'Housemate');
+    await user.click(within(asking).getByLabelText('Run a job'));
+    await user.click(within(asking).getByRole('button', { name: 'Create role' }));
+
+    expect(mocks.createRole).toHaveBeenCalledWith(
+      expect.objectContaining({ permissions: ['jobs.run'] }),
+    );
   });
 
   describe('what a role grants', () => {
@@ -91,7 +138,7 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await edit(user, 'Member');
 
       expect(screen.getByRole('heading', { name: 'Jobs' })).toBeInTheDocument();
       expect(screen.getByLabelText('Run reset and rebuild')).toBeInTheDocument();
@@ -101,7 +148,7 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Administrator/ }));
+      await edit(user, 'Administrator');
 
       expect(screen.getByLabelText(/Everything, including anything added later/)).toBeChecked();
       expect(screen.getByLabelText('Run a job')).not.toBeChecked();
@@ -111,7 +158,7 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await edit(user, 'Member');
       await user.click(screen.getByLabelText('Run a job'));
 
       expect(mocks.updateRole).toHaveBeenCalledWith('role_2', {
@@ -125,7 +172,7 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await edit(user, 'Member');
 
       expect(screen.getByLabelText('Name')).toHaveValue('Member');
       expect(screen.getByLabelText('Rank')).toHaveValue(100);
@@ -135,29 +182,29 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await edit(user, 'Member');
 
-      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
     });
 
     it('will not save a role with no name', async () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await edit(user, 'Member');
       await user.clear(screen.getByLabelText('Name'));
 
-      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
     });
 
     it('renames a role', async () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await edit(user, 'Member');
       await user.clear(screen.getByLabelText('Name'));
       await user.type(screen.getByLabelText('Name'), 'Housemate');
-      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
       expect(mocks.updateRole).toHaveBeenCalledWith('role_2', {
         name: 'Housemate',
@@ -169,10 +216,10 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await edit(user, 'Member');
       await user.clear(screen.getByLabelText('Rank'));
       await user.type(screen.getByLabelText('Rank'), '250');
-      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
       expect(mocks.updateRole).toHaveBeenCalledWith('role_2', {
         name: 'Member',
@@ -184,11 +231,11 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await edit(user, 'Member');
       await user.clear(screen.getByLabelText('Rank'));
       await user.clear(screen.getByLabelText('Name'));
       await user.type(screen.getByLabelText('Name'), 'Housemate');
-      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
       expect(mocks.updateRole).toHaveBeenCalledWith('role_2', { name: 'Housemate' });
     });
@@ -199,10 +246,10 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await edit(user, 'Member');
       await user.clear(screen.getByLabelText('Rank'));
       await user.type(screen.getByLabelText('Rank'), '900');
-      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent('at or above your own');
     });
@@ -215,7 +262,7 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await edit(user, 'Member');
       await user.click(screen.getByLabelText('Run a job'));
 
       expect(await screen.findByRole('alert')).toHaveTextContent('at or above your own');
@@ -229,7 +276,7 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: 'Delete Administrator' }));
+      await remove(user, 'Administrator');
 
       expect(await screen.findByRole('alert')).toHaveTextContent('nobody able to administer');
     });
@@ -238,7 +285,7 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: 'Delete Member' }));
+      await remove(user, 'Member');
 
       await waitFor(() => {
         expect(mocks.deleteRole).toHaveBeenCalled();
@@ -251,7 +298,7 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: 'Delete Member' }));
+      await remove(user, 'Member');
 
       await waitFor(() => {
         expect(mocks.fetchRoles).toHaveBeenCalledTimes(2);
@@ -264,7 +311,7 @@ describe('RolesPanel', () => {
       const user = userEvent.setup();
       render(<RolesPanel />);
 
-      await user.click(await screen.findByRole('button', { name: 'Delete Member' }));
+      await remove(user, 'Member');
       await screen.findByRole('alert');
 
       expect(mocks.fetchRoles).toHaveBeenCalledTimes(1);

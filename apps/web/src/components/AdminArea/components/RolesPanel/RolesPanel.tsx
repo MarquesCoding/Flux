@@ -1,7 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
-import { IconAlertTriangle, IconPlus, IconTrash } from '@tabler/icons-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { IconAlertTriangle, IconDots, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
+import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
+import { CardHeader } from '@FluxUI/CardHeader';
+import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
+import { Dialog } from '@FluxUI/Dialog';
+import { DialogContent } from '@FluxUI/DialogContent';
+import { DialogFooter } from '@FluxUI/DialogFooter';
+import { DialogTitle } from '@FluxUI/DialogTitle';
+import { DataTable } from '@FluxUI/DataTable';
 import { Button } from '@FluxUI/Button';
+import { Card } from '@FluxUI/Card';
 import { Checkbox } from '@FluxUI/Checkbox';
 import { TextField } from '@FluxUI/TextField';
 import { describePermission } from '@FluxWeb/admin/describePermission';
@@ -13,6 +22,7 @@ import {
   fetchRoles,
   updateRole,
 } from '@FluxWeb/admin/fetchRoles';
+import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { Refusal } from '@FluxWeb/admin/fetchRoles';
 import type { Permission, Role } from '@FluxContracts/schemas/Permission';
 
@@ -40,6 +50,10 @@ const RolesPanel = () => {
   const [catalogue, setCatalogue] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Role | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newRolePosition, setNewRolePosition] = useState(NEW_ROLE_POSITION.toString());
+  const [newRolePermissions, setNewRolePermissions] = useState<Permission[]>([]);
   const [newRoleName, setNewRoleName] = useState('');
   const [refusal, setRefusal] = useState<Refusal>(null);
   const [draftName, setDraftName] = useState('');
@@ -61,15 +75,18 @@ const RolesPanel = () => {
     setDraftPosition(picked === null ? '' : picked.position.toString());
   }, [selectedRoleId, roles]);
 
-  const act = async (run: () => Promise<Refusal>) => {
-    const outcome = await run();
+  const act = useCallback(
+    async (run: () => Promise<Refusal>) => {
+      const outcome = await run();
 
-    setRefusal(outcome);
+      setRefusal(outcome);
 
-    if (outcome === null) {
-      await reload();
-    }
-  };
+      if (outcome === null) {
+        await reload();
+      }
+    },
+    [reload],
+  );
 
   const selected = roles.find((role) => role.id === selectedRoleId) ?? null;
 
@@ -81,9 +98,94 @@ const RolesPanel = () => {
     await act(() => updateRole(role.id, { permissions: next }));
   };
 
+  /**
+   * What a column needs, without being rebuilt when it changes.
+   *
+   * Columns are built once: a rebuilt column is a new `cell`, which React
+   * remounts, closing any menu open in a row.
+   */
+  const live = useRef({
+    onEdit: (id: string) => {
+      setSelectedRoleId(id);
+      setRefusal(null);
+    },
+    onAskDelete: (role: Role) => {
+      setDeleting(role);
+    },
+  });
+
+  const columns = useMemo<DataTableColumn<Role>[]>(
+    () => [
+      {
+        id: 'name',
+        header: 'Role',
+        accessorFn: (role) => role.name,
+        cell: ({ row }) => (
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate font-medium text-text">{row.original.name}</span>
+            <span className="truncate text-xs text-text-muted">
+              {row.original.permissions.includes('administrator')
+                ? 'Everything'
+                : row.original.permissions.length === 1
+                  ? '1 permission'
+                  : `${row.original.permissions.length.toString()} permissions`}
+            </span>
+          </span>
+        ),
+      },
+      {
+        id: 'position',
+        header: 'Rank',
+        accessorFn: (role) => role.position,
+        cell: ({ row }) => <Badge size="sm">{row.original.position.toString()}</Badge>,
+      },
+      {
+        id: 'act',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="flex justify-end">
+            <ActionMenu
+              label={`Actions for ${row.original.name}`}
+              trigger={<IconDots size={16} aria-hidden />}
+              groups={[
+                {
+                  items: [
+                    {
+                      id: 'edit',
+                      label: 'Edit role',
+                      icon: <IconPencil size={15} aria-hidden />,
+                      onChoose: () => {
+                        live.current.onEdit(row.original.id);
+                      },
+                    },
+                  ],
+                },
+                {
+                  items: [
+                    {
+                      id: 'delete',
+                      label: 'Delete role',
+                      icon: <IconTrash size={15} aria-hidden />,
+                      isDestructive: true,
+                      onChoose: () => {
+                        live.current.onAskDelete(row.original);
+                      },
+                    },
+                  ],
+                },
+              ]}
+            />
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
+
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {refusal === null ? null : (
+    <div className="flex flex-col gap-4">
+      {refusal === null || selected !== null ? null : (
         <p
           role="alert"
           className="flex items-start gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
@@ -93,114 +195,236 @@ const RolesPanel = () => {
         </p>
       )}
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-surface/40 p-6">
-        <header className="flex flex-wrap items-baseline justify-between gap-3">
-          <h3 className="text-xs uppercase tracking-[0.16em] text-text-muted">Roles</h3>
-
-          <span className="text-xs text-text-muted">Highest first</span>
-        </header>
-
-        {roles.length === 0 ? (
-          <p className="text-sm text-text-muted">No roles yet.</p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-white/5">
-            {roles.map((role) => (
-              <li key={role.id} className="flex items-center gap-4 py-3 first:pt-0">
-                <Button
-                  variant="ghost"
-                  className="h-auto min-w-0 flex-1 justify-start rounded-lg px-3 py-2 text-left"
-                  onClick={() => {
-                    setSelectedRoleId(role.id === selectedRoleId ? null : role.id);
-                    setRefusal(null);
-                  }}
-                >
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="truncate text-sm text-text">{role.name}</span>
-                    <span className="text-xs text-text-muted">
-                      {role.permissions.includes('administrator')
-                        ? 'Everything'
-                        : role.permissions.length === 1
-                          ? '1 permission'
-                          : `${role.permissions.length.toString()} permissions`}
-                    </span>
-                  </span>
-                </Button>
-
-                <Badge size="sm">{role.position.toString()}</Badge>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  isPill
-                  aria-label={`Delete ${role.name}`}
-                  onClick={() => {
-                    void act(() => deleteRole(role.id));
-                  }}
-                >
-                  <IconTrash size={16} aria-hidden />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="flex flex-wrap items-end gap-3">
-          <TextField
-            label="New role"
-            value={newRoleName}
-            onValueChange={setNewRoleName}
-            placeholder="Housemate"
-            className="min-w-48 flex-1"
-          />
-
+      <Card as="section" padding="none" className="flex flex-col">
+        <CardHeader title="Roles">
           <Button
             variant="glossy"
             size="sm"
             isPill
+            onClick={() => {
+              setIsCreating(true);
+            }}
+          >
+            <IconPlus size={15} aria-hidden />
+            Create role
+          </Button>
+        </CardHeader>
+
+        <DataTable label="Roles" columns={columns} rows={roles} emptyMessage="No roles yet." />
+      </Card>
+
+      <Dialog
+        label="Create a role"
+        isOpen={isCreating}
+        onClose={() => {
+          setIsCreating(false);
+        }}
+      >
+        <DialogTitle
+          title="Create a role"
+          detail="A role is a name and a set of permissions. Rank decides who may manage whom."
+        />
+
+        <DialogContent className="flex flex-col gap-5">
+          <div className="flex flex-wrap items-end gap-3">
+            <TextField
+              label="Name"
+              value={newRoleName}
+              onValueChange={setNewRoleName}
+              placeholder="Housemate"
+              className="min-w-48 flex-1"
+            />
+
+            <TextField
+              label="Rank"
+              type="number"
+              min={0}
+              value={newRolePosition}
+              onValueChange={setNewRolePosition}
+              className="w-24 shrink-0"
+            />
+          </div>
+
+          {groupPermissions(catalogue).map((group) => (
+            <div key={group.id} className="flex flex-col gap-1">
+              <h4 className="text-xs uppercase tracking-[0.12em] text-text-muted">{group.label}</h4>
+
+              <ul className="flex flex-col">
+                {group.permissions.map((permission) => (
+                  <li key={permission} className="flex items-center gap-3 rounded-md py-1.5">
+                    <Checkbox
+                      label={describePermission(permission)}
+                      checked={newRolePermissions.includes(permission)}
+                      onCheckedChange={() => {
+                        setNewRolePermissions((held) =>
+                          held.includes(permission)
+                            ? held.filter((candidate) => candidate !== permission)
+                            : [...held, permission],
+                        );
+                      }}
+                      className="min-w-0"
+                    />
+
+                    <span className="min-w-0 truncate font-mono text-xs text-text-muted/70">
+                      {permission}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </DialogContent>
+
+        <DialogFooter>
+          <Button
+            variant="secondary"
+            isPill
+            onClick={() => {
+              setIsCreating(false);
+            }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            variant="glossy"
+            isPill
             disabled={newRoleName === ''}
             onClick={() => {
+              const position = Number.parseInt(newRolePosition, 10);
+
               void act(() =>
-                createRole({ name: newRoleName, position: NEW_ROLE_POSITION, permissions: [] }),
+                createRole({
+                  name: newRoleName,
+                  position: Number.isNaN(position) ? NEW_ROLE_POSITION : position,
+                  permissions: newRolePermissions,
+                }),
               ).then(() => {
                 setNewRoleName('');
+                setNewRolePosition(NEW_ROLE_POSITION.toString());
+                setNewRolePermissions([]);
+                setIsCreating(false);
               });
             }}
           >
-            <IconPlus size={16} aria-hidden />
-            Create
+            Create role
           </Button>
-        </div>
-      </section>
+        </DialogFooter>
+      </Dialog>
 
-      {selected === null ? null : (
-        <section className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-surface/40 p-6">
-          <header className="flex flex-col gap-4">
-            <h3 className="text-xs uppercase tracking-[0.16em] text-text-muted">
-              What {selected.name} grants
-            </h3>
+      <ConfirmDialog
+        title="Delete this role?"
+        detail={
+          deleting === null
+            ? ''
+            : `${deleting.name} will be removed, and anybody holding it loses what it granted. This cannot be undone.`
+        }
+        confirmLabel="Delete role"
+        isDestructive
+        isOpen={deleting !== null}
+        onClose={() => {
+          setDeleting(null);
+        }}
+        onConfirm={() => {
+          const role = deleting;
 
-            <div className="flex flex-wrap items-end gap-3">
-              <TextField
-                label="Name"
-                value={draftName}
-                onValueChange={setDraftName}
-                className="min-w-48 flex-1"
-              />
+          setDeleting(null);
 
-              <TextField
-                label="Rank"
-                type="number"
-                min={0}
-                value={draftPosition}
-                onValueChange={setDraftPosition}
-                className="w-24 shrink-0"
-              />
+          if (role !== null) {
+            void act(() => deleteRole(role.id));
+          }
+        }}
+      />
+
+      <Dialog
+        label={selected === null ? 'Edit role' : `Edit ${selected.name}`}
+        isOpen={selected !== null}
+        onClose={() => {
+          setSelectedRoleId(null);
+        }}
+      >
+        {selected === null ? null : (
+          <>
+            <DialogTitle
+              title={`Edit ${selected.name}`}
+              detail="A higher rank manages a lower one. Nobody may touch a role at or above their own."
+            />
+
+            <DialogContent className="flex flex-col gap-5">
+              {refusal === null ? null : (
+                <p
+                  role="alert"
+                  className="flex items-start gap-3 rounded-md border border-danger/40 bg-danger/10 p-3 text-sm text-text"
+                >
+                  <IconAlertTriangle
+                    size={16}
+                    className="mt-0.5 shrink-0 text-danger"
+                    aria-hidden
+                  />
+                  {refusal.message}
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-end gap-3">
+                <TextField
+                  label="Name"
+                  value={draftName}
+                  onValueChange={setDraftName}
+                  className="min-w-48 flex-1"
+                />
+
+                <TextField
+                  label="Rank"
+                  type="number"
+                  min={0}
+                  value={draftPosition}
+                  onValueChange={setDraftPosition}
+                  className="w-24 shrink-0"
+                />
+              </div>
+
+              {groupPermissions(catalogue).map((group) => (
+                <div key={group.id} className="flex flex-col gap-1">
+                  <h4 className="text-xs uppercase tracking-[0.12em] text-text-muted">
+                    {group.label}
+                  </h4>
+
+                  <ul className="flex flex-col">
+                    {group.permissions.map((permission) => (
+                      <li key={permission} className="flex items-center gap-3 rounded-md py-1.5">
+                        <Checkbox
+                          label={describePermission(permission)}
+                          checked={selected.permissions.includes(permission)}
+                          onCheckedChange={() => {
+                            void togglePermission(selected, permission);
+                          }}
+                          className="min-w-0"
+                        />
+
+                        <span className="min-w-0 truncate font-mono text-xs text-text-muted/70">
+                          {permission}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </DialogContent>
+
+            <DialogFooter>
+              <Button
+                variant="secondary"
+                isPill
+                onClick={() => {
+                  setSelectedRoleId(null);
+                }}
+              >
+                Close
+              </Button>
 
               <Button
                 variant="glossy"
-                size="sm"
                 isPill
-                className="shrink-0"
                 disabled={
                   draftName === '' ||
                   (draftName === selected.name && draftPosition === selected.position.toString())
@@ -216,43 +440,12 @@ const RolesPanel = () => {
                   );
                 }}
               >
-                Save
+                Save changes
               </Button>
-            </div>
-
-            <p className="text-xs text-text-muted">
-              A higher rank manages a lower one. Nobody may touch a role at or above their own.
-            </p>
-          </header>
-
-          {groupPermissions(catalogue).map((group) => (
-            <div key={group.id} className="flex flex-col gap-1">
-              <h4 className="px-3 text-xs uppercase tracking-[0.12em] text-text-muted">
-                {group.label}
-              </h4>
-
-              <ul className="flex flex-col">
-                {group.permissions.map((permission) => (
-                  <li key={permission} className="flex items-center gap-3 rounded-lg px-3 py-1.5">
-                    <Checkbox
-                      label={describePermission(permission)}
-                      checked={selected.permissions.includes(permission)}
-                      onCheckedChange={() => {
-                        void togglePermission(selected, permission);
-                      }}
-                      className="min-w-0"
-                    />
-
-                    <span className="min-w-0 truncate font-mono text-xs text-text-muted/70">
-                      {permission}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </section>
-      )}
+            </DialogFooter>
+          </>
+        )}
+      </Dialog>
     </div>
   );
 };

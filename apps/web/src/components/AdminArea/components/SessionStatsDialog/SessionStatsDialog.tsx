@@ -1,5 +1,7 @@
 import { IconX } from '@tabler/icons-react';
 import { Dialog } from '@FluxUI/Dialog';
+import { DialogContent } from '@FluxUI/DialogContent';
+import { DialogTitle } from '@FluxUI/DialogTitle';
 import { Button } from '@FluxUI/Button';
 import {
   describeAxis,
@@ -35,16 +37,14 @@ const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProp
 
   return (
     <Dialog label="Stream stats" isOpen={isOpen} onClose={onClose}>
-      <div className="flex flex-col gap-4 p-6">
-        <header className="flex items-center justify-between gap-4">
-          <h2 className="text-lg font-medium text-text">Stream stats</h2>
+      <DialogTitle title="Stream stats">
+        <Button isIconOnly variant="ghost" label="Close" size="sm" onClick={onClose}>
+          <IconX size={16} aria-hidden />
+        </Button>
+      </DialogTitle>
 
-          <Button isIconOnly variant="ghost" label="Close" size="sm" onClick={onClose}>
-            <IconX size={18} aria-hidden />
-          </Button>
-        </header>
-
-        <dl className="flex flex-col divide-y divide-white/5">
+      <DialogContent>
+        <dl className="flex flex-col divide-y divide-[var(--surface-line)]">
           <Row name="Viewer">{session.profileName ?? 'Unknown viewer'}</Row>
           <Row name="Device">{session.deviceLabel}</Row>
 
@@ -91,7 +91,7 @@ const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProp
             </>
           )}
         </dl>
-      </div>
+      </DialogContent>
     </Dialog>
   );
 };

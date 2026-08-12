@@ -102,13 +102,6 @@ describe('SettingsPanel', () => {
     expect(onCatalogueKeySaved).not.toHaveBeenCalled();
   });
 
-  it('lists who can sign in', () => {
-    render(<SettingsPanel overview={overview()} onCatalogueKeySaved={vi.fn()} />);
-
-    expect(screen.getByText('dan@flux.local')).toBeInTheDocument();
-    expect(screen.getByText('admin')).toBeInTheDocument();
-  });
-
   it('says nothing about the server before it has answered', () => {
     render(<SettingsPanel overview={null} onCatalogueKeySaved={vi.fn()} />);
 

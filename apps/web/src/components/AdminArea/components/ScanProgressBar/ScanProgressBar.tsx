@@ -38,7 +38,7 @@ const ScanProgressBar = ({ label, phase, processed, total }: ScanProgressBarProp
         <span className="shrink-0 text-xs text-text-muted">{phaseLabel}</span>
       )}
 
-      <span className="block h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-white/10">
+      <span className="block h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-[var(--surface-hover)]">
         <span
           style={isKnown && !isEmpty ? { width: `${(fraction * 100).toString()}%` } : undefined}
           className={cn(

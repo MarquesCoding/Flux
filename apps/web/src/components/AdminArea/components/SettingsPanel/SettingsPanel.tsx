@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
 import { saveCatalogueKey } from '@FluxWeb/admin/fetchAdmin';
+import { Card } from '@FluxUI/Card';
 import type { SettingsPanelProps } from './SettingsPanel.types';
 
 /**
@@ -20,8 +20,8 @@ const SettingsPanel = ({ overview, onCatalogueKeySaved }: SettingsPanelProps) =>
   const [isSaving, setIsSaving] = useState(false);
 
   return (
-    <div className="grid gap-px bg-white/10 lg:grid-cols-2">
-      <div className="flex flex-col gap-5 bg-surface/40 p-6">
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Card as="section" padding="md" className="flex flex-col gap-5">
         <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Metadata catalogue</h2>
 
         <p className="text-sm text-text-muted">
@@ -61,20 +61,10 @@ const SettingsPanel = ({ overview, onCatalogueKeySaved }: SettingsPanelProps) =>
             Save key
           </Button>
         </div>
-      </div>
+      </Card>
 
-      <div className="flex flex-col gap-5 bg-surface/40 p-6">
-        <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Accounts</h2>
-
-        <ul className="flex flex-col divide-y divide-white/5 text-sm">
-          {(overview?.users ?? []).map((account) => (
-            <li key={account.id} className="flex items-center justify-between gap-3 py-2">
-              <span className="min-w-0 truncate text-text">{account.email}</span>
-
-              {account.role === null ? null : <Badge size="sm">{account.role}</Badge>}
-            </li>
-          ))}
-        </ul>
+      <Card as="section" padding="md" className="flex flex-col gap-5">
+        <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Signing in</h2>
 
         <p className="text-xs leading-relaxed text-text-muted">
           {overview === null
@@ -83,7 +73,7 @@ const SettingsPanel = ({ overview, onCatalogueKeySaved }: SettingsPanelProps) =>
                 overview.settings.cookieSecure ? 'secure' : 'not secure'
               }. Origins allowed to sign in: ${overview.settings.trustedOrigins.join(', ')}.`}
         </p>
-      </div>
+      </Card>
     </div>
   );
 };

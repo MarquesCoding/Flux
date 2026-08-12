@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { IconLogout, IconPencil, IconShieldLock, IconUser } from '@tabler/icons-react';
+import { IconLogout, IconPencil } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { Badge } from '@FluxUI/Badge';
-import { TabBar } from '@FluxUI/TabBar';
+import { Card } from '@FluxUI/Card';
+import { CardHeader } from '@FluxUI/CardHeader';
+import { Dialog } from '@FluxUI/Dialog';
+import { DialogContent } from '@FluxUI/DialogContent';
+import { DialogTitle } from '@FluxUI/DialogTitle';
+import { TabRow } from '@FluxUI/TabRow';
 import { TabPanel } from '@FluxUI/TabPanel';
 import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
@@ -55,7 +60,7 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
-      className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-5 pb-16 pt-14 sm:px-10"
+      className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-5 pb-6 pt-5 sm:px-10"
     >
       <Tabs
         value={panel}
@@ -67,6 +72,14 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
           }
         }}
       >
+        <motion.div
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion)}
+          className="flex justify-center"
+        >
+          <TabRow groups={[{ items: PANELS }]} label="What to change" />
+        </motion.div>
+
         <motion.header
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion, 'heavy')}
@@ -93,13 +106,10 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
               </p>
             </div>
           </div>
-
-          <TabBar tabs={[...PANELS]} label="What to change" />
         </motion.header>
 
         <TabPanel
           value="profile"
-          className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
           render={
             <motion.section
               variants={revealVariants(prefersReducedMotion)}
@@ -107,52 +117,69 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
             />
           }
         >
-          <header className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-text-muted">
-              <IconUser size={14} aria-hidden />
-              How you appear
-            </h2>
+          <Card as="section" padding="none" className="flex flex-col">
+            <CardHeader title="How you appear">
+              {profile === null ? null : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  isPill
+                  onClick={() => {
+                    setIsEditing(true);
+                  }}
+                >
+                  <IconPencil size={15} aria-hidden />
+                  Change
+                </Button>
+              )}
+            </CardHeader>
 
-            {isEditing || profile === null ? null : (
-              <Button
-                variant="secondary"
-                size="sm"
-                isPill
-                onClick={() => {
-                  setIsEditing(true);
-                }}
-              >
-                <IconPencil size={16} aria-hidden />
-                Change
-              </Button>
+            <div className="p-4">
+              {profile === null ? (
+                <p className="text-sm text-text-muted">Reading your profile…</p>
+              ) : (
+                <p className="max-w-prose text-sm leading-relaxed text-text-muted">
+                  This is the name and face everybody sharing this server sees when they pick who is
+                  watching. Changing it changes nothing about how you sign in.
+                </p>
+              )}
+            </div>
+          </Card>
+
+          <Dialog
+            label="How you appear"
+            isOpen={isEditing && profile !== null}
+            onClose={() => {
+              setIsEditing(false);
+            }}
+          >
+            {profile === null ? null : (
+              <>
+                <DialogTitle
+                  title="How you appear"
+                  detail="The name and face everybody sharing this server sees."
+                />
+
+                <DialogContent>
+                  <ProfileEditor
+                    profile={profile}
+                    onSaved={() => {
+                      setIsEditing(false);
+                      read();
+                      onChanged();
+                    }}
+                    onCancel={() => {
+                      setIsEditing(false);
+                    }}
+                  />
+                </DialogContent>
+              </>
             )}
-          </header>
-
-          {profile === null ? (
-            <p className="text-sm text-text-muted">Reading your profile…</p>
-          ) : isEditing ? (
-            <ProfileEditor
-              profile={profile}
-              onSaved={() => {
-                setIsEditing(false);
-                read();
-                onChanged();
-              }}
-              onCancel={() => {
-                setIsEditing(false);
-              }}
-            />
-          ) : (
-            <p className="max-w-prose text-sm leading-relaxed text-text-muted">
-              This is the name and face everybody sharing this server sees when they pick who is
-              watching. Changing it changes nothing about how you sign in.
-            </p>
-          )}
+          </Dialog>
         </TabPanel>
 
         <TabPanel
           value="devices"
-          className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
           render={
             <motion.section
               variants={revealVariants(prefersReducedMotion)}
@@ -173,24 +200,27 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
             />
           }
         >
-          <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-            <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-text-muted">
-              <IconShieldLock size={14} aria-hidden />
-              Getting in
-            </h2>
+          <Card as="section" padding="none" className="flex flex-col">
+            <CardHeader title="Getting in" />
 
-            <TwoFactorSetup isEnabled={user.twoFactorEnabled === true} onChanged={onChanged} />
-          </div>
+            <div className="p-4">
+              <TwoFactorSetup isEnabled={user.twoFactorEnabled === true} onChanged={onChanged} />
+            </div>
+          </Card>
 
-          <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-            <PasskeySetup onChanged={onChanged} />
-          </div>
+          <Card as="section" padding="none" className="flex flex-col">
+            <CardHeader title="Passkeys" />
+
+            <div className="p-4">
+              <PasskeySetup onChanged={onChanged} />
+            </div>
+          </Card>
         </TabPanel>
 
         <motion.footer
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
-          className="flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6"
+          className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--surface-line)] pt-4"
         >
           <p className="text-xs text-text-muted">
             Signing out returns to the wall of faces. Nothing about what you have watched is lost.

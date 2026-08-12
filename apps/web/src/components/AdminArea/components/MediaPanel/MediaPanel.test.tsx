@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { MediaPanel } from './MediaPanel';
@@ -32,11 +32,13 @@ describe('MediaPanel', () => {
     expect(screen.getByText('Parasite')).toBeInTheDocument();
   });
 
-  it('names a series by its programme rather than by the episode standing for it', () => {
+  it('names a series by its programme, with the episode standing for it said quietly', () => {
     render(<MediaPanel {...props} media={[item({ title: 'Long Day', seriesTitle: 'From' })]} />);
 
-    expect(screen.getByText('From')).toBeInTheDocument();
-    expect(screen.queryByText('Long Day')).not.toBeInTheDocument();
+    const row = screen.getByRole('row', { name: /From/ });
+
+    expect(within(row).getByText('From')).toBeInTheDocument();
+    expect(within(row).getByText('Long Day')).toBeInTheDocument();
   });
 
   it('says which is a film and which is a series, since a correction differs by kind', () => {
@@ -87,7 +89,9 @@ describe('MediaPanel', () => {
     expect(onCorrect).toHaveBeenCalledWith(item());
   });
 
-  it('sorts by name, so a long list can be read down', () => {
+  it('can be sorted by name, so a long list can be read down', async () => {
+    const user = userEvent.setup();
+
     render(
       <MediaPanel
         {...props}
@@ -95,9 +99,23 @@ describe('MediaPanel', () => {
       />,
     );
 
-    const names = screen.getAllByRole('listitem').map((row) => row.textContent);
+    await user.click(screen.getByRole('button', { name: /Title/ }));
 
-    expect(names[0]).toContain('Alien');
+    const [, first] = screen.getAllByRole('row');
+
+    expect(first?.textContent).toContain('Alien');
+  });
+
+  it('says which are films and which are series, since a wrong match differs by kind', () => {
+    render(<MediaPanel {...props} media={[item()]} />);
+
+    expect(screen.getByRole('columnheader', { name: /Kind/ })).toBeInTheDocument();
+  });
+
+  it('shows which items have no artwork, since that is what a bad match looks like', () => {
+    render(<MediaPanel {...props} media={[item({ hasPoster: false })]} />);
+
+    expect(screen.getByText('Missing')).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

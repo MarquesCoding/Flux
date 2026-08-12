@@ -68,10 +68,10 @@ describe('AppShell', () => {
     expect(bloom?.style.background).toContain('20% 30%');
   });
 
-  it('leaves room beneath the page for what floats over it', () => {
+  it('leaves room beneath the page for the dock that floats over it', () => {
     const { view } = draw();
 
-    expect(view.container.querySelector('main')).toHaveClass('pb-16');
+    expect(view.container.querySelector('main')).toHaveClass('pb-28');
   });
 
   it('has no rail down the side to collapse', () => {

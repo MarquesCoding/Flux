@@ -1,33 +1,38 @@
-import { useState } from 'react';
-import {
-  IconBolt,
-  IconLayoutGrid,
-  IconPhoto,
-  IconRefresh,
-  IconScissors,
-  IconTrash,
-} from '@tabler/icons-react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { IconCalendarClock, IconDots, IconInfoCircle, IconPlayerPlay } from '@tabler/icons-react';
+import { ActionMenu } from '@FluxUI/ActionMenu';
+import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
+import { DataTable } from '@FluxUI/DataTable';
+import { HoverCard } from '@FluxUI/HoverCard';
 import { Dialog } from '@FluxUI/Dialog';
+import { DialogContent } from '@FluxUI/DialogContent';
+import { DialogFooter } from '@FluxUI/DialogFooter';
+import { DialogTitle } from '@FluxUI/DialogTitle';
 import { ScanProgressBar } from '@FluxWeb/components/AdminArea/components/ScanProgressBar/ScanProgressBar';
 import { summariseProgress } from './summariseProgress';
+import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { JobDefinition } from '@FluxWeb/admin/fetchAdmin';
 import type { ScanEntry } from '@FluxWeb/components/AdminArea/scanCoordinator';
 import type { JobRunnerProps } from './JobRunner.types';
 
 /**
- * What a job kind looks like at a glance.
- *
- * Falls back to a generic icon for a kind this component has never seen —
- * the picker is meant to work for a kind added to the server's registry
- * after this file was last touched, not only the ones it ships with.
+ * How many of the files a job is working through are worth naming.
  */
-const JOB_ICONS: Record<string, typeof IconRefresh> = {
-  'library.scan': IconRefresh,
-  'library.regeneratePreviews': IconPhoto,
-  'library.regenerateTrickplay': IconLayoutGrid,
-  'library.detectSegments': IconScissors,
-  'library.reset': IconTrash,
+const WORKING_SHOWN = 4;
+
+/**
+ * What each job kind puts on the media service's queue.
+ *
+ * The queue names work rather than jobs — "preview", "thumbnails" — because
+ * that is what it is doing, so a job has to be translated into the work it
+ * causes to say which file it is on. A scan causes all of it, which is why it
+ * is absent here: anything running belongs to it.
+ */
+const QUEUED_AS: Record<string, string[]> = {
+  'library.regeneratePreviews': ['preview'],
+  'library.regenerateTrickplay': ['thumbnails', 'trickplay'],
+  'library.detectSegments': ['fingerprint'],
 };
 
 /**
@@ -40,7 +45,14 @@ const JOB_ICONS: Record<string, typeof IconRefresh> = {
  * queue a second one. A job that does not need a library is tracked under
  * its own kind instead — see `scanCoordinator.runDefinedJob`.
  */
-const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: JobRunnerProps) => {
+const JobRunner = ({
+  definitions,
+  libraries,
+  progress,
+  working,
+  onRun,
+  onOpenSchedule,
+}: JobRunnerProps) => {
   const [confirming, setConfirming] = useState<JobDefinition | null>(null);
 
   /**
@@ -52,88 +64,184 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
    * expects one answer about it, not a bar for every library it happened to
    * fan out across.
    */
-  const summaryFor = (kind: string) =>
-    summariseProgress(
-      [...libraries.map((library) => progress.get(library.id)), progress.get(kind)].filter(
-        (entry): entry is ScanEntry => entry?.kind === kind,
+  const summaryFor = useCallback(
+    (kind: string) =>
+      summariseProgress(
+        [...libraries.map((library) => progress.get(library.id)), progress.get(kind)].filter(
+          (entry): entry is ScanEntry => entry?.kind === kind,
+        ),
       ),
-    );
+    [libraries, progress],
+  );
 
-  const libraryDefinitions = definitions.filter((definition) => definition.needsLibrary);
-  const serverDefinitions = definitions.filter((definition) => !definition.needsLibrary);
+  const askOrRun = useCallback(
+    (definition: JobDefinition) => {
+      if (definition.destructive) {
+        setConfirming(definition);
 
-  const askOrRun = (definition: JobDefinition) => {
-    if (definition.destructive) {
-      setConfirming(definition);
-    } else {
+        return;
+      }
+
       onRun(definition.kind);
-    }
-  };
+    },
+    [onRun],
+  );
 
-  const row = (definition: JobDefinition) => {
-    const Icon = JOB_ICONS[definition.kind] ?? IconBolt;
-    const summary = summaryFor(definition.kind);
+  /**
+   * The live figures, reachable from a column without being part of it.
+   *
+   * Columns are built once and never again: a column rebuilt is a new `cell`
+   * function, which React treats as a different component and remounts —
+   * closing the very hover card these figures are for. The table re-renders on
+   * its own every time a reading arrives, and each cell reads whatever is in
+   * here at that moment.
+   */
+  const isBusy = definitions.some((definition) => summaryFor(definition.kind) !== null);
 
-    return (
-      <li
-        key={definition.kind}
-        className="flex flex-wrap items-center justify-between gap-3 py-1 first:pt-0 last:pb-0"
-      >
-        <Button
-          variant="ghost"
-          className="min-w-0 flex-1 justify-start gap-3 rounded-lg px-2 py-2 text-left"
-          aria-label={`View schedule for ${definition.label}`}
-          onClick={() => {
-            onOpenSchedule(definition.kind);
-          }}
-        >
-          <Icon size={18} className="mt-0.5 shrink-0 self-start text-text-muted" aria-hidden />
+  const live = useRef({ summaryFor, working, askOrRun, onOpenSchedule, isBusy });
 
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-sm text-text">{definition.label}</span>
-            <span className="text-xs text-text-muted">{definition.description}</span>
-          </div>
-        </Button>
+  live.current = { summaryFor, working, askOrRun, onOpenSchedule, isBusy };
 
-        {summary === null ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            isPill
-            aria-label={`Run ${definition.label}`}
-            onClick={() => {
-              askOrRun(definition);
-            }}
-          >
-            Run
-          </Button>
-        ) : (
-          <ScanProgressBar
-            label={definition.label}
-            phase={summary.phase}
-            processed={summary.processed}
-            total={summary.total}
-          />
-        )}
-      </li>
-    );
-  };
+  const columns = useMemo<DataTableColumn<JobDefinition>[]>(
+    () => [
+      {
+        id: 'job',
+        header: 'Job',
+        accessorFn: (definition) => definition.label,
+        cell: ({ row }) => (
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate font-medium text-text">{row.original.label}</span>
+            <span className="text-xs text-text-muted">{row.original.description}</span>
+          </span>
+        ),
+      },
+      {
+        id: 'scope',
+        header: 'Scope',
+        accessorFn: (definition) => (definition.needsLibrary ? 'Libraries' : 'Server'),
+        cell: ({ row }) => (
+          <Badge size="sm" tone={row.original.needsLibrary ? 'quiet' : 'accent'}>
+            {row.original.needsLibrary ? 'Libraries' : 'Server'}
+          </Badge>
+        ),
+      },
+      {
+        id: 'state',
+        header: 'State',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const summary = live.current.summaryFor(row.original.kind);
+
+          if (summary === null) {
+            return (
+              <Badge size="sm" tone="quiet">
+                Idle
+              </Badge>
+            );
+          }
+
+          const causes = QUEUED_AS[row.original.kind];
+
+          const onNow = live.current.working.filter(
+            (job) => job.state === 'running' && (causes === undefined || causes.includes(job.kind)),
+          );
+
+          return (
+            <HoverCard
+              side="left"
+              align="center"
+              detail={
+                <div className="flex flex-col gap-3">
+                  <span className="text-xs uppercase tracking-[0.14em] text-text-muted">
+                    {row.original.label}
+                  </span>
+
+                  <ScanProgressBar
+                    label={row.original.label}
+                    phase={summary.phase}
+                    processed={summary.processed}
+                    total={summary.total}
+                  />
+
+                  {onNow.length === 0 ? (
+                    <p className="font-body text-xs text-text-muted">
+                      Nothing on the queue yet — it is still working out what there is to do.
+                    </p>
+                  ) : (
+                    <ul className="flex flex-col gap-1.5">
+                      {onNow.slice(0, WORKING_SHOWN).map((job) => (
+                        <li key={job.id} className="flex min-w-0 flex-col">
+                          <span className="truncate text-xs text-text" title={job.subject}>
+                            {job.subject}
+                          </span>
+                          <span className="text-xs text-text-muted">{job.kind}</span>
+                        </li>
+                      ))}
+
+                      {onNow.length <= WORKING_SHOWN ? null : (
+                        <li className="font-body text-xs text-text-muted">
+                          and {(onNow.length - WORKING_SHOWN).toString()} more
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+              }
+            >
+              <Badge size="sm" tone="accent">
+                Running
+              </Badge>
+
+              <IconInfoCircle size={15} className="shrink-0 text-text-muted" aria-hidden />
+            </HoverCard>
+          );
+        },
+      },
+      {
+        id: 'act',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="flex justify-end">
+            <ActionMenu
+              label={`Actions for ${row.original.label}`}
+              trigger={<IconDots size={16} aria-hidden />}
+              groups={[
+                {
+                  items: [
+                    {
+                      id: 'run',
+                      label: 'Run now',
+                      icon: <IconPlayerPlay size={15} aria-hidden />,
+                      isDestructive: row.original.destructive,
+                      isDisabled:
+                        live.current.isBusy && live.current.summaryFor(row.original.kind) === null,
+                      onChoose: () => {
+                        live.current.askOrRun(row.original);
+                      },
+                    },
+                    {
+                      id: 'schedule',
+                      label: 'Edit schedule',
+                      icon: <IconCalendarClock size={15} aria-hidden />,
+                      onChoose: () => {
+                        live.current.onOpenSchedule(row.original.kind);
+                      },
+                    },
+                  ],
+                },
+              ]}
+            />
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
-    <div className="flex flex-col gap-4 p-5">
-      <ul className="flex flex-col divide-y divide-white/5">
-        {libraryDefinitions.map((definition) => row(definition))}
-      </ul>
-
-      {serverDefinitions.length === 0 ? null : (
-        <div className="flex flex-col gap-2 border-t border-white/10 pt-2">
-          <h3 className="text-xs uppercase tracking-[0.16em] text-text-muted">Server-wide</h3>
-
-          <ul className="flex flex-col divide-y divide-white/5">
-            {serverDefinitions.map((definition) => row(definition))}
-          </ul>
-        </div>
-      )}
+    <>
+      <DataTable label="Server jobs" columns={columns} rows={definitions} />
 
       <Dialog
         label={confirming === null ? 'Run this job?' : `Run ${confirming.label}?`}
@@ -143,16 +251,18 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
         }}
       >
         {confirming === null ? null : (
-          <div className="flex flex-col gap-5 p-6">
-            <h2 className="text-lg font-medium text-text">{confirming.label}?</h2>
+          <>
+            <DialogTitle title={`${confirming.label}?`} />
 
-            <p className="text-sm text-text-muted">
-              {confirming.description} This cannot be undone.
-            </p>
+            <DialogContent>
+              <p className="text-sm text-text-muted">
+                {confirming.description} This cannot be undone.
+              </p>
+            </DialogContent>
 
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button
-                variant="ghost"
+                variant="secondary"
                 isPill
                 onClick={() => {
                   setConfirming(null);
@@ -171,11 +281,11 @@ const JobRunner = ({ definitions, libraries, progress, onRun, onOpenSchedule }: 
               >
                 {confirming.label}
               </Button>
-            </div>
-          </div>
+            </DialogFooter>
+          </>
         )}
       </Dialog>
-    </div>
+    </>
   );
 };
 

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { IconSelector } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
+import { DialogContent } from '@FluxUI/DialogContent';
+import { DialogTitle } from '@FluxUI/DialogTitle';
 import { OptionMenu } from '@FluxUI/OptionMenu';
 import { readLanguage, LANGUAGE_NAMES } from '@FluxCore/functions/describeTrack';
 import { updateLibrary } from '@FluxWeb/library/fetchLibrary';
@@ -124,9 +126,9 @@ const LibrarySettingsDialog = ({
 
   return (
     <Dialog label={`${library.name} settings`} isOpen={isOpen} onClose={close}>
-      <div className="flex flex-col gap-5 p-6">
-        <h2 className="text-lg font-medium text-text">{library.name}</h2>
+      <DialogTitle title={library.name} />
 
+      <DialogContent className="flex flex-col gap-5">
         {confirming === null ? (
           <>
             <fieldset className="flex flex-col gap-2">
@@ -166,7 +168,7 @@ const LibrarySettingsDialog = ({
             )}
 
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" isPill onClick={close} disabled={isSaving}>
+              <Button variant="secondary" isPill onClick={close} disabled={isSaving}>
                 Cancel
               </Button>
 
@@ -192,7 +194,7 @@ const LibrarySettingsDialog = ({
 
             <div className="flex justify-end gap-2">
               <Button
-                variant="ghost"
+                variant="secondary"
                 isPill
                 onClick={() => {
                   finish(confirming.saved);
@@ -207,7 +209,7 @@ const LibrarySettingsDialog = ({
             </div>
           </>
         )}
-      </div>
+      </DialogContent>
     </Dialog>
   );
 };
