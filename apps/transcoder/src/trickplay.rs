@@ -32,6 +32,16 @@ const COMPLETE_MARKER: &str = ".complete";
 /// The index a player reads.
 pub const INDEX_NAME: &str = "thumbnails.vtt";
 
+/// Which recipe drew a set of sheets.
+///
+/// Counted separately from the preview recipe, and deliberately: sheets take
+/// minutes a film to redraw, so a change to how preview clips are encoded must
+/// not throw them away. See `preview::RECIPE` for what this is for.
+///
+/// **Raise this whenever the way sheets are drawn changes** — the tile grid, the
+/// sampling interval's meaning, the filter chain.
+const RECIPE: u32 = 1;
+
 /// What a caller asks for.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -114,11 +124,13 @@ impl TrickplayRequest {
     /// A stable identifier for this exact request.
     ///
     /// Content addressed like a transcode session, so asking twice reuses the
-    /// sheets rather than decoding the film again.
+    /// sheets rather than decoding the film again — and [`RECIPE`] is part of the
+    /// address, so asking twice across a change to how sheets are drawn does not.
     #[must_use]
     pub fn id(&self) -> String {
         let mut hasher = Sha256::new();
 
+        hasher.update(RECIPE.to_be_bytes());
         hasher.update(self.input_path.as_bytes());
         hasher.update(self.interval_seconds.to_be_bytes());
         hasher.update(self.tile_width.to_be_bytes());
@@ -615,6 +627,33 @@ mod tests {
     #[test]
     fn the_same_request_addresses_the_same_thumbnails() {
         assert_eq!(request().id(), request().id());
+    }
+
+    #[test]
+    fn the_recipe_is_part_of_the_address() {
+        use sha2::{Digest as _, Sha256};
+        use std::fmt::Write as _;
+
+        let request = request();
+        let mut hasher = Sha256::new();
+
+        hasher.update(request.input_path.as_bytes());
+        hasher.update(request.interval_seconds.to_be_bytes());
+        hasher.update(request.tile_width.to_be_bytes());
+        hasher.update(request.columns.to_be_bytes());
+        hasher.update(request.rows.to_be_bytes());
+
+        let mut without_the_recipe = String::with_capacity(32);
+
+        for byte in hasher.finalize().iter().take(16) {
+            let _ = write!(without_the_recipe, "{byte:02x}");
+        }
+
+        assert_ne!(
+            request.id(),
+            without_the_recipe,
+            "sheets drawn by an older recipe must not answer to the same address"
+        );
     }
 
     #[test]
