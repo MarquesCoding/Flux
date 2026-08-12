@@ -78,6 +78,7 @@ const createMemoryAuth = (
     cookieSecure: env.COOKIE_SECURE,
     setupCompletedAt: null,
     catalogueApiKey: '',
+    hardwareAccel: '',
     seededJobTriggerKinds: [],
     seededRoleNames: [],
   });

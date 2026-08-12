@@ -1073,6 +1073,7 @@ const createApp = ({
         users,
         settings: {
           hasCatalogueKey: current.catalogueApiKey !== '',
+          hardwareAccel: current.hardwareAccel,
           trustedOrigins: current.trustedOrigins,
           cookieSecure: current.cookieSecure,
         },
@@ -1099,15 +1100,17 @@ const createApp = ({
 
     const patch = context.req.valid('json');
 
-    const updated = await settings.write(
-      patch.catalogueApiKey === undefined ? {} : { catalogueApiKey: patch.catalogueApiKey },
-    );
+    const updated = await settings.write({
+      ...(patch.catalogueApiKey === undefined ? {} : { catalogueApiKey: patch.catalogueApiKey }),
+      ...(patch.hardwareAccel === undefined ? {} : { hardwareAccel: patch.hardwareAccel }),
+    });
 
     return context.json(
       {
         hasCatalogueKey: updated.catalogueApiKey !== '',
         trustedOrigins: updated.trustedOrigins,
         cookieSecure: updated.cookieSecure,
+        hardwareAccel: updated.hardwareAccel,
       },
       200,
     );

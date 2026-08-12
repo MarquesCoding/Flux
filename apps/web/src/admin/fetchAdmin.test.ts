@@ -39,6 +39,7 @@ const OVERVIEW = {
     hasCatalogueKey: true,
     trustedOrigins: ['http://localhost:5173'],
     cookieSecure: false,
+    hardwareAccel: '',
   },
   transcoder: {
     isReachable: true,

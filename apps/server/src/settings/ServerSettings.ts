@@ -5,6 +5,7 @@ const ServerSettingsSchema = z.object({
   cookieSecure: z.boolean(),
   setupCompletedAt: z.string().datetime().nullable(),
   catalogueApiKey: z.string().default(''),
+  hardwareAccel: z.string().default(''),
   seededJobTriggerKinds: z.array(z.string()).default([]),
   seededRoleNames: z.array(z.string()).default([]),
 });
