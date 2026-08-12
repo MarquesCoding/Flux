@@ -206,7 +206,12 @@ const CorrectionRequest = z
   })
   .openapi('CorrectionRequest');
 
-const Correction = z.object({ corrected: z.number().int().nonnegative() }).openapi('Correction');
+const Correction = z
+  .object({
+    corrected: z.number().int().nonnegative(),
+    jobId: z.string().nullable(),
+  })
+  .openapi('Correction');
 
 const correctMatchRoute = createRoute({
   method: 'post',

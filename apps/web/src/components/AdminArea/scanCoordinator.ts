@@ -162,6 +162,16 @@ const resumeRunning = async (): Promise<void> => {
 };
 
 /**
+ * Follows a job somebody else queued, as though this page had started it.
+ *
+ * A correction is made from a dialog rather than from the Libraries panel, so
+ * without this the work it sets off would run unwatched and the operator
+ * would be told it was done while the files were still being read.
+ */
+const watchJob = (libraryId: string, kind: string, jobId: string): Promise<void> =>
+  runAndTrack(libraryId, kind, () => Promise.resolve({ jobId, state: 'queued' }));
+
+/**
  * Scans one library, tracking its progress until it finishes.
  *
  * Forced, every file is read again whatever the filesystem says about it. An
@@ -262,6 +272,7 @@ export {
   subscribe,
   getSnapshot,
   resumeRunning,
+  watchJob,
   startScan,
   startScanAll,
   startResetAll,

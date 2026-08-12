@@ -10,6 +10,23 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
  */
 const SCAN_LIBRARY_JOB = 'library.scan';
 
+/**
+ * Reads a few named files again, after somebody said what they are.
+ *
+ * Not a `library.scan` with a short list, because a scan deletes what it did
+ * not find and this listing is deliberately a handful of the library. Its own
+ * kind also means a correction appears in Activity as what it is rather than
+ * as a scan nobody started.
+ */
+const READ_AGAIN_JOB = 'library.readAgain';
+
+const ReadAgainJobSchema = z.object({
+  libraryId: z.string().uuid(),
+  paths: z.array(z.string().min(1)).min(1),
+});
+
+type ReadAgainJob = z.infer<typeof ReadAgainJobSchema>;
+
 const ScanLibraryJobSchema = z.object({
   libraryId: z.string().uuid(),
   force: z.boolean().default(false),
@@ -198,6 +215,7 @@ export type {
   JobQueue,
   JobState,
   RegeneratePreviewsJob,
+  ReadAgainJob,
   RegenerateTrickplayJob,
   RunningJob,
   ScanLibraryJob,
@@ -206,6 +224,8 @@ export type {
 export {
   SCAN_LIBRARY_JOB,
   ScanLibraryJobSchema,
+  READ_AGAIN_JOB,
+  ReadAgainJobSchema,
   REGENERATE_PREVIEWS_JOB,
   RegeneratePreviewsJobSchema,
   REGENERATE_TRICKPLAY_JOB,

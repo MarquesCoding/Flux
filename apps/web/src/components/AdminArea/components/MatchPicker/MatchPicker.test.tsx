@@ -47,9 +47,9 @@ beforeEach(() => {
   searchCatalogueMock.mockReset();
   correctMatchMock.mockReset();
   forgetCorrectionMock.mockReset();
-  forgetCorrectionMock.mockResolvedValue({ corrected: 10 });
+  forgetCorrectionMock.mockResolvedValue({ corrected: 10, jobId: 'job-2' });
   searchCatalogueMock.mockResolvedValue([MATCH]);
-  correctMatchMock.mockResolvedValue({ corrected: 10 });
+  correctMatchMock.mockResolvedValue({ corrected: 10, jobId: 'job-1' });
 });
 
 describe('MatchPicker', () => {
@@ -181,6 +181,19 @@ describe('MatchPicker', () => {
     await user.click(screen.getByRole('button', { name: /Forget the correction/ }));
 
     expect(searchCatalogueMock).not.toHaveBeenCalled();
+  });
+
+  it('hands back the job reading the files, so it can be watched', async () => {
+    const onCorrected = vi.fn();
+    const user = userEvent.setup();
+    render(<MatchPicker media={episode} onClose={vi.fn()} onCorrected={onCorrected} />);
+
+    await user.click(screen.getByRole('button', { name: 'Search' }));
+    await user.click(await screen.findByRole('button', { name: /From \(2022\)/ }));
+
+    await waitFor(() => {
+      expect(onCorrected).toHaveBeenCalledWith('job-1');
+    });
   });
 
   it('says a correction reaches the whole series', () => {

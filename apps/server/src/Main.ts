@@ -40,6 +40,8 @@ import { createPlaybackService } from '@FluxServer/playback/createPlaybackServic
 import { createJobQueue } from '@FluxServer/jobs/createJobQueue';
 import {
   SCAN_LIBRARY_JOB,
+  READ_AGAIN_JOB,
+  ReadAgainJobSchema,
   ScanLibraryJobSchema,
   REGENERATE_PREVIEWS_JOB,
   RegeneratePreviewsJobSchema,
@@ -224,6 +226,21 @@ const jobs = await createJobQueue({
         await libraryService.runRegeneratePreviews(libraryId, language ?? null, jobId);
         await libraryService.runRegenerateTrickplay(libraryId, jobId);
         await runDetectSegments(libraryId, jobId);
+      });
+    },
+    [READ_AGAIN_JOB]: async (jobId, payload) => {
+      const parsed = ReadAgainJobSchema.safeParse(payload);
+
+      if (!parsed.success) {
+        process.stderr.write('job queue: a re-read job carried data Flux could not read.\n');
+
+        return;
+      }
+
+      const { libraryId, paths } = parsed.data;
+
+      await libraryWork.run(libraryId, async () => {
+        await libraryService.runReadAgain(libraryId, paths, jobId);
       });
     },
     [REGENERATE_PREVIEWS_JOB]: async (jobId, payload) => {

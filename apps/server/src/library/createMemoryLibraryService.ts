@@ -157,11 +157,13 @@ const createMemoryLibraryService = (
               one.metadata.seriesTitle === item.metadata.seriesTitle,
           );
 
-    return Promise.resolve({ corrected: family.length });
+    return Promise.resolve({ corrected: family.length, jobId: null });
   },
 
   forgetCorrection: (mediaId) =>
-    Promise.resolve(state.media.some((one) => one.id === mediaId) ? { corrected: 1 } : null),
+    Promise.resolve(
+      state.media.some((one) => one.id === mediaId) ? { corrected: 1, jobId: null } : null,
+    ),
 
   reset: (libraryId) => {
     if (!state.libraries.some((entry) => entry.id === libraryId)) {
