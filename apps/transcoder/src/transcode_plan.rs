@@ -353,6 +353,20 @@ pub fn video_filter_chain(
     steps.join(",")
 }
 
+/// Keeps a source's closed captions out of an encode.
+///
+/// `h264_videotoolbox` carries A53 captions through by default and fails
+/// outright on some sources that have them — "Unexpected end of SEI NAL Unit
+/// parsing size" — which kills the whole session for a picture that would
+/// otherwise encode. Flux delivers subtitles as separate tracks, so there was
+/// never anything to preserve here.
+///
+/// Passed to every encoder rather than only the ones known to accept it. An
+/// encoder without the option ignores it and carries on; ffmpeg says so above
+/// `error` level, which is quieter than a list of encoder names that has to be
+/// right for ever.
+pub const NO_EMBEDDED_CAPTIONS: [&str; 2] = ["-a53cc", "0"];
+
 /// A fully resolved transcode instruction.
 ///
 /// The `FFmpeg` command line is always built from this struct and never
@@ -398,6 +412,11 @@ impl TranscodePlan {
                 args.push(encoder.clone());
                 args.push("-b:v".into());
                 args.push(format!("{max_bitrate_kbps}k"));
+                args.extend(
+                    NO_EMBEDDED_CAPTIONS
+                        .iter()
+                        .map(|argument| (*argument).to_owned()),
+                );
                 let text_burn_in = match &self.spec.subtitles {
                     SubtitleAction::BurnIn {
                         subtitle_index,
@@ -542,6 +561,30 @@ mod tests {
 
         assert!(args.windows(2).any(|w| w == ["-c:v", "copy"]));
         assert!(args.windows(2).any(|w| w == ["-c:a", "copy"]));
+    }
+
+    #[test]
+    fn keeps_a_sources_captions_out_of_an_encode() {
+        let args = plan(SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264_videotoolbox".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1920,
+                max_height: 1080,
+                tone_map: None,
+            },
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|w| w == ["-a53cc", "0"]));
+    }
+
+    #[test]
+    fn leaves_a_copied_stream_alone() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(!args.iter().any(|argument| argument == "-a53cc"));
     }
 
     #[test]

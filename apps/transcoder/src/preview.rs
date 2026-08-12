@@ -19,7 +19,7 @@ use thiserror::Error;
 use tokio::process::Command;
 
 use crate::media::VideoRange;
-use crate::transcode_plan::{tone_map_filter, ToneMapping};
+use crate::transcode_plan::{tone_map_filter, ToneMapping, NO_EMBEDDED_CAPTIONS};
 
 /// The file a preview is written to.
 pub const PREVIEW_NAME: &str = "preview.mp4";
@@ -215,6 +215,8 @@ pub fn preview_arguments(
         "high".to_owned(),
         "-pix_fmt".to_owned(),
         "yuv420p".to_owned(),
+        NO_EMBEDDED_CAPTIONS[0].to_owned(),
+        NO_EMBEDDED_CAPTIONS[1].to_owned(),
         "-c:a".to_owned(),
         "aac".to_owned(),
         "-b:a".to_owned(),
