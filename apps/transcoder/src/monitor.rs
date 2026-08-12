@@ -15,6 +15,7 @@ use serde::Serialize;
 use sysinfo::{DiskRefreshKind, Disks, Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 use tokio::sync::Mutex;
 
+use crate::graphics::GraphicsUse;
 use crate::queue::now_ms;
 
 /// How many log lines are kept.
@@ -30,6 +31,14 @@ const LOG_LINES: usize = 400;
 /// number that has not changed. Half a minute is fresh enough for a figure
 /// somebody glances at.
 const DISK_INTERVAL: Duration = Duration::from_secs(30);
+
+/// How often the graphics hardware is asked what it is doing.
+///
+/// Asking means starting a vendor tool, which is far too expensive to do on
+/// the reading a watching page takes every second. Every few seconds is enough
+/// to see a transcode take hold, and it happens on its own timer where no
+/// request is waiting on it.
+const GRAPHICS_INTERVAL: Duration = Duration::from_secs(5);
 
 /// How serious a line is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -93,6 +102,8 @@ pub struct ResourceUse {
     pub load_average: f64,
     /// Every mounted filesystem, measured less often than the rest of this.
     pub disks: Vec<DiskUse>,
+    /// What the graphics hardware is doing, where the machine will say.
+    pub graphics: Option<GraphicsUse>,
 }
 
 /// Everything a monitoring page reads.
@@ -150,6 +161,7 @@ impl Journal {
 pub struct Monitor {
     system: Arc<Mutex<System>>,
     disks: Arc<Mutex<DiskReadings>>,
+    graphics: Arc<Mutex<Option<GraphicsUse>>>,
     journal: Journal,
 }
 
@@ -206,6 +218,7 @@ impl Monitor {
         Self {
             system: Arc::new(Mutex::new(System::new())),
             disks: Arc::new(Mutex::new(DiskReadings::new())),
+            graphics: Arc::new(Mutex::new(None)),
             journal,
         }
     }
@@ -215,9 +228,32 @@ impl Monitor {
         &self.journal
     }
 
+    /// Starts asking the graphics hardware what it is doing.
+    ///
+    /// Deliberately not part of building a monitor. Reading a card means
+    /// starting a vendor tool, and that must never be able to slow down or
+    /// fail anything that is waiting: this writes to a cell on its own timer,
+    /// and [`Monitor::measure`] only ever hands out what it finds there. A
+    /// monitor nobody has started this on reports no card, which is also what
+    /// a machine with nothing to say reports.
+    pub fn watch_graphics(&self) {
+        let cell = Arc::clone(&self.graphics);
+
+        tokio::spawn(async move {
+            loop {
+                let reading = crate::graphics::read().await;
+
+                *cell.lock().await = reading;
+
+                tokio::time::sleep(GRAPHICS_INTERVAL).await;
+            }
+        });
+    }
+
     /// Measures the machine and the processes the service is responsible for.
     pub async fn measure(&self) -> ResourceUse {
         let disks = self.disks.lock().await.read();
+        let graphics = self.graphics.lock().await.clone();
         let mut system = self.system.lock().await;
 
         system.refresh_cpu_usage();
@@ -254,6 +290,7 @@ impl Monitor {
             children,
             load_average: System::load_average().one,
             disks,
+            graphics,
         }
     }
 }

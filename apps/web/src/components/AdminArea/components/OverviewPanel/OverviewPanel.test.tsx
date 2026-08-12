@@ -43,6 +43,7 @@ const monitor = (jobs: Job[] = [], queued = 0): Monitor => ({
     children: [],
     loadAverage: 0,
     disks: [],
+    graphics: null,
   },
   queue: { concurrency: 1, queued, running: 0, jobs },
   sessions: 0,

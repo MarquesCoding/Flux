@@ -50,6 +50,7 @@ const MONITOR: Monitor = {
       { mountPoint: '/', totalBytes: 500 * 1024 ** 3, availableBytes: 100 * 1024 ** 3 },
       { mountPoint: '/media', totalBytes: 8 * 1024 ** 4, availableBytes: 2 * 1024 ** 4 },
     ],
+    graphics: { name: 'Apple M5 Pro', encoderPercent: null, devicePercent: 41 },
   },
   queue: {
     concurrency: 2,
@@ -390,6 +391,19 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     expect(await screen.findByText('10 cores · Flux 19%')).toBeInTheDocument();
+  });
+
+  it('says the graphics figure is the whole card when the encoder cannot be read', async () => {
+    render(<AdminArea />);
+
+    expect(await screen.findByText('41%')).toBeInTheDocument();
+    expect(await screen.findByText('whole card · encoder not readable')).toBeInTheDocument();
+  });
+
+  it('names the card where the server is described', async () => {
+    render(<AdminArea />);
+
+    expect(await screen.findByText('Apple M5 Pro')).toBeInTheDocument();
   });
 
   it('reports room left on the disk the library is on, not on the one Flux boots from', async () => {

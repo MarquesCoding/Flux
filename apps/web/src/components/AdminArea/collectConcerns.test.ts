@@ -34,6 +34,7 @@ const healthyMonitor = (
     children: [],
     loadAverage: 0,
     disks: [],
+    graphics: null,
   },
   queue: { concurrency: 1, queued: 0, running: 0, jobs },
   sessions: 0,
@@ -340,6 +341,49 @@ describe('collectConcerns', () => {
       });
 
       expect(concerns.map((concern) => concern.id)).toContain('no-catalogue-key');
+    });
+  });
+
+  describe('the graphics encoder', () => {
+    it('reports an encoder that has stayed at full stretch', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        encoderHistory: Array.from({ length: 15 }, () => 96),
+      });
+
+      expect(concerns.map((concern) => concern.id)).toContain('encoder');
+    });
+
+    it('says nothing about one busy moment', () => {
+      const concerns = collectConcerns({ ...healthy, encoderHistory: [100, 100, 100] });
+
+      expect(concerns).toEqual([]);
+    });
+
+    it('stays quiet when a reading in the run dipped', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        encoderHistory: [...Array.from({ length: 14 }, () => 96), 20],
+      });
+
+      expect(concerns).toEqual([]);
+    });
+
+    it('says nothing at all on a machine whose encoder cannot be read', () => {
+      const concerns = collectConcerns({ ...healthy, encoderHistory: [] });
+
+      expect(concerns).toEqual([]);
+    });
+
+    it('says what happens next, which is the part worth acting on', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        encoderHistory: Array.from({ length: 15 }, () => 96),
+      });
+
+      expect(concerns.find((concern) => concern.id === 'encoder')?.detail).toContain(
+        'fall back to the processor',
+      );
     });
   });
 

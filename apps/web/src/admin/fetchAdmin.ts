@@ -56,6 +56,12 @@ const DiskUseSchema = z.object({
   availableBytes: z.number(),
 });
 
+const GraphicsUseSchema = z.object({
+  name: z.string(),
+  encoderPercent: z.number().nullable(),
+  devicePercent: z.number().nullable(),
+});
+
 const MonitorSchema = z.object({
   resources: z.object({
     atMs: z.number(),
@@ -68,6 +74,7 @@ const MonitorSchema = z.object({
     children: z.array(ProcessUseSchema),
     loadAverage: z.number(),
     disks: z.array(DiskUseSchema).default([]),
+    graphics: GraphicsUseSchema.nullable().default(null),
   }),
   queue: z.object({
     concurrency: z.number(),

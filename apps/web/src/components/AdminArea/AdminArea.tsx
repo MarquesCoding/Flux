@@ -36,6 +36,7 @@ import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
 import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
+import { describeGraphics } from './describeGraphics';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
   resumeRunning,
@@ -152,6 +153,7 @@ const AdminArea = ({
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [monitor, setMonitor] = useState<Monitor | null>(null);
   const [history, setHistory] = useState<number[]>([]);
+  const [encoderHistory, setEncoderHistory] = useState<number[]>([]);
   const [panel, setPanel] = useState<PanelId>(
     () => PANELS.find((candidate) => candidate.id === initialPanel)?.id ?? 'overview',
   );
@@ -373,6 +375,11 @@ const AdminArea = ({
       setHistory((current) =>
         [...current, reading.resources.systemCpuPercent].slice(-historyLength),
       );
+      setEncoderHistory((current) => {
+        const encoder = reading.resources.graphics?.encoderPercent ?? null;
+
+        return encoder === null ? [] : [...current, encoder].slice(-historyLength);
+      });
     });
 
     return stop;
@@ -461,7 +468,14 @@ const AdminArea = ({
           transition={revealTransition(prefersReducedMotion)}
         >
           <ConcernsBanner
-            concerns={collectConcerns({ overview, monitor, libraries, sessions, history })}
+            concerns={collectConcerns({
+              overview,
+              monitor,
+              libraries,
+              sessions,
+              history,
+              encoderHistory,
+            })}
             onOpenPanel={(next) => {
               const found = PANELS.find((candidate) => candidate.id === next);
 
@@ -498,6 +512,10 @@ const AdminArea = ({
                   resources === null
                     ? '—'
                     : `of ${formatBytes(resources.systemMemoryTotalBytes)} · service ${formatBytes(resources.serviceMemoryBytes)}`,
+              },
+              {
+                label: 'Graphics',
+                ...describeGraphics(resources?.graphics ?? null),
               },
               {
                 label: 'Storage',

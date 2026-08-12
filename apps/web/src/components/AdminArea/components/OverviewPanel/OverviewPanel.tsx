@@ -142,6 +142,13 @@ const OverviewPanel = ({
             ))}
 
             <div className="flex items-baseline justify-between gap-3">
+              <dt className="shrink-0 text-text-muted">Graphics</dt>
+              <dd className="min-w-0 truncate text-text">
+                {resources?.graphics?.name ?? 'None Flux can read'}
+              </dd>
+            </div>
+
+            <div className="flex items-baseline justify-between gap-3">
               <dt className="text-text-muted">Processors</dt>
               <dd className="tabular-nums text-text">
                 {resources === null ? '—' : resources.cpuCount.toString()}

@@ -40,6 +40,13 @@ type CollectConcernsOptions = {
    * server working, not failing.
    */
   history?: number[];
+  /**
+   * Encoder readings, oldest first, and only from a card that reports its
+   * encode block. A machine that cannot measure its encoder contributes no
+   * readings rather than zeroes, so nothing here can mistake an unreadable
+   * encoder for an idle one.
+   */
+  encoderHistory?: number[];
 };
 
 /**
@@ -66,6 +73,16 @@ const CPU_PRESSURE = 90;
  * A reading a second, so this is the last quarter minute.
  */
 const CPU_READINGS = 15;
+
+/**
+ * The encoder share, sustained, past which it is worth mentioning.
+ *
+ * The same reasoning as the processor: a stream starting takes the encode
+ * block to full for a moment and that is the card doing its job. What is worth
+ * saying is that it has stayed there, because the next stream to ask for
+ * hardware will not get it.
+ */
+const ENCODER_PRESSURE = 90;
 
 /**
  * The share of the library disk in use past which it is worth mentioning.
@@ -116,6 +133,7 @@ const collectConcerns = ({
   libraries,
   sessions = [],
   history = [],
+  encoderHistory = [],
 }: CollectConcernsOptions): Concern[] => {
   const concerns: Concern[] = [];
 
@@ -219,6 +237,22 @@ const collectConcerns = ({
     });
   }
 
+  const encoderRecent = encoderHistory.slice(-CPU_READINGS);
+
+  if (
+    encoderRecent.length === CPU_READINGS &&
+    encoderRecent.every((reading) => reading > ENCODER_PRESSURE)
+  ) {
+    concerns.push({
+      id: 'encoder',
+      tone: 'attention',
+      title: 'The graphics encoder has been at full stretch',
+      detail:
+        'The next stream that needs converting will fall back to the processor, which is several times the work.',
+      panel: 'activity',
+    });
+  }
+
   const starved = sessions.filter(
     (session) =>
       session.playback !== null &&
@@ -283,6 +317,7 @@ export {
   MEMORY_PRESSURE,
   CPU_PRESSURE,
   CPU_READINGS,
+  ENCODER_PRESSURE,
   DISK_PRESSURE,
   FLUX_BLAME,
   STARVED_SECONDS,
