@@ -149,15 +149,19 @@ pub struct RejectedEncoder {
 /// problem. Keeping all of it makes the admin page unreadable; keeping the
 /// first line usually keeps "Error while opening encoder" and throws away the
 /// reason.
+///
+/// `fallback` stands in when ffmpeg failed without saying anything, and belongs
+/// to the caller: the same silence means different things when an encoder would
+/// not open and when a finished file would not decode.
 #[must_use]
-pub fn summarise_failure(stderr: &str) -> String {
+pub fn summarise_failure(stderr: &str, fallback: &str) -> String {
     const LIMIT: usize = 200;
 
     let last = stderr
         .lines()
         .map(str::trim)
         .rfind(|line| !line.is_empty())
-        .unwrap_or("the encoder would not open, and said nothing about why");
+        .unwrap_or(fallback);
 
     if last.chars().count() <= LIMIT {
         return last.to_owned();
@@ -371,7 +375,10 @@ async fn verify_encoder(
         return Ok(());
     }
 
-    Err(summarise_failure(&String::from_utf8_lossy(&outcome.stderr)))
+    Err(summarise_failure(
+        &String::from_utf8_lossy(&outcome.stderr),
+        "the encoder would not open, and said nothing about why",
+    ))
 }
 
 async fn read_version(ffmpeg: &str) -> String {
