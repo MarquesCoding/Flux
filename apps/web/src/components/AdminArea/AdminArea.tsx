@@ -430,7 +430,7 @@ const AdminArea = ({
                 overview={overview}
                 monitor={monitor}
                 libraries={libraries}
-                sessionCount={sessions.length}
+                sessions={sessions}
                 onOpenPanel={(next) => {
                   const found = PANELS.find((candidate) => candidate.id === next);
 
