@@ -50,6 +50,14 @@ type OptionMenuProps = {
    * space as the field claims; an icon trigger does not.
    */
   matchTriggerWidth?: boolean;
+  /**
+   * What the control that opens the menu is shaped like.
+   *
+   * `icon` is a round button for a toolbar. `field` is the full-width control
+   * a form uses, which looks and stands like a text field so a row mixing the
+   * two lines up.
+   */
+  triggerShape?: 'icon' | 'field';
 };
 
 export type { MenuGroup, MenuOption, OptionMenuProps };

@@ -18,6 +18,7 @@ const films = (overrides: Partial<Library> = {}): Library => ({
   itemCount: 3,
   lastScannedAt: null,
   defaultAudioLanguage: null,
+  filesAtOnce: null,
   ...overrides,
 });
 
@@ -110,7 +111,10 @@ describe('LibrarySettingsDialog', () => {
     await actor.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
-      expect(updateLibraryMock).toHaveBeenCalledWith(films().id, { defaultAudioLanguage: 'de' });
+      expect(updateLibraryMock).toHaveBeenCalledWith(films().id, {
+        defaultAudioLanguage: 'de',
+        filesAtOnce: null,
+      });
     });
 
     expect(onUpdated).toHaveBeenCalled();
@@ -238,5 +242,73 @@ describe('LibrarySettingsDialog', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(LibrarySettingsDialog.displayName).toBe('LibrarySettingsDialog');
+  });
+
+  it('asks for one file at a time when a library is told to', async () => {
+    const user = userEvent.setup();
+
+    updateLibraryMock.mockResolvedValue(films({ filesAtOnce: 1 }));
+
+    render(
+      <LibrarySettingsDialog
+        library={films()}
+        isOpen
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+        onRegenerate={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Files at once/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: /One at a time/ }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(updateLibraryMock).toHaveBeenCalledWith(
+        films().id,
+        expect.objectContaining({ filesAtOnce: 1 }),
+      );
+    });
+  });
+
+  it('leaves it to the server unless somebody says otherwise', async () => {
+    const user = userEvent.setup();
+
+    updateLibraryMock.mockResolvedValue(films());
+
+    render(
+      <LibrarySettingsDialog
+        library={films()}
+        isOpen
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+        onRegenerate={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(updateLibraryMock).toHaveBeenCalledWith(
+        films().id,
+        expect.objectContaining({ filesAtOnce: null }),
+      );
+    });
+  });
+
+  it('opens showing what the library is already set to', () => {
+    render(
+      <LibrarySettingsDialog
+        library={films({ filesAtOnce: 1 })}
+        isOpen
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+        onRegenerate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Files at once/ })).toHaveTextContent(
+      'One at a time',
+    );
   });
 });

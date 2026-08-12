@@ -58,6 +58,17 @@ const DEFAULT_LIGHTS: MoodLight[] = HOUSE.map((color) => ({ color }));
 const EASE = 0.03;
 
 /**
+ * How far the wash travels for each pixel the page does.
+ *
+ * The light belongs to what is being shown, so it should leave with it rather
+ * than stay pinned to the top of the document — but at the page's own speed it
+ * would be gone before the artwork it was taken from. Moving it down at a
+ * third of the scroll keeps it under the hero as the hero goes, and lets the
+ * rows below pass over a background that is still moving.
+ */
+const PARALLAX = 0.34;
+
+/**
  * How the light for one bloom is written.
  */
 const paint = (light: MoodLight, at: number): string => {
@@ -97,6 +108,8 @@ const MoodBackground = ({
   const heldRef = useRef<MoodLight[]>([]);
   const wantedRef = useRef<MoodLight[]>(lit);
   const paintedRef = useRef<string[]>([]);
+  const driftingRef = useRef<HTMLDivElement | null>(null);
+  const shiftedRef = useRef(-1);
 
   wantedRef.current = lit;
 
@@ -114,6 +127,14 @@ const MoodBackground = ({
         prefersReducedMotion === true || heldRef.current.length !== wanted.length
           ? wanted
           : blendLights(heldRef.current, wanted, EASE);
+
+      const shift = Math.round(window.scrollY * PARALLAX);
+      const drifting = driftingRef.current;
+
+      if (drifting !== null && shiftedRef.current !== shift) {
+        shiftedRef.current = shift;
+        drifting.style.transform = `translate3d(0, ${shift.toString()}px, 0)`;
+      }
 
       heldRef.current.forEach((light, at) => {
         const element = bloomsRef.current[at];
@@ -140,7 +161,7 @@ const MoodBackground = ({
       role="presentation"
       className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[140svh] overflow-hidden"
     >
-      <div className="absolute inset-0">
+      <div ref={driftingRef} className="absolute inset-0 will-change-transform">
         {lit.slice(0, BLOOMS.length).map((light, at) => (
           <span
             key={`bloom-${at.toString()}`}
@@ -159,10 +180,10 @@ const MoodBackground = ({
           />
         ))}
 
-        <span className="flux-mood-fade" />
+        {hasGrid ? <DotField /> : null}
       </div>
 
-      {hasGrid ? <DotField /> : null}
+      <span className="flux-mood-fade" />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   IconAlertTriangle,
   IconShareplay,
@@ -92,6 +93,16 @@ type FullscreenOwner = {
 };
 
 const IDLE_MILLISECONDS = 2500;
+
+/**
+ * How long the casting note stays up before taking itself away.
+ *
+ * Long enough to read twice, since it explains something to go and do rather
+ * than merely reporting. It answers a press that has already happened, so
+ * there is nothing to dismiss and nobody waiting on it — left up it becomes
+ * part of the picture, and the next press has no way to say anything new.
+ */
+const CAST_NOTE_MILLISECONDS = 6000;
 
 /**
  * How far a jump moves.
@@ -245,6 +256,21 @@ const VideoPlayer = ({
   const [isPoppedOut, setIsPoppedOut] = useState(false);
   const [castState, setCastState] = useState<CastState>('unavailable');
   const [castNote, setCastNote] = useState<string | null>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (castNote === null) {
+      return;
+    }
+
+    const goes = setTimeout(() => {
+      setCastNote(null);
+    }, CAST_NOTE_MILLISECONDS);
+
+    return () => {
+      clearTimeout(goes);
+    };
+  }, [castNote]);
   const releaseRef = useRef<(() => Promise<void>) | null>(null);
   const castContextRef = useRef<CastContext | null>(null);
 
@@ -1341,13 +1367,21 @@ const VideoPlayer = ({
           />
         )}
 
-        {castNote === null ? null : (
-          <div className="pointer-events-none absolute inset-x-0 bottom-24 z-30 flex justify-center px-4">
-            <p className="flux-glass max-w-md rounded-2xl px-4 py-2 text-center text-sm text-white">
-              {castNote}
-            </p>
-          </div>
-        )}
+        <AnimatePresence>
+          {castNote === null ? null : (
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+              transition={{ duration: prefersReducedMotion === true ? 0 : 0.22, ease: 'easeOut' }}
+              className="pointer-events-none absolute inset-x-0 bottom-24 z-30 flex justify-center px-4"
+            >
+              <p className="flux-glass max-w-md rounded-2xl px-4 py-2 text-center text-sm text-white">
+                {castNote}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">

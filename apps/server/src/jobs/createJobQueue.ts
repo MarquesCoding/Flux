@@ -59,6 +59,16 @@ const createJobQueue = async ({
   const running = new Map<string, { kind: string; subject: string | null }>();
 
   /**
+   * The jobs somebody has asked to stop.
+   *
+   * Held here rather than in the database because the only thing that can act
+   * on it is the loop in this process that is doing the work, and it is asked
+   * between items — a job that has already finished is removed with the rest
+   * of what was known about it.
+   */
+  const cancelled = new Set<string>();
+
+  /**
    * What a job is about, read from its own payload.
    *
    * Everything that runs against a library carries its id, which is what a
@@ -66,6 +76,24 @@ const createJobQueue = async ({
    */
   const subjectOf = (payload: { [key: string]: JsonValue }): string | null =>
     typeof payload['libraryId'] === 'string' ? payload['libraryId'] : null;
+
+  /**
+   * Drops a job that has not started, holding the stop flag across the gap.
+   *
+   * A worker can take the job in the moment between reading its state and
+   * dropping it, so the flag goes up first and comes back down once it is
+   * clear nothing took it — otherwise a job cancelled while queued would leave
+   * its id behind for as long as the server runs.
+   */
+  const dropQueued = async (kind: string, jobId: string): Promise<void> => {
+    cancelled.add(jobId);
+
+    await boss.cancel(kind, jobId);
+
+    if (!running.has(jobId)) {
+      cancelled.delete(jobId);
+    }
+  };
 
   boss.on('error', (error: Error) => {
     onProblem?.(error.message);
@@ -90,6 +118,7 @@ const createJobQueue = async ({
         } finally {
           running.delete(job.id);
           progressByJobId.delete(job.id);
+          cancelled.delete(job.id);
         }
       }
     });
@@ -125,6 +154,32 @@ const createJobQueue = async ({
         subject: about.subject,
         progress: progressByJobId.get(jobId) ?? null,
       })),
+
+    cancel: async (jobId) => {
+      if (running.has(jobId)) {
+        cancelled.add(jobId);
+
+        return true;
+      }
+
+      for (const kind of kinds) {
+        const job = await boss.getJobById(kind, jobId);
+
+        if (job !== null) {
+          if (PG_BOSS_STATES[job.state] !== 'queued') {
+            return false;
+          }
+
+          await dropQueued(kind, jobId);
+
+          return true;
+        }
+      }
+
+      return false;
+    },
+
+    isCancelled: (jobId) => cancelled.has(jobId),
 
     reportProgress: (jobId, phase, processed, total) => {
       progressByJobId.set(jobId, { phase, processed, total });

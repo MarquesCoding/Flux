@@ -25,6 +25,7 @@ type JobsPanelProps = {
   viewingJobKind: string | null;
   schedules: Map<string, JobTrigger[]>;
   onRun: (kind: string) => void;
+  onStop: (kind: string) => void;
   onOpenSchedule: (kind: string) => void;
   onCloseSchedule: () => void;
   onAddTrigger: (kind: string, trigger: ScheduleTrigger) => void;

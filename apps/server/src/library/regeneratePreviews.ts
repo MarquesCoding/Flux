@@ -30,6 +30,14 @@ type RegeneratePreviewsOptions = {
   atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (processed: number, total: number) => void;
+  /**
+   * Asked before each render whether somebody has stopped this job.
+   *
+   * What has already been rendered stays rendered. Nothing is marked for the
+   * items that were skipped, so the next run finds them outstanding and picks
+   * up where this one left off.
+   */
+  isCancelled?: () => boolean;
 };
 
 /**
@@ -52,6 +60,7 @@ const regeneratePreviews = async ({
   atOnce = 1,
   onProblem,
   onProgress,
+  isCancelled,
 }: RegeneratePreviewsOptions): Promise<void> => {
   const items = await store.listOutstanding(libraryId);
   let processed = 0;
@@ -59,6 +68,10 @@ const regeneratePreviews = async ({
   onProgress?.(processed, items.length);
 
   await mapWithLimit(items, atOnce, async (item) => {
+    if (isCancelled?.() === true) {
+      return;
+    }
+
     const audioStreamIndex =
       defaultAudioLanguage === null
         ? undefined

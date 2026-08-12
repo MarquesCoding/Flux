@@ -6,7 +6,7 @@ const entry = (
   phase: string | null,
   processed: number | null,
   total: number | null,
-): ScanEntry => ({ kind: 'library.scan', phase, processed, total });
+): ScanEntry => ({ kind: 'library.scan', phase, processed, total, jobId: 'job-1' });
 
 describe('summariseProgress', () => {
   it('puts the Run button back when nothing is running', () => {

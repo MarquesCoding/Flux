@@ -16,6 +16,12 @@ type SearchAreaProps = {
    */
   search: string;
   onSearchChange: (search: string) => void;
+  /**
+   * The genre the results are narrowed to, kept in the address for the same
+   * reason the search text is: a genre is somewhere to be sent to.
+   */
+  genre: string | null;
+  onGenreChange: (genre: string | null) => void;
   onPlay: (media: MediaSummary, startSeconds: number) => void;
   onInspect: (media: MediaSummary) => void;
   /**

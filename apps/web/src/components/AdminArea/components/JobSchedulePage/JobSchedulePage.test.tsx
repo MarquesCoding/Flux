@@ -2,15 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { JobSchedulePage } from './JobSchedulePage';
-import type { JobDefinition, JobTrigger } from '@FluxWeb/admin/fetchAdmin';
-
-const DEFINITION: JobDefinition = {
-  kind: 'library.scan',
-  label: 'Scan for changes',
-  description: 'Finds new, changed and removed files.',
-  needsLibrary: true,
-  destructive: false,
-};
+import type { JobTrigger } from '@FluxWeb/admin/fetchAdmin';
 
 const NIGHTLY: JobTrigger = {
   id: 'trigger-1',
@@ -20,24 +12,10 @@ const NIGHTLY: JobTrigger = {
 const ON_STARTUP: JobTrigger = { id: 'trigger-2', trigger: { kind: 'startup' } };
 
 const build = (props: Partial<Parameters<typeof JobSchedulePage>[0]> = {}) => (
-  <JobSchedulePage
-    definition={DEFINITION}
-    triggers={[]}
-    onAdd={vi.fn()}
-    onRemove={vi.fn()}
-    onClose={vi.fn()}
-    {...props}
-  />
+  <JobSchedulePage triggers={[]} onAdd={vi.fn()} onRemove={vi.fn()} {...props} />
 );
 
 describe('JobSchedulePage', () => {
-  it('shows the job it is scheduling', () => {
-    render(build());
-
-    expect(screen.getByRole('heading', { name: 'Scan for changes' })).toBeInTheDocument();
-    expect(screen.getByText('Finds new, changed and removed files.')).toBeInTheDocument();
-  });
-
   it('says the job only runs when pressed while it has no triggers', () => {
     render(build());
 
@@ -73,17 +51,6 @@ describe('JobSchedulePage', () => {
     await user.click(screen.getByRole('button', { name: 'Add' }));
 
     expect(onAdd).toHaveBeenCalledWith({ kind: 'daily', hour: 3, minute: 0 });
-  });
-
-  it('closes when Back is pressed', async () => {
-    const onClose = vi.fn();
-    const user = userEvent.setup();
-
-    render(build({ onClose }));
-
-    await user.click(screen.getByRole('button', { name: 'Back' }));
-
-    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it('sets a display name so devtools can identify it', () => {

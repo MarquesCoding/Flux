@@ -79,7 +79,7 @@ describe('Dialog', () => {
       'motion-reduce:transition-opacity',
     );
   });
-  it('leaves faster than it arrives, since arriving is the part worth watching', () => {
+  it('leaves the way it arrived, rather than being snatched away', () => {
     render(
       <Dialog label="Arrival" isOpen onClose={vi.fn()}>
         <p>Details</p>
@@ -89,6 +89,7 @@ describe('Dialog', () => {
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
     expect(panel.className).toContain('duration-[280ms]');
-    expect(panel.className).toContain('data-[ending-style]:duration-150');
+    expect(panel.className).not.toContain('data-[ending-style]:duration-150');
+    expect(panel.className).toContain('sm:data-[ending-style]:scale-[0.92]');
   });
 });

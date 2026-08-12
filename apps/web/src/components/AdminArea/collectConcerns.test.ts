@@ -47,6 +47,7 @@ const library = (overrides: Partial<Library> = {}): Library => ({
   lastScannedAt: '2026-08-11T00:00:00.000Z',
   ...overrides,
   defaultAudioLanguage: null,
+  filesAtOnce: null,
 });
 
 const failedJob = (detail: string | null = null): Job => ({

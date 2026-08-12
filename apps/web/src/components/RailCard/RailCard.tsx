@@ -1,17 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  AnimatePresence,
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  useReducedMotion,
-} from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   IconHeart,
   IconHeartFilled,
   IconInfoCircle,
+  IconRotateClockwise,
   IconPlayerPlayFilled,
 } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
@@ -34,7 +28,7 @@ const HOVER_DELAY_MILLISECONDS = 600;
 /**
  * How much larger the open card is than the one it grew from.
  */
-const GROWTH = 1.35;
+const GROWTH = 1.18;
 
 /**
  * How far from the edge of the window the open card must stay.
@@ -45,23 +39,6 @@ const MARGIN = 12;
  * How many genres are worth naming on a card.
  */
 const GENRE_LIMIT = 3;
-
-/**
- * How far the open card leans towards the pointer, in degrees.
- *
- * Small on purpose. Enough that the panel feels like an object being looked
- * at rather than a picture stuck to the glass, and not so much that reading it
- * means fighting perspective.
- */
-const TILT = 7;
-
-/**
- * How the lean settles.
- *
- * Soft and slow to arrive, so the panel follows the pointer rather than
- * tracking it exactly — a card that mirrors every twitch reads as nervous.
- */
-const LEAN = { stiffness: 150, damping: 18, mass: 0.6 } as const;
 
 /**
  * Where a card is on screen.
@@ -127,12 +104,6 @@ const RailCard = ({
 }: RailCardProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const holderRef = useRef<HTMLDivElement>(null);
-  const towardsX = useMotionValue(0);
-  const towardsY = useMotionValue(0);
-  const leanX = useSpring(towardsX, LEAN);
-  const leanY = useSpring(towardsY, LEAN);
-  const rotateY = useTransform(leanX, (along) => along * TILT);
-  const rotateX = useTransform(leanY, (down) => down * -TILT);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
@@ -238,20 +209,6 @@ const RailCard = ({
       }}
       onPointerLeave={() => {
         cancel();
-        towardsX.set(0);
-        towardsY.set(0);
-      }}
-      onPointerMove={(event) => {
-        const holder = holderRef.current;
-
-        if (holder === null || prefersReducedMotion === true) {
-          return;
-        }
-
-        const box = holder.getBoundingClientRect();
-
-        towardsX.set((event.clientX - box.left) / box.width - 0.5);
-        towardsY.set((event.clientY - box.top) / box.height - 0.5);
       }}
     >
       <MediaCard
@@ -284,13 +241,10 @@ const RailCard = ({
                 left: anchor.left,
                 top: anchor.top,
                 width: anchor.width,
-                transformPerspective: 900,
-                rotateX,
-                rotateY,
               }}
-              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-2xl bg-surface-raised shadow-[0_2px_10px_rgb(0_0_0/0.4),0_40px_90px_-24px_rgb(0_0_0/0.85)] ring-1 ring-white/10"
+              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-[1.75rem] bg-surface-raised p-1.5 shadow-[0_2px_10px_rgb(0_0_0/0.4),0_40px_90px_-24px_rgb(0_0_0/0.85)] ring-1 ring-[var(--surface-line)]"
             >
-              <div className="aspect-video max-h-[42svh] w-full shrink-0 overflow-hidden">
+              <div className="aspect-video max-h-[42svh] w-full shrink-0 overflow-hidden rounded-[1.375rem]">
                 <MediaPreview
                   mediaId={media.id}
                   backdropUrl={artworkUrl ?? null}
@@ -300,7 +254,7 @@ const RailCard = ({
                 />
               </div>
 
-              <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 text-left">
+              <div className="flex min-h-0 w-full flex-1 flex-col gap-3 px-4 pb-4 pt-4 text-left">
                 <span className="flex items-start justify-between gap-3">
                   <span className="min-w-0 text-xs uppercase tracking-[0.16em] text-text-muted">
                     {media.seriesTitle === null || media.seriesTitle === undefined
@@ -363,39 +317,56 @@ const RailCard = ({
                   )}
                 </Button>
 
-                <span className="flex shrink-0 flex-wrap items-center gap-2 pt-1">
+                <span className="flex shrink-0 items-center gap-2 pt-1">
                   <Button
                     variant="glossy"
-                    size="sm"
+                    size="md"
                     isPill
+                    className="flex-1"
                     onClick={(event) => {
                       event.stopPropagation();
                       onPlay(media, resumeSeconds ?? 0);
                     }}
                   >
-                    <IconPlayerPlayFilled size={16} aria-hidden />
+                    <IconPlayerPlayFilled size={15} aria-hidden />
                     {resumeSeconds === undefined
                       ? 'Play'
                       : `Resume from ${formatDuration(resumeSeconds)}`}
                   </Button>
 
+                  {resumeSeconds === undefined ? null : (
+                    <Button
+                      isIconOnly
+                      variant="secondary"
+                      size="md"
+                      label={`Start ${media.title} again`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onPlay(media, 0);
+                      }}
+                    >
+                      <IconRotateClockwise size={17} aria-hidden />
+                    </Button>
+                  )}
+
                   <Button
+                    isIconOnly
                     variant="secondary"
-                    size="sm"
-                    isPill
+                    size="md"
+                    label={`More about ${media.title}`}
                     onClick={(event) => {
                       event.stopPropagation();
                       onInspect(media);
                     }}
                   >
-                    <IconInfoCircle size={16} aria-hidden />
-                    More info
+                    <IconInfoCircle size={17} aria-hidden />
                   </Button>
 
                   {onToggleKept === undefined ? null : (
                     <Button
                       isIconOnly
-                      variant="ghost"
+                      variant="secondary"
+                      size="md"
                       label={isKept ? `Stop keeping ${media.title}` : `Keep ${media.title}`}
                       isActive={isKept}
                       onClick={(event) => {
@@ -404,9 +375,9 @@ const RailCard = ({
                       }}
                     >
                       {isKept ? (
-                        <IconHeartFilled size={18} aria-hidden />
+                        <IconHeartFilled size={17} aria-hidden />
                       ) : (
-                        <IconHeart size={18} aria-hidden />
+                        <IconHeart size={17} aria-hidden />
                       )}
                     </Button>
                   )}

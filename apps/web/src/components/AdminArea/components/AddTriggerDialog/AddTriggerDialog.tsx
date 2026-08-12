@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { IconSelector } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
+import { DialogContent } from '@FluxUI/DialogContent';
+import { DialogFooter } from '@FluxUI/DialogFooter';
+import { DialogTitle } from '@FluxUI/DialogTitle';
 import { OptionMenu } from '@FluxUI/OptionMenu';
 import { TextField } from '@FluxUI/TextField';
 import { DAY_NAMES } from '@FluxWeb/admin/describeTrigger';
@@ -120,12 +123,12 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
         label={label}
         groups={[{ name: label, selectedId, onSelect, options }]}
         trigger={
-          <span className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-text">
-            {selectedLabel}
-            <IconSelector size={16} aria-hidden />
-          </span>
+          <>
+            <span className="truncate">{selectedLabel}</span>
+            <IconSelector size={15} className="shrink-0 text-text-muted" aria-hidden />
+          </>
         }
-        className="w-full"
+        triggerShape="field"
         align="start"
         matchTriggerWidth
       />
@@ -134,9 +137,9 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
 
   return (
     <Dialog label="Add trigger" isOpen={isOpen} onClose={onClose}>
-      <div className="flex flex-col gap-5 p-6">
-        <h2 className="text-lg font-medium text-text">Add trigger</h2>
+      <DialogTitle title="Add trigger" />
 
+      <DialogContent className="flex flex-col gap-5">
         {select(
           'Trigger type',
           type,
@@ -190,27 +193,27 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
             Runs once every time the server starts, with nothing else to set.
           </p>
         ) : null}
+      </DialogContent>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" isPill onClick={onClose} disabled={isSaving}>
-            Cancel
-          </Button>
+      <DialogFooter>
+        <Button variant="secondary" isPill onClick={onClose} disabled={isSaving}>
+          Cancel
+        </Button>
 
-          <Button
-            variant="glossy"
-            isPill
-            isLoading={isSaving}
-            disabled={built === null || isSaving}
-            onClick={() => {
-              if (built !== null) {
-                onAdd(built);
-              }
-            }}
-          >
-            Add
-          </Button>
-        </div>
-      </div>
+        <Button
+          variant="glossy"
+          isPill
+          isLoading={isSaving}
+          disabled={built === null || isSaving}
+          onClick={() => {
+            if (built !== null) {
+              onAdd(built);
+            }
+          }}
+        >
+          Add
+        </Button>
+      </DialogFooter>
     </Dialog>
   );
 };

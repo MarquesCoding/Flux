@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
+import { DialogContent } from '@FluxUI/DialogContent';
+import { DialogFooter } from '@FluxUI/DialogFooter';
+import { DialogTitle } from '@FluxUI/DialogTitle';
 import { TextField } from '@FluxUI/TextField';
 import { LIBRARY_KINDS } from '@FluxContracts/schemas/Library';
 import { createLibrary } from '@FluxWeb/library/fetchLibrary';
@@ -66,9 +69,9 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
 
   return (
     <Dialog label="Add a library" isOpen={isOpen} onClose={close}>
-      <div className="flex flex-col gap-5 p-6">
-        <h2 className="text-lg font-medium text-text">Add a library</h2>
+      <DialogTitle title="Add a library" />
 
+      <DialogContent className="flex flex-col gap-5">
         <TextField
           label="Name"
           value={name}
@@ -111,24 +114,24 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
             {errors.submit}
           </p>
         )}
+      </DialogContent>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" isPill onClick={close} disabled={isSubmitting}>
-            Cancel
-          </Button>
+      <DialogFooter>
+        <Button variant="secondary" isPill onClick={close} disabled={isSubmitting}>
+          Cancel
+        </Button>
 
-          <Button
-            variant="glossy"
-            isPill
-            isLoading={isSubmitting}
-            onClick={() => {
-              void submit();
-            }}
-          >
-            Add library
-          </Button>
-        </div>
-      </div>
+        <Button
+          variant="glossy"
+          isPill
+          isLoading={isSubmitting}
+          onClick={() => {
+            void submit();
+          }}
+        >
+          Add library
+        </Button>
+      </DialogFooter>
     </Dialog>
   );
 };

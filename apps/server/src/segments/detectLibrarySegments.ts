@@ -42,6 +42,15 @@ type DetectLibrarySegmentsOptions = {
    * season of twenty should not look like equal steps.
    */
   onProgress?: (processed: number, total: number) => void;
+  /**
+   * Asked between seasons whether somebody has stopped this job.
+   *
+   * A season is the smallest unit worth finishing — its episodes are compared
+   * against each other, and half a comparison answers nothing. Only the
+   * seasons that were finished are marked, so the next run starts at the one
+   * this stopped before.
+   */
+  isCancelled?: () => boolean;
 };
 
 /**
@@ -93,6 +102,7 @@ const detectLibrarySegments = async ({
   markComplete,
   onProblem,
   onProgress,
+  isCancelled,
 }: DetectLibrarySegmentsOptions): Promise<number> => {
   const groups = [...groupBySeason(await listCandidates(libraryId))].filter(([, group]) =>
     group.some((candidate) => !candidate.isComplete),
@@ -104,6 +114,10 @@ const detectLibrarySegments = async ({
   onProgress?.(processed, total);
 
   for (const [, group] of groups) {
+    if (isCancelled?.() === true) {
+      return marked;
+    }
+
     const baseline = processed;
 
     const { segments: found, wasAsked } = await resolveSegments(providers, group, onProblem, () => {

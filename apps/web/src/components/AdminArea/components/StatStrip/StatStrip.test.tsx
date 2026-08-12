@@ -1,6 +1,5 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { IconStack2 } from '@tabler/icons-react';
 import { StatStrip } from './StatStrip';
 
 /**
@@ -14,21 +13,13 @@ const barWidth = (container: HTMLElement): string | null => {
 
 describe('StatStrip', () => {
   it('names each figure', () => {
-    render(
-      <StatStrip
-        stats={[{ icon: <IconStack2 size={14} aria-hidden />, label: 'Items', value: '15' }]}
-      />,
-    );
+    render(<StatStrip stats={[{ label: 'Items', value: '15' }]} />);
 
     expect(screen.getByText('Items')).toBeInTheDocument();
   });
 
   it('says each figure', () => {
-    render(
-      <StatStrip
-        stats={[{ icon: <IconStack2 size={14} aria-hidden />, label: 'Items', value: '15' }]}
-      />,
-    );
+    render(<StatStrip stats={[{ label: 'Items', value: '15' }]} />);
 
     expect(screen.getByText('15')).toBeInTheDocument();
   });
@@ -37,8 +28,8 @@ describe('StatStrip', () => {
     const { container } = render(
       <StatStrip
         stats={[
-          { icon: <IconStack2 size={14} aria-hidden />, label: 'Items', value: '15' },
-          { icon: <IconStack2 size={14} aria-hidden />, label: 'Libraries', value: '2' },
+          { label: 'Items', value: '15' },
+          { label: 'Libraries', value: '2' },
         ]}
       />,
     );
@@ -52,7 +43,6 @@ describe('StatStrip', () => {
       <StatStrip
         stats={[
           {
-            icon: <IconStack2 size={14} aria-hidden />,
             label: 'Memory',
             value: '8 GB',
             fraction: 0.5,
@@ -65,11 +55,7 @@ describe('StatStrip', () => {
   });
 
   it('draws no bar for a figure that is only a number', () => {
-    const { container } = render(
-      <StatStrip
-        stats={[{ icon: <IconStack2 size={14} aria-hidden />, label: 'Items', value: '15' }]}
-      />,
-    );
+    const { container } = render(<StatStrip stats={[{ label: 'Items', value: '15' }]} />);
 
     expect(barWidth(container)).toBeNull();
   });
@@ -79,7 +65,6 @@ describe('StatStrip', () => {
       <StatStrip
         stats={[
           {
-            icon: <IconStack2 size={14} aria-hidden />,
             label: 'CPU',
             value: '140%',
             fraction: 1.4,
@@ -96,7 +81,6 @@ describe('StatStrip', () => {
       <StatStrip
         stats={[
           {
-            icon: <IconStack2 size={14} aria-hidden />,
             label: 'Items',
             value: '15',
             detail: 'across 2 libraries',

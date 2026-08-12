@@ -13,6 +13,7 @@ const library = (overrides: Partial<Library> = {}): Library => ({
   itemCount: 4,
   lastScannedAt: null,
   defaultAudioLanguage: null,
+  filesAtOnce: null,
   ...overrides,
 });
 
@@ -22,6 +23,7 @@ const scanning = (overrides: Partial<ScanEntry> = {}): ScanEntry =>
     phase: 'probing',
     processed: 1,
     total: 10,
+    jobId: 'job-1',
     ...overrides,
   }) satisfies ScanEntry;
 
@@ -36,6 +38,17 @@ const props = {
   onRegeneratePreviews: vi.fn(),
   onLibraryCreated: vi.fn(),
   onLibraryUpdated: vi.fn(),
+};
+
+/**
+ * Chooses something from a library's actions menu.
+ *
+ * Scanning used to be a button on the row. It is one of four things a library
+ * can be told to do now, so they live behind one control.
+ */
+const choose = async (user: ReturnType<typeof userEvent.setup>, name: string, action: RegExp) => {
+  await user.click(await screen.findByRole('button', { name: `Actions for ${name}` }));
+  await user.click(await screen.findByRole('menuitem', { name: action }));
 };
 
 describe('LibrariesPanel', () => {
@@ -56,13 +69,14 @@ describe('LibrariesPanel', () => {
     render(<LibrariesPanel {...props} libraries={[library()]} />);
 
     expect(screen.getByText('Films')).toBeInTheDocument();
-    expect(screen.getByText(/\/media\/films · 4 items/)).toBeInTheDocument();
+    expect(screen.getByText('/media/films')).toBeInTheDocument();
+    expect(screen.getByText('4 items')).toBeInTheDocument();
   });
 
   it('counts one item without saying "1 items"', () => {
     render(<LibrariesPanel {...props} libraries={[library({ itemCount: 1 })]} />);
 
-    expect(screen.getByText(/1 item$/)).toBeInTheDocument();
+    expect(screen.getByText('1 item')).toBeInTheDocument();
   });
 
   it('scans one library on request', async () => {
@@ -70,12 +84,14 @@ describe('LibrariesPanel', () => {
     const user = userEvent.setup();
     render(<LibrariesPanel {...props} libraries={[library()]} onScan={onScan} />);
 
-    await user.click(screen.getByRole('button', { name: /^Scan$/ }));
+    await choose(user, 'Films', /Scan for changes/);
 
     expect(onScan).toHaveBeenCalledWith(library().id);
   });
 
-  it('shows progress in place of the scan button while one is running', () => {
+  it('says a library is being read rather than offering to read it again', async () => {
+    const user = userEvent.setup();
+
     render(
       <LibrariesPanel
         {...props}
@@ -84,51 +100,41 @@ describe('LibrariesPanel', () => {
       />,
     );
 
-    expect(screen.queryByRole('button', { name: /^Scan$/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('progressbar', { name: /Scanning Films/ })).toBeInTheDocument();
-  });
+    expect(screen.getByText('Reading')).toBeInTheDocument();
 
-  it('says which of the two jobs is running, since both show a bar', () => {
-    render(
-      <LibrariesPanel
-        {...props}
-        libraries={[library()]}
-        progress={new Map([[library().id, scanning({ kind: 'regeneratePreviews' })]])}
-      />,
+    await user.click(await screen.findByRole('button', { name: 'Actions for Films' }));
+
+    expect(await screen.findByRole('menuitem', { name: /Scan for changes/ })).toHaveAttribute(
+      'data-disabled',
     );
-
-    expect(
-      screen.getByRole('progressbar', { name: /Regenerating previews for Films/ }),
-    ).toBeInTheDocument();
   });
 
-  it('names a job it picked up from the server, which the queue names differently', () => {
-    render(
-      <LibrariesPanel
-        {...props}
-        libraries={[library()]}
-        progress={new Map([[library().id, scanning({ kind: 'library.scan' })]])}
-      />,
-    );
-
-    expect(screen.getByRole('progressbar', { name: /Scanning Films/ })).toBeInTheDocument();
-  });
-
-  it('offers to read every file again, not only the ones that changed', () => {
-    render(<LibrariesPanel {...props} libraries={[library()]} />);
-
-    expect(screen.getByRole('button', { name: /Read every file again/ })).toBeInTheDocument();
-  });
-
-  it('forces the read when asked to read again', async () => {
+  it('forces the read when asked to read every file again', async () => {
     const onScan = vi.fn();
     const user = userEvent.setup();
 
     render(<LibrariesPanel {...props} libraries={[library()]} onScan={onScan} />);
 
-    await user.click(screen.getByRole('button', { name: /Read every file again/ }));
+    await choose(user, 'Films', /Read every file again/);
 
     expect(onScan).toHaveBeenCalledWith(library().id, true);
+  });
+
+  it('generates missing previews for one library', async () => {
+    const onRegeneratePreviews = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <LibrariesPanel
+        {...props}
+        libraries={[library()]}
+        onRegeneratePreviews={onRegeneratePreviews}
+      />,
+    );
+
+    await choose(user, 'Films', /Generate missing previews/);
+
+    expect(onRegeneratePreviews).toHaveBeenCalledWith(library().id);
   });
 
   describe('acting on everything at once', () => {

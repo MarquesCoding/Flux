@@ -29,7 +29,7 @@ const Badge = ({ children, tone = 'quiet', size = 'sm', className }: BadgeProps)
       className,
     )}
   >
-    {children}
+    <span className="mt-0.75">{children}</span>
   </span>
 );
 

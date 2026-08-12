@@ -1,18 +1,10 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import {
-  IconAlertTriangle,
-  IconCircleCheck,
-  IconCpu,
-  IconDatabase,
-  IconPlayerPlay,
-  IconStack2,
-} from '@tabler/icons-react';
+import { IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
-import { SideNav } from '@FluxUI/SideNav';
+import { TabRow } from '@FluxUI/TabRow';
 import { TabPanel } from '@FluxUI/TabPanel';
-import { EventsPanel } from './components/EventsPanel/EventsPanel';
 import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { JobsPanel } from './components/JobsPanel/JobsPanel';
 import { ActivityPanel } from './components/ActivityPanel/ActivityPanel';
@@ -29,6 +21,7 @@ import {
   fetchMonitor,
   watchMonitor,
   fetchActiveSessions,
+  watchActiveSessions,
   stopSession,
   pauseSession,
   resumeSession,
@@ -39,6 +32,8 @@ import {
 } from '@FluxWeb/admin/fetchAdmin';
 import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
 import { StatStrip } from './components/StatStrip/StatStrip';
+import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
+import { collectConcerns } from './collectConcerns';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
   resumeRunning,
@@ -51,6 +46,7 @@ import {
   startRegeneratePreviews,
   runDefinedJob,
   runDefinedJobAll,
+  stopJobs,
 } from './scanCoordinator';
 import { formatBytes } from './formatBytes';
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
@@ -70,15 +66,6 @@ import type { AdminAreaProps } from './AdminArea.types';
 const HISTORY_LENGTH = 60;
 
 /**
- * How often the list of active streams is refreshed.
- *
- * Slower than the resource stream on purpose: who is watching what changes at
- * human timescale — someone pressing play or closing a tab — not every
- * second the way CPU and memory do.
- */
-const SESSIONS_POLL_MILLISECONDS = 5000;
-
-/**
  * The sections, grouped as somebody looking for one would.
  *
  * Grouped rather than listed because this list is going to grow — logs, roles,
@@ -90,9 +77,8 @@ const SECTIONS = [
   {
     label: 'Activity',
     items: [
-      { id: 'activity', label: 'Now' },
+      { id: 'activity', label: 'Sessions' },
       { id: 'jobs', label: 'Jobs' },
-      { id: 'events', label: 'Events' },
     ],
   },
   {
@@ -267,17 +253,20 @@ const AdminArea = ({
     await startRegeneratePreviews(libraryId);
   };
 
-  const runJob = async (kind: string) => {
-    const definition = jobDefinitions.find((candidate) => candidate.kind === kind);
+  const runJob = useCallback(
+    async (kind: string) => {
+      const definition = jobDefinitions.find((candidate) => candidate.kind === kind);
 
-    if (definition?.needsLibrary === true) {
-      await runDefinedJobAll(kind, libraries);
-    } else {
-      await runDefinedJob(kind);
-    }
+      if (definition?.needsLibrary === true) {
+        await runDefinedJobAll(kind, libraries);
+      } else {
+        await runDefinedJob(kind);
+      }
 
-    setLibraries(await fetchLibraries());
-  };
+      setLibraries(await fetchLibraries());
+    },
+    [jobDefinitions, libraries],
+  );
 
   const addTrigger = async (kind: string, trigger: ScheduleTrigger) => {
     const added = await addJobTrigger(kind, trigger);
@@ -304,15 +293,37 @@ const AdminArea = ({
     }
   };
 
-  const openJobSchedule = (kind: string) => {
-    setViewingJobKind(kind);
-    onJobChange?.(kind);
-  };
+  const openJobSchedule = useCallback(
+    (kind: string) => {
+      setViewingJobKind(kind);
+      onJobChange?.(kind);
+    },
+    [onJobChange],
+  );
 
-  const closeJobSchedule = () => {
+  const closeJobSchedule = useCallback(() => {
     setViewingJobKind(null);
     onJobChange?.(null);
-  };
+  }, [onJobChange]);
+
+  /**
+   * Starting a job, in a shape that keeps its identity between renders.
+   *
+   * The jobs table builds its columns from this, and a column definition
+   * rebuilt each pass remounts every cell — which closes any menu open in a
+   * row. This page redraws about once a second while the monitor streams, so
+   * an unstable handler here means a menu that cannot be used at all.
+   */
+  const startJob = useCallback(
+    (kind: string) => {
+      void runJob(kind);
+    },
+    [runJob],
+  );
+
+  const stopJob = useCallback((kind: string) => {
+    void stopJobs(kind);
+  }, []);
 
   const stopStream = async (clientId: string) => {
     setBusyClientId(clientId);
@@ -352,15 +363,7 @@ const AdminArea = ({
     void resumeRunning();
   }, [loadAll]);
 
-  useEffect(() => {
-    const poll = setInterval(() => {
-      void fetchActiveSessions().then(setSessions);
-    }, SESSIONS_POLL_MILLISECONDS);
-
-    return () => {
-      clearInterval(poll);
-    };
-  }, []);
+  useEffect(() => watchActiveSessions(setSessions), []);
 
   useEffect(() => {
     const stop = watchMonitor((reading) => {
@@ -386,7 +389,7 @@ const AdminArea = ({
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
-      className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 pb-20 pt-14 sm:px-10"
+      className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-5 pb-6 pt-5 sm:px-10"
     >
       <Tabs
         value={panel}
@@ -401,6 +404,20 @@ const AdminArea = ({
           }
         }}
       >
+        <motion.div
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion)}
+          className="flex justify-center"
+        >
+          <TabRow
+            groups={SECTIONS.map((section) => ({
+              ...(section.label === null ? {} : { label: section.label }),
+              items: section.items,
+            }))}
+            label="What to look at"
+          />
+        </motion.div>
+
         <motion.header
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion, 'heavy')}
@@ -436,11 +453,27 @@ const AdminArea = ({
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
         >
+          <ConcernsBanner
+            concerns={collectConcerns({ overview, monitor, libraries, sessions, history })}
+            onOpenPanel={(next) => {
+              const found = PANELS.find((candidate) => candidate.id === next);
+
+              if (found !== undefined) {
+                setPanel(found.id);
+                onPanelChange?.(found.id);
+              }
+            }}
+          />
+        </motion.div>
+
+        <motion.div
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion)}
+        >
           <StatStrip
             stats={[
               {
                 label: 'Processor',
-                icon: <IconCpu size={14} aria-hidden />,
                 value: `${(resources?.systemCpuPercent ?? 0).toFixed(0)}%`,
                 fraction: (resources?.systemCpuPercent ?? 0) / 100,
                 detail:
@@ -450,7 +483,6 @@ const AdminArea = ({
               },
               {
                 label: 'Memory',
-                icon: <IconDatabase size={14} aria-hidden />,
                 value: resources === null ? '—' : formatBytes(resources.systemMemoryUsedBytes),
                 fraction: memoryFraction,
                 detail:
@@ -460,13 +492,11 @@ const AdminArea = ({
               },
               {
                 label: 'Streaming',
-                icon: <IconPlayerPlay size={14} aria-hidden />,
                 value: (monitor?.sessions ?? 0).toString(),
                 detail: `${conversions.length.toString()} conversions running`,
               },
               {
                 label: 'Library',
-                icon: <IconStack2 size={14} aria-hidden />,
                 value: (overview?.library.itemCount ?? 0).toString(),
                 detail:
                   overview === null
@@ -505,17 +535,9 @@ const AdminArea = ({
         <motion.div
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
-          className="flex flex-col gap-6 lg:grid lg:grid-cols-[13rem_1fr] lg:items-start lg:gap-8"
+          className="flex flex-col gap-5"
         >
-          <SideNav
-            groups={SECTIONS.map((section) => ({
-              label: section.label,
-              items: [...section.items],
-            }))}
-            label="What to look at"
-          />
-
-          <section className="min-h-[22rem] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+          <section>
             <TabPanel
               value="overview"
               render={
@@ -554,8 +576,6 @@ const AdminArea = ({
               }
             >
               <ActivityPanel
-                history={history}
-                monitor={monitor}
                 sessions={sessions}
                 busyClientId={busyClientId}
                 onStop={(clientId) => {
@@ -587,9 +607,8 @@ const AdminArea = ({
                 monitor={monitor}
                 viewingJobKind={viewingJobKind}
                 schedules={jobSchedules}
-                onRun={(kind) => {
-                  void runJob(kind);
-                }}
+                onRun={startJob}
+                onStop={stopJob}
                 onOpenSchedule={openJobSchedule}
                 onCloseSchedule={closeJobSchedule}
                 onAddTrigger={(kind, trigger) => {
@@ -599,19 +618,6 @@ const AdminArea = ({
                   void removeTrigger(kind, triggerId);
                 }}
               />
-            </TabPanel>
-
-            <TabPanel
-              value="events"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <EventsPanel monitor={monitor} />
             </TabPanel>
 
             <TabPanel

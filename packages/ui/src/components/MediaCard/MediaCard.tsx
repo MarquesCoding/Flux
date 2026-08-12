@@ -100,9 +100,9 @@ const MediaCard = ({
         )}
 
         {watchedFraction === undefined ? null : (
-          <span className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
+          <span className="absolute inset-x-3 bottom-2.5 mx-2 mb-1 h-1 overflow-hidden rounded-full bg-white/25">
             <span
-              className="block h-full bg-accent"
+              className="block h-full rounded-full bg-accent"
               style={{ width: `${(Math.min(Math.max(watchedFraction, 0), 1) * 100).toString()}%` }}
             />
           </span>

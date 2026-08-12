@@ -38,7 +38,11 @@ type TextFieldProps = {
    * `lg` matches a large button, which is what a field on its own screen wants
    * to be next to.
    */
-  size?: 'md' | 'lg' | 'xl';
+  /**
+   * `sm` stands the field beside a button without towering over it, which is
+   * what a field in a table's header or a toolbar has to do.
+   */
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   /**
    * Whether the field paints nothing of its own.
    *
