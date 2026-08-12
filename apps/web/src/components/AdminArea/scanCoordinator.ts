@@ -163,9 +163,15 @@ const resumeRunning = async (): Promise<void> => {
 
 /**
  * Scans one library, tracking its progress until it finishes.
+ *
+ * Forced, every file is read again whatever the filesystem says about it. An
+ * ordinary scan skips anything whose size and date are unchanged, which is
+ * right for finding new files and useless for fixing what is known about the
+ * old ones: a title that came out wrong stays wrong however many times the
+ * button is pressed, because the file it came from has not moved.
  */
-const startScan = (libraryId: string): Promise<void> =>
-  runAndTrack(libraryId, 'scan', () => scanLibrary(libraryId));
+const startScan = (libraryId: string, force = false): Promise<void> =>
+  runAndTrack(libraryId, force ? 'rescan' : 'scan', () => scanLibrary(libraryId, force));
 
 /**
  * Scans every library at once, forcing a full re-probe of each file.
