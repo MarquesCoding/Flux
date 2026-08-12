@@ -16,6 +16,7 @@ import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { JobsPanel } from './components/JobsPanel/JobsPanel';
 import { ActivityPanel } from './components/ActivityPanel/ActivityPanel';
 import { LibrariesPanel } from './components/LibrariesPanel/LibrariesPanel';
+import { OverviewPanel } from './components/OverviewPanel/OverviewPanel';
 import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import {
@@ -70,6 +71,7 @@ const HISTORY_LENGTH = 60;
 const SESSIONS_POLL_MILLISECONDS = 5000;
 
 const PANELS = [
+  { id: 'overview', label: 'Overview' },
   { id: 'activity', label: 'Activity' },
   { id: 'jobs', label: 'Jobs' },
   { id: 'events', label: 'Events' },
@@ -391,6 +393,32 @@ const AdminArea = ({
           transition={revealTransition(prefersReducedMotion)}
           className="min-h-[22rem] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
         >
+          <TabPanel
+            value="overview"
+            render={
+              <motion.div
+                initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              />
+            }
+          >
+            <OverviewPanel
+              overview={overview}
+              monitor={monitor}
+              libraries={libraries}
+              sessionCount={sessions.length}
+              onOpenPanel={(next) => {
+                const found = PANELS.find((candidate) => candidate.id === next);
+
+                if (found !== undefined) {
+                  setPanel(found.id);
+                  onPanelChange?.(found.id);
+                }
+              }}
+            />
+          </TabPanel>
+
           <TabPanel
             value="activity"
             render={
