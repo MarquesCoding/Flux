@@ -193,14 +193,14 @@ const RolesPanel = () => {
                 min={0}
                 value={draftPosition}
                 onValueChange={setDraftPosition}
-                description="Higher manages lower"
-                className="w-32"
+                className="w-24 shrink-0"
               />
 
               <Button
-                variant="ghost"
+                variant="glossy"
                 size="sm"
                 isPill
+                className="shrink-0"
                 disabled={
                   draftName === '' ||
                   (draftName === selected.name && draftPosition === selected.position.toString())
@@ -219,25 +219,33 @@ const RolesPanel = () => {
                 Save
               </Button>
             </div>
+
+            <p className="text-xs text-text-muted">
+              A higher rank manages a lower one. Nobody may touch a role at or above their own.
+            </p>
           </header>
 
           {groupPermissions(catalogue).map((group) => (
-            <div key={group.id} className="flex flex-col gap-2">
-              <h4 className="text-xs font-medium text-text">{group.label}</h4>
+            <div key={group.id} className="flex flex-col gap-1">
+              <h4 className="px-3 text-xs uppercase tracking-[0.12em] text-text-muted">
+                {group.label}
+              </h4>
 
               <ul className="flex flex-col">
                 {group.permissions.map((permission) => (
-                  <li key={permission} className="flex items-center gap-3 rounded-lg px-3 py-2">
+                  <li key={permission} className="flex items-center gap-3 rounded-lg px-3 py-1.5">
                     <Checkbox
                       label={describePermission(permission)}
                       checked={selected.permissions.includes(permission)}
                       onCheckedChange={() => {
                         void togglePermission(selected, permission);
                       }}
-                      className="min-w-0 flex-1"
+                      className="min-w-0"
                     />
 
-                    <span className="shrink-0 font-mono text-xs text-text-muted">{permission}</span>
+                    <span className="min-w-0 truncate font-mono text-xs text-text-muted/70">
+                      {permission}
+                    </span>
                   </li>
                 ))}
               </ul>

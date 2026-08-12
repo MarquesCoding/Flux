@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { IconAlertTriangle, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconAlertTriangle, IconBan, IconSelector, IconTrash } from '@tabler/icons-react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { OptionMenu } from '@FluxUI/OptionMenu';
+import { TextField } from '@FluxUI/TextField';
 import { describePermission } from '@FluxWeb/admin/describePermission';
 import { groupPermissions } from '@FluxWeb/admin/groupPermissions';
 import {
@@ -14,9 +15,16 @@ import {
   removeRole,
   setOverride,
 } from '@FluxWeb/admin/fetchRoles';
+import {
+  banAccount,
+  fetchAccounts,
+  inviteAccount,
+  removeAccount,
+  unbanAccount,
+} from '@FluxWeb/admin/fetchAccounts';
+import type { Account } from '@FluxWeb/admin/fetchAccounts';
 import type { AccountPermissions, Refusal } from '@FluxWeb/admin/fetchRoles';
 import type { Permission, Role } from '@FluxContracts/schemas/Permission';
-import type { AccountsPanelProps } from './AccountsPanel.types';
 
 /**
  * Who is on this server, and what each of them may do.
@@ -26,21 +34,32 @@ import type { AccountsPanelProps } from './AccountsPanel.types';
  * halves people actually come looking for, and putting both in one screen
  * meant editing a role and editing a person shared a page for no reason.
  *
- * Only roles and exceptions can be changed here today. Inviting, banning,
- * removing and editing an account all still go through better-auth's own
- * admin endpoints, which authorise against the column the permission model
- * replaced — see FLUX-75. Rather than reach for those from here and quietly
- * bypass the model, this panel does what Flux has routes for and no more.
+ * Everything here goes through Flux's own routes, behind the permissions that
+ * mean something. better-auth's admin endpoints are closed — they authorised
+ * against the column the permission model replaced, and reaching for them
+ * from here would have bypassed the model this panel exists to express.
+ *
+ * Which is why the list reports whether somebody is an administrator by what
+ * their permissions resolve to rather than by what a column says: the two can
+ * disagree, and only one of them decides what actually happens.
+ *
+ * Inviting and editing an account are not here yet.
  */
-const AccountsPanel = ({ accounts }: AccountsPanelProps) => {
+const AccountsPanel = () => {
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [catalogue, setCatalogue] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [accountId, setAccountId] = useState<string | null>(null);
   const [held, setHeld] = useState<AccountPermissions | null>(null);
   const [refusal, setRefusal] = useState<Refusal>(null);
   const [addingPermission, setAddingPermission] = useState<Permission | null>(null);
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePassword, setInvitePassword] = useState('');
 
   const reload = useCallback(async () => {
+    setAccounts(await fetchAccounts());
+
     if (accountId === null) {
       setHeld(null);
 
@@ -109,15 +128,112 @@ const AccountsPanel = ({ accounts }: AccountsPanelProps) => {
                 >
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="truncate text-sm text-text">{account.name}</span>
-                    <span className="truncate text-xs text-text-muted">{account.email}</span>
+                    <span className="truncate text-xs text-text-muted">
+                      {account.isBanned && account.banReason !== null
+                        ? `Banned — ${account.banReason}`
+                        : account.email}
+                    </span>
                   </span>
                 </Button>
 
-                {account.role === null ? null : <Badge size="sm">{account.role}</Badge>}
+                {account.isAdministrator ? <Badge size="sm">administrator</Badge> : null}
+
+                {account.isBanned ? (
+                  <Badge size="sm" tone="solid">
+                    banned
+                  </Badge>
+                ) : null}
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  isPill
+                  aria-label={
+                    account.isBanned ? `Let ${account.name} back in` : `Ban ${account.name}`
+                  }
+                  onClick={() => {
+                    void act(() =>
+                      account.isBanned
+                        ? unbanAccount(account.id)
+                        : banAccount(account.id, 'Banned from the admin area'),
+                    );
+                  }}
+                >
+                  <IconBan size={16} aria-hidden />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  isPill
+                  aria-label={`Remove ${account.name}`}
+                  onClick={() => {
+                    void act(() => removeAccount(account.id));
+                  }}
+                >
+                  <IconTrash size={16} aria-hidden />
+                </Button>
               </li>
             ))}
           </ul>
         )}
+
+        <div className="flex flex-col gap-3 border-t border-white/10 pt-4">
+          <h4 className="text-xs font-medium text-text">Add somebody</h4>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <TextField
+              label="Name"
+              value={inviteName}
+              onValueChange={setInviteName}
+              className="min-w-40 flex-1"
+            />
+
+            <TextField
+              label="Address"
+              type="email"
+              value={inviteEmail}
+              onValueChange={setInviteEmail}
+              className="min-w-52 flex-1"
+            />
+
+            <TextField
+              label="Password"
+              type="password"
+              value={invitePassword}
+              onValueChange={setInvitePassword}
+              className="min-w-44 flex-1"
+            />
+
+            <Button
+              variant="glossy"
+              size="sm"
+              isPill
+              className="shrink-0"
+              disabled={inviteName === '' || inviteEmail === '' || invitePassword.length < 8}
+              onClick={() => {
+                void act(() =>
+                  inviteAccount({
+                    name: inviteName,
+                    email: inviteEmail,
+                    password: invitePassword,
+                  }),
+                ).then(() => {
+                  setInviteName('');
+                  setInviteEmail('');
+                  setInvitePassword('');
+                });
+              }}
+            >
+              Add
+            </Button>
+          </div>
+
+          <p className="text-xs text-text-muted">
+            Flux cannot send email, so tell them this password yourself. They arrive able to watch
+            and nothing more, until you give them a role.
+          </p>
+        </div>
       </section>
 
       {picked === null || accountId === null ? null : (
@@ -201,26 +317,35 @@ const AccountsPanel = ({ accounts }: AccountsPanelProps) => {
                 label="Add an exception"
                 align="start"
                 matchTriggerWidth
+                className="min-w-56 flex-1"
                 trigger={
-                  <Button variant="ghost" size="sm" isPill>
-                    <IconPlus size={16} aria-hidden />
-                    {addingPermission === null
-                      ? 'Pick a permission'
-                      : describePermission(addingPermission)}
-                  </Button>
+                  <span className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-text">
+                    <span className="min-w-0 truncate">
+                      {addingPermission === null
+                        ? 'Pick a permission'
+                        : describePermission(addingPermission)}
+                    </span>
+                    <IconSelector size={16} className="shrink-0 text-text-muted" aria-hidden />
+                  </span>
                 }
-                groups={groupPermissions(catalogue).map((group) => ({
-                  name: group.label,
-                  options: group.permissions.map((permission) => ({
-                    id: permission,
-                    label: describePermission(permission),
-                    detail: permission,
-                  })),
-                  selectedId: addingPermission ?? '',
-                  onSelect: (id) => {
-                    setAddingPermission(catalogue.find((permission) => permission === id) ?? null);
+                groups={[
+                  {
+                    name: 'Permissions',
+                    options: groupPermissions(catalogue).flatMap((group) =>
+                      group.permissions.map((permission) => ({
+                        id: permission,
+                        label: describePermission(permission),
+                        detail: `${group.label} · ${permission}`,
+                      })),
+                    ),
+                    selectedId: addingPermission ?? '',
+                    onSelect: (id) => {
+                      setAddingPermission(
+                        catalogue.find((permission) => permission === id) ?? null,
+                      );
+                    },
                   },
-                }))}
+                ]}
               />
 
               <Button
@@ -260,13 +385,21 @@ const AccountsPanel = ({ accounts }: AccountsPanelProps) => {
           <div className="flex flex-col gap-2">
             <h4 className="text-xs font-medium text-text">Comes to</h4>
 
-            <div className="flex flex-wrap gap-1.5">
-              {(held?.effective ?? []).map((permission) => (
-                <Badge key={permission} size="sm">
-                  {permission}
-                </Badge>
-              ))}
-            </div>
+            {(held?.effective ?? []).includes('administrator') ? (
+              <p className="text-sm text-text-muted">
+                Everything, including anything added to Flux later.
+              </p>
+            ) : (held?.effective ?? []).length === 0 ? (
+              <p className="text-sm text-text-muted">Nothing at all.</p>
+            ) : (
+              <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                {(held?.effective ?? []).map((permission) => (
+                  <li key={permission} className="font-mono text-xs text-text-muted">
+                    {permission}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </section>
       )}
