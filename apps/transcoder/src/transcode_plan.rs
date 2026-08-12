@@ -449,6 +449,22 @@ impl HardwareAccel {
         }
     }
 
+    /// Whether a probe of this backend has to open a device first.
+    ///
+    /// Only VAAPI. It cannot open an encoder without one, which is the whole
+    /// bug this exists to fix.
+    ///
+    /// QSV is deliberately excluded even though it derives from a VAAPI device
+    /// when transcoding. Measured on an Intel iGPU, `h264_qsv` verifies with no
+    /// device at all — it finds its own. Forcing a guessed path into its probe
+    /// would reject a machine whose render node is `renderD129`, breaking
+    /// hardware encoding on the one platform that already worked. The pipeline
+    /// still shares a device; only the probe leaves well alone.
+    #[must_use]
+    pub fn needs_device_to_probe(self) -> bool {
+        matches!(self, Self::Vaapi)
+    }
+
     /// Whether this backend encodes from frames already on its own device.
     ///
     /// VAAPI will not take a software frame: it has to be uploaded first, which

@@ -255,7 +255,9 @@ pub fn probe_arguments(candidate: &EncoderCandidate, device: &str) -> Vec<String
         "error".to_owned(),
     ];
 
-    arguments.extend(candidate.accel.device_arguments(device));
+    if candidate.accel.needs_device_to_probe() {
+        arguments.extend(candidate.accel.device_arguments(device));
+    }
 
     arguments.extend([
         "-f".to_owned(),
@@ -458,15 +460,18 @@ mod tests {
     }
 
     #[test]
-    fn derives_the_qsv_device_from_a_vaapi_one() {
+    fn leaves_qsv_to_find_its_own_device_when_probing() {
         let arguments = probe_arguments(
             &candidate("h264_qsv", HardwareAccel::Qsv),
             "/dev/dri/renderD128",
         );
 
-        assert!(arguments
-            .windows(2)
-            .any(|pair| pair == ["-init_hw_device", "qsv=qs@va"]));
+        assert!(
+            !arguments
+                .iter()
+                .any(|argument| argument == "-init_hw_device"),
+            "QSV verifies unaided; forcing a guessed node would reject a card on renderD129"
+        );
     }
 
     #[test]
@@ -474,6 +479,7 @@ mod tests {
         for accel in [
             HardwareAccel::Nvenc,
             HardwareAccel::VideoToolbox,
+            HardwareAccel::Qsv,
             HardwareAccel::None,
         ] {
             let arguments = probe_arguments(&candidate("enc", accel), DEFAULT_DEVICE);
