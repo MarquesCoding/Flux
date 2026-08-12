@@ -96,6 +96,7 @@ import {
   REGENERATE_TRICKPLAY_JOB,
   DETECT_SEGMENTS_JOB,
   CLEANUP_IMAGE_CACHE_JOB,
+  CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
 } from '@FluxServer/jobs/JobQueue';
@@ -1228,6 +1229,7 @@ const createApp = ({
 
     const maintenanceRunners: Record<string, () => Promise<{ jobId: string; state: string }>> = {
       [CLEANUP_IMAGE_CACHE_JOB]: () => maintenance.cleanupImageCache(),
+      [CLEANUP_ARTEFACT_CACHE_JOB]: () => maintenance.cleanupArtefactCache(),
       [CLEANUP_SESSIONS_JOB]: () => maintenance.cleanupSessions(),
       [CHECK_CATALOGUE_CONNECTIVITY_JOB]: () => maintenance.checkCatalogueConnectivity(),
     };

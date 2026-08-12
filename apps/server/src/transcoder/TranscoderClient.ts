@@ -121,6 +121,20 @@ const FingerprintSchema = z.object({
 
 const SubtitleTrackSchema = z.object({ content: z.string() });
 
+/**
+ * What a sweep did, as the media service reports it.
+ *
+ * `tooNew` is not a failure. A directory modified in the last hour is left
+ * alone whatever its name, because an artefact halfway through being written
+ * looks exactly like an abandoned one.
+ */
+const SweepReportSchema = z.object({
+  removed: z.number().int().nonnegative(),
+  freedBytes: z.number().int().nonnegative(),
+  kept: z.number().int().nonnegative(),
+  tooNew: z.number().int().nonnegative(),
+});
+
 const PreviewClipSchema = z.object({
   id: z.string(),
   url: z.string(),
@@ -141,6 +155,16 @@ const TrickplayIndexSchema = z.object({
 
 type MediaProbe = z.infer<typeof MediaProbeSchema>;
 type Fingerprint = z.infer<typeof FingerprintSchema>;
+type SweepReport = z.infer<typeof SweepReportSchema>;
+
+/**
+ * A preview clip a sweep should keep, as the request that addresses it.
+ */
+type PreviewSweepSubject = {
+  inputPath: string;
+  generation: number;
+  audioStreamIndex?: number;
+};
 
 type FingerprintRequest = {
   inputPath: string;
@@ -297,6 +321,19 @@ type Transcoder = {
     range: string | null,
   ) => Promise<TranscoderStreamedFile | null>;
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>;
+  /**
+   * Deletes preview clips nothing addresses any more.
+   *
+   * Told what is still wanted as the requests that would ask for it, never as
+   * addresses: the address is a hash of the request and belongs to the media
+   * service, so computing one here would be a second implementation of its
+   * naming scheme — and the first disagreement would delete clips in use.
+   */
+  sweepPreviews: (keep: PreviewSweepSubject[]) => Promise<SweepReport>;
+  /**
+   * Deletes thumbnail sheets nothing addresses any more.
+   */
+  sweepTrickplay: (keep: TrickplayRequest[]) => Promise<SweepReport>;
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>;
   stopSession: (id: string) => Promise<boolean>;
   /**
@@ -583,6 +620,12 @@ const createTranscoderClient = ({
         'video/mp4',
       ),
 
+    sweepPreviews: async (keep) =>
+      SweepReportSchema.parse(await (await postJson('/previews/sweep', { keep })).json()),
+
+    sweepTrickplay: async (keep) =>
+      SweepReportSchema.parse(await (await postJson('/trickplay/sweep', { keep })).json()),
+
     readMonitor: async () => (await call('/monitor')).json(),
 
     openMonitorStream: async () => {
@@ -646,6 +689,8 @@ export type {
   FingerprintRequest,
   TranscoderFile,
   TranscoderRangedFile,
+  PreviewSweepSubject,
+  SweepReport,
 };
 
 export { createTranscoderClient, readSocketPath, TranscoderError, MediaProbeSchema };

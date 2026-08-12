@@ -50,12 +50,21 @@ import {
   DETECT_SEGMENTS_JOB,
   DetectSegmentsJobSchema,
   CLEANUP_IMAGE_CACHE_JOB,
+  CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   scheduleTriggerKind,
 } from '@FluxServer/jobs/JobQueue';
 import { createDatabaseMaintenanceService } from '@FluxServer/maintenance/createDatabaseMaintenanceService';
 import { cleanupImageCache } from '@FluxServer/maintenance/cleanupImageCache';
+import { sweepArtefactCache } from '@FluxServer/maintenance/sweepArtefactCache';
+import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
+import {
+  TRICKPLAY_INTERVAL_SECONDS,
+  TRICKPLAY_TILE_WIDTH,
+  TRICKPLAY_COLUMNS,
+  TRICKPLAY_ROWS,
+} from '@FluxServer/playback/PlaybackService';
 import { cleanupSessions } from '@FluxServer/maintenance/cleanupSessions';
 import { checkCatalogueConnectivity } from '@FluxServer/maintenance/checkCatalogueConnectivity';
 import { RESET_LIBRARY_JOB, scheduleQueueNameFor } from '@FluxServer/jobs/jobDefinitions';
@@ -350,6 +359,42 @@ const jobs = await createJobQueue({
       });
 
       process.stdout.write(`image cache cleanup: removed ${removed.toString()} file(s)\n`);
+    },
+    [CLEANUP_ARTEFACT_CACHE_JOB]: async () => {
+      const swept = await sweepArtefactCache({
+        listLiveItems: async () => {
+          const rows = await db
+            .select({
+              path: mediaItem.path,
+              audioStreams: mediaItem.audioStreams,
+              generation: library.generation,
+              defaultAudioLanguage: library.defaultAudioLanguage,
+            })
+            .from(mediaItem)
+            .innerJoin(library, eq(library.id, mediaItem.libraryId));
+
+          return rows.map((row) => ({
+            path: row.path,
+            audioStreams: z.array(AudioStreamSchema).parse(row.audioStreams),
+            generation: row.generation,
+            defaultAudioLanguage: row.defaultAudioLanguage,
+          }));
+        },
+        trickplay: {
+          intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
+          tileWidth: TRICKPLAY_TILE_WIDTH,
+          columns: TRICKPLAY_COLUMNS,
+          rows: TRICKPLAY_ROWS,
+        },
+        transcoder,
+        onProblem: (what, reason) => {
+          process.stderr.write(`artefact cache: ${what}: ${reason}\n`);
+        },
+      });
+
+      process.stdout.write(
+        `artefact cache cleanup: removed ${swept.removed.toString()} directory(ies), freed ${swept.freedBytes.toString()} byte(s), kept ${swept.kept.toString()}, skipped ${swept.tooNew.toString()} as too new\n`,
+      );
     },
     [CLEANUP_SESSIONS_JOB]: async (jobId) => {
       const removed = await cleanupSessions({
