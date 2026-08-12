@@ -20,6 +20,8 @@ use thiserror::Error;
 use tokio::process::Command;
 use tokio::sync::Mutex;
 
+use crate::integrity::decodes;
+
 /// Written only when every sheet is on disk.
 ///
 /// Same reasoning as a transcode session: a directory holding sheets is not
@@ -102,6 +104,8 @@ pub enum TrickplayError {
     Spawn(std::io::Error),
     #[error("ffmpeg produced no thumbnails: {0}")]
     NoOutput(String),
+    #[error("a thumbnail sheet ffmpeg produced does not decode: {0}")]
+    Corrupt(String),
     #[error("could not write the thumbnail index: {0}")]
     Index(std::io::Error),
 }
@@ -337,6 +341,21 @@ async fn list_sheets(directory: &Path) -> Vec<String> {
     names
 }
 
+/// The first sheet that will not open, if any of them will not.
+///
+/// Every sheet is checked rather than a sample. A run cut short leaves its
+/// damage in the last file it touched, which is exactly the one a check of the
+/// first sheet would call fine.
+async fn unreadable_sheet(ffmpeg: &str, directory: &Path, sheets: &[String]) -> Option<String> {
+    for name in sheets {
+        if let Err(reason) = decodes(ffmpeg, &directory.join(name)).await {
+            return Some(format!("{name}: {reason}"));
+        }
+    }
+
+    None
+}
+
 /// Serialises requests for the same thumbnails.
 ///
 /// Rendering a feature length film takes minutes, and every caller that asks
@@ -408,10 +427,16 @@ impl TrickplayRegistry {
 /// Prefer [`TrickplayRegistry::generate`], which will not start a second
 /// ffmpeg over a file already being read.
 ///
+/// Every sheet is opened before the set is marked complete, and a set that
+/// fails is rendered again without the hardware. A sheet nobody can draw is
+/// worth no more than no sheet at all, and it would otherwise be kept for as
+/// long as the file stays in the library.
+///
 /// # Errors
 ///
 /// Returns [`TrickplayError`] when the directory cannot be made, ffmpeg cannot
-/// be started, it writes no sheets, or the index cannot be saved.
+/// be started, it writes no sheets, the sheets it wrote will not open even in
+/// software, or the index cannot be saved.
 pub async fn generate(
     ffmpeg: &str,
     cache_root: &Path,
@@ -449,19 +474,42 @@ pub async fn generate(
         .await
         .map_err(TrickplayError::Directory)?;
 
-    let output = Command::new(ffmpeg)
-        .args(sheet_arguments(request, tile_height, accel, &directory))
-        .output()
-        .await
-        .map_err(TrickplayError::Spawn)?;
+    let mut attempt = accel;
 
-    let sheets = list_sheets(&directory).await;
+    let sheets = loop {
+        let output = Command::new(ffmpeg)
+            .args(sheet_arguments(request, tile_height, attempt, &directory))
+            .output()
+            .await
+            .map_err(TrickplayError::Spawn)?;
 
-    if sheets.is_empty() {
-        return Err(TrickplayError::NoOutput(
-            String::from_utf8_lossy(&output.stderr).trim().to_owned(),
-        ));
-    }
+        let sheets = list_sheets(&directory).await;
+
+        let failure = if sheets.is_empty() {
+            Some(TrickplayError::NoOutput(
+                String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+            ))
+        } else {
+            unreadable_sheet(ffmpeg, &directory, &sheets)
+                .await
+                .map(TrickplayError::Corrupt)
+        };
+
+        let Some(failure) = failure else {
+            break sheets;
+        };
+
+        if attempt.is_none() {
+            return Err(failure);
+        }
+
+        eprintln!(
+            "trickplay: accelerated sheets for {} failed, retrying in software: {failure}",
+            request.input_path
+        );
+
+        attempt = None;
+    };
 
     tokio::fs::write(
         directory.join(INDEX_NAME),
