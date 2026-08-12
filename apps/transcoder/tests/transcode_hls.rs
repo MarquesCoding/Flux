@@ -175,6 +175,7 @@ fn spec(video: VideoAction, audio: AudioAction) -> SessionSpec {
         audio,
         audio_stream_index: None,
         subtitles: SubtitleAction::None,
+        source_size: None,
     }
 }
 
