@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { mediaItem, mediaItemJob, library } from '@FluxServer/db/Schema';
+import { mediaItem, mediaItemJob, mediaOverride, library } from '@FluxServer/db/Schema';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
@@ -16,7 +16,17 @@ import type { MediaStore } from './scanLibrary';
  */
 const createMediaStore = (
   db: FluxDatabase,
-): MediaStore & { clear: (libraryId: string) => Promise<number> } => ({
+): MediaStore & {
+  clear: (libraryId: string) => Promise<number>;
+  saveOverride: (row: {
+    libraryId: string;
+    path: string;
+    externalId: string;
+    externalKind: 'tv' | 'movie';
+    updatedBy: string | null;
+  }) => Promise<void>;
+  removeOverrides: (libraryId: string, paths: string[]) => Promise<number>;
+} => ({
   listStored: async (libraryId) => {
     const rows = await db
       .select({
@@ -98,6 +108,55 @@ const createMediaStore = (
 
   markScanned: async (libraryId) => {
     await db.update(library).set({ lastScannedAt: new Date() }).where(eq(library.id, libraryId));
+  },
+
+  listOverrides: async (libraryId) => {
+    const rows = await db
+      .select({
+        path: mediaOverride.path,
+        externalId: mediaOverride.externalId,
+        externalKind: mediaOverride.externalKind,
+      })
+      .from(mediaOverride)
+      .where(eq(mediaOverride.libraryId, libraryId));
+
+    return rows.map((row) => ({
+      path: row.path,
+      externalId: row.externalId,
+      externalKind: row.externalKind === 'movie' ? ('movie' as const) : ('tv' as const),
+    }));
+  },
+
+  saveOverride: async (row) => {
+    const changeable = {
+      libraryId: row.libraryId,
+      path: row.path,
+      externalId: row.externalId,
+      externalKind: row.externalKind,
+      updatedAt: new Date(),
+      updatedBy: row.updatedBy,
+    };
+
+    await db
+      .insert(mediaOverride)
+      .values({ id: randomUUID(), ...changeable })
+      .onConflictDoUpdate({
+        target: [mediaOverride.libraryId, mediaOverride.path],
+        set: changeable,
+      });
+  },
+
+  removeOverrides: async (libraryId, paths) => {
+    if (paths.length === 0) {
+      return 0;
+    }
+
+    const removed = await db
+      .delete(mediaOverride)
+      .where(and(eq(mediaOverride.libraryId, libraryId), inArray(mediaOverride.path, paths)))
+      .returning({ id: mediaOverride.id });
+
+    return removed.length;
   },
 
   clear: async (libraryId) => {

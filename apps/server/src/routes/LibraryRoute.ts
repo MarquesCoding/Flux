@@ -215,6 +215,97 @@ const scanLibraryRoute = createRoute({
   },
 });
 
+/**
+ * A correction as somebody sends it: an address or a bare id, and the kind when
+ * the id alone cannot say.
+ */
+const CorrectionRequest = z
+  .object({
+    reference: z.string().min(1),
+    kind: z.enum(['tv', 'movie']).optional(),
+  })
+  .openapi('CorrectionRequest');
+
+const Correction = z
+  .object({
+    corrected: z.number().int().nonnegative(),
+    jobId: z.string().nullable(),
+  })
+  .openapi('Correction');
+
+const correctMatchRoute = createRoute({
+  method: 'post',
+  path: '/api/media/{id}/match',
+  tags: ['Library'],
+  summary: 'Correct which catalogue entry a file is, and read it again',
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: CorrectionRequest } } },
+  },
+  responses: {
+    200: {
+      description: 'How many files the correction reached',
+      content: { 'application/json': { schema: Correction } },
+    },
+    400: {
+      description: 'Nothing in what was pasted looked like a catalogue id',
+      content: { 'application/json': { schema: NotFound } },
+    },
+    404: {
+      description: 'No such item',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+});
+
+const forgetCorrectionRoute = createRoute({
+  method: 'delete',
+  path: '/api/media/{id}/match',
+  tags: ['Library'],
+  summary: 'Forget a correction and read the file as the catalogue finds it',
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: {
+      description: 'How many files went back to the catalogue',
+      content: { 'application/json': { schema: Correction } },
+    },
+    404: {
+      description: 'No such item',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+});
+
+const runningScansRoute = createRoute({
+  method: 'get',
+  path: '/api/libraries/scans',
+  tags: ['Library'],
+  summary: 'List the scans running right now',
+  responses: {
+    200: {
+      description: 'What the server is working on',
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              scans: z.array(
+                z.object({
+                  jobId: z.string(),
+                  kind: z.string(),
+                  libraryId: z.string().nullable(),
+                  phase: z.string().nullable(),
+                  processed: z.number().nullable(),
+                  total: z.number().nullable(),
+                }),
+              ),
+            })
+            .openapi('RunningScans'),
+        },
+      },
+    },
+  },
+});
+
 const scanStateRoute = createRoute({
   method: 'get',
   path: '/api/libraries/scans/{jobId}',
@@ -349,5 +440,8 @@ export {
   resetLibraryRoute,
   listShowsRoute,
   getShowRoute,
+  runningScansRoute,
+  correctMatchRoute,
+  forgetCorrectionRoute,
   regeneratePreviewsRoute,
 };

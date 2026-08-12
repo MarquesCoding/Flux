@@ -52,6 +52,41 @@ const AdminSettingsRequestSchema = z
  * One request rather than five: an administration page that opens with a
  * cascade of spinners tells its operator less than one that arrives whole.
  */
+const CatalogueMatchSchema = z
+  .object({
+    externalId: z.string(),
+    kind: z.enum(['tv', 'movie']),
+    title: z.string(),
+    year: z.number().int().nullable(),
+    overview: z.string().nullable(),
+    posterUrl: z.string().nullable(),
+  })
+  .openapi('CatalogueMatch');
+
+const searchCatalogueRoute = createRoute({
+  method: 'get',
+  path: '/api/admin/catalogue/search',
+  tags: ['Admin'],
+  summary: 'Search the metadata catalogue by name',
+  request: {
+    query: z.object({ query: z.string().min(1), kind: z.enum(['tv', 'movie']) }),
+  },
+  responses: {
+    200: {
+      description: 'What the catalogue offers under that name',
+      content: {
+        'application/json': {
+          schema: z.object({ matches: z.array(CatalogueMatchSchema) }).openapi('CatalogueMatches'),
+        },
+      },
+    },
+    403: {
+      description: 'Only an administrator may ask',
+      content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+    },
+  },
+});
+
 const adminOverviewRoute = createRoute({
   method: 'get',
   path: '/api/admin/overview',
@@ -403,6 +438,7 @@ const adminRemoveJobTriggerRoute = createRoute({
 });
 
 export {
+  searchCatalogueRoute,
   adminOverviewRoute,
   adminSettingsRoute,
   adminSessionsRoute,

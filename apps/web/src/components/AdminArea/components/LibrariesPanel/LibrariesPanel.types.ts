@@ -14,7 +14,10 @@ type LibrariesPanelProps = {
   progress: ReadonlyMap<string, ScanEntry>;
   isScanningAll: boolean;
   isResettingAll: boolean;
-  onScan: (libraryId: string) => void;
+  /**
+   * Forced, every file is read again whatever the filesystem says about it.
+   */
+  onScan: (libraryId: string, force?: boolean) => void;
   onScanAll: () => void;
   onResetAll: () => void;
   onRegeneratePreviews: (libraryId: string) => void;

@@ -47,12 +47,28 @@ type MediaFileSystem = {
 };
 
 /**
+ * A correction to what a file is, as the scanner needs to read it.
+ */
+type MediaOverride = {
+  path: string;
+  externalId: string;
+  externalKind: 'tv' | 'movie';
+};
+
+/**
  * The library tables as the scanner sees them.
  */
 type MediaStore = {
   listStored: (libraryId: string) => Promise<StoredItem[]>;
   upsert: (row: MediaRow) => Promise<void>;
   removeByPaths: (libraryId: string, paths: string[]) => Promise<number>;
+  /**
+   * The corrections somebody has made in this library, by path.
+   *
+   * Optional so that a store with no notion of them — the memory one a test
+   * builds — needs no ceremony to say it has none.
+   */
+  listOverrides?: (libraryId: string) => Promise<MediaOverride[]>;
   markScanned: (libraryId: string) => Promise<void>;
 };
 
@@ -76,6 +92,16 @@ type ScanLibraryOptions = {
    * files better, the only way to pick the change up is to ask again.
    */
   force?: boolean;
+  /**
+   * Says the listing is a few named files rather than the whole library.
+   *
+   * A scan deletes what it did not find, because a file absent from the disk
+   * is a file that has gone. That reasoning only holds when the listing was
+   * the whole library: when it is four episodes, the other nine hundred are
+   * absent from the listing and present on the disk, and deleting them would
+   * destroy the library to re-read a handful of it.
+   */
+  isPartial?: boolean;
   onProblem?: (path: string, reason: string) => void;
   /**
    * Told after every file how far probing has got.
@@ -132,6 +158,17 @@ const selectChanged = (
  * A file that cannot be probed is counted and reported rather than aborting
  * the scan: one unreadable file in a library of thousands must not stop the
  * other thousands from appearing.
+ *
+ * A correction somebody has made outranks whatever was matched before, and is
+ * read on every scan rather than written once into the row — which is what
+ * makes it survive both a rescan and a rebuild.
+ *
+ * A file the catalogue has named before is left exactly as it is when the
+ * catalogue cannot be reached now. That is a network failure, not a discovery
+ * that the file is nameless, and writing the filename over a catalogue's
+ * answer costs the title, the artwork, and the id that lets the next scan ask
+ * again cheaply — so a rescan on a bad connection would quietly strip a
+ * library of everything that made it readable.
  */
 const scanLibrary = async ({
   libraryId,
@@ -141,17 +178,23 @@ const scanLibrary = async ({
   transcoder,
   providers = [createFilenameMetadataProvider()],
   force = false,
+  isPartial = false,
   onProblem,
   onProgress,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path));
   const stored = await store.listStored(libraryId);
 
-  const { changed, missing } = force
+  const seen = force
     ? { changed: found, missing: selectChanged(found, stored).missing }
     : selectChanged(found, stored);
+  const { changed } = seen;
+  const missing = isPartial ? [] : seen.missing;
   const knownPaths = new Set(stored.map((item) => item.path));
   const storedByPath = new Map(stored.map((item) => [item.path, item]));
+  const overrides = new Map(
+    ((await store.listOverrides?.(libraryId)) ?? []).map((one) => [one.path, one]),
+  );
 
   let added = 0;
   let updated = 0;
@@ -172,17 +215,35 @@ const scanLibrary = async ({
       }
 
       const episode = readEpisodeFromPath(file.path);
-      const knownExternalId = storedByPath.get(file.path)?.externalId ?? null;
+      const corrected = overrides.get(file.path) ?? null;
+      const knownExternalId =
+        corrected?.externalId ?? storedByPath.get(file.path)?.externalId ?? null;
 
       const metadata = await resolveMetadata(
         providers,
-        { path: file.path, probe, episode, knownExternalId },
+        {
+          path: file.path,
+          probe,
+          episode,
+          knownExternalId,
+          ...(corrected === null ? {} : { knownExternalKind: corrected.externalKind }),
+        },
         (name, reason) => onProblem?.(file.path, `Metadata provider ${name} failed: ${reason}`),
       );
 
       if (metadata === null) {
         failed += 1;
         onProblem?.(file.path, 'No metadata provider could name this file.');
+
+        continue;
+      }
+
+      if (knownExternalId !== null && (metadata.externalId ?? null) === null) {
+        failed += 1;
+        onProblem?.(
+          file.path,
+          'The catalogue did not answer. Keeping what was already known about this file.',
+        );
 
         continue;
       }
@@ -222,6 +283,14 @@ const scanLibrary = async ({
   return { added, updated, removed, failed };
 };
 
-export type { MediaFileSystem, MediaRow, MediaStore, ScanPhase, ScannedFile, StoredItem };
+export type {
+  MediaOverride,
+  MediaFileSystem,
+  MediaRow,
+  MediaStore,
+  ScanPhase,
+  ScannedFile,
+  StoredItem,
+};
 
 export { scanLibrary, selectChanged, SCAN_PHASES };

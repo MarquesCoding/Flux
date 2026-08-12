@@ -94,7 +94,15 @@ const transcoderThat = (
   readPreviewFile: () => Promise.resolve(null),
   readMonitor: () => Promise.resolve({}),
   openMonitorStream: () => Promise.resolve(null),
-  capabilities: () => Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
+  capabilities: () =>
+    Promise.resolve({
+      ffmpegVersion: 'test',
+      encoders: [],
+      hardwareAccels: [],
+      toneMapping: 'unavailable' as const,
+      canBurnTextSubtitles: true,
+      canBurnImageSubtitles: true,
+    }),
 });
 
 describe('createFingerprintSegmentProvider', () => {
@@ -244,5 +252,42 @@ describe('createFingerprintSegmentProvider', () => {
     await provider.detect(Array.from({ length: 12 }, (_, index) => candidate(index + 1)));
 
     expect(seen.length).toBeLessThanOrEqual(8);
+  });
+});
+
+describe('when the media service has gone away', () => {
+  it('asks once and gives up, rather than failing a season one file at a time', async () => {
+    let asked = 0;
+    const provider = createFingerprintSegmentProvider({
+      transcoder: {
+        ...transcoderThat(() => ({ startSeconds: 0, hashes: [1, 2, 3], framesPerSecond: FPS })),
+        isReachable: () => Promise.resolve(false),
+        fingerprint: () => {
+          asked += 1;
+
+          return Promise.reject(new Error('fetch failed'));
+        },
+      },
+    });
+
+    await expect(provider.detect([candidate(1), candidate(2), candidate(3)])).rejects.toThrow(
+      'not answering',
+    );
+
+    expect(asked).toBe(0);
+  });
+
+  it('gets on with it when the service is there', async () => {
+    const provider = createFingerprintSegmentProvider({
+      transcoder: transcoderThat(() => ({
+        startSeconds: 0,
+        hashes: [1, 2, 3],
+        framesPerSecond: FPS,
+      })),
+    });
+
+    await expect(
+      provider.detect([candidate(1), candidate(2), candidate(3)]),
+    ).resolves.toBeDefined();
   });
 });

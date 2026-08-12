@@ -93,13 +93,42 @@ describe('LibrariesPanel', () => {
       <LibrariesPanel
         {...props}
         libraries={[library()]}
-        progress={new Map([[library().id, scanning({ kind: 'previews' })]])}
+        progress={new Map([[library().id, scanning({ kind: 'regeneratePreviews' })]])}
       />,
     );
 
     expect(
       screen.getByRole('progressbar', { name: /Regenerating previews for Films/ }),
     ).toBeInTheDocument();
+  });
+
+  it('names a job it picked up from the server, which the queue names differently', () => {
+    render(
+      <LibrariesPanel
+        {...props}
+        libraries={[library()]}
+        progress={new Map([[library().id, scanning({ kind: 'library.scan' })]])}
+      />,
+    );
+
+    expect(screen.getByRole('progressbar', { name: /Scanning Films/ })).toBeInTheDocument();
+  });
+
+  it('offers to read every file again, not only the ones that changed', () => {
+    render(<LibrariesPanel {...props} libraries={[library()]} />);
+
+    expect(screen.getByRole('button', { name: /Read every file again/ })).toBeInTheDocument();
+  });
+
+  it('forces the read when asked to read again', async () => {
+    const onScan = vi.fn();
+    const user = userEvent.setup();
+
+    render(<LibrariesPanel {...props} libraries={[library()]} onScan={onScan} />);
+
+    await user.click(screen.getByRole('button', { name: /Read every file again/ }));
+
+    expect(onScan).toHaveBeenCalledWith(library().id, true);
   });
 
   describe('acting on everything at once', () => {

@@ -17,6 +17,8 @@ import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { JobsPanel } from './components/JobsPanel/JobsPanel';
 import { ActivityPanel } from './components/ActivityPanel/ActivityPanel';
 import { LibrariesPanel } from './components/LibrariesPanel/LibrariesPanel';
+import { MediaPanel } from './components/MediaPanel/MediaPanel';
+import { MatchPicker } from './components/MatchPicker/MatchPicker';
 import { OverviewPanel } from './components/OverviewPanel/OverviewPanel';
 import { RolesPanel } from './components/RolesPanel/RolesPanel';
 import { AccountsPanel } from './components/AccountsPanel/AccountsPanel';
@@ -37,7 +39,10 @@ import {
 } from '@FluxWeb/admin/fetchAdmin';
 import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
 import { StatStrip } from './components/StatStrip/StatStrip';
+import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
+  resumeRunning,
+  watchJob,
   subscribe as subscribeToScans,
   getSnapshot as getScanSnapshot,
   startScan,
@@ -48,7 +53,7 @@ import {
   runDefinedJobAll,
 } from './scanCoordinator';
 import { formatBytes } from './formatBytes';
-import type { Library } from '@FluxContracts/schemas/Library';
+import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
 import type {
   ActiveSession,
   AdminOverview,
@@ -90,7 +95,13 @@ const SECTIONS = [
       { id: 'events', label: 'Events' },
     ],
   },
-  { label: 'Content', items: [{ id: 'libraries', label: 'Libraries' }] },
+  {
+    label: 'Content',
+    items: [
+      { id: 'libraries', label: 'Libraries' },
+      { id: 'media', label: 'Media' },
+    ],
+  },
   {
     label: 'People',
     items: [
@@ -158,6 +169,8 @@ const AdminArea = ({
   );
   const [viewingJobKind, setViewingJobKind] = useState<string | null>(initialJob ?? null);
   const [libraries, setLibraries] = useState<Library[]>([]);
+  const [media, setMedia] = useState<MediaSummary[]>([]);
+  const [correcting, setCorrecting] = useState<MediaSummary | null>(null);
   const [unreachable, setUnreachable] = useState<ReadonlySet<string>>(new Set());
   const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
   const [jobSchedules, setJobSchedules] = useState<Map<string, JobTrigger[]>>(new Map());
@@ -192,16 +205,40 @@ const AdminArea = ({
     [],
   );
 
+  /**
+   * Every programme and film across every library.
+   *
+   * Read library by library rather than in one call, since there is no route
+   * that spans them, and folded to one entry per programme: a correction names
+   * a programme, so ninety episodes would be ninety ways to do the same thing.
+   */
+  const readMedia = useCallback(async () => {
+    const found = await fetchLibraries();
+    const shelves = await Promise.all(found.map((entry) => readWholeLibrary(entry.id)));
+    const byThing = new Map<string, MediaSummary>();
+
+    for (const item of shelves.flat()) {
+      const key = item.seriesTitle ?? item.id;
+
+      if (!byThing.has(key)) {
+        byThing.set(key, item);
+      }
+    }
+
+    return [...byThing.values()];
+  }, []);
+
   const loadAll = useCallback(async () => {
     await Promise.all([
       loadInto('overview', fetchAdminOverview, setOverview),
+      loadInto('media', readMedia, setMedia),
       loadInto('monitor', fetchMonitor, setMonitor),
       loadInto('libraries', fetchLibraries, setLibraries),
       loadInto('sessions', fetchActiveSessions, setSessions),
       loadInto('jobs', fetchJobDefinitions, setJobDefinitions),
       loadInto('schedules', readJobSchedules, setJobSchedules),
     ]);
-  }, [loadInto]);
+  }, [loadInto, readMedia]);
 
   const onLibraryUpdated = (updated: Library) => {
     setLibraries((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)));
@@ -211,8 +248,8 @@ const AdminArea = ({
     setLibraries((current) => [...current, library]);
   };
 
-  const rescan = async (libraryId: string) => {
-    await startScan(libraryId);
+  const rescan = async (libraryId: string, force = false) => {
+    await startScan(libraryId, force);
     setLibraries(await fetchLibraries());
   };
 
@@ -312,6 +349,7 @@ const AdminArea = ({
 
   useEffect(() => {
     void loadAll();
+    void resumeRunning();
   }, [loadAll]);
 
   useEffect(() => {
@@ -591,8 +629,8 @@ const AdminArea = ({
                 progress={scanProgress}
                 isScanningAll={isScanningAll}
                 isResettingAll={isResettingAll}
-                onScan={(libraryId) => {
-                  void rescan(libraryId);
+                onScan={(libraryId, force) => {
+                  void rescan(libraryId, force);
                 }}
                 onScanAll={() => {
                   void rescanAll();
@@ -605,6 +643,23 @@ const AdminArea = ({
                 }}
                 onLibraryCreated={onLibraryCreated}
                 onLibraryUpdated={onLibraryUpdated}
+              />
+            </TabPanel>
+
+            <TabPanel
+              value="media"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <MediaPanel
+                isUnreachable={unreachable.has('media')}
+                media={media}
+                onCorrect={setCorrecting}
               />
             </TabPanel>
 
@@ -654,6 +709,24 @@ const AdminArea = ({
           </section>
         </motion.div>
       </Tabs>
+
+      <MatchPicker
+        media={correcting}
+        onClose={() => {
+          setCorrecting(null);
+        }}
+        onCorrected={(jobId) => {
+          const libraryId = correcting?.libraryId ?? null;
+
+          void (
+            jobId === null || libraryId === null
+              ? Promise.resolve()
+              : watchJob(libraryId, 'library.readAgain', jobId)
+          ).then(async () => {
+            setMedia(await readMedia());
+          });
+        }}
+      />
     </motion.div>
   );
 };

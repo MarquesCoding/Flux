@@ -13,6 +13,7 @@ import {
 } from './createMediaStore';
 import { scanLibrary } from './scanLibrary';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
+import { resolveSeriesShape } from './MetadataProvider';
 import { regeneratePreviews } from './regeneratePreviews';
 import { generateTrickplay } from './generateTrickplay';
 import {
@@ -23,12 +24,14 @@ import {
 } from '@FluxServer/playback/PlaybackService';
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
-import type { MediaFileSystem } from './scanLibrary';
-import type { MetadataProvider } from './MetadataProvider';
+import type { MediaFileSystem, ScanPhase } from './scanLibrary';
+import type { MetadataProvider, SeriesShape } from './MetadataProvider';
+import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 import type { LibraryService } from './LibraryService';
 import {
   SCAN_LIBRARY_JOB,
+  READ_AGAIN_JOB,
   REGENERATE_PREVIEWS_JOB,
   REGENERATE_TRICKPLAY_JOB,
   DETECT_SEGMENTS_JOB,
@@ -38,6 +41,10 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 const GenresSchema = z.array(z.string());
 type CreateDatabaseLibraryServiceOptions = {
+  /**
+   * How many files to have the media service working on at once.
+   */
+  atOnce?: number;
   db: FluxDatabase;
   files: MediaFileSystem;
   transcoder: Transcoder;
@@ -83,6 +90,10 @@ const readGenres = (stored: JsonValue): string[] | null => {
  */
 type DatabaseLibraryService = LibraryService & {
   runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>;
+  /**
+   * Reads a few named files again, having been told what they are.
+   */
+  runReadAgain: (libraryId: string, paths: string[], jobId?: string) => Promise<void>;
   runRegeneratePreviews: (
     libraryId: string,
     defaultAudioLanguage: string | null,
@@ -105,9 +116,145 @@ const createDatabaseLibraryService = ({
   transcoder,
   jobs,
   providers,
+  atOnce = 1,
   onProblem,
 }: CreateDatabaseLibraryServiceOptions): DatabaseLibraryService => {
   const store = createMediaStore(db);
+
+  /**
+   * What the catalogue says the series contains, or nothing when nobody can
+   * say.
+   *
+   * Asked by the id a provider already gave one of the episodes, which is why
+   * this needs no new column: every episode of a series was matched to the
+   * same series in the catalogue, so any one of them can name it.
+   *
+   * Held for the life of the process. A series gains an episode a week at
+   * most, and asking a catalogue again every time somebody opens a dialog is
+   * a request per press for an answer that does not move.
+   */
+  const shapes = new Map<string, SeriesShape | null>();
+
+  const shapeOf = async (detail: ShowDetail): Promise<SeriesShape | null> => {
+    const [row] = await db
+      .select({ externalId: mediaItem.externalId })
+      .from(mediaItem)
+      .where(eq(mediaItem.id, detail.coverMediaId))
+      .limit(1);
+
+    const externalId = row?.externalId ?? null;
+
+    if (externalId === null || externalId === '') {
+      return null;
+    }
+
+    const known = shapes.get(externalId);
+
+    if (known !== undefined) {
+      return known;
+    }
+
+    const found = await resolveSeriesShape(providers ?? [], externalId, (provider, reason) => {
+      onProblem?.(provider, reason);
+    });
+
+    shapes.set(externalId, found);
+
+    return found;
+  };
+
+  /**
+   * Every file a correction should reach.
+   *
+   * A film is itself. An episode is its whole series within that library,
+   * because the id being corrected names a programme rather than an episode,
+   * and half a corrected series is a worse state than an uncorrected one.
+   */
+  const pathsOfTheSameThing = async (
+    mediaId: string,
+  ): Promise<{ libraryId: string; paths: string[] } | null> => {
+    const [row] = await db
+      .select({
+        libraryId: mediaItem.libraryId,
+        path: mediaItem.path,
+        seriesTitle: mediaItem.seriesTitle,
+      })
+      .from(mediaItem)
+      .where(eq(mediaItem.id, mediaId))
+      .limit(1);
+
+    if (row === undefined) {
+      return null;
+    }
+
+    if (row.seriesTitle === null || row.seriesTitle === '') {
+      return { libraryId: row.libraryId, paths: [row.path] };
+    }
+
+    const siblings = await db
+      .select({ path: mediaItem.path })
+      .from(mediaItem)
+      .where(
+        and(eq(mediaItem.libraryId, row.libraryId), eq(mediaItem.seriesTitle, row.seriesTitle)),
+      );
+
+    return { libraryId: row.libraryId, paths: siblings.map((one) => one.path) };
+  };
+
+  /**
+   * Reads a handful of files again, now that something about them has changed.
+   *
+   * A scan of the whole library would answer too, and would take as long as the
+   * library is large. The point of a correction is watching the page become
+   * right, so only what was corrected is read again.
+   */
+  const readAgain = async (
+    libraryId: string,
+    paths: string[],
+    onProgress?: (phase: ScanPhase, processed: number, total: number) => void,
+  ): Promise<void> => {
+    const rows = await db
+      .select({
+        path: mediaItem.path,
+        sizeBytes: mediaItem.sizeBytes,
+        modifiedAtMs: mediaItem.modifiedAtMs,
+      })
+      .from(mediaItem)
+      .where(and(eq(mediaItem.libraryId, libraryId), inArray(mediaItem.path, paths)));
+
+    await scanLibrary({
+      libraryId,
+      root: '',
+      files: { listFiles: () => Promise.resolve(rows) },
+      store,
+      transcoder,
+      providers: providers ?? [],
+      force: true,
+      isPartial: true,
+      ...(onProblem === undefined ? {} : { onProblem }),
+      ...(onProgress === undefined ? {} : { onProgress }),
+    });
+  };
+
+  /**
+   * Hands the re-read to the queue, so it is watchable rather than a request
+   * that hangs for as long as a series takes to fetch.
+   *
+   * Runs it here and now when the queue will not take it, which is how a
+   * server started without background jobs still applies a correction — the
+   * caller waits, but the correction lands either way.
+   */
+  const queueReadAgain = async (libraryId: string, paths: string[]): Promise<string | null> => {
+    const jobId = await jobs.enqueue(READ_AGAIN_JOB, { libraryId, paths }, libraryId);
+
+    if (jobId === null) {
+      await readAgain(libraryId, paths);
+
+      return null;
+    }
+
+    return jobId;
+  };
 
   const findLibrary = async (id: string) => {
     const rows = await db.select().from(library).where(eq(library.id, id)).limit(1);
@@ -279,6 +426,42 @@ const createDatabaseLibraryService = ({
       return { items, total: totals?.total ?? 0 };
     },
 
+    correctMatch: async (mediaId, reference, by) => {
+      const paths = await pathsOfTheSameThing(mediaId);
+
+      if (paths === null) {
+        return null;
+      }
+
+      for (const path of paths.paths) {
+        await store.saveOverride({
+          libraryId: paths.libraryId,
+          path,
+          externalId: reference.externalId,
+          externalKind: reference.externalKind,
+          updatedBy: by,
+        });
+      }
+
+      const jobId = await queueReadAgain(paths.libraryId, paths.paths);
+
+      return { corrected: paths.paths.length, jobId };
+    },
+
+    forgetCorrection: async (mediaId) => {
+      const paths = await pathsOfTheSameThing(mediaId);
+
+      if (paths === null) {
+        return null;
+      }
+
+      await store.removeOverrides(paths.libraryId, paths.paths);
+
+      const jobId = await queueReadAgain(paths.libraryId, paths.paths);
+
+      return { corrected: paths.paths.length, jobId };
+    },
+
     getMedia: async (id) => {
       const rows = await db.select().from(mediaItem).where(eq(mediaItem.id, id)).limit(1);
       const row = rows[0];
@@ -405,6 +588,16 @@ const createDatabaseLibraryService = ({
       };
     },
 
+    runReadAgain: async (libraryId, paths, jobId) => {
+      await readAgain(
+        libraryId,
+        paths,
+        jobId === undefined
+          ? undefined
+          : (phase, processed, total) => jobs.reportProgress(jobId, phase, processed, total),
+      );
+    },
+
     runScan: async (libraryId, force = false, jobId) => {
       const found = await findLibrary(libraryId);
 
@@ -433,6 +626,7 @@ const createDatabaseLibraryService = ({
     runRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {
       await regeneratePreviews({
         libraryId,
+        atOnce,
         store: {
           listOutstanding: (id) => listOutstandingFor(db, id, REGENERATE_PREVIEWS_JOB),
           markComplete: (mediaItemId) => markJobComplete(db, mediaItemId, REGENERATE_PREVIEWS_JOB),
@@ -452,6 +646,7 @@ const createDatabaseLibraryService = ({
     runRegenerateTrickplay: async (libraryId, jobId) => {
       await generateTrickplay({
         libraryId,
+        atOnce,
         store: {
           listOutstanding: (id) => listOutstandingFor(db, id, REGENERATE_TRICKPLAY_JOB),
           markComplete: (mediaItemId) => markJobComplete(db, mediaItemId, REGENERATE_TRICKPLAY_JOB),
@@ -490,7 +685,15 @@ const createDatabaseLibraryService = ({
         offset: 0,
       });
 
-      return page === null ? null : buildShowDetail(page.items, showId);
+      const detail = page === null ? null : buildShowDetail(page.items, showId);
+
+      if (detail === null) {
+        return null;
+      }
+
+      const shape = await shapeOf(detail);
+
+      return shape === null ? detail : { ...detail, shape: shape.seasons };
     },
   };
 

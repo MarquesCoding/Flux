@@ -22,6 +22,8 @@
     clippy::cast_sign_loss,
     reason = "spectral arithmetic on values bounded well inside float precision"
 )]
+use rustfft::num_complex::Complex;
+use rustfft::FftPlanner;
 use std::f32::consts::PI;
 use std::path::Path;
 use std::process::Stdio;
@@ -88,6 +90,8 @@ pub enum FingerprintError {
     Read(std::io::Error),
     #[error("that file has no audio to fingerprint")]
     Silent,
+    #[error("the fingerprinting itself did not finish")]
+    Abandoned,
 }
 
 /// How many frames a second the fingerprint carries.
@@ -175,30 +179,17 @@ pub fn band_edges() -> Vec<usize> {
 /// A direct transform rather than a fast one: a frame is 2048 samples and the
 /// bands only need magnitudes at 33 frequencies, so the fast algorithm's
 /// bookkeeping would cost more than it saves.
-fn band_energies(frame: &[f32], window: &[f32], edges: &[usize]) -> Vec<f32> {
+fn band_energies(spectrum: &[Complex<f32>], edges: &[usize]) -> Vec<f32> {
     let mut energies = vec![0.0; BAND_COUNT];
 
     for (band, energy) in energies.iter_mut().enumerate() {
         let start = edges[band];
         let end = edges[band + 1].max(start + 1);
 
-        let mut total = 0.0;
-
-        for bin in start..end {
-            let mut real = 0.0;
-            let mut imaginary = 0.0;
-            let angular = 2.0 * PI * bin as f32 / FRAME_SIZE as f32;
-
-            for (index, sample) in frame.iter().enumerate() {
-                let windowed = sample * window[index];
-                let phase = angular * index as f32;
-
-                real += windowed * phase.cos();
-                imaginary -= windowed * phase.sin();
-            }
-
-            total += real.mul_add(real, imaginary * imaginary).sqrt();
-        }
+        let total: f32 = spectrum[start..end]
+            .iter()
+            .map(|value| value.re.mul_add(value.re, value.im * value.im).sqrt())
+            .sum();
 
         *energy = total / (end - start) as f32;
     }
@@ -244,17 +235,34 @@ pub fn fingerprint_samples(samples: &[f32]) -> Vec<u32> {
 
     let window = hann_window(FRAME_SIZE);
     let edges = band_edges();
+    let transform = FftPlanner::new().plan_fft_forward(FRAME_SIZE);
+    let mut buffer = vec![Complex { re: 0.0, im: 0.0 }; FRAME_SIZE];
 
     let frames: Vec<Vec<f32>> = samples
         .windows(FRAME_SIZE)
         .step_by(HOP_SIZE)
-        .map(|frame| band_energies(frame, &window, &edges))
+        .map(|frame| {
+            for (slot, (sample, weight)) in buffer.iter_mut().zip(frame.iter().zip(window.iter())) {
+                slot.re = sample * weight;
+                slot.im = 0.0;
+            }
+
+            transform.process(&mut buffer);
+
+            band_energies(&buffer, &edges)
+        })
         .collect();
 
     hash_frames(&frames)
 }
 
 /// Fingerprints a window of a file's audio.
+///
+/// The arithmetic runs on a blocking thread rather than here. Reducing ten
+/// minutes of audio to hashes is minutes of solid computation, and doing it on
+/// an executor thread holds that thread for every one of them — the service
+/// stops answering anything at all, including whether it is still alive, which
+/// is indistinguishable from having died.
 ///
 /// # Errors
 ///
@@ -282,8 +290,13 @@ pub async fn fingerprint(
 
     let _ = child.wait().await;
 
-    let samples = read_samples(&decoded);
-    let hashes = fingerprint_samples(&samples);
+    let hashes = tokio::task::spawn_blocking(move || {
+        let samples = read_samples(&decoded);
+
+        fingerprint_samples(&samples)
+    })
+    .await
+    .map_err(|_| FingerprintError::Abandoned)?;
 
     if hashes.is_empty() {
         return Err(FingerprintError::Silent);

@@ -1,23 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
 import { PageDots } from '@FluxUI/PageDots';
+import { usePagedScroller } from '@FluxUI/usePagedScroller';
 import type { CastGridProps } from './CastGrid.types';
 
 /**
- * How wide a face wants to be, and how much air goes between two of them.
+ * How wide a face wants to be.
  *
  * Wide enough to recognise somebody and to fit a name under them without
- * breaking it across three lines.
+ * breaking it across three lines. Narrower than that on a phone, where two
+ * squeezed faces beat one enormous one.
  */
 const FACE_WIDTH = 170;
-const GAP = 16;
-
-/**
- * The fewest to put on a line.
- *
- * A phone is narrower than three faces at that width, and three squeezed faces
- * beat one enormous one.
- */
-const LEAST_PER_PAGE = 3;
 
 /**
  * Who is in it.
@@ -27,63 +19,42 @@ const LEAST_PER_PAGE = 3;
  * as something having gone wrong; a cast that pages is the same list with a
  * straight edge and a way to see the rest.
  *
- * How many fit is measured rather than assumed, because it is a question about
- * the width of this panel on this screen — and the panel is a dialog whose
- * width is itself a fraction of the window. A fixed count would leave a gap on
- * a wide screen and overflow a narrow one.
+ * It scrolls rather than swapping which faces are drawn, so a page turn is the
+ * row moving under a finger or a trackpad and the markers are only there for a
+ * mouse. Swapping the slice made paging a jump cut, and made a trackpad useless
+ * on a list that plainly ran off the edge of the panel.
  */
 const CastGrid = ({ members }: CastGridProps) => {
-  const [page, setPage] = useState(0);
-  const [perPage, setPerPage] = useState(LEAST_PER_PAGE);
-  const trackRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const track = trackRef.current;
-
-    if (track === null) {
-      return;
-    }
-
-    const measure = () => {
-      const fits = Math.floor((track.clientWidth + GAP) / (FACE_WIDTH + GAP));
-
-      setPerPage(Math.max(LEAST_PER_PAGE, fits));
-    };
-
-    measure();
-
-    const watcher = new ResizeObserver(measure);
-
-    watcher.observe(track);
-
-    return () => {
-      watcher.disconnect();
-    };
-  }, []);
-
-  const pages = Math.max(1, Math.ceil(members.length / perPage));
-  const at = Math.min(page, pages - 1);
-  const shown = members.slice(at * perPage, at * perPage + perPage);
+  const { trackRef, pages, measure, scrollTo } = usePagedScroller<HTMLUListElement>([members]);
 
   return (
     <div className="flex flex-col gap-4">
       <header className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
           Cast
-          {members.length <= perPage ? null : (
+          {pages.count < 2 ? null : (
             <span className="ml-2 tabular-nums text-text-muted/70">{members.length}</span>
           )}
         </h3>
 
-        <PageDots count={pages} selectedIndex={at} label="Cast pages" onSelect={setPage} />
+        <PageDots
+          count={pages.count}
+          selectedIndex={pages.at}
+          label="Cast pages"
+          onSelect={scrollTo}
+        />
       </header>
 
-      <div ref={trackRef}>
-        <ul className="flex gap-4">
-          {shown.map((member) => (
+      <div>
+        <ul
+          ref={trackRef}
+          onScroll={measure}
+          className="flux-rail flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth"
+        >
+          {members.map((member) => (
             <li
               key={`${member.name}-${member.role}`}
-              className="flex min-w-0 flex-1 flex-col gap-3"
+              className="flex w-[42vw] shrink-0 snap-start flex-col gap-3 sm:w-[10.625rem]"
             >
               <span className="aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface-raised ring-1 ring-white/10">
                 {member.imageUrl === null ? null : (
@@ -104,12 +75,6 @@ const CastGrid = ({ members }: CastGridProps) => {
               </span>
             </li>
           ))}
-
-          {Array.from({ length: Math.max(0, perPage - shown.length) }, (_, index) => index).map(
-            (index) => (
-              <li key={`empty-${index.toString()}`} aria-hidden className="min-w-0 flex-1" />
-            ),
-          )}
         </ul>
       </div>
     </div>
@@ -118,4 +83,4 @@ const CastGrid = ({ members }: CastGridProps) => {
 
 CastGrid.displayName = 'CastGrid';
 
-export { CastGrid, FACE_WIDTH, LEAST_PER_PAGE };
+export { CastGrid, FACE_WIDTH };

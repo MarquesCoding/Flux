@@ -162,16 +162,96 @@ type ScheduleTrigger = z.infer<typeof ScheduleTriggerSchema>;
 type JobTrigger = z.infer<typeof JobTriggerSchema>;
 type JobSchedule = z.infer<typeof JobScheduleSchema>;
 
+const RunningScansSchema = z.object({
+  scans: z.array(
+    z.object({
+      jobId: z.string(),
+      kind: z.string(),
+      libraryId: z.string().nullable(),
+      phase: z.string().nullable(),
+      processed: z.number().nullable(),
+      total: z.number().nullable(),
+    }),
+  ),
+});
+
+type RunningScan = z.infer<typeof RunningScansSchema>['scans'][number];
+
 /**
- * Reads the state of the server.
+ * What the server is working on right now.
+ *
+ * Asked when the page opens, because a scan started before a reload is still
+ * running and the browser that started it no longer remembers its job id.
  */
-const fetchAdminOverview = async (): Promise<AdminOverview | null> => {
-  const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
+const fetchRunningScans = async (): Promise<RunningScan[]> => {
+  const response = await fetch('/api/libraries/scans', { credentials: 'same-origin' }).catch(
     () => null,
   );
 
   if (response === null || !response.ok) {
-    return null;
+    return [];
+  }
+
+  const parsed = RunningScansSchema.safeParse(await response.json().catch(() => null));
+
+  return parsed.success ? parsed.data.scans : [];
+};
+
+const CatalogueMatchesSchema = z.object({
+  matches: z.array(
+    z.object({
+      externalId: z.string(),
+      kind: z.enum(['tv', 'movie']),
+      title: z.string(),
+      year: z.number().nullable(),
+      overview: z.string().nullable(),
+      posterUrl: z.string().nullable(),
+    }),
+  ),
+});
+
+type CatalogueMatch = z.infer<typeof CatalogueMatchesSchema>['matches'][number];
+
+/**
+ * Asks the catalogue what it holds under a name.
+ *
+ * For the moment somebody knows the match is wrong and wants to say what it
+ * should have been, in the words they would use rather than an id.
+ */
+const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<CatalogueMatch[]> => {
+  const parameters = new URLSearchParams({ query, kind });
+  const response = await fetch(`/api/admin/catalogue/search?${parameters.toString()}`, {
+    credentials: 'same-origin',
+  }).catch(() => null);
+
+  if (response === null || !response.ok) {
+    return [];
+  }
+
+  const parsed = CatalogueMatchesSchema.safeParse(await response.json().catch(() => null));
+
+  return parsed.success ? parsed.data.matches : [];
+};
+
+/**
+ * Reads the state of the server.
+ *
+ * Throws with the reason rather than answering null, so that a page which
+ * could not read this says so. Returning nothing is indistinguishable from a
+ * server that holds nothing, and a page cannot tell an operator which it is
+ * looking at unless the difference reaches it.
+ */
+const fetchAdminOverview = async (): Promise<AdminOverview> => {
+  const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
+    () => null,
+  );
+
+  if (response === null) {
+    throw new Error('The server could not be reached.');
+  }
+
+  if (!response.ok) {
+    throw new Error(`The server answered ${response.status.toString()}.`);
   }
 
   return AdminOverviewSchema.parse(await response.json());
@@ -387,6 +467,8 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
 };
 
 export type {
+  CatalogueMatch,
+  RunningScan,
   ActiveSession,
   AdminOverview,
   Job,
@@ -399,6 +481,8 @@ export type {
 
 export {
   fetchAdminOverview,
+  fetchRunningScans,
+  searchCatalogue,
   fetchMonitor,
   watchMonitor,
   saveCatalogueKey,

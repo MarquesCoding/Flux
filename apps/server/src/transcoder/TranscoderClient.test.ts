@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { readSocketPath, createTranscoderClient } from './TranscoderClient';
 
 describe('readSocketPath', () => {
@@ -8,6 +9,53 @@ describe('readSocketPath', () => {
 
   it('reports nothing for an http address', () => {
     expect(readSocketPath('http://127.0.0.1:8477')).toBeNull();
+  });
+});
+
+describe('what the transcoder says it can do', () => {
+  const answering = (body: JsonValue) =>
+    createTranscoderClient({
+      baseUrl: 'http://127.0.0.1:8477',
+      fetchImpl: () =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          json: () => Promise.resolve(body),
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+        }),
+    });
+
+  const REPORTED = {
+    ffmpegVersion: 'ffmpeg version 9.0',
+    encoders: [],
+    hardwareAccels: [],
+    toneMapping: 'zscale',
+    canBurnTextSubtitles: true,
+    canBurnImageSubtitles: true,
+  };
+
+  it('keeps the tone mapping it was told about, rather than dropping it', async () => {
+    const capabilities = await answering(REPORTED).capabilities();
+
+    expect(capabilities.toneMapping).toBe('zscale');
+  });
+
+  it('keeps what it was told about burning in subtitles', async () => {
+    const capabilities = await answering(REPORTED).capabilities();
+
+    expect(capabilities.canBurnTextSubtitles).toBe(true);
+    expect(capabilities.canBurnImageSubtitles).toBe(true);
+  });
+
+  it('assumes a transcoder that says nothing about tone mapping cannot do it', async () => {
+    const capabilities = await answering({
+      ffmpegVersion: 'ffmpeg version 9.0',
+      encoders: [],
+      hardwareAccels: [],
+    }).capabilities();
+
+    expect(capabilities.toneMapping).toBe('unavailable');
   });
 });
 

@@ -233,6 +233,45 @@ describe('Button', () => {
   });
 
   describe('painted by its caller', () => {
+    it('imposes no layout on an episode row, a card or a menu row that draws its own', () => {
+      render(
+        <Button variant="bare" size="none" className="flex flex-col text-left">
+          Season 2
+        </Button>,
+      );
+
+      const button = screen.getByRole('button', { name: 'Season 2' });
+
+      expect(button).not.toHaveClass('items-center');
+      expect(button).not.toHaveClass('justify-center');
+      expect(button).not.toHaveClass('shrink-0');
+    });
+
+    it('still centres a control that is not bare', () => {
+      render(<Button>Play</Button>);
+
+      const button = screen.getByRole('button', { name: 'Play' });
+
+      expect(button).toHaveClass('items-center');
+      expect(button).toHaveClass('justify-center');
+    });
+
+    it('keeps a box to lay its own contents out in', () => {
+      render(<Button variant="bare" size="none" label="Use red" className="size-9" />);
+
+      expect(screen.getByRole('button', { name: 'Use red' })).toHaveClass('inline-flex');
+    });
+
+    it('leaves corners to the caller too', () => {
+      render(
+        <Button variant="bare" size="none">
+          Season 2
+        </Button>,
+      );
+
+      expect(screen.getByRole('button', { name: 'Season 2' })).not.toHaveClass('rounded-lg');
+    });
+
     it('brings no skin of its own when bare', () => {
       render(
         <Button variant="bare" size="none" className="text-left">

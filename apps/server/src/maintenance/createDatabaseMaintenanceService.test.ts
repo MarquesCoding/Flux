@@ -6,6 +6,7 @@ const stubJobQueue = (enqueue: JobQueue['enqueue']): JobQueue => ({
   enqueue,
   readState: () => Promise.resolve('unknown'),
   readProgress: () => null,
+  listRunning: () => [],
   reportProgress: () => {},
   setSchedule: () => Promise.resolve(),
   clearSchedule: () => Promise.resolve(),

@@ -1,3 +1,4 @@
+import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
 import { findSharedAudio, agreeRange } from '@FluxCore/functions/findSharedAudio';
 import { INTRO_BOUNDS } from './SegmentProvider';
 import type { SegmentCandidate, SegmentProvider } from './SegmentProvider';
@@ -32,11 +33,21 @@ const MAX_EPISODES = 8;
 
 type CreateFingerprintSegmentProviderOptions = {
   transcoder: Transcoder;
+  /**
+   * How many episodes to listen to at once. A season is compared as a whole,
+   * so this is where the waiting is.
+   */
+  atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
 };
 
 /**
  * Segments found by listening to a season.
+ *
+ * Asks whether the media service is there before starting rather than
+ * discovering it a file at a time. A season of twelve against a service that
+ * has gone away is twelve failures, twelve error lines and twelve waits for a
+ * connection that will not open, when one question answers it for all of them.
  *
  * Every pair of episodes is compared, and the longest stretch of audio they
  * have in common is a candidate intro: two episodes of one series share their
@@ -50,6 +61,7 @@ type CreateFingerprintSegmentProviderOptions = {
  */
 const createFingerprintSegmentProvider = ({
   transcoder,
+  atOnce = 1,
   onProblem,
 }: CreateFingerprintSegmentProviderOptions): SegmentProvider => ({
   name: 'fingerprint',
@@ -61,11 +73,13 @@ const createFingerprintSegmentProvider = ({
       return found;
     }
 
+    if (!(await transcoder.isReachable())) {
+      throw new Error('The media service is not answering, so nothing can be listened to.');
+    }
+
     const considered = group.slice(0, MAX_EPISODES);
 
-    const fingerprints: { mediaId: string; hashes: number[]; framesPerSecond: number }[] = [];
-
-    for (const item of considered) {
+    const listened = await mapWithLimit(considered, atOnce, async (item) => {
       try {
         const printed = await transcoder.fingerprint({
           inputPath: item.path,
@@ -73,20 +87,26 @@ const createFingerprintSegmentProvider = ({
           durationSeconds: Math.min(WINDOW_SECONDS, Math.floor(item.durationSeconds)),
         });
 
-        fingerprints.push({
+        return {
           mediaId: item.mediaId,
           hashes: printed.hashes,
           framesPerSecond: printed.framesPerSecond,
-        });
+        };
       } catch (error) {
         onProblem?.(
           item.path,
           error instanceof Error ? error.message : 'Could not be listened to.',
         );
+
+        return null;
       } finally {
         onItemDone?.();
       }
-    }
+    });
+
+    const fingerprints = listened.filter(
+      (one): one is { mediaId: string; hashes: number[]; framesPerSecond: number } => one !== null,
+    );
 
     if (fingerprints.length < MIN_EPISODES) {
       return found;

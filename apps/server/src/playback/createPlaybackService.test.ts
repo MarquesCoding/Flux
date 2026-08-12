@@ -76,7 +76,14 @@ const harness = (defaultAudioLanguage: string | null) => {
     readMonitor: () => Promise.resolve({}),
     openMonitorStream: () => Promise.resolve(null),
     capabilities: () =>
-      Promise.resolve({ ffmpegVersion: 'test', encoders: [], hardwareAccels: [] }),
+      Promise.resolve({
+        ffmpegVersion: 'test',
+        encoders: [],
+        hardwareAccels: [],
+        toneMapping: 'unavailable' as const,
+        canBurnTextSubtitles: true,
+        canBurnImageSubtitles: true,
+      }),
   };
 
   const service = createPlaybackService({

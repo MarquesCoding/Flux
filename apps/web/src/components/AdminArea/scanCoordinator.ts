@@ -3,7 +3,7 @@ import {
   resetLibrary,
   regenerateLibraryPreviews,
 } from '@FluxWeb/library/fetchLibrary';
-import { runJob } from '@FluxWeb/admin/fetchAdmin';
+import { fetchRunningScans, runJob } from '@FluxWeb/admin/fetchAdmin';
 import { waitForScanCompletion } from '@FluxWeb/library/waitForScanCompletion';
 import type { ScanJob } from '@FluxWeb/library/fetchLibrary';
 import type { Library } from '@FluxContracts/schemas/Library';
@@ -118,10 +118,70 @@ const runAndTrack = async (
 };
 
 /**
- * Scans one library, tracking its progress until it finishes.
+ * Picks up scans the server is already running.
+ *
+ * A reload loses the job ids this page was following, but not the work: the
+ * server is still scanning, and a page that shows nothing is telling the
+ * operator something untrue. Asked once when the page opens, so a refresh
+ * mid-scan rejoins rather than starts again.
  */
-const startScan = (libraryId: string): Promise<void> =>
-  runAndTrack(libraryId, 'scan', () => scanLibrary(libraryId));
+const resumeRunning = async (): Promise<void> => {
+  const running = await fetchRunningScans();
+
+  await Promise.all(
+    running
+      .filter((scan) => scan.libraryId !== null)
+      .map(async (scan) => {
+        const libraryId = scan.libraryId ?? '';
+
+        if (snapshot.progress.has(libraryId)) {
+          return;
+        }
+
+        track(libraryId, {
+          kind: scan.kind,
+          phase: scan.phase,
+          processed: scan.processed,
+          total: scan.total,
+        });
+
+        try {
+          await waitForScanCompletion(scan.jobId, (found) => {
+            track(libraryId, {
+              kind: scan.kind,
+              phase: found.phase,
+              processed: found.processed,
+              total: found.total,
+            });
+          });
+        } finally {
+          untrack(libraryId);
+        }
+      }),
+  );
+};
+
+/**
+ * Follows a job somebody else queued, as though this page had started it.
+ *
+ * A correction is made from a dialog rather than from the Libraries panel, so
+ * without this the work it sets off would run unwatched and the operator
+ * would be told it was done while the files were still being read.
+ */
+const watchJob = (libraryId: string, kind: string, jobId: string): Promise<void> =>
+  runAndTrack(libraryId, kind, () => Promise.resolve({ jobId, state: 'queued' }));
+
+/**
+ * Scans one library, tracking its progress until it finishes.
+ *
+ * Forced, every file is read again whatever the filesystem says about it. An
+ * ordinary scan skips anything whose size and date are unchanged, which is
+ * right for finding new files and useless for fixing what is known about the
+ * old ones: a title that came out wrong stays wrong however many times the
+ * button is pressed, because the file it came from has not moved.
+ */
+const startScan = (libraryId: string, force = false): Promise<void> =>
+  runAndTrack(libraryId, force ? 'rescan' : 'scan', () => scanLibrary(libraryId, force));
 
 /**
  * Scans every library at once, forcing a full re-probe of each file.
@@ -211,6 +271,8 @@ const resetForTests = () => {
 export {
   subscribe,
   getSnapshot,
+  resumeRunning,
+  watchJob,
   startScan,
   startScanAll,
   startResetAll,

@@ -43,13 +43,20 @@ describe('scrollToTopOf', () => {
 
   it('passes over a container that is not scrolling anything', () => {
     const { inside, scrollTo } = scroller(false);
+
+    scrollToTopOf(inside);
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('leaves the page where it is when nothing around the element scrolls', () => {
+    const { inside } = scroller(false);
     const windowScroll = vi.fn();
 
     vi.stubGlobal('scrollTo', windowScroll);
     scrollToTopOf(inside);
 
-    expect(scrollTo).not.toHaveBeenCalled();
-    expect(windowScroll).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    expect(windowScroll).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 

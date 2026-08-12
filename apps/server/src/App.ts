@@ -1,3 +1,6 @@
+import { readCatalogueReference } from '@FluxCore/functions/readCatalogueReference';
+import type { RunningJob } from '@FluxServer/jobs/JobQueue';
+import type { CatalogueMatch } from '@FluxServer/library/MetadataProvider';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins';
@@ -23,6 +26,9 @@ import {
   getShowRoute,
   scanLibraryRoute,
   scanStateRoute,
+  runningScansRoute,
+  correctMatchRoute,
+  forgetCorrectionRoute,
   resetLibraryRoute,
   regeneratePreviewsRoute,
 } from './routes/LibraryRoute';
@@ -55,6 +61,7 @@ import {
 } from '@FluxServer/routes/FavouriteRoute';
 import {
   adminOverviewRoute,
+  searchCatalogueRoute,
   adminSettingsRoute,
   adminSessionsRoute,
   adminStopSessionRoute,
@@ -168,8 +175,27 @@ const SignInBodySchema = z.object({ password: z.string().min(1) });
 const SERVER_VERSION = '0.0.0';
 
 /**
- * What to tell somebody whose change to a role was refused.
+ * How long the admin page waits on the media service before drawing without it.
  */
+const OVERVIEW_PATIENCE_MILLISECONDS = 5_000;
+
+/**
+ * An answer, or the given one if it takes too long.
+ *
+ * A page describing the server must not be held open by the part of the server
+ * it is describing. A media service that has stopped answering is something to
+ * report, not something to wait for.
+ */
+const within = async <Answer>(work: Promise<Answer>, fallback: Answer): Promise<Answer> =>
+  Promise.race([
+    work,
+    new Promise<Answer>((resolve) => {
+      setTimeout(() => {
+        resolve(fallback);
+      }, OVERVIEW_PATIENCE_MILLISECONDS).unref();
+    }),
+  ]);
+
 /**
  * What to tell somebody whose action on an account was refused.
  */
@@ -178,6 +204,9 @@ const describeAccountRefusal = (refusal: AccountActionRefusal): string =>
     ? 'You cannot do that to your own account.'
     : 'That account is at or above your own rank.';
 
+/**
+ * What to tell somebody whose change to a role was refused.
+ */
 const describeRefusal = (refusal: RoleChangeRefusal): string =>
   refusal === 'outranked'
     ? 'That role is at or above your own.'
@@ -288,6 +317,14 @@ type CreateAppOptions = {
    */
   readImage?: (url: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>;
   isTranscoderReachable?: () => Promise<boolean>;
+  /**
+   * What the server is working on, so a page reloaded mid-scan can find it.
+   */
+  listRunningJobs?: () => RunningJob[];
+  /**
+   * What the catalogue offers under a name, for somebody correcting a match.
+   */
+  searchCatalogue?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
 };
 
 /**
@@ -322,6 +359,8 @@ const createApp = ({
   monitorStream,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
+  listRunningJobs = () => [],
+  searchCatalogue = () => Promise.resolve([]),
   permissions = createMemoryPermissionService(),
   banAccount,
   unbanAccount,
@@ -508,6 +547,76 @@ const createApp = ({
 
     return context.json(queued, 202);
   });
+
+  app.openapi(searchCatalogueRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'media.override'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { query, kind } = context.req.valid('query');
+
+    return context.json({ matches: await searchCatalogue(query, kind) }, 200);
+  });
+
+  app.openapi(correctMatchRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'media.override'))) {
+      return context.json({ error: 'That is for administrators.' }, 404);
+    }
+
+    const { reference, kind } = context.req.valid('json');
+    const read = readCatalogueReference(reference);
+
+    if (read === null) {
+      return context.json({ error: 'That does not look like a catalogue address or id.' }, 400);
+    }
+
+    const externalKind = read.kind ?? kind ?? null;
+
+    if (externalKind === null) {
+      return context.json(
+        { error: 'Say whether that id is a series or a film — the same number is both.' },
+        400,
+      );
+    }
+
+    const corrected = await library.correctMatch(
+      context.req.valid('param').id,
+      { externalId: read.id, externalKind },
+      (await readAccount(context.req.raw.headers))?.id ?? null,
+    );
+
+    return corrected === null
+      ? context.json({ error: 'No such item.' }, 404)
+      : context.json(corrected, 200);
+  });
+
+  app.openapi(forgetCorrectionRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'media.override'))) {
+      return context.json({ error: 'That is for administrators.' }, 404);
+    }
+
+    const forgotten = await library.forgetCorrection(context.req.valid('param').id);
+
+    return forgotten === null
+      ? context.json({ error: 'No such item.' }, 404)
+      : context.json(forgotten, 200);
+  });
+
+  app.openapi(runningScansRoute, (context) =>
+    context.json(
+      {
+        scans: listRunningJobs().map((job) => ({
+          jobId: job.jobId,
+          kind: job.kind,
+          libraryId: job.subject,
+          phase: job.progress?.phase ?? null,
+          processed: job.progress?.processed ?? null,
+          total: job.progress?.total ?? null,
+        })),
+      },
+      200,
+    ),
+  );
 
   app.openapi(scanStateRoute, async (context) => {
     const { jobId } = context.req.valid('param');
@@ -939,11 +1048,12 @@ const createApp = ({
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
-    const [users, current, libraries, transcoderCapabilities] = await Promise.all([
+    const [users, current, libraries, transcoderCapabilities, isReachable] = await Promise.all([
       listUsers?.() ?? Promise.resolve([]),
       settings.read(),
       library.list(),
-      capabilities?.().catch(() => null) ?? Promise.resolve(null),
+      within(capabilities?.().catch(() => null) ?? Promise.resolve(null), null),
+      within(isTranscoderReachable(), false),
     ]);
 
     return context.json(
@@ -955,7 +1065,7 @@ const createApp = ({
           cookieSecure: current.cookieSecure,
         },
         transcoder: {
-          isReachable: await isTranscoderReachable(),
+          isReachable,
           ffmpegVersion: transcoderCapabilities?.ffmpegVersion ?? null,
           hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
         },

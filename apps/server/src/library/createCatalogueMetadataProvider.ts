@@ -31,6 +31,31 @@ const DEFAULT_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
  */
 const CAST_LIMIT = 12;
 
+/**
+ * How many times a request is tried again before giving up.
+ *
+ * A catalogue rate-limits a scan long before a library is large, and one
+ * refused request used to cost a file its title and its artwork until somebody
+ * noticed and scanned again.
+ */
+const RETRIES = 3;
+
+/**
+ * The shortest wait between attempts, doubled each time.
+ */
+const BACKOFF_MILLISECONDS = 500;
+
+/**
+ * Whether answering again is worth anything.
+ *
+ * Too many requests and a service in trouble will both pass; a refusal or a
+ * missing title will not, however many times it is asked.
+ */
+const isWorthRetrying = (status: number): boolean => status === 429 || status >= 500;
+
+const wait = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
 const SearchResultSchema = z.object({
   id: z.number(),
   title: z.string().optional(),
@@ -59,6 +84,22 @@ const EpisodeResponseSchema = z.object({
   vote_average: z.number().optional(),
 });
 
+/**
+ * The episodes of one season, as the catalogue lists them.
+ */
+const SeasonResponseSchema = z.object({
+  episodes: z
+    .array(
+      z.object({
+        episode_number: z.number().int(),
+        name: z.string().optional(),
+        overview: z.string().optional(),
+        still_path: z.string().nullish(),
+      }),
+    )
+    .default([]),
+});
+
 const DetailResponseSchema = z.object({
   id: z.number(),
   title: z.string().optional(),
@@ -71,6 +112,14 @@ const DetailResponseSchema = z.object({
   backdrop_path: z.string().nullish(),
   vote_average: z.number().optional(),
   genres: z.array(z.object({ name: z.string() })).default([]),
+  seasons: z
+    .array(
+      z.object({
+        season_number: z.number().int(),
+        episode_count: z.number().int().nonnegative(),
+      }),
+    )
+    .default([]),
   credits: z
     .object({
       cast: z
@@ -188,18 +237,26 @@ const createCatalogueMetadataProvider = ({
     const isToken = isAccessToken(key);
     const parameters = new URLSearchParams(isToken ? query : { api_key: key, ...query });
 
-    const response = await call(
-      `${baseUrl}${path}?${parameters.toString()}`,
-      isToken ? { authorization: `Bearer ${key}` } : undefined,
-    );
+    for (let attempt = 0; attempt <= RETRIES; attempt += 1) {
+      const response = await call(
+        `${baseUrl}${path}?${parameters.toString()}`,
+        isToken ? { authorization: `Bearer ${key}` } : undefined,
+      );
 
-    if (!response.ok) {
-      onProblem?.(`The catalogue answered ${response.status.toString()} for ${path}.`);
+      if (response.ok) {
+        return response.json();
+      }
 
-      return null;
+      if (!isWorthRetrying(response.status) || attempt === RETRIES) {
+        onProblem?.(`The catalogue answered ${response.status.toString()} for ${path}.`);
+
+        return null;
+      }
+
+      await wait(BACKOFF_MILLISECONDS * 2 ** attempt);
     }
 
-    return response.json();
+    return null;
   };
 
   return {
@@ -219,8 +276,24 @@ const createCatalogueMetadataProvider = ({
         ? (facts.episode?.seriesTitle ?? fromFilename.title)
         : fromFilename.title;
 
+      /**
+       * Turns a catalogue entry into metadata.
+       *
+       * `isTheRightSeries` says whether the series itself is beyond doubt —
+       * matched by name exactly, or reached by the id it was matched to
+       * before. When it is, an episode addressed by season and number needs no
+       * second opinion, and a title that disagrees with the filename means a
+       * translated release rather than a wrong match: `Affetto` and
+       * `To Affection` are the same episode, and refusing the whole entry over
+       * it loses the artwork, the overview and the id along with the name.
+       *
+       * When the series was only the best of several guesses, the episode
+       * title is the one piece of evidence available for whether the guess was
+       * right, and a disagreement is still grounds to refuse.
+       */
       const describeFrom = async (
         detail: z.infer<typeof DetailResponseSchema>,
+        isTheRightSeries = false,
       ): Promise<Metadata | null> => {
         const cast: CastMember[] =
           detail.credits?.cast.slice(0, CAST_LIMIT).map((member) => ({
@@ -249,6 +322,7 @@ const createCatalogueMetadataProvider = ({
 
         if (
           isEpisode &&
+          !isTheRightSeries &&
           knownEpisodeTitle !== null &&
           catalogueEpisodeName !== null &&
           !shareASignificantWord(knownEpisodeTitle, catalogueEpisodeName)
@@ -297,7 +371,7 @@ const createCatalogueMetadataProvider = ({
         facts.knownExternalId !== ''
       ) {
         const detailed = await request(
-          `${isEpisode ? '/tv' : '/movie'}/${facts.knownExternalId}`,
+          `/${facts.knownExternalKind ?? (isEpisode ? 'tv' : 'movie')}/${facts.knownExternalId}`,
           key,
           { append_to_response: 'credits' },
         );
@@ -305,7 +379,7 @@ const createCatalogueMetadataProvider = ({
         const detail = DetailResponseSchema.safeParse(detailed);
 
         if (detail.success) {
-          return describeFrom(detail.data);
+          return describeFrom(detail.data, true);
         }
       }
 
@@ -354,7 +428,75 @@ const createCatalogueMetadataProvider = ({
         };
       }
 
-      return describeFrom(detail.data);
+      return describeFrom(detail.data, exact !== undefined);
+    },
+
+    search: async (query, kind) => {
+      const key = await readApiKey();
+
+      if (key === null || key === '') {
+        return [];
+      }
+
+      const searched = await request(`/search/${kind}`, key, { query });
+      const results = SearchResponseSchema.safeParse(searched);
+
+      if (!results.success) {
+        return [];
+      }
+
+      return results.data.results.map((entry) => ({
+        externalId: entry.id.toString(),
+        kind,
+        title: entry.title ?? entry.name ?? query,
+        year: readYear(entry.release_date ?? entry.first_air_date),
+        overview: entry.overview === undefined || entry.overview === '' ? null : entry.overview,
+        posterUrl: imageUrl(imageBaseUrl, entry.poster_path, 'w342'),
+      }));
+    },
+
+    describeSeries: async (externalId) => {
+      const key = await readApiKey();
+
+      if (key === null || key === '') {
+        return null;
+      }
+
+      const detailed = await request(`/tv/${externalId}`, key, {});
+      const detail = DetailResponseSchema.safeParse(detailed);
+
+      if (!detail.success) {
+        return null;
+      }
+
+      const seasons = await Promise.all(
+        detail.data.seasons.map(async (season) => {
+          const listed = SeasonResponseSchema.safeParse(
+            await request(`/tv/${externalId}/season/${season.season_number.toString()}`, key, {}),
+          );
+
+          return {
+            seasonNumber: season.season_number,
+            episodeCount: season.episode_count,
+            episodes: !listed.success
+              ? []
+              : listed.data.episodes.map((episode) => ({
+                  episodeNumber: episode.episode_number,
+                  title:
+                    episode.name === undefined || episode.name === ''
+                      ? `Episode ${episode.episode_number.toString()}`
+                      : episode.name,
+                  stillUrl: imageUrl(imageBaseUrl, episode.still_path, 'w780'),
+                  overview:
+                    episode.overview === undefined || episode.overview === ''
+                      ? null
+                      : episode.overview,
+                })),
+          };
+        }),
+      );
+
+      return { seasons };
     },
   };
 };

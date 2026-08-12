@@ -8,6 +8,7 @@ import {
   runDefinedJobAll,
   subscribe,
   getSnapshot,
+  resumeRunning,
   resetForTests,
 } from './scanCoordinator';
 import type { Library } from '@FluxContracts/schemas/Library';
@@ -17,6 +18,7 @@ const resetLibraryMock = vi.hoisted(() => vi.fn());
 const regenerateLibraryPreviewsMock = vi.hoisted(() => vi.fn());
 const readScanStateMock = vi.hoisted(() => vi.fn());
 const runJobMock = vi.hoisted(() => vi.fn());
+const fetchRunningScansMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
   scanLibrary: scanLibraryMock,
@@ -27,6 +29,7 @@ vi.mock('@FluxWeb/library/fetchLibrary', () => ({
 
 vi.mock('@FluxWeb/admin/fetchAdmin', () => ({
   runJob: runJobMock,
+  fetchRunningScans: fetchRunningScansMock,
 }));
 
 beforeEach(() => {
@@ -36,6 +39,8 @@ beforeEach(() => {
   regenerateLibraryPreviewsMock.mockReset();
   readScanStateMock.mockReset();
   runJobMock.mockReset();
+  fetchRunningScansMock.mockReset();
+  fetchRunningScansMock.mockResolvedValue([]);
 });
 
 const LIBRARY: Library = {
@@ -188,5 +193,124 @@ describe('scanCoordinator', () => {
     await runDefinedJobAll('library.scan', [LIBRARY]);
 
     expect(runJobMock).toHaveBeenCalledWith('library.scan', LIBRARY.id, undefined);
+  });
+});
+
+describe('a page opened while a scan is already running', () => {
+  it('picks the scan up rather than showing nothing', async () => {
+    fetchRunningScansMock.mockResolvedValue([
+      {
+        jobId: 'job-9',
+        kind: 'scan',
+        libraryId: 'library-1',
+        phase: 'probing',
+        processed: 3,
+        total: 12,
+      },
+    ]);
+    let finish: () => void = () => {
+      return;
+    };
+
+    readScanStateMock.mockReturnValue(
+      new Promise((resolve) => {
+        finish = () => {
+          resolve({
+            jobId: 'job-9',
+            state: 'completed',
+            phase: 'probing',
+            processed: 12,
+            total: 12,
+          });
+        };
+      }),
+    );
+
+    const running = resumeRunning();
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(getSnapshot().progress.get('library-1')).toMatchObject({
+      kind: 'scan',
+      processed: 3,
+      total: 12,
+    });
+
+    finish();
+    await running;
+  });
+
+  it('forgets it again once it finishes', async () => {
+    fetchRunningScansMock.mockResolvedValue([
+      {
+        jobId: 'job-9',
+        kind: 'scan',
+        libraryId: 'library-1',
+        phase: null,
+        processed: null,
+        total: null,
+      },
+    ]);
+    readScanStateMock.mockResolvedValue({
+      jobId: 'job-9',
+      state: 'completed',
+      phase: null,
+      processed: null,
+      total: null,
+    });
+
+    await resumeRunning();
+
+    expect(getSnapshot().progress.has('library-1')).toBe(false);
+  });
+
+  it('leaves a job about no library alone, having nothing to attach it to', async () => {
+    fetchRunningScansMock.mockResolvedValue([
+      {
+        jobId: 'job-9',
+        kind: 'cleanup',
+        libraryId: null,
+        phase: null,
+        processed: null,
+        total: null,
+      },
+    ]);
+
+    await resumeRunning();
+
+    expect(getSnapshot().progress.size).toBe(0);
+  });
+});
+
+describe('reading a library again', () => {
+  it('asks for every file, not only the ones that changed', async () => {
+    scanLibraryMock.mockResolvedValue({ jobId: 'job-4', state: 'queued' });
+    readScanStateMock.mockResolvedValue({
+      jobId: 'job-4',
+      state: 'completed',
+      phase: null,
+      processed: null,
+      total: null,
+    });
+
+    await startScan('library-1', true);
+
+    expect(scanLibraryMock).toHaveBeenCalledWith('library-1', true);
+  });
+
+  it('asks only about what changed by default, which is what a scan is for', async () => {
+    scanLibraryMock.mockResolvedValue({ jobId: 'job-5', state: 'queued' });
+    readScanStateMock.mockResolvedValue({
+      jobId: 'job-5',
+      state: 'completed',
+      phase: null,
+      processed: null,
+      total: null,
+    });
+
+    await startScan('library-1');
+
+    expect(scanLibraryMock).toHaveBeenCalledWith('library-1', false);
   });
 });
