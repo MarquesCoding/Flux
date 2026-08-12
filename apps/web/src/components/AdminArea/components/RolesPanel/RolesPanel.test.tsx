@@ -138,6 +138,94 @@ describe('RolesPanel', () => {
     });
   });
 
+  describe('renaming and re-ranking', () => {
+    it('seeds the fields from the role that was picked', async () => {
+      const user = userEvent.setup();
+      render(<RolesPanel accounts={ACCOUNTS} />);
+
+      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+
+      expect(screen.getByLabelText('Name')).toHaveValue('Member');
+      expect(screen.getByLabelText('Rank')).toHaveValue(100);
+    });
+
+    it('will not save a change that is not one', async () => {
+      const user = userEvent.setup();
+      render(<RolesPanel accounts={ACCOUNTS} />);
+
+      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+
+    it('will not save a role with no name', async () => {
+      const user = userEvent.setup();
+      render(<RolesPanel accounts={ACCOUNTS} />);
+
+      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await user.clear(screen.getByLabelText('Name'));
+
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+
+    it('renames a role', async () => {
+      const user = userEvent.setup();
+      render(<RolesPanel accounts={ACCOUNTS} />);
+
+      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await user.clear(screen.getByLabelText('Name'));
+      await user.type(screen.getByLabelText('Name'), 'Housemate');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(mocks.updateRole).toHaveBeenCalledWith('role_2', {
+        name: 'Housemate',
+        position: 100,
+      });
+    });
+
+    it('re-ranks a role, which is what makes the hierarchy usable at all', async () => {
+      const user = userEvent.setup();
+      render(<RolesPanel accounts={ACCOUNTS} />);
+
+      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await user.clear(screen.getByLabelText('Rank'));
+      await user.type(screen.getByLabelText('Rank'), '250');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(mocks.updateRole).toHaveBeenCalledWith('role_2', {
+        name: 'Member',
+        position: 250,
+      });
+    });
+
+    it('leaves the rank alone rather than sending nonsense when the field is empty', async () => {
+      const user = userEvent.setup();
+      render(<RolesPanel accounts={ACCOUNTS} />);
+
+      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await user.clear(screen.getByLabelText('Rank'));
+      await user.clear(screen.getByLabelText('Name'));
+      await user.type(screen.getByLabelText('Name'), 'Housemate');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(mocks.updateRole).toHaveBeenCalledWith('role_2', { name: 'Housemate' });
+    });
+
+    it('explains a rank the server would not accept', async () => {
+      mocks.updateRole.mockResolvedValue({ message: 'That role is at or above your own.' });
+
+      const user = userEvent.setup();
+      render(<RolesPanel accounts={ACCOUNTS} />);
+
+      await user.click(await screen.findByRole('button', { name: /^Member/ }));
+      await user.clear(screen.getByLabelText('Rank'));
+      await user.type(screen.getByLabelText('Rank'), '900');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('at or above your own');
+    });
+  });
+
   describe('refusals', () => {
     it('explains being outranked rather than reporting a failure', async () => {
       mocks.updateRole.mockResolvedValue({ message: 'That role is at or above your own.' });

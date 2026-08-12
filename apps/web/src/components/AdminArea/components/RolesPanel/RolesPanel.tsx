@@ -52,6 +52,8 @@ const RolesPanel = ({ accounts }: RolesPanelProps) => {
   const [accountId, setAccountId] = useState<string | null>(null);
   const [held, setHeld] = useState<AccountPermissions | null>(null);
   const [addingPermission, setAddingPermission] = useState<Permission | null>(null);
+  const [draftName, setDraftName] = useState('');
+  const [draftPosition, setDraftPosition] = useState('');
 
   const reload = useCallback(async () => {
     setRoles(await fetchRoles());
@@ -71,6 +73,13 @@ const RolesPanel = ({ accounts }: RolesPanelProps) => {
 
     void fetchAccountPermissions(accountId).then(setHeld);
   }, [accountId, roles]);
+
+  useEffect(() => {
+    const picked = roles.find((candidate) => candidate.id === selectedRoleId) ?? null;
+
+    setDraftName(picked?.name ?? '');
+    setDraftPosition(picked === null ? '' : picked.position.toString());
+  }, [selectedRoleId, roles]);
 
   const act = async (run: () => Promise<Refusal>) => {
     const outcome = await run();
@@ -185,10 +194,51 @@ const RolesPanel = ({ accounts }: RolesPanelProps) => {
 
       {selected === null ? null : (
         <section className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-surface/40 p-6">
-          <header className="flex flex-wrap items-baseline justify-between gap-3">
+          <header className="flex flex-col gap-4">
             <h3 className="text-xs uppercase tracking-[0.16em] text-text-muted">
               What {selected.name} grants
             </h3>
+
+            <div className="flex flex-wrap items-end gap-3">
+              <TextField
+                label="Name"
+                value={draftName}
+                onValueChange={setDraftName}
+                className="min-w-48 flex-1"
+              />
+
+              <TextField
+                label="Rank"
+                type="number"
+                min={0}
+                value={draftPosition}
+                onValueChange={setDraftPosition}
+                description="Higher manages lower"
+                className="w-32"
+              />
+
+              <Button
+                variant="ghost"
+                size="sm"
+                isPill
+                disabled={
+                  draftName === '' ||
+                  (draftName === selected.name && draftPosition === selected.position.toString())
+                }
+                onClick={() => {
+                  const position = Number.parseInt(draftPosition, 10);
+
+                  void act(() =>
+                    updateRole(selected.id, {
+                      name: draftName,
+                      ...(Number.isNaN(position) ? {} : { position }),
+                    }),
+                  );
+                }}
+              >
+                Save
+              </Button>
+            </div>
           </header>
 
           {groupPermissions(catalogue).map((group) => (
