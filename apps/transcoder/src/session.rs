@@ -160,6 +160,13 @@ impl Session {
 #[derive(Debug, Clone)]
 pub struct SessionConfig {
     pub ffmpeg: String,
+    /// The render node VAAPI and QSV are opened on.
+    ///
+    /// A machine with two cards has a `renderD129` as well, and the one Flux
+    /// should use is not something to guess at. Configurable for the same
+    /// reason Jellyfin asks for it rather than detecting it: the admin knows
+    /// which card is theirs to spend.
+    pub device: String,
     pub cache_root: PathBuf,
     pub idle_timeout: Duration,
     pub max_concurrent: usize,
@@ -169,6 +176,7 @@ impl Default for SessionConfig {
     fn default() -> Self {
         Self {
             ffmpeg: "ffmpeg".to_owned(),
+            device: crate::transcode_plan::DEFAULT_DEVICE.to_owned(),
             cache_root: std::env::temp_dir().join("flux-transcodes"),
             idle_timeout: Duration::from_secs(90),
             max_concurrent: 2,
@@ -249,6 +257,7 @@ impl SessionRegistry {
         let plan = TranscodePlan {
             spec: spec.clone(),
             output_directory: directory.to_string_lossy().into_owned(),
+            device: self.config.device.clone(),
         };
 
         drop(spawn_ffmpeg(&self.config.ffmpeg, &plan)?);
@@ -447,6 +456,7 @@ async fn supervise(config: SessionConfig, plan: TranscodePlan, mut cancel: onesh
         attempt = TranscodePlan {
             spec: attempt.spec.without_hardware(),
             output_directory: attempt.output_directory,
+            device: attempt.device,
         };
     }
 }
