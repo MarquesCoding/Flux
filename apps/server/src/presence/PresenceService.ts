@@ -112,6 +112,19 @@ type PresenceService = {
   ) => void;
   list: () => PresenceEntry[];
   /**
+   * Tells a listener whenever who is about, or what they are doing, changes.
+   *
+   * For pushing the session list to an admin rather than having the page ask
+   * every few seconds. Returns the way to stop listening; a watcher that
+   * outlives its connection keeps a closed response alive.
+   *
+   * A heartbeat only counts as a change when it says something new — playing
+   * became paused, or the position moved. Otherwise a room of viewers would
+   * push several times a second and the stream would be a poll with extra
+   * steps.
+   */
+  watch: (listener: () => void) => () => void;
+  /**
    * Pushes a pause to a tab and marks it paused-by-admin.
    *
    * `false` when the tab is not connected or nothing is playing there.
@@ -147,6 +160,13 @@ type Connection = {
  */
 const createPresenceService = (): PresenceService => {
   const connections = new Map<string, Connection>();
+  const listeners = new Set<() => void>();
+
+  const announce = () => {
+    for (const listener of listeners) {
+      listener();
+    }
+  };
 
   return {
     connect: (clientId, profileId, profileName, deviceLabel, send) => {
@@ -161,10 +181,13 @@ const createPresenceService = (): PresenceService => {
         },
         send,
       });
+
+      announce();
     },
 
     disconnect: (clientId) => {
       connections.delete(clientId);
+      announce();
     },
 
     startPlayback: (clientId, playback) => {
@@ -181,6 +204,8 @@ const createPresenceService = (): PresenceService => {
         startedAt: Date.now(),
         health: null,
       };
+
+      announce();
     },
 
     stopPlayback: (clientId) => {
@@ -188,22 +213,39 @@ const createPresenceService = (): PresenceService => {
 
       if (connection !== undefined) {
         connection.entry.playback = null;
+        announce();
       }
     },
 
     heartbeatPlayback: (clientId, isPlaying, health) => {
       const playback = connections.get(clientId)?.entry.playback;
 
-      if (playback !== null && playback !== undefined) {
-        playback.isPlaying = isPlaying;
+      if (playback === null || playback === undefined) {
+        return;
+      }
 
-        if (health !== undefined) {
-          playback.health = health;
-        }
+      const wasSaying = `${String(playback.isPlaying)}:${String(playback.health?.positionSeconds)}`;
+
+      playback.isPlaying = isPlaying;
+
+      if (health !== undefined) {
+        playback.health = health;
+      }
+
+      if (wasSaying !== `${String(isPlaying)}:${String(playback.health?.positionSeconds)}`) {
+        announce();
       }
     },
 
     list: () => Array.from(connections.values(), (connection) => connection.entry),
+
+    watch: (listener) => {
+      listeners.add(listener);
+
+      return () => {
+        listeners.delete(listener);
+      };
+    },
 
     pause: (clientId, reason) => {
       const connection = connections.get(clientId);
@@ -215,6 +257,7 @@ const createPresenceService = (): PresenceService => {
       connection.entry.playback.isPlaying = false;
       connection.entry.playback.pausedByAdmin = true;
       connection.send({ kind: 'paused', reason });
+      announce();
 
       return true;
     },
@@ -232,6 +275,7 @@ const createPresenceService = (): PresenceService => {
       }
 
       connection.send({ kind: 'resumed' });
+      announce();
 
       return true;
     },
@@ -245,6 +289,7 @@ const createPresenceService = (): PresenceService => {
 
       connection.entry.playback = null;
       connection.send({ kind: 'stopped', reason });
+      announce();
 
       return true;
     },
