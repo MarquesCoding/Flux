@@ -260,7 +260,19 @@ type Transcoder = {
      */
     audioStreamIndex?: number;
   }) => Promise<{ id: string; url: string; isReady: boolean }>;
-  readPreviewFile: (id: string, name: string) => Promise<TranscoderFile | null>;
+  /**
+   * Reads a made clip, passing a byte range on to the media service.
+   *
+   * The range is forwarded rather than applied here so that the service reads
+   * only the bytes asked for. A preview is around 18 MB and a video element
+   * scrubbing through one asks for a fraction of it at a time; slicing after the
+   * fact meant every request put the whole clip on this heap first.
+   */
+  readPreviewFile: (
+    id: string,
+    name: string,
+    range: string | null,
+  ) => Promise<TranscoderRangedFile | null>;
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>;
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>;
   stopSession: (id: string) => Promise<boolean>;
@@ -491,15 +503,18 @@ const createTranscoderClient = ({
     requestPreview: async (request) =>
       PreviewClipSchema.parse(await (await postJson('/previews', request)).json()),
 
-    readPreviewFile: async (id, name) => {
+    readPreviewFile: async (id, name, range) => {
       const response = await call2(
         `${origin}/previews/${encodeURIComponent(id)}/${encodeURIComponent(name)}`,
+        { headers: range === null ? {} : { range } },
       );
 
       return response.ok
         ? {
             body: await response.arrayBuffer(),
             contentType: response.headers.get('content-type') ?? 'video/mp4',
+            status: response.status,
+            contentRange: response.headers.get('content-range'),
           }
         : null;
     },

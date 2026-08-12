@@ -145,29 +145,6 @@ import type { Permission } from '@FluxContracts/schemas/Permission';
 const PROFILE_HEADER = 'x-flux-profile';
 
 /**
- * Reads a single byte range out of a request.
- *
- * Only the one form a media element actually sends. Anything else — multiple
- * ranges, a suffix length, a nonsense pair — is answered with the whole thing,
- * which is always a valid response to a range request.
- */
-const readByteRange = (
-  header: string | undefined,
-  size: number,
-): { from: number; to: number } | null => {
-  const match = /^bytes=(?<from>\d+)-(?<to>\d*)$/.exec(header ?? '');
-
-  if (match?.groups === undefined) {
-    return null;
-  }
-
-  const from = Number(match.groups.from);
-  const to = match.groups.to === '' ? size - 1 : Number(match.groups.to);
-
-  return from >= size || from > to ? null : { from, to: Math.min(to, size - 1) };
-};
-
-/**
  * What signing in by face carries.
  */
 const SignInBodySchema = z.object({ password: z.string().min(1) });
@@ -803,28 +780,25 @@ const createApp = ({
   });
 
   app.get('/api/media/:mediaId/preview', async (context) => {
-    const clip = await playback.readPreview(context.req.param('mediaId')).catch(() => null);
+    const clip = await playback
+      .readPreview(context.req.param('mediaId'), context.req.header('range') ?? null)
+      .catch(() => null);
 
     if (clip === null) {
       return context.json({ error: 'No preview yet.' }, 404);
     }
 
-    const range = readByteRange(context.req.header('range'), clip.body.byteLength);
-
-    if (range === null) {
-      return context.body(clip.body, 200, {
-        'content-type': clip.contentType,
-        'accept-ranges': 'bytes',
-        'cache-control': 'public, max-age=86400',
-      });
-    }
-
-    return context.body(clip.body.slice(range.from, range.to + 1), 206, {
+    const headers: Record<string, string> = {
       'content-type': clip.contentType,
       'accept-ranges': 'bytes',
-      'content-range': `bytes ${range.from.toString()}-${range.to.toString()}/${clip.body.byteLength.toString()}`,
       'cache-control': 'public, max-age=86400',
-    });
+    };
+
+    if (clip.contentRange !== null) {
+      headers['content-range'] = clip.contentRange;
+    }
+
+    return context.body(clip.body, clip.status === 206 ? 206 : 200, headers);
   });
 
   app.openapi(trickplayFileRoute, async (context) => {
