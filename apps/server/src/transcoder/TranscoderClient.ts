@@ -97,6 +97,9 @@ const CapabilitiesSchema = z.object({
     }),
   ),
   hardwareAccels: z.array(z.string()),
+  toneMapping: z.enum(['zscale', 'libplacebo', 'unavailable']).default('unavailable'),
+  canBurnTextSubtitles: z.boolean().default(false),
+  canBurnImageSubtitles: z.boolean().default(false),
 });
 
 const FingerprintSchema = z.object({
