@@ -30,10 +30,32 @@ const build = () => {
   const { auth, settings, store } = createMemoryAuth();
   const permissions = createMemoryPermissionService();
   const banAccount = vi.fn<(userId: string, reason: string) => Promise<boolean>>();
+  const inviteAccount = vi.fn<
+    (request: { name: string; email: string; password: string }) => Promise<{
+      id: string;
+      name: string;
+      email: string;
+      createdAt: string;
+    } | null>
+  >();
+  const editAccount =
+    vi.fn<
+      (
+        userId: string,
+        changes: { name?: string; email?: string },
+      ) => Promise<'changed' | 'missing' | 'taken'>
+    >();
   const unbanAccount = vi.fn<(userId: string) => Promise<boolean>>();
   const removeAccount = vi.fn<(userId: string) => Promise<boolean>>();
 
   banAccount.mockResolvedValue(true);
+  inviteAccount.mockResolvedValue({
+    id: 'usr_new',
+    name: 'Alex',
+    email: 'alex@flux.local',
+    createdAt: '2026-01-01T00:00:00.000Z',
+  });
+  editAccount.mockResolvedValue('changed');
   unbanAccount.mockResolvedValue(true);
   removeAccount.mockResolvedValue(true);
 
@@ -44,6 +66,8 @@ const build = () => {
     banAccount,
     unbanAccount,
     removeAccount,
+    inviteAccount,
+    editAccount,
     countUsers: () => Promise.resolve(1),
     promoteToAdmin: () => Promise.resolve(),
     listUsers: () =>
@@ -71,7 +95,16 @@ const build = () => {
     favourites: createMemoryFavouriteService(),
   });
 
-  return { app, store, permissions, banAccount, unbanAccount, removeAccount };
+  return {
+    app,
+    store,
+    permissions,
+    banAccount,
+    unbanAccount,
+    removeAccount,
+    inviteAccount,
+    editAccount,
+  };
 };
 
 /**
@@ -281,6 +314,155 @@ describe('account administration', () => {
 
       expect(response.status).toBe(204);
       expect(context.unbanAccount).toHaveBeenCalledWith(OTHER);
+    });
+  });
+
+  describe('inviting', () => {
+    it('refuses somebody without account.invite', async () => {
+      const context = await signedInWith(['account.manage']);
+      const response = await context.request('/api/admin/accounts', 'POST', {
+        name: 'Alex',
+        email: 'alex@flux.local',
+        password: 'a-long-enough-password',
+      });
+
+      expect(response.status).toBe(403);
+      expect(context.inviteAccount).not.toHaveBeenCalled();
+    });
+
+    it('creates an account', async () => {
+      const context = await signedInWith(['account.invite']);
+      const response = await context.request('/api/admin/accounts', 'POST', {
+        name: 'Alex',
+        email: 'alex@flux.local',
+        password: 'a-long-enough-password',
+      });
+
+      expect(response.status).toBe(201);
+      expect(context.inviteAccount).toHaveBeenCalledWith({
+        name: 'Alex',
+        email: 'alex@flux.local',
+        password: 'a-long-enough-password',
+      });
+    });
+
+    it('refuses a password too short to be one', async () => {
+      const context = await signedInWith(['account.invite']);
+      const response = await context.request('/api/admin/accounts', 'POST', {
+        name: 'Alex',
+        email: 'alex@flux.local',
+        password: 'short',
+      });
+
+      expect(response.status).toBe(400);
+      expect(context.inviteAccount).not.toHaveBeenCalled();
+    });
+
+    it('refuses something that is not an address', async () => {
+      const context = await signedInWith(['account.invite']);
+      const response = await context.request('/api/admin/accounts', 'POST', {
+        name: 'Alex',
+        email: 'not-an-address',
+        password: 'a-long-enough-password',
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('reports an address already in use', async () => {
+      const context = await signedInWith(['account.invite']);
+
+      context.inviteAccount.mockResolvedValue(null);
+
+      const response = await context.request('/api/admin/accounts', 'POST', {
+        name: 'Alex',
+        email: 'dan@flux.local',
+        password: 'a-long-enough-password',
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.text()).toContain('already in use');
+    });
+  });
+
+  describe('editing', () => {
+    it('refuses somebody without account.manage', async () => {
+      const context = await signedInWith(['account.ban']);
+      const response = await context.request(`/api/admin/accounts/${OTHER}`, 'PATCH', {
+        name: 'Samantha',
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('changes a name', async () => {
+      const context = await signedInWith(['account.manage']);
+      const response = await context.request(`/api/admin/accounts/${OTHER}`, 'PATCH', {
+        name: 'Samantha',
+      });
+
+      expect(response.status).toBe(204);
+      expect(context.editAccount).toHaveBeenCalledWith(OTHER, { name: 'Samantha' });
+    });
+
+    it('sends only what was asked for, rather than undefined over the rest', async () => {
+      const context = await signedInWith(['account.manage']);
+
+      await context.request(`/api/admin/accounts/${OTHER}`, 'PATCH', {
+        email: 'sam@elsewhere.local',
+      });
+
+      expect(context.editAccount).toHaveBeenCalledWith(OTHER, { email: 'sam@elsewhere.local' });
+    });
+
+    it('lets somebody change their own name, unlike banning themselves', async () => {
+      const context = await signedInWith(['account.manage']);
+      const response = await context.request(`/api/admin/accounts/${context.actorId}`, 'PATCH', {
+        name: 'Daniel',
+      });
+
+      expect(response.status).toBe(204);
+    });
+
+    it('refuses to edit somebody who outranks the actor', async () => {
+      const context = await signedInWith(['account.manage'], 100);
+      const senior = await context.permissions.createRole({
+        name: 'Senior',
+        position: 500,
+        permissions: [],
+      });
+
+      await context.permissions.assignRole(OTHER, senior.id);
+
+      const response = await context.request(`/api/admin/accounts/${OTHER}`, 'PATCH', {
+        name: 'Samantha',
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('reports an address already in use', async () => {
+      const context = await signedInWith(['account.manage']);
+
+      context.editAccount.mockResolvedValue('taken');
+
+      const response = await context.request(`/api/admin/accounts/${OTHER}`, 'PATCH', {
+        email: 'dan@flux.local',
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('reports an account that is not there', async () => {
+      const context = await signedInWith(['account.manage']);
+
+      context.editAccount.mockResolvedValue('missing');
+
+      const response = await context.request(`/api/admin/accounts/${OTHER}`, 'PATCH', {
+        name: 'Samantha',
+      });
+
+      expect(response.status).toBe(404);
     });
   });
 

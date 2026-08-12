@@ -85,5 +85,28 @@ const removeAccount = async (userId: string): Promise<Refusal> => {
     : readRefusal(response);
 };
 
-export { fetchAccounts, banAccount, unbanAccount, removeAccount };
+/**
+ * Adds somebody to this server.
+ *
+ * The password is set here and handed over by whoever is inviting, because
+ * Flux cannot send email — an invitation link would be one nobody receives.
+ */
+const inviteAccount = async (request: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<Refusal> => {
+  const response = await fetch('/api/admin/accounts', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(request),
+  }).catch(() => null);
+
+  return response === null
+    ? { message: 'The server could not be reached.' }
+    : readRefusal(response);
+};
+
+export { fetchAccounts, banAccount, unbanAccount, removeAccount, inviteAccount };
 export type { Account };

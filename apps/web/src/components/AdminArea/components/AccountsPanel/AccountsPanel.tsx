@@ -3,6 +3,7 @@ import { IconAlertTriangle, IconBan, IconSelector, IconTrash } from '@tabler/ico
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { OptionMenu } from '@FluxUI/OptionMenu';
+import { TextField } from '@FluxUI/TextField';
 import { describePermission } from '@FluxWeb/admin/describePermission';
 import { groupPermissions } from '@FluxWeb/admin/groupPermissions';
 import {
@@ -17,6 +18,7 @@ import {
 import {
   banAccount,
   fetchAccounts,
+  inviteAccount,
   removeAccount,
   unbanAccount,
 } from '@FluxWeb/admin/fetchAccounts';
@@ -51,6 +53,9 @@ const AccountsPanel = () => {
   const [held, setHeld] = useState<AccountPermissions | null>(null);
   const [refusal, setRefusal] = useState<Refusal>(null);
   const [addingPermission, setAddingPermission] = useState<Permission | null>(null);
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePassword, setInvitePassword] = useState('');
 
   const reload = useCallback(async () => {
     setAccounts(await fetchAccounts());
@@ -172,6 +177,63 @@ const AccountsPanel = () => {
             ))}
           </ul>
         )}
+
+        <div className="flex flex-col gap-3 border-t border-white/10 pt-4">
+          <h4 className="text-xs font-medium text-text">Add somebody</h4>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <TextField
+              label="Name"
+              value={inviteName}
+              onValueChange={setInviteName}
+              className="min-w-40 flex-1"
+            />
+
+            <TextField
+              label="Address"
+              type="email"
+              value={inviteEmail}
+              onValueChange={setInviteEmail}
+              className="min-w-52 flex-1"
+            />
+
+            <TextField
+              label="Password"
+              type="password"
+              value={invitePassword}
+              onValueChange={setInvitePassword}
+              className="min-w-44 flex-1"
+            />
+
+            <Button
+              variant="glossy"
+              size="sm"
+              isPill
+              className="shrink-0"
+              disabled={inviteName === '' || inviteEmail === '' || invitePassword.length < 8}
+              onClick={() => {
+                void act(() =>
+                  inviteAccount({
+                    name: inviteName,
+                    email: inviteEmail,
+                    password: invitePassword,
+                  }),
+                ).then(() => {
+                  setInviteName('');
+                  setInviteEmail('');
+                  setInvitePassword('');
+                });
+              }}
+            >
+              Add
+            </Button>
+          </div>
+
+          <p className="text-xs text-text-muted">
+            Flux cannot send email, so tell them this password yourself. They arrive able to watch
+            and nothing more, until you give them a role.
+          </p>
+        </div>
       </section>
 
       {picked === null || accountId === null ? null : (

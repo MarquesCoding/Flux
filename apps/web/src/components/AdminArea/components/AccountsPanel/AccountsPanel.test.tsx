@@ -6,6 +6,7 @@ import type { Account } from '@FluxWeb/admin/fetchAccounts';
 
 const accountMocks = vi.hoisted(() => ({
   fetchAccounts: vi.fn(),
+  inviteAccount: vi.fn(),
   banAccount: vi.fn(),
   unbanAccount: vi.fn(),
   removeAccount: vi.fn(),
@@ -58,6 +59,7 @@ describe('AccountsPanel', () => {
     }
 
     accountMocks.fetchAccounts.mockResolvedValue(ACCOUNTS);
+    accountMocks.inviteAccount.mockResolvedValue(null);
     accountMocks.banAccount.mockResolvedValue(null);
     accountMocks.unbanAccount.mockResolvedValue(null);
     accountMocks.removeAccount.mockResolvedValue(null);
@@ -158,6 +160,63 @@ describe('AccountsPanel', () => {
       await user.click(await screen.findByRole('button', { name: 'Ban Dan' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent('nobody able to administer');
+    });
+  });
+
+  describe('adding somebody', () => {
+    it('will not add until every field is filled', async () => {
+      render(<AccountsPanel />);
+
+      expect(await screen.findByRole('button', { name: 'Add' })).toBeDisabled();
+    });
+
+    it('will not accept a password too short to be one', async () => {
+      const user = userEvent.setup();
+      render(<AccountsPanel />);
+
+      await user.type(await screen.findByLabelText('Name'), 'Alex');
+      await user.type(screen.getByLabelText('Address'), 'alex@flux.local');
+      await user.type(screen.getByLabelText('Password'), 'short');
+
+      expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+    });
+
+    it('adds somebody', async () => {
+      const user = userEvent.setup();
+      render(<AccountsPanel />);
+
+      await user.type(await screen.findByLabelText('Name'), 'Alex');
+      await user.type(screen.getByLabelText('Address'), 'alex@flux.local');
+      await user.type(screen.getByLabelText('Password'), 'a-long-enough-password');
+      await user.click(screen.getByRole('button', { name: 'Add' }));
+
+      expect(accountMocks.inviteAccount).toHaveBeenCalledWith({
+        name: 'Alex',
+        email: 'alex@flux.local',
+        password: 'a-long-enough-password',
+      });
+    });
+
+    it('says the password has to be handed over, since Flux cannot send it', async () => {
+      render(<AccountsPanel />);
+
+      expect(await screen.findByText(/tell them this password yourself/)).toBeInTheDocument();
+    });
+
+    it('explains a refusal', async () => {
+      accountMocks.inviteAccount.mockResolvedValue({
+        message: 'That address is already in use.',
+      });
+
+      const user = userEvent.setup();
+      render(<AccountsPanel />);
+
+      await user.type(await screen.findByLabelText('Name'), 'Alex');
+      await user.type(screen.getByLabelText('Address'), 'dan@flux.local');
+      await user.type(screen.getByLabelText('Password'), 'a-long-enough-password');
+      await user.click(screen.getByRole('button', { name: 'Add' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('already in use');
     });
   });
 

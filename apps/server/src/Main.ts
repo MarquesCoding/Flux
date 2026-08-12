@@ -63,6 +63,7 @@ import { markJobComplete } from '@FluxServer/library/createMediaStore';
 import { createWorkLock } from '@FluxServer/jobs/createWorkLock';
 import { seedDefaultJobTriggers } from '@FluxServer/jobs/seedDefaultJobTriggers';
 import { seedDefaultRoles } from '@FluxServer/auth/seedDefaultRoles';
+import { DEFAULT_ROLE_NAME } from '@FluxCore/functions/defaultRoles';
 import { createDatabasePermissionService } from '@FluxServer/auth/createDatabasePermissionService';
 /**
  * Chapters as they were stored, which may be from an older shape.
@@ -117,6 +118,20 @@ const promoteToAdmin = async (email: string): Promise<void> => {
 };
 
 const permissions = createDatabasePermissionService(db);
+
+/**
+ * Gives a freshly made account the role a new one is meant to have.
+ *
+ * Seeding does this for accounts that already existed; somebody invited after
+ * that has to be given it here, or they arrive able to do nothing at all.
+ */
+const giveDefaultRole = async (userId: string): Promise<void> => {
+  const member = (await permissions.listRoles()).find((role) => role.name === DEFAULT_ROLE_NAME);
+
+  if (member !== undefined) {
+    await permissions.assignRole(userId, member.id);
+  }
+};
 const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR, 'profiles'));
 
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL });
@@ -578,6 +593,52 @@ const app = createApp({
       .limit(1);
 
     return found?.reason ?? null;
+  },
+  inviteAccount: async ({ name, email, password }) => {
+    const created = await auth.api
+      .signUpEmail({ body: { name, email, password }, asResponse: true })
+      .catch(() => null);
+
+    if (created === null || !created.ok) {
+      return null;
+    }
+
+    const [found] = await db
+      .select({ id: user.id, name: user.name, email: user.email, createdAt: user.createdAt })
+      .from(user)
+      .where(eq(user.email, email))
+      .limit(1);
+
+    if (found === undefined) {
+      return null;
+    }
+
+    await giveDefaultRole(found.id);
+
+    return { ...found, createdAt: found.createdAt.toISOString() };
+  },
+  editAccount: async (userId, changes) => {
+    const [found] = await db.select({ id: user.id }).from(user).where(eq(user.id, userId)).limit(1);
+
+    if (found === undefined) {
+      return 'missing';
+    }
+
+    if (changes.email !== undefined) {
+      const [taken] = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.email, changes.email))
+        .limit(1);
+
+      if (taken !== undefined && taken.id !== userId) {
+        return 'taken';
+      }
+    }
+
+    await db.update(user).set(changes).where(eq(user.id, userId));
+
+    return 'changed';
   },
   capabilities: () => transcoder.capabilities(),
   monitor: () => transcoder.readMonitor(),

@@ -111,6 +111,8 @@ import {
   banAccountRoute,
   unbanAccountRoute,
   removeAccountRoute,
+  inviteAccountRoute,
+  editAccountRoute,
 } from '@FluxServer/routes/AccountRoute';
 import type { RoleChangeRefusal } from '@FluxServer/auth/checkRoleChange';
 import { PERMISSIONS } from '@FluxContracts/schemas/Permission';
@@ -206,6 +208,22 @@ type CreateAppOptions = {
   unbanAccount?: (userId: string) => Promise<boolean>;
   removeAccount?: (userId: string) => Promise<boolean>;
   isAccountBanned?: (userId: string) => Promise<boolean>;
+  /**
+   * Creates an account, or answers null when the address is taken. Passed in
+   * because turning a password into a credential is better-auth's business.
+   */
+  inviteAccount?: (request: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<{ id: string; name: string; email: string; createdAt: string } | null>;
+  /**
+   * Changes what an account is called or reached at.
+   */
+  editAccount?: (
+    userId: string,
+    changes: { name?: string; email?: string },
+  ) => Promise<'changed' | 'missing' | 'taken'>;
   readBanReason?: (userId: string) => Promise<string | null>;
   /**
    * Server-wide upkeep an admin can start on demand — cache cleanup, session
@@ -310,6 +328,8 @@ const createApp = ({
   removeAccount,
   isAccountBanned,
   readBanReason,
+  inviteAccount,
+  editAccount,
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
@@ -1588,6 +1608,75 @@ const createApp = ({
 
     if (!(await removeAccount?.(userId))) {
       return context.json({ error: 'No such account.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(inviteAccountRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'account.invite'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const invited = await inviteAccount?.(context.req.valid('json'));
+
+    if (invited === undefined || invited === null) {
+      return context.json({ error: 'That address is already in use.' }, 400);
+    }
+
+    return context.json(
+      {
+        id: invited.id,
+        name: invited.name,
+        email: invited.email,
+        createdAt: invited.createdAt,
+        isBanned: false,
+        banReason: null,
+        position: null,
+        isAdministrator: false,
+      },
+      201,
+    );
+  });
+
+  app.openapi(editAccountRoute, async (context) => {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.manage')) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { userId } = context.req.valid('param');
+
+    if (actor.id !== userId) {
+      const target = await permissions.rolesFor(userId);
+
+      const refusal = checkAccountAction({
+        actorId: actor.id,
+        actorPermissions: actor.permissions,
+        actorHighestPosition: actor.highestPosition,
+        targetId: userId,
+        targetHighestPosition:
+          target.length === 0 ? null : Math.max(...target.map((role) => role.position)),
+      });
+
+      if (refusal !== null) {
+        return context.json({ error: describeAccountRefusal(refusal) }, 403);
+      }
+    }
+
+    const body = context.req.valid('json');
+    const changed = await editAccount?.(userId, {
+      ...(body.name === undefined ? {} : { name: body.name }),
+      ...(body.email === undefined ? {} : { email: body.email }),
+    });
+
+    if (changed === undefined || changed === 'missing') {
+      return context.json({ error: 'No such account.' }, 404);
+    }
+
+    if (changed === 'taken') {
+      return context.json({ error: 'That address is already in use.' }, 400);
     }
 
     return context.body(null, 204);
