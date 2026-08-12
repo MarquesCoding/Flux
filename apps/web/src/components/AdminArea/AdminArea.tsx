@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   IconActivity,
@@ -10,10 +10,12 @@ import {
   IconPlus,
   IconRefresh,
   IconRefreshAlert,
+  IconSearch,
   IconStack2,
   IconTrash,
 } from '@tabler/icons-react';
 import { Sparkline } from '@FluxUI/Sparkline';
+import { MatchPicker } from './components/MatchPicker/MatchPicker';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { TabBar } from '@FluxUI/TabBar';
@@ -35,7 +37,7 @@ import {
   addJobTrigger,
   removeJobTrigger,
 } from '@FluxWeb/admin/fetchAdmin';
-import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
+import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { AddLibraryDialog } from './components/AddLibraryDialog/AddLibraryDialog';
 import { ScanProgressBar } from './components/ScanProgressBar/ScanProgressBar';
@@ -56,7 +58,7 @@ import {
   runDefinedJobAll,
 } from './scanCoordinator';
 import { formatBytes } from './formatBytes';
-import type { Library } from '@FluxContracts/schemas/Library';
+import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
 import type {
   ActiveSession,
   AdminOverview,
@@ -87,6 +89,7 @@ const PANELS = [
   { id: 'jobs', label: 'Jobs' },
   { id: 'events', label: 'Events' },
   { id: 'libraries', label: 'Libraries' },
+  { id: 'media', label: 'Media' },
   { id: 'settings', label: 'Settings' },
 ] as const;
 
@@ -184,6 +187,9 @@ const AdminArea = ({
 }: AdminAreaProps) => {
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [overviewProblem, setOverviewProblem] = useState<string | null>(null);
+  const [media, setMedia] = useState<MediaSummary[]>([]);
+  const [mediaSearch, setMediaSearch] = useState('');
+  const [correcting, setCorrecting] = useState<MediaSummary | null>(null);
   const [monitor, setMonitor] = useState<Monitor | null>(null);
   const [history, setHistory] = useState<number[]>([]);
   const [panel, setPanel] = useState<PanelId>(
@@ -328,6 +334,45 @@ const AdminArea = ({
     void readJobSchedules().then(setJobSchedules);
     void resumeRunning();
   }, []);
+
+  /**
+   * One row per programme and per film, rather than one per file: a correction
+   * names a programme, so a list of ninety episodes would be ninety ways to do
+   * the same thing.
+   */
+  const shownMedia = media
+    .filter((item) =>
+      (item.seriesTitle ?? item.title).toLowerCase().includes(mediaSearch.trim().toLowerCase()),
+    )
+    .sort((left, right) =>
+      (left.seriesTitle ?? left.title).localeCompare(right.seriesTitle ?? right.title),
+    );
+
+  const readMedia = useCallback(async () => {
+    const found = await fetchLibraries().catch(() => []);
+    const pages = await Promise.all(
+      found.map((library) =>
+        fetchLibraryItems(library.id, { limit: 500, offset: 0 }).catch(() => null),
+      ),
+    );
+
+    const everything = pages.flatMap((page) => page?.items ?? []);
+    const byThing = new Map<string, MediaSummary>();
+
+    for (const item of everything) {
+      const key = item.seriesTitle ?? item.id;
+
+      if (!byThing.has(key)) {
+        byThing.set(key, item);
+      }
+    }
+
+    setMedia([...byThing.values()]);
+  }, []);
+
+  useEffect(() => {
+    void readMedia();
+  }, [readMedia]);
 
   useEffect(() => {
     const poll = setInterval(() => {
@@ -895,6 +940,76 @@ const AdminArea = ({
           </TabPanel>
 
           <TabPanel
+            value="media"
+            render={
+              <motion.div
+                initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              />
+            }
+          >
+            <div className="flex flex-col">
+              <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
+                <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
+                  Everything in the libraries
+                </h2>
+
+                <TextField
+                  label="Find a programme or film"
+                  isLabelHidden
+                  type="search"
+                  placeholder="Find a programme or film"
+                  value={mediaSearch}
+                  onValueChange={setMediaSearch}
+                  className="w-64 max-w-full"
+                />
+              </header>
+
+              {shownMedia.length === 0 ? (
+                <p className="px-5 py-6 font-body text-sm text-text-muted">
+                  {media.length === 0
+                    ? 'Nothing has been scanned yet.'
+                    : 'Nothing here matches that.'}
+                </p>
+              ) : (
+                <ul className="flex flex-col divide-y divide-white/5">
+                  {shownMedia.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+                    >
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm text-text">
+                          {item.seriesTitle ?? item.title}
+                        </span>
+                        <span className="truncate font-body text-xs text-text-muted">
+                          {item.seriesTitle === null || item.seriesTitle === undefined
+                            ? 'Film'
+                            : 'Series'}
+                          {item.year === null ? '' : ` · ${item.year.toString()}`}
+                        </span>
+                      </span>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        isPill
+                        onClick={() => {
+                          setCorrecting(item);
+                        }}
+                      >
+                        <IconSearch size={16} aria-hidden />
+                        Wrong match?
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </TabPanel>
+
+          <TabPanel
             value="settings"
             render={
               <motion.div
@@ -979,6 +1094,15 @@ const AdminArea = ({
           </TabPanel>
         </motion.section>
       </Tabs>
+      <MatchPicker
+        media={correcting}
+        onClose={() => {
+          setCorrecting(null);
+        }}
+        onCorrected={() => {
+          void readMedia();
+        }}
+      />
     </motion.div>
   );
 };

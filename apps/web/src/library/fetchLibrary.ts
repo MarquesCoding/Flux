@@ -187,6 +187,13 @@ const fetchMediaDetail = async (mediaId: string): Promise<MediaDetail | null> =>
  */
 const CorrectionSchema = z.object({ corrected: z.number() });
 
+const ProblemSchema = z.object({ error: z.string() });
+
+/**
+ * What the server says to a correction: how many files it reached, or why not.
+ */
+const AnswerSchema = z.union([CorrectionSchema, ProblemSchema]);
+
 /**
  * Corrects which catalogue entry a file is.
  *
@@ -210,16 +217,17 @@ const correctMatch = async (
     return { problem: 'The server could not be reached.' };
   }
 
-  const body = CorrectionSchema.safeParse(await response.json().catch(() => null));
+  const answer = AnswerSchema.safeParse(await response.json().catch(() => null));
 
-  if (response.ok && body.success) {
-    return body.data;
+  if (response.ok && answer.success && 'corrected' in answer.data) {
+    return answer.data;
   }
 
   return {
-    problem: body.success
-      ? 'That could not be saved.'
-      : 'That does not look like a catalogue address or id.',
+    problem:
+      answer.success && 'error' in answer.data
+        ? answer.data.error
+        : `The server answered ${response.status.toString()}.`,
   };
 };
 

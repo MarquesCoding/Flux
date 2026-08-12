@@ -431,6 +431,30 @@ const createCatalogueMetadataProvider = ({
       return describeFrom(detail.data, exact !== undefined);
     },
 
+    search: async (query, kind) => {
+      const key = await readApiKey();
+
+      if (key === null || key === '') {
+        return [];
+      }
+
+      const searched = await request(`/search/${kind}`, key, { query });
+      const results = SearchResponseSchema.safeParse(searched);
+
+      if (!results.success) {
+        return [];
+      }
+
+      return results.data.results.map((entry) => ({
+        externalId: entry.id.toString(),
+        kind,
+        title: entry.title ?? entry.name ?? query,
+        year: readYear(entry.release_date ?? entry.first_air_date),
+        overview: entry.overview === undefined || entry.overview === '' ? null : entry.overview,
+        posterUrl: imageUrl(imageBaseUrl, entry.poster_path, 'w342'),
+      }));
+    },
+
     describeSeries: async (externalId) => {
       const key = await readApiKey();
 

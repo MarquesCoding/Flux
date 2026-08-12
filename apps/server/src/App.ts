@@ -1,5 +1,6 @@
 import { readCatalogueReference } from '@FluxCore/functions/readCatalogueReference';
 import type { RunningJob } from '@FluxServer/jobs/JobQueue';
+import type { CatalogueMatch } from '@FluxServer/library/MetadataProvider';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins';
@@ -60,6 +61,7 @@ import {
 } from '@FluxServer/routes/FavouriteRoute';
 import {
   adminOverviewRoute,
+  searchCatalogueRoute,
   adminSettingsRoute,
   adminSessionsRoute,
   adminStopSessionRoute,
@@ -238,6 +240,10 @@ type CreateAppOptions = {
    * What the server is working on, so a page reloaded mid-scan can find it.
    */
   listRunningJobs?: () => RunningJob[];
+  /**
+   * What the catalogue offers under a name, for somebody correcting a match.
+   */
+  searchCatalogue?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
 };
 
 /**
@@ -273,6 +279,7 @@ const createApp = ({
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
   listRunningJobs = () => [],
+  searchCatalogue = () => Promise.resolve([]),
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
@@ -409,6 +416,16 @@ const createApp = ({
     }
 
     return context.json(queued, 202);
+  });
+
+  app.openapi(searchCatalogueRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { query, kind } = context.req.valid('query');
+
+    return context.json({ matches: await searchCatalogue(query, kind) }, 200);
   });
 
   app.openapi(correctMatchRoute, async (context) => {
