@@ -156,6 +156,7 @@ const createPlaybackService = ({
         imageSubtitleIndexes: found.item.subtitleStreams
           .filter((stream) => IMAGE_SUBTITLE_FORMATS.has(stream.format))
           .map((stream) => stream.index),
+        subtitleIndexes: found.item.subtitleStreams.map((stream) => stream.index),
         capabilities: await capabilities(),
         startSeconds,
         segmentSeconds: SEGMENT_SECONDS,

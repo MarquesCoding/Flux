@@ -1,16 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@FluxUI/cn';
+import { usePagedScroller } from '@FluxUI/usePagedScroller';
 import { Button } from '@FluxUI/Button';
 import { PageDots } from '@FluxUI/PageDots';
 import type { RailProps } from './Rail.types';
-
-/**
- * How much of the visible width one page is.
- *
- * Not quite the whole of it: leaving a card partly visible tells a viewer the
- * row carried on, where a clean page turn loses their place in it.
- */
-const SCROLL_FRACTION = 0.85;
 
 /**
  * A horizontally scrolling row of items.
@@ -29,50 +21,7 @@ const SCROLL_FRACTION = 0.85;
  * negative margin gives that space back to the page.
  */
 const Rail = ({ title, children, action, onOpenTitle, className }: RailProps) => {
-  const trackRef = useRef<HTMLUListElement>(null);
-  const [pages, setPages] = useState({ count: 1, at: 0 });
-
-  const measure = useCallback(() => {
-    const track = trackRef.current;
-
-    if (track === null) {
-      return;
-    }
-
-    const step = Math.max(1, track.clientWidth * SCROLL_FRACTION);
-    const beyond = Math.max(0, track.scrollWidth - track.clientWidth);
-
-    setPages({
-      count: Math.max(1, Math.ceil(beyond / step) + 1),
-      at: Math.round(track.scrollLeft / step),
-    });
-  }, []);
-
-  useEffect(() => {
-    measure();
-
-    const track = trackRef.current;
-
-    if (track === null) {
-      return;
-    }
-
-    const observer = new ResizeObserver(measure);
-
-    observer.observe(track);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [measure, children]);
-
-  const scrollTo = (page: number) => {
-    const track = trackRef.current;
-
-    if (track !== null) {
-      track.scrollTo({ left: page * track.clientWidth * SCROLL_FRACTION, behavior: 'smooth' });
-    }
-  };
+  const { trackRef, pages, measure, scrollTo } = usePagedScroller<HTMLUListElement>([children]);
 
   return (
     <section className={cn('group/rail flex flex-col gap-3', className)} aria-label={title}>

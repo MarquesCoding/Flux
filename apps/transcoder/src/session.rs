@@ -64,6 +64,19 @@ pub enum ExitClass {
     Cancelled,
 }
 
+/// How many lines of ffmpeg's own output to print when a transcode fails.
+///
+/// The last ones: ffmpeg opens with pages of build configuration and closes
+/// with the reason it gave up.
+const FFMPEG_LINES: usize = 20;
+
+/// The end of a block of output, which is where a failure explains itself.
+fn tail_of(text: &str, lines: usize) -> String {
+    let all: Vec<&str> = text.lines().collect();
+
+    all[all.len().saturating_sub(lines)..].join("\n")
+}
+
 /// Classifies an ffmpeg exit.
 ///
 /// Distinguishing hardware failure from a bad file is what makes the automatic
@@ -369,10 +382,20 @@ async fn run_attempt(
 
         finished = &mut waiting => match finished {
             Err(_) => ExitClass::InputError,
-            Ok(output) => classify_exit(
-                output.status.code(),
-                &String::from_utf8_lossy(&output.stderr),
-            ),
+            Ok(output) => {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let class = classify_exit(output.status.code(), &stderr);
+
+                if !matches!(class, ExitClass::Completed | ExitClass::Cancelled) {
+                    eprintln!(
+                        "transcode failed ({class:?}) for {}:\n{}",
+                        plan.spec.input_path,
+                        tail_of(&stderr, FFMPEG_LINES)
+                    );
+                }
+
+                class
+            }
         },
     }
 }
@@ -408,8 +431,17 @@ async fn supervise(config: SessionConfig, plan: TranscodePlan, mut cancel: onesh
 }
 
 fn spawn_ffmpeg(ffmpeg: &str, plan: &TranscodePlan) -> Result<tokio::process::Child, SessionError> {
+    let arguments = plan.to_ffmpeg_args();
+
+    eprintln!(
+        "transcode: {} -> {}\n  ffmpeg {}",
+        plan.spec.input_path,
+        plan.output_directory,
+        arguments.join(" ")
+    );
+
     let child = Command::new(ffmpeg)
-        .args(plan.to_ffmpeg_args())
+        .args(arguments)
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::piped())

@@ -65,6 +65,7 @@ const Button = ({
   ...rest
 }: ButtonProps) => {
   const isDisabled = disabled === true || isLoading;
+  const isBare = variant === 'bare';
 
   const control = (
     <button
@@ -74,14 +75,19 @@ const Button = ({
       {...(label === undefined ? {} : { 'aria-label': label })}
       {...(isActive ? { 'aria-pressed': true } : {})}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center font-medium',
+        'inline-flex font-medium',
+        isBare ? '' : 'shrink-0 items-center justify-center',
         'transition-[filter,box-shadow,transform,translate,scale,opacity,background-color,color] duration-200',
         'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100',
-        variant === 'bare' ? '' : 'active:scale-[0.98]',
-        isPill || isIconOnly ? 'rounded-full' : 'rounded-lg',
+        isBare ? '' : 'active:scale-[0.98]',
+        isBare && !isPill && !isIconOnly
+          ? ''
+          : isPill || isIconOnly
+            ? 'rounded-full'
+            : 'rounded-lg',
         VARIANT_CLASSES[variant],
         isIconOnly ? ICON_SIZE_CLASSES[size] : SIZE_CLASSES[size],
-        isActive && variant !== 'bare' ? 'bg-white/20' : '',
+        isActive && !isBare ? 'bg-white/20' : '',
         className,
       )}
       {...rest}

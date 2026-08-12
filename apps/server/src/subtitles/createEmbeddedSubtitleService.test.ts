@@ -101,6 +101,12 @@ describe('createEmbeddedSubtitleService', () => {
     await expect(service.list(MEDIA_ID)).resolves.toHaveLength(1);
   });
 
+  it('leaves out a track whose codec nothing recognised', async () => {
+    const { service } = build([streamOf({ format: 'unknown' }), streamOf({ index: 3 })]);
+
+    await expect(service.list(MEDIA_ID)).resolves.toHaveLength(1);
+  });
+
   it('names a track from the file and the stream, so it survives a restart', async () => {
     const { service } = build([streamOf()]);
 

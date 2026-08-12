@@ -185,6 +185,72 @@ const fetchMediaDetail = async (mediaId: string): Promise<MediaDetail | null> =>
  * A forced scan probes every file again rather than only those that changed on
  * disk, which is what picks up a change in how Flux reads files.
  */
+const CorrectionSchema = z.object({ corrected: z.number(), jobId: z.string().nullable() });
+
+type Correction = z.infer<typeof CorrectionSchema>;
+
+const ProblemSchema = z.object({ error: z.string() });
+
+/**
+ * What the server says to a correction: how many files it reached, or why not.
+ */
+const AnswerSchema = z.union([CorrectionSchema, ProblemSchema]);
+
+/**
+ * Corrects which catalogue entry a file is.
+ *
+ * `reference` is whatever somebody pasted: an address or a bare id. `kind` is
+ * only needed for a bare number, since the same number names one series and one
+ * unrelated film.
+ */
+const correctMatch = async (
+  mediaId: string,
+  reference: string,
+  kind?: 'tv' | 'movie',
+): Promise<Correction | { problem: string }> => {
+  const response = await fetch(`/api/media/${mediaId}/match`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ reference, ...(kind === undefined ? {} : { kind }) }),
+  }).catch(() => null);
+
+  if (response === null) {
+    return { problem: 'The server could not be reached.' };
+  }
+
+  const answer = AnswerSchema.safeParse(await response.json().catch(() => null));
+
+  if (response.ok && answer.success && 'corrected' in answer.data) {
+    return answer.data;
+  }
+
+  return {
+    problem:
+      answer.success && 'error' in answer.data
+        ? answer.data.error
+        : `The server answered ${response.status.toString()}.`,
+  };
+};
+
+/**
+ * Forgets a correction, putting the file back to whatever the catalogue finds.
+ */
+const forgetCorrection = async (mediaId: string): Promise<Correction | null> => {
+  const response = await fetch(`/api/media/${mediaId}/match`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  }).catch(() => null);
+
+  if (response === null || !response.ok) {
+    return null;
+  }
+
+  const body = CorrectionSchema.safeParse(await response.json().catch(() => null));
+
+  return body.success ? body.data : null;
+};
+
 const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | null> => {
   const query = force ? '?force=true' : '';
   const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, { method: 'POST' });
@@ -255,6 +321,7 @@ const regenerateLibraryPreviews = async (libraryId: string): Promise<ScanJob | n
 export type {
   ListItemsOptions,
   CreateLibraryInput,
+  Correction,
   UpdateLibraryInput,
   ScanJob,
   ScanState,
@@ -273,4 +340,6 @@ export {
   readScanState,
   resetLibrary,
   regenerateLibraryPreviews,
+  correctMatch,
+  forgetCorrection,
 };

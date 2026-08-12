@@ -24,6 +24,14 @@ type MediaFacts = {
    * to the thing it already found instead of searching for it again.
    */
   knownExternalId?: string | null;
+  /**
+   * Which catalogue that id belongs to, when somebody has said.
+   *
+   * Only set by a correction. Left out, a provider infers it the way it always
+   * has — from whether the path looks like an episode — which is right until
+   * somebody tells it that a file it read as an episode is a film.
+   */
+  knownExternalKind?: 'tv' | 'movie';
 };
 
 type CastMember = {
@@ -67,9 +75,88 @@ type Metadata = {
  * Providers are asked in order and the first answer wins, so a plugin can
  * override the built-in without replacing it.
  */
+/**
+ * What a catalogue says a whole series contains.
+ */
+/**
+ * One thing the catalogue offers as a possible answer.
+ */
+type CatalogueMatch = {
+  externalId: string;
+  kind: 'tv' | 'movie';
+  title: string;
+  year: number | null;
+  overview: string | null;
+  posterUrl: string | null;
+};
+
+type SeriesShape = {
+  seasons: {
+    seasonNumber: number;
+    episodeCount: number;
+    /**
+     * What each episode is called and what it looks like, so one nobody holds
+     * can still be read about.
+     */
+    episodes: {
+      episodeNumber: number;
+      title: string;
+      stillUrl: string | null;
+      overview: string | null;
+    }[];
+  }[];
+};
+
 type MetadataProvider = {
   name: string;
   describe: (facts: MediaFacts) => Promise<Metadata | null>;
+  /**
+   * How many episodes each season of a series has, asked by the id this
+   * provider gave for it.
+   *
+   * Optional, because a provider that reads filenames can only ever describe
+   * what is already there. Only a catalogue knows what is missing, which is
+   * the whole reason this exists.
+   */
+  describeSeries?: (externalId: string) => Promise<SeriesShape | null>;
+  /**
+   * What the catalogue holds under a name, for somebody choosing by hand.
+   *
+   * Only a catalogue can answer. A provider that reads filenames knows nothing
+   * beyond the files it was given, which is exactly why a human is being asked.
+   */
+  search?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
+};
+
+/**
+ * Asks each provider in turn what a series should contain.
+ *
+ * The same order and the same forgiveness as `resolveMetadata`: a catalogue
+ * being down means a series whose shape is unknown, never a series that fails
+ * to open.
+ */
+const resolveSeriesShape = async (
+  providers: MetadataProvider[],
+  externalId: string,
+  onProblem?: (provider: string, reason: string) => void,
+): Promise<SeriesShape | null> => {
+  for (const provider of providers) {
+    if (provider.describeSeries === undefined) {
+      continue;
+    }
+
+    try {
+      const found = await provider.describeSeries(externalId);
+
+      if (found !== null) {
+        return found;
+      }
+    } catch (error) {
+      onProblem?.(provider.name, error instanceof Error ? error.message : 'Provider failed.');
+    }
+  }
+
+  return null;
 };
 
 /**
@@ -98,6 +185,6 @@ const resolveMetadata = async (
   return null;
 };
 
-export type { CastMember, MediaFacts, Metadata, MetadataProvider };
+export type { CastMember, CatalogueMatch, MediaFacts, Metadata, MetadataProvider, SeriesShape };
 
-export { resolveMetadata };
+export { resolveMetadata, resolveSeriesShape };

@@ -40,6 +40,8 @@ import { createPlaybackService } from '@FluxServer/playback/createPlaybackServic
 import { createJobQueue } from '@FluxServer/jobs/createJobQueue';
 import {
   SCAN_LIBRARY_JOB,
+  READ_AGAIN_JOB,
+  ReadAgainJobSchema,
   ScanLibraryJobSchema,
   REGENERATE_PREVIEWS_JOB,
   RegeneratePreviewsJobSchema,
@@ -245,6 +247,21 @@ const jobs = await createJobQueue({
         await runDetectSegments(libraryId, jobId);
       });
     },
+    [READ_AGAIN_JOB]: async (jobId, payload) => {
+      const parsed = ReadAgainJobSchema.safeParse(payload);
+
+      if (!parsed.success) {
+        process.stderr.write('job queue: a re-read job carried data Flux could not read.\n');
+
+        return;
+      }
+
+      const { libraryId, paths } = parsed.data;
+
+      await libraryWork.run(libraryId, async () => {
+        await libraryService.runReadAgain(libraryId, paths, jobId);
+      });
+    },
     [REGENERATE_PREVIEWS_JOB]: async (jobId, payload) => {
       const parsed = RegeneratePreviewsJobSchema.safeParse(payload);
 
@@ -396,6 +413,7 @@ const libraryService = createDatabaseLibraryService({
   transcoder,
   jobs,
   providers: [catalogueProvider, createFilenameMetadataProvider()],
+  atOnce: env.MEDIA_JOBS,
   onProblem: (path, reason) => {
     process.stderr.write(`skipped ${path}: ${reason}\n`);
   },
@@ -440,6 +458,7 @@ const segmentProviders = [
   createChapterSegmentProvider(),
   createFingerprintSegmentProvider({
     transcoder,
+    atOnce: env.MEDIA_JOBS,
     onProblem: (path, reason) => {
       process.stderr.write(`segments ${path}: ${reason}\n`);
     },
@@ -645,6 +664,8 @@ const app = createApp({
   monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
+  listRunningJobs: () => jobs.listRunning(),
+  searchCatalogue: (query, kind) => catalogueProvider.search?.(query, kind) ?? Promise.resolve([]),
 });
 
 const seededRoles = await seedDefaultRoles({

@@ -117,7 +117,11 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
     };
   }
 
-  const fromFileName = tidy(fileName.slice(0, numbering.index).replace(/[-–—\s]+$/, ''));
+  const beforeNumbering = fileName.slice(0, numbering.index).replace(/[-–—\s]+$/, '');
+  const fileNameYear = findYear(beforeNumbering);
+  const fromFileName = tidy(
+    fileNameYear === null ? beforeNumbering : beforeNumbering.slice(0, fileNameYear.index),
+  );
 
   const seriesDirectory = parentSeason === null ? parentName : grandparentName;
   const directoryYear = findYear(seriesDirectory);
@@ -125,7 +129,7 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
     directoryYear === null ? seriesDirectory : seriesDirectory.slice(0, directoryYear.index),
   );
   const seriesTitle = fromFileName === '' ? tidiedDirectory : fromFileName;
-  const seriesYear = directoryYear?.year ?? null;
+  const seriesYear = directoryYear?.year ?? fileNameYear?.year ?? null;
 
   const afterNumbering = fileName.slice(numbering.index + numbering[0].length);
   const spoken = afterNumbering.replace(/\.[a-z0-9]{2,4}$/i, '').replace(/^[-–—\s._]+/, '');

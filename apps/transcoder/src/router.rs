@@ -299,16 +299,22 @@ async fn probe(State(state): State<AppState>, Json(request): Json<ProbeRequest>)
 }
 
 async fn start_session(State(state): State<AppState>, Json(spec): Json<SessionSpec>) -> Response {
+    eprintln!("session: {} {}", spec.summary(), spec.input_path);
+
     if !tokio::fs::try_exists(&spec.input_path)
         .await
         .unwrap_or(false)
     {
+        eprintln!("session refused: no such input file: {}", spec.input_path);
+
         return error(StatusCode::NOT_FOUND, "No such input file.");
     }
 
     let id = match state.registry.start(spec).await {
         Ok(id) => id,
         Err(failure) => {
+            eprintln!("session refused: {failure}");
+
             return error(StatusCode::INTERNAL_SERVER_ERROR, &failure.to_string());
         }
     };
@@ -321,6 +327,11 @@ async fn start_session(State(state): State<AppState>, Json(spec): Json<SessionSp
     };
 
     if !await_manifest(&directory.join(MANIFEST_NAME), MANIFEST_TIMEOUT).await {
+        eprintln!(
+            "session {id} produced no manifest within {}s; see the ffmpeg output above",
+            MANIFEST_TIMEOUT.as_secs()
+        );
+
         state.registry.stop(&id).await;
 
         return error(

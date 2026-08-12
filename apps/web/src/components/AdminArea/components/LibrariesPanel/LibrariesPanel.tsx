@@ -6,6 +6,7 @@ import { AddLibraryDialog } from '@FluxWeb/components/AdminArea/components/AddLi
 import { LibrarySettingsDialog } from '@FluxWeb/components/AdminArea/components/LibrarySettingsDialog/LibrarySettingsDialog';
 import { ResetLibrariesDialog } from '@FluxWeb/components/AdminArea/components/ResetLibrariesDialog/ResetLibrariesDialog';
 import { ScanProgressBar } from '@FluxWeb/components/AdminArea/components/ScanProgressBar/ScanProgressBar';
+import { describeScanKind } from '@FluxWeb/components/AdminArea/describeScanKind';
 import type { LibrariesPanelProps } from './LibrariesPanel.types';
 
 /**
@@ -127,24 +128,35 @@ const LibrariesPanel = ({
 
                 <div className="flex shrink-0 items-center gap-2">
                   {scanning === undefined ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      isPill
-                      onClick={() => {
-                        onScan(library.id);
-                      }}
-                    >
-                      <IconRefresh size={16} aria-hidden />
-                      Scan
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        isPill
+                        label="Read every file again, not only the ones that changed"
+                        onClick={() => {
+                          onScan(library.id, true);
+                        }}
+                      >
+                        <IconRefreshAlert size={16} aria-hidden />
+                        Read again
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        isPill
+                        onClick={() => {
+                          onScan(library.id);
+                        }}
+                      >
+                        <IconRefresh size={16} aria-hidden />
+                        Scan
+                      </Button>
+                    </>
                   ) : (
                     <ScanProgressBar
-                      label={
-                        scanning.kind === 'scan'
-                          ? `Scanning ${library.name}`
-                          : `Regenerating previews for ${library.name}`
-                      }
+                      label={describeScanKind(scanning.kind, library.name)}
                       phase={scanning.phase}
                       processed={scanning.processed}
                       total={scanning.total}

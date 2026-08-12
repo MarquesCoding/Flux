@@ -1,3 +1,4 @@
+import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 
 /**
@@ -23,6 +24,10 @@ type GenerateTrickplayOptions = {
   store: TrickplayStore;
   transcoder: Transcoder;
   trickplay: TrickplayParams;
+  /**
+   * How many sheets to draw at once. One is the safe answer and the slow one.
+   */
+  atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (processed: number, total: number) => void;
 };
@@ -40,6 +45,7 @@ const generateTrickplay = async ({
   store,
   transcoder,
   trickplay,
+  atOnce = 1,
   onProblem,
   onProgress,
 }: GenerateTrickplayOptions): Promise<void> => {
@@ -48,7 +54,7 @@ const generateTrickplay = async ({
 
   onProgress?.(processed, items.length);
 
-  for (const item of items) {
+  await mapWithLimit(items, atOnce, async (item) => {
     const rendered = await transcoder
       .requestTrickplay({ inputPath: item.path, ...trickplay, wait: true })
       .then(() => true)
@@ -64,7 +70,7 @@ const generateTrickplay = async ({
 
     processed += 1;
     onProgress?.(processed, items.length);
-  }
+  });
 };
 
 export type { TrickplayParams, TrickplayStore };

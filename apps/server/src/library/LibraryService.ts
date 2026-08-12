@@ -60,6 +60,18 @@ type UpdateLibraryInput = {
 };
 
 /**
+ * What a correction changed, and where to watch it being applied.
+ *
+ * The count is of files rather than programmes, since one correction reaches
+ * every episode of a series. A null job means no queue took it, and the
+ * re-read had already finished by the time this was answered.
+ */
+type Correction = {
+  corrected: number;
+  jobId: string | null;
+};
+
+/**
  * The library as the HTTP layer sees it.
  *
  * A port rather than a concrete database client, so the routes can be tested
@@ -100,6 +112,26 @@ type LibraryService = ShowService & {
    * whatever the database currently believes.
    */
   reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
+  /**
+   * Corrects what a file is, and reads it again from the catalogue at once.
+   *
+   * Given an episode, the correction is the whole series: an id names a show,
+   * and fixing episode one while two to ten still point at the wrong programme
+   * is worse than not offering the feature.
+   *
+   * Null means there is no such item. A correction that resolves to nothing at
+   * the catalogue is refused rather than saved, so a typo cannot empty a
+   * library's metadata.
+   */
+  correctMatch: (
+    mediaId: string,
+    reference: { externalId: string; externalKind: 'tv' | 'movie' },
+    by: string | null,
+  ) => Promise<Correction | null>;
+  /**
+   * Forgets a correction and reads the file again as the catalogue finds it.
+   */
+  forgetCorrection: (mediaId: string) => Promise<Correction | null>;
   /**
    * Queues preview regeneration against the library's current forced audio
    * language, without a full rescan.
@@ -145,6 +177,12 @@ type LibraryService = ShowService & {
 
 const DEFAULT_LIMIT = 60;
 
-export type { CreateLibraryInput, LibraryService, ListItemsOptions, UpdateLibraryInput };
+export type {
+  Correction,
+  CreateLibraryInput,
+  LibraryService,
+  ListItemsOptions,
+  UpdateLibraryInput,
+};
 
 export { DEFAULT_LIMIT };

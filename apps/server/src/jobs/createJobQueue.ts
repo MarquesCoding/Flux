@@ -56,6 +56,16 @@ const createJobQueue = async ({
   const kinds = Object.keys(handlers);
 
   const progressByJobId = new Map<string, JobProgress>();
+  const running = new Map<string, { kind: string; subject: string | null }>();
+
+  /**
+   * What a job is about, read from its own payload.
+   *
+   * Everything that runs against a library carries its id, which is what a
+   * page needs to match a running job to the library on screen.
+   */
+  const subjectOf = (payload: { [key: string]: JsonValue }): string | null =>
+    typeof payload['libraryId'] === 'string' ? payload['libraryId'] : null;
 
   boss.on('error', (error: Error) => {
     onProblem?.(error.message);
@@ -73,7 +83,14 @@ const createJobQueue = async ({
     await boss.createQueue(kind);
     await boss.work(kind, async (jobs: Job<{ [key: string]: JsonValue }>[]) => {
       for (const job of jobs) {
-        await handler(job.id, job.data);
+        running.set(job.id, { kind, subject: subjectOf(job.data) });
+
+        try {
+          await handler(job.id, job.data);
+        } finally {
+          running.delete(job.id);
+          progressByJobId.delete(job.id);
+        }
       }
     });
   }
@@ -100,6 +117,14 @@ const createJobQueue = async ({
     },
 
     readProgress: (jobId) => progressByJobId.get(jobId) ?? null,
+
+    listRunning: () =>
+      [...running].map(([jobId, about]) => ({
+        jobId,
+        kind: about.kind,
+        subject: about.subject,
+        progress: progressByJobId.get(jobId) ?? null,
+      })),
 
     reportProgress: (jobId, phase, processed, total) => {
       progressByJobId.set(jobId, { phase, processed, total });

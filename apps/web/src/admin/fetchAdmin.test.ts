@@ -19,7 +19,7 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { Monitor } from './fetchAdmin';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 
-type Answer = { ok: boolean; json: () => Promise<JsonValue> };
+type Answer = { ok: boolean; status: number; json: () => Promise<JsonValue> };
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Answer>;
 
@@ -71,7 +71,11 @@ const sentBody = (): JsonValue => {
 };
 
 const answerWith = (body: JsonValue, ok = true) => {
-  fetchMock.mockResolvedValue({ ok, json: () => Promise.resolve(body) });
+  fetchMock.mockResolvedValue({
+    ok,
+    status: ok ? 200 : 403,
+    json: () => Promise.resolve(body),
+  });
 };
 
 beforeEach(() => {
@@ -90,16 +94,22 @@ describe('fetchAdminOverview', () => {
     await expect(fetchAdminOverview()).resolves.toEqual(OVERVIEW);
   });
 
-  it('says nothing when the server refuses, since only an admin may ask', async () => {
+  it('says which answer it got when the server refuses', async () => {
     answerWith({}, false);
 
-    await expect(fetchAdminOverview()).resolves.toBeNull();
+    await expect(fetchAdminOverview()).rejects.toThrow('answered');
   });
 
-  it('says nothing when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached at all', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchAdminOverview()).resolves.toBeNull();
+    await expect(fetchAdminOverview()).rejects.toThrow('could not be reached');
+  });
+
+  it('refuses an answer it does not understand rather than reading past it', async () => {
+    answerWith({ ...OVERVIEW, transcoder: { isReachable: 'yes' } });
+
+    await expect(fetchAdminOverview()).rejects.toThrow();
   });
 });
 

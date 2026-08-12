@@ -198,16 +198,6 @@ const MediaDetailDialog = ({
               <span className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted">
                 {shown.seriesTitle === null || shown.seriesTitle === undefined ? null : shown.title}
               </span>
-
-              {genres.length === 0 ? null : (
-                <span className="flex flex-wrap gap-1.5">
-                  {genres.map((label) => (
-                    <Badge key={label} size="sm" className="bg-surface/70 backdrop-blur">
-                      {label}
-                    </Badge>
-                  ))}
-                </span>
-              )}
             </motion.div>
 
             <motion.h2
@@ -280,6 +270,16 @@ const MediaDetailDialog = ({
                 <IconInfoCircle size={16} aria-hidden />
                 No synopsis yet. Configure a metadata provider and rescan to fill this in.
               </p>
+            )}
+
+            {genres.length === 0 ? null : (
+              <span className="flex flex-wrap gap-1.5">
+                {genres.map((label) => (
+                  <Badge key={label} size="sm">
+                    {label}
+                  </Badge>
+                ))}
+              </span>
             )}
           </section>
 

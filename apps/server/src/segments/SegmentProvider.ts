@@ -96,20 +96,36 @@ const isPlausible = (
  * machine measured. A provider that throws is skipped: detection is an
  * improvement to playback and must never stop it.
  */
+/**
+ * What detection found, and whether anything was actually able to look.
+ *
+ * The two are not the same and the difference decides whether a file is done
+ * with. A provider that ran and found no theme tune has finished with that
+ * episode; a provider that could not be reached has not started. Recording the
+ * second as the first marks a whole library complete while the media service is
+ * down, and nothing ever asks about those files again.
+ */
+type Detection = {
+  segments: Map<string, MediaSegment[]>;
+  wasAsked: boolean;
+};
+
 const resolveSegments = async (
   providers: SegmentProvider[],
   group: SegmentCandidate[],
   onProblem?: (provider: string, reason: string) => void,
   onItemDone?: () => void,
-): Promise<Map<string, MediaSegment[]>> => {
+): Promise<Detection> => {
   const resolved = new Map<string, MediaSegment[]>();
   const durations = new Map(group.map((item) => [item.mediaId, item.durationSeconds]));
+  let answered = false;
 
   for (const provider of providers) {
     let found: Map<string, MediaSegment[]>;
 
     try {
       found = await provider.detect(group, onItemDone);
+      answered = true;
     } catch (error) {
       onProblem?.(provider.name, error instanceof Error ? error.message : 'Detection failed.');
 
@@ -131,9 +147,9 @@ const resolveSegments = async (
     }
   }
 
-  return resolved;
+  return { segments: resolved, wasAsked: answered };
 };
 
-export type { SegmentCandidate, SegmentProvider };
+export type { Detection, SegmentCandidate, SegmentProvider };
 
 export { resolveSegments, isPlausible, INTRO_BOUNDS, CREDITS_BOUNDS };

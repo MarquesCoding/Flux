@@ -12,6 +12,8 @@ import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
 import { pickUpFrom } from './pickUpFrom';
 import { EpisodeRow } from './components/EpisodeRow/EpisodeRow';
+import { MissingRow } from './components/MissingRow/MissingRow';
+import { findGaps } from '@FluxCore/functions/findGaps';
 import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { ShowDialogProps } from './ShowDialog.types';
 
@@ -101,9 +103,52 @@ const ShowDialog = ({
   }
 
   const seasons = detail?.seasons ?? [];
-  const season = seasons.find((one) => one.seasonNumber === chosenSeason) ??
-    seasons[0] ?? { seasonNumber: null, episodes: [] };
   const carryingOn = detail === null ? null : pickUpFrom(detail, { resumeFor, isFinished });
+  const gaps = detail === null ? null : findGaps(detail);
+
+  /**
+   * Every season the series has, whether or not this library holds any of it.
+   *
+   * A season nobody holds is still a season somebody wants to look inside, so
+   * it is offered the same way as the rest rather than named and left shut.
+   */
+  const chooseFrom = [
+    ...seasons.map((one) => ({ seasonNumber: one.seasonNumber, isHeld: true })),
+    ...(gaps?.seasons ?? []).map((number) => ({ seasonNumber: number, isHeld: false })),
+  ].sort((left, right) => (left.seasonNumber ?? Infinity) - (right.seasonNumber ?? Infinity));
+
+  const chosen = chooseFrom.find((one) => one.seasonNumber === chosenSeason) ?? chooseFrom[0];
+  const showing = chosen?.seasonNumber ?? null;
+  const season = seasons.find((one) => one.seasonNumber === showing) ?? {
+    seasonNumber: showing,
+    episodes: [],
+  };
+
+  const listedHere = (detail?.shape ?? []).find((one) => one.seasonNumber === (showing ?? -1));
+
+  /**
+   * The numbers this season is missing: the holes in a season partly held, and
+   * every episode of one held not at all.
+   */
+  const missingHere =
+    chosen?.isHeld === false
+      ? (listedHere?.episodes.map((one) => one.episodeNumber) ?? [])
+      : (gaps?.episodes.get(showing ?? -1) ?? []);
+
+  const inOrder = [
+    ...season.episodes.map((episode) => ({
+      key: episode.id,
+      at: episode.episodeNumber ?? 0,
+      episode,
+      listed: null,
+    })),
+    ...missingHere.map((number) => ({
+      key: `missing-${number.toString()}`,
+      at: number,
+      episode: null,
+      listed: listedHere?.episodes.find((one) => one.episodeNumber === number) ?? null,
+    })),
+  ].sort((left, right) => left.at - right.at);
 
   return (
     <Dialog
@@ -214,15 +259,16 @@ const ShowDialog = ({
               Episodes
             </h3>
 
-            {seasons.length < 2 ? null : (
+            {seasons.length < 2 && (gaps?.seasons ?? []).length === 0 ? null : (
               <ul className="flux-rail flex items-center gap-2 overflow-x-auto">
-                {seasons.map((one) => (
+                {chooseFrom.map((one) => (
                   <li key={one.seasonNumber ?? 'specials'}>
                     <Button
                       size="sm"
                       isPill
-                      aria-pressed={one.seasonNumber === season.seasonNumber}
-                      variant={one.seasonNumber === season.seasonNumber ? 'glossy' : 'ghost'}
+                      aria-pressed={one.seasonNumber === showing}
+                      variant={one.seasonNumber === showing ? 'glossy' : 'ghost'}
+                      className={one.isHeld ? '' : 'border border-dashed border-white/25'}
                       onClick={() => {
                         setChosenSeason(one.seasonNumber);
                       }}
@@ -237,25 +283,35 @@ const ShowDialog = ({
 
           {isLoading ? (
             <Spinner label="Reading the episodes" size="sm" />
-          ) : season.episodes.length === 0 ? (
+          ) : inOrder.length === 0 ? (
             <p className="text-sm text-text-muted">
               Nothing here yet. Episodes appear as they are scanned.
             </p>
           ) : (
             <ul className="flex flex-col divide-y divide-white/5">
-              {season.episodes.map((episode) => (
-                <li key={episode.id}>
-                  <EpisodeRow
-                    episode={episode}
-                    onPlay={onPlay}
-                    {...(onInspect === undefined ? {} : { onInspect })}
-                    {...(watchedFractionFor?.(episode.id) === undefined
-                      ? {}
-                      : { watchedFraction: watchedFractionFor(episode.id) ?? 0 })}
-                    {...(resumeFor === undefined || resumeFor(episode.id) === null
-                      ? {}
-                      : { resumeSeconds: Math.floor(resumeFor(episode.id) ?? 0) })}
-                  />
+              {inOrder.map(({ key, at, episode, listed }) => (
+                <li key={key}>
+                  {episode === null ? (
+                    <MissingRow
+                      episodeNumber={at}
+                      {...(listed === null ? {} : { title: listed.title })}
+                      {...(listed?.stillUrl === null || listed?.stillUrl === undefined
+                        ? {}
+                        : { stillUrl: listed.stillUrl })}
+                    />
+                  ) : (
+                    <EpisodeRow
+                      episode={episode}
+                      onPlay={onPlay}
+                      {...(onInspect === undefined ? {} : { onInspect })}
+                      {...(watchedFractionFor?.(episode.id) === undefined
+                        ? {}
+                        : { watchedFraction: watchedFractionFor(episode.id) ?? 0 })}
+                      {...(resumeFor === undefined || resumeFor(episode.id) === null
+                        ? {}
+                        : { resumeSeconds: Math.floor(resumeFor(episode.id) ?? 0) })}
+                    />
+                  )}
                 </li>
               ))}
             </ul>

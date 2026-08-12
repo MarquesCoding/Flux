@@ -141,6 +141,30 @@ const createMemoryLibraryService = (
         : null,
     ),
 
+  correctMatch: (mediaId) => {
+    const item = state.media.find((one) => one.id === mediaId);
+
+    if (item === undefined) {
+      return Promise.resolve(null);
+    }
+
+    const family =
+      item.metadata.seriesTitle === null || item.metadata.seriesTitle === undefined
+        ? [item]
+        : state.media.filter(
+            (one) =>
+              one.libraryId === item.libraryId &&
+              one.metadata.seriesTitle === item.metadata.seriesTitle,
+          );
+
+    return Promise.resolve({ corrected: family.length, jobId: null });
+  },
+
+  forgetCorrection: (mediaId) =>
+    Promise.resolve(
+      state.media.some((one) => one.id === mediaId) ? { corrected: 1, jobId: null } : null,
+    ),
+
   reset: (libraryId) => {
     if (!state.libraries.some((entry) => entry.id === libraryId)) {
       return Promise.resolve(null);
