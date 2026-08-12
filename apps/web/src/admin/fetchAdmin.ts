@@ -23,6 +23,7 @@ const AdminOverviewSchema = z.object({
     isReachable: z.boolean(),
     address: z.string(),
     ffmpegVersion: z.string().nullable(),
+    ffmpegSupported: z.boolean().default(true),
     hardwareAccels: z.array(z.string()),
     rejectedEncoders: z.array(z.object({ encoder: z.string(), reason: z.string() })).default([]),
   }),

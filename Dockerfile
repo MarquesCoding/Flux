@@ -27,23 +27,37 @@ RUN pnpm --filter @flux/server build
 
 FROM node:22-bookworm-slim AS runtime
 
-# ffmpeg from Debian is built with libzimg and libass, so tone mapping and
-# subtitle burn-in both work. The transcoder verifies this at startup and
-# reports what it found rather than assuming.
+# Flux's own FFmpeg, at a version Flux chose, rather than whatever the base
+# image happens to ship. Debian has no 8.x at all, and packages none of Intel's
+# media stack — no libvpl, no vpl-gpu-rt, no iHD driver, in any release or
+# component. It also drops QuickSync silently between bookworm and trixie, so a
+# base image bump would have removed hardware encoding on Intel with nothing
+# anywhere saying why. See FLUX-83 and ADR-0009.
 #
-# mesa-va-drivers is what makes VAAPI work at all. It is not a dependency of
-# ffmpeg, so `--no-install-recommends ffmpeg` installed no VA driver whatsoever
-# and every VAAPI encoder failed inside the container for want of one — on top
-# of the missing device that FLUX-80 fixed, and invisibly, because a rejected
-# encoder said nothing until FLUX-80 made it speak.
+# The package brings the drivers with it: iHD and i965 for Intel, radeonsi for
+# AMD, all inside its own prefix. libva is patched at build time to look there
+# first, so mesa-va-drivers is no longer installed — it only ever supplied
+# radeonsi, and Debian's ffmpeg that needed it is gone.
 #
-# It carries radeonsi, which is the driver an AMD card reports, plus the generic
-# Gallium ones. Intel's iHD is not packaged by Debian at all; an Intel host gets
-# QSV, which needs no VA driver, and its VAAPI stays unavailable until the
-# Flux FFmpeg build lands and brings iHD with it. See FLUX-83.
+# Downloaded with ADD rather than curl so the image needs no download tool of
+# its own. Worth pinning `--checksum` here once the version settles.
+ARG FLUX_FFMPEG_VERSION=8.1.2-2flux1
+ARG TARGETARCH
+
+ADD https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${FLUX_FFMPEG_VERSION}/flux-ffmpeg_${FLUX_FFMPEG_VERSION}-bookworm_${TARGETARCH}.deb /tmp/flux-ffmpeg.deb
+
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg ca-certificates mesa-va-drivers \
+  && apt-get install -y --no-install-recommends ca-certificates /tmp/flux-ffmpeg.deb \
+  && rm /tmp/flux-ffmpeg.deb \
   && rm -rf /var/lib/apt/lists/*
+
+# Both, and not just the first: the transcoder reads them independently, so
+# setting only FLUX_FFMPEG would transcode with Flux's build while still probing
+# with whatever ffprobe the base image had — which here is none at all.
+#
+# No LD_LIBRARY_PATH: the binaries carry an rpath into their own lib directory.
+ENV FLUX_FFMPEG=/usr/lib/flux-ffmpeg/ffmpeg
+ENV FLUX_FFPROBE=/usr/lib/flux-ffmpeg/ffprobe
 
 WORKDIR /app
 RUN corepack enable

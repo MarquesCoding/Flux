@@ -11,6 +11,7 @@ const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview 
     isReachable: true,
     address: 'unix:/tmp/flux-transcoder.sock',
     ffmpegVersion: '7.1',
+    ffmpegSupported: true,
     hardwareAccels: [],
     rejectedEncoders: [],
   },
@@ -121,6 +122,7 @@ describe('collectConcerns', () => {
             isReachable: false,
             address: 'unix:/tmp/flux-transcoder.sock',
             ffmpegVersion: null,
+            ffmpegSupported: true,
             hardwareAccels: [],
             rejectedEncoders: [],
           },
@@ -139,6 +141,7 @@ describe('collectConcerns', () => {
             isReachable: false,
             address: 'unix:/tmp/flux-transcoder.sock',
             ffmpegVersion: null,
+            ffmpegSupported: true,
             hardwareAccels: [],
             rejectedEncoders: [],
           },
@@ -156,6 +159,7 @@ describe('collectConcerns', () => {
             isReachable: false,
             address: '',
             ffmpegVersion: null,
+            ffmpegSupported: true,
             hardwareAccels: [],
             rejectedEncoders: [],
           },
@@ -197,6 +201,70 @@ describe('collectConcerns', () => {
   });
 
   describe('what needs a person', () => {
+    const onOldFfmpeg = (version: string | null) =>
+      healthyOverview({
+        transcoder: {
+          isReachable: true,
+          address: 'unix:/tmp/flux-transcoder.sock',
+          ffmpegVersion: version,
+          ffmpegSupported: false,
+          hardwareAccels: [],
+          rejectedEncoders: [],
+        },
+      });
+
+    it('reports an FFmpeg older than Flux supports', () => {
+      const concerns = collectConcerns({ ...healthy, overview: onOldFfmpeg('5.1.9') });
+
+      expect(concerns.map((concern) => concern.id)).toContain('ffmpeg-version');
+    });
+
+    it('names the version, since that is what somebody has to act on', () => {
+      const concerns = collectConcerns({ ...healthy, overview: onOldFfmpeg('5.1.9') });
+
+      expect(concerns.find((concern) => concern.id === 'ffmpeg-version')?.detail).toContain(
+        '5.1.9',
+      );
+    });
+
+    it('says it needs a person rather than that it is broken, because playback still works', () => {
+      const concerns = collectConcerns({ ...healthy, overview: onOldFfmpeg('5.1.9') });
+
+      expect(concerns.find((concern) => concern.id === 'ffmpeg-version')?.tone).toBe('attention');
+    });
+
+    it('says nothing about a version it could not read', () => {
+      const concerns = collectConcerns({ ...healthy, overview: onOldFfmpeg(null) });
+
+      expect(concerns.find((concern) => concern.id === 'ffmpeg-version')?.detail).not.toContain(
+        'null',
+      );
+    });
+
+    it('stays quiet about a supported version', () => {
+      const concerns = collectConcerns(healthy);
+
+      expect(concerns.map((concern) => concern.id)).not.toContain('ffmpeg-version');
+    });
+
+    it('stays quiet when the service cannot be reached at all', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        overview: healthyOverview({
+          transcoder: {
+            isReachable: false,
+            address: '',
+            ffmpegVersion: null,
+            ffmpegSupported: false,
+            hardwareAccels: [],
+            rejectedEncoders: [],
+          },
+        }),
+      });
+
+      expect(concerns.map((concern) => concern.id)).not.toContain('ffmpeg-version');
+    });
+
     it('reports a library that has never been scanned, by name', () => {
       const concerns = collectConcerns({
         ...healthy,

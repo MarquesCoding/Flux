@@ -23,6 +23,7 @@ const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
     isReachable: true,
     address: 'unix:/tmp/flux-transcoder.sock',
     ffmpegVersion: '7.1',
+    ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
   },
@@ -230,6 +231,7 @@ describe('OverviewPanel', () => {
               isReachable: true,
               address: 'unix:/tmp/flux-transcoder.sock',
               ffmpegVersion: '7.1',
+              ffmpegSupported: true,
               hardwareAccels: [],
               rejectedEncoders: [],
             },
@@ -278,6 +280,7 @@ describe('OverviewPanel', () => {
             isReachable: true,
             address: 'unix:/tmp/flux-transcoder.sock',
             ffmpegVersion: '8.1.2',
+            ffmpegSupported: true,
             hardwareAccels: [],
             rejectedEncoders: [
               { encoder: 'h264_vaapi', reason: 'No VA display found for /dev/dri/renderD128.' },

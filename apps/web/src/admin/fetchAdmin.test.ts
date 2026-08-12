@@ -45,6 +45,7 @@ const OVERVIEW = {
     isReachable: true,
     address: 'unix:/tmp/flux-transcoder.sock',
     ffmpegVersion: '9.0',
+    ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
   },

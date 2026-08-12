@@ -21,6 +21,7 @@ const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOver
     isReachable: true,
     address: 'unix:/tmp/flux-transcoder.sock',
     ffmpegVersion: null,
+    ffmpegSupported: true,
     hardwareAccels: [],
     rejectedEncoders: [],
   },
