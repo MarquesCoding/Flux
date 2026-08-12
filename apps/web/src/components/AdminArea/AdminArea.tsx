@@ -37,6 +37,7 @@ import { collectConcerns } from './collectConcerns';
 import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
 import { describeGraphics } from './describeGraphics';
+import { describeCpuShare } from './describeCpuShare';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
   resumeRunning,
@@ -500,9 +501,7 @@ const AdminArea = ({
                 detail:
                   resources === null
                     ? '—'
-                    : `${resources.cpuCount.toString()} cores · Flux ${
-                        cpuShare === null ? 'not measured' : `${cpuShare.toFixed(0)}%`
-                      }`,
+                    : `${resources.cpuCount.toString()} cores · Flux ${describeCpuShare(cpuShare)}`,
               },
               {
                 label: 'Memory',

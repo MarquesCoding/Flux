@@ -34,11 +34,14 @@ const DISK_INTERVAL: Duration = Duration::from_secs(30);
 
 /// How often the graphics hardware is asked what it is doing.
 ///
-/// Asking means starting a vendor tool, which is far too expensive to do on
-/// the reading a watching page takes every second. Every few seconds is enough
-/// to see a transcode take hold, and it happens on its own timer where no
-/// request is waiting on it.
-const GRAPHICS_INTERVAL: Duration = Duration::from_secs(5);
+/// The same tick as the page, so the figure moves with everything beside it. A
+/// slower poll made it look frozen: the panes around it changed every second
+/// and this one sat still, then jumped.
+///
+/// Affordable because it is measured, not assumed — the reading costs about
+/// seventeen milliseconds, so once a second is under two percent of one core,
+/// and it happens on its own timer where no request is waiting on it.
+const GRAPHICS_INTERVAL: Duration = Duration::from_secs(1);
 
 /// How serious a line is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -240,8 +243,10 @@ impl Monitor {
         let cell = Arc::clone(&self.graphics);
 
         tokio::spawn(async move {
+            let mut smoothed = crate::graphics::Smoothed::new();
+
             loop {
-                let reading = crate::graphics::read().await;
+                let reading = smoothed.push(crate::graphics::read().await);
 
                 *cell.lock().await = reading;
 

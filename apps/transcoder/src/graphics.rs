@@ -17,10 +17,20 @@
 //! Flux should not be asking for. An honest silence beats a number that is
 //! wrong on most machines.
 
+use std::collections::VecDeque;
 use std::time::Duration;
 
 use serde::Serialize;
 use tokio::process::Command;
+
+/// How many readings are averaged into the figure that is reported.
+///
+/// The counters are instantaneous and jump about: six readings three seconds
+/// apart on an otherwise idle machine gave 22, 26, 23, 25, 26 and 0. Reporting
+/// the latest sample alone makes a steady load look like it is flickering, and
+/// makes an idle one occasionally look busy. A mean over the last few seconds
+/// is the same quantity read steadily.
+const SMOOTHING: usize = 5;
 
 /// How long a vendor tool is given before it is treated as absent.
 ///
@@ -176,6 +186,61 @@ async fn read_amd() -> Option<GraphicsUse> {
     None
 }
 
+/// A card's recent readings, and the steady figure they average to.
+///
+/// Absence is not a low reading, so a poll that finds no card empties this
+/// rather than averaging a gap: a card that has been unplugged, or a tool that
+/// has stopped answering, must not leave a fading number behind that looks
+/// like a measurement.
+#[derive(Default)]
+pub struct Smoothed {
+    encoder: VecDeque<f32>,
+    device: VecDeque<f32>,
+}
+
+/// The mean of what is there, and nothing when nothing is.
+fn mean(readings: &VecDeque<f32>) -> Option<f32> {
+    let total: f32 = readings.iter().sum();
+
+    (!readings.is_empty()).then(|| total / f32::from(u8::try_from(readings.len()).unwrap_or(1)))
+}
+
+impl Smoothed {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Takes a reading and gives back what should be reported.
+    pub fn push(&mut self, reading: Option<GraphicsUse>) -> Option<GraphicsUse> {
+        let Some(reading) = reading else {
+            self.encoder.clear();
+            self.device.clear();
+
+            return None;
+        };
+
+        for (readings, latest) in [
+            (&mut self.encoder, reading.encoder_percent),
+            (&mut self.device, reading.device_percent),
+        ] {
+            if let Some(value) = latest {
+                readings.push_back(value);
+            }
+
+            while readings.len() > SMOOTHING {
+                readings.pop_front();
+            }
+        }
+
+        Some(GraphicsUse {
+            name: reading.name,
+            encoder_percent: mean(&self.encoder),
+            device_percent: mean(&self.device),
+        })
+    }
+}
+
 /// What the graphics hardware is doing, from whichever vendor answers.
 ///
 /// Tried in the order of how much they can tell us, so a machine with an
@@ -195,7 +260,94 @@ pub async fn read() -> Option<GraphicsUse> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_apple, parse_nvidia};
+    use super::{parse_apple, parse_nvidia, GraphicsUse, Smoothed};
+
+    fn card(encoder: Option<f32>, device: Option<f32>) -> GraphicsUse {
+        GraphicsUse {
+            name: "Card".to_owned(),
+            encoder_percent: encoder,
+            device_percent: device,
+        }
+    }
+
+    #[test]
+    fn reports_the_first_reading_as_it_stands() {
+        let mut smoothed = Smoothed::new();
+
+        assert_eq!(
+            smoothed
+                .push(Some(card(None, Some(40.0))))
+                .and_then(|use_| use_.device_percent),
+            Some(40.0)
+        );
+    }
+
+    #[test]
+    fn steadies_a_counter_that_jumps_about() {
+        let mut smoothed = Smoothed::new();
+
+        for reading in [22.0, 26.0, 23.0, 25.0] {
+            smoothed.push(Some(card(None, Some(reading))));
+        }
+
+        let steady = smoothed
+            .push(Some(card(None, Some(0.0))))
+            .and_then(|use_| use_.device_percent)
+            .expect("there are readings to average");
+
+        assert!(
+            (19.0..20.0).contains(&steady),
+            "one idle sample should not empty the pane, got {steady}"
+        );
+    }
+
+    #[test]
+    fn forgets_readings_older_than_the_window() {
+        let mut smoothed = Smoothed::new();
+
+        for _ in 0..5 {
+            smoothed.push(Some(card(None, Some(0.0))));
+        }
+
+        for _ in 0..5 {
+            smoothed.push(Some(card(None, Some(80.0))));
+        }
+
+        assert_eq!(
+            smoothed
+                .push(Some(card(None, Some(80.0))))
+                .and_then(|use_| use_.device_percent),
+            Some(80.0),
+            "a window of high readings must not be held down by older ones"
+        );
+    }
+
+    #[test]
+    fn never_averages_an_encoder_reading_into_existence() {
+        let mut smoothed = Smoothed::new();
+
+        let reading = smoothed
+            .push(Some(card(None, Some(40.0))))
+            .expect("a card answered");
+
+        assert_eq!(reading.encoder_percent, None);
+    }
+
+    #[test]
+    fn drops_what_it_knew_when_the_card_stops_answering() {
+        let mut smoothed = Smoothed::new();
+
+        smoothed.push(Some(card(Some(90.0), Some(90.0))));
+
+        assert!(smoothed.push(None).is_none());
+        assert_eq!(
+            smoothed
+                .push(Some(card(None, Some(10.0))))
+                .and_then(|use_| use_.device_percent),
+            Some(10.0),
+            "a card that comes back starts again rather than fading from the old figure"
+        );
+    }
 
     const IOREG: &str = r#"+-o AGXAcceleratorG17X  <class AGXAcceleratorG17X, id 0x100000775>
     {
