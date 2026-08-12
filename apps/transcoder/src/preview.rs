@@ -18,8 +18,9 @@ use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::process::Command;
 
+use crate::capability::Capabilities;
 use crate::media::VideoRange;
-use crate::transcode_plan::{tone_map_filter, ToneMapping, NO_EMBEDDED_CAPTIONS};
+use crate::transcode_plan::{tone_map_filter, HardwareAccel, ToneMapping, NO_EMBEDDED_CAPTIONS};
 
 /// The file a preview is written to.
 pub const PREVIEW_NAME: &str = "preview.mp4";
@@ -51,6 +52,39 @@ const DEFAULT_WIDTH: u32 = 1920;
 /// Low enough that a still from the clip stands next to a still from the file
 /// without embarrassing itself.
 const QUALITY: &str = "20";
+
+/// What a hardware encoder is asked for instead of a quality target.
+///
+/// x264 is told a quality and finds the bitrate. Hardware encoders mostly have
+/// no equivalent, so they are told a bitrate and find the quality. This is what
+/// `QUALITY` produces on 1080p material, so the two routes come out at roughly
+/// the same size.
+const HARDWARE_BITRATE_KBPS: u32 = 6000;
+
+/// How a preview's video gets encoded.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PreviewEncoder {
+    /// x264, at a quality target.
+    Software,
+    /// The machine's own encoder, at a bitrate target.
+    Hardware(String),
+}
+
+/// Picks the encoder a preview should use.
+///
+/// A preview is a full length encode of a 24 second window, made once per file
+/// in the library. Doing that in software costs around fifteen times the
+/// processor time of doing it on the encoder already sitting in the machine,
+/// and a scan runs several at once.
+#[must_use]
+pub fn preview_encoder(capabilities: &Capabilities) -> PreviewEncoder {
+    match capabilities.best_encoder("h264") {
+        Some(found) if found.accel != HardwareAccel::None => {
+            PreviewEncoder::Hardware(found.encoder.clone())
+        }
+        _ => PreviewEncoder::Software,
+    }
+}
 
 /// What a caller asks for.
 #[derive(Debug, Clone, Deserialize)]
@@ -164,12 +198,19 @@ pub async fn is_complete(cache_root: &Path, id: &str) -> bool {
 /// it has to be a file a video element can open on its own. The seek comes
 /// before the input, which makes taking a clip from the middle of a long film
 /// a matter of a second rather than of minutes.
+///
+/// Decoding is handed to the hardware whenever the encoding is, which is the
+/// larger half of the saving: the frames still come back to system memory for
+/// the scale, but decoding a 10-bit source in software costs several times
+/// what the transfer does.
 #[must_use]
 pub fn preview_arguments(
     request: &PreviewRequest,
     start_seconds: u32,
     range: VideoRange,
     tone_mapping: ToneMapping,
+    encoder: &PreviewEncoder,
+    accel: Option<&str>,
     output: &Path,
 ) -> Vec<String> {
     let mut filters = Vec::new();
@@ -187,13 +228,21 @@ pub fn preview_arguments(
         "-loglevel".to_owned(),
         "error".to_owned(),
         "-nostdin".to_owned(),
+    ];
+
+    if let Some(flag) = accel {
+        arguments.push("-hwaccel".to_owned());
+        arguments.push(flag.to_owned());
+    }
+
+    arguments.extend([
         "-ss".to_owned(),
         start_seconds.to_string(),
         "-i".to_owned(),
         request.input_path.clone(),
         "-t".to_owned(),
         request.duration_seconds.to_string(),
-    ];
+    ]);
 
     if let Some(index) = request.audio_stream_index {
         arguments.push("-map".to_owned());
@@ -202,15 +251,26 @@ pub fn preview_arguments(
         arguments.push(format!("0:{index}"));
     }
 
+    arguments.extend(["-vf".to_owned(), filters.join(",")]);
+
+    match encoder {
+        PreviewEncoder::Software => arguments.extend([
+            "-c:v".to_owned(),
+            "libx264".to_owned(),
+            "-preset".to_owned(),
+            "veryfast".to_owned(),
+            "-crf".to_owned(),
+            QUALITY.to_owned(),
+        ]),
+        PreviewEncoder::Hardware(name) => arguments.extend([
+            "-c:v".to_owned(),
+            name.clone(),
+            "-b:v".to_owned(),
+            format!("{HARDWARE_BITRATE_KBPS}k"),
+        ]),
+    }
+
     arguments.extend([
-        "-vf".to_owned(),
-        filters.join(","),
-        "-c:v".to_owned(),
-        "libx264".to_owned(),
-        "-preset".to_owned(),
-        "veryfast".to_owned(),
-        "-crf".to_owned(),
-        QUALITY.to_owned(),
         "-profile:v".to_owned(),
         "high".to_owned(),
         "-pix_fmt".to_owned(),
@@ -243,7 +303,7 @@ pub async fn generate(
     cache_root: &Path,
     request: &PreviewRequest,
     range: VideoRange,
-    tone_mapping: ToneMapping,
+    capabilities: &Capabilities,
     duration_seconds: f64,
 ) -> Result<PreviewClip, PreviewError> {
     let id = request.id();
@@ -264,26 +324,53 @@ pub async fn generate(
         .await
         .map_err(PreviewError::Directory)?;
 
-    let outcome = Command::new(ffmpeg)
-        .args(preview_arguments(
-            request,
-            request.start_seconds(duration_seconds),
-            range,
-            tone_mapping,
-            &output,
-        ))
-        .output()
-        .await
-        .map_err(PreviewError::Spawn)?;
+    let tone_mapping = capabilities.tone_mapping;
+    let start = request.start_seconds(duration_seconds);
+    let mut chosen = preview_encoder(capabilities);
 
-    let written = tokio::fs::metadata(&output)
-        .await
-        .map_or(0, |file| file.len());
+    loop {
+        let accel = match &chosen {
+            PreviewEncoder::Hardware(_) => capabilities
+                .best_encoder("h264")
+                .and_then(|found| found.accel.ffmpeg_flag()),
+            PreviewEncoder::Software => None,
+        };
 
-    if !outcome.status.success() || written == 0 {
-        return Err(PreviewError::NoOutput(
-            String::from_utf8_lossy(&outcome.stderr).trim().to_owned(),
-        ));
+        let outcome = Command::new(ffmpeg)
+            .args(preview_arguments(
+                request,
+                start,
+                range,
+                tone_mapping,
+                &chosen,
+                accel,
+                &output,
+            ))
+            .output()
+            .await
+            .map_err(PreviewError::Spawn)?;
+
+        let written = tokio::fs::metadata(&output)
+            .await
+            .map_or(0, |file| file.len());
+
+        if outcome.status.success() && written > 0 {
+            break;
+        }
+
+        let failure =
+            PreviewError::NoOutput(String::from_utf8_lossy(&outcome.stderr).trim().to_owned());
+
+        if chosen == PreviewEncoder::Software {
+            return Err(failure);
+        }
+
+        eprintln!(
+            "preview: hardware encode of {} failed, retrying in software: {failure}",
+            request.input_path
+        );
+
+        chosen = PreviewEncoder::Software;
     }
 
     tokio::fs::write(directory.join(COMPLETE_MARKER), b"")
@@ -295,8 +382,10 @@ pub async fn generate(
 
 #[cfg(test)]
 mod tests {
-    use super::{preview_arguments, PreviewRequest};
+    use super::{preview_arguments, preview_encoder, PreviewEncoder, PreviewRequest};
+    use crate::capability::{Capabilities, VerifiedEncoder};
     use crate::media::VideoRange;
+    use crate::transcode_plan::HardwareAccel;
     use crate::transcode_plan::ToneMapping;
     use std::path::Path;
 
@@ -311,6 +400,110 @@ mod tests {
         }
     }
 
+    fn capabilities_with(encoder: &str, accel: HardwareAccel) -> Capabilities {
+        Capabilities {
+            ffmpeg_version: "8.1.2".to_owned(),
+            encoders: vec![VerifiedEncoder {
+                codec: "h264".to_owned(),
+                encoder: encoder.to_owned(),
+                accel,
+                verified: true,
+            }],
+            hardware_accels: vec![accel],
+            tone_mapping: ToneMapping::Zscale,
+            can_burn_text_subtitles: true,
+            can_burn_image_subtitles: true,
+        }
+    }
+
+    #[test]
+    fn takes_the_machines_encoder_when_it_has_one() {
+        let chosen = preview_encoder(&capabilities_with(
+            "h264_videotoolbox",
+            HardwareAccel::VideoToolbox,
+        ));
+
+        assert_eq!(
+            chosen,
+            PreviewEncoder::Hardware("h264_videotoolbox".to_owned())
+        );
+    }
+
+    #[test]
+    fn falls_back_to_x264_on_a_machine_with_no_encoder() {
+        let chosen = preview_encoder(&capabilities_with("libx264", HardwareAccel::None));
+
+        assert_eq!(chosen, PreviewEncoder::Software);
+    }
+
+    #[test]
+    fn asks_a_hardware_encoder_for_a_bitrate_rather_than_a_quality() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            VideoRange::Sdr,
+            ToneMapping::Zscale,
+            &PreviewEncoder::Hardware("h264_videotoolbox".to_owned()),
+            Some("videotoolbox"),
+            Path::new("/cache/preview.mp4"),
+        );
+
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-c:v", "h264_videotoolbox"]));
+        assert!(arguments.windows(2).any(|pair| pair == ["-b:v", "6000k"]));
+        assert!(!arguments.iter().any(|argument| argument == "-crf"));
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-hwaccel", "videotoolbox"]));
+    }
+
+    #[test]
+    fn keeps_x264_on_a_quality_target() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            VideoRange::Sdr,
+            ToneMapping::Zscale,
+            &PreviewEncoder::Software,
+            None,
+            Path::new("/cache/preview.mp4"),
+        );
+
+        assert!(arguments.windows(2).any(|pair| pair == ["-c:v", "libx264"]));
+        assert!(arguments.windows(2).any(|pair| pair == ["-crf", "20"]));
+        assert!(!arguments.iter().any(|argument| argument == "-b:v"));
+        assert!(!arguments.iter().any(|argument| argument == "-hwaccel"));
+    }
+
+    #[test]
+    fn stays_playable_by_a_bare_video_element_on_either_route() {
+        for encoder in [
+            PreviewEncoder::Software,
+            PreviewEncoder::Hardware("h264_videotoolbox".to_owned()),
+        ] {
+            let arguments = preview_arguments(
+                &request(),
+                600,
+                VideoRange::Sdr,
+                ToneMapping::Zscale,
+                &encoder,
+                None,
+                Path::new("/cache/preview.mp4"),
+            );
+
+            assert!(arguments
+                .windows(2)
+                .any(|pair| pair == ["-profile:v", "high"]));
+            assert!(arguments
+                .windows(2)
+                .any(|pair| pair == ["-pix_fmt", "yuv420p"]));
+            assert!(arguments
+                .windows(2)
+                .any(|pair| pair == ["-movflags", "+faststart"]));
+        }
+    }
+
     #[test]
     fn seeks_before_opening_the_file() {
         let arguments = preview_arguments(
@@ -318,6 +511,8 @@ mod tests {
             600,
             VideoRange::Sdr,
             ToneMapping::Zscale,
+            &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 
@@ -334,6 +529,8 @@ mod tests {
             600,
             VideoRange::Hdr10,
             ToneMapping::Zscale,
+            &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 
@@ -356,6 +553,8 @@ mod tests {
             600,
             VideoRange::Sdr,
             ToneMapping::Zscale,
+            &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 
@@ -386,6 +585,8 @@ mod tests {
             600,
             VideoRange::Sdr,
             ToneMapping::Zscale,
+            &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 
@@ -404,6 +605,8 @@ mod tests {
             600,
             VideoRange::Sdr,
             ToneMapping::Zscale,
+            &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 
