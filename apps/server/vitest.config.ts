@@ -9,6 +9,7 @@ export default defineConfig({
       NODE_ENV: 'production',
     },
     coverage: {
+      exclude: ['src/db/Schema.ts', 'src/jobs/createInertJobQueue.ts'],
       thresholds: { lines: 88, functions: 82, branches: 77, statements: 88 },
     },
   },

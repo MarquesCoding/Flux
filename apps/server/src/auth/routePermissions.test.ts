@@ -269,3 +269,43 @@ describe('every gated route, asked by somebody with no permissions', () => {
     expect(asked.size).toBeGreaterThan(10);
   });
 });
+
+describe('every route that needs somebody signed in, asked by nobody', () => {
+  /**
+   * Routes that turn on who is asking rather than on what they may do.
+   *
+   * Watch progress and favourites belong to a viewer, devices belong to an
+   * account, and presence belongs to a tab — none of them mean anything
+   * without somebody behind them, so all of them answer the same way.
+   */
+  const NEEDS_SOMEBODY: [string, string, object?][] = [
+    ['GET', '/api/progress'],
+    ['PUT', `/api/media/${LIBRARY_ID}/progress`, { positionSeconds: 10, durationSeconds: 100 }],
+    ['DELETE', `/api/media/${LIBRARY_ID}/progress`],
+    ['GET', '/api/favourites'],
+    ['PUT', `/api/media/${LIBRARY_ID}/favourite`],
+    ['DELETE', `/api/media/${LIBRARY_ID}/favourite`],
+    ['GET', '/api/devices'],
+    ['DELETE', '/api/devices/session-1'],
+    ['DELETE', '/api/devices'],
+    ['POST', '/api/presence/tab-1/heartbeat', { isPlaying: true }],
+    ['DELETE', '/api/presence/tab-1/watching'],
+  ];
+
+  for (const [method, path, body] of NEEDS_SOMEBODY) {
+    it(`turns nobody away from ${method} ${path}`, async () => {
+      const { app } = build();
+
+      const response = await app.request(`${TEST_ORIGIN}${path}`, {
+        method,
+        headers: {
+          origin: TEST_ORIGIN,
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+
+      expect(response.status).toBe(401);
+    });
+  }
+});
