@@ -30,8 +30,19 @@ FROM node:22-bookworm-slim AS runtime
 # ffmpeg from Debian is built with libzimg and libass, so tone mapping and
 # subtitle burn-in both work. The transcoder verifies this at startup and
 # reports what it found rather than assuming.
+#
+# mesa-va-drivers is what makes VAAPI work at all. It is not a dependency of
+# ffmpeg, so `--no-install-recommends ffmpeg` installed no VA driver whatsoever
+# and every VAAPI encoder failed inside the container for want of one — on top
+# of the missing device that FLUX-80 fixed, and invisibly, because a rejected
+# encoder said nothing until FLUX-80 made it speak.
+#
+# It carries radeonsi, which is the driver an AMD card reports, plus the generic
+# Gallium ones. Intel's iHD is not packaged by Debian at all; an Intel host gets
+# QSV, which needs no VA driver, and its VAAPI stays unavailable until the
+# Flux FFmpeg build lands and brings iHD with it. See FLUX-83.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+  && apt-get install -y --no-install-recommends ffmpeg ca-certificates mesa-va-drivers \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
