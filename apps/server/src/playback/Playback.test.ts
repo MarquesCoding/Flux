@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
 import { signedInApp } from '@FluxServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
@@ -97,9 +98,12 @@ const build = (options: { unsupported?: boolean } = {}) => {
     ...(options.unsupported === true ? { unsupported: true } : {}),
   });
 
+  const permissions = createMemoryPermissionService();
+
   const app = createApp({
     auth,
     settings,
+    permissions,
     countUsers: () => Promise.resolve(1),
     promoteToAdmin: () => Promise.resolve(),
     library: createMemoryLibraryService(),
@@ -110,7 +114,7 @@ const build = (options: { unsupported?: boolean } = {}) => {
     playback,
   });
 
-  return { app: signedInApp(app, { store, isAdministrator: true }), playback };
+  return { app: signedInApp(app, { store, permissions, isAdministrator: true }), playback };
 };
 
 const post = (path: string, body: object) =>

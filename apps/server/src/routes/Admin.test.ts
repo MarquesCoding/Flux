@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { signUpForTest } from '@FluxServer/auth/signUpForTest';
+import { signUpForTest, makeAdministrator } from '@FluxServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
 import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
@@ -36,10 +37,12 @@ const LIBRARY = {
 
 const build = () => {
   const { auth, settings, store } = createMemoryAuth();
+  const permissions = createMemoryPermissionService();
 
   const app = createApp({
     auth,
     settings,
+    permissions,
     countUsers: () => Promise.resolve(1),
     promoteToAdmin: () => Promise.resolve(),
     listUsers: () =>
@@ -61,28 +64,33 @@ const build = () => {
     profiles: createMemoryProfileService(),
   });
 
-  return { app, settings, store };
+  return { app, settings, store, permissions };
 };
 
 const signedIn = (app: ReturnType<typeof build>['app']): Promise<string> =>
   signUpForTest(app, CREDENTIALS);
 
 /**
- * Signs up and promotes that account to admin.
+ * Signs up and gives that account the Administrator role.
  *
  * `promoteToAdmin` in `build()` is a no-op stub — there is no real database
- * for it to write to — so this reaches into the memory auth store directly,
- * the same way `Main.ts`'s real `promoteToAdmin` reaches into Postgres.
+ * for it to write to — so this reaches into the memory stores directly, the
+ * same way `Main.ts`'s real one reaches into Postgres. The old `user.role`
+ * column is set as well as the role assigned, because seeding still reads it
+ * and a test should leave an account in a shape a real one could be in.
  */
 const signedInAsAdmin = async (
   app: ReturnType<typeof build>['app'],
   store: ReturnType<typeof build>['store'],
+  permissions: ReturnType<typeof build>['permissions'],
 ): Promise<string> => {
   const cookie = await signedIn(app);
   const user = store.user[0];
 
   if (user !== undefined) {
     user.role = 'admin';
+
+    await makeAdministrator(permissions, user.id);
   }
 
   return cookie;
@@ -264,8 +272,8 @@ describe('administration over HTTP', () => {
   });
 
   it('will not run a job kind it does not know', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/not-a-real-kind/run`, {
       method: 'POST',
@@ -277,8 +285,8 @@ describe('administration over HTTP', () => {
   });
 
   it('will not run a job against a library that does not exist', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/library.scan/run`, {
       method: 'POST',
@@ -290,8 +298,8 @@ describe('administration over HTTP', () => {
   });
 
   it('lists every job an admin can start, with reset and rebuild among them', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/definitions`, {
       headers: { cookie, origin: BASE },
@@ -316,8 +324,8 @@ describe('administration over HTTP', () => {
   });
 
   it('will not run a library-scoped job when no library was given', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/library.scan/run`, {
       method: 'POST',
@@ -329,8 +337,8 @@ describe('administration over HTTP', () => {
   });
 
   it('starts a scan for a library an admin picks', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/library.scan/run`, {
       method: 'POST',
@@ -344,8 +352,8 @@ describe('administration over HTTP', () => {
   });
 
   it('runs reset and rebuild through the same generic route', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/library.reset/run`, {
       method: 'POST',
@@ -357,8 +365,8 @@ describe('administration over HTTP', () => {
   });
 
   it('starts thumbnail regeneration for a library an admin picks', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/library.regenerateTrickplay/run`, {
       method: 'POST',
@@ -370,8 +378,8 @@ describe('administration over HTTP', () => {
   });
 
   it('starts intro and outro detection for a library an admin picks', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/library.detectSegments/run`, {
       method: 'POST',
@@ -383,8 +391,8 @@ describe('administration over HTTP', () => {
   });
 
   it('starts an image cache cleanup with no library at all', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/server.cleanupImageCache/run`, {
       method: 'POST',
@@ -396,8 +404,8 @@ describe('administration over HTTP', () => {
   });
 
   it('starts a session cleanup with no library at all', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/server.cleanupSessions/run`, {
       method: 'POST',
@@ -409,8 +417,8 @@ describe('administration over HTTP', () => {
   });
 
   it('starts a catalogue connectivity check with no library at all', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(
       `${BASE}/api/admin/jobs/server.checkCatalogueConnectivity/run`,
@@ -444,8 +452,8 @@ describe('administration over HTTP', () => {
   });
 
   it('lists every job with no triggers until one is added', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/schedules`, {
       headers: { cookie, origin: BASE },
@@ -474,8 +482,8 @@ describe('administration over HTTP', () => {
   });
 
   it('will not add a trigger to a job kind it does not know', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/not-a-real-kind/triggers`, {
       method: 'POST',
@@ -487,8 +495,8 @@ describe('administration over HTTP', () => {
   });
 
   it('rejects a trigger cron could not express', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(`${BASE}/api/admin/jobs/library.scan/triggers`, {
       method: 'POST',
@@ -500,8 +508,8 @@ describe('administration over HTTP', () => {
   });
 
   it('adds a trigger and reflects it back from the list', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const added = await app.request(`${BASE}/api/admin/jobs/library.scan/triggers`, {
       method: 'POST',
@@ -531,8 +539,8 @@ describe('administration over HTTP', () => {
   });
 
   it('keeps several triggers on one job rather than replacing the last', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     for (const trigger of [{ kind: 'daily', hour: 3, minute: 0 }, { kind: 'startup' }]) {
       await app.request(`${BASE}/api/admin/jobs/library.scan/triggers`, {
@@ -566,8 +574,8 @@ describe('administration over HTTP', () => {
   });
 
   it('removes a trigger by its id', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const added = await app.request(`${BASE}/api/admin/jobs/server.cleanupSessions/triggers`, {
       method: 'POST',
@@ -598,8 +606,8 @@ describe('administration over HTTP', () => {
   });
 
   it('reports no such trigger when removing one that was never there', async () => {
-    const { app, store } = build();
-    const cookie = await signedInAsAdmin(app, store);
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
 
     const response = await app.request(
       `${BASE}/api/admin/jobs/library.scan/triggers/never-existed`,

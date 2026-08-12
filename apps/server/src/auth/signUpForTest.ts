@@ -16,6 +16,14 @@ type MemoryUserStore = {
 };
 
 /**
+ * Enough of the permission service to hand somebody a role.
+ */
+type RoleGranting = {
+  listRoles: () => Promise<{ id: string; name: string }[]>;
+  assignRole: (userId: string, roleId: string) => Promise<void>;
+};
+
+/**
  * The origin the in-memory auth layer trusts, and therefore the one a test
  * has to sign up against.
  */
@@ -66,7 +74,11 @@ const signUpForTest = async (
  */
 const signedInApp = (
   app: RequestableApp,
-  options: { store?: MemoryUserStore; isAdministrator?: boolean } = {},
+  options: {
+    store?: MemoryUserStore;
+    permissions?: RoleGranting;
+    isAdministrator?: boolean;
+  } = {},
 ): RequestableApp => {
   let cookie: string | null = null;
 
@@ -79,6 +91,8 @@ const signedInApp = (
 
         if (options.isAdministrator === true && account !== undefined) {
           account.role = 'admin';
+
+          await makeAdministrator(options.permissions, account.id);
         }
       }
 
@@ -99,4 +113,29 @@ const signedInApp = (
   };
 };
 
-export { signUpForTest, signedInApp, TEST_CREDENTIALS, TEST_ORIGIN };
+/**
+ * Gives an account the Administrator role.
+ *
+ * Setting `user.role` no longer grants anything on its own — that column is
+ * read once at seeding and never consulted again — so a suite that wants an
+ * administrator has to say so through the permission service, exactly as an
+ * operator would.
+ */
+const makeAdministrator = async (
+  permissions: RoleGranting | undefined,
+  userId: string,
+): Promise<void> => {
+  if (permissions === undefined) {
+    return;
+  }
+
+  const administrator = (await permissions.listRoles()).find(
+    (candidate) => candidate.name === 'Administrator',
+  );
+
+  if (administrator !== undefined) {
+    await permissions.assignRole(userId, administrator.id);
+  }
+};
+
+export { signUpForTest, signedInApp, makeAdministrator, TEST_CREDENTIALS, TEST_ORIGIN };
