@@ -143,3 +143,29 @@ describe('isSameSeason', () => {
     expect(isSameSeason(first, shouty)).toBe(true);
   });
 });
+
+describe('a filename that names the year beside the series', () => {
+  it('leaves the year out of the series title, where it would search for a show nobody made', () => {
+    const read = readEpisodeFromPath(
+      "/media/From (2022) Season 1 S01/From (2022) - S01E01 - Long Day's Journey Into Night (1080p AMZN WEB-DL x265).mkv",
+    );
+
+    expect(read.seriesTitle).toBe('From');
+  });
+
+  it('keeps the year, which is what tells two shows of the same name apart', () => {
+    const read = readEpisodeFromPath(
+      '/media/Shows/From (2022) - S01E02 - The Way Things Are Now (1080p).mkv',
+    );
+
+    expect(read.seriesYear).toBe(2022);
+  });
+
+  it('still reads the episode either way', () => {
+    const read = readEpisodeFromPath('/media/From (2022) - S01E03 - Choosing Day (1080p).mkv');
+
+    expect(read.seasonNumber).toBe(1);
+    expect(read.episodeNumber).toBe(3);
+    expect(read.episodeTitle).toBe('Choosing Day');
+  });
+});
