@@ -30,7 +30,7 @@ import {
   addJobTrigger,
   removeJobTrigger,
 } from '@FluxWeb/admin/fetchAdmin';
-import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
+import { fetchLibraries, rebuildArtefacts } from '@FluxWeb/library/fetchLibrary';
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
@@ -666,6 +666,7 @@ const AdminArea = ({
                 isUnreachable={unreachable.has('media')}
                 media={media}
                 onCorrect={setCorrecting}
+                onRebuildArtefacts={async (item) => (await rebuildArtefacts(item.id)) !== null}
               />
             </TabPanel>
 

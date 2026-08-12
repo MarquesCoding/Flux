@@ -127,9 +127,27 @@ pub async fn sweep<S: std::hash::BuildHasher + Sync>(
     report
 }
 
+/// Removes one artefact, so the next request for it makes it again.
+///
+/// The sweep's opposite number. A sweep decides what to delete by working out
+/// what is still wanted and removing the rest, which is why it is hedged about
+/// with grace periods and shared request builders — a mistake there takes
+/// artefacts nobody meant to touch.
+///
+/// This is the safe kind of deletion: an operator points at one item and says
+/// make it again. The directory is named by hashing the request that addresses
+/// it, so there is no id to get wrong and no list to compute, and the worst
+/// possible outcome is that one artefact is rendered a second time.
+///
+/// Answers whether anything was there, so a caller can tell "removed it" from
+/// "there was nothing to remove" rather than reporting success either way.
+pub async fn forget(root: &Path, id: &str) -> bool {
+    tokio::fs::remove_dir_all(root.join(id)).await.is_ok()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{sweep, SweepReport, GRACE};
+    use super::{forget, sweep, SweepReport, GRACE};
     use std::collections::HashSet;
     use std::time::Duration;
 
@@ -206,6 +224,31 @@ mod tests {
         assert_eq!(
             sweep(&missing, &HashSet::new(), Duration::ZERO).await,
             SweepReport::default()
+        );
+    }
+
+    #[tokio::test]
+    async fn forgetting_removes_the_one_artefact_and_leaves_the_rest() {
+        let root = root("forget");
+
+        artefact(&root, "wanted", 10);
+        artefact(&root, "rebuild-me", 10);
+
+        assert!(forget(&root, "rebuild-me").await);
+        assert!(!root.join("rebuild-me").exists());
+        assert!(
+            root.join("wanted").exists(),
+            "forgetting one artefact must not touch another"
+        );
+    }
+
+    #[tokio::test]
+    async fn forgetting_something_that_was_never_there_says_so() {
+        let root = root("forget-absent");
+
+        assert!(
+            !forget(&root, "never-existed").await,
+            "a caller should be able to tell 'removed it' from 'nothing to remove'"
         );
     }
 

@@ -216,6 +216,65 @@ async fn a_generation_that_moved_on_no_longer_addresses_the_old_sheets() {
 }
 
 #[tokio::test]
+async fn forgetting_a_clip_removes_the_one_the_request_addresses() {
+    let root = cache_root("forget");
+    let doomed = preview_request();
+
+    artefact(&root, "previews", &doomed.id());
+    artefact(&root, "previews", "0123456789abcdef0123456789abcdef");
+
+    let report = post(
+        &app(root.clone()),
+        "/previews/forget",
+        serde_json::json!({
+            "inputPath": doomed.input_path,
+            "generation": doomed.generation,
+            "durationSeconds": doomed.duration_seconds,
+            "width": doomed.width,
+        }),
+    )
+    .await;
+
+    assert_eq!(
+        report.get("forgotten").and_then(serde_json::Value::as_bool),
+        Some(true)
+    );
+    assert!(!root.join("previews").join(doomed.id()).exists());
+    assert!(
+        root.join("previews")
+            .join("0123456789abcdef0123456789abcdef")
+            .exists(),
+        "forgetting one clip must not disturb another"
+    );
+}
+
+#[tokio::test]
+async fn forgetting_a_clip_that_was_never_made_is_not_an_error() {
+    let root = cache_root("forget-absent");
+    let never = preview_request();
+
+    std::fs::create_dir_all(root.join("previews")).expect("creates the cache");
+
+    let report = post(
+        &app(root),
+        "/previews/forget",
+        serde_json::json!({
+            "inputPath": never.input_path,
+            "generation": never.generation,
+            "durationSeconds": never.duration_seconds,
+            "width": never.width,
+        }),
+    )
+    .await;
+
+    assert_eq!(
+        report.get("forgotten").and_then(serde_json::Value::as_bool),
+        Some(false),
+        "an operator asking twice should be told the second one found nothing"
+    );
+}
+
+#[tokio::test]
 async fn keeps_nothing_alive_when_a_library_is_empty() {
     let root = cache_root("empty");
 
