@@ -55,6 +55,7 @@ const harness = (options: {
   probeImpl?: (path: string) => Promise<MediaProbe>;
   providers?: MetadataProvider[];
   force?: boolean;
+  isPartial?: boolean;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
   trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number };
@@ -128,6 +129,7 @@ const harness = (options: {
         : { defaultAudioLanguage: options.defaultAudioLanguage }),
       ...(options.providers === undefined ? {} : { providers: options.providers }),
       ...(options.force === undefined ? {} : { force: options.force }),
+      ...(options.isPartial === undefined ? {} : { isPartial: options.isPartial }),
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
       ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
       ...(options.trickplay === undefined ? {} : { trickplay: options.trickplay }),
@@ -135,6 +137,46 @@ const harness = (options: {
 
   return { run, rows, removedPaths, markScanned, previewRequests };
 };
+
+describe('a scan of a few named files, rather than the whole library', () => {
+  it('leaves alone everything it was not asked about', async () => {
+    const { run, removedPaths } = harness({
+      found: [file('/from-s01e01.mkv')],
+      existing: [stored('/from-s01e01.mkv'), stored('/parasite.mkv'), stored('/heat.mkv')],
+      force: true,
+      isPartial: true,
+    });
+
+    await run();
+
+    expect(removedPaths).toEqual([]);
+  });
+
+  it('still reads the files it was asked about', async () => {
+    const { run, rows } = harness({
+      found: [file('/from-s01e01.mkv')],
+      existing: [stored('/from-s01e01.mkv'), stored('/parasite.mkv')],
+      force: true,
+      isPartial: true,
+    });
+
+    await run();
+
+    expect(rows.map((row) => row.path)).toEqual(['/from-s01e01.mkv']);
+  });
+
+  it('deletes what has gone when the listing was the whole library', async () => {
+    const { run, removedPaths } = harness({
+      found: [file('/from-s01e01.mkv')],
+      existing: [stored('/from-s01e01.mkv'), stored('/parasite.mkv')],
+      force: true,
+    });
+
+    await run();
+
+    expect(removedPaths).toEqual(['/parasite.mkv']);
+  });
+});
 
 describe('selectChanged', () => {
   it('treats an unseen file as changed', () => {

@@ -92,6 +92,16 @@ type ScanLibraryOptions = {
    * files better, the only way to pick the change up is to ask again.
    */
   force?: boolean;
+  /**
+   * Says the listing is a few named files rather than the whole library.
+   *
+   * A scan deletes what it did not find, because a file absent from the disk
+   * is a file that has gone. That reasoning only holds when the listing was
+   * the whole library: when it is four episodes, the other nine hundred are
+   * absent from the listing and present on the disk, and deleting them would
+   * destroy the library to re-read a handful of it.
+   */
+  isPartial?: boolean;
   onProblem?: (path: string, reason: string) => void;
   /**
    * Told after every file how far probing has got.
@@ -168,15 +178,18 @@ const scanLibrary = async ({
   transcoder,
   providers = [createFilenameMetadataProvider()],
   force = false,
+  isPartial = false,
   onProblem,
   onProgress,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path));
   const stored = await store.listStored(libraryId);
 
-  const { changed, missing } = force
+  const seen = force
     ? { changed: found, missing: selectChanged(found, stored).missing }
     : selectChanged(found, stored);
+  const { changed } = seen;
+  const missing = isPartial ? [] : seen.missing;
   const knownPaths = new Set(stored.map((item) => item.path));
   const storedByPath = new Map(stored.map((item) => [item.path, item]));
   const overrides = new Map(
