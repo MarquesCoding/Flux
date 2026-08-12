@@ -274,11 +274,25 @@ describe('VideoPlayer', () => {
     expect(attachMock).not.toHaveBeenCalled();
   });
 
-  it('reports a browser that cannot play the stream', async () => {
+  it('does not blame the browser for a failure it cannot place', async () => {
     attachMock.mockRejectedValue(new Error('no media source'));
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('could not play the stream');
+    expect(await screen.findByRole('alert')).toHaveTextContent('The stream could not be played.');
+  });
+
+  it('blames the browser when the browser could not decode it', async () => {
+    attachMock.mockRejectedValue({ category: 3, code: 3016 });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not decode the stream');
+  });
+
+  it('says the stream never arrived when the manifest could not be read', async () => {
+    attachMock.mockRejectedValue({ category: 4, code: 4032 });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('did not arrive');
   });
 
   it('stops the session and tears down the engine when closed', async () => {
