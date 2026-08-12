@@ -145,6 +145,63 @@ const harness = (options: {
   return { run, rows, removedPaths, markScanned, previewRequests };
 };
 
+describe('a library whose files have gone from under it', () => {
+  it('keeps what it held when the root turns up empty, since a share can be unmounted', async () => {
+    const { run, removedPaths } = harness({
+      found: [],
+      existing: [stored('/a.mkv'), stored('/b.mkv')],
+    });
+
+    await run();
+
+    expect(removedPaths).toEqual([]);
+  });
+
+  it('says why nothing was touched, rather than reporting a scan that did nothing', async () => {
+    const problems: string[] = [];
+
+    const { run } = harness({
+      found: [],
+      existing: [stored('/a.mkv')],
+      onProblem: (_path, reason) => {
+        problems.push(reason);
+      },
+    });
+
+    await run();
+
+    expect(problems.join(' ')).toContain('not mounted');
+  });
+
+  it('still removes what has gone while other files remain, which is a real deletion', async () => {
+    const { run, removedPaths } = harness({
+      found: [file('/a.mkv')],
+      existing: [stored('/a.mkv'), stored('/b.mkv')],
+    });
+
+    await run();
+
+    expect(removedPaths).toEqual(['/b.mkv']);
+  });
+
+  it('leaves an empty library empty rather than complaining about it', async () => {
+    const problems: string[] = [];
+
+    const { run, removedPaths } = harness({
+      found: [],
+      existing: [],
+      onProblem: (_path, reason) => {
+        problems.push(reason);
+      },
+    });
+
+    await run();
+
+    expect(removedPaths).toEqual([]);
+    expect(problems).toEqual([]);
+  });
+});
+
 describe('a scan of a few named files, rather than the whole library', () => {
   it('leaves alone everything it was not asked about', async () => {
     const { run, removedPaths } = harness({
@@ -260,10 +317,10 @@ describe('scanLibrary', () => {
     expect(await run()).toMatchObject({ added: 0, updated: 1 });
   });
 
-  it('removes rows for files that disappeared', async () => {
+  it('removes rows for files that disappeared from a library still holding others', async () => {
     const { run, removedPaths } = harness({
-      found: [],
-      existing: [stored('/gone.mkv')],
+      found: [file('/kept.mkv')],
+      existing: [stored('/kept.mkv'), stored('/gone.mkv')],
     });
 
     expect(await run()).toMatchObject({ removed: 1 });
