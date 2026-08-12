@@ -38,6 +38,8 @@ const aLibraryWithArrival = {
       lastScannedAt: null,
 
       defaultAudioLanguage: null,
+
+      filesAtOnce: null,
     },
   ],
   items: {

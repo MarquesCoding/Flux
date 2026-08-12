@@ -27,6 +27,8 @@ const library = {
   lastScannedAt: null,
 
   defaultAudioLanguage: null,
+
+  filesAtOnce: null,
 };
 
 const summary = {
@@ -116,6 +118,7 @@ describe('updateLibrary', () => {
 
     await expect(updateLibrary(library.id, { defaultAudioLanguage: 'de' })).resolves.toMatchObject({
       defaultAudioLanguage: 'de',
+      filesAtOnce: null,
     });
   });
 

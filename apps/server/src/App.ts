@@ -491,7 +491,12 @@ const createApp = ({
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
-    const updated = await library.update(context.req.valid('param').id, context.req.valid('json'));
+    const { defaultAudioLanguage, filesAtOnce } = context.req.valid('json');
+
+    const updated = await library.update(context.req.valid('param').id, {
+      defaultAudioLanguage,
+      ...(filesAtOnce === undefined ? {} : { filesAtOnce }),
+    });
 
     if (updated === null) {
       return context.json({ error: 'No such library.' }, 404);

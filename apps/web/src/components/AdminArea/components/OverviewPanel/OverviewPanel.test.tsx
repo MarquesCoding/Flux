@@ -56,6 +56,7 @@ const library = (overrides: Partial<Library> = {}): Library => ({
   lastScannedAt: new Date().toISOString(),
   ...overrides,
   defaultAudioLanguage: null,
+  filesAtOnce: null,
 });
 
 const job = (overrides: Partial<Job> = {}): Job => ({

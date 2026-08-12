@@ -71,6 +71,7 @@ const build = (media: MediaDetail[] = []) => {
         itemCount: media.length,
         lastScannedAt: null,
         defaultAudioLanguage: null,
+        filesAtOnce: null,
       },
     ],
     media,
@@ -118,6 +119,51 @@ describe('library routes', () => {
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ id: LIBRARY_ID, defaultAudioLanguage: 'de' });
+  });
+
+  it("changes how many of a library's files are rendered at once", async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ defaultAudioLanguage: null, filesAtOnce: 1 }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ id: LIBRARY_ID, filesAtOnce: 1 });
+  });
+
+  it('leaves the number of files at once alone when a change does not mention it', async () => {
+    const { app } = build([detail()]);
+
+    await app.request(`${BASE}/api/libraries/${LIBRARY_ID}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ defaultAudioLanguage: null, filesAtOnce: 2 }),
+    });
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ defaultAudioLanguage: 'de' }),
+    });
+    const body = await response.json();
+
+    expect(body).toMatchObject({ defaultAudioLanguage: 'de', filesAtOnce: 2 });
+  });
+
+  it('refuses a number of files at once that is not one', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ defaultAudioLanguage: null, filesAtOnce: 0 }),
+    });
+
+    expect(response.status).toBe(400);
   });
 
   it('answers 404 when changing settings for a library that does not exist', async () => {
@@ -514,6 +560,7 @@ describe('library routes', () => {
               itemCount: 1,
               lastScannedAt: null,
               defaultAudioLanguage: null,
+              filesAtOnce: null,
             },
           ],
           media: [detail()],

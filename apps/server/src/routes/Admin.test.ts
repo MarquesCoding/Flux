@@ -33,6 +33,7 @@ const LIBRARY = {
   itemCount: 0,
   lastScannedAt: null,
   defaultAudioLanguage: null,
+  filesAtOnce: null,
 };
 
 const build = (
