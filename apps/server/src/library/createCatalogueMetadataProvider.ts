@@ -371,7 +371,7 @@ const createCatalogueMetadataProvider = ({
         facts.knownExternalId !== ''
       ) {
         const detailed = await request(
-          `${isEpisode ? '/tv' : '/movie'}/${facts.knownExternalId}`,
+          `/${facts.knownExternalKind ?? (isEpisode ? 'tv' : 'movie')}/${facts.knownExternalId}`,
           key,
           { append_to_response: 'credits' },
         );

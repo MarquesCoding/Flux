@@ -239,6 +239,44 @@ const mediaSegment = pgTable(
   ],
 );
 
+/**
+ * A correction somebody made to what a file is.
+ *
+ * Keyed by path rather than by media item, and deliberately: `reset` deletes
+ * every row in `media_item` and scans the library again from nothing, and an
+ * operator reaching for reset is usually doing so because the metadata is a
+ * mess — which is exactly when they have the most corrections to lose. A
+ * correction hanging off an item id would be destroyed by the one action most
+ * likely to be taken by somebody who needs it.
+ *
+ * The cost of that choice is that renaming a file orphans its correction. That
+ * is the better failure: a rename is deliberate and rare, a reset is a button.
+ *
+ * `externalKind` travels with `externalId` because the ids are only unique
+ * within a kind — the same number addresses unrelated titles under films and
+ * under series — so an id without its kind resolves to something absurd.
+ * `updatedBy` is who last changed it, so "why does this say that" has an
+ * answer.
+ */
+const mediaOverride = pgTable(
+  'media_override',
+  {
+    id: text('id').primaryKey(),
+    libraryId: text('libraryId')
+      .notNull()
+      .references(() => library.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    externalId: text('externalId').notNull(),
+    externalKind: text('externalKind').notNull(),
+    updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+    updatedBy: text('updatedBy'),
+  },
+  (table) => [
+    uniqueIndex('media_override_path_idx').on(table.libraryId, table.path),
+    index('media_override_library_idx').on(table.libraryId),
+  ],
+);
+
 const mediaItem = pgTable(
   'media_item',
   {
@@ -369,6 +407,7 @@ export {
   authSchema,
   fluxSchema,
   library,
+  mediaOverride,
   mediaItem,
   mediaSegment,
   mediaItemJob,

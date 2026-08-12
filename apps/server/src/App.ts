@@ -1,3 +1,4 @@
+import { readCatalogueReference } from '@FluxCore/functions/readCatalogueReference';
 import type { RunningJob } from '@FluxServer/jobs/JobQueue';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
@@ -25,6 +26,8 @@ import {
   scanLibraryRoute,
   scanStateRoute,
   runningScansRoute,
+  correctMatchRoute,
+  forgetCorrectionRoute,
   resetLibraryRoute,
   regeneratePreviewsRoute,
 } from './routes/LibraryRoute';
@@ -406,6 +409,50 @@ const createApp = ({
     }
 
     return context.json(queued, 202);
+  });
+
+  app.openapi(correctMatchRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 404);
+    }
+
+    const { reference, kind } = context.req.valid('json');
+    const read = readCatalogueReference(reference);
+
+    if (read === null) {
+      return context.json({ error: 'That does not look like a catalogue address or id.' }, 400);
+    }
+
+    const externalKind = read.kind ?? kind ?? null;
+
+    if (externalKind === null) {
+      return context.json(
+        { error: 'Say whether that id is a series or a film — the same number is both.' },
+        400,
+      );
+    }
+
+    const corrected = await library.correctMatch(
+      context.req.valid('param').id,
+      { externalId: read.id, externalKind },
+      (await readAccount(context.req.raw.headers))?.id ?? null,
+    );
+
+    return corrected === null
+      ? context.json({ error: 'No such item.' }, 404)
+      : context.json(corrected, 200);
+  });
+
+  app.openapi(forgetCorrectionRoute, async (context) => {
+    if (!(await isAdministrator(context.req.raw.headers))) {
+      return context.json({ error: 'That is for administrators.' }, 404);
+    }
+
+    const forgotten = await library.forgetCorrection(context.req.valid('param').id);
+
+    return forgotten === null
+      ? context.json({ error: 'No such item.' }, 404)
+      : context.json(forgotten, 200);
   });
 
   app.openapi(runningScansRoute, (context) =>

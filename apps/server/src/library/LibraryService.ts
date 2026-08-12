@@ -101,6 +101,26 @@ type LibraryService = ShowService & {
    */
   reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   /**
+   * Corrects what a file is, and reads it again from the catalogue at once.
+   *
+   * Given an episode, the correction is the whole series: an id names a show,
+   * and fixing episode one while two to ten still point at the wrong programme
+   * is worse than not offering the feature.
+   *
+   * Null means there is no such item. A correction that resolves to nothing at
+   * the catalogue is refused rather than saved, so a typo cannot empty a
+   * library's metadata.
+   */
+  correctMatch: (
+    mediaId: string,
+    reference: { externalId: string; externalKind: 'tv' | 'movie' },
+    by: string | null,
+  ) => Promise<{ corrected: number } | null>;
+  /**
+   * Forgets a correction and reads the file again as the catalogue finds it.
+   */
+  forgetCorrection: (mediaId: string) => Promise<{ corrected: number } | null>;
+  /**
    * Queues preview regeneration against the library's current forced audio
    * language, without a full rescan.
    *

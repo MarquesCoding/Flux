@@ -24,6 +24,14 @@ type MediaFacts = {
    * to the thing it already found instead of searching for it again.
    */
   knownExternalId?: string | null;
+  /**
+   * Which catalogue that id belongs to, when somebody has said.
+   *
+   * Only set by a correction. Left out, a provider infers it the way it always
+   * has — from whether the path looks like an episode — which is right until
+   * somebody tells it that a file it read as an episode is a film.
+   */
+  knownExternalKind?: 'tv' | 'movie';
 };
 
 type CastMember = {

@@ -1,3 +1,4 @@
+import { MatchCorrection } from './components/MatchCorrection/MatchCorrection';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
@@ -59,6 +60,7 @@ const MediaDetailDialog = ({
   backLabel,
   isKept = false,
   onToggleKept,
+  canCorrect = false,
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -270,6 +272,16 @@ const MediaDetailDialog = ({
                 <IconInfoCircle size={16} aria-hidden />
                 No synopsis yet. Configure a metadata provider and rescan to fill this in.
               </p>
+            )}
+
+            {!canCorrect ? null : (
+              <MatchCorrection
+                mediaId={shown.id}
+                isEpisode={shown.seriesTitle !== null && shown.seriesTitle !== undefined}
+                onCorrected={() => {
+                  void fetchMediaDetail(shown.id).then(setDetail);
+                }}
+              />
             )}
 
             {genres.length === 0 ? null : (
