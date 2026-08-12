@@ -58,6 +58,7 @@ const harness = (options: {
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
   trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number };
+  overrides?: { path: string; externalId: string; externalKind: 'tv' | 'movie' }[];
   defaultAudioLanguage?: string | null;
 }) => {
   const rows: MediaRow[] = [];
@@ -118,6 +119,7 @@ const harness = (options: {
 
           return Promise.resolve(paths.length);
         },
+        listOverrides: () => Promise.resolve(options.overrides ?? []),
         markScanned,
       },
       transcoder,
@@ -512,5 +514,101 @@ describe('scanLibrary', () => {
     await run();
 
     expect(onProgress).toHaveBeenLastCalledWith('probing', 2, 2);
+  });
+});
+
+describe('a correction somebody made', () => {
+  it('is what the provider is asked about, not what was matched before', async () => {
+    let asked: string | null | undefined;
+    const { run } = harness({
+      found: [file('/media/films/from.s01e01.mkv')],
+      existing: [stored('/media/films/from.s01e01.mkv', { externalId: '111' })],
+      overrides: [{ path: '/media/films/from.s01e01.mkv', externalId: '222', externalKind: 'tv' }],
+      force: true,
+      providers: [
+        {
+          name: 'catalogue',
+          describe: (facts) => {
+            asked = facts.knownExternalId;
+
+            return Promise.resolve({ title: 'From', year: 2022, externalId: '222' });
+          },
+        },
+      ],
+    });
+
+    await run();
+
+    expect(asked).toBe('222');
+  });
+
+  it('says which catalogue the id belongs to, since the number alone cannot', async () => {
+    let asked: string | undefined;
+    const { run } = harness({
+      found: [file('/media/films/some.file.mkv')],
+      overrides: [{ path: '/media/films/some.file.mkv', externalId: '9', externalKind: 'movie' }],
+      providers: [
+        {
+          name: 'catalogue',
+          describe: (facts) => {
+            asked = facts.knownExternalKind;
+
+            return Promise.resolve({ title: 'A film', year: 2000, externalId: '9' });
+          },
+        },
+      ],
+    });
+
+    await run();
+
+    expect(asked).toBe('movie');
+  });
+
+  it('is read again on every scan, which is what makes it outlive one', async () => {
+    const seen: (string | null | undefined)[] = [];
+    const build = () =>
+      harness({
+        found: [file('/media/films/a.mkv')],
+        overrides: [{ path: '/media/films/a.mkv', externalId: '42', externalKind: 'tv' }],
+        force: true,
+        providers: [
+          {
+            name: 'catalogue',
+            describe: (facts) => {
+              seen.push(facts.knownExternalId);
+
+              return Promise.resolve({ title: 'A', year: 2000, externalId: '42' });
+            },
+          },
+        ],
+      });
+
+    await build().run();
+    await build().run();
+
+    expect(seen).toEqual(['42', '42']);
+  });
+
+  it('leaves a file nobody corrected to whatever it was matched to', async () => {
+    let asked: string | null | undefined;
+    const { run } = harness({
+      found: [file('/media/films/b.mkv')],
+      existing: [stored('/media/films/b.mkv', { externalId: '777' })],
+      force: true,
+      providers: [
+        {
+          name: 'catalogue',
+          describe: (facts) => {
+            asked = facts.knownExternalId;
+
+            return Promise.resolve({ title: 'B', year: 2000, externalId: '777' });
+          },
+        },
+      ],
+    });
+
+    await run();
+
+    expect(asked).toBe('777');
   });
 });

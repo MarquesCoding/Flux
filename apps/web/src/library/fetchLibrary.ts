@@ -185,6 +185,62 @@ const fetchMediaDetail = async (mediaId: string): Promise<MediaDetail | null> =>
  * A forced scan probes every file again rather than only those that changed on
  * disk, which is what picks up a change in how Flux reads files.
  */
+const CorrectionSchema = z.object({ corrected: z.number() });
+
+/**
+ * Corrects which catalogue entry a file is.
+ *
+ * `reference` is whatever somebody pasted: an address or a bare id. `kind` is
+ * only needed for a bare number, since the same number names one series and one
+ * unrelated film.
+ */
+const correctMatch = async (
+  mediaId: string,
+  reference: string,
+  kind?: 'tv' | 'movie',
+): Promise<{ corrected: number } | { problem: string }> => {
+  const response = await fetch(`/api/media/${mediaId}/match`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ reference, ...(kind === undefined ? {} : { kind }) }),
+  }).catch(() => null);
+
+  if (response === null) {
+    return { problem: 'The server could not be reached.' };
+  }
+
+  const body = CorrectionSchema.safeParse(await response.json().catch(() => null));
+
+  if (response.ok && body.success) {
+    return body.data;
+  }
+
+  return {
+    problem: body.success
+      ? 'That could not be saved.'
+      : 'That does not look like a catalogue address or id.',
+  };
+};
+
+/**
+ * Forgets a correction, putting the file back to whatever the catalogue finds.
+ */
+const forgetCorrection = async (mediaId: string): Promise<{ corrected: number } | null> => {
+  const response = await fetch(`/api/media/${mediaId}/match`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  }).catch(() => null);
+
+  if (response === null || !response.ok) {
+    return null;
+  }
+
+  const body = CorrectionSchema.safeParse(await response.json().catch(() => null));
+
+  return body.success ? body.data : null;
+};
+
 const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | null> => {
   const query = force ? '?force=true' : '';
   const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, { method: 'POST' });
@@ -273,4 +329,6 @@ export {
   readScanState,
   resetLibrary,
   regenerateLibraryPreviews,
+  correctMatch,
+  forgetCorrection,
 };

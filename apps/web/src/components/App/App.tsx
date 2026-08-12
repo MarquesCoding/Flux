@@ -356,6 +356,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       />
 
       <MediaDetailDialog
+        canCorrect={user.role === 'admin'}
         media={inspecting}
         siblings={inspecting === null ? [] : findSiblings([...known.values()], inspecting)}
         watchedFractionFor={(mediaId) => {

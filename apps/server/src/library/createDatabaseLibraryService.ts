@@ -158,6 +158,73 @@ const createDatabaseLibraryService = ({
     return found;
   };
 
+  /**
+   * Every file a correction should reach.
+   *
+   * A film is itself. An episode is its whole series within that library,
+   * because the id being corrected names a programme rather than an episode,
+   * and half a corrected series is a worse state than an uncorrected one.
+   */
+  const pathsOfTheSameThing = async (
+    mediaId: string,
+  ): Promise<{ libraryId: string; paths: string[] } | null> => {
+    const [row] = await db
+      .select({
+        libraryId: mediaItem.libraryId,
+        path: mediaItem.path,
+        seriesTitle: mediaItem.seriesTitle,
+      })
+      .from(mediaItem)
+      .where(eq(mediaItem.id, mediaId))
+      .limit(1);
+
+    if (row === undefined) {
+      return null;
+    }
+
+    if (row.seriesTitle === null || row.seriesTitle === '') {
+      return { libraryId: row.libraryId, paths: [row.path] };
+    }
+
+    const siblings = await db
+      .select({ path: mediaItem.path })
+      .from(mediaItem)
+      .where(
+        and(eq(mediaItem.libraryId, row.libraryId), eq(mediaItem.seriesTitle, row.seriesTitle)),
+      );
+
+    return { libraryId: row.libraryId, paths: siblings.map((one) => one.path) };
+  };
+
+  /**
+   * Reads a handful of files again, now that something about them has changed.
+   *
+   * A scan of the whole library would answer too, and would take as long as the
+   * library is large. The point of a correction is watching the page become
+   * right, so only what was corrected is read again.
+   */
+  const readAgain = async (libraryId: string, paths: string[]): Promise<void> => {
+    const rows = await db
+      .select({
+        path: mediaItem.path,
+        sizeBytes: mediaItem.sizeBytes,
+        modifiedAtMs: mediaItem.modifiedAtMs,
+      })
+      .from(mediaItem)
+      .where(and(eq(mediaItem.libraryId, libraryId), inArray(mediaItem.path, paths)));
+
+    await scanLibrary({
+      libraryId,
+      root: '',
+      files: { listFiles: () => Promise.resolve(rows) },
+      store,
+      transcoder,
+      providers: providers ?? [],
+      force: true,
+      ...(onProblem === undefined ? {} : { onProblem }),
+    });
+  };
+
   const findLibrary = async (id: string) => {
     const rows = await db.select().from(library).where(eq(library.id, id)).limit(1);
 
@@ -326,6 +393,41 @@ const createDatabaseLibraryService = ({
       })) satisfies MediaSummary[];
 
       return { items, total: totals?.total ?? 0 };
+    },
+
+    correctMatch: async (mediaId, reference, by) => {
+      const paths = await pathsOfTheSameThing(mediaId);
+
+      if (paths === null) {
+        return null;
+      }
+
+      for (const path of paths.paths) {
+        await store.saveOverride({
+          libraryId: paths.libraryId,
+          path,
+          externalId: reference.externalId,
+          externalKind: reference.externalKind,
+          updatedBy: by,
+        });
+      }
+
+      await readAgain(paths.libraryId, paths.paths);
+
+      return { corrected: paths.paths.length };
+    },
+
+    forgetCorrection: async (mediaId) => {
+      const paths = await pathsOfTheSameThing(mediaId);
+
+      if (paths === null) {
+        return null;
+      }
+
+      await store.removeOverrides(paths.libraryId, paths.paths);
+      await readAgain(paths.libraryId, paths.paths);
+
+      return { corrected: paths.paths.length };
     },
 
     getMedia: async (id) => {

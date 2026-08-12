@@ -47,12 +47,28 @@ type MediaFileSystem = {
 };
 
 /**
+ * A correction to what a file is, as the scanner needs to read it.
+ */
+type MediaOverride = {
+  path: string;
+  externalId: string;
+  externalKind: 'tv' | 'movie';
+};
+
+/**
  * The library tables as the scanner sees them.
  */
 type MediaStore = {
   listStored: (libraryId: string) => Promise<StoredItem[]>;
   upsert: (row: MediaRow) => Promise<void>;
   removeByPaths: (libraryId: string, paths: string[]) => Promise<number>;
+  /**
+   * The corrections somebody has made in this library, by path.
+   *
+   * Optional so that a store with no notion of them — the memory one a test
+   * builds — needs no ceremony to say it has none.
+   */
+  listOverrides?: (libraryId: string) => Promise<MediaOverride[]>;
   markScanned: (libraryId: string) => Promise<void>;
 };
 
@@ -133,6 +149,10 @@ const selectChanged = (
  * the scan: one unreadable file in a library of thousands must not stop the
  * other thousands from appearing.
  *
+ * A correction somebody has made outranks whatever was matched before, and is
+ * read on every scan rather than written once into the row — which is what
+ * makes it survive both a rescan and a rebuild.
+ *
  * A file the catalogue has named before is left exactly as it is when the
  * catalogue cannot be reached now. That is a network failure, not a discovery
  * that the file is nameless, and writing the filename over a catalogue's
@@ -159,6 +179,9 @@ const scanLibrary = async ({
     : selectChanged(found, stored);
   const knownPaths = new Set(stored.map((item) => item.path));
   const storedByPath = new Map(stored.map((item) => [item.path, item]));
+  const overrides = new Map(
+    ((await store.listOverrides?.(libraryId)) ?? []).map((one) => [one.path, one]),
+  );
 
   let added = 0;
   let updated = 0;
@@ -179,11 +202,19 @@ const scanLibrary = async ({
       }
 
       const episode = readEpisodeFromPath(file.path);
-      const knownExternalId = storedByPath.get(file.path)?.externalId ?? null;
+      const corrected = overrides.get(file.path) ?? null;
+      const knownExternalId =
+        corrected?.externalId ?? storedByPath.get(file.path)?.externalId ?? null;
 
       const metadata = await resolveMetadata(
         providers,
-        { path: file.path, probe, episode, knownExternalId },
+        {
+          path: file.path,
+          probe,
+          episode,
+          knownExternalId,
+          ...(corrected === null ? {} : { knownExternalKind: corrected.externalKind }),
+        },
         (name, reason) => onProblem?.(file.path, `Metadata provider ${name} failed: ${reason}`),
       );
 
@@ -239,6 +270,14 @@ const scanLibrary = async ({
   return { added, updated, removed, failed };
 };
 
-export type { MediaFileSystem, MediaRow, MediaStore, ScanPhase, ScannedFile, StoredItem };
+export type {
+  MediaOverride,
+  MediaFileSystem,
+  MediaRow,
+  MediaStore,
+  ScanPhase,
+  ScannedFile,
+  StoredItem,
+};
 
 export { scanLibrary, selectChanged, SCAN_PHASES };
