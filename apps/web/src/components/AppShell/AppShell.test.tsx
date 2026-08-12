@@ -68,10 +68,28 @@ describe('AppShell', () => {
     expect(bloom?.style.background).toContain('20% 30%');
   });
 
-  it('leaves room beneath the page for the dock that floats over it', () => {
-    const { view } = draw();
+  it('ends the page with a footer, which carries the room the dock needs', () => {
+    draw({ genres: ['Horror'], onGenre: vi.fn() });
+
+    expect(screen.getByRole('navigation', { name: 'Genres' })).toBeInTheDocument();
+  });
+
+  it('leaves room beneath the admin page, which has no footer to carry it', () => {
+    const { view } = draw({ section: 'admin', genres: ['Horror'], onGenre: vi.fn() });
 
     expect(view.container.querySelector('main')).toHaveClass('pb-28');
+    expect(screen.queryByRole('navigation', { name: 'Genres' })).not.toBeInTheDocument();
+  });
+
+  it('opens a genre chosen from the footer', async () => {
+    const onGenre = vi.fn<(genre: string) => void>();
+    const user = userEvent.setup();
+
+    draw({ genres: ['Horror'], onGenre });
+
+    await user.click(screen.getByRole('button', { name: 'Horror' }));
+
+    expect(onGenre).toHaveBeenCalledWith('Horror');
   });
 
   it('has no rail down the side to collapse', () => {
