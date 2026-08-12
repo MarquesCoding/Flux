@@ -16,7 +16,7 @@ import { DialogContent } from '@FluxUI/DialogContent';
 import { DialogFooter } from '@FluxUI/DialogFooter';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { ScanProgressBar } from '@FluxWeb/components/AdminArea/components/ScanProgressBar/ScanProgressBar';
-import { describeQueueKind } from './describeQueueKind';
+import { describeQueueKind } from '@FluxWeb/components/AdminArea/describeQueueKind';
 import { summariseProgress } from './summariseProgress';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { JobDefinition } from '@FluxWeb/admin/fetchAdmin';
