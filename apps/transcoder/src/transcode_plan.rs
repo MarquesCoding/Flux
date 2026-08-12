@@ -372,29 +372,14 @@ pub const MANIFEST_NAME: &str = "index.m3u8";
 pub const INIT_SEGMENT_NAME: &str = "init.mp4";
 
 impl TranscodePlan {
-    /// Builds the `FFmpeg` argument vector for this plan.
-    #[must_use]
-    pub fn to_ffmpeg_args(&self) -> Vec<String> {
-        let mut args: Vec<String> = vec![
-            "-hide_banner".into(),
-            "-nostdin".into(),
-            "-loglevel".into(),
-            "error".into(),
-        ];
-
-        if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
-            args.push("-hwaccel".into());
-            args.push(flag.into());
-        }
-
-        if self.spec.start_seconds > 0 {
-            args.push("-ss".into());
-            args.push(self.spec.start_seconds.to_string());
-        }
-
-        args.push("-i".into());
-        args.push(self.spec.input_path.clone());
-
+    /// Adds the video arguments, saying whether they mapped the streams.
+    ///
+    /// Compositing bitmap subtitles has to name its own inputs and output, so
+    /// that branch maps the streams itself; every other route leaves it to the
+    /// caller. Handing that fact back rather than working it out a second time
+    /// downstream is what stops the two disagreeing and mapping the source
+    /// video alongside the composited one.
+    fn push_video_args(&self, args: &mut Vec<String>) -> bool {
         let mut is_mapped = false;
 
         match &self.spec.video {
@@ -447,6 +432,34 @@ impl TranscodePlan {
                 }
             }
         }
+
+        is_mapped
+    }
+
+    /// Builds the `FFmpeg` argument vector for this plan.
+    #[must_use]
+    pub fn to_ffmpeg_args(&self) -> Vec<String> {
+        let mut args: Vec<String> = vec![
+            "-hide_banner".into(),
+            "-nostdin".into(),
+            "-loglevel".into(),
+            "error".into(),
+        ];
+
+        if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
+            args.push("-hwaccel".into());
+            args.push(flag.into());
+        }
+
+        if self.spec.start_seconds > 0 {
+            args.push("-ss".into());
+            args.push(self.spec.start_seconds.to_string());
+        }
+
+        args.push("-i".into());
+        args.push(self.spec.input_path.clone());
+
+        let is_mapped = self.push_video_args(&mut args);
 
         if let Some(index) = self.spec.audio_stream_index {
             if !is_mapped {
