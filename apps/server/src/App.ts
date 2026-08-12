@@ -318,6 +318,13 @@ type CreateAppOptions = {
   readImage?: (url: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>;
   isTranscoderReachable?: () => Promise<boolean>;
   /**
+   * The address the media service is dialled at, for the administration page.
+   *
+   * Carried through so an unreachable service can say where it was looked for
+   * rather than only that it was not found.
+   */
+  transcoderAddress?: string;
+  /**
    * What the server is working on, so a page reloaded mid-scan can find it.
    */
   listRunningJobs?: () => RunningJob[];
@@ -359,6 +366,7 @@ const createApp = ({
   monitorStream,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
+  transcoderAddress = '',
   listRunningJobs = () => [],
   searchCatalogue = () => Promise.resolve([]),
   permissions = createMemoryPermissionService(),
@@ -1066,6 +1074,7 @@ const createApp = ({
         },
         transcoder: {
           isReachable,
+          address: transcoderAddress,
           ffmpegVersion: transcoderCapabilities?.ffmpegVersion ?? null,
           hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
         },

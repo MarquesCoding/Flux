@@ -40,7 +40,12 @@ const OVERVIEW = {
     trustedOrigins: ['http://localhost:5173'],
     cookieSecure: false,
   },
-  transcoder: { isReachable: true, ffmpegVersion: '9.0', hardwareAccels: ['videotoolbox'] },
+  transcoder: {
+    isReachable: true,
+    address: 'unix:/tmp/flux-transcoder.sock',
+    ffmpegVersion: '9.0',
+    hardwareAccels: ['videotoolbox'],
+  },
   library: { itemCount: 15, libraryCount: 2 },
 };
 

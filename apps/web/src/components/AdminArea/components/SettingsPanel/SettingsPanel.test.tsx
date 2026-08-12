@@ -16,7 +16,12 @@ const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOver
     trustedOrigins: ['http://localhost:8420'],
     ...overrides,
   },
-  transcoder: { isReachable: true, ffmpegVersion: null, hardwareAccels: [] },
+  transcoder: {
+    isReachable: true,
+    address: 'unix:/tmp/flux-transcoder.sock',
+    ffmpegVersion: null,
+    hardwareAccels: [],
+  },
   library: { itemCount: 0, libraryCount: 0 },
 });
 
