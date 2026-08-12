@@ -1107,6 +1107,39 @@ const createApp = ({
     return context.json(presence.list(), 200);
   });
 
+  app.get('/api/admin/sessions/stream', async (context) => {
+    if (!(await requires(context.req.raw.headers, 'streaming.view'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream<Uint8Array>({
+      start: (controller) => {
+        const push = () => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(presence.list())}\n\n`));
+        };
+
+        push();
+
+        const stopWatching = presence.watch(push);
+
+        context.req.raw.signal.addEventListener('abort', () => {
+          stopWatching();
+          controller.close();
+        });
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      },
+    });
+  });
+
   app.openapi(adminStopSessionRoute, async (context) => {
     if (!(await requires(context.req.raw.headers, 'streaming.stop'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
