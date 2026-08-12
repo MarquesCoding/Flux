@@ -189,7 +189,22 @@ const scanLibrary = async ({
     ? { changed: found, missing: selectChanged(found, stored).missing }
     : selectChanged(found, stored);
   const { changed } = seen;
-  const missing = isPartial ? [] : seen.missing;
+
+  /**
+   * A library that held something and now holds nothing.
+   *
+   * Almost always a root that is not there rather than a library somebody
+   * emptied: an unmounted network share, an unplugged disk, a path renamed.
+   * All of them read as a directory with no media in it, and acting on that
+   * deletes every row — the artwork, the corrections, the watch progress —
+   * for a library whose files are perfectly fine and will be back when the
+   * share is.
+   *
+   * Emptying a library on purpose is what Reset is for, which says what it
+   * does before it does it.
+   */
+  const hasVanished = found.length === 0 && stored.length > 0;
+  const missing = isPartial || hasVanished ? [] : seen.missing;
   const knownPaths = new Set(stored.map((item) => item.path));
   const storedByPath = new Map(stored.map((item) => [item.path, item]));
   const overrides = new Map(
@@ -274,6 +289,13 @@ const scanLibrary = async ({
       probed += 1;
       onProgress?.('probing', probed, changed.length);
     }
+  }
+
+  if (hasVanished) {
+    onProblem?.(
+      root,
+      'Nothing was found where this library reads from, so what it already held has been left alone. Check the folder is still there — a network share that is not mounted looks exactly like an empty one.',
+    );
   }
 
   const removed = missing.length === 0 ? 0 : await store.removeByPaths(libraryId, missing);
