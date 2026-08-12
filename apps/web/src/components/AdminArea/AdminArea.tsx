@@ -18,6 +18,7 @@ import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { TabBar } from '@FluxUI/TabBar';
 import { TabPanel } from '@FluxUI/TabPanel';
+import { EventsPanel } from './components/EventsPanel/EventsPanel';
 import { Tabs } from '@FluxUI/Tabs';
 import { TextField } from '@FluxUI/TextField';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
@@ -112,8 +113,6 @@ const describeElapsed = (job: Job, now: number): string => {
     ? `${elapsed.toString()} ms`
     : `${(elapsed / 1000).toFixed(elapsed < 10_000 ? 1 : 0)} s`;
 };
-
-const atTime = (ms: number): string => new Date(ms).toLocaleTimeString();
 
 /**
  * Every job's triggers, keyed by kind.
@@ -675,40 +674,7 @@ const AdminArea = ({
               />
             }
           >
-            <div className="flex flex-col">
-              <header className="border-b border-white/10 px-5 py-3">
-                <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">
-                  Recent events
-                </h2>
-              </header>
-
-              {monitor === null || monitor.logs.length === 0 ? (
-                <p className="p-5 text-sm text-text-muted">Nothing has been reported.</p>
-              ) : (
-                <ul className="max-h-96 divide-y divide-white/5 overflow-y-auto font-mono text-xs">
-                  {monitor.logs.map((line) => (
-                    <li
-                      key={`${line.atMs.toString()}-${line.message}`}
-                      className="flex gap-3 px-5 py-2"
-                    >
-                      <span className="shrink-0 tabular-nums text-text-muted">
-                        {atTime(line.atMs)}
-                      </span>
-
-                      <span
-                        className={`shrink-0 ${
-                          line.level === 'error' ? 'text-danger' : 'text-text-muted'
-                        }`}
-                      >
-                        {line.source}
-                      </span>
-
-                      <span className="min-w-0 flex-1 text-text">{line.message}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <EventsPanel monitor={monitor} />
           </TabPanel>
 
           <TabPanel
