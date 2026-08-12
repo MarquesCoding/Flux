@@ -564,7 +564,7 @@ const AdminArea = ({
                 />
               }
             >
-              <AccountsPanel accounts={overview?.users ?? []} />
+              <AccountsPanel />
             </TabPanel>
 
             <TabPanel
