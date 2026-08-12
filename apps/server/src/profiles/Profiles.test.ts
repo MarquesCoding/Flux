@@ -9,6 +9,9 @@ import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemoryS
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
 import { createMemoryProfileService } from './createMemoryProfileService';
+import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
+import { makeAdministrator } from '@FluxServer/auth/signUpForTest';
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 const BASE = 'http://localhost:8420';
 
@@ -22,13 +25,24 @@ const ProfileListSchema = z.object({
   profiles: z.array(z.object({ id: z.string(), name: z.string(), updatedAt: z.string() })),
 });
 
-const build = () => {
-  const { auth, settings } = createMemoryAuth();
+const build = (
+  promoteProfile?: (request: {
+    profileId: string;
+    email: string;
+    password: string;
+  }) => Promise<
+    { kind: 'promoted'; profile: ViewerProfile } | { kind: 'taken' } | { kind: 'missing' }
+  >,
+) => {
+  const { auth, settings, store } = createMemoryAuth();
   const profiles = createMemoryProfileService();
+  const permissions = createMemoryPermissionService();
 
   const app = createApp({
     auth,
     settings,
+    permissions,
+    ...(promoteProfile === undefined ? {} : { promoteProfile }),
     countUsers: () => Promise.resolve(1),
     promoteToAdmin: () => Promise.resolve(),
     library: createMemoryLibraryService(),
@@ -40,7 +54,7 @@ const build = () => {
     profiles,
   });
 
-  return { app, profiles };
+  return { app, profiles, store, permissions };
 };
 
 /**
@@ -316,5 +330,76 @@ describe('profiles over HTTP', () => {
     );
 
     expect(response.status).toBe(404);
+  });
+});
+
+describe('giving a profile an account of its own', () => {
+  const PROFILE_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+  const asAdmin = async (context: ReturnType<typeof build>) => {
+    const cookie = await signedIn(context.app);
+    const user = context.store.user[0];
+
+    if (user !== undefined) {
+      user.role = 'admin';
+
+      await makeAdministrator(context.permissions, user.id);
+    }
+
+    return cookie;
+  };
+
+  const promote = (context: ReturnType<typeof build>, cookie: string, profileId = PROFILE_ID) =>
+    context.app.request(`${BASE}/api/admin/profiles/${profileId}/promote`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ email: 'dan@flux.local', password: 'a-long-enough-password' }),
+    });
+
+  it('hands back the profile once it has an account', async () => {
+    const profile: ViewerProfile = {
+      id: PROFILE_ID,
+      name: 'Dan',
+      colour: '#e8a33a',
+      avatar: { kind: 'initial' },
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    const context = build(() => Promise.resolve({ kind: 'promoted', profile }));
+    const cookie = await asAdmin(context);
+
+    const response = await promote(context, cookie);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ name: 'Dan' });
+  });
+
+  it('refuses an address somebody already signs in with', async () => {
+    const context = build(() => Promise.resolve({ kind: 'taken' }));
+    const cookie = await asAdmin(context);
+
+    expect((await promote(context, cookie)).status).toBe(409);
+  });
+
+  it('has nothing to promote when the profile has gone', async () => {
+    const context = build(() => Promise.resolve({ kind: 'missing' }));
+    const cookie = await asAdmin(context);
+
+    expect((await promote(context, cookie)).status).toBe(404);
+  });
+
+  it('has nothing to promote on a server that cannot make accounts', async () => {
+    const context = build();
+    const cookie = await asAdmin(context);
+
+    expect((await promote(context, cookie)).status).toBe(404);
+  });
+
+  it('is for somebody who administers accounts', async () => {
+    const context = build(() => Promise.resolve({ kind: 'taken' }));
+    const cookie = await signedIn(context.app);
+
+    expect((await promote(context, cookie)).status).toBe(403);
   });
 });
