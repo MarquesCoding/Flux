@@ -9,9 +9,10 @@
 
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
-use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
+use sysinfo::{DiskRefreshKind, Disks, Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 use tokio::sync::Mutex;
 
 use crate::queue::now_ms;
@@ -21,6 +22,14 @@ use crate::queue::now_ms;
 /// A few hundred is what somebody scrolls through when something has just gone
 /// wrong. Anything longer belongs in a file, not in memory.
 const LOG_LINES: usize = 400;
+
+/// How often the filesystems are asked what is left on them.
+///
+/// Free space moves in minutes and asking costs a system call per mounted
+/// filesystem, so a reading a second would pay that every second to watch a
+/// number that has not changed. Half a minute is fresh enough for a figure
+/// somebody glances at.
+const DISK_INTERVAL: Duration = Duration::from_secs(30);
 
 /// How serious a line is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -52,6 +61,19 @@ pub struct ProcessUse {
     pub memory_bytes: u64,
 }
 
+/// What one mounted filesystem has room for.
+///
+/// Every filesystem the machine has, rather than a guess at which one matters:
+/// the service does not know where the libraries are, and whoever asks does.
+/// Matching a library against its mount point is their side of it.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiskUse {
+    pub mount_point: String,
+    pub total_bytes: u64,
+    pub available_bytes: u64,
+}
+
 /// What the machine and the service are using.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -69,6 +91,8 @@ pub struct ResourceUse {
     pub children: Vec<ProcessUse>,
     /// One minute load average, where the platform reports one.
     pub load_average: f64,
+    /// Every mounted filesystem, measured less often than the rest of this.
+    pub disks: Vec<DiskUse>,
 }
 
 /// Everything a monitoring page reads.
@@ -125,7 +149,55 @@ impl Journal {
 #[derive(Clone)]
 pub struct Monitor {
     system: Arc<Mutex<System>>,
+    disks: Arc<Mutex<DiskReadings>>,
     journal: Journal,
+}
+
+/// The last answer the filesystems gave, and when they gave it.
+///
+/// Kept so that a page reading once a second is not a page running `statfs`
+/// once a second: the reading is handed out again until it is old enough to be
+/// worth taking another.
+struct DiskReadings {
+    disks: Disks,
+    taken: Vec<DiskUse>,
+    at: Option<Instant>,
+}
+
+impl DiskReadings {
+    fn new() -> Self {
+        Self {
+            disks: Disks::new(),
+            taken: Vec::new(),
+            at: None,
+        }
+    }
+
+    /// The filesystems, measured again only once the last reading is stale.
+    fn read(&mut self) -> Vec<DiskUse> {
+        let stale = self.at.is_none_or(|at| at.elapsed() >= DISK_INTERVAL);
+
+        if stale {
+            self.disks
+                .refresh_specifics(true, DiskRefreshKind::nothing().with_storage());
+
+            self.taken = self
+                .disks
+                .list()
+                .iter()
+                .filter(|disk| disk.total_space() > 0)
+                .map(|disk| DiskUse {
+                    mount_point: disk.mount_point().to_string_lossy().into_owned(),
+                    total_bytes: disk.total_space(),
+                    available_bytes: disk.available_space(),
+                })
+                .collect();
+
+            self.at = Some(Instant::now());
+        }
+
+        self.taken.clone()
+    }
 }
 
 impl Monitor {
@@ -133,6 +205,7 @@ impl Monitor {
     pub fn new(journal: Journal) -> Self {
         Self {
             system: Arc::new(Mutex::new(System::new())),
+            disks: Arc::new(Mutex::new(DiskReadings::new())),
             journal,
         }
     }
@@ -144,6 +217,7 @@ impl Monitor {
 
     /// Measures the machine and the processes the service is responsible for.
     pub async fn measure(&self) -> ResourceUse {
+        let disks = self.disks.lock().await.read();
         let mut system = self.system.lock().await;
 
         system.refresh_cpu_usage();
@@ -179,6 +253,7 @@ impl Monitor {
             service_memory_bytes: service.map_or(0, sysinfo::Process::memory),
             children,
             load_average: System::load_average().one,
+            disks,
         }
     }
 }
@@ -209,5 +284,41 @@ mod tests {
 
         assert!(first.cpu_count > 0, "a machine has at least one core");
         assert!(first.system_memory_total_bytes > 0);
+    }
+
+    #[tokio::test]
+    async fn reports_only_filesystems_with_room_to_speak_of() {
+        let monitor = Monitor::new(Journal::new());
+
+        let reading = monitor.measure().await;
+
+        assert!(
+            reading
+                .disks
+                .iter()
+                .all(|disk| disk.total_bytes > 0 && !disk.mount_point.is_empty()),
+            "a filesystem with no size is a device, not somewhere media lives"
+        );
+    }
+
+    #[tokio::test]
+    async fn hands_out_the_same_disk_reading_rather_than_taking_another() {
+        let monitor = Monitor::new(Journal::new());
+
+        let first = monitor.measure().await;
+        let second = monitor.measure().await;
+
+        assert_eq!(
+            first
+                .disks
+                .iter()
+                .map(|disk| disk.mount_point.clone())
+                .collect::<Vec<_>>(),
+            second
+                .disks
+                .iter()
+                .map(|disk| disk.mount_point.clone())
+                .collect::<Vec<_>>()
+        );
     }
 }

@@ -50,6 +50,12 @@ const ProcessUseSchema = z.object({
   memoryBytes: z.number(),
 });
 
+const DiskUseSchema = z.object({
+  mountPoint: z.string(),
+  totalBytes: z.number(),
+  availableBytes: z.number(),
+});
+
 const MonitorSchema = z.object({
   resources: z.object({
     atMs: z.number(),
@@ -61,6 +67,7 @@ const MonitorSchema = z.object({
     serviceMemoryBytes: z.number(),
     children: z.array(ProcessUseSchema),
     loadAverage: z.number(),
+    disks: z.array(DiskUseSchema).default([]),
   }),
   queue: z.object({
     concurrency: z.number(),

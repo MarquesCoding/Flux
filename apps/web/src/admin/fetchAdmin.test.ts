@@ -63,6 +63,7 @@ const MONITOR: Monitor = {
     serviceMemoryBytes: 4,
     children: [{ pid: 42, cpuPercent: 90, memoryBytes: 100 }],
     loadAverage: 1.5,
+    disks: [],
   },
   queue: { concurrency: 2, queued: 1, running: 1, jobs: [] },
   sessions: 0,

@@ -35,6 +35,7 @@ import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
 import { fluxCpuShare } from './fluxCpuShare';
+import { libraryDisk } from './libraryDisk';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
   resumeRunning,
@@ -385,6 +386,10 @@ const AdminArea = ({
 
   const conversions = resources?.children ?? [];
   const cpuShare = fluxCpuShare(resources);
+  const mediaDisk = libraryDisk(
+    resources?.disks ?? [],
+    libraries.map((library) => library.path),
+  );
 
   return (
     <motion.div
@@ -493,6 +498,20 @@ const AdminArea = ({
                   resources === null
                     ? '—'
                     : `of ${formatBytes(resources.systemMemoryTotalBytes)} · service ${formatBytes(resources.serviceMemoryBytes)}`,
+              },
+              {
+                label: 'Storage',
+                value: mediaDisk === null ? '—' : `${formatBytes(mediaDisk.availableBytes)} free`,
+                ...(mediaDisk === null
+                  ? {}
+                  : {
+                      fraction:
+                        (mediaDisk.totalBytes - mediaDisk.availableBytes) / mediaDisk.totalBytes,
+                    }),
+                detail:
+                  mediaDisk === null
+                    ? 'Not measured'
+                    : `of ${formatBytes(mediaDisk.totalBytes)} · ${mediaDisk.mountPoint}`,
               },
               {
                 label: 'Streaming',

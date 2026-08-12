@@ -12,6 +12,7 @@ const resources = (overrides: Partial<Monitor['resources']> = {}): Monitor['reso
   serviceMemoryBytes: 0,
   children: [],
   loadAverage: 0,
+  disks: [],
   ...overrides,
 });
 

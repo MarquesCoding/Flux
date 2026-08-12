@@ -1,6 +1,8 @@
 import type { ActiveSession, AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin';
 import type { Library } from '@FluxContracts/schemas/Library';
 import { fluxCpuShare } from './fluxCpuShare';
+import { libraryDisk } from './libraryDisk';
+import { formatBytes } from './formatBytes';
 
 /**
  * How much somebody should care, which is what decides the order.
@@ -64,6 +66,15 @@ const CPU_PRESSURE = 90;
  * A reading a second, so this is the last quarter minute.
  */
 const CPU_READINGS = 15;
+
+/**
+ * The share of the library disk in use past which it is worth mentioning.
+ *
+ * Higher than the memory threshold because a media disk is meant to be full —
+ * somebody who has filled eight terabytes has been collecting, not leaking.
+ * What is worth saying is that the next scan may have nowhere to write.
+ */
+const DISK_PRESSURE = 0.95;
 
 /**
  * The share of the machine Flux has to be using before the load is its doing.
@@ -170,6 +181,25 @@ const collectConcerns = ({
     });
   }
 
+  const disk = libraryDisk(
+    resources?.disks ?? [],
+    libraries.map((library) => library.path),
+  );
+
+  if (
+    disk !== null &&
+    disk.totalBytes > 0 &&
+    (disk.totalBytes - disk.availableBytes) / disk.totalBytes > DISK_PRESSURE
+  ) {
+    concerns.push({
+      id: 'disk',
+      tone: 'attention',
+      title: 'The library disk is nearly full',
+      detail: `${formatBytes(disk.availableBytes)} left on ${disk.mountPoint}. A scan that finds new files may have nowhere to put what it makes of them.`,
+      panel: 'libraries',
+    });
+  }
+
   const recent = history.slice(-CPU_READINGS);
 
   if (recent.length === CPU_READINGS && recent.every((reading) => reading > CPU_PRESSURE)) {
@@ -253,6 +283,7 @@ export {
   MEMORY_PRESSURE,
   CPU_PRESSURE,
   CPU_READINGS,
+  DISK_PRESSURE,
   FLUX_BLAME,
   STARVED_SECONDS,
 };

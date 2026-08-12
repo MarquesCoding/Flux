@@ -33,6 +33,7 @@ const healthyMonitor = (
     serviceMemoryBytes: 0,
     children: [],
     loadAverage: 0,
+    disks: [],
   },
   queue: { concurrency: 1, queued: 0, running: 0, jobs },
   sessions: 0,
@@ -339,6 +340,40 @@ describe('collectConcerns', () => {
       });
 
       expect(concerns.map((concern) => concern.id)).toContain('no-catalogue-key');
+    });
+  });
+
+  describe('the library disk', () => {
+    const onDisk = (totalBytes: number, availableBytes: number): Monitor => {
+      const monitor = healthyMonitor();
+      monitor.resources.disks = [{ mountPoint: '/media', totalBytes, availableBytes }];
+
+      return monitor;
+    };
+
+    it('says nothing about a disk with room on it', () => {
+      expect(collectConcerns({ ...healthy, monitor: onDisk(1000, 500) })).toEqual([]);
+    });
+
+    it('reports one that is nearly full', () => {
+      const concerns = collectConcerns({ ...healthy, monitor: onDisk(1000, 10) });
+
+      expect(concerns.map((concern) => concern.id)).toContain('disk');
+    });
+
+    it('says how much is left and where, since that is what somebody acts on', () => {
+      const concerns = collectConcerns({ ...healthy, monitor: onDisk(1000, 10) });
+
+      expect(concerns.find((concern) => concern.id === 'disk')?.detail).toContain(
+        '10 B left on /media',
+      );
+    });
+
+    it('stays quiet about a full disk no library is on', () => {
+      const monitor = healthyMonitor();
+      monitor.resources.disks = [{ mountPoint: '/backup', totalBytes: 1000, availableBytes: 1 }];
+
+      expect(collectConcerns({ ...healthy, monitor })).toEqual([]);
     });
   });
 
