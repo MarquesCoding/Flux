@@ -3,6 +3,7 @@ import { IconSelector } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
+import { DialogFooter } from '@FluxUI/DialogFooter';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { OptionMenu } from '@FluxUI/OptionMenu';
 import { readLanguage, LANGUAGE_NAMES } from '@FluxCore/functions/describeTrack';
@@ -16,7 +17,26 @@ import type { LibrarySettingsDialogProps } from './LibrarySettingsDialog.types';
  */
 const NONE_ID = 'none';
 
+/**
+ * Stands in for "however many the server thinks it can manage".
+ */
+const SERVER_ID = 'server';
+
 type LanguageOption = { id: string; label: string; detail?: string };
+
+/**
+ * How many files at once an operator can ask for.
+ *
+ * Small numbers only. This is not a throughput dial to be turned up until
+ * something breaks — it is the answer to "does this library come off a disk or
+ * down a wire", and past a handful the answer stops changing.
+ */
+const AT_ONCE_OPTIONS = [
+  { id: SERVER_ID, label: 'However many the server allows', detail: 'Right for a local disk' },
+  { id: '1', label: 'One at a time', detail: 'Right for a network share' },
+  { id: '2', label: 'Two at a time' },
+  { id: '4', label: 'Four at a time' },
+];
 
 /**
  * The language picker's options, with the browser's own language pinned to
@@ -44,10 +64,6 @@ const buildLanguageOptions = (): LanguageOption[] => {
 /**
  * A library's settings, opened from clicking its name.
  *
- * Seeded with "Force default audio track" — the first of what the admin
- * Library panel is meant to grow into over time — laid out as a stack of
- * sections so more can be added later without restructuring it.
- *
  * Mount this with `key={library?.id}` from the caller: a fresh library
  * deserves fresh form state rather than whatever the last one left behind.
  */
@@ -61,12 +77,14 @@ const LibrarySettingsDialog = ({
   const languageOptions = buildLanguageOptions();
 
   const [selected, setSelected] = useState(library?.defaultAudioLanguage ?? NONE_ID);
+  const [atOnce, setAtOnce] = useState(library?.filesAtOnce?.toString() ?? SERVER_ID);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<{ saved: Library; label: string } | null>(null);
 
   const reset = () => {
     setSelected(library?.defaultAudioLanguage ?? NONE_ID);
+    setAtOnce(library?.filesAtOnce?.toString() ?? SERVER_ID);
     setError(null);
     setConfirming(null);
   };
@@ -93,7 +111,10 @@ const LibrarySettingsDialog = ({
     try {
       const defaultAudioLanguage = selected === NONE_ID ? null : selected;
       const changed = defaultAudioLanguage !== (library.defaultAudioLanguage ?? null);
-      const updated = await updateLibrary(library.id, { defaultAudioLanguage });
+      const updated = await updateLibrary(library.id, {
+        defaultAudioLanguage,
+        filesAtOnce: atOnce === SERVER_ID ? null : Number.parseInt(atOnce, 10),
+      });
 
       if (changed && library.itemCount > 0) {
         const label = languageOptions.find((option) => option.id === selected)?.label ?? selected;
@@ -123,14 +144,15 @@ const LibrarySettingsDialog = ({
   }
 
   const selectedLabel = languageOptions.find((option) => option.id === selected)?.label ?? selected;
+  const atOnceLabel = AT_ONCE_OPTIONS.find((option) => option.id === atOnce)?.label ?? atOnce;
 
   return (
     <Dialog label={`${library.name} settings`} isOpen={isOpen} onClose={close}>
       <DialogTitle title={library.name} />
 
-      <DialogContent className="flex flex-col gap-5">
-        {confirming === null ? (
-          <>
+      {confirming === null ? (
+        <>
+          <DialogContent className="flex flex-col gap-6">
             <fieldset className="flex flex-col gap-2">
               <legend className="text-sm font-medium text-text">Force default audio track</legend>
 
@@ -150,12 +172,43 @@ const LibrarySettingsDialog = ({
                   },
                 ]}
                 trigger={
-                  <span className="flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text">
-                    {selectedLabel}
-                    <IconSelector size={16} aria-hidden />
-                  </span>
+                  <>
+                    <span className="truncate">{selectedLabel}</span>
+                    <IconSelector size={15} className="shrink-0 text-text-muted" aria-hidden />
+                  </>
                 }
-                className="w-full max-w-sm"
+                triggerShape="field"
+                align="start"
+                matchTriggerWidth
+              />
+            </fieldset>
+
+            <fieldset className="flex flex-col gap-2">
+              <legend className="text-sm font-medium text-text">Files at once</legend>
+
+              <p className="text-xs text-text-muted">
+                How many of this library&rsquo;s files are rendered at the same time. A library on a
+                local disk wants as many as the machine can feed. A library on a network share wants
+                one: the files come down a single wire, and asking for four divides it four ways.
+              </p>
+
+              <OptionMenu
+                label="Files at once"
+                groups={[
+                  {
+                    name: 'At once',
+                    selectedId: atOnce,
+                    onSelect: setAtOnce,
+                    options: AT_ONCE_OPTIONS,
+                  },
+                ]}
+                trigger={
+                  <>
+                    <span className="truncate">{atOnceLabel}</span>
+                    <IconSelector size={15} className="shrink-0 text-text-muted" aria-hidden />
+                  </>
+                }
+                triggerShape="field"
                 align="start"
                 matchTriggerWidth
               />
@@ -166,50 +219,52 @@ const LibrarySettingsDialog = ({
                 {error}
               </p>
             )}
+          </DialogContent>
 
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" isPill onClick={close} disabled={isSaving}>
-                Cancel
-              </Button>
+          <DialogFooter>
+            <Button variant="secondary" isPill onClick={close} disabled={isSaving}>
+              Cancel
+            </Button>
 
-              <Button
-                variant="glossy"
-                isPill
-                isLoading={isSaving}
-                onClick={() => {
-                  void save();
-                }}
-              >
-                Save
-              </Button>
-            </div>
-          </>
-        ) : (
-          <>
+            <Button
+              variant="primary"
+              isPill
+              isLoading={isSaving}
+              onClick={() => {
+                void save();
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </>
+      ) : (
+        <>
+          <DialogContent>
             <p className="text-sm text-text-muted">
               This will start a preview generation task for {library.name}&rsquo;s existing media,
               so previews match {confirming.label}. Progress shows next to the library once started.
               Continue?
             </p>
+          </DialogContent>
 
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="secondary"
-                isPill
-                onClick={() => {
-                  finish(confirming.saved);
-                }}
-              >
-                Not now
-              </Button>
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              isPill
+              onClick={() => {
+                finish(confirming.saved);
+              }}
+            >
+              Not now
+            </Button>
 
-              <Button variant="glossy" isPill onClick={regenerate}>
-                Regenerate previews
-              </Button>
-            </div>
-          </>
-        )}
-      </DialogContent>
+            <Button variant="primary" isPill onClick={regenerate}>
+              Regenerate previews
+            </Button>
+          </DialogFooter>
+        </>
+      )}
     </Dialog>
   );
 };

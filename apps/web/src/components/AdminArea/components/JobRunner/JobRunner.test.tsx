@@ -38,6 +38,7 @@ const MOVIES: Library = {
   itemCount: 10,
   lastScannedAt: null,
   defaultAudioLanguage: null,
+  filesAtOnce: null,
 };
 
 /**

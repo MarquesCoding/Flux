@@ -89,6 +89,8 @@ const LIBRARIES: Library[] = [
     lastScannedAt: null,
 
     defaultAudioLanguage: null,
+
+    filesAtOnce: null,
   },
 ];
 
@@ -101,6 +103,8 @@ const CREATED_LIBRARY: Library = {
   lastScannedAt: null,
 
   defaultAudioLanguage: null,
+
+  filesAtOnce: null,
 };
 
 const SHOWS_LIBRARY_ID = '22222222-2222-4222-8222-222222222222';
@@ -116,6 +120,8 @@ const TWO_LIBRARIES: Library[] = [
     lastScannedAt: null,
 
     defaultAudioLanguage: null,
+
+    filesAtOnce: null,
   },
 ];
 

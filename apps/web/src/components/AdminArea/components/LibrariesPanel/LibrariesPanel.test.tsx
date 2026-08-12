@@ -13,6 +13,7 @@ const library = (overrides: Partial<Library> = {}): Library => ({
   itemCount: 4,
   lastScannedAt: null,
   defaultAudioLanguage: null,
+  filesAtOnce: null,
   ...overrides,
 });
 

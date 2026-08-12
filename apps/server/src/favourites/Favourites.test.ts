@@ -61,6 +61,7 @@ const build = () => {
           itemCount: 1,
           lastScannedAt: null,
           defaultAudioLanguage: null,
+          filesAtOnce: null,
         },
       ],
       media: [FILM],
