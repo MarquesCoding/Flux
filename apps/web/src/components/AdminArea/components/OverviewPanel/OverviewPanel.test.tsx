@@ -19,7 +19,12 @@ const PLAN: PlaybackPlan = {
 const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
   users: [{ id: 'usr_1', name: 'Dan', email: 'dan@flux.local', role: 'admin', createdAt: '' }],
   settings: { hasCatalogueKey: true, cookieSecure: true, trustedOrigins: [] },
-  transcoder: { isReachable: true, ffmpegVersion: '7.1', hardwareAccels: ['videotoolbox'] },
+  transcoder: {
+    isReachable: true,
+    address: 'unix:/tmp/flux-transcoder.sock',
+    ffmpegVersion: '7.1',
+    hardwareAccels: ['videotoolbox'],
+  },
   library: { itemCount: 10, libraryCount: 1 },
   ...overrides,
 });
@@ -134,7 +139,12 @@ describe('OverviewPanel', () => {
         <OverviewPanel
           {...props}
           overview={overview({
-            transcoder: { isReachable: false, ffmpegVersion: null, hardwareAccels: [] },
+            transcoder: {
+              isReachable: false,
+              address: 'unix:/tmp/flux-transcoder.sock',
+              ffmpegVersion: null,
+              hardwareAccels: [],
+            },
           })}
         />,
       );
@@ -257,7 +267,12 @@ describe('OverviewPanel', () => {
         <OverviewPanel
           {...props}
           overview={overview({
-            transcoder: { isReachable: true, ffmpegVersion: '7.1', hardwareAccels: [] },
+            transcoder: {
+              isReachable: true,
+              address: 'unix:/tmp/flux-transcoder.sock',
+              ffmpegVersion: '7.1',
+              hardwareAccels: [],
+            },
           })}
         />,
       );

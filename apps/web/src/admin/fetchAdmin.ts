@@ -20,6 +20,7 @@ const AdminOverviewSchema = z.object({
   }),
   transcoder: z.object({
     isReachable: z.boolean(),
+    address: z.string(),
     ffmpegVersion: z.string().nullable(),
     hardwareAccels: z.array(z.string()),
   }),

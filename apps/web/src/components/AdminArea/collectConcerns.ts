@@ -99,11 +99,16 @@ const collectConcerns = ({
   const concerns: Concern[] = [];
 
   if (overview !== null && !overview.transcoder.isReachable) {
+    const address = overview.transcoder.address;
+
     concerns.push({
       id: 'transcoder',
       tone: 'broken',
       title: 'The media service is unreachable',
-      detail: 'Nothing that needs converting will play until it is back.',
+      detail:
+        address === ''
+          ? 'Nothing that needs converting will play until it is back.'
+          : `Nothing that needs converting will play until it is back. Looked for it at ${address}.`,
       panel: 'activity',
     });
   }

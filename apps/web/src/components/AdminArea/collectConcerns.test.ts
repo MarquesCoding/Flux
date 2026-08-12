@@ -7,7 +7,12 @@ import type { Library } from '@FluxContracts/schemas/Library';
 const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
   users: [],
   settings: { hasCatalogueKey: true, cookieSecure: true, trustedOrigins: [] },
-  transcoder: { isReachable: true, ffmpegVersion: '7.1', hardwareAccels: [] },
+  transcoder: {
+    isReachable: true,
+    address: 'unix:/tmp/flux-transcoder.sock',
+    ffmpegVersion: '7.1',
+    hardwareAccels: [],
+  },
   library: { itemCount: 10, libraryCount: 1 },
   ...overrides,
 });
@@ -110,12 +115,44 @@ describe('collectConcerns', () => {
       const concerns = collectConcerns({
         ...healthy,
         overview: healthyOverview({
-          transcoder: { isReachable: false, ffmpegVersion: null, hardwareAccels: [] },
+          transcoder: {
+            isReachable: false,
+            address: 'unix:/tmp/flux-transcoder.sock',
+            ffmpegVersion: null,
+            hardwareAccels: [],
+          },
         }),
       });
 
       expect(concerns.map((concern) => concern.id)).toContain('transcoder');
       expect(concerns[0]?.tone).toBe('broken');
+    });
+
+    it('says where the media service was looked for', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        overview: healthyOverview({
+          transcoder: {
+            isReachable: false,
+            address: 'unix:/tmp/flux-transcoder.sock',
+            ffmpegVersion: null,
+            hardwareAccels: [],
+          },
+        }),
+      });
+
+      expect(concerns[0]?.detail).toContain('unix:/tmp/flux-transcoder.sock');
+    });
+
+    it('says only what it knows when the address was not reported', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        overview: healthyOverview({
+          transcoder: { isReachable: false, address: '', ffmpegVersion: null, hardwareAccels: [] },
+        }),
+      });
+
+      expect(concerns[0]?.detail).toBe('Nothing that needs converting will play until it is back.');
     });
 
     it('reports a failed job', () => {

@@ -52,7 +52,6 @@ RUN mkdir -p /config /cache /transcodes /media
 
 ENV NODE_ENV=production \
     PORT=8420 \
-    FLUX_TRANSCODER_SOCKET=/run/flux-transcoder.sock \
     TRANSCODER_URL=unix:/run/flux-transcoder.sock \
     FLUX_TRANSCODE_DIR=/transcodes \
     FLUX_MEDIA_ROOTS=/media

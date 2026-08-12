@@ -30,6 +30,7 @@ const AdminOverviewSchema = z
     settings: AdminSettingsSchema,
     transcoder: z.object({
       isReachable: z.boolean(),
+      address: z.string(),
       ffmpegVersion: z.string().nullable(),
       hardwareAccels: z.array(z.string()),
     }),
