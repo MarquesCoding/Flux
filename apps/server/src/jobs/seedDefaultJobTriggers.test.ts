@@ -11,6 +11,7 @@ const SETTINGS: ServerSettings = {
   setupCompletedAt: null,
   catalogueApiKey: '',
   seededJobTriggerKinds: [],
+  seededRoleNames: [],
 };
 
 const build = (seededJobTriggerKinds: string[] = []) => ({

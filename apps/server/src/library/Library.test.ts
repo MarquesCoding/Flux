@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
 import { signedInApp } from '@FluxServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
 import { createMemoryLibraryService } from './createMemoryLibraryService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
@@ -75,9 +76,12 @@ const build = (media: MediaDetail[] = []) => {
     media,
   });
 
+  const permissions = createMemoryPermissionService();
+
   const app = createApp({
     auth,
     settings,
+    permissions,
     countUsers: () => Promise.resolve(1),
     promoteToAdmin: () => Promise.resolve(),
     library,
@@ -88,7 +92,7 @@ const build = (media: MediaDetail[] = []) => {
     playback: createMemoryPlaybackService(),
   });
 
-  return { app: signedInApp(app, { store, isAdministrator: true }), library };
+  return { app: signedInApp(app, { store, permissions, isAdministrator: true }), library };
 };
 
 describe('library routes', () => {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { signUpForTest, TEST_ORIGIN } from '@FluxServer/auth/signUpForTest';
+import { signUpForTest, makeAdministrator, TEST_ORIGIN } from '@FluxServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
 import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
@@ -15,10 +16,12 @@ const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9';
 
 const build = () => {
   const { auth, settings, store } = createMemoryAuth();
+  const permissions = createMemoryPermissionService();
 
   const app = createApp({
     auth,
     settings,
+    permissions,
     countUsers: () => Promise.resolve(1),
     promoteToAdmin: () => Promise.resolve(),
     library: createMemoryLibraryService({
@@ -43,7 +46,7 @@ const build = () => {
     profiles: createMemoryProfileService(),
   });
 
-  return { app, store };
+  return { app, store, permissions };
 };
 
 /**
@@ -172,12 +175,12 @@ describe('the session gate', () => {
     });
 
     it('lets an administrator through', async () => {
-      const { app, store } = build();
+      const { app, store, permissions } = build();
       const cookie = await signUpForTest(app);
       const account = store.user[0];
 
       if (account !== undefined) {
-        account.role = 'admin';
+        await makeAdministrator(permissions, account.id);
       }
 
       const response = await app.request(`${TEST_ORIGIN}/api/libraries/${LIBRARY_ID}/scan`, {
