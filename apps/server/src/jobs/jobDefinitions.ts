@@ -59,7 +59,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     kind: SCAN_LIBRARY_JOB,
     label: 'Scan for changes',
     description:
-      'Finds new, changed and removed files, then makes whatever they are still missing — previews, thumbnails and intros.',
+      'Finds new, changed and removed files, then makes whatever they are still missing — previews, scrub previews and intros.',
     needsLibrary: true,
     destructive: false,
   },
@@ -73,9 +73,9 @@ const JOB_DEFINITIONS: JobDefinition[] = [
   },
   {
     kind: REGENERATE_TRICKPLAY_JOB,
-    label: 'Generate missing thumbnails',
+    label: 'Generate missing scrub previews',
     description:
-      'Renders scrubbing thumbnail sheets for items that have none. Skips items that already have one.',
+      'Renders the strip of images shown when scrubbing the seek bar, for items that have none. Skips items that already have one.',
     needsLibrary: true,
     destructive: false,
   },
@@ -83,7 +83,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     kind: DETECT_SEGMENTS_JOB,
     label: 'Detect missing intros and outros',
     description:
-      'Listens to seasons with episodes nobody has checked yet, using chapters and audio fingerprints. Skips seasons already done.',
+      'Finds the intro and the recap in each episode by comparing the audio across a season, so viewers can skip them. Skips seasons already done.',
     needsLibrary: true,
     destructive: false,
   },
@@ -91,7 +91,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     kind: RESET_LIBRARY_JOB,
     label: 'Reset and rebuild',
     description:
-      'Deletes every item in every library and starts again from nothing: scanning, then previews, thumbnails and intro detection for the lot. Hours of work on a large library.',
+      'Deletes every item in every library and starts again from nothing: scanning, then previews, scrub previews and intro detection for the lot. Hours of work on a large library.',
     needsLibrary: true,
     destructive: true,
   },
@@ -106,7 +106,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     kind: CLEANUP_ARTEFACT_CACHE_JOB,
     label: 'Clean up cached previews',
     description:
-      'Removes preview clips and thumbnail sheets nothing addresses any more, freeing the space left behind by a reset or a change to how they are made.',
+      'Removes preview clips and scrub previews nothing addresses any more, freeing the space left behind by a reset or a change to how they are made.',
     needsLibrary: false,
     destructive: false,
   },
@@ -136,7 +136,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
  * Nothing destructive is here. Everything else can be, now that each job
  * works from what is outstanding rather than redoing a whole library: a
  * nightly run over a library with nothing new costs a query and stops. The
- * scan already runs previews, thumbnails and detection itself, so their own
+ * scan already runs previews, scrub previews and detection itself, so their own
  * schedules are the catch-up pass — what a failed render or an ffmpeg that
  * was down at 03:00 gets picked up by.
  *

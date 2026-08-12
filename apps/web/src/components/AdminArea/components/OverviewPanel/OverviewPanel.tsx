@@ -9,6 +9,7 @@ import { BackgroundJobs } from '@FluxWeb/components/AdminArea/components/Backgro
 import { TrendChart } from '@FluxUI/TrendChart';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import { formatBytes } from '@FluxWeb/components/AdminArea/formatBytes';
+import { describeQueueKind } from '@FluxWeb/components/AdminArea/describeQueueKind';
 import type { OverviewPanelProps } from './OverviewPanel.types';
 
 /**
@@ -217,7 +218,9 @@ const OverviewPanel = ({
                 <li key={job.id} className="flex items-center gap-4 py-3 first:pt-0">
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate text-sm text-text">{job.subject}</span>
-                    <span className="truncate text-xs text-text-muted">{job.kind}</span>
+                    <span className="truncate text-xs text-text-muted">
+                      {describeQueueKind(job.kind)}
+                    </span>
                   </span>
 
                   <Badge size="sm" tone="accent">
