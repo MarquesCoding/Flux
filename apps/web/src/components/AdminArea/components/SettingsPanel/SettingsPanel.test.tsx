@@ -14,6 +14,7 @@ const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOver
     hasCatalogueKey: false,
     cookieSecure: false,
     trustedOrigins: ['http://localhost:8420'],
+    hardwareAccel: '',
     ...overrides,
   },
   transcoder: {

@@ -17,6 +17,7 @@ const AdminOverviewSchema = z.object({
     hasCatalogueKey: z.boolean(),
     trustedOrigins: z.array(z.string()),
     cookieSecure: z.boolean(),
+    hardwareAccel: z.string().default(''),
   }),
   transcoder: z.object({
     isReachable: z.boolean(),
@@ -457,6 +458,23 @@ const removeJobTrigger = async (kind: string, triggerId: string): Promise<boolea
 /**
  * Saves a setting an operator owns.
  */
+/**
+ * Tells the server which hardware backend to insist on.
+ *
+ * Empty means use whichever the media service proves it can do, which is right
+ * almost always. Naming one is for the case where that proof is wrong — it has
+ * been twice — and an operator can see their card working.
+ */
+const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
+  const response = await fetch('/api/admin/settings', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ hardwareAccel }),
+  }).catch(() => null);
+
+  return response !== null && response.ok;
+};
+
 const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
   const response = await fetch('/api/admin/settings', {
     method: 'PATCH',
@@ -488,6 +506,7 @@ export {
   fetchMonitor,
   watchMonitor,
   saveCatalogueKey,
+  saveHardwareAccel,
   fetchActiveSessions,
   stopSession,
   pauseSession,

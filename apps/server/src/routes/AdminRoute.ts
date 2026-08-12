@@ -21,6 +21,7 @@ const AdminSettingsSchema = z
     hasCatalogueKey: z.boolean(),
     trustedOrigins: z.array(z.string()),
     cookieSecure: z.boolean(),
+    hardwareAccel: z.string(),
   })
   .openapi('AdminSettings');
 
@@ -45,6 +46,7 @@ const AdminOverviewSchema = z
 const AdminSettingsRequestSchema = z
   .object({
     catalogueApiKey: z.string().optional(),
+    hardwareAccel: z.string().optional(),
   })
   .openapi('AdminSettingsRequest');
 

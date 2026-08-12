@@ -22,6 +22,7 @@ const OVERVIEW: AdminOverview = {
     hasCatalogueKey: false,
     trustedOrigins: ['http://localhost:5173'],
     cookieSecure: false,
+    hardwareAccel: '',
   },
   transcoder: {
     isReachable: true,
