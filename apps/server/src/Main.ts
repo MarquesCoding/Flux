@@ -492,7 +492,11 @@ const playbackService = createPlaybackService({
       }
 
       const rows = await db
-        .select({ path: mediaItem.path, defaultAudioLanguage: library.defaultAudioLanguage })
+        .select({
+          path: mediaItem.path,
+          defaultAudioLanguage: library.defaultAudioLanguage,
+          generation: library.generation,
+        })
         .from(mediaItem)
         .innerJoin(library, eq(library.id, mediaItem.libraryId))
         .where(eq(mediaItem.id, mediaId))
@@ -502,7 +506,12 @@ const playbackService = createPlaybackService({
 
       return row === undefined
         ? null
-        : { item, path: row.path, defaultAudioLanguage: row.defaultAudioLanguage };
+        : {
+            item,
+            path: row.path,
+            defaultAudioLanguage: row.defaultAudioLanguage,
+            generation: row.generation,
+          };
     },
   },
   transcoder,

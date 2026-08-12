@@ -47,6 +47,13 @@ const RECIPE: u32 = 1;
 #[serde(rename_all = "camelCase")]
 pub struct TrickplayRequest {
     pub input_path: String,
+    /// How many times the library holding this file has been reset.
+    ///
+    /// Part of the address, for the same reason as on a preview, and required
+    /// for the same reason: a caller that omits it asks for generation zero and
+    /// redraws a feature film's worth of sheets on every request rather than
+    /// once.
+    pub generation: u32,
     /// Seconds between thumbnails.
     pub interval_seconds: u32,
     /// Width of a single thumbnail in pixels. Height follows the source.
@@ -73,6 +80,7 @@ impl Default for TrickplayRequest {
     fn default() -> Self {
         Self {
             input_path: String::new(),
+            generation: 0,
             interval_seconds: 10,
             tile_width: 320,
             columns: 10,
@@ -131,6 +139,7 @@ impl TrickplayRequest {
         let mut hasher = Sha256::new();
 
         hasher.update(RECIPE.to_be_bytes());
+        hasher.update(self.generation.to_be_bytes());
         hasher.update(self.input_path.as_bytes());
         hasher.update(self.interval_seconds.to_be_bytes());
         hasher.update(self.tile_width.to_be_bytes());
@@ -581,6 +590,7 @@ mod tests {
     fn request() -> TrickplayRequest {
         TrickplayRequest {
             input_path: "/media/film.mkv".to_owned(),
+            generation: 0,
             interval_seconds: 10,
             tile_width: 320,
             columns: 2,
@@ -627,6 +637,38 @@ mod tests {
     #[test]
     fn the_same_request_addresses_the_same_thumbnails() {
         assert_eq!(request().id(), request().id());
+    }
+
+    #[test]
+    fn a_reset_library_addresses_its_sheets_somewhere_new() {
+        let after_reset = TrickplayRequest {
+            generation: 1,
+            ..request()
+        };
+
+        assert_ne!(
+            request().id(),
+            after_reset.id(),
+            "a reset that reused the address would reuse the sheets"
+        );
+    }
+
+    #[test]
+    fn the_same_generation_still_reuses_the_sheets() {
+        let again = TrickplayRequest {
+            generation: 2,
+            ..request()
+        };
+
+        assert_eq!(
+            again.id(),
+            TrickplayRequest {
+                generation: 2,
+                ..request()
+            }
+            .id(),
+            "redrawing a film's sheets on every hover is the fault this guards"
+        );
     }
 
     #[test]

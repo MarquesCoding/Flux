@@ -559,6 +559,11 @@ const createDatabaseLibraryService = ({
 
       await store.clear(libraryId);
 
+      await db
+        .update(library)
+        .set({ generation: sql`${library.generation} + 1` })
+        .where(eq(library.id, libraryId));
+
       const jobId = await jobs.enqueue(SCAN_LIBRARY_JOB, { libraryId, force: true }, libraryId);
 
       return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
@@ -651,6 +656,7 @@ const createDatabaseLibraryService = ({
     runRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {
       await regeneratePreviews({
         libraryId,
+        generation: (await findLibrary(libraryId))?.generation ?? 0,
         atOnce: await filesAtOnceFor(libraryId),
         store: {
           listOutstanding: (id) => listOutstandingFor(db, id, REGENERATE_PREVIEWS_JOB),
@@ -672,6 +678,7 @@ const createDatabaseLibraryService = ({
     runRegenerateTrickplay: async (libraryId, jobId) => {
       await generateTrickplay({
         libraryId,
+        generation: (await findLibrary(libraryId))?.generation ?? 0,
         atOnce: await filesAtOnceFor(libraryId),
         store: {
           listOutstanding: (id) => listOutstandingFor(db, id, REGENERATE_TRICKPLAY_JOB),

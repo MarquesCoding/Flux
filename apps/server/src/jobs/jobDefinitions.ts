@@ -90,7 +90,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     kind: RESET_LIBRARY_JOB,
     label: 'Reset and rebuild',
     description:
-      'Deletes every item in every library and scans again from nothing, re-reading and re-matching every file, then detecting intros. Previews and thumbnails already on disk are reused rather than redrawn.',
+      'Deletes every item in every library and starts again from nothing: scanning, then previews, thumbnails and intro detection for the lot. Hours of work on a large library.',
     needsLibrary: true,
     destructive: true,
   },
