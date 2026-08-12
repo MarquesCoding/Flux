@@ -362,3 +362,87 @@ describe('ending and holding a session', () => {
     expect(heartbeatSession).toHaveBeenCalledWith('session-1', false);
   });
 });
+
+describe('the details a conversion has to be told', () => {
+  const converting = profile({
+    directPlayProfiles: [{ container: 'mp4', videoCodecs: ['vp9'], audioCodecs: ['aac'] }],
+  });
+
+  it('counts image subtitles among their own kind, which is what ffmpeg asks for', async () => {
+    const withSubtitles = item({
+      subtitleStreams: [
+        { index: 2, format: 'srt', language: 'eng', isForced: false },
+        { index: 3, format: 'pgs', language: 'eng', isForced: false },
+      ],
+    });
+
+    const { service } = build(
+      {},
+      {
+        item: withSubtitles,
+        path: '/media/arrival.mp4',
+        defaultAudioLanguage: null,
+      },
+    );
+
+    await expect(service.start(MEDIA_ID, converting, 0)).resolves.toMatchObject({
+      kind: 'started',
+    });
+  });
+
+  it('serves a file with no audio at all as it is', async () => {
+    const { service } = build(
+      {},
+      {
+        item: item({ audioStreams: [] }),
+        path: '/media/silent.mp4',
+        defaultAudioLanguage: null,
+      },
+    );
+
+    await expect(service.start(MEDIA_ID, profile(), 0)).resolves.toMatchObject({
+      kind: 'started',
+      session: { delivery: { kind: 'direct' } },
+    });
+  });
+
+  it('takes the first audio stream when the file marks none of them default', async () => {
+    const { service } = build(
+      {},
+      {
+        item: item({
+          audioStreams: [
+            {
+              index: 1,
+              codec: 'aac',
+              channels: 2,
+              language: 'eng',
+              isDefault: false,
+              isAtmos: false,
+            },
+          ],
+        }),
+        path: '/media/arrival.mp4',
+        defaultAudioLanguage: null,
+      },
+    );
+
+    await expect(service.start(MEDIA_ID, profile(), 0)).resolves.toMatchObject({
+      kind: 'started',
+      session: { delivery: { kind: 'direct' } },
+    });
+  });
+
+  it('says the media service failed when it threw something that was not an error', async () => {
+    const { service } = build({
+      startSession: () =>
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- The point of the test: a media service that rejects with something that is not an Error.
+        Promise.reject({ why: 'a plain object' }),
+    });
+
+    await expect(service.start(MEDIA_ID, converting, 0)).resolves.toEqual({
+      kind: 'failed',
+      reason: 'The media service failed.',
+    });
+  });
+});

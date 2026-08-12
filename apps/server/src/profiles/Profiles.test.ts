@@ -457,3 +457,157 @@ describe('a server built without profiles at all', () => {
     });
   }
 });
+
+describe('the pictures and the sign-in list', () => {
+  const PROFILE_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+  it('draws a face in a style anybody can ask for', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/avatars/thumbs?seed=dan`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/svg+xml');
+  });
+
+  it('draws the same face every time when no seed is named', async () => {
+    const context = build();
+
+    const first = await context.app.request(`${BASE}/api/profiles/avatars/thumbs`);
+    const second = await context.app.request(`${BASE}/api/profiles/avatars/thumbs`);
+
+    expect(await first.text()).toBe(await second.text());
+  });
+
+  it('has no face in a style it does not draw', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/avatars/oil-painting`);
+
+    expect(response.status).toBe(404);
+  });
+
+  it('has no picture for a profile that has never been given one', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/${PROFILE_ID}/avatar`);
+
+    expect(response.status).toBe(404);
+  });
+
+  it('says who could sign in, which is nobody on a fresh server', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/everyone`);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ profiles: [] });
+  });
+
+  it('will not sign anybody in without a password', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/${PROFILE_ID}/sign-in`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: BASE },
+      body: JSON.stringify({}),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('will not sign anybody in from a request carrying nothing at all', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/${PROFILE_ID}/sign-in`, {
+      method: 'POST',
+      headers: { origin: BASE },
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('has nobody to sign in for a profile that does not exist', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/${PROFILE_ID}/sign-in`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: BASE },
+      body: JSON.stringify({ password: 'a-long-enough-password' }),
+    });
+
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('giving a profile a picture of its own', () => {
+  const signedInWithAProfile = async () => {
+    const context = build();
+    const cookie = await signedIn(context.app);
+
+    const listed = await context.app.request(`${BASE}/api/profiles`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    const { profiles } = z
+      .object({ profiles: z.array(z.object({ id: z.string() })) })
+      .parse(await listed.json());
+
+    return { context, cookie, profileId: profiles[0]?.id ?? '' };
+  };
+
+  it('keeps a picture somebody uploaded for their own profile', async () => {
+    const { context, cookie, profileId } = await signedInWithAProfile();
+
+    const response = await context.app.request(`${BASE}/api/profiles/${profileId}/photo`, {
+      method: 'PUT',
+      headers: { cookie, origin: BASE, 'content-type': 'image/webp' },
+      body: new Uint8Array([1, 2, 3]),
+    });
+
+    expect(response.status).toBe(204);
+  });
+
+  it('serves that picture back', async () => {
+    const { context, cookie, profileId } = await signedInWithAProfile();
+
+    await context.app.request(`${BASE}/api/profiles/${profileId}/photo`, {
+      method: 'PUT',
+      headers: { cookie, origin: BASE, 'content-type': 'image/webp' },
+      body: new Uint8Array([1, 2, 3]),
+    });
+
+    const response = await context.app.request(`${BASE}/api/profiles/${profileId}/avatar?v=2`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toContain('immutable');
+  });
+
+  it('refuses a picture for somebody else’s profile', async () => {
+    const { context, cookie } = await signedInWithAProfile();
+
+    const response = await context.app.request(
+      `${BASE}/api/profiles/3f2504e0-4f89-41d3-9a0c-0305e82c3301/photo`,
+      {
+        method: 'PUT',
+        headers: { cookie, origin: BASE, 'content-type': 'image/webp' },
+        body: new Uint8Array([1, 2, 3]),
+      },
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('turns away nobody trying to upload a picture', async () => {
+    const context = build();
+
+    const response = await context.app.request(
+      `${BASE}/api/profiles/3f2504e0-4f89-41d3-9a0c-0305e82c3301/photo`,
+      { method: 'PUT', headers: { origin: BASE, 'content-type': 'image/webp' } },
+    );
+
+    expect(response.status).toBe(401);
+  });
+});

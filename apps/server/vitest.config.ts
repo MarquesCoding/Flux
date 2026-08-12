@@ -10,7 +10,7 @@ export default defineConfig({
     },
     coverage: {
       exclude: ['src/db/Schema.ts', 'src/jobs/createInertJobQueue.ts'],
-      thresholds: { lines: 88, functions: 82, branches: 77, statements: 88 },
+      thresholds: { lines: 90, functions: 90, branches: 90, statements: 90 },
     },
   },
 });

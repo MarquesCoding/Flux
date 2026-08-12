@@ -128,3 +128,47 @@ describe('buildShowDetail', () => {
     expect(buildShowDetail([episode()], 'something-else')).toBeNull();
   });
 });
+
+describe('the ordering an episode list is read in', () => {
+  it('puts a later season after an earlier one, whatever the episodes are called', () => {
+    const shows = groupIntoShows([
+      episode({ id: identified(1), seasonNumber: 2, episodeNumber: 1, title: 'A' }),
+      episode({ id: identified(2), seasonNumber: 1, episodeNumber: 9, title: 'Z' }),
+    ]);
+
+    expect(shows[0]?.coverMediaId).toBe(identified(2));
+  });
+
+  it('falls back to the title when two episodes claim the same number', () => {
+    const shows = groupIntoShows([
+      episode({ id: identified(1), episodeNumber: 1, title: 'Second' }),
+      episode({ id: identified(2), episodeNumber: 1, title: 'First' }),
+    ]);
+
+    expect(shows[0]?.coverMediaId).toBe(identified(2));
+  });
+
+  it('treats an episode with no number as coming before the numbered ones', () => {
+    const shows = groupIntoShows([
+      episode({ id: identified(1), episodeNumber: 3 }),
+      episode({ id: identified(2), episodeNumber: null, title: 'A special' }),
+    ]);
+
+    expect(shows[0]?.coverMediaId).toBe(identified(2));
+  });
+
+  it('treats a date it cannot read as long ago rather than as now', () => {
+    const shows = groupIntoShows([
+      episode({ id: identified(1), addedAt: 'whenever', episodeNumber: 1 }),
+      episode({ id: identified(2), addedAt: '2026-08-02T00:00:00.000Z', episodeNumber: 2 }),
+    ]);
+
+    expect(shows[0]?.latestAddedAt).toBe('2026-08-02T00:00:00.000Z');
+  });
+
+  it('has no year for a series whose episodes all lack one', () => {
+    const shows = groupIntoShows([episode({ year: null })]);
+
+    expect(shows[0]?.year).toBeNull();
+  });
+});

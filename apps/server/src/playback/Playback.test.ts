@@ -9,6 +9,7 @@ import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemor
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
+import type { MediaDetail } from '@FluxContracts/schemas/Library';
 import { createMemoryPlaybackService } from './createMemoryPlaybackService';
 import { z } from 'zod';
 import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
@@ -720,5 +721,140 @@ describe('telling presence what is being watched', () => {
     );
 
     expect(response.status).toBe(200);
+  });
+
+  it('tells presence a conversion is a conversion, not a direct play', async () => {
+    const inTheLibrary: MediaDetail = {
+      id: MEDIA_ID,
+      libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+      title: 'Arrival',
+      year: 2016,
+      container: 'mkv',
+      durationSeconds: 7200,
+      videoCodec: 'hevc',
+      videoRange: 'HDR10',
+      width: 3840,
+      height: 2160,
+      bitrateKbps: 24000,
+      audioStreams: [],
+      subtitleStreams: [],
+      addedAt: '2026-08-10T00:00:00.000Z',
+      metadata: { hasPoster: false, hasBackdrop: true },
+    };
+
+    const presence = createPresenceService();
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    const app = signedInApp(
+      createApp({
+        auth,
+        settings,
+        permissions,
+        countUsers: () => Promise.resolve(1),
+        promoteToAdmin: () => Promise.resolve(),
+        library: createMemoryLibraryService({ libraries: [], media: [inTheLibrary] }),
+        subtitles: createMemorySubtitleService(),
+        segments: createMemorySegmentService(),
+        progress: createMemoryWatchProgressService(),
+        favourites: createMemoryFavouriteService(),
+        playback: createMemoryPlaybackService({
+          media: { [MEDIA_ID]: hdrMedia },
+          sessions: {},
+        }),
+        presence,
+      }),
+      { store, permissions, isAdministrator: true },
+    );
+
+    presence.connect('tab-1', null, null, 'Chrome on macOS', () => {});
+
+    const response = await app.request(
+      post(`/api/playback/${MEDIA_ID}/session`, {
+        deviceProfile: modestProfile,
+        clientId: 'tab-1',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(presence.list()[0]?.playback).toMatchObject({
+      mode: 'transcode',
+      hasBackdrop: true,
+    });
+  });
+
+  it('says nothing to presence about an item the library does not hold', async () => {
+    const presence = createPresenceService();
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    const app = signedInApp(
+      createApp({
+        auth,
+        settings,
+        permissions,
+        countUsers: () => Promise.resolve(1),
+        promoteToAdmin: () => Promise.resolve(),
+        library: createMemoryLibraryService(),
+        subtitles: createMemorySubtitleService(),
+        segments: createMemorySegmentService(),
+        progress: createMemoryWatchProgressService(),
+        favourites: createMemoryFavouriteService(),
+        playback: createMemoryPlaybackService({
+          media: { [MEDIA_ID]: hdrMedia },
+          sessions: {},
+        }),
+        presence,
+      }),
+      { store, permissions, isAdministrator: true },
+    );
+
+    presence.connect('tab-1', null, null, 'Chrome on macOS', () => {});
+
+    const response = await app.request(
+      post(`/api/playback/${MEDIA_ID}/session`, {
+        deviceProfile: capableProfile,
+        clientId: 'tab-1',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(presence.list()[0]?.playback).toBeNull();
+  });
+
+  it('passes on a failure the media service reported, rather than a session', async () => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+    const playback = createMemoryPlaybackService({
+      media: { [MEDIA_ID]: hdrMedia },
+      sessions: {},
+    });
+
+    const app = signedInApp(
+      createApp({
+        auth,
+        settings,
+        permissions,
+        countUsers: () => Promise.resolve(1),
+        promoteToAdmin: () => Promise.resolve(),
+        library: createMemoryLibraryService(),
+        subtitles: createMemorySubtitleService(),
+        segments: createMemorySegmentService(),
+        progress: createMemoryWatchProgressService(),
+        favourites: createMemoryFavouriteService(),
+        playback: {
+          ...playback,
+          start: () => Promise.resolve({ kind: 'failed', reason: 'ffmpeg would not start' }),
+        },
+      }),
+      { store, permissions, isAdministrator: true },
+    );
+
+    const response = await app.request(
+      post(`/api/playback/${MEDIA_ID}/session`, { deviceProfile: capableProfile }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toMatchObject({ error: 'ffmpeg would not start' });
   });
 });

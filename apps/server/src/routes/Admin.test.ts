@@ -8,6 +8,7 @@ import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibr
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
 import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
@@ -862,5 +863,164 @@ describe('watching and steering what is being watched', () => {
       controller.abort();
       await response.body?.cancel();
     });
+  });
+});
+
+describe('what the media service says about itself', () => {
+  const withMonitor = (
+    monitor?: () => Promise<JsonValue>,
+    monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>,
+  ) => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    const app = createApp({
+      auth,
+      settings,
+      permissions,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService({ libraries: [LIBRARY], media: [] }),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      subtitles: createMemorySubtitleService({}),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+      ...(monitor === undefined ? {} : { monitor }),
+      ...(monitorStream === undefined ? {} : { monitorStream }),
+    });
+
+    return { app, store, permissions };
+  };
+
+  it('passes on the reading it was given', async () => {
+    const context = withMonitor(() => Promise.resolve({ sessions: 2 }));
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ sessions: 2 });
+  });
+
+  it('says the media service did not answer, rather than answering with nothing', async () => {
+    const context = withMonitor(() => Promise.reject(new Error('unreachable')));
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(503);
+  });
+
+  it('says the same on a server with no media service behind it at all', async () => {
+    const context = withMonitor();
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(503);
+  });
+
+  it('holds a reading stream open for a page that is watching', async () => {
+    const context = withMonitor(undefined, () =>
+      Promise.resolve(
+        new ReadableStream<Uint8Array>({
+          start: (controller) => {
+            controller.enqueue(new TextEncoder().encode('data: {}\n\n'));
+            controller.close();
+          },
+        }),
+      ),
+    );
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor/stream`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/event-stream');
+  });
+
+  it('says the media service did not answer when there is no stream to hold', async () => {
+    const context = withMonitor(undefined, () => Promise.resolve(null));
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor/stream`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(503);
+  });
+
+  it('will not let an ordinary account watch the readings', async () => {
+    const context = withMonitor(() => Promise.resolve({ sessions: 0 }));
+    const cookie = await signedIn(context.app);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor/stream`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(403);
+  });
+});
+
+describe('searching the catalogue from the admin page', () => {
+  it('passes what the catalogue offered straight through', async () => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    const app = createApp({
+      auth,
+      settings,
+      permissions,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService({ libraries: [LIBRARY], media: [] }),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      subtitles: createMemorySubtitleService({}),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+      searchCatalogue: (query, kind) =>
+        Promise.resolve([
+          {
+            externalId: '329',
+            kind,
+            title: query,
+            year: 2016,
+            overview: null,
+            posterUrl: null,
+          },
+        ]),
+    });
+
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(
+      `${BASE}/api/admin/catalogue/search?query=Arrival&kind=movie`,
+      { headers: { cookie, origin: BASE } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ matches: [{ title: 'Arrival', kind: 'movie' }] });
+  });
+
+  it('offers nothing on a server with no catalogue behind it', async () => {
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(
+      `${BASE}/api/admin/catalogue/search?query=Arrival&kind=movie`,
+      { headers: { cookie, origin: BASE } },
+    );
+
+    expect(await response.json()).toEqual({ matches: [] });
   });
 });
