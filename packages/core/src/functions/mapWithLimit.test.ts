@@ -108,4 +108,22 @@ describe('mapWithLimit', () => {
       ),
     ).rejects.toThrow('no');
   });
+
+  it('skips a hole in a sparse list rather than working on nothing', async () => {
+    const sparse: number[] = [];
+
+    sparse[0] = 1;
+    sparse[2] = 3;
+    const seen: number[] = [];
+
+    const answers = await mapWithLimit(sparse, 2, (item) => {
+      seen.push(item);
+
+      return Promise.resolve(item * 2);
+    });
+
+    expect(seen).toEqual([1, 3]);
+    expect(answers[0]).toBe(2);
+    expect(answers[2]).toBe(6);
+  });
 });

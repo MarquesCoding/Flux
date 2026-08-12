@@ -6,7 +6,7 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     coverage: {
-      thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
+      thresholds: { lines: 90, functions: 90, branches: 90, statements: 90 },
     },
   },
 });

@@ -1,8 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SettingsMenu } from './SettingsMenu';
 import type { SettingsRow } from './SettingsMenu.types';
+import type * as MotionReact from 'motion/react';
+
+const motion = vi.hoisted(() => ({ isReduced: false }));
+
+vi.mock('motion/react', async () => ({
+  ...(await vi.importActual<typeof MotionReact>('motion/react')),
+  useReducedMotion: () => motion.isReduced,
+}));
 
 const SPEED: SettingsRow = {
   kind: 'choice',
@@ -23,6 +31,10 @@ const draw = (rows: SettingsRow[] = [SPEED], props: { onOpenChange?: () => void 
 const open = async (actor: ReturnType<typeof userEvent.setup>) => {
   await actor.click(screen.getByRole('button', { name: 'Settings' }));
 };
+
+afterEach(() => {
+  motion.isReduced = false;
+});
 
 describe('SettingsMenu', () => {
   it('keeps everything behind one control', () => {
@@ -207,5 +219,17 @@ describe('SettingsMenu', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(SettingsMenu.displayName).toBe('SettingsMenu');
+  });
+
+  it('opens without motion for somebody who asked for less', async () => {
+    motion.isReduced = true;
+
+    const user = userEvent.setup();
+
+    draw();
+
+    await open(user);
+
+    expect(await screen.findByRole('button', { name: /Playback speed/ })).toBeInTheDocument();
   });
 });

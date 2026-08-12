@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { FilePicker } from './FilePicker';
@@ -82,5 +82,21 @@ describe('FilePicker', () => {
     );
 
     expect(inputOf()).toBeDisabled();
+  });
+
+  it('ignores a chooser that was dismissed without picking anything', () => {
+    const onPick = vi.fn();
+
+    render(
+      <FilePicker label="Upload a photograph" accept="image/webp" onPick={onPick}>
+        <span>Choose</span>
+      </FilePicker>,
+    );
+
+    const input = inputOf();
+
+    fireEvent.change(input, { target: { files: [] } });
+
+    expect(onPick).not.toHaveBeenCalled();
   });
 });
