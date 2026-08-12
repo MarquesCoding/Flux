@@ -73,7 +73,7 @@ const JobsPanel = ({
         />
       ) : (
         <>
-          <header className="border-b border-white/10 px-5 py-3">
+          <header className="border-b border-white/10 px-6 py-4">
             <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Server Jobs</h2>
           </header>
 
@@ -85,7 +85,7 @@ const JobsPanel = ({
             onOpenSchedule={onOpenSchedule}
           />
 
-          <header className="flex flex-wrap items-baseline justify-between gap-3 border-y border-white/10 px-5 py-3">
+          <header className="flex flex-wrap items-baseline justify-between gap-3 border-y border-white/10 px-6 py-4">
             <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Background work</h2>
 
             <span className="text-xs text-text-muted">
@@ -98,11 +98,11 @@ const JobsPanel = ({
           </header>
 
           {monitor === null || monitor.queue.jobs.length === 0 ? (
-            <p className="p-5 text-sm text-text-muted">Nothing queued.</p>
+            <p className="p-6 text-sm text-text-muted">Nothing queued.</p>
           ) : (
             <ul className="max-h-96 divide-y divide-white/5 overflow-y-auto">
               {monitor.queue.jobs.map((job) => (
-                <li key={job.id} className="flex items-center gap-3 px-5 py-2.5 text-sm">
+                <li key={job.id} className="flex items-center gap-4 px-6 py-3 text-sm">
                   <Badge size="sm" tone={JOB_TONES[job.state]}>
                     {job.state}
                   </Badge>

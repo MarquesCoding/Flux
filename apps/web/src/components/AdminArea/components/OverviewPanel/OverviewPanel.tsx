@@ -46,7 +46,7 @@ const Card = ({
   onAction?: () => void;
   children: ReactNode;
 }) => (
-  <section className="flex flex-col gap-3 rounded-xl border border-white/10 bg-surface/40 p-4">
+  <section className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-surface/40 p-6">
     <header className="flex items-baseline justify-between gap-3">
       <h3 className="text-xs uppercase tracking-[0.16em] text-text-muted">{title}</h3>
 
@@ -97,7 +97,7 @@ const OverviewPanel = ({
   const resources = monitor?.resources ?? null;
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-6 p-6">
       <Card title="Needs attention">
         {concerns.length === 0 ? (
           <p className="flex items-center gap-2 text-sm text-text">
@@ -105,12 +105,12 @@ const OverviewPanel = ({
             Nothing needs attention.
           </p>
         ) : (
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-1.5">
             {concerns.map((concern) => (
               <li key={concern.id}>
                 <Button
                   variant="ghost"
-                  className="h-auto w-full justify-start gap-3 rounded-lg px-2 py-2 text-left"
+                  className="h-auto w-full justify-start gap-3 rounded-lg px-3 py-3 text-left"
                   onClick={() => {
                     onOpenPanel(concern.panel);
                   }}
@@ -136,7 +136,7 @@ const OverviewPanel = ({
         )}
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card
           title="Watching now"
           action="All sessions"
@@ -149,7 +149,7 @@ const OverviewPanel = ({
           ) : (
             <ul className="flex flex-col divide-y divide-white/5">
               {watching.map((session) => (
-                <li key={session.clientId} className="flex items-center gap-3 py-2 first:pt-0">
+                <li key={session.clientId} className="flex items-center gap-4 py-3 first:pt-0">
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate text-sm text-text">
                       {session.playback?.mediaTitle ?? ''}
@@ -184,7 +184,7 @@ const OverviewPanel = ({
           ) : (
             <ul className="flex flex-col divide-y divide-white/5">
               {running.map((job) => (
-                <li key={job.id} className="flex items-center gap-3 py-2 first:pt-0">
+                <li key={job.id} className="flex items-center gap-4 py-3 first:pt-0">
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate text-sm text-text">{job.subject}</span>
                     <span className="truncate text-xs text-text-muted">{job.kind}</span>
@@ -211,7 +211,7 @@ const OverviewPanel = ({
           ) : (
             <ul className="flex flex-col divide-y divide-white/5">
               {libraries.map((library) => (
-                <li key={library.id} className="flex items-center gap-3 py-2 first:pt-0">
+                <li key={library.id} className="flex items-center gap-4 py-3 first:pt-0">
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-center gap-2 text-sm text-text">
                       <span className="truncate">{library.name}</span>
@@ -238,7 +238,7 @@ const OverviewPanel = ({
             onOpenPanel('settings');
           }}
         >
-          <dl className="flex flex-col gap-2 text-sm">
+          <dl className="flex flex-col gap-3 text-sm">
             <div className="flex items-baseline justify-between gap-3">
               <dt className="text-text-muted">Media service</dt>
               <dd className="text-text">

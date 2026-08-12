@@ -309,7 +309,7 @@ const AdminArea = ({
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
-      className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 pb-16 pt-14 sm:px-10"
+      className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 pb-20 pt-14 sm:px-10"
     >
       <Tabs
         value={panel}
@@ -405,7 +405,7 @@ const AdminArea = ({
         <motion.div
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
-          className="flex flex-col gap-4 lg:grid lg:grid-cols-[13rem_1fr] lg:items-start lg:gap-6"
+          className="flex flex-col gap-6 lg:grid lg:grid-cols-[15rem_1fr] lg:items-start lg:gap-8"
         >
           <SideNav
             groups={SECTIONS.map((section) => ({

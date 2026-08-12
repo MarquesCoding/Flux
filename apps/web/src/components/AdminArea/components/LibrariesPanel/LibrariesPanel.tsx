@@ -40,7 +40,7 @@ const LibrariesPanel = ({
 
   return (
     <div className="flex flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-6 py-4">
         <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Library roots</h2>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -85,7 +85,7 @@ const LibrariesPanel = ({
       </header>
 
       {libraries.length === 0 ? (
-        <p className="p-5 text-sm text-text-muted">
+        <p className="p-6 text-sm text-text-muted">
           No libraries yet. Add one pointing at a folder of media.
         </p>
       ) : (
@@ -96,7 +96,7 @@ const LibrariesPanel = ({
             return (
               <li
                 key={library.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+                className="flex flex-wrap items-center justify-between gap-4 px-6 py-4"
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="flex items-center gap-2 text-sm text-text">

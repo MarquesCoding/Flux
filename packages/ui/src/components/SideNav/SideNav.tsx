@@ -23,14 +23,14 @@ const SideNav = ({ groups, label, className }: SideNavProps) => (
   <Tabs.List
     aria-label={label}
     className={cn(
-      'flux-rail flex gap-1 overflow-x-auto lg:flex-col lg:gap-4 lg:overflow-visible',
+      'flux-rail flex gap-1 overflow-x-auto lg:flex-col lg:gap-6 lg:overflow-visible',
       className,
     )}
   >
     {groups.map((group) => (
-      <div key={group.label ?? 'top'} className="flex shrink-0 gap-1 lg:flex-col lg:gap-0.5">
+      <div key={group.label ?? 'top'} className="flex shrink-0 gap-1 lg:flex-col lg:gap-1">
         {group.label === null ? null : (
-          <span className="hidden px-3 pb-1 text-xs uppercase tracking-[0.16em] text-text-muted lg:block">
+          <span className="hidden px-3.5 pb-2 text-xs uppercase tracking-[0.16em] text-text-muted lg:block">
             {group.label}
           </span>
         )}
@@ -40,7 +40,7 @@ const SideNav = ({ groups, label, className }: SideNavProps) => (
             key={item.id}
             value={item.id}
             className={cn(
-              'flex shrink-0 cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm',
+              'flex shrink-0 cursor-pointer items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm',
               'text-text-muted transition-colors hover:bg-white/[0.04] hover:text-text',
               'data-[selected]:bg-white/[0.06] data-[selected]:text-text',
             )}

@@ -21,7 +21,7 @@ const SettingsPanel = ({ overview, onCatalogueKeySaved }: SettingsPanelProps) =>
 
   return (
     <div className="grid gap-px bg-white/10 lg:grid-cols-2">
-      <div className="flex flex-col gap-4 bg-surface/40 p-5">
+      <div className="flex flex-col gap-5 bg-surface/40 p-6">
         <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Metadata catalogue</h2>
 
         <p className="text-sm text-text-muted">
@@ -63,7 +63,7 @@ const SettingsPanel = ({ overview, onCatalogueKeySaved }: SettingsPanelProps) =>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 bg-surface/40 p-5">
+      <div className="flex flex-col gap-5 bg-surface/40 p-6">
         <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Accounts</h2>
 
         <ul className="flex flex-col divide-y divide-white/5 text-sm">

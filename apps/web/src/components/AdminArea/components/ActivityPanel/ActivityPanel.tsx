@@ -26,7 +26,7 @@ const ActivityPanel = ({
   return (
     <>
       <div className="grid gap-px bg-white/10 lg:grid-cols-[1.4fr_1fr]">
-        <div className="flex flex-col gap-4 bg-surface/40 p-5">
+        <div className="flex flex-col gap-4 bg-surface/40 p-6">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-text-muted">
               <IconActivity size={14} aria-hidden />
@@ -51,7 +51,7 @@ const ActivityPanel = ({
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 bg-surface/40 p-5">
+        <div className="flex flex-col gap-4 bg-surface/40 p-6">
           <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Conversions</h2>
 
           {conversions.length === 0 ? (
@@ -86,7 +86,7 @@ const ActivityPanel = ({
         </div>
       </div>
 
-      <div className="flex flex-col gap-5 border-t border-white/10 bg-surface/40 p-5">
+      <div className="flex flex-col gap-5 border-t border-white/10 bg-surface/40 p-6">
         <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Active Sessions</h2>
 
         {sessions.length === 0 ? (
