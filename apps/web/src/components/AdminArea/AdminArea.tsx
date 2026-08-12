@@ -414,7 +414,7 @@ const AdminArea = ({
         <motion.div
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
-          className="flex flex-col gap-6 lg:grid lg:grid-cols-[15rem_1fr] lg:items-start lg:gap-8"
+          className="flex flex-col gap-6 lg:grid lg:grid-cols-[13rem_1fr] lg:items-start lg:gap-8"
         >
           <SideNav
             groups={SECTIONS.map((section) => ({

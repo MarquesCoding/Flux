@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { IconAlertTriangle, IconBan, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconAlertTriangle, IconBan, IconSelector, IconTrash } from '@tabler/icons-react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { OptionMenu } from '@FluxUI/OptionMenu';
@@ -255,13 +255,16 @@ const AccountsPanel = () => {
                 label="Add an exception"
                 align="start"
                 matchTriggerWidth
+                className="min-w-56 flex-1"
                 trigger={
-                  <Button variant="ghost" size="sm" isPill>
-                    <IconPlus size={16} aria-hidden />
-                    {addingPermission === null
-                      ? 'Pick a permission'
-                      : describePermission(addingPermission)}
-                  </Button>
+                  <span className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-text">
+                    <span className="min-w-0 truncate">
+                      {addingPermission === null
+                        ? 'Pick a permission'
+                        : describePermission(addingPermission)}
+                    </span>
+                    <IconSelector size={16} className="shrink-0 text-text-muted" aria-hidden />
+                  </span>
                 }
                 groups={groupPermissions(catalogue).map((group) => ({
                   name: group.label,
@@ -314,13 +317,21 @@ const AccountsPanel = () => {
           <div className="flex flex-col gap-2">
             <h4 className="text-xs font-medium text-text">Comes to</h4>
 
-            <div className="flex flex-wrap gap-1.5">
-              {(held?.effective ?? []).map((permission) => (
-                <Badge key={permission} size="sm">
-                  {permission}
-                </Badge>
-              ))}
-            </div>
+            {(held?.effective ?? []).includes('administrator') ? (
+              <p className="text-sm text-text-muted">
+                Everything, including anything added to Flux later.
+              </p>
+            ) : (held?.effective ?? []).length === 0 ? (
+              <p className="text-sm text-text-muted">Nothing at all.</p>
+            ) : (
+              <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                {(held?.effective ?? []).map((permission) => (
+                  <li key={permission} className="font-mono text-xs text-text-muted">
+                    {permission}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </section>
       )}
