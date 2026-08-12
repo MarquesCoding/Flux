@@ -175,6 +175,14 @@ pub fn thumbnail_count(duration_seconds: f64, interval_seconds: u32) -> u32 {
     }
 }
 
+/// What the source file is, as far as rendering thumbnails cares.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SheetSource {
+    pub width: u32,
+    pub height: u32,
+    pub duration_seconds: f64,
+}
+
 /// How many threads a thumbnail render may use.
 ///
 /// Deliberately a fraction of the machine. Rendering thumbnails is background
@@ -195,10 +203,18 @@ const RENDER_THREADS: u32 = 2;
 /// everything between them. Measured on a ninety minute film: fifteen seconds
 /// against several minutes. The `fps` filter still emits one image per
 /// interval, so the index and the sheets line up as before.
+///
+/// Decoding goes to the hardware when there is any. Skipping to keyframes
+/// keeps the number of frames small but not the cost of each one: a 10-bit
+/// HEVC keyframe is expensive to decode in software, and handing the whole
+/// pass to the decoder already in the machine took a fifty minute episode from
+/// thirteen processor-seconds to two and a half. The sheets themselves stay on
+/// the CPU, since JPEG is not something these encoders make.
 #[must_use]
 pub fn sheet_arguments(
     request: &TrickplayRequest,
     tile_height: u32,
+    accel: Option<&str>,
     directory: &Path,
 ) -> Vec<String> {
     let filter = format!(
@@ -210,13 +226,21 @@ pub fn sheet_arguments(
         rows = request.rows,
     );
 
-    vec![
+    let mut arguments = vec![
         "-hide_banner".to_owned(),
         "-loglevel".to_owned(),
         "error".to_owned(),
         "-nostdin".to_owned(),
         "-threads".to_owned(),
         RENDER_THREADS.to_string(),
+    ];
+
+    if let Some(flag) = accel {
+        arguments.push("-hwaccel".to_owned());
+        arguments.push(flag.to_owned());
+    }
+
+    arguments.extend([
         "-skip_frame".to_owned(),
         "nokey".to_owned(),
         "-i".to_owned(),
@@ -228,7 +252,9 @@ pub fn sheet_arguments(
         "-qscale:v".to_owned(),
         "5".to_owned(),
         directory.join("sheet-%03d.jpg").to_string_lossy().into(),
-    ]
+    ]);
+
+    arguments
 }
 
 /// Builds the `WebVTT` index.
@@ -361,23 +387,14 @@ impl TrickplayRegistry {
         ffmpeg: &str,
         cache_root: &Path,
         request: &TrickplayRequest,
-        source_width: u32,
-        source_height: u32,
-        duration_seconds: f64,
+        source: SheetSource,
+        accel: Option<&str>,
     ) -> Result<TrickplayIndex, TrickplayError> {
         let id = request.id();
         let gate = self.gate(&id).await;
         let permit = gate.lock().await;
 
-        let outcome = generate(
-            ffmpeg,
-            cache_root,
-            request,
-            source_width,
-            source_height,
-            duration_seconds,
-        )
-        .await;
+        let outcome = generate(ffmpeg, cache_root, request, source, accel).await;
 
         drop(permit);
         self.release(&id).await;
@@ -399,12 +416,11 @@ pub async fn generate(
     ffmpeg: &str,
     cache_root: &Path,
     request: &TrickplayRequest,
-    source_width: u32,
-    source_height: u32,
-    duration_seconds: f64,
+    source: SheetSource,
+    accel: Option<&str>,
 ) -> Result<TrickplayIndex, TrickplayError> {
-    let tile_height = tile_height_for(request.tile_width, source_width, source_height);
-    let count = thumbnail_count(duration_seconds, request.interval_seconds);
+    let tile_height = tile_height_for(request.tile_width, source.width, source.height);
+    let count = thumbnail_count(source.duration_seconds, request.interval_seconds);
 
     if count == 0 || request.columns == 0 || request.rows == 0 {
         return Err(TrickplayError::EmptyRequest);
@@ -434,7 +450,7 @@ pub async fn generate(
         .map_err(TrickplayError::Directory)?;
 
     let output = Command::new(ffmpeg)
-        .args(sheet_arguments(request, tile_height, &directory))
+        .args(sheet_arguments(request, tile_height, accel, &directory))
         .output()
         .await
         .map_err(TrickplayError::Spawn)?;
@@ -564,8 +580,33 @@ mod tests {
     }
 
     #[test]
+    fn decodes_on_the_hardware_when_there_is_some() {
+        let arguments = sheet_arguments(&request(), 180, Some("videotoolbox"), Path::new("/cache"));
+
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-hwaccel", "videotoolbox"]));
+    }
+
+    #[test]
+    fn asks_for_no_acceleration_on_a_machine_with_none() {
+        let arguments = sheet_arguments(&request(), 180, None, Path::new("/cache"));
+
+        assert!(!arguments.iter().any(|argument| argument == "-hwaccel"));
+    }
+
+    #[test]
+    fn still_only_decodes_keyframes_on_the_hardware() {
+        let arguments = sheet_arguments(&request(), 180, Some("cuda"), Path::new("/cache"));
+
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-skip_frame", "nokey"]));
+    }
+
+    #[test]
     fn sampling_happens_before_scaling_so_only_kept_frames_are_resized() {
-        let arguments = sheet_arguments(&request(), 180, Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, None, Path::new("/cache"));
         let filter = arguments
             .iter()
             .position(|argument| argument == "-vf")
@@ -577,7 +618,7 @@ mod tests {
 
     #[test]
     fn audio_and_subtitles_are_dropped_from_the_thumbnail_pass() {
-        let arguments = sheet_arguments(&request(), 180, Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, None, Path::new("/cache"));
 
         assert!(arguments.iter().any(|argument| argument == "-an"));
         assert!(arguments.iter().any(|argument| argument == "-sn"));
