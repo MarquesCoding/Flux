@@ -533,6 +533,52 @@ const app = createApp({
     return rows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }));
   },
   permissions,
+  banAccount: async (userId, reason) => {
+    const [found] = await db.select({ id: user.id }).from(user).where(eq(user.id, userId)).limit(1);
+
+    if (found === undefined) {
+      return false;
+    }
+
+    await db.update(user).set({ banned: true, banReason: reason }).where(eq(user.id, userId));
+    await db.delete(session).where(eq(session.userId, userId));
+
+    return true;
+  },
+  unbanAccount: async (userId) => {
+    const [found] = await db.select({ id: user.id }).from(user).where(eq(user.id, userId)).limit(1);
+
+    if (found === undefined) {
+      return false;
+    }
+
+    await db.update(user).set({ banned: false, banReason: null }).where(eq(user.id, userId));
+
+    return true;
+  },
+  removeAccount: async (userId) => {
+    const removed = await db.delete(user).where(eq(user.id, userId)).returning({ id: user.id });
+
+    return removed.length > 0;
+  },
+  isAccountBanned: async (userId) => {
+    const [found] = await db
+      .select({ banned: user.banned })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+
+    return found?.banned === true;
+  },
+  readBanReason: async (userId) => {
+    const [found] = await db
+      .select({ reason: user.banReason })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+
+    return found?.reason ?? null;
+  },
   capabilities: () => transcoder.capabilities(),
   monitor: () => transcoder.readMonitor(),
   monitorStream: () => transcoder.openMonitorStream(),
