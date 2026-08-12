@@ -125,6 +125,46 @@ pub struct VerifiedEncoder {
     pub verified: bool,
 }
 
+/// An encoder Flux knows how to drive but this machine would not run.
+///
+/// Kept rather than discarded, because the two worst faults in the hardware
+/// acceleration work were both encoders silently dropped for a reason that had
+/// nothing to do with the card: a probe too small for NVENC, and a probe with
+/// no device for VAAPI. Both were invisible for as long as rejection was a
+/// bare `false`. An operator who can read "no VA display found for
+/// /dev/dri/renderD128" can fix it in a minute.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RejectedEncoder {
+    pub encoder: String,
+    pub accel: HardwareAccel,
+    /// What ffmpeg said, trimmed to the part worth reading.
+    pub reason: String,
+}
+
+/// The last line of ffmpeg's complaint, which is usually the useful one.
+///
+/// A failed encoder open prints a paragraph of context and then the actual
+/// problem. Keeping all of it makes the admin page unreadable; keeping the
+/// first line usually keeps "Error while opening encoder" and throws away the
+/// reason.
+#[must_use]
+pub fn summarise_failure(stderr: &str) -> String {
+    const LIMIT: usize = 200;
+
+    let last = stderr
+        .lines()
+        .map(str::trim)
+        .rfind(|line| !line.is_empty())
+        .unwrap_or("the encoder would not open, and said nothing about why");
+
+    if last.chars().count() <= LIMIT {
+        return last.to_owned();
+    }
+
+    last.chars().take(LIMIT).collect()
+}
+
 /// What this machine can actually do.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -141,6 +181,19 @@ pub struct Capabilities {
     /// manage one and not the other.
     pub can_burn_text_subtitles: bool,
     pub can_burn_image_subtitles: bool,
+    /// Encoders that were offered and would not run, and what they said.
+    #[serde(default)]
+    pub rejected: Vec<RejectedEncoder>,
+    /// The hardware scalers this build actually has.
+    ///
+    /// A backend can only keep frames on the device end to end if the scaler
+    /// for its frames is compiled in. `scale_vt` arrived in `FFmpeg` 7.0, and
+    /// some builds ship `scale_npp` instead of `scale_cuda`, so the filter
+    /// Flux needs is a property of the binary rather than of the hardware.
+    /// Assuming it is there means a chain that fails and quietly falls back to
+    /// software, losing most of the point of the acceleration.
+    #[serde(default)]
+    pub hardware_scalers: Vec<String>,
 }
 
 /// Chooses a tone mapping route from the filters a build actually has.
@@ -213,6 +266,13 @@ pub fn parse_listed_encoders(output: &str) -> Vec<String> {
         .map(str::to_owned)
         .collect()
 }
+
+/// Every hardware scaler Flux might ask for.
+///
+/// Checked against the build rather than assumed, because which of these exist
+/// depends on how `FFmpeg` was compiled and on its version: `scale_vt` arrived
+/// in 7.0, and some builds ship `scale_npp` in place of `scale_cuda`.
+pub const HARDWARE_SCALERS: [&str; 4] = ["scale_vt", "scale_cuda", "vpp_qsv", "scale_vaapi"];
 
 /// The smallest picture the encoders Flux drives are known to accept.
 ///
@@ -295,12 +355,22 @@ pub fn probe_arguments(candidate: &EncoderCandidate, device: &str) -> Vec<String
 /// The frame has to be big enough for the encoder to entertain it, which is
 /// what [`PROBE_SIZE`] is about, and a backend that wants a device has to be
 /// handed one, which is what `device` is about.
-async fn verify_encoder(ffmpeg: &str, candidate: &EncoderCandidate, device: &str) -> bool {
-    Command::new(ffmpeg)
+async fn verify_encoder(
+    ffmpeg: &str,
+    candidate: &EncoderCandidate,
+    device: &str,
+) -> Result<(), String> {
+    let outcome = Command::new(ffmpeg)
         .args(probe_arguments(candidate, device))
         .output()
         .await
-        .is_ok_and(|output| output.status.success())
+        .map_err(|error| format!("could not start ffmpeg: {error}"))?;
+
+    if outcome.status.success() {
+        return Ok(());
+    }
+
+    Err(summarise_failure(&String::from_utf8_lossy(&outcome.stderr)))
 }
 
 async fn read_version(ffmpeg: &str) -> String {
@@ -347,22 +417,30 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
     };
 
     let mut encoders = Vec::new();
+    let mut rejected = Vec::new();
 
     for candidate in ENCODER_CANDIDATES {
         if !listed.iter().any(|name| name == candidate.encoder) {
             continue;
         }
 
-        if !verify_encoder(ffmpeg, candidate, device).await {
-            continue;
-        }
+        match verify_encoder(ffmpeg, candidate, device).await {
+            Ok(()) => encoders.push(VerifiedEncoder {
+                codec: candidate.codec.to_owned(),
+                encoder: candidate.encoder.to_owned(),
+                accel: candidate.accel,
+                verified: true,
+            }),
+            Err(reason) => {
+                eprintln!("capability: {} rejected — {reason}", candidate.encoder);
 
-        encoders.push(VerifiedEncoder {
-            codec: candidate.codec.to_owned(),
-            encoder: candidate.encoder.to_owned(),
-            accel: candidate.accel,
-            verified: true,
-        });
+                rejected.push(RejectedEncoder {
+                    encoder: candidate.encoder.to_owned(),
+                    accel: candidate.accel,
+                    reason,
+                });
+            }
+        }
     }
 
     let mut hardware_accels: Vec<HardwareAccel> = encoders
@@ -387,6 +465,12 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
         encoders,
         hardware_accels,
         tone_mapping: select_tone_mapping(&filters),
+        hardware_scalers: HARDWARE_SCALERS
+            .iter()
+            .filter(|scaler| filters.iter().any(|filter| filter == *scaler))
+            .map(|scaler| (*scaler).to_owned())
+            .collect(),
+        rejected,
         can_burn_text_subtitles: filters.iter().any(|filter| filter == "subtitles"),
         can_burn_image_subtitles: filters.iter().any(|filter| filter == "overlay"),
     }
@@ -569,6 +653,8 @@ mod tests {
             encoders,
             hardware_accels: Vec::new(),
             tone_mapping: ToneMapping::Unavailable,
+            rejected: Vec::new(),
+            hardware_scalers: Vec::new(),
             can_burn_text_subtitles: false,
             can_burn_image_subtitles: false,
         }
