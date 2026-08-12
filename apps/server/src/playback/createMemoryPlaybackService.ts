@@ -106,7 +106,17 @@ const createMemoryPlaybackService = (
       state.media[mediaId] === undefined ? null : new TextEncoder().encode('jpeg').buffer,
     ),
 
-  readPreview: () => Promise.resolve(null),
+  readPreview: (mediaId, range) =>
+    Promise.resolve(
+      state.media[mediaId] === undefined
+        ? null
+        : {
+            body: new TextEncoder().encode('clip').buffer,
+            contentType: 'video/mp4',
+            status: range === null ? 200 : 206,
+            contentRange: range === null ? null : 'bytes 0-3/4',
+          },
+    ),
 
   readTrickplayFile: (_, name) =>
     Promise.resolve(

@@ -196,22 +196,124 @@ fn content_type_for(name: &str) -> &'static str {
     }
 }
 
-async fn serve_file(directory: &Path, name: &str) -> Response {
+async fn serve_file(directory: &Path, name: &str, requested: Option<&str>) -> Response {
     if !is_safe_segment_name(name) {
         return error(StatusCode::BAD_REQUEST, "Invalid segment name.");
     }
 
-    let path: PathBuf = directory.join(name);
+    stream_file(
+        &directory.join(name),
+        content_type_for(name),
+        requested,
+        "No such segment.",
+    )
+    .await
+}
 
-    match tokio::fs::read(&path).await {
-        Ok(bytes) => (
-            StatusCode::OK,
-            [(header::CONTENT_TYPE, content_type_for(name))],
-            bytes,
-        )
-            .into_response(),
-        Err(_) => error(StatusCode::NOT_FOUND, "No such segment."),
+/// The `Range` header, if the caller sent a readable one.
+fn requested_range(headers: &HeaderMap) -> Option<&str> {
+    headers
+        .get(header::RANGE)
+        .and_then(|value| value.to_str().ok())
+}
+
+/// How much is lifted off disk at a time.
+///
+/// Large enough that a 20 MB clip is a few hundred reads rather than thousands,
+/// small enough that a hundred people watching at once is megabytes of buffers
+/// and not gigabytes.
+const STREAM_CHUNK: usize = 64 * 1024;
+
+/// Sends a file from disk without holding it in memory, honouring byte ranges.
+///
+/// Reading a whole file to answer for part of it is the wrong shape twice over.
+/// A preview is 18 MB and every request for one put all of it on the heap before
+/// a byte reached the viewer, which is why the first hover felt slow. An original
+/// file is measured in gigabytes, and a video element seeking through one asks
+/// for a few hundred kilobytes at a time — so answering a scrub by reading the
+/// whole film was the difference between a buffer and an outage.
+///
+/// Reads only the bytes asked for, a chunk at a time, and starts sending as soon
+/// as the first chunk lands.
+async fn stream_file(
+    path: &Path,
+    content_type: &str,
+    requested: Option<&str>,
+    missing: &str,
+) -> Response {
+    use tokio::io::{AsyncReadExt as _, AsyncSeekExt as _};
+
+    let Ok(metadata) = tokio::fs::metadata(path).await else {
+        return error(StatusCode::NOT_FOUND, missing);
+    };
+
+    let length = metadata.len();
+
+    let range = requested.and_then(|value| parse_range(value, length));
+
+    let (status, start, count) = match range {
+        Some(ref found) => (
+            StatusCode::PARTIAL_CONTENT,
+            found.start,
+            found.end.saturating_sub(found.start).saturating_add(1),
+        ),
+        None => (StatusCode::OK, 0, length),
+    };
+
+    let Ok(mut file) = tokio::fs::File::open(path).await else {
+        return error(StatusCode::NOT_FOUND, missing);
+    };
+
+    if start > 0 && file.seek(std::io::SeekFrom::Start(start)).await.is_err() {
+        return error(StatusCode::NOT_FOUND, missing);
     }
+
+    let body = Body::from_stream(async_stream::stream! {
+        let mut remaining = count;
+        let mut buffer = vec![0_u8; STREAM_CHUNK];
+
+        while remaining > 0 {
+            let want = usize::try_from(remaining)
+                .unwrap_or(STREAM_CHUNK)
+                .min(STREAM_CHUNK);
+
+            match file.read(&mut buffer[..want]).await {
+                Ok(0) => break,
+                Ok(read) => {
+                    remaining = remaining
+                        .saturating_sub(u64::try_from(read).unwrap_or(remaining));
+
+                    yield Ok::<_, std::io::Error>(
+                        axum::body::Bytes::copy_from_slice(&buffer[..read]),
+                    );
+                }
+                Err(problem) => {
+                    yield Err(problem);
+                    break;
+                }
+            }
+        }
+    });
+
+    let mut response = Response::builder()
+        .status(status)
+        .header(header::CONTENT_TYPE, content_type)
+        .header(header::ACCEPT_RANGES, "bytes")
+        .header(header::CONTENT_LENGTH, count);
+
+    if let Some(found) = range {
+        response = response.header(
+            header::CONTENT_RANGE,
+            format!("bytes {}-{}/{length}", found.start, found.end),
+        );
+    }
+
+    response.body(body).unwrap_or_else(|_| {
+        error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Could not send the file.",
+        )
+    })
 }
 
 #[allow(clippy::unused_async, reason = "axum handlers must be async")]
@@ -235,53 +337,15 @@ async fn direct_file(
         );
     }
 
-    let Ok(metadata) = tokio::fs::metadata(&path).await else {
-        return error(StatusCode::NOT_FOUND, "No such file.");
-    };
-
-    let length = metadata.len();
-
-    let Ok(bytes) = tokio::fs::read(&path).await else {
-        return error(StatusCode::NOT_FOUND, "No such file.");
-    };
-
-    let requested = headers
-        .get(header::RANGE)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| parse_range(value, length));
-
-    let content_type = content_type_for(&query.path);
-
-    match requested {
-        None => (
-            StatusCode::OK,
-            [
-                (header::CONTENT_TYPE, content_type.to_owned()),
-                (header::ACCEPT_RANGES, "bytes".to_owned()),
-            ],
-            bytes,
-        )
-            .into_response(),
-        Some(range) => {
-            let start = usize::try_from(range.start).unwrap_or(0);
-            let end = usize::try_from(range.end).unwrap_or(bytes.len() - 1);
-            let slice = bytes[start..=end.min(bytes.len() - 1)].to_vec();
-
-            (
-                StatusCode::PARTIAL_CONTENT,
-                [
-                    (header::CONTENT_TYPE, content_type.to_owned()),
-                    (header::ACCEPT_RANGES, "bytes".to_owned()),
-                    (
-                        header::CONTENT_RANGE,
-                        format!("bytes {}-{}/{length}", range.start, range.end),
-                    ),
-                ],
-                slice,
-            )
-                .into_response()
-        }
-    }
+    stream_file(
+        &path,
+        content_type_for(&query.path),
+        headers
+            .get(header::RANGE)
+            .and_then(|value| value.to_str().ok()),
+        "No such file.",
+    )
+    .await
 }
 
 async fn health() -> Json<serde_json::Value> {
@@ -356,12 +420,13 @@ async fn start_session(State(state): State<AppState>, Json(spec): Json<SessionSp
 async fn session_file(
     State(state): State<AppState>,
     AxumPath((id, name)): AxumPath<(String, String)>,
+    headers: HeaderMap,
 ) -> Response {
     let Some(directory) = state.registry.touch(&id).await else {
         return error(StatusCode::NOT_FOUND, "No such session.");
     };
 
-    serve_file(&directory, &name).await
+    serve_file(&directory, &name, requested_range(&headers)).await
 }
 
 /// Makes the short clip a library page plays.
@@ -464,10 +529,11 @@ async fn start_preview(
 async fn preview_file(
     State(state): State<AppState>,
     AxumPath((id, name)): AxumPath<(String, String)>,
+    headers: HeaderMap,
 ) -> Response {
     let directory = preview_directory(&state.registry.config().cache_root, &id);
 
-    serve_file(&directory, &name).await
+    serve_file(&directory, &name, requested_range(&headers)).await
 }
 
 /// Takes a single frame out of a file.
@@ -625,10 +691,12 @@ async fn start_trickplay(
 async fn trickplay_file(
     State(state): State<AppState>,
     AxumPath((id, name)): AxumPath<(String, String)>,
+    headers: HeaderMap,
 ) -> Response {
     serve_file(
         &directory_for(&state.registry.config().cache_root, &id),
         &name,
+        requested_range(&headers),
     )
     .await
 }

@@ -254,7 +254,7 @@ const createPlaybackService = ({
         .catch(() => null);
     },
 
-    readPreview: async (mediaId) => {
+    readPreview: async (mediaId, range) => {
       const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
@@ -269,7 +269,7 @@ const createPlaybackService = ({
         return null;
       }
 
-      return transcoder.readPreviewFile(clip.id, PREVIEW_NAME);
+      return transcoder.readPreviewFile(clip.id, PREVIEW_NAME, range);
     },
 
     readTrickplayFile: (trickplayId, name) => transcoder.readTrickplayFile(trickplayId, name),
