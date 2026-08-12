@@ -297,3 +297,88 @@ describe('planToSessionSpec', () => {
     });
   });
 });
+
+describe('sourceSize', () => {
+  it('carries the source size through so a hardware scaler can be sized', () => {
+    const outcome = planToSessionSpec({
+      plan: { ...directPlay, video: transcodeVideo },
+      inputPath: '/media/film.mkv',
+      sourceRange: 'SDR',
+      sourceSize: [1920, 800],
+      capabilities,
+      startSeconds: 0,
+      segmentSeconds: 4,
+    });
+
+    expect(outcome.kind === 'ok' && outcome.spec.sourceSize).toEqual([1920, 800]);
+  });
+
+  it('leaves it out when nobody said, rather than inventing one', () => {
+    const outcome = build({ ...directPlay, video: transcodeVideo });
+
+    expect(outcome.kind === 'ok' && 'sourceSize' in outcome.spec).toBe(false);
+  });
+});
+
+describe('forcedAccel', () => {
+  const withRejected = {
+    ...capabilities,
+    encoders: [{ codec: 'h264', encoder: 'libx264', accel: 'none' }],
+    rejected: [{ codec: 'h264', encoder: 'h264_vaapi', accel: 'vaapi' }],
+  };
+
+  it('uses an encoder the media service rejected when an operator insists', () => {
+    const outcome = planToSessionSpec({
+      plan: { ...directPlay, video: transcodeVideo },
+      inputPath: '/media/film.mkv',
+      sourceRange: 'SDR',
+      capabilities: withRejected,
+      forcedAccel: 'vaapi',
+      startSeconds: 0,
+      segmentSeconds: 4,
+    });
+
+    expect(outcome).toMatchObject({ kind: 'ok', spec: { hardwareAccel: 'vaapi' } });
+  });
+
+  it('leaves a rejected encoder rejected when nobody insisted', () => {
+    const outcome = planToSessionSpec({
+      plan: { ...directPlay, video: transcodeVideo },
+      inputPath: '/media/film.mkv',
+      sourceRange: 'SDR',
+      capabilities: withRejected,
+      startSeconds: 0,
+      segmentSeconds: 4,
+    });
+
+    expect(outcome).toMatchObject({ kind: 'ok', spec: { hardwareAccel: 'none' } });
+  });
+
+  it('still reaches software when the insisted backend is nowhere to be found', () => {
+    const outcome = planToSessionSpec({
+      plan: { ...directPlay, video: transcodeVideo },
+      inputPath: '/media/film.mkv',
+      sourceRange: 'SDR',
+      capabilities: withRejected,
+      forcedAccel: 'nvenc',
+      startSeconds: 0,
+      segmentSeconds: 4,
+    });
+
+    expect(outcome).toMatchObject({ kind: 'ok', spec: { hardwareAccel: 'none' } });
+  });
+
+  it('ignores an empty setting, which is the normal case', () => {
+    const outcome = planToSessionSpec({
+      plan: { ...directPlay, video: transcodeVideo },
+      inputPath: '/media/film.mkv',
+      sourceRange: 'SDR',
+      capabilities,
+      forcedAccel: '',
+      startSeconds: 0,
+      segmentSeconds: 4,
+    });
+
+    expect(outcome.kind).toBe('ok');
+  });
+});

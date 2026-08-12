@@ -160,6 +160,13 @@ impl Session {
 #[derive(Debug, Clone)]
 pub struct SessionConfig {
     pub ffmpeg: String,
+    /// The render node VAAPI and QSV are opened on.
+    ///
+    /// A machine with two cards has a `renderD129` as well, and the one Flux
+    /// should use is not something to guess at. Configurable for the same
+    /// reason Jellyfin asks for it rather than detecting it: the admin knows
+    /// which card is theirs to spend.
+    pub device: String,
     pub cache_root: PathBuf,
     pub idle_timeout: Duration,
     pub max_concurrent: usize,
@@ -169,6 +176,7 @@ impl Default for SessionConfig {
     fn default() -> Self {
         Self {
             ffmpeg: "ffmpeg".to_owned(),
+            device: crate::transcode_plan::DEFAULT_DEVICE.to_owned(),
             cache_root: std::env::temp_dir().join("flux-transcodes"),
             idle_timeout: Duration::from_secs(90),
             max_concurrent: 2,
@@ -246,9 +254,25 @@ impl SessionRegistry {
             return Ok(id);
         }
 
+        let scaler = spec
+            .hardware_accel
+            .pipeline()
+            .map(|pipeline| pipeline.scaler);
+
         let plan = TranscodePlan {
             spec: spec.clone(),
             output_directory: directory.to_string_lossy().into_owned(),
+            device: self.config.device.clone(),
+            has_hardware_scaler: match scaler {
+                Some(name) => {
+                    crate::capability::detect_capabilities(&self.config.ffmpeg, &self.config.device)
+                        .await
+                        .hardware_scalers
+                        .iter()
+                        .any(|found| found == name)
+                }
+                None => false,
+            },
         };
 
         drop(spawn_ffmpeg(&self.config.ffmpeg, &plan)?);
@@ -400,12 +424,28 @@ async fn run_attempt(
     }
 }
 
+/// Whether a failed attempt is worth trying again without hardware.
+///
+/// Any hardware encode that did not finish is retried in software, whatever
+/// the error said. This used to require the error to match one of seven
+/// phrases in ffmpeg's output, which meant a failure phrased any other way
+/// read as a bad file and the retry never happened — an encoder rejecting a
+/// source's caption SEI killed the stream outright, and the viewer was told
+/// their browser could not play it.
+///
+/// A retry that turns out to be pointless costs one attempt. A retry that
+/// should have happened costs the stream, so the doubt is spent on trying.
+///
+/// A cancelled attempt is nobody asking any more, so it stops. See ADR-0009.
+#[must_use]
+pub fn should_retry_in_software(outcome: ExitClass, uses_hardware: bool) -> bool {
+    uses_hardware && !matches!(outcome, ExitClass::Completed | ExitClass::Cancelled)
+}
+
 /// Supervises a transcode from start to finish.
 ///
 /// A hardware encoder that fails is retried once in software. A busy or broken
-/// GPU should mean a slower film, not a dead player. A bad input is not
-/// retried: retrying it in software just burns CPU and fails again. See
-/// ADR-0009.
+/// GPU should mean a slower film, not a dead player. See ADR-0009.
 async fn supervise(config: SessionConfig, plan: TranscodePlan, mut cancel: oneshot::Receiver<()>) {
     let directory = PathBuf::from(&plan.output_directory);
     let mut attempt = plan;
@@ -419,13 +459,20 @@ async fn supervise(config: SessionConfig, plan: TranscodePlan, mut cancel: onesh
             return;
         }
 
-        if outcome != ExitClass::HardwareFailure || !attempt.spec.uses_hardware() {
+        if !should_retry_in_software(outcome, attempt.spec.uses_hardware()) {
             return;
         }
+
+        eprintln!(
+            "transcode: hardware encode of {} failed ({outcome:?}), retrying in software",
+            attempt.spec.input_path
+        );
 
         attempt = TranscodePlan {
             spec: attempt.spec.without_hardware(),
             output_directory: attempt.output_directory,
+            device: attempt.device,
+            has_hardware_scaler: false,
         };
     }
 }
@@ -474,7 +521,9 @@ pub async fn await_manifest(path: &Path, timeout: Duration) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{classify_exit, ExitClass, SessionConfig, SessionRegistry};
+    use super::{
+        classify_exit, should_retry_in_software, ExitClass, SessionConfig, SessionRegistry,
+    };
 
     #[test]
     fn a_clean_exit_is_completion() {
@@ -516,6 +565,34 @@ mod tests {
             classify_exit(Some(1), "CANNOT LOAD LIBCUDA.SO.1"),
             ExitClass::HardwareFailure
         );
+    }
+
+    #[test]
+    fn retries_a_hardware_failure_in_software() {
+        assert!(should_retry_in_software(ExitClass::HardwareFailure, true));
+    }
+
+    #[test]
+    fn retries_a_failure_no_marker_recognised() {
+        let outcome = classify_exit(Some(1), "Unexpected end of SEI NAL Unit parsing size.");
+
+        assert_eq!(outcome, ExitClass::InputError);
+        assert!(should_retry_in_software(outcome, true));
+    }
+
+    #[test]
+    fn does_not_retry_what_already_ran_in_software() {
+        assert!(!should_retry_in_software(ExitClass::InputError, false));
+    }
+
+    #[test]
+    fn does_not_retry_a_cancelled_attempt() {
+        assert!(!should_retry_in_software(ExitClass::Cancelled, true));
+    }
+
+    #[test]
+    fn does_not_retry_something_that_worked() {
+        assert!(!should_retry_in_software(ExitClass::Completed, true));
     }
 
     #[tokio::test]

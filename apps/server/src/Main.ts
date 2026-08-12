@@ -87,6 +87,7 @@ const settings = createDatabaseSettingsStore({
     cookieSecure: env.COOKIE_SECURE,
     setupCompletedAt: null,
     catalogueApiKey: env.CATALOGUE_API_KEY,
+    hardwareAccel: '',
     seededJobTriggerKinds: [],
     seededRoleNames: [],
   },
@@ -499,6 +500,7 @@ const playbackService = createPlaybackService({
   sessionUrlPrefix: '/api/playback/session',
   directUrlPrefix: '/api/playback',
   trickplayUrlPrefix: '/api/playback/trickplay',
+  forcedAccel: async () => (await settings.read()).hardwareAccel,
 });
 
 const app = createApp({
@@ -664,6 +666,7 @@ const app = createApp({
   monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
+  transcoderAddress: env.TRANSCODER_URL,
   listRunningJobs: () => jobs.listRunning(),
   searchCatalogue: (query, kind) => catalogueProvider.search?.(query, kind) ?? Promise.resolve([]),
 });
@@ -709,4 +712,5 @@ serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   }
 
   process.stdout.write(`API reference at ${origin}/api/reference\n`);
+  process.stdout.write(`Media service dialled at ${env.TRANSCODER_URL}\n`);
 });

@@ -9,10 +9,60 @@ use flux_transcoder::{capability, probe};
 const DEFAULT_FFMPEG: &str = "ffmpeg";
 const DEFAULT_FFPROBE: &str = "ffprobe";
 const DEFAULT_SOCKET: &str = "/run/flux-transcoder.sock";
+const UNIX_PREFIX: &str = "unix:";
 const REAP_INTERVAL: Duration = Duration::from_secs(30);
 
 fn setting(variable: &str, fallback: &str) -> String {
     env::var(variable).unwrap_or_else(|_| fallback.to_owned())
+}
+
+fn from_env(variable: &str) -> Option<String> {
+    env::var(variable).ok()
+}
+
+/// Where the media service should listen.
+#[derive(Debug, PartialEq, Eq)]
+enum ListenTarget {
+    Socket(String),
+    Address(String),
+}
+
+/// Takes the socket path out of the address the server dials.
+///
+/// Only the `unix:` form is shared. One path both binds and dials a socket, so
+/// a single setting genuinely serves both ends; a network address is not
+/// shareable that way, because the host the server connects to is rarely the
+/// interface this process should bind to. That case keeps its own setting.
+fn socket_from_url(url: &str) -> Option<&str> {
+    url.strip_prefix(UNIX_PREFIX)
+}
+
+/// Decides where to listen, most specific setting winning.
+///
+/// `TRANSCODER_URL` is the variable the server already dials, so leaving both
+/// ends to it is what stops them disagreeing: there is no second setting to
+/// forget. `FLUX_TRANSCODER_ADDR` and `FLUX_TRANSCODER_SOCKET` stay for a
+/// deployment that puts the two halves on different machines, where the two
+/// addresses genuinely are different things.
+///
+/// A variable set to nothing counts as one not set at all: a compose file that
+/// names a variable it has no value for exports an empty string, which is not
+/// a path and should not be taken for one.
+fn listen_target(read: &impl Fn(&str) -> Option<String>) -> ListenTarget {
+    let configured = |variable: &str| read(variable).filter(|value| !value.trim().is_empty());
+
+    if let Some(address) = configured("FLUX_TRANSCODER_ADDR") {
+        return ListenTarget::Address(address);
+    }
+
+    if let Some(socket) = configured("FLUX_TRANSCODER_SOCKET") {
+        return ListenTarget::Socket(socket);
+    }
+
+    let shared =
+        configured("TRANSCODER_URL").and_then(|url| socket_from_url(&url).map(str::to_owned));
+
+    ListenTarget::Socket(shared.unwrap_or_else(|| DEFAULT_SOCKET.to_owned()))
 }
 
 fn session_config(ffmpeg: String) -> SessionConfig {
@@ -20,6 +70,7 @@ fn session_config(ffmpeg: String) -> SessionConfig {
 
     SessionConfig {
         ffmpeg,
+        device: from_env("FLUX_VAAPI_DEVICE").unwrap_or(defaults.device),
         cache_root: env::var("FLUX_TRANSCODE_DIR").map_or(defaults.cache_root, PathBuf::from),
         idle_timeout: env::var("FLUX_SESSION_IDLE_SECONDS")
             .ok()
@@ -71,21 +122,20 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
 
     spawn_reaper(registry.clone());
 
-    let result = if let Ok(address) = env::var("FLUX_TRANSCODER_ADDR") {
-        {
+    let result = match listen_target(&from_env) {
+        ListenTarget::Address(address) => {
             println!("flux-transcoder listening on {address}");
 
             match tokio::net::TcpListener::bind(&address).await {
                 Ok(listener) => axum::serve(listener, router).await,
                 Err(error) => {
                     eprintln!("could not bind {address}: {error}");
+                    eprintln!("set FLUX_TRANSCODER_ADDR to an interface this process can bind");
                     return;
                 }
             }
         }
-    } else {
-        {
-            let socket = setting("FLUX_TRANSCODER_SOCKET", DEFAULT_SOCKET);
+        ListenTarget::Socket(socket) => {
             let _ = tokio::fs::remove_file(&socket).await;
 
             println!("flux-transcoder listening on {socket}");
@@ -94,6 +144,9 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
                 Ok(listener) => axum::serve(listener, router).await,
                 Err(error) => {
                     eprintln!("could not bind {socket}: {error}");
+                    eprintln!(
+                        "set TRANSCODER_URL to {UNIX_PREFIX}<path> somewhere writable — the server dials the same variable"
+                    );
                     return;
                 }
             }
@@ -153,7 +206,9 @@ async fn main() {
             }
         }
         Some((command, _)) if command == "capabilities" => {
-            let capabilities = capability::detect_capabilities(&ffmpeg).await;
+            let capabilities =
+                capability::detect_capabilities(&ffmpeg, &session_config(ffmpeg.clone()).device)
+                    .await;
 
             println!(
                 "{}",
@@ -169,5 +224,89 @@ async fn main() {
             println!("flux-transcoder {}", env!("CARGO_PKG_VERSION"));
             println!("commands: serve, probe <file>, capabilities");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{listen_target, socket_from_url, ListenTarget, DEFAULT_SOCKET};
+
+    fn reading(pairs: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> {
+        let owned: Vec<(String, String)> = pairs
+            .iter()
+            .map(|(name, value)| ((*name).to_owned(), (*value).to_owned()))
+            .collect();
+
+        move |variable: &str| {
+            owned
+                .iter()
+                .find(|(name, _)| name == variable)
+                .map(|(_, value)| value.clone())
+        }
+    }
+
+    #[test]
+    fn takes_the_socket_the_server_dials() {
+        assert_eq!(
+            socket_from_url("unix:/tmp/flux.sock"),
+            Some("/tmp/flux.sock")
+        );
+    }
+
+    #[test]
+    fn leaves_a_network_address_to_its_own_setting() {
+        assert_eq!(socket_from_url("http://transcoder.internal:9000"), None);
+    }
+
+    #[test]
+    fn binds_the_socket_the_server_was_told_to_dial() {
+        let target = listen_target(&reading(&[("TRANSCODER_URL", "unix:/tmp/flux.sock")]));
+
+        assert_eq!(target, ListenTarget::Socket("/tmp/flux.sock".to_owned()));
+    }
+
+    #[test]
+    fn falls_back_to_the_packaged_socket_when_nothing_is_set() {
+        let target = listen_target(&reading(&[]));
+
+        assert_eq!(target, ListenTarget::Socket(DEFAULT_SOCKET.to_owned()));
+    }
+
+    #[test]
+    fn keeps_the_packaged_socket_when_the_server_dials_over_the_network() {
+        let target = listen_target(&reading(&[("TRANSCODER_URL", "http://transcoder:9000")]));
+
+        assert_eq!(target, ListenTarget::Socket(DEFAULT_SOCKET.to_owned()));
+    }
+
+    #[test]
+    fn lets_an_explicit_address_win() {
+        let target = listen_target(&reading(&[
+            ("TRANSCODER_URL", "unix:/tmp/flux.sock"),
+            ("FLUX_TRANSCODER_ADDR", "0.0.0.0:9000"),
+        ]));
+
+        assert_eq!(target, ListenTarget::Address("0.0.0.0:9000".to_owned()));
+    }
+
+    #[test]
+    fn lets_an_explicit_socket_win() {
+        let target = listen_target(&reading(&[
+            ("TRANSCODER_URL", "unix:/tmp/dialled.sock"),
+            ("FLUX_TRANSCODER_SOCKET", "/tmp/bound.sock"),
+        ]));
+
+        assert_eq!(target, ListenTarget::Socket("/tmp/bound.sock".to_owned()));
+    }
+
+    #[test]
+    fn treats_a_variable_set_to_nothing_as_unset() {
+        let target = listen_target(&reading(&[
+            ("FLUX_TRANSCODER_ADDR", ""),
+            ("FLUX_TRANSCODER_SOCKET", "   "),
+            ("TRANSCODER_URL", "unix:/tmp/flux.sock"),
+        ]));
+
+        assert_eq!(target, ListenTarget::Socket("/tmp/flux.sock".to_owned()));
     }
 }

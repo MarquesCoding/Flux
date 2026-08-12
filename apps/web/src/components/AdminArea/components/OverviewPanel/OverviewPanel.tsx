@@ -133,6 +133,13 @@ const OverviewPanel = ({
               </dd>
             </div>
 
+            {(overview?.transcoder.rejectedEncoders ?? []).map((rejected) => (
+              <div key={rejected.encoder} className="flex flex-col gap-1">
+                <dt className="text-text-muted">{rejected.encoder} was not used</dt>
+                <dd className="text-xs text-text-muted">{rejected.reason}</dd>
+              </div>
+            ))}
+
             <div className="flex items-baseline justify-between gap-3">
               <dt className="text-text-muted">Processors</dt>
               <dd className="tabular-nums text-text">

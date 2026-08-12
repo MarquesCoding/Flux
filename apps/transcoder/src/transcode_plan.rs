@@ -138,6 +138,18 @@ pub struct SessionSpec {
     pub audio_stream_index: Option<u32>,
     #[serde(default = "SubtitleAction::none")]
     pub subtitles: SubtitleAction,
+    /// The source picture's size, when the caller knows it.
+    ///
+    /// A hardware scaler is given the exact output size rather than an
+    /// expression: `scale_vt` takes no `force_original_aspect_ratio`, and what
+    /// the others accept in that field differs between them and between
+    /// `FFmpeg` releases. Working the size out here keeps one answer for every
+    /// backend and lets it be tested without a GPU.
+    ///
+    /// Absent means the size is unknown, and a chain that would need to resize
+    /// stays on the software filter rather than guessing.
+    #[serde(default)]
+    pub source_size: Option<(u32, u32)>,
 }
 
 impl SessionSpec {
@@ -212,6 +224,7 @@ impl SessionSpec {
         hasher.update(format!("{:?}", self.audio).as_bytes());
         hasher.update(format!("{:?}", self.audio_stream_index).as_bytes());
         hasher.update(format!("{:?}", self.subtitles).as_bytes());
+        hasher.update(format!("{:?}", self.source_size).as_bytes());
 
         let digest = hasher.finalize();
         let mut id = String::with_capacity(32);
@@ -321,6 +334,49 @@ pub fn software_equivalent(encoder: &str) -> &'static str {
     "libx264"
 }
 
+/// Whether this session can run without ever bringing frames back.
+///
+/// A single gate answering yes or no for the whole session, rather than
+/// downloading and re-uploading around individual filters. That is the shape
+/// Jellyfin settled on, and the reasoning holds here: the combinations that
+/// force frames down are the ones a mixed chain gets wrong, and a chain that
+/// is entirely one thing or entirely the other can be read and tested.
+///
+/// It says no when:
+///
+/// - this build has no scaler for the backend's frames;
+/// - the backend has no end-to-end pipeline, which is `Amf`, `Rkmpp` and no
+///   acceleration at all;
+/// - subtitles are being drawn on, since `subtitles` and `overlay` are
+///   software only;
+/// - HDR is being converted, since `zscale` and `tonemap` are software and
+///   `libplacebo` is a different filter with its own setup;
+/// - the picture has to be resized and nobody said how big it is, because the
+///   hardware scalers need a number rather than an expression.
+///
+/// Saying no costs what Flux does today. Saying yes wrongly costs a session
+/// that will not start, so each answer is a fact about the spec rather than a
+/// guess about the machine.
+#[must_use]
+pub fn keeps_frames_on_the_gpu(spec: &SessionSpec, has_hardware_scaler: bool) -> bool {
+    if !has_hardware_scaler {
+        return false;
+    }
+
+    if spec.hardware_accel.pipeline().is_none() {
+        return false;
+    }
+
+    if !matches!(spec.subtitles, SubtitleAction::None) {
+        return false;
+    }
+
+    match &spec.video {
+        VideoAction::Copy => false,
+        VideoAction::Encode { tone_map, .. } => tone_map.is_none() && spec.source_size.is_some(),
+    }
+}
+
 /// The complete video filter chain.
 ///
 /// Tone mapping runs before scaling: converting a smaller picture is cheaper,
@@ -353,6 +409,155 @@ pub fn video_filter_chain(
     steps.join(",")
 }
 
+/// What a backend needs to keep frames on the GPU from decode to encode.
+///
+/// Named per backend rather than derived, because the three parts do not
+/// follow from each other: `NVENC` decodes as `cuda` and scales with
+/// `scale_cuda`, `QSV` scales with `vpp_qsv` and is set up through a `VAAPI`
+/// device on Linux, and `VideoToolbox` needs no device at all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HardwarePipeline {
+    /// What `-hwaccel_output_format` must be for frames to stay put.
+    pub output_format: &'static str,
+    /// The scaler that works on this backend's frames.
+    pub scaler: &'static str,
+}
+
+impl HardwareAccel {
+    /// The pipeline this backend can run end to end, if it can run one.
+    ///
+    /// `Amf` has none: its `-hwaccel` here is `d3d11va`, which is Windows only,
+    /// and AMD on Linux goes through `VAAPI` instead — as ADR-0010 says, AMF
+    /// there wants the closed `amdgpu-pro` driver. `Rkmpp` has none because
+    /// nobody has tested one. Both keep working exactly as before, on the
+    /// software filter chain.
+    #[must_use]
+    pub fn pipeline(self) -> Option<HardwarePipeline> {
+        match self {
+            Self::VideoToolbox => Some(HardwarePipeline {
+                output_format: "videotoolbox_vld",
+                scaler: "scale_vt",
+            }),
+            Self::Nvenc => Some(HardwarePipeline {
+                output_format: "cuda",
+                scaler: "scale_cuda",
+            }),
+            Self::Qsv => Some(HardwarePipeline {
+                output_format: "qsv",
+                scaler: "vpp_qsv",
+            }),
+            Self::Vaapi => Some(HardwarePipeline {
+                output_format: "vaapi",
+                scaler: "scale_vaapi",
+            }),
+            Self::None | Self::Amf | Self::Rkmpp => None,
+        }
+    }
+
+    /// Whether a probe of this backend has to open a device first.
+    ///
+    /// Only VAAPI. It cannot open an encoder without one, which is the whole
+    /// bug this exists to fix.
+    ///
+    /// QSV is deliberately excluded even though it derives from a VAAPI device
+    /// when transcoding. Measured on an Intel iGPU, `h264_qsv` verifies with no
+    /// device at all — it finds its own. Forcing a guessed path into its probe
+    /// would reject a machine whose render node is `renderD129`, breaking
+    /// hardware encoding on the one platform that already worked. The pipeline
+    /// still shares a device; only the probe leaves well alone.
+    #[must_use]
+    pub fn needs_device_to_probe(self) -> bool {
+        matches!(self, Self::Vaapi)
+    }
+
+    /// Whether this backend encodes from frames already on its own device.
+    ///
+    /// VAAPI will not take a software frame: it has to be uploaded first, which
+    /// is why a probe for it needs `format=nv12,hwupload` where NVENC and
+    /// `VideoToolbox` take the frame as it comes. QSV accepts either, and is left
+    /// out so its probe stays the simpler of the two.
+    #[must_use]
+    pub fn needs_uploaded_frames(self) -> bool {
+        matches!(self, Self::Vaapi)
+    }
+
+    /// The device arguments this backend needs before the input.
+    ///
+    /// `VAAPI` has to be pointed at a render node. `QSV` on Linux is a layer
+    /// over `VAAPI`, so its device is derived from one rather than opened
+    /// separately — that shared pool is what lets decode, scale and encode
+    /// pass frames without copying. `NVENC` and `VideoToolbox` find their own.
+    #[must_use]
+    pub fn device_arguments(self, device: &str) -> Vec<String> {
+        match self {
+            Self::Vaapi => vec![
+                "-init_hw_device".to_owned(),
+                format!("vaapi=va:{device}"),
+                "-filter_hw_device".to_owned(),
+                "va".to_owned(),
+            ],
+            Self::Qsv => vec![
+                "-init_hw_device".to_owned(),
+                format!("vaapi=va:{device}"),
+                "-init_hw_device".to_owned(),
+                "qsv=qs@va".to_owned(),
+                "-filter_hw_device".to_owned(),
+                "qs".to_owned(),
+            ],
+            _ => Vec::new(),
+        }
+    }
+}
+
+/// The render node a `VAAPI` or `QSV` pipeline is opened on.
+pub const DEFAULT_DEVICE: &str = "/dev/dri/renderD128";
+
+/// Fits a picture inside a box without stretching it or growing it.
+///
+/// The software chain says this with `force_original_aspect_ratio=decrease`.
+/// The hardware scalers do not all have that option, and the obvious
+/// expression — clamping each axis on its own — silently squashes anything
+/// whose shape differs from the box: a 1920x800 film asked to fit 1280x720
+/// comes out 1280x720 rather than 1280x532. So the arithmetic happens here,
+/// once, and every backend is handed the answer.
+///
+/// Both axes are rounded down to even numbers, which every encoder here needs
+/// for chroma subsampling.
+#[must_use]
+pub fn fitted_size(source: (u32, u32), max_width: u32, max_height: u32) -> (u32, u32) {
+    let (width, height) = source;
+
+    if width == 0 || height == 0 {
+        return (max_width & !1, max_height & !1);
+    }
+
+    let by_width = u64::from(width) * u64::from(max_height);
+    let by_height = u64::from(height) * u64::from(max_width);
+    let limited = by_width.min(by_height);
+
+    let fitted_width = u32::try_from(limited / u64::from(height)).unwrap_or(max_width);
+    let fitted_height = u32::try_from(limited / u64::from(width)).unwrap_or(max_height);
+
+    (
+        (fitted_width.min(width).max(2)) & !1,
+        (fitted_height.min(height).max(2)) & !1,
+    )
+}
+
+/// Keeps a source's closed captions out of an encode.
+///
+/// `h264_videotoolbox` carries A53 captions through by default and fails
+/// outright on some sources that have them — "Unexpected end of SEI NAL Unit
+/// parsing size" — which kills the whole session for a picture that would
+/// otherwise encode. Flux delivers subtitles as separate tracks, so there was
+/// never anything to preserve here.
+///
+/// Passed to every encoder rather than only the ones known to accept it. An
+/// encoder without the option ignores it and carries on; ffmpeg says so above
+/// `error` level, which is quieter than a list of encoder names that has to be
+/// right for ever.
+pub const NO_EMBEDDED_CAPTIONS: [&str; 2] = ["-a53cc", "0"];
+
 /// A fully resolved transcode instruction.
 ///
 /// The `FFmpeg` command line is always built from this struct and never
@@ -363,6 +568,20 @@ pub fn video_filter_chain(
 pub struct TranscodePlan {
     pub spec: SessionSpec,
     pub output_directory: String,
+    /// The render node VAAPI and QSV are opened on.
+    ///
+    /// A property of the host rather than of the output, so it is deliberately
+    /// not part of the session key: pointing Flux at a different card should
+    /// not orphan every segment already on disk.
+    pub device: String,
+    /// Whether this build has the scaler this backend's frames need.
+    ///
+    /// Asked rather than assumed. `scale_vt` arrived in `FFmpeg` 7.0 and some
+    /// builds ship `scale_npp` in place of `scale_cuda`, so the filter is a
+    /// property of the binary. Assuming it exists produces a chain that fails
+    /// and falls back to software, which costs most of the saving and says
+    /// nothing about why.
+    pub has_hardware_scaler: bool,
 }
 
 /// The manifest file every session writes.
@@ -398,6 +617,24 @@ impl TranscodePlan {
                 args.push(encoder.clone());
                 args.push("-b:v".into());
                 args.push(format!("{max_bitrate_kbps}k"));
+                args.extend(
+                    NO_EMBEDDED_CAPTIONS
+                        .iter()
+                        .map(|argument| (*argument).to_owned()),
+                );
+                if let (true, Some(pipeline), Some(source)) = (
+                    keeps_frames_on_the_gpu(&self.spec, self.has_hardware_scaler),
+                    self.spec.hardware_accel.pipeline(),
+                    self.spec.source_size,
+                ) {
+                    let (width, height) = fitted_size(source, *max_width, *max_height);
+
+                    args.push("-vf".into());
+                    args.push(format!("{}=w={width}:h={height}", pipeline.scaler));
+
+                    return is_mapped;
+                }
+
                 let text_burn_in = match &self.spec.subtitles {
                     SubtitleAction::BurnIn {
                         subtitle_index,
@@ -446,9 +683,22 @@ impl TranscodePlan {
             "error".into(),
         ];
 
+        let on_the_gpu = keeps_frames_on_the_gpu(&self.spec, self.has_hardware_scaler);
+
+        if on_the_gpu {
+            args.extend(self.spec.hardware_accel.device_arguments(&self.device));
+        }
+
         if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
             args.push("-hwaccel".into());
             args.push(flag.into());
+        }
+
+        if on_the_gpu {
+            if let Some(pipeline) = self.spec.hardware_accel.pipeline() {
+                args.push("-hwaccel_output_format".into());
+                args.push(pipeline.output_format.into());
+            }
         }
 
         if self.spec.start_seconds > 0 {
@@ -512,8 +762,8 @@ impl TranscodePlan {
 #[cfg(test)]
 mod tests {
     use super::{
-        software_equivalent, AudioAction, HardwareAccel, SessionSpec, SubtitleAction,
-        TranscodePlan, VideoAction,
+        fitted_size, keeps_frames_on_the_gpu, software_equivalent, AudioAction, HardwareAccel,
+        SessionSpec, SubtitleAction, ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE,
     };
 
     fn spec() -> SessionSpec {
@@ -526,11 +776,258 @@ mod tests {
             audio: AudioAction::Copy,
             audio_stream_index: None,
             subtitles: SubtitleAction::None,
+            source_size: None,
         }
+    }
+
+    fn keeps_frames_on_the_gpu_of(spec: &SessionSpec) -> bool {
+        keeps_frames_on_the_gpu(spec, true)
+    }
+
+    fn on_gpu(accel: HardwareAccel) -> SessionSpec {
+        SessionSpec {
+            hardware_accel: accel,
+            source_size: Some((1920, 800)),
+            video: VideoAction::Encode {
+                encoder: "h264".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: None,
+            },
+            ..spec()
+        }
+    }
+
+    #[test]
+    fn fits_a_wide_picture_without_squashing_it() {
+        assert_eq!(fitted_size((1920, 800), 1280, 720), (1280, 532));
+    }
+
+    #[test]
+    fn fits_a_tall_picture_by_its_height() {
+        assert_eq!(fitted_size((1440, 1080), 1280, 720), (960, 720));
+    }
+
+    #[test]
+    fn never_grows_a_small_picture() {
+        assert_eq!(fitted_size((640, 480), 1920, 1080), (640, 480));
+    }
+
+    #[test]
+    fn keeps_both_axes_even() {
+        let (width, height) = fitted_size((1919, 803), 1280, 720);
+
+        assert_eq!(width % 2, 0);
+        assert_eq!(height % 2, 0);
+    }
+
+    #[test]
+    fn survives_a_source_of_no_size() {
+        assert_eq!(fitted_size((0, 0), 1280, 720), (1280, 720));
+    }
+
+    #[test]
+    fn keeps_frames_on_the_gpu_for_a_plain_rescale() {
+        assert!(keeps_frames_on_the_gpu_of(&on_gpu(
+            HardwareAccel::VideoToolbox
+        )));
+    }
+
+    #[test]
+    fn comes_back_down_to_draw_subtitles() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: false,
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert!(!keeps_frames_on_the_gpu_of(&spec));
+    }
+
+    #[test]
+    fn comes_back_down_to_tone_map() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: Some(ToneMapping::Zscale),
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert!(!keeps_frames_on_the_gpu_of(&spec));
+    }
+
+    #[test]
+    fn will_not_guess_a_size_it_was_not_given() {
+        let spec = SessionSpec {
+            source_size: None,
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert!(!keeps_frames_on_the_gpu_of(&spec));
+    }
+
+    #[test]
+    fn stays_in_software_when_the_build_has_no_scaler() {
+        let spec = on_gpu(HardwareAccel::VideoToolbox);
+
+        assert!(keeps_frames_on_the_gpu(&spec, true));
+        assert!(
+            !keeps_frames_on_the_gpu(&spec, false),
+            "a chain that names a filter this build lacks fails and falls back for no reason"
+        );
+    }
+
+    #[test]
+    fn leaves_backends_with_no_pipeline_alone() {
+        for accel in [
+            HardwareAccel::Amf,
+            HardwareAccel::Rkmpp,
+            HardwareAccel::None,
+        ] {
+            assert!(
+                !keeps_frames_on_the_gpu_of(&on_gpu(accel)),
+                "{accel:?} has no end to end pipeline"
+            );
+        }
+    }
+
+    #[test]
+    fn opens_the_device_it_was_given_rather_than_a_fixed_one() {
+        let plan = TranscodePlan {
+            spec: on_gpu(HardwareAccel::Vaapi),
+            output_directory: "/transcodes/abc".into(),
+            has_hardware_scaler: true,
+            device: "/dev/dri/renderD129".into(),
+        };
+
+        assert!(plan
+            .to_ffmpeg_args()
+            .windows(2)
+            .any(|pair| pair == ["-init_hw_device", "vaapi=va:/dev/dri/renderD129"]));
+    }
+
+    #[test]
+    fn a_copy_needs_no_pipeline() {
+        let spec = SessionSpec {
+            video: VideoAction::Copy,
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert!(!keeps_frames_on_the_gpu_of(&spec));
+    }
+
+    #[test]
+    fn names_the_output_format_so_frames_stay_put() {
+        let args = plan(on_gpu(HardwareAccel::VideoToolbox)).to_ffmpeg_args();
+
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-hwaccel_output_format", "videotoolbox_vld"]));
+    }
+
+    #[test]
+    fn scales_on_the_backends_own_filter() {
+        let cases = [
+            (HardwareAccel::VideoToolbox, "scale_vt=w=1280:h=532"),
+            (HardwareAccel::Nvenc, "scale_cuda=w=1280:h=532"),
+            (HardwareAccel::Qsv, "vpp_qsv=w=1280:h=532"),
+            (HardwareAccel::Vaapi, "scale_vaapi=w=1280:h=532"),
+        ];
+
+        for (accel, expected) in cases {
+            let args = plan(on_gpu(accel)).to_ffmpeg_args();
+            let filters = args
+                .iter()
+                .position(|argument| argument == "-vf")
+                .and_then(|at| args.get(at + 1))
+                .expect("a filter chain");
+
+            assert_eq!(filters, expected, "{accel:?}");
+        }
+    }
+
+    #[test]
+    fn opens_a_render_node_for_the_backends_that_need_one() {
+        let args = plan(on_gpu(HardwareAccel::Vaapi)).to_ffmpeg_args();
+
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-init_hw_device", "vaapi=va:/dev/dri/renderD128"]));
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-filter_hw_device", "va"]));
+    }
+
+    #[test]
+    fn derives_the_qsv_device_from_a_vaapi_one() {
+        let args = plan(on_gpu(HardwareAccel::Qsv)).to_ffmpeg_args();
+
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-init_hw_device", "vaapi=va:/dev/dri/renderD128"]));
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-init_hw_device", "qsv=qs@va"]));
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-filter_hw_device", "qs"]));
+    }
+
+    #[test]
+    fn asks_for_no_device_where_none_is_needed() {
+        for accel in [HardwareAccel::VideoToolbox, HardwareAccel::Nvenc] {
+            let args = plan(on_gpu(accel)).to_ffmpeg_args();
+
+            assert!(
+                !args.iter().any(|argument| argument == "-init_hw_device"),
+                "{accel:?} finds its own device"
+            );
+        }
+    }
+
+    #[test]
+    fn a_software_chain_is_left_exactly_as_it_was() {
+        let spec = SessionSpec {
+            source_size: None,
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        let args = plan(spec).to_ffmpeg_args();
+        let filters = args
+            .iter()
+            .position(|argument| argument == "-vf")
+            .and_then(|at| args.get(at + 1))
+            .expect("a filter chain");
+
+        assert!(filters.contains("force_original_aspect_ratio=decrease"));
+        assert!(filters.contains("format=yuv420p"));
+        assert!(!args
+            .iter()
+            .any(|argument| argument == "-hwaccel_output_format"));
+    }
+
+    #[test]
+    fn a_different_source_size_is_a_different_session() {
+        let one = on_gpu(HardwareAccel::VideoToolbox);
+        let other = SessionSpec {
+            source_size: Some((1920, 1080)),
+            ..one.clone()
+        };
+
+        assert_ne!(one.session_id(), other.session_id());
     }
 
     fn plan(spec: SessionSpec) -> TranscodePlan {
         TranscodePlan {
+            device: DEFAULT_DEVICE.to_owned(),
+            has_hardware_scaler: true,
             spec,
             output_directory: "/transcodes/abc".into(),
         }
@@ -542,6 +1039,30 @@ mod tests {
 
         assert!(args.windows(2).any(|w| w == ["-c:v", "copy"]));
         assert!(args.windows(2).any(|w| w == ["-c:a", "copy"]));
+    }
+
+    #[test]
+    fn keeps_a_sources_captions_out_of_an_encode() {
+        let args = plan(SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264_videotoolbox".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1920,
+                max_height: 1080,
+                tone_map: None,
+            },
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|w| w == ["-a53cc", "0"]));
+    }
+
+    #[test]
+    fn leaves_a_copied_stream_alone() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(!args.iter().any(|argument| argument == "-a53cc"));
     }
 
     #[test]

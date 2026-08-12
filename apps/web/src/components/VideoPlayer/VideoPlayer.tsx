@@ -23,6 +23,10 @@ import {
 } from '@FluxWeb/playback/startPlaybackSession';
 import { attachShaka } from '@FluxWeb/playback/attachShaka';
 import {
+  describePlaybackFailure,
+  PlaybackEngineErrorSchema,
+} from '@FluxWeb/playback/describePlaybackFailure';
+import {
   watchCastState,
   isReachableOrigin,
   promptForDevice,
@@ -701,9 +705,11 @@ const VideoPlayer = ({
 
           start(element);
         }
-      } catch {
+      } catch (error) {
         if (!isAbandoned()) {
-          setProblem('This browser could not play the stream.');
+          const engine = PlaybackEngineErrorSchema.safeParse(error);
+
+          setProblem(describePlaybackFailure(engine.success ? engine.data.category : null));
           setState('failed');
         }
       }

@@ -120,6 +120,12 @@ importers:
         specifier: ^3.0.2
         version: 3.2.7(@types/debug@4.1.13)(@types/node@24.13.3)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.23.11)(yaml@2.9.0)
 
+  apps/transcoder:
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.11
+
   apps/web:
     dependencies:
       '@flux/contracts':

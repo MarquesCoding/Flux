@@ -22,8 +22,15 @@ const OVERVIEW: AdminOverview = {
     hasCatalogueKey: false,
     trustedOrigins: ['http://localhost:5173'],
     cookieSecure: false,
+    hardwareAccel: '',
   },
-  transcoder: { isReachable: true, ffmpegVersion: '9.0.1', hardwareAccels: ['videotoolbox'] },
+  transcoder: {
+    isReachable: true,
+    address: 'unix:/tmp/flux-transcoder.sock',
+    ffmpegVersion: '9.0.1',
+    hardwareAccels: ['videotoolbox'],
+    rejectedEncoders: [],
+  },
   library: { itemCount: 15, libraryCount: 2 },
 };
 
@@ -346,7 +353,13 @@ describe('AdminArea', () => {
     fetchMock.mockImplementation(
       respondWith({
         ...OVERVIEW,
-        transcoder: { isReachable: false, ffmpegVersion: null, hardwareAccels: [] },
+        transcoder: {
+          isReachable: false,
+          address: 'unix:/tmp/flux-transcoder.sock',
+          ffmpegVersion: null,
+          hardwareAccels: [],
+          rejectedEncoders: [],
+        },
       }),
     );
 

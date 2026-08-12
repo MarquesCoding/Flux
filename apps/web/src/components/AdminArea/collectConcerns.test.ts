@@ -6,8 +6,14 @@ import type { Library } from '@FluxContracts/schemas/Library';
 
 const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
   users: [],
-  settings: { hasCatalogueKey: true, cookieSecure: true, trustedOrigins: [] },
-  transcoder: { isReachable: true, ffmpegVersion: '7.1', hardwareAccels: [] },
+  settings: { hasCatalogueKey: true, cookieSecure: true, hardwareAccel: '', trustedOrigins: [] },
+  transcoder: {
+    isReachable: true,
+    address: 'unix:/tmp/flux-transcoder.sock',
+    ffmpegVersion: '7.1',
+    hardwareAccels: [],
+    rejectedEncoders: [],
+  },
   library: { itemCount: 10, libraryCount: 1 },
   ...overrides,
 });
@@ -110,12 +116,52 @@ describe('collectConcerns', () => {
       const concerns = collectConcerns({
         ...healthy,
         overview: healthyOverview({
-          transcoder: { isReachable: false, ffmpegVersion: null, hardwareAccels: [] },
+          transcoder: {
+            isReachable: false,
+            address: 'unix:/tmp/flux-transcoder.sock',
+            ffmpegVersion: null,
+            hardwareAccels: [],
+            rejectedEncoders: [],
+          },
         }),
       });
 
       expect(concerns.map((concern) => concern.id)).toContain('transcoder');
       expect(concerns[0]?.tone).toBe('broken');
+    });
+
+    it('says where the media service was looked for', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        overview: healthyOverview({
+          transcoder: {
+            isReachable: false,
+            address: 'unix:/tmp/flux-transcoder.sock',
+            ffmpegVersion: null,
+            hardwareAccels: [],
+            rejectedEncoders: [],
+          },
+        }),
+      });
+
+      expect(concerns[0]?.detail).toContain('unix:/tmp/flux-transcoder.sock');
+    });
+
+    it('says only what it knows when the address was not reported', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        overview: healthyOverview({
+          transcoder: {
+            isReachable: false,
+            address: '',
+            ffmpegVersion: null,
+            hardwareAccels: [],
+            rejectedEncoders: [],
+          },
+        }),
+      });
+
+      expect(concerns[0]?.detail).toBe('Nothing that needs converting will play until it is back.');
     });
 
     it('reports a failed job', () => {
@@ -214,7 +260,12 @@ describe('collectConcerns', () => {
       const concerns = collectConcerns({
         ...healthy,
         overview: healthyOverview({
-          settings: { hasCatalogueKey: false, cookieSecure: true, trustedOrigins: [] },
+          settings: {
+            hasCatalogueKey: false,
+            cookieSecure: true,
+            hardwareAccel: '',
+            trustedOrigins: [],
+          },
         }),
       });
 
@@ -276,7 +327,12 @@ describe('collectConcerns', () => {
   it('puts what is broken above what merely needs doing', () => {
     const concerns = collectConcerns({
       overview: healthyOverview({
-        settings: { hasCatalogueKey: false, cookieSecure: true, trustedOrigins: [] },
+        settings: {
+          hasCatalogueKey: false,
+          cookieSecure: true,
+          hardwareAccel: '',
+          trustedOrigins: [],
+        },
       }),
       monitor: healthyMonitor([failedJob()], { used: 99, total: 100 }),
       libraries: [library({ lastScannedAt: null })],

@@ -303,7 +303,11 @@ type CreateAppOptions = {
   listUsers?: () => Promise<
     { id: string; name: string; email: string; role: string | null; createdAt: string }[]
   >;
-  capabilities?: () => Promise<{ ffmpegVersion: string; hardwareAccels: string[] }>;
+  capabilities?: () => Promise<{
+    ffmpegVersion: string;
+    hardwareAccels: string[];
+    rejected?: { encoder: string; reason: string }[];
+  }>;
   /**
    * What the media service is doing right now.
    */
@@ -317,6 +321,13 @@ type CreateAppOptions = {
    */
   readImage?: (url: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>;
   isTranscoderReachable?: () => Promise<boolean>;
+  /**
+   * The address the media service is dialled at, for the administration page.
+   *
+   * Carried through so an unreachable service can say where it was looked for
+   * rather than only that it was not found.
+   */
+  transcoderAddress?: string;
   /**
    * What the server is working on, so a page reloaded mid-scan can find it.
    */
@@ -359,6 +370,7 @@ const createApp = ({
   monitorStream,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
+  transcoderAddress = '',
   listRunningJobs = () => [],
   searchCatalogue = () => Promise.resolve([]),
   permissions = createMemoryPermissionService(),
@@ -1061,13 +1073,16 @@ const createApp = ({
         users,
         settings: {
           hasCatalogueKey: current.catalogueApiKey !== '',
+          hardwareAccel: current.hardwareAccel,
           trustedOrigins: current.trustedOrigins,
           cookieSecure: current.cookieSecure,
         },
         transcoder: {
           isReachable,
+          address: transcoderAddress,
           ffmpegVersion: transcoderCapabilities?.ffmpegVersion ?? null,
           hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
+          rejectedEncoders: transcoderCapabilities?.rejected ?? [],
         },
         library: {
           libraryCount: libraries.length,
@@ -1085,15 +1100,17 @@ const createApp = ({
 
     const patch = context.req.valid('json');
 
-    const updated = await settings.write(
-      patch.catalogueApiKey === undefined ? {} : { catalogueApiKey: patch.catalogueApiKey },
-    );
+    const updated = await settings.write({
+      ...(patch.catalogueApiKey === undefined ? {} : { catalogueApiKey: patch.catalogueApiKey }),
+      ...(patch.hardwareAccel === undefined ? {} : { hardwareAccel: patch.hardwareAccel }),
+    });
 
     return context.json(
       {
         hasCatalogueKey: updated.catalogueApiKey !== '',
         trustedOrigins: updated.trustedOrigins,
         cookieSecure: updated.cookieSecure,
+        hardwareAccel: updated.hardwareAccel,
       },
       200,
     );
