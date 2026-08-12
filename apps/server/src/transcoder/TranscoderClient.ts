@@ -203,7 +203,14 @@ type Transcoder = {
   probe: (path: string) => Promise<MediaProbe>;
   startSession: (spec: SessionSpec) => Promise<SessionResponse>;
   readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>;
-  readFile: (path: string, range: string | null) => Promise<TranscoderRangedFile | null>;
+  /**
+   * Opens an original file for direct play, forwarding a byte range.
+   *
+   * Streamed rather than read: this is whole media, and a viewer who opens one
+   * without a `Range` would otherwise put the entire film through the server's
+   * memory on the way past.
+   */
+  readFile: (path: string, range: string | null) => Promise<TranscoderStreamedFile | null>;
   /**
    * Renders seek-bar previews, or reuses ones already on disk.
    */
@@ -264,15 +271,15 @@ type Transcoder = {
    * Reads a made clip, passing a byte range on to the media service.
    *
    * The range is forwarded rather than applied here so that the service reads
-   * only the bytes asked for. A preview is around 18 MB and a video element
-   * scrubbing through one asks for a fraction of it at a time; slicing after the
-   * fact meant every request put the whole clip on this heap first.
+   * only the bytes asked for, and the answer is streamed rather than collected:
+   * a preview is around 18 MB, and a hover that fetches one without a `Range`
+   * used to put all of it on this heap before sending a byte.
    */
   readPreviewFile: (
     id: string,
     name: string,
     range: string | null,
-  ) => Promise<TranscoderRangedFile | null>;
+  ) => Promise<TranscoderStreamedFile | null>;
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>;
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>;
   stopSession: (id: string) => Promise<boolean>;
@@ -295,6 +302,22 @@ type TranscoderFile = {
 type TranscoderRangedFile = TranscoderFile & {
   status: number;
   contentRange: string | null;
+};
+
+/**
+ * A file being forwarded as it arrives, rather than after it has all arrived.
+ *
+ * What the media service sends is what a browser asked for, so there is nothing
+ * for the server to do to it but pass it on. Holding it first is pure cost, and
+ * the cost is the size of the file: a viewer opening a film with no `Range` had
+ * the whole film read into this process before any of it was sent.
+ */
+type TranscoderStreamedFile = {
+  body: ReadableStream<Uint8Array>;
+  contentType: string;
+  status: number;
+  contentRange: string | null;
+  contentLength: string | null;
 };
 
 type CreateTranscoderClientOptions = {
@@ -380,11 +403,28 @@ const createSocketFetch = (socketPath: string): FetchLike => {
 };
 
 /**
+ * A response whose body is still arriving.
+ *
+ * Carries the status and headers as well as the body, because a media file is
+ * fetched with a `Range` and the answer to that is a 206 and a `content-range`
+ * the browser has to be told about.
+ */
+type StreamedResponse = {
+  ok: boolean;
+  status: number;
+  headers: { get: (name: string) => string | null };
+  body: ReadableStream<Uint8Array> | null;
+};
+
+/**
  * Opens a response whose body is read as it arrives.
  *
  * Separate from the narrowed fetch every other call uses, because that one
- * reads a whole body before returning it — which is right for a probe and
- * wrong for a stream that never ends.
+ * reads a whole body before returning it — which is right for a probe, wrong
+ * for a stream that never ends, and wrong for a film. A viewer opening a file
+ * Flux can send as it is does so without a `Range`, and reading that whole
+ * answer before forwarding it means a gigabyte of film through this heap to
+ * deliver a gigabyte of film.
  *
  * The connection pool is made once and kept, like the one every other call
  * uses. Making one per request leaks a pool and its socket every time: the
@@ -394,14 +434,14 @@ const createSocketFetch = (socketPath: string): FetchLike => {
  */
 const createStreamFetch = (
   socketPath: string | null,
-): ((url: string) => Promise<{ ok: boolean; body: ReadableStream<Uint8Array> | null }>) => {
+): ((url: string, init?: HttpRequestInit) => Promise<StreamedResponse>) => {
   if (socketPath === null) {
-    return async (url) => fetch(url);
+    return async (url, init) => fetch(url, init);
   }
 
   const agent = new Agent({ connect: { socketPath } });
 
-  return async (url) => undiciFetch(url, { dispatcher: agent });
+  return async (url, init) => undiciFetch(url, { ...init, dispatcher: agent });
 };
 
 class TranscoderError extends Error {
@@ -435,6 +475,33 @@ const createTranscoderClient = ({
   };
 
   const streamFrom = createStreamFetch(socketPath);
+
+  /**
+   * Opens a file on the media service and hands back the body still arriving.
+   *
+   * Used for anything whose size is the media's rather than Flux's — an
+   * original file and a preview clip. The status and the range headers come
+   * straight from the service, because it is the one that decided them.
+   */
+  const openStream = async (
+    url: string,
+    range: string | null,
+    fallbackContentType: string,
+  ): Promise<TranscoderStreamedFile | null> => {
+    const response = await streamFrom(url, range === null ? {} : { headers: { range } });
+
+    if (!response.ok || response.body === null) {
+      return null;
+    }
+
+    return {
+      body: response.body,
+      contentType: response.headers.get('content-type') ?? fallbackContentType,
+      status: response.status,
+      contentRange: response.headers.get('content-range'),
+      contentLength: response.headers.get('content-length'),
+    };
+  };
 
   const postJson = (path: string, body: object): Promise<HttpResponse> =>
     call(path, {
@@ -478,22 +545,12 @@ const createTranscoderClient = ({
       };
     },
 
-    readFile: async (path, range) => {
-      const response = await call2(`${origin}/file?path=${encodeURIComponent(path)}`, {
-        headers: range === null ? {} : { range },
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      return {
-        body: await response.arrayBuffer(),
-        contentType: response.headers.get('content-type') ?? 'application/octet-stream',
-        status: response.status,
-        contentRange: response.headers.get('content-range'),
-      };
-    },
+    readFile: async (path, range) =>
+      openStream(
+        `${origin}/file?path=${encodeURIComponent(path)}`,
+        range,
+        'application/octet-stream',
+      ),
 
     fingerprint: async (request) =>
       FingerprintSchema.parse(await (await postJson('/fingerprint', request)).json()),
@@ -503,21 +560,12 @@ const createTranscoderClient = ({
     requestPreview: async (request) =>
       PreviewClipSchema.parse(await (await postJson('/previews', request)).json()),
 
-    readPreviewFile: async (id, name, range) => {
-      const response = await call2(
+    readPreviewFile: async (id, name, range) =>
+      openStream(
         `${origin}/previews/${encodeURIComponent(id)}/${encodeURIComponent(name)}`,
-        { headers: range === null ? {} : { range } },
-      );
-
-      return response.ok
-        ? {
-            body: await response.arrayBuffer(),
-            contentType: response.headers.get('content-type') ?? 'video/mp4',
-            status: response.status,
-            contentRange: response.headers.get('content-range'),
-          }
-        : null;
-    },
+        range,
+        'video/mp4',
+      ),
 
     readMonitor: async () => (await call('/monitor')).json(),
 
