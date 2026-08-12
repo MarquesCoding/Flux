@@ -33,6 +33,7 @@ const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcode
   capabilities: () =>
     Promise.resolve({
       ffmpegVersion: 'test',
+      ffmpegSupported: true,
       encoders: [],
       hardwareAccels: [],
       hardwareScalers: [],

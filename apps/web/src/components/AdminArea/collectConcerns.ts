@@ -113,6 +113,25 @@ const collectConcerns = ({
     });
   }
 
+  if (
+    overview !== null &&
+    overview.transcoder.isReachable &&
+    !overview.transcoder.ffmpegSupported
+  ) {
+    const version = overview.transcoder.ffmpegVersion;
+
+    concerns.push({
+      id: 'ffmpeg-version',
+      tone: 'attention',
+      title: 'The media service is running an FFmpeg older than Flux supports',
+      detail:
+        version === null
+          ? 'Everything still plays, but the filters that keep frames on the graphics card may be missing, so transcodes cost several times more than they need to.'
+          : `Everything still plays on ${version}, but the filters that keep frames on the graphics card may be missing, so transcodes cost several times more than they need to.`,
+      panel: 'activity',
+    });
+  }
+
   const failed = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'failed');
 
   if (failed.length > 0) {

@@ -80,6 +80,7 @@ const harness = (defaultAudioLanguage: string | null) => {
     capabilities: () =>
       Promise.resolve({
         ffmpegVersion: 'test',
+        ffmpegSupported: true,
         encoders: [],
         hardwareAccels: [],
         hardwareScalers: [],
