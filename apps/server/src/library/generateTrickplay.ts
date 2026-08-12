@@ -30,6 +30,13 @@ type GenerateTrickplayOptions = {
   atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (processed: number, total: number) => void;
+  /**
+   * Asked before each sheet whether somebody has stopped this job.
+   *
+   * Nothing is marked for the items that were skipped, so the next run finds
+   * them outstanding and carries on from there.
+   */
+  isCancelled?: () => boolean;
 };
 
 /**
@@ -48,6 +55,7 @@ const generateTrickplay = async ({
   atOnce = 1,
   onProblem,
   onProgress,
+  isCancelled,
 }: GenerateTrickplayOptions): Promise<void> => {
   const items = await store.listOutstanding(libraryId);
   let processed = 0;
@@ -55,6 +63,10 @@ const generateTrickplay = async ({
   onProgress?.(processed, items.length);
 
   await mapWithLimit(items, atOnce, async (item) => {
+    if (isCancelled?.() === true) {
+      return;
+    }
+
     const rendered = await transcoder
       .requestTrickplay({ inputPath: item.path, ...trickplay, wait: true })
       .then(() => true)

@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { IconArrowBackUp, IconSearch } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
+import { DialogContent } from '@FluxUI/DialogContent';
+import { DialogFooter } from '@FluxUI/DialogFooter';
+import { DialogTitle } from '@FluxUI/DialogTitle';
 import { Spinner } from '@FluxUI/Spinner';
 import { TextField } from '@FluxUI/TextField';
 import { searchCatalogue } from '@FluxWeb/admin/fetchAdmin';
@@ -100,23 +103,20 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
 
   return (
     <Dialog
-      label={`What is ${media?.seriesTitle ?? media?.title ?? 'this'}?`}
+      label={media?.seriesTitle ?? media?.title ?? 'This item'}
       isOpen={media !== null}
       onClose={onClose}
-      className="w-[min(46rem,94vw)]"
     >
-      <div className="flex flex-col gap-5 p-6">
-        <header className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold tracking-tight text-text">
-            {media?.seriesTitle ?? media?.title}
-          </h2>
-          <p className="font-body text-sm text-text-muted">
-            {isEpisode
-              ? 'Choosing here corrects every episode of this series, and every scan after it.'
-              : 'Choosing here corrects this film, and every scan after it.'}
-          </p>
-        </header>
+      <DialogTitle
+        title={media?.seriesTitle ?? media?.title ?? 'This item'}
+        detail={
+          isEpisode
+            ? 'Choosing here corrects every episode of this series, and every scan after it.'
+            : 'Choosing here corrects this film, and every scan after it.'
+        }
+      />
 
+      <DialogContent className="flex flex-col gap-5">
         <div className="flex flex-wrap items-end gap-3">
           <TextField
             label={`Search for a ${isEpisode ? 'series' : 'film'}`}
@@ -139,25 +139,6 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-          <p className="min-w-0 font-body text-xs text-text-muted">
-            Or put it back and let the catalogue decide again.
-          </p>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            isPill
-            isLoading={isForgetting}
-            onClick={() => {
-              void forget();
-            }}
-          >
-            <IconArrowBackUp size={16} aria-hidden />
-            Forget the correction
-          </Button>
-        </div>
-
         {problem === null ? null : (
           <p role="alert" className="text-sm text-danger">
             {problem}
@@ -175,7 +156,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
                 <Button
                   variant="bare"
                   size="none"
-                  className="flex w-full items-start gap-4 rounded-xl p-2 text-left hover:bg-white/5"
+                  className="flex w-full items-start gap-4 rounded-xl p-2 text-left hover:bg-[var(--surface-hover)]"
                   isLoading={saving === match.externalId}
                   onClick={() => {
                     void choose(match);
@@ -206,7 +187,25 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
             ))}
           </ul>
         )}
-      </div>
+      </DialogContent>
+
+      <DialogFooter>
+        <Button
+          variant="secondary"
+          isPill
+          isLoading={isForgetting}
+          onClick={() => {
+            void forget();
+          }}
+        >
+          <IconArrowBackUp size={16} aria-hidden />
+          Forget the correction
+        </Button>
+
+        <Button variant="secondary" isPill onClick={onClose}>
+          Close
+        </Button>
+      </DialogFooter>
     </Dialog>
   );
 };

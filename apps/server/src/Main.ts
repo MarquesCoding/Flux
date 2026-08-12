@@ -202,6 +202,7 @@ const runDetectSegments = async (libraryId: string, jobId: string): Promise<void
     onProgress: (processed, total) => {
       jobs.reportProgress(jobId, 'segments', processed, total);
     },
+    isCancelled: () => jobs.isCancelled(jobId),
   });
 
   if (marked > 0) {
@@ -242,10 +243,18 @@ const jobs = await createJobQueue({
         const libraries = await libraryService.list();
         const language = libraries.find((entry) => entry.id === libraryId)?.defaultAudioLanguage;
 
-        await libraryService.runScan(libraryId, force, jobId);
-        await libraryService.runRegeneratePreviews(libraryId, language ?? null, jobId);
-        await libraryService.runRegenerateTrickplay(libraryId, jobId);
-        await runDetectSegments(libraryId, jobId);
+        for (const phase of [
+          () => libraryService.runScan(libraryId, force, jobId),
+          () => libraryService.runRegeneratePreviews(libraryId, language ?? null, jobId),
+          () => libraryService.runRegenerateTrickplay(libraryId, jobId),
+          () => runDetectSegments(libraryId, jobId),
+        ]) {
+          if (jobs.isCancelled(jobId)) {
+            return;
+          }
+
+          await phase();
+        }
       });
     },
     [READ_AGAIN_JOB]: async (jobId, payload) => {
@@ -668,6 +677,7 @@ const app = createApp({
   isTranscoderReachable: () => transcoder.isReachable(),
   transcoderAddress: env.TRANSCODER_URL,
   listRunningJobs: () => jobs.listRunning(),
+  cancelJob: (jobId) => jobs.cancel(jobId),
   searchCatalogue: (query, kind) => catalogueProvider.search?.(query, kind) ?? Promise.resolve([]),
 });
 

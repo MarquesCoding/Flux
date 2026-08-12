@@ -48,6 +48,7 @@ const props = {
   viewingJobKind: null,
   schedules: new Map(),
   onRun: vi.fn(),
+  onStop: vi.fn(),
   onOpenSchedule: vi.fn(),
   onCloseSchedule: vi.fn(),
   onAddTrigger: vi.fn(),
@@ -143,16 +144,18 @@ describe('JobsPanel', () => {
   });
 
   describe('opening a schedule', () => {
-    it('replaces the list rather than sitting beside it', () => {
+    it('opens over the list rather than taking its place', () => {
       render(<JobsPanel {...props} viewingJobKind="library.scan" />);
 
-      expect(screen.queryByText('Background work')).not.toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText('Background jobs')).toBeInTheDocument();
     });
 
-    it('shows the list again for a job kind it does not know', () => {
+    it('stays shut for a job kind it does not know', () => {
       render(<JobsPanel {...props} viewingJobKind="library.summon" />);
 
-      expect(screen.getByText('Background work')).toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByText('Background jobs')).toBeInTheDocument();
     });
   });
 

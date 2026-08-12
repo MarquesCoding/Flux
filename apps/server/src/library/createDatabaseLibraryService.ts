@@ -262,6 +262,17 @@ const createDatabaseLibraryService = ({
     return rows[0] ?? null;
   };
 
+  /**
+   * How many of a library's files to render at the same time.
+   *
+   * The library's own answer wins over the server's. A library on a local disk
+   * wants as many at once as there are cores to feed; a library on a network
+   * share wants one, because the files come down one wire and asking for four
+   * divides that wire four ways.
+   */
+  const filesAtOnceFor = async (libraryId: string): Promise<number> =>
+    (await findLibrary(libraryId))?.filesAtOnce ?? atOnce;
+
   const service: DatabaseLibraryService = {
     list: async () => {
       const rows = await db
@@ -272,6 +283,7 @@ const createDatabaseLibraryService = ({
           path: library.path,
           lastScannedAt: library.lastScannedAt,
           defaultAudioLanguage: library.defaultAudioLanguage,
+          filesAtOnce: library.filesAtOnce,
           itemCount: sql<number>`count(${mediaItem.id})::int`,
         })
         .from(library)
@@ -287,6 +299,7 @@ const createDatabaseLibraryService = ({
         itemCount: row.itemCount,
         lastScannedAt: toIso(row.lastScannedAt),
         defaultAudioLanguage: row.defaultAudioLanguage,
+        filesAtOnce: row.filesAtOnce,
       })) satisfies Library[];
     },
 
@@ -306,7 +319,13 @@ const createDatabaseLibraryService = ({
 
       await db.insert(library).values(created);
 
-      return { ...created, itemCount: 0, lastScannedAt: null, defaultAudioLanguage: null };
+      return {
+        ...created,
+        itemCount: 0,
+        lastScannedAt: null,
+        defaultAudioLanguage: null,
+        filesAtOnce: null,
+      };
     },
 
     update: async (libraryId, input) => {
@@ -318,7 +337,10 @@ const createDatabaseLibraryService = ({
 
       await db
         .update(library)
-        .set({ defaultAudioLanguage: input.defaultAudioLanguage })
+        .set({
+          defaultAudioLanguage: input.defaultAudioLanguage,
+          ...(input.filesAtOnce === undefined ? {} : { filesAtOnce: input.filesAtOnce }),
+        })
         .where(eq(library.id, libraryId));
 
       if (before.defaultAudioLanguage !== input.defaultAudioLanguage) {
@@ -333,6 +355,7 @@ const createDatabaseLibraryService = ({
           path: library.path,
           lastScannedAt: library.lastScannedAt,
           defaultAudioLanguage: library.defaultAudioLanguage,
+          filesAtOnce: library.filesAtOnce,
           itemCount: sql<number>`count(${mediaItem.id})::int`,
         })
         .from(library)
@@ -352,6 +375,7 @@ const createDatabaseLibraryService = ({
         itemCount: row.itemCount,
         lastScannedAt: toIso(row.lastScannedAt),
         defaultAudioLanguage: row.defaultAudioLanguage,
+        filesAtOnce: row.filesAtOnce,
       };
     },
 
@@ -619,6 +643,7 @@ const createDatabaseLibraryService = ({
           : {
               onProgress: (phase, processed, total) =>
                 jobs.reportProgress(jobId, phase, processed, total),
+              isCancelled: () => jobs.isCancelled(jobId),
             }),
       });
     },
@@ -626,7 +651,7 @@ const createDatabaseLibraryService = ({
     runRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {
       await regeneratePreviews({
         libraryId,
-        atOnce,
+        atOnce: await filesAtOnceFor(libraryId),
         store: {
           listOutstanding: (id) => listOutstandingFor(db, id, REGENERATE_PREVIEWS_JOB),
           markComplete: (mediaItemId) => markJobComplete(db, mediaItemId, REGENERATE_PREVIEWS_JOB),
@@ -639,6 +664,7 @@ const createDatabaseLibraryService = ({
           : {
               onProgress: (processed, total) =>
                 jobs.reportProgress(jobId, 'previews', processed, total),
+              isCancelled: () => jobs.isCancelled(jobId),
             }),
       });
     },
@@ -646,7 +672,7 @@ const createDatabaseLibraryService = ({
     runRegenerateTrickplay: async (libraryId, jobId) => {
       await generateTrickplay({
         libraryId,
-        atOnce,
+        atOnce: await filesAtOnceFor(libraryId),
         store: {
           listOutstanding: (id) => listOutstandingFor(db, id, REGENERATE_TRICKPLAY_JOB),
           markComplete: (mediaItemId) => markJobComplete(db, mediaItemId, REGENERATE_TRICKPLAY_JOB),
@@ -664,6 +690,7 @@ const createDatabaseLibraryService = ({
           : {
               onProgress: (processed, total) =>
                 jobs.reportProgress(jobId, 'trickplay', processed, total),
+              isCancelled: () => jobs.isCancelled(jobId),
             }),
       });
     },

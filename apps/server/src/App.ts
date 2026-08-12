@@ -69,6 +69,7 @@ import {
   adminResumeSessionRoute,
   adminJobDefinitionsRoute,
   adminRunJobRoute,
+  adminCancelJobRoute,
   adminJobSchedulesRoute,
   adminAddJobTriggerRoute,
   adminRemoveJobTriggerRoute,
@@ -310,6 +311,13 @@ type CreateAppOptions = {
    */
   listRunningJobs?: () => RunningJob[];
   /**
+   * Asks a job to stop, reporting whether there was one to ask.
+   *
+   * Absent where there is no queue behind the application, in which case
+   * nothing is running and there is nothing to stop.
+   */
+  cancelJob?: (jobId: string) => Promise<boolean>;
+  /**
    * What the catalogue offers under a name, for somebody correcting a match.
    */
   searchCatalogue?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
@@ -349,6 +357,7 @@ const createApp = ({
   isTranscoderReachable = () => Promise.resolve(false),
   transcoderAddress = '',
   listRunningJobs = () => [],
+  cancelJob = () => Promise.resolve(false),
   searchCatalogue = () => Promise.resolve([]),
   permissions = createMemoryPermissionService(),
   banAccount,
@@ -459,7 +468,12 @@ const createApp = ({
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
-    const updated = await library.update(context.req.valid('param').id, context.req.valid('json'));
+    const { defaultAudioLanguage, filesAtOnce } = context.req.valid('json');
+
+    const updated = await library.update(context.req.valid('param').id, {
+      defaultAudioLanguage,
+      ...(filesAtOnce === undefined ? {} : { filesAtOnce }),
+    });
 
     if (updated === null) {
       return context.json({ error: 'No such library.' }, 404);
@@ -1098,6 +1112,39 @@ const createApp = ({
     return context.json(presence.list(), 200);
   });
 
+  app.get('/api/admin/sessions/stream', async (context) => {
+    if (!(await requires(context.req.raw.headers, 'streaming.view'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream<Uint8Array>({
+      start: (controller) => {
+        const push = () => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(presence.list())}\n\n`));
+        };
+
+        push();
+
+        const stopWatching = presence.watch(push);
+
+        context.req.raw.signal.addEventListener('abort', () => {
+          stopWatching();
+          controller.close();
+        });
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      },
+    });
+  });
+
   app.openapi(adminStopSessionRoute, async (context) => {
     if (!(await requires(context.req.raw.headers, 'streaming.stop'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
@@ -1202,6 +1249,18 @@ const createApp = ({
     }
 
     return context.json(queued, 202);
+  });
+
+  app.openapi(adminCancelJobRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { jobId } = context.req.valid('param');
+
+    return (await cancelJob(jobId))
+      ? context.json({ jobId }, 202)
+      : context.json({ error: 'Nothing is running under that id.' }, 404);
   });
 
   app.openapi(adminJobSchedulesRoute, async (context) => {

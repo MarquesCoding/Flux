@@ -57,6 +57,11 @@ type CreateLibraryInput = {
 
 type UpdateLibraryInput = {
   defaultAudioLanguage: string | null;
+  /**
+   * How many of this library's files may be rendered at once, or null to
+   * leave it to the server. Absent means leave whatever it was set to.
+   */
+  filesAtOnce?: number | null;
 };
 
 /**

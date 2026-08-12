@@ -22,8 +22,12 @@ import type { MediaPreviewProps } from './MediaPreview.types';
  *
  * Opening an item to read its runtime should not start it playing. Someone
  * still looking after a moment is someone who might watch it.
+ *
+ * Long enough to read a title and a line of the synopsis first. At half this
+ * the picture changed under the words while they were still being read, which
+ * makes the page feel like it is racing whoever opened it.
  */
-const SETTLE_MILLISECONDS = 1200;
+const SETTLE_MILLISECONDS = 2600;
 
 /**
  * Where an item's preview clip is served from.

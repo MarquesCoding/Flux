@@ -19,6 +19,8 @@ const films: Library = {
   lastScannedAt: null,
 
   defaultAudioLanguage: null,
+
+  filesAtOnce: null,
 };
 
 beforeEach(() => {

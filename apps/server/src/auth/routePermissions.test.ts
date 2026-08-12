@@ -33,6 +33,7 @@ const build = () => {
           itemCount: 0,
           lastScannedAt: null,
           defaultAudioLanguage: null,
+          filesAtOnce: null,
         },
       ],
       media: [],

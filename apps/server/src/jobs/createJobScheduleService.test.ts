@@ -1,25 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createInertJobQueue } from './createInertJobQueue';
 import { createJobScheduleService } from './createJobScheduleService';
 import { createMemoryJobTriggerStore } from './createMemoryJobTriggerStore';
 import type { JobQueue } from './JobQueue';
 
-const stubJobQueue = (overrides: Partial<JobQueue> = {}): JobQueue => ({
-  enqueue: () => Promise.resolve(null),
-  readState: () => Promise.resolve('unknown'),
-  readProgress: () => null,
-  listRunning: () => [],
-  reportProgress: () => {},
-  setSchedule: () => Promise.resolve(),
-  clearSchedule: () => Promise.resolve(),
-  listSchedules: () => Promise.resolve([]),
-  stop: () => Promise.resolve(),
-  ...overrides,
-});
-
 const build = (overrides: Partial<JobQueue> = {}) =>
   createJobScheduleService({
     store: createMemoryJobTriggerStore(),
-    jobs: stubJobQueue(overrides),
+    jobs: createInertJobQueue(overrides),
   });
 
 describe('createJobScheduleService', () => {
@@ -84,7 +72,7 @@ describe('createJobScheduleService', () => {
     const clearSchedule = vi.fn(() => Promise.resolve());
     const schedules = createJobScheduleService({
       store: createMemoryJobTriggerStore(),
-      jobs: stubJobQueue({
+      jobs: createInertJobQueue({
         clearSchedule,
         listSchedules: () =>
           Promise.resolve([
@@ -102,7 +90,7 @@ describe('createJobScheduleService', () => {
     const clearSchedule = vi.fn(() => Promise.resolve());
     const schedules = createJobScheduleService({
       store: createMemoryJobTriggerStore(),
-      jobs: stubJobQueue({
+      jobs: createInertJobQueue({
         clearSchedule,
         listSchedules: () =>
           Promise.resolve([{ queueName: 'somebody.else', key: 'theirs', cron: '0 3 * * *' }]),

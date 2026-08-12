@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
@@ -33,9 +33,15 @@ const LIBRARY = {
   itemCount: 0,
   lastScannedAt: null,
   defaultAudioLanguage: null,
+  filesAtOnce: null,
 };
 
-const build = (waiting: { isTranscoderReachable?: () => Promise<boolean> } = {}) => {
+const build = (
+  waiting: {
+    isTranscoderReachable?: () => Promise<boolean>;
+    cancelJob?: (jobId: string) => Promise<boolean>;
+  } = {},
+) => {
   const { auth, settings, store } = createMemoryAuth();
   const permissions = createMemoryPermissionService();
 
@@ -43,6 +49,7 @@ const build = (waiting: { isTranscoderReachable?: () => Promise<boolean> } = {})
     ...(waiting.isTranscoderReachable === undefined
       ? {}
       : { isTranscoderReachable: waiting.isTranscoderReachable }),
+    ...(waiting.cancelJob === undefined ? {} : { cancelJob: waiting.cancelJob }),
     auth,
     settings,
     permissions,
@@ -272,6 +279,46 @@ describe('administration over HTTP', () => {
     });
 
     expect(response.status).toBe(401);
+  });
+
+  it('stops a job somebody asked to stop', async () => {
+    const cancelJob = vi.fn(() => Promise.resolve(true));
+    const { app, store, permissions } = build({ cancelJob });
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/jobs/running/job-1/cancel`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(202);
+    expect(cancelJob).toHaveBeenCalledWith('job-1');
+  });
+
+  it('says so when there is nothing running under that id', async () => {
+    const { app, store, permissions } = build({ cancelJob: () => Promise.resolve(false) });
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/jobs/running/job-1/cancel`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('will not let an ordinary account stop a job', async () => {
+    const cancelJob = vi.fn(() => Promise.resolve(true));
+    const { app } = build({ cancelJob });
+    const cookie = await signedIn(app);
+
+    const response = await app.request(`${BASE}/api/admin/jobs/running/job-1/cancel`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(403);
+    expect(cancelJob).not.toHaveBeenCalled();
   });
 
   it('will not run a job kind it does not know', async () => {

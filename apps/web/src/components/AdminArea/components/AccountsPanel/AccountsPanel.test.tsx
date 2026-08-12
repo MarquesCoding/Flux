@@ -53,6 +53,44 @@ const ADMINISTRATOR = {
 
 const MEMBER = { id: 'role_2', name: 'Member', position: 100, permissions: ['sharing.link'] };
 
+/**
+ * Opens a row's action menu and chooses one of the things in it.
+ *
+ * Ban and delete used to be buttons on the row itself. They live behind one
+ * control now, so a test that wants one has to open the menu first — the same
+ * two presses a person makes.
+ */
+const choose = async (user: ReturnType<typeof userEvent.setup>, name: string, action: RegExp) => {
+  await user.click(await screen.findByRole('button', { name: `Actions for ${name}` }));
+  await user.click(await screen.findByRole('menuitem', { name: action }));
+};
+
+/**
+ * Chooses something that has to be confirmed, and confirms it.
+ *
+ * Banning and deleting ask first now, so a test that wants the deed done has
+ * to answer the question — the same two presses a person makes.
+ */
+const confirm = async (
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+  action: RegExp,
+  answer: string,
+) => {
+  await choose(user, name, action);
+  await user.click(await screen.findByRole('button', { name: answer }));
+};
+
+/**
+ * Opens the dialog that adds somebody.
+ *
+ * The form used to sit at the foot of the card. It is behind a button in the
+ * header now, so a test that fills it in has to open it first.
+ */
+const openInvite = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(await screen.findByRole('button', { name: /Add user/ }));
+};
+
 describe('AccountsPanel', () => {
   beforeEach(() => {
     for (const mock of [...Object.values(mocks), ...Object.values(accountMocks)]) {
@@ -83,14 +121,6 @@ describe('AccountsPanel', () => {
 
     expect(await screen.findByText('dan@flux.local')).toBeInTheDocument();
     expect(screen.getByText('sam@flux.local')).toBeInTheDocument();
-  });
-
-  it('counts them without saying "1 accounts"', async () => {
-    accountMocks.fetchAccounts.mockResolvedValue([account()]);
-
-    render(<AccountsPanel />);
-
-    expect(await screen.findByText('1 account')).toBeInTheDocument();
   });
 
   it('says when nobody has one', async () => {
@@ -141,7 +171,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: 'Ban Dan' }));
+      await confirm(user, 'Dan', /^Ban$/, 'Ban');
 
       expect(accountMocks.banAccount).toHaveBeenCalledWith('usr_1', expect.any(String));
     });
@@ -163,7 +193,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: 'Let Dan back in' }));
+      await choose(user, 'Dan', /Let back in/);
 
       expect(accountMocks.unbanAccount).toHaveBeenCalledWith('usr_1');
       expect(accountMocks.banAccount).not.toHaveBeenCalled();
@@ -177,7 +207,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: 'Ban Dan' }));
+      await confirm(user, 'Dan', /^Ban$/, 'Ban');
 
       expect(await screen.findByRole('alert')).toHaveTextContent('nobody able to administer');
     });
@@ -185,16 +215,20 @@ describe('AccountsPanel', () => {
 
   describe('adding somebody', () => {
     it('will not add until every field is filled', async () => {
+      const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      expect(await screen.findByRole('button', { name: 'Add' })).toBeDisabled();
+      await openInvite(user);
+
+      expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
     });
 
     it('will not accept a password too short to be one', async () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.type(await screen.findByLabelText('Name'), 'Alex');
+      await openInvite(user);
+      await user.type(screen.getByLabelText('Name'), 'Alex');
       await user.type(screen.getByLabelText('Address'), 'alex@flux.local');
       await user.type(screen.getByLabelText('Password'), 'short');
 
@@ -205,7 +239,8 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.type(await screen.findByLabelText('Name'), 'Alex');
+      await openInvite(user);
+      await user.type(screen.getByLabelText('Name'), 'Alex');
       await user.type(screen.getByLabelText('Address'), 'alex@flux.local');
       await user.type(screen.getByLabelText('Password'), 'a-long-enough-password');
       await user.click(screen.getByRole('button', { name: 'Add' }));
@@ -218,9 +253,12 @@ describe('AccountsPanel', () => {
     });
 
     it('says the password has to be handed over, since Flux cannot send it', async () => {
+      const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      expect(await screen.findByText(/tell them this password yourself/)).toBeInTheDocument();
+      await openInvite(user);
+
+      expect(screen.getByText(/tell them this password yourself/)).toBeInTheDocument();
     });
 
     it('explains a refusal', async () => {
@@ -231,7 +269,8 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.type(await screen.findByLabelText('Name'), 'Alex');
+      await openInvite(user);
+      await user.type(screen.getByLabelText('Name'), 'Alex');
       await user.type(screen.getByLabelText('Address'), 'dan@flux.local');
       await user.type(screen.getByLabelText('Password'), 'a-long-enough-password');
       await user.click(screen.getByRole('button', { name: 'Add' }));
@@ -245,7 +284,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: 'Remove Dan' }));
+      await confirm(user, 'Dan', /Delete account/, 'Delete account');
 
       expect(accountMocks.removeAccount).toHaveBeenCalledWith('usr_1');
     });
@@ -258,7 +297,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: 'Remove Dan' }));
+      await confirm(user, 'Dan', /Delete account/, 'Delete account');
 
       expect(await screen.findByRole('alert')).toHaveTextContent('your own account');
     });
@@ -268,21 +307,20 @@ describe('AccountsPanel', () => {
     const user = userEvent.setup();
     render(<AccountsPanel />);
 
-    await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+    await choose(user, 'Dan', /Edit roles/);
 
     expect(await screen.findByText('What Dan may do')).toBeInTheDocument();
     expect(screen.getByText('1 permission in all')).toBeInTheDocument();
   });
 
-  it('closes again when the same account is pressed twice', async () => {
+  it('closes what somebody may do, without having to pick another account', async () => {
     const user = userEvent.setup();
     render(<AccountsPanel />);
 
-    await user.click(await screen.findByRole('button', { name: /^Dan/ }));
-    await screen.findByText('What Dan may do');
-    await user.click(screen.getByRole('button', { name: /^Dan/ }));
+    await choose(user, 'Dan', /Edit roles/);
+    await user.click(await screen.findByRole('button', { name: 'Close' }));
 
-    expect(screen.queryByText('What Dan may do')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   describe('roles', () => {
@@ -290,7 +328,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
 
       expect(await screen.findByRole('button', { name: 'Member' })).toHaveAttribute(
         'aria-pressed',
@@ -306,7 +344,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Administrator' }));
 
       expect(mocks.assignRole).toHaveBeenCalledWith('usr_1', 'role_1');
@@ -316,7 +354,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Member' }));
 
       expect(mocks.removeRole).toHaveBeenCalledWith('usr_1', 'role_2');
@@ -326,7 +364,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Administrator' }));
 
       await waitFor(() => {
@@ -340,7 +378,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
 
       expect(await screen.findByText('None. Their roles decide everything.')).toBeInTheDocument();
     });
@@ -355,7 +393,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
 
       expect(await screen.findByText('deny')).toBeInTheDocument();
       expect(screen.getByText('Run reset and rebuild')).toBeInTheDocument();
@@ -371,7 +409,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
       await user.click(
         await screen.findByRole('button', {
           name: 'Forget the deny on jobs.runDestructive',
@@ -385,7 +423,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
 
       expect(await screen.findByRole('button', { name: 'Allow it' })).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Deny it' })).toBeDisabled();
@@ -399,7 +437,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Administrator' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent('at or above your own');
@@ -413,7 +451,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Member' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent('nobody able to administer');
@@ -423,7 +461,7 @@ describe('AccountsPanel', () => {
       const user = userEvent.setup();
       render(<AccountsPanel />);
 
-      await user.click(await screen.findByRole('button', { name: /^Dan/ }));
+      await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Administrator' }));
 
       await waitFor(() => {

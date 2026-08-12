@@ -2,6 +2,14 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Badge } from './Badge';
 
+/**
+ * The badge itself, rather than the span its words sit in.
+ *
+ * The text is wrapped one level deeper so it can be nudged onto the optical
+ * centre line, which means the tone and the shape live on the parent.
+ */
+const badgeOf = (text: string): HTMLElement | null => screen.getByText(text).parentElement;
+
 describe('Badge', () => {
   it('states what it was given', () => {
     render(<Badge>4K</Badge>);
@@ -18,7 +26,7 @@ describe('Badge', () => {
   it('states a fact quietly by default', () => {
     render(<Badge>HDR10</Badge>);
 
-    expect(screen.getByText('HDR10')).toHaveClass('text-text-muted');
+    expect(badgeOf('HDR10')).toHaveClass('text-text-muted');
   });
 
   it('speaks up when something matters', () => {
@@ -30,7 +38,7 @@ describe('Badge', () => {
   it('stays readable on artwork rather than dissolving into it', () => {
     render(<Badge tone="solid">TV-14</Badge>);
 
-    expect(screen.getByText('TV-14')).toHaveClass('bg-black/60');
+    expect(badgeOf('TV-14')).toHaveClass('bg-black/60');
   });
 
   it('sets a display name so devtools can identify it', () => {

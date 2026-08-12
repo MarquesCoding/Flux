@@ -63,6 +63,7 @@ const createMemoryLibraryService = (
       itemCount: 0,
       lastScannedAt: null,
       defaultAudioLanguage: null,
+      filesAtOnce: null,
     };
 
     state.libraries.push(created);
@@ -78,6 +79,10 @@ const createMemoryLibraryService = (
     }
 
     found.defaultAudioLanguage = input.defaultAudioLanguage;
+
+    if (input.filesAtOnce !== undefined) {
+      found.filesAtOnce = input.filesAtOnce;
+    }
 
     return Promise.resolve(found);
   },

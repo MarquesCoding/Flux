@@ -193,6 +193,28 @@ type JobQueue = {
    */
   listRunning: () => RunningJob[];
   /**
+   * Asks a job to stop, reporting whether there was one to ask.
+   *
+   * A job that has not started yet is dropped and never runs. A job already
+   * running is asked rather than killed: the work is a loop over files, and
+   * stopping between two of them leaves the library consistent, where killing
+   * it partway through one would leave a row half written. What that costs is
+   * time — a job in the middle of a slow probe finishes that probe first.
+   *
+   * False means there was nothing to stop, which covers both a job id that
+   * was never real and one that finished while somebody was reaching for the
+   * menu.
+   */
+  cancel: (jobId: string) => Promise<boolean>;
+  /**
+   * Whether this job has been asked to stop.
+   *
+   * Read by the work itself, between items. A job that never asks cannot be
+   * stopped partway and will run to its end, which is correct for work too
+   * short to be worth interrupting.
+   */
+  isCancelled: (jobId: string) => boolean;
+  /**
    * Sets one of the schedules a queue name runs on.
    *
    * Keyed rather than one-per-queue because a job may have several triggers —

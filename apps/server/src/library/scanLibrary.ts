@@ -107,6 +107,14 @@ type ScanLibraryOptions = {
    * Told after every file how far probing has got.
    */
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
+  /**
+   * Asked between files whether somebody has stopped this scan.
+   *
+   * Between files rather than partway through one, so what has been read is
+   * written and what has not is simply not there yet — which is the same
+   * state a scan that has not reached the end is in anyway.
+   */
+  isCancelled?: () => boolean;
 };
 
 /**
@@ -169,6 +177,11 @@ const selectChanged = (
  * answer costs the title, the artwork, and the id that lets the next scan ask
  * again cheaply — so a rescan on a bad connection would quietly strip a
  * library of everything that made it readable.
+ *
+ * A scan somebody stops keeps what it had read and deletes nothing. Half a
+ * listing is not evidence that the other half has gone, and the library is
+ * left marked unscanned so the next scan picks up the rest rather than
+ * believing it has already seen it.
  */
 const scanLibrary = async ({
   libraryId,
@@ -181,6 +194,7 @@ const scanLibrary = async ({
   isPartial = false,
   onProblem,
   onProgress,
+  isCancelled,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path));
   const stored = await store.listStored(libraryId);
@@ -189,7 +203,22 @@ const scanLibrary = async ({
     ? { changed: found, missing: selectChanged(found, stored).missing }
     : selectChanged(found, stored);
   const { changed } = seen;
-  const missing = isPartial ? [] : seen.missing;
+
+  /**
+   * A library that held something and now holds nothing.
+   *
+   * Almost always a root that is not there rather than a library somebody
+   * emptied: an unmounted network share, an unplugged disk, a path renamed.
+   * All of them read as a directory with no media in it, and acting on that
+   * deletes every row — the artwork, the corrections, the watch progress —
+   * for a library whose files are perfectly fine and will be back when the
+   * share is.
+   *
+   * Emptying a library on purpose is what Reset is for, which says what it
+   * does before it does it.
+   */
+  const hasVanished = found.length === 0 && stored.length > 0;
+  const missing = isPartial || hasVanished ? [] : seen.missing;
   const knownPaths = new Set(stored.map((item) => item.path));
   const storedByPath = new Map(stored.map((item) => [item.path, item]));
   const overrides = new Map(
@@ -203,7 +232,15 @@ const scanLibrary = async ({
 
   onProgress?.('probing', probed, changed.length);
 
+  let wasStopped = false;
+
   for (const file of changed) {
+    if (isCancelled?.() === true) {
+      wasStopped = true;
+
+      break;
+    }
+
     try {
       const probe = await transcoder.probe(file.path);
 
@@ -274,6 +311,22 @@ const scanLibrary = async ({
       probed += 1;
       onProgress?.('probing', probed, changed.length);
     }
+  }
+
+  if (hasVanished) {
+    onProblem?.(
+      root,
+      'Nothing was found where this library reads from, so what it already held has been left alone. Check the folder is still there — a network share that is not mounted looks exactly like an empty one.',
+    );
+  }
+
+  if (wasStopped) {
+    onProblem?.(
+      root,
+      'This scan was stopped before it finished. What it had already read is kept; nothing was deleted, and the library still counts as unscanned.',
+    );
+
+    return { added, updated, removed: 0, failed };
   }
 
   const removed = missing.length === 0 ? 0 : await store.removeByPaths(libraryId, missing);

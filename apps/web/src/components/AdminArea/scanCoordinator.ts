@@ -3,7 +3,7 @@ import {
   resetLibrary,
   regenerateLibraryPreviews,
 } from '@FluxWeb/library/fetchLibrary';
-import { fetchRunningScans, runJob } from '@FluxWeb/admin/fetchAdmin';
+import { cancelJob, fetchRunningScans, runJob } from '@FluxWeb/admin/fetchAdmin';
 import { waitForScanCompletion } from '@FluxWeb/library/waitForScanCompletion';
 import type { ScanJob } from '@FluxWeb/library/fetchLibrary';
 import type { Library } from '@FluxContracts/schemas/Library';
@@ -18,6 +18,13 @@ type ScanEntry = {
   phase: string | null;
   processed: number | null;
   total: number | null;
+  /**
+   * The job the server is running this under, once it has said what it is.
+   *
+   * Null for the moment between asking for work and being told its id, which
+   * is the one moment there is nothing to stop.
+   */
+  jobId: string | null;
 };
 
 type ScanSnapshot = {
@@ -97,18 +104,21 @@ const runAndTrack = async (
   kind: string,
   enqueue: () => Promise<ScanJob | null>,
 ): Promise<void> => {
-  track(libraryId, { kind, phase: null, processed: null, total: null });
+  track(libraryId, { kind, phase: null, processed: null, total: null, jobId: null });
 
   try {
     const job = await enqueue();
 
     if (job !== null) {
+      track(libraryId, { kind, phase: null, processed: null, total: null, jobId: job.jobId });
+
       await waitForScanCompletion(job.jobId, (found) => {
         track(libraryId, {
           kind,
           phase: found.phase,
           processed: found.processed,
           total: found.total,
+          jobId: job.jobId,
         });
       });
     }
@@ -143,6 +153,7 @@ const resumeRunning = async (): Promise<void> => {
           phase: scan.phase,
           processed: scan.processed,
           total: scan.total,
+          jobId: scan.jobId,
         });
 
         try {
@@ -152,6 +163,7 @@ const resumeRunning = async (): Promise<void> => {
               phase: found.phase,
               processed: found.processed,
               total: found.total,
+              jobId: scan.jobId,
             });
           });
         } finally {
@@ -261,6 +273,25 @@ export type { ScanEntry, ScanSnapshot };
  * `it()` block, and a scan a test left running (deliberately, to inspect
  * mid-flight state) would otherwise leak into whichever test runs next.
  */
+/**
+ * Asks every run of one job kind to stop.
+ *
+ * A kind rather than a job, because that is what a row in the jobs table is:
+ * one scan fanned out across four libraries is four jobs and one thing an
+ * operator started, and stopping it means stopping all of them.
+ *
+ * Tracking is left alone. The jobs are still running until they reach a point
+ * where stopping is safe, and the progress bar should keep saying so until
+ * they do rather than vanishing on a request that has not been acted on yet.
+ */
+const stopJobs = async (kind: string): Promise<void> => {
+  const ids = [...snapshot.progress.values()]
+    .filter((entry) => entry.kind === kind && entry.jobId !== null)
+    .map((entry) => entry.jobId ?? '');
+
+  await Promise.all(ids.map((jobId) => cancelJob(jobId)));
+};
+
 const resetForTests = () => {
   progress = new Map();
   isScanningAll = false;
@@ -279,5 +310,6 @@ export {
   startRegeneratePreviews,
   runDefinedJob,
   runDefinedJobAll,
+  stopJobs,
   resetForTests,
 };

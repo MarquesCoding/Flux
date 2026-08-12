@@ -17,6 +17,15 @@ const LibraryKindSchema = z.enum(LIBRARY_KINDS);
  * `path` is a location inside the read-only media mount. Flux never writes
  * there, so a library is a view over the operator's files rather than a
  * container Flux owns. See ADR-0006.
+ *
+ * `filesAtOnce` is how many of its files may be rendered at the same time,
+ * and null leaves it to the server. The server sizes itself to the processors
+ * it has, which is right for a library on a local disk, where four at once
+ * costs nothing and four cores do four times the work. A library on a network
+ * share is the opposite case: the files arrive down one wire, and asking for
+ * four divides that wire four ways while adding seeking to it. Measured on a
+ * Wi-Fi SMB share, one at a time read roughly ten times faster per file than
+ * four did.
  */
 const LibrarySchema = z.object({
   id: z.string().uuid(),
@@ -26,6 +35,7 @@ const LibrarySchema = z.object({
   itemCount: z.number().int().nonnegative(),
   lastScannedAt: z.string().datetime().nullable(),
   defaultAudioLanguage: z.string().nullable(),
+  filesAtOnce: z.number().int().positive().max(16).nullable(),
 });
 
 /**
@@ -33,6 +43,7 @@ const LibrarySchema = z.object({
  */
 const UpdateLibraryRequestSchema = z.object({
   defaultAudioLanguage: z.string().nullable(),
+  filesAtOnce: z.number().int().positive().max(16).nullable().optional(),
 });
 
 /**

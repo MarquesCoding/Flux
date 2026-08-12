@@ -30,6 +30,15 @@ beforeEach(() => {
   endOtherDevices.mockReset().mockResolvedValue(true);
 });
 
+/**
+ * Signs a device out the way a person does: the menu, then the confirmation.
+ */
+const signOut = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(await screen.findByRole('button', { name: `Actions for ${name}` }));
+  await user.click(await screen.findByRole('menuitem', { name: /Sign this out/ }));
+  await user.click(await screen.findByRole('button', { name: 'Sign it out' }));
+};
+
 describe('DeviceList', () => {
   it('lists everywhere this account is signed in', async () => {
     fetchDevices.mockResolvedValue([
@@ -66,7 +75,7 @@ describe('DeviceList', () => {
     fetchDevices.mockResolvedValue([device()]);
 
     render(<DeviceList />);
-    await user.click(await screen.findByRole('button', { name: 'Sign out' }));
+    await signOut(user, 'Chrome on macOS');
 
     expect(endDevice).toHaveBeenCalledWith('session-1');
     await waitFor(() => {
@@ -92,6 +101,7 @@ describe('DeviceList', () => {
 
     render(<DeviceList />);
     await user.click(await screen.findByRole('button', { name: /Sign out everywhere else/ }));
+    await user.click(await screen.findByRole('button', { name: 'Sign them out' }));
 
     expect(endOtherDevices).toHaveBeenCalled();
   });

@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 type Stat = {
   label: string;
   value: string;
@@ -7,7 +5,6 @@ type Stat = {
    * The smaller line under the figure: what it is of, or what it means.
    */
   detail?: string;
-  icon: ReactNode;
   /**
    * How full the thing being measured is, when it has a limit.
    *

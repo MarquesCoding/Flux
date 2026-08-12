@@ -51,6 +51,7 @@ const LIBRARY: Library = {
   itemCount: 10,
   lastScannedAt: null,
   defaultAudioLanguage: null,
+  filesAtOnce: null,
 };
 
 describe('scanCoordinator', () => {

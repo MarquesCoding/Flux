@@ -1,12 +1,29 @@
-import { useState } from 'react';
-import { IconPlus, IconRefresh, IconRefreshAlert, IconTrash } from '@tabler/icons-react';
+import { useMemo, useRef, useState } from 'react';
+import {
+  IconDots,
+  IconInfoCircle,
+  IconPhoto,
+  IconPlus,
+  IconRefresh,
+  IconRefreshAlert,
+  IconSettings,
+  IconTrash,
+} from '@tabler/icons-react';
+import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
+import { DataTable } from '@FluxUI/DataTable';
+import { HoverCard } from '@FluxUI/HoverCard';
 import { Button } from '@FluxUI/Button';
+import { Card } from '@FluxUI/Card';
+import { CardHeader } from '@FluxUI/CardHeader';
 import { AddLibraryDialog } from '@FluxWeb/components/AdminArea/components/AddLibraryDialog/AddLibraryDialog';
 import { LibrarySettingsDialog } from '@FluxWeb/components/AdminArea/components/LibrarySettingsDialog/LibrarySettingsDialog';
 import { ResetLibrariesDialog } from '@FluxWeb/components/AdminArea/components/ResetLibrariesDialog/ResetLibrariesDialog';
 import { ScanProgressBar } from '@FluxWeb/components/AdminArea/components/ScanProgressBar/ScanProgressBar';
 import { describeScanKind } from '@FluxWeb/components/AdminArea/describeScanKind';
+import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
+import type { DataTableColumn } from '@FluxUI/DataTable.types';
+import type { Library } from '@FluxContracts/schemas/Library';
 import type { LibrariesPanelProps } from './LibrariesPanel.types';
 
 /**
@@ -40,11 +57,164 @@ const LibrariesPanel = ({
 
   const isBusy = libraries.length === 0 || progress.size > 0;
 
-  return (
-    <div className="flex flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-6 py-4">
-        <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Library roots</h2>
+  /**
+   * What a column needs, without being rebuilt when it changes.
+   *
+   * Scanning pushes progress several times a second; a column rebuilt on each
+   * push is a new `cell`, which React remounts — closing any menu or hover
+   * card open in that row.
+   */
+  const live = useRef({ progress, onScan, onRegeneratePreviews, setSettingsLibraryId });
 
+  live.current = { progress, onScan, onRegeneratePreviews, setSettingsLibraryId };
+
+  const columns = useMemo<DataTableColumn<Library>[]>(
+    () => [
+      {
+        id: 'name',
+        header: 'Library',
+        accessorFn: (library) => library.name,
+        cell: ({ row }) => (
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="flex items-center gap-2">
+              <span className="truncate font-medium text-text">{row.original.name}</span>
+              <Badge size="sm">{row.original.kind}</Badge>
+            </span>
+
+            <span className="truncate text-xs text-text-muted" title={row.original.path}>
+              {row.original.path}
+            </span>
+          </span>
+        ),
+      },
+      {
+        id: 'items',
+        header: 'Items',
+        accessorFn: (library) => library.itemCount,
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap tabular-nums text-text-muted">
+            {row.original.itemCount === 1 ? '1 item' : `${row.original.itemCount.toString()} items`}
+          </span>
+        ),
+      },
+      {
+        id: 'scanned',
+        header: 'Last read',
+        accessorFn: (library) => library.lastScannedAt ?? '',
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap text-xs text-text-muted">
+            {describeSince(row.original.lastScannedAt, Date.now())}
+          </span>
+        ),
+      },
+      {
+        id: 'state',
+        header: 'State',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const scanning = live.current.progress.get(row.original.id);
+
+          if (scanning === undefined) {
+            return (
+              <Badge size="sm" tone="quiet">
+                Idle
+              </Badge>
+            );
+          }
+
+          return (
+            <HoverCard
+              side="left"
+              align="center"
+              detail={
+                <div className="flex flex-col gap-3">
+                  <span className="text-xs uppercase tracking-[0.14em] text-text-muted">
+                    {describeScanKind(scanning.kind, row.original.name)}
+                  </span>
+
+                  <ScanProgressBar
+                    label={describeScanKind(scanning.kind, row.original.name)}
+                    phase={scanning.phase}
+                    processed={scanning.processed}
+                    total={scanning.total}
+                  />
+                </div>
+              }
+            >
+              <Badge size="sm" tone="accent">
+                Reading
+              </Badge>
+
+              <IconInfoCircle size={15} className="shrink-0 text-text-muted" aria-hidden />
+            </HoverCard>
+          );
+        },
+      },
+      {
+        id: 'act',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="flex justify-end">
+            <ActionMenu
+              label={`Actions for ${row.original.name}`}
+              trigger={<IconDots size={16} aria-hidden />}
+              groups={[
+                {
+                  items: [
+                    {
+                      id: 'scan',
+                      label: 'Scan for changes',
+                      icon: <IconRefresh size={15} aria-hidden />,
+                      isDisabled: live.current.progress.get(row.original.id) !== undefined,
+                      onChoose: () => {
+                        live.current.onScan(row.original.id);
+                      },
+                    },
+                    {
+                      id: 'reread',
+                      label: 'Read every file again',
+                      icon: <IconRefreshAlert size={15} aria-hidden />,
+                      isDisabled: live.current.progress.get(row.original.id) !== undefined,
+                      onChoose: () => {
+                        live.current.onScan(row.original.id, true);
+                      },
+                    },
+                    {
+                      id: 'previews',
+                      label: 'Generate missing previews',
+                      icon: <IconPhoto size={15} aria-hidden />,
+                      isDisabled: live.current.progress.get(row.original.id) !== undefined,
+                      onChoose: () => {
+                        live.current.onRegeneratePreviews(row.original.id);
+                      },
+                    },
+                  ],
+                },
+                {
+                  items: [
+                    {
+                      id: 'settings',
+                      label: 'Library settings',
+                      icon: <IconSettings size={15} aria-hidden />,
+                      onChoose: () => {
+                        live.current.setSettingsLibraryId(row.original.id);
+                      },
+                    },
+                  ],
+                },
+              ]}
+            />
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  return (
+    <Card as="section" padding="none" className="flex flex-col overflow-hidden">
+      <CardHeader title="Library roots">
         <div className="flex shrink-0 items-center gap-2">
           <Button
             variant="ghost"
@@ -84,7 +254,7 @@ const LibrariesPanel = ({
             Add library
           </Button>
         </div>
-      </header>
+      </CardHeader>
 
       {isUnreachable ? (
         <p className="p-6 text-sm text-text-muted">
@@ -96,77 +266,7 @@ const LibrariesPanel = ({
           No libraries yet. Add one pointing at a folder of media.
         </p>
       ) : (
-        <ul className="divide-y divide-white/5">
-          {libraries.map((library) => {
-            const scanning = progress.get(library.id);
-
-            return (
-              <li
-                key={library.id}
-                className="flex flex-wrap items-center justify-between gap-4 px-6 py-4"
-              >
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="flex items-center gap-2 text-sm text-text">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto rounded-none bg-transparent p-0 text-sm text-text hover:bg-transparent hover:underline"
-                      onClick={() => {
-                        setSettingsLibraryId(library.id);
-                      }}
-                    >
-                      {library.name}
-                    </Button>
-                    <Badge size="sm">{library.kind}</Badge>
-                  </span>
-
-                  <span className="truncate text-xs text-text-muted" title={library.path}>
-                    {library.path} ·{' '}
-                    {library.itemCount === 1 ? '1 item' : `${library.itemCount.toString()} items`}
-                  </span>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-2">
-                  {scanning === undefined ? (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        isPill
-                        label="Read every file again, not only the ones that changed"
-                        onClick={() => {
-                          onScan(library.id, true);
-                        }}
-                      >
-                        <IconRefreshAlert size={16} aria-hidden />
-                        Read again
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        isPill
-                        onClick={() => {
-                          onScan(library.id);
-                        }}
-                      >
-                        <IconRefresh size={16} aria-hidden />
-                        Scan
-                      </Button>
-                    </>
-                  ) : (
-                    <ScanProgressBar
-                      label={describeScanKind(scanning.kind, library.name)}
-                      phase={scanning.phase}
-                      processed={scanning.processed}
-                      total={scanning.total}
-                    />
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <DataTable label="Library roots" columns={columns} rows={libraries} />
       )}
 
       <AddLibraryDialog
@@ -202,7 +302,7 @@ const LibrariesPanel = ({
         onUpdated={onLibraryUpdated}
         onRegenerate={onRegeneratePreviews}
       />
-    </div>
+    </Card>
   );
 };
 

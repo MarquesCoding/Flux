@@ -56,6 +56,7 @@ const harness = (options: {
   providers?: MetadataProvider[];
   force?: boolean;
   isPartial?: boolean;
+  isCancelled?: () => boolean;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
   trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number };
@@ -139,6 +140,7 @@ const harness = (options: {
       ...(options.providers === undefined ? {} : { providers: options.providers }),
       ...(options.force === undefined ? {} : { force: options.force }),
       ...(options.isPartial === undefined ? {} : { isPartial: options.isPartial }),
+      ...(options.isCancelled === undefined ? {} : { isCancelled: options.isCancelled }),
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
       ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
       ...(options.trickplay === undefined ? {} : { trickplay: options.trickplay }),
@@ -146,6 +148,63 @@ const harness = (options: {
 
   return { run, rows, removedPaths, markScanned, previewRequests };
 };
+
+describe('a library whose files have gone from under it', () => {
+  it('keeps what it held when the root turns up empty, since a share can be unmounted', async () => {
+    const { run, removedPaths } = harness({
+      found: [],
+      existing: [stored('/a.mkv'), stored('/b.mkv')],
+    });
+
+    await run();
+
+    expect(removedPaths).toEqual([]);
+  });
+
+  it('says why nothing was touched, rather than reporting a scan that did nothing', async () => {
+    const problems: string[] = [];
+
+    const { run } = harness({
+      found: [],
+      existing: [stored('/a.mkv')],
+      onProblem: (_path, reason) => {
+        problems.push(reason);
+      },
+    });
+
+    await run();
+
+    expect(problems.join(' ')).toContain('not mounted');
+  });
+
+  it('still removes what has gone while other files remain, which is a real deletion', async () => {
+    const { run, removedPaths } = harness({
+      found: [file('/a.mkv')],
+      existing: [stored('/a.mkv'), stored('/b.mkv')],
+    });
+
+    await run();
+
+    expect(removedPaths).toEqual(['/b.mkv']);
+  });
+
+  it('leaves an empty library empty rather than complaining about it', async () => {
+    const problems: string[] = [];
+
+    const { run, removedPaths } = harness({
+      found: [],
+      existing: [],
+      onProblem: (_path, reason) => {
+        problems.push(reason);
+      },
+    });
+
+    await run();
+
+    expect(removedPaths).toEqual([]);
+    expect(problems).toEqual([]);
+  });
+});
 
 describe('a scan of a few named files, rather than the whole library', () => {
   it('leaves alone everything it was not asked about', async () => {
@@ -262,10 +321,10 @@ describe('scanLibrary', () => {
     expect(await run()).toMatchObject({ added: 0, updated: 1 });
   });
 
-  it('removes rows for files that disappeared', async () => {
+  it('removes rows for files that disappeared from a library still holding others', async () => {
     const { run, removedPaths } = harness({
-      found: [],
-      existing: [stored('/gone.mkv')],
+      found: [file('/kept.mkv')],
+      existing: [stored('/kept.mkv'), stored('/gone.mkv')],
     });
 
     expect(await run()).toMatchObject({ removed: 1 });
@@ -670,5 +729,55 @@ describe('a correction somebody made', () => {
     await run();
 
     expect(asked).toBe('777');
+  });
+});
+
+describe('a scan somebody stopped partway', () => {
+  it('keeps what it read and deletes nothing', async () => {
+    let seen = 0;
+
+    const { run, rows, removedPaths } = harness({
+      found: [file('/a.mkv'), file('/b.mkv')],
+      existing: [stored('/gone.mkv')],
+      isCancelled: () => {
+        seen += 1;
+
+        return seen > 1;
+      },
+    });
+
+    const result = await run();
+
+    expect(rows.map((row) => row.path)).toEqual(['/a.mkv']);
+    expect(removedPaths).toEqual([]);
+    expect(result.removed).toBe(0);
+  });
+
+  it('leaves the library unscanned so the next scan finishes the job', async () => {
+    const { run, markScanned } = harness({
+      found: [file('/a.mkv'), file('/b.mkv')],
+      isCancelled: () => true,
+    });
+
+    await run();
+
+    expect(markScanned).not.toHaveBeenCalled();
+  });
+
+  it('says that it was stopped rather than leaving it to be guessed at', async () => {
+    const problems: string[] = [];
+
+    const { run } = harness({
+      found: [file('/a.mkv')],
+      isCancelled: () => true,
+      onProblem: (_path, reason) => {
+        problems.push(reason);
+      },
+    });
+
+    await run();
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain('stopped');
   });
 });

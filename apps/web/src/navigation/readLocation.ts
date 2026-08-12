@@ -52,6 +52,14 @@ type Place = {
    */
   startSeconds: number;
   /**
+   * The genre a search is narrowed to, if one is.
+   *
+   * In the address rather than held by the page, so that a genre is a place
+   * somebody can be sent to — which is what makes a footer full of them worth
+   * having — and so the back button undoes choosing one.
+   */
+  genre: string | null;
+  /**
    * Which panel of the admin page is open, when the section is admin.
    *
    * Kept in the address for the same reason everything else here is: a
@@ -75,6 +83,7 @@ const HOME: Place = {
   show: null,
   playing: null,
   startSeconds: 0,
+  genre: null,
   adminPanel: null,
   adminJob: null,
 };
@@ -107,6 +116,7 @@ const readLocation = (url: string): Place => {
     show: query.get('show'),
     playing: watching,
     startSeconds: Number.isFinite(started) && started > 0 ? started : 0,
+    genre: query.get('genre'),
     adminPanel: query.get('panel'),
     adminJob: query.get('job'),
   };
@@ -138,6 +148,10 @@ const writeLocation = (place: Place): string => {
 
   if (place.inspecting !== null) {
     query.set('item', place.inspecting);
+  }
+
+  if (place.genre !== null) {
+    query.set('genre', place.genre);
   }
 
   if (place.section === 'admin' && place.adminPanel !== null) {

@@ -150,6 +150,7 @@ const library = pgTable('library', {
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   lastScannedAt: timestamp('lastScannedAt'),
   defaultAudioLanguage: text('defaultAudioLanguage'),
+  filesAtOnce: integer('filesAtOnce'),
 });
 
 /**

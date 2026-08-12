@@ -56,6 +56,7 @@ const library = (overrides: Partial<Library> = {}): Library => ({
   lastScannedAt: new Date().toISOString(),
   ...overrides,
   defaultAudioLanguage: null,
+  filesAtOnce: null,
 });
 
 const job = (overrides: Partial<Job> = {}): Job => ({
@@ -123,53 +124,9 @@ describe('OverviewPanel', () => {
   it('shows every card even on a server with nothing wrong', () => {
     render(<OverviewPanel {...props} />);
 
-    for (const title of ['Needs attention', 'Watching now', 'Running now', 'Libraries', 'Server']) {
+    for (const title of ['Watching now', 'Running now', 'Libraries', 'Server']) {
       expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
     }
-  });
-
-  describe('needs attention', () => {
-    it('says so plainly when nothing does', () => {
-      render(<OverviewPanel {...props} />);
-
-      expect(screen.getByText('Nothing needs attention.')).toBeInTheDocument();
-    });
-
-    it('reports what is wrong', () => {
-      render(
-        <OverviewPanel
-          {...props}
-          overview={overview({
-            transcoder: {
-              isReachable: false,
-              address: 'unix:/tmp/flux-transcoder.sock',
-              ffmpegVersion: null,
-              hardwareAccels: [],
-              rejectedEncoders: [],
-            },
-          })}
-        />,
-      );
-
-      expect(screen.getByText('The media service is unreachable')).toBeInTheDocument();
-    });
-
-    it('opens the panel that explains one', async () => {
-      const onOpenPanel = vi.fn();
-      const user = userEvent.setup();
-
-      render(
-        <OverviewPanel
-          {...props}
-          libraries={[library({ lastScannedAt: null })]}
-          onOpenPanel={onOpenPanel}
-        />,
-      );
-
-      await user.click(screen.getByRole('button', { name: /never been scanned/ }));
-
-      expect(onOpenPanel).toHaveBeenCalledWith('libraries');
-    });
   });
 
   describe('watching now', () => {

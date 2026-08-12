@@ -186,7 +186,7 @@ describe('SessionCard', () => {
     );
 
     const position = container.querySelector('.bg-accent');
-    const buffer = container.querySelector('.bg-white\\/30');
+    const buffer = container.querySelector('.bg-text\\/25');
 
     expect(position).toHaveStyle({ width: '25%' });
     expect(buffer).toHaveStyle({ width: '37.5%' });

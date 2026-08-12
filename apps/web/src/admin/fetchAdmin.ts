@@ -303,6 +303,31 @@ const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
 };
 
 /**
+ * Follows who has the app open, as it changes.
+ *
+ * Pushed rather than asked for: presence changes when somebody arrives,
+ * leaves, presses play or is paused by an admin, and none of those happen on
+ * a schedule a poll could match. The server sends the whole list each time —
+ * it is a handful of rows, and a list that arrives whole cannot drift out of
+ * step with itself the way a stream of edits can.
+ */
+const watchActiveSessions = (onSessions: (sessions: ActiveSession[]) => void): (() => void) => {
+  const source = new EventSource('/api/admin/sessions/stream', { withCredentials: true });
+
+  source.onmessage = (event: MessageEvent<string>) => {
+    const parsed = z.array(ActiveSessionSchema).safeParse(JSON.parse(event.data));
+
+    if (parsed.success) {
+      onSessions(parsed.data);
+    }
+  };
+
+  return () => {
+    source.close();
+  };
+};
+
+/**
  * Reads every tab that has the app open right now.
  */
 const fetchActiveSessions = async (): Promise<ActiveSession[]> => {
@@ -401,6 +426,23 @@ const runJob = async (
   }
 
   return ScanJobSchema.parse(await response.json());
+};
+
+/**
+ * Asks a job to stop.
+ *
+ * True when there was something to stop. False covers both a job that had
+ * already finished and one that was never there — from the page's side those
+ * are the same answer: there is nothing running to act on, so read the list
+ * again rather than reporting a failure.
+ */
+const cancelJob = async (jobId: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/jobs/running/${jobId}/cancel`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  }).catch(() => null);
+
+  return response !== null && response.ok;
 };
 
 /**
@@ -508,11 +550,13 @@ export {
   saveCatalogueKey,
   saveHardwareAccel,
   fetchActiveSessions,
+  watchActiveSessions,
   stopSession,
   pauseSession,
   resumeSession,
   fetchJobDefinitions,
   runJob,
+  cancelJob,
   fetchJobSchedules,
   addJobTrigger,
   removeJobTrigger,
