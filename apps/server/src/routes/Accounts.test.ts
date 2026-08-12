@@ -22,6 +22,7 @@ const AccountsSchema = z.object({
       isBanned: z.boolean(),
       position: z.number().nullable(),
       isAdministrator: z.boolean(),
+      roles: z.array(z.string()),
     }),
   ),
 });
@@ -218,6 +219,30 @@ describe('account administration', () => {
       );
 
       expect(body.accounts.find((account) => account.id === OTHER)?.isAdministrator).toBe(true);
+    });
+
+    it('names the roles each account holds, so a list can show a change', async () => {
+      const context = await signedInWith(['administrator']);
+      const manager = (await context.permissions.listRoles()).find(
+        (role) => role.name === 'Manager',
+      );
+
+      await context.permissions.assignRole(OTHER, manager?.id ?? '');
+
+      const body = AccountsSchema.parse(
+        await (await context.request('/api/admin/accounts')).json(),
+      );
+
+      expect(body.accounts.find((account) => account.id === OTHER)?.roles).toEqual(['Manager']);
+    });
+
+    it('answers an empty list for somebody holding none', async () => {
+      const context = await signedInWith(['administrator']);
+      const body = AccountsSchema.parse(
+        await (await context.request('/api/admin/accounts')).json(),
+      );
+
+      expect(body.accounts.find((account) => account.id === OTHER)?.roles).toEqual([]);
     });
 
     it('answers a null rank for somebody holding no role', async () => {

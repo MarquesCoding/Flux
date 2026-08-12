@@ -43,6 +43,10 @@ import type { Permission, Role } from '@FluxContracts/schemas/Permission';
  * their permissions resolve to rather than by what a column says: the two can
  * disagree, and only one of them decides what actually happens.
  *
+ * Every role an account holds is shown on its row, not only the one that
+ * matters most. Giving somebody a role and seeing nothing change until the
+ * account is opened again reads as a press that did nothing.
+ *
  * Inviting and editing an account are not here yet.
  */
 const AccountsPanel = () => {
@@ -136,7 +140,23 @@ const AccountsPanel = () => {
                   </span>
                 </Button>
 
-                {account.isAdministrator ? <Badge size="sm">administrator</Badge> : null}
+                <span className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                  {account.roles.length === 0 ? (
+                    <span className="text-xs text-text-muted">No roles</span>
+                  ) : (
+                    account.roles.map((role) => (
+                      <Badge
+                        key={role}
+                        size="sm"
+                        tone={
+                          account.isAdministrator && role === 'Administrator' ? 'accent' : 'quiet'
+                        }
+                      >
+                        {role}
+                      </Badge>
+                    ))
+                  )}
+                </span>
 
                 {account.isBanned ? (
                   <Badge size="sm" tone="solid">

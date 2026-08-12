@@ -1511,6 +1511,7 @@ const createApp = ({
           banReason: (await readBanReason?.(account.id)) ?? null,
           position: held.length === 0 ? null : Math.max(...held.map((role) => role.position)),
           isAdministrator: resolved.has('administrator'),
+          roles: held.map((role) => role.name),
         };
       }),
     );
@@ -1634,6 +1635,7 @@ const createApp = ({
         banReason: null,
         position: null,
         isAdministrator: false,
+        roles: [],
       },
       201,
     );
