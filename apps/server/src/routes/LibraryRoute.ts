@@ -258,6 +258,35 @@ const correctMatchRoute = createRoute({
   },
 });
 
+/**
+ * What a rebuild found to throw away.
+ *
+ * Both false is not a failure. It means the item had nothing cached — which is
+ * the same end state the operator asked for, and worth saying plainly rather
+ * than reporting a success that sounds like work was done.
+ */
+const RebuiltArtefacts = z
+  .object({ preview: z.boolean(), trickplay: z.boolean() })
+  .openapi('RebuiltArtefacts');
+
+const rebuildArtefactsRoute = createRoute({
+  method: 'post',
+  path: '/api/media/{id}/artefacts/rebuild',
+  tags: ['Library'],
+  summary: 'Throw away one item’s preview and thumbnails so they are made again',
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: {
+      description: 'What was there to throw away',
+      content: { 'application/json': { schema: RebuiltArtefacts } },
+    },
+    404: {
+      description: 'No such item',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+});
+
 const forgetCorrectionRoute = createRoute({
   method: 'delete',
   path: '/api/media/{id}/match',
@@ -443,5 +472,6 @@ export {
   runningScansRoute,
   correctMatchRoute,
   forgetCorrectionRoute,
+  rebuildArtefactsRoute,
   regeneratePreviewsRoute,
 };
