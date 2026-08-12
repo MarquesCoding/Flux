@@ -10,6 +10,10 @@ type OverviewPanelProps = {
    */
   sessions: ActiveSession[];
   /**
+   * Processor readings, so sustained load can be told from a busy moment.
+   */
+  history: number[];
+  /**
    * Told which panel explains something somebody pressed.
    */
   onOpenPanel: (panel: string) => void;

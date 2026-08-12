@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { collectConcerns } from './collectConcerns';
-import type { AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin';
+import type { ActiveSession, AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin';
+import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import type { Library } from '@FluxContracts/schemas/Library';
 
 const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
@@ -51,6 +52,42 @@ const failedJob = (detail: string | null = null): Job => ({
   startedAtMs: 0,
   finishedAtMs: 1,
   detail,
+});
+
+const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };
+
+const PLAN: PlaybackPlan = {
+  mediaId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+  container: { kind: 'passthrough', reason },
+  video: { kind: 'passthrough', reason },
+  audio: { kind: 'passthrough', streamIndex: 1, reason },
+  subtitles: { kind: 'none', reason },
+};
+
+const streaming = (bufferedAheadSeconds: number, isPlaying = true): ActiveSession => ({
+  clientId: 'cli_1',
+  profileId: 'prf_1',
+  profileName: 'Dan',
+  deviceLabel: 'Chrome on macOS',
+  connectedAt: 0,
+  playback: {
+    mediaId: 'med_1',
+    mediaTitle: 'Arrival',
+    hasPoster: false,
+    hasBackdrop: false,
+    mode: 'transcode',
+    plan: PLAN,
+    isPlaying,
+    pausedByAdmin: false,
+    startedAt: 0,
+    health: {
+      positionSeconds: 10,
+      durationSeconds: 7200,
+      bufferedAheadSeconds,
+      presentedWidth: 1920,
+      presentedHeight: 1080,
+    },
+  },
 });
 
 const healthy = {
@@ -182,6 +219,57 @@ describe('collectConcerns', () => {
       });
 
       expect(concerns.map((concern) => concern.id)).toContain('no-catalogue-key');
+    });
+  });
+
+  describe('the processor', () => {
+    it('says nothing about one busy moment', () => {
+      const concerns = collectConcerns({ ...healthy, history: [100, 100, 100] });
+
+      expect(concerns).toEqual([]);
+    });
+
+    it('reports load that has not let up', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        history: Array.from({ length: 15 }, () => 95),
+      });
+
+      expect(concerns.map((concern) => concern.id)).toContain('cpu');
+    });
+
+    it('stays quiet when one reading in the run dipped', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        history: [...Array.from({ length: 14 }, () => 95), 40],
+      });
+
+      expect(concerns).toEqual([]);
+    });
+  });
+
+  describe('streams in trouble', () => {
+    it('reports one running out of buffer, by name', () => {
+      const concerns = collectConcerns({ ...healthy, sessions: [streaming(0.5)] });
+
+      expect(concerns[0]?.title).toBe('Dan is running out of buffer');
+    });
+
+    it('counts several rather than naming them all', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        sessions: [streaming(0.5), streaming(1)],
+      });
+
+      expect(concerns[0]?.title).toBe('2 streams are running out of buffer');
+    });
+
+    it('says nothing about a stream with buffer in hand', () => {
+      expect(collectConcerns({ ...healthy, sessions: [streaming(30)] })).toEqual([]);
+    });
+
+    it('says nothing about a paused stream, which is not starving', () => {
+      expect(collectConcerns({ ...healthy, sessions: [streaming(0, false)] })).toEqual([]);
     });
   });
 

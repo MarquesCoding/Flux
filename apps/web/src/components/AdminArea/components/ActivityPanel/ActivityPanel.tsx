@@ -34,7 +34,7 @@ const ActivityPanel = ({
             </h2>
 
             <span className="text-xs tabular-nums text-text-muted">
-              {history.length.toString()} readings
+              Live · {history.length.toString()} readings
             </span>
           </div>
 
@@ -87,7 +87,11 @@ const ActivityPanel = ({
       </div>
 
       <div className="flex flex-col gap-5 border-t border-white/10 bg-surface/40 p-6">
-        <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Active Sessions</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Active Sessions</h2>
+
+          <span className="text-xs text-text-muted">Checked every 5 seconds</span>
+        </div>
 
         {sessions.length === 0 ? (
           <p className="text-sm text-text-muted">Nobody has the app open right now.</p>

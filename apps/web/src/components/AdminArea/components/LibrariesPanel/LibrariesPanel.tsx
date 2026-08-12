@@ -21,6 +21,7 @@ import type { LibrariesPanelProps } from './LibrariesPanel.types';
  * running scan is worse than that.
  */
 const LibrariesPanel = ({
+  isUnreachable = false,
   libraries,
   progress,
   isScanningAll,
@@ -84,7 +85,12 @@ const LibrariesPanel = ({
         </div>
       </header>
 
-      {libraries.length === 0 ? (
+      {isUnreachable ? (
+        <p className="p-6 text-sm text-text-muted">
+          The libraries could not be read from the server. This is not the same as having none — do
+          not add one until it answers again.
+        </p>
+      ) : libraries.length === 0 ? (
         <p className="p-6 text-sm text-text-muted">
           No libraries yet. Add one pointing at a folder of media.
         </p>

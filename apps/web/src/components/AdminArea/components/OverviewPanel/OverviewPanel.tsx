@@ -87,10 +87,11 @@ const OverviewPanel = ({
   monitor,
   libraries,
   sessions,
+  history,
   onOpenPanel,
 }: OverviewPanelProps) => {
   const now = Date.now();
-  const concerns = collectConcerns({ overview, monitor, libraries });
+  const concerns = collectConcerns({ overview, monitor, libraries, sessions, history });
   const watching = sessions.filter((session) => session.playback !== null);
   const running = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'running');
   const waiting = monitor?.queue.queued ?? 0;
