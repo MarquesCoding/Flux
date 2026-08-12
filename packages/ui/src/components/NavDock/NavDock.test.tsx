@@ -1,7 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavDock } from './NavDock';
+import type * as MotionReact from 'motion/react';
+
+const motion = vi.hoisted(() => ({ isReduced: false }));
+
+vi.mock('motion/react', async () => ({
+  ...(await vi.importActual<typeof MotionReact>('motion/react')),
+  useReducedMotion: () => motion.isReduced,
+}));
 
 const ITEMS = [
   { id: 'home', label: 'Home' },
@@ -9,6 +17,10 @@ const ITEMS = [
 ];
 
 const props = { items: ITEMS, selectedId: 'home', onSelect: vi.fn() };
+
+afterEach(() => {
+  motion.isReduced = false;
+});
 
 describe('NavDock', () => {
   it('names itself, so a screen reader can skip to it', () => {
@@ -110,5 +122,13 @@ describe('NavDock', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(NavDock.displayName).toBe('NavDock');
+  });
+
+  it('moves the mark without animating it when less motion was asked for', () => {
+    motion.isReduced = true;
+
+    render(<NavDock items={ITEMS} selectedId="home" onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
   });
 });

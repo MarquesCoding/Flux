@@ -1,7 +1,19 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MediaCard } from './MediaCard';
+import type * as MotionReact from 'motion/react';
+
+const motion = vi.hoisted(() => ({ isReduced: false }));
+
+vi.mock('motion/react', async () => ({
+  ...(await vi.importActual<typeof MotionReact>('motion/react')),
+  useReducedMotion: () => motion.isReduced,
+}));
+
+afterEach(() => {
+  motion.isReduced = false;
+});
 
 describe('MediaCard', () => {
   it('is a single button covering the whole tile', async () => {
@@ -84,5 +96,13 @@ describe('MediaCard', () => {
     );
 
     expect(screen.getByText('4K').parentElement).toHaveClass('bg-black/60');
+  });
+
+  it('draws the card without its motion for somebody who asked for less', () => {
+    motion.isReduced = true;
+
+    render(<MediaCard title="Arrival" subtitle="2016" onSelect={vi.fn()} />);
+
+    expect(screen.getByText('Arrival')).toBeInTheDocument();
   });
 });

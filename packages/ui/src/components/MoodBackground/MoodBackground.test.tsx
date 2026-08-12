@@ -1,6 +1,14 @@
 import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MoodBackground } from './MoodBackground';
+import type * as MotionReact from 'motion/react';
+
+const motion = vi.hoisted(() => ({ isReduced: false }));
+
+vi.mock('motion/react', async () => ({
+  ...(await vi.importActual<typeof MotionReact>('motion/react')),
+  useReducedMotion: () => motion.isReduced,
+}));
 
 /**
  * The lights themselves, one per colour the page was given.
@@ -9,6 +17,10 @@ const blooms = (container: HTMLElement): HTMLElement[] =>
   Array.from(container.querySelectorAll('.flux-bloom')).filter(
     (found): found is HTMLElement => found instanceof HTMLElement,
   );
+
+afterEach(() => {
+  motion.isReduced = false;
+});
 
 describe('MoodBackground', () => {
   it('puts a light where the picture said it came from', () => {
@@ -80,5 +92,13 @@ describe('MoodBackground', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(MoodBackground.displayName).toBe('MoodBackground');
+  });
+
+  it('stops the lights drifting for somebody who asked for less motion', () => {
+    motion.isReduced = true;
+
+    const { container } = render(<MoodBackground lights={[{ color: '#112233' }]} hasGrid />);
+
+    expect(blooms(container)[0]?.className).not.toContain('flux-bloom--drift');
   });
 });

@@ -107,6 +107,27 @@ describe('fromAdvancedSubStation', () => {
   it('produces a valid, empty track when a script has no dialogue', () => {
     expect(fromAdvancedSubStation('[Script Info]\nTitle: Nothing')).toBe('WEBVTT\n\n');
   });
+
+  it('drops a line whose timing cannot be read rather than emitting a broken cue', () => {
+    const unreadable = advancedSubStation.replace('0:00:01.00', 'whenever');
+
+    expect(fromAdvancedSubStation(unreadable)).toBe('WEBVTT\n\n');
+  });
+
+  it('drops a line that says nothing, which is a timing with no words in it', () => {
+    const wordless = advancedSubStation.replace(',Line one', ',');
+
+    expect(fromAdvancedSubStation(wordless)).toBe('WEBVTT\n\n');
+  });
+
+  it('keeps its own idea of a column the Format line does not name', () => {
+    const partial = advancedSubStation.replace(
+      'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+      'Format: Layer, Start, End, Style',
+    );
+
+    expect(fromAdvancedSubStation(partial)).toContain('Line one');
+  });
 });
 
 describe('toWebVtt', () => {
