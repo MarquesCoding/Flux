@@ -29,6 +29,21 @@ pub const PREVIEW_NAME: &str = "preview.mp4";
 /// Written only when the clip is whole.
 const COMPLETE_MARKER: &str = ".complete";
 
+/// Which recipe made a clip.
+///
+/// A preview is addressed by its content, and until this existed the address
+/// covered the file and the geometry but not *how* the clip was made. So moving
+/// previews onto a hardware encoder, or changing the bitrate or the filter
+/// chain, left every existing clip in place and served it for ever: correct by
+/// the address, stale in fact.
+///
+/// **Raise this whenever the way a clip is made changes.** Doing so gives every
+/// clip a new address, so the next scan renders it again and the old file is
+/// simply never read. Previews and sheets carry their own numbers, because
+/// changing how a clip is encoded is no reason to spend minutes a film redrawing
+/// thumbnails.
+const RECIPE: u32 = 1;
+
 /// How long a preview runs.
 ///
 /// Long enough to show what a film looks and sounds like, short enough that
@@ -146,11 +161,13 @@ impl PreviewRequest {
     /// A stable identifier for this exact clip.
     ///
     /// Content addressed like everything else the service caches, so asking
-    /// twice reuses what is already there.
+    /// twice reuses what is already there — and [`RECIPE`] is part of the
+    /// address, so asking twice across a change to how clips are made does not.
     #[must_use]
     pub fn id(&self) -> String {
         let mut hasher = Sha256::new();
 
+        hasher.update(RECIPE.to_be_bytes());
         hasher.update(self.input_path.as_bytes());
         hasher.update(self.duration_seconds.to_be_bytes());
         hasher.update(self.width.to_be_bytes());
@@ -597,6 +614,32 @@ mod tests {
     #[test]
     fn is_named_the_same_for_the_same_clip() {
         assert_eq!(request().id(), request().id());
+    }
+
+    #[test]
+    fn the_recipe_is_part_of_the_address() {
+        use sha2::{Digest as _, Sha256};
+        use std::fmt::Write as _;
+
+        let request = request();
+        let mut hasher = Sha256::new();
+
+        hasher.update(request.input_path.as_bytes());
+        hasher.update(request.duration_seconds.to_be_bytes());
+        hasher.update(request.width.to_be_bytes());
+        hasher.update(request.audio_stream_index.unwrap_or(u32::MAX).to_be_bytes());
+
+        let mut without_the_recipe = String::with_capacity(32);
+
+        for byte in hasher.finalize().iter().take(16) {
+            let _ = write!(without_the_recipe, "{byte:02x}");
+        }
+
+        assert_ne!(
+            request.id(),
+            without_the_recipe,
+            "a clip made by an older recipe must not answer to the same address"
+        );
     }
 
     #[test]
