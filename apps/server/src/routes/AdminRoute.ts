@@ -21,6 +21,7 @@ const AdminSettingsSchema = z
     hasCatalogueKey: z.boolean(),
     trustedOrigins: z.array(z.string()),
     cookieSecure: z.boolean(),
+    hardwareAccel: z.string(),
   })
   .openapi('AdminSettings');
 
@@ -30,8 +31,10 @@ const AdminOverviewSchema = z
     settings: AdminSettingsSchema,
     transcoder: z.object({
       isReachable: z.boolean(),
+      address: z.string(),
       ffmpegVersion: z.string().nullable(),
       hardwareAccels: z.array(z.string()),
+      rejectedEncoders: z.array(z.object({ encoder: z.string(), reason: z.string() })),
     }),
     library: z.object({
       itemCount: z.number().int().nonnegative(),
@@ -43,6 +46,7 @@ const AdminOverviewSchema = z
 const AdminSettingsRequestSchema = z
   .object({
     catalogueApiKey: z.string().optional(),
+    hardwareAccel: z.string().optional(),
   })
   .openapi('AdminSettingsRequest');
 

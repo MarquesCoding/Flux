@@ -10,6 +10,15 @@ type ToneMapping = 'zscale' | 'libplacebo' | 'unavailable';
 
 type Capabilities = {
   encoders: VerifiedEncoder[];
+  /**
+   * Encoders the media service offered and could not run.
+   *
+   * Only consulted when an operator has insisted on a backend, which is the
+   * one case where using an encoder that failed its check is the right answer:
+   * the check has been wrong before, and a machine whose card demonstrably
+   * works should not be held hostage to it.
+   */
+  rejected?: VerifiedEncoder[];
   toneMapping?: ToneMapping;
   canBurnTextSubtitles?: boolean;
   canBurnImageSubtitles?: boolean;
@@ -48,12 +57,24 @@ type SessionSpec = {
         subtitleIndex: number;
         isImageBased: boolean;
       };
+  /**
+   * The source picture's size, so a hardware scaler can be given a number.
+   *
+   * The hardware scalers do not all accept `force_original_aspect_ratio`, and
+   * clamping each axis on its own squashes anything shaped differently from
+   * the box. The media service works the output size out from this instead.
+   */
+  sourceSize?: [number, number];
 };
 
 type PlanToSessionSpecOptions = {
   plan: PlaybackPlan;
   inputPath: string;
   sourceRange: string;
+  /**
+   * How big the source picture is, when it is known.
+   */
+  sourceSize?: [number, number];
   imageSubtitleIndexes?: number[];
   /**
    * Every subtitle stream's container index, in the order the container holds
@@ -61,6 +82,10 @@ type PlanToSessionSpecOptions = {
    */
   subtitleIndexes?: number[];
   capabilities: Capabilities;
+  /**
+   * The backend an operator insisted on, or empty to use what was detected.
+   */
+  forcedAccel?: string;
   startSeconds: number;
   segmentSeconds: number;
   /**
@@ -121,11 +146,42 @@ const AUDIO_ENCODER = 'aac';
  * Only encoders the media service actually ran a frame through are listed, so
  * anything chosen here is known to work on this machine rather than merely
  * compiled in. See ADR-0009.
+ *
+ * `forced` is an operator saying which backend to use. It narrows the choice to
+ * that backend, and will take an encoder the media service *rejected* — which
+ * sounds reckless and is the point. The check that decides an encoder works has
+ * twice been wrong in a way that cost a working card its hardware encoding, and
+ * an operator who can see their card working needs a way to say so. Software is
+ * still reachable, so a machine forced to a backend it cannot manage plays
+ * films slowly rather than not at all.
  */
-const selectEncoder = (capabilities: Capabilities, codec: string): VerifiedEncoder | null =>
-  capabilities.encoders.find((encoder) => encoder.codec === codec && encoder.accel !== 'none') ??
-  capabilities.encoders.find((encoder) => encoder.codec === codec) ??
-  null;
+const selectEncoder = (
+  capabilities: Capabilities,
+  codec: string,
+  forced = '',
+): VerifiedEncoder | null => {
+  const wanted = forced.trim().toLowerCase();
+
+  if (wanted !== '' && wanted !== 'none') {
+    const matches = (encoder: VerifiedEncoder) =>
+      encoder.codec === codec && encoder.accel === wanted;
+
+    return (
+      capabilities.encoders.find(matches) ??
+      (capabilities.rejected ?? []).find(matches) ??
+      capabilities.encoders.find(
+        (encoder) => encoder.codec === codec && encoder.accel === 'none',
+      ) ??
+      null
+    );
+  }
+
+  return (
+    capabilities.encoders.find((encoder) => encoder.codec === codec && encoder.accel !== 'none') ??
+    capabilities.encoders.find((encoder) => encoder.codec === codec) ??
+    null
+  );
+};
 
 /**
  * Turns a negotiated plan into an instruction the media service can run.
@@ -142,7 +198,9 @@ const planToSessionSpec = ({
   plan,
   inputPath,
   sourceRange,
+  sourceSize,
   capabilities,
+  forcedAccel = '',
   startSeconds,
   segmentSeconds,
   audioStreamIndex,
@@ -185,6 +243,7 @@ const planToSessionSpec = ({
         segmentSeconds,
         hardwareAccel: 'none',
         subtitles,
+        ...(sourceSize === undefined ? {} : { sourceSize }),
         ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
         video: { kind: 'copy' },
         audio:
@@ -201,7 +260,9 @@ const planToSessionSpec = ({
   }
 
   const targetCodec = plan.video.kind === 'transcode' ? plan.video.codec : 'h264';
-  const chosen = selectEncoder(capabilities, targetCodec) ?? selectEncoder(capabilities, 'h264');
+  const chosen =
+    selectEncoder(capabilities, targetCodec, forcedAccel) ??
+    selectEncoder(capabilities, 'h264', forcedAccel);
 
   if (chosen === null) {
     return {
@@ -235,6 +296,7 @@ const planToSessionSpec = ({
       segmentSeconds,
       hardwareAccel: chosen.accel,
       subtitles,
+      ...(sourceSize === undefined ? {} : { sourceSize }),
       ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       video: {
         kind: 'encode',

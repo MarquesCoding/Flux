@@ -1,9 +1,29 @@
 import { useState } from 'react';
+import { IconSelector } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
-import { TextField } from '@FluxUI/TextField';
-import { saveCatalogueKey } from '@FluxWeb/admin/fetchAdmin';
 import { Card } from '@FluxUI/Card';
+import { CardHeader } from '@FluxUI/CardHeader';
+import { OptionMenu } from '@FluxUI/OptionMenu';
+import { TextField } from '@FluxUI/TextField';
+import { saveCatalogueKey, saveHardwareAccel } from '@FluxWeb/admin/fetchAdmin';
 import type { SettingsPanelProps } from './SettingsPanel.types';
+
+/**
+ * The backends an operator can insist on.
+ *
+ * Every name the media service understands, so what is read on the page is what
+ * can be chosen. Automatic is first because it is right almost always.
+ */
+const ACCEL_OPTIONS = [
+  { id: '', label: 'Automatic', detail: 'Use whichever the machine proves it can do' },
+  { id: 'vaapi', label: 'VAAPI', detail: 'Intel and AMD on Linux' },
+  { id: 'qsv', label: 'QuickSync', detail: 'Intel' },
+  { id: 'nvenc', label: 'NVENC', detail: 'NVIDIA' },
+  { id: 'amf', label: 'AMF', detail: 'AMD, needs the proprietary driver' },
+  { id: 'videotoolbox', label: 'VideoToolbox', detail: 'Apple' },
+  { id: 'rkmpp', label: 'RKMPP', detail: 'Rockchip' },
+  { id: 'none', label: 'Software only', detail: 'Never use the hardware' },
+];
 
 /**
  * What the instance is configured with, and who can sign into it.
@@ -18,55 +38,98 @@ import type { SettingsPanelProps } from './SettingsPanel.types';
 const SettingsPanel = ({ overview, onCatalogueKeySaved }: SettingsPanelProps) => {
   const [catalogueKey, setCatalogueKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [accel, setAccel] = useState(overview?.settings.hardwareAccel ?? '');
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Card as="section" padding="md" className="flex flex-col gap-5">
-        <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Metadata catalogue</h2>
+      <Card as="section" padding="none" className="flex flex-col">
+        <CardHeader title="Hardware acceleration" />
 
-        <p className="text-sm text-text-muted">
-          {overview?.settings.hasCatalogueKey === true
-            ? 'A key is set. Entering a new one replaces it.'
-            : 'Without a key, titles and years come from filenames alone.'}
-        </p>
+        <div className="flex flex-col gap-4 p-4">
+          <p className="text-sm text-text-muted">
+            Flux picks whichever backend the machine proves it can use. Choose one here to insist,
+            which also uses an encoder that failed that check — for when the check is wrong and the
+            card plainly works. Software encoding stays available either way.
+          </p>
 
-        <TextField
-          label="Catalogue key"
-          type="password"
-          value={catalogueKey}
-          onValueChange={setCatalogueKey}
-          placeholder="Paste a key"
-        />
+          <OptionMenu
+            label="Hardware acceleration"
+            groups={[
+              {
+                name: 'Backend',
+                selectedId: accel,
+                onSelect: (id) => {
+                  setAccel(id);
 
-        <div>
-          <Button
-            variant="glossy"
-            size="sm"
-            isPill
-            isLoading={isSaving}
-            disabled={catalogueKey === ''}
-            onClick={() => {
-              setIsSaving(true);
+                  void saveHardwareAccel(id);
+                },
+                options: ACCEL_OPTIONS,
+              },
+            ]}
+            trigger={
+              <>
+                <span className="truncate">
+                  {ACCEL_OPTIONS.find((option) => option.id === accel)?.label ?? 'Automatic'}
+                </span>
 
-              void saveCatalogueKey(catalogueKey).then((saved) => {
-                setIsSaving(false);
-
-                if (saved) {
-                  setCatalogueKey('');
-                  onCatalogueKeySaved();
-                }
-              });
-            }}
-          >
-            Save key
-          </Button>
+                <IconSelector size={15} className="shrink-0 text-text-muted" aria-hidden />
+              </>
+            }
+            triggerShape="field"
+            align="start"
+            matchTriggerWidth
+          />
         </div>
       </Card>
 
-      <Card as="section" padding="md" className="flex flex-col gap-5">
-        <h2 className="text-sm uppercase tracking-[0.16em] text-text-muted">Signing in</h2>
+      <Card as="section" padding="none" className="flex flex-col">
+        <CardHeader title="Metadata catalogue" />
 
-        <p className="text-xs leading-relaxed text-text-muted">
+        <div className="flex flex-col gap-4 p-4">
+          <p className="text-sm text-text-muted">
+            {overview?.settings.hasCatalogueKey === true
+              ? 'A key is set. Entering a new one replaces it.'
+              : 'Without a key, titles and years come from filenames alone.'}
+          </p>
+
+          <TextField
+            label="Catalogue key"
+            type="password"
+            value={catalogueKey}
+            onValueChange={setCatalogueKey}
+            placeholder="Paste a key"
+          />
+
+          <div>
+            <Button
+              variant="primary"
+              size="sm"
+              isPill
+              isLoading={isSaving}
+              disabled={catalogueKey === ''}
+              onClick={() => {
+                setIsSaving(true);
+
+                void saveCatalogueKey(catalogueKey).then((saved) => {
+                  setIsSaving(false);
+
+                  if (saved) {
+                    setCatalogueKey('');
+                    onCatalogueKeySaved();
+                  }
+                });
+              }}
+            >
+              Save key
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card as="section" padding="none" className="flex flex-col">
+        <CardHeader title="Signing in" />
+
+        <p className="p-4 text-sm leading-relaxed text-text-muted">
           {overview === null
             ? ''
             : `Cookies are ${

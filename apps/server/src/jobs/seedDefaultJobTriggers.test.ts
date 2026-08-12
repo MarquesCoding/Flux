@@ -10,6 +10,7 @@ const SETTINGS: ServerSettings = {
   cookieSecure: false,
   setupCompletedAt: null,
   catalogueApiKey: '',
+  hardwareAccel: '',
   seededJobTriggerKinds: [],
   seededRoleNames: [],
 };

@@ -81,6 +81,13 @@ type CreatePlaybackServiceOptions = {
    * given and has no authentication of its own.
    */
   trickplayUrlPrefix: string;
+  /**
+   * The hardware backend an operator insisted on, read fresh each time.
+   *
+   * Not cached alongside the capabilities: changing it in the dashboard should
+   * take effect on the next play rather than on the next restart.
+   */
+  forcedAccel?: () => Promise<string>;
 };
 
 /**
@@ -95,6 +102,7 @@ const createPlaybackService = ({
   sessionUrlPrefix,
   directUrlPrefix,
   trickplayUrlPrefix,
+  forcedAccel = () => Promise.resolve(''),
 }: CreatePlaybackServiceOptions): PlaybackService => {
   let cached: TranscoderCapabilities | null = null;
 
@@ -153,11 +161,13 @@ const createPlaybackService = ({
         plan,
         inputPath: found.path,
         sourceRange: found.item.videoRange,
+        sourceSize: [found.item.width, found.item.height],
         imageSubtitleIndexes: found.item.subtitleStreams
           .filter((stream) => IMAGE_SUBTITLE_FORMATS.has(stream.format))
           .map((stream) => stream.index),
         subtitleIndexes: found.item.subtitleStreams.map((stream) => stream.index),
         capabilities: await capabilities(),
+        forcedAccel: await forcedAccel(),
         startSeconds,
         segmentSeconds: SEGMENT_SECONDS,
         ...(audioStreamIndex !== undefined

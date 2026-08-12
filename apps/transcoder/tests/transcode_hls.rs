@@ -143,6 +143,7 @@ fn source_file() -> PathBuf {
 /// it. Production has a single registry that deduplicates; tests do not.
 fn registry(name: &str) -> SessionRegistry {
     SessionRegistry::new(SessionConfig {
+        device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
         ffmpeg: ffmpeg(),
         cache_root: cache_root(name),
         idle_timeout: Duration::from_secs(60),
@@ -175,6 +176,7 @@ fn spec(video: VideoAction, audio: AudioAction) -> SessionSpec {
         audio,
         audio_stream_index: None,
         subtitles: SubtitleAction::None,
+        source_size: None,
     }
 }
 

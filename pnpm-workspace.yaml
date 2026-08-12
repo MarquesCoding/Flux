@@ -1,6 +1,7 @@
 packages:
   - 'apps/web'
   - 'apps/server'
+  - 'apps/transcoder'
   - 'packages/*'
   - 'docs/site'
   - 'tools'
