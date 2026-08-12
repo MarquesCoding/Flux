@@ -82,6 +82,7 @@ const harness = (defaultAudioLanguage: string | null) => {
         hardwareAccels: [],
         hardwareScalers: [],
         rejected: [],
+        forcedAccel: null,
         toneMapping: 'unavailable' as const,
         canBurnTextSubtitles: true,
         canBurnImageSubtitles: true,

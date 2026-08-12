@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
+use flux_transcoder::transcode_plan::HardwareAccel;
 use flux_transcoder::{capability, probe};
 
 const DEFAULT_FFMPEG: &str = "ffmpeg";
@@ -18,6 +19,26 @@ fn setting(variable: &str, fallback: &str) -> String {
 
 fn from_env(variable: &str) -> Option<String> {
     env::var(variable).ok()
+}
+
+/// The backend an operator insisted on, if the setting names a real one.
+///
+/// A name Flux does not know is a mistake worth saying out loud rather than
+/// ignoring: silently falling back to detection is how somebody spends an
+/// afternoon wondering why their override did nothing.
+fn forced_accel() -> Option<HardwareAccel> {
+    let asked = from_env("FLUX_HARDWARE_ACCEL")?;
+
+    let found = HardwareAccel::from_name(&asked);
+
+    if found.is_none() {
+        eprintln!(
+            "FLUX_HARDWARE_ACCEL is {asked}, which is not one of: {}",
+            HardwareAccel::NAMES.join(", ")
+        );
+    }
+
+    found
 }
 
 /// Where the media service should listen.
@@ -71,6 +92,7 @@ fn session_config(ffmpeg: String) -> SessionConfig {
     SessionConfig {
         ffmpeg,
         device: from_env("FLUX_VAAPI_DEVICE").unwrap_or(defaults.device),
+        forced_accel: forced_accel(),
         cache_root: env::var("FLUX_TRANSCODE_DIR").map_or(defaults.cache_root, PathBuf::from),
         idle_timeout: env::var("FLUX_SESSION_IDLE_SECONDS")
             .ok()
@@ -206,9 +228,9 @@ async fn main() {
             }
         }
         Some((command, _)) if command == "capabilities" => {
+            let config = session_config(ffmpeg.clone());
             let capabilities =
-                capability::detect_capabilities(&ffmpeg, &session_config(ffmpeg.clone()).device)
-                    .await;
+                capability::detect_capabilities(&ffmpeg, &config.device, config.forced_accel).await;
 
             println!(
                 "{}",

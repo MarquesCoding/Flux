@@ -307,6 +307,7 @@ type CreateAppOptions = {
     ffmpegVersion: string;
     hardwareAccels: string[];
     rejected?: { encoder: string; reason: string }[];
+    forcedAccel?: string | null;
   }>;
   /**
    * What the media service is doing right now.
@@ -1082,6 +1083,7 @@ const createApp = ({
           ffmpegVersion: transcoderCapabilities?.ffmpegVersion ?? null,
           hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
           rejectedEncoders: transcoderCapabilities?.rejected ?? [],
+          forcedAccel: transcoderCapabilities?.forcedAccel ?? null,
         },
         library: {
           libraryCount: libraries.length,

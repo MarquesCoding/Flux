@@ -46,6 +46,7 @@ const OVERVIEW = {
     ffmpegVersion: '9.0',
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
+    forcedAccel: null,
   },
   library: { itemCount: 15, libraryCount: 2 },
 };

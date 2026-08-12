@@ -34,6 +34,7 @@ const AdminOverviewSchema = z
       ffmpegVersion: z.string().nullable(),
       hardwareAccels: z.array(z.string()),
       rejectedEncoders: z.array(z.object({ encoder: z.string(), reason: z.string() })),
+      forcedAccel: z.string().nullable(),
     }),
     library: z.object({
       itemCount: z.number().int().nonnegative(),

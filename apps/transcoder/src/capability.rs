@@ -184,6 +184,12 @@ pub struct Capabilities {
     /// Encoders that were offered and would not run, and what they said.
     #[serde(default)]
     pub rejected: Vec<RejectedEncoder>,
+    /// The backend an operator insisted on, if they insisted on one.
+    ///
+    /// Reported so the page can say a choice was made by hand rather than
+    /// found, because an override that is invisible is its own trap.
+    #[serde(default)]
+    pub forced_accel: Option<HardwareAccel>,
     /// The hardware scalers this build actually has.
     ///
     /// A backend can only keep frames on the device end to end if the scaler
@@ -265,6 +271,19 @@ pub fn parse_listed_encoders(output: &str) -> Vec<String> {
         .filter_map(|line| line.split_whitespace().nth(1))
         .map(str::to_owned)
         .collect()
+}
+
+/// Whether a candidate is skipped because an operator asked for another backend.
+///
+/// Software encoders are never set aside: they are the fallback whatever else
+/// happens, and a machine forced to `vaapi` that cannot manage it should still
+/// play films.
+#[must_use]
+pub fn is_set_aside(accel: HardwareAccel, forced: Option<HardwareAccel>) -> bool {
+    match forced {
+        None => false,
+        Some(wanted) => accel != HardwareAccel::None && accel != wanted,
+    }
 }
 
 /// Every hardware scaler Flux might ask for.
@@ -399,14 +418,22 @@ static CACHE: tokio::sync::OnceCell<Capabilities> = tokio::sync::OnceCell::const
 ///
 /// Only actually runs the detection once; every call after the first reuses
 /// the cached result. See `CACHE`.
-pub async fn detect_capabilities(ffmpeg: &str, device: &str) -> Capabilities {
+pub async fn detect_capabilities(
+    ffmpeg: &str,
+    device: &str,
+    forced: Option<HardwareAccel>,
+) -> Capabilities {
     CACHE
-        .get_or_init(|| detect_capabilities_uncached(ffmpeg, device))
+        .get_or_init(|| detect_capabilities_uncached(ffmpeg, device, forced))
         .await
         .clone()
 }
 
-async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilities {
+async fn detect_capabilities_uncached(
+    ffmpeg: &str,
+    device: &str,
+    forced: Option<HardwareAccel>,
+) -> Capabilities {
     let listed = match Command::new(ffmpeg)
         .args(["-hide_banner", "-encoders"])
         .output()
@@ -424,6 +451,10 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
             continue;
         }
 
+        if is_set_aside(candidate.accel, forced) {
+            continue;
+        }
+
         match verify_encoder(ffmpeg, candidate, device).await {
             Ok(()) => encoders.push(VerifiedEncoder {
                 codec: candidate.codec.to_owned(),
@@ -431,6 +462,19 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
                 accel: candidate.accel,
                 verified: true,
             }),
+            Err(reason) if forced == Some(candidate.accel) => {
+                eprintln!(
+                    "capability: {} did not verify but is forced, using it anyway — {reason}",
+                    candidate.encoder
+                );
+
+                encoders.push(VerifiedEncoder {
+                    codec: candidate.codec.to_owned(),
+                    encoder: candidate.encoder.to_owned(),
+                    accel: candidate.accel,
+                    verified: false,
+                });
+            }
             Err(reason) => {
                 eprintln!("capability: {} rejected — {reason}", candidate.encoder);
 
@@ -471,6 +515,7 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
             .map(|scaler| (*scaler).to_owned())
             .collect(),
         rejected,
+        forced_accel: forced,
         can_burn_text_subtitles: filters.iter().any(|filter| filter == "subtitles"),
         can_burn_image_subtitles: filters.iter().any(|filter| filter == "overlay"),
     }
@@ -479,8 +524,9 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
 #[cfg(test)]
 mod tests {
     use super::{
-        parse_listed_encoders, parse_listed_filters, probe_arguments, select_tone_mapping,
-        Capabilities, EncoderCandidate, VerifiedEncoder, ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
+        is_set_aside, parse_listed_encoders, parse_listed_filters, probe_arguments,
+        select_tone_mapping, summarise_failure, Capabilities, EncoderCandidate, VerifiedEncoder,
+        ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
     };
     use crate::transcode_plan::HardwareAccel;
     use crate::transcode_plan::DEFAULT_DEVICE;
@@ -514,6 +560,81 @@ mod tests {
         let height = parts.next().and_then(|part| part.parse().ok());
 
         (width.expect("a width"), height.expect("a height"))
+    }
+
+    #[test]
+    fn sets_aside_the_backends_an_operator_did_not_ask_for() {
+        assert!(is_set_aside(
+            HardwareAccel::Nvenc,
+            Some(HardwareAccel::Vaapi)
+        ));
+        assert!(!is_set_aside(
+            HardwareAccel::Vaapi,
+            Some(HardwareAccel::Vaapi)
+        ));
+    }
+
+    #[test]
+    fn never_sets_aside_software() {
+        assert!(
+            !is_set_aside(HardwareAccel::None, Some(HardwareAccel::Vaapi)),
+            "a machine forced to a backend it cannot manage must still play films"
+        );
+    }
+
+    #[test]
+    fn considers_everything_when_nobody_insisted() {
+        for accel in [
+            HardwareAccel::Vaapi,
+            HardwareAccel::Qsv,
+            HardwareAccel::Nvenc,
+            HardwareAccel::VideoToolbox,
+            HardwareAccel::None,
+        ] {
+            assert!(!is_set_aside(accel, None), "{accel:?}");
+        }
+    }
+
+    #[test]
+    fn reads_the_names_an_operator_would_type() {
+        assert_eq!(
+            HardwareAccel::from_name("vaapi"),
+            Some(HardwareAccel::Vaapi)
+        );
+        assert_eq!(
+            HardwareAccel::from_name("  VAAPI "),
+            Some(HardwareAccel::Vaapi)
+        );
+        assert_eq!(
+            HardwareAccel::from_name("videotoolbox"),
+            Some(HardwareAccel::VideoToolbox)
+        );
+        assert_eq!(HardwareAccel::from_name("nonsense"), None);
+    }
+
+    #[test]
+    fn every_accepted_name_is_offered_in_the_error() {
+        for name in HardwareAccel::NAMES {
+            assert!(
+                HardwareAccel::from_name(name).is_some(),
+                "{name} is listed as valid but not accepted"
+            );
+        }
+    }
+
+    #[test]
+    fn summarises_the_reason_rather_than_the_preamble() {
+        let stderr = "Error while opening encoder\nNo VA display found for /dev/dri/renderD128.\n";
+
+        assert_eq!(
+            summarise_failure(stderr),
+            "No VA display found for /dev/dri/renderD128."
+        );
+    }
+
+    #[test]
+    fn says_something_when_ffmpeg_says_nothing() {
+        assert!(!summarise_failure("").is_empty());
     }
 
     #[test]
@@ -654,6 +775,7 @@ mod tests {
             hardware_accels: Vec::new(),
             tone_mapping: ToneMapping::Unavailable,
             rejected: Vec::new(),
+            forced_accel: None,
             hardware_scalers: Vec::new(),
             can_burn_text_subtitles: false,
             can_burn_image_subtitles: false,

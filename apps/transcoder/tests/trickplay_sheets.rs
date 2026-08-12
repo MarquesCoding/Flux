@@ -69,6 +69,7 @@ fn app(name: &str) -> axum::Router {
     create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
             device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            forced_accel: None,
             ffmpeg: ffmpeg(),
             cache_root: std::env::temp_dir().join(format!("flux-test-trickplay-{name}")),
             idle_timeout: Duration::from_secs(60),
@@ -210,6 +211,7 @@ async fn refuses_a_file_outside_the_media_roots() {
     let app = create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
             device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            forced_accel: None,
             ffmpeg: ffmpeg(),
             cache_root: std::env::temp_dir().join("flux-test-trickplay-confined"),
             idle_timeout: Duration::from_secs(60),
@@ -276,6 +278,7 @@ async fn asking_twice_at_once_renders_one_set_rather_than_two() {
     let app = create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
             device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            forced_accel: None,
             ffmpeg: ffmpeg_path,
             cache_root: root.clone(),
             idle_timeout: Duration::from_secs(60),

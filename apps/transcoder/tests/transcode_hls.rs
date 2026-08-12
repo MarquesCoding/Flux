@@ -144,6 +144,7 @@ fn source_file() -> PathBuf {
 fn registry(name: &str) -> SessionRegistry {
     SessionRegistry::new(SessionConfig {
         device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+        forced_accel: None,
         ffmpeg: ffmpeg(),
         cache_root: cache_root(name),
         idle_timeout: Duration::from_secs(60),

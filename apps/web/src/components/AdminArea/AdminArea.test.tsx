@@ -29,6 +29,7 @@ const OVERVIEW: AdminOverview = {
     ffmpegVersion: '9.0.1',
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
+    forcedAccel: null,
   },
   library: { itemCount: 15, libraryCount: 2 },
 };
@@ -334,6 +335,7 @@ describe('AdminArea', () => {
           ffmpegVersion: null,
           hardwareAccels: [],
           rejectedEncoders: [],
+          forcedAccel: null,
         },
       }),
     );

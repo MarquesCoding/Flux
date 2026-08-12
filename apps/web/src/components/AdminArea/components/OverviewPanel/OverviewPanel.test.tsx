@@ -25,6 +25,7 @@ const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
     ffmpegVersion: '7.1',
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
+    forcedAccel: null,
   },
   library: { itemCount: 10, libraryCount: 1 },
   ...overrides,
@@ -146,6 +147,7 @@ describe('OverviewPanel', () => {
               ffmpegVersion: null,
               hardwareAccels: [],
               rejectedEncoders: [],
+              forcedAccel: null,
             },
           })}
         />,
@@ -275,6 +277,7 @@ describe('OverviewPanel', () => {
               ffmpegVersion: '7.1',
               hardwareAccels: [],
               rejectedEncoders: [],
+              forcedAccel: null,
             },
           })}
         />,
@@ -325,6 +328,7 @@ describe('OverviewPanel', () => {
             rejectedEncoders: [
               { encoder: 'h264_vaapi', reason: 'No VA display found for /dev/dri/renderD128.' },
             ],
+            forcedAccel: null,
           },
         })}
       />,
@@ -332,5 +336,25 @@ describe('OverviewPanel', () => {
 
     expect(screen.getByText(/h264_vaapi was not used/)).toBeInTheDocument();
     expect(screen.getByText(/No VA display found/)).toBeInTheDocument();
+  });
+
+  it('says when an accelerator was chosen by hand rather than found', () => {
+    render(
+      <OverviewPanel
+        {...props}
+        overview={overview({
+          transcoder: {
+            isReachable: true,
+            address: 'unix:/tmp/flux-transcoder.sock',
+            ffmpegVersion: '9.0',
+            hardwareAccels: ['vaapi'],
+            rejectedEncoders: [],
+            forcedAccel: 'vaapi',
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/set by hand to vaapi/)).toBeInTheDocument();
   });
 });

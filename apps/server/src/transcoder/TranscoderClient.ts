@@ -101,6 +101,7 @@ const CapabilitiesSchema = z.object({
   rejected: z
     .array(z.object({ encoder: z.string(), accel: z.string(), reason: z.string() }))
     .default([]),
+  forcedAccel: z.string().nullish().default(null),
   toneMapping: z.enum(['zscale', 'libplacebo', 'unavailable']).default('unavailable'),
   canBurnTextSubtitles: z.boolean().default(false),
   canBurnImageSubtitles: z.boolean().default(false),

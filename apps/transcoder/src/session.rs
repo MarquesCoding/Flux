@@ -7,7 +7,7 @@ use thiserror::Error;
 use tokio::process::Command;
 use tokio::sync::{oneshot, Mutex};
 
-use crate::transcode_plan::{SessionSpec, TranscodePlan, MANIFEST_NAME};
+use crate::transcode_plan::{HardwareAccel, SessionSpec, TranscodePlan, MANIFEST_NAME};
 
 /// Written only when ffmpeg exits cleanly.
 ///
@@ -167,6 +167,12 @@ pub struct SessionConfig {
     /// reason Jellyfin asks for it rather than detecting it: the admin knows
     /// which card is theirs to spend.
     pub device: String,
+    /// The backend an operator insisted on, overriding what was detected.
+    ///
+    /// An escape hatch, and one with a track record: the probe has twice been
+    /// wrong in a way that cost a working card its hardware encoder, and until
+    /// this existed there was no way to say "use it anyway".
+    pub forced_accel: Option<HardwareAccel>,
     pub cache_root: PathBuf,
     pub idle_timeout: Duration,
     pub max_concurrent: usize,
@@ -177,6 +183,7 @@ impl Default for SessionConfig {
         Self {
             ffmpeg: "ffmpeg".to_owned(),
             device: crate::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            forced_accel: None,
             cache_root: std::env::temp_dir().join("flux-transcodes"),
             idle_timeout: Duration::from_secs(90),
             max_concurrent: 2,
@@ -264,13 +271,15 @@ impl SessionRegistry {
             output_directory: directory.to_string_lossy().into_owned(),
             device: self.config.device.clone(),
             has_hardware_scaler: match scaler {
-                Some(name) => {
-                    crate::capability::detect_capabilities(&self.config.ffmpeg, &self.config.device)
-                        .await
-                        .hardware_scalers
-                        .iter()
-                        .any(|found| found == name)
-                }
+                Some(name) => crate::capability::detect_capabilities(
+                    &self.config.ffmpeg,
+                    &self.config.device,
+                    self.config.forced_accel,
+                )
+                .await
+                .hardware_scalers
+                .iter()
+                .any(|found| found == name),
                 None => false,
             },
         };

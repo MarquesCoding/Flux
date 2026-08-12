@@ -253,6 +253,10 @@ const OverviewPanel = ({
                 {(overview?.transcoder.hardwareAccels ?? []).length === 0
                   ? 'None'
                   : (overview?.transcoder.hardwareAccels ?? []).join(', ')}
+                {overview?.transcoder.forcedAccel === null ||
+                overview?.transcoder.forcedAccel === undefined
+                  ? ''
+                  : ` (set by hand to ${overview.transcoder.forcedAccel})`}
               </dd>
             </div>
 

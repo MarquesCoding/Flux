@@ -17,6 +17,35 @@ pub enum HardwareAccel {
 }
 
 impl HardwareAccel {
+    /// Reads a backend from the name an operator would type.
+    ///
+    /// The same spellings the capability document serialises, so what an
+    /// administrator reads on the page is what they can write in the setting.
+    #[must_use]
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name.trim().to_ascii_lowercase().as_str() {
+            "vaapi" => Some(Self::Vaapi),
+            "qsv" => Some(Self::Qsv),
+            "nvenc" => Some(Self::Nvenc),
+            "amf" => Some(Self::Amf),
+            "videotoolbox" => Some(Self::VideoToolbox),
+            "rkmpp" => Some(Self::Rkmpp),
+            "none" => Some(Self::None),
+            _ => None,
+        }
+    }
+
+    /// Every name [`Self::from_name`] accepts, for an error worth reading.
+    pub const NAMES: [&'static str; 7] = [
+        "vaapi",
+        "qsv",
+        "nvenc",
+        "amf",
+        "videotoolbox",
+        "rkmpp",
+        "none",
+    ];
+
     /// The `-hwaccel` value `FFmpeg` expects, if any.
     #[must_use]
     pub fn ffmpeg_flag(self) -> Option<&'static str> {

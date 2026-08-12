@@ -412,6 +412,7 @@ mod tests {
             hardware_accels: vec![accel],
             tone_mapping: ToneMapping::Zscale,
             rejected: Vec::new(),
+            forced_accel: None,
             hardware_scalers: Vec::new(),
             can_burn_text_subtitles: true,
             can_burn_image_subtitles: true,

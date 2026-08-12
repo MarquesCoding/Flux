@@ -291,7 +291,7 @@ async fn health() -> Json<serde_json::Value> {
 async fn capabilities(State(state): State<AppState>) -> Json<Capabilities> {
     let config = state.registry.config();
 
-    Json(detect_capabilities(&config.ffmpeg, &config.device).await)
+    Json(detect_capabilities(&config.ffmpeg, &config.device, config.forced_accel).await)
 }
 
 async fn probe(State(state): State<AppState>, Json(request): Json<ProbeRequest>) -> Response {
@@ -407,7 +407,8 @@ async fn start_preview(
     };
 
     let range = video.range;
-    let capabilities = detect_capabilities(&config.ffmpeg, &config.device).await;
+    let capabilities =
+        detect_capabilities(&config.ffmpeg, &config.device, config.forced_accel).await;
     let duration = probe.duration_seconds;
 
     if !request.wait {
@@ -554,7 +555,7 @@ async fn start_trickplay(
     };
 
     let config = state.registry.config();
-    let accel = detect_capabilities(&config.ffmpeg, &config.device)
+    let accel = detect_capabilities(&config.ffmpeg, &config.device, config.forced_accel)
         .await
         .best_encoder("h264")
         .and_then(|found| found.accel.ffmpeg_flag());

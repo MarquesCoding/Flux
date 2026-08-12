@@ -13,6 +13,7 @@ const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview 
     ffmpegVersion: '7.1',
     hardwareAccels: [],
     rejectedEncoders: [],
+    forcedAccel: null,
   },
   library: { itemCount: 10, libraryCount: 1 },
   ...overrides,
@@ -122,6 +123,7 @@ describe('collectConcerns', () => {
             ffmpegVersion: null,
             hardwareAccels: [],
             rejectedEncoders: [],
+            forcedAccel: null,
           },
         }),
       });
@@ -140,6 +142,7 @@ describe('collectConcerns', () => {
             ffmpegVersion: null,
             hardwareAccels: [],
             rejectedEncoders: [],
+            forcedAccel: null,
           },
         }),
       });
@@ -157,6 +160,7 @@ describe('collectConcerns', () => {
             ffmpegVersion: null,
             hardwareAccels: [],
             rejectedEncoders: [],
+            forcedAccel: null,
           },
         }),
       });
