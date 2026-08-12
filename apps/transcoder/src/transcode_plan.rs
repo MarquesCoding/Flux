@@ -422,7 +422,8 @@ impl HardwareAccel {
     /// The pipeline this backend can run end to end, if it can run one.
     ///
     /// `Amf` has none: its `-hwaccel` here is `d3d11va`, which is Windows only,
-    /// and AMD on Linux goes through `VAAPI` instead. `Rkmpp` has none because
+    /// and AMD on Linux goes through `VAAPI` instead — as ADR-0010 says, AMF
+    /// there wants the closed `amdgpu-pro` driver. `Rkmpp` has none because
     /// nobody has tested one. Both keep working exactly as before, on the
     /// software filter chain.
     #[must_use]
@@ -446,6 +447,33 @@ impl HardwareAccel {
             }),
             Self::None | Self::Amf | Self::Rkmpp => None,
         }
+    }
+
+    /// Whether a probe of this backend has to open a device first.
+    ///
+    /// Only VAAPI. It cannot open an encoder without one, which is the whole
+    /// bug this exists to fix.
+    ///
+    /// QSV is deliberately excluded even though it derives from a VAAPI device
+    /// when transcoding. Measured on an Intel iGPU, `h264_qsv` verifies with no
+    /// device at all — it finds its own. Forcing a guessed path into its probe
+    /// would reject a machine whose render node is `renderD129`, breaking
+    /// hardware encoding on the one platform that already worked. The pipeline
+    /// still shares a device; only the probe leaves well alone.
+    #[must_use]
+    pub fn needs_device_to_probe(self) -> bool {
+        matches!(self, Self::Vaapi)
+    }
+
+    /// Whether this backend encodes from frames already on its own device.
+    ///
+    /// VAAPI will not take a software frame: it has to be uploaded first, which
+    /// is why a probe for it needs `format=nv12,hwupload` where NVENC and
+    /// `VideoToolbox` take the frame as it comes. QSV accepts either, and is left
+    /// out so its probe stays the simpler of the two.
+    #[must_use]
+    pub fn needs_uploaded_frames(self) -> bool {
+        matches!(self, Self::Vaapi)
     }
 
     /// The device arguments this backend needs before the input.
@@ -535,6 +563,12 @@ pub const NO_EMBEDDED_CAPTIONS: [&str; 2] = ["-a53cc", "0"];
 pub struct TranscodePlan {
     pub spec: SessionSpec,
     pub output_directory: String,
+    /// The render node VAAPI and QSV are opened on.
+    ///
+    /// A property of the host rather than of the output, so it is deliberately
+    /// not part of the session key: pointing Flux at a different card should
+    /// not orphan every segment already on disk.
+    pub device: String,
 }
 
 /// The manifest file every session writes.
@@ -639,7 +673,7 @@ impl TranscodePlan {
         let on_the_gpu = keeps_frames_on_the_gpu(&self.spec);
 
         if on_the_gpu {
-            args.extend(self.spec.hardware_accel.device_arguments(DEFAULT_DEVICE));
+            args.extend(self.spec.hardware_accel.device_arguments(&self.device));
         }
 
         if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
@@ -716,7 +750,7 @@ impl TranscodePlan {
 mod tests {
     use super::{
         fitted_size, keeps_frames_on_the_gpu, software_equivalent, AudioAction, HardwareAccel,
-        SessionSpec, SubtitleAction, ToneMapping, TranscodePlan, VideoAction,
+        SessionSpec, SubtitleAction, ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE,
     };
 
     fn spec() -> SessionSpec {
@@ -837,6 +871,20 @@ mod tests {
     }
 
     #[test]
+    fn opens_the_device_it_was_given_rather_than_a_fixed_one() {
+        let plan = TranscodePlan {
+            spec: on_gpu(HardwareAccel::Vaapi),
+            output_directory: "/transcodes/abc".into(),
+            device: "/dev/dri/renderD129".into(),
+        };
+
+        assert!(plan
+            .to_ffmpeg_args()
+            .windows(2)
+            .any(|pair| pair == ["-init_hw_device", "vaapi=va:/dev/dri/renderD129"]));
+    }
+
+    #[test]
     fn a_copy_needs_no_pipeline() {
         let spec = SessionSpec {
             video: VideoAction::Copy,
@@ -949,6 +997,7 @@ mod tests {
 
     fn plan(spec: SessionSpec) -> TranscodePlan {
         TranscodePlan {
+            device: DEFAULT_DEVICE.to_owned(),
             spec,
             output_directory: "/transcodes/abc".into(),
         }
