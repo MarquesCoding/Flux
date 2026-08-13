@@ -32,7 +32,7 @@ const OVERVIEW: AdminOverview = {
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
   },
-  library: { itemCount: 15, libraryCount: 2 },
+  library: { itemCount: 15, libraryCount: 2, bytes: 0 },
   artwork: null,
 };
 

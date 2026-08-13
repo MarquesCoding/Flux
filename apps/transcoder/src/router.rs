@@ -551,6 +551,19 @@ async fn sweep_previews(
     (StatusCode::OK, Json(report)).into_response()
 }
 
+/// Counts what the artefact cache holds, now.
+///
+/// The figure on the dashboard is taken on a timer, because walking every
+/// artefact directory is far too expensive to do when a page loads. This is
+/// the exception an operator can ask for: somebody who has just run a sweep
+/// wants to see the number move rather than wait five minutes to believe it.
+async fn measure_cache(State(state): State<AppState>) -> Response {
+    let root = state.registry.config().cache_root.clone();
+    let reading = state.monitor.count_cache(&root).await;
+
+    (StatusCode::OK, Json(reading)).into_response()
+}
+
 /// Removes thumbnail sheets nothing addresses any more.
 async fn sweep_trickplay(
     State(state): State<AppState>,
@@ -892,6 +905,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/health", get(health))
         .route("/monitor", get(monitor))
         .route("/monitor/stream", get(monitor_stream))
+        .route("/cache/measure", post(measure_cache))
         .route("/capabilities", get(capabilities))
         .route("/probe", post(probe))
         .route("/file", get(direct_file))

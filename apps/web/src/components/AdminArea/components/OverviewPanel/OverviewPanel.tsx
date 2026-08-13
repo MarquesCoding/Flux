@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { IconChevronRight } from '@tabler/icons-react';
+import { IconChevronRight, IconRefresh } from '@tabler/icons-react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
@@ -11,6 +12,8 @@ import { TrendChart } from '@FluxUI/TrendChart';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import { formatBytes } from '@FluxWeb/components/AdminArea/formatBytes';
 import { describeQueueKind } from '@FluxWeb/components/AdminArea/describeQueueKind';
+import { measureStorage } from '@FluxWeb/admin/fetchAdmin';
+import type { StorageCount } from '@FluxWeb/admin/fetchAdmin';
 import type { OverviewPanelProps } from './OverviewPanel.types';
 
 /**
@@ -32,12 +35,23 @@ const Region = ({
   title,
   action,
   onAction,
+  actionIcon,
+  isActionBusy = false,
   children,
   className,
 }: {
   title: string;
   action?: string;
   onAction?: () => void;
+  /**
+   * What the action's button carries instead of the chevron.
+   *
+   * A chevron means "there is more of this through here". An action that does
+   * something to the thing already on screen is not that, and reusing the
+   * arrow for it teaches somebody the arrow means nothing in particular.
+   */
+  actionIcon?: ReactNode;
+  isActionBusy?: boolean;
   children: ReactNode;
   className?: string;
 }) => (
@@ -52,9 +66,11 @@ const Region = ({
           isPill
           className="shrink-0 text-xs text-text-muted hover:text-text"
           onClick={onAction}
+          disabled={isActionBusy}
+          isLoading={isActionBusy}
         >
           {action}
-          <IconChevronRight size={14} aria-hidden />
+          {actionIcon ?? <IconChevronRight size={14} aria-hidden />}
         </Button>
       )}
     </header>
@@ -86,6 +102,23 @@ const OverviewPanel = ({
   history,
   onOpenPanel,
 }: OverviewPanelProps) => {
+  const [counted, setCounted] = useState<StorageCount | null>(null);
+  const [isCounting, setIsCounting] = useState(false);
+
+  const recount = async () => {
+    setIsCounting(true);
+
+    try {
+      const measured = await measureStorage();
+
+      if (measured !== null) {
+        setCounted(measured);
+      }
+    } finally {
+      setIsCounting(false);
+    }
+  };
+
   const now = Date.now();
   const watching = sessions.filter((session) => session.playback !== null);
   const running = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'running');
@@ -277,11 +310,28 @@ const OverviewPanel = ({
           )}
         </Region>
 
-        <Region title="Storage Flux is using" className="lg:col-span-4">
+        <Region
+          title="Storage Flux is using"
+          className="lg:col-span-4"
+          action="Refresh"
+          actionIcon={<IconRefresh size={14} aria-hidden />}
+          isActionBusy={isCounting}
+          onAction={() => {
+            void recount();
+          }}
+        >
           <CacheBreakdown
-            cache={monitor?.cache ?? null}
-            artwork={overview?.artwork ?? null}
+            cache={counted?.cache ?? monitor?.cache ?? null}
+            artwork={counted?.artwork ?? overview?.artwork ?? null}
             liveSessions={monitor?.sessions ?? 0}
+            library={
+              overview === null
+                ? null
+                : {
+                    bytes: counted?.libraryBytes ?? overview.library.bytes,
+                    itemCount: overview.library.itemCount,
+                  }
+            }
           />
         </Region>
 

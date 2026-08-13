@@ -21,6 +21,7 @@ const TRICKPLAY_INDEX = {
 
 const stubTranscoder = (requestTrickplay: Transcoder['requestTrickplay']): Transcoder => ({
   isReachable: () => Promise.resolve(true),
+  measureCache: () => Promise.resolve(null),
   sweepPreviews: () => Promise.reject(new Error('not used')),
   forgetPreview: () => Promise.reject(new Error('not used')),
   forgetTrickplay: () => Promise.reject(new Error('not used')),

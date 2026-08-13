@@ -15,12 +15,17 @@ import type { CacheBreakdownProps } from './CacheBreakdown.types';
  * rows, because four figures side by side are read by glancing along them, and
  * a full-width list would leave each name stranded from its number.
  *
+ * Spread rather than columned: even columns leave the last figure stranded in
+ * the middle of the card with the right quarter empty, because a column is
+ * sized by the grid and a figure is sized by its digits. Spacing the four
+ * across the row puts the first at one edge and the last at the other.
+ *
  * None of these are measured when this is drawn. Adding up an artefact cache
  * means walking thousands of directories, so both services count on their own
  * timers and this shows what they last found — which is why it says when.
  */
-const CacheBreakdown = ({ cache, artwork, liveSessions }: CacheBreakdownProps) => {
-  const rows = cacheRows(cache, artwork, liveSessions);
+const CacheBreakdown = ({ cache, artwork, liveSessions, library }: CacheBreakdownProps) => {
+  const rows = cacheRows(cache, artwork, liveSessions, library);
   const total =
     (cache === null ? 0 : cache.previews.bytes + cache.trickplay.bytes) +
     (cache?.sessions.bytes ?? 0) +
@@ -28,7 +33,7 @@ const CacheBreakdown = ({ cache, artwork, liveSessions }: CacheBreakdownProps) =
 
   return (
     <div className="flex flex-col gap-4">
-      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-6 sm:flex sm:flex-wrap sm:justify-between">
         {rows.map((row) => (
           <div key={row.label} className="flex flex-col gap-1">
             <dt className="text-xs uppercase tracking-[0.16em] text-text-muted">{row.label}</dt>
@@ -45,7 +50,7 @@ const CacheBreakdown = ({ cache, artwork, liveSessions }: CacheBreakdownProps) =
       <p className="text-xs text-text-muted">
         {cache === null && artwork === null
           ? 'Counting what is on the disk.'
-          : `${formatBytes(total)} in total · counted ${describeSince(
+          : `${formatBytes(total)} of Flux's own files · counted ${describeSince(
               new Date(cache?.atMs ?? artwork?.atMs ?? 0).toISOString(),
               Date.now(),
             )}`}

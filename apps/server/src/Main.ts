@@ -3,7 +3,7 @@ import { readdir, unlink } from 'node:fs/promises';
 import { z } from 'zod';
 import { serve } from '@hono/node-server';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { and, count, eq, lt } from 'drizzle-orm';
+import { and, count, eq, lt, sql } from 'drizzle-orm';
 import { createApp } from './App';
 import { createAuth } from '@FluxServer/auth/Auth';
 import { createDatabase } from '@FluxServer/db/Database';
@@ -124,6 +124,21 @@ const countUsers = async (): Promise<number> => {
   const rows = await db.select({ total: count() }).from(user);
 
   return rows[0]?.total ?? 0;
+};
+
+/**
+ * How much disk the media itself takes, across every library.
+ *
+ * A sum over rows Flux already keeps rather than a walk of the disk, so it
+ * costs a query rather than a directory traversal of a media array. Scanning
+ * is what keeps `sizeBytes` honest; this only adds it up.
+ */
+const readLibraryBytes = async (): Promise<number> => {
+  const rows = await db
+    .select({ total: sql<number>`coalesce(sum(${mediaItem.sizeBytes}), 0)::bigint` })
+    .from(mediaItem);
+
+  return Number(rows[0]?.total ?? 0);
 };
 
 const promoteToAdmin = async (email: string): Promise<void> => {
@@ -732,6 +747,16 @@ const app = createApp({
   },
   capabilities: () => transcoder.capabilities(),
   artworkUsage: () => artworkUsage.read(),
+  libraryBytes: () => readLibraryBytes(),
+  measureStorage: async () => {
+    const [cache, artwork, bytes] = await Promise.all([
+      transcoder.measureCache(),
+      artworkUsage.refresh(),
+      readLibraryBytes(),
+    ]);
+
+    return { cache, artwork, libraryBytes: bytes };
+  },
   monitor: () => transcoder.readMonitor(),
   monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),

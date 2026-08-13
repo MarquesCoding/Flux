@@ -30,6 +30,7 @@ const AdminOverviewSchema = z.object({
   library: z.object({
     itemCount: z.number(),
     libraryCount: z.number(),
+    bytes: z.number().default(0),
   }),
   artwork: z
     .object({ count: z.number(), bytes: z.number(), atMs: z.number() })
@@ -540,6 +541,44 @@ const removeJobTrigger = async (kind: string, triggerId: string): Promise<boolea
  * almost always. Naming one is for the case where that proof is wrong — it has
  * been twice — and an operator can see their card working.
  */
+const StorageCountSchema = z.object({
+  cache: z
+    .object({
+      previews: ArtefactUseSchema,
+      trickplay: ArtefactUseSchema,
+      sessions: ArtefactUseSchema,
+      atMs: z.number(),
+    })
+    .nullable(),
+  artwork: z.object({ count: z.number(), bytes: z.number(), atMs: z.number() }).nullable(),
+  libraryBytes: z.number(),
+});
+
+type StorageCount = z.infer<typeof StorageCountSchema>;
+
+/**
+ * Asks both services to count their caches now.
+ *
+ * The figures on the page are taken on timers, because walking every artefact
+ * directory is far too expensive to do when a page loads. This is the one way
+ * an operator can insist — after running a sweep, say, when waiting five
+ * minutes to see whether it worked is its own kind of answer.
+ *
+ * Null when the count could not be made, so a caller can leave the figures
+ * where they were rather than blanking them.
+ */
+const measureStorage = async (): Promise<StorageCount | null> => {
+  const response = await fetch('/api/admin/storage/measure', { method: 'POST' }).catch(() => null);
+
+  if (response === null || !response.ok) {
+    return null;
+  }
+
+  const parsed = StorageCountSchema.safeParse(await response.json().catch(() => null));
+
+  return parsed.success ? parsed.data : null;
+};
+
 const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
   const response = await fetch('/api/admin/settings', {
     method: 'PATCH',
@@ -572,6 +611,7 @@ export type {
   JobTrigger,
   Monitor,
   ScheduleTrigger,
+  StorageCount,
 };
 
 export {
@@ -593,4 +633,5 @@ export {
   fetchJobSchedules,
   addJobTrigger,
   removeJobTrigger,
+  measureStorage,
 };

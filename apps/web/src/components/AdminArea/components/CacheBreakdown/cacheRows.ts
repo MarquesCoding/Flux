@@ -14,13 +14,18 @@ const counted = (count: number, one: string, many: string): string =>
   count === 1 ? `1 ${one}` : `${count.toString()} ${many}`;
 
 /**
- * What Flux is holding, a kind at a time.
+ * What is on the disk, a kind at a time.
  *
  * Four kinds, and they are not all measured by the same service: previews,
  * scrub sheets and live transcodes belong to the media service, while artwork
  * is fetched and kept by the API server. Either can be missing while the other
  * is known — one of them having just started does not make the cache empty —
  * so a kind nobody has counted yet says so rather than showing nothing.
+ *
+ * The media library is the odd one out and belongs anyway. It is the only
+ * figure here Flux did not create, and it is the first thing an operator of a
+ * media server wants to know — so it sits at the end of the row, after the
+ * four that Flux is responsible for, rather than being counted among them.
  *
  * Transcode working directories are counted against the sessions actually
  * running, because the two come apart badly: a session that ended without
@@ -33,6 +38,7 @@ const cacheRows = (
   cache: Monitor['cache'],
   artwork: AdminOverview['artwork'],
   liveSessions: number,
+  library: { bytes: number; itemCount: number } | null,
 ): CacheRow[] => {
   const pending = { value: '—', detail: 'Still counting' };
 
@@ -74,6 +80,15 @@ const cacheRows = (
         : {
             value: formatBytes(artwork.bytes),
             detail: counted(artwork.count, 'image', 'images'),
+          }),
+    },
+    {
+      label: 'Media library',
+      ...(library === null
+        ? pending
+        : {
+            value: formatBytes(library.bytes),
+            detail: counted(library.itemCount, 'file', 'files'),
           }),
     },
   ];

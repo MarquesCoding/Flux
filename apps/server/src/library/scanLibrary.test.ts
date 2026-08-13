@@ -70,6 +70,7 @@ const harness = (options: {
 
   const transcoder: Transcoder = {
     isReachable: () => Promise.resolve(true),
+    measureCache: () => Promise.resolve(null),
     sweepPreviews: () => Promise.reject(new Error('not used')),
     forgetPreview: () => Promise.reject(new Error('not used')),
     forgetTrickplay: () => Promise.reject(new Error('not used')),
@@ -369,6 +370,7 @@ describe('scanLibrary', () => {
       },
       transcoder: {
         isReachable: () => Promise.resolve(true),
+        measureCache: () => Promise.resolve(null),
         sweepPreviews: () => Promise.reject(new Error('not used')),
         forgetPreview: () => Promise.reject(new Error('not used')),
         forgetTrickplay: () => Promise.reject(new Error('not used')),
