@@ -10,7 +10,6 @@ import { SearchArea } from '@FluxWeb/components/SearchArea/SearchArea';
 import { BrowseArea } from '@FluxWeb/components/BrowseArea/BrowseArea';
 import { ShowDialog } from '@FluxWeb/components/ShowDialog/ShowDialog';
 import { fetchShows } from '@FluxWeb/library/fetchShows';
-import { fetchGenres } from '@FluxWeb/library/fetchGenres';
 import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import { useFavourites } from '@FluxWeb/library/useFavourites';
@@ -79,7 +78,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     });
   }, [user]);
   const [known, setKnown] = useState(new Map<string, MediaSummary>());
-  const [genres, setGenres] = useState<string[]>([]);
   const { place, go, replace } = usePlace();
   const prefersReducedMotion = useReducedMotion();
 
@@ -212,14 +210,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     return watchPresence();
   }, [user]);
 
-  useEffect(() => {
-    if (user === null) {
-      return;
-    }
-
-    void fetchGenres().then(setGenres);
-  }, [user]);
-
   if (loadState === 'loading') {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />;
   }
@@ -333,10 +323,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           search: next === 'search' ? place.search : '',
           genre: next === 'search' ? place.genre : null,
         });
-      }}
-      genres={genres}
-      onGenre={(genre) => {
-        go({ section: 'search', search: '', genre });
       }}
       moodLights={section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
