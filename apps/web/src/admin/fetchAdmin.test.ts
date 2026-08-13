@@ -192,7 +192,6 @@ describe('fetchActiveSessions', () => {
       mediaTitle: 'Arrival',
       hasPoster: true,
       hasBackdrop: true,
-      hasLogo: false,
       mode: 'direct' as const,
       plan,
       isPlaying: true,

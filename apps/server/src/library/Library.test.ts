@@ -583,6 +583,45 @@ describe('library routes', () => {
     expect(response.headers.get('cache-control')).toContain('immutable');
   });
 
+  it('serves the lettering a title is written in, the same way as its poster', async () => {
+    const { store } = createMemoryAuth();
+
+    const app = signedInApp(
+      createApp({
+        ...createMemoryAuth(),
+        countUsers: () => Promise.resolve(1),
+        promoteToAdmin: () => Promise.resolve(),
+        library: createMemoryLibraryService({
+          libraries: [
+            {
+              id: LIBRARY_ID,
+              name: 'Films',
+              kind: 'movies',
+              path: '/media',
+              itemCount: 1,
+              lastScannedAt: null,
+              defaultAudioLanguage: null,
+              filesAtOnce: null,
+            },
+          ],
+          media: [detail()],
+        }),
+        playback: createMemoryPlaybackService(),
+        subtitles: createMemorySubtitleService(),
+        segments: createMemorySegmentService(),
+        progress: createMemoryWatchProgressService(),
+        favourites: createMemoryFavouriteService(),
+        readImage: () => Promise.resolve({ body: new ArrayBuffer(8), contentType: 'image/png' }),
+      }),
+      { store },
+    );
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/image/logo`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/png');
+  });
+
   it('reports no artwork rather than serving a blank image', async () => {
     const { app } = build([detail()]);
 

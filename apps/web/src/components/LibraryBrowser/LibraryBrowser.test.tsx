@@ -6,10 +6,12 @@ import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
 
 const fetchLibrariesMock = vi.hoisted(() => vi.fn());
 const fetchItemsMock = vi.hoisted(() => vi.fn());
+const fetchDetailMock = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
   fetchLibraries: fetchLibrariesMock,
   fetchLibraryItems: fetchItemsMock,
+  fetchMediaDetail: fetchDetailMock,
 }));
 
 const films: Library = {

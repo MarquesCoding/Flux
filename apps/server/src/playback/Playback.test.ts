@@ -810,7 +810,6 @@ describe('telling presence what is being watched', () => {
     expect(presence.list()[0]?.playback).toMatchObject({
       mode: 'transcode',
       hasBackdrop: true,
-      hasLogo: false,
     });
   });
 

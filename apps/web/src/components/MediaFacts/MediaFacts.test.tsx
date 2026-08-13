@@ -73,4 +73,27 @@ describe('MediaFacts', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(MediaFacts.displayName).toBe('MediaFacts');
   });
+
+  it('leaves out where something sits in its series when the subject is the series', () => {
+    render(
+      <MediaFacts
+        media={{ ...media, year: 2024, seasonNumber: 1, episodeNumber: 2 }}
+        hasEpisode={false}
+      />,
+    );
+
+    expect(screen.queryByText('EP2')).not.toBeInTheDocument();
+    expect(screen.queryByText('S1')).not.toBeInTheDocument();
+  });
+
+  it('still says everything else about it', () => {
+    render(
+      <MediaFacts
+        media={{ ...media, year: 2024, seasonNumber: 1, episodeNumber: 2 }}
+        hasEpisode={false}
+      />,
+    );
+
+    expect(screen.getByText('2024')).toBeInTheDocument();
+  });
 });
