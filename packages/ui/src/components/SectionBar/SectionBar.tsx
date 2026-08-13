@@ -94,6 +94,7 @@ const CLOSE_DELAY_MILLISECONDS = 180;
 const SectionBar = ({ label, groups, value, onValueChange, className }: SectionBarProps) => {
   const prefersReducedMotion = useReducedMotion();
   const [pointedAt, setPointedAt] = useState<string | null>(null);
+  const [opened, setOpened] = useState<string | null>(null);
 
   /**
    * What each pill is called for the purposes of the mark.
@@ -111,7 +112,15 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
     null,
   );
 
-  const lit = pointedAt ?? here;
+  /**
+   * Which pill the mark is resting on.
+   *
+   * Whatever is being pointed at, or failing that whatever is standing open,
+   * or failing that where you actually are. The middle one is what keeps the
+   * mark on a family while the pointer is down inside its menu: leaving the
+   * pill is not leaving the family when the family is what opened.
+   */
+  const lit = pointedAt ?? opened ?? here;
 
   const mark = (
     <motion.span
@@ -150,7 +159,11 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
             )}
 
             {opens && group.label !== undefined ? (
-              <Menu.Root>
+              <Menu.Root
+                onOpenChange={(isOpen) => {
+                  setOpened((was) => (isOpen ? named : was === named ? null : was));
+                }}
+              >
                 <Menu.Trigger
                   openOnHover
                   delay={OPEN_DELAY_MILLISECONDS}
