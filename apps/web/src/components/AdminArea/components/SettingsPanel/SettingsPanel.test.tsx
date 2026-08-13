@@ -25,7 +25,7 @@ const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOver
     hardwareAccels: [],
     rejectedEncoders: [],
   },
-  library: { itemCount: 0, libraryCount: 0 },
+  library: { itemCount: 0, libraryCount: 0, bytes: 0 },
   artwork: null,
 });
 

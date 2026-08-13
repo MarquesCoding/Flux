@@ -142,7 +142,7 @@ const createPlaybackService = ({
       return { mode: describePlaybackMode(plan), plan };
     },
 
-    start: async (mediaId, profile, startSeconds, audioStreamIndex, requestedQuality) => {
+    start: async (mediaId, profile, startSeconds, audioStreamIndex, requestedQuality, deviceId) => {
       const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
@@ -190,7 +190,7 @@ const createPlaybackService = ({
       }
 
       try {
-        const session = await transcoder.startSession(outcome.spec);
+        const session = await transcoder.startSession(outcome.spec, deviceId);
 
         return {
           kind: 'started',

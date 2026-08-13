@@ -367,7 +367,27 @@ async fn probe(State(state): State<AppState>, Json(request): Json<ProbeRequest>)
     }
 }
 
-async fn start_session(State(state): State<AppState>, Json(spec): Json<SessionSpec>) -> Response {
+/// A request to start a session, and who is asking.
+///
+/// The device is carried beside the spec rather than inside it because it must
+/// not change the session's address: two devices asking for the same transcode
+/// should share one directory and one encode. What the device decides is not
+/// which transcode is made, but which one is worth keeping afterwards.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StartSessionRequest {
+    #[serde(flatten)]
+    spec: SessionSpec,
+    #[serde(default)]
+    device_id: Option<String>,
+}
+
+async fn start_session(
+    State(state): State<AppState>,
+    Json(request): Json<StartSessionRequest>,
+) -> Response {
+    let StartSessionRequest { spec, device_id } = request;
+
     eprintln!("session: {} {}", spec.summary(), spec.input_path);
 
     if !tokio::fs::try_exists(&spec.input_path)
@@ -379,7 +399,7 @@ async fn start_session(State(state): State<AppState>, Json(spec): Json<SessionSp
         return error(StatusCode::NOT_FOUND, "No such input file.");
     }
 
-    let id = match state.registry.start(spec).await {
+    let id = match state.registry.start(spec, device_id.as_deref()).await {
         Ok(id) => id,
         Err(failure) => {
             eprintln!("session refused: {failure}");
@@ -549,6 +569,19 @@ async fn sweep_previews(
     let report = cache_sweep::sweep(&root, &keep, cache_sweep::GRACE).await;
 
     (StatusCode::OK, Json(report)).into_response()
+}
+
+/// Counts what the artefact cache holds, now.
+///
+/// The figure on the dashboard is taken on a timer, because walking every
+/// artefact directory is far too expensive to do when a page loads. This is
+/// the exception an operator can ask for: somebody who has just run a sweep
+/// wants to see the number move rather than wait five minutes to believe it.
+async fn measure_cache(State(state): State<AppState>) -> Response {
+    let root = state.registry.config().cache_root.clone();
+    let reading = state.monitor.count_cache(&root).await;
+
+    (StatusCode::OK, Json(reading)).into_response()
 }
 
 /// Removes thumbnail sheets nothing addresses any more.
@@ -892,6 +925,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/health", get(health))
         .route("/monitor", get(monitor))
         .route("/monitor/stream", get(monitor_stream))
+        .route("/cache/measure", post(measure_cache))
         .route("/capabilities", get(capabilities))
         .route("/probe", post(probe))
         .route("/file", get(direct_file))

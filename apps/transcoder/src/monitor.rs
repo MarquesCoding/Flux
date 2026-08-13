@@ -288,6 +288,20 @@ impl Monitor {
         });
     }
 
+    /// Counts the cache now, rather than waiting for the timer.
+    ///
+    /// The one place a walk of the artefact directories may happen on a
+    /// request, because here an operator has asked for it and is waiting for
+    /// the answer. Everything that draws itself still reads the remembered
+    /// figure.
+    pub async fn count_cache(&self, root: &std::path::Path) -> CacheUse {
+        let reading = crate::cache_usage::read(root).await;
+
+        *self.cache.lock().await = Some(reading.clone());
+
+        reading
+    }
+
     /// What the cache was last found to be holding.
     ///
     /// Nothing until the first walk finishes, so a page that has just started
