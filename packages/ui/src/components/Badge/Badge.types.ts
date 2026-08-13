@@ -8,7 +8,11 @@ import type { ReactNode } from 'react';
  * one that matters, and `solid` for a badge sitting on artwork, where
  * translucency would leave it unreadable.
  */
-type BadgeTone = 'quiet' | 'accent' | 'solid';
+/**
+ * `danger` is for a fact that is wrong rather than merely notable — a setting
+ * the machine could not verify, not a setting somebody should look at twice.
+ */
+type BadgeTone = 'quiet' | 'accent' | 'solid' | 'danger';
 
 type BadgeSize = 'sm' | 'md';
 

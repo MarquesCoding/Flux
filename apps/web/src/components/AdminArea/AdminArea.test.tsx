@@ -1056,8 +1056,7 @@ describe('AdminArea', () => {
     it('reports what was found when nobody has insisted', async () => {
       render(<AdminArea />);
 
-      expect(await screen.findByText('videotoolbox')).toBeInTheDocument();
-      expect(await screen.findByText('automatic')).toBeInTheDocument();
+      expect(await screen.findAllByText('videotoolbox · automatic')).not.toHaveLength(0);
     });
 
     it('stops claiming hardware once software only is forced', async () => {
@@ -1065,8 +1064,8 @@ describe('AdminArea', () => {
 
       render(<AdminArea />);
 
-      expect(await screen.findByText('Software only')).toBeInTheDocument();
-      expect(screen.queryByText('videotoolbox')).not.toBeInTheDocument();
+      expect(await screen.findAllByText('Software only · forced')).not.toHaveLength(0);
+      expect(screen.queryByText(/videotoolbox/)).not.toBeInTheDocument();
     });
 
     it('reports the forced backend rather than the automatic pick', async () => {
@@ -1074,9 +1073,28 @@ describe('AdminArea', () => {
 
       render(<AdminArea />);
 
-      expect(await screen.findByText('NVENC')).toBeInTheDocument();
-      expect(await screen.findByText('forced')).toBeInTheDocument();
-      expect(screen.queryByText('videotoolbox')).not.toBeInTheDocument();
+      expect(await screen.findAllByText('NVENC · forced')).not.toHaveLength(0);
+      expect(screen.queryByText(/videotoolbox/)).not.toBeInTheDocument();
+    });
+
+    it('marks a backend this machine cannot actually do', async () => {
+      fetchMock.mockImplementation(withAccel('nvenc'));
+
+      render(<AdminArea />);
+
+      const shown = await screen.findAllByText('NVENC · forced');
+
+      expect(shown.some((node) => node.className.includes('border-danger'))).toBe(true);
+    });
+
+    it('leaves a backend the machine verified unmarked', async () => {
+      fetchMock.mockImplementation(withAccel('videotoolbox'));
+
+      render(<AdminArea />);
+
+      const shown = await screen.findAllByText('VideoToolbox · forced');
+
+      expect(shown.some((node) => node.className.includes('border-danger'))).toBe(false);
     });
   });
 });

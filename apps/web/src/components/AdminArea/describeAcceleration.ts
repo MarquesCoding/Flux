@@ -2,16 +2,22 @@ import { accelerationOptions } from '@FluxWeb/components/AdminArea/accelerationO
 
 type Acceleration = {
   /**
-   * What to show, one badge each.
-   */
-  labels: string[];
-  /**
-   * Whether somebody chose this or the machine was asked.
+   * What the badge says, in one piece.
    *
-   * Absent when there is nothing useful to add — a server that found no
-   * hardware at all is not usefully described as having found it automatically.
+   * One badge rather than a badge and a loose word beside it: "automatic"
+   * floating outside the pill reads as unrelated to it, and the two are one
+   * fact — what will be used, and how that was decided.
    */
-  note?: 'forced' | 'automatic';
+  label: string;
+  /**
+   * Whether the machine could not verify what has been forced.
+   *
+   * Not the same as the probe merely disagreeing about an encoder. This is
+   * asking for a backend the host has no way to provide at all — NVENC on
+   * Apple silicon — where the honest thing is to say so rather than to report
+   * a setting that will fall back to software on every play.
+   */
+  isUnverified: boolean;
 };
 
 /**
@@ -23,24 +29,31 @@ type Acceleration = {
  * report the second. Forcing software only left it still announcing a hardware
  * backend, which is the one moment somebody reads it.
  *
- * A forced choice is reported whether or not the probe agreed with it. The
- * setting exists precisely for the machine where the probe is wrong and the
- * card plainly works, so a backend the probe rejected must still read as
- * forced rather than as broken — that is somebody's deliberate decision, not a
- * fault to report.
+ * A forced choice is always reported as forced, because it is somebody's
+ * deliberate decision. But a backend this host never proved it could do is
+ * marked, because asking an Apple machine for NVENC is not a decision that can
+ * be honoured — every play falls back to software, and a badge that read the
+ * same as a working one would hide that completely.
  */
 const describeAcceleration = (forced: string, probed: string[]): Acceleration => {
+  if (forced === 'none') {
+    return { label: 'Software only · forced', isUnverified: false };
+  }
+
   if (forced !== '') {
     const chosen = accelerationOptions.find((option) => option.id === forced);
 
-    return { labels: [chosen?.label ?? forced], note: 'forced' };
+    return {
+      label: `${chosen?.label ?? forced} · forced`,
+      isUnverified: !probed.includes(forced),
+    };
   }
 
   if (probed.length === 0) {
-    return { labels: ['None'] };
+    return { label: 'Software only', isUnverified: false };
   }
 
-  return { labels: probed, note: 'automatic' };
+  return { label: `${probed.join(', ')} · automatic`, isUnverified: false };
 };
 
 export { describeAcceleration };

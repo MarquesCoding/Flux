@@ -5,6 +5,7 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
   quiet: 'border border-white/15 bg-white/[0.06] text-text-muted backdrop-blur-md',
   accent: 'border border-accent/40 bg-accent/15 text-text backdrop-blur-md',
   solid: 'bg-black/60 text-white backdrop-blur-md',
+  danger: 'border border-danger/50 bg-danger/15 text-text backdrop-blur-md',
 };
 
 const SIZE_CLASSES: Record<BadgeSize, string> = {
@@ -29,7 +30,7 @@ const Badge = ({ children, tone = 'quiet', size = 'sm', className }: BadgeProps)
       className,
     )}
   >
-    <span className="mt-0.75">{children}</span>
+    {children}
   </span>
 );
 

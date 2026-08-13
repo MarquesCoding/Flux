@@ -83,6 +83,6 @@ describe('MediaCard', () => {
       <MediaCard title="Arrival" subtitle="2016" badges={['4K', 'HDR10']} onSelect={vi.fn()} />,
     );
 
-    expect(screen.getByText('4K').parentElement).toHaveClass('bg-black/60');
+    expect(screen.getByText('4K')).toHaveClass('bg-black/60');
   });
 });

@@ -4,45 +4,52 @@ import { describeAcceleration } from './describeAcceleration';
 describe('describeAcceleration', () => {
   it('reports what the machine was found capable of when nobody has insisted', () => {
     expect(describeAcceleration('', ['videotoolbox'])).toEqual({
-      labels: ['videotoolbox'],
-      note: 'automatic',
+      label: 'videotoolbox · automatic',
+      isUnverified: false,
     });
   });
 
   it('stops claiming hardware once software only is forced', () => {
     expect(describeAcceleration('none', ['videotoolbox'])).toEqual({
-      labels: ['Software only'],
-      note: 'forced',
+      label: 'Software only · forced',
+      isUnverified: false,
     });
   });
 
   it('reports the forced backend rather than the one that was found', () => {
+    expect(describeAcceleration('nvenc', ['nvenc']).label).toBe('NVENC · forced');
+  });
+
+  it('marks a backend this machine never proved it could do', () => {
     expect(describeAcceleration('nvenc', ['videotoolbox'])).toEqual({
-      labels: ['NVENC'],
-      note: 'forced',
+      label: 'NVENC · forced',
+      isUnverified: true,
     });
   });
 
-  it('says a forced choice is forced, so it reads as deliberate', () => {
-    expect(describeAcceleration('qsv', []).note).toBe('forced');
+  it('does not mark a forced backend the machine did verify', () => {
+    expect(describeAcceleration('vaapi', ['vaapi', 'qsv']).isUnverified).toBe(false);
   });
 
-  it('keeps a forced backend the probe rejected, because that is the point of forcing', () => {
-    expect(describeAcceleration('vaapi', [])).toEqual({ labels: ['VAAPI'], note: 'forced' });
+  it('never marks software only, which needs no hardware to be available', () => {
+    expect(describeAcceleration('none', []).isUnverified).toBe(false);
   });
 
-  it('says nothing about how it chose when there was nothing to choose', () => {
-    expect(describeAcceleration('', [])).toEqual({ labels: ['None'] });
+  it('says software only when nothing was found and nothing was chosen', () => {
+    expect(describeAcceleration('', [])).toEqual({
+      label: 'Software only',
+      isUnverified: false,
+    });
   });
 
   it('lists everything the machine can do, not only the first', () => {
-    expect(describeAcceleration('', ['vaapi', 'qsv']).labels).toEqual(['vaapi', 'qsv']);
+    expect(describeAcceleration('', ['vaapi', 'qsv']).label).toBe('vaapi, qsv · automatic');
   });
 
   it('shows a backend it has no name for rather than nothing at all', () => {
     expect(describeAcceleration('something-new', [])).toEqual({
-      labels: ['something-new'],
-      note: 'forced',
+      label: 'something-new · forced',
+      isUnverified: true,
     });
   });
 });

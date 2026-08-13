@@ -167,13 +167,7 @@ const OverviewPanel = ({
 
             <div className="flex items-baseline justify-between gap-3">
               <dt className="shrink-0 text-text-muted">Hardware encoding</dt>
-              <dd className="min-w-0 truncate text-text">
-                {acceleration === null
-                  ? '—'
-                  : acceleration.note === undefined
-                    ? acceleration.labels.join(', ')
-                    : `${acceleration.labels.join(', ')} · ${acceleration.note}`}
-              </dd>
+              <dd className="min-w-0 truncate text-text">{acceleration?.label ?? '—'}</dd>
             </div>
 
             {(overview?.transcoder.rejectedEncoders ?? []).map((rejected) => (

@@ -461,17 +461,9 @@ const AdminArea = ({
               </span>
 
               {acceleration === null ? null : (
-                <span className="flex flex-wrap items-center gap-1.5">
-                  {acceleration.labels.map((label) => (
-                    <Badge key={label} size="sm">
-                      {label}
-                    </Badge>
-                  ))}
-
-                  {acceleration.note === undefined ? null : (
-                    <span className="text-xs text-text-muted">{acceleration.note}</span>
-                  )}
-                </span>
+                <Badge size="sm" tone={acceleration.isUnverified ? 'danger' : 'quiet'}>
+                  {acceleration.label}
+                </Badge>
               )}
             </p>
           </div>

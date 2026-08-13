@@ -235,7 +235,7 @@ describe('OverviewPanel', () => {
       expect(within(region).getByText('8')).toBeInTheDocument();
     });
 
-    it('says None rather than nothing when there is no hardware encoding', () => {
+    it('says software only rather than nothing when there is no hardware encoding', () => {
       render(
         <OverviewPanel
           {...props}
@@ -252,7 +252,7 @@ describe('OverviewPanel', () => {
         />,
       );
 
-      expect(within(card('Server')).getByText('None')).toBeInTheDocument();
+      expect(within(card('Server')).getByText('Software only')).toBeInTheDocument();
     });
 
     it('draws dashes rather than zeroes before anything has loaded', () => {
