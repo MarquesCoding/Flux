@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 import { Badge } from '@FluxUI/Badge';
+import { HoverCard } from '@FluxUI/HoverCard';
 import { Button } from '@FluxUI/Button';
 import { TabRow } from '@FluxUI/TabRow';
 import { TabPanel } from '@FluxUI/TabPanel';
@@ -38,6 +39,7 @@ import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
 import { describeGraphics } from './describeGraphics';
 import { describeCpuShare } from './describeCpuShare';
+import { describeAcceleration } from './describeAcceleration';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
   resumeRunning,
@@ -394,6 +396,10 @@ const AdminArea = ({
 
   const conversions = resources?.children ?? [];
   const cpuShare = fluxCpuShare(resources);
+  const acceleration =
+    overview === null
+      ? null
+      : describeAcceleration(overview.settings.hardwareAccel, overview.transcoder.hardwareAccels);
   const mediaDisk = libraryDisk(
     resources?.disks ?? [],
     libraries.map((library) => library.path),
@@ -455,11 +461,19 @@ const AdminArea = ({
                     : 'Media service unreachable'}
               </span>
 
-              {(overview?.transcoder.hardwareAccels ?? []).map((accel) => (
-                <Badge key={accel} size="sm">
-                  {accel}
-                </Badge>
-              ))}
+              {acceleration === null ? null : (
+                <HoverCard
+                  side="bottom"
+                  align="center"
+                  detail={<p className="max-w-xs text-xs leading-relaxed">{acceleration.detail}</p>}
+                >
+                  <span>
+                    <Badge size="sm" tone={acceleration.tone}>
+                      {acceleration.label}
+                    </Badge>
+                  </span>
+                </HoverCard>
+              )}
             </p>
           </div>
         </motion.header>
@@ -749,6 +763,9 @@ const AdminArea = ({
               <SettingsPanel
                 overview={overview}
                 onCatalogueKeySaved={() => {
+                  void fetchAdminOverview().then(setOverview);
+                }}
+                onHardwareAccelSaved={() => {
                   void fetchAdminOverview().then(setOverview);
                 }}
               />
