@@ -17,6 +17,15 @@ const MEDIA_EXTENSIONS = new Set([
 
 /**
  * Noise that appears in scene release names and is never part of a title.
+ *
+ * The language and subtitle tags matter as much as the codecs do: a file
+ * called `Some Show 01 ITA JAP Sub Ita` was being handed to a catalogue whole,
+ * and no catalogue holds a film of that name — so a perfectly ordinary
+ * programme came back missing. Every word here is one a catalogue would have
+ * to ignore anyway.
+ *
+ * Only ever removed as a whole word, so a title that happens to contain one of
+ * them keeps it.
  */
 const NOISE = new Set([
   '1080p',
@@ -67,6 +76,29 @@ const NOISE = new Set([
   'unrated',
   'imax',
   'remastered',
+  'multi',
+  'dual',
+  '10bit',
+  '8bit',
+  'sub',
+  'subs',
+  'subbed',
+  'dub',
+  'dubbed',
+  'ita',
+  'eng',
+  'jap',
+  'jpn',
+  'fre',
+  'ger',
+  'spa',
+  'amzn',
+  'nf',
+  'dsnp',
+  'hulu',
+  'atvp',
+  'ddp',
+  'sdr',
 ]);
 
 /**
