@@ -5,6 +5,7 @@ import { Button } from '@FluxUI/Button';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { cn } from '@FluxUI/cn';
+import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import { PageDots } from '@FluxUI/PageDots';
@@ -53,12 +54,12 @@ const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/bac
 const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
 
 /**
- * Where the mark sits, and how much of the frame it may take.
+ * How much of the frame the mark may take.
  *
- * The far corner from the words. Everything that can be read — the episode,
- * the title, the facts, the buttons — is stacked at the bottom left, so the
- * mark went where none of it is: it says which programme this is without
- * queueing up behind the sentence that says the same thing in type.
+ * At the head of the words rather than off in a corner. A hero is read from
+ * the bottom left — the name, then what it is, then whether to press Play —
+ * and the mark is the first line of that, not a stamp in the opposite corner
+ * competing with it.
  *
  * A logo is artwork with its own proportions — some are a word set wide, some
  * are a word stacked three lines deep inside a device — so it is given a box
@@ -66,14 +67,22 @@ const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
  * in viewport height as well as width so a tall one cannot run down the
  * picture.
  *
- * Shadowed, because it is drawn straight onto the artwork rather than onto the
- * wash at the foot of the card, and white lettering on a pale frame is
- * lettering nobody can see. Fades rather than rises: it belongs to the picture
- * behind it, which is crossfading too.
+ * Shadowed, because a frame can be pale where the wash is thin, and white
+ * lettering on a pale frame is lettering nobody can see.
  */
+/**
+ * How long the synopsis stays before it goes.
+ *
+ * Long enough to read three lines without hurrying, and short enough that it
+ * is gone before the picture underneath it has been covered up for any length
+ * of time. It leaves rather than staying because the frame is the point of a
+ * hero: the words say what this is, and once they have said it they are
+ * standing in front of the thing they were describing.
+ */
+const SYNOPSIS_MILLISECONDS = 8000;
+
 const LOGO_BOX = [
-  'pointer-events-none absolute right-5 top-5 z-10 sm:right-10 sm:top-8',
-  'max-h-[9svh] w-auto max-w-[min(45vw,15rem)] object-contain object-right',
+  'max-h-[14svh] w-auto max-w-[min(70vw,24rem)] object-contain object-left',
   'drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]',
 ].join(' ');
 
@@ -110,11 +119,23 @@ const Hero = ({
    * were logos at all.
    */
   const [unlettered, setUnlettered] = useState<ReadonlySet<string>>(new Set());
+
+  /**
+   * What this item is about, once the server has been asked.
+   *
+   * Held against the item it describes rather than on its own, so a synopsis
+   * that arrives after the hero has moved on is not shown under the wrong
+   * picture. Read here rather than carried on every card in the library: a
+   * page of eighty items would be eighty overviews sent to draw one.
+   */
+  const [synopsis, setSynopsis] = useState<{ mediaId: string; text: string } | null>(null);
+  const [isTelling, setIsTelling] = useState(true);
   const [isHeld, setIsHeld] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
   const featured = items[index % Math.max(items.length, 1)];
   const isLettered = featured?.hasLogo === true && !unlettered.has(featured.id);
+  const told = synopsis?.mediaId === featured?.id ? (synopsis?.text ?? null) : null;
   const resume = featured === undefined ? null : (resumeFor?.(featured.id) ?? null);
 
   useEffect(() => {
@@ -151,6 +172,40 @@ const Hero = ({
       clearTimeout(timer);
     };
   }, [items.length, rotateAfterMilliseconds, isHeld, index, showNext]);
+
+  const featuredId = featured?.id ?? null;
+
+  useEffect(() => {
+    if (featuredId === null) {
+      return;
+    }
+
+    let abandoned = false;
+
+    void fetchMediaDetail(featuredId).then((found) => {
+      const overview = found?.metadata.overview ?? null;
+
+      if (!abandoned && overview !== null && overview !== '') {
+        setSynopsis({ mediaId: featuredId, text: overview });
+      }
+    });
+
+    return () => {
+      abandoned = true;
+    };
+  }, [featuredId]);
+
+  useEffect(() => {
+    setIsTelling(true);
+
+    const timer = setTimeout(() => {
+      setIsTelling(false);
+    }, SYNOPSIS_MILLISECONDS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [featuredId]);
 
   const hold = useCallback(() => {
     setIsHeld(true);
@@ -223,21 +278,6 @@ const Hero = ({
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-surface/85 via-transparent to-transparent" />
 
-          {!isLettered ? null : (
-            <motion.img
-              key={featured.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: prefersReducedMotion === true ? 0.2 : 0.9, ease: 'easeOut' }}
-              src={logoUrl(featured.id)}
-              alt=""
-              className={LOGO_BOX}
-              onError={() => {
-                setUnlettered((known) => new Set(known).add(featured.id));
-              }}
-            />
-          )}
-
           <motion.div
             key={featured.id}
             variants={staggerVariants}
@@ -245,14 +285,17 @@ const Hero = ({
             animate="shown"
             className="relative flex flex-col gap-3 px-5 pb-8 pt-24 sm:px-10"
           >
-            {featured.seriesTitle === null || featured.seriesTitle === undefined ? null : (
-              <motion.p
+            {!isLettered ? null : (
+              <motion.img
                 variants={revealVariants(prefersReducedMotion)}
-                transition={revealTransition(prefersReducedMotion)}
-                className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted"
-              >
-                {featured.title}
-              </motion.p>
+                transition={revealTransition(prefersReducedMotion, 'heavy')}
+                src={logoUrl(featured.id)}
+                alt=""
+                className={LOGO_BOX}
+                onError={() => {
+                  setUnlettered((known) => new Set(known).add(featured.id));
+                }}
+              />
             )}
 
             <motion.h1
@@ -269,9 +312,24 @@ const Hero = ({
             >
               <MediaFacts
                 media={featured}
+                hasEpisode={false}
                 className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-text-muted"
               />
             </motion.p>
+
+            <AnimatePresence>
+              {told === null || !isTelling ? null : (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: prefersReducedMotion === true ? 0.2 : 0.7 }}
+                  className="line-clamp-3 max-w-[52ch] text-[0.95rem] leading-relaxed text-text/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]"
+                >
+                  {told}
+                </motion.p>
+              )}
+            </AnimatePresence>
 
             <motion.div
               variants={revealVariants(prefersReducedMotion)}
