@@ -4,7 +4,7 @@ import { IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 import { Badge } from '@FluxUI/Badge';
 import { HoverCard } from '@FluxUI/HoverCard';
 import { Button } from '@FluxUI/Button';
-import { TabRow } from '@FluxUI/TabRow';
+import { SectionBar } from '@FluxUI/SectionBar';
 import { TabPanel } from '@FluxUI/TabPanel';
 import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { JobsPanel } from './components/JobsPanel/JobsPanel';
@@ -175,6 +175,30 @@ const AdminArea = ({
   const [sessions, setSessions] = useState<ActiveSession[]>([]);
   const [busyClientId, setBusyClientId] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  /**
+   * Shows a section, wherever the ask came from.
+   *
+   * The bar at the top and the links buried in the panels both move somebody
+   * between sections, and moving means more than swapping a panel: whatever
+   * job was being read stops being read, and the address bar has to agree with
+   * what is on screen or a reload lands somewhere else.
+   */
+  const showPanel = useCallback(
+    (next: string) => {
+      const found = PANELS.find((candidate) => candidate.id === next);
+
+      if (found === undefined) {
+        return;
+      }
+
+      setPanel(found.id);
+      onPanelChange?.(found.id);
+      setViewingJobKind(null);
+      onJobChange?.(null);
+    },
+    [onPanelChange, onJobChange],
+  );
 
   /**
    * Reads one thing, and remembers when it could not be read.
@@ -412,30 +436,20 @@ const AdminArea = ({
       animate="shown"
       className="flex w-full flex-col gap-4 px-5 pb-6 pt-5 sm:px-10"
     >
-      <Tabs
-        value={panel}
-        onValueChange={(next) => {
-          const found = PANELS.find((candidate) => candidate.id === next);
-
-          if (found !== undefined) {
-            setPanel(found.id);
-            onPanelChange?.(found.id);
-            setViewingJobKind(null);
-            onJobChange?.(null);
-          }
-        }}
-      >
+      <Tabs value={panel} onValueChange={showPanel}>
         <motion.div
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
           className="flex justify-center"
         >
-          <TabRow
+          <SectionBar
             groups={SECTIONS.map((section) => ({
               ...(section.label === null ? {} : { label: section.label }),
               items: section.items,
             }))}
             label="What to look at"
+            value={panel}
+            onValueChange={showPanel}
           />
         </motion.div>
 
@@ -491,14 +505,7 @@ const AdminArea = ({
               history,
               encoderHistory,
             })}
-            onOpenPanel={(next) => {
-              const found = PANELS.find((candidate) => candidate.id === next);
-
-              if (found !== undefined) {
-                setPanel(found.id);
-                onPanelChange?.(found.id);
-              }
-            }}
+            onOpenPanel={showPanel}
           />
         </motion.div>
 
@@ -608,14 +615,7 @@ const AdminArea = ({
                 libraries={libraries}
                 sessions={sessions}
                 history={history}
-                onOpenPanel={(next) => {
-                  const found = PANELS.find((candidate) => candidate.id === next);
-
-                  if (found !== undefined) {
-                    setPanel(found.id);
-                    onPanelChange?.(found.id);
-                  }
-                }}
+                onOpenPanel={showPanel}
               />
             </TabPanel>
 
