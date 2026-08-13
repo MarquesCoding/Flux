@@ -8,6 +8,8 @@ import {
   readScanState,
   resetLibrary,
   regenerateLibraryPreviews,
+  correctMatch,
+  forgetCorrection,
 } from './fetchLibrary';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
@@ -307,5 +309,181 @@ describe('regenerateLibraryPreviews', () => {
     expect(fetchMock).toHaveBeenCalledWith(`/api/libraries/${library.id}/regenerate-previews`, {
       method: 'POST',
     });
+  });
+});
+
+describe('narrowing a request for items', () => {
+  it('asks for one kind when one was named', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ items: [], total: 0 }),
+    });
+
+    await fetchLibraryItems(library.id, { kind: 'shows' });
+
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toContain('kind=shows');
+  });
+
+  it('asks for one genre when one was named', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ items: [], total: 0 }),
+    });
+
+    await fetchLibraryItems(library.id, { genre: 'Science fiction' });
+
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toContain('genre=Science+fiction');
+  });
+
+  it('leaves a genre of nothing out, rather than asking for the empty one', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ items: [], total: 0 }),
+    });
+
+    await fetchLibraryItems(library.id, { genre: '' });
+
+    expect(fetchMock.mock.calls.at(-1)?.[0]).not.toContain('genre=');
+  });
+
+  it('asks for particular items by id', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ items: [], total: 0 }),
+    });
+
+    await fetchLibraryItems(library.id, { ids: ['a', 'b'] });
+
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toContain('ids=a%2Cb');
+  });
+
+  it('asks for an order when one was named', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ items: [], total: 0 }),
+    });
+
+    await fetchLibraryItems(library.id, { order: 'newest' });
+
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toContain('order=newest');
+  });
+});
+
+describe('saying what a file actually is', () => {
+  const CORRECTION = { corrected: 4, jobId: 'job-1' };
+
+  it('sends the reference and reports how many files it reached', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve(CORRECTION) });
+
+    await expect(correctMatch('media-1', '329', 'movie')).resolves.toEqual(CORRECTION);
+
+    const [, init] = fetchMock.mock.calls.at(-1) ?? [];
+
+    expect(init?.body).toContain('"kind":"movie"');
+  });
+
+  it('leaves the kind out when the reference says it already', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve(CORRECTION) });
+
+    await correctMatch('media-1', 'https://www.themoviedb.org/movie/329');
+
+    const [, init] = fetchMock.mock.calls.at(-1) ?? [];
+
+    expect(init?.body).not.toContain('kind');
+  });
+
+  it('passes on the reason the server refused', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ error: 'That does not look like a catalogue id.' }),
+    });
+
+    await expect(correctMatch('media-1', 'nonsense')).resolves.toEqual({
+      problem: 'That does not look like a catalogue id.',
+    });
+  });
+
+  it('says what the server answered when it did not explain itself', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve(null) });
+
+    await expect(correctMatch('media-1', '329', 'movie')).resolves.toEqual({
+      problem: 'The server answered 500.',
+    });
+  });
+
+  it('says the server could not be reached rather than blaming the request', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(correctMatch('media-1', '329', 'movie')).resolves.toEqual({
+      problem: 'The server could not be reached.',
+    });
+  });
+});
+
+describe('forgetting a correction', () => {
+  it('reports what putting it back reached', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ corrected: 4, jobId: null }),
+    });
+
+    await expect(forgetCorrection('media-1')).resolves.toEqual({ corrected: 4, jobId: null });
+  });
+
+  it('has nothing to report when the server refused', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) });
+
+    await expect(forgetCorrection('media-1')).resolves.toBeNull();
+  });
+
+  it('has nothing to report when the server could not be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(forgetCorrection('media-1')).resolves.toBeNull();
+  });
+
+  it('has nothing to report when the answer was not one it recognises', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ nope: true }),
+    });
+
+    await expect(forgetCorrection('media-1')).resolves.toBeNull();
+  });
+});
+
+describe('when the server refuses to add or change a library', () => {
+  it('raises the reason the server gave for refusing to add one', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ error: 'That path is not a readable directory.' }),
+    });
+
+    await expect(
+      createLibrary({ name: 'Films', kind: 'movies', path: '/nowhere' }),
+    ).rejects.toThrow('That path is not a readable directory.');
+  });
+
+  it('raises the status when a refusal to add one explains nothing', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve(null) });
+
+    await expect(
+      createLibrary({ name: 'Films', kind: 'movies', path: '/media/films' }),
+    ).rejects.toThrow('500');
+  });
+
+  it('raises the status when a refusal to change one explains nothing', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve(null) });
+
+    await expect(updateLibrary(library.id, { defaultAudioLanguage: null })).rejects.toThrow('500');
   });
 });
