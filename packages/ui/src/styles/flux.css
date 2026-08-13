@@ -215,7 +215,12 @@ body {
 .flux-mood-fade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 0%, var(--color-surface) 72%);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 38%,
+    var(--color-surface) 96%
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {
