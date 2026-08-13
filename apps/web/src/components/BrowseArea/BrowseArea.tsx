@@ -4,6 +4,8 @@ import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
 import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
+import { GridSizeChooser } from '@FluxWeb/components/GridSizeChooser/GridSizeChooser';
+import { readGridSize, saveGridSize } from '@FluxWeb/library/gridSizePreference';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { BrowseAreaProps, BrowseKind } from './BrowseArea.types';
 
@@ -70,6 +72,7 @@ const BrowseArea = ({
   const [libraryIds, setLibraryIds] = useState<string[]>([]);
   const [items, setItems] = useState<MediaSummary[]>([]);
   const [isReading, setIsReading] = useState(true);
+  const [size, setSize] = useState(readGridSize);
   const prefersReducedMotion = useReducedMotion();
   const page = PAGES[kind];
 
@@ -134,7 +137,20 @@ const BrowseArea = ({
         className="flex flex-col gap-2"
       >
         <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl">{page.title}</h1>
-        <p className="text-text-muted">{page.standfirst}</p>
+
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-text-muted">{page.standfirst}</p>
+
+          {isReading || items.length === 0 ? null : (
+            <GridSizeChooser
+              value={size}
+              onValueChange={(next) => {
+                setSize(next);
+                saveGridSize(next);
+              }}
+            />
+          )}
+        </div>
       </motion.header>
 
       <motion.section
@@ -150,6 +166,7 @@ const BrowseArea = ({
         ) : (
           <MediaGrid
             items={items}
+            size={size}
             onPlay={onPlay}
             onInspect={onInspect}
             {...(watchedFractionFor === undefined ? {} : { watchedFractionFor })}
