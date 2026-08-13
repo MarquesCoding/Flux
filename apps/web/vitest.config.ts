@@ -10,7 +10,7 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     coverage: {
-      thresholds: { lines: 87, functions: 80, branches: 80, statements: 87 },
+      thresholds: { lines: 88, functions: 81, branches: 82, statements: 88 },
     },
   },
 });

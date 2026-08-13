@@ -325,4 +325,30 @@ describe('App routing', () => {
       expect(screen.getByText(/Resume from 30:00/)).toBeInTheDocument();
     });
   });
+
+  it('moves between sections from the foot of the page as well as the dock', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
+
+    await arrive();
+
+    const browse = await screen.findByRole('navigation', { name: 'Browse' });
+
+    await actor.click(within(browse).getByRole('button', { name: 'Films' }));
+
+    expect(await screen.findByRole('heading', { name: 'Films' })).toBeInTheDocument();
+  });
+
+  it('opens something chosen at random', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
+
+    await arrive();
+
+    await actor.click(await screen.findByRole('button', { name: 'Randomiser' }));
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
 });
