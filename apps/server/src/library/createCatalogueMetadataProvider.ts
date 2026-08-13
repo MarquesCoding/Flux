@@ -186,34 +186,94 @@ const readYear = (date: string | undefined): number | null => {
 };
 
 /**
- * A title stripped to the words in it, for comparing two spellings of the
- * same thing rather than two exact strings.
+ * A title stripped to the letters and digits in it, in any script.
+ *
+ * Letters as Unicode understands them rather than as ASCII does. Stripping
+ * everything outside `a-z0-9` does not tidy a Japanese, Korean, Chinese,
+ * Russian or Greek title — it deletes it, leaving an empty string that
+ * compares equal to every other title in the same position. Two unrelated
+ * films then look identical, which is a worse answer than no answer.
+ *
+ * `NFKC` first, because the same string can be encoded more than one way — a
+ * composed accent against a combining one, a full-width Latin letter against
+ * its ordinary form — and two titles that look identical should not fail to
+ * match over how somebody's tooling wrote them down.
+ *
+ * `toLowerCase` rather than `toLocaleLowerCase`, deliberately. The locale-aware
+ * form folds `I` differently under a Turkish locale, which would make matching
+ * depend on the locale of the machine the server happens to run on: two
+ * installs would disagree about the same file. Unicode's locale-independent
+ * mapping already handles every script here.
  */
 const normalizeTitle = (value: string): string =>
   value
+    .normalize('NFKC')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
+
+/**
+ * Scripts that carry a word's worth of meaning in one or two characters.
+ */
+const DENSE_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+
+/**
+ * How long a word must be before agreeing on it means anything.
+ *
+ * Four for a script that writes with spaces: "the", "of" and "war" agree by
+ * accident far too often to count. Two where a couple of characters is a whole
+ * word — 君の名は is four characters and three words — because a threshold
+ * tuned for English discards everything meaningful in Japanese, Chinese and
+ * Korean, and then nothing ever agrees at all.
+ */
+const LEAST_MEANINGFUL = 4;
+const LEAST_MEANINGFUL_DENSE = 2;
+
+const SEGMENTER = new Intl.Segmenter(undefined, { granularity: 'word' });
+
+/**
+ * The words of a title worth comparing.
+ *
+ * Segmented rather than split on spaces, because plenty of scripts do not use
+ * them: splitting 君の名は on spaces yields one long "word", and splitting
+ * 기생충 yields one short one that the length rule then throws away.
+ */
+const significantWords = (value: string): Set<string> => {
+  const words = new Set<string>();
+
+  for (const { segment, isWordLike } of SEGMENTER.segment(normalizeTitle(value))) {
+    const least = DENSE_SCRIPT.test(segment) ? LEAST_MEANINGFUL_DENSE : LEAST_MEANINGFUL;
+
+    if (isWordLike === true && segment.length >= least) {
+      words.add(segment);
+    }
+  }
+
+  return words;
+};
 
 /**
  * Whether two titles have a real word in common.
  *
  * Wording between a release and a catalogue drifts — "Marvel's Daredevil"
  * against "Daredevil" — so exact equality would refuse matches that are
- * plainly right. A word under four letters agrees by accident too often to
- * count as agreement at all.
+ * plainly right.
+ *
+ * A title this cannot read is let through rather than refused. The question
+ * exists to throw out a match that is plainly wrong, and a test that answers
+ * "no words in common" for every title in a script is not evidence about the
+ * match — it is the test failing to apply. Refusing on it threw away every
+ * episode of every foreign-language programme.
  */
 const shareASignificantWord = (left: string, right: string): boolean => {
-  const wordsOf = (value: string): Set<string> =>
-    new Set(
-      normalizeTitle(value)
-        .split(' ')
-        .filter((word) => word.length >= 4),
-    );
+  const leftWords = significantWords(left);
+  const rightWords = significantWords(right);
 
-  const leftWords = wordsOf(left);
+  if (leftWords.size === 0 || rightWords.size === 0) {
+    return true;
+  }
 
-  return [...wordsOf(right)].some((word) => leftWords.has(word));
+  return [...rightWords].some((word) => leftWords.has(word));
 };
 
 /**
@@ -242,7 +302,17 @@ const similarity = (left: string, right: string): number => {
   const rightPairs = pairsOf(right);
 
   if (leftPairs.length === 0 || rightPairs.length === 0) {
-    return normalizeTitle(left) === normalizeTitle(right) ? 1 : 0;
+    /**
+     * Nothing to compare, so agreement has to be exact and to be of something.
+     *
+     * Two titles that normalise to nothing are not the same title — they are
+     * two titles this cannot read, which is the opposite of evidence. Answering
+     * one for that scored every foreign-language candidate a perfect match and
+     * handed the wrong film the top of the list with complete confidence.
+     */
+    const cleanLeft = normalizeTitle(left);
+
+    return cleanLeft !== '' && cleanLeft === normalizeTitle(right) ? 1 : 0;
   }
 
   const remaining = [...rightPairs];
@@ -282,7 +352,7 @@ const YEAR_BONUS = 0.15;
  * Falls back to the catalogue's own order when nothing scores at all, since a
  * poor answer that can be corrected beats no answer at all.
  */
-const bestMatch = (
+const pickBestMatch = (
   candidates: readonly SearchResult[],
   wanted: string,
   year: number | null,
@@ -517,12 +587,21 @@ const createCatalogueMetadataProvider = ({
       const results = SearchResponseSchema.safeParse(searched);
       const candidates = results.success ? results.data.results : [];
 
+      /**
+       * The candidate whose title is the one being looked for.
+       *
+       * Only when there is a title to look for. An empty one matches the first
+       * candidate that is also empty, which is not agreement — it is two
+       * strings this could not read, promoted over the catalogue's own ranking
+       * as though they were a certainty.
+       */
       const wanted = normalizeTitle(searchTitle);
-      const exact = candidates.find(
-        (entry) => normalizeTitle(entry.title ?? entry.name ?? '') === wanted,
-      );
+      const exact =
+        wanted === ''
+          ? undefined
+          : candidates.find((entry) => normalizeTitle(entry.title ?? entry.name ?? '') === wanted);
       const first =
-        exact ?? bestMatch(candidates, searchTitle, seriesYear ?? fromFilename.year ?? null);
+        exact ?? pickBestMatch(candidates, searchTitle, seriesYear ?? fromFilename.year ?? null);
 
       if (first === undefined) {
         return null;
@@ -660,4 +739,15 @@ const createCatalogueMetadataProvider = ({
 
 export type { CreateCatalogueMetadataProviderOptions, Fetcher };
 
-export { createCatalogueMetadataProvider, readYear, imageUrl, CAST_LIMIT, isAccessToken };
+export {
+  createCatalogueMetadataProvider,
+  readYear,
+  imageUrl,
+  normalizeTitle,
+  significantWords,
+  shareASignificantWord,
+  similarity,
+  pickBestMatch,
+  CAST_LIMIT,
+  isAccessToken,
+};
