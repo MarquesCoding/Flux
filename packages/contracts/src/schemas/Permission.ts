@@ -44,6 +44,8 @@ const PERMISSIONS = [
 
   'download.media',
 
+  'account.keys',
+
   'account.invite',
   'account.manage',
   'account.ban',
