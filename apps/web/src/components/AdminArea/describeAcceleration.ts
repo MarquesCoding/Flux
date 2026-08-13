@@ -10,18 +10,22 @@ type Acceleration = {
    */
   label: string;
   /**
-   * Whether the machine could not verify what has been forced.
+   * How much the choice is worth looking at.
    *
-   * Not the same as the probe merely disagreeing about an encoder. This is
-   * asking for a backend the host has no way to provide at all — NVENC on
-   * Apple silicon — where the honest thing is to say so rather than to report
-   * a setting that will fall back to software on every play.
+   * `danger` for one the machine cannot keep at all, `warning` for one it can
+   * keep but which costs the processor every play, and quiet for a setting
+   * doing what it should. A default that happens to be software is not a
+   * warning: nobody chose it and there is nothing to reconsider.
    */
-  isUnverified: boolean;
+  tone: 'quiet' | 'warning' | 'danger';
   /**
-   * What to say about a choice the machine cannot keep, where there is one.
+   * What resting on the badge explains.
+   *
+   * Every state has one, not only the ones that are wrong. "videotoolbox ·
+   * automatic" is perfectly correct and still means nothing to somebody who
+   * has never chosen a video encoder.
    */
-  warning?: string;
+  detail: string;
 };
 
 /**
@@ -41,30 +45,41 @@ type Acceleration = {
  */
 const describeAcceleration = (forced: string, probed: string[]): Acceleration => {
   if (forced === 'none') {
-    return { label: 'Software only · forced', isUnverified: false };
+    return {
+      label: 'Software only · forced',
+      tone: 'warning',
+      detail:
+        'Hardware encoding is turned off, so every transcode is done by the processor — several times the work, and fewer streams at once. Choose Automatic to use the machine\u2019s own encoder where it can.',
+    };
   }
 
   if (forced !== '') {
-    const chosen = accelerationOptions.find((option) => option.id === forced);
-
+    const name = accelerationOptions.find((option) => option.id === forced)?.label ?? forced;
     const isUnverified = !probed.includes(forced);
 
     return {
-      label: `${chosen?.label ?? forced} · forced`,
-      isUnverified,
-      ...(isUnverified
-        ? {
-            warning: `This machine never proved it can do ${chosen?.label ?? forced}, so every transcode will fall back to software. Choose Automatic to use what it can, or leave this if you know the check is wrong.`,
-          }
-        : {}),
+      label: `${name} · forced`,
+      tone: isUnverified ? 'danger' : 'quiet',
+      detail: isUnverified
+        ? `This machine never proved it can do ${name}, so every transcode will fall back to software. Choose Automatic to use what it can, or leave this if you know the check is wrong.`
+        : `${name} was chosen rather than left to Flux, and the machine proved it can do it. Transcodes use it instead of the processor.`,
     };
   }
 
   if (probed.length === 0) {
-    return { label: 'Software only', isUnverified: false };
+    return {
+      label: 'Software only',
+      tone: 'quiet',
+      detail:
+        'This machine proved no hardware encoder Flux can use, so transcodes are done by the processor. Nothing was chosen — there was nothing to choose.',
+    };
   }
 
-  return { label: `${probed.join(', ')} · automatic`, isUnverified: false };
+  return {
+    label: `${probed.join(', ')} · automatic`,
+    tone: 'quiet',
+    detail: `Flux uses whichever backend the machine proved it can do, which here is ${probed.join(' and ')}. Choose one in Settings to insist on it instead.`,
+  };
 };
 
 export { describeAcceleration };

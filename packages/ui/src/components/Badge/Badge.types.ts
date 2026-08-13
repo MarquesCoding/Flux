@@ -9,10 +9,10 @@ import type { ReactNode } from 'react';
  * translucency would leave it unreadable.
  */
 /**
- * `danger` is for a fact that is wrong rather than merely notable — a setting
- * the machine could not verify, not a setting somebody should look at twice.
+ * `warning` is for a fact that is working but costly — a deliberate choice
+ * worth a second look. `danger` is for one that is not working at all.
  */
-type BadgeTone = 'quiet' | 'accent' | 'solid' | 'danger';
+type BadgeTone = 'quiet' | 'accent' | 'solid' | 'warning' | 'danger';
 
 type BadgeSize = 'sm' | 'md';
 

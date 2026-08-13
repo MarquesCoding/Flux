@@ -461,18 +461,14 @@ const AdminArea = ({
                     : 'Media service unreachable'}
               </span>
 
-              {acceleration === null ? null : acceleration.warning === undefined ? (
-                <Badge size="sm">{acceleration.label}</Badge>
-              ) : (
+              {acceleration === null ? null : (
                 <HoverCard
                   side="bottom"
                   align="center"
-                  detail={
-                    <p className="max-w-xs text-xs leading-relaxed">{acceleration.warning}</p>
-                  }
+                  detail={<p className="max-w-xs text-xs leading-relaxed">{acceleration.detail}</p>}
                 >
                   <span>
-                    <Badge size="sm" tone="danger">
+                    <Badge size="sm" tone={acceleration.tone}>
                       {acceleration.label}
                     </Badge>
                   </span>

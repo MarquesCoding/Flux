@@ -3,17 +3,11 @@ import { describeAcceleration } from './describeAcceleration';
 
 describe('describeAcceleration', () => {
   it('reports what the machine was found capable of when nobody has insisted', () => {
-    expect(describeAcceleration('', ['videotoolbox'])).toEqual({
-      label: 'videotoolbox · automatic',
-      isUnverified: false,
-    });
+    expect(describeAcceleration('', ['videotoolbox']).label).toBe('videotoolbox · automatic');
   });
 
   it('stops claiming hardware once software only is forced', () => {
-    expect(describeAcceleration('none', ['videotoolbox'])).toEqual({
-      label: 'Software only · forced',
-      isUnverified: false,
-    });
+    expect(describeAcceleration('none', ['videotoolbox']).label).toBe('Software only · forced');
   });
 
   it('reports the forced backend rather than the one that was found', () => {
@@ -24,32 +18,36 @@ describe('describeAcceleration', () => {
     const shown = describeAcceleration('nvenc', ['videotoolbox']);
 
     expect(shown.label).toBe('NVENC · forced');
-    expect(shown.isUnverified).toBe(true);
+    expect(shown.tone).toBe('danger');
   });
 
   it('says what a choice the machine cannot keep will actually do', () => {
-    expect(describeAcceleration('nvenc', ['videotoolbox']).warning).toContain(
+    expect(describeAcceleration('nvenc', ['videotoolbox']).detail).toContain(
       'fall back to software',
     );
   });
 
-  it('warns about nothing when the choice is one the machine can keep', () => {
-    expect(describeAcceleration('videotoolbox', ['videotoolbox']).warning).toBeUndefined();
+  it('marks forced software as costly rather than as broken', () => {
+    const shown = describeAcceleration('none', ['videotoolbox']);
+
+    expect(shown.tone).toBe('warning');
+    expect(shown.detail).toContain('done by the processor');
+  });
+
+  it('leaves software chosen by nobody quiet, since there is nothing to reconsider', () => {
+    expect(describeAcceleration('', []).tone).toBe('quiet');
+  });
+
+  it('explains even a setting that is working, which is the one nobody understands', () => {
+    expect(describeAcceleration('', ['videotoolbox']).detail).toContain('whichever backend');
   });
 
   it('does not mark a forced backend the machine did verify', () => {
-    expect(describeAcceleration('vaapi', ['vaapi', 'qsv']).isUnverified).toBe(false);
-  });
-
-  it('never marks software only, which needs no hardware to be available', () => {
-    expect(describeAcceleration('none', []).isUnverified).toBe(false);
+    expect(describeAcceleration('vaapi', ['vaapi', 'qsv']).tone).toBe('quiet');
   });
 
   it('says software only when nothing was found and nothing was chosen', () => {
-    expect(describeAcceleration('', [])).toEqual({
-      label: 'Software only',
-      isUnverified: false,
-    });
+    expect(describeAcceleration('', []).label).toBe('Software only');
   });
 
   it('lists everything the machine can do, not only the first', () => {

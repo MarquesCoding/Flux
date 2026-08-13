@@ -50,4 +50,10 @@ describe('Badge', () => {
 
     expect(badgeOf('4K')).toHaveClass('select-none');
   });
+
+  it('paints a costly choice differently from a broken one', () => {
+    render(<Badge tone="warning">Software only</Badge>);
+
+    expect(badgeOf('Software only')).toHaveClass('border-amber-400/50');
+  });
 });
