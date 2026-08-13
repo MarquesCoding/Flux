@@ -15,6 +15,15 @@ type MediaFactsProps = {
    * least distinguishing thing on it.
    */
   hasRuntime?: boolean;
+  /**
+   * Whether to say where this sits in its series.
+   *
+   * On everywhere something is being picked out of a list, where which episode
+   * it is may be the whole reason for choosing it. Off where the subject is
+   * the programme rather than tonight's instalment — a hero introduces a show,
+   * and "EP4 · S1" under its name reads as though the show were the episode.
+   */
+  hasEpisode?: boolean;
 };
 
 export type { MediaFactsProps };
