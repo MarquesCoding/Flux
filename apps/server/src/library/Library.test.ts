@@ -584,11 +584,11 @@ describe('library routes', () => {
   });
 
   it('serves the lettering a title is written in, the same way as its poster', async () => {
-    const { store } = createMemoryAuth();
-
+    const { auth, settings, store } = createMemoryAuth();
     const app = signedInApp(
       createApp({
-        ...createMemoryAuth(),
+        auth,
+        settings,
         countUsers: () => Promise.resolve(1),
         promoteToAdmin: () => Promise.resolve(),
         library: createMemoryLibraryService({
@@ -597,7 +597,7 @@ describe('library routes', () => {
               id: LIBRARY_ID,
               name: 'Films',
               kind: 'movies',
-              path: '/media',
+              path: '/media/films',
               itemCount: 1,
               lastScannedAt: null,
               defaultAudioLanguage: null,

@@ -30,6 +30,7 @@ const item = (id: string, title: string, genres?: string[]): MediaSummary => ({
   hasPoster: true,
   hasBackdrop: true,
   hasLogo: false,
+  seriesId: null,
   ...(genres === undefined ? {} : { genres }),
 });
 

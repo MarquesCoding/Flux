@@ -17,6 +17,7 @@ const media: MediaSummary = {
   hasPoster: true,
   hasBackdrop: true,
   hasLogo: false,
+  seriesId: null,
 };
 
 describe('MediaFacts', () => {

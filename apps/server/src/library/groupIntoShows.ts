@@ -30,10 +30,15 @@ const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
 };
 
 /**
- * Everything that names the same series, gathered.
+ * Everything belonging to the same series, gathered.
  *
- * Items that name no series are not shows and are left where they were: a film
- * is not a series of one.
+ * By the programme's id rather than by its title. Two programmes share a title
+ * and gathering on it put both of them under one cover — so hiding, rating or
+ * opening "the series" reached the wrong one, and a corrected match silently
+ * moved everything to a new heading.
+ *
+ * Items that belong to no series are not shows and are left where they were: a
+ * film is not a series of one.
  */
 const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
   const shows = new Map<string, MediaSummary[]>();
@@ -45,7 +50,14 @@ const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
       continue;
     }
 
-    const id = showSlug(series);
+    /**
+     * The programme's own id, or a slug of its title where there is none.
+     *
+     * The id is what keeps two programmes of one name apart. The slug remains
+     * only for an item scanned before programmes were rows — it collides
+     * exactly where it always did, and the first scan after this replaces it.
+     */
+    const id = media.seriesId ?? showSlug(series);
 
     shows.set(id, [...(shows.get(id) ?? []), media]);
   }

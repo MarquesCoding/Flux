@@ -24,6 +24,7 @@ describe('readEpisodeFromPath', () => {
     expect(readEpisodeFromPath('/media/Some Show/Season 1/Some.Show.S01E02.1080p.mkv')).toEqual({
       seriesTitle: 'Some Show',
       seriesYear: null,
+      seriesFolder: '/media/Some Show',
       seasonNumber: 1,
       episodeNumber: 2,
       episodeTitle: null,
@@ -94,6 +95,7 @@ describe('readEpisodeFromPath', () => {
     expect(readEpisodeFromPath('/media/films/Arrival (2016).mkv')).toEqual({
       seriesTitle: null,
       seriesYear: null,
+      seriesFolder: null,
       seasonNumber: null,
       episodeNumber: null,
       episodeTitle: null,
@@ -167,5 +169,34 @@ describe('a filename that names the year beside the series', () => {
     expect(read.seasonNumber).toBe(1);
     expect(read.episodeNumber).toBe(3);
     expect(read.episodeTitle).toBe('Choosing Day');
+  });
+
+  it('names the folder that separates one programme from another', () => {
+    expect(
+      readEpisodeFromPath('/media/The Office (US)/Season 1/The Office - S01E01.mkv').seriesFolder,
+    ).toBe('/media/The Office (US)');
+  });
+
+  it('climbs past a season folder, which names a season rather than a programme', () => {
+    const inSeason = readEpisodeFromPath('/media/Show/Season 2/Show - S02E01.mkv').seriesFolder;
+    const beside = readEpisodeFromPath('/media/Show/Show - S01E01.mkv').seriesFolder;
+
+    expect(inSeason).toBe('/media/Show');
+    expect(beside).toBe('/media/Show');
+  });
+
+  it('gives two same-named programmes two different folders', () => {
+    const uk = readEpisodeFromPath('/media/UK/The Office/The Office - S01E01.mkv').seriesFolder;
+    const us = readEpisodeFromPath('/media/US/The Office/The Office - S01E01.mkv').seriesFolder;
+
+    expect(uk).not.toBe(us);
+  });
+
+  it('has no folder to offer for a film', () => {
+    expect(readEpisodeFromPath('/media/Arrival 2016 1080p.mkv').seriesFolder).toBeNull();
+  });
+
+  it('has none for a loose episode with nothing above it', () => {
+    expect(readEpisodeFromPath('Show - S01E01.mkv').seriesFolder).toBeNull();
   });
 });

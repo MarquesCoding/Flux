@@ -53,6 +53,7 @@ const arrival: MediaSummary = {
   hasPoster: false,
   hasBackdrop: false,
   hasLogo: false,
+  seriesId: null,
 };
 
 beforeEach(() => {
