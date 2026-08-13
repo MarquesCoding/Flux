@@ -141,7 +141,16 @@ import {
   clearOverrideRoute,
 } from '@FluxServer/routes/RoleRoute';
 import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
+import { createBetterAuthApiKeyService } from '@FluxServer/auth/createBetterAuthApiKeyService';
+import {
+  listApiKeysRoute,
+  createApiKeyRoute,
+  updateApiKeyRoute,
+  revokeApiKeyRoute,
+} from '@FluxServer/routes/ApiKeyRoute';
+import { narrowToKey } from '@FluxServer/auth/narrowToKey';
 import type { PermissionService } from '@FluxServer/auth/PermissionService';
+import type { ApiKeyService } from '@FluxServer/auth/ApiKeyService';
 import type { Permission } from '@FluxContracts/schemas/Permission';
 
 /**
@@ -260,6 +269,7 @@ type CreateAppOptions = {
    * default is the only safe way for this particular option to be missing.
    */
   permissions?: PermissionService;
+  apiKeys?: ApiKeyService;
   /**
    * Stops an account signing in, ends its sessions, and answers whether there
    * was one. Passed in because ending a session is better-auth's business.
@@ -445,6 +455,8 @@ const createApp = ({
   cancelJob = () => Promise.resolve(false),
   searchCatalogue = () => Promise.resolve([]),
   permissions = createMemoryPermissionService(),
+  apiKeys = createBetterAuthApiKeyService(auth),
+
   banAccount,
   unbanAccount,
   removeAccount,
@@ -471,6 +483,11 @@ const createApp = ({
    *
    * Declared above the routes that ask it, so that reading down this file
    * shows what a route requires before it shows what the route does.
+   *
+   * A request carrying an API key is narrowed by it after the account has been
+   * asked, which is what makes a key a restriction rather than a grant. Which
+   * key it is comes from the session better-auth already resolved, so the
+   * secret is not hashed a second time to learn what is known.
    */
   const requires = async (headers: Headers, permission: Permission): Promise<boolean> => {
     const session = await auth.api.getSession({ headers }).catch(() => null);
@@ -479,7 +496,15 @@ const createApp = ({
       return false;
     }
 
-    return (await permissions.resolve(session.user.id)).has(permission);
+    const held = await permissions.resolve(session.user.id);
+
+    if (headers.get('x-api-key') === null) {
+      return held.has(permission);
+    }
+
+    const allowed = await apiKeys.restrictionFor(headers, session.session.id);
+
+    return narrowToKey(held, allowed).has(permission);
   };
 
   app.all('/api/auth/admin/*', createBetterAuthAdminBlock());
@@ -952,6 +977,111 @@ const createApp = ({
 
     return session?.user ?? null;
   };
+
+  /**
+   * Whoever is asking, if they may hold keys at all.
+   *
+   * Two questions in one because they are always asked together: who this is,
+   * and whether they are allowed keys. Answering both here keeps the four
+   * handlers below from each remembering to ask, which is how one of them
+   * eventually does not.
+   */
+  const readKeyHolder = async (headers: Headers) => {
+    const account = await readAccount(headers);
+
+    if (account === null) {
+      return { account: null, refusal: 'anonymous' } as const;
+    }
+
+    return (await requires(headers, 'account.keys'))
+      ? ({ account, refusal: null } as const)
+      : ({ account: null, refusal: 'forbidden' } as const);
+  };
+
+  app.openapi(listApiKeysRoute, async (context) => {
+    const holder = await readKeyHolder(context.req.raw.headers);
+
+    if (holder.refusal !== null) {
+      return holder.refusal === 'anonymous'
+        ? context.json({ error: 'Nobody is signed in.' }, 401)
+        : context.json({ error: 'This account may not hold API keys.' }, 403);
+    }
+
+    return context.json({ keys: await apiKeys.list(context.req.raw.headers) }, 200);
+  });
+
+  app.openapi(createApiKeyRoute, async (context) => {
+    const holder = await readKeyHolder(context.req.raw.headers);
+
+    if (holder.refusal !== null) {
+      return holder.refusal === 'anonymous'
+        ? context.json({ error: 'Nobody is signed in.' }, 401)
+        : context.json({ error: 'This account may not hold API keys.' }, 403);
+    }
+
+    const account = holder.account;
+
+    const { name, expiresInDays, permissions: asked, rateLimit } = context.req.valid('json');
+
+    /**
+     * What the key is restricted to, never what it is granted.
+     *
+     * Whatever was asked for is intersected with what the account actually
+     * holds before it is written down, so a key cannot outlive a demotion by
+     * carrying a permission its owner has since lost. The guard intersects
+     * again on every request, so this is belt and braces — but a stored list
+     * that reads as a grant is the thing somebody will later mistake it for.
+     */
+    const held = await permissions.resolve(account.id);
+    const restricted = asked === null ? null : asked.filter((one) => held.has(one));
+
+    const made = await apiKeys.create(account.id, {
+      name,
+      expiresInDays,
+      permissions: restricted,
+      rateLimit,
+    });
+
+    return context.json(made, 201);
+  });
+
+  app.openapi(updateApiKeyRoute, async (context) => {
+    const holder = await readKeyHolder(context.req.raw.headers);
+
+    if (holder.refusal !== null) {
+      return holder.refusal === 'anonymous'
+        ? context.json({ error: 'Nobody is signed in.' }, 401)
+        : context.json({ error: 'This account may not hold API keys.' }, 403);
+    }
+
+    const changed = await apiKeys.setEnabled(
+      context.req.raw.headers,
+      context.req.valid('param').id,
+      context.req.valid('json').enabled,
+    );
+
+    if (changed === null) {
+      return context.json({ error: 'No such key on this account.' }, 404);
+    }
+
+    return context.json(changed, 200);
+  });
+
+  app.openapi(revokeApiKeyRoute, async (context) => {
+    const holder = await readKeyHolder(context.req.raw.headers);
+
+    if (holder.refusal !== null) {
+      return holder.refusal === 'anonymous'
+        ? context.json({ error: 'Nobody is signed in.' }, 401)
+        : context.json({ error: 'This account may not hold API keys.' }, 403);
+    }
+
+    if (!(await apiKeys.revoke(context.req.raw.headers, context.req.valid('param').id))) {
+      return context.json({ error: 'No such key on this account.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
 
   app.openapi(listProfilesRoute, async (context) => {
     const account = await readAccount(context.req.raw.headers);
