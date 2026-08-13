@@ -62,6 +62,7 @@ import {
 } from '@FluxServer/routes/FavouriteRoute';
 import {
   adminOverviewRoute,
+  adminMeasureStorageRoute,
   searchCatalogueRoute,
   adminSettingsRoute,
   adminSessionsRoute,
@@ -221,6 +222,26 @@ const describeRefusal = (refusal: RoleChangeRefusal): string =>
     ? 'That role is at or above your own.'
     : 'You cannot grant a permission you do not hold.';
 
+type ArtefactCount = { count: number; bytes: number };
+
+/**
+ * What a count of the caches found.
+ *
+ * Written out rather than borrowed from the transcoder client so the route's
+ * response stays a plain shape. A recursive `JsonValue` here is enough to
+ * defeat the OpenAPI schema inference for the whole app.
+ */
+type StorageCount = {
+  cache: {
+    previews: ArtefactCount;
+    trickplay: ArtefactCount;
+    sessions: ArtefactCount;
+    atMs: number;
+  } | null;
+  artwork: { count: number; bytes: number; atMs: number } | null;
+  libraryBytes: number;
+};
+
 type CreateAppOptions = {
   auth: FluxAuth;
   settings: SettingsStore;
@@ -335,6 +356,21 @@ type CreateAppOptions = {
    * no artwork cache at all. Neither is an error and neither is zero.
    */
   artworkUsage?: () => { count: number; bytes: number; atMs: number } | null;
+  /**
+   * How much disk the media itself takes, across every library.
+   *
+   * The question an operator asks about a media server before any other, and
+   * the one figure on the storage section that is not Flux's own doing. A sum
+   * over rows Flux already keeps rather than a walk of the disk.
+   */
+  libraryBytes?: () => Promise<number>;
+  /**
+   * Counts both caches now, because an operator asked and is waiting.
+   *
+   * Separate from `artworkUsage` because that hands back what was already
+   * counted and this goes and walks the disks.
+   */
+  measureStorage?: () => Promise<StorageCount>;
   monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>;
   /**
    * Reads artwork from Flux's own cache, fetching it once if needed.
@@ -397,6 +433,8 @@ const createApp = ({
   listUsers,
   capabilities,
   artworkUsage,
+  libraryBytes,
+  measureStorage,
   monitor,
   monitorStream,
   readImage,
@@ -751,6 +789,7 @@ const createApp = ({
       startSeconds ?? 0,
       audioStreamIndex,
       requestedQuality,
+      clientId,
     );
 
     if (outcome.kind === 'notFound') {
@@ -1086,6 +1125,23 @@ const createApp = ({
       : context.json({ error: 'That picture could not be used.' }, 400);
   });
 
+  app.openapi(adminMeasureStorageRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const measured = await measureStorage?.();
+
+    return context.json(
+      {
+        cache: measured?.cache ?? null,
+        artwork: measured?.artwork ?? null,
+        libraryBytes: measured?.libraryBytes ?? 0,
+      },
+      200,
+    );
+  });
+
   app.openapi(adminOverviewRoute, async (context) => {
     if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
@@ -1119,6 +1175,7 @@ const createApp = ({
         library: {
           libraryCount: libraries.length,
           itemCount: libraries.reduce((total, entry) => total + entry.itemCount, 0),
+          bytes: await (libraryBytes?.() ?? Promise.resolve(0)),
         },
         artwork: artworkUsage?.() ?? null,
       },

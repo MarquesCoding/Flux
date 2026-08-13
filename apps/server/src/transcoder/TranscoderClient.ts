@@ -141,6 +141,20 @@ const SweepReportSchema = z.object({
   tooNew: z.number().int().nonnegative(),
 });
 
+const ArtefactUseSchema = z.object({
+  count: z.number().int().nonnegative(),
+  bytes: z.number().int().nonnegative(),
+});
+
+const CacheUseSchema = z.object({
+  previews: ArtefactUseSchema,
+  trickplay: ArtefactUseSchema,
+  sessions: ArtefactUseSchema,
+  atMs: z.number().int().nonnegative(),
+});
+
+type CacheUse = z.infer<typeof CacheUseSchema>;
+
 const PreviewClipSchema = z.object({
   id: z.string(),
   url: z.string(),
@@ -239,7 +253,14 @@ type SessionSpec = {
 type Transcoder = {
   isReachable: () => Promise<boolean>;
   probe: (path: string) => Promise<MediaProbe>;
-  startSession: (spec: SessionSpec) => Promise<SessionResponse>;
+  /**
+   * Starts a transcode, saying which device asked.
+   *
+   * The device does not change what is made — two devices asking for the same
+   * thing share one transcode — only which one is worth keeping afterwards,
+   * since each device's most recent is the one somebody would resume.
+   */
+  startSession: (spec: SessionSpec, deviceId?: string) => Promise<SessionResponse>;
   readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>;
   /**
    * Opens an original file for direct play, forwarding a byte range.
@@ -340,6 +361,15 @@ type Transcoder = {
    * Deletes thumbnail sheets nothing addresses any more.
    */
   sweepTrickplay: (keep: TrickplayRequest[]) => Promise<SweepReport>;
+  /**
+   * Counts what the artefact cache holds, rather than reading the figure the
+   * media service took on its own timer.
+   *
+   * Null when the media service cannot be reached or answers with something
+   * unreadable, so a page can say the count did not happen rather than show a
+   * cache that appears to have emptied.
+   */
+  measureCache: () => Promise<CacheUse | null>;
   /**
    * Removes one item's artefacts, so the next request makes them again.
    *
@@ -598,8 +628,12 @@ const createTranscoderClient = ({
     probe: async (path) =>
       MediaProbeSchema.parse(await (await postJson('/probe', { path })).json()),
 
-    startSession: async (spec) =>
-      SessionResponseSchema.parse(await (await postJson('/sessions', spec)).json()),
+    startSession: async (spec, deviceId) =>
+      SessionResponseSchema.parse(
+        await (
+          await postJson('/sessions', deviceId === undefined ? spec : { ...spec, deviceId })
+        ).json(),
+      ),
 
     readSessionFile: async (sessionId, name) => {
       const response = await call2(
@@ -643,6 +677,18 @@ const createTranscoderClient = ({
 
     sweepTrickplay: async (keep) =>
       SweepReportSchema.parse(await (await postJson('/trickplay/sweep', { keep })).json()),
+
+    measureCache: async () => {
+      const answered = await postJson('/cache/measure', {}).catch(() => null);
+
+      if (answered === null) {
+        return null;
+      }
+
+      const parsed = CacheUseSchema.safeParse(await answered.json().catch(() => null));
+
+      return parsed.success ? parsed.data : null;
+    },
 
     forgetPreview: async (request) =>
       ForgetReportSchema.parse(await (await postJson('/previews/forget', request)).json())
@@ -717,6 +763,7 @@ export type {
   TranscoderRangedFile,
   PreviewSweepSubject,
   SweepReport,
+  CacheUse,
 };
 
 export { createTranscoderClient, readSocketPath, TranscoderError, MediaProbeSchema };

@@ -62,12 +62,20 @@ type PlaybackService = {
     profile: DeviceProfile,
     requestedQuality?: QualityStepId,
   ) => Promise<Explanation | null>;
+  /**
+   * Begins playback, saying which device asked.
+   *
+   * The device does not change what is made — two devices asking for the same
+   * thing share one transcode — only whose resume point it becomes. A caller
+   * with no device to name costs only that the transcode is kept for nobody.
+   */
   start: (
     mediaId: string,
     profile: DeviceProfile,
     startSeconds: number,
     audioStreamIndex?: number,
     requestedQuality?: QualityStepId,
+    deviceId?: string,
   ) => Promise<StartOutcome>;
   readSessionFile: (sessionId: string, name: string) => Promise<SessionFile | null>;
   readDirectFile: (mediaId: string, range: string | null) => Promise<RangedFile | null>;

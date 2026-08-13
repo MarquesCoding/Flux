@@ -15,7 +15,7 @@ use crate::transcode_plan::{SessionSpec, TranscodePlan, MANIFEST_NAME};
 /// can leave an `#EXT-X-ENDLIST` from a previous attempt beside a zero length
 /// initialisation segment. Only the process's own exit status can say the
 /// output is whole, so completion is recorded rather than inferred.
-const COMPLETE_MARKER: &str = ".complete";
+pub const COMPLETE_MARKER: &str = ".complete";
 
 /// Reports whether a session directory already holds a finished transcode.
 ///
@@ -26,6 +26,49 @@ async fn is_already_complete(directory: &Path) -> bool {
     tokio::fs::try_exists(directory.join(COMPLETE_MARKER))
         .await
         .unwrap_or(false)
+}
+
+/// Which devices have played a transcode, and when each last did.
+///
+/// Kept beside the segments rather than in memory so it survives a restart:
+/// the whole point is to know which transcode a device would come back to,
+/// and a service that forgets that on every deploy would evict the one
+/// directory somebody was about to resume.
+pub const DEVICES_MARKER: &str = ".devices";
+
+/// Records that a device has just played this transcode.
+///
+/// The device is not part of the session's address, deliberately. Two people
+/// watching the same thing at the same quality should share one directory and
+/// one encode — what differs is that each of them would resume it, so both are
+/// written here and either keeps it alive.
+async fn record_device(directory: &Path, device: &str) {
+    let path = directory.join(DEVICES_MARKER);
+
+    let mut devices: HashMap<String, u64> = tokio::fs::read_to_string(&path)
+        .await
+        .ok()
+        .and_then(|found| serde_json::from_str(&found).ok())
+        .unwrap_or_default();
+
+    devices.insert(device.to_owned(), crate::queue::now_ms());
+
+    if let Ok(payload) = serde_json::to_string(&devices) {
+        let _ = tokio::fs::write(&path, payload).await;
+    }
+}
+
+/// Records that a finished transcode has been wanted again.
+///
+/// Rewrites the completion marker, so its timestamp says when somebody last
+/// played this rather than when it was made. Eviction reads that timestamp:
+/// without this, an item replayed every night would age out while one watched
+/// once survives for being newer, which is exactly backwards.
+///
+/// Failing to record it costs a replay of a transcode later, so a marker that
+/// cannot be rewritten is not worth refusing to play over.
+async fn mark_used(directory: &Path) {
+    let _ = tokio::fs::write(directory.join(COMPLETE_MARKER), b"ok").await;
 }
 
 /// Why a session could not be started.
@@ -216,7 +259,11 @@ impl SessionRegistry {
     ///
     /// Returns [`SessionError`] when the directory cannot be made, ffmpeg
     /// cannot be spawned, or ffmpeg rejects the input immediately.
-    pub async fn start(&self, spec: SessionSpec) -> Result<String, SessionError> {
+    pub async fn start(
+        &self,
+        spec: SessionSpec,
+        device: Option<&str>,
+    ) -> Result<String, SessionError> {
         let id = spec.session_id();
 
         {
@@ -224,6 +271,14 @@ impl SessionRegistry {
 
             if let Some(existing) = sessions.get_mut(&id) {
                 existing.touch();
+
+                let directory = existing.directory.clone();
+
+                drop(sessions);
+
+                if let Some(device) = device {
+                    record_device(&directory, device).await;
+                }
 
                 return Ok(id);
             }
@@ -237,7 +292,13 @@ impl SessionRegistry {
             .await
             .map_err(SessionError::Directory)?;
 
+        if let Some(device) = device {
+            record_device(&directory, device).await;
+        }
+
         if is_already_complete(&directory).await {
+            mark_used(&directory).await;
+
             let mut sessions = self.sessions.lock().await;
 
             sessions.insert(
@@ -372,6 +433,17 @@ impl SessionRegistry {
         }
 
         stale.len()
+    }
+
+    /// The ids of every session that exists right now.
+    ///
+    /// A session id is also the name of its directory, so this is what a sweep
+    /// needs to know which directories are being watched. Read from the
+    /// registry rather than from the disk, because only the registry can tell
+    /// a finished transcode somebody is playing from one nobody has opened in
+    /// a week.
+    pub async fn live_ids(&self) -> std::collections::HashSet<String> {
+        self.sessions.lock().await.keys().cloned().collect()
     }
 
     /// Stops every session.

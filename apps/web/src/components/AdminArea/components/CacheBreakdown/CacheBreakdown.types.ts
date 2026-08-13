@@ -14,6 +14,11 @@ type CacheBreakdownProps = {
    * behind by the ones that are not can be told apart from them.
    */
   liveSessions: number;
+  /**
+   * How much the media itself takes, which is the one figure here that is not
+   * Flux's own doing.
+   */
+  library: { bytes: number; itemCount: number } | null;
 };
 
 export type { CacheBreakdownProps };

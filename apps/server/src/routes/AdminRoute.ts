@@ -40,6 +40,7 @@ const AdminOverviewSchema = z
     library: z.object({
       itemCount: z.number().int().nonnegative(),
       libraryCount: z.number().int().nonnegative(),
+      bytes: z.number().nonnegative().default(0),
     }),
     artwork: z
       .object({
@@ -51,6 +52,11 @@ const AdminOverviewSchema = z
       .default(null),
   })
   .openapi('AdminOverview');
+
+const ArtefactUseSchema = z.object({
+  count: z.number().int().nonnegative(),
+  bytes: z.number().int().nonnegative(),
+});
 
 const AdminSettingsRequestSchema = z
   .object({
@@ -481,9 +487,55 @@ const adminRemoveJobTriggerRoute = createRoute({
   },
 });
 
+const AdminStorageSchema = z
+  .object({
+    cache: z
+      .object({
+        previews: ArtefactUseSchema,
+        trickplay: ArtefactUseSchema,
+        sessions: ArtefactUseSchema,
+        atMs: z.number(),
+      })
+      .nullable(),
+    artwork: z
+      .object({
+        count: z.number().int().nonnegative(),
+        bytes: z.number().int().nonnegative(),
+        atMs: z.number().int().nonnegative(),
+      })
+      .nullable(),
+    libraryBytes: z.number().nonnegative(),
+  })
+  .openapi('AdminStorage');
+
+/**
+ * Counting the caches on demand.
+ *
+ * A `post` rather than a `get` because it is not a reading, it is asking two
+ * services to go and walk their disks. Everything that merely draws the page
+ * keeps reading the figures they took on their own timers.
+ */
+const adminMeasureStorageRoute = createRoute({
+  method: 'post',
+  path: '/api/admin/storage/measure',
+  tags: ['Admin'],
+  summary: 'Count what the caches are holding, now',
+  responses: {
+    200: {
+      description: 'What the caches hold',
+      content: { 'application/json': { schema: AdminStorageSchema } },
+    },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+});
+
 export {
   searchCatalogueRoute,
   adminOverviewRoute,
+  adminMeasureStorageRoute,
   adminSettingsRoute,
   adminSessionsRoute,
   adminStopSessionRoute,

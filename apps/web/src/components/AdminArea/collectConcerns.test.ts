@@ -15,7 +15,7 @@ const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview 
     hardwareAccels: [],
     rejectedEncoders: [],
   },
-  library: { itemCount: 10, libraryCount: 1 },
+  library: { itemCount: 10, libraryCount: 1, bytes: 0 },
   artwork: null,
   ...overrides,
 });
