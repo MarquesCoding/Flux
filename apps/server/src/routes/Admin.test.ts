@@ -1024,3 +1024,134 @@ describe('searching the catalogue from the admin page', () => {
     expect(await response.json()).toEqual({ matches: [] });
   });
 });
+
+describe('what the caches are holding', () => {
+  const COUNT = { count: 3, bytes: 4096, atMs: 1 };
+
+  const withStorage = (
+    measureStorage?: () => Promise<{
+      cache: {
+        previews: typeof COUNT;
+        trickplay: typeof COUNT;
+        sessions: typeof COUNT;
+        atMs: number;
+      } | null;
+      artwork: { count: number; bytes: number; atMs: number } | null;
+      libraryBytes: number;
+    }>,
+  ) => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    const app = createApp({
+      auth,
+      settings,
+      permissions,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService({ libraries: [LIBRARY], media: [] }),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      subtitles: createMemorySubtitleService({}),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+      ...(measureStorage === undefined ? {} : { measureStorage }),
+    });
+
+    return { app, store, permissions };
+  };
+
+  it('counts what is held, when the server can measure it', async () => {
+    const context = withStorage(() =>
+      Promise.resolve({
+        cache: { previews: COUNT, trickplay: COUNT, sessions: COUNT, atMs: 1 },
+        artwork: { count: 10, bytes: 2048, atMs: 1 },
+        libraryBytes: 1024,
+      }),
+    );
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/storage/measure`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ libraryBytes: 1024, artwork: { count: 10 } });
+  });
+
+  it('answers with nothing measured rather than failing, on a server that cannot', async () => {
+    const context = withStorage();
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/storage/measure`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ cache: null, artwork: null, libraryBytes: 0 });
+  });
+
+  it('will not let an ordinary account ask', async () => {
+    const context = withStorage();
+    const cookie = await signedIn(context.app);
+
+    const response = await context.app.request(`${BASE}/api/admin/storage/measure`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(403);
+  });
+});
+
+describe('changing one setting without disturbing the others', () => {
+  it('changes the catalogue key alone', async () => {
+    const { app, store, permissions, settings } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ catalogueApiKey: 'a-key' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect((await settings.read()).catalogueApiKey).toBe('a-key');
+  });
+
+  it('changes the hardware backend alone', async () => {
+    const { app, store, permissions, settings } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ hardwareAccel: 'nvenc' }),
+    });
+
+    expect((await settings.read()).hardwareAccel).toBe('nvenc');
+  });
+
+  it('leaves a setting alone when a change does not mention it', async () => {
+    const { app, store, permissions, settings } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ hardwareAccel: 'nvenc' }),
+    });
+
+    await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ catalogueApiKey: 'a-key' }),
+    });
+
+    const current = await settings.read();
+
+    expect(current).toMatchObject({ hardwareAccel: 'nvenc', catalogueApiKey: 'a-key' });
+  });
+});

@@ -68,7 +68,7 @@ const MediaCard = ({
         {imageUrl === undefined ? (
           <span
             aria-hidden
-            className="absolute -bottom-[0.15em] -left-[0.06em] text-[9rem] font-semibold leading-none tracking-tighter text-white/[0.07]"
+            className="absolute bottom-[-0.15em] left-[-0.06em] text-[9rem] font-semibold leading-none tracking-tighter text-white/[0.07]"
           >
             {title.slice(0, 1).toUpperCase()}
           </span>
@@ -81,7 +81,7 @@ const MediaCard = ({
           />
         )}
 
-        <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-70 transition-opacity group-hover:opacity-90" />
+        <span className="absolute inset-0 bg-linear-to-t from-black/80 via-black/10 to-transparent opacity-70 transition-opacity group-hover:opacity-90" />
 
         <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <span className="flux-glass flex size-14 items-center justify-center rounded-full">

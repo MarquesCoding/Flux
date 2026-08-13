@@ -168,3 +168,56 @@ describe('TextField', () => {
     expect(screen.getByLabelText('Search')).toBeInTheDocument();
   });
 });
+
+describe('the sizes a field comes in', () => {
+  const heightOf = (size: 'sm' | 'md' | 'lg' | 'xl') => {
+    const { container } = render(
+      <TextField label="Search" size={size} value="" onValueChange={vi.fn()} />,
+    );
+
+    return container.querySelector('input')?.className ?? '';
+  };
+
+  it('is the same height as a small button', () => {
+    expect(heightOf('sm')).toContain('h-7');
+  });
+
+  it('is the same height as an ordinary button by default', () => {
+    expect(heightOf('md')).toContain('h-9');
+  });
+
+  it('is the same height as a large button', () => {
+    expect(heightOf('lg')).toContain('h-10');
+  });
+
+  it('is the same height as the largest button', () => {
+    expect(heightOf('xl')).toContain('h-12');
+  });
+
+  it('rounds itself fully when asked to be a pill', () => {
+    const { container } = render(
+      <TextField label="Search" isPill value="" onValueChange={vi.fn()} />,
+    );
+
+    expect(container.querySelector('input')?.className).toContain('rounded-full');
+  });
+
+  it('carries no shape at all when it is bare, since something else owns that', () => {
+    const { container } = render(
+      <TextField label="Search" isBare value="" onValueChange={vi.fn()} />,
+    );
+
+    const className = container.querySelector('input')?.className ?? '';
+
+    expect(className).not.toContain('rounded-full');
+    expect(className).not.toContain('rounded-xl');
+  });
+
+  it('fills in what a browser should offer, when it was told', () => {
+    const { container } = render(
+      <TextField label="Email" autoComplete="email" value="" onValueChange={vi.fn()} />,
+    );
+
+    expect(container.querySelector('input')).toHaveAttribute('autocomplete', 'email');
+  });
+});
