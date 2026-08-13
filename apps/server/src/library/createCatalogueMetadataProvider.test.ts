@@ -3,6 +3,10 @@ import {
   createCatalogueMetadataProvider,
   readYear,
   imageUrl,
+  normalizeTitle,
+  significantWords,
+  shareASignificantWord,
+  similarity,
 } from './createCatalogueMetadataProvider';
 import type { Fetcher } from './createCatalogueMetadataProvider';
 import type { MediaFacts } from './MetadataProvider';
@@ -766,5 +770,184 @@ describe('choosing between what a catalogue answers with', () => {
     );
 
     expect(found?.externalId).toBe('2');
+  });
+});
+
+/**
+ * Real titles, one or two per script, for asserting that none of them is
+ * quietly deleted and that no two of them are mistaken for each other.
+ */
+const CORPUS = [
+  { script: 'Japanese', title: '君の名は' },
+  { script: 'Japanese', title: '千と千尋の神隠し' },
+  { script: 'Korean', title: '기생충' },
+  { script: 'Chinese', title: '霸王别姬' },
+  { script: 'Cyrillic', title: 'Брат' },
+  { script: 'Cyrillic', title: 'Иди и смотри' },
+  { script: 'Greek', title: 'Ελλάδα' },
+  { script: 'Arabic', title: 'الرسالة' },
+  { script: 'accented Latin', title: 'Amélie' },
+  { script: 'Latin', title: 'Arrival' },
+] as const;
+
+describe('normalizeTitle', () => {
+  for (const { script, title } of CORPUS) {
+    it(`keeps a ${script} title rather than deleting it`, () => {
+      expect(normalizeTitle(title)).not.toBe('');
+    });
+  }
+
+  it('lowercases a script that has cases', () => {
+    expect(normalizeTitle('Брат')).toBe('брат');
+  });
+
+  it('reads two encodings of one accented title as one title', () => {
+    expect(normalizeTitle('Amélie')).toBe(normalizeTitle('Ame\u0301lie'));
+  });
+
+  it('reads a full-width title as the ordinary one it stands for', () => {
+    expect(normalizeTitle('Ｔｅｄ')).toBe('ted');
+  });
+
+  it('still strips the punctuation it was written to strip', () => {
+    expect(normalizeTitle("Marvel's Daredevil!")).toBe('marvel s daredevil');
+  });
+});
+
+describe('telling two titles apart, whatever they are written in', () => {
+  it('never reads two different titles as the same one', () => {
+    const collisions = CORPUS.flatMap(({ title }, at) =>
+      CORPUS.slice(at + 1)
+        .filter((other) => normalizeTitle(other.title) === normalizeTitle(title))
+        .map((other) => `${title} ~ ${other.title}`),
+    );
+
+    expect(collisions).toEqual([]);
+  });
+
+  it('never scores two different titles a perfect match', () => {
+    const perfect = CORPUS.flatMap(({ title }, at) =>
+      CORPUS.slice(at + 1)
+        .filter((other) => similarity(title, other.title) === 1)
+        .map((other) => `${title} ~ ${other.title}`),
+    );
+
+    expect(perfect).toEqual([]);
+  });
+
+  it('still scores a title against itself a perfect match', () => {
+    for (const { title } of CORPUS) {
+      expect(similarity(title, title)).toBe(1);
+    }
+  });
+
+  it('scores two titles it cannot read at all as nothing alike, not identical', () => {
+    expect(similarity('!!!', '???')).toBe(0);
+  });
+
+  it('keeps Ted apart from Ted Lasso, which is what the exact test is for', () => {
+    expect(normalizeTitle('Ted')).not.toBe(normalizeTitle('Ted Lasso'));
+    expect(similarity('Ted', 'Ted Lasso')).toBeLessThan(1);
+  });
+});
+
+describe('significantWords', () => {
+  it('reads a word out of a script that writes with spaces', () => {
+    expect(significantWords("Marvel's Daredevil")).toEqual(new Set(['marvel', 'daredevil']));
+  });
+
+  it('leaves out a short word, which agrees by accident too often', () => {
+    expect(significantWords('War of the Worlds').has('the')).toBe(false);
+  });
+
+  it('reads words out of a script that does not write with spaces', () => {
+    expect(significantWords('千と千尋の神隠し').size).toBeGreaterThan(0);
+  });
+
+  it('counts a two-character word where two characters is a word', () => {
+    expect(significantWords('霸王别姬')).toEqual(new Set(['霸王']));
+  });
+});
+
+describe('shareASignificantWord', () => {
+  it('agrees when a release and a catalogue word a title differently', () => {
+    expect(shareASignificantWord("Marvel's Daredevil", 'Daredevil')).toBe(true);
+  });
+
+  it('disagrees about two unrelated titles', () => {
+    expect(shareASignificantWord('Arrival', 'Dune')).toBe(false);
+  });
+
+  it('lets a title it cannot read through rather than throwing the match away', () => {
+    expect(shareASignificantWord('君の名は', 'Your Name')).toBe(true);
+  });
+
+  it('agrees about one Cyrillic title said twice', () => {
+    expect(shareASignificantWord('Иди и смотри', 'Иди и смотри')).toBe(true);
+  });
+});
+
+describe('matching a library that is not named in Latin', () => {
+  it('does not hand the first foreign candidate the match as though it were exact', async () => {
+    const { instance } = provider({
+      '/search/movie': {
+        results: [
+          { id: 1, title: 'Брат', release_date: '1997-12-12' },
+          { id: 2, title: '君の名は', release_date: '2016-08-26' },
+        ],
+      },
+      '/movie/2': { id: 2, title: '君の名は', release_date: '2016-08-26' },
+    });
+
+    const found = await instance.describe(facts('/media/君の名は (2016).mkv'));
+
+    expect(found?.externalId).toBe('2');
+  });
+
+  it('keeps an episode whose title is not written in Latin', async () => {
+    const { instance } = provider({
+      '/search/tv': {
+        results: [{ id: 5, name: '進撃の巨人', first_air_date: '2013-04-07' }],
+      },
+      '/tv/5': { id: 5, name: '進撃の巨人' },
+      '/tv/5/season/1/episode/1': { id: 50, name: '二千年後の君へ' },
+    });
+
+    const found = await instance.describe(
+      facts('/media/進撃の巨人/S01E01.mkv', {
+        seriesTitle: '進撃の巨人',
+        seriesYear: null,
+        seriesFolder: '/media/進撃の巨人',
+        seasonNumber: 1,
+        episodeNumber: 1,
+        episodeTitle: '二千年後の君へ',
+      }),
+    );
+
+    expect(found).not.toBeNull();
+    expect(found?.externalId).toBe('5');
+  });
+
+  it('still throws away an episode that plainly belongs to something else', async () => {
+    const { instance } = provider({
+      '/search/tv': {
+        results: [{ id: 5, name: 'Some Other Programme', first_air_date: '2013-04-07' }],
+      },
+      '/tv/5': { id: 5, name: 'Some Other Programme' },
+      '/tv/5/season/1/episode/1': { id: 50, name: 'Completely Different Episode' },
+    });
+
+    const found = await instance.describe(
+      facts('/media/Some Show/S01E01.mkv', {
+        seriesTitle: 'Some Show',
+        seriesYear: null,
+        seriesFolder: '/media/Some Show',
+        seasonNumber: 1,
+        episodeNumber: 1,
+        episodeTitle: 'Nothing Alike Whatsoever',
+      }),
+    );
+
+    expect(found).toBeNull();
   });
 });
