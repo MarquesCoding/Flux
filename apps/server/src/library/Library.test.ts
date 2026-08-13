@@ -33,7 +33,7 @@ const detail = (overrides: Partial<MediaDetail> = {}): MediaDetail => ({
   audioStreams: [{ index: 1, codec: 'truehd', channels: 8, isDefault: true, isAtmos: true }],
   subtitleStreams: [],
   addedAt: '2026-08-10T00:00:00.000Z',
-  metadata: { hasPoster: false, hasBackdrop: false },
+  metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false },
   ...overrides,
 });
 
@@ -53,6 +53,7 @@ const episodeOf = ({
     metadata: {
       hasPoster: false,
       hasBackdrop: false,
+      hasLogo: false,
       seriesTitle: 'A Sign of Affection',
       seasonNumber,
       episodeNumber,
@@ -582,6 +583,45 @@ describe('library routes', () => {
     expect(response.headers.get('cache-control')).toContain('immutable');
   });
 
+  it('serves the lettering a title is written in, the same way as its poster', async () => {
+    const { store } = createMemoryAuth();
+
+    const app = signedInApp(
+      createApp({
+        ...createMemoryAuth(),
+        countUsers: () => Promise.resolve(1),
+        promoteToAdmin: () => Promise.resolve(),
+        library: createMemoryLibraryService({
+          libraries: [
+            {
+              id: LIBRARY_ID,
+              name: 'Films',
+              kind: 'movies',
+              path: '/media',
+              itemCount: 1,
+              lastScannedAt: null,
+              defaultAudioLanguage: null,
+              filesAtOnce: null,
+            },
+          ],
+          media: [detail()],
+        }),
+        playback: createMemoryPlaybackService(),
+        subtitles: createMemorySubtitleService(),
+        segments: createMemorySegmentService(),
+        progress: createMemoryWatchProgressService(),
+        favourites: createMemoryFavouriteService(),
+        readImage: () => Promise.resolve({ body: new ArrayBuffer(8), contentType: 'image/png' }),
+      }),
+      { store },
+    );
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/image/logo`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/png');
+  });
+
   it('reports no artwork rather than serving a blank image', async () => {
     const { app } = build([detail()]);
 
@@ -644,11 +684,13 @@ describe('narrowing a library down', () => {
 
   it('offers only what carries the genre asked for', async () => {
     const { app } = build([
-      detail({ metadata: { hasPoster: false, hasBackdrop: false, genres: ['Drama'] } }),
+      detail({
+        metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false, genres: ['Drama'] },
+      }),
       detail({
         id: '11111111-1111-4111-8111-111111111111',
         title: 'Heat',
-        metadata: { hasPoster: false, hasBackdrop: false, genres: ['Crime'] },
+        metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false, genres: ['Crime'] },
       }),
     ]);
 

@@ -16,6 +16,7 @@ const item = (id: string, title: string): MediaSummary => ({
   addedAt: '2026-08-10T00:00:00.000Z',
   hasPoster: true,
   hasBackdrop: true,
+  hasLogo: false,
 });
 
 const items = [item('a', 'Arrival'), item('b', 'Dune')];
@@ -49,5 +50,27 @@ describe('MediaGrid', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(MediaGrid.displayName).toBe('MediaGrid');
+  });
+
+  it('lays the cards out at the size it is given', () => {
+    const { container } = render(
+      <MediaGrid items={items} size="small" onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    expect(container.querySelector('ul')).toHaveClass('xl:grid-cols-6');
+  });
+
+  it('settles on the middle size when nobody has chosen one', () => {
+    const { container } = render(<MediaGrid items={items} onPlay={vi.fn()} onInspect={vi.fn()} />);
+
+    expect(container.querySelector('ul')).toHaveClass('xl:grid-cols-4');
+  });
+
+  it('shows fewer, larger cards when asked for large ones', () => {
+    const { container } = render(
+      <MediaGrid items={items} size="large" onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    expect(container.querySelector('ul')).toHaveClass('xl:grid-cols-3');
   });
 });

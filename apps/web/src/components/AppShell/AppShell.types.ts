@@ -50,18 +50,6 @@ type AppShellProps = {
    * drawn at all rather than drawn and refusing.
    */
   onSurprise?: () => void;
-  /**
-   * Every genre the library holds, for the footer to offer.
-   *
-   * Empty until the library has been read, which is also what a library with
-   * nothing named in it looks like — in both cases the footer simply has no
-   * genres to list.
-   */
-  genres?: string[];
-  /**
-   * Opens the search page narrowed to one genre.
-   */
-  onGenre?: (genre: string) => void;
 };
 
 export type { AppShellProps, ShellSection };

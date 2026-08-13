@@ -19,7 +19,6 @@ import {
 } from '@tabler/icons-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { NavDock } from '@FluxUI/NavDock';
-import { SiteFooter } from '@FluxWeb/components/SiteFooter/SiteFooter';
 import { MoodBackground } from '@FluxUI/MoodBackground';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { BROWSE_SECTIONS } from './AppShell.types';
@@ -94,8 +93,6 @@ const AppShell = ({
   isAdministrator = false,
   avatar,
   onSurprise,
-  genres = [],
-  onGenre,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion();
 
@@ -213,7 +210,7 @@ const AppShell = ({
         variants={staggerVariants}
         initial="hidden"
         animate="shown"
-        className={section === 'admin' ? 'min-h-screen pb-28' : 'min-h-screen'}
+        className="min-h-screen pb-28"
       >
         <motion.div
           variants={revealVariants(prefersReducedMotion)}
@@ -222,9 +219,6 @@ const AppShell = ({
           {children}
         </motion.div>
 
-        {section === 'admin' || onGenre === undefined ? null : (
-          <SiteFooter genres={genres} onSectionChange={onSectionChange} onGenre={onGenre} />
-        )}
       </motion.main>
     </div>
   );

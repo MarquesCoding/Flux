@@ -356,6 +356,38 @@ const chooseLibrary = async (
   await actor.click(await screen.findByRole('menuitem', { name: action }));
 };
 
+/**
+ * Which family each section is folded into.
+ *
+ * Overview and Settings stand on their own, so they are a press. The rest
+ * live behind the family that holds them, which is a press to open and a
+ * press to choose.
+ */
+const FAMILY: Record<string, string | null> = {
+  Overview: null,
+  Settings: null,
+  Sessions: 'Activity',
+  Jobs: 'Activity',
+  Libraries: 'Content',
+  Media: 'Content',
+  Accounts: 'People',
+  Roles: 'People',
+};
+
+const goTo = async (actor: ReturnType<typeof userEvent.setup>, section: string) => {
+  const bar = await screen.findByRole('navigation', { name: 'What to look at' });
+  const family = FAMILY[section] ?? null;
+
+  if (family === null) {
+    await actor.click(within(bar).getByRole('button', { name: section }));
+
+    return;
+  }
+
+  await actor.click(within(bar).getByRole('button', { name: family }));
+  await actor.click(await screen.findByRole('menuitemradio', { name: section }));
+};
+
 describe('AdminArea', () => {
   it('says whether the media service is up', async () => {
     render(<AdminArea />);
@@ -453,7 +485,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await goTo(actor, 'Jobs');
 
     expect(screen.getByText('Parasite (2019).mkv')).toBeInTheDocument();
   });
@@ -482,7 +514,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea onPanelChange={onPanelChange} />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await goTo(actor, 'Jobs');
 
     expect(onPanelChange).toHaveBeenCalledWith('jobs');
   });
@@ -492,7 +524,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await goTo(actor, 'Jobs');
 
     expect(screen.getAllByText('no such encoder').length).toBeGreaterThan(0);
   });
@@ -502,7 +534,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await goTo(actor, 'Jobs');
 
     expect(await screen.findByText('Scan for changes')).toBeInTheDocument();
     expect(screen.getByText('Reset and rebuild')).toBeInTheDocument();
@@ -528,7 +560,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Scan for changes', /Run now/);
 
     await waitFor(() => {
@@ -552,7 +584,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Reset and rebuild', /Run now/);
 
     expect(await screen.findByRole('heading', { name: 'Reset and rebuild?' })).toBeInTheDocument();
@@ -568,7 +600,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Scan for changes', /Edit schedule/);
 
     const schedule = await screen.findByRole('dialog');
@@ -582,7 +614,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Scan for changes', /Edit schedule/);
     await actor.click(await screen.findByRole('button', { name: 'Add trigger' }));
     await actor.click(await screen.findByRole('button', { name: 'Add' }));
@@ -605,7 +637,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Scan for changes', /Edit schedule/);
     await actor.click(await screen.findByRole('button', { name: 'Add trigger' }));
     await actor.click(await screen.findByRole('button', { name: 'Add' }));
@@ -626,7 +658,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Jobs' }));
+    await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Scan for changes', /Edit schedule/);
     await actor.click(
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Done' }),
@@ -642,7 +674,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Settings' }));
+    await goTo(actor, 'Settings');
     await actor.type(screen.getByLabelText('Catalogue key'), 'a-key');
     await actor.click(screen.getByRole('button', { name: /Save/ }));
 
@@ -656,7 +688,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Settings' }));
+    await goTo(actor, 'Settings');
 
     expect(await screen.findByText('Signing in')).toBeInTheDocument();
     expect(screen.queryByText('marques@flux.local')).not.toBeInTheDocument();
@@ -747,7 +779,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
 
     expect(screen.getByText('Movies')).toBeInTheDocument();
     expect(screen.getByText(/\/media\/movies/)).toBeInTheDocument();
@@ -758,7 +790,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await chooseLibrary(actor, 'Movies', /Library settings/);
 
     expect(await screen.findByRole('dialog', { name: 'Movies settings' })).toBeInTheDocument();
@@ -770,7 +802,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Add library' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Add a library' });
@@ -791,7 +823,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await chooseLibrary(actor, 'Movies', /Scan for changes/);
 
     await waitFor(() => {
@@ -806,7 +838,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Scan all libraries' }));
 
     await waitFor(() => {
@@ -822,7 +854,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }));
 
     expect(
@@ -839,7 +871,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }));
 
     const dialog = await screen.findByRole('dialog', {
@@ -860,7 +892,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }));
 
     const dialog = await screen.findByRole('dialog', {
@@ -890,7 +922,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await chooseLibrary(actor, 'Movies', /Scan for changes/);
 
     expect(await screen.findByText('Reading')).toBeInTheDocument();
@@ -937,7 +969,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await chooseLibrary(actor, 'Movies', /Scan for changes/);
 
     expect(await screen.findByText('Reading')).toBeInTheDocument();
@@ -990,7 +1022,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await chooseLibrary(actor, 'Movies', /Scan for changes/);
 
     expect(await screen.findByText('Reading')).toBeInTheDocument();
@@ -1025,7 +1057,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Scan all libraries' }));
 
     await waitFor(() => {
@@ -1044,7 +1076,7 @@ describe('AdminArea', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
+    await goTo(actor, 'Libraries');
 
     expect(await screen.findByText(/No libraries yet/)).toBeInTheDocument();
   });
@@ -1133,7 +1165,7 @@ describe('steering somebody else’s stream', () => {
 
     render(<AdminArea />);
 
-    await actor.click(await screen.findByRole('tab', { name: 'Sessions' }));
+    await goTo(actor, 'Sessions');
 
     return actor;
   };

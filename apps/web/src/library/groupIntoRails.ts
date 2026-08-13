@@ -11,11 +11,11 @@ type Rail = {
   title: string;
   items: MediaSummary[];
   /**
-   * An episode of the series this row is a season of, for a row whose heading
-   * names a programme rather than a mood. A viewer who reads "A Sign of
-   * Affection · Season 1" and presses it means the programme, so the heading
-   * has to know which one it is talking about. Absent on rows like
-   * `Continue watching`, which are about no one series.
+   * An episode of the series this row is of, for a row whose heading names a
+   * programme rather than a mood. A viewer who reads "A Sign of Affection" and
+   * presses it means the programme, so the heading has to know which one it is
+   * talking about. Absent on rows like `Continue watching`, which are about no
+   * one series.
    */
   showOf?: MediaSummary;
 };
@@ -24,6 +24,17 @@ type Rail = {
  * How many items a row shows before it is just a list again.
  */
 const RAIL_LIMIT = 24;
+
+/**
+ * How many episodes a programme's own row shows.
+ *
+ * Higher than the rest, because this row is a whole programme across every
+ * season it has rather than a handful of picks, and a long-running one cut off
+ * two dozen in would stop partway through its second year. Still a limit: past
+ * this the row is a chore to scroll and the programme's own page is the place
+ * to be.
+ */
+const SERIES_RAIL_LIMIT = 60;
 
 /**
  * The fewest episodes worth a row of their own.
@@ -63,19 +74,6 @@ const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
   const episode = (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0);
 
   return episode === 0 ? left.title.localeCompare(right.title) : episode;
-};
-
-/**
- * Names a season the way someone would say it out loud.
- */
-const describeSeason = (seriesTitle: string, seasonNumber: number | null | undefined): string => {
-  if (seasonNumber === null || seasonNumber === undefined) {
-    return seriesTitle;
-  }
-
-  return seasonNumber === 0
-    ? `${seriesTitle} · Specials`
-    : `${seriesTitle} · Season ${seasonNumber}`;
 };
 
 /**
@@ -147,7 +145,7 @@ const groupIntoRails = (
     rails.push({ id: 'recent', title: 'Recently added', items: recent });
   }
 
-  const seasons = new Map<string, MediaSummary[]>();
+  const series = new Map<string, MediaSummary[]>();
   const films: MediaSummary[] = [];
 
   for (const media of items) {
@@ -157,28 +155,29 @@ const groupIntoRails = (
       continue;
     }
 
-    const key = `${media.seriesTitle.toLowerCase()}:${(media.seasonNumber ?? 0).toString()}`;
+    const key = media.seriesTitle.toLowerCase();
 
-    seasons.set(key, [...(seasons.get(key) ?? []), media]);
+    series.set(key, [...(series.get(key) ?? []), media]);
   }
 
-  for (const [key, episodes] of seasons) {
+  for (const [key, episodes] of series) {
     if (episodes.length < MIN_SERIES_ITEMS) {
       films.push(...episodes);
 
       continue;
     }
 
-    const first = episodes[0];
+    const inOrder = [...episodes].sort(inBroadcastOrder);
+    const first = inOrder[0];
 
     if (first?.seriesTitle === null || first?.seriesTitle === undefined) {
       continue;
     }
 
     rails.push({
-      id: `season:${key}`,
-      title: describeSeason(first.seriesTitle, first.seasonNumber),
-      items: [...episodes].sort(inBroadcastOrder).slice(0, RAIL_LIMIT),
+      id: `series:${key}`,
+      title: first.seriesTitle,
+      items: inOrder.slice(0, SERIES_RAIL_LIMIT),
       showOf: first,
     });
   }
@@ -196,11 +195,4 @@ const groupIntoRails = (
 
 export type { Rail };
 
-export {
-  groupIntoRails,
-  describeSeason,
-  inBroadcastOrder,
-  RAIL_LIMIT,
-  MIN_SERIES_ITEMS,
-  RECENT_DAYS,
-};
+export { groupIntoRails, inBroadcastOrder, RAIL_LIMIT, MIN_SERIES_ITEMS, RECENT_DAYS };

@@ -127,6 +127,57 @@ const revealTransition = (
   return weight === 'heavy' ? heavySpring : spring;
 };
 
+/**
+ * How long between one card of a list arriving and the next.
+ */
+const STAGGER_STEP = 0.045;
+
+/**
+ * The longest anything waits its turn.
+ *
+ * A row holds a whole programme and a grid holds a whole library, so index
+ * times step alone would have the hundredth card arriving a quarter of a
+ * minute after the first — long after somebody has scrolled to where it should
+ * be and found a gap. Past this point the rest arrive together, which nobody
+ * notices because by then the eye has already been led.
+ */
+const STAGGER_CEILING = 0.42;
+
+/**
+ * How long the card at a given place waits before it arrives.
+ */
+const staggerDelay = (index: number): number => Math.min(index * STAGGER_STEP, STAGGER_CEILING);
+
+/**
+ * A group whose children arrive in order, each on a delay of its own.
+ *
+ * Nothing here moves. It exists to hand the word `shown` down to the cards
+ * inside it, which is how a list of any length arrives as one gesture without
+ * every card having to be told when its own turn is.
+ */
+const groupVariants: Variants = { hidden: {}, shown: {}, gone: {} };
+
+/**
+ * One card of a list, arriving after the ones before it.
+ *
+ * The delay comes from the card's own place in the list rather than from the
+ * group counting its children, because a group's stagger has no ceiling: it
+ * multiplies right to the end of a library. Told its index through `custom`.
+ */
+const revealItemVariants = (prefersReducedMotion: boolean | null): Variants => ({
+  hidden: prefersReducedMotion === true ? { opacity: 0 } : { opacity: 0, y: RISE },
+  shown: (index: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { ...revealTransition(prefersReducedMotion), delay: staggerDelay(index) },
+  }),
+  gone: (index: number) => ({
+    opacity: 0,
+    y: prefersReducedMotion === true ? 0 : -RISE,
+    transition: { ...stillTransition, delay: staggerDelay(index) / 2 },
+  }),
+});
+
 export {
   spring,
   heavySpring,
@@ -136,7 +187,12 @@ export {
   riseVariants,
   fadeVariants,
   staggerVariants,
+  groupVariants,
+  revealItemVariants,
   revealVariants,
   revealTransition,
+  staggerDelay,
   RISE,
+  STAGGER_STEP,
+  STAGGER_CEILING,
 };

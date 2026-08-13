@@ -212,13 +212,31 @@ body {
   }
 }
 
+.flux-dot-fill {
+  animation: flux-dot-fill linear forwards;
+}
+
+@keyframes flux-dot-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .flux-mood-fade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 0%, var(--color-surface) 72%);
+  background: linear-gradient(180deg, transparent 0%, transparent 38%, var(--color-surface) 96%);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .flux-dot-fill {
+    animation: none;
+    transform: scaleX(1);
+  }
+
   .flux-bloom {
     transition: none;
   }

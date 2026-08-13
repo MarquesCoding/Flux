@@ -6,6 +6,7 @@ import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
 import { Spinner } from '@FluxUI/Spinner';
 import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
 import { Rail } from '@FluxUI/Rail';
+import { RevealItem } from '@FluxUI/RevealItem';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { groupIntoRails } from '@FluxWeb/library/groupIntoRails';
 import { pickFeatured } from '@FluxWeb/library/pickFeatured';
@@ -172,6 +173,7 @@ const LibraryBrowser = ({
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
+      exit="gone"
       className="flex flex-col gap-8"
     >
       {hasHero && items.length > 0 ? (
@@ -237,8 +239,12 @@ const LibraryBrowser = ({
                       },
                     })}
               >
-                {rail.items.map((media) => (
-                  <li key={media.id} className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80">
+                {rail.items.map((media, at) => (
+                  <RevealItem
+                    key={media.id}
+                    index={at}
+                    className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80"
+                  >
                     <RailCard
                       media={media}
                       {...(progress.has(media.id)
@@ -271,7 +277,7 @@ const LibraryBrowser = ({
                       {...(isKept === undefined ? {} : { isKept: isKept(media.id) })}
                       {...(onToggleKept === undefined ? {} : { onToggleKept })}
                     />
-                  </li>
+                  </RevealItem>
                 ))}
               </Rail>
             ))}

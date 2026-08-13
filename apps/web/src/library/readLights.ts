@@ -47,6 +47,21 @@ const ZONES = [
  * for light, the colour of a region is what it looks like from across a room,
  * and that is its average.
  */
+/**
+ * How bright the strongest channel of a light must end up.
+ *
+ * A picture is read for its colour, not its exposure, and plenty of what a
+ * library holds is dim on purpose — a night scene, an unlit room, anything
+ * shot dark. Read literally, those give a wash of near black, which on a black
+ * page is a wash of nothing: the effect appears broken exactly where the
+ * artwork is most atmospheric.
+ *
+ * Every channel is scaled by the same factor rather than raised on its own, so
+ * the hue and the relative saturation survive untouched. What changes is only
+ * how much of it there is to see.
+ */
+const MIN_PEAK = 110;
+
 const readLights = (source: CanvasImageSource): MoodLight[] => {
   try {
     const canvas = document.createElement('canvas');
@@ -96,9 +111,16 @@ const readLights = (source: CanvasImageSource): MoodLight[] => {
         return Math.max(0, Math.min(255, Math.round(average + (own - average) * SPREAD)));
       };
 
+      const read = [lift(red), lift(green), lift(blue)];
+      const peak = Math.max(...read);
+      const scale = peak === 0 || peak >= MIN_PEAK ? 1 : MIN_PEAK / peak;
+      const [litRed = 0, litGreen = 0, litBlue = 0] = read.map((channel) =>
+        Math.min(255, Math.round(channel * scale)),
+      );
+
       lights.push({
         at: zone.at,
-        color: `rgb(${lift(red).toString()} ${lift(green).toString()} ${lift(blue).toString()})`,
+        color: `rgb(${litRed.toString()} ${litGreen.toString()} ${litBlue.toString()})`,
       });
     }
 

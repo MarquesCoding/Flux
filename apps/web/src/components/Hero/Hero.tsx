@@ -5,6 +5,7 @@ import { Button } from '@FluxUI/Button';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { cn } from '@FluxUI/cn';
+import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import { PageDots } from '@FluxUI/PageDots';
@@ -50,6 +51,60 @@ const PREVIEW_SETTLE_MILLISECONDS = 2500;
  */
 const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
+const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
+
+/**
+ * How much of the frame the mark may take.
+ *
+ * It is the title rather than a badge beside it: where a programme has
+ * lettering of its own, that lettering is its name and setting the name again
+ * underneath in the interface's typeface says the same thing twice in two
+ * voices. It still stands in a heading and still carries the name as its
+ * alternative text, so anything reading the page rather than looking at it
+ * finds the title exactly where it expects to.
+ *
+ * Sized to sit where a heading sits rather than to fill the card. A mark given
+ * the whole frame reads as a splash screen; this reads as a title.
+ *
+ * A logo is artwork with its own proportions — some are a word set wide, some
+ * are a word stacked three lines deep inside a device — so it is given a box
+ * rather than a size and told to fit whatever shape it turns out to be, capped
+ * in viewport height as well as width so a tall one cannot run down the
+ * picture.
+ *
+ * Shadowed, because a frame can be pale where the wash is thin, and white
+ * lettering on a pale frame is lettering nobody can see.
+ */
+/**
+ * How long the synopsis stays before it goes.
+ *
+ * Long enough to read three lines without hurrying, and short enough that it
+ * is gone before the picture underneath it has been covered up for any length
+ * of time. It leaves rather than staying because the frame is the point of a
+ * hero: the words say what this is, and once they have said it they are
+ * standing in front of the thing they were describing.
+ */
+const SYNOPSIS_MILLISECONDS = 8000;
+
+/**
+ * The synopsis with no room taken up.
+ *
+ * Height as well as opacity, because a paragraph that only fades leaves its
+ * space behind until the instant it unmounts, and then everything resting on
+ * it drops by three lines in one frame. Folding the height away carries the
+ * buttons and the mark down with it instead.
+ *
+ * The negative margin cancels the column's own gap. A child of a flex column
+ * still earns its gap at zero height, so without this the fold stops three
+ * quarters of a rem short and finishes with a snap after all.
+ */
+const SYNOPSIS_FOLDED = { opacity: 0, height: 0, marginTop: '-0.75rem' } as const;
+
+const LOGO_BOX = [
+  'max-h-[14svh] w-auto max-w-[min(70vw,24rem)] object-contain object-left',
+  'drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]',
+].join(' ');
+
 /**
  * The screen the library opens with.
  *
@@ -72,10 +127,34 @@ const Hero = ({
   rotateAfterMilliseconds = ROTATE_AFTER_MILLISECONDS,
 }: HeroProps) => {
   const [index, setIndex] = useState(0);
+
+  /**
+   * The items whose lettering would not load.
+   *
+   * Kept per item rather than as one flag, because a hero rotates: one title
+   * whose logo has gone missing from the cache must not leave every other
+   * title in the rotation nameless. An item in here falls back to its name set
+   * in the interface's own typeface, which is what every item did before there
+   * were logos at all.
+   */
+  const [unlettered, setUnlettered] = useState<ReadonlySet<string>>(new Set());
+
+  /**
+   * What this item is about, once the server has been asked.
+   *
+   * Held against the item it describes rather than on its own, so a synopsis
+   * that arrives after the hero has moved on is not shown under the wrong
+   * picture. Read here rather than carried on every card in the library: a
+   * page of eighty items would be eighty overviews sent to draw one.
+   */
+  const [synopsis, setSynopsis] = useState<{ mediaId: string; text: string } | null>(null);
+  const [isTelling, setIsTelling] = useState(true);
   const [isHeld, setIsHeld] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
   const featured = items[index % Math.max(items.length, 1)];
+  const isLettered = featured?.hasLogo === true && !unlettered.has(featured.id);
+  const told = synopsis?.mediaId === featured?.id ? (synopsis?.text ?? null) : null;
   const resume = featured === undefined ? null : (resumeFor?.(featured.id) ?? null);
 
   useEffect(() => {
@@ -112,6 +191,40 @@ const Hero = ({
       clearTimeout(timer);
     };
   }, [items.length, rotateAfterMilliseconds, isHeld, index, showNext]);
+
+  const featuredId = featured?.id ?? null;
+
+  useEffect(() => {
+    if (featuredId === null) {
+      return;
+    }
+
+    let abandoned = false;
+
+    void fetchMediaDetail(featuredId).then((found) => {
+      const overview = found?.metadata.overview ?? null;
+
+      if (!abandoned && overview !== null && overview !== '') {
+        setSynopsis({ mediaId: featuredId, text: overview });
+      }
+    });
+
+    return () => {
+      abandoned = true;
+    };
+  }, [featuredId]);
+
+  useEffect(() => {
+    setIsTelling(true);
+
+    const timer = setTimeout(() => {
+      setIsTelling(false);
+    }, SYNOPSIS_MILLISECONDS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [featuredId]);
 
   const hold = useCallback(() => {
     setIsHeld(true);
@@ -191,22 +304,27 @@ const Hero = ({
             animate="shown"
             className="relative flex flex-col gap-3 px-5 pb-8 pt-24 sm:px-10"
           >
-            {featured.seriesTitle === null || featured.seriesTitle === undefined ? null : (
-              <motion.p
-                variants={revealVariants(prefersReducedMotion)}
-                transition={revealTransition(prefersReducedMotion)}
-                className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted"
-              >
-                {featured.title}
-              </motion.p>
-            )}
-
             <motion.h1
               variants={revealVariants(prefersReducedMotion)}
               transition={revealTransition(prefersReducedMotion, 'heavy')}
-              className="max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text"
+              className={
+                isLettered
+                  ? 'flex'
+                  : 'max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text'
+              }
             >
-              {featured.seriesTitle ?? featured.title}
+              {isLettered ? (
+                <img
+                  src={logoUrl(featured.id)}
+                  alt={featured.seriesTitle ?? featured.title}
+                  className={LOGO_BOX}
+                  onError={() => {
+                    setUnlettered((known) => new Set(known).add(featured.id));
+                  }}
+                />
+              ) : (
+                (featured.seriesTitle ?? featured.title)
+              )}
             </motion.h1>
 
             <motion.p
@@ -215,9 +333,27 @@ const Hero = ({
             >
               <MediaFacts
                 media={featured}
+                hasEpisode={false}
                 className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-text-muted"
               />
             </motion.p>
+
+            <AnimatePresence initial={false}>
+              {told === null || !isTelling ? null : (
+                <motion.p
+                  initial={SYNOPSIS_FOLDED}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
+                  exit={SYNOPSIS_FOLDED}
+                  transition={{
+                    duration: prefersReducedMotion === true ? 0.2 : 0.55,
+                    ease: [0.2, 0, 0, 1],
+                  }}
+                  className="line-clamp-3 max-w-[52ch] overflow-hidden text-[0.95rem] leading-relaxed text-text/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]"
+                >
+                  {told}
+                </motion.p>
+              )}
+            </AnimatePresence>
 
             <motion.div
               variants={revealVariants(prefersReducedMotion)}
@@ -258,6 +394,9 @@ const Hero = ({
             labels={items.map((item) => item.title)}
             label="Featured items"
             onSelect={setIndex}
+            {...(items.length > 1 && rotateAfterMilliseconds > 0
+              ? { fillMilliseconds: rotateAfterMilliseconds, isFillPaused: isHeld }
+              : {})}
             className="mb-8 mr-5 self-end sm:absolute sm:bottom-8 sm:right-10 sm:mb-0 sm:mr-0"
           />
         </motion.section>

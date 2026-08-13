@@ -6,10 +6,12 @@ import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
 
 const fetchLibrariesMock = vi.hoisted(() => vi.fn());
 const fetchItemsMock = vi.hoisted(() => vi.fn());
+const fetchDetailMock = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
   fetchLibraries: fetchLibrariesMock,
   fetchLibraryItems: fetchItemsMock,
+  fetchMediaDetail: fetchDetailMock,
 }));
 
 const films: Library = {
@@ -50,6 +52,7 @@ const arrival: MediaSummary = {
   addedAt: '2026-08-10T00:00:00.000Z',
   hasPoster: false,
   hasBackdrop: false,
+  hasLogo: false,
 };
 
 beforeEach(() => {
@@ -230,7 +233,7 @@ describe('LibraryBrowser', () => {
     render(<LibraryBrowser onOpenShow={onOpenShow} onPlay={vi.fn()} />);
 
     const heading = await screen.findByRole('button', {
-      name: 'A Sign of Affection · Season 1',
+      name: 'A Sign of Affection',
     });
 
     await user.click(heading);

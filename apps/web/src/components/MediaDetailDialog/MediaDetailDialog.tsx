@@ -63,6 +63,11 @@ const MediaDetailDialog = ({
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  /**
+   * The item whose lettering would not load, so the title falls back to words.
+   */
+  const [unlettered, setUnlettered] = useState<string | null>(null);
   const [lastShown, setLastShown] = useState<MediaSummary | null>(null);
   const heldRef = useRef<{ resume: number | undefined; siblings: MediaSummary[] }>({
     resume: undefined,
@@ -192,6 +197,19 @@ const MediaDetailDialog = ({
                 isPreviewPlaying ? 'pointer-events-none opacity-0' : 'opacity-100'
               }`}
             >
+              {shown.hasLogo && unlettered !== shown.id ? (
+                <motion.img
+                  variants={revealVariants(prefersReducedMotion)}
+                  transition={revealTransition(prefersReducedMotion)}
+                  src={`/api/media/${shown.id}/image/logo`}
+                  alt=""
+                  className="max-h-[7svh] w-auto max-w-[min(55vw,15rem)] object-contain object-left"
+                  onError={() => {
+                    setUnlettered(shown.id);
+                  }}
+                />
+              ) : null}
+
               <motion.div
                 variants={revealVariants(prefersReducedMotion)}
                 transition={revealTransition(prefersReducedMotion)}
@@ -266,9 +284,7 @@ const MediaDetailDialog = ({
                   <Skeleton className="h-4 w-[70%]" />
                 </div>
               ) : typeof metadata?.overview === 'string' && metadata.overview !== '' ? (
-                <p className="max-w-prose text-[0.95rem] leading-relaxed text-text">
-                  {metadata.overview}
-                </p>
+                <p className="text-[0.95rem] leading-relaxed text-text">{metadata.overview}</p>
               ) : (
                 <p className="flex items-center gap-2 text-sm text-text-muted">
                   <IconInfoCircle size={16} aria-hidden />
