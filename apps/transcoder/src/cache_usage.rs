@@ -48,7 +48,7 @@ pub struct CacheUse {
 ///
 /// Iterative rather than recursive so that a cache someone has nested deeply,
 /// or a symlink loop, cannot take the stack down with it.
-async fn size_of(directory: &Path) -> u64 {
+pub(crate) async fn size_of(directory: &Path) -> u64 {
     let mut total = 0;
     let mut pending = vec![directory.to_path_buf()];
 

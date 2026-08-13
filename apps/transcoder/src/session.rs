@@ -15,7 +15,7 @@ use crate::transcode_plan::{SessionSpec, TranscodePlan, MANIFEST_NAME};
 /// can leave an `#EXT-X-ENDLIST` from a previous attempt beside a zero length
 /// initialisation segment. Only the process's own exit status can say the
 /// output is whole, so completion is recorded rather than inferred.
-const COMPLETE_MARKER: &str = ".complete";
+pub const COMPLETE_MARKER: &str = ".complete";
 
 /// Reports whether a session directory already holds a finished transcode.
 ///
@@ -26,6 +26,19 @@ async fn is_already_complete(directory: &Path) -> bool {
     tokio::fs::try_exists(directory.join(COMPLETE_MARKER))
         .await
         .unwrap_or(false)
+}
+
+/// Records that a finished transcode has been wanted again.
+///
+/// Rewrites the completion marker, so its timestamp says when somebody last
+/// played this rather than when it was made. Eviction reads that timestamp:
+/// without this, an item replayed every night would age out while one watched
+/// once survives for being newer, which is exactly backwards.
+///
+/// Failing to record it costs a replay of a transcode later, so a marker that
+/// cannot be rewritten is not worth refusing to play over.
+async fn mark_used(directory: &Path) {
+    let _ = tokio::fs::write(directory.join(COMPLETE_MARKER), b"ok").await;
 }
 
 /// Why a session could not be started.
@@ -238,6 +251,8 @@ impl SessionRegistry {
             .map_err(SessionError::Directory)?;
 
         if is_already_complete(&directory).await {
+            mark_used(&directory).await;
+
             let mut sessions = self.sessions.lock().await;
 
             sessions.insert(
@@ -372,6 +387,17 @@ impl SessionRegistry {
         }
 
         stale.len()
+    }
+
+    /// The ids of every session that exists right now.
+    ///
+    /// A session id is also the name of its directory, so this is what a sweep
+    /// needs to know which directories are being watched. Read from the
+    /// registry rather than from the disk, because only the registry can tell
+    /// a finished transcode somebody is playing from one nobody has opened in
+    /// a week.
+    pub async fn live_ids(&self) -> std::collections::HashSet<String> {
+        self.sessions.lock().await.keys().cloned().collect()
     }
 
     /// Stops every session.

@@ -20,6 +20,7 @@ pub mod probe;
 pub mod queue;
 pub mod router;
 pub mod session;
+pub mod session_sweep;
 pub mod subtitle;
 pub mod transcode_plan;
 pub mod trickplay;
