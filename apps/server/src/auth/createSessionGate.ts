@@ -1,5 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import { isPublicRoute } from '@FluxServer/auth/isPublicRoute';
+import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
 import type { FluxAuth } from '@FluxServer/auth/Auth';
 
 /**
@@ -20,7 +21,9 @@ import type { FluxAuth } from '@FluxServer/auth/Auth';
  * being signed in — a sign-in page behind a sign-in check helps nobody.
  *
  * It answers who somebody is, not what they may do. A route that asks for
- * more than merely being signed in still has to ask.
+ * more than merely being signed in still has to ask — and asks the same
+ * reader, so one request resolves its caller once however many times it is
+ * asked about.
  *
  * @param auth The authentication layer to resolve the session against.
  */
@@ -32,9 +35,7 @@ const createSessionGate = (auth: FluxAuth) =>
       return;
     }
 
-    const session = await auth.api
-      .getSession({ headers: context.req.raw.headers })
-      .catch(() => null);
+    const session = await readSessionOnce(auth, context.req.raw.headers);
 
     if (session === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401);
