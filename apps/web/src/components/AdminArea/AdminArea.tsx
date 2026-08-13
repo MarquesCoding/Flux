@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 import { Badge } from '@FluxUI/Badge';
+import { HoverCard } from '@FluxUI/HoverCard';
 import { Button } from '@FluxUI/Button';
 import { TabRow } from '@FluxUI/TabRow';
 import { TabPanel } from '@FluxUI/TabPanel';
@@ -460,10 +461,22 @@ const AdminArea = ({
                     : 'Media service unreachable'}
               </span>
 
-              {acceleration === null ? null : (
-                <Badge size="sm" tone={acceleration.isUnverified ? 'danger' : 'quiet'}>
-                  {acceleration.label}
-                </Badge>
+              {acceleration === null ? null : acceleration.warning === undefined ? (
+                <Badge size="sm">{acceleration.label}</Badge>
+              ) : (
+                <HoverCard
+                  side="bottom"
+                  align="center"
+                  detail={
+                    <p className="max-w-xs text-xs leading-relaxed">{acceleration.warning}</p>
+                  }
+                >
+                  <span>
+                    <Badge size="sm" tone="danger">
+                      {acceleration.label}
+                    </Badge>
+                  </span>
+                </HoverCard>
               )}
             </p>
           </div>
@@ -754,6 +767,9 @@ const AdminArea = ({
               <SettingsPanel
                 overview={overview}
                 onCatalogueKeySaved={() => {
+                  void fetchAdminOverview().then(setOverview);
+                }}
+                onHardwareAccelSaved={() => {
                   void fetchAdminOverview().then(setOverview);
                 }}
               />

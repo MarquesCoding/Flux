@@ -5,8 +5,9 @@ import { SettingsPanel } from './SettingsPanel';
 import type { AdminOverview } from '@FluxWeb/admin/fetchAdmin';
 
 const saveCatalogueKey = vi.hoisted(() => vi.fn());
+const saveHardwareAccel = vi.hoisted(() => vi.fn(() => Promise.resolve(true)));
 
-vi.mock('@FluxWeb/admin/fetchAdmin', () => ({ saveCatalogueKey }));
+vi.mock('@FluxWeb/admin/fetchAdmin', () => ({ saveCatalogueKey, saveHardwareAccel }));
 
 const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOverview => ({
   users: [{ id: 'usr_1', name: 'Dan', email: 'dan@flux.local', role: 'admin', createdAt: '' }],
@@ -36,7 +37,13 @@ describe('SettingsPanel', () => {
   });
 
   it('says what happens without a key', () => {
-    render(<SettingsPanel overview={overview()} onCatalogueKeySaved={vi.fn()} />);
+    render(
+      <SettingsPanel
+        overview={overview()}
+        onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText(/come from filenames alone/)).toBeInTheDocument();
   });
@@ -46,6 +53,7 @@ describe('SettingsPanel', () => {
       <SettingsPanel
         overview={overview({ hasCatalogueKey: true })}
         onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={vi.fn()}
       />,
     );
 
@@ -54,14 +62,26 @@ describe('SettingsPanel', () => {
   });
 
   it('will not save nothing', () => {
-    render(<SettingsPanel overview={overview()} onCatalogueKeySaved={vi.fn()} />);
+    render(
+      <SettingsPanel
+        overview={overview()}
+        onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={vi.fn()}
+      />,
+    );
 
     expect(screen.getByRole('button', { name: 'Save key' })).toBeDisabled();
   });
 
   it('saves what was typed', async () => {
     const user = userEvent.setup();
-    render(<SettingsPanel overview={overview()} onCatalogueKeySaved={vi.fn()} />);
+    render(
+      <SettingsPanel
+        overview={overview()}
+        onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={vi.fn()}
+      />,
+    );
 
     await user.type(screen.getByLabelText('Catalogue key'), 'a-key');
     await user.click(screen.getByRole('button', { name: 'Save key' }));
@@ -71,7 +91,13 @@ describe('SettingsPanel', () => {
 
   it('empties the field once accepted, since there is nowhere to read one back from', async () => {
     const user = userEvent.setup();
-    render(<SettingsPanel overview={overview()} onCatalogueKeySaved={vi.fn()} />);
+    render(
+      <SettingsPanel
+        overview={overview()}
+        onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={vi.fn()}
+      />,
+    );
 
     await user.type(screen.getByLabelText('Catalogue key'), 'a-key');
     await user.click(screen.getByRole('button', { name: 'Save key' }));
@@ -84,7 +110,13 @@ describe('SettingsPanel', () => {
   it('asks for the overview again, having changed something it does not own', async () => {
     const onCatalogueKeySaved = vi.fn();
     const user = userEvent.setup();
-    render(<SettingsPanel overview={overview()} onCatalogueKeySaved={onCatalogueKeySaved} />);
+    render(
+      <SettingsPanel
+        overview={overview()}
+        onCatalogueKeySaved={onCatalogueKeySaved}
+        onHardwareAccelSaved={vi.fn()}
+      />,
+    );
 
     await user.type(screen.getByLabelText('Catalogue key'), 'a-key');
     await user.click(screen.getByRole('button', { name: 'Save key' }));
@@ -99,7 +131,13 @@ describe('SettingsPanel', () => {
 
     const onCatalogueKeySaved = vi.fn();
     const user = userEvent.setup();
-    render(<SettingsPanel overview={overview()} onCatalogueKeySaved={onCatalogueKeySaved} />);
+    render(
+      <SettingsPanel
+        overview={overview()}
+        onCatalogueKeySaved={onCatalogueKeySaved}
+        onHardwareAccelSaved={vi.fn()}
+      />,
+    );
 
     await user.type(screen.getByLabelText('Catalogue key'), 'a-key');
     await user.click(screen.getByRole('button', { name: 'Save key' }));
@@ -112,14 +150,24 @@ describe('SettingsPanel', () => {
   });
 
   it('says nothing about the server before it has answered', () => {
-    render(<SettingsPanel overview={null} onCatalogueKeySaved={vi.fn()} />);
+    render(
+      <SettingsPanel
+        overview={null}
+        onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={vi.fn()}
+      />,
+    );
 
     expect(screen.queryByText(/Cookies are/)).not.toBeInTheDocument();
   });
 
   it('reports how sign-in is configured', () => {
     render(
-      <SettingsPanel overview={overview({ cookieSecure: true })} onCatalogueKeySaved={vi.fn()} />,
+      <SettingsPanel
+        overview={overview({ cookieSecure: true })}
+        onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={vi.fn()}
+      />,
     );
 
     expect(screen.getByText(/Cookies are secure/)).toBeInTheDocument();
@@ -128,5 +176,25 @@ describe('SettingsPanel', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(SettingsPanel.displayName).toBe('SettingsPanel');
+  });
+
+  it('tells whoever owns the overview that the backend changed', async () => {
+    const saved = vi.fn();
+    const actor = userEvent.setup();
+
+    render(
+      <SettingsPanel
+        overview={overview()}
+        onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={saved}
+      />,
+    );
+
+    await actor.click(screen.getByRole('button', { name: /Hardware acceleration/ }));
+    await actor.click(await screen.findByRole('menuitemradio', { name: /Software only/ }));
+
+    await waitFor(() => {
+      expect(saved).toHaveBeenCalled();
+    });
   });
 });

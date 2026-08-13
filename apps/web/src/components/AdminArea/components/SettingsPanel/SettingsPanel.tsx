@@ -19,7 +19,11 @@ import type { SettingsPanelProps } from './SettingsPanel.types';
  * back from — the server keeps it and never returns it — so leaving what was
  * typed on screen would suggest it is still unsaved.
  */
-const SettingsPanel = ({ overview, onCatalogueKeySaved }: SettingsPanelProps) => {
+const SettingsPanel = ({
+  overview,
+  onCatalogueKeySaved,
+  onHardwareAccelSaved,
+}: SettingsPanelProps) => {
   const [catalogueKey, setCatalogueKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [accel, setAccel] = useState(overview?.settings.hardwareAccel ?? '');
@@ -45,7 +49,11 @@ const SettingsPanel = ({ overview, onCatalogueKeySaved }: SettingsPanelProps) =>
                 onSelect: (id) => {
                   setAccel(id);
 
-                  void saveHardwareAccel(id);
+                  void saveHardwareAccel(id).then((saved) => {
+                    if (saved) {
+                      onHardwareAccelSaved();
+                    }
+                  });
                 },
                 options: accelerationOptions,
               },

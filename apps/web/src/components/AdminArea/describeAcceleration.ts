@@ -18,6 +18,10 @@ type Acceleration = {
    * a setting that will fall back to software on every play.
    */
   isUnverified: boolean;
+  /**
+   * What to say about a choice the machine cannot keep, where there is one.
+   */
+  warning?: string;
 };
 
 /**
@@ -43,9 +47,16 @@ const describeAcceleration = (forced: string, probed: string[]): Acceleration =>
   if (forced !== '') {
     const chosen = accelerationOptions.find((option) => option.id === forced);
 
+    const isUnverified = !probed.includes(forced);
+
     return {
       label: `${chosen?.label ?? forced} · forced`,
-      isUnverified: !probed.includes(forced),
+      isUnverified,
+      ...(isUnverified
+        ? {
+            warning: `This machine never proved it can do ${chosen?.label ?? forced}, so every transcode will fall back to software. Choose Automatic to use what it can, or leave this if you know the check is wrong.`,
+          }
+        : {}),
     };
   }
 

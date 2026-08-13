@@ -21,10 +21,20 @@ describe('describeAcceleration', () => {
   });
 
   it('marks a backend this machine never proved it could do', () => {
-    expect(describeAcceleration('nvenc', ['videotoolbox'])).toEqual({
-      label: 'NVENC · forced',
-      isUnverified: true,
-    });
+    const shown = describeAcceleration('nvenc', ['videotoolbox']);
+
+    expect(shown.label).toBe('NVENC · forced');
+    expect(shown.isUnverified).toBe(true);
+  });
+
+  it('says what a choice the machine cannot keep will actually do', () => {
+    expect(describeAcceleration('nvenc', ['videotoolbox']).warning).toContain(
+      'fall back to software',
+    );
+  });
+
+  it('warns about nothing when the choice is one the machine can keep', () => {
+    expect(describeAcceleration('videotoolbox', ['videotoolbox']).warning).toBeUndefined();
   });
 
   it('does not mark a forced backend the machine did verify', () => {
@@ -47,9 +57,6 @@ describe('describeAcceleration', () => {
   });
 
   it('shows a backend it has no name for rather than nothing at all', () => {
-    expect(describeAcceleration('something-new', [])).toEqual({
-      label: 'something-new · forced',
-      isUnverified: true,
-    });
+    expect(describeAcceleration('something-new', []).label).toBe('something-new · forced');
   });
 });

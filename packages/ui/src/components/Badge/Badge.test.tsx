@@ -44,4 +44,10 @@ describe('Badge', () => {
 
     expect(badgeOf('NVENC')).toHaveClass('border-danger/50');
   });
+
+  it('is not text anybody drags a cursor through', () => {
+    render(<Badge>4K</Badge>);
+
+    expect(badgeOf('4K')).toHaveClass('select-none');
+  });
 });
