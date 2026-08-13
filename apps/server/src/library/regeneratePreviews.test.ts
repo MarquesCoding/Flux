@@ -13,6 +13,11 @@ const multilingual: AudioStream[] = [
 
 const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcoder => ({
   isReachable: () => Promise.resolve(true),
+  measureCache: () => Promise.resolve(null),
+  sweepPreviews: () => Promise.reject(new Error('not used')),
+  forgetPreview: () => Promise.reject(new Error('not used')),
+  forgetTrickplay: () => Promise.reject(new Error('not used')),
+  sweepTrickplay: () => Promise.reject(new Error('not used')),
   probe: () => Promise.reject(new Error('not used')),
   startSession: () => Promise.reject(new Error('not used')),
   readSessionFile: () => Promise.resolve(null),
@@ -31,6 +36,7 @@ const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcode
   capabilities: () =>
     Promise.resolve({
       ffmpegVersion: 'test',
+      ffmpegSupported: true,
       encoders: [],
       hardwareAccels: [],
       hardwareScalers: [],
@@ -73,6 +79,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
@@ -103,6 +110,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
@@ -117,6 +125,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
@@ -133,6 +142,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: 'en',
@@ -151,6 +161,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
@@ -166,6 +177,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: 'fr',
@@ -183,6 +195,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: 'en',
@@ -219,6 +232,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: 'en',
@@ -247,6 +261,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,
@@ -275,6 +290,7 @@ describe('regeneratePreviews', () => {
 
     await regeneratePreviews({
       libraryId: LIBRARY_ID,
+      generation: 0,
       store,
       transcoder,
       defaultAudioLanguage: null,

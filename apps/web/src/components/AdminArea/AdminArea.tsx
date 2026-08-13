@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 import { Badge } from '@FluxUI/Badge';
+import { HoverCard } from '@FluxUI/HoverCard';
 import { Button } from '@FluxUI/Button';
 import { TabRow } from '@FluxUI/TabRow';
 import { TabPanel } from '@FluxUI/TabPanel';
@@ -30,10 +31,15 @@ import {
   addJobTrigger,
   removeJobTrigger,
 } from '@FluxWeb/admin/fetchAdmin';
-import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
+import { fetchLibraries, rebuildArtefacts } from '@FluxWeb/library/fetchLibrary';
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
+import { fluxCpuShare } from './fluxCpuShare';
+import { libraryDisk } from './libraryDisk';
+import { describeGraphics } from './describeGraphics';
+import { describeCpuShare } from './describeCpuShare';
+import { describeAcceleration } from './describeAcceleration';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
   resumeRunning,
@@ -150,6 +156,7 @@ const AdminArea = ({
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [monitor, setMonitor] = useState<Monitor | null>(null);
   const [history, setHistory] = useState<number[]>([]);
+  const [encoderHistory, setEncoderHistory] = useState<number[]>([]);
   const [panel, setPanel] = useState<PanelId>(
     () => PANELS.find((candidate) => candidate.id === initialPanel)?.id ?? 'overview',
   );
@@ -371,6 +378,11 @@ const AdminArea = ({
       setHistory((current) =>
         [...current, reading.resources.systemCpuPercent].slice(-historyLength),
       );
+      setEncoderHistory((current) => {
+        const encoder = reading.resources.graphics?.encoderPercent ?? null;
+
+        return encoder === null ? [] : [...current, encoder].slice(-historyLength);
+      });
     });
 
     return stop;
@@ -383,6 +395,15 @@ const AdminArea = ({
       : resources.systemMemoryUsedBytes / resources.systemMemoryTotalBytes;
 
   const conversions = resources?.children ?? [];
+  const cpuShare = fluxCpuShare(resources);
+  const acceleration =
+    overview === null
+      ? null
+      : describeAcceleration(overview.settings.hardwareAccel, overview.transcoder.hardwareAccels);
+  const mediaDisk = libraryDisk(
+    resources?.disks ?? [],
+    libraries.map((library) => library.path),
+  );
 
   return (
     <motion.div
@@ -440,11 +461,19 @@ const AdminArea = ({
                     : 'Media service unreachable'}
               </span>
 
-              {(overview?.transcoder.hardwareAccels ?? []).map((accel) => (
-                <Badge key={accel} size="sm">
-                  {accel}
-                </Badge>
-              ))}
+              {acceleration === null ? null : (
+                <HoverCard
+                  side="bottom"
+                  align="center"
+                  detail={<p className="max-w-xs text-xs leading-relaxed">{acceleration.detail}</p>}
+                >
+                  <span>
+                    <Badge size="sm" tone={acceleration.tone}>
+                      {acceleration.label}
+                    </Badge>
+                  </span>
+                </HoverCard>
+              )}
             </p>
           </div>
         </motion.header>
@@ -454,7 +483,14 @@ const AdminArea = ({
           transition={revealTransition(prefersReducedMotion)}
         >
           <ConcernsBanner
-            concerns={collectConcerns({ overview, monitor, libraries, sessions, history })}
+            concerns={collectConcerns({
+              overview,
+              monitor,
+              libraries,
+              sessions,
+              history,
+              encoderHistory,
+            })}
             onOpenPanel={(next) => {
               const found = PANELS.find((candidate) => candidate.id === next);
 
@@ -479,7 +515,7 @@ const AdminArea = ({
                 detail:
                   resources === null
                     ? '—'
-                    : `${resources.cpuCount.toString()} cores · load ${resources.loadAverage.toFixed(2)}`,
+                    : `${resources.cpuCount.toString()} cores · Flux ${describeCpuShare(cpuShare)}`,
               },
               {
                 label: 'Memory',
@@ -489,6 +525,24 @@ const AdminArea = ({
                   resources === null
                     ? '—'
                     : `of ${formatBytes(resources.systemMemoryTotalBytes)} · service ${formatBytes(resources.serviceMemoryBytes)}`,
+              },
+              {
+                label: 'Graphics',
+                ...describeGraphics(resources?.graphics ?? null),
+              },
+              {
+                label: 'Storage',
+                value: mediaDisk === null ? '—' : `${formatBytes(mediaDisk.availableBytes)} free`,
+                ...(mediaDisk === null
+                  ? {}
+                  : {
+                      fraction:
+                        (mediaDisk.totalBytes - mediaDisk.availableBytes) / mediaDisk.totalBytes,
+                    }),
+                detail:
+                  mediaDisk === null
+                    ? 'Not measured'
+                    : `of ${formatBytes(mediaDisk.totalBytes)} · ${mediaDisk.mountPoint}`,
               },
               {
                 label: 'Streaming',
@@ -666,6 +720,7 @@ const AdminArea = ({
                 isUnreachable={unreachable.has('media')}
                 media={media}
                 onCorrect={setCorrecting}
+                onRebuildArtefacts={async (item) => (await rebuildArtefacts(item.id)) !== null}
               />
             </TabPanel>
 
@@ -708,6 +763,9 @@ const AdminArea = ({
               <SettingsPanel
                 overview={overview}
                 onCatalogueKeySaved={() => {
+                  void fetchAdminOverview().then(setOverview);
+                }}
+                onHardwareAccelSaved={() => {
                   void fetchAdminOverview().then(setOverview);
                 }}
               />

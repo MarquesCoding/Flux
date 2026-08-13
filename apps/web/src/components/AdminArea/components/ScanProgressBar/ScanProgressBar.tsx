@@ -3,11 +3,18 @@ import type { ScanProgressBarProps } from './ScanProgressBar.types';
 
 /**
  * What the server calls a phase, in words an operator reads.
+ *
+ * "Scrub previews" rather than thumbnails, which to most people means the image
+ * you click on — in Flux, the poster — and rather than trickplay, which is the
+ * broadcast term for scrubbing and means nothing to anybody outside it.
+ *
+ * These are the server's phases. The media service's queue has its own
+ * vocabulary and its own map, in `describeQueueKind`.
  */
 const PHASE_LABELS: Record<string, string> = {
   probing: 'Probing',
   previews: 'Generating previews',
-  trickplay: 'Generating thumbnails',
+  trickplay: 'Generating scrub previews',
   segments: 'Finding intros',
 };
 

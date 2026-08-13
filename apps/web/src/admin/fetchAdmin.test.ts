@@ -49,10 +49,12 @@ const OVERVIEW = {
     isReachable: true,
     address: 'unix:/tmp/flux-transcoder.sock',
     ffmpegVersion: '9.0',
+    ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
   },
-  library: { itemCount: 15, libraryCount: 2 },
+  library: { itemCount: 15, libraryCount: 2, bytes: 0 },
+  artwork: null,
 };
 
 const MONITOR: Monitor = {
@@ -66,10 +68,13 @@ const MONITOR: Monitor = {
     serviceMemoryBytes: 4,
     children: [{ pid: 42, cpuPercent: 90, memoryBytes: 100 }],
     loadAverage: 1.5,
+    disks: [],
+    graphics: null,
   },
   queue: { concurrency: 2, queued: 1, running: 1, jobs: [] },
   sessions: 0,
   logs: [{ atMs: 1, level: 'info', source: 'transcoder', message: 'Started' }],
+  cache: null,
 };
 
 /**

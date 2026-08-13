@@ -170,6 +170,11 @@ const createMemoryLibraryService = (
       state.media.some((one) => one.id === mediaId) ? { corrected: 1, jobId: null } : null,
     ),
 
+  rebuildArtefacts: (mediaId) =>
+    Promise.resolve(
+      state.media.some((one) => one.id === mediaId) ? { preview: true, trickplay: true } : null,
+    ),
+
   reset: (libraryId) => {
     if (!state.libraries.some((entry) => entry.id === libraryId)) {
       return Promise.resolve(null);

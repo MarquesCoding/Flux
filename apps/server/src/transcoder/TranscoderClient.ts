@@ -88,6 +88,7 @@ const SessionResponseSchema = z.object({
 
 const CapabilitiesSchema = z.object({
   ffmpegVersion: z.string(),
+  ffmpegSupported: z.boolean().default(true),
   encoders: z.array(
     z.object({
       codec: z.string(),
@@ -121,6 +122,39 @@ const FingerprintSchema = z.object({
 
 const SubtitleTrackSchema = z.object({ content: z.string() });
 
+/**
+ * What a sweep did, as the media service reports it.
+ *
+ * `tooNew` is not a failure. A directory modified in the last hour is left
+ * alone whatever its name, because an artefact halfway through being written
+ * looks exactly like an abandoned one.
+ */
+/**
+ * Whether a forget found anything to remove.
+ */
+const ForgetReportSchema = z.object({ forgotten: z.boolean() });
+
+const SweepReportSchema = z.object({
+  removed: z.number().int().nonnegative(),
+  freedBytes: z.number().int().nonnegative(),
+  kept: z.number().int().nonnegative(),
+  tooNew: z.number().int().nonnegative(),
+});
+
+const ArtefactUseSchema = z.object({
+  count: z.number().int().nonnegative(),
+  bytes: z.number().int().nonnegative(),
+});
+
+const CacheUseSchema = z.object({
+  previews: ArtefactUseSchema,
+  trickplay: ArtefactUseSchema,
+  sessions: ArtefactUseSchema,
+  atMs: z.number().int().nonnegative(),
+});
+
+type CacheUse = z.infer<typeof CacheUseSchema>;
+
 const PreviewClipSchema = z.object({
   id: z.string(),
   url: z.string(),
@@ -141,6 +175,16 @@ const TrickplayIndexSchema = z.object({
 
 type MediaProbe = z.infer<typeof MediaProbeSchema>;
 type Fingerprint = z.infer<typeof FingerprintSchema>;
+type SweepReport = z.infer<typeof SweepReportSchema>;
+
+/**
+ * A preview clip a sweep should keep, as the request that addresses it.
+ */
+type PreviewSweepSubject = {
+  inputPath: string;
+  generation: number;
+  audioStreamIndex?: number;
+};
 
 type FingerprintRequest = {
   inputPath: string;
@@ -151,6 +195,14 @@ type TrickplayIndex = z.infer<typeof TrickplayIndexSchema>;
 
 type TrickplayRequest = {
   inputPath: string;
+  /**
+   * How many times the file's library has been reset.
+   *
+   * Required for the same reason as on a preview: it addresses the sheets, and
+   * a caller that omitted it would redraw a feature film's worth of them on
+   * every hover instead of once.
+   */
+  generation: number;
   intervalSeconds: number;
   tileWidth: number;
   columns: number;
@@ -201,9 +253,23 @@ type SessionSpec = {
 type Transcoder = {
   isReachable: () => Promise<boolean>;
   probe: (path: string) => Promise<MediaProbe>;
-  startSession: (spec: SessionSpec) => Promise<SessionResponse>;
+  /**
+   * Starts a transcode, saying which device asked.
+   *
+   * The device does not change what is made — two devices asking for the same
+   * thing share one transcode — only which one is worth keeping afterwards,
+   * since each device's most recent is the one somebody would resume.
+   */
+  startSession: (spec: SessionSpec, deviceId?: string) => Promise<SessionResponse>;
   readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>;
-  readFile: (path: string, range: string | null) => Promise<TranscoderRangedFile | null>;
+  /**
+   * Opens an original file for direct play, forwarding a byte range.
+   *
+   * Streamed rather than read: this is whole media, and a viewer who opens one
+   * without a `Range` would otherwise put the entire film through the server's
+   * memory on the way past.
+   */
+  readFile: (path: string, range: string | null) => Promise<TranscoderStreamedFile | null>;
   /**
    * Renders seek-bar previews, or reuses ones already on disk.
    */
@@ -251,6 +317,14 @@ type Transcoder = {
    */
   requestPreview: (request: {
     inputPath: string;
+    /**
+     * How many times the file's library has been reset.
+     *
+     * Required rather than optional, and required on purpose: it is part of the
+     * clip's address, so a call that left it out would ask for a different clip
+     * than the scan made and re-encode one on every request.
+     */
+    generation: number;
     wait?: boolean;
     /**
      * Which audio stream the clip should carry, when one was chosen for it.
@@ -264,16 +338,50 @@ type Transcoder = {
    * Reads a made clip, passing a byte range on to the media service.
    *
    * The range is forwarded rather than applied here so that the service reads
-   * only the bytes asked for. A preview is around 18 MB and a video element
-   * scrubbing through one asks for a fraction of it at a time; slicing after the
-   * fact meant every request put the whole clip on this heap first.
+   * only the bytes asked for, and the answer is streamed rather than collected:
+   * a preview is around 18 MB, and a hover that fetches one without a `Range`
+   * used to put all of it on this heap before sending a byte.
    */
   readPreviewFile: (
     id: string,
     name: string,
     range: string | null,
-  ) => Promise<TranscoderRangedFile | null>;
+  ) => Promise<TranscoderStreamedFile | null>;
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>;
+  /**
+   * Deletes preview clips nothing addresses any more.
+   *
+   * Told what is still wanted as the requests that would ask for it, never as
+   * addresses: the address is a hash of the request and belongs to the media
+   * service, so computing one here would be a second implementation of its
+   * naming scheme — and the first disagreement would delete clips in use.
+   */
+  sweepPreviews: (keep: PreviewSweepSubject[]) => Promise<SweepReport>;
+  /**
+   * Deletes thumbnail sheets nothing addresses any more.
+   */
+  sweepTrickplay: (keep: TrickplayRequest[]) => Promise<SweepReport>;
+  /**
+   * Counts what the artefact cache holds, rather than reading the figure the
+   * media service took on its own timer.
+   *
+   * Null when the media service cannot be reached or answers with something
+   * unreadable, so a page can say the count did not happen rather than show a
+   * cache that appears to have emptied.
+   */
+  measureCache: () => Promise<CacheUse | null>;
+  /**
+   * Removes one item's artefacts, so the next request makes them again.
+   *
+   * The safe kind of deletion, unlike a sweep: an operator points at one item
+   * rather than at a computed list of everything unwanted, and the worst case
+   * is that a clip is rendered a second time.
+   *
+   * Answers whether anything was there, so a caller can tell "removed it" from
+   * "there was nothing to remove".
+   */
+  forgetPreview: (request: PreviewSweepSubject) => Promise<boolean>;
+  forgetTrickplay: (request: TrickplayRequest) => Promise<boolean>;
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>;
   stopSession: (id: string) => Promise<boolean>;
   /**
@@ -295,6 +403,22 @@ type TranscoderFile = {
 type TranscoderRangedFile = TranscoderFile & {
   status: number;
   contentRange: string | null;
+};
+
+/**
+ * A file being forwarded as it arrives, rather than after it has all arrived.
+ *
+ * What the media service sends is what a browser asked for, so there is nothing
+ * for the server to do to it but pass it on. Holding it first is pure cost, and
+ * the cost is the size of the file: a viewer opening a film with no `Range` had
+ * the whole film read into this process before any of it was sent.
+ */
+type TranscoderStreamedFile = {
+  body: ReadableStream<Uint8Array>;
+  contentType: string;
+  status: number;
+  contentRange: string | null;
+  contentLength: string | null;
 };
 
 type CreateTranscoderClientOptions = {
@@ -380,11 +504,28 @@ const createSocketFetch = (socketPath: string): FetchLike => {
 };
 
 /**
+ * A response whose body is still arriving.
+ *
+ * Carries the status and headers as well as the body, because a media file is
+ * fetched with a `Range` and the answer to that is a 206 and a `content-range`
+ * the browser has to be told about.
+ */
+type StreamedResponse = {
+  ok: boolean;
+  status: number;
+  headers: { get: (name: string) => string | null };
+  body: ReadableStream<Uint8Array> | null;
+};
+
+/**
  * Opens a response whose body is read as it arrives.
  *
  * Separate from the narrowed fetch every other call uses, because that one
- * reads a whole body before returning it — which is right for a probe and
- * wrong for a stream that never ends.
+ * reads a whole body before returning it — which is right for a probe, wrong
+ * for a stream that never ends, and wrong for a film. A viewer opening a file
+ * Flux can send as it is does so without a `Range`, and reading that whole
+ * answer before forwarding it means a gigabyte of film through this heap to
+ * deliver a gigabyte of film.
  *
  * The connection pool is made once and kept, like the one every other call
  * uses. Making one per request leaks a pool and its socket every time: the
@@ -394,14 +535,14 @@ const createSocketFetch = (socketPath: string): FetchLike => {
  */
 const createStreamFetch = (
   socketPath: string | null,
-): ((url: string) => Promise<{ ok: boolean; body: ReadableStream<Uint8Array> | null }>) => {
+): ((url: string, init?: HttpRequestInit) => Promise<StreamedResponse>) => {
   if (socketPath === null) {
-    return async (url) => fetch(url);
+    return async (url, init) => fetch(url, init);
   }
 
   const agent = new Agent({ connect: { socketPath } });
 
-  return async (url) => undiciFetch(url, { dispatcher: agent });
+  return async (url, init) => undiciFetch(url, { ...init, dispatcher: agent });
 };
 
 class TranscoderError extends Error {
@@ -436,6 +577,33 @@ const createTranscoderClient = ({
 
   const streamFrom = createStreamFetch(socketPath);
 
+  /**
+   * Opens a file on the media service and hands back the body still arriving.
+   *
+   * Used for anything whose size is the media's rather than Flux's — an
+   * original file and a preview clip. The status and the range headers come
+   * straight from the service, because it is the one that decided them.
+   */
+  const openStream = async (
+    url: string,
+    range: string | null,
+    fallbackContentType: string,
+  ): Promise<TranscoderStreamedFile | null> => {
+    const response = await streamFrom(url, range === null ? {} : { headers: { range } });
+
+    if (!response.ok || response.body === null) {
+      return null;
+    }
+
+    return {
+      body: response.body,
+      contentType: response.headers.get('content-type') ?? fallbackContentType,
+      status: response.status,
+      contentRange: response.headers.get('content-range'),
+      contentLength: response.headers.get('content-length'),
+    };
+  };
+
   const postJson = (path: string, body: object): Promise<HttpResponse> =>
     call(path, {
       method: 'POST',
@@ -460,8 +628,12 @@ const createTranscoderClient = ({
     probe: async (path) =>
       MediaProbeSchema.parse(await (await postJson('/probe', { path })).json()),
 
-    startSession: async (spec) =>
-      SessionResponseSchema.parse(await (await postJson('/sessions', spec)).json()),
+    startSession: async (spec, deviceId) =>
+      SessionResponseSchema.parse(
+        await (
+          await postJson('/sessions', deviceId === undefined ? spec : { ...spec, deviceId })
+        ).json(),
+      ),
 
     readSessionFile: async (sessionId, name) => {
       const response = await call2(
@@ -478,22 +650,12 @@ const createTranscoderClient = ({
       };
     },
 
-    readFile: async (path, range) => {
-      const response = await call2(`${origin}/file?path=${encodeURIComponent(path)}`, {
-        headers: range === null ? {} : { range },
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      return {
-        body: await response.arrayBuffer(),
-        contentType: response.headers.get('content-type') ?? 'application/octet-stream',
-        status: response.status,
-        contentRange: response.headers.get('content-range'),
-      };
-    },
+    readFile: async (path, range) =>
+      openStream(
+        `${origin}/file?path=${encodeURIComponent(path)}`,
+        range,
+        'application/octet-stream',
+      ),
 
     fingerprint: async (request) =>
       FingerprintSchema.parse(await (await postJson('/fingerprint', request)).json()),
@@ -503,21 +665,38 @@ const createTranscoderClient = ({
     requestPreview: async (request) =>
       PreviewClipSchema.parse(await (await postJson('/previews', request)).json()),
 
-    readPreviewFile: async (id, name, range) => {
-      const response = await call2(
+    readPreviewFile: async (id, name, range) =>
+      openStream(
         `${origin}/previews/${encodeURIComponent(id)}/${encodeURIComponent(name)}`,
-        { headers: range === null ? {} : { range } },
-      );
+        range,
+        'video/mp4',
+      ),
 
-      return response.ok
-        ? {
-            body: await response.arrayBuffer(),
-            contentType: response.headers.get('content-type') ?? 'video/mp4',
-            status: response.status,
-            contentRange: response.headers.get('content-range'),
-          }
-        : null;
+    sweepPreviews: async (keep) =>
+      SweepReportSchema.parse(await (await postJson('/previews/sweep', { keep })).json()),
+
+    sweepTrickplay: async (keep) =>
+      SweepReportSchema.parse(await (await postJson('/trickplay/sweep', { keep })).json()),
+
+    measureCache: async () => {
+      const answered = await postJson('/cache/measure', {}).catch(() => null);
+
+      if (answered === null) {
+        return null;
+      }
+
+      const parsed = CacheUseSchema.safeParse(await answered.json().catch(() => null));
+
+      return parsed.success ? parsed.data : null;
     },
+
+    forgetPreview: async (request) =>
+      ForgetReportSchema.parse(await (await postJson('/previews/forget', request)).json())
+        .forgotten,
+
+    forgetTrickplay: async (request) =>
+      ForgetReportSchema.parse(await (await postJson('/trickplay/forget', request)).json())
+        .forgotten,
 
     readMonitor: async () => (await call('/monitor')).json(),
 
@@ -582,6 +761,9 @@ export type {
   FingerprintRequest,
   TranscoderFile,
   TranscoderRangedFile,
+  PreviewSweepSubject,
+  SweepReport,
+  CacheUse,
 };
 
 export { createTranscoderClient, readSocketPath, TranscoderError, MediaProbeSchema };

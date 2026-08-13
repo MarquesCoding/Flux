@@ -66,6 +66,14 @@ type MediaLookup = {
      * operator has set one.
      */
     defaultAudioLanguage: string | null;
+    /**
+     * How many times the item's library has been reset.
+     *
+     * Read here rather than passed in, so a player and a scan asking about the
+     * same file always agree on which generation's artefacts they mean. Two
+     * callers disagreeing would each address a set the other never made.
+     */
+    generation: number;
   } | null>;
 };
 
@@ -134,7 +142,7 @@ const createPlaybackService = ({
       return { mode: describePlaybackMode(plan), plan };
     },
 
-    start: async (mediaId, profile, startSeconds, audioStreamIndex, requestedQuality) => {
+    start: async (mediaId, profile, startSeconds, audioStreamIndex, requestedQuality, deviceId) => {
       const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
@@ -182,7 +190,7 @@ const createPlaybackService = ({
       }
 
       try {
-        const session = await transcoder.startSession(outcome.spec);
+        const session = await transcoder.startSession(outcome.spec, deviceId);
 
         return {
           kind: 'started',
@@ -222,6 +230,7 @@ const createPlaybackService = ({
 
       const index = await transcoder.requestTrickplay({
         inputPath: found.path,
+        generation: found.generation,
         intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
         tileWidth: TRICKPLAY_TILE_WIDTH,
         columns: TRICKPLAY_COLUMNS,
@@ -262,7 +271,7 @@ const createPlaybackService = ({
       }
 
       const clip = await transcoder
-        .requestPreview({ inputPath: found.path, wait: false })
+        .requestPreview({ inputPath: found.path, generation: found.generation, wait: false })
         .catch(() => null);
 
       if (clip === null || !clip.isReady) {

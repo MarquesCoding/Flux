@@ -142,6 +142,20 @@ const apikey = pgTable('apikey', {
   metadata: text('metadata'),
 });
 
+/**
+ * A directory of media Flux watches, and how it should be read.
+ *
+ * `generation` counts how many times the library has been reset. It is folded
+ * into the address of every preview and thumbnail sheet its items produce, which
+ * is what makes a reset rebuild them: those artefacts are addressed by their
+ * content, so a reset that only deleted rows left every address unchanged and
+ * reused the lot — a rebuild that finished in a millisecond an item and redrew
+ * nothing.
+ *
+ * Raising it renames rather than deletes, so old files are orphaned rather than
+ * removed. Reclaiming them is a sweep of its own: deleting on the strength of a
+ * computed list of live ids risks taking artefacts that are still wanted.
+ */
 const library = pgTable('library', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -151,6 +165,7 @@ const library = pgTable('library', {
   lastScannedAt: timestamp('lastScannedAt'),
   defaultAudioLanguage: text('defaultAudioLanguage'),
   filesAtOnce: integer('filesAtOnce'),
+  generation: integer('generation').notNull().default(0),
 });
 
 /**

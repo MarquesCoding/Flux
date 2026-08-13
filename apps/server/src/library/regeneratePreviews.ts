@@ -1,5 +1,5 @@
 import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
-import { selectAudioStream } from '@FluxCore/functions/describeTrack';
+import { previewRequestFor } from './previewRequestFor';
 import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 
@@ -18,6 +18,13 @@ type PreviewStore = {
 
 type RegeneratePreviewsOptions = {
   libraryId: string;
+  /**
+   * How many times this library has been reset.
+   *
+   * Addresses the clips, so it has to match what a library page will ask with.
+   * Read from the library row, alongside the forced language it sits next to.
+   */
+  generation: number;
   store: PreviewStore;
   transcoder: Transcoder;
   /**
@@ -54,6 +61,7 @@ type RegeneratePreviewsOptions = {
  */
 const regeneratePreviews = async ({
   libraryId,
+  generation,
   store,
   transcoder,
   defaultAudioLanguage,
@@ -72,16 +80,10 @@ const regeneratePreviews = async ({
       return;
     }
 
-    const audioStreamIndex =
-      defaultAudioLanguage === null
-        ? undefined
-        : selectAudioStream(item.audioStreams, defaultAudioLanguage)?.index;
-
     const rendered = await transcoder
       .requestPreview({
-        inputPath: item.path,
+        ...previewRequestFor(item, generation, defaultAudioLanguage),
         wait: true,
-        ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       })
       .then(() => true)
       .catch((error: Error) => {

@@ -3,7 +3,7 @@ import { readdir, unlink } from 'node:fs/promises';
 import { z } from 'zod';
 import { serve } from '@hono/node-server';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { and, count, eq, lt } from 'drizzle-orm';
+import { and, count, eq, lt, sql } from 'drizzle-orm';
 import { createApp } from './App';
 import { createAuth } from '@FluxServer/auth/Auth';
 import { createDatabase } from '@FluxServer/db/Database';
@@ -25,6 +25,7 @@ import { createFilenameMetadataProvider } from '@FluxServer/library/createFilena
 import { createMediaFileSystem } from '@FluxServer/library/createMediaFileSystem';
 import { createTranscoderClient } from '@FluxServer/transcoder/TranscoderClient';
 import { createImageCache } from '@FluxServer/images/createImageCache';
+import { createArtworkUsage } from '@FluxServer/images/createArtworkUsage';
 import { detectLibrarySegments } from '@FluxServer/segments/detectLibrarySegments';
 import { createDatabaseWatchProgressService } from '@FluxServer/progress/createDatabaseWatchProgressService';
 import { createDatabaseFavouriteService } from '@FluxServer/favourites/createDatabaseFavouriteService';
@@ -50,12 +51,21 @@ import {
   DETECT_SEGMENTS_JOB,
   DetectSegmentsJobSchema,
   CLEANUP_IMAGE_CACHE_JOB,
+  CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   scheduleTriggerKind,
 } from '@FluxServer/jobs/JobQueue';
 import { createDatabaseMaintenanceService } from '@FluxServer/maintenance/createDatabaseMaintenanceService';
 import { cleanupImageCache } from '@FluxServer/maintenance/cleanupImageCache';
+import { sweepArtefactCache } from '@FluxServer/maintenance/sweepArtefactCache';
+import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
+import {
+  TRICKPLAY_INTERVAL_SECONDS,
+  TRICKPLAY_TILE_WIDTH,
+  TRICKPLAY_COLUMNS,
+  TRICKPLAY_ROWS,
+} from '@FluxServer/playback/PlaybackService';
 import { cleanupSessions } from '@FluxServer/maintenance/cleanupSessions';
 import { checkCatalogueConnectivity } from '@FluxServer/maintenance/checkCatalogueConnectivity';
 import { RESET_LIBRARY_JOB, scheduleQueueNameFor } from '@FluxServer/jobs/jobDefinitions';
@@ -114,6 +124,21 @@ const countUsers = async (): Promise<number> => {
   const rows = await db.select({ total: count() }).from(user);
 
   return rows[0]?.total ?? 0;
+};
+
+/**
+ * How much disk the media itself takes, across every library.
+ *
+ * A sum over rows Flux already keeps rather than a walk of the disk, so it
+ * costs a query rather than a directory traversal of a media array. Scanning
+ * is what keeps `sizeBytes` honest; this only adds it up.
+ */
+const readLibraryBytes = async (): Promise<number> => {
+  const rows = await db
+    .select({ total: sql<number>`coalesce(sum(${mediaItem.sizeBytes}), 0)::bigint` })
+    .from(mediaItem);
+
+  return Number(rows[0]?.total ?? 0);
 };
 
 const promoteToAdmin = async (email: string): Promise<void> => {
@@ -351,6 +376,42 @@ const jobs = await createJobQueue({
 
       process.stdout.write(`image cache cleanup: removed ${removed.toString()} file(s)\n`);
     },
+    [CLEANUP_ARTEFACT_CACHE_JOB]: async () => {
+      const swept = await sweepArtefactCache({
+        listLiveItems: async () => {
+          const rows = await db
+            .select({
+              path: mediaItem.path,
+              audioStreams: mediaItem.audioStreams,
+              generation: library.generation,
+              defaultAudioLanguage: library.defaultAudioLanguage,
+            })
+            .from(mediaItem)
+            .innerJoin(library, eq(library.id, mediaItem.libraryId));
+
+          return rows.map((row) => ({
+            path: row.path,
+            audioStreams: z.array(AudioStreamSchema).parse(row.audioStreams),
+            generation: row.generation,
+            defaultAudioLanguage: row.defaultAudioLanguage,
+          }));
+        },
+        trickplay: {
+          intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
+          tileWidth: TRICKPLAY_TILE_WIDTH,
+          columns: TRICKPLAY_COLUMNS,
+          rows: TRICKPLAY_ROWS,
+        },
+        transcoder,
+        onProblem: (what, reason) => {
+          process.stderr.write(`artefact cache: ${what}: ${reason}\n`);
+        },
+      });
+
+      process.stdout.write(
+        `artefact cache cleanup: removed ${swept.removed.toString()} directory(ies), freed ${swept.freedBytes.toString()} byte(s), kept ${swept.kept.toString()}, skipped ${swept.tooNew.toString()} as too new\n`,
+      );
+    },
     [CLEANUP_SESSIONS_JOB]: async (jobId) => {
       const removed = await cleanupSessions({
         deleteExpiredSessions: async () => {
@@ -482,6 +543,11 @@ const images = createImageCache({
   },
 });
 
+const artworkUsage = createArtworkUsage({ directory: env.IMAGE_CACHE_DIR });
+
+artworkUsage.watch();
+void artworkUsage.refresh();
+
 const playbackService = createPlaybackService({
   media: {
     findForPlayback: async (mediaId) => {
@@ -492,7 +558,11 @@ const playbackService = createPlaybackService({
       }
 
       const rows = await db
-        .select({ path: mediaItem.path, defaultAudioLanguage: library.defaultAudioLanguage })
+        .select({
+          path: mediaItem.path,
+          defaultAudioLanguage: library.defaultAudioLanguage,
+          generation: library.generation,
+        })
         .from(mediaItem)
         .innerJoin(library, eq(library.id, mediaItem.libraryId))
         .where(eq(mediaItem.id, mediaId))
@@ -502,7 +572,12 @@ const playbackService = createPlaybackService({
 
       return row === undefined
         ? null
-        : { item, path: row.path, defaultAudioLanguage: row.defaultAudioLanguage };
+        : {
+            item,
+            path: row.path,
+            defaultAudioLanguage: row.defaultAudioLanguage,
+            generation: row.generation,
+          };
     },
   },
   transcoder,
@@ -671,6 +746,17 @@ const app = createApp({
     return 'changed';
   },
   capabilities: () => transcoder.capabilities(),
+  artworkUsage: () => artworkUsage.read(),
+  libraryBytes: () => readLibraryBytes(),
+  measureStorage: async () => {
+    const [cache, artwork, bytes] = await Promise.all([
+      transcoder.measureCache(),
+      artworkUsage.refresh(),
+      readLibraryBytes(),
+    ]);
+
+    return { cache, artwork, libraryBytes: bytes };
+  },
   monitor: () => transcoder.readMonitor(),
   monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),

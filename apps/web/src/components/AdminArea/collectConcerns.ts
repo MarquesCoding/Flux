@@ -1,5 +1,8 @@
 import type { ActiveSession, AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin';
 import type { Library } from '@FluxContracts/schemas/Library';
+import { fluxCpuShare } from './fluxCpuShare';
+import { libraryDisk } from './libraryDisk';
+import { formatBytes } from './formatBytes';
 
 /**
  * How much somebody should care, which is what decides the order.
@@ -37,6 +40,13 @@ type CollectConcernsOptions = {
    * server working, not failing.
    */
   history?: number[];
+  /**
+   * Encoder readings, oldest first, and only from a card that reports its
+   * encode block. A machine that cannot measure its encoder contributes no
+   * readings rather than zeroes, so nothing here can mistake an unreadable
+   * encoder for an idle one.
+   */
+  encoderHistory?: number[];
 };
 
 /**
@@ -63,6 +73,34 @@ const CPU_PRESSURE = 90;
  * A reading a second, so this is the last quarter minute.
  */
 const CPU_READINGS = 15;
+
+/**
+ * The encoder share, sustained, past which it is worth mentioning.
+ *
+ * The same reasoning as the processor: a stream starting takes the encode
+ * block to full for a moment and that is the card doing its job. What is worth
+ * saying is that it has stayed there, because the next stream to ask for
+ * hardware will not get it.
+ */
+const ENCODER_PRESSURE = 90;
+
+/**
+ * The share of the library disk in use past which it is worth mentioning.
+ *
+ * Higher than the memory threshold because a media disk is meant to be full —
+ * somebody who has filled eight terabytes has been collecting, not leaking.
+ * What is worth saying is that the next scan may have nowhere to write.
+ */
+const DISK_PRESSURE = 0.95;
+
+/**
+ * The share of the machine Flux has to be using before the load is its doing.
+ *
+ * Half is enough to answer the question somebody asks when the box is hot:
+ * whether to look at Flux or at whatever else the machine runs. Below it,
+ * Flux is a passenger and the transcodes are the ones being starved.
+ */
+const FLUX_BLAME = 50;
 
 /**
  * How little buffer a playing stream can hold before it is in trouble.
@@ -95,6 +133,7 @@ const collectConcerns = ({
   libraries,
   sessions = [],
   history = [],
+  encoderHistory = [],
 }: CollectConcernsOptions): Concern[] => {
   const concerns: Concern[] = [];
 
@@ -109,6 +148,25 @@ const collectConcerns = ({
         address === ''
           ? 'Nothing that needs converting will play until it is back.'
           : `Nothing that needs converting will play until it is back. Looked for it at ${address}.`,
+      panel: 'activity',
+    });
+  }
+
+  if (
+    overview !== null &&
+    overview.transcoder.isReachable &&
+    !overview.transcoder.ffmpegSupported
+  ) {
+    const version = overview.transcoder.ffmpegVersion;
+
+    concerns.push({
+      id: 'ffmpeg-version',
+      tone: 'attention',
+      title: 'The media service is running an FFmpeg older than Flux supports',
+      detail:
+        version === null
+          ? 'Everything still plays, but the filters that keep frames on the graphics card may be missing, so transcodes cost several times more than they need to.'
+          : `Everything still plays on ${version}, but the filters that keep frames on the graphics card may be missing, so transcodes cost several times more than they need to.`,
       panel: 'activity',
     });
   }
@@ -141,14 +199,56 @@ const collectConcerns = ({
     });
   }
 
+  const disk = libraryDisk(
+    resources?.disks ?? [],
+    libraries.map((library) => library.path),
+  );
+
+  if (
+    disk !== null &&
+    disk.totalBytes > 0 &&
+    (disk.totalBytes - disk.availableBytes) / disk.totalBytes > DISK_PRESSURE
+  ) {
+    concerns.push({
+      id: 'disk',
+      tone: 'attention',
+      title: 'The library disk is nearly full',
+      detail: `${formatBytes(disk.availableBytes)} left on ${disk.mountPoint}. A scan that finds new files may have nowhere to put what it makes of them.`,
+      panel: 'libraries',
+    });
+  }
+
   const recent = history.slice(-CPU_READINGS);
 
   if (recent.length === CPU_READINGS && recent.every((reading) => reading > CPU_PRESSURE)) {
+    const share = fluxCpuShare(resources);
+
     concerns.push({
       id: 'cpu',
       tone: 'attention',
       title: 'The processor has been at full stretch',
-      detail: 'Playback that needs converting may stutter while it lasts.',
+      detail:
+        share === null
+          ? 'Playback that needs converting may stutter while it lasts.'
+          : share >= FLUX_BLAME
+            ? `Flux is using ${share.toFixed(0)}% of the machine, so this is its own work. Playback that needs converting may stutter while it lasts.`
+            : `Flux is using ${share.toFixed(0)}% of the machine, so most of this is something else on the box.`,
+      panel: 'activity',
+    });
+  }
+
+  const encoderRecent = encoderHistory.slice(-CPU_READINGS);
+
+  if (
+    encoderRecent.length === CPU_READINGS &&
+    encoderRecent.every((reading) => reading > ENCODER_PRESSURE)
+  ) {
+    concerns.push({
+      id: 'encoder',
+      tone: 'attention',
+      title: 'The graphics encoder has been at full stretch',
+      detail:
+        'The next stream that needs converting will fall back to the processor, which is several times the work.',
       panel: 'activity',
     });
   }
@@ -212,5 +312,14 @@ const collectConcerns = ({
   return [...concerns].sort((a, b) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone]);
 };
 
-export { collectConcerns, MEMORY_PRESSURE, CPU_PRESSURE, CPU_READINGS, STARVED_SECONDS };
+export {
+  collectConcerns,
+  MEMORY_PRESSURE,
+  CPU_PRESSURE,
+  CPU_READINGS,
+  ENCODER_PRESSURE,
+  DISK_PRESSURE,
+  FLUX_BLAME,
+  STARVED_SECONDS,
+};
 export type { Concern, ConcernTone };
