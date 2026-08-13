@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MediaDetailDialog } from './MediaDetailDialog';
+import type { ReactNode } from 'react';
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
 
 const detailMock = vi.hoisted(() => vi.fn());
@@ -11,7 +12,12 @@ vi.mock('@FluxWeb/library/fetchLibrary', () => ({
 }));
 
 vi.mock('@FluxWeb/components/MediaPreview/MediaPreview', () => ({
-  MediaPreview: () => <div>preview</div>,
+  MediaPreview: ({ actions }: { actions?: ReactNode }) => (
+    <div>
+      preview
+      {actions}
+    </div>
+  ),
 }));
 
 const summary: MediaSummary = {
@@ -199,5 +205,124 @@ describe('MediaDetailDialog', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(MediaDetailDialog.displayName).toBe('MediaDetailDialog');
+  });
+});
+
+describe('keeping something, and getting back to where you were', () => {
+  it('offers to keep an item that is not kept', async () => {
+    const onToggleKept = vi.fn();
+    const actor = userEvent.setup();
+
+    render(
+      <MediaDetailDialog
+        media={summary}
+        onClose={vi.fn()}
+        onPlay={vi.fn()}
+        isKept={false}
+        onToggleKept={onToggleKept}
+      />,
+    );
+
+    await actor.click(await screen.findByRole('button', { name: 'Keep Arrival' }));
+
+    expect(onToggleKept).toHaveBeenCalledWith(summary);
+  });
+
+  it('offers to stop keeping one that is', async () => {
+    render(
+      <MediaDetailDialog
+        media={summary}
+        onClose={vi.fn()}
+        onPlay={vi.fn()}
+        isKept
+        onToggleKept={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByRole('button', { name: 'Stop keeping Arrival' })).toBeInTheDocument();
+  });
+
+  it('offers nothing to keep with when nobody is listening', () => {
+    render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: /Keep Arrival/ })).not.toBeInTheDocument();
+  });
+
+  it('offers the way back it was given, by the name it was given', async () => {
+    const onBack = vi.fn();
+    const actor = userEvent.setup();
+
+    render(
+      <MediaDetailDialog
+        media={summary}
+        onClose={vi.fn()}
+        onPlay={vi.fn()}
+        onBack={onBack}
+        backLabel="Back to the series"
+      />,
+    );
+
+    await actor.click(await screen.findByRole('button', { name: 'Back to the series' }));
+
+    expect(onBack).toHaveBeenCalled();
+  });
+
+  it('calls the way back simply Back when it was not named', async () => {
+    render(
+      <MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} onBack={vi.fn()} />,
+    );
+
+    expect(await screen.findByRole('button', { name: 'Back' })).toBeInTheDocument();
+  });
+
+  it('offers no way back when there is nowhere to go', () => {
+    render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+  });
+
+  it('names what an item is filed under once the details arrive', async () => {
+    detailMock.mockResolvedValue(detail({ genres: ['Science fiction', 'Drama'] }));
+
+    render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(await screen.findByText('Science fiction')).toBeInTheDocument();
+  });
+
+  it('says nothing about genres for an item carrying none', async () => {
+    render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(detailMock).toHaveBeenCalled();
+    });
+
+    expect(screen.queryByText('Science fiction')).not.toBeInTheDocument();
+  });
+
+  it('offers the rest of a season, and opens the one that is chosen', async () => {
+    const onSelectSibling = vi.fn();
+    const actor = userEvent.setup();
+    const sibling: MediaSummary = {
+      ...summary,
+      id: 'media-2',
+      title: 'Episode 2',
+      seriesTitle: 'A Sign of Affection',
+      seasonNumber: 1,
+      episodeNumber: 2,
+    };
+
+    render(
+      <MediaDetailDialog
+        media={summary}
+        onClose={vi.fn()}
+        onPlay={vi.fn()}
+        siblings={[sibling]}
+        onSelectSibling={onSelectSibling}
+      />,
+    );
+
+    await actor.click(await screen.findByRole('button', { name: /Episode 2/ }));
+
+    expect(onSelectSibling).toHaveBeenCalledWith(sibling);
   });
 });
