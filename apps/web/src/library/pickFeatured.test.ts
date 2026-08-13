@@ -174,3 +174,64 @@ describe('nextEpisode', () => {
     expect(nextEpisode([first, episodeOf('Show', 1, 4)], first)?.episodeNumber).toBe(4);
   });
 });
+
+describe('the episodes either side of one', () => {
+  it('finds the rest of a season, in order', () => {
+    const items = [
+      episodeOf('Ted Lasso', 1, 3),
+      episodeOf('Ted Lasso', 1, 1),
+      episodeOf('Ted Lasso', 1, 2),
+    ];
+
+    const siblings = findSiblings(items, items[1] ?? items[0]!);
+
+    expect(siblings.map((one) => one.episodeNumber)).toEqual([2, 3]);
+  });
+
+  it('leaves out another season, which is a different run of episodes', () => {
+    const items = [episodeOf('Ted Lasso', 1, 1), episodeOf('Ted Lasso', 2, 1)];
+
+    expect(findSiblings(items, items[0]!)).toEqual([]);
+  });
+
+  it('has no siblings for a film', () => {
+    const film = itemOf({ title: 'Arrival' });
+
+    expect(findSiblings([film, itemOf({ title: 'Heat' })], film)).toEqual([]);
+  });
+
+  it('answers with the next episode of the season', () => {
+    const items = [episodeOf('Ted Lasso', 1, 1), episodeOf('Ted Lasso', 1, 2)];
+
+    expect(nextEpisode(items, items[0]!)?.episodeNumber).toBe(2);
+  });
+
+  it('has nothing after the last episode there is', () => {
+    const items = [episodeOf('Ted Lasso', 1, 1), episodeOf('Ted Lasso', 1, 2)];
+
+    expect(nextEpisode(items, items[1]!)).toBeNull();
+  });
+
+  it('has nothing after a film, which is not part of a run', () => {
+    const film = itemOf({ title: 'Arrival' });
+
+    expect(nextEpisode([film], film)).toBeNull();
+  });
+
+  it('treats an episode with no number as coming before the numbered ones', () => {
+    const unnumbered = itemOf({
+      title: 'A special',
+      seriesTitle: 'Ted Lasso',
+      seasonNumber: 1,
+    });
+    const first = episodeOf('Ted Lasso', 1, 1);
+
+    expect(findSiblings([unnumbered, first], first).map((one) => one.title)).toEqual(['A special']);
+  });
+
+  it('replaces a series already standing when an earlier episode turns up', () => {
+    const featured = pickFeatured([episodeOf('Ted Lasso', 1, 5), episodeOf('Ted Lasso', 1, 1)], 5);
+
+    expect(featured.map((one) => one.episodeNumber)).toEqual([1]);
+  });
+});
