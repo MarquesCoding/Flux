@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, lt } from 'drizzle-orm';
 import { watchHistory } from '@FluxServer/db/Schema';
 import { decideViewing } from './decideViewing';
 import type { FluxDatabase } from '@FluxServer/db/Database';
@@ -118,6 +118,15 @@ const createDatabaseHistoryService = (db: FluxDatabase): HistoryService => ({
       .returning({ id: watchHistory.id });
 
     return gone.length > 0;
+  },
+
+  prune: async (before) => {
+    const gone = await db
+      .delete(watchHistory)
+      .where(lt(watchHistory.lastWatchedAt, before))
+      .returning({ id: watchHistory.id });
+
+    return gone.length;
   },
 
   forgetAll: async (profileId) => {

@@ -123,4 +123,23 @@ describe('a profile’s viewing history', () => {
 
     expect((await history.list('profile-1'))[0]?.isFinished).toBe(true);
   });
+
+  it('forgets viewings older than the horizon', async () => {
+    const history = createMemoryHistoryService();
+
+    await history.record('profile-1', 'media-1', watched(300, false, 0));
+    await history.record('profile-2', 'media-2', watched(300, false, 86_400_000));
+
+    expect(await history.prune(at(43_200_000))).toBe(1);
+    expect(await history.list('profile-1')).toEqual([]);
+    expect(await history.list('profile-2')).toHaveLength(1);
+  });
+
+  it('forgets nothing when everything is recent enough to keep', async () => {
+    const history = createMemoryHistoryService();
+
+    await history.record('profile-1', 'media-1', watched());
+
+    expect(await history.prune(at(-86_400_000))).toBe(0);
+  });
 });

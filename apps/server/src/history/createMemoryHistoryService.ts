@@ -107,6 +107,16 @@ const createMemoryHistoryService = (
       return Promise.resolve(true);
     },
 
+    prune: (before) => {
+      const was = state.viewings.length;
+
+      state.viewings = state.viewings.filter(
+        (one) => Date.parse(one.lastWatchedAt) >= before.getTime(),
+      );
+
+      return Promise.resolve(was - state.viewings.length);
+    },
+
     forgetAll: (profileId) => {
       const before = state.viewings.length;
 

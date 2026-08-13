@@ -53,6 +53,19 @@ const RegeneratePreviewsJobSchema = z.object({
 type RegeneratePreviewsJob = z.infer<typeof RegeneratePreviewsJobSchema>;
 
 /**
+ * Prunes viewing history older than the horizon.
+ *
+ * The log grows for ever otherwise: one row per profile per thing watched per
+ * sitting, and a household adds to it every evening. What is worth keeping is
+ * recent enough to be read.
+ */
+const PRUNE_HISTORY_JOB = 'library.pruneHistory';
+
+const PruneHistoryJobSchema = z.object({});
+
+type PruneHistoryJob = z.infer<typeof PruneHistoryJobSchema>;
+
+/**
  * Collects the lettering each title is written in.
  *
  * Separate from `library.scan` because it asks a catalogue rather than the
@@ -264,6 +277,7 @@ export type {
   ReadAgainJob,
   RegenerateTrickplayJob,
   FetchLogosJob,
+  PruneHistoryJob,
   RunningJob,
   ScanLibraryJob,
 };
@@ -277,8 +291,10 @@ export {
   RegeneratePreviewsJobSchema,
   REGENERATE_TRICKPLAY_JOB,
   FETCH_LOGOS_JOB,
+  PRUNE_HISTORY_JOB,
   RegenerateTrickplayJobSchema,
   FetchLogosJobSchema,
+  PruneHistoryJobSchema,
   DETECT_SEGMENTS_JOB,
   DetectSegmentsJobSchema,
   CLEANUP_IMAGE_CACHE_JOB,

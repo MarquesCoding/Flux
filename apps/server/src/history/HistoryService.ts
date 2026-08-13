@@ -54,6 +54,16 @@ type HistoryService = {
    * Forgets everything a profile has watched.
    */
   forgetAll: (profileId: string) => Promise<number>;
+
+  /**
+   * Forgets every viewing older than a date, whoever it belonged to.
+   *
+   * For the scheduled pruning. This log grows every evening a household
+   * watches anything, and what is worth keeping is what is recent enough to be
+   * read — usage figures that outlive the detail are rolled up separately
+   * rather than recomputed from rows nobody will look at again.
+   */
+  prune: (before: Date) => Promise<number>;
 };
 
 export type { HistoryService, Viewing };
