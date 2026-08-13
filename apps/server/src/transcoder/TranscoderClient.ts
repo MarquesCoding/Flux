@@ -253,7 +253,14 @@ type SessionSpec = {
 type Transcoder = {
   isReachable: () => Promise<boolean>;
   probe: (path: string) => Promise<MediaProbe>;
-  startSession: (spec: SessionSpec) => Promise<SessionResponse>;
+  /**
+   * Starts a transcode, saying which device asked.
+   *
+   * The device does not change what is made — two devices asking for the same
+   * thing share one transcode — only which one is worth keeping afterwards,
+   * since each device's most recent is the one somebody would resume.
+   */
+  startSession: (spec: SessionSpec, deviceId?: string) => Promise<SessionResponse>;
   readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>;
   /**
    * Opens an original file for direct play, forwarding a byte range.
@@ -621,8 +628,12 @@ const createTranscoderClient = ({
     probe: async (path) =>
       MediaProbeSchema.parse(await (await postJson('/probe', { path })).json()),
 
-    startSession: async (spec) =>
-      SessionResponseSchema.parse(await (await postJson('/sessions', spec)).json()),
+    startSession: async (spec, deviceId) =>
+      SessionResponseSchema.parse(
+        await (
+          await postJson('/sessions', deviceId === undefined ? spec : { ...spec, deviceId })
+        ).json(),
+      ),
 
     readSessionFile: async (sessionId, name) => {
       const response = await call2(

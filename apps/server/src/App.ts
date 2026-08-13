@@ -789,6 +789,7 @@ const createApp = ({
       startSeconds ?? 0,
       audioStreamIndex,
       requestedQuality,
+      clientId,
     );
 
     if (outcome.kind === 'notFound') {

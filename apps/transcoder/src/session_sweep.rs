@@ -12,15 +12,23 @@
 //! one device's request. So everything here is disposable, and the only
 //! question is when.
 //!
-//! Two rules, because either alone fails. Age alone lets a busy weekend fill a
-//! disk before anything is old enough to go. A size cap alone throws away a
-//! directory somebody is about to resume while the disk has room to spare.
+//! What is worth keeping is what somebody would come back to, so each device
+//! keeps the last transcode it played and gives up the ones before it. That is
+//! the shape of the thing being cached: a person resumes what they were
+//! watching, not what they watched three films ago, and a household's worth of
+//! those is bounded by how many devices are in the house rather than by how
+//! much anybody watched.
+//!
+//! Age and a size cap still stand behind it, because "the last thing this
+//! device played" has no upper bound in bytes on its own — a remuxed disc can
+//! be seventy gigabytes by itself, and eight devices holding one each is most
+//! of a disk.
 //!
 //! Nothing is removed on the strength of a list assembled elsewhere. What is
 //! live comes from the registry in this process, and what is finished comes
 //! from the marker the encode itself wrote.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::time::{Duration, SystemTime};
 
@@ -41,6 +49,13 @@ pub const MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 /// done twice; the cost of there being no cap at all was sixty-five gigabytes.
 pub const MAX_BYTES: u64 = 20 * 1024 * 1024 * 1024;
 
+/// How long a device's most recent transcode is kept for it.
+///
+/// The reason to keep anything: somebody stopped watching and will pick it up
+/// again. A week covers an interrupted series without holding a disc-sized
+/// remux for a device that has moved on.
+pub const MAX_LATEST_AGE: Duration = Duration::from_secs(7 * 24 * 60 * 60);
+
 /// The directories under the cache root that are not sessions.
 ///
 /// Previews and thumbnail sheets live here too and are swept on their own
@@ -55,7 +70,14 @@ const NOT_SESSIONS: [&str; 2] = ["previews", "trickplay"];
 /// addressed cache the service keeps, rather than each growing its own rule.
 #[derive(Debug, Clone, Copy)]
 pub struct Budget {
+    /// How long a transcode no device has claimed as its latest may sit.
     pub max_age: Duration,
+    /// How long a device's most recent transcode is held for it.
+    ///
+    /// Much longer than the rest, because this is the one somebody would
+    /// actually resume — but not forever, since a device that never comes back
+    /// should not hold a remux indefinitely.
+    pub max_latest_age: Duration,
     pub max_bytes: u64,
     /// How new is too new to judge, for a directory with no completion marker.
     pub grace: Duration,
@@ -65,6 +87,7 @@ impl Default for Budget {
     fn default() -> Self {
         Self {
             max_age: MAX_AGE,
+            max_latest_age: MAX_LATEST_AGE,
             max_bytes: MAX_BYTES,
             grace: crate::cache_sweep::GRACE,
         }
@@ -90,6 +113,19 @@ struct Candidate {
     path: std::path::PathBuf,
     used_at: SystemTime,
     bytes: u64,
+    /// Whether this is the transcode some device would come back to.
+    is_latest: bool,
+    /// Whether any device has claimed it at all.
+    is_claimed: bool,
+}
+
+/// Which devices have played a directory, and when each last did.
+async fn devices_of(directory: &Path) -> HashMap<String, u64> {
+    tokio::fs::read_to_string(directory.join(crate::session::DEVICES_MARKER))
+        .await
+        .ok()
+        .and_then(|found| serde_json::from_str(&found).ok())
+        .unwrap_or_default()
 }
 
 /// When a directory was last useful.
@@ -122,6 +158,51 @@ async fn remove(path: &Path, bytes: u64, report: &mut EvictReport) {
     }
 }
 
+/// Decides which finished transcodes are still worth their disk.
+///
+/// The rule, in a sentence: a device keeps the last thing it played, gives up
+/// what it played before that, and loses even the last one if it never comes
+/// back. A directory nobody has claimed at all — made before devices were
+/// recorded, or by a caller that named none — falls back to plain age rather
+/// than being treated as abandoned.
+///
+/// Answers what to remove, and leaves `survivors` holding the rest.
+fn settle(
+    survivors: &mut Vec<Candidate>,
+    latest: &HashMap<String, (u64, std::path::PathBuf)>,
+    budget: &Budget,
+    now: SystemTime,
+) -> Vec<(std::path::PathBuf, u64)> {
+    let claimed_latest: HashSet<&std::path::PathBuf> =
+        latest.values().map(|(_, path)| path).collect();
+
+    for candidate in &mut *survivors {
+        candidate.is_latest = claimed_latest.contains(&candidate.path);
+    }
+
+    let mut spent = Vec::new();
+
+    survivors.retain(|candidate| {
+        let age = now.duration_since(candidate.used_at).unwrap_or_default();
+
+        let worth_keeping = if candidate.is_latest {
+            age <= budget.max_latest_age
+        } else if candidate.is_claimed {
+            false
+        } else {
+            age <= budget.max_age
+        };
+
+        if !worth_keeping {
+            spent.push((candidate.path.clone(), candidate.bytes));
+        }
+
+        worth_keeping
+    });
+
+    spent
+}
+
 /// Reclaims what the transcode cache is holding and nobody is using.
 ///
 /// `live` is the set of session ids the registry currently has, which are the
@@ -148,6 +229,7 @@ pub async fn evict<S: std::hash::BuildHasher + Sync>(
     let now = SystemTime::now();
     let mut survivors: Vec<Candidate> = Vec::new();
     let mut untouchable: u64 = 0;
+    let mut latest: HashMap<String, (u64, std::path::PathBuf)> = HashMap::new();
 
     while let Ok(Some(entry)) = entries.next_entry().await {
         let name = entry.file_name().to_string_lossy().into_owned();
@@ -185,20 +267,34 @@ pub async fn evict<S: std::hash::BuildHasher + Sync>(
             continue;
         }
 
-        if age > budget.max_age {
-            remove(&path, bytes, &mut report).await;
+        let devices = devices_of(&path).await;
 
-            continue;
+        for (device, when) in &devices {
+            let newest = latest
+                .entry(device.clone())
+                .or_insert((*when, path.clone()));
+
+            if *when > newest.0 {
+                *newest = (*when, path.clone());
+            }
         }
 
         survivors.push(Candidate {
             path,
             used_at: at,
             bytes,
+            is_latest: false,
+            is_claimed: !devices.is_empty(),
         });
     }
 
-    survivors.sort_by_key(|candidate| candidate.used_at);
+    let spent = settle(&mut survivors, &latest, budget, now);
+
+    for candidate in &spent {
+        remove(&candidate.0, candidate.1, &mut report).await;
+    }
+
+    survivors.sort_by_key(|candidate| (candidate.is_latest, candidate.used_at));
 
     let mut held: u64 = untouchable
         + survivors
@@ -277,6 +373,7 @@ mod tests {
     fn budget(max_age: Duration, max_bytes: u64) -> Budget {
         Budget {
             max_age,
+            max_latest_age: 7 * 24 * HOUR,
             max_bytes,
             grace: HOUR,
         }
@@ -349,6 +446,7 @@ mod tests {
 
         let past_grace = Budget {
             max_age: 24 * HOUR,
+            max_latest_age: 7 * 24 * HOUR,
             max_bytes: u64::MAX,
             grace: Duration::ZERO,
         };
@@ -410,6 +508,140 @@ mod tests {
         .await;
 
         assert_eq!(report, EvictReport::default());
+    }
+
+    /// Says which devices last played a directory, and when.
+    fn claimed(path: &Path, devices: &[(&str, Duration)]) {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_millis();
+
+        let entries: Vec<String> = devices
+            .iter()
+            .map(|(device, ago)| {
+                let when = now.saturating_sub(ago.as_millis());
+
+                format!("\"{device}\":{when}")
+            })
+            .collect();
+
+        std::fs::write(path.join(".devices"), format!("{{{}}}", entries.join(",")))
+            .expect("the claim is written");
+    }
+
+    #[tokio::test]
+    async fn keeps_the_last_transcode_a_device_played() {
+        let root = root("device-latest");
+        let watched = session(&root, "ses_latest", 100, true, 48 * HOUR);
+
+        claimed(&watched, &[("phone", 48 * HOUR)]);
+
+        let report = swept(&root, &[], &budget(HOUR, u64::MAX)).await;
+
+        assert_eq!(
+            report.removed, 0,
+            "a device's own transcode outlives the age rule"
+        );
+        assert!(watched.exists());
+    }
+
+    #[tokio::test]
+    async fn gives_up_the_one_before_it_when_a_device_watches_something_else() {
+        let root = root("device-replaced");
+        let older = session(&root, "ses_first", 100, true, 2 * HOUR);
+        let newer = session(&root, "ses_second", 100, true, HOUR);
+
+        claimed(&older, &[("phone", 2 * HOUR)]);
+        claimed(&newer, &[("phone", HOUR)]);
+
+        let report = swept(&root, &[], &budget(24 * HOUR, u64::MAX)).await;
+
+        assert_eq!(report.removed, 1);
+        assert!(
+            !older.exists(),
+            "watching something else replaces the last one"
+        );
+        assert!(newer.exists());
+    }
+
+    #[tokio::test]
+    async fn keeps_one_transcode_for_each_device() {
+        let root = root("device-each");
+        let phone = session(&root, "ses_phone", 100, true, 2 * HOUR);
+        let telly = session(&root, "ses_telly", 100, true, 3 * HOUR);
+
+        claimed(&phone, &[("phone", 2 * HOUR)]);
+        claimed(&telly, &[("telly", 3 * HOUR)]);
+
+        let report = swept(&root, &[], &budget(HOUR, u64::MAX)).await;
+
+        assert_eq!(report.removed, 0, "two devices, two resume points");
+        assert!(phone.exists());
+        assert!(telly.exists());
+    }
+
+    #[tokio::test]
+    async fn keeps_one_two_devices_are_both_watching() {
+        let root = root("device-shared");
+        let shared = session(&root, "ses_shared", 100, true, 5 * HOUR);
+        let newer = session(&root, "ses_newer", 100, true, HOUR);
+
+        claimed(&shared, &[("phone", 5 * HOUR), ("telly", 5 * HOUR)]);
+        claimed(&newer, &[("phone", HOUR)]);
+
+        let report = swept(&root, &[], &budget(HOUR, u64::MAX)).await;
+
+        assert_eq!(
+            report.removed, 0,
+            "still the television's latest, whatever the phone did"
+        );
+        assert!(shared.exists());
+        assert!(newer.exists());
+    }
+
+    #[tokio::test]
+    async fn lets_go_of_a_device_that_never_came_back() {
+        let root = root("device-gone");
+        let stale = session(&root, "ses_stale", 100, true, 30 * 24 * HOUR);
+
+        claimed(&stale, &[("phone", 30 * 24 * HOUR)]);
+
+        let report = swept(
+            &root,
+            &[],
+            &Budget {
+                max_age: HOUR,
+                max_latest_age: 7 * 24 * HOUR,
+                max_bytes: u64::MAX,
+                grace: HOUR,
+            },
+        )
+        .await;
+
+        assert_eq!(
+            report.removed, 1,
+            "a week is long enough to wait for a resume"
+        );
+        assert!(!stale.exists());
+    }
+
+    #[tokio::test]
+    async fn gives_up_an_unclaimed_transcode_before_a_claimed_one() {
+        let root = root("device-order");
+        let claimed_one = session(&root, "ses_claimed", 100, true, 5 * HOUR);
+        let loose = session(&root, "ses_loose", 1000, true, HOUR);
+
+        claimed(&claimed_one, &[("phone", 5 * HOUR)]);
+
+        let report = swept(&root, &[], &budget(24 * HOUR, 500)).await;
+
+        assert_eq!(report.removed, 1);
+        assert!(
+            claimed_one.exists(),
+            "somebody's resume point outranks a loose one"
+        );
+        assert!(!loose.exists());
     }
 
     #[tokio::test]

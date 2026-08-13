@@ -28,6 +28,36 @@ async fn is_already_complete(directory: &Path) -> bool {
         .unwrap_or(false)
 }
 
+/// Which devices have played a transcode, and when each last did.
+///
+/// Kept beside the segments rather than in memory so it survives a restart:
+/// the whole point is to know which transcode a device would come back to,
+/// and a service that forgets that on every deploy would evict the one
+/// directory somebody was about to resume.
+pub const DEVICES_MARKER: &str = ".devices";
+
+/// Records that a device has just played this transcode.
+///
+/// The device is not part of the session's address, deliberately. Two people
+/// watching the same thing at the same quality should share one directory and
+/// one encode — what differs is that each of them would resume it, so both are
+/// written here and either keeps it alive.
+async fn record_device(directory: &Path, device: &str) {
+    let path = directory.join(DEVICES_MARKER);
+
+    let mut devices: HashMap<String, u64> = tokio::fs::read_to_string(&path)
+        .await
+        .ok()
+        .and_then(|found| serde_json::from_str(&found).ok())
+        .unwrap_or_default();
+
+    devices.insert(device.to_owned(), crate::queue::now_ms());
+
+    if let Ok(payload) = serde_json::to_string(&devices) {
+        let _ = tokio::fs::write(&path, payload).await;
+    }
+}
+
 /// Records that a finished transcode has been wanted again.
 ///
 /// Rewrites the completion marker, so its timestamp says when somebody last
@@ -229,7 +259,11 @@ impl SessionRegistry {
     ///
     /// Returns [`SessionError`] when the directory cannot be made, ffmpeg
     /// cannot be spawned, or ffmpeg rejects the input immediately.
-    pub async fn start(&self, spec: SessionSpec) -> Result<String, SessionError> {
+    pub async fn start(
+        &self,
+        spec: SessionSpec,
+        device: Option<&str>,
+    ) -> Result<String, SessionError> {
         let id = spec.session_id();
 
         {
@@ -237,6 +271,14 @@ impl SessionRegistry {
 
             if let Some(existing) = sessions.get_mut(&id) {
                 existing.touch();
+
+                let directory = existing.directory.clone();
+
+                drop(sessions);
+
+                if let Some(device) = device {
+                    record_device(&directory, device).await;
+                }
 
                 return Ok(id);
             }
@@ -249,6 +291,10 @@ impl SessionRegistry {
         tokio::fs::create_dir_all(&directory)
             .await
             .map_err(SessionError::Directory)?;
+
+        if let Some(device) = device {
+            record_device(&directory, device).await;
+        }
 
         if is_already_complete(&directory).await {
             mark_used(&directory).await;
