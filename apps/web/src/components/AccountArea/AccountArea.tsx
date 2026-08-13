@@ -60,6 +60,7 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
+      exit="gone"
       className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-5 pb-6 pt-5 sm:px-10"
     >
       <Tabs

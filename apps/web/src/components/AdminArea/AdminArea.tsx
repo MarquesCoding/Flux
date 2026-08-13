@@ -434,6 +434,7 @@ const AdminArea = ({
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
+      exit="gone"
       className="flex w-full flex-col gap-4 px-5 pb-6 pt-5 sm:px-10"
     >
       <Tabs value={panel} onValueChange={showPanel}>
