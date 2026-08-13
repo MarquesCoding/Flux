@@ -41,7 +41,20 @@ describe('PageDots', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Show Dune' })).toBeInTheDocument();
-    expect(screen.getByText('Dune')).toBeInTheDocument();
+  });
+
+  it('shows that name out of the page, so a corner cannot clip it', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PageDots count={2} selectedIndex={0} labels={['Arrival', 'Dune']} onSelect={vi.fn()} />,
+    );
+
+    expect(screen.queryByText('Dune')).not.toBeInTheDocument();
+
+    await user.hover(screen.getByRole('button', { name: 'Show Dune' }));
+
+    expect(await screen.findByText('Dune', {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
   it('names the row itself, since a page may carry more than one', () => {
