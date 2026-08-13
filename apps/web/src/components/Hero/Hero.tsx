@@ -56,10 +56,15 @@ const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
 /**
  * How much of the frame the mark may take.
  *
- * At the head of the words rather than off in a corner. A hero is read from
- * the bottom left — the name, then what it is, then whether to press Play —
- * and the mark is the first line of that, not a stamp in the opposite corner
- * competing with it.
+ * It is the title rather than a badge beside it: where a programme has
+ * lettering of its own, that lettering is its name and setting the name again
+ * underneath in the interface's typeface says the same thing twice in two
+ * voices. It still stands in a heading and still carries the name as its
+ * alternative text, so anything reading the page rather than looking at it
+ * finds the title exactly where it expects to.
+ *
+ * Sized to sit where a heading sits rather than to fill the card. A mark given
+ * the whole frame reads as a splash screen; this reads as a title.
  *
  * A logo is artwork with its own proportions — some are a word set wide, some
  * are a word stacked three lines deep inside a device — so it is given a box
@@ -80,6 +85,20 @@ const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
  * standing in front of the thing they were describing.
  */
 const SYNOPSIS_MILLISECONDS = 8000;
+
+/**
+ * The synopsis with no room taken up.
+ *
+ * Height as well as opacity, because a paragraph that only fades leaves its
+ * space behind until the instant it unmounts, and then everything resting on
+ * it drops by three lines in one frame. Folding the height away carries the
+ * buttons and the mark down with it instead.
+ *
+ * The negative margin cancels the column's own gap. A child of a flex column
+ * still earns its gap at zero height, so without this the fold stops three
+ * quarters of a rem short and finishes with a snap after all.
+ */
+const SYNOPSIS_FOLDED = { opacity: 0, height: 0, marginTop: '-0.75rem' } as const;
 
 const LOGO_BOX = [
   'max-h-[14svh] w-auto max-w-[min(70vw,24rem)] object-contain object-left',
@@ -285,25 +304,27 @@ const Hero = ({
             animate="shown"
             className="relative flex flex-col gap-3 px-5 pb-8 pt-24 sm:px-10"
           >
-            {!isLettered ? null : (
-              <motion.img
-                variants={revealVariants(prefersReducedMotion)}
-                transition={revealTransition(prefersReducedMotion, 'heavy')}
-                src={logoUrl(featured.id)}
-                alt=""
-                className={LOGO_BOX}
-                onError={() => {
-                  setUnlettered((known) => new Set(known).add(featured.id));
-                }}
-              />
-            )}
-
             <motion.h1
               variants={revealVariants(prefersReducedMotion)}
               transition={revealTransition(prefersReducedMotion, 'heavy')}
-              className="max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text"
+              className={
+                isLettered
+                  ? 'flex'
+                  : 'max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text'
+              }
             >
-              {featured.seriesTitle ?? featured.title}
+              {isLettered ? (
+                <img
+                  src={logoUrl(featured.id)}
+                  alt={featured.seriesTitle ?? featured.title}
+                  className={LOGO_BOX}
+                  onError={() => {
+                    setUnlettered((known) => new Set(known).add(featured.id));
+                  }}
+                />
+              ) : (
+                (featured.seriesTitle ?? featured.title)
+              )}
             </motion.h1>
 
             <motion.p
@@ -317,14 +338,17 @@ const Hero = ({
               />
             </motion.p>
 
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {told === null || !isTelling ? null : (
                 <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: prefersReducedMotion === true ? 0.2 : 0.7 }}
-                  className="line-clamp-3 max-w-[52ch] text-[0.95rem] leading-relaxed text-text/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]"
+                  initial={SYNOPSIS_FOLDED}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
+                  exit={SYNOPSIS_FOLDED}
+                  transition={{
+                    duration: prefersReducedMotion === true ? 0.2 : 0.55,
+                    ease: [0.2, 0, 0, 1],
+                  }}
+                  className="line-clamp-3 max-w-[52ch] overflow-hidden text-[0.95rem] leading-relaxed text-text/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]"
                 >
                   {told}
                 </motion.p>
