@@ -8,7 +8,7 @@ vi.mock('@FluxWeb/components/MediaPreview/MediaPreview', () => ({
   MediaPreview: () => <div>preview</div>,
 }));
 
-const { detailMock } = vi.hoisted(() => ({ detailMock: vi.fn(() => Promise.resolve(null)) }));
+const { detailMock } = vi.hoisted(() => ({ detailMock: vi.fn() }));
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({ fetchMediaDetail: detailMock }));
 
@@ -26,13 +26,14 @@ const item = (id: string, title: string): MediaSummary => ({
   hasPoster: false,
   hasBackdrop: true,
   hasLogo: false,
+  seriesId: null,
 });
 
 const items = [item('a', 'Arrival'), item('b', 'Dune'), item('c', 'Sicario')];
 
 beforeEach(() => {
   detailMock.mockReset();
-  detailMock.mockResolvedValue(null);
+  detailMock.mockReturnValue(Promise.resolve(null));
   vi.useFakeTimers({ shouldAdvanceTime: true });
 });
 
@@ -206,7 +207,9 @@ describe('Hero', () => {
   });
 
   it('says what the thing is about', async () => {
-    detailMock.mockResolvedValue({ metadata: { overview: 'A linguist meets the arrival.' } });
+    detailMock.mockReturnValue(
+      Promise.resolve({ metadata: { overview: 'A linguist meets the arrival.' } }),
+    );
 
     render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
 
@@ -214,7 +217,9 @@ describe('Hero', () => {
   });
 
   it('stops saying it after a while, so the picture is not covered for ever', async () => {
-    detailMock.mockResolvedValue({ metadata: { overview: 'A linguist meets the arrival.' } });
+    detailMock.mockReturnValue(
+      Promise.resolve({ metadata: { overview: 'A linguist meets the arrival.' } }),
+    );
 
     render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
 
@@ -230,7 +235,7 @@ describe('Hero', () => {
   });
 
   it('says nothing at all about something the catalogue has no words for', async () => {
-    detailMock.mockResolvedValue({ metadata: { overview: null } });
+    detailMock.mockReturnValue(Promise.resolve({ metadata: { overview: null } }));
 
     render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
 

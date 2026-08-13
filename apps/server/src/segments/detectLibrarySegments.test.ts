@@ -20,7 +20,7 @@ const probe: MediaProbe = {
 
 const episode = (
   mediaId: string,
-  seriesTitle: string | null,
+  seriesId: string | null,
   seasonNumber: number | null,
   isComplete = false,
 ): GroupedCandidate => ({
@@ -28,7 +28,7 @@ const episode = (
   path: `/media/${mediaId}.mkv`,
   probe,
   durationSeconds: 1440,
-  seriesTitle,
+  seriesId,
   seasonNumber,
   isComplete,
 });
@@ -87,8 +87,23 @@ describe('groupBySeason', () => {
     expect(groups.size).toBe(2);
   });
 
-  it('ignores case in a series name, since releases disagree on it', () => {
-    const groups = groupBySeason([episode('a', 'Some Show', 1), episode('b', 'SOME SHOW', 1)]);
+  it('keeps two programmes of the same name apart, which a title could not', () => {
+    const theOfficeUk = 'series-uk';
+    const theOfficeUs = 'series-us';
+
+    const groups = groupBySeason([
+      episode('a', theOfficeUk, 1),
+      episode('b', theOfficeUk, 1),
+      episode('c', theOfficeUs, 1),
+      episode('d', theOfficeUs, 1),
+    ]);
+
+    expect(groups.size).toBe(2);
+    expect([...groups.values()].map((group) => group.length)).toEqual([2, 2]);
+  });
+
+  it('still keeps one programme together across a rename, since the id does not move', () => {
+    const groups = groupBySeason([episode('a', 'series-1', 1), episode('b', 'series-1', 1)]);
 
     expect(groups.size).toBe(1);
   });

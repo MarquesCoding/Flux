@@ -51,6 +51,12 @@ const UpdateLibraryRequestSchema = z.object({
  *
  * Deliberately small: a library of tens of thousands of items should not ship
  * every stream's details to render a page of posters.
+ *
+ * `seriesId` says which programme an episode belongs to, and is the programme's
+ * own id rather than its title. Two programmes share a title — The Office,
+ * Shameless, and every remake — so anything that gathers, hides or rates "the
+ * series" needs something a title cannot give it. Null for a film, which is not
+ * a series of one.
  */
 const MediaSummarySchema = z.object({
   id: z.string().uuid(),
@@ -66,6 +72,7 @@ const MediaSummarySchema = z.object({
   hasPoster: z.boolean().default(false),
   hasBackdrop: z.boolean().default(false),
   hasLogo: z.boolean().default(false),
+  seriesId: z.string().nullable().default(null),
   rating: z.number().nullish(),
   seriesTitle: z.string().nullish(),
   seasonNumber: z.number().int().nullish(),

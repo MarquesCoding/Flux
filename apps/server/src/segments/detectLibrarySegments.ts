@@ -4,10 +4,16 @@ import type { SegmentService } from './SegmentService';
 
 type GroupedCandidate = SegmentCandidate & {
   /**
-   * What the path said about where this file sits. Files that say nothing are
-   * films, and a film has no siblings to be compared against.
+   * Which programme this belongs to. Files that belong to none are films, and
+   * a film has no siblings to be compared against.
+   *
+   * The programme's id rather than its title, because two programmes share a
+   * title — The Office, Shameless, Skins, and every remake — and this key
+   * decides what gets compared against what. Keyed on the title, season one of
+   * both was fingerprinted as a single set and whatever the comparison found
+   * was written to two unrelated programmes.
    */
-  seriesTitle: string | null;
+  seriesId: string | null;
   seasonNumber: number | null;
   /**
    * Whether this file has already been listened to.
@@ -60,15 +66,20 @@ type DetectLibrarySegmentsOptions = {
  * between seasons, and comparing across them finds either nothing or something
  * misleading. Films are left out entirely — they have nothing to be compared
  * against, and a chapter provider reads them one at a time anyway.
+ *
+ * A season of which programme, decided by the programme's id. Two programmes
+ * with one title are two groups, which they were not when this keyed on the
+ * title: The Office (UK) and The Office (US) were one set, listened to as
+ * though they shared a theme tune.
  */
 const groupBySeason = (candidates: GroupedCandidate[]): Map<string, GroupedCandidate[]> => {
   const groups = new Map<string, GroupedCandidate[]>();
 
   for (const candidate of candidates) {
     const key =
-      candidate.seriesTitle === null || candidate.seasonNumber === null
+      candidate.seriesId === null || candidate.seasonNumber === null
         ? `film:${candidate.mediaId}`
-        : `${candidate.seriesTitle.toLowerCase()}:${candidate.seasonNumber.toString()}`;
+        : `${candidate.seriesId}:${candidate.seasonNumber.toString()}`;
 
     groups.set(key, [...(groups.get(key) ?? []), candidate]);
   }

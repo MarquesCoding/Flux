@@ -46,6 +46,18 @@ type EpisodeNumbering = {
    * makes anyone bother writing it down.
    */
   seriesYear: number | null;
+  /**
+   * The directory that separates this programme from every other one.
+   *
+   * The path rather than the name, because two libraries can each hold a
+   * folder called `Season 1` and two households can each hold a folder called
+   * `The Office`. What makes this useful is that a directory is what actually
+   * keeps two same-named programmes apart on disk — which is the one thing a
+   * title cannot do.
+   *
+   * Null for a film, which has no series to be told apart from.
+   */
+  seriesFolder: string | null;
   seasonNumber: number | null;
   episodeNumber: number | null;
   /**
@@ -111,6 +123,7 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
     return {
       seriesTitle: null,
       seriesYear: null,
+      seriesFolder: null,
       seasonNumber: null,
       episodeNumber: null,
       episodeTitle: null,
@@ -124,6 +137,9 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
   );
 
   const seriesDirectory = parentSeason === null ? parentName : grandparentName;
+  const upFromFile = parentSeason === null ? 1 : 2;
+  const seriesFolder =
+    parts.length > upFromFile ? `/${parts.slice(0, parts.length - upFromFile).join('/')}` : null;
   const directoryYear = findYear(seriesDirectory);
   const tidiedDirectory = tidy(
     directoryYear === null ? seriesDirectory : seriesDirectory.slice(0, directoryYear.index),
@@ -143,6 +159,7 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
   return {
     seriesTitle: seriesTitle === '' ? null : seriesTitle,
     seriesYear,
+    seriesFolder,
     seasonNumber,
     episodeNumber,
     episodeTitle: episodeTitle === '' ? null : episodeTitle,

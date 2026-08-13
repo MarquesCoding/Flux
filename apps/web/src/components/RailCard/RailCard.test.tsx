@@ -18,6 +18,7 @@ const MEDIA: MediaSummary = {
   hasPoster: true,
   hasBackdrop: true,
   hasLogo: false,
+  seriesId: null,
 };
 
 const DETAIL = {
@@ -30,6 +31,7 @@ const DETAIL = {
     hasPoster: true,
     hasBackdrop: true,
     hasLogo: false,
+    seriesId: null,
     seriesTitle: null,
     rating: 8.5,
     genres: ['Thriller', 'Drama'],

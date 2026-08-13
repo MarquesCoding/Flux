@@ -59,6 +59,7 @@ const aLibraryWithArrival = {
         hasPoster: false,
         hasBackdrop: false,
         hasLogo: false,
+        seriesId: null,
       },
     ],
   },

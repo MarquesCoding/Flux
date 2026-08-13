@@ -501,10 +501,20 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               onFeatureChange={setFeatured}
               onPalette={setMoodLights}
               onOpenShow={(media) => {
-                const series = media.seriesTitle ?? '';
+                /**
+                 * The programme's own id, or a slug of its title where there
+                 * is none.
+                 *
+                 * The slug is only reached by an item scanned before
+                 * programmes were rows of their own, and it carries the fault
+                 * it always had: two programmes of one name are one address.
+                 * The first scan after this gives every episode an id and the
+                 * fallback stops being reachable.
+                 */
+                const series = media.seriesId ?? showSlug(media.seriesTitle ?? '');
 
                 if (series !== '') {
-                  go({ show: showSlug(series) });
+                  go({ show: series });
                 }
               }}
               isKept={favourites.isKept}

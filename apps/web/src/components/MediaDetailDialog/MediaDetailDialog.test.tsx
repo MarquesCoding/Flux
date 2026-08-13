@@ -42,6 +42,7 @@ const summary: MediaSummary = {
   hasPoster: true,
   hasBackdrop: true,
   hasLogo: false,
+  seriesId: null,
 };
 
 const detail = (overrides: Partial<MediaDetail['metadata']> = {}): MediaDetail => ({
