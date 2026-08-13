@@ -31,6 +31,10 @@ const AdminOverviewSchema = z.object({
     itemCount: z.number(),
     libraryCount: z.number(),
   }),
+  artwork: z
+    .object({ count: z.number(), bytes: z.number(), atMs: z.number() })
+    .nullable()
+    .default(null),
 });
 
 const JobSchema = z.object({
@@ -50,6 +54,23 @@ const ProcessUseSchema = z.object({
   memoryBytes: z.number(),
 });
 
+const DiskUseSchema = z.object({
+  mountPoint: z.string(),
+  totalBytes: z.number(),
+  availableBytes: z.number(),
+});
+
+const ArtefactUseSchema = z.object({
+  count: z.number(),
+  bytes: z.number(),
+});
+
+const GraphicsUseSchema = z.object({
+  name: z.string(),
+  encoderPercent: z.number().nullable(),
+  devicePercent: z.number().nullable(),
+});
+
 const MonitorSchema = z.object({
   resources: z.object({
     atMs: z.number(),
@@ -61,7 +82,18 @@ const MonitorSchema = z.object({
     serviceMemoryBytes: z.number(),
     children: z.array(ProcessUseSchema),
     loadAverage: z.number(),
+    disks: z.array(DiskUseSchema).default([]),
+    graphics: GraphicsUseSchema.nullable().default(null),
   }),
+  cache: z
+    .object({
+      previews: ArtefactUseSchema,
+      trickplay: ArtefactUseSchema,
+      sessions: ArtefactUseSchema,
+      atMs: z.number(),
+    })
+    .nullable()
+    .default(null),
   queue: z.object({
     concurrency: z.number(),
     queued: z.number(),

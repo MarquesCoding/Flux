@@ -9,11 +9,14 @@
 
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
-use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
+use sysinfo::{DiskRefreshKind, Disks, Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 use tokio::sync::Mutex;
 
+use crate::cache_usage::CacheUse;
+use crate::graphics::GraphicsUse;
 use crate::queue::now_ms;
 
 /// How many log lines are kept.
@@ -21,6 +24,33 @@ use crate::queue::now_ms;
 /// A few hundred is what somebody scrolls through when something has just gone
 /// wrong. Anything longer belongs in a file, not in memory.
 const LOG_LINES: usize = 400;
+
+/// How often the filesystems are asked what is left on them.
+///
+/// Free space moves in minutes and asking costs a system call per mounted
+/// filesystem, so a reading a second would pay that every second to watch a
+/// number that has not changed. Half a minute is fresh enough for a figure
+/// somebody glances at.
+const DISK_INTERVAL: Duration = Duration::from_secs(30);
+
+/// How often the graphics hardware is asked what it is doing.
+///
+/// The same tick as the page, so the figure moves with everything beside it. A
+/// slower poll made it look frozen: the panes around it changed every second
+/// and this one sat still, then jumped.
+///
+/// Affordable because it is measured, not assumed — the reading costs about
+/// seventeen milliseconds, so once a second is under two percent of one core,
+/// and it happens on its own timer where no request is waiting on it.
+const GRAPHICS_INTERVAL: Duration = Duration::from_secs(1);
+
+/// How often the artefact cache is added up.
+///
+/// Far rarer than anything else here, because measuring it means walking every
+/// artefact directory on the disk — thousands of them on a real library. It is
+/// also the figure that moves slowest: a cache grows over days, and nobody
+/// watching this section is waiting for the number to twitch.
+const CACHE_INTERVAL: Duration = Duration::from_secs(5 * 60);
 
 /// How serious a line is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -52,6 +82,19 @@ pub struct ProcessUse {
     pub memory_bytes: u64,
 }
 
+/// What one mounted filesystem has room for.
+///
+/// Every filesystem the machine has, rather than a guess at which one matters:
+/// the service does not know where the libraries are, and whoever asks does.
+/// Matching a library against its mount point is their side of it.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiskUse {
+    pub mount_point: String,
+    pub total_bytes: u64,
+    pub available_bytes: u64,
+}
+
 /// What the machine and the service are using.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -69,6 +112,10 @@ pub struct ResourceUse {
     pub children: Vec<ProcessUse>,
     /// One minute load average, where the platform reports one.
     pub load_average: f64,
+    /// Every mounted filesystem, measured less often than the rest of this.
+    pub disks: Vec<DiskUse>,
+    /// What the graphics hardware is doing, where the machine will say.
+    pub graphics: Option<GraphicsUse>,
 }
 
 /// Everything a monitoring page reads.
@@ -79,6 +126,8 @@ pub struct Report {
     pub queue: crate::queue::QueueSnapshot,
     pub sessions: usize,
     pub logs: Vec<LogLine>,
+    /// What the artefact cache holds, once it has been counted.
+    pub cache: Option<CacheUse>,
 }
 
 /// The rolling record of what has happened.
@@ -125,7 +174,57 @@ impl Journal {
 #[derive(Clone)]
 pub struct Monitor {
     system: Arc<Mutex<System>>,
+    disks: Arc<Mutex<DiskReadings>>,
+    graphics: Arc<Mutex<Option<GraphicsUse>>>,
+    cache: Arc<Mutex<Option<CacheUse>>>,
     journal: Journal,
+}
+
+/// The last answer the filesystems gave, and when they gave it.
+///
+/// Kept so that a page reading once a second is not a page running `statfs`
+/// once a second: the reading is handed out again until it is old enough to be
+/// worth taking another.
+struct DiskReadings {
+    disks: Disks,
+    taken: Vec<DiskUse>,
+    at: Option<Instant>,
+}
+
+impl DiskReadings {
+    fn new() -> Self {
+        Self {
+            disks: Disks::new(),
+            taken: Vec::new(),
+            at: None,
+        }
+    }
+
+    /// The filesystems, measured again only once the last reading is stale.
+    fn read(&mut self) -> Vec<DiskUse> {
+        let stale = self.at.is_none_or(|at| at.elapsed() >= DISK_INTERVAL);
+
+        if stale {
+            self.disks
+                .refresh_specifics(true, DiskRefreshKind::nothing().with_storage());
+
+            self.taken = self
+                .disks
+                .list()
+                .iter()
+                .filter(|disk| disk.total_space() > 0)
+                .map(|disk| DiskUse {
+                    mount_point: disk.mount_point().to_string_lossy().into_owned(),
+                    total_bytes: disk.total_space(),
+                    available_bytes: disk.available_space(),
+                })
+                .collect();
+
+            self.at = Some(Instant::now());
+        }
+
+        self.taken.clone()
+    }
 }
 
 impl Monitor {
@@ -133,6 +232,9 @@ impl Monitor {
     pub fn new(journal: Journal) -> Self {
         Self {
             system: Arc::new(Mutex::new(System::new())),
+            disks: Arc::new(Mutex::new(DiskReadings::new())),
+            graphics: Arc::new(Mutex::new(None)),
+            cache: Arc::new(Mutex::new(None)),
             journal,
         }
     }
@@ -142,8 +244,62 @@ impl Monitor {
         &self.journal
     }
 
+    /// Starts asking the graphics hardware what it is doing.
+    ///
+    /// Deliberately not part of building a monitor. Reading a card means
+    /// starting a vendor tool, and that must never be able to slow down or
+    /// fail anything that is waiting: this writes to a cell on its own timer,
+    /// and [`Monitor::measure`] only ever hands out what it finds there. A
+    /// monitor nobody has started this on reports no card, which is also what
+    /// a machine with nothing to say reports.
+    pub fn watch_graphics(&self) {
+        let cell = Arc::clone(&self.graphics);
+
+        tokio::spawn(async move {
+            let mut smoothed = crate::graphics::Smoothed::new();
+
+            loop {
+                let reading = smoothed.push(crate::graphics::read().await);
+
+                *cell.lock().await = reading;
+
+                tokio::time::sleep(GRAPHICS_INTERVAL).await;
+            }
+        });
+    }
+
+    /// Starts adding up what the artefact cache is holding.
+    ///
+    /// The same reasoning as the graphics poller and more so: walking every
+    /// artefact directory is real I/O against a disk that is also serving
+    /// video, and it must never be something a page can set off by loading.
+    /// This measures on its own timer and the report hands out what it finds.
+    pub fn watch_cache(&self, root: std::path::PathBuf) {
+        let cell = Arc::clone(&self.cache);
+
+        tokio::spawn(async move {
+            loop {
+                let reading = crate::cache_usage::read(&root).await;
+
+                *cell.lock().await = Some(reading);
+
+                tokio::time::sleep(CACHE_INTERVAL).await;
+            }
+        });
+    }
+
+    /// What the cache was last found to be holding.
+    ///
+    /// Nothing until the first walk finishes, so a page that has just started
+    /// says it is still counting rather than claiming an empty cache.
+    pub async fn cache(&self) -> Option<CacheUse> {
+        self.cache.lock().await.clone()
+    }
+
     /// Measures the machine and the processes the service is responsible for.
     pub async fn measure(&self) -> ResourceUse {
+        let disks = self.disks.lock().await.read();
+        let graphics = self.graphics.lock().await.clone();
         let mut system = self.system.lock().await;
 
         system.refresh_cpu_usage();
@@ -179,6 +335,8 @@ impl Monitor {
             service_memory_bytes: service.map_or(0, sysinfo::Process::memory),
             children,
             load_average: System::load_average().one,
+            disks,
+            graphics,
         }
     }
 }
@@ -209,5 +367,41 @@ mod tests {
 
         assert!(first.cpu_count > 0, "a machine has at least one core");
         assert!(first.system_memory_total_bytes > 0);
+    }
+
+    #[tokio::test]
+    async fn reports_only_filesystems_with_room_to_speak_of() {
+        let monitor = Monitor::new(Journal::new());
+
+        let reading = monitor.measure().await;
+
+        assert!(
+            reading
+                .disks
+                .iter()
+                .all(|disk| disk.total_bytes > 0 && !disk.mount_point.is_empty()),
+            "a filesystem with no size is a device, not somewhere media lives"
+        );
+    }
+
+    #[tokio::test]
+    async fn hands_out_the_same_disk_reading_rather_than_taking_another() {
+        let monitor = Monitor::new(Journal::new());
+
+        let first = monitor.measure().await;
+        let second = monitor.measure().await;
+
+        assert_eq!(
+            first
+                .disks
+                .iter()
+                .map(|disk| disk.mount_point.clone())
+                .collect::<Vec<_>>(),
+            second
+                .disks
+                .iter()
+                .map(|disk| disk.mount_point.clone())
+                .collect::<Vec<_>>()
+        );
     }
 }

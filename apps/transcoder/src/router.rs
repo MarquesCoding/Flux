@@ -845,6 +845,7 @@ async fn monitor(State(state): State<AppState>) -> Response {
         queue: state.queue.snapshot().await,
         sessions: state.registry.len().await,
         logs: state.monitor.journal().read().await,
+        cache: state.monitor.cache().await,
     };
 
     (StatusCode::OK, Json(report)).into_response()
@@ -866,6 +867,7 @@ async fn monitor_stream(State(state): State<AppState>) -> Response {
                 queue: state.queue.snapshot().await,
                 sessions: state.registry.len().await,
                 logs: state.monitor.journal().read().await,
+                cache: state.monitor.cache().await,
             };
 
             if let Ok(payload) = serde_json::to_string(&report) {

@@ -34,6 +34,10 @@ import { fetchLibraries, rebuildArtefacts } from '@FluxWeb/library/fetchLibrary'
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
+import { fluxCpuShare } from './fluxCpuShare';
+import { libraryDisk } from './libraryDisk';
+import { describeGraphics } from './describeGraphics';
+import { describeCpuShare } from './describeCpuShare';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
   resumeRunning,
@@ -150,6 +154,7 @@ const AdminArea = ({
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [monitor, setMonitor] = useState<Monitor | null>(null);
   const [history, setHistory] = useState<number[]>([]);
+  const [encoderHistory, setEncoderHistory] = useState<number[]>([]);
   const [panel, setPanel] = useState<PanelId>(
     () => PANELS.find((candidate) => candidate.id === initialPanel)?.id ?? 'overview',
   );
@@ -371,6 +376,11 @@ const AdminArea = ({
       setHistory((current) =>
         [...current, reading.resources.systemCpuPercent].slice(-historyLength),
       );
+      setEncoderHistory((current) => {
+        const encoder = reading.resources.graphics?.encoderPercent ?? null;
+
+        return encoder === null ? [] : [...current, encoder].slice(-historyLength);
+      });
     });
 
     return stop;
@@ -383,6 +393,11 @@ const AdminArea = ({
       : resources.systemMemoryUsedBytes / resources.systemMemoryTotalBytes;
 
   const conversions = resources?.children ?? [];
+  const cpuShare = fluxCpuShare(resources);
+  const mediaDisk = libraryDisk(
+    resources?.disks ?? [],
+    libraries.map((library) => library.path),
+  );
 
   return (
     <motion.div
@@ -454,7 +469,14 @@ const AdminArea = ({
           transition={revealTransition(prefersReducedMotion)}
         >
           <ConcernsBanner
-            concerns={collectConcerns({ overview, monitor, libraries, sessions, history })}
+            concerns={collectConcerns({
+              overview,
+              monitor,
+              libraries,
+              sessions,
+              history,
+              encoderHistory,
+            })}
             onOpenPanel={(next) => {
               const found = PANELS.find((candidate) => candidate.id === next);
 
@@ -479,7 +501,7 @@ const AdminArea = ({
                 detail:
                   resources === null
                     ? '—'
-                    : `${resources.cpuCount.toString()} cores · load ${resources.loadAverage.toFixed(2)}`,
+                    : `${resources.cpuCount.toString()} cores · Flux ${describeCpuShare(cpuShare)}`,
               },
               {
                 label: 'Memory',
@@ -489,6 +511,24 @@ const AdminArea = ({
                   resources === null
                     ? '—'
                     : `of ${formatBytes(resources.systemMemoryTotalBytes)} · service ${formatBytes(resources.serviceMemoryBytes)}`,
+              },
+              {
+                label: 'Graphics',
+                ...describeGraphics(resources?.graphics ?? null),
+              },
+              {
+                label: 'Storage',
+                value: mediaDisk === null ? '—' : `${formatBytes(mediaDisk.availableBytes)} free`,
+                ...(mediaDisk === null
+                  ? {}
+                  : {
+                      fraction:
+                        (mediaDisk.totalBytes - mediaDisk.availableBytes) / mediaDisk.totalBytes,
+                    }),
+                detail:
+                  mediaDisk === null
+                    ? 'Not measured'
+                    : `of ${formatBytes(mediaDisk.totalBytes)} · ${mediaDisk.mountPoint}`,
               },
               {
                 label: 'Streaming',
