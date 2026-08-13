@@ -41,6 +41,7 @@ describe('keys kept where better-auth keeps them', () => {
       name: 'Dashboard',
       expiresInDays: null,
       permissions: null,
+      rateLimit: null,
     });
 
     expect(made.key).toMatch(/\S/);
@@ -55,6 +56,7 @@ describe('keys kept where better-auth keeps them', () => {
       name: 'Everything',
       expiresInDays: null,
       permissions: null,
+      rateLimit: null,
     });
 
     expect(await keys.restrictionFor(headers, made.id)).toBeNull();
@@ -67,6 +69,7 @@ describe('keys kept where better-auth keeps them', () => {
       name: 'Narrow',
       expiresInDays: null,
       permissions: ['jobs.run'],
+      rateLimit: null,
     });
 
     expect(await keys.restrictionFor(headers, made.id)).toEqual(new Set(['jobs.run']));
@@ -79,6 +82,7 @@ describe('keys kept where better-auth keeps them', () => {
       name: 'Powerless',
       expiresInDays: null,
       permissions: [],
+      rateLimit: null,
     });
 
     expect(await keys.restrictionFor(headers, made.id)).toEqual(new Set());
@@ -97,6 +101,7 @@ describe('keys kept where better-auth keeps them', () => {
       name: 'Temporary',
       expiresInDays: 30,
       permissions: null,
+      rateLimit: null,
     });
 
     expect(Date.parse(made.expiresAt ?? '')).toBeGreaterThan(Date.now());
@@ -109,6 +114,7 @@ describe('keys kept where better-auth keeps them', () => {
       name: 'Suspect',
       expiresInDays: null,
       permissions: null,
+      rateLimit: null,
     });
 
     expect((await keys.setEnabled(headers, made.id, false))?.enabled).toBe(false);
@@ -128,6 +134,7 @@ describe('keys kept where better-auth keeps them', () => {
       name: 'Old',
       expiresInDays: null,
       permissions: null,
+      rateLimit: null,
     });
 
     expect(await keys.revoke(headers, made.id)).toBe(true);
@@ -144,6 +151,34 @@ describe('keys kept where better-auth keeps them', () => {
     const { keys } = await signedIn();
 
     expect(await keys.list(new Headers())).toEqual([]);
+  });
+});
+
+describe('rate limiting a key', () => {
+  it('leaves a key unlimited when nothing asked for a limit', async () => {
+    const { keys, accountId } = await signedIn();
+
+    const made = await keys.create(accountId, {
+      name: 'Unlimited',
+      expiresInDays: null,
+      permissions: null,
+      rateLimit: null,
+    });
+
+    expect(made.rateLimit).toBeNull();
+  });
+
+  it('records the limit it was given, in seconds rather than milliseconds', async () => {
+    const { keys, accountId } = await signedIn();
+
+    const made = await keys.create(accountId, {
+      name: 'Limited',
+      expiresInDays: null,
+      permissions: null,
+      rateLimit: { max: 30, everySeconds: 60 },
+    });
+
+    expect(made.rateLimit).toEqual({ max: 30, everySeconds: 60 });
   });
 });
 

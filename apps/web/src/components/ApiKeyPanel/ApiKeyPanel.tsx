@@ -141,7 +141,12 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
           setIsMaking(true);
           setHasCopied(false);
 
-          void createApiKey({ name: name.trim(), expiresInDays: null, permissions: null })
+          void createApiKey({
+            name: name.trim(),
+            expiresInDays: null,
+            permissions: null,
+            rateLimit: null,
+          })
             .then(async (key) => {
               if (key !== null) {
                 setMade({ name: key.name, key: key.key });
@@ -184,6 +189,11 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
                   <code className="font-mono">{key.start ?? '—'}…</code>
                   <span aria-hidden>·</span>
                   {lastUsed(key.lastRequestAt)}
+                  {key.rateLimit === null ? null : (
+                    <Badge size="sm">
+                      {key.rateLimit.max.toString()} per {key.rateLimit.everySeconds.toString()}s
+                    </Badge>
+                  )}
                   {key.permissions === null ? null : (
                     <Badge size="sm">
                       {key.permissions.length === 0

@@ -42,6 +42,7 @@ const createApiKey = async (input: {
   name: string;
   expiresInDays: number | null;
   permissions: readonly Permission[] | null;
+  rateLimit: { max: number; everySeconds: number } | null;
 }): Promise<CreatedApiKey | null> => {
   try {
     const response = await fetch('/api/keys', {
@@ -51,6 +52,7 @@ const createApiKey = async (input: {
         name: input.name,
         expiresInDays: input.expiresInDays,
         permissions: input.permissions === null ? null : [...input.permissions],
+        rateLimit: input.rateLimit,
       }),
     });
 

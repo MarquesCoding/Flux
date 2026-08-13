@@ -10,6 +10,7 @@ const KEY = {
   lastRequestAt: null,
   requestCount: 0,
   permissions: null,
+  rateLimit: null,
   createdAt: '2026-08-01T00:00:00.000Z',
 };
 
@@ -67,15 +68,21 @@ describe('createApiKey', () => {
   it('answers with the key at the one moment it can be read', async () => {
     answers({ ...KEY, key: 'flux_secret' }, 201);
 
-    expect((await createApiKey({ name: 'A', expiresInDays: null, permissions: null }))?.key).toBe(
-      'flux_secret',
-    );
+    expect(
+      (await createApiKey({ name: 'A', expiresInDays: null, permissions: null, rateLimit: null }))
+        ?.key,
+    ).toBe('flux_secret');
   });
 
   it('sends what it was asked for', async () => {
     const sent = answers({ ...KEY, key: 'flux_secret' }, 201);
 
-    await createApiKey({ name: 'A', expiresInDays: 30, permissions: ['jobs.run'] });
+    await createApiKey({
+      name: 'A',
+      expiresInDays: 30,
+      permissions: ['jobs.run'],
+      rateLimit: { max: 10, everySeconds: 60 },
+    });
 
     expect(bodySent(sent)).toContain('"expiresInDays":30');
     expect(bodySent(sent)).toContain('jobs.run');
@@ -84,7 +91,9 @@ describe('createApiKey', () => {
   it('answers with nothing when the server refuses', async () => {
     answers({ error: 'nope' }, 403);
 
-    expect(await createApiKey({ name: 'A', expiresInDays: null, permissions: null })).toBeNull();
+    expect(
+      await createApiKey({ name: 'A', expiresInDays: null, permissions: null, rateLimit: null }),
+    ).toBeNull();
   });
 });
 

@@ -990,38 +990,38 @@ const createApp = ({
     const account = await readAccount(headers);
 
     if (account === null) {
-      return { account: null, allowed: false } as const;
+      return { account: null, refusal: 'anonymous' } as const;
     }
 
-    return { account, allowed: await requires(headers, 'account.keys') } as const;
+    return (await requires(headers, 'account.keys'))
+      ? ({ account, refusal: null } as const)
+      : ({ account: null, refusal: 'forbidden' } as const);
   };
 
   app.openapi(listApiKeysRoute, async (context) => {
-    const { account, allowed } = await readKeyHolder(context.req.raw.headers);
+    const holder = await readKeyHolder(context.req.raw.headers);
 
-    if (account === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401);
-    }
-
-    if (!allowed) {
-      return context.json({ error: 'This account may not hold API keys.' }, 403);
+    if (holder.refusal !== null) {
+      return holder.refusal === 'anonymous'
+        ? context.json({ error: 'Nobody is signed in.' }, 401)
+        : context.json({ error: 'This account may not hold API keys.' }, 403);
     }
 
     return context.json({ keys: await apiKeys.list(context.req.raw.headers) }, 200);
   });
 
   app.openapi(createApiKeyRoute, async (context) => {
-    const { account, allowed } = await readKeyHolder(context.req.raw.headers);
+    const holder = await readKeyHolder(context.req.raw.headers);
 
-    if (account === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401);
+    if (holder.refusal !== null) {
+      return holder.refusal === 'anonymous'
+        ? context.json({ error: 'Nobody is signed in.' }, 401)
+        : context.json({ error: 'This account may not hold API keys.' }, 403);
     }
 
-    if (!allowed) {
-      return context.json({ error: 'This account may not hold API keys.' }, 403);
-    }
+    const account = holder.account;
 
-    const { name, expiresInDays, permissions: asked } = context.req.valid('json');
+    const { name, expiresInDays, permissions: asked, rateLimit } = context.req.valid('json');
 
     /**
      * What the key is restricted to, never what it is granted.
@@ -1039,20 +1039,19 @@ const createApp = ({
       name,
       expiresInDays,
       permissions: restricted,
+      rateLimit,
     });
 
     return context.json(made, 201);
   });
 
   app.openapi(updateApiKeyRoute, async (context) => {
-    const { account, allowed } = await readKeyHolder(context.req.raw.headers);
+    const holder = await readKeyHolder(context.req.raw.headers);
 
-    if (account === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401);
-    }
-
-    if (!allowed) {
-      return context.json({ error: 'This account may not hold API keys.' }, 403);
+    if (holder.refusal !== null) {
+      return holder.refusal === 'anonymous'
+        ? context.json({ error: 'Nobody is signed in.' }, 401)
+        : context.json({ error: 'This account may not hold API keys.' }, 403);
     }
 
     const changed = await apiKeys.setEnabled(
@@ -1069,14 +1068,12 @@ const createApp = ({
   });
 
   app.openapi(revokeApiKeyRoute, async (context) => {
-    const { account, allowed } = await readKeyHolder(context.req.raw.headers);
+    const holder = await readKeyHolder(context.req.raw.headers);
 
-    if (account === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401);
-    }
-
-    if (!allowed) {
-      return context.json({ error: 'This account may not hold API keys.' }, 403);
+    if (holder.refusal !== null) {
+      return holder.refusal === 'anonymous'
+        ? context.json({ error: 'Nobody is signed in.' }, 401)
+        : context.json({ error: 'This account may not hold API keys.' }, 403);
     }
 
     if (!(await apiKeys.revoke(context.req.raw.headers, context.req.valid('param').id))) {

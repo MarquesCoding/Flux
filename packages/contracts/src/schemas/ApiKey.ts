@@ -16,6 +16,11 @@ import { PermissionSchema } from './Permission';
  * `permissions` is a restriction, never a grant — a key is its account's
  * permissions narrowed. Null and the empty list differ: null is everything the
  * account may do, and empty is nothing at all.
+ *
+ * `rateLimit` is null unless somebody asked for one. A household running its
+ * own scripts against its own server does not want a limiter it did not ask
+ * for; a key handed to something outside the house, or one that has leaked, is
+ * where it earns its place — which is why it is per key rather than global.
  */
 const ApiKeySchema = z.object({
   id: z.string(),
@@ -26,6 +31,9 @@ const ApiKeySchema = z.object({
   lastRequestAt: z.string().datetime().nullable(),
   requestCount: z.number().int().nonnegative(),
   permissions: z.array(PermissionSchema).nullable(),
+  rateLimit: z
+    .object({ max: z.number().int().positive(), everySeconds: z.number().int().positive() })
+    .nullable(),
   createdAt: z.string().datetime(),
 });
 
@@ -47,6 +55,13 @@ const CreateApiKeyRequestSchema = z.object({
   name: z.string().min(1).max(100),
   expiresInDays: z.number().int().positive().max(3650).nullable().default(null),
   permissions: z.array(PermissionSchema).nullable().default(null),
+  rateLimit: z
+    .object({
+      max: z.number().int().positive().max(100_000),
+      everySeconds: z.number().int().positive().max(86_400),
+    })
+    .nullable()
+    .default(null),
 });
 
 const UpdateApiKeyRequestSchema = z.object({
