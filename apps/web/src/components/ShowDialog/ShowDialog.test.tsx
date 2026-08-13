@@ -256,3 +256,78 @@ describe('ShowDialog', () => {
     expect(ShowDialog.displayName).toBe('ShowDialog');
   });
 });
+
+describe('what the header says about a series', () => {
+  it('counts episodes alone for a series of one season', async () => {
+    fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1, 2, 3] }]));
+    render(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(await screen.findByText('3 episodes')).toBeInTheDocument();
+  });
+
+  it('counts seasons as well once there is more than one', async () => {
+    const across = { ...summary, seasonCount: 2, episodeCount: 6 };
+
+    fetchShowMock.mockResolvedValue(
+      detail([
+        { seasonNumber: 1, episodes: [1, 2, 3] },
+        { seasonNumber: 2, episodes: [1, 2, 3] },
+      ]),
+    );
+    render(<ShowDialog show={across} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(await screen.findByText('2 seasons · 6 episodes')).toBeInTheDocument();
+  });
+
+  it('names what a series is filed under', async () => {
+    const filed = { ...summary, genres: ['Animation', 'Romance'] };
+
+    fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
+    render(<ShowDialog show={filed} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(await screen.findByText('Animation')).toBeInTheDocument();
+    expect(screen.getByText('Romance')).toBeInTheDocument();
+  });
+
+  it('names at most three of them, since a header is not a list', async () => {
+    const many = {
+      ...summary,
+      genres: ['Animation', 'Romance', 'Drama', 'Comedy', 'Slice of life'],
+    };
+
+    fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
+    render(<ShowDialog show={many} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await screen.findByText('Animation');
+
+    expect(screen.queryByText('Comedy')).not.toBeInTheDocument();
+  });
+
+  it('says nothing about genres for a series carrying none', async () => {
+    fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
+    render(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await screen.findByText('3 episodes');
+
+    expect(screen.queryByText('Animation')).not.toBeInTheDocument();
+  });
+
+  it('closes when asked', async () => {
+    const onClose = vi.fn();
+    const actor = userEvent.setup();
+
+    fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
+    render(<ShowDialog show={summary} onClose={onClose} onPlay={vi.fn()} />);
+
+    await screen.findByText('3 episodes');
+    await actor.click(screen.getByRole('button', { name: /Close/ }));
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('draws nothing at all without a series to draw', () => {
+    const { container } = render(<ShowDialog show={null} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+});
