@@ -20,6 +20,7 @@ const itemOf = (changes: Partial<MediaSummary> = {}): MediaSummary => {
     addedAt: '2026-01-01T00:00:00.000Z',
     hasPoster: false,
     hasBackdrop: false,
+    hasLogo: false,
     ...changes,
   };
 };

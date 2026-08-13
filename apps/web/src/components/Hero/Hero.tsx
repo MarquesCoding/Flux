@@ -50,6 +50,19 @@ const PREVIEW_SETTLE_MILLISECONDS = 2500;
  */
 const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
+const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
+
+/**
+ * How much of the frame the lettering may take.
+ *
+ * A logo is artwork with its own proportions — some are a word, some are a
+ * word inside a device three times as tall — so it is given a box rather than
+ * a size, and told to fit inside it whatever shape it turns out to be. Capped
+ * in viewport height as well as width because a tall logo at a third of a wide
+ * screen would otherwise reach the buttons underneath it.
+ */
+const LOGO_BOX = 'max-h-[22svh] w-auto max-w-[min(78vw,30rem)] object-contain object-left';
+
 /**
  * The screen the library opens with.
  *
@@ -72,10 +85,22 @@ const Hero = ({
   rotateAfterMilliseconds = ROTATE_AFTER_MILLISECONDS,
 }: HeroProps) => {
   const [index, setIndex] = useState(0);
+
+  /**
+   * The items whose lettering would not load.
+   *
+   * Kept per item rather than as one flag, because a hero rotates: one title
+   * whose logo has gone missing from the cache must not leave every other
+   * title in the rotation nameless. An item in here falls back to its name set
+   * in the interface's own typeface, which is what every item did before there
+   * were logos at all.
+   */
+  const [unlettered, setUnlettered] = useState<ReadonlySet<string>>(new Set());
   const [isHeld, setIsHeld] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
   const featured = items[index % Math.max(items.length, 1)];
+  const isLettered = featured?.hasLogo === true && !unlettered.has(featured.id);
   const resume = featured === undefined ? null : (resumeFor?.(featured.id) ?? null);
 
   useEffect(() => {
@@ -204,9 +229,24 @@ const Hero = ({
             <motion.h1
               variants={revealVariants(prefersReducedMotion)}
               transition={revealTransition(prefersReducedMotion, 'heavy')}
-              className="max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text"
+              className={
+                isLettered
+                  ? 'flex'
+                  : 'max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text'
+              }
             >
-              {featured.seriesTitle ?? featured.title}
+              {isLettered ? (
+                <img
+                  src={logoUrl(featured.id)}
+                  alt={featured.seriesTitle ?? featured.title}
+                  className={LOGO_BOX}
+                  onError={() => {
+                    setUnlettered((known) => new Set(known).add(featured.id));
+                  }}
+                />
+              ) : (
+                (featured.seriesTitle ?? featured.title)
+              )}
             </motion.h1>
 
             <motion.p

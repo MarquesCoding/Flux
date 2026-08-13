@@ -96,6 +96,7 @@ import {
   SCAN_LIBRARY_JOB,
   REGENERATE_PREVIEWS_JOB,
   REGENERATE_TRICKPLAY_JOB,
+  FETCH_LOGOS_JOB,
   DETECT_SEGMENTS_JOB,
   CLEANUP_IMAGE_CACHE_JOB,
   CLEANUP_ARTEFACT_CACHE_JOB,
@@ -1335,6 +1336,7 @@ const createApp = ({
       [SCAN_LIBRARY_JOB]: () => library.scan(libraryId, force ?? false),
       [REGENERATE_PREVIEWS_JOB]: () => library.regeneratePreviews(libraryId),
       [REGENERATE_TRICKPLAY_JOB]: () => library.regenerateTrickplay(libraryId),
+      [FETCH_LOGOS_JOB]: () => library.fetchLogos(libraryId),
       [DETECT_SEGMENTS_JOB]: () => library.detectSegments(libraryId),
       [RESET_LIBRARY_JOB]: () => library.reset(libraryId),
     };

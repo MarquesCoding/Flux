@@ -19,6 +19,7 @@ const media = (overrides: Partial<MediaSummary> = {}): MediaSummary => ({
   addedAt: daysAgo(1),
   hasPoster: false,
   hasBackdrop: false,
+  hasLogo: false,
   seriesTitle: null,
   seasonNumber: null,
   episodeNumber: null,
@@ -126,7 +127,9 @@ describe('groupIntoRails', () => {
   });
 
   it('holds more episodes than a row of picks, so a long programme is not cut off early', () => {
-    const many = [...Array(40).keys()].map((at) => episode('Some Show', 1, at + 1));
+    const many = [...Array.from({ length: 40 }).keys()].map((at) =>
+      episode('Some Show', 1, at + 1),
+    );
 
     const rails = groupIntoRails(many, NOW);
 

@@ -33,7 +33,7 @@ const detail = (overrides: Partial<MediaDetail> = {}): MediaDetail => ({
   audioStreams: [{ index: 1, codec: 'truehd', channels: 8, isDefault: true, isAtmos: true }],
   subtitleStreams: [],
   addedAt: '2026-08-10T00:00:00.000Z',
-  metadata: { hasPoster: false, hasBackdrop: false },
+  metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false },
   ...overrides,
 });
 
@@ -53,6 +53,7 @@ const episodeOf = ({
     metadata: {
       hasPoster: false,
       hasBackdrop: false,
+      hasLogo: false,
       seriesTitle: 'A Sign of Affection',
       seasonNumber,
       episodeNumber,
@@ -644,11 +645,13 @@ describe('narrowing a library down', () => {
 
   it('offers only what carries the genre asked for', async () => {
     const { app } = build([
-      detail({ metadata: { hasPoster: false, hasBackdrop: false, genres: ['Drama'] } }),
+      detail({
+        metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false, genres: ['Drama'] },
+      }),
       detail({
         id: '11111111-1111-4111-8111-111111111111',
         title: 'Heat',
-        metadata: { hasPoster: false, hasBackdrop: false, genres: ['Crime'] },
+        metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false, genres: ['Crime'] },
       }),
     ]);
 

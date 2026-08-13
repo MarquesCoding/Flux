@@ -17,6 +17,7 @@ const MEDIA: MediaSummary = {
   addedAt: '2026-01-01T00:00:00.000Z',
   hasPoster: true,
   hasBackdrop: true,
+  hasLogo: false,
 };
 
 const DETAIL = {
@@ -28,6 +29,7 @@ const DETAIL = {
   metadata: {
     hasPoster: true,
     hasBackdrop: true,
+    hasLogo: false,
     seriesTitle: null,
     rating: 8.5,
     genres: ['Thriller', 'Drama'],

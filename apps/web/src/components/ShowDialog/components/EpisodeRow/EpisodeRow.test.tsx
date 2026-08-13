@@ -17,6 +17,7 @@ const episode: MediaSummary = {
   addedAt: '2026-08-10T00:00:00.000Z',
   hasPoster: false,
   hasBackdrop: true,
+  hasLogo: false,
   seriesTitle: 'A Sign of Affection',
   seasonNumber: 1,
   episodeNumber: 1,

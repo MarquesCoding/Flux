@@ -57,6 +57,11 @@ const ShowDialog = ({
   isFinished,
 }: ShowDialogProps) => {
   const [detail, setDetail] = useState<ShowDetail | null>(null);
+
+  /**
+   * The item whose lettering would not load, so the title falls back to words.
+   */
+  const [unlettered, setUnlettered] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastShown, setLastShown] = useState(show);
   const [chosenSeason, setChosenSeason] = useState<number | null>(null);
@@ -104,6 +109,17 @@ const ShowDialog = ({
   }
 
   const seasons = detail?.seasons ?? [];
+
+  /**
+   * An episode carrying the programme's lettering.
+   *
+   * Taken from an episode rather than from the programme, because a logo
+   * belongs to a title and Flux files artwork against the items it scanned —
+   * every episode of a programme was matched to the same entry and so carries
+   * the same lettering. The first one that has any will do.
+   */
+  const lettered =
+    seasons.flatMap((one) => one.episodes).find((episode) => episode.hasLogo) ?? null;
   const carryingOn = detail === null ? null : pickUpFrom(detail, { resumeFor, isFinished });
   const gaps = detail === null ? null : findGaps(detail);
 
@@ -208,9 +224,24 @@ const ShowDialog = ({
             <motion.h2
               variants={revealVariants(prefersReducedMotion)}
               transition={revealTransition(prefersReducedMotion, 'heavy')}
-              className="max-w-[16ch] text-[clamp(2rem,6vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-text"
+              className={
+                lettered === null || unlettered === lettered.id
+                  ? 'max-w-[16ch] text-[clamp(2rem,6vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-text'
+                  : 'flex'
+              }
             >
-              {shown.title}
+              {lettered === null || unlettered === lettered.id ? (
+                shown.title
+              ) : (
+                <img
+                  src={`/api/media/${lettered.id}/image/logo`}
+                  alt={shown.title}
+                  className="max-h-[16svh] w-auto max-w-[min(70vw,26rem)] object-contain object-left"
+                  onError={() => {
+                    setUnlettered(lettered.id);
+                  }}
+                />
+              )}
             </motion.h2>
           </motion.div>
         </div>

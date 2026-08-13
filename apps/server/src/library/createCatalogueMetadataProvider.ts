@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { readTitleFromPath } from './readTitleFromPath';
+import { pickLogo } from './pickLogo';
 import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider';
 
 /**
@@ -81,6 +82,15 @@ const SearchResultSchema = z.object({
 });
 
 const SearchResponseSchema = z.object({ results: z.array(SearchResultSchema).default([]) });
+
+const LogoSchema = z.object({
+  file_path: z.string(),
+  iso_639_1: z.string().nullish(),
+  width: z.number().default(0),
+  vote_average: z.number().default(0),
+});
+
+const ImagesResponseSchema = z.object({ logos: z.array(LogoSchema).default([]) });
 
 type SearchResult = z.infer<typeof SearchResultSchema>;
 
@@ -535,6 +545,47 @@ const createCatalogueMetadataProvider = ({
       }
 
       return describeFrom(detail.data, exact !== undefined);
+    },
+
+    readLogoUrl: async ({ externalId, isSeries }) => {
+      const key = await readApiKey();
+
+      if (key === null || key === '') {
+        return null;
+      }
+
+      const path = `/${isSeries ? 'tv' : 'movie'}/${externalId}/images`;
+
+      /**
+       * Asked twice rather than once, narrow before wide.
+       *
+       * A plain request answers with only the images matching the account's
+       * own language, so a programme whose lettering is catalogued in its
+       * original tongue looks as though it has none at all — which is what it
+       * looks like from outside, and the wrong conclusion. Asking with no
+       * filter first would work, but it would also spend the choice on every
+       * title that has a perfectly good English logo sitting there. So: ask
+       * for what is wanted, and only widen when the answer is nothing.
+       */
+      const readLogos = async (query: Record<string, string>) => {
+        const images = ImagesResponseSchema.safeParse(await request(path, key, query));
+
+        return images.success ? images.data.logos : [];
+      };
+
+      const found = await readLogos({ include_image_language: 'en,null' });
+      const logos = found.length > 0 ? found : await readLogos({});
+
+      const chosen = pickLogo(
+        logos.map((logo) => ({
+          filePath: logo.file_path,
+          language: logo.iso_639_1 ?? null,
+          width: logo.width,
+          voteAverage: logo.vote_average,
+        })),
+      );
+
+      return chosen === null ? null : imageUrl(imageBaseUrl, chosen.filePath, 'w500');
     },
 
     search: async (query, kind) => {

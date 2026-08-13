@@ -29,6 +29,7 @@ const item = (id: string, title: string, genres?: string[]): MediaSummary => ({
   addedAt: '2026-08-10T00:00:00.000Z',
   hasPoster: true,
   hasBackdrop: true,
+  hasLogo: false,
   ...(genres === undefined ? {} : { genres }),
 });
 

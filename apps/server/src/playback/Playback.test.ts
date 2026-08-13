@@ -709,7 +709,7 @@ describe('telling presence what is being watched', () => {
               audioStreams: [],
               subtitleStreams: [],
               addedAt: '2026-08-10T00:00:00.000Z',
-              metadata: { hasPoster: true, hasBackdrop: false },
+              metadata: { hasPoster: true, hasBackdrop: false, hasLogo: false },
             },
           ],
         }),
@@ -769,7 +769,7 @@ describe('telling presence what is being watched', () => {
       audioStreams: [],
       subtitleStreams: [],
       addedAt: '2026-08-10T00:00:00.000Z',
-      metadata: { hasPoster: false, hasBackdrop: true },
+      metadata: { hasPoster: false, hasBackdrop: true, hasLogo: false },
     };
 
     const presence = createPresenceService();
@@ -810,6 +810,7 @@ describe('telling presence what is being watched', () => {
     expect(presence.list()[0]?.playback).toMatchObject({
       mode: 'transcode',
       hasBackdrop: true,
+      hasLogo: false,
     });
   });
 
