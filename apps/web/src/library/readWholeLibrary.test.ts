@@ -19,6 +19,7 @@ const anItem = (id: number): MediaSummary => ({
   addedAt: '2026-08-10T00:00:00.000Z',
   hasPoster: false,
   hasBackdrop: false,
+  hasLogo: false,
   seriesTitle: null,
   seasonNumber: null,
   episodeNumber: null,

@@ -47,7 +47,9 @@ import {
   REGENERATE_PREVIEWS_JOB,
   RegeneratePreviewsJobSchema,
   REGENERATE_TRICKPLAY_JOB,
+  FETCH_LOGOS_JOB,
   RegenerateTrickplayJobSchema,
+  FetchLogosJobSchema,
   DETECT_SEGMENTS_JOB,
   DetectSegmentsJobSchema,
   CLEANUP_IMAGE_CACHE_JOB,
@@ -327,6 +329,19 @@ const jobs = await createJobQueue({
 
       await libraryWork.run(parsed.data.libraryId, () =>
         libraryService.runRegenerateTrickplay(parsed.data.libraryId, jobId),
+      );
+    },
+    [FETCH_LOGOS_JOB]: async (jobId, payload) => {
+      const parsed = FetchLogosJobSchema.safeParse(payload);
+
+      if (!parsed.success) {
+        process.stderr.write('job queue: a logo job carried data Flux could not read.\n');
+
+        return;
+      }
+
+      await libraryWork.run(parsed.data.libraryId, () =>
+        libraryService.runFetchLogos(parsed.data.libraryId, jobId),
       );
     },
     [DETECT_SEGMENTS_JOB]: async (jobId, payload) => {

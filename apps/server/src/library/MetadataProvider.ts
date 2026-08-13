@@ -59,6 +59,14 @@ type Metadata = {
   posterUrl?: string;
   backdropUrl?: string;
   /**
+   * The title drawn as artwork, with a transparent background.
+   *
+   * A programme's name is usually set in lettering of its own, and a hero
+   * that renders it in the interface's typeface is a hero that looks like a
+   * database rather than like the thing it is showing.
+   */
+  logoUrl?: string;
+  /**
    * How the provider names this item, so a later lookup can skip searching.
    */
   externalId?: string;
@@ -119,6 +127,17 @@ type MetadataProvider = {
    * the whole reason this exists.
    */
   describeSeries?: (externalId: string) => Promise<SeriesShape | null>;
+  /**
+   * Finds the title drawn as artwork for something already identified.
+   *
+   * Separate from `describe` because it is asked separately: a logo is fetched
+   * by a job of its own long after a scan named the thing, and re-running a
+   * whole description to collect one image would re-probe, re-search and
+   * re-rate every item to get it.
+   *
+   * Optional, because a provider that reads filenames has no artwork to give.
+   */
+  readLogoUrl?: (options: { externalId: string; isSeries: boolean }) => Promise<string | null>;
   /**
    * What the catalogue holds under a name, for somebody choosing by hand.
    *

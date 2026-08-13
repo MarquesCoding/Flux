@@ -50,6 +50,7 @@ const arrival: MediaSummary = {
   addedAt: '2026-08-10T00:00:00.000Z',
   hasPoster: false,
   hasBackdrop: false,
+  hasLogo: false,
 };
 
 beforeEach(() => {

@@ -163,6 +163,12 @@ type LibraryService = ShowService & {
    */
   regenerateTrickplay: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   /**
+   * Queues the collection of the lettering each title is written in.
+   *
+   * Null means there is no such library.
+   */
+  fetchLogos: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
+  /**
    * Queues intro/outro (segment) detection against already-scanned media,
    * without a full rescan.
    *
@@ -188,7 +194,7 @@ type LibraryService = ShowService & {
    * Answers with nothing when the item has none, which is every item until a
    * metadata provider has been configured.
    */
-  readArtworkUrl: (mediaId: string, kind: 'poster' | 'backdrop') => Promise<string | null>;
+  readArtworkUrl: (mediaId: string, kind: 'poster' | 'backdrop' | 'logo') => Promise<string | null>;
 };
 
 const DEFAULT_LIMIT = 60;

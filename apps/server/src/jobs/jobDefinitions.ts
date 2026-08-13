@@ -3,6 +3,7 @@ import {
   SCAN_LIBRARY_JOB,
   REGENERATE_PREVIEWS_JOB,
   REGENERATE_TRICKPLAY_JOB,
+  FETCH_LOGOS_JOB,
   DETECT_SEGMENTS_JOB,
   CLEANUP_IMAGE_CACHE_JOB,
   CLEANUP_ARTEFACT_CACHE_JOB,
@@ -76,6 +77,14 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     label: 'Generate missing scrub previews',
     description:
       'Renders the strip of images shown when scrubbing the seek bar, for items that have none. Skips items that already have one.',
+    needsLibrary: true,
+    destructive: false,
+  },
+  {
+    kind: FETCH_LOGOS_JOB,
+    label: 'Fetch missing logos',
+    description:
+      "Collects the lettering each title is written in, so a hero shows the programme's own logo rather than its name set in the interface's typeface. Skips items that already have one, and items no catalogue has named.",
     needsLibrary: true,
     destructive: false,
   },

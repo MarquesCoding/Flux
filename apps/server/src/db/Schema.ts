@@ -325,6 +325,7 @@ const mediaItem = pgTable(
     rating: real('rating'),
     posterUrl: text('posterUrl'),
     backdropUrl: text('backdropUrl'),
+    logoUrl: text('logoUrl'),
     externalId: text('externalId'),
     addedAt: timestamp('addedAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),

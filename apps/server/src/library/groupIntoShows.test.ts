@@ -15,6 +15,7 @@ const episode = (overrides: Partial<MediaSummary> = {}): MediaSummary => ({
   addedAt: '2026-08-01T00:00:00.000Z',
   hasPoster: true,
   hasBackdrop: true,
+  hasLogo: false,
   seriesTitle: 'A Sign of Affection',
   seasonNumber: 1,
   episodeNumber: 1,
