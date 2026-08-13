@@ -16,9 +16,18 @@ const TEST_SECRET = 'flux-test-secret-value-at-least-32-chars';
  */
 type MemoryUserRow = { id: string; role?: string };
 
+/**
+ * An open session, as the memory adapter stores it.
+ *
+ * Typed for the same reason the user row is: a test about what the devices
+ * list shows has to be able to say a session came from an address, and the
+ * adapter only records one when a request carried it.
+ */
+type MemorySessionRow = { id: string; token: string; ipAddress?: string | null };
+
 const emptyStore = (): {
   user: MemoryUserRow[];
-  session: never[];
+  session: MemorySessionRow[];
   account: never[];
   verification: never[];
   twoFactor: never[];

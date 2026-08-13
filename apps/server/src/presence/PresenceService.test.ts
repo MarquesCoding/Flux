@@ -183,3 +183,88 @@ describe('createPresenceService', () => {
     expect(presence.stop('ghost', 'stopped')).toBe(false);
   });
 });
+
+describe('the things presence is asked about tabs it does not have', () => {
+  it('ignores a tab starting playback that never connected', () => {
+    const presence = createPresenceService();
+
+    presence.startPlayback('ghost', {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'direct',
+      transcoderSessionId: null,
+      plan,
+    });
+
+    expect(presence.list()).toEqual([]);
+  });
+
+  it('ignores a tab that stops watching without ever having connected', () => {
+    const presence = createPresenceService();
+
+    presence.stopPlayback('ghost');
+
+    expect(presence.list()).toEqual([]);
+  });
+
+  it('ignores a heartbeat from a tab that is watching nothing', () => {
+    const presence = createPresenceService();
+    const said = vi.fn();
+
+    presence.connect('tab-1', null, null, 'Chrome', vi.fn());
+    presence.watch(said);
+    presence.heartbeatPlayback('tab-1', true);
+
+    expect(said).not.toHaveBeenCalled();
+  });
+
+  it('says nothing to a watcher when a heartbeat carries no news', () => {
+    const presence = createPresenceService();
+    const said = vi.fn();
+
+    presence.connect('tab-1', null, null, 'Chrome', vi.fn());
+    presence.startPlayback('tab-1', {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'direct',
+      transcoderSessionId: null,
+      plan,
+    });
+
+    presence.watch(said);
+    presence.heartbeatPlayback('tab-1', true);
+
+    expect(said).not.toHaveBeenCalled();
+  });
+
+  it('tells a watcher when a heartbeat says the position moved', () => {
+    const presence = createPresenceService();
+    const said = vi.fn();
+
+    presence.connect('tab-1', null, null, 'Chrome', vi.fn());
+    presence.startPlayback('tab-1', {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'direct',
+      transcoderSessionId: null,
+      plan,
+    });
+
+    presence.watch(said);
+    presence.heartbeatPlayback('tab-1', true, {
+      positionSeconds: 42,
+      durationSeconds: 7200,
+      bufferedAheadSeconds: 10,
+      presentedWidth: 1920,
+      presentedHeight: 1080,
+    });
+
+    expect(said).toHaveBeenCalled();
+  });
+});

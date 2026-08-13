@@ -476,3 +476,54 @@ describe('AccountsPanel', () => {
     expect(AccountsPanel.displayName).toBe('AccountsPanel');
   });
 });
+
+describe('allowing and denying one thing for one person', () => {
+  const openRoles = async (user: ReturnType<typeof userEvent.setup>) => {
+    render(<AccountsPanel />);
+
+    await choose(user, 'Dan', /Edit roles/);
+  };
+
+  it('allows a permission somebody does not hold', async () => {
+    const user = userEvent.setup();
+
+    await openRoles(user);
+
+    await user.click(await screen.findByRole('button', { name: 'Add an exception' }));
+    await user.click(await screen.findByRole('menuitemradio', { name: /Run a job/ }));
+    await user.click(screen.getByRole('button', { name: 'Allow it' }));
+
+    await waitFor(() => {
+      expect(mocks.setOverride).toHaveBeenCalledWith(
+        'usr_1',
+        expect.objectContaining({ effect: 'allow' }),
+      );
+    });
+  });
+
+  it('denies one they hold through a role', async () => {
+    const user = userEvent.setup();
+
+    await openRoles(user);
+
+    await user.click(await screen.findByRole('button', { name: 'Add an exception' }));
+    await user.click(await screen.findByRole('menuitemradio', { name: /Run a job/ }));
+    await user.click(screen.getByRole('button', { name: 'Deny it' }));
+
+    await waitFor(() => {
+      expect(mocks.setOverride).toHaveBeenCalledWith(
+        'usr_1',
+        expect.objectContaining({ effect: 'deny' }),
+      );
+    });
+  });
+
+  it('offers nothing to allow or deny until one is picked', async () => {
+    const user = userEvent.setup();
+
+    await openRoles(user);
+
+    expect(await screen.findByRole('button', { name: 'Allow it' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Deny it' })).toBeDisabled();
+  });
+});

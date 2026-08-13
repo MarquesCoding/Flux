@@ -46,7 +46,8 @@ const ProgressListSchema = z.object({
 });
 
 const build = () => {
-  const { auth, settings } = createMemoryAuth();
+  const profiles = createMemoryProfileService();
+  const { auth, settings, store } = createMemoryAuth();
   const progress = createMemoryWatchProgressService();
 
   const app = createApp({
@@ -72,12 +73,12 @@ const build = () => {
     playback: createMemoryPlaybackService(),
     segments: createMemorySegmentService(),
     subtitles: createMemorySubtitleService({}),
-    profiles: createMemoryProfileService(),
+    profiles,
     progress,
     favourites: createMemoryFavouriteService(),
   });
 
-  return { app, progress };
+  return { app, progress, profiles, store };
 };
 
 /**
@@ -245,5 +246,55 @@ describe('watch progress over HTTP', () => {
 
     expect(forgotten.status).toBe(204);
     expect(body.progress).toEqual([]);
+  });
+});
+
+describe('which viewer a request is about', () => {
+  const PROFILE_HEADER = 'x-flux-profile';
+
+  it('records against the profile the request names, when it belongs to that account', async () => {
+    const { app, profiles, store } = build();
+    const cookie = await signedIn(app);
+
+    const listed = await app.request(`${BASE}/api/profiles`, {
+      headers: { cookie, origin: BASE },
+    });
+    const { profiles: held } = z
+      .object({ profiles: z.array(z.object({ id: z.string(), name: z.string() })) })
+      .parse(await listed.json());
+
+    const second = await profiles.create(store.user[0]?.id ?? '', {
+      name: 'Dan',
+      colour: '#e8a33a',
+    });
+
+    await app.request(`${BASE}/api/media/${MEDIA_ID}/progress`, {
+      method: 'PUT',
+      headers: {
+        cookie,
+        origin: BASE,
+        'content-type': 'application/json',
+        [PROFILE_HEADER]: second.id,
+      },
+      body: JSON.stringify({ positionSeconds: 42, durationSeconds: 7200 }),
+    });
+
+    const mine = await app.request(`${BASE}/api/progress`, {
+      headers: { cookie, origin: BASE, [PROFILE_HEADER]: second.id },
+    });
+
+    expect(await mine.json()).toMatchObject({ progress: [{ positionSeconds: 42 }] });
+    expect(held[0]?.name).toBeDefined();
+  });
+
+  it('falls back to the account’s own profile when the one named is somebody else’s', async () => {
+    const { app } = build();
+    const cookie = await signedIn(app);
+
+    const response = await app.request(`${BASE}/api/progress`, {
+      headers: { cookie, origin: BASE, [PROFILE_HEADER]: '3f2504e0-4f89-41d3-9a0c-0305e82c3301' },
+    });
+
+    expect(response.status).toBe(200);
   });
 });

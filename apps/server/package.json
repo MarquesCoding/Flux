@@ -34,9 +34,9 @@
   },
   "devDependencies": {
     "@types/pg": "^8.21.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.19.2",
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.0.2"
+    "vitest": "^4.1.10"
   }
 }

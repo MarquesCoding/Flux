@@ -51,7 +51,7 @@ const DeviceListSchema = z.object({
 });
 
 const build = () => {
-  const { auth, settings } = createMemoryAuth();
+  const { auth, settings, store } = createMemoryAuth();
   const app = createApp({
     auth,
     settings,
@@ -80,7 +80,7 @@ const build = () => {
     favourites: createMemoryFavouriteService(),
   });
 
-  return { app };
+  return { app, store };
 };
 
 /**
@@ -169,5 +169,29 @@ describe('devices over HTTP', () => {
 
     expect(response.status).toBe(204);
     await expect(listed(app, cookie)).resolves.toMatchObject([{ isCurrent: true }]);
+  });
+
+  it('reports the address a session was opened from when one was recorded', async () => {
+    const { app, store } = build();
+    const cookie = await signedIn(app);
+    const held = store.session[0];
+
+    if (held !== undefined) {
+      held.ipAddress = '192.168.1.50';
+    }
+
+    await expect(listed(app, cookie)).resolves.toMatchObject([{ address: '192.168.1.50' }]);
+  });
+
+  it('reports no address for a session opened from somewhere it did not record', async () => {
+    const { app, store } = build();
+    const cookie = await signedIn(app);
+    const held = store.session[0];
+
+    if (held !== undefined) {
+      held.ipAddress = null;
+    }
+
+    await expect(listed(app, cookie)).resolves.toMatchObject([{ address: null }]);
   });
 });

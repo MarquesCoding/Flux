@@ -1,6 +1,18 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SplashScreen } from './SplashScreen';
+import type * as MotionReact from 'motion/react';
+
+const motion = vi.hoisted(() => ({ isReduced: false }));
+
+vi.mock('motion/react', async () => ({
+  ...(await vi.importActual<typeof MotionReact>('motion/react')),
+  useReducedMotion: () => motion.isReduced,
+}));
+
+afterEach(() => {
+  motion.isReduced = false;
+});
 
 describe('SplashScreen', () => {
   it('says something is happening, for anyone who cannot see the bar', () => {
@@ -23,5 +35,13 @@ describe('SplashScreen', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(SplashScreen.displayName).toBe('SplashScreen');
+  });
+
+  it('shows a still bar rather than a travelling one when less motion was asked for', () => {
+    motion.isReduced = true;
+
+    render(<SplashScreen name="Flux" label="Loading" />);
+
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
   });
 });

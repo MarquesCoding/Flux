@@ -7,6 +7,9 @@ import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPerm
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
 import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
+import { createPresenceService } from '@FluxServer/presence/PresenceService';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
@@ -44,6 +47,7 @@ const build = (
 ) => {
   const { auth, settings, store } = createMemoryAuth();
   const permissions = createMemoryPermissionService();
+  const presence = createPresenceService();
 
   const app = createApp({
     ...(waiting.isTranscoderReachable === undefined
@@ -72,9 +76,10 @@ const build = (
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
     profiles: createMemoryProfileService(),
+    presence,
   });
 
-  return { app, settings, store, permissions };
+  return { app, settings, store, permissions, presence };
 };
 
 const signedIn = (app: ReturnType<typeof build>['app']): Promise<string> =>
@@ -694,4 +699,459 @@ describe('an admin page while the media service is not answering', () => {
 
     expect(body).toMatchObject({ transcoder: { isReachable: false } });
   }, 20_000);
+});
+
+const REASON: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };
+
+describe('watching and steering what is being watched', () => {
+  const watching = (presence: ReturnType<typeof build>['presence'], clientId = 'tab-1') => {
+    presence.connect(clientId, null, null, 'Chrome on macOS', () => {});
+    presence.startPlayback(clientId, {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'direct',
+      transcoderSessionId: null,
+      plan: {
+        mediaId: 'media-1',
+        container: { kind: 'passthrough', reason: REASON },
+        video: { kind: 'passthrough', reason: REASON },
+        audio: { kind: 'passthrough', streamIndex: 1, reason: REASON },
+        subtitles: { kind: 'none', reason: REASON },
+      },
+    });
+  };
+
+  it('lists who is watching what', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+
+    const response = await app.request(`${BASE}/api/admin/sessions`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject([{ clientId: 'tab-1' }]);
+  });
+
+  it('pauses somebody else’s stream', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1/pause`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(204);
+    expect(presence.list()[0]?.playback).toMatchObject({ pausedByAdmin: true });
+  });
+
+  it('has nothing to pause in a tab that is not open', async () => {
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/nobody/pause`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('refuses to pause a tab that is not watching anything', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    presence.connect('tab-1', null, null, 'Chrome on macOS', () => {});
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1/pause`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(409);
+  });
+
+  it('lets a paused stream go again', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+    presence.pause('tab-1', 'paused');
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1/resume`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(204);
+    expect(presence.list()[0]?.playback).toMatchObject({ pausedByAdmin: false });
+  });
+
+  it('has nothing to resume in a tab that is not open', async () => {
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/nobody/resume`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('stops somebody else’s stream', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(204);
+    expect(presence.list()[0]?.playback).toBeNull();
+  });
+
+  it('has nothing to stop in a tab that is not open', async () => {
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/nobody`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  describe('the session list an admin page keeps open', () => {
+    it('turns away somebody who may not watch streams', async () => {
+      const { app } = build();
+      const cookie = await signedIn(app);
+
+      const response = await app.request(`${BASE}/api/admin/sessions/stream`, {
+        headers: { cookie, origin: BASE },
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('sends the list as an event stream, and again whenever it changes', async () => {
+      const { app, store, permissions, presence } = build();
+      const cookie = await signedInAsAdmin(app, store, permissions);
+      const controller = new AbortController();
+
+      const response = await app.request(`${BASE}/api/admin/sessions/stream`, {
+        headers: { cookie, origin: BASE },
+        signal: controller.signal,
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/event-stream');
+
+      watching(presence);
+
+      controller.abort();
+      await response.body?.cancel();
+    });
+  });
+});
+
+describe('what the media service says about itself', () => {
+  const withMonitor = (
+    monitor?: () => Promise<JsonValue>,
+    monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>,
+  ) => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    const app = createApp({
+      auth,
+      settings,
+      permissions,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService({ libraries: [LIBRARY], media: [] }),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      subtitles: createMemorySubtitleService({}),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+      ...(monitor === undefined ? {} : { monitor }),
+      ...(monitorStream === undefined ? {} : { monitorStream }),
+    });
+
+    return { app, store, permissions };
+  };
+
+  it('passes on the reading it was given', async () => {
+    const context = withMonitor(() => Promise.resolve({ sessions: 2 }));
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ sessions: 2 });
+  });
+
+  it('says the media service did not answer, rather than answering with nothing', async () => {
+    const context = withMonitor(() => Promise.reject(new Error('unreachable')));
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(503);
+  });
+
+  it('says the same on a server with no media service behind it at all', async () => {
+    const context = withMonitor();
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(503);
+  });
+
+  it('holds a reading stream open for a page that is watching', async () => {
+    const context = withMonitor(undefined, () =>
+      Promise.resolve(
+        new ReadableStream<Uint8Array>({
+          start: (controller) => {
+            controller.enqueue(new TextEncoder().encode('data: {}\n\n'));
+            controller.close();
+          },
+        }),
+      ),
+    );
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor/stream`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/event-stream');
+  });
+
+  it('says the media service did not answer when there is no stream to hold', async () => {
+    const context = withMonitor(undefined, () => Promise.resolve(null));
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor/stream`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(503);
+  });
+
+  it('will not let an ordinary account watch the readings', async () => {
+    const context = withMonitor(() => Promise.resolve({ sessions: 0 }));
+    const cookie = await signedIn(context.app);
+
+    const response = await context.app.request(`${BASE}/api/admin/monitor/stream`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(403);
+  });
+});
+
+describe('searching the catalogue from the admin page', () => {
+  it('passes what the catalogue offered straight through', async () => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    const app = createApp({
+      auth,
+      settings,
+      permissions,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService({ libraries: [LIBRARY], media: [] }),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      subtitles: createMemorySubtitleService({}),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+      searchCatalogue: (query, kind) =>
+        Promise.resolve([
+          {
+            externalId: '329',
+            kind,
+            title: query,
+            year: 2016,
+            overview: null,
+            posterUrl: null,
+          },
+        ]),
+    });
+
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(
+      `${BASE}/api/admin/catalogue/search?query=Arrival&kind=movie`,
+      { headers: { cookie, origin: BASE } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ matches: [{ title: 'Arrival', kind: 'movie' }] });
+  });
+
+  it('offers nothing on a server with no catalogue behind it', async () => {
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(
+      `${BASE}/api/admin/catalogue/search?query=Arrival&kind=movie`,
+      { headers: { cookie, origin: BASE } },
+    );
+
+    expect(await response.json()).toEqual({ matches: [] });
+  });
+});
+
+describe('what the caches are holding', () => {
+  const COUNT = { count: 3, bytes: 4096, atMs: 1 };
+
+  const withStorage = (
+    measureStorage?: () => Promise<{
+      cache: {
+        previews: typeof COUNT;
+        trickplay: typeof COUNT;
+        sessions: typeof COUNT;
+        atMs: number;
+      } | null;
+      artwork: { count: number; bytes: number; atMs: number } | null;
+      libraryBytes: number;
+    }>,
+  ) => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    const app = createApp({
+      auth,
+      settings,
+      permissions,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService({ libraries: [LIBRARY], media: [] }),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      subtitles: createMemorySubtitleService({}),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+      ...(measureStorage === undefined ? {} : { measureStorage }),
+    });
+
+    return { app, store, permissions };
+  };
+
+  it('counts what is held, when the server can measure it', async () => {
+    const context = withStorage(() =>
+      Promise.resolve({
+        cache: { previews: COUNT, trickplay: COUNT, sessions: COUNT, atMs: 1 },
+        artwork: { count: 10, bytes: 2048, atMs: 1 },
+        libraryBytes: 1024,
+      }),
+    );
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/storage/measure`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ libraryBytes: 1024, artwork: { count: 10 } });
+  });
+
+  it('answers with nothing measured rather than failing, on a server that cannot', async () => {
+    const context = withStorage();
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/storage/measure`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ cache: null, artwork: null, libraryBytes: 0 });
+  });
+
+  it('will not let an ordinary account ask', async () => {
+    const context = withStorage();
+    const cookie = await signedIn(context.app);
+
+    const response = await context.app.request(`${BASE}/api/admin/storage/measure`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(403);
+  });
+});
+
+describe('changing one setting without disturbing the others', () => {
+  it('changes the catalogue key alone', async () => {
+    const { app, store, permissions, settings } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ catalogueApiKey: 'a-key' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect((await settings.read()).catalogueApiKey).toBe('a-key');
+  });
+
+  it('changes the hardware backend alone', async () => {
+    const { app, store, permissions, settings } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ hardwareAccel: 'nvenc' }),
+    });
+
+    expect((await settings.read()).hardwareAccel).toBe('nvenc');
+  });
+
+  it('leaves a setting alone when a change does not mention it', async () => {
+    const { app, store, permissions, settings } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ hardwareAccel: 'nvenc' }),
+    });
+
+    await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ catalogueApiKey: 'a-key' }),
+    });
+
+    const current = await settings.read();
+
+    expect(current).toMatchObject({ hardwareAccel: 'nvenc', catalogueApiKey: 'a-key' });
+  });
 });

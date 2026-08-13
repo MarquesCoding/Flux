@@ -1098,3 +1098,92 @@ describe('AdminArea', () => {
     });
   });
 });
+
+describe('steering somebody else’s stream', () => {
+  const WATCHING: FakeSession = {
+    clientId: 'tab-1',
+    profileId: null,
+    profileName: 'Dan',
+    deviceLabel: 'Chrome on macOS',
+    connectedAt: 1,
+    playback: {
+      mediaId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'direct',
+      plan: FAKE_PLAN,
+      isPlaying: true,
+      pausedByAdmin: false,
+      startedAt: 1,
+      health: {
+        positionSeconds: 42,
+        durationSeconds: 7200,
+        bufferedAheadSeconds: 12,
+        presentedWidth: 1920,
+        presentedHeight: 1080,
+      },
+    },
+  };
+
+  const onTheSessionsTab = async (session: FakeSession = WATCHING) => {
+    const actor = userEvent.setup();
+
+    fetchMock.mockImplementation(respondWith(OVERVIEW, [session]));
+
+    render(<AdminArea />);
+
+    await actor.click(await screen.findByRole('tab', { name: 'Sessions' }));
+
+    return actor;
+  };
+
+  it('pauses a stream, and says which tab it paused', async () => {
+    const actor = await onTheSessionsTab();
+
+    await actor.click(await screen.findByRole('button', { name: 'Pause' }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/sessions/tab-1/pause',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+  });
+
+  it('lets a paused stream go again', async () => {
+    const actor = await onTheSessionsTab({
+      ...WATCHING,
+      playback: { ...WATCHING.playback!, isPlaying: false, pausedByAdmin: true },
+    });
+
+    await actor.click(await screen.findByRole('button', { name: 'Play' }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/sessions/tab-1/resume',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+  });
+
+  it('stops a stream outright', async () => {
+    const actor = await onTheSessionsTab();
+
+    await actor.click(await screen.findByRole('button', { name: 'Stop' }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/sessions/tab-1',
+        expect.objectContaining({ method: 'DELETE' }),
+      );
+    });
+  });
+
+  it('names what somebody is watching, and on what', async () => {
+    await onTheSessionsTab();
+
+    expect(await screen.findByText('Arrival')).toBeInTheDocument();
+    expect(screen.getByText(/Chrome on macOS/)).toBeInTheDocument();
+  });
+});

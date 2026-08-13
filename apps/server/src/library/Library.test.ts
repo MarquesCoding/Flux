@@ -622,3 +622,236 @@ describe('rebuilding one item’s artefacts', () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe('narrowing a library down', () => {
+  it('offers only what belongs to a series when shows are asked for', async () => {
+    const { app } = build([detail(), episodeOf()]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?kind=shows`);
+    const body = z.object({ items: z.array(MediaSummarySchema) }).parse(await response.json());
+
+    expect(body.items.map((one) => one.title)).toEqual(['Yuki’s World']);
+  });
+
+  it('offers only what stands on its own when films are asked for', async () => {
+    const { app } = build([detail(), episodeOf()]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?kind=films`);
+    const body = z.object({ items: z.array(MediaSummarySchema) }).parse(await response.json());
+
+    expect(body.items.map((one) => one.title)).toEqual(['Arrival']);
+  });
+
+  it('offers only what carries the genre asked for', async () => {
+    const { app } = build([
+      detail({ metadata: { hasPoster: false, hasBackdrop: false, genres: ['Drama'] } }),
+      detail({
+        id: '11111111-1111-4111-8111-111111111111',
+        title: 'Heat',
+        metadata: { hasPoster: false, hasBackdrop: false, genres: ['Crime'] },
+      }),
+    ]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?genre=Crime`);
+    const body = z.object({ items: z.array(MediaSummarySchema) }).parse(await response.json());
+
+    expect(body.items.map((one) => one.title)).toEqual(['Heat']);
+  });
+
+  it('offers nothing for a genre nothing carries', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?genre=Western`);
+    const body = z.object({ items: z.array(MediaSummarySchema) }).parse(await response.json());
+
+    expect(body.items).toEqual([]);
+  });
+});
+
+describe('saying what something actually is', () => {
+  it('takes a catalogue id and says how many files it reached', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: '329', kind: 'movie' }),
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('reads the kind out of a catalogue address, so pasting a link is enough', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: 'https://www.themoviedb.org/movie/329-arrival' }),
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('refuses something that is not a catalogue reference at all', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: 'the one with the aliens' }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('asks which kind a bare number is, since the same number is both', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: '329' }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('has nothing to correct about an item that is not there', async () => {
+    const { app } = build([]);
+
+    const response = await app.request(
+      `${BASE}/api/media/11111111-1111-4111-8111-111111111111/match`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reference: '329', kind: 'movie' }),
+      },
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it('forgets a correction, so the next scan reads the file as it finds it', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'DELETE',
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('has nothing to forget about an item that is not there', async () => {
+    const { app } = build([]);
+
+    const response = await app.request(
+      `${BASE}/api/media/11111111-1111-4111-8111-111111111111/match`,
+      { method: 'DELETE' },
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('asking for work against a library that is not there', () => {
+  const MISSING = '22222222-2222-4222-8222-222222222222';
+
+  const asks: [string, string][] = [
+    ['POST', `/api/libraries/${MISSING}/reset`],
+    ['POST', `/api/libraries/${MISSING}/regenerate-previews`],
+  ];
+
+  for (const [method, path] of asks) {
+    it(`answers ${method} ${path} with nothing to work on`, async () => {
+      const { app } = build([detail()]);
+
+      const response = await app.request(`${BASE}${path}`, { method });
+
+      expect(response.status).toBe(404);
+    });
+  }
+
+  it('reaches every episode of a series when one of them is corrected', async () => {
+    const { app } = build([
+      episodeOf({ id: MEDIA_ID }),
+      episodeOf({ id: '33333333-3333-4333-8333-333333333333', episodeNumber: 2 }),
+    ]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: '5', kind: 'tv' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ corrected: 2 });
+  });
+
+  it('reaches only the film itself when a film is corrected', async () => {
+    const { app } = build([detail(), detail({ id: '33333333-3333-4333-8333-333333333333' })]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference: '329', kind: 'movie' }),
+    });
+
+    expect(await response.json()).toMatchObject({ corrected: 1 });
+  });
+});
+
+describe('adding a library', () => {
+  it('refuses a path that is not a readable directory', async () => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+    const library = createMemoryLibraryService();
+
+    const app = signedInApp(
+      createApp({
+        auth,
+        settings,
+        permissions,
+        countUsers: () => Promise.resolve(1),
+        promoteToAdmin: () => Promise.resolve(),
+        library: { ...library, create: () => Promise.resolve(null) },
+        subtitles: createMemorySubtitleService(),
+        segments: createMemorySegmentService(),
+        progress: createMemoryWatchProgressService(),
+        favourites: createMemoryFavouriteService(),
+        playback: createMemoryPlaybackService(),
+      }),
+      { store, permissions, isAdministrator: true },
+    );
+
+    const response = await app.request(`${BASE}/api/libraries`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Films', kind: 'movies', path: '/nowhere' }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('adds one for a path that is there', async () => {
+    const { app } = build([]);
+
+    const response = await app.request(`${BASE}/api/libraries`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Shows', kind: 'shows', path: '/media/shows' }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ name: 'Shows', filesAtOnce: null });
+  });
+
+  it('reports an item with no year rather than leaving the field out', async () => {
+    const { app } = build([detail({ year: null })]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items`);
+    const body = z.object({ items: z.array(MediaSummarySchema) }).parse(await response.json());
+
+    expect(body.items[0]?.year).toBeNull();
+  });
+});
