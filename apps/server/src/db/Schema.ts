@@ -27,6 +27,28 @@ const user = pgTable('user', {
   banExpires: timestamp('banExpires'),
 });
 
+/**
+ * What an account has done, as facts that outlive the rows they came from.
+ *
+ * Beside better-auth's `user` rather than inside it, for the same reason the
+ * role tables are: better-auth owns that table and Flux writing to it makes
+ * every upgrade a question about whose column is whose.
+ *
+ * `lastSignInAt` exists because the obvious source for it does not survive.
+ * `session.createdAt` looks like the answer, but the nightly cleanup deletes
+ * every expired session — correctly, since better-auth checks expiry at read
+ * time and never reclaims the table itself. Deriving a statistic from rows
+ * designed to be temporary means the statistic disappears on a schedule, so
+ * the fact of a sign-in is recorded when it happens and kept separately.
+ */
+const accountActivity = pgTable('account_activity', {
+  userId: text('userId')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  lastSignInAt: timestamp('lastSignInAt').notNull().defaultNow(),
+  signInCount: integer('signInCount').notNull().default(0),
+});
+
 const session = pgTable('session', {
   id: text('id').primaryKey(),
   expiresAt: timestamp('expiresAt').notNull(),
@@ -527,6 +549,7 @@ const authSchema = {
 const fluxSchema = { userProfile, viewerProfile, serverSetting, library, mediaItem };
 
 export {
+  accountActivity,
   series,
   authSchema,
   fluxSchema,

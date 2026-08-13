@@ -23,6 +23,14 @@ type CreateAuthOptions = {
   settings: SettingsStore;
   cookieSecure: boolean;
   onUserCreated?: (userId: string) => Promise<void>;
+  /**
+   * Told when an account signs in, so the fact outlives the session row.
+   *
+   * The nightly cleanup deletes expired sessions, which is correct and is also
+   * why `session.createdAt` cannot answer "when were they last here" — the
+   * evidence is on a schedule to be removed.
+   */
+  onSignedIn?: (userId: string, at: Date) => Promise<void>;
   onPasswordResetRequested?: (email: string, url: string) => Promise<void>;
 };
 
@@ -47,6 +55,7 @@ const createAuth = ({
   settings,
   cookieSecure,
   onUserCreated,
+  onSignedIn,
   onPasswordResetRequested,
 }: CreateAuthOptions) => {
   return betterAuth({
@@ -83,6 +92,13 @@ const createAuth = ({
         create: {
           after: async (created) => {
             await onUserCreated?.(created.id);
+          },
+        },
+      },
+      session: {
+        create: {
+          after: async (created) => {
+            await onSignedIn?.(created.userId, new Date());
           },
         },
       },

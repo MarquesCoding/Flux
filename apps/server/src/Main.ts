@@ -78,6 +78,8 @@ import { createWorkLock } from '@FluxServer/jobs/createWorkLock';
 import { seedDefaultJobTriggers } from '@FluxServer/jobs/seedDefaultJobTriggers';
 import { seedDefaultRoles } from '@FluxServer/auth/seedDefaultRoles';
 import { DEFAULT_ROLE_NAME } from '@FluxCore/functions/defaultRoles';
+import { createDatabaseSignInStore } from '@FluxServer/accounts/createDatabaseSignInStore';
+import { recordSignIn } from '@FluxServer/accounts/recordSignIn';
 import { createDatabasePermissionService } from '@FluxServer/auth/createDatabasePermissionService';
 /**
  * Chapters as they were stored, which may be from an older shape.
@@ -105,6 +107,8 @@ const settings = createDatabaseSettingsStore({
   },
 });
 
+const signInStore = createDatabaseSignInStore(db);
+
 const persisted = await settings.read();
 
 const auth = createAuth({
@@ -114,6 +118,14 @@ const auth = createAuth({
   cookieSecure: persisted.cookieSecure,
   onUserCreated: async (userId) => {
     await db.insert(userProfile).values({ userId }).onConflictDoNothing();
+  },
+  onSignedIn: async (userId, at) => {
+    await recordSignIn({
+      store: signInStore,
+      userId,
+      at,
+      lastSignInAt: await signInStore.lastSignInAt(userId),
+    });
   },
   onPasswordResetRequested: (email, url) => {
     process.stdout.write(`password reset for ${email}: ${url}\n`);
