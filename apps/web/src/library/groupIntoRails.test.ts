@@ -200,3 +200,73 @@ describe('a row that names a programme', () => {
     ).toBe(true);
   });
 });
+
+describe('the rail of what somebody is partway through', () => {
+  const partway = (id: string, updatedAt: string) =>
+    [
+      id,
+      {
+        mediaId: id,
+        profileId: 'viewer-1',
+        positionSeconds: 600,
+        durationSeconds: 3600,
+        isFinished: false,
+        updatedAt,
+      },
+    ] as const;
+
+  it('opens with what is being watched, before anything else', () => {
+    const items = [media({ id: 'a' }), media({ id: 'b' })];
+    const progress = new Map([partway('b', daysAgo(1))]);
+
+    const rails = groupIntoRails(items, Date.now(), progress);
+
+    expect(rails[0]).toMatchObject({ id: 'resume', title: 'Continue watching' });
+    expect(rails[0]?.items.map((one) => one.id)).toEqual(['b']);
+  });
+
+  it('puts the most recently watched first', () => {
+    const items = [media({ id: 'a' }), media({ id: 'b' })];
+    const progress = new Map([partway('a', daysAgo(5)), partway('b', daysAgo(1))]);
+
+    const rails = groupIntoRails(items, Date.now(), progress);
+
+    expect(rails[0]?.items.map((one) => one.id)).toEqual(['b', 'a']);
+  });
+
+  it('treats a time it cannot read as long ago rather than as now', () => {
+    const items = [media({ id: 'a' }), media({ id: 'b' })];
+    const progress = new Map([partway('a', 'whenever'), partway('b', daysAgo(1))]);
+
+    const rails = groupIntoRails(items, Date.now(), progress);
+
+    expect(rails[0]?.items[0]?.id).toBe('b');
+  });
+
+  it('leaves out something barely started, which is not worth resuming', () => {
+    const items = [media({ id: 'a' })];
+    const progress = new Map([
+      [
+        'a',
+        {
+          mediaId: 'a',
+          profileId: 'viewer-1',
+          positionSeconds: 2,
+          durationSeconds: 3600,
+          isFinished: false,
+          updatedAt: daysAgo(1),
+        },
+      ],
+    ]);
+
+    const rails = groupIntoRails(items, Date.now(), progress);
+
+    expect(rails[0]?.id).not.toBe('resume');
+  });
+
+  it('has no such rail when nothing is partway through', () => {
+    const rails = groupIntoRails([media({ id: 'a' })], Date.now());
+
+    expect(rails.some((rail) => rail.id === 'resume')).toBe(false);
+  });
+});
