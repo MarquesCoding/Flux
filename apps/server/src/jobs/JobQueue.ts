@@ -53,6 +53,21 @@ const RegeneratePreviewsJobSchema = z.object({
 type RegeneratePreviewsJob = z.infer<typeof RegeneratePreviewsJobSchema>;
 
 /**
+ * Collects the lettering each title is written in.
+ *
+ * Separate from `library.scan` because it asks a catalogue rather than the
+ * filesystem, and because a library scanned before Flux knew about logos
+ * should be able to gain them without re-probing every file it holds.
+ */
+const FETCH_LOGOS_JOB = 'library.fetchLogos';
+
+const FetchLogosJobSchema = z.object({
+  libraryId: z.string().uuid(),
+});
+
+type FetchLogosJob = z.infer<typeof FetchLogosJobSchema>;
+
+/**
  * Re-renders every scrubbing thumbnail sheet for a library's already-scanned
  * media, without a full rescan.
  *
@@ -248,6 +263,7 @@ export type {
   RegeneratePreviewsJob,
   ReadAgainJob,
   RegenerateTrickplayJob,
+  FetchLogosJob,
   RunningJob,
   ScanLibraryJob,
 };
@@ -260,7 +276,9 @@ export {
   REGENERATE_PREVIEWS_JOB,
   RegeneratePreviewsJobSchema,
   REGENERATE_TRICKPLAY_JOB,
+  FETCH_LOGOS_JOB,
   RegenerateTrickplayJobSchema,
+  FetchLogosJobSchema,
   DETECT_SEGMENTS_JOB,
   DetectSegmentsJobSchema,
   CLEANUP_IMAGE_CACHE_JOB,

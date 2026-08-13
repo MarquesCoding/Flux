@@ -22,6 +22,7 @@ const toSummary = (item: MediaDetail): MediaSummary => ({
   addedAt: item.addedAt,
   hasPoster: item.metadata.hasPoster,
   hasBackdrop: item.metadata.hasBackdrop,
+  hasLogo: false,
   rating: item.metadata.rating ?? null,
   seriesTitle: item.metadata.seriesTitle ?? null,
   seasonNumber: item.metadata.seasonNumber ?? null,
@@ -189,6 +190,13 @@ const createMemoryLibraryService = (
     Promise.resolve(
       state.libraries.some((entry) => entry.id === libraryId)
         ? { jobId: `regenerate-previews-${libraryId}`, state: 'queued' }
+        : null,
+    ),
+
+  fetchLogos: (libraryId) =>
+    Promise.resolve(
+      state.libraries.some((entry) => entry.id === libraryId)
+        ? { jobId: `fetch-logos-${libraryId}`, state: 'queued' }
         : null,
     ),
 

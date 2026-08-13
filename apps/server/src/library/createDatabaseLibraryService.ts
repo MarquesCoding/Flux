@@ -12,6 +12,7 @@ import {
   markJobComplete,
   clearJobCompletions,
 } from './createMediaStore';
+import { fetchLogos } from './fetchLogos';
 import { scanLibrary } from './scanLibrary';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
 import { resolveSeriesShape } from './MetadataProvider';
@@ -36,6 +37,7 @@ import {
   READ_AGAIN_JOB,
   REGENERATE_PREVIEWS_JOB,
   REGENERATE_TRICKPLAY_JOB,
+  FETCH_LOGOS_JOB,
   DETECT_SEGMENTS_JOB,
 } from '@FluxServer/jobs/JobQueue';
 import type { JobQueue } from '@FluxServer/jobs/JobQueue';
@@ -102,6 +104,7 @@ type DatabaseLibraryService = LibraryService & {
     jobId?: string,
   ) => Promise<void>;
   runRegenerateTrickplay: (libraryId: string, jobId?: string) => Promise<void>;
+  runFetchLogos: (libraryId: string, jobId?: string) => Promise<void>;
 };
 
 /**
@@ -429,6 +432,7 @@ const createDatabaseLibraryService = ({
           addedAt: mediaItem.addedAt,
           posterUrl: mediaItem.posterUrl,
           backdropUrl: mediaItem.backdropUrl,
+          logoUrl: mediaItem.logoUrl,
           seriesTitle: mediaItem.seriesTitle,
           seasonNumber: mediaItem.seasonNumber,
           episodeNumber: mediaItem.episodeNumber,
@@ -441,11 +445,12 @@ const createDatabaseLibraryService = ({
         .limit(options.limit)
         .offset(options.offset);
 
-      const items = rows.map(({ posterUrl, backdropUrl, genres, ...row }) => ({
+      const items = rows.map(({ posterUrl, backdropUrl, logoUrl, genres, ...row }) => ({
         ...row,
         addedAt: row.addedAt.toISOString(),
         hasPoster: posterUrl !== null,
         hasBackdrop: backdropUrl !== null,
+        hasLogo: logoUrl !== null,
         genres: readGenres(JsonValueSchema.parse(genres ?? null)),
       })) satisfies MediaSummary[];
 
@@ -556,6 +561,7 @@ const createDatabaseLibraryService = ({
           rating: row.rating,
           hasPoster: row.posterUrl !== null,
           hasBackdrop: row.backdropUrl !== null,
+          hasLogo: row.logoUrl !== null,
           seriesTitle: row.seriesTitle,
           seasonNumber: row.seasonNumber,
           episodeNumber: row.episodeNumber,
@@ -567,7 +573,11 @@ const createDatabaseLibraryService = ({
 
     readArtworkUrl: async (mediaId, kind) => {
       const rows = await db
-        .select({ poster: mediaItem.posterUrl, backdrop: mediaItem.backdropUrl })
+        .select({
+          poster: mediaItem.posterUrl,
+          backdrop: mediaItem.backdropUrl,
+          logo: mediaItem.logoUrl,
+        })
         .from(mediaItem)
         .where(eq(mediaItem.id, mediaId))
         .limit(1);
@@ -578,7 +588,7 @@ const createDatabaseLibraryService = ({
         return null;
       }
 
-      return (kind === 'poster' ? row.poster : row.backdrop) ?? null;
+      return (kind === 'poster' ? row.poster : kind === 'logo' ? row.logo : row.backdrop) ?? null;
     },
 
     scan: async (libraryId, force = false) => {
@@ -620,6 +630,16 @@ const createDatabaseLibraryService = ({
         { libraryId, defaultAudioLanguage: found.defaultAudioLanguage },
         libraryId,
       );
+
+      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
+    },
+
+    fetchLogos: async (libraryId) => {
+      if ((await findLibrary(libraryId)) === null) {
+        return null;
+      }
+
+      const jobId = await jobs.enqueue(FETCH_LOGOS_JOB, { libraryId }, libraryId);
 
       return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
@@ -709,6 +729,57 @@ const createDatabaseLibraryService = ({
           : {
               onProgress: (processed, total) =>
                 jobs.reportProgress(jobId, 'previews', processed, total),
+              isCancelled: () => jobs.isCancelled(jobId),
+            }),
+      });
+    },
+
+    runFetchLogos: async (libraryId, jobId) => {
+      /**
+       * The first provider that can supply lettering.
+       *
+       * Providers are tried in order everywhere else too; a filename reader
+       * has no artwork to give and simply does not offer this.
+       */
+      const readLogoUrl = (providers ?? []).find(
+        (provider) => provider.readLogoUrl !== undefined,
+      )?.readLogoUrl;
+
+      await fetchLogos({
+        libraryId,
+        store: {
+          listMissing: async (id) => {
+            const rows = await db
+              .select({
+                id: mediaItem.id,
+                externalId: mediaItem.externalId,
+                seriesTitle: mediaItem.seriesTitle,
+              })
+              .from(mediaItem)
+              .where(and(eq(mediaItem.libraryId, id), isNull(mediaItem.logoUrl)));
+
+            return rows.flatMap((row) =>
+              row.externalId === null
+                ? []
+                : [
+                    {
+                      id: row.id,
+                      externalId: row.externalId,
+                      isSeries: row.seriesTitle !== null,
+                    },
+                  ],
+            );
+          },
+          save: async (mediaItemId, logoUrl) => {
+            await db.update(mediaItem).set({ logoUrl }).where(eq(mediaItem.id, mediaItemId));
+          },
+        },
+        ...(readLogoUrl === undefined ? {} : { readLogoUrl }),
+        ...(onProblem === undefined ? {} : { onProblem }),
+        ...(jobId === undefined
+          ? {}
+          : {
+              onProgress: (done, total) => jobs.reportProgress(jobId, 'logos', done, total),
               isCancelled: () => jobs.isCancelled(jobId),
             }),
       });

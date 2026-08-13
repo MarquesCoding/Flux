@@ -2,6 +2,7 @@ import { isMediaFile } from './readTitleFromPath';
 import { resolveMetadata } from './MetadataProvider';
 import { createFilenameMetadataProvider } from './createFilenameMetadataProvider';
 import { readEpisodeFromPath } from './readEpisodeFromPath';
+import { groupBareNumberedEpisodes } from './groupBareNumberedEpisodes';
 import type { Metadata, MetadataProvider } from './MetadataProvider';
 import type { EpisodeNumbering } from './readEpisodeFromPath';
 import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient';
@@ -199,6 +200,16 @@ const scanLibrary = async ({
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path));
   const stored = await store.listStored(libraryId);
 
+  /**
+   * The programmes whose files never wrote `S01E01`.
+   *
+   * Worked out from the whole listing rather than from each filename, because
+   * a bare number only means an episode when the files either side of it agree
+   * on everything else. Read from everything found rather than from what has
+   * changed, so a run stays a run when one episode of it is rescanned alone.
+   */
+  const bareNumbered = groupBareNumberedEpisodes(found.map((file) => file.path));
+
   const seen = force
     ? { changed: found, missing: selectChanged(found, stored).missing }
     : selectChanged(found, stored);
@@ -251,7 +262,13 @@ const scanLibrary = async ({
         continue;
       }
 
-      const episode = readEpisodeFromPath(file.path);
+      const read = readEpisodeFromPath(file.path);
+      const bare = bareNumbered.get(file.path);
+
+      const episode =
+        read.episodeNumber === null && bare !== undefined
+          ? { ...read, ...bare, seriesYear: read.seriesYear }
+          : read;
       const corrected = overrides.get(file.path) ?? null;
       const knownExternalId =
         corrected?.externalId ?? storedByPath.get(file.path)?.externalId ?? null;

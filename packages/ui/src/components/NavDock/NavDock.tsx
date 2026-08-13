@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
-import { FLUX_TOKENS } from '@FluxUI/tokens';
 import { cn } from '@FluxUI/cn';
 import type { NavDockProps } from './NavDock.types';
 
@@ -21,16 +20,19 @@ import type { NavDockProps } from './NavDock.types';
  * always answering the same question, which is "what would happen if I pressed
  * now".
  *
- * One place is named at a time: the word belongs to whichever item the mark is
- * under, so passing along the dock reads out each place in turn and leaves the
- * word back where it started. Five words in a row is a menu to read; one word,
- * on the thing already lit, is a label for it.
+ * The names arrive at once rather than after a pause. A tooltip waits so that
+ * crossing a bar of controls does not flash a box on each one, but here the
+ * bar is nothing but icons and the name is the only thing saying what each
+ * does — waiting is the interface withholding the one thing being asked for.
+ *
+ * The names are tooltips above the icons rather than words beside them. A word
+ * that opens inline pushes every icon along as the pointer arrives, so the
+ * thing being aimed at moves while it is being aimed at — and on a dock, where
+ * the pointer travels the whole row, that happens on every pass. Above the
+ * icon, the row holds still and the mark is the only thing that moves.
  *
  * The filled icon stays with the place actually being stood on, so that
  * pointing at somewhere else never loses where you are.
- *
- * No tooltips: the word appearing under the pointer is what a tooltip was for,
- * and this one arrives at once, in place, without a second box to read.
  *
  * At the foot of the window rather than the head of it. The top of a page is
  * where the thing being looked at introduces itself — a title, a hero, the
@@ -97,7 +99,8 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                     variant="bare"
                     size="none"
                     data-highlight={item.id}
-                    aria-label={item.label}
+                    label={item.label}
+                    tooltipDelayMilliseconds={0}
                     aria-current={isCurrent ? 'page' : undefined}
                     onPointerEnter={() => {
                       setPointedAt(item.id);
@@ -123,24 +126,6 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                         {isCurrent ? (item.activeIcon ?? item.icon) : item.icon}
                       </span>
                     )}
-
-                    <AnimatePresence initial={false}>
-                      {!isNamed ? null : (
-                        <motion.span
-                          key={`${item.id}-label`}
-                          initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                          animate={{ opacity: 1, width: 'auto', marginLeft: 0 }}
-                          exit={{ opacity: 0, width: 0, marginLeft: -6 }}
-                          transition={{
-                            duration: isStill ? 0 : FLUX_TOKENS.duration.normal,
-                            ease: FLUX_TOKENS.ease.soft,
-                          }}
-                          className="overflow-hidden whitespace-nowrap"
-                        >
-                          {item.label}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
                   </Button>
                 </li>
               );
@@ -162,7 +147,8 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                   variant="bare"
                   size="none"
                   data-highlight={action.id}
-                  aria-label={action.label}
+                  label={action.label}
+                  tooltipDelayMilliseconds={0}
                   aria-current={action.isCurrent === true ? 'page' : undefined}
                   onPointerEnter={() => {
                     setPointedAt(action.id);
@@ -182,24 +168,6 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                   {lit === action.id ? mark : null}
 
                   {action.isCurrent === true ? (action.activeIcon ?? action.icon) : action.icon}
-
-                  <AnimatePresence initial={false}>
-                    {lit === action.id ? (
-                      <motion.span
-                        key={`${action.id}-label`}
-                        initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                        animate={{ opacity: 1, width: 'auto', marginLeft: 0 }}
-                        exit={{ opacity: 0, width: 0, marginLeft: -6 }}
-                        transition={{
-                          duration: isStill ? 0 : FLUX_TOKENS.duration.normal,
-                          ease: FLUX_TOKENS.ease.soft,
-                        }}
-                        className="overflow-hidden whitespace-nowrap"
-                      >
-                        {action.label}
-                      </motion.span>
-                    ) : null}
-                  </AnimatePresence>
 
                   {action.badge === undefined ? null : (
                     <span className="absolute -right-0.5 -top-0.5">{action.badge}</span>

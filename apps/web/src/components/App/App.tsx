@@ -2,14 +2,14 @@ import type { MoodLight } from '@FluxUI/MoodBackground.types';
 import type { ShowSummary } from '@FluxContracts/schemas/Show';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { groupVariants } from '@FluxUI/animations/reveal';
 import { SetupWizard } from '@FluxWeb/components/SetupWizard/SetupWizard';
 import { LibraryBrowser } from '@FluxWeb/components/LibraryBrowser/LibraryBrowser';
 import { SearchArea } from '@FluxWeb/components/SearchArea/SearchArea';
 import { BrowseArea } from '@FluxWeb/components/BrowseArea/BrowseArea';
 import { ShowDialog } from '@FluxWeb/components/ShowDialog/ShowDialog';
 import { fetchShows } from '@FluxWeb/library/fetchShows';
-import { fetchGenres } from '@FluxWeb/library/fetchGenres';
 import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import { useFavourites } from '@FluxWeb/library/useFavourites';
@@ -78,7 +78,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     });
   }, [user]);
   const [known, setKnown] = useState(new Map<string, MediaSummary>());
-  const [genres, setGenres] = useState<string[]>([]);
   const { place, go, replace } = usePlace();
   const prefersReducedMotion = useReducedMotion();
 
@@ -211,14 +210,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     return watchPresence();
   }, [user]);
 
-  useEffect(() => {
-    if (user === null) {
-      return;
-    }
-
-    void fetchGenres().then(setGenres);
-  }, [user]);
-
   if (loadState === 'loading') {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />;
   }
@@ -333,10 +324,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           genre: next === 'search' ? place.genre : null,
         });
       }}
-      genres={genres}
-      onGenre={(genre) => {
-        go({ section: 'search', search: '', genre });
-      }}
       moodLights={section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
       onSurprise={() => {
@@ -407,110 +394,127 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         }}
       />
 
-      {section === 'admin' ? (
-        <AdminArea
-          initialPanel={place.adminPanel}
-          onPanelChange={(panel) => {
-            replace({ adminPanel: panel });
-          }}
-          initialJob={place.adminJob}
-          onJobChange={(kind) => {
-            replace({ adminJob: kind });
-          }}
-        />
-      ) : section === 'account' ? (
-        <AccountArea
-          user={user}
-          onChanged={() => {
-            void refresh();
-          }}
-          onSignOut={() => {
-            void signOut().then(() => {
-              go({ section: 'home', search: '', inspecting: null, playing: null, startSeconds: 0 });
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={section}
+          variants={groupVariants}
+          initial="hidden"
+          animate="shown"
+          exit="gone"
+          style={{ display: 'contents' }}
+        >
+          {section === 'admin' ? (
+            <AdminArea
+              initialPanel={place.adminPanel}
+              onPanelChange={(panel) => {
+                replace({ adminPanel: panel });
+              }}
+              initialJob={place.adminJob}
+              onJobChange={(kind) => {
+                replace({ adminJob: kind });
+              }}
+            />
+          ) : section === 'account' ? (
+            <AccountArea
+              user={user}
+              onChanged={() => {
+                void refresh();
+              }}
+              onSignOut={() => {
+                void signOut().then(() => {
+                  go({
+                    section: 'home',
+                    search: '',
+                    inspecting: null,
+                    playing: null,
+                    startSeconds: 0,
+                  });
 
-              return refresh();
-            });
-          }}
-        />
-      ) : section === 'shows' ||
-        section === 'films' ||
-        section === 'new' ||
-        section === 'favourites' ? (
-        <BrowseArea
-          kind={section}
-          favourites={[...favourites.kept]}
-          onPlay={(media, startSeconds) => {
-            go({ playing: media.id, startSeconds: Math.floor(startSeconds) });
-          }}
-          onInspect={(media) => {
-            go({ inspecting: media.id });
-          }}
-          onItemsLoaded={rememberItems}
-          watchedFractionFor={(mediaId) => {
-            const found = progress.get(mediaId);
+                  return refresh();
+                });
+              }}
+            />
+          ) : section === 'shows' ||
+            section === 'films' ||
+            section === 'new' ||
+            section === 'favourites' ? (
+            <BrowseArea
+              kind={section}
+              favourites={[...favourites.kept]}
+              onPlay={(media, startSeconds) => {
+                go({ playing: media.id, startSeconds: Math.floor(startSeconds) });
+              }}
+              onInspect={(media) => {
+                go({ inspecting: media.id });
+              }}
+              onItemsLoaded={rememberItems}
+              watchedFractionFor={(mediaId) => {
+                const found = progress.get(mediaId);
 
-            return found === undefined ? undefined : watchedFraction(found);
-          }}
-          resumeFor={resumeFor}
-          isKept={favourites.isKept}
-          onToggleKept={(media) => {
-            favourites.toggle(media.id);
-          }}
-        />
-      ) : section === 'search' ? (
-        <SearchArea
-          search={place.search}
-          onSearchChange={(next) => {
-            replace({ search: next });
-          }}
-          genre={place.genre}
-          onGenreChange={(next) => {
-            replace({ genre: next });
-          }}
-          onPlay={(media, startSeconds) => {
-            go({ playing: media.id, startSeconds: Math.floor(startSeconds) });
-          }}
-          onInspect={(media) => {
-            go({ inspecting: media.id });
-          }}
-          onItemsLoaded={rememberItems}
-          watchedFractionFor={(mediaId) => {
-            const found = progress.get(mediaId);
+                return found === undefined ? undefined : watchedFraction(found);
+              }}
+              resumeFor={resumeFor}
+              isKept={favourites.isKept}
+              onToggleKept={(media) => {
+                favourites.toggle(media.id);
+              }}
+            />
+          ) : section === 'search' ? (
+            <SearchArea
+              search={place.search}
+              onSearchChange={(next) => {
+                replace({ search: next });
+              }}
+              genre={place.genre}
+              onGenreChange={(next) => {
+                replace({ genre: next });
+              }}
+              onPlay={(media, startSeconds) => {
+                go({ playing: media.id, startSeconds: Math.floor(startSeconds) });
+              }}
+              onInspect={(media) => {
+                go({ inspecting: media.id });
+              }}
+              onItemsLoaded={rememberItems}
+              watchedFractionFor={(mediaId) => {
+                const found = progress.get(mediaId);
 
-            return found === undefined ? undefined : watchedFraction(found);
-          }}
-          resumeFor={resumeFor}
-          isKept={favourites.isKept}
-          onToggleKept={(media) => {
-            favourites.toggle(media.id);
-          }}
-        />
-      ) : (
-        <LibraryBrowser
-          search={place.search}
-          onPlay={(media) => {
-            go({ inspecting: media.id });
-          }}
-          onWatch={(media, startSeconds) => {
-            go({ playing: media.id, startSeconds });
-          }}
-          onItemsLoaded={rememberItems}
-          hasHero
-          onFeatureChange={setFeatured}
-          onPalette={setMoodLights}
-          onOpenShow={(media) => {
-            const series = media.seriesTitle ?? '';
+                return found === undefined ? undefined : watchedFraction(found);
+              }}
+              resumeFor={resumeFor}
+              isKept={favourites.isKept}
+              onToggleKept={(media) => {
+                favourites.toggle(media.id);
+              }}
+            />
+          ) : (
+            <LibraryBrowser
+              search={place.search}
+              onPlay={(media) => {
+                go({ inspecting: media.id });
+              }}
+              onWatch={(media, startSeconds) => {
+                go({ playing: media.id, startSeconds });
+              }}
+              onItemsLoaded={rememberItems}
+              hasHero
+              onFeatureChange={setFeatured}
+              onPalette={setMoodLights}
+              onOpenShow={(media) => {
+                const series = media.seriesTitle ?? '';
 
-            if (series !== '') {
-              go({ show: showSlug(series) });
-            }
-          }}
-          isKept={favourites.isKept}
-          onToggleKept={(media) => {
-            favourites.toggle(media.id);
-          }}
-        />
-      )}
+                if (series !== '') {
+                  go({ show: showSlug(series) });
+                }
+              }}
+              isKept={favourites.isKept}
+              onToggleKept={(media) => {
+                favourites.toggle(media.id);
+              }}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </AppShell>
   );
 };

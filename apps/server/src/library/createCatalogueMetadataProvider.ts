@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { readTitleFromPath } from './readTitleFromPath';
+import { pickLogo } from './pickLogo';
 import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider';
 
 /**
@@ -56,10 +57,22 @@ const isWorthRetrying = (status: number): boolean => status === 429 || status >=
 const wait = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
+/**
+ * One answer from a catalogue's search.
+ *
+ * Both the localised name and the original are asked for, because a
+ * self-hosted library is full of releases named the way they were made while a
+ * catalogue answers in English: the file says
+ * `Yamada kun to Lv999 no Koi wo Suru` and the catalogue says
+ * `My Love Story with Yamada-kun at Lv999`, which share almost no letters at
+ * all. Holding both means a release named either way can find itself.
+ */
 const SearchResultSchema = z.object({
   id: z.number(),
   title: z.string().optional(),
   name: z.string().optional(),
+  original_title: z.string().optional(),
+  original_name: z.string().optional(),
   release_date: z.string().optional(),
   first_air_date: z.string().optional(),
   overview: z.string().optional(),
@@ -69,6 +82,17 @@ const SearchResultSchema = z.object({
 });
 
 const SearchResponseSchema = z.object({ results: z.array(SearchResultSchema).default([]) });
+
+const LogoSchema = z.object({
+  file_path: z.string(),
+  iso_639_1: z.string().nullish(),
+  width: z.number().default(0),
+  vote_average: z.number().default(0),
+});
+
+const ImagesResponseSchema = z.object({ logos: z.array(LogoSchema).default([]) });
+
+type SearchResult = z.infer<typeof SearchResultSchema>;
 
 /**
  * What the catalogue says about one episode.
@@ -190,6 +214,97 @@ const shareASignificantWord = (left: string, right: string): boolean => {
   const leftWords = wordsOf(left);
 
   return [...wordsOf(right)].some((word) => leftWords.has(word));
+};
+
+/**
+ * How alike two titles are, from nought to one.
+ *
+ * Compared as overlapping letter pairs rather than as whole strings, which is
+ * what makes it forgiving of the ways a release and a catalogue disagree:
+ * punctuation, a dropped article, a transliteration one letter out, an
+ * accented vowel spelled flat. "Yamada kun to Lv999 no Koi wo Suru" against
+ * "My Love Story with Yamada-kun at Lv999" still shares enough to beat the
+ * unrelated results around it.
+ *
+ * Pairs rather than words because the disagreements are usually inside the
+ * words. Counting whole words matched "Marvel's Daredevil" to "Daredevil" and
+ * nothing else, which is why the exact-match test needed a second guard beside
+ * it in the first place.
+ */
+const similarity = (left: string, right: string): number => {
+  const pairsOf = (value: string): string[] => {
+    const clean = normalizeTitle(value).replace(/ /g, '');
+
+    return [...clean].slice(0, -1).map((letter, at) => `${letter}${clean[at + 1] ?? ''}`);
+  };
+
+  const leftPairs = pairsOf(left);
+  const rightPairs = pairsOf(right);
+
+  if (leftPairs.length === 0 || rightPairs.length === 0) {
+    return normalizeTitle(left) === normalizeTitle(right) ? 1 : 0;
+  }
+
+  const remaining = [...rightPairs];
+
+  const shared = leftPairs.filter((pair) => {
+    const at = remaining.indexOf(pair);
+
+    if (at === -1) {
+      return false;
+    }
+
+    remaining.splice(at, 1);
+
+    return true;
+  }).length;
+
+  return (2 * shared) / (leftPairs.length + rightPairs.length);
+};
+
+/**
+ * How much a candidate agreeing on the year is worth.
+ *
+ * Enough to separate two versions of the same title and not enough to promote
+ * something that is not the title at all — remakes exist, and so do releases
+ * whose filename year is the year somebody encoded it.
+ */
+const YEAR_BONUS = 0.15;
+
+/**
+ * The likeliest of what a catalogue answered with.
+ *
+ * A catalogue orders its results by how popular they are, not by how well they
+ * answer the question, so taking the first was taking the most famous thing
+ * that shared a word with the filename. That is exactly the wrong tie-break
+ * for a self-hosted library, which is full of the obscure and the foreign.
+ *
+ * Falls back to the catalogue's own order when nothing scores at all, since a
+ * poor answer that can be corrected beats no answer at all.
+ */
+const bestMatch = (
+  candidates: readonly SearchResult[],
+  wanted: string,
+  year: number | null,
+): SearchResult | undefined => {
+  const scored = candidates
+    .map((entry) => {
+      const found = readYear(entry.release_date ?? entry.first_air_date);
+
+      const names = [entry.title, entry.name, entry.original_title, entry.original_name].filter(
+        (name) => name !== undefined,
+      );
+
+      return {
+        entry,
+        score:
+          Math.max(0, ...names.map((name) => similarity(wanted, name))) +
+          (year !== null && found === year ? YEAR_BONUS : 0),
+      };
+    })
+    .sort((left, right) => right.score - left.score);
+
+  return scored[0]?.entry ?? candidates[0];
 };
 
 /**
@@ -406,7 +521,8 @@ const createCatalogueMetadataProvider = ({
       const exact = candidates.find(
         (entry) => normalizeTitle(entry.title ?? entry.name ?? '') === wanted,
       );
-      const first = exact ?? candidates[0];
+      const first =
+        exact ?? bestMatch(candidates, searchTitle, seriesYear ?? fromFilename.year ?? null);
 
       if (first === undefined) {
         return null;
@@ -429,6 +545,47 @@ const createCatalogueMetadataProvider = ({
       }
 
       return describeFrom(detail.data, exact !== undefined);
+    },
+
+    readLogoUrl: async ({ externalId, isSeries }) => {
+      const key = await readApiKey();
+
+      if (key === null || key === '') {
+        return null;
+      }
+
+      const path = `/${isSeries ? 'tv' : 'movie'}/${externalId}/images`;
+
+      /**
+       * Asked twice rather than once, narrow before wide.
+       *
+       * A plain request answers with only the images matching the account's
+       * own language, so a programme whose lettering is catalogued in its
+       * original tongue looks as though it has none at all — which is what it
+       * looks like from outside, and the wrong conclusion. Asking with no
+       * filter first would work, but it would also spend the choice on every
+       * title that has a perfectly good English logo sitting there. So: ask
+       * for what is wanted, and only widen when the answer is nothing.
+       */
+      const readLogos = async (query: Record<string, string>) => {
+        const images = ImagesResponseSchema.safeParse(await request(path, key, query));
+
+        return images.success ? images.data.logos : [];
+      };
+
+      const found = await readLogos({ include_image_language: 'en,null' });
+      const logos = found.length > 0 ? found : await readLogos({});
+
+      const chosen = pickLogo(
+        logos.map((logo) => ({
+          filePath: logo.file_path,
+          language: logo.iso_639_1 ?? null,
+          width: logo.width,
+          voteAverage: logo.vote_average,
+        })),
+      );
+
+      return chosen === null ? null : imageUrl(imageBaseUrl, chosen.filePath, 'w500');
     },
 
     search: async (query, kind) => {

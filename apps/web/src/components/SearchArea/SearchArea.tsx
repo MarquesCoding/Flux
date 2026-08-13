@@ -8,6 +8,8 @@ import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/anima
 import { fetchGenres } from '@FluxWeb/library/fetchGenres';
 import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
 import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
+import { GridSizeChooser } from '@FluxWeb/components/GridSizeChooser/GridSizeChooser';
+import { readGridSize, saveGridSize } from '@FluxWeb/library/gridSizePreference';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { SearchAreaProps, SearchKind } from './SearchArea.types';
 
@@ -63,6 +65,7 @@ const SearchArea = ({
   const [kind, setKind] = useState<SearchKind>('everything');
   const [genres, setGenres] = useState<string[]>([]);
   const [isReading, setIsReading] = useState(false);
+  const [size, setSize] = useState(readGridSize);
   const prefersReducedMotion = useReducedMotion();
 
   const reportItems = useRef(onItemsLoaded);
@@ -122,6 +125,7 @@ const SearchArea = ({
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
+      exit="gone"
       className="flex flex-col gap-8 px-5 pb-16 pt-14 sm:px-10"
     >
       <motion.div
@@ -208,13 +212,23 @@ const SearchArea = ({
         aria-label="Results"
         className="flex flex-col gap-5"
       >
-        <header className="flex items-center gap-3 text-sm text-text-muted">
+        <header className="flex flex-wrap items-center justify-between gap-3 text-sm text-text-muted">
           {isReading ? (
             <Spinner label="Searching" size="sm" />
           ) : (
             <span>
               {total === 0 ? 'Nothing here' : total === 1 ? '1 item' : `${total.toString()} items`}
             </span>
+          )}
+
+          {items.length === 0 ? null : (
+            <GridSizeChooser
+              value={size}
+              onValueChange={(next) => {
+                setSize(next);
+                saveGridSize(next);
+              }}
+            />
           )}
         </header>
 
@@ -227,6 +241,7 @@ const SearchArea = ({
         ) : (
           <MediaGrid
             items={items}
+            size={size}
             onPlay={onPlay}
             onInspect={onInspect}
             {...(watchedFractionFor === undefined ? {} : { watchedFractionFor })}

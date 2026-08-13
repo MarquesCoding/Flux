@@ -67,6 +67,7 @@ const Button = ({
   isIconOnly = false,
   isActive = false,
   hasTooltip = true,
+  tooltipDelayMilliseconds,
   label,
   className,
   disabled,
@@ -107,7 +108,18 @@ const Button = ({
     </button>
   );
 
-  return label === undefined || !hasTooltip ? control : <Tooltip label={label}>{control}</Tooltip>;
+  return label === undefined || !hasTooltip ? (
+    control
+  ) : (
+    <Tooltip
+      label={label}
+      {...(tooltipDelayMilliseconds === undefined
+        ? {}
+        : { delayMilliseconds: tooltipDelayMilliseconds })}
+    >
+      {control}
+    </Tooltip>
+  );
 };
 
 Button.displayName = 'Button';

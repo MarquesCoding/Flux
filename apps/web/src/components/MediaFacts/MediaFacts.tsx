@@ -18,14 +18,19 @@ import type { MediaFactsProps } from './MediaFacts.types';
  * episode, plenty of things have no rating, and a line of placeholders is
  * worse than a shorter line.
  */
-const MediaFacts = ({ media, className, hasRuntime = false }: MediaFactsProps) => {
+const MediaFacts = ({
+  media,
+  className,
+  hasRuntime = false,
+  hasEpisode = true,
+}: MediaFactsProps) => {
   const rating = media.rating ?? null;
 
   const facts: { key: string; said: ReactNode }[] = [
-    ...(typeof media.episodeNumber === 'number'
+    ...(hasEpisode && typeof media.episodeNumber === 'number'
       ? [{ key: 'episode', said: <span className="tabular-nums">EP{media.episodeNumber}</span> }]
       : []),
-    ...(typeof media.seasonNumber === 'number'
+    ...(hasEpisode && typeof media.seasonNumber === 'number'
       ? [{ key: 'season', said: <span className="tabular-nums">S{media.seasonNumber}</span> }]
       : []),
     ...(rating === null

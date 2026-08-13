@@ -51,13 +51,19 @@ const POPUP_MOTION = [
  * Kept out of the way of the pointer and out of the accessibility tree: a
  * tooltip that announces itself reads the name of the control twice.
  */
-const Tooltip = ({ label, children, side = 'top', isDisabled = false }: TooltipProps) => {
+const Tooltip = ({
+  label,
+  children,
+  side = 'top',
+  isDisabled = false,
+  delayMilliseconds = DELAY_MILLISECONDS,
+}: TooltipProps) => {
   if (isDisabled) {
     return children;
   }
 
   return (
-    <BaseTooltip.Provider delay={DELAY_MILLISECONDS}>
+    <BaseTooltip.Provider delay={delayMilliseconds}>
       <BaseTooltip.Root>
         <BaseTooltip.Trigger render={children} />
 

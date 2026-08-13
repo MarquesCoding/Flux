@@ -41,7 +41,20 @@ describe('PageDots', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Show Dune' })).toBeInTheDocument();
-    expect(screen.getByText('Dune')).toBeInTheDocument();
+  });
+
+  it('shows that name out of the page, so a corner cannot clip it', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PageDots count={2} selectedIndex={0} labels={['Arrival', 'Dune']} onSelect={vi.fn()} />,
+    );
+
+    expect(screen.queryByText('Dune')).not.toBeInTheDocument();
+
+    await user.hover(screen.getByRole('button', { name: 'Show Dune' }));
+
+    expect(await screen.findByText('Dune', {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
   it('names the row itself, since a page may carry more than one', () => {
@@ -52,5 +65,44 @@ describe('PageDots', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(PageDots.displayName).toBe('PageDots');
+  });
+
+  it('fills the marker as the time to the next one runs out', () => {
+    const { container } = render(
+      <PageDots count={3} selectedIndex={1} onSelect={vi.fn()} fillMilliseconds={9000} />,
+    );
+
+    const fill = container.querySelector('.flux-dot-fill');
+
+    expect(fill).toBeInTheDocument();
+    expect(fill).toHaveStyle({ animationDuration: '9000ms' });
+  });
+
+  it('fills only the one being counted down, not the rest', () => {
+    const { container } = render(
+      <PageDots count={4} selectedIndex={2} onSelect={vi.fn()} fillMilliseconds={9000} />,
+    );
+
+    expect(container.querySelectorAll('.flux-dot-fill')).toHaveLength(1);
+  });
+
+  it('holds the fill still when whatever it was counting down has stopped', () => {
+    const { container } = render(
+      <PageDots
+        count={3}
+        selectedIndex={0}
+        onSelect={vi.fn()}
+        fillMilliseconds={9000}
+        isFillPaused
+      />,
+    );
+
+    expect(container.querySelector('.flux-dot-fill')).toHaveStyle({ animationPlayState: 'paused' });
+  });
+
+  it('fills nothing where the markers describe something that only moves when asked', () => {
+    const { container } = render(<PageDots count={3} selectedIndex={0} onSelect={vi.fn()} />);
+
+    expect(container.querySelector('.flux-dot-fill')).toBeNull();
   });
 });

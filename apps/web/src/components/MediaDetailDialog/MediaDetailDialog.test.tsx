@@ -41,6 +41,7 @@ const summary: MediaSummary = {
   addedAt: '2026-08-10T00:00:00.000Z',
   hasPoster: true,
   hasBackdrop: true,
+  hasLogo: false,
 };
 
 const detail = (overrides: Partial<MediaDetail['metadata']> = {}): MediaDetail => ({
@@ -58,7 +59,7 @@ const detail = (overrides: Partial<MediaDetail['metadata']> = {}): MediaDetail =
   audioStreams: [],
   subtitleStreams: [],
   addedAt: '2026-08-10T00:00:00.000Z',
-  metadata: { hasPoster: true, hasBackdrop: true, ...overrides },
+  metadata: { hasPoster: true, hasBackdrop: true, hasLogo: false, ...overrides },
 });
 
 beforeEach(() => {

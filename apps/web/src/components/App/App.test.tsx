@@ -58,6 +58,7 @@ const aLibraryWithArrival = {
         addedAt: '2026-08-10T00:00:00.000Z',
         hasPoster: false,
         hasBackdrop: false,
+        hasLogo: false,
       },
     ],
   },
@@ -326,16 +327,16 @@ describe('App routing', () => {
     });
   });
 
-  it('moves between sections from the foot of the page as well as the dock', async () => {
+  it('moves to the section chosen from the dock', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
     render(<App />);
 
     await arrive();
 
-    const browse = await screen.findByRole('navigation', { name: 'Browse' });
+    const dock = await screen.findByRole('navigation', { name: 'Sections' });
 
-    await actor.click(within(browse).getByRole('button', { name: 'Films' }));
+    await actor.click(within(dock).getByRole('button', { name: 'Films' }));
 
     expect(await screen.findByRole('heading', { name: 'Films' })).toBeInTheDocument();
   });
