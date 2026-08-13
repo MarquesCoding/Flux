@@ -8,6 +8,7 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     coverage: {
+      reporter: ['text', 'json-summary'],
       thresholds: { lines: 90, functions: 90, branches: 83, statements: 90 },
     },
   },

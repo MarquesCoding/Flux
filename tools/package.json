@@ -12,6 +12,7 @@
     "@typescript-eslint/utils": "^8.66.0",
     "@vitest/coverage-v8": "^4.1.10",
     "tsx": "^4.19.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "zod": "^3.25.76"
   }
 }
