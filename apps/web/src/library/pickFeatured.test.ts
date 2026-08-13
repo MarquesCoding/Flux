@@ -21,6 +21,7 @@ const itemOf = (changes: Partial<MediaSummary> = {}): MediaSummary => {
     hasPoster: false,
     hasBackdrop: false,
     hasLogo: false,
+    seriesId: null,
     ...changes,
   };
 };

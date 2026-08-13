@@ -16,6 +16,7 @@ const episode = (seasonNumber: number | null, episodeNumber: number | null) => (
   hasPoster: false,
   hasBackdrop: false,
   hasLogo: false,
+  seriesId: null,
   seriesTitle: 'A Sign of Affection',
   seasonNumber,
   episodeNumber,

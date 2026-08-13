@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { mediaItem, mediaItemJob, mediaOverride, library } from '@FluxServer/db/Schema';
+import { mediaItem, mediaItemJob, mediaOverride, library, series } from '@FluxServer/db/Schema';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
+import { resolveSeriesKey } from './resolveSeriesKey';
 import type { MediaStore } from './scanLibrary';
 
 /**
@@ -48,6 +49,48 @@ const createMediaStore = (
       return;
     }
 
+    const seriesTitle = row.metadata.seriesTitle ?? row.episode.seriesTitle;
+
+    /**
+     * The programme this file belongs to, made if it is new.
+     *
+     * Written every scan rather than only when the row is created, because the
+     * evidence improves: a file first read from its path alone gets a folder
+     * key, and once a catalogue names it the key it would resolve to changes.
+     * Upserting on the key means the programme is recognised again rather than
+     * duplicated, and its title is refreshed from whatever the catalogue last
+     * said without anything losing hold of the row.
+     */
+    const seriesKey = resolveSeriesKey({
+      externalId: row.metadata.externalId ?? null,
+      seriesFolder: row.episode.seriesFolder,
+      seriesTitle,
+    });
+
+    const seriesId =
+      seriesKey === null || seriesTitle === null
+        ? null
+        : ((
+            await db
+              .insert(series)
+              .values({
+                id: randomUUID(),
+                libraryId: row.libraryId,
+                key: seriesKey,
+                title: seriesTitle,
+                externalId: row.metadata.externalId ?? null,
+              })
+              .onConflictDoUpdate({
+                target: [series.libraryId, series.key],
+                set: {
+                  title: seriesTitle,
+                  externalId: row.metadata.externalId ?? null,
+                  updatedAt: new Date(),
+                },
+              })
+              .returning({ id: series.id })
+          )[0]?.id ?? null);
+
     const changeable = {
       libraryId: row.libraryId,
       path: row.path,
@@ -65,7 +108,8 @@ const createMediaStore = (
       audioStreams: row.probe.audioStreams,
       subtitleStreams: row.probe.subtitleStreams,
       chapters: row.probe.chapters,
-      seriesTitle: row.metadata.seriesTitle ?? row.episode.seriesTitle,
+      seriesId,
+      seriesTitle,
       seasonNumber: row.episode.seasonNumber,
       episodeNumber: row.episode.episodeNumber,
       overview: row.metadata.overview ?? null,

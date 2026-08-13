@@ -17,6 +17,7 @@ const episode = (seasonNumber: number, episodeNumber: number): MediaSummary => (
   hasPoster: false,
   hasBackdrop: false,
   hasLogo: false,
+  seriesId: null,
   seriesTitle: 'A Sign of Affection',
   seasonNumber,
   episodeNumber,

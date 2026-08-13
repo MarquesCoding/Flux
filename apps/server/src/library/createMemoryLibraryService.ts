@@ -23,6 +23,7 @@ const toSummary = (item: MediaDetail): MediaSummary => ({
   hasPoster: item.metadata.hasPoster,
   hasBackdrop: item.metadata.hasBackdrop,
   hasLogo: false,
+  seriesId: null,
   rating: item.metadata.rating ?? null,
   seriesTitle: item.metadata.seriesTitle ?? null,
   seasonNumber: item.metadata.seasonNumber ?? null,

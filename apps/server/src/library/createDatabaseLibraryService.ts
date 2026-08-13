@@ -433,6 +433,7 @@ const createDatabaseLibraryService = ({
           posterUrl: mediaItem.posterUrl,
           backdropUrl: mediaItem.backdropUrl,
           logoUrl: mediaItem.logoUrl,
+          seriesId: mediaItem.seriesId,
           seriesTitle: mediaItem.seriesTitle,
           seasonNumber: mediaItem.seasonNumber,
           episodeNumber: mediaItem.episodeNumber,

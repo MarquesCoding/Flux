@@ -28,6 +28,7 @@ const item = (id: string): MediaSummary => ({
   hasPoster: true,
   hasBackdrop: true,
   hasLogo: false,
+  seriesId: null,
 });
 
 beforeEach(() => {

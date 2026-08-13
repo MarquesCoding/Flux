@@ -28,6 +28,7 @@ const episode: MediaSummary = {
   hasPoster: false,
   hasBackdrop: false,
   hasLogo: false,
+  seriesId: null,
   seriesTitle: 'From',
   seasonNumber: 1,
   episodeNumber: 1,
