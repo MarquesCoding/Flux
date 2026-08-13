@@ -119,6 +119,9 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
     );
 
     state.monitor.watch_graphics();
+    state
+        .monitor
+        .watch_cache(state.registry.config().cache_root.clone());
 
     let router = create_router(state);
 

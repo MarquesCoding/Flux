@@ -16,6 +16,7 @@ const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview 
     rejectedEncoders: [],
   },
   library: { itemCount: 10, libraryCount: 1 },
+  artwork: null,
   ...overrides,
 });
 
@@ -39,6 +40,7 @@ const healthyMonitor = (
   queue: { concurrency: 1, queued: 0, running: 0, jobs },
   sessions: 0,
   logs: [],
+  cache: null,
 });
 
 const library = (overrides: Partial<Library> = {}): Library => ({

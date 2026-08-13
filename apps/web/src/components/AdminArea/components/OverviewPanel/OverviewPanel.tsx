@@ -6,6 +6,7 @@ import { Card } from '@FluxUI/Card';
 import { cn } from '@FluxUI/cn';
 import { CardHeader } from '@FluxUI/CardHeader';
 import { BackgroundJobs } from '@FluxWeb/components/AdminArea/components/BackgroundJobs/BackgroundJobs';
+import { CacheBreakdown } from '@FluxWeb/components/AdminArea/components/CacheBreakdown/CacheBreakdown';
 import { TrendChart } from '@FluxUI/TrendChart';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import { formatBytes } from '@FluxWeb/components/AdminArea/formatBytes';
@@ -274,6 +275,14 @@ const OverviewPanel = ({
               ))}
             </ul>
           )}
+        </Region>
+
+        <Region title="Storage Flux is using" className="lg:col-span-4">
+          <CacheBreakdown
+            cache={monitor?.cache ?? null}
+            artwork={overview?.artwork ?? null}
+            liveSessions={monitor?.sessions ?? 0}
+          />
         </Region>
 
         <Card as="section" padding="none" className="flex flex-col overflow-hidden lg:col-span-4">

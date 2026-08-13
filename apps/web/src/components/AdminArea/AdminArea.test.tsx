@@ -33,6 +33,7 @@ const OVERVIEW: AdminOverview = {
     rejectedEncoders: [],
   },
   library: { itemCount: 15, libraryCount: 2 },
+  artwork: null,
 };
 
 const MONITOR: Monitor = {
@@ -81,6 +82,7 @@ const MONITOR: Monitor = {
   },
   sessions: 1,
   logs: [{ atMs: 0, level: 'error', source: 'transcoder', message: 'Could not open the file' }],
+  cache: null,
 };
 
 const MOVIES_LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';

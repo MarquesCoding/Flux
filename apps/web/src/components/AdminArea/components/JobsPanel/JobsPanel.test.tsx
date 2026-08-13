@@ -40,6 +40,7 @@ const reading = (jobs: Job[], queue: Partial<Monitor['queue']> = {}): Monitor =>
   queue: { concurrency: 2, queued: 0, running: jobs.length, jobs, ...queue },
   sessions: 0,
   logs: [],
+  cache: null,
 });
 
 const props = {

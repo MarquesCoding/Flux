@@ -50,6 +50,7 @@ const OVERVIEW = {
     rejectedEncoders: [],
   },
   library: { itemCount: 15, libraryCount: 2 },
+  artwork: null,
 };
 
 const MONITOR: Monitor = {
@@ -69,6 +70,7 @@ const MONITOR: Monitor = {
   queue: { concurrency: 2, queued: 1, running: 1, jobs: [] },
   sessions: 0,
   logs: [{ atMs: 1, level: 'info', source: 'transcoder', message: 'Started' }],
+  cache: null,
 };
 
 /**

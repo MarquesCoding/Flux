@@ -32,6 +32,7 @@ const monitor = (jobs: Job[]): Monitor => ({
   queue: { concurrency: 1, queued: 0, running: jobs.length, jobs },
   sessions: 0,
   logs: [],
+  cache: null,
 });
 
 describe('BackgroundJobs', () => {

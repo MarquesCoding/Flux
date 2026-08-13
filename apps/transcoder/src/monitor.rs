@@ -15,6 +15,7 @@ use serde::Serialize;
 use sysinfo::{DiskRefreshKind, Disks, Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 use tokio::sync::Mutex;
 
+use crate::cache_usage::CacheUse;
 use crate::graphics::GraphicsUse;
 use crate::queue::now_ms;
 
@@ -42,6 +43,14 @@ const DISK_INTERVAL: Duration = Duration::from_secs(30);
 /// seventeen milliseconds, so once a second is under two percent of one core,
 /// and it happens on its own timer where no request is waiting on it.
 const GRAPHICS_INTERVAL: Duration = Duration::from_secs(1);
+
+/// How often the artefact cache is added up.
+///
+/// Far rarer than anything else here, because measuring it means walking every
+/// artefact directory on the disk — thousands of them on a real library. It is
+/// also the figure that moves slowest: a cache grows over days, and nobody
+/// watching this section is waiting for the number to twitch.
+const CACHE_INTERVAL: Duration = Duration::from_secs(5 * 60);
 
 /// How serious a line is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -117,6 +126,8 @@ pub struct Report {
     pub queue: crate::queue::QueueSnapshot,
     pub sessions: usize,
     pub logs: Vec<LogLine>,
+    /// What the artefact cache holds, once it has been counted.
+    pub cache: Option<CacheUse>,
 }
 
 /// The rolling record of what has happened.
@@ -165,6 +176,7 @@ pub struct Monitor {
     system: Arc<Mutex<System>>,
     disks: Arc<Mutex<DiskReadings>>,
     graphics: Arc<Mutex<Option<GraphicsUse>>>,
+    cache: Arc<Mutex<Option<CacheUse>>>,
     journal: Journal,
 }
 
@@ -222,6 +234,7 @@ impl Monitor {
             system: Arc::new(Mutex::new(System::new())),
             disks: Arc::new(Mutex::new(DiskReadings::new())),
             graphics: Arc::new(Mutex::new(None)),
+            cache: Arc::new(Mutex::new(None)),
             journal,
         }
     }
@@ -253,6 +266,34 @@ impl Monitor {
                 tokio::time::sleep(GRAPHICS_INTERVAL).await;
             }
         });
+    }
+
+    /// Starts adding up what the artefact cache is holding.
+    ///
+    /// The same reasoning as the graphics poller and more so: walking every
+    /// artefact directory is real I/O against a disk that is also serving
+    /// video, and it must never be something a page can set off by loading.
+    /// This measures on its own timer and the report hands out what it finds.
+    pub fn watch_cache(&self, root: std::path::PathBuf) {
+        let cell = Arc::clone(&self.cache);
+
+        tokio::spawn(async move {
+            loop {
+                let reading = crate::cache_usage::read(&root).await;
+
+                *cell.lock().await = Some(reading);
+
+                tokio::time::sleep(CACHE_INTERVAL).await;
+            }
+        });
+    }
+
+    /// What the cache was last found to be holding.
+    ///
+    /// Nothing until the first walk finishes, so a page that has just started
+    /// says it is still counting rather than claiming an empty cache.
+    pub async fn cache(&self) -> Option<CacheUse> {
+        self.cache.lock().await.clone()
     }
 
     /// Measures the machine and the processes the service is responsible for.

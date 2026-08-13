@@ -328,6 +328,13 @@ type CreateAppOptions = {
    * What the media service is doing right now.
    */
   monitor?: () => Promise<JsonValue>;
+  /**
+   * How much disk the cached artwork is taking, counted on a timer elsewhere.
+   *
+   * Null while the first count is still running, and absent on a server with
+   * no artwork cache at all. Neither is an error and neither is zero.
+   */
+  artworkUsage?: () => { count: number; bytes: number; atMs: number } | null;
   monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>;
   /**
    * Reads artwork from Flux's own cache, fetching it once if needed.
@@ -389,6 +396,7 @@ const createApp = ({
   promoteProfile,
   listUsers,
   capabilities,
+  artworkUsage,
   monitor,
   monitorStream,
   readImage,
@@ -1112,6 +1120,7 @@ const createApp = ({
           libraryCount: libraries.length,
           itemCount: libraries.reduce((total, entry) => total + entry.itemCount, 0),
         },
+        artwork: artworkUsage?.() ?? null,
       },
       200,
     );

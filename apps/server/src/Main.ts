@@ -25,6 +25,7 @@ import { createFilenameMetadataProvider } from '@FluxServer/library/createFilena
 import { createMediaFileSystem } from '@FluxServer/library/createMediaFileSystem';
 import { createTranscoderClient } from '@FluxServer/transcoder/TranscoderClient';
 import { createImageCache } from '@FluxServer/images/createImageCache';
+import { createArtworkUsage } from '@FluxServer/images/createArtworkUsage';
 import { detectLibrarySegments } from '@FluxServer/segments/detectLibrarySegments';
 import { createDatabaseWatchProgressService } from '@FluxServer/progress/createDatabaseWatchProgressService';
 import { createDatabaseFavouriteService } from '@FluxServer/favourites/createDatabaseFavouriteService';
@@ -527,6 +528,11 @@ const images = createImageCache({
   },
 });
 
+const artworkUsage = createArtworkUsage({ directory: env.IMAGE_CACHE_DIR });
+
+artworkUsage.watch();
+void artworkUsage.refresh();
+
 const playbackService = createPlaybackService({
   media: {
     findForPlayback: async (mediaId) => {
@@ -725,6 +731,7 @@ const app = createApp({
     return 'changed';
   },
   capabilities: () => transcoder.capabilities(),
+  artworkUsage: () => artworkUsage.read(),
   monitor: () => transcoder.readMonitor(),
   monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),
