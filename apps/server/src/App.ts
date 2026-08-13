@@ -504,7 +504,7 @@ const createApp = ({
 
     const allowed = await apiKeys.restrictionFor(headers, session.session.id);
 
-    return narrowToKey(held, allowed ?? null).has(permission);
+    return narrowToKey(held, allowed).has(permission);
   };
 
   app.all('/api/auth/admin/*', createBetterAuthAdminBlock());

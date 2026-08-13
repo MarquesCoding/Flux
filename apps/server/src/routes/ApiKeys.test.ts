@@ -79,7 +79,13 @@ const signedInWith = async (granted: readonly Permission[]) => {
 
   const mint = async (body: object) => readKey(await request('/api/keys', 'POST', body));
 
-  return { app, request, asKey, mint, permissions };
+  /**
+   * The same server, asked by nobody at all.
+   */
+  const anonymously = (path: string, method = 'GET') =>
+    app.request(`${TEST_ORIGIN}${path}`, { method, headers: { origin: TEST_ORIGIN } });
+
+  return { app, request, asKey, mint, anonymously, permissions };
 };
 
 describe('holding API keys', () => {
@@ -217,6 +223,14 @@ describe('what a key may do', () => {
     expect((await asKey(made.key, '/api/libraries')).status).toBe(200);
   });
 
+  it('reaches what it was narrowed to, rather than being narrowed to nothing', async () => {
+    const { asKey, mint } = await signedInWith(['account.keys', 'library.create']);
+
+    const made = await mint({ name: 'Just libraries', permissions: ['library.create'] });
+
+    expect((await asKey(made.key, '/api/libraries', 'POST')).status).not.toBe(403);
+  });
+
   it('stops working the moment it is revoked', async () => {
     const { request, asKey, mint } = await signedInWith(['account.keys', 'library.create']);
 
@@ -237,5 +251,59 @@ describe('what a key may do', () => {
     await request(`/api/keys/${made.id}`, 'PATCH', { enabled: false });
 
     expect((await asKey(made.key, '/api/libraries')).status).not.toBe(200);
+  });
+});
+
+describe('asking about keys without being signed in', () => {
+  it('refuses to list them', async () => {
+    const { anonymously } = await signedInWith(['account.keys']);
+
+    expect((await anonymously('/api/keys')).status).toBe(401);
+  });
+
+  it('refuses to make one', async () => {
+    const { anonymously } = await signedInWith(['account.keys']);
+
+    expect((await anonymously('/api/keys', 'POST')).status).toBe(401);
+  });
+
+  it('refuses to turn one off', async () => {
+    const { anonymously } = await signedInWith(['account.keys']);
+
+    expect((await anonymously('/api/keys/whatever', 'PATCH')).status).toBe(401);
+  });
+
+  it('refuses to revoke one', async () => {
+    const { anonymously } = await signedInWith(['account.keys']);
+
+    expect((await anonymously('/api/keys/whatever', 'DELETE')).status).toBe(401);
+  });
+});
+
+describe('asking about keys without being allowed them', () => {
+  it('refuses to make one', async () => {
+    const { request } = await signedInWith([]);
+
+    expect((await request('/api/keys', 'POST', { name: 'Nope' })).status).toBe(403);
+  });
+
+  it('refuses to turn one off', async () => {
+    const { request } = await signedInWith([]);
+
+    expect((await request('/api/keys/whatever', 'PATCH', { enabled: false })).status).toBe(403);
+  });
+
+  it('refuses to revoke one', async () => {
+    const { request } = await signedInWith([]);
+
+    expect((await request('/api/keys/whatever', 'DELETE')).status).toBe(403);
+  });
+});
+
+describe('a key against the routes that read an account', () => {
+  it('refuses a key that was never issued', async () => {
+    const { asKey } = await signedInWith(['account.keys']);
+
+    expect((await asKey('flux_not_a_real_key_at_all', '/api/profiles')).status).toBe(401);
   });
 });
