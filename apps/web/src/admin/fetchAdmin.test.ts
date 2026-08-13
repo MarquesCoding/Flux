@@ -14,6 +14,10 @@ import {
   fetchJobSchedules,
   addJobTrigger,
   removeJobTrigger,
+  fetchRunningScans,
+  searchCatalogue,
+  cancelJob,
+  saveHardwareAccel,
 } from './fetchAdmin';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { Monitor } from './fetchAdmin';
@@ -494,5 +498,132 @@ describe('watchMonitor', () => {
     stop();
 
     expect(FakeEventSource.last?.isClosed).toBe(true);
+  });
+});
+
+describe('what the server is working on', () => {
+  it('reads the scans that are running', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          scans: [
+            {
+              jobId: 'job-1',
+              kind: 'library.scan',
+              libraryId: 'lib-1',
+              phase: 'probing',
+              processed: 3,
+              total: 10,
+            },
+          ],
+        }),
+    });
+
+    await expect(fetchRunningScans()).resolves.toMatchObject([{ jobId: 'job-1' }]);
+  });
+
+  it('says nothing is running when the server refuses to say', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 403, json: () => Promise.resolve(null) });
+
+    await expect(fetchRunningScans()).resolves.toEqual([]);
+  });
+
+  it('says nothing is running when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(fetchRunningScans()).resolves.toEqual([]);
+  });
+
+  it('says nothing is running when the answer is not one it recognises', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ nope: 1 }),
+    });
+
+    await expect(fetchRunningScans()).resolves.toEqual([]);
+  });
+});
+
+describe('asking the catalogue what it holds under a name', () => {
+  const MATCH = {
+    externalId: '329',
+    kind: 'movie' as const,
+    title: 'Arrival',
+    year: 2016,
+    overview: null,
+    posterUrl: null,
+  };
+
+  it('passes the name and the kind on, and answers with what came back', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ matches: [MATCH] }),
+    });
+
+    await expect(searchCatalogue('Arrival', 'movie')).resolves.toEqual([MATCH]);
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toContain('query=Arrival&kind=movie');
+  });
+
+  it('offers nothing when the server refuses', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 403, json: () => Promise.resolve(null) });
+
+    await expect(searchCatalogue('Arrival', 'movie')).resolves.toEqual([]);
+  });
+
+  it('offers nothing when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(searchCatalogue('Arrival', 'movie')).resolves.toEqual([]);
+  });
+
+  it('offers nothing when the answer is not one it recognises', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ nope: 1 }),
+    });
+
+    await expect(searchCatalogue('Arrival', 'movie')).resolves.toEqual([]);
+  });
+});
+
+describe('stopping a job and choosing a backend', () => {
+  it('asks the server to stop one, by the id it is running under', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 202, json: () => Promise.resolve({}) });
+
+    await expect(cancelJob('job-1')).resolves.toBe(true);
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toBe('/api/admin/jobs/running/job-1/cancel');
+  });
+
+  it('reports a job there was nothing to stop', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve({}) });
+
+    await expect(cancelJob('job-1')).resolves.toBe(false);
+  });
+
+  it('reports a server it could not reach to stop anything', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(cancelJob('job-1')).resolves.toBe(false);
+  });
+
+  it('sends the backend an operator insisted on', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({}) });
+
+    await expect(saveHardwareAccel('nvenc')).resolves.toBe(true);
+
+    const [, init] = fetchMock.mock.calls.at(-1) ?? [];
+
+    expect(init?.body).toContain('nvenc');
+  });
+
+  it('reports a backend the server would not take', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(saveHardwareAccel('nvenc')).resolves.toBe(false);
   });
 });
