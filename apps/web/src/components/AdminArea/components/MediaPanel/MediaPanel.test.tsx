@@ -18,6 +18,7 @@ const item = (overrides: Partial<MediaSummary> = {}): MediaSummary => ({
   hasPoster: true,
   hasBackdrop: true,
   hasLogo: false,
+  seriesId: null,
   seriesTitle: null,
   seasonNumber: null,
   episodeNumber: null,

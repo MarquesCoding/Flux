@@ -18,6 +18,7 @@ const episode: MediaSummary = {
   hasPoster: false,
   hasBackdrop: true,
   hasLogo: false,
+  seriesId: null,
   seriesTitle: 'A Sign of Affection',
   seasonNumber: 1,
   episodeNumber: 1,

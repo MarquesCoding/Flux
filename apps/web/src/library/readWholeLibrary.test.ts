@@ -20,6 +20,7 @@ const anItem = (id: number): MediaSummary => ({
   hasPoster: false,
   hasBackdrop: false,
   hasLogo: false,
+  seriesId: null,
   seriesTitle: null,
   seasonNumber: null,
   episodeNumber: null,

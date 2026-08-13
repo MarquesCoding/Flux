@@ -18,6 +18,7 @@ const episodeOf = (number: number, changes: Partial<MediaSummary> = {}): MediaSu
   hasPoster: false,
   hasBackdrop: false,
   hasLogo: false,
+  seriesId: null,
   seriesTitle: 'Some Show',
   seasonNumber: 1,
   episodeNumber: number,

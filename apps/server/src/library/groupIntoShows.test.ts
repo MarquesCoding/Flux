@@ -16,6 +16,7 @@ const episode = (overrides: Partial<MediaSummary> = {}): MediaSummary => ({
   hasPoster: true,
   hasBackdrop: true,
   hasLogo: false,
+  seriesId: null,
   seriesTitle: 'A Sign of Affection',
   seasonNumber: 1,
   episodeNumber: 1,
@@ -171,5 +172,55 @@ describe('the ordering an episode list is read in', () => {
     const shows = groupIntoShows([episode({ year: null })]);
 
     expect(shows[0]?.year).toBeNull();
+  });
+});
+
+describe('two programmes that share a title', () => {
+  const office = (seriesId: string, id: string, episodeNumber: number): MediaSummary =>
+    episode({
+      id,
+      seriesId,
+      seriesTitle: 'The Office',
+      title: `Episode ${episodeNumber.toString()}`,
+      seasonNumber: 1,
+      episodeNumber,
+    });
+
+  const both = [
+    office('series-uk', 'uk-1', 1),
+    office('series-uk', 'uk-2', 2),
+    office('series-us', 'us-1', 1),
+    office('series-us', 'us-2', 2),
+  ];
+
+  it('are two shows, not one', () => {
+    expect(groupIntoShows(both)).toHaveLength(2);
+  });
+
+  it('are addressed separately, so opening one cannot reach the other', () => {
+    expect(new Set(groupIntoShows(both).map((show) => show.id))).toEqual(
+      new Set(['series-uk', 'series-us']),
+    );
+  });
+
+  it('keep their own episodes rather than pooling them', () => {
+    const uk = groupIntoShows(both).find((show) => show.id === 'series-uk');
+
+    expect(uk?.episodeCount).toBe(2);
+  });
+
+  it('are still one show each when only one of them is present', () => {
+    expect(
+      groupIntoShows([office('series-uk', 'uk-1', 1), office('series-uk', 'uk-2', 2)]),
+    ).toHaveLength(1);
+  });
+
+  it('collide on the title only for an item scanned before programmes were rows', () => {
+    const unscanned = [
+      episode({ id: 'a', seriesId: null, seriesTitle: 'The Office', episodeNumber: 1 }),
+      episode({ id: 'b', seriesId: null, seriesTitle: 'The Office', episodeNumber: 2 }),
+    ];
+
+    expect(groupIntoShows(unscanned)).toHaveLength(1);
   });
 });

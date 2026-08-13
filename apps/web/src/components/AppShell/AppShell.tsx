@@ -218,7 +218,6 @@ const AppShell = ({
         >
           {children}
         </motion.div>
-
       </motion.main>
     </div>
   );

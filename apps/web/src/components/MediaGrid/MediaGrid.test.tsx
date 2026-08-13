@@ -17,6 +17,7 @@ const item = (id: string, title: string): MediaSummary => ({
   hasPoster: true,
   hasBackdrop: true,
   hasLogo: false,
+  seriesId: null,
 });
 
 const items = [item('a', 'Arrival'), item('b', 'Dune')];

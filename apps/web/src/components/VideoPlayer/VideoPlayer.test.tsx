@@ -1263,6 +1263,7 @@ describe('VideoPlayer', () => {
             hasPoster: false,
             hasBackdrop: false,
             hasLogo: false,
+            seriesId: null,
             seriesTitle: 'Show',
             seasonNumber: 1,
             episodeNumber: 1,

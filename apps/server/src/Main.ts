@@ -187,7 +187,7 @@ const runDetectSegments = async (libraryId: string, jobId: string): Promise<void
           mediaId: mediaItem.id,
           path: mediaItem.path,
           durationSeconds: mediaItem.durationSeconds,
-          seriesTitle: mediaItem.seriesTitle,
+          seriesId: mediaItem.seriesId,
           seasonNumber: mediaItem.seasonNumber,
           chapters: mediaItem.chapters,
           container: mediaItem.container,
@@ -208,7 +208,7 @@ const runDetectSegments = async (libraryId: string, jobId: string): Promise<void
         mediaId: row.mediaId,
         path: row.path,
         durationSeconds: row.durationSeconds,
-        seriesTitle: row.seriesTitle,
+        seriesId: row.seriesId,
         seasonNumber: row.seasonNumber,
         isComplete: row.completedAt !== null,
         probe: {

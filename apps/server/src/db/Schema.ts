@@ -293,6 +293,38 @@ const mediaOverride = pgTable(
   ],
 );
 
+/**
+ * A programme, as a thing rather than as a string repeated across its episodes.
+ *
+ * Exists because a title is neither unique nor stable. Two programmes share one
+ * — The Office, Shameless, Skins, and every remake — and anything keyed on the
+ * title treats them as one; meanwhile the title itself is rewritten on every
+ * scan from whatever the catalogue answered, so correcting a bad match detaches
+ * everything that pointed at the old one.
+ *
+ * `key` is how a scan recognises the same programme again: the catalogue's id
+ * where there is one, the folder otherwise. `title` is display text and may
+ * change freely without anything losing hold of the row.
+ */
+const series = pgTable(
+  'series',
+  {
+    id: text('id').primaryKey(),
+    libraryId: text('libraryId')
+      .notNull()
+      .references(() => library.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    title: text('title').notNull(),
+    externalId: text('externalId'),
+    addedAt: timestamp('addedAt').notNull().defaultNow(),
+    updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('series_key_idx').on(table.libraryId, table.key),
+    index('series_library_idx').on(table.libraryId),
+  ],
+);
+
 const mediaItem = pgTable(
   'media_item',
   {
@@ -315,6 +347,7 @@ const mediaItem = pgTable(
     audioStreams: jsonb('audioStreams').notNull(),
     subtitleStreams: jsonb('subtitleStreams').notNull(),
     chapters: jsonb('chapters'),
+    seriesId: text('seriesId').references(() => series.id, { onDelete: 'set null' }),
     seriesTitle: text('seriesTitle'),
     seasonNumber: integer('seasonNumber'),
     episodeNumber: integer('episodeNumber'),
@@ -335,6 +368,7 @@ const mediaItem = pgTable(
     index('media_item_library_idx').on(table.libraryId),
     index('media_item_title_idx').on(table.title),
     index('media_item_series_idx').on(table.seriesTitle, table.seasonNumber),
+    index('media_item_series_id_idx').on(table.seriesId, table.seasonNumber),
   ],
 );
 
@@ -493,6 +527,7 @@ const authSchema = {
 const fluxSchema = { userProfile, viewerProfile, serverSetting, library, mediaItem };
 
 export {
+  series,
   authSchema,
   fluxSchema,
   library,
