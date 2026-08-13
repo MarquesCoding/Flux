@@ -70,9 +70,4 @@ type CreateApiKeyRequest = z.infer<typeof CreateApiKeyRequestSchema>;
 
 export type { ApiKey, CreatedApiKey, CreateApiKeyRequest };
 
-export {
-  ApiKeySchema,
-  CreatedApiKeySchema,
-  CreateApiKeyRequestSchema,
-  UpdateApiKeyRequestSchema,
-};
+export { ApiKeySchema, CreatedApiKeySchema, CreateApiKeyRequestSchema, UpdateApiKeyRequestSchema };

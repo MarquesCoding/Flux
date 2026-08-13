@@ -80,16 +80,16 @@ const createBetterAuthApiKeyService = (auth: FluxAuth): ApiKeyService => {
 
   return {
     list: async (headers) => {
-      const rows = await auth.api.listApiKeys({ headers }).catch(() => []);
+      const page = await auth.api.listApiKeys({ headers }).catch(() => null);
 
-      return (Array.isArray(rows) ? rows : []).map(describe);
+      return (page?.apiKeys ?? []).map(describe);
     },
 
-    create: async (headers, input) => {
+    create: async (accountId, input) => {
       const made = await auth.api.createApiKey({
-        headers,
         body: {
           name: input.name,
+          userId: accountId,
           ...(input.expiresInDays === null
             ? {}
             : { expiresIn: Math.round((input.expiresInDays * A_DAY) / 1000) }),
@@ -111,9 +111,7 @@ const createBetterAuthApiKeyService = (auth: FluxAuth): ApiKeyService => {
     },
 
     revoke: async (headers, keyId) => {
-      const gone = await auth.api
-        .deleteApiKey({ headers, body: { keyId } })
-        .catch(() => null);
+      const gone = await auth.api.deleteApiKey({ headers, body: { keyId } }).catch(() => null);
 
       return gone !== null;
     },

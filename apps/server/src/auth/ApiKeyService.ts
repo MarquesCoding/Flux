@@ -17,9 +17,15 @@ type ApiKeyService = {
   list: (headers: Headers) => Promise<ApiKey[]>;
   /**
    * Mints a key and returns it in plaintext, once.
+   *
+   * Takes the account rather than the request, because what a key is narrowed
+   * to can only be set by the server itself — better-auth refuses it from a
+   * session, on the grounds that a caller must not choose its own key's
+   * powers. The route has already resolved who is asking and already
+   * intersected what they asked for with what they hold.
    */
   create: (
-    headers: Headers,
+    accountId: string,
     input: {
       name: string;
       expiresInDays: number | null;

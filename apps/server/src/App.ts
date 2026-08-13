@@ -1051,7 +1051,7 @@ const createApp = ({
     const held = await permissions.resolve(account.id);
     const restricted = asked === null ? null : asked.filter((one) => held.has(one));
 
-    const made = await apiKeys.create(context.req.raw.headers, {
+    const made = await apiKeys.create(account.id, {
       name,
       expiresInDays,
       permissions: restricted,

@@ -33,7 +33,9 @@ describe('narrowToKey', () => {
   });
 
   it('lets an operator hold a key that is not an operator', () => {
-    expect(narrowToKey(held('administrator'), held('administrator'))).toEqual(held('administrator'));
+    expect(narrowToKey(held('administrator'), held('administrator'))).toEqual(
+      held('administrator'),
+    );
     expect(narrowToKey(held('administrator', 'streaming.view'), held('streaming.view'))).toEqual(
       held('streaming.view'),
     );
