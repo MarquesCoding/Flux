@@ -230,7 +230,7 @@ describe('LibraryBrowser', () => {
     render(<LibraryBrowser onOpenShow={onOpenShow} onPlay={vi.fn()} />);
 
     const heading = await screen.findByRole('button', {
-      name: 'A Sign of Affection · Season 1',
+      name: 'A Sign of Affection',
     });
 
     await user.click(heading);

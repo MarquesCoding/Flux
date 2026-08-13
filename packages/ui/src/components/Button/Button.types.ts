@@ -63,6 +63,13 @@ type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> & 
    * label; off for a control whose name is already written beside it.
    */
   hasTooltip?: boolean;
+  /**
+   * How long a pointer rests before the tooltip names this control.
+   *
+   * Left alone almost everywhere. For a bar of icons carrying no words, where
+   * the name is the only thing that says what a glyph does.
+   */
+  tooltipDelayMilliseconds?: number;
   className?: string;
 };
 

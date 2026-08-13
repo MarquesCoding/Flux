@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupIntoRails, describeSeason, inBroadcastOrder } from './groupIntoRails';
+import { groupIntoRails, inBroadcastOrder } from './groupIntoRails';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 const NOW = Date.parse('2026-08-10T00:00:00.000Z');
@@ -39,20 +39,6 @@ const episode = (
     episodeNumber: number,
   });
 
-describe('describeSeason', () => {
-  it('says a season the way someone would say it', () => {
-    expect(describeSeason('Some Show', 2)).toBe('Some Show · Season 2');
-  });
-
-  it('calls season zero what it actually is', () => {
-    expect(describeSeason('Some Show', 0)).toBe('Some Show · Specials');
-  });
-
-  it('names a series with no season by itself', () => {
-    expect(describeSeason('Some Show', null)).toBe('Some Show');
-  });
-});
-
 describe('inBroadcastOrder', () => {
   it('puts episode two before episode ten, which sorting by name does not', () => {
     const ordered = [episode('S', 1, 10), episode('S', 1, 2)].sort(inBroadcastOrder);
@@ -88,7 +74,7 @@ describe('groupIntoRails', () => {
     expect(rails.map((rail) => rail.title)).not.toContain('Recently added');
   });
 
-  it('gives each season a row of its own', () => {
+  it('gives a programme one row, not one row per season', () => {
     const rails = groupIntoRails(
       [
         episode('Some Show', 1, 1),
@@ -99,27 +85,58 @@ describe('groupIntoRails', () => {
       NOW,
     );
 
-    const titles = rails.map((rail) => rail.title);
-
-    expect(titles).toContain('Some Show · Season 1');
-    expect(titles).toContain('Some Show · Season 2');
+    expect(rails.filter((rail) => rail.title === 'Some Show')).toHaveLength(1);
   });
 
-  it('puts a season in the order it is watched', () => {
+  it('names that row after the programme rather than after a season of it', () => {
+    const rails = groupIntoRails([episode('Some Show', 2, 1), episode('Some Show', 2, 2)], NOW);
+
+    expect(rails.map((rail) => rail.title)).toContain('Some Show');
+  });
+
+  it('carries every season of a programme in that one row', () => {
     const rails = groupIntoRails(
-      [episode('Some Show', 1, 10), episode('Some Show', 1, 2), episode('Some Show', 1, 1)],
+      [
+        episode('Some Show', 1, 1),
+        episode('Some Show', 1, 2),
+        episode('Some Show', 2, 1),
+        episode('Some Show', 3, 1),
+      ],
       NOW,
     );
 
-    const season = rails.find((rail) => rail.title === 'Some Show · Season 1');
+    const show = rails.find((rail) => rail.title === 'Some Show');
 
-    expect(season?.items.map((item) => item.episodeNumber)).toEqual([1, 2, 10]);
+    expect(show?.items.map((item) => item.seasonNumber)).toEqual([1, 1, 2, 3]);
+  });
+
+  it('runs the seasons on in the order they were broadcast', () => {
+    const rails = groupIntoRails(
+      [episode('Some Show', 2, 1), episode('Some Show', 1, 10), episode('Some Show', 1, 2)],
+      NOW,
+    );
+
+    const show = rails.find((rail) => rail.title === 'Some Show');
+
+    expect(show?.items.map((item) => item.title)).toEqual([
+      'Some Show 1x2',
+      'Some Show 1x10',
+      'Some Show 2x1',
+    ]);
+  });
+
+  it('holds more episodes than a row of picks, so a long programme is not cut off early', () => {
+    const many = Array.from({ length: 40 }, (unused, at) => episode('Some Show', 1, at + 1));
+
+    const rails = groupIntoRails(many, NOW);
+
+    expect(rails.find((rail) => rail.title === 'Some Show')?.items).toHaveLength(40);
   });
 
   it('does not give a lone episode a row to itself', () => {
     const rails = groupIntoRails([episode('Some Show', 1, 1), media({ id: 'film' })], NOW);
 
-    expect(rails.map((rail) => rail.title)).not.toContain('Some Show · Season 1');
+    expect(rails.map((rail) => rail.title)).not.toContain('Some Show');
   });
 
   it('keeps a lone episode rather than losing it', () => {
@@ -156,7 +173,7 @@ describe('groupIntoRails', () => {
       NOW,
     );
 
-    expect(rails.filter((rail) => rail.id.startsWith('season:'))).toHaveLength(2);
+    expect(rails.filter((rail) => rail.id.startsWith('series:'))).toHaveLength(2);
   });
 
   it('invents no row it cannot fill', () => {
@@ -181,9 +198,9 @@ describe('a row that names a programme', () => {
       new Map(),
     );
 
-    const season = rails.find((rail) => rail.id.startsWith('season:'));
+    const show = rails.find((rail) => rail.id.startsWith('series:'));
 
-    expect(season?.showOf?.seriesTitle).toBe('Affection');
+    expect(show?.showOf?.seriesTitle).toBe('Affection');
   });
 
   it('leads nowhere from a row that is about no one series', () => {
@@ -195,7 +212,7 @@ describe('a row that names a programme', () => {
 
     expect(
       rails
-        .filter((rail) => !rail.id.startsWith('season:'))
+        .filter((rail) => !rail.id.startsWith('series:'))
         .every((rail) => rail.showOf === undefined),
     ).toBe(true);
   });
