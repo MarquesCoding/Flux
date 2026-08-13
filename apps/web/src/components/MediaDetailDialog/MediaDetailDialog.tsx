@@ -62,6 +62,14 @@ const MediaDetailDialog = ({
   onToggleKept,
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
+  /**
+   * Whether the description is still being read.
+   *
+   * Cleared when the dialog closes as well as when a read finishes: closing
+   * part-way through abandons whatever was in flight, so nothing was left to
+   * turn this off, and the next thing opened inherited it — showing its
+   * skeletons over a description that had already arrived.
+   */
   const [isLoading, setIsLoading] = useState(false);
 
   /**
@@ -79,6 +87,9 @@ const MediaDetailDialog = ({
 
   useEffect(() => {
     if (media === null) {
+      setIsLoading(false);
+      setDetail(null);
+
       return;
     }
 

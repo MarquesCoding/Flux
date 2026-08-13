@@ -11,6 +11,16 @@ type MediaFacts = {
   episode?: {
     seriesTitle: string | null;
     seriesYear?: number | null;
+    /**
+     * The directory that separates this programme from another of the same
+     * name, where the path had one.
+     *
+     * Optional because a provider is free to ignore it — nothing here needs it
+     * to name a title. It is carried so that what the scanner learned from the
+     * path reaches the same place everything else about the episode does,
+     * rather than a second shape existing that is almost this one.
+     */
+    seriesFolder?: string | null;
     seasonNumber: number | null;
     episodeNumber: number | null;
     episodeTitle?: string | null;

@@ -347,4 +347,24 @@ describe('keeping something, and getting back to where you were', () => {
 
     expect(screen.getByRole('dialog', { name: 'Arrival' })).toBeInTheDocument();
   });
+
+  it('describes the next thing opened rather than showing it the last one’s skeletons', async () => {
+    detailMock.mockReturnValue(new Promise(() => undefined));
+
+    const view = render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    view.rerender(<MediaDetailDialog media={null} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    detailMock.mockResolvedValue(detail({ overview: 'Spice must flow.' }));
+
+    view.rerender(
+      <MediaDetailDialog
+        media={{ ...summary, id: 'media-2', title: 'Dune' }}
+        onClose={vi.fn()}
+        onPlay={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('Spice must flow.')).toBeInTheDocument();
+  });
 });

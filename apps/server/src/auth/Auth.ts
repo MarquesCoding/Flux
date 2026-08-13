@@ -98,7 +98,7 @@ const createAuth = ({
       deviceAuthorization({ expiresIn: '10m', interval: '5s' }),
       bearer(),
       jwt(),
-      apiKey(),
+      apiKey({ enableSessionForAPIKeys: true }),
       admin(),
       genericOAuth({ config: [] }),
       openAPI({ disableDefaultReference: true }),

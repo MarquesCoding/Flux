@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { IconLogout, IconPencil } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { Badge } from '@FluxUI/Badge';
+import { ApiKeyPanel } from '@FluxWeb/components/ApiKeyPanel/ApiKeyPanel';
 import { Card } from '@FluxUI/Card';
 import { CardHeader } from '@FluxUI/CardHeader';
 import { Dialog } from '@FluxUI/Dialog';
@@ -215,6 +216,12 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
             <div className="p-4">
               <PasskeySetup onChanged={onChanged} />
             </div>
+          </Card>
+
+          <Card as="section" padding="none" className="flex flex-col">
+            <CardHeader title="API keys" />
+
+            <ApiKeyPanel />
           </Card>
         </TabPanel>
 

@@ -149,7 +149,21 @@ const Hero = ({
    */
   const [synopsis, setSynopsis] = useState<{ mediaId: string; text: string } | null>(null);
   const [isTelling, setIsTelling] = useState(true);
-  const [isHeld, setIsHeld] = useState(false);
+  /**
+   * Whether a pointer is resting on the hero, and whether anything in it holds
+   * focus.
+   *
+   * Two flags rather than one, because they are set and cleared by different
+   * events and one boolean cannot tell whose turn it is to clear it. Focus
+   * moving into the hero — pressing Play, tabbing to More info — set it, and
+   * nothing set it back while the focus stayed there. The countdown stopped
+   * and never restarted, so the marker sat empty for as long as the page was
+   * open.
+   */
+  const [isPointedAt, setIsPointedAt] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const isHeld = isPointedAt || isFocused;
   const prefersReducedMotion = useReducedMotion();
 
   const featured = items[index % Math.max(items.length, 1)];
@@ -227,11 +241,11 @@ const Hero = ({
   }, [featuredId]);
 
   const hold = useCallback(() => {
-    setIsHeld(true);
+    setIsPointedAt(true);
   }, []);
 
   const release = useCallback(() => {
-    setIsHeld(false);
+    setIsPointedAt(false);
   }, []);
 
   if (featured === undefined) {
@@ -255,8 +269,14 @@ const Hero = ({
           aria-label="Featured"
           onPointerEnter={hold}
           onPointerLeave={release}
-          onFocusCapture={hold}
-          onBlurCapture={release}
+          onFocusCapture={() => {
+            setIsFocused(true);
+          }}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              setIsFocused(false);
+            }
+          }}
           style={
             prefersReducedMotion === true
               ? {

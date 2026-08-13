@@ -55,6 +55,7 @@ const DEFAULT_ROLES: readonly DefaultRole[] = [
       'sharing.link',
       'sharing.party',
       'download.media',
+      'account.keys',
       'server.logs',
       'server.monitor',
     ],
@@ -63,7 +64,7 @@ const DEFAULT_ROLES: readonly DefaultRole[] = [
     name: 'Member',
     position: 100,
     description: 'Watches, shares and downloads. What everybody in the house gets.',
-    permissions: ['sharing.link', 'sharing.party', 'download.media'],
+    permissions: ['sharing.link', 'sharing.party', 'download.media', 'account.keys'],
   },
   {
     name: 'Restricted',

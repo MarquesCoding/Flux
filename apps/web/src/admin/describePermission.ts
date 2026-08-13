@@ -43,6 +43,7 @@ const LABELS: Record<Permission, string> = {
   'server.settings': 'Change server settings',
   'server.backup': 'Back the server up',
   'server.logs': 'Read the logs',
+  'account.keys': 'Hold API keys for use outside the browser',
   'server.monitor': 'See what the server is doing',
 };
 
