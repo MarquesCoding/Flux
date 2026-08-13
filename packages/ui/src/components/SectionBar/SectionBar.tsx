@@ -40,12 +40,16 @@ const PILL = [
 const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;
 
 /**
- * How long a pointer rests on a family before it opens.
+ * How long a pointer rests on a closed bar's family before it opens.
  *
  * Not nought. A pointer crossing the bar on its way somewhere else passes over
  * every family in it, and opening on contact would flash four menus at
- * somebody who was only travelling. Short enough that aiming at one and
- * waiting does not feel like waiting.
+ * somebody who was only travelling.
+ *
+ * Only while the bar is shut. Once one family is open the question has already
+ * been asked, and moving along to the next one is reading the answer rather
+ * than deciding to ask — so from then on they open the instant they are
+ * reached, the way a menu bar does.
  */
 const OPEN_DELAY_MILLISECONDS = 70;
 
@@ -55,6 +59,10 @@ const OPEN_DELAY_MILLISECONDS = 70;
  * The popup hangs below the pill with a gap between them, and reaching into it
  * means crossing that gap. Closing the moment the pointer leaves the pill
  * would shut the menu on its way to being used.
+ *
+ * This is a grace period for leaving the bar, not for moving along it: only
+ * one family is ever open, so reaching the next one shuts this one at once
+ * rather than leaving the two overlapping for the length of this wait.
  */
 const CLOSE_DELAY_MILLISECONDS = 180;
 
@@ -94,6 +102,16 @@ const CLOSE_DELAY_MILLISECONDS = 180;
 const SectionBar = ({ label, groups, value, onValueChange, className }: SectionBarProps) => {
   const prefersReducedMotion = useReducedMotion();
   const [pointedAt, setPointedAt] = useState<string | null>(null);
+
+  /**
+   * Which family is open, if any.
+   *
+   * One piece of state for the whole bar rather than each family minding its
+   * own, because each one minding its own is how two of them end up on screen
+   * together: the family being left has a grace period before it closes and
+   * the family being reached has a wait before it opens, and those two
+   * overlap. Holding a single name means opening one is closing the other.
+   */
   const [opened, setOpened] = useState<string | null>(null);
 
   /**
@@ -160,13 +178,14 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
 
             {opens && group.label !== undefined ? (
               <Menu.Root
+                open={opened === named}
                 onOpenChange={(isOpen) => {
                   setOpened((was) => (isOpen ? named : was === named ? null : was));
                 }}
               >
                 <Menu.Trigger
                   openOnHover
-                  delay={OPEN_DELAY_MILLISECONDS}
+                  delay={opened === null ? OPEN_DELAY_MILLISECONDS : 0}
                   closeDelay={CLOSE_DELAY_MILLISECONDS}
                   onPointerEnter={() => {
                     setPointedAt(named);
