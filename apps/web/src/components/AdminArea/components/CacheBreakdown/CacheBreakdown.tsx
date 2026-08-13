@@ -43,12 +43,17 @@ const CacheBreakdown = ({ cache, artwork, liveSessions, library }: CacheBreakdow
               {row.label}
 
               {row.hint === undefined ? null : (
-                <HoverCard detail={<p className="max-w-xs text-xs leading-relaxed">{row.hint}</p>}>
+                <HoverCard
+                  side="top"
+                  align="center"
+                  detail={<p className="text-xs leading-relaxed normal-case">{row.hint}</p>}
+                >
                   <Button
                     variant="bare"
                     size="none"
                     isIconOnly
                     label={`What ${row.label.toLowerCase()} means`}
+                    hasTooltip={false}
                     className="text-text-muted transition-colors hover:text-text"
                   >
                     <IconInfoCircle size={14} aria-hidden />

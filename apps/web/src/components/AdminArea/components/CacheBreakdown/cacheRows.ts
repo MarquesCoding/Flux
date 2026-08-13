@@ -70,7 +70,7 @@ const cacheRows = (
     },
     {
       label: 'Transcode sessions',
-      hint: 'When a file will not play on a device as it is, Flux converts it and keeps the result. Each device keeps the last thing it played, so resuming does not convert it a second time, and gives that up when it plays something else. Two devices watching the same thing share one copy. None of this is your media — it is all rebuilt on demand, and deleting it costs only the time to convert again.',
+      hint: 'Files that will not play on a device as they are get converted, and the result is kept so resuming does not convert it again. Each device keeps only the last thing it played. None of this is your media — it rebuilds on demand.',
       ...(cache === null
         ? pending
         : {
