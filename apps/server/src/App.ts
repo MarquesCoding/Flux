@@ -149,6 +149,7 @@ import {
   revokeApiKeyRoute,
 } from '@FluxServer/routes/ApiKeyRoute';
 import { narrowToKey } from '@FluxServer/auth/narrowToKey';
+import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
 import type { PermissionService } from '@FluxServer/auth/PermissionService';
 import type { ApiKeyService } from '@FluxServer/auth/ApiKeyService';
 import type { Permission } from '@FluxContracts/schemas/Permission';
@@ -490,7 +491,7 @@ const createApp = ({
    * secret is not hashed a second time to learn what is known.
    */
   const requires = async (headers: Headers, permission: Permission): Promise<boolean> => {
-    const session = await auth.api.getSession({ headers }).catch(() => null);
+    const session = await readSessionOnce(auth, headers);
 
     if (session === null) {
       return false;
@@ -972,11 +973,8 @@ const createApp = ({
   /**
    * Who is signed in, for the routes that act on their own account.
    */
-  const readAccount = async (headers: Headers) => {
-    const session = await auth.api.getSession({ headers }).catch(() => null);
-
-    return session?.user ?? null;
-  };
+  const readAccount = async (headers: Headers) =>
+    (await readSessionOnce(auth, headers))?.user ?? null;
 
   /**
    * Whoever is asking, if they may hold keys at all.
