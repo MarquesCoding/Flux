@@ -108,36 +108,38 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
                       POPUP_MOTION,
                     )}
                   >
-                    <Menu.GroupLabel className="px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-text-muted">
-                      {group.label}
-                    </Menu.GroupLabel>
+                    <Menu.Group className="flex flex-col">
+                      <Menu.GroupLabel className="px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-text-muted">
+                        {group.label}
+                      </Menu.GroupLabel>
 
-                    <Menu.RadioGroup
-                      value={value}
-                      onValueChange={(next) => {
-                        onValueChange(String(next));
-                      }}
-                      className="flex flex-col"
-                    >
-                      {group.items.map((item) => (
-                        <Menu.RadioItem
-                          key={item.id}
-                          value={item.id}
-                          closeOnClick
-                          className={cn(
-                            'flex cursor-default items-center justify-between gap-4 rounded-[1.375rem] px-3 py-2.5',
-                            'outline-none transition-colors duration-[var(--duration-fast)]',
-                            'data-[highlighted]:bg-[var(--surface-hover)]',
-                          )}
-                        >
-                          {item.label}
+                      <Menu.RadioGroup
+                        value={value}
+                        onValueChange={(next) => {
+                          onValueChange(String(next));
+                        }}
+                        className="flex flex-col"
+                      >
+                        {group.items.map((item) => (
+                          <Menu.RadioItem
+                            key={item.id}
+                            value={item.id}
+                            closeOnClick
+                            className={cn(
+                              'flex cursor-default items-center justify-between gap-4 rounded-[1.375rem] px-3 py-2.5',
+                              'outline-none transition-colors duration-[var(--duration-fast)]',
+                              'data-[highlighted]:bg-[var(--surface-hover)]',
+                            )}
+                          >
+                            {item.label}
 
-                          <Menu.RadioItemIndicator className="flex size-4 shrink-0 items-center justify-center text-accent">
-                            <IconCheck size={15} stroke={3} aria-hidden />
-                          </Menu.RadioItemIndicator>
-                        </Menu.RadioItem>
-                      ))}
-                    </Menu.RadioGroup>
+                            <Menu.RadioItemIndicator className="flex size-4 shrink-0 items-center justify-center text-accent">
+                              <IconCheck size={15} stroke={3} aria-hidden />
+                            </Menu.RadioItemIndicator>
+                          </Menu.RadioItem>
+                        ))}
+                      </Menu.RadioGroup>
+                    </Menu.Group>
                   </Menu.Popup>
                 </Menu.Positioner>
               </Menu.Portal>
