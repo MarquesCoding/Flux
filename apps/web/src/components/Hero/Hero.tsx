@@ -53,15 +53,29 @@ const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/bac
 const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
 
 /**
- * How much of the frame the lettering may take.
+ * Where the mark sits, and how much of the frame it may take.
  *
- * A logo is artwork with its own proportions — some are a word, some are a
- * word inside a device three times as tall — so it is given a box rather than
- * a size, and told to fit inside it whatever shape it turns out to be. Capped
- * in viewport height as well as width because a tall logo at a third of a wide
- * screen would otherwise reach the buttons underneath it.
+ * The far corner from the words. Everything that can be read — the episode,
+ * the title, the facts, the buttons — is stacked at the bottom left, so the
+ * mark went where none of it is: it says which programme this is without
+ * queueing up behind the sentence that says the same thing in type.
+ *
+ * A logo is artwork with its own proportions — some are a word set wide, some
+ * are a word stacked three lines deep inside a device — so it is given a box
+ * rather than a size and told to fit whatever shape it turns out to be, capped
+ * in viewport height as well as width so a tall one cannot run down the
+ * picture.
+ *
+ * Shadowed, because it is drawn straight onto the artwork rather than onto the
+ * wash at the foot of the card, and white lettering on a pale frame is
+ * lettering nobody can see. Fades rather than rises: it belongs to the picture
+ * behind it, which is crossfading too.
  */
-const LOGO_BOX = 'max-h-[22svh] w-auto max-w-[min(78vw,30rem)] object-contain object-left';
+const LOGO_BOX = [
+  'pointer-events-none absolute right-5 top-5 z-10 sm:right-10 sm:top-8',
+  'max-h-[9svh] w-auto max-w-[min(45vw,15rem)] object-contain object-right',
+  'drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]',
+].join(' ');
 
 /**
  * The screen the library opens with.
@@ -209,6 +223,21 @@ const Hero = ({
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-surface/85 via-transparent to-transparent" />
 
+          {!isLettered ? null : (
+            <motion.img
+              key={featured.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: prefersReducedMotion === true ? 0.2 : 0.9, ease: 'easeOut' }}
+              src={logoUrl(featured.id)}
+              alt=""
+              className={LOGO_BOX}
+              onError={() => {
+                setUnlettered((known) => new Set(known).add(featured.id));
+              }}
+            />
+          )}
+
           <motion.div
             key={featured.id}
             variants={staggerVariants}
@@ -229,24 +258,9 @@ const Hero = ({
             <motion.h1
               variants={revealVariants(prefersReducedMotion)}
               transition={revealTransition(prefersReducedMotion, 'heavy')}
-              className={
-                isLettered
-                  ? 'flex'
-                  : 'max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text'
-              }
+              className="max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text"
             >
-              {isLettered ? (
-                <img
-                  src={logoUrl(featured.id)}
-                  alt={featured.seriesTitle ?? featured.title}
-                  className={LOGO_BOX}
-                  onError={() => {
-                    setUnlettered((known) => new Set(known).add(featured.id));
-                  }}
-                />
-              ) : (
-                (featured.seriesTitle ?? featured.title)
-              )}
+              {featured.seriesTitle ?? featured.title}
             </motion.h1>
 
             <motion.p
