@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hero } from './Hero';
@@ -7,6 +7,10 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library';
 vi.mock('@FluxWeb/components/MediaPreview/MediaPreview', () => ({
   MediaPreview: () => <div>preview</div>,
 }));
+
+const { detailMock } = vi.hoisted(() => ({ detailMock: vi.fn(() => Promise.resolve(null)) }));
+
+vi.mock('@FluxWeb/library/fetchLibrary', () => ({ fetchMediaDetail: detailMock }));
 
 const item = (id: string, title: string): MediaSummary => ({
   id,
@@ -27,6 +31,8 @@ const item = (id: string, title: string): MediaSummary => ({
 const items = [item('a', 'Arrival'), item('b', 'Dune'), item('c', 'Sicario')];
 
 beforeEach(() => {
+  detailMock.mockReset();
+  detailMock.mockResolvedValue(null);
   vi.useFakeTimers({ shouldAdvanceTime: true });
 });
 
@@ -159,5 +165,79 @@ describe('Hero', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(Hero.displayName).toBe('Hero');
+  });
+
+  it('lets a programme’s own lettering stand as the title', () => {
+    render(<Hero items={[{ ...item('a', 'Arrival'), hasLogo: true }]} onPlay={vi.fn()} />);
+
+    const heading = screen.getByRole('heading', { name: 'Arrival' });
+
+    expect(within(heading).getByRole('img', { name: 'Arrival' })).toHaveAttribute(
+      'src',
+      '/api/media/a/image/logo',
+    );
+  });
+
+  it('sets the name in words for a programme that has no lettering', () => {
+    render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: 'Arrival' })).toHaveTextContent('Arrival');
+  });
+
+  it('falls back to words when the lettering will not load', async () => {
+    render(<Hero items={[{ ...item('a', 'Arrival'), hasLogo: true }]} onPlay={vi.fn()} />);
+
+    fireEvent.error(screen.getByRole('img', { name: 'Arrival' }));
+
+    expect(await screen.findByText('Arrival')).toBeInTheDocument();
+  });
+
+  it('introduces the programme rather than tonight’s episode', () => {
+    render(
+      <Hero
+        items={[{ ...item('a', 'Episode Four'), seriesTitle: 'Some Show', episodeNumber: 4 }]}
+        onPlay={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Some Show' })).toBeInTheDocument();
+    expect(screen.queryByText('Episode Four')).not.toBeInTheDocument();
+    expect(screen.queryByText('EP4')).not.toBeInTheDocument();
+  });
+
+  it('says what the thing is about', async () => {
+    detailMock.mockResolvedValue({ metadata: { overview: 'A linguist meets the arrival.' } });
+
+    render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(await screen.findByText('A linguist meets the arrival.')).toBeInTheDocument();
+  });
+
+  it('stops saying it after a while, so the picture is not covered for ever', async () => {
+    detailMock.mockResolvedValue({ metadata: { overview: 'A linguist meets the arrival.' } });
+
+    render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    await screen.findByText('A linguist meets the arrival.');
+
+    act(() => {
+      vi.advanceTimersByTime(9000);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('A linguist meets the arrival.')).not.toBeInTheDocument();
+    });
+  });
+
+  it('says nothing at all about something the catalogue has no words for', async () => {
+    detailMock.mockResolvedValue({ metadata: { overview: null } });
+
+    render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
   });
 });

@@ -640,3 +640,131 @@ describe('matching a series, which the catalogue names differently from a film',
     expect(found).toMatchObject({ externalId: '1' });
   });
 });
+
+describe('reading the lettering a title is written in', () => {
+  const ENGLISH = {
+    logos: [
+      { file_path: '/en.png', iso_639_1: 'en', width: 1097, vote_average: 0 },
+      { file_path: '/small.png', iso_639_1: 'en', width: 600, vote_average: 0 },
+    ],
+  };
+
+  it('asks the catalogue for what it holds for a film', async () => {
+    const { instance, calls } = provider({ '/movie/329/images': ENGLISH });
+
+    const url = await instance.readLogoUrl?.({ externalId: '329', isSeries: false });
+
+    expect(url).toBe('https://image.tmdb.org/t/p/w500/en.png');
+    expect(calls[0]).toContain('/movie/329/images');
+  });
+
+  it('asks about a programme as a programme', async () => {
+    const { instance, calls } = provider({ '/tv/208067/images': ENGLISH });
+
+    await instance.readLogoUrl?.({ externalId: '208067', isSeries: true });
+
+    expect(calls[0]).toContain('/tv/208067/images');
+  });
+
+  it('asks for what can be read before asking for everything', async () => {
+    const { instance, calls } = provider({ '/movie/329/images': ENGLISH });
+
+    await instance.readLogoUrl?.({ externalId: '329', isSeries: false });
+
+    expect(calls[0]).toContain('include_image_language=en%2Cnull');
+    expect(calls).toHaveLength(1);
+  });
+
+  it('widens the question when a title has no lettering in the wanted language', async () => {
+    const answers = [
+      { logos: [] },
+      { logos: [{ file_path: '/ja.png', iso_639_1: 'ja', width: 906, vote_average: 3.3 }] },
+    ];
+    const calls: string[] = [];
+
+    const instance = createCatalogueMetadataProvider({
+      readApiKey: () => Promise.resolve('a-key'),
+      fetchImpl: (url) => {
+        calls.push(url);
+
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(answers[calls.length - 1] ?? { logos: [] }),
+        });
+      },
+    });
+
+    const url = await instance.readLogoUrl?.({ externalId: '208067', isSeries: true });
+
+    expect(url).toBe('https://image.tmdb.org/t/p/w500/ja.png');
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).not.toContain('include_image_language');
+  });
+
+  it('answers with nothing when no catalogue key is configured', async () => {
+    const { instance, calls } = provider({ '/movie/329/images': ENGLISH }, { key: null });
+
+    expect(await instance.readLogoUrl?.({ externalId: '329', isSeries: false })).toBeNull();
+    expect(calls).toHaveLength(0);
+  });
+
+  it('answers with nothing rather than throwing when the catalogue talks nonsense', async () => {
+    const { instance } = provider({ '/movie/329/images': { logos: 'not a list' } });
+
+    expect(await instance.readLogoUrl?.({ externalId: '329', isSeries: false })).toBeNull();
+  });
+
+  it('answers with nothing when a title genuinely has none', async () => {
+    const { instance } = provider({ '/movie/329/images': { logos: [] } });
+
+    expect(await instance.readLogoUrl?.({ externalId: '329', isSeries: false })).toBeNull();
+  });
+});
+
+describe('choosing between what a catalogue answers with', () => {
+  it('takes the closest name rather than the most popular one', async () => {
+    const { instance } = provider({
+      '/search/movie': {
+        results: [
+          { id: 1, title: 'Arrival of a Train', release_date: '1896-01-01' },
+          { id: 2, title: 'Arrival', release_date: '2016-11-10' },
+        ],
+      },
+      '/movie/2': { id: 2, title: 'Arrival', release_date: '2016-11-10' },
+    });
+
+    const found = await instance.describe(facts('/media/Arrival 2016 1080p.mkv'));
+
+    expect(found?.externalId).toBe('2');
+  });
+
+  it('finds a programme named the way it was made rather than the way it was sold', async () => {
+    const { instance } = provider({
+      '/search/tv': {
+        results: [
+          { id: 1, name: 'Something Else Entirely', first_air_date: '2020-01-01' },
+          {
+            id: 2,
+            name: 'My Love Story with Yamada-kun at Lv999',
+            original_name: 'Yamada-kun to Lv999 no Koi wo Suru',
+            first_air_date: '2023-04-01',
+          },
+        ],
+      },
+      '/tv/2': { id: 2, name: 'My Love Story with Yamada-kun at Lv999' },
+    });
+
+    const found = await instance.describe(
+      facts('/media/Yamada.mkv', {
+        seriesTitle: 'Yamada-kun to Lv999 no Koi wo Suru',
+        seriesYear: null,
+        seasonNumber: 1,
+        episodeNumber: 1,
+        episodeTitle: null,
+      }),
+    );
+
+    expect(found?.externalId).toBe('2');
+  });
+});
