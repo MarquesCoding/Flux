@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VideoPlayer } from './VideoPlayer';
+import { fakeMediaElement } from '@FluxWeb/testing/fakeMediaElement';
+import { emitPresenceEvent } from '@FluxWeb/presence/presenceEvents';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import type * as SegmentsModule from '@FluxWeb/playback/fetchSegments';
 import type * as SubtitlesModule from '@FluxWeb/playback/fetchSubtitles';
@@ -1509,5 +1511,162 @@ describe('the keys a viewer can reach for', () => {
     await actor.keyboard('q');
 
     expect(positionOf(element)).toBe(before);
+  });
+});
+
+describe('what the player does as the stream behaves', () => {
+  const watching = async () => {
+    const actor = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+    const stream = fakeMediaElement(element);
+
+    return { actor, element, stream };
+  };
+
+  it('moves subtitles in time without touching the ones already in the past', async () => {
+    const { stream } = await watching();
+    const track = stream.addTextTrack({ cues: [{ startTime: 10, endTime: 12 }] });
+
+    stream.loaded({ duration: 7200, seekableTo: 7200 });
+    stream.playTo(5);
+
+    expect(track.cues[0]?.startTime).toBe(10);
+  });
+
+  it('never moves a cue back past the beginning of the film', async () => {
+    const { stream } = await watching();
+    const track = stream.addTextTrack({ cues: [{ startTime: 0.5, endTime: 2 }] });
+
+    stream.loaded({ duration: 7200 });
+
+    expect(track.cues[0]?.startTime).toBeGreaterThanOrEqual(0);
+  });
+
+  it('measures how long a frame lasts from the frames it is shown', async () => {
+    const { stream } = await watching();
+
+    stream.loaded({ duration: 7200, seekableTo: 7200 });
+    stream.presentFrame(1);
+    stream.presentFrame(1.04);
+
+    expect(await screen.findByLabelText('Arrival')).toBeInTheDocument();
+  });
+
+  it('ignores a gap between frames that is too large to be one frame', async () => {
+    const { stream } = await watching();
+
+    stream.loaded({ duration: 7200 });
+    stream.presentFrame(1);
+    stream.presentFrame(30);
+
+    expect(await screen.findByLabelText('Arrival')).toBeInTheDocument();
+  });
+
+  it('says how much has arrived, not only where the viewer is', async () => {
+    const { actor, stream } = await watching();
+
+    stream.loaded({ duration: 7200, seekableTo: 7200, bufferedTo: 300 });
+    stream.playTo(100);
+
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }));
+
+    expect(await screen.findByRole('region', { name: 'Stats for nerds' })).toBeInTheDocument();
+  });
+
+  it('floats the picture out into its own window', async () => {
+    const { actor, stream } = await watching();
+
+    stream.loaded({ duration: 7200 });
+
+    await actor.click(screen.getByRole('button', { name: /Pop out|Picture in picture/i }));
+
+    expect(document.pictureInPictureElement).not.toBeNull();
+  });
+
+  it('brings the picture back from its own window', async () => {
+    const { actor, stream } = await watching();
+
+    stream.loaded({ duration: 7200 });
+    stream.popOut();
+
+    await actor.click(screen.getByRole('button', { name: /Pop out|Picture in picture/i }));
+
+    expect(document.pictureInPictureElement).toBeNull();
+  });
+});
+
+describe('when an administrator reaches into the stream', () => {
+  const watching = async () => {
+    const actor = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+    const stream = fakeMediaElement(element);
+
+    stream.loaded({ duration: 7200, seekableTo: 7200 });
+
+    return { actor, element, stream };
+  };
+
+  it('stops the picture and says who stopped it', async () => {
+    const { element } = await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'stopped', reason: 'An administrator stopped this stream.' });
+    });
+
+    expect(await screen.findByText(/An administrator stopped this stream./)).toBeInTheDocument();
+    expect(element instanceof HTMLVideoElement ? element.paused : true).toBe(true);
+  });
+
+  it('pauses and says why, without ending the stream', async () => {
+    await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'paused', reason: 'Dinner.' });
+    });
+
+    expect(await screen.findByText(/Dinner./)).toBeInTheDocument();
+  });
+
+  it('takes the note away again when the stream is let go', async () => {
+    await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'paused', reason: 'Dinner.' });
+    });
+
+    await screen.findByText(/Dinner./);
+
+    act(() => {
+      emitPresenceEvent({ kind: 'resumed' });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Dinner./)).not.toBeInTheDocument();
+    });
+  });
+
+  it('leaves a stop on screen even when play is asked for again', async () => {
+    await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'stopped', reason: 'An administrator stopped this stream.' });
+    });
+
+    await screen.findByText(/An administrator stopped this stream./);
+
+    act(() => {
+      emitPresenceEvent({ kind: 'resumed' });
+    });
+
+    expect(screen.getByText(/An administrator stopped this stream./)).toBeInTheDocument();
   });
 });
