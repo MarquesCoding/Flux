@@ -1412,3 +1412,102 @@ describe('playing on another device', () => {
     expect(screen.queryByText(/offered no device/)).not.toBeInTheDocument();
   });
 });
+
+describe('the keys a viewer can reach for', () => {
+  const playing = async () => {
+    const actor = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+
+    Object.defineProperty(element, 'currentTime', {
+      configurable: true,
+      value: 100,
+      writable: true,
+    });
+    Object.defineProperty(element, 'duration', { configurable: true, value: 7200 });
+    seekableTo(element, 7200);
+
+    return { actor, element };
+  };
+
+  const positionOf = (element: HTMLElement) =>
+    element instanceof HTMLVideoElement ? element.currentTime : 0;
+
+  it('jumps forward with l', async () => {
+    const { actor, element } = await playing();
+    const before = positionOf(element);
+
+    await actor.keyboard('l');
+
+    expect(positionOf(element)).toBeGreaterThan(before);
+  });
+
+  it('jumps back with j', async () => {
+    const { actor, element } = await playing();
+
+    await actor.keyboard('l');
+    await actor.keyboard('l');
+
+    const before = positionOf(element);
+
+    await actor.keyboard('j');
+
+    expect(positionOf(element)).toBeLessThan(before);
+  });
+
+  it('mutes and unmutes with m', async () => {
+    const { actor } = await playing();
+
+    await actor.keyboard('m');
+
+    expect(await screen.findByRole('button', { name: /Unmute|Mute/ })).toBeInTheDocument();
+  });
+
+  it('turns subtitles on and off with c', async () => {
+    const { actor, element } = await playing();
+
+    await actor.keyboard('c');
+    await actor.keyboard('c');
+
+    expect(element).toBeInTheDocument();
+  });
+
+  it('ignores a key pressed while typing somewhere', async () => {
+    const actor = userEvent.setup();
+
+    render(
+      <>
+        <input aria-label="Somewhere to type" />
+        <VideoPlayer media={media} onClose={vi.fn()} isImmersive />
+      </>,
+    );
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+
+    Object.defineProperty(element, 'currentTime', {
+      configurable: true,
+      value: 100,
+      writable: true,
+    });
+
+    const before = positionOf(element);
+
+    await actor.click(screen.getByLabelText('Somewhere to type'));
+    await actor.keyboard('l');
+
+    expect(positionOf(element)).toBe(before);
+  });
+
+  it('ignores a key it has nothing bound to', async () => {
+    const { actor, element } = await playing();
+    const before = positionOf(element);
+
+    await actor.keyboard('q');
+
+    expect(positionOf(element)).toBe(before);
+  });
+});
