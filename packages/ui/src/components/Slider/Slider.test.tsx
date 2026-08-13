@@ -1,9 +1,21 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Slider } from './Slider';
+import type * as MotionReact from 'motion/react';
+
+const motion = vi.hoisted(() => ({ isReduced: false }));
+
+vi.mock('motion/react', async () => ({
+  ...(await vi.importActual<typeof MotionReact>('motion/react')),
+  useReducedMotion: () => motion.isReduced,
+}));
 
 const slider = (name = 'Seek') => screen.getByRole('slider', { name });
+
+afterEach(() => {
+  motion.isReduced = false;
+});
 
 describe('Slider', () => {
   it('reports where in the media it is', () => {
@@ -75,5 +87,136 @@ describe('Slider', () => {
     );
 
     expect(container.querySelector('[data-tone="overlay"]')).toBeInTheDocument();
+  });
+});
+
+describe('the preview that follows the pointer', () => {
+  /**
+   * Gives the bar a width, which jsdom otherwise reports as nought.
+   *
+   * Everything the preview does is arithmetic on the bar's box, and a box of
+   * no width is the one case the component refuses to guess from — so without
+   * this there is nothing to test.
+   */
+  const withTrackWidth = (width: number, offsetWidth = 0) => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: width,
+      width,
+      height: 6,
+      toJSON: () => ({}),
+    });
+
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(offsetWidth);
+  };
+
+  const move = (at: number) => {
+    const control = slider().closest('[class*="touch-none"]');
+
+    if (!(control instanceof HTMLElement)) {
+      throw new Error('The slider has no control to move a pointer across.');
+    }
+
+    fireEvent.pointerMove(control, { clientX: at });
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const draw = (max = 120) =>
+    render(
+      <Slider
+        label="Seek"
+        value={30}
+        max={max}
+        onValueChange={vi.fn()}
+        renderPreview={(value) => <span>preview at {Math.round(value).toString()}</span>}
+      />,
+    );
+
+  it('names the time under the pointer, not the time being played', () => {
+    withTrackWidth(200);
+    draw();
+
+    move(100);
+
+    expect(screen.getByText('preview at 60')).toBeInTheDocument();
+  });
+
+  it('reads the very start and the very end of the bar', () => {
+    withTrackWidth(200);
+    draw();
+
+    move(0);
+
+    expect(screen.getByText('preview at 0')).toBeInTheDocument();
+
+    move(200);
+
+    expect(screen.getByText('preview at 120')).toBeInTheDocument();
+  });
+
+  it('holds a pointer beyond either end to the ends of the bar', () => {
+    withTrackWidth(200);
+    draw();
+
+    move(-500);
+
+    expect(screen.getByText('preview at 0')).toBeInTheDocument();
+
+    move(9000);
+
+    expect(screen.getByText('preview at 120')).toBeInTheDocument();
+  });
+
+  it('keeps the preview from hanging off the near edge', () => {
+    withTrackWidth(200, 80);
+    draw();
+
+    move(100);
+    move(0);
+
+    expect(screen.getByText('preview at 0').parentElement).toHaveStyle({ left: '40px' });
+  });
+
+  it('keeps the preview from hanging off the far edge', () => {
+    withTrackWidth(200, 80);
+    draw();
+
+    move(100);
+    move(200);
+
+    expect(screen.getByText('preview at 120').parentElement).toHaveStyle({ left: '160px' });
+  });
+
+  it('draws nothing before the duration is known', () => {
+    withTrackWidth(200);
+    draw(0);
+
+    move(100);
+
+    expect(screen.queryByText(/preview at/)).not.toBeInTheDocument();
+  });
+
+  it('draws nothing while the bar has no width to measure against', () => {
+    withTrackWidth(0);
+    draw();
+
+    move(100);
+
+    expect(screen.queryByText(/preview at/)).not.toBeInTheDocument();
+  });
+
+  it('draws the preview without motion for somebody who asked for less', () => {
+    motion.isReduced = true;
+
+    render(<Slider label="Seek" value={30} max={120} onValueChange={vi.fn()} />);
+
+    expect(slider()).toBeInTheDocument();
   });
 });

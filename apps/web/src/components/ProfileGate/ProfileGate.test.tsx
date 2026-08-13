@@ -2,6 +2,8 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileGate } from './ProfileGate';
+import { authenticateWithPasskey } from '@FluxWeb/passkeys/authenticateWithPasskey';
+import { isPasskeySupported } from '@FluxWeb/passkeys/isPasskeySupported';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 const profileOf = (name: string, at: number): ViewerProfile => ({
@@ -17,6 +19,17 @@ const HOUSEHOLD = ['Marques', 'Sam', 'Mum'].map(profileOf);
 
 const many = (count: number): ViewerProfile[] =>
   Array.from({ length: count }, (_ignored, at) => profileOf(`Person ${(at + 1).toString()}`, at));
+
+vi.mock('@FluxWeb/passkeys/authenticateWithPasskey', () => ({
+  authenticateWithPasskey: vi.fn(),
+}));
+
+vi.mock('@FluxWeb/passkeys/isPasskeySupported', () => ({
+  isPasskeySupported: vi.fn(),
+}));
+
+const passkeyMock = vi.mocked(authenticateWithPasskey);
+const passkeySupportedMock = vi.mocked(isPasskeySupported);
 
 const fetchMock = vi.fn();
 
@@ -286,5 +299,93 @@ describe('ProfileGate', () => {
     await arrive();
 
     expect(screen.getAllByText(/The Cinema/).length).toBeGreaterThan(0);
+  });
+});
+
+describe('signing in with a passkey instead of a password', () => {
+  const askedForAPassword = async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    passkeySupportedMock.mockReturnValue(true);
+    serverWith(HOUSEHOLD);
+
+    render(<ProfileGate onSignedIn={vi.fn()} />);
+
+    await arrive();
+    await actor.click(screen.getByRole('button', { name: /Marques/ }));
+
+    return actor;
+  };
+
+  it('offers a passkey when the browser has them', async () => {
+    await askedForAPassword();
+
+    expect(
+      await screen.findByRole('button', { name: /Use a passkey instead/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers nothing of the sort when the browser has none', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    passkeySupportedMock.mockReturnValue(false);
+    serverWith(HOUSEHOLD);
+
+    render(<ProfileGate onSignedIn={vi.fn()} />);
+
+    await arrive();
+    await actor.click(screen.getByRole('button', { name: /Marques/ }));
+
+    expect(screen.queryByRole('button', { name: /Use a passkey instead/ })).not.toBeInTheDocument();
+  });
+
+  it('lets somebody in when the passkey is accepted', async () => {
+    const onSignedIn = vi.fn();
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    passkeySupportedMock.mockReturnValue(true);
+    passkeyMock.mockResolvedValue({ kind: 'signedIn' });
+    serverWith(HOUSEHOLD);
+
+    render(<ProfileGate onSignedIn={onSignedIn} />);
+
+    await arrive();
+    await actor.click(screen.getByRole('button', { name: /Marques/ }));
+    await actor.click(screen.getByRole('button', { name: /Use a passkey instead/ }));
+
+    await waitFor(() => {
+      expect(onSignedIn).toHaveBeenCalled();
+    });
+  });
+
+  it('says what went wrong when the passkey was refused', async () => {
+    const actor = await askedForAPassword();
+
+    passkeyMock.mockResolvedValue({ kind: 'failed', reason: 'That key is not for this account.' });
+
+    await actor.click(screen.getByRole('button', { name: /Use a passkey instead/ }));
+
+    expect(await screen.findByText('That key is not for this account.')).toBeInTheDocument();
+  });
+
+  it('says nothing at all when somebody changed their mind', async () => {
+    const onSignedIn = vi.fn();
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    passkeySupportedMock.mockReturnValue(true);
+    passkeyMock.mockResolvedValue({ kind: 'cancelled' });
+    serverWith(HOUSEHOLD);
+
+    render(<ProfileGate onSignedIn={onSignedIn} />);
+
+    await arrive();
+    await actor.click(screen.getByRole('button', { name: /Marques/ }));
+    await actor.click(screen.getByRole('button', { name: /Use a passkey instead/ }));
+
+    await waitFor(() => {
+      expect(passkeyMock).toHaveBeenCalled();
+    });
+
+    expect(onSignedIn).not.toHaveBeenCalled();
   });
 });

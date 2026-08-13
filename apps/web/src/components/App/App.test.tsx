@@ -325,4 +325,79 @@ describe('App routing', () => {
       expect(screen.getByText(/Resume from 30:00/)).toBeInTheDocument();
     });
   });
+
+  it('moves between sections from the foot of the page as well as the dock', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
+
+    await arrive();
+
+    const browse = await screen.findByRole('navigation', { name: 'Browse' });
+
+    await actor.click(within(browse).getByRole('button', { name: 'Films' }));
+
+    expect(await screen.findByRole('heading', { name: 'Films' })).toBeInTheDocument();
+  });
+
+  it('opens something chosen at random', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
+
+    await arrive();
+
+    await actor.click(await screen.findByRole('button', { name: 'Randomiser' }));
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('goes back to the library once setup is finished', async () => {
+    serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
+    render(<App />);
+
+    await screen.findByRole('heading', { name: 'Set up Flux' });
+
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+
+    expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument();
+  });
+
+  it('closes an item that was opened for a look', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
+
+    await arrive();
+
+    const rail = await screen.findByRole('region', { name: 'Recently added' });
+
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }));
+    await screen.findByRole('dialog', { name: 'Arrival' });
+
+    await actor.click(screen.getByRole('button', { name: /^Close$/ }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Arrival' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('remembers where somebody got to when the player is closed', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
+
+    await arrive();
+
+    const rail = await screen.findByRole('region', { name: 'Recently added' });
+
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }));
+    await actor.click(await screen.findByRole('button', { name: 'Play' }));
+    await screen.findByRole('slider', { name: 'Seek through Arrival' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/progress'),
+      expect.anything(),
+    );
+  });
 });

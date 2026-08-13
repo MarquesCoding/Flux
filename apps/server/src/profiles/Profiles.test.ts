@@ -9,6 +9,9 @@ import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemoryS
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
 import { createMemoryProfileService } from './createMemoryProfileService';
+import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
+import { makeAdministrator } from '@FluxServer/auth/signUpForTest';
+import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 const BASE = 'http://localhost:8420';
 
@@ -22,13 +25,24 @@ const ProfileListSchema = z.object({
   profiles: z.array(z.object({ id: z.string(), name: z.string(), updatedAt: z.string() })),
 });
 
-const build = () => {
-  const { auth, settings } = createMemoryAuth();
+const build = (
+  promoteProfile?: (request: {
+    profileId: string;
+    email: string;
+    password: string;
+  }) => Promise<
+    { kind: 'promoted'; profile: ViewerProfile } | { kind: 'taken' } | { kind: 'missing' }
+  >,
+) => {
+  const { auth, settings, store } = createMemoryAuth();
   const profiles = createMemoryProfileService();
+  const permissions = createMemoryPermissionService();
 
   const app = createApp({
     auth,
     settings,
+    permissions,
+    ...(promoteProfile === undefined ? {} : { promoteProfile }),
     countUsers: () => Promise.resolve(1),
     promoteToAdmin: () => Promise.resolve(),
     library: createMemoryLibraryService(),
@@ -40,7 +54,7 @@ const build = () => {
     profiles,
   });
 
-  return { app, profiles };
+  return { app, profiles, store, permissions };
 };
 
 /**
@@ -316,5 +330,284 @@ describe('profiles over HTTP', () => {
     );
 
     expect(response.status).toBe(404);
+  });
+});
+
+describe('giving a profile an account of its own', () => {
+  const PROFILE_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+  const asAdmin = async (context: ReturnType<typeof build>) => {
+    const cookie = await signedIn(context.app);
+    const user = context.store.user[0];
+
+    if (user !== undefined) {
+      user.role = 'admin';
+
+      await makeAdministrator(context.permissions, user.id);
+    }
+
+    return cookie;
+  };
+
+  const promote = (context: ReturnType<typeof build>, cookie: string, profileId = PROFILE_ID) =>
+    context.app.request(`${BASE}/api/admin/profiles/${profileId}/promote`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ email: 'dan@flux.local', password: 'a-long-enough-password' }),
+    });
+
+  it('hands back the profile once it has an account', async () => {
+    const profile: ViewerProfile = {
+      id: PROFILE_ID,
+      name: 'Dan',
+      colour: '#e8a33a',
+      avatar: { kind: 'initial' },
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    const context = build(() => Promise.resolve({ kind: 'promoted', profile }));
+    const cookie = await asAdmin(context);
+
+    const response = await promote(context, cookie);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ name: 'Dan' });
+  });
+
+  it('refuses an address somebody already signs in with', async () => {
+    const context = build(() => Promise.resolve({ kind: 'taken' }));
+    const cookie = await asAdmin(context);
+
+    expect((await promote(context, cookie)).status).toBe(409);
+  });
+
+  it('has nothing to promote when the profile has gone', async () => {
+    const context = build(() => Promise.resolve({ kind: 'missing' }));
+    const cookie = await asAdmin(context);
+
+    expect((await promote(context, cookie)).status).toBe(404);
+  });
+
+  it('has nothing to promote on a server that cannot make accounts', async () => {
+    const context = build();
+    const cookie = await asAdmin(context);
+
+    expect((await promote(context, cookie)).status).toBe(404);
+  });
+
+  it('is for somebody who administers accounts', async () => {
+    const context = build(() => Promise.resolve({ kind: 'taken' }));
+    const cookie = await signedIn(context.app);
+
+    expect((await promote(context, cookie)).status).toBe(403);
+  });
+});
+
+describe('a server built without profiles at all', () => {
+  /**
+   * The application with no profile service behind it.
+   *
+   * Every profile route asks for one before doing anything, and answers as
+   * though nobody is signed in when there is none — which is what a viewer
+   * would see on a deployment that left profiles out.
+   */
+  const withoutProfiles = () => {
+    const { auth, settings } = createMemoryAuth();
+
+    return createApp({
+      auth,
+      settings,
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService(),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      subtitles: createMemorySubtitleService({}),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+    });
+  };
+
+  const PROFILE_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+  const asks: [string, string, object?][] = [
+    ['GET', '/api/profiles'],
+    ['POST', '/api/profiles', { name: 'Dan', colour: '#e8a33a' }],
+    ['PATCH', `/api/profiles/${PROFILE_ID}`, { name: 'Dan', colour: '#e8a33a' }],
+    ['DELETE', `/api/profiles/${PROFILE_ID}`],
+  ];
+
+  for (const [method, path, body] of asks) {
+    it(`answers ${method} ${path} as though nobody is signed in`, async () => {
+      const app = withoutProfiles();
+      const cookie = await signedIn(app);
+
+      const response = await app.request(`${BASE}${path}`, {
+        method,
+        headers: {
+          cookie,
+          origin: BASE,
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+
+      expect(response.status).toBe(401);
+    });
+  }
+});
+
+describe('the pictures and the sign-in list', () => {
+  const PROFILE_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+  it('draws a face in a style anybody can ask for', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/avatars/thumbs?seed=dan`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/svg+xml');
+  });
+
+  it('draws the same face every time when no seed is named', async () => {
+    const context = build();
+
+    const first = await context.app.request(`${BASE}/api/profiles/avatars/thumbs`);
+    const second = await context.app.request(`${BASE}/api/profiles/avatars/thumbs`);
+
+    expect(await first.text()).toBe(await second.text());
+  });
+
+  it('has no face in a style it does not draw', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/avatars/oil-painting`);
+
+    expect(response.status).toBe(404);
+  });
+
+  it('has no picture for a profile that has never been given one', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/${PROFILE_ID}/avatar`);
+
+    expect(response.status).toBe(404);
+  });
+
+  it('says who could sign in, which is nobody on a fresh server', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/everyone`);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ profiles: [] });
+  });
+
+  it('will not sign anybody in without a password', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/${PROFILE_ID}/sign-in`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: BASE },
+      body: JSON.stringify({}),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('will not sign anybody in from a request carrying nothing at all', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/${PROFILE_ID}/sign-in`, {
+      method: 'POST',
+      headers: { origin: BASE },
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('has nobody to sign in for a profile that does not exist', async () => {
+    const context = build();
+
+    const response = await context.app.request(`${BASE}/api/profiles/${PROFILE_ID}/sign-in`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: BASE },
+      body: JSON.stringify({ password: 'a-long-enough-password' }),
+    });
+
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('giving a profile a picture of its own', () => {
+  const signedInWithAProfile = async () => {
+    const context = build();
+    const cookie = await signedIn(context.app);
+
+    const listed = await context.app.request(`${BASE}/api/profiles`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    const { profiles } = z
+      .object({ profiles: z.array(z.object({ id: z.string() })) })
+      .parse(await listed.json());
+
+    return { context, cookie, profileId: profiles[0]?.id ?? '' };
+  };
+
+  it('keeps a picture somebody uploaded for their own profile', async () => {
+    const { context, cookie, profileId } = await signedInWithAProfile();
+
+    const response = await context.app.request(`${BASE}/api/profiles/${profileId}/photo`, {
+      method: 'PUT',
+      headers: { cookie, origin: BASE, 'content-type': 'image/webp' },
+      body: new Uint8Array([1, 2, 3]),
+    });
+
+    expect(response.status).toBe(204);
+  });
+
+  it('serves that picture back', async () => {
+    const { context, cookie, profileId } = await signedInWithAProfile();
+
+    await context.app.request(`${BASE}/api/profiles/${profileId}/photo`, {
+      method: 'PUT',
+      headers: { cookie, origin: BASE, 'content-type': 'image/webp' },
+      body: new Uint8Array([1, 2, 3]),
+    });
+
+    const response = await context.app.request(`${BASE}/api/profiles/${profileId}/avatar?v=2`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toContain('immutable');
+  });
+
+  it('refuses a picture for somebody else’s profile', async () => {
+    const { context, cookie } = await signedInWithAProfile();
+
+    const response = await context.app.request(
+      `${BASE}/api/profiles/3f2504e0-4f89-41d3-9a0c-0305e82c3301/photo`,
+      {
+        method: 'PUT',
+        headers: { cookie, origin: BASE, 'content-type': 'image/webp' },
+        body: new Uint8Array([1, 2, 3]),
+      },
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('turns away nobody trying to upload a picture', async () => {
+    const context = build();
+
+    const response = await context.app.request(
+      `${BASE}/api/profiles/3f2504e0-4f89-41d3-9a0c-0305e82c3301/photo`,
+      { method: 'PUT', headers: { origin: BASE, 'content-type': 'image/webp' } },
+    );
+
+    expect(response.status).toBe(401);
   });
 });

@@ -4,6 +4,7 @@ import {
   describeLanguage,
   describeChannels,
   readLanguage,
+  selectAudioStream,
 } from './describeTrack';
 import type { AudioTrackFacts } from './describeTrack';
 
@@ -120,5 +121,31 @@ describe('describeAudioTrack', () => {
     const second = describeAudioTrack(track({ language: 'eng', title: 'Commentary' }), 2);
 
     expect(first).not.toBe(second);
+  });
+});
+
+describe('selectAudioStream', () => {
+  const english = { index: 1, language: 'eng', isDefault: false };
+  const german = { index: 2, language: 'ger', isDefault: true };
+  const unnamed = { index: 3 };
+
+  it('takes the stream in the language somebody asked for', () => {
+    expect(selectAudioStream([english, german], 'de')).toBe(german);
+  });
+
+  it('leaves a file alone when it has nothing in the preferred language', () => {
+    expect(selectAudioStream([english, german], 'fr')).toBe(german);
+  });
+
+  it("takes the file's own default when no language was asked for", () => {
+    expect(selectAudioStream([english, german])).toBe(german);
+  });
+
+  it('takes the first stream when the file marks none of them default', () => {
+    expect(selectAudioStream([unnamed, english])).toBe(unnamed);
+  });
+
+  it('has nothing to answer with for a file that has no audio', () => {
+    expect(selectAudioStream([], 'en')).toBeUndefined();
   });
 });

@@ -190,4 +190,34 @@ describe('createMemoryProfileService', () => {
 
     await expect(profiles.findSignInEmail('nobody')).resolves.toBeNull();
   });
+
+  it('has nothing to remove for a profile that is not there', async () => {
+    const profiles = createMemoryProfileService();
+
+    await profiles.ensureDefault('marques', 'Marques');
+    await profiles.create('marques', REQUEST);
+
+    await expect(profiles.remove('marques', '3f2504e0-4f89-41d3-9a0c-0305e82c3301')).resolves.toBe(
+      false,
+    );
+  });
+
+  it('has nowhere to put a photograph for a profile that is not there', async () => {
+    const profiles = createMemoryProfileService();
+
+    await expect(
+      profiles.savePhoto('marques', '3f2504e0-4f89-41d3-9a0c-0305e82c3301', {
+        body: new Uint8Array([1]),
+        contentType: 'image/webp',
+      }),
+    ).resolves.toBe(false);
+  });
+
+  it('has no owner to change for a profile that is not there', async () => {
+    const profiles = createMemoryProfileService();
+
+    await expect(profiles.moveTo('3f2504e0-4f89-41d3-9a0c-0305e82c3301', 'somebody')).resolves.toBe(
+      false,
+    );
+  });
 });

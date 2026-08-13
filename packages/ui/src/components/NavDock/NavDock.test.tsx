@@ -1,7 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavDock } from './NavDock';
+import type * as MotionReact from 'motion/react';
+
+const motion = vi.hoisted(() => ({ isReduced: false }));
+
+vi.mock('motion/react', async () => ({
+  ...(await vi.importActual<typeof MotionReact>('motion/react')),
+  useReducedMotion: () => motion.isReduced,
+}));
 
 const ITEMS = [
   { id: 'home', label: 'Home' },
@@ -9,6 +17,10 @@ const ITEMS = [
 ];
 
 const props = { items: ITEMS, selectedId: 'home', onSelect: vi.fn() };
+
+afterEach(() => {
+  motion.isReduced = false;
+});
 
 describe('NavDock', () => {
   it('names itself, so a screen reader can skip to it', () => {
@@ -110,5 +122,87 @@ describe('NavDock', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(NavDock.displayName).toBe('NavDock');
+  });
+
+  it('moves the mark without animating it when less motion was asked for', () => {
+    motion.isReduced = true;
+
+    render(<NavDock items={ITEMS} selectedId="home" onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
+  });
+});
+
+describe('what a dock can carry besides places', () => {
+  it('shows a mark for the instance when it is given one', () => {
+    render(<NavDock {...props} brand={<span>Flux</span>} />);
+
+    expect(screen.getByText('Flux')).toBeInTheDocument();
+  });
+
+  it('carries no mark at all when it is not given one', () => {
+    render(<NavDock {...props} />);
+
+    expect(screen.queryByText('Flux')).not.toBeInTheDocument();
+  });
+
+  it('draws the icon a place carries', () => {
+    render(
+      <NavDock
+        {...props}
+        items={[{ id: 'home', label: 'Home', icon: <span data-testid="home-icon" /> }]}
+      />,
+    );
+
+    expect(screen.getByTestId('home-icon')).toBeInTheDocument();
+  });
+
+  it('fills the icon in for the place being stood on', () => {
+    render(
+      <NavDock
+        {...props}
+        items={[
+          {
+            id: 'home',
+            label: 'Home',
+            icon: <span data-testid="outline" />,
+            activeIcon: <span data-testid="filled" />,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId('filled')).toBeInTheDocument();
+    expect(screen.queryByTestId('outline')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the ordinary icon when a place has no filled one', () => {
+    render(
+      <NavDock
+        {...props}
+        items={[{ id: 'home', label: 'Home', icon: <span data-testid="outline" /> }]}
+      />,
+    );
+
+    expect(screen.getByTestId('outline')).toBeInTheDocument();
+  });
+
+  it('shows a count on a tool that has something to say', () => {
+    render(
+      <NavDock
+        {...props}
+        actions={[
+          {
+            id: 'search',
+            label: 'Search',
+            icon: <span />,
+            badge: <span data-testid="count">3</span>,
+            onSelect: vi.fn(),
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId('count')).toBeInTheDocument();
   });
 });

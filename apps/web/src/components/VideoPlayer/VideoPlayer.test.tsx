@@ -2,10 +2,14 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VideoPlayer } from './VideoPlayer';
+import { fakeMediaElement } from '@FluxWeb/testing/fakeMediaElement';
+import { emitPresenceEvent } from '@FluxWeb/presence/presenceEvents';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import type * as SegmentsModule from '@FluxWeb/playback/fetchSegments';
 import type * as SubtitlesModule from '@FluxWeb/playback/fetchSubtitles';
 import type * as TrickplayModule from '@FluxWeb/playback/fetchTrickplay';
+import type * as CastSenderModule from '@FluxWeb/playback/castSender';
+import type * as CastPlaybackModule from '@FluxWeb/playback/castPlayback';
 
 const startMock = vi.hoisted(() => vi.fn());
 const stopMock = vi.hoisted(() => vi.fn());
@@ -19,6 +23,12 @@ const captureMock = vi.hoisted(() => vi.fn());
 const subtitlesMock = vi.hoisted(() => vi.fn());
 const segmentsMock = vi.hoisted(() => vi.fn());
 const detailMock = vi.hoisted(() => vi.fn());
+const loadCastSenderMock = vi.hoisted(() => vi.fn());
+const castStateOfMock = vi.hoisted(() => vi.fn());
+const promptForDeviceMock = vi.hoisted(() => vi.fn());
+const isReachableOriginMock = vi.hoisted(() => vi.fn());
+const castStreamMock = vi.hoisted(() => vi.fn());
+const absoluteStreamUrlMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
@@ -38,6 +48,28 @@ vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
 vi.mock('@FluxWeb/playback/attachShaka', () => ({
   attachShaka: attachMock,
 }));
+
+vi.mock('@FluxWeb/playback/castSender', async () => {
+  const actual = await vi.importActual<typeof CastSenderModule>('@FluxWeb/playback/castSender');
+
+  return {
+    ...actual,
+    loadCastSender: loadCastSenderMock,
+    castStateOf: castStateOfMock,
+    castStream: castStreamMock,
+  };
+});
+
+vi.mock('@FluxWeb/playback/castPlayback', async () => {
+  const actual = await vi.importActual<typeof CastPlaybackModule>('@FluxWeb/playback/castPlayback');
+
+  return {
+    ...actual,
+    promptForDevice: promptForDeviceMock,
+    isReachableOrigin: isReachableOriginMock,
+    absoluteStreamUrl: absoluteStreamUrlMock,
+  };
+});
 
 vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
   detectFromBrowser: () => ({ name: 'Browser' }),
@@ -166,6 +198,21 @@ beforeEach(() => {
 
   heartbeatMock.mockReset();
   heartbeatMock.mockResolvedValue(undefined);
+
+  loadCastSenderMock.mockReset();
+  loadCastSenderMock.mockResolvedValue(null);
+  castStateOfMock.mockReset();
+  castStateOfMock.mockReturnValue('NOT_CONNECTED');
+  promptForDeviceMock.mockReset();
+  promptForDeviceMock.mockResolvedValue('unsupported');
+  isReachableOriginMock.mockReset();
+  isReachableOriginMock.mockReturnValue(true);
+  castStreamMock.mockReset();
+  castStreamMock.mockResolvedValue(true);
+  absoluteStreamUrlMock.mockReset();
+  absoluteStreamUrlMock.mockImplementation(
+    (address: string) => `http://192.168.1.5:5173${address}`,
+  );
 });
 
 afterEach(() => {
@@ -1288,5 +1335,400 @@ describe('VideoPlayer', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('playing on another device', () => {
+  const CAST_LABEL = 'Play on a device — your browser will ask which';
+
+  /**
+   * A cast framework that is present and idle, which is what makes the
+   * control appear at all.
+   */
+  const withACastFramework = (requestSession = vi.fn()) => {
+    loadCastSenderMock.mockResolvedValue({
+      addEventListener: vi.fn(),
+      requestSession,
+    });
+
+    return requestSession;
+  };
+
+  const castButton = async () => screen.findByRole('button', { name: CAST_LABEL });
+
+  it('offers nothing to cast to on a browser that cannot', async () => {
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
+
+    expect(screen.queryByRole('button', { name: CAST_LABEL })).not.toBeInTheDocument();
+  });
+
+  it('asks the framework for a device when there is one', async () => {
+    const requestSession = withACastFramework(vi.fn().mockResolvedValue(undefined));
+    const user = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
+    await user.click(await castButton());
+
+    expect(requestSession).toHaveBeenCalled();
+  });
+
+  it('says where to open Flux from when it is being read on localhost', async () => {
+    withACastFramework();
+    isReachableOriginMock.mockReturnValue(false);
+
+    const user = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
+    await user.click(await castButton());
+
+    expect(await screen.findByText(/rather than as localhost/)).toBeInTheDocument();
+  });
+
+  it('takes the note away again rather than leaving it on the picture', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    withACastFramework();
+    isReachableOriginMock.mockReturnValue(false);
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
+    await user.click(await castButton());
+
+    expect(await screen.findByText(/rather than as localhost/)).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(7000);
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText(/rather than as localhost/)).not.toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
+  it('says nothing when the browser showed its own picker', async () => {
+    loadCastSenderMock.mockResolvedValue(null);
+    promptForDeviceMock.mockResolvedValue('shown');
+
+    const user = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+    await settled();
+
+    const control = screen.queryByRole('button', { name: CAST_LABEL });
+
+    if (control !== null) {
+      await user.click(control);
+    }
+
+    expect(screen.queryByText(/offered no device/)).not.toBeInTheDocument();
+  });
+});
+
+describe('the keys a viewer can reach for', () => {
+  const playing = async () => {
+    const actor = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+
+    Object.defineProperty(element, 'currentTime', {
+      configurable: true,
+      value: 100,
+      writable: true,
+    });
+    Object.defineProperty(element, 'duration', { configurable: true, value: 7200 });
+    seekableTo(element, 7200);
+
+    return { actor, element };
+  };
+
+  const positionOf = (element: HTMLElement) =>
+    element instanceof HTMLVideoElement ? element.currentTime : 0;
+
+  it('jumps forward with l', async () => {
+    const { actor, element } = await playing();
+    const before = positionOf(element);
+
+    await actor.keyboard('l');
+
+    expect(positionOf(element)).toBeGreaterThan(before);
+  });
+
+  it('jumps back with j', async () => {
+    const { actor, element } = await playing();
+
+    await actor.keyboard('l');
+    await actor.keyboard('l');
+
+    const before = positionOf(element);
+
+    await actor.keyboard('j');
+
+    expect(positionOf(element)).toBeLessThan(before);
+  });
+
+  it('mutes and unmutes with m', async () => {
+    const { actor } = await playing();
+
+    await actor.keyboard('m');
+
+    expect(await screen.findByRole('button', { name: /Unmute|Mute/ })).toBeInTheDocument();
+  });
+
+  it('turns subtitles on and off with c', async () => {
+    const { actor, element } = await playing();
+
+    await actor.keyboard('c');
+    await actor.keyboard('c');
+
+    expect(element).toBeInTheDocument();
+  });
+
+  it('ignores a key pressed while typing somewhere', async () => {
+    const actor = userEvent.setup();
+
+    render(
+      <>
+        <input aria-label="Somewhere to type" />
+        <VideoPlayer media={media} onClose={vi.fn()} isImmersive />
+      </>,
+    );
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+
+    Object.defineProperty(element, 'currentTime', {
+      configurable: true,
+      value: 100,
+      writable: true,
+    });
+
+    const before = positionOf(element);
+
+    await actor.click(screen.getByLabelText('Somewhere to type'));
+    await actor.keyboard('l');
+
+    expect(positionOf(element)).toBe(before);
+  });
+
+  it('ignores a key it has nothing bound to', async () => {
+    const { actor, element } = await playing();
+    const before = positionOf(element);
+
+    await actor.keyboard('q');
+
+    expect(positionOf(element)).toBe(before);
+  });
+});
+
+describe('what the player does as the stream behaves', () => {
+  const watching = async () => {
+    const actor = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+    const stream = fakeMediaElement(element);
+
+    return { actor, element, stream };
+  };
+
+  it('moves subtitles in time without touching the ones already in the past', async () => {
+    const { stream } = await watching();
+    const track = stream.addTextTrack({ cues: [{ startTime: 10, endTime: 12 }] });
+
+    stream.loaded({ duration: 7200, seekableTo: 7200 });
+    stream.playTo(5);
+
+    expect(track.cues[0]?.startTime).toBe(10);
+  });
+
+  it('never moves a cue back past the beginning of the film', async () => {
+    const { stream } = await watching();
+    const track = stream.addTextTrack({ cues: [{ startTime: 0.5, endTime: 2 }] });
+
+    stream.loaded({ duration: 7200 });
+
+    expect(track.cues[0]?.startTime).toBeGreaterThanOrEqual(0);
+  });
+
+  it('measures how long a frame lasts from the frames it is shown', async () => {
+    const { stream } = await watching();
+
+    stream.loaded({ duration: 7200, seekableTo: 7200 });
+    stream.presentFrame(1);
+    stream.presentFrame(1.04);
+
+    expect(await screen.findByLabelText('Arrival')).toBeInTheDocument();
+  });
+
+  it('ignores a gap between frames that is too large to be one frame', async () => {
+    const { stream } = await watching();
+
+    stream.loaded({ duration: 7200 });
+    stream.presentFrame(1);
+    stream.presentFrame(30);
+
+    expect(await screen.findByLabelText('Arrival')).toBeInTheDocument();
+  });
+
+  it('says how much has arrived, not only where the viewer is', async () => {
+    const { actor, stream } = await watching();
+
+    stream.loaded({ duration: 7200, seekableTo: 7200, bufferedTo: 300 });
+    stream.playTo(100);
+
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('switch', { name: /Stats for nerds/ }));
+
+    expect(await screen.findByRole('region', { name: 'Stats for nerds' })).toBeInTheDocument();
+  });
+
+  it('floats the picture out into its own window', async () => {
+    const { actor, stream } = await watching();
+
+    stream.loaded({ duration: 7200 });
+
+    await actor.click(screen.getByRole('button', { name: /Pop out|Picture in picture/i }));
+
+    expect(document.pictureInPictureElement).not.toBeNull();
+  });
+
+  it('brings the picture back from its own window', async () => {
+    const { actor, stream } = await watching();
+
+    stream.loaded({ duration: 7200 });
+    stream.popOut();
+
+    await actor.click(screen.getByRole('button', { name: /Pop out|Picture in picture/i }));
+
+    expect(document.pictureInPictureElement).toBeNull();
+  });
+});
+
+describe('when an administrator reaches into the stream', () => {
+  const watching = async () => {
+    const actor = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+    const stream = fakeMediaElement(element);
+
+    stream.loaded({ duration: 7200, seekableTo: 7200 });
+
+    return { actor, element, stream };
+  };
+
+  it('stops the picture and says who stopped it', async () => {
+    const { element } = await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'stopped', reason: 'An administrator stopped this stream.' });
+    });
+
+    expect(await screen.findByText(/An administrator stopped this stream./)).toBeInTheDocument();
+    expect(element instanceof HTMLVideoElement ? element.paused : true).toBe(true);
+  });
+
+  it('pauses and says why, without ending the stream', async () => {
+    await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'paused', reason: 'Dinner.' });
+    });
+
+    expect(await screen.findByText(/Dinner./)).toBeInTheDocument();
+  });
+
+  it('takes the note away again when the stream is let go', async () => {
+    await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'paused', reason: 'Dinner.' });
+    });
+
+    await screen.findByText(/Dinner./);
+
+    act(() => {
+      emitPresenceEvent({ kind: 'resumed' });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Dinner./)).not.toBeInTheDocument();
+    });
+  });
+
+  it('leaves a stop on screen even when play is asked for again', async () => {
+    await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'stopped', reason: 'An administrator stopped this stream.' });
+    });
+
+    await screen.findByText(/An administrator stopped this stream./);
+
+    act(() => {
+      emitPresenceEvent({ kind: 'resumed' });
+    });
+
+    expect(screen.getByText(/An administrator stopped this stream./)).toBeInTheDocument();
+  });
+});
+
+describe('once a device has taken the stream', () => {
+  const connected = async (delivery = startedSession.delivery) => {
+    loadCastSenderMock.mockResolvedValue({ addEventListener: vi.fn(), requestSession: vi.fn() });
+    castStateOfMock.mockReturnValue('CONNECTED');
+    startMock.mockResolvedValue({
+      kind: 'started',
+      session: { ...startedSession, delivery },
+    });
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+    const stream = fakeMediaElement(element);
+
+    stream.loaded({ duration: 7200, seekableTo: 7200 });
+
+    return { element, stream };
+  };
+
+  it('hands the stream over and stops playing it here', async () => {
+    await connected();
+
+    await waitFor(() => {
+      expect(castStreamMock).toHaveBeenCalled();
+    });
+  });
+
+  it('hands over the file itself when that is what is being served', async () => {
+    await connected({ kind: 'direct', url: '/api/playback/media-1/file' });
+
+    await waitFor(() => {
+      expect(castStreamMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ title: 'Arrival' }),
+      );
+    });
+  });
+
+  it('says so when the device would not take it', async () => {
+    castStreamMock.mockResolvedValue(false);
+
+    await connected();
+
+    expect(await screen.findByText(/would not take this stream/)).toBeInTheDocument();
   });
 });

@@ -2247,6 +2247,15 @@ const createApp = ({
 
     let close = () => {};
 
+    /**
+     * Whether the connection has already been let go.
+     *
+     * A browser that goes away both aborts the request and cancels the body,
+     * and the second of those used to close an already-closed stream, which
+     * throws. Letting go twice is ordinary rather than exceptional.
+     */
+    let isClosed = false;
+
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         const encoder = new TextEncoder();
@@ -2259,6 +2268,11 @@ const createApp = ({
         });
 
         close = () => {
+          if (isClosed) {
+            return;
+          }
+
+          isClosed = true;
           clearInterval(ping);
           presence.disconnect(clientId);
           controller.close();

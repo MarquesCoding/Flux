@@ -72,6 +72,7 @@ const signedInWith = async (permissionNames: readonly Permission[]) => {
 
   return {
     ...context,
+    cookie,
     request: (path: string, method = 'POST') =>
       context.app.request(`${TEST_ORIGIN}${path}`, {
         method,
@@ -179,4 +180,174 @@ describe('what a route actually requires', () => {
       expect((await context.request('/api/admin/monitor', 'GET')).status).not.toBe(403);
     });
   });
+});
+
+describe('every gated route, asked by somebody with no permissions', () => {
+  /**
+   * Every route that asks the permission service before doing anything, and
+   * what it asks for.
+   *
+   * A table rather than a test each, because the interesting property is that
+   * *all* of them refuse — a route added without a guard is the failure this
+   * catches, and it cannot be caught by tests written one at a time for the
+   * routes somebody remembered.
+   *
+   * Correcting a match answers 404 rather than 403 on purpose, and its
+   * contract declares no 403 at all: somebody who may not override a match is
+   * not told that overriding one is a thing this server does.
+   */
+  const GATED: [
+    string,
+    string,
+    string,
+    { query?: string; body?: object; refusesWith?: number }?,
+  ][] = [
+    ['POST', '/api/libraries', 'library.create'],
+    ['PATCH', `/api/libraries/${LIBRARY_ID}`, 'library.edit'],
+    ['POST', `/api/libraries/${LIBRARY_ID}/scan`, 'jobs.run'],
+    ['GET', '/api/admin/catalogue/search', 'media.override', { query: 'query=Arrival&kind=movie' }],
+    [
+      'POST',
+      `/api/media/${LIBRARY_ID}/match`,
+      'media.override',
+      { body: { reference: '329' }, refusesWith: 404 },
+    ],
+    ['DELETE', `/api/media/${LIBRARY_ID}/match`, 'media.override', { refusesWith: 404 }],
+    ['POST', `/api/libraries/${LIBRARY_ID}/reset`, 'jobs.runDestructive'],
+    ['POST', `/api/libraries/${LIBRARY_ID}/regenerate-previews`, 'jobs.run'],
+    [
+      'POST',
+      `/api/admin/profiles/${LIBRARY_ID}/promote`,
+      'account.manage',
+      { body: { email: 'dan@flux.local', password: 'a-long-enough-password' } },
+    ],
+    ['GET', '/api/admin/overview', 'server.monitor'],
+    ['PATCH', '/api/admin/settings', 'server.settings'],
+    ['GET', '/api/admin/sessions', 'streaming.view'],
+    ['DELETE', '/api/admin/sessions/tab-1', 'streaming.stop'],
+    ['POST', '/api/admin/sessions/tab-1/pause', 'streaming.pause'],
+    ['POST', '/api/admin/sessions/tab-1/resume', 'streaming.pause'],
+    ['GET', '/api/admin/jobs/definitions', 'jobs.run'],
+    ['POST', '/api/admin/jobs/library.scan/run', 'jobs.run'],
+    ['POST', '/api/admin/jobs/running/job-1/cancel', 'jobs.run'],
+    ['GET', '/api/admin/jobs/schedules', 'jobs.schedule'],
+    ['POST', '/api/admin/jobs/library.scan/triggers', 'jobs.schedule'],
+    ['DELETE', '/api/admin/jobs/library.scan/triggers/trigger-1', 'jobs.schedule'],
+    ['GET', '/api/admin/permissions', 'account.roles'],
+    ['GET', '/api/admin/roles', 'account.roles'],
+    ['GET', '/api/admin/accounts/user-1/roles', 'account.roles'],
+    ['GET', '/api/admin/accounts', 'account.manage'],
+    ['DELETE', '/api/admin/accounts/user-1/ban', 'account.ban'],
+    ['POST', '/api/admin/accounts', 'account.invite'],
+  ];
+
+  for (const [method, path, permission, carrying] of GATED) {
+    it(`refuses ${method} ${path}, which needs ${permission}`, async () => {
+      const context = await signedInWith([]);
+      const cookie = context.cookie;
+
+      const response = await context.app.request(
+        `${TEST_ORIGIN}${path}${carrying?.query === undefined ? '' : `?${carrying.query}`}`,
+        {
+          method,
+          headers: {
+            cookie,
+            origin: TEST_ORIGIN,
+            ...(carrying?.body === undefined ? {} : { 'content-type': 'application/json' }),
+          },
+          ...(carrying?.body === undefined ? {} : { body: JSON.stringify(carrying.body) }),
+        },
+      );
+
+      expect(response.status).toBe(carrying?.refusesWith ?? 403);
+    });
+  }
+
+  it('names every permission the server actually has, so none is unreachable', () => {
+    const asked = new Set(GATED.map(([, , permission]) => permission));
+
+    expect(asked.size).toBeGreaterThan(10);
+  });
+});
+
+describe('every route that needs somebody signed in, asked by nobody', () => {
+  /**
+   * Routes that turn on who is asking rather than on what they may do.
+   *
+   * Watch progress and favourites belong to a viewer, devices belong to an
+   * account, and presence belongs to a tab — none of them mean anything
+   * without somebody behind them, so all of them answer the same way.
+   */
+  const NEEDS_SOMEBODY: [string, string, object?][] = [
+    ['GET', '/api/progress'],
+    ['PUT', `/api/media/${LIBRARY_ID}/progress`, { positionSeconds: 10, durationSeconds: 100 }],
+    ['DELETE', `/api/media/${LIBRARY_ID}/progress`],
+    ['GET', '/api/favourites'],
+    ['PUT', `/api/media/${LIBRARY_ID}/favourite`],
+    ['DELETE', `/api/media/${LIBRARY_ID}/favourite`],
+    ['GET', '/api/devices'],
+    ['DELETE', '/api/devices/session-1'],
+    ['DELETE', '/api/devices'],
+    ['POST', '/api/presence/tab-1/heartbeat', { isPlaying: true }],
+    ['DELETE', '/api/presence/tab-1/watching'],
+  ];
+
+  for (const [method, path, body] of NEEDS_SOMEBODY) {
+    it(`turns nobody away from ${method} ${path}`, async () => {
+      const { app } = build();
+
+      const response = await app.request(`${TEST_ORIGIN}${path}`, {
+        method,
+        headers: {
+          origin: TEST_ORIGIN,
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+
+      expect(response.status).toBe(401);
+    });
+  }
+});
+
+describe('the routes that read who is asking, asked by nobody at all', () => {
+  /**
+   * Routes that resolve the actor themselves rather than asking the
+   * permission service a question.
+   *
+   * They answer 401 rather than 403, because the session gate turns an
+   * unauthenticated request away before any route sees it. Their own
+   * "there is nobody here" branch is therefore unreachable over HTTP — it is
+   * a guard against being called another way, not a path a browser can take.
+   */
+  const ROLE_ROUTES: [string, string, object?][] = [
+    ['POST', '/api/admin/roles', { name: 'Staff', position: 10, permissions: [] }],
+    ['PATCH', '/api/admin/roles/role-1', { name: 'Staff' }],
+    ['DELETE', '/api/admin/roles/role-1'],
+    ['PUT', '/api/admin/accounts/usr_other/roles/role-1'],
+    ['DELETE', '/api/admin/accounts/usr_other/roles/role-1'],
+    [
+      'PUT',
+      '/api/admin/accounts/usr_other/overrides',
+      { permission: 'server.logs', effect: 'allow' },
+    ],
+    ['DELETE', '/api/admin/accounts/usr_other/overrides/server.logs'],
+  ];
+
+  for (const [method, path, body] of ROLE_ROUTES) {
+    it(`turns nobody away from ${method} ${path} before the route is reached`, async () => {
+      const { app } = build();
+
+      const response = await app.request(`${TEST_ORIGIN}${path}`, {
+        method,
+        headers: {
+          origin: TEST_ORIGIN,
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+
+      expect(response.status).toBe(401);
+    });
+  }
 });

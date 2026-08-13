@@ -1,8 +1,20 @@
 import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HoverHighlight } from './HoverHighlight';
+import type * as MotionReact from 'motion/react';
+
+const motion = vi.hoisted(() => ({ isReduced: false }));
+
+vi.mock('motion/react', async () => ({
+  ...(await vi.importActual<typeof MotionReact>('motion/react')),
+  useReducedMotion: () => motion.isReduced,
+}));
 
 const SOMEWHERE = { left: 8, top: 4, width: 120, height: 36 };
+
+afterEach(() => {
+  motion.isReduced = false;
+});
 
 describe('HoverHighlight', () => {
   it('draws nothing while no pointer rests on anything', () => {
@@ -37,5 +49,13 @@ describe('HoverHighlight', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(HoverHighlight.displayName).toBe('HoverHighlight');
+  });
+
+  it('appears where it is wanted at once when less motion was asked for', () => {
+    motion.isReduced = true;
+
+    const { container } = render(<HoverHighlight rect={SOMEWHERE} />);
+
+    expect(container.querySelector('span')).toBeInTheDocument();
   });
 });

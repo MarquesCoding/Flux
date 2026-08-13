@@ -303,4 +303,14 @@ describe('negotiatePlayback', () => {
       expect(plan.audio.reason.code).toBe('AudioCodecNotSupported');
     });
   });
+
+  it('leaves audio alone on a file that has none', () => {
+    const plan = negotiatePlayback({ ...media, audioStreams: [] }, profile);
+
+    expect(plan.audio).toMatchObject({
+      kind: 'passthrough',
+      streamIndex: null,
+      reason: { code: 'ClientSupportsSource' },
+    });
+  });
 });

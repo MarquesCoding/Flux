@@ -409,3 +409,234 @@ describe('createCatalogueMetadataProvider', () => {
     expect(found?.cast).toHaveLength(12);
   });
 });
+
+describe('searching the catalogue by name', () => {
+  it('offers what the catalogue found, in the shape a picker draws', async () => {
+    const { instance } = provider({
+      '/search/movie': {
+        results: [
+          {
+            id: 329,
+            title: 'Arrival',
+            release_date: '2016-11-10',
+            overview: 'A linguist is recruited.',
+            poster_path: '/poster.jpg',
+          },
+        ],
+      },
+    });
+
+    await expect(instance.search?.('Arrival', 'movie')).resolves.toEqual([
+      {
+        externalId: '329',
+        kind: 'movie',
+        title: 'Arrival',
+        year: 2016,
+        overview: 'A linguist is recruited.',
+        posterUrl: 'https://image.tmdb.org/t/p/w342/poster.jpg',
+      },
+    ]);
+  });
+
+  it('reads a series by the name a series carries, which is not the one a film carries', async () => {
+    const { instance } = provider({
+      '/search/tv': { results: [{ id: 5, name: 'Ted Lasso', first_air_date: '2020-08-14' }] },
+    });
+
+    await expect(instance.search?.('Ted Lasso', 'tv')).resolves.toMatchObject([
+      { title: 'Ted Lasso', year: 2020 },
+    ]);
+  });
+
+  it('falls back to what was searched for when the catalogue names nothing', async () => {
+    const { instance } = provider({ '/search/movie': { results: [{ id: 1 }] } });
+
+    await expect(instance.search?.('Arrival', 'movie')).resolves.toMatchObject([
+      { title: 'Arrival', year: null, overview: null, posterUrl: null },
+    ]);
+  });
+
+  it('treats an empty overview as none rather than as an empty description', async () => {
+    const { instance } = provider({
+      '/search/movie': { results: [{ id: 1, title: 'Arrival', overview: '' }] },
+    });
+
+    await expect(instance.search?.('Arrival', 'movie')).resolves.toMatchObject([
+      { overview: null },
+    ]);
+  });
+
+  it('offers nothing without a key, rather than asking without one', async () => {
+    const { instance, calls } = provider({ '/search/movie': { results: [] } }, { key: null });
+
+    await expect(instance.search?.('Arrival', 'movie')).resolves.toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  it('offers nothing when the key is set to nothing at all', async () => {
+    const { instance } = provider({ '/search/movie': { results: [] } }, { key: '' });
+
+    await expect(instance.search?.('Arrival', 'movie')).resolves.toEqual([]);
+  });
+
+  it('offers nothing rather than guessing when the catalogue answers with nonsense', async () => {
+    const { instance } = provider({ '/search/movie': { unexpected: true } });
+
+    await expect(instance.search?.('Arrival', 'movie')).resolves.toEqual([]);
+  });
+});
+
+describe('reading the shape of a series', () => {
+  const SERIES = {
+    id: 5,
+    name: 'Ted Lasso',
+    seasons: [{ season_number: 1, episode_count: 2 }],
+  };
+
+  it('reads every season and the episodes in it', async () => {
+    const { instance } = provider({
+      '/tv/5/season/1': {
+        episodes: [
+          { episode_number: 1, name: 'Pilot', still_path: '/still.jpg', overview: 'It begins.' },
+          { episode_number: 2, name: 'Biscuits' },
+        ],
+      },
+      '/tv/5': SERIES,
+    });
+
+    await expect(instance.describeSeries?.('5')).resolves.toEqual({
+      seasons: [
+        {
+          seasonNumber: 1,
+          episodeCount: 2,
+          episodes: [
+            {
+              episodeNumber: 1,
+              title: 'Pilot',
+              stillUrl: 'https://image.tmdb.org/t/p/w780/still.jpg',
+              overview: 'It begins.',
+            },
+            { episodeNumber: 2, title: 'Biscuits', stillUrl: null, overview: null },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('names an episode by its number when the catalogue gives it no name', async () => {
+    const { instance } = provider({
+      '/tv/5/season/1': { episodes: [{ episode_number: 3, name: '' }] },
+      '/tv/5': SERIES,
+    });
+
+    const shape = await instance.describeSeries?.('5');
+
+    expect(shape?.seasons[0]?.episodes[0]).toMatchObject({ title: 'Episode 3' });
+  });
+
+  it('leaves a season empty rather than failing when its episodes cannot be read', async () => {
+    const { instance } = provider({ '/tv/5': SERIES });
+
+    const shape = await instance.describeSeries?.('5');
+
+    expect(shape?.seasons[0]?.episodes).toEqual([]);
+  });
+
+  it('has no shape to offer for a series the catalogue does not know', async () => {
+    const { instance } = provider({});
+
+    await expect(instance.describeSeries?.('5')).resolves.toBeNull();
+  });
+
+  it('has no shape to offer without a key', async () => {
+    const { instance } = provider({ '/tv/5': SERIES }, { key: null });
+
+    await expect(instance.describeSeries?.('5')).resolves.toBeNull();
+  });
+});
+
+describe('the two ways a catalogue key can be presented', () => {
+  const TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmbHV4In0.signature';
+
+  it('sends a v4 token as a bearer header rather than in the address', async () => {
+    const headers: (Record<string, string> | undefined)[] = [];
+
+    const instance = createCatalogueMetadataProvider({
+      readApiKey: () => Promise.resolve(TOKEN),
+      fetchImpl: (_url, sent) => {
+        headers.push(sent);
+
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ results: [] }),
+        });
+      },
+    });
+
+    await instance.search?.('Arrival', 'movie');
+
+    expect(headers[0]).toMatchObject({ authorization: `Bearer ${TOKEN}` });
+  });
+
+  it('keeps a v4 token out of the address, where it would be logged', async () => {
+    const asked: string[] = [];
+
+    const instance = createCatalogueMetadataProvider({
+      readApiKey: () => Promise.resolve(TOKEN),
+      fetchImpl: (url) => {
+        asked.push(url);
+
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ results: [] }),
+        });
+      },
+    });
+
+    await instance.search?.('Arrival', 'movie');
+
+    expect(asked.join(' ')).not.toContain(TOKEN);
+  });
+
+  it('sends a v3 key as a query parameter, which is how that one is presented', async () => {
+    const { instance, calls } = provider({ '/search/movie': { results: [] } });
+
+    await instance.search?.('Arrival', 'movie');
+
+    expect(calls[0]).toContain('api_key=a-key');
+  });
+});
+
+describe('matching a series, which the catalogue names differently from a film', () => {
+  it('takes the name and the first air date a series carries', async () => {
+    const { instance } = provider({
+      '/search/tv': {
+        results: [{ id: 5, name: 'A Sign of Affection', first_air_date: '2024-01-06' }],
+      },
+    });
+
+    const found = await instance.describe(
+      facts('/shows/a-sign-of-affection-s01e01.mkv', {
+        seriesTitle: 'A Sign of Affection',
+        seasonNumber: 1,
+        episodeNumber: 1,
+      }),
+    );
+
+    expect(found).toMatchObject({ year: 2024 });
+  });
+
+  it('falls back to the first result when none of them match by name', async () => {
+    const { instance } = provider({
+      '/search/movie': {
+        results: [{ id: 1, title: 'Something Else', release_date: '1999-01-01' }],
+      },
+    });
+
+    const found = await instance.describe(facts('/films/Arrival (2016).mkv'));
+
+    expect(found).toMatchObject({ externalId: '1' });
+  });
+});
