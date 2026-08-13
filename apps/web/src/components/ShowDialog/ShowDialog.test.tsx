@@ -1,9 +1,17 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShowDialog } from './ShowDialog';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
+import type * as MotionReact from 'motion/react';
+
+const motion = vi.hoisted(() => ({ isReduced: false }));
+
+vi.mock('motion/react', async () => ({
+  ...(await vi.importActual<typeof MotionReact>('motion/react')),
+  useReducedMotion: () => motion.isReduced,
+}));
 
 const fetchShowMock = vi.hoisted(() => vi.fn());
 
@@ -59,6 +67,10 @@ const detail = (seasons: { seasonNumber: number; episodes: number[] }[]): ShowDe
 
 beforeEach(() => {
   fetchShowMock.mockReset();
+});
+
+afterEach(() => {
+  motion.isReduced = false;
 });
 
 describe('ShowDialog', () => {
@@ -329,5 +341,14 @@ describe('what the header says about a series', () => {
     const { container } = render(<ShowDialog show={null} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('draws a series without motion for somebody who asked for less', async () => {
+    motion.isReduced = true;
+    fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
+
+    render(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(await screen.findByText('3 episodes')).toBeInTheDocument();
   });
 });
