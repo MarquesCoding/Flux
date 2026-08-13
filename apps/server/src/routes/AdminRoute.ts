@@ -41,6 +41,14 @@ const AdminOverviewSchema = z
       itemCount: z.number().int().nonnegative(),
       libraryCount: z.number().int().nonnegative(),
     }),
+    artwork: z
+      .object({
+        count: z.number().int().nonnegative(),
+        bytes: z.number().int().nonnegative(),
+        atMs: z.number().int().nonnegative(),
+      })
+      .nullable()
+      .default(null),
   })
   .openapi('AdminOverview');
 

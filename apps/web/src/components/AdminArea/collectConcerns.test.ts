@@ -16,6 +16,7 @@ const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview 
     rejectedEncoders: [],
   },
   library: { itemCount: 10, libraryCount: 1 },
+  artwork: null,
   ...overrides,
 });
 
@@ -33,10 +34,13 @@ const healthyMonitor = (
     serviceMemoryBytes: 0,
     children: [],
     loadAverage: 0,
+    disks: [],
+    graphics: null,
   },
   queue: { concurrency: 1, queued: 0, running: 0, jobs },
   sessions: 0,
   logs: [],
+  cache: null,
 });
 
 const library = (overrides: Partial<Library> = {}): Library => ({
@@ -342,6 +346,83 @@ describe('collectConcerns', () => {
     });
   });
 
+  describe('the graphics encoder', () => {
+    it('reports an encoder that has stayed at full stretch', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        encoderHistory: Array.from({ length: 15 }, () => 96),
+      });
+
+      expect(concerns.map((concern) => concern.id)).toContain('encoder');
+    });
+
+    it('says nothing about one busy moment', () => {
+      const concerns = collectConcerns({ ...healthy, encoderHistory: [100, 100, 100] });
+
+      expect(concerns).toEqual([]);
+    });
+
+    it('stays quiet when a reading in the run dipped', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        encoderHistory: [...Array.from({ length: 14 }, () => 96), 20],
+      });
+
+      expect(concerns).toEqual([]);
+    });
+
+    it('says nothing at all on a machine whose encoder cannot be read', () => {
+      const concerns = collectConcerns({ ...healthy, encoderHistory: [] });
+
+      expect(concerns).toEqual([]);
+    });
+
+    it('says what happens next, which is the part worth acting on', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        encoderHistory: Array.from({ length: 15 }, () => 96),
+      });
+
+      expect(concerns.find((concern) => concern.id === 'encoder')?.detail).toContain(
+        'fall back to the processor',
+      );
+    });
+  });
+
+  describe('the library disk', () => {
+    const onDisk = (totalBytes: number, availableBytes: number): Monitor => {
+      const monitor = healthyMonitor();
+      monitor.resources.disks = [{ mountPoint: '/media', totalBytes, availableBytes }];
+
+      return monitor;
+    };
+
+    it('says nothing about a disk with room on it', () => {
+      expect(collectConcerns({ ...healthy, monitor: onDisk(1000, 500) })).toEqual([]);
+    });
+
+    it('reports one that is nearly full', () => {
+      const concerns = collectConcerns({ ...healthy, monitor: onDisk(1000, 10) });
+
+      expect(concerns.map((concern) => concern.id)).toContain('disk');
+    });
+
+    it('says how much is left and where, since that is what somebody acts on', () => {
+      const concerns = collectConcerns({ ...healthy, monitor: onDisk(1000, 10) });
+
+      expect(concerns.find((concern) => concern.id === 'disk')?.detail).toContain(
+        '10 B left on /media',
+      );
+    });
+
+    it('stays quiet about a full disk no library is on', () => {
+      const monitor = healthyMonitor();
+      monitor.resources.disks = [{ mountPoint: '/backup', totalBytes: 1000, availableBytes: 1 }];
+
+      expect(collectConcerns({ ...healthy, monitor })).toEqual([]);
+    });
+  });
+
   describe('the processor', () => {
     it('says nothing about one busy moment', () => {
       const concerns = collectConcerns({ ...healthy, history: [100, 100, 100] });
@@ -365,6 +446,48 @@ describe('collectConcerns', () => {
       });
 
       expect(concerns).toEqual([]);
+    });
+
+    it('says so when the load is Flux doing its own work', () => {
+      const monitor = healthyMonitor();
+      monitor.resources.children = [{ pid: 1, cpuPercent: 380, memoryBytes: 0 }];
+
+      const concerns = collectConcerns({
+        ...healthy,
+        monitor,
+        history: Array.from({ length: 15 }, () => 95),
+      });
+
+      expect(concerns.find((concern) => concern.id === 'cpu')?.detail).toContain(
+        'Flux is using 95% of the machine, so this is its own work',
+      );
+    });
+
+    it('points elsewhere when the machine is busy and Flux is not', () => {
+      const monitor = healthyMonitor();
+      monitor.resources.serviceCpuPercent = 20;
+
+      const concerns = collectConcerns({
+        ...healthy,
+        monitor,
+        history: Array.from({ length: 15 }, () => 95),
+      });
+
+      expect(concerns.find((concern) => concern.id === 'cpu')?.detail).toContain(
+        'so most of this is something else on the box',
+      );
+    });
+
+    it('blames nobody when there is no reading to blame them with', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        monitor: null,
+        history: Array.from({ length: 15 }, () => 95),
+      });
+
+      expect(concerns.find((concern) => concern.id === 'cpu')?.detail).toBe(
+        'Playback that needs converting may stutter while it lasts.',
+      );
     });
   });
 

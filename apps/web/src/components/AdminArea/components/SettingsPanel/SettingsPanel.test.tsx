@@ -26,6 +26,7 @@ const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOver
     rejectedEncoders: [],
   },
   library: { itemCount: 0, libraryCount: 0 },
+  artwork: null,
 });
 
 describe('SettingsPanel', () => {

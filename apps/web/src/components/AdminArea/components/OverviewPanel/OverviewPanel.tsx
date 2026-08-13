@@ -6,6 +6,7 @@ import { Card } from '@FluxUI/Card';
 import { cn } from '@FluxUI/cn';
 import { CardHeader } from '@FluxUI/CardHeader';
 import { BackgroundJobs } from '@FluxWeb/components/AdminArea/components/BackgroundJobs/BackgroundJobs';
+import { CacheBreakdown } from '@FluxWeb/components/AdminArea/components/CacheBreakdown/CacheBreakdown';
 import { TrendChart } from '@FluxUI/TrendChart';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import { formatBytes } from '@FluxWeb/components/AdminArea/formatBytes';
@@ -142,6 +143,17 @@ const OverviewPanel = ({
             ))}
 
             <div className="flex items-baseline justify-between gap-3">
+              <dt className="shrink-0 text-text-muted">Graphics</dt>
+              <dd className="min-w-0 truncate text-text">
+                {resources?.graphics === null || resources?.graphics === undefined
+                  ? 'None Flux can read'
+                  : resources.graphics.encoderPercent === null
+                    ? `${resources.graphics.name} · encoder not readable`
+                    : resources.graphics.name}
+              </dd>
+            </div>
+
+            <div className="flex items-baseline justify-between gap-3">
               <dt className="text-text-muted">Processors</dt>
               <dd className="tabular-nums text-text">
                 {resources === null ? '—' : resources.cpuCount.toString()}
@@ -263,6 +275,14 @@ const OverviewPanel = ({
               ))}
             </ul>
           )}
+        </Region>
+
+        <Region title="Storage Flux is using" className="lg:col-span-4">
+          <CacheBreakdown
+            cache={monitor?.cache ?? null}
+            artwork={overview?.artwork ?? null}
+            liveSessions={monitor?.sessions ?? 0}
+          />
         </Region>
 
         <Card as="section" padding="none" className="flex flex-col overflow-hidden lg:col-span-4">

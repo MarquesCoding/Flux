@@ -28,6 +28,7 @@ const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
     rejectedEncoders: [],
   },
   library: { itemCount: 10, libraryCount: 1 },
+  artwork: null,
   ...overrides,
 });
 
@@ -42,10 +43,13 @@ const monitor = (jobs: Job[] = [], queued = 0): Monitor => ({
     serviceMemoryBytes: 0,
     children: [],
     loadAverage: 0,
+    disks: [],
+    graphics: null,
   },
   queue: { concurrency: 1, queued, running: 0, jobs },
   sessions: 0,
   logs: [],
+  cache: null,
 });
 
 const library = (overrides: Partial<Library> = {}): Library => ({

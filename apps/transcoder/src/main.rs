@@ -118,6 +118,11 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
         background_jobs()
     );
 
+    state.monitor.watch_graphics();
+    state
+        .monitor
+        .watch_cache(state.registry.config().cache_root.clone());
+
     let router = create_router(state);
 
     spawn_reaper(registry.clone());
