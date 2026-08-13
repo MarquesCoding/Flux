@@ -1,9 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MediaDetailDialog } from './MediaDetailDialog';
 import type { ReactNode } from 'react';
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type * as MotionReact from 'motion/react';
+
+const motion = vi.hoisted(() => ({ isReduced: false }));
+
+vi.mock('motion/react', async () => ({
+  ...(await vi.importActual<typeof MotionReact>('motion/react')),
+  useReducedMotion: () => motion.isReduced,
+}));
 
 const detailMock = vi.hoisted(() => vi.fn());
 
@@ -56,6 +64,10 @@ const detail = (overrides: Partial<MediaDetail['metadata']> = {}): MediaDetail =
 beforeEach(() => {
   detailMock.mockReset();
   detailMock.mockResolvedValue(detail());
+});
+
+afterEach(() => {
+  motion.isReduced = false;
 });
 
 describe('MediaDetailDialog', () => {
@@ -324,5 +336,13 @@ describe('keeping something, and getting back to where you were', () => {
     await actor.click(await screen.findByRole('button', { name: /Episode 2/ }));
 
     expect(onSelectSibling).toHaveBeenCalledWith(sibling);
+  });
+
+  it('draws an item without motion for somebody who asked for less', () => {
+    motion.isReduced = true;
+
+    render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(screen.getByRole('dialog', { name: 'Arrival' })).toBeInTheDocument();
   });
 });

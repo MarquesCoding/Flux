@@ -351,4 +351,53 @@ describe('App routing', () => {
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
+
+  it('goes back to the library once setup is finished', async () => {
+    serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
+    render(<App />);
+
+    await screen.findByRole('heading', { name: 'Set up Flux' });
+
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+
+    expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument();
+  });
+
+  it('closes an item that was opened for a look', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
+
+    await arrive();
+
+    const rail = await screen.findByRole('region', { name: 'Recently added' });
+
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }));
+    await screen.findByRole('dialog', { name: 'Arrival' });
+
+    await actor.click(screen.getByRole('button', { name: /^Close$/ }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Arrival' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('remembers where somebody got to when the player is closed', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
+
+    await arrive();
+
+    const rail = await screen.findByRole('region', { name: 'Recently added' });
+
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }));
+    await actor.click(await screen.findByRole('button', { name: 'Play' }));
+    await screen.findByRole('slider', { name: 'Seek through Arrival' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/progress'),
+      expect.anything(),
+    );
+  });
 });
