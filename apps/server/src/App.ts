@@ -483,6 +483,11 @@ const createApp = ({
    *
    * Declared above the routes that ask it, so that reading down this file
    * shows what a route requires before it shows what the route does.
+   *
+   * A request carrying an API key is narrowed by it after the account has been
+   * asked, which is what makes a key a restriction rather than a grant. Which
+   * key it is comes from the session better-auth already resolved, so the
+   * secret is not hashed a second time to learn what is known.
    */
   const requires = async (headers: Headers, permission: Permission): Promise<boolean> => {
     const session = await auth.api.getSession({ headers }).catch(() => null);
@@ -493,31 +498,10 @@ const createApp = ({
 
     const held = await permissions.resolve(session.user.id);
 
-    /**
-     * What the key on this request is allowed, if it is a key at all.
-     *
-     * Resolved after the account's own permissions and applied on top of them,
-     * which is what makes it a restriction rather than a grant. The account is
-     * the ceiling: a key naming a permission its owner does not hold gets
-     * nothing, and a key naming nothing gets nothing.
-     *
-     * Read from the header rather than from the session, because better-auth
-     * answers a key request with a session that looks like any other — which
-     * is exactly what makes every route accept a key for free, and exactly why
-     * a route cannot tell that it did.
-     */
     if (headers.get('x-api-key') === null) {
       return held.has(permission);
     }
 
-    /**
-     * Which key this is, as better-auth already worked out.
-     *
-     * The session it answers a key request with carries the key's own id, so
-     * the key has been found and verified before this runs — asking again by
-     * the secret would be hashing it a second time to learn what is already
-     * known.
-     */
     const allowed = await apiKeys.restrictionFor(headers, session.session.id);
 
     return narrowToKey(held, allowed ?? null).has(permission);

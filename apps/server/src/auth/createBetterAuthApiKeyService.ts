@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { PermissionSchema } from '@FluxContracts/schemas/Permission';
 import type { ApiKeyService } from './ApiKeyService';
 import type { FluxAuth } from './Auth';
@@ -16,20 +17,40 @@ const NAMESPACE = 'flux';
 const A_DAY = 86_400_000;
 
 /**
- * Reads the Flux permissions off a key, discarding anything unrecognised.
+ * A key as better-auth hands it back.
  *
- * A permission that no longer exists is dropped rather than kept as a string
- * nothing will ever match: a key restricted to something Flux has since
- * removed should lose that restriction's subject, not carry a ghost.
+ * Parsed rather than trusted, because this is the boundary with a library's
+ * own row shape: it carries fields Flux has no use for, dates as either a
+ * `Date` or a string depending on the adapter, and permissions in a namespaced
+ * shape belonging to whoever wrote them. Anything unrecognised is dropped
+ * rather than carried as a value nothing will ever match.
  */
-const readPermissions = (raw: unknown): Permission[] | null => {
-  if (raw === null || raw === undefined || typeof raw !== 'object') {
-    return null;
-  }
+const RowSchema = z.object({
+  id: z.string(),
+  name: z.string().nullish(),
+  start: z.string().nullish(),
+  enabled: z.boolean().nullish(),
+  expiresAt: z.union([z.date(), z.string()]).nullish(),
+  lastRequest: z.union([z.date(), z.string()]).nullish(),
+  requestCount: z.number().nullish(),
+  permissions: z.record(z.string(), z.array(z.string())).nullish(),
+  createdAt: z.union([z.date(), z.string()]).nullish(),
+});
 
-  const named: unknown = (raw as Record<string, unknown>)[NAMESPACE];
+const asIsoString = (value: Date | string | null | undefined): string | null =>
+  value instanceof Date ? value.toISOString() : (value ?? null);
 
-  if (!Array.isArray(named)) {
+/**
+ * Reads the Flux permissions off a key.
+ *
+ * A permission Flux no longer has is dropped rather than kept as a string
+ * nothing will ever match: a key restricted to something since removed should
+ * lose that restriction's subject, not carry a ghost of it.
+ */
+const readPermissions = (raw: Record<string, string[]> | null | undefined): Permission[] | null => {
+  const named = raw?.[NAMESPACE];
+
+  if (named === undefined) {
     return null;
   }
 
@@ -39,9 +60,6 @@ const readPermissions = (raw: unknown): Permission[] | null => {
     return parsed.success ? [parsed.data] : [];
   });
 };
-
-const asIsoString = (value: unknown): string | null =>
-  value instanceof Date ? value.toISOString() : typeof value === 'string' ? value : null;
 
 /**
  * Keys, kept where better-auth already keeps them.
@@ -56,27 +74,21 @@ const asIsoString = (value: unknown): string | null =>
  * a key is narrowed to. That lives above this.
  */
 const createBetterAuthApiKeyService = (auth: FluxAuth): ApiKeyService => {
-  const describe = (row: {
-    id: string;
-    name?: string | null;
-    start?: string | null;
-    enabled?: boolean | null;
-    expiresAt?: unknown;
-    lastRequest?: unknown;
-    requestCount?: number | null;
-    permissions?: unknown;
-    createdAt?: unknown;
-  }): ApiKey => ({
-    id: row.id,
-    name: row.name ?? '',
-    start: row.start ?? null,
-    enabled: row.enabled ?? true,
-    expiresAt: asIsoString(row.expiresAt),
-    lastRequestAt: asIsoString(row.lastRequest),
-    requestCount: row.requestCount ?? 0,
-    permissions: readPermissions(row.permissions),
-    createdAt: asIsoString(row.createdAt) ?? new Date().toISOString(),
-  });
+  const describe = (candidate: z.input<typeof RowSchema>): ApiKey => {
+    const row = RowSchema.parse(candidate);
+
+    return {
+      id: row.id,
+      name: row.name ?? '',
+      start: row.start ?? null,
+      enabled: row.enabled ?? true,
+      expiresAt: asIsoString(row.expiresAt),
+      lastRequestAt: asIsoString(row.lastRequest),
+      requestCount: row.requestCount ?? 0,
+      permissions: readPermissions(row.permissions),
+      createdAt: asIsoString(row.createdAt) ?? new Date().toISOString(),
+    };
+  };
 
   return {
     list: async (headers) => {
@@ -123,7 +135,7 @@ const createBetterAuthApiKeyService = (auth: FluxAuth): ApiKeyService => {
         return new Set<Permission>();
       }
 
-      const permissions = readPermissions(found.permissions);
+      const permissions = readPermissions(RowSchema.parse(found).permissions);
 
       return permissions === null ? null : new Set(permissions);
     },
