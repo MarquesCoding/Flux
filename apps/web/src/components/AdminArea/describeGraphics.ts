@@ -14,6 +14,11 @@ import type { Stat } from '@FluxWeb/components/AdminArea/components/StatStrip/St
  * The one thing this must never do is show a zero. A card whose encoder cannot
  * be read is not a card sitting idle, and a pane that cannot tell the
  * difference would have an operator hunting a fault that is not there.
+ *
+ * Every detail here fits the one line a tile has for it. A second line pushes
+ * the figure and its bar up out of step with the tiles beside it, and a strip
+ * read by glancing along the numbers depends on them sitting level. The fuller
+ * wording lives in the Server region, which has room for a sentence.
  */
 const describeGraphics = (graphics: Monitor['resources']['graphics']): Omit<Stat, 'label'> => {
   if (graphics === null) {
@@ -24,7 +29,7 @@ const describeGraphics = (graphics: Monitor['resources']['graphics']): Omit<Stat
     return {
       value: `${graphics.encoderPercent.toFixed(0)}%`,
       fraction: graphics.encoderPercent / 100,
-      detail: `encoder · ${graphics.name}`,
+      detail: 'encoder, not whole card',
     };
   }
 
@@ -32,11 +37,11 @@ const describeGraphics = (graphics: Monitor['resources']['graphics']): Omit<Stat
     return {
       value: `${graphics.devicePercent.toFixed(0)}%`,
       fraction: graphics.devicePercent / 100,
-      detail: 'whole card · encoder not readable',
+      detail: 'whole card, not encoder',
     };
   }
 
-  return { value: '—', detail: `${graphics.name} · nothing readable` };
+  return { value: '—', detail: 'Nothing readable' };
 };
 
 export { describeGraphics };

@@ -144,7 +144,11 @@ const OverviewPanel = ({
             <div className="flex items-baseline justify-between gap-3">
               <dt className="shrink-0 text-text-muted">Graphics</dt>
               <dd className="min-w-0 truncate text-text">
-                {resources?.graphics?.name ?? 'None Flux can read'}
+                {resources?.graphics === null || resources?.graphics === undefined
+                  ? 'None Flux can read'
+                  : resources.graphics.encoderPercent === null
+                    ? `${resources.graphics.name} · encoder not readable`
+                    : resources.graphics.name}
               </dd>
             </div>
 

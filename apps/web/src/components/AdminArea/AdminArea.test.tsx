@@ -397,13 +397,13 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     expect(await screen.findByText('41%')).toBeInTheDocument();
-    expect(await screen.findByText('whole card · encoder not readable')).toBeInTheDocument();
+    expect(await screen.findByText('whole card, not encoder')).toBeInTheDocument();
   });
 
-  it('names the card where the server is described', async () => {
+  it('names the card, and says what it will not say, where there is room for it', async () => {
     render(<AdminArea />);
 
-    expect(await screen.findByText('Apple M5 Pro')).toBeInTheDocument();
+    expect(await screen.findByText('Apple M5 Pro · encoder not readable')).toBeInTheDocument();
   });
 
   it('reports room left on the disk the library is on, not on the one Flux boots from', async () => {
