@@ -5,6 +5,13 @@ type CacheRow = {
   label: string;
   value: string;
   detail: string;
+  /**
+   * What somebody needs told about this figure that the figure cannot say.
+   *
+   * Only where the number is genuinely surprising. A hint beside every row is
+   * a row of icons nobody reads.
+   */
+  hint?: string;
 };
 
 /**
@@ -63,6 +70,7 @@ const cacheRows = (
     },
     {
       label: 'Transcode sessions',
+      hint: 'When a file will not play on a device as it is, Flux converts it and keeps the result. Each device keeps the last thing it played, so resuming does not convert it a second time, and gives that up when it plays something else. Two devices watching the same thing share one copy. None of this is your media — it is all rebuilt on demand, and deleting it costs only the time to convert again.',
       ...(cache === null
         ? pending
         : {

@@ -1,3 +1,6 @@
+import { IconInfoCircle } from '@tabler/icons-react';
+import { Button } from '@FluxUI/Button';
+import { HoverCard } from '@FluxUI/HoverCard';
 import { formatBytes } from '@FluxWeb/components/AdminArea/formatBytes';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import { cacheRows } from './cacheRows';
@@ -36,7 +39,23 @@ const CacheBreakdown = ({ cache, artwork, liveSessions, library }: CacheBreakdow
       <dl className="grid grid-cols-2 gap-6 sm:flex sm:flex-wrap sm:justify-between">
         {rows.map((row) => (
           <div key={row.label} className="flex flex-col gap-1">
-            <dt className="text-xs uppercase tracking-[0.16em] text-text-muted">{row.label}</dt>
+            <dt className="flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-text-muted">
+              {row.label}
+
+              {row.hint === undefined ? null : (
+                <HoverCard detail={<p className="max-w-xs text-xs leading-relaxed">{row.hint}</p>}>
+                  <Button
+                    variant="bare"
+                    size="none"
+                    isIconOnly
+                    label={`What ${row.label.toLowerCase()} means`}
+                    className="text-text-muted transition-colors hover:text-text"
+                  >
+                    <IconInfoCircle size={14} aria-hidden />
+                  </Button>
+                </HoverCard>
+              )}
+            </dt>
             <dd className="flex flex-col gap-0.5">
               <span className="text-xl font-semibold tabular-nums leading-none text-text">
                 {row.value}

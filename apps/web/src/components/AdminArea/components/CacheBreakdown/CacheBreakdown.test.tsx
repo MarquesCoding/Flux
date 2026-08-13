@@ -57,4 +57,18 @@ describe('CacheBreakdown', () => {
     expect(screen.getByText('Artwork')).toBeInTheDocument();
     expect(screen.getByText('Transcode sessions')).toBeInTheDocument();
   });
+
+  it('offers an explanation of the figure an operator would not guess', () => {
+    render(<CacheBreakdown cache={CACHE} artwork={null} liveSessions={1} library={null} />);
+
+    expect(
+      screen.getByRole('button', { name: 'What transcode sessions means' }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not put an explanation beside a figure that speaks for itself', () => {
+    render(<CacheBreakdown cache={CACHE} artwork={null} liveSessions={1} library={null} />);
+
+    expect(screen.queryByRole('button', { name: 'What artwork means' })).not.toBeInTheDocument();
+  });
 });
