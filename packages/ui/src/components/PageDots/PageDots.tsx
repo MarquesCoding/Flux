@@ -11,12 +11,30 @@ import type { PageDotsProps } from './PageDots.types';
  * changing colour alone, so the answer is legible at a glance and from across
  * a room.
  *
+ * Where something is moving on by itself, the current marker fills as its time
+ * runs out. A carousel that changes on a timer otherwise changes without
+ * warning — the thing being read is replaced mid-sentence — and the filling
+ * doubles as the answer to how long there is left, which is what somebody
+ * deciding whether to press Play wants to know. Drawn by the browser from a
+ * keyframe rather than by counting in JavaScript: this runs for as long as the
+ * page is open, and a bar that costs a render a frame to draw is a bar that
+ * costs more than everything it sits on.
+ *
  * Where a marker has a name, it appears above the one being pointed at —
  * choosing the next thing should be a decision rather than a guess. The name
  * is lifted out of the flow, because an invisible label still takes its full
  * width, which would push the markers as far apart as the names are long.
  */
-const PageDots = ({ count, selectedIndex, onSelect, labels, label, className }: PageDotsProps) => {
+const PageDots = ({
+  count,
+  selectedIndex,
+  onSelect,
+  labels,
+  label,
+  className,
+  fillMilliseconds,
+  isFillPaused = false,
+}: PageDotsProps) => {
   if (count <= 1) {
     return null;
   }
@@ -46,12 +64,25 @@ const PageDots = ({ count, selectedIndex, onSelect, labels, label, className }: 
 
               <span
                 className={cn(
-                  'block h-1.5 rounded-full transition-all duration-300',
+                  'block h-1.5 overflow-hidden rounded-full transition-all duration-300',
                   selectedIndex === index
-                    ? 'w-6 bg-text'
+                    ? fillMilliseconds === undefined
+                      ? 'w-6 bg-text'
+                      : 'w-6 bg-text/25'
                     : 'w-1.5 bg-text-muted/40 group-hover:bg-text-muted',
                 )}
-              />
+              >
+                {selectedIndex === index && fillMilliseconds !== undefined ? (
+                  <span
+                    key={selectedIndex}
+                    className="flux-dot-fill block h-full w-full origin-left rounded-full bg-text"
+                    style={{
+                      animationDuration: `${fillMilliseconds.toString()}ms`,
+                      animationPlayState: isFillPaused ? 'paused' : 'running',
+                    }}
+                  />
+                ) : null}
+              </span>
             </Button>
           </li>
         );

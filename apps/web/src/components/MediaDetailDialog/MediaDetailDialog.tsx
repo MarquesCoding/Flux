@@ -266,9 +266,7 @@ const MediaDetailDialog = ({
                   <Skeleton className="h-4 w-[70%]" />
                 </div>
               ) : typeof metadata?.overview === 'string' && metadata.overview !== '' ? (
-                <p className="max-w-prose text-[0.95rem] leading-relaxed text-text">
-                  {metadata.overview}
-                </p>
+                <p className="text-[0.95rem] leading-relaxed text-text">{metadata.overview}</p>
               ) : (
                 <p className="flex items-center gap-2 text-sm text-text-muted">
                   <IconInfoCircle size={16} aria-hidden />

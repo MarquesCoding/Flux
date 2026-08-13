@@ -298,6 +298,9 @@ const Hero = ({
             labels={items.map((item) => item.title)}
             label="Featured items"
             onSelect={setIndex}
+            {...(items.length > 1 && rotateAfterMilliseconds > 0
+              ? { fillMilliseconds: rotateAfterMilliseconds, isFillPaused: isHeld }
+              : {})}
             className="mb-8 mr-5 self-end sm:absolute sm:bottom-8 sm:right-10 sm:mb-0 sm:mr-0"
           />
         </motion.section>
