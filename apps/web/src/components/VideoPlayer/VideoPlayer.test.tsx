@@ -27,6 +27,8 @@ const loadCastSenderMock = vi.hoisted(() => vi.fn());
 const castStateOfMock = vi.hoisted(() => vi.fn());
 const promptForDeviceMock = vi.hoisted(() => vi.fn());
 const isReachableOriginMock = vi.hoisted(() => vi.fn());
+const castStreamMock = vi.hoisted(() => vi.fn());
+const absoluteStreamUrlMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
@@ -50,7 +52,12 @@ vi.mock('@FluxWeb/playback/attachShaka', () => ({
 vi.mock('@FluxWeb/playback/castSender', async () => {
   const actual = await vi.importActual<typeof CastSenderModule>('@FluxWeb/playback/castSender');
 
-  return { ...actual, loadCastSender: loadCastSenderMock, castStateOf: castStateOfMock };
+  return {
+    ...actual,
+    loadCastSender: loadCastSenderMock,
+    castStateOf: castStateOfMock,
+    castStream: castStreamMock,
+  };
 });
 
 vi.mock('@FluxWeb/playback/castPlayback', async () => {
@@ -60,6 +67,7 @@ vi.mock('@FluxWeb/playback/castPlayback', async () => {
     ...actual,
     promptForDevice: promptForDeviceMock,
     isReachableOrigin: isReachableOriginMock,
+    absoluteStreamUrl: absoluteStreamUrlMock,
   };
 });
 
@@ -199,6 +207,12 @@ beforeEach(() => {
   promptForDeviceMock.mockResolvedValue('unsupported');
   isReachableOriginMock.mockReset();
   isReachableOriginMock.mockReturnValue(true);
+  castStreamMock.mockReset();
+  castStreamMock.mockResolvedValue(true);
+  absoluteStreamUrlMock.mockReset();
+  absoluteStreamUrlMock.mockImplementation(
+    (address: string) => `http://192.168.1.5:5173${address}`,
+  );
 });
 
 afterEach(() => {
@@ -1668,5 +1682,53 @@ describe('when an administrator reaches into the stream', () => {
     });
 
     expect(screen.getByText(/An administrator stopped this stream./)).toBeInTheDocument();
+  });
+});
+
+describe('once a device has taken the stream', () => {
+  const connected = async (delivery = startedSession.delivery) => {
+    loadCastSenderMock.mockResolvedValue({ addEventListener: vi.fn(), requestSession: vi.fn() });
+    castStateOfMock.mockReturnValue('CONNECTED');
+    startMock.mockResolvedValue({
+      kind: 'started',
+      session: { ...startedSession, delivery },
+    });
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+    const stream = fakeMediaElement(element);
+
+    stream.loaded({ duration: 7200, seekableTo: 7200 });
+
+    return { element, stream };
+  };
+
+  it('hands the stream over and stops playing it here', async () => {
+    await connected();
+
+    await waitFor(() => {
+      expect(castStreamMock).toHaveBeenCalled();
+    });
+  });
+
+  it('hands over the file itself when that is what is being served', async () => {
+    await connected({ kind: 'direct', url: '/api/playback/media-1/file' });
+
+    await waitFor(() => {
+      expect(castStreamMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ title: 'Arrival' }),
+      );
+    });
+  });
+
+  it('says so when the device would not take it', async () => {
+    castStreamMock.mockResolvedValue(false);
+
+    await connected();
+
+    expect(await screen.findByText(/would not take this stream/)).toBeInTheDocument();
   });
 });
