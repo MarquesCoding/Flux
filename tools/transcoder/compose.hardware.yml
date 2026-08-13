@@ -1,0 +1,19 @@
+# Runs probeHardware.sh against the real image, on a host with a GPU.
+#
+#   docker compose -f tools/transcoder/compose.hardware.yml run --rm probe
+#
+# Deliberately no required variables. Every value below defaults to what the
+# image already sets, so a typo cannot leave a probe running against a blank
+# path and reporting the silence as a hardware fault.
+services:
+  probe:
+    build:
+      context: ../..
+    entrypoint: ['bash', '/probe/probeHardware.sh']
+    environment:
+      FLUX_FFMPEG: ${FLUX_FFMPEG:-/usr/lib/flux-ffmpeg/ffmpeg}
+      FLUX_VAAPI_DEVICE: ${FLUX_VAAPI_DEVICE:-/dev/dri/renderD128}
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ./probeHardware.sh:/probe/probeHardware.sh:ro
