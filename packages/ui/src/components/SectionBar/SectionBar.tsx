@@ -33,6 +33,24 @@ const PILL = [
 const HERE = 'bg-[var(--surface-active)] font-medium text-text';
 
 /**
+ * How long a pointer rests on a family before it opens.
+ *
+ * Not nought. A pointer crossing the bar on its way somewhere else passes over
+ * every family in it, and opening on contact would flash four menus at
+ * somebody who was only travelling.
+ */
+const OPEN_DELAY_MILLISECONDS = 120;
+
+/**
+ * How long an opened family waits before closing again.
+ *
+ * The popup hangs below the pill with a gap between them, and reaching into it
+ * means crossing that gap. Closing the moment the pointer leaves the pill
+ * would shut the menu on its way to being used.
+ */
+const CLOSE_DELAY_MILLISECONDS = 180;
+
+/**
  * The bar of sections at the top of an area, where a family opens as one.
  *
  * A row of every section was fine at eight and stops being fine at fourteen:
@@ -42,13 +60,22 @@ const HERE = 'bg-[var(--surface-active)] font-medium text-text';
  *
  * Families open instead. The bar stays as wide as it has families however many
  * sections are inside them, and adding a page means adding it to a family
- * rather than finding room on a line. A family whose section is showing wears
- * that section's name rather than its own, so the bar still answers "where am
- * I" with nothing opened.
+ * rather than finding room on a line.
+ *
+ * A family keeps its own name whichever of its sections is showing, and says
+ * it holds you by being lit rather than by renaming itself. A pill that
+ * renamed itself would make the bar's labels move as somebody used it — the
+ * word under the pointer would not be the word that was aimed at — and it
+ * would leave nothing on screen saying what else is in there. Which one it is
+ * is a question the open menu answers, with a tick.
  *
  * A family of one does not open, because a menu holding a single choice is a
  * button asking to be pressed twice. That is what keeps the section everybody
  * arrives at a single press.
+ *
+ * A family opens on hover as well as on press, the way a menu bar does: this
+ * is somebody looking for where to go, and making them press to find out what
+ * is behind a word turns looking into a decision.
  *
  * The sections inside a family are a radio group rather than commands, because
  * that is what they are: one of them is where you are, and choosing another is
@@ -90,12 +117,12 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
           ) : (
             <Menu.Root>
               <Menu.Trigger
-                aria-label={
-                  showing === undefined ? group.label : `${group.label}: ${showing.label}`
-                }
+                openOnHover
+                delay={OPEN_DELAY_MILLISECONDS}
+                closeDelay={CLOSE_DELAY_MILLISECONDS}
                 className={cn(PILL, 'data-[popup-open]:text-text', showing !== undefined && HERE)}
               >
-                {showing?.label ?? group.label}
+                {group.label}
                 <IconChevronDown size={14} aria-hidden />
               </Menu.Trigger>
 
