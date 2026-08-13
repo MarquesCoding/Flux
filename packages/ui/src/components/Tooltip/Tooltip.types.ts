@@ -37,6 +37,16 @@ type TooltipProps = {
    * would repeat a word the viewer is looking at.
    */
   isDisabled?: boolean;
+  /**
+   * How long a pointer must rest before the name appears.
+   *
+   * Left alone almost everywhere: a tooltip that arrives the instant a pointer
+   * crosses a control turns a bar of them into a flicker of boxes. Set to
+   * nought only where the name is the whole affordance — a row of icons with
+   * no words at all, where waiting is the interface withholding the one thing
+   * being asked for.
+   */
+  delayMilliseconds?: number;
 };
 
 export type { ControlProperties, TooltipProps };

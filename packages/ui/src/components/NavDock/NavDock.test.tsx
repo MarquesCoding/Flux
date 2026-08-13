@@ -67,11 +67,29 @@ describe('NavDock', () => {
     );
   });
 
-  it('names only the place being stood on, so the rest read as icons', () => {
+  it('reads as icons, with the names kept out of the row', () => {
     render(<NavDock {...props} />);
 
-    expect(screen.getByRole('button', { name: 'Home' })).toHaveTextContent('Home');
+    expect(screen.getByRole('button', { name: 'Home' })).not.toHaveTextContent('Home');
     expect(screen.getByRole('button', { name: 'Films' })).not.toHaveTextContent('Films');
+  });
+
+  it('names every place for anybody who cannot see the icons', () => {
+    render(<NavDock {...props} />);
+
+    for (const label of ['Home', 'Films']) {
+      expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+    }
+  });
+
+  it('names the icon a pointer rests on, out of the row rather than in it', async () => {
+    const user = userEvent.setup();
+
+    render(<NavDock {...props} />);
+
+    await user.hover(screen.getByRole('button', { name: 'Films' }));
+
+    expect(await screen.findByText('Films', {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
   it('does a tool where it stands rather than going somewhere', async () => {

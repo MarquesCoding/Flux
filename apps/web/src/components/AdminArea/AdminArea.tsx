@@ -410,7 +410,7 @@ const AdminArea = ({
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
-      className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-5 pb-6 pt-5 sm:px-10"
+      className="flex w-full flex-col gap-4 px-5 pb-6 pt-5 sm:px-10"
     >
       <Tabs
         value={panel}
