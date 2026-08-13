@@ -34,9 +34,9 @@ describe('ScanProgressBar', () => {
     render(<ScanProgressBar label="Scanning Movies" phase="trickplay" processed={0} total={0} />);
 
     expect(
-      screen.getByRole('progressbar', { name: 'Scanning Movies: Generating thumbnails' }),
+      screen.getByRole('progressbar', { name: 'Scanning Movies: Generating scrub previews' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Generating thumbnails')).toBeInTheDocument();
+    expect(screen.getByText('Generating scrub previews')).toBeInTheDocument();
     expect(screen.queryByText(/\//)).not.toBeInTheDocument();
   });
 

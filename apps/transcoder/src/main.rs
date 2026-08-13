@@ -12,6 +12,13 @@ const DEFAULT_SOCKET: &str = "/run/flux-transcoder.sock";
 const UNIX_PREFIX: &str = "unix:";
 const REAP_INTERVAL: Duration = Duration::from_secs(30);
 
+/// How often spent transcode directories are reclaimed.
+///
+/// Nothing here is urgent — a directory nobody is watching costs disk and
+/// nothing else — and the sweep reads the size of every one of them, so it is
+/// not something to do every half minute beside the reaper.
+const SWEEP_INTERVAL: Duration = Duration::from_secs(15 * 60);
+
 fn setting(variable: &str, fallback: &str) -> String {
     env::var(variable).unwrap_or_else(|_| fallback.to_owned())
 }
@@ -101,6 +108,42 @@ fn spawn_reaper(registry: SessionRegistry) {
     });
 }
 
+/// Reclaims spent transcode directories on a timer.
+///
+/// Separate from the reaper because they undo different things: that one frees
+/// the process a closed tab left running, this one frees the disk a finished
+/// transcode left behind. Collecting a session deliberately leaves its
+/// directory, since the next viewer of the same thing plays it without
+/// encoding anything — but nothing was ever giving that space back.
+///
+/// Far rarer than the reaper. A directory nobody is watching costs only disk,
+/// and disk is what there is most of.
+///
+/// Sweeps before it first sleeps, because a restart is exactly when abandoned
+/// directories exist: a service killed mid-transcode leaves one behind, and
+/// waiting a quarter of an hour to notice serves nobody.
+fn spawn_sweeper(registry: SessionRegistry) {
+    let root = registry.config().cache_root.clone();
+
+    tokio::spawn(async move {
+        let budget = flux_transcoder::session_sweep::Budget::default();
+
+        loop {
+            let live = registry.live_ids().await;
+            let report = flux_transcoder::session_sweep::evict(&root, &live, &budget).await;
+
+            if report.removed > 0 {
+                println!(
+                    "reclaimed {} spent transcode(s), {} bytes",
+                    report.removed, report.freed_bytes
+                );
+            }
+
+            tokio::time::sleep(SWEEP_INTERVAL).await;
+        }
+    });
+}
+
 async fn serve(registry: SessionRegistry, ffprobe: String) {
     let state = AppState {
         registry: registry.clone(),
@@ -118,9 +161,15 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
         background_jobs()
     );
 
+    state.monitor.watch_graphics();
+    state
+        .monitor
+        .watch_cache(state.registry.config().cache_root.clone());
+
     let router = create_router(state);
 
     spawn_reaper(registry.clone());
+    spawn_sweeper(registry.clone());
 
     let result = match listen_target(&from_env) {
         ListenTarget::Address(address) => {

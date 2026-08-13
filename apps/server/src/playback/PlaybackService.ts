@@ -33,11 +33,20 @@ type SessionFile = {
   contentType: string;
 };
 
+/**
+ * A media file on its way to a viewer, forwarded as it arrives.
+ *
+ * Whole media and preview clips both come through here, and both are large
+ * enough that collecting one before sending it costs its own size in memory.
+ * The status and range headers are the media service's answer, passed on
+ * unchanged.
+ */
 type RangedFile = {
-  body: ArrayBuffer;
+  body: ReadableStream<Uint8Array>;
   contentType: string;
   status: number;
   contentRange: string | null;
+  contentLength: string | null;
 };
 
 /**
@@ -53,12 +62,20 @@ type PlaybackService = {
     profile: DeviceProfile,
     requestedQuality?: QualityStepId,
   ) => Promise<Explanation | null>;
+  /**
+   * Begins playback, saying which device asked.
+   *
+   * The device does not change what is made — two devices asking for the same
+   * thing share one transcode — only whose resume point it becomes. A caller
+   * with no device to name costs only that the transcode is kept for nobody.
+   */
   start: (
     mediaId: string,
     profile: DeviceProfile,
     startSeconds: number,
     audioStreamIndex?: number,
     requestedQuality?: QualityStepId,
+    deviceId?: string,
   ) => Promise<StartOutcome>;
   readSessionFile: (sessionId: string, name: string) => Promise<SessionFile | null>;
   readDirectFile: (mediaId: string, range: string | null) => Promise<RangedFile | null>;

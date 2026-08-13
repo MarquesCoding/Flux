@@ -1,11 +1,190 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createPlaybackService } from './createPlaybackService';
-import type { MediaLookup } from './createPlaybackService';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { SessionSpec, Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import type { MediaLookup } from './createPlaybackService';
 
 const MEDIA_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+const bilingual: MediaItem = {
+  id: MEDIA_ID,
+  title: 'Arrival',
+  year: 2016,
+  container: 'mkv',
+  durationSeconds: 7200,
+  videoCodec: 'hevc',
+  videoRange: 'HDR10',
+  width: 3840,
+  height: 2160,
+  bitrateKbps: 24000,
+  audioStreams: [
+    { index: 1, codec: 'truehd', channels: 8, language: 'deu', isDefault: true, isAtmos: true },
+    { index: 2, codec: 'aac', channels: 2, language: 'eng', isDefault: false, isAtmos: false },
+  ],
+  subtitleStreams: [],
+};
+
+const capableProfile: DeviceProfile = {
+  schemaVersion: 1,
+  name: 'Living room TV',
+  maxWidth: 3840,
+  maxHeight: 2160,
+  maxBitrateKbps: 40000,
+  maxAudioChannels: 8,
+  supportedVideoRanges: ['SDR', 'HDR10'],
+  supportedSubtitleFormats: ['webvtt'],
+  directPlayProfiles: [
+    { container: 'mkv', videoCodecs: ['hevc', 'h264'], audioCodecs: ['truehd', 'aac'] },
+  ],
+  transcodingProfiles: [
+    { container: 'ts', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
+  ],
+};
+
+/**
+ * A media service that refuses everything it is not asked about.
+ *
+ * The port is wide, and a test about one call should not have to answer for
+ * the other twenty.
+ */
+const anything = (): Transcoder => ({
+  isReachable: () => Promise.resolve(true),
+  measureCache: () => Promise.resolve(null),
+  sweepPreviews: () => Promise.reject(new Error('not used')),
+  forgetPreview: () => Promise.reject(new Error('not used')),
+  forgetTrickplay: () => Promise.reject(new Error('not used')),
+  sweepTrickplay: () => Promise.reject(new Error('not used')),
+  probe: () => Promise.reject(new Error('not used')),
+  startSession: () => Promise.resolve({ id: 'session-1', manifest: '/session-1' }),
+  readSessionFile: () => Promise.resolve(null),
+  readFile: () => Promise.resolve(null),
+  fingerprint: () => Promise.reject(new Error('not used')),
+  requestTrickplay: () => Promise.reject(new Error('not used')),
+  readTrickplayFile: () => Promise.resolve(null),
+  stopSession: () => Promise.resolve(true),
+  heartbeatSession: () => Promise.resolve(true),
+  readSubtitle: () => Promise.reject(new Error('not used')),
+  readFrame: () => Promise.reject(new Error('not used')),
+  requestPreview: () => Promise.reject(new Error('not used')),
+  readPreviewFile: () => Promise.resolve(null),
+  readMonitor: () => Promise.resolve({}),
+  openMonitorStream: () => Promise.resolve(null),
+  capabilities: () => Promise.resolve(CAPABILITIES),
+});
+
+const harness = (defaultAudioLanguage: string | null) => {
+  const media: MediaLookup = {
+    findForPlayback: (mediaId) =>
+      Promise.resolve(
+        mediaId === MEDIA_ID
+          ? { item: bilingual, path: '/media/arrival.mkv', defaultAudioLanguage, generation: 0 }
+          : null,
+      ),
+  };
+
+  const startedSpecs: SessionSpec[] = [];
+
+  const transcoder: Transcoder = {
+    isReachable: () => Promise.resolve(true),
+    measureCache: () => Promise.resolve(null),
+    sweepPreviews: () => Promise.reject(new Error('not used')),
+    forgetPreview: () => Promise.reject(new Error('not used')),
+    forgetTrickplay: () => Promise.reject(new Error('not used')),
+    sweepTrickplay: () => Promise.reject(new Error('not used')),
+    probe: () => Promise.reject(new Error('not used')),
+    startSession: (spec) => {
+      startedSpecs.push(spec);
+
+      return Promise.resolve({ id: 'session-1', manifest: '/session-1' });
+    },
+    readSessionFile: () => Promise.resolve(null),
+    readFile: () => Promise.resolve(null),
+    fingerprint: () => Promise.reject(new Error('not used')),
+    requestTrickplay: () => Promise.reject(new Error('not used')),
+    readTrickplayFile: () => Promise.resolve(null),
+    stopSession: () => Promise.resolve(true),
+    heartbeatSession: () => Promise.resolve(true),
+    readSubtitle: () => Promise.reject(new Error('not used')),
+    readFrame: () => Promise.reject(new Error('not used')),
+    requestPreview: () => Promise.reject(new Error('not used')),
+    readPreviewFile: () => Promise.resolve(null),
+    readMonitor: () => Promise.resolve({}),
+    openMonitorStream: () => Promise.resolve(null),
+    capabilities: () =>
+      Promise.resolve({
+        ffmpegVersion: 'test',
+        ffmpegSupported: true,
+        encoders: [],
+        hardwareAccels: [],
+        hardwareScalers: [],
+        rejected: [],
+        toneMapping: 'unavailable' as const,
+        canBurnTextSubtitles: true,
+        canBurnImageSubtitles: true,
+      }),
+  };
+
+  const service = createPlaybackService({
+    media,
+    transcoder,
+    sessionUrlPrefix: '/api/playback/session',
+    directUrlPrefix: '/api/playback',
+    trickplayUrlPrefix: '/api/playback/trickplay',
+  });
+
+  return { service, startedSpecs };
+};
+
+describe('createPlaybackService', () => {
+  it('direct plays when no language is forced', async () => {
+    const { service } = harness(null);
+
+    const outcome = await service.start(MEDIA_ID, capableProfile, 0);
+
+    expect(outcome).toMatchObject({ kind: 'started', session: { delivery: { kind: 'direct' } } });
+  });
+
+  it('direct plays when the forced language matches the file default', async () => {
+    const { service } = harness('de');
+
+    const outcome = await service.start(MEDIA_ID, capableProfile, 0);
+
+    expect(outcome).toMatchObject({ kind: 'started', session: { delivery: { kind: 'direct' } } });
+  });
+
+  it('falls back to a session, rather than a direct file serve, when the forced language differs from the file default', async () => {
+    const { service, startedSpecs } = harness('en');
+
+    const outcome = await service.start(MEDIA_ID, capableProfile, 0);
+
+    expect(outcome).toMatchObject({ kind: 'started', session: { delivery: { kind: 'hls' } } });
+    expect(startedSpecs).toMatchObject([{ audioStreamIndex: 2 }]);
+  });
+
+  it('still honours an explicit viewer track choice over the forced language', async () => {
+    const { service, startedSpecs } = harness('en');
+
+    const outcome = await service.start(MEDIA_ID, capableProfile, 0, 1);
+
+    expect(outcome).toMatchObject({ kind: 'started', session: { delivery: { kind: 'hls' } } });
+    expect(startedSpecs).toMatchObject([{ audioStreamIndex: 1 }]);
+  });
+
+  it('carries the forced language into the dry-run explanation', async () => {
+    const { service } = harness('en');
+
+    const explanation = await service.explain(MEDIA_ID, capableProfile);
+
+    expect(explanation?.plan.audio).toMatchObject({ streamIndex: 2 });
+  });
+
+  it('delegates a heartbeat to the media service', async () => {
+    const { service } = harness(null);
+
+    await expect(service.heartbeat('session-1', false)).resolves.toBe(true);
+  });
+});
 
 const item = (overrides: Partial<MediaItem> = {}): MediaItem => ({
   id: MEDIA_ID,
@@ -46,6 +225,7 @@ const profile = (overrides: Partial<DeviceProfile> = {}): DeviceProfile => ({
 
 const CAPABILITIES = {
   ffmpegVersion: 'ffmpeg 9.0',
+  ffmpegSupported: true,
   encoders: [{ codec: 'h264', encoder: 'libx264', accel: 'none', verified: true }],
   hardwareAccels: [],
   toneMapping: 'zscale' as const,
@@ -56,29 +236,23 @@ const CAPABILITIES = {
 };
 
 /**
- * A media service that answers, and a library that holds one film.
+ * The media service and the library, both as ports.
  *
- * Both are ports, so the whole service can be exercised without a database
- * behind it or a process to talk to.
+ * A second harness beside the one above because these tests turn on what the
+ * service does with what it is handed — a file that cannot be played as it
+ * is, a media service that refuses, a preview that is not ready — rather than
+ * on which audio track is chosen.
  */
 const build = (
   transcoderOverrides: Partial<Transcoder> = {},
   found: Awaited<ReturnType<MediaLookup['findForPlayback']>> | undefined = undefined,
 ) => {
   const transcoder: Transcoder = {
-    isReachable: () => Promise.resolve(true),
-    probe: () => Promise.reject(new Error('not asked for here')),
-    fingerprint: () => Promise.reject(new Error('not asked for here')),
-    readSubtitle: () => Promise.resolve(''),
-    readMonitor: () => Promise.resolve({}),
-    openMonitorStream: () => Promise.resolve(null),
+    ...anything(),
     capabilities: () => Promise.resolve(CAPABILITIES),
     startSession: () => Promise.resolve({ id: 'session-1', manifest: 'index.m3u8' }),
-    readSessionFile: () => Promise.resolve(null),
-    readFile: () => Promise.resolve(null),
     readFrame: () => Promise.resolve(new ArrayBuffer(4)),
     requestPreview: () => Promise.resolve({ id: 'clip-1', url: '/clip', isReady: true }),
-    readPreviewFile: () => Promise.resolve(null),
     requestTrickplay: () =>
       Promise.resolve({
         id: 'sheet-1',
@@ -91,9 +265,6 @@ const build = (
         index: 'thumbnails.vtt',
         isReady: true,
       }),
-    readTrickplayFile: () => Promise.resolve(null),
-    stopSession: () => Promise.resolve(true),
-    heartbeatSession: () => Promise.resolve(true),
     ...transcoderOverrides,
   };
 
@@ -101,7 +272,7 @@ const build = (
     findForPlayback: () =>
       Promise.resolve(
         found === undefined
-          ? { item: item(), path: '/media/arrival.mp4', defaultAudioLanguage: null }
+          ? { item: item(), path: '/media/arrival.mp4', defaultAudioLanguage: null, generation: 0 }
           : found,
       ),
   };
@@ -382,6 +553,7 @@ describe('the details a conversion has to be told', () => {
         item: withSubtitles,
         path: '/media/arrival.mp4',
         defaultAudioLanguage: null,
+        generation: 0,
       },
     );
 
@@ -397,6 +569,7 @@ describe('the details a conversion has to be told', () => {
         item: item({ audioStreams: [] }),
         path: '/media/silent.mp4',
         defaultAudioLanguage: null,
+        generation: 0,
       },
     );
 
@@ -424,6 +597,7 @@ describe('the details a conversion has to be told', () => {
         }),
         path: '/media/arrival.mp4',
         defaultAudioLanguage: null,
+        generation: 0,
       },
     );
 

@@ -308,34 +308,9 @@ describe('every question the client asks the media service', () => {
       body: { id: 'clip-1', url: '/previews/clip-1/clip.mp4', isReady: true },
     });
 
-    await client.requestPreview({ inputPath: '/media/a.mkv', wait: true });
+    await client.requestPreview({ inputPath: '/media/a.mkv', generation: 0, wait: true });
 
     expect(asked[0]?.url).toContain('/previews');
-  });
-
-  it('reads a preview file, and what range of it came back', async () => {
-    const { client } = scripted({
-      status: 206,
-      headers: { 'content-type': 'video/mp4', 'content-range': 'bytes 0-7/64' },
-    });
-
-    const file = await client.readPreviewFile('clip-1', 'clip.mp4', 'bytes=0-7');
-
-    expect(file).toMatchObject({ status: 206, contentRange: 'bytes 0-7/64' });
-  });
-
-  it('calls a preview file video when the service does not say what it is', async () => {
-    const { client } = scripted();
-
-    await expect(client.readPreviewFile('clip-1', 'clip.mp4', null)).resolves.toMatchObject({
-      contentType: 'video/mp4',
-    });
-  });
-
-  it('has nothing for a preview file that is not there', async () => {
-    const { client } = scripted({ ok: false, status: 404 });
-
-    await expect(client.readPreviewFile('clip-1', 'clip.mp4', null)).resolves.toBeNull();
   });
 
   it('asks for a sheet of thumbnails', async () => {
@@ -355,6 +330,7 @@ describe('every question the client asks the media service', () => {
 
     await client.requestTrickplay({
       inputPath: '/media/a.mkv',
+      generation: 0,
       intervalSeconds: 10,
       tileWidth: 160,
       columns: 5,

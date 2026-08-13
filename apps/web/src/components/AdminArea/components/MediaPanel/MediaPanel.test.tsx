@@ -23,7 +23,11 @@ const item = (overrides: Partial<MediaSummary> = {}): MediaSummary => ({
   ...overrides,
 });
 
-const props = { media: [], onCorrect: vi.fn() };
+const props = {
+  media: [],
+  onCorrect: vi.fn(),
+  onRebuildArtefacts: vi.fn().mockResolvedValue(true),
+};
 
 describe('MediaPanel', () => {
   it('lists what the libraries hold', () => {
@@ -116,6 +120,38 @@ describe('MediaPanel', () => {
     render(<MediaPanel {...props} media={[item({ hasPoster: false })]} />);
 
     expect(screen.getByText('Missing')).toBeInTheDocument();
+  });
+
+  it('offers to rebuild one item, for the case where a single preview is wrong', async () => {
+    const onRebuildArtefacts = vi.fn().mockResolvedValue(true);
+
+    render(<MediaPanel {...props} media={[item()]} onRebuildArtefacts={onRebuildArtefacts} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /Rebuild previews/ }));
+
+    expect(onRebuildArtefacts).toHaveBeenCalledWith(expect.objectContaining({ id: 'item-1' }));
+  });
+
+  it('says it will rebuild rather than that it has, because nothing is made yet', async () => {
+    render(<MediaPanel {...props} media={[item()]} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /Rebuild previews/ }));
+
+    expect(await screen.findByRole('button', { name: /Will rebuild/ })).toBeInTheDocument();
+  });
+
+  it('leaves the offer standing when the server would not do it', async () => {
+    render(
+      <MediaPanel
+        {...props}
+        media={[item()]}
+        onRebuildArtefacts={vi.fn().mockResolvedValue(false)}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /Rebuild previews/ }));
+
+    expect(await screen.findByRole('button', { name: /Rebuild previews/ })).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

@@ -68,6 +68,11 @@ const transcoderThat = (
   fingerprint: (path: string) => Fingerprint | Promise<Fingerprint>,
 ): Transcoder => ({
   isReachable: () => Promise.resolve(true),
+  measureCache: () => Promise.resolve(null),
+  sweepPreviews: () => Promise.reject(new Error('not used')),
+  forgetPreview: () => Promise.reject(new Error('not used')),
+  forgetTrickplay: () => Promise.reject(new Error('not used')),
+  sweepTrickplay: () => Promise.reject(new Error('not used')),
   probe: () => Promise.resolve(probe),
   startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
   readSessionFile: () => Promise.resolve(null),
@@ -97,6 +102,7 @@ const transcoderThat = (
   capabilities: () =>
     Promise.resolve({
       ffmpegVersion: 'test',
+      ffmpegSupported: true,
       encoders: [],
       hardwareAccels: [],
       hardwareScalers: [],

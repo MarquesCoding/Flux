@@ -70,6 +70,11 @@ const harness = (options: {
 
   const transcoder: Transcoder = {
     isReachable: () => Promise.resolve(true),
+    measureCache: () => Promise.resolve(null),
+    sweepPreviews: () => Promise.reject(new Error('not used')),
+    forgetPreview: () => Promise.reject(new Error('not used')),
+    forgetTrickplay: () => Promise.reject(new Error('not used')),
+    sweepTrickplay: () => Promise.reject(new Error('not used')),
     probe: options.probeImpl ?? (() => Promise.resolve(probe())),
     startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
     readSessionFile: () => Promise.resolve(null),
@@ -103,6 +108,7 @@ const harness = (options: {
     capabilities: () =>
       Promise.resolve({
         ffmpegVersion: 'test',
+        ffmpegSupported: true,
         encoders: [],
         hardwareAccels: [],
         hardwareScalers: [],
@@ -364,6 +370,11 @@ describe('scanLibrary', () => {
       },
       transcoder: {
         isReachable: () => Promise.resolve(true),
+        measureCache: () => Promise.resolve(null),
+        sweepPreviews: () => Promise.reject(new Error('not used')),
+        forgetPreview: () => Promise.reject(new Error('not used')),
+        forgetTrickplay: () => Promise.reject(new Error('not used')),
+        sweepTrickplay: () => Promise.reject(new Error('not used')),
         probe: () => Promise.reject(new Error('moov atom not found')),
         startSession: () => Promise.resolve({ id: 'x', manifest: '/x' }),
         readSessionFile: () => Promise.resolve(null),
@@ -394,6 +405,7 @@ describe('scanLibrary', () => {
         capabilities: () =>
           Promise.resolve({
             ffmpegVersion: 'test',
+            ffmpegSupported: true,
             encoders: [],
             hardwareAccels: [],
             hardwareScalers: [],

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { library, mediaItem } from '@FluxServer/db/Schema';
 import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
+import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import {
   createMediaStore,
@@ -16,6 +17,7 @@ import { groupIntoShows, buildShowDetail } from './groupIntoShows';
 import { resolveSeriesShape } from './MetadataProvider';
 import { regeneratePreviews } from './regeneratePreviews';
 import { generateTrickplay } from './generateTrickplay';
+import { rebuildItemArtefacts } from './rebuildItemArtefacts';
 import {
   TRICKPLAY_INTERVAL_SECONDS,
   TRICKPLAY_TILE_WIDTH,
@@ -486,6 +488,43 @@ const createDatabaseLibraryService = ({
       return { corrected: paths.paths.length, jobId };
     },
 
+    rebuildArtefacts: async (mediaId) => {
+      const rows = await db
+        .select({
+          path: mediaItem.path,
+          audioStreams: mediaItem.audioStreams,
+          generation: library.generation,
+          defaultAudioLanguage: library.defaultAudioLanguage,
+        })
+        .from(mediaItem)
+        .innerJoin(library, eq(library.id, mediaItem.libraryId))
+        .where(eq(mediaItem.id, mediaId))
+        .limit(1);
+
+      const row = rows[0];
+
+      if (row === undefined) {
+        return null;
+      }
+
+      return rebuildItemArtefacts({
+        item: {
+          path: row.path,
+          audioStreams: z.array(AudioStreamSchema).parse(row.audioStreams),
+          generation: row.generation,
+          defaultAudioLanguage: row.defaultAudioLanguage,
+        },
+        trickplay: {
+          intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
+          tileWidth: TRICKPLAY_TILE_WIDTH,
+          columns: TRICKPLAY_COLUMNS,
+          rows: TRICKPLAY_ROWS,
+        },
+        transcoder,
+        ...(onProblem === undefined ? {} : { onProblem }),
+      });
+    },
+
     getMedia: async (id) => {
       const rows = await db.select().from(mediaItem).where(eq(mediaItem.id, id)).limit(1);
       const row = rows[0];
@@ -558,6 +597,11 @@ const createDatabaseLibraryService = ({
       }
 
       await store.clear(libraryId);
+
+      await db
+        .update(library)
+        .set({ generation: sql`${library.generation} + 1` })
+        .where(eq(library.id, libraryId));
 
       const jobId = await jobs.enqueue(SCAN_LIBRARY_JOB, { libraryId, force: true }, libraryId);
 
@@ -651,6 +695,7 @@ const createDatabaseLibraryService = ({
     runRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {
       await regeneratePreviews({
         libraryId,
+        generation: (await findLibrary(libraryId))?.generation ?? 0,
         atOnce: await filesAtOnceFor(libraryId),
         store: {
           listOutstanding: (id) => listOutstandingFor(db, id, REGENERATE_PREVIEWS_JOB),
@@ -672,6 +717,7 @@ const createDatabaseLibraryService = ({
     runRegenerateTrickplay: async (libraryId, jobId) => {
       await generateTrickplay({
         libraryId,
+        generation: (await findLibrary(libraryId))?.generation ?? 0,
         atOnce: await filesAtOnceFor(libraryId),
         store: {
           listOutstanding: (id) => listOutstandingFor(db, id, REGENERATE_TRICKPLAY_JOB),

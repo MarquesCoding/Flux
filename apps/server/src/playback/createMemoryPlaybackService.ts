@@ -11,6 +11,17 @@ type MemoryPlaybackState = {
 };
 
 /**
+ * A one-chunk stream, standing in for a file arriving from the media service.
+ */
+const streamOf = (content: string): ReadableStream<Uint8Array> =>
+  new ReadableStream({
+    start: (controller) => {
+      controller.enqueue(new TextEncoder().encode(content));
+      controller.close();
+    },
+  });
+
+/**
  * Playback held in memory.
  *
  * Runs the real negotiator over the supplied items, so the routes are tested
@@ -111,10 +122,11 @@ const createMemoryPlaybackService = (
       state.media[mediaId] === undefined
         ? null
         : {
-            body: new TextEncoder().encode('clip').buffer,
+            body: streamOf('clip'),
             contentType: 'video/mp4',
             status: range === null ? 200 : 206,
             contentRange: range === null ? null : 'bytes 0-3/4',
+            contentLength: '4',
           },
     ),
 
@@ -130,10 +142,11 @@ const createMemoryPlaybackService = (
       state.media[mediaId] === undefined
         ? null
         : {
-            body: new TextEncoder().encode('film').buffer,
+            body: streamOf('film'),
             contentType: 'video/mp4',
             status: range === null ? 200 : 206,
             contentRange: range === null ? null : 'bytes 0-3/4',
+            contentLength: '4',
           },
     ),
 

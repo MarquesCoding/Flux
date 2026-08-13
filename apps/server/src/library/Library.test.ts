@@ -599,6 +599,30 @@ describe('library routes', () => {
   });
 });
 
+describe('rebuilding one item’s artefacts', () => {
+  it('throws away the preview and the thumbnails', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/artefacts/rebuild`, {
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ preview: true, trickplay: true });
+  });
+
+  it('answers 404 for an item that does not exist', async () => {
+    const { app } = build([detail()]);
+
+    const response = await app.request(
+      `${BASE}/api/media/${crypto.randomUUID()}/artefacts/rebuild`,
+      { method: 'POST' },
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
+
 describe('narrowing a library down', () => {
   it('offers only what belongs to a series when shows are asked for', async () => {
     const { app } = build([detail(), episodeOf()]);

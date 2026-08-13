@@ -1,10 +1,19 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { OverviewPanel } from './OverviewPanel';
+import { measureStorage } from '@FluxWeb/admin/fetchAdmin';
+import type * as FetchAdmin from '@FluxWeb/admin/fetchAdmin';
 import type { ActiveSession, AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin';
 import type { Library } from '@FluxContracts/schemas/Library';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
+
+vi.mock('@FluxWeb/admin/fetchAdmin', async (importOriginal) => ({
+  ...(await importOriginal<typeof FetchAdmin>()),
+  measureStorage: vi.fn(),
+}));
+
+const measured = vi.mocked(measureStorage);
 
 const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };
 
@@ -23,10 +32,12 @@ const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
     isReachable: true,
     address: 'unix:/tmp/flux-transcoder.sock',
     ffmpegVersion: '7.1',
+    ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
   },
-  library: { itemCount: 10, libraryCount: 1 },
+  library: { itemCount: 10, libraryCount: 1, bytes: 0 },
+  artwork: null,
   ...overrides,
 });
 
@@ -41,10 +52,13 @@ const monitor = (jobs: Job[] = [], queued = 0): Monitor => ({
     serviceMemoryBytes: 0,
     children: [],
     loadAverage: 0,
+    disks: [],
+    graphics: null,
   },
   queue: { concurrency: 1, queued, running: 0, jobs },
   sessions: 0,
   logs: [],
+  cache: null,
 });
 
 const library = (overrides: Partial<Library> = {}): Library => ({
@@ -217,11 +231,11 @@ describe('OverviewPanel', () => {
       const region = card('Server');
 
       expect(within(region).getByText('Up')).toBeInTheDocument();
-      expect(within(region).getByText('videotoolbox')).toBeInTheDocument();
+      expect(within(region).getByText('videotoolbox · automatic')).toBeInTheDocument();
       expect(within(region).getByText('8')).toBeInTheDocument();
     });
 
-    it('says None rather than nothing when there is no hardware encoding', () => {
+    it('says software only rather than nothing when there is no hardware encoding', () => {
       render(
         <OverviewPanel
           {...props}
@@ -230,6 +244,7 @@ describe('OverviewPanel', () => {
               isReachable: true,
               address: 'unix:/tmp/flux-transcoder.sock',
               ffmpegVersion: '7.1',
+              ffmpegSupported: true,
               hardwareAccels: [],
               rejectedEncoders: [],
             },
@@ -237,7 +252,7 @@ describe('OverviewPanel', () => {
         />,
       );
 
-      expect(within(card('Server')).getByText('None')).toBeInTheDocument();
+      expect(within(card('Server')).getByText('Software only')).toBeInTheDocument();
     });
 
     it('draws dashes rather than zeroes before anything has loaded', () => {
@@ -278,6 +293,7 @@ describe('OverviewPanel', () => {
             isReachable: true,
             address: 'unix:/tmp/flux-transcoder.sock',
             ffmpegVersion: '8.1.2',
+            ffmpegSupported: true,
             hardwareAccels: [],
             rejectedEncoders: [
               { encoder: 'h264_vaapi', reason: 'No VA display found for /dev/dri/renderD128.' },
@@ -289,5 +305,52 @@ describe('OverviewPanel', () => {
 
     expect(screen.getByText(/h264_vaapi was not used/)).toBeInTheDocument();
     expect(screen.getByText(/No VA display found/)).toBeInTheDocument();
+  });
+
+  describe('counting the storage again', () => {
+    const counted = {
+      cache: {
+        previews: { count: 1, bytes: 5 * 1024 ** 2 },
+        trickplay: { count: 1, bytes: 1024 },
+        sessions: { count: 0, bytes: 0 },
+        atMs: Date.now(),
+      },
+      artwork: { count: 2, bytes: 2048, atMs: Date.now() },
+      libraryBytes: 3 * 1024 ** 4,
+    };
+
+    it('offers a way to ask for the figures again', () => {
+      render(<OverviewPanel {...props} />);
+
+      expect(screen.getByRole('button', { name: /Refresh/ })).toBeInTheDocument();
+    });
+
+    it('shows what the count found, rather than what the timer last saw', async () => {
+      measured.mockResolvedValue(counted);
+
+      const actor = userEvent.setup();
+
+      render(<OverviewPanel {...props} />);
+      await actor.click(screen.getByRole('button', { name: /Refresh/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText('5.0 MB')).toBeInTheDocument();
+      });
+    });
+
+    it('leaves the figures alone when the count could not be made', async () => {
+      measured.mockResolvedValue(null);
+
+      const actor = userEvent.setup();
+
+      render(<OverviewPanel {...props} />);
+      await actor.click(screen.getByRole('button', { name: /Refresh/ }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Refresh/ })).toBeEnabled();
+      });
+
+      expect(screen.getAllByText('Still counting').length).toBeGreaterThan(0);
+    });
   });
 });

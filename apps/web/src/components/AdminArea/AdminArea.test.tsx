@@ -28,10 +28,12 @@ const OVERVIEW: AdminOverview = {
     isReachable: true,
     address: 'unix:/tmp/flux-transcoder.sock',
     ffmpegVersion: '9.0.1',
+    ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
   },
-  library: { itemCount: 15, libraryCount: 2 },
+  library: { itemCount: 15, libraryCount: 2, bytes: 0 },
+  artwork: null,
 };
 
 const MONITOR: Monitor = {
@@ -45,6 +47,11 @@ const MONITOR: Monitor = {
     serviceMemoryBytes: 200 * 1024 ** 2,
     children: [{ pid: 4242, cpuPercent: 190, memoryBytes: 300 * 1024 ** 2 }],
     loadAverage: 1.5,
+    disks: [
+      { mountPoint: '/', totalBytes: 500 * 1024 ** 3, availableBytes: 100 * 1024 ** 3 },
+      { mountPoint: '/media', totalBytes: 8 * 1024 ** 4, availableBytes: 2 * 1024 ** 4 },
+    ],
+    graphics: { name: 'Apple M5 Pro', encoderPercent: null, devicePercent: 41 },
   },
   queue: {
     concurrency: 2,
@@ -75,6 +82,7 @@ const MONITOR: Monitor = {
   },
   sessions: 1,
   logs: [{ atMs: 0, level: 'error', source: 'transcoder', message: 'Could not open the file' }],
+  cache: null,
 };
 
 const MOVIES_LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
@@ -363,6 +371,7 @@ describe('AdminArea', () => {
           isReachable: false,
           address: 'unix:/tmp/flux-transcoder.sock',
           ffmpegVersion: null,
+          ffmpegSupported: true,
           hardwareAccels: [],
           rejectedEncoders: [],
         },
@@ -378,6 +387,32 @@ describe('AdminArea', () => {
     render(<AdminArea />);
 
     expect(await screen.findByText('42%')).toBeInTheDocument();
+  });
+
+  it('says how much of the busy processor is Flux itself', async () => {
+    render(<AdminArea />);
+
+    expect(await screen.findByText('10 cores · Flux 19%')).toBeInTheDocument();
+  });
+
+  it('says the graphics figure is the whole card when the encoder cannot be read', async () => {
+    render(<AdminArea />);
+
+    expect(await screen.findByText('41%')).toBeInTheDocument();
+    expect(await screen.findByText('whole card, not encoder')).toBeInTheDocument();
+  });
+
+  it('names the card, and says what it will not say, where there is room for it', async () => {
+    render(<AdminArea />);
+
+    expect(await screen.findByText('Apple M5 Pro · encoder not readable')).toBeInTheDocument();
+  });
+
+  it('reports room left on the disk the library is on, not on the one Flux boots from', async () => {
+    render(<AdminArea />);
+
+    expect(await screen.findByText('2.0 TB free')).toBeInTheDocument();
+    expect(await screen.findByText('of 8.0 TB · /media')).toBeInTheDocument();
   });
 
   it('watches rather than asking every second whether anything happened', () => {
@@ -1012,6 +1047,55 @@ describe('AdminArea', () => {
     await actor.click(await screen.findByRole('tab', { name: 'Libraries' }));
 
     expect(await screen.findByText(/No libraries yet/)).toBeInTheDocument();
+  });
+
+  describe('the acceleration badge', () => {
+    const withAccel = (hardwareAccel: string) =>
+      respondWith({ ...OVERVIEW, settings: { ...OVERVIEW.settings, hardwareAccel } });
+
+    it('reports what was found when nobody has insisted', async () => {
+      render(<AdminArea />);
+
+      expect(await screen.findAllByText('videotoolbox · automatic')).not.toHaveLength(0);
+    });
+
+    it('stops claiming hardware once software only is forced', async () => {
+      fetchMock.mockImplementation(withAccel('none'));
+
+      render(<AdminArea />);
+
+      expect(await screen.findAllByText('Software only · forced')).not.toHaveLength(0);
+      expect(screen.queryByText(/videotoolbox/)).not.toBeInTheDocument();
+    });
+
+    it('reports the forced backend rather than the automatic pick', async () => {
+      fetchMock.mockImplementation(withAccel('nvenc'));
+
+      render(<AdminArea />);
+
+      expect(await screen.findAllByText('NVENC · forced')).not.toHaveLength(0);
+      expect(screen.queryByText(/videotoolbox/)).not.toBeInTheDocument();
+    });
+
+    it('marks a backend this machine cannot actually do', async () => {
+      fetchMock.mockImplementation(withAccel('nvenc'));
+
+      render(<AdminArea />);
+
+      const shown = await screen.findAllByText('NVENC · forced');
+
+      expect(shown.some((node) => node.className.includes('border-danger'))).toBe(true);
+    });
+
+    it('leaves a backend the machine verified unmarked', async () => {
+      fetchMock.mockImplementation(withAccel('videotoolbox'));
+
+      render(<AdminArea />);
+
+      const shown = await screen.findAllByText('VideoToolbox · forced');
+
+      expect(shown.some((node) => node.className.includes('border-danger'))).toBe(false);
+    });
   });
 });
 

@@ -29,6 +29,7 @@ import {
   runningScansRoute,
   correctMatchRoute,
   forgetCorrectionRoute,
+  rebuildArtefactsRoute,
   resetLibraryRoute,
   regeneratePreviewsRoute,
 } from './routes/LibraryRoute';
@@ -61,6 +62,7 @@ import {
 } from '@FluxServer/routes/FavouriteRoute';
 import {
   adminOverviewRoute,
+  adminMeasureStorageRoute,
   searchCatalogueRoute,
   adminSettingsRoute,
   adminSessionsRoute,
@@ -96,6 +98,7 @@ import {
   REGENERATE_TRICKPLAY_JOB,
   DETECT_SEGMENTS_JOB,
   CLEANUP_IMAGE_CACHE_JOB,
+  CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
 } from '@FluxServer/jobs/JobQueue';
@@ -146,6 +149,35 @@ import type { Permission } from '@FluxContracts/schemas/Permission';
 const PROFILE_HEADER = 'x-flux-profile';
 
 /**
+ * The headers that carry a forwarded media file.
+ *
+ * The media service decided the status, the range and the length; the server's
+ * job is to repeat them rather than recompute them. Assembled in one place
+ * because whole media and preview clips are forwarded identically and differ
+ * only in whether they may be cached.
+ */
+const forwardedFileHeaders = (
+  file: { contentType: string; contentRange: string | null; contentLength: string | null },
+  extra: Record<string, string> = {},
+): Record<string, string> => {
+  const headers: Record<string, string> = {
+    'content-type': file.contentType,
+    'accept-ranges': 'bytes',
+    ...extra,
+  };
+
+  if (file.contentRange !== null) {
+    headers['content-range'] = file.contentRange;
+  }
+
+  if (file.contentLength !== null) {
+    headers['content-length'] = file.contentLength;
+  }
+
+  return headers;
+};
+
+/**
  * What signing in by face carries.
  */
 const SignInBodySchema = z.object({ password: z.string().min(1) });
@@ -189,6 +221,26 @@ const describeRefusal = (refusal: RoleChangeRefusal): string =>
   refusal === 'outranked'
     ? 'That role is at or above your own.'
     : 'You cannot grant a permission you do not hold.';
+
+type ArtefactCount = { count: number; bytes: number };
+
+/**
+ * What a count of the caches found.
+ *
+ * Written out rather than borrowed from the transcoder client so the route's
+ * response stays a plain shape. A recursive `JsonValue` here is enough to
+ * defeat the OpenAPI schema inference for the whole app.
+ */
+type StorageCount = {
+  cache: {
+    previews: ArtefactCount;
+    trickplay: ArtefactCount;
+    sessions: ArtefactCount;
+    atMs: number;
+  } | null;
+  artwork: { count: number; bytes: number; atMs: number } | null;
+  libraryBytes: number;
+};
 
 type CreateAppOptions = {
   auth: FluxAuth;
@@ -283,6 +335,13 @@ type CreateAppOptions = {
   >;
   capabilities?: () => Promise<{
     ffmpegVersion: string;
+    /**
+     * Whether that version is one Flux vouches for.
+     *
+     * Optional so an older media service, which does not report it, reads as
+     * supported rather than as a warning nobody can act on.
+     */
+    ffmpegSupported?: boolean;
     hardwareAccels: string[];
     rejected?: { encoder: string; reason: string }[];
   }>;
@@ -290,6 +349,28 @@ type CreateAppOptions = {
    * What the media service is doing right now.
    */
   monitor?: () => Promise<JsonValue>;
+  /**
+   * How much disk the cached artwork is taking, counted on a timer elsewhere.
+   *
+   * Null while the first count is still running, and absent on a server with
+   * no artwork cache at all. Neither is an error and neither is zero.
+   */
+  artworkUsage?: () => { count: number; bytes: number; atMs: number } | null;
+  /**
+   * How much disk the media itself takes, across every library.
+   *
+   * The question an operator asks about a media server before any other, and
+   * the one figure on the storage section that is not Flux's own doing. A sum
+   * over rows Flux already keeps rather than a walk of the disk.
+   */
+  libraryBytes?: () => Promise<number>;
+  /**
+   * Counts both caches now, because an operator asked and is waiting.
+   *
+   * Separate from `artworkUsage` because that hands back what was already
+   * counted and this goes and walks the disks.
+   */
+  measureStorage?: () => Promise<StorageCount>;
   monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>;
   /**
    * Reads artwork from Flux's own cache, fetching it once if needed.
@@ -351,6 +432,9 @@ const createApp = ({
   promoteProfile,
   listUsers,
   capabilities,
+  artworkUsage,
+  libraryBytes,
+  measureStorage,
   monitor,
   monitorStream,
   readImage,
@@ -605,6 +689,18 @@ const createApp = ({
       : context.json(forgotten, 200);
   });
 
+  app.openapi(rebuildArtefactsRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'media.override'))) {
+      return context.json({ error: 'That is for administrators.' }, 404);
+    }
+
+    const rebuilt = await library.rebuildArtefacts(context.req.valid('param').id);
+
+    return rebuilt === null
+      ? context.json({ error: 'No such item.' }, 404)
+      : context.json(rebuilt, 200);
+  });
+
   app.openapi(runningScansRoute, (context) =>
     context.json(
       {
@@ -693,6 +789,7 @@ const createApp = ({
       startSeconds ?? 0,
       audioStreamIndex,
       requestedQuality,
+      clientId,
     );
 
     if (outcome.kind === 'notFound') {
@@ -749,16 +846,7 @@ const createApp = ({
       return context.json({ error: 'No such media item.' }, 404);
     }
 
-    const headers: Record<string, string> = {
-      'content-type': file.contentType,
-      'accept-ranges': 'bytes',
-    };
-
-    if (file.contentRange !== null) {
-      headers['content-range'] = file.contentRange;
-    }
-
-    return context.body(file.body, file.status === 206 ? 206 : 200, headers);
+    return context.body(file.body, file.status === 206 ? 206 : 200, forwardedFileHeaders(file));
   });
 
   app.openapi(trickplayRoute, async (context) => {
@@ -802,17 +890,11 @@ const createApp = ({
       return context.json({ error: 'No preview yet.' }, 404);
     }
 
-    const headers: Record<string, string> = {
-      'content-type': clip.contentType,
-      'accept-ranges': 'bytes',
-      'cache-control': 'public, max-age=86400',
-    };
-
-    if (clip.contentRange !== null) {
-      headers['content-range'] = clip.contentRange;
-    }
-
-    return context.body(clip.body, clip.status === 206 ? 206 : 200, headers);
+    return context.body(
+      clip.body,
+      clip.status === 206 ? 206 : 200,
+      forwardedFileHeaders(clip, { 'cache-control': 'public, max-age=86400' }),
+    );
   });
 
   app.openapi(trickplayFileRoute, async (context) => {
@@ -1043,6 +1125,23 @@ const createApp = ({
       : context.json({ error: 'That picture could not be used.' }, 400);
   });
 
+  app.openapi(adminMeasureStorageRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const measured = await measureStorage?.();
+
+    return context.json(
+      {
+        cache: measured?.cache ?? null,
+        artwork: measured?.artwork ?? null,
+        libraryBytes: measured?.libraryBytes ?? 0,
+      },
+      200,
+    );
+  });
+
   app.openapi(adminOverviewRoute, async (context) => {
     if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
@@ -1069,13 +1168,16 @@ const createApp = ({
           isReachable,
           address: transcoderAddress,
           ffmpegVersion: transcoderCapabilities?.ffmpegVersion ?? null,
+          ffmpegSupported: transcoderCapabilities?.ffmpegSupported ?? true,
           hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
           rejectedEncoders: transcoderCapabilities?.rejected ?? [],
         },
         library: {
           libraryCount: libraries.length,
           itemCount: libraries.reduce((total, entry) => total + entry.itemCount, 0),
+          bytes: await (libraryBytes?.() ?? Promise.resolve(0)),
         },
+        artwork: artworkUsage?.() ?? null,
       },
       200,
     );
@@ -1214,6 +1316,7 @@ const createApp = ({
 
     const maintenanceRunners: Record<string, () => Promise<{ jobId: string; state: string }>> = {
       [CLEANUP_IMAGE_CACHE_JOB]: () => maintenance.cleanupImageCache(),
+      [CLEANUP_ARTEFACT_CACHE_JOB]: () => maintenance.cleanupArtefactCache(),
       [CLEANUP_SESSIONS_JOB]: () => maintenance.cleanupSessions(),
       [CHECK_CATALOGUE_CONNECTIVITY_JOB]: () => maintenance.checkCatalogueConnectivity(),
     };
