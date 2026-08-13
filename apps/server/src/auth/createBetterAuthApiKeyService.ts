@@ -27,18 +27,33 @@ const A_DAY = 86_400_000;
  */
 const RowSchema = z.object({
   id: z.string(),
-  name: z.string().nullish(),
-  start: z.string().nullish(),
-  enabled: z.boolean().nullish(),
+  name: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? ''),
+  start: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? null),
+  enabled: z
+    .boolean()
+    .nullish()
+    .transform((value) => value !== false),
   expiresAt: z.union([z.date(), z.string()]).nullish(),
   lastRequest: z.union([z.date(), z.string()]).nullish(),
-  requestCount: z.number().nullish(),
+  requestCount: z
+    .number()
+    .nullish()
+    .transform((value) => value ?? 0),
+  rateLimitEnabled: z.boolean().nullish(),
+  rateLimitMax: z.number().nullish(),
+  rateLimitTimeWindow: z.number().nullish(),
   permissions: z.record(z.string(), z.array(z.string())).nullish(),
-  createdAt: z.union([z.date(), z.string()]).nullish(),
+  createdAt: z.union([z.date(), z.string()]),
 });
 
-const asIsoString = (value: Date | string | null | undefined): string | null =>
-  value instanceof Date ? value.toISOString() : (value ?? null);
+const asIsoString = (value: Date | string | null | undefined): string =>
+  value instanceof Date ? value.toISOString() : (value ?? '');
 
 /**
  * Reads the Flux permissions off a key.
@@ -79,14 +94,20 @@ const createBetterAuthApiKeyService = (auth: FluxAuth): ApiKeyService => {
 
     return {
       id: row.id,
-      name: row.name ?? '',
-      start: row.start ?? null,
-      enabled: row.enabled ?? true,
-      expiresAt: asIsoString(row.expiresAt),
-      lastRequestAt: asIsoString(row.lastRequest),
-      requestCount: row.requestCount ?? 0,
+      name: row.name,
+      start: row.start,
+      enabled: row.enabled,
+      expiresAt: asIsoString(row.expiresAt) === '' ? null : asIsoString(row.expiresAt),
+      lastRequestAt: asIsoString(row.lastRequest) === '' ? null : asIsoString(row.lastRequest),
+      requestCount: row.requestCount,
       permissions: readPermissions(row.permissions),
-      createdAt: asIsoString(row.createdAt) ?? new Date().toISOString(),
+      rateLimit:
+        row.rateLimitEnabled === true &&
+        typeof row.rateLimitMax === 'number' &&
+        typeof row.rateLimitTimeWindow === 'number'
+          ? { max: row.rateLimitMax, everySeconds: Math.round(row.rateLimitTimeWindow / 1000) }
+          : null,
+      createdAt: asIsoString(row.createdAt),
     };
   };
 
@@ -108,6 +129,13 @@ const createBetterAuthApiKeyService = (auth: FluxAuth): ApiKeyService => {
           ...(input.permissions === null
             ? {}
             : { permissions: { [NAMESPACE]: [...input.permissions] } }),
+          ...(input.rateLimit === null
+            ? { rateLimitEnabled: false }
+            : {
+                rateLimitEnabled: true,
+                rateLimitMax: input.rateLimit.max,
+                rateLimitTimeWindow: input.rateLimit.everySeconds * 1000,
+              }),
         },
       });
 

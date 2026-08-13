@@ -27,6 +27,7 @@ const key = (overrides: Partial<ApiKey> = {}): ApiKey => ({
   lastRequestAt: null,
   requestCount: 0,
   permissions: null,
+  rateLimit: null,
   createdAt: '2026-08-01T00:00:00.000Z',
   ...overrides,
 });
@@ -102,6 +103,7 @@ describe('ApiKeyPanel', () => {
         name: 'Dashboard',
         expiresInDays: null,
         permissions: null,
+        rateLimit: null,
       });
     });
   });
@@ -172,6 +174,14 @@ describe('ApiKeyPanel', () => {
     render(<ApiKeyPanel />);
 
     expect(await screen.findByText('1 permissions')).toBeInTheDocument();
+  });
+
+  it('says what a limited key is limited to', async () => {
+    fetchMock.mockReturnValue(Promise.resolve([key({ rateLimit: { max: 60, everySeconds: 60 } })]));
+
+    render(<ApiKeyPanel />);
+
+    expect(await screen.findByText('60 per 60s')).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

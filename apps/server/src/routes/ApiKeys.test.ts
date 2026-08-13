@@ -140,6 +140,23 @@ describe('holding API keys', () => {
     expect(Date.parse(made.expiresAt ?? '')).toBeGreaterThan(Date.now());
   });
 
+  it('gives a key no limiter unless one was asked for', async () => {
+    const { mint } = await signedInWith(['account.keys']);
+
+    expect((await mint({ name: 'Unlimited' })).rateLimit).toBeNull();
+  });
+
+  it('limits a key that was asked to be limited', async () => {
+    const { mint } = await signedInWith(['account.keys']);
+
+    const made = await mint({
+      name: 'Outside the house',
+      rateLimit: { max: 60, everySeconds: 60 },
+    });
+
+    expect(made.rateLimit).toEqual({ max: 60, everySeconds: 60 });
+  });
+
   it('turns a key off without destroying it, and back on', async () => {
     const { request, mint } = await signedInWith(['account.keys']);
 

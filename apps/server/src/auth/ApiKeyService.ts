@@ -30,6 +30,14 @@ type ApiKeyService = {
       name: string;
       expiresInDays: number | null;
       permissions: readonly Permission[] | null;
+      /**
+       * How many requests a key may make, and over what window.
+       *
+       * Null unless asked for. Off by default because a household running its
+       * own scripts does not want a limiter nobody chose; it earns its place
+       * on a key handed outside the house or one that has leaked.
+       */
+      rateLimit: { max: number; everySeconds: number } | null;
     },
   ) => Promise<CreatedApiKey>;
   /**

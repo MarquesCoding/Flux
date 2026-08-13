@@ -22,6 +22,9 @@ const ApiKey = z
     lastRequestAt: z.string().datetime().nullable(),
     requestCount: z.number().int().nonnegative(),
     permissions: z.array(Permission).nullable(),
+    rateLimit: z
+      .object({ max: z.number().int().positive(), everySeconds: z.number().int().positive() })
+      .nullable(),
     createdAt: z.string().datetime(),
   })
   .openapi('ApiKey');
@@ -36,6 +39,13 @@ const CreateApiKeyRequest = z
     name: z.string().min(1).max(100),
     expiresInDays: z.number().int().positive().max(3650).nullable().default(null),
     permissions: z.array(Permission).nullable().default(null),
+    rateLimit: z
+      .object({
+        max: z.number().int().positive().max(100_000),
+        everySeconds: z.number().int().positive().max(86_400),
+      })
+      .nullable()
+      .default(null),
   })
   .openapi('CreateApiKeyRequest');
 
