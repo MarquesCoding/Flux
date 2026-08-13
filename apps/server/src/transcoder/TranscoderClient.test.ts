@@ -186,44 +186,44 @@ describe('createTranscoderClient', () => {
   });
 });
 
+/**
+ * A media service that answers whatever the test says it does, and records
+ * what it was asked.
+ *
+ * The client is mostly a set of one-line calls whose entire behaviour is
+ * which address they use, what they send, and what they make of the answer.
+ * A scripted service is the only way to see any of that.
+ */
+const scripted = (
+  answer: Partial<{
+    ok: boolean;
+    status: number;
+    body: JsonValue;
+    bytes: ArrayBuffer;
+    headers: Record<string, string>;
+  }> = {},
+) => {
+  const asked: { url: string; init?: { method?: string; body?: string } }[] = [];
+
+  const client = createTranscoderClient({
+    baseUrl: 'http://127.0.0.1:8477',
+    fetchImpl: (url, init) => {
+      asked.push({ url, ...(init === undefined ? {} : { init }) });
+
+      return Promise.resolve({
+        ok: answer.ok ?? true,
+        status: answer.status ?? 200,
+        headers: { get: (name: string) => answer.headers?.[name] ?? null },
+        json: () => Promise.resolve(answer.body ?? {}),
+        arrayBuffer: () => Promise.resolve(answer.bytes ?? new ArrayBuffer(8)),
+      });
+    },
+  });
+
+  return { client, asked };
+};
+
 describe('every question the client asks the media service', () => {
-  /**
-   * A media service that answers whatever the test says it does, and records
-   * what it was asked.
-   *
-   * The client is mostly a set of one-line calls whose entire behaviour is
-   * which address they use, what they send, and what they make of the answer.
-   * A scripted service is the only way to see any of that.
-   */
-  const scripted = (
-    answer: Partial<{
-      ok: boolean;
-      status: number;
-      body: JsonValue;
-      bytes: ArrayBuffer;
-      headers: Record<string, string>;
-    }> = {},
-  ) => {
-    const asked: { url: string; init?: { method?: string; body?: string } }[] = [];
-
-    const client = createTranscoderClient({
-      baseUrl: 'http://127.0.0.1:8477',
-      fetchImpl: (url, init) => {
-        asked.push({ url, ...(init === undefined ? {} : { init }) });
-
-        return Promise.resolve({
-          ok: answer.ok ?? true,
-          status: answer.status ?? 200,
-          headers: { get: (name: string) => answer.headers?.[name] ?? null },
-          json: () => Promise.resolve(answer.body ?? {}),
-          arrayBuffer: () => Promise.resolve(answer.bytes ?? new ArrayBuffer(8)),
-        });
-      },
-    });
-
-    return { client, asked };
-  };
-
   it('starts a session by sending the whole specification', async () => {
     const { client, asked } = scripted({ body: { id: 'session-1', manifest: 'index.m3u8' } });
 
@@ -382,5 +382,76 @@ describe('every question the client asks the media service', () => {
     const { client } = scripted({ ok: false, status: 503 });
 
     await expect(client.readMonitor()).rejects.toThrow(/rejected/);
+  });
+});
+
+describe('reclaiming what nothing addresses any more', () => {
+  const USE = { count: 3, bytes: 1024 };
+
+  it('sweeps preview clips, keeping what is still wanted', async () => {
+    const { client, asked } = scripted({
+      body: { removed: 2, freedBytes: 4096, kept: 5, tooNew: 1 },
+    });
+
+    await expect(
+      client.sweepPreviews([{ inputPath: '/media/a.mkv', generation: 0 }]),
+    ).resolves.toMatchObject({ removed: 2, freedBytes: 4096, kept: 5, tooNew: 1 });
+
+    expect(asked[0]?.url).toContain('/previews/sweep');
+    expect(asked[0]?.init?.body).toContain('/media/a.mkv');
+  });
+
+  it('sweeps thumbnail sheets the same way', async () => {
+    const { client, asked } = scripted({
+      body: { removed: 0, freedBytes: 0, kept: 9, tooNew: 0 },
+    });
+
+    await expect(client.sweepTrickplay([])).resolves.toMatchObject({ kept: 9 });
+    expect(asked[0]?.url).toContain('/trickplay/sweep');
+  });
+
+  it('forgets one item’s preview, and says whether there was one', async () => {
+    const { client, asked } = scripted({ body: { forgotten: true } });
+
+    await expect(client.forgetPreview({ inputPath: '/media/a.mkv', generation: 0 })).resolves.toBe(
+      true,
+    );
+
+    expect(asked[0]?.url).toContain('/previews/forget');
+  });
+
+  it('forgets one item’s thumbnails', async () => {
+    const { client } = scripted({ body: { forgotten: false } });
+
+    await expect(
+      client.forgetTrickplay({
+        inputPath: '/media/a.mkv',
+        generation: 0,
+        intervalSeconds: 10,
+        tileWidth: 160,
+        columns: 5,
+        rows: 5,
+      }),
+    ).resolves.toBe(false);
+  });
+
+  it('measures what the cache is holding', async () => {
+    const { client } = scripted({
+      body: { previews: USE, trickplay: USE, sessions: USE, atMs: 1 },
+    });
+
+    await expect(client.measureCache()).resolves.toMatchObject({ previews: { count: 3 } });
+  });
+
+  it('has no measurement when the service would not give one', async () => {
+    const { client } = scripted({ ok: false, status: 503 });
+
+    await expect(client.measureCache()).resolves.toBeNull();
+  });
+
+  it('has no measurement when the answer is not one it recognises', async () => {
+    const { client } = scripted({ body: { nope: true } });
+
+    await expect(client.measureCache()).resolves.toBeNull();
   });
 });

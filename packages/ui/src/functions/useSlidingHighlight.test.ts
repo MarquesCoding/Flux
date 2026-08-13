@@ -134,3 +134,51 @@ describe('useSlidingHighlight', () => {
     expect(result.current.rect).toBeNull();
   });
 });
+
+describe('the moments there is nothing to measure', () => {
+  it('stays put when asked to move to a name nothing carries', () => {
+    const { container } = layOut();
+    const { result } = renderHook(() => useSlidingHighlight());
+
+    act(() => {
+      result.current.containerRef.current = container;
+      result.current.moveTo('first');
+    });
+
+    const held = result.current.rect;
+
+    act(() => {
+      result.current.moveTo('nothing-here');
+    });
+
+    expect(result.current.rect).toBe(held);
+  });
+
+  it('stays put when asked to move before there is anything to move within', () => {
+    const { result } = renderHook(() => useSlidingHighlight());
+
+    act(() => {
+      result.current.moveTo('first');
+    });
+
+    expect(result.current.rect).toBeNull();
+  });
+
+  it('holds the same measurement rather than a new one that says the same thing', () => {
+    const { container } = layOut();
+    const { result } = renderHook(() => useSlidingHighlight());
+
+    act(() => {
+      result.current.containerRef.current = container;
+      result.current.moveTo('first');
+    });
+
+    const held = result.current.rect;
+
+    act(() => {
+      result.current.moveTo('first');
+    });
+
+    expect(result.current.rect).toBe(held);
+  });
+});
