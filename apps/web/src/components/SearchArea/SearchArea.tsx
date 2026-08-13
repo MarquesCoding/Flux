@@ -125,6 +125,7 @@ const SearchArea = ({
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
+      exit="gone"
       className="flex flex-col gap-8 px-5 pb-16 pt-14 sm:px-10"
     >
       <motion.div

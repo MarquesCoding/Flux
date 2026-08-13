@@ -13,12 +13,15 @@ import type { GridSizeChooserProps } from './GridSizeChooser.types';
  * smallest to largest because that is the direction the cards grow in, and a
  * row of sizes that runs the other way has to be read twice.
  */
-const SIZES: readonly { id: MediaGridSize; label: string; Icon: ComponentType<{ size: number; 'aria-hidden': boolean }> }[] =
-  [
-    { id: 'small', label: 'Small cards, more of them', Icon: IconGrid4x4 },
-    { id: 'medium', label: 'Medium cards', Icon: IconGrid3x3 },
-    { id: 'large', label: 'Large cards, fewer of them', Icon: IconLayoutGrid },
-  ];
+const SIZES: readonly {
+  id: MediaGridSize;
+  label: string;
+  Icon: ComponentType<{ size: number; 'aria-hidden': boolean }>;
+}[] = [
+  { id: 'small', label: 'Small cards, more of them', Icon: IconGrid4x4 },
+  { id: 'medium', label: 'Medium cards', Icon: IconGrid3x3 },
+  { id: 'large', label: 'Large cards, fewer of them', Icon: IconLayoutGrid },
+];
 
 /**
  * How large the cards on a page of results are.

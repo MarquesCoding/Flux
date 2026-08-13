@@ -173,6 +173,7 @@ const LibraryBrowser = ({
       variants={staggerVariants}
       initial="hidden"
       animate="shown"
+      exit="gone"
       className="flex flex-col gap-8"
     >
       {hasHero && items.length > 0 ? (
