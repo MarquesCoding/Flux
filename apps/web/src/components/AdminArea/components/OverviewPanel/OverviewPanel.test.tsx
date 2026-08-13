@@ -231,7 +231,7 @@ describe('OverviewPanel', () => {
       const region = card('Server');
 
       expect(within(region).getByText('Up')).toBeInTheDocument();
-      expect(within(region).getByText('videotoolbox')).toBeInTheDocument();
+      expect(within(region).getByText('videotoolbox · automatic')).toBeInTheDocument();
       expect(within(region).getByText('8')).toBeInTheDocument();
     });
 

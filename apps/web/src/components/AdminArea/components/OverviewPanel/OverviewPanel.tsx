@@ -12,6 +12,7 @@ import { TrendChart } from '@FluxUI/TrendChart';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import { formatBytes } from '@FluxWeb/components/AdminArea/formatBytes';
 import { describeQueueKind } from '@FluxWeb/components/AdminArea/describeQueueKind';
+import { describeAcceleration } from '@FluxWeb/components/AdminArea/describeAcceleration';
 import { measureStorage } from '@FluxWeb/admin/fetchAdmin';
 import type { StorageCount } from '@FluxWeb/admin/fetchAdmin';
 import type { OverviewPanelProps } from './OverviewPanel.types';
@@ -119,6 +120,11 @@ const OverviewPanel = ({
     }
   };
 
+  const acceleration =
+    overview === null
+      ? null
+      : describeAcceleration(overview.settings.hardwareAccel, overview.transcoder.hardwareAccels);
+
   const now = Date.now();
   const watching = sessions.filter((session) => session.playback !== null);
   const running = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'running');
@@ -162,9 +168,11 @@ const OverviewPanel = ({
             <div className="flex items-baseline justify-between gap-3">
               <dt className="shrink-0 text-text-muted">Hardware encoding</dt>
               <dd className="min-w-0 truncate text-text">
-                {(overview?.transcoder.hardwareAccels ?? []).length === 0
-                  ? 'None'
-                  : (overview?.transcoder.hardwareAccels ?? []).join(', ')}
+                {acceleration === null
+                  ? '—'
+                  : acceleration.note === undefined
+                    ? acceleration.labels.join(', ')
+                    : `${acceleration.labels.join(', ')} · ${acceleration.note}`}
               </dd>
             </div>
 

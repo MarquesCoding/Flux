@@ -6,24 +6,8 @@ import { CardHeader } from '@FluxUI/CardHeader';
 import { OptionMenu } from '@FluxUI/OptionMenu';
 import { TextField } from '@FluxUI/TextField';
 import { saveCatalogueKey, saveHardwareAccel } from '@FluxWeb/admin/fetchAdmin';
+import { accelerationOptions } from '@FluxWeb/components/AdminArea/accelerationOptions';
 import type { SettingsPanelProps } from './SettingsPanel.types';
-
-/**
- * The backends an operator can insist on.
- *
- * Every name the media service understands, so what is read on the page is what
- * can be chosen. Automatic is first because it is right almost always.
- */
-const ACCEL_OPTIONS = [
-  { id: '', label: 'Automatic', detail: 'Use whichever the machine proves it can do' },
-  { id: 'vaapi', label: 'VAAPI', detail: 'Intel and AMD on Linux' },
-  { id: 'qsv', label: 'QuickSync', detail: 'Intel' },
-  { id: 'nvenc', label: 'NVENC', detail: 'NVIDIA' },
-  { id: 'amf', label: 'AMF', detail: 'AMD, needs the proprietary driver' },
-  { id: 'videotoolbox', label: 'VideoToolbox', detail: 'Apple' },
-  { id: 'rkmpp', label: 'RKMPP', detail: 'Rockchip' },
-  { id: 'none', label: 'Software only', detail: 'Never use the hardware' },
-];
 
 /**
  * What the instance is configured with, and who can sign into it.
@@ -63,13 +47,13 @@ const SettingsPanel = ({ overview, onCatalogueKeySaved }: SettingsPanelProps) =>
 
                   void saveHardwareAccel(id);
                 },
-                options: ACCEL_OPTIONS,
+                options: accelerationOptions,
               },
             ]}
             trigger={
               <>
                 <span className="truncate">
-                  {ACCEL_OPTIONS.find((option) => option.id === accel)?.label ?? 'Automatic'}
+                  {accelerationOptions.find((option) => option.id === accel)?.label ?? 'Automatic'}
                 </span>
 
                 <IconSelector size={15} className="shrink-0 text-text-muted" aria-hidden />

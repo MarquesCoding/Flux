@@ -38,6 +38,7 @@ import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
 import { describeGraphics } from './describeGraphics';
 import { describeCpuShare } from './describeCpuShare';
+import { describeAcceleration } from './describeAcceleration';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
   resumeRunning,
@@ -394,6 +395,10 @@ const AdminArea = ({
 
   const conversions = resources?.children ?? [];
   const cpuShare = fluxCpuShare(resources);
+  const acceleration =
+    overview === null
+      ? null
+      : describeAcceleration(overview.settings.hardwareAccel, overview.transcoder.hardwareAccels);
   const mediaDisk = libraryDisk(
     resources?.disks ?? [],
     libraries.map((library) => library.path),
@@ -455,11 +460,19 @@ const AdminArea = ({
                     : 'Media service unreachable'}
               </span>
 
-              {(overview?.transcoder.hardwareAccels ?? []).map((accel) => (
-                <Badge key={accel} size="sm">
-                  {accel}
-                </Badge>
-              ))}
+              {acceleration === null ? null : (
+                <span className="flex flex-wrap items-center gap-1.5">
+                  {acceleration.labels.map((label) => (
+                    <Badge key={label} size="sm">
+                      {label}
+                    </Badge>
+                  ))}
+
+                  {acceleration.note === undefined ? null : (
+                    <span className="text-xs text-text-muted">{acceleration.note}</span>
+                  )}
+                </span>
+              )}
             </p>
           </div>
         </motion.header>

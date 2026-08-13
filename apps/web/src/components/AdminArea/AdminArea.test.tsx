@@ -1048,4 +1048,35 @@ describe('AdminArea', () => {
 
     expect(await screen.findByText(/No libraries yet/)).toBeInTheDocument();
   });
+
+  describe('the acceleration badge', () => {
+    const withAccel = (hardwareAccel: string) =>
+      respondWith({ ...OVERVIEW, settings: { ...OVERVIEW.settings, hardwareAccel } });
+
+    it('reports what was found when nobody has insisted', async () => {
+      render(<AdminArea />);
+
+      expect(await screen.findByText('videotoolbox')).toBeInTheDocument();
+      expect(await screen.findByText('automatic')).toBeInTheDocument();
+    });
+
+    it('stops claiming hardware once software only is forced', async () => {
+      fetchMock.mockImplementation(withAccel('none'));
+
+      render(<AdminArea />);
+
+      expect(await screen.findByText('Software only')).toBeInTheDocument();
+      expect(screen.queryByText('videotoolbox')).not.toBeInTheDocument();
+    });
+
+    it('reports the forced backend rather than the automatic pick', async () => {
+      fetchMock.mockImplementation(withAccel('nvenc'));
+
+      render(<AdminArea />);
+
+      expect(await screen.findByText('NVENC')).toBeInTheDocument();
+      expect(await screen.findByText('forced')).toBeInTheDocument();
+      expect(screen.queryByText('videotoolbox')).not.toBeInTheDocument();
+    });
+  });
 });
