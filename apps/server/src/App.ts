@@ -954,7 +954,7 @@ const createApp = ({
    * an error.
    */
   const readProfileId = async (headers: Headers): Promise<string | null> => {
-    const session = await auth.api.getSession({ headers }).catch(() => null);
+    const session = await readSessionOnce(auth, headers);
     const viewer = session?.user;
 
     if (viewer === undefined || profiles === undefined) {
@@ -1539,7 +1539,7 @@ const createApp = ({
    * which need both their permissions and their rank.
    */
   const readActor = async (headers: Headers) => {
-    const session = await auth.api.getSession({ headers }).catch(() => null);
+    const session = await readSessionOnce(auth, headers);
 
     if (session === null) {
       return null;
@@ -2079,7 +2079,7 @@ const createApp = ({
 
   app.openapi(listDevicesRoute, async (context) => {
     const headers = context.req.raw.headers;
-    const session = await auth.api.getSession({ headers }).catch(() => null);
+    const session = await readSessionOnce(auth, headers);
 
     if (session === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401);
@@ -2104,7 +2104,7 @@ const createApp = ({
 
   app.openapi(endDeviceRoute, async (context) => {
     const headers = context.req.raw.headers;
-    const session = await auth.api.getSession({ headers }).catch(() => null);
+    const session = await readSessionOnce(auth, headers);
 
     if (session === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401);
@@ -2124,7 +2124,7 @@ const createApp = ({
 
   app.openapi(endOtherDevicesRoute, async (context) => {
     const headers = context.req.raw.headers;
-    const session = await auth.api.getSession({ headers }).catch(() => null);
+    const session = await readSessionOnce(auth, headers);
 
     if (session === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401);
