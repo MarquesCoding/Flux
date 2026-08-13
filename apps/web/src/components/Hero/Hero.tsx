@@ -8,7 +8,6 @@ import { cn } from '@FluxUI/cn';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import { PageDots } from '@FluxUI/PageDots';
-import type { MoodLight } from '@FluxUI/MoodBackground.types';
 import type { HeroProps } from './Hero.types';
 
 /**
@@ -77,33 +76,6 @@ const Hero = ({
   const prefersReducedMotion = useReducedMotion();
 
   const featured = items[index % Math.max(items.length, 1)];
-
-  /**
-   * Which item's light the page is allowed to be under.
-   *
-   * The outgoing picture stays on screen for the length of the crossfade, so
-   * for that second there are two of them reading their own colours several
-   * times a second and both offering them up. The one leaving has a picture
-   * that has finished loading and the one arriving does not, so left alone the
-   * departing item wins the argument and the page keeps the light of whatever
-   * was on it before.
-   *
-   * Held in a ref rather than passed down, because the reader that is leaving
-   * closed over the item it was rendered for and has to keep answering as that
-   * item — which is exactly what makes it recognisable as out of date.
-   */
-  const showingRef = useRef(featured?.id ?? null);
-
-  showingRef.current = featured?.id ?? null;
-
-  const reportPalette = useCallback(
-    (mediaId: string) => (lights: MoodLight[]) => {
-      if (showingRef.current === mediaId) {
-        onPalette?.(lights);
-      }
-    },
-    [onPalette],
-  );
   const resume = featured === undefined ? null : (resumeFor?.(featured.id) ?? null);
 
   useEffect(() => {
@@ -203,7 +175,7 @@ const Hero = ({
                 durationSeconds={featured.durationSeconds}
                 settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
                 onEnded={showNext}
-                {...(onPalette === undefined ? {} : { onPalette: reportPalette(featured.id) })}
+                {...(onPalette === undefined ? {} : { onPalette })}
                 fills
               />
             </motion.div>
