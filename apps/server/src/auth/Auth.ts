@@ -98,22 +98,7 @@ const createAuth = ({
       deviceAuthorization({ expiresIn: '10m', interval: '5s' }),
       bearer(),
       jwt(),
-      apiKey({
-        /**
-         * Let a request carrying a key resolve to its owner's session.
-         *
-         * Off by default in the plugin, and that default is why a key was
-         * previously accepted by better-auth's own endpoints and by nothing
-         * else — it could be minted and listed, and then refused by every
-         * route in Flux.
-         *
-         * Turning it on is what makes a key a credential rather than a record.
-         * What a key may then do is decided above this, where the account's
-         * permissions bound it: better-auth answers who, and Flux answers
-         * what.
-         */
-        enableSessionForAPIKeys: true,
-      }),
+      apiKey({ enableSessionForAPIKeys: true }),
       admin(),
       genericOAuth({ config: [] }),
       openAPI({ disableDefaultReference: true }),
