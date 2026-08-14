@@ -10,6 +10,7 @@ pub mod cache_sweep;
 pub mod cache_usage;
 pub mod capability;
 pub mod fingerprint;
+pub mod fragment;
 pub mod frame;
 pub mod graphics;
 pub mod integrity;
