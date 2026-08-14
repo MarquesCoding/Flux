@@ -1067,6 +1067,74 @@ impl TranscodePlan {
         });
     }
 
+    /// How the audio is treated, which is the same wherever it is asked for.
+    fn push_audio_args(&self, args: &mut Vec<String>) {
+        match &self.spec.audio {
+            AudioAction::Copy => {
+                args.push("-c:a".into());
+                args.push("copy".into());
+            }
+            AudioAction::Encode {
+                encoder,
+                channels,
+                max_bitrate_kbps,
+            } => {
+                args.push("-c:a".into());
+                args.push(encoder.clone());
+                args.push("-ac".into());
+                args.push(channels.to_string());
+                args.push("-b:a".into());
+                args.push(format!("{max_bitrate_kbps}k"));
+            }
+        }
+    }
+
+    /// The arguments describing what to produce, split around the input.
+    ///
+    /// A segment producer supplies its own input, its own extent and its own
+    /// output; what it needs from the plan is everything else — which device to
+    /// open, how to decode, what to encode to. Returned as the part that must
+    /// precede `-i` and the part that must follow it, because hardware
+    /// selection is an input option and codecs are output options, and putting
+    /// either in the wrong place changes what ffmpeg does.
+    #[must_use]
+    pub fn segment_arguments(&self) -> (Vec<String>, Vec<String>) {
+        let mut before: Vec<String> = Vec::new();
+        let on_the_gpu = frame_route(&self.spec, self.device_filters).decodes_on_the_device();
+
+        if on_the_gpu {
+            before.extend(self.spec.hardware_accel.device_arguments(&self.device));
+        }
+
+        if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
+            before.push("-hwaccel".into());
+            before.push(flag.into());
+        }
+
+        if on_the_gpu {
+            if let Some(pipeline) = self.spec.hardware_accel.pipeline() {
+                before.push("-hwaccel_output_format".into());
+                before.push(pipeline.output_format.into());
+            }
+        }
+
+        let mut after: Vec<String> = Vec::new();
+        let is_mapped = self.push_video_args(&mut after);
+
+        if let Some(index) = self.spec.audio_stream_index {
+            if !is_mapped {
+                after.push("-map".into());
+                after.push("0:v:0".into());
+                after.push("-map".into());
+                after.push(format!("0:{index}"));
+            }
+        }
+
+        self.push_audio_args(&mut after);
+
+        (before, after)
+    }
+
     /// Builds the `FFmpeg` argument vector for this plan.
     #[must_use]
     pub fn to_ffmpeg_args(&self) -> Vec<String> {
@@ -1114,24 +1182,7 @@ impl TranscodePlan {
             }
         }
 
-        match &self.spec.audio {
-            AudioAction::Copy => {
-                args.push("-c:a".into());
-                args.push("copy".into());
-            }
-            AudioAction::Encode {
-                encoder,
-                channels,
-                max_bitrate_kbps,
-            } => {
-                args.push("-c:a".into());
-                args.push(encoder.clone());
-                args.push("-ac".into());
-                args.push(channels.to_string());
-                args.push("-b:a".into());
-                args.push(format!("{max_bitrate_kbps}k"));
-            }
-        }
+        self.push_audio_args(&mut args);
 
         args.push("-f".into());
         args.push("hls".into());
@@ -1284,6 +1335,43 @@ mod tests {
         assert_ne!(plain.plan_id(), rescaled.plan_id());
         assert_ne!(plain.plan_id(), resegmented.plan_id());
         assert_ne!(plain.plan_id(), other_audio.plan_id());
+    }
+
+    /// A producer supplies its own input and output; the plan supplies the rest.
+    #[test]
+    fn splits_its_arguments_around_the_input() {
+        let (before, after) = plan(on_gpu(HardwareAccel::Vaapi)).segment_arguments();
+
+        assert!(
+            before.windows(2).any(|pair| pair == ["-hwaccel", "vaapi"]),
+            "decoding is chosen before the input: {before:?}"
+        );
+        assert!(
+            after.windows(2).any(|pair| pair[0] == "-c:v"),
+            "encoding is chosen after it: {after:?}"
+        );
+
+        for argument in before.iter().chain(after.iter()) {
+            assert_ne!(argument, "-i", "the producer supplies the input");
+            assert_ne!(argument, "-f", "the producer supplies the output");
+            assert_ne!(argument, "-ss", "the producer supplies the extent");
+        }
+    }
+
+    /// The audio is treated the same whether asked for whole or by segment.
+    #[test]
+    fn treats_audio_the_same_either_way() {
+        let session = plan(on_gpu(HardwareAccel::Vaapi));
+        let whole = session.to_ffmpeg_args();
+        let (_, after) = session.segment_arguments();
+
+        let codec_in = |args: &[String]| {
+            args.windows(2)
+                .find(|pair| pair[0] == "-c:a")
+                .map(|pair| pair[1].clone())
+        };
+
+        assert_eq!(codec_in(&whole), codec_in(&after));
     }
 
     fn keeps_frames_on_the_gpu_of(spec: &SessionSpec) -> bool {
