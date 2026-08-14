@@ -52,6 +52,23 @@ describe('watchPresence', () => {
     });
   });
 
+  it('passes an admin’s message on to anyone listening', () => {
+    const listener = vi.fn();
+
+    onPresenceEvent(listener);
+    watchPresence();
+    FakeEventSource.last?.onmessage?.(
+      new MessageEvent('message', {
+        data: JSON.stringify({ kind: 'message', text: 'Your dad wants the telly.' }),
+      }),
+    );
+
+    expect(listener).toHaveBeenCalledWith({
+      kind: 'message',
+      text: 'Your dad wants the telly.',
+    });
+  });
+
   it('ignores a message it cannot read, rather than throwing on the stream', () => {
     const listener = vi.fn();
 

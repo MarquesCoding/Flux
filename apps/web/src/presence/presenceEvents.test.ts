@@ -22,6 +22,15 @@ describe('presenceEvents', () => {
     expect(second).toHaveBeenCalled();
   });
 
+  it('carries a message’s words to a listener', () => {
+    const listener = vi.fn();
+
+    onPresenceEvent(listener);
+    emitPresenceEvent({ kind: 'message', text: 'Dinner is ready.' });
+
+    expect(listener).toHaveBeenCalledWith({ kind: 'message', text: 'Dinner is ready.' });
+  });
+
   it('stops telling a listener once it unsubscribes', () => {
     const listener = vi.fn();
     const stop = onPresenceEvent(listener);

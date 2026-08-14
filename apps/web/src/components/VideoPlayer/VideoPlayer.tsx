@@ -210,8 +210,8 @@ const VideoPlayer = ({
   const [state, setState] = useState<PlayerState>('starting');
   const [problem, setProblem] = useState<string | null>(null);
   const [adminMessage, setAdminMessage] = useState<{
-    kind: 'stopped' | 'paused';
-    reason: string;
+    kind: 'stopped' | 'paused' | 'message';
+    text: string;
   } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
@@ -740,14 +740,22 @@ const VideoPlayer = ({
 
         if (event.kind === 'stopped') {
           element?.pause();
-          setAdminMessage({ kind: 'stopped', reason: event.reason });
+          setAdminMessage({ kind: 'stopped', text: event.reason });
 
           return;
         }
 
         if (event.kind === 'paused') {
           element?.pause();
-          setAdminMessage({ kind: 'paused', reason: event.reason });
+          setAdminMessage({ kind: 'paused', text: event.reason });
+
+          return;
+        }
+
+        if (event.kind === 'message') {
+          setAdminMessage((current) =>
+            current?.kind === 'stopped' ? current : { kind: 'message', text: event.text },
+          );
 
           return;
         }
@@ -1354,7 +1362,7 @@ const VideoPlayer = ({
         {adminMessage === null ? null : (
           <AdminMessageOverlay
             kind={adminMessage.kind}
-            reason={adminMessage.reason}
+            text={adminMessage.text}
             onDismiss={() => {
               const wasStopped = adminMessage.kind === 'stopped';
 

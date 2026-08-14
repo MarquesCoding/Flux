@@ -1,5 +1,8 @@
 type PresenceEvent =
-  { kind: 'stopped'; reason: string } | { kind: 'paused'; reason: string } | { kind: 'resumed' };
+  | { kind: 'stopped'; reason: string }
+  | { kind: 'paused'; reason: string }
+  | { kind: 'resumed' }
+  | { kind: 'message'; text: string };
 
 type PresenceEventListener = (event: PresenceEvent) => void;
 

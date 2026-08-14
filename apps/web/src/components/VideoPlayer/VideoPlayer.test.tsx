@@ -1652,6 +1652,62 @@ describe('when an administrator reaches into the stream', () => {
     expect(await screen.findByText(/Dinner./)).toBeInTheDocument();
   });
 
+  it('shows a message without stopping the picture', async () => {
+    const { element } = await watching();
+
+    act(() => {
+      if (element instanceof HTMLVideoElement) {
+        void element.play();
+      }
+    });
+
+    act(() => {
+      emitPresenceEvent({ kind: 'message', text: 'Your dad wants the telly.' });
+    });
+
+    expect(await screen.findByText(/Your dad wants the telly./)).toBeInTheDocument();
+    expect(element instanceof HTMLVideoElement ? element.paused : true).toBe(false);
+  });
+
+  it('lets a message be dismissed, leaving the film where it was', async () => {
+    const { actor, element } = await watching();
+
+    act(() => {
+      if (element instanceof HTMLVideoElement) {
+        void element.play();
+      }
+    });
+
+    act(() => {
+      emitPresenceEvent({ kind: 'message', text: 'Your dad wants the telly.' });
+    });
+
+    await actor.click(await screen.findByRole('button', { name: 'Dismiss' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Your dad wants the telly./)).not.toBeInTheDocument();
+    });
+
+    expect(element instanceof HTMLVideoElement ? element.paused : true).toBe(false);
+  });
+
+  it('does not let a message push a stop off the screen', async () => {
+    await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'stopped', reason: 'An administrator stopped this stream.' });
+    });
+
+    await screen.findByText(/An administrator stopped this stream./);
+
+    act(() => {
+      emitPresenceEvent({ kind: 'message', text: 'Your dad wants the telly.' });
+    });
+
+    expect(screen.getByText(/An administrator stopped this stream./)).toBeInTheDocument();
+    expect(screen.queryByText(/Your dad wants the telly./)).not.toBeInTheDocument();
+  });
+
   it('takes the note away again when the stream is let go', async () => {
     await watching();
 

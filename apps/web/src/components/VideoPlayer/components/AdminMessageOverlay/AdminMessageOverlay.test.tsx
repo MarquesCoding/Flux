@@ -7,7 +7,7 @@ describe('AdminMessageOverlay', () => {
     render(
       <AdminMessageOverlay
         kind="stopped"
-        reason="This stream was stopped by an admin."
+        text="This stream was stopped by an admin."
         onDismiss={vi.fn()}
       />,
     );
@@ -18,7 +18,7 @@ describe('AdminMessageOverlay', () => {
   it('calls onDismiss when closed after a stop', async () => {
     const onDismiss = vi.fn();
 
-    render(<AdminMessageOverlay kind="stopped" reason="Stopped." onDismiss={onDismiss} />);
+    render(<AdminMessageOverlay kind="stopped" text="Stopped." onDismiss={onDismiss} />);
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
     expect(onDismiss).toHaveBeenCalled();
@@ -28,7 +28,7 @@ describe('AdminMessageOverlay', () => {
     render(
       <AdminMessageOverlay
         kind="paused"
-        reason="This stream was paused by an admin."
+        text="This stream was paused by an admin."
         onDismiss={vi.fn()}
       />,
     );
@@ -39,9 +39,31 @@ describe('AdminMessageOverlay', () => {
   it('calls onDismiss when the pause banner is dismissed', async () => {
     const onDismiss = vi.fn();
 
-    render(<AdminMessageOverlay kind="paused" reason="Paused." onDismiss={onDismiss} />);
+    render(<AdminMessageOverlay kind="paused" text="Paused." onDismiss={onDismiss} />);
     await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
 
     expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it('shows a message as the lighter banner rather than taking the stage', () => {
+    const { container } = render(
+      <AdminMessageOverlay kind="message" text="Your dad wants the telly." onDismiss={vi.fn()} />,
+    );
+
+    expect(screen.getByText('Your dad wants the telly.')).toBeInTheDocument();
+    expect(container.querySelector('.inset-0')).not.toBeInTheDocument();
+  });
+
+  it('lets a message be dismissed', async () => {
+    const onDismiss = vi.fn();
+
+    render(<AdminMessageOverlay kind="message" text="Dinner." onDismiss={onDismiss} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+
+    expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it('sets a display name so devtools can identify it', () => {
+    expect(AdminMessageOverlay.displayName).toBe('AdminMessageOverlay');
   });
 });
