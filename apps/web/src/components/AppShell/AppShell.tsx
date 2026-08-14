@@ -183,6 +183,8 @@ const AppShell = ({
                   control: (
                     <ActionMenu
                       label="Choose something at random"
+                      align="center"
+                      className="hover:bg-transparent data-[popup-open]:bg-transparent"
                       trigger={<IconDice5 size={20} aria-hidden />}
                       groups={[
                         {

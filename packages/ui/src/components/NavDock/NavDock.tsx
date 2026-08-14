@@ -174,7 +174,25 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                   )}
                 </Button>
               ) : (
-                <div key={action.id} className="flex items-center">
+                <div
+                  key={action.id}
+                  data-highlight={action.id}
+                  onPointerEnter={() => {
+                    setPointedAt(action.id);
+                  }}
+                  onFocus={() => {
+                    setPointedAt(action.id);
+                  }}
+                  className={cn(
+                    'relative flex items-center',
+                    'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
+                    lit === action.id || action.isCurrent === true
+                      ? 'text-text'
+                      : 'text-text-muted hover:text-text focus-visible:text-text',
+                  )}
+                >
+                  {lit === action.id ? mark : null}
+
                   {action.control}
                 </div>
               ),
