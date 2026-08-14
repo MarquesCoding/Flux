@@ -69,6 +69,7 @@ import {
   adminStopSessionRoute,
   adminPauseSessionRoute,
   adminResumeSessionRoute,
+  adminMessageSessionRoute,
   adminJobDefinitionsRoute,
   adminRunJobRoute,
   adminCancelJobRoute,
@@ -1430,6 +1431,18 @@ const createApp = ({
     }
 
     if (!presence.resume(context.req.valid('param').clientId)) {
+      return context.json({ error: 'That tab is not open.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(adminMessageSessionRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'streaming.message'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    if (!presence.message(context.req.valid('param').clientId, context.req.valid('json').text)) {
       return context.json({ error: 'That tab is not open.' }, 404);
     }
 

@@ -70,9 +70,15 @@ type PresenceEntry = {
 
 /**
  * A control message pushed down a tab's own presence connection.
+ *
+ * `message` is the odd one out and deliberately so: it carries words and
+ * nothing else, because it changes nothing about what is playing.
  */
 type PresenceControlEvent =
-  { kind: 'stopped'; reason: string } | { kind: 'paused'; reason: string } | { kind: 'resumed' };
+  | { kind: 'stopped'; reason: string }
+  | { kind: 'paused'; reason: string }
+  | { kind: 'resumed' }
+  | { kind: 'message'; text: string };
 
 type PresenceStartPlaybackInput = Omit<
   PresencePlayback,
@@ -144,6 +150,18 @@ type PresenceService = {
    * and notifies the viewer.
    */
   stop: (clientId: string, reason: string) => boolean;
+  /**
+   * Pushes a line of text to a tab, and touches nothing else.
+   *
+   * Not a variety of pause: playback, paused-by-admin and the session list are
+   * all left exactly as they were, because telling somebody the server is
+   * about to restart is not a reason to take their film away. Nothing is
+   * announced either — no watcher's view of this tab has changed.
+   *
+   * `false` when the tab is not connected, which is the ordinary answer for a
+   * viewer who closed the tab a moment ago rather than a fault.
+   */
+  message: (clientId: string, text: string) => boolean;
 };
 
 type Connection = {
@@ -290,6 +308,18 @@ const createPresenceService = (): PresenceService => {
       connection.entry.playback = null;
       connection.send({ kind: 'stopped', reason });
       announce();
+
+      return true;
+    },
+
+    message: (clientId, text) => {
+      const connection = connections.get(clientId);
+
+      if (connection === undefined) {
+        return false;
+      }
+
+      connection.send({ kind: 'message', text });
 
       return true;
     },

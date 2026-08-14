@@ -1,5 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
+import { SessionMessageSchema } from '@FluxContracts/schemas/SessionMessage';
 import { JobRunRequestSchema } from '@FluxServer/jobs/jobDefinitions';
 import { ScheduleTriggerSchema } from '@FluxServer/jobs/scheduleTrigger';
 import { ScanAccepted } from './LibraryRoute';
@@ -250,6 +251,38 @@ const adminResumeSessionRoute = createRoute({
     204: { description: 'The stream was resumed' },
     403: {
       description: 'Not an administrator',
+      content: { 'application/json': { schema: AdminError } },
+    },
+    404: {
+      description: 'That tab is not open',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+});
+
+const AdminSessionMessageSchema = SessionMessageSchema.openapi('AdminSessionMessage');
+
+/**
+ * Sends a viewer a line of text.
+ *
+ * The one control here that leaves playback alone: the film carries on
+ * playing while the note sits over the top of it. A tab that has just closed
+ * answers 404, which the caller is expected to treat as nothing to worry
+ * about rather than a failure.
+ */
+const adminMessageSessionRoute = createRoute({
+  method: 'post',
+  path: '/api/admin/sessions/{clientId}/message',
+  tags: ['Admin'],
+  summary: 'Send a viewer a message',
+  request: {
+    params: z.object({ clientId: z.string().min(1) }),
+    body: { content: { 'application/json': { schema: AdminSessionMessageSchema } } },
+  },
+  responses: {
+    204: { description: 'The message was delivered' },
+    403: {
+      description: 'Not allowed to message viewers',
       content: { 'application/json': { schema: AdminError } },
     },
     404: {
@@ -541,6 +574,7 @@ export {
   adminStopSessionRoute,
   adminPauseSessionRoute,
   adminResumeSessionRoute,
+  adminMessageSessionRoute,
   adminJobDefinitionsRoute,
   adminRunJobRoute,
   adminCancelJobRoute,

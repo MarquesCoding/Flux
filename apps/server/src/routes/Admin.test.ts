@@ -8,6 +8,7 @@ import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibr
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
 import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
+import { SESSION_MESSAGE_MAX_LENGTH } from '@FluxContracts/schemas/SessionMessage';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
@@ -804,6 +805,69 @@ describe('watching and steering what is being watched', () => {
     });
 
     expect(response.status).toBe(404);
+  });
+
+  it('sends a viewer a message without touching what they are watching', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1/message`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'Restarting in five minutes.' }),
+    });
+
+    expect(response.status).toBe(204);
+    expect(presence.list()[0]?.playback).toMatchObject({
+      isPlaying: true,
+      pausedByAdmin: false,
+      mediaTitle: 'Arrival',
+    });
+  });
+
+  it('has nowhere to send a message once the tab has closed', async () => {
+    const { app, store, permissions } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/nobody/message`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'Restarting in five minutes.' }),
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('refuses a message longer than the banner can hold', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1/message`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'a'.repeat(SESSION_MESSAGE_MAX_LENGTH + 1) }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('refuses a message that says nothing', async () => {
+    const { app, store, permissions, presence } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    watching(presence);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/tab-1/message`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ text: '   ' }),
+    });
+
+    expect(response.status).toBe(400);
   });
 
   it('stops somebody else’s stream', async () => {

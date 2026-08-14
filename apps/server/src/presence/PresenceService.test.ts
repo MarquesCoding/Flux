@@ -241,6 +241,56 @@ describe('the things presence is asked about tabs it does not have', () => {
     expect(said).not.toHaveBeenCalled();
   });
 
+  it('pushes a message to the tab it was sent to', () => {
+    const presence = createPresenceService();
+    const send = vi.fn();
+
+    presence.connect('tab-1', null, null, 'Chrome', send);
+
+    expect(presence.message('tab-1', 'Dinner is ready.')).toBe(true);
+    expect(send).toHaveBeenCalledWith({ kind: 'message', text: 'Dinner is ready.' });
+  });
+
+  it('leaves playback exactly as it was when a message is sent', () => {
+    const presence = createPresenceService();
+
+    presence.connect('tab-1', null, null, 'Chrome', vi.fn());
+    presence.startPlayback('tab-1', PLAYBACK);
+    presence.message('tab-1', 'Dinner is ready.');
+
+    expect(presence.list()[0]?.playback).toMatchObject({
+      isPlaying: true,
+      pausedByAdmin: false,
+      mediaTitle: 'Arrival',
+    });
+  });
+
+  it('says nothing to watchers about a message, because nothing about the tab changed', () => {
+    const presence = createPresenceService();
+    const said = vi.fn();
+
+    presence.connect('tab-1', null, null, 'Chrome', vi.fn());
+    presence.watch(said);
+    presence.message('tab-1', 'Dinner is ready.');
+
+    expect(said).not.toHaveBeenCalled();
+  });
+
+  it('answers no when the tab it was sent to has closed', () => {
+    const presence = createPresenceService();
+
+    expect(presence.message('nobody', 'Dinner is ready.')).toBe(false);
+  });
+
+  it('will message a tab that is not watching anything', () => {
+    const presence = createPresenceService();
+    const send = vi.fn();
+
+    presence.connect('tab-1', null, null, 'Chrome', send);
+
+    expect(presence.message('tab-1', 'Back in five.')).toBe(true);
+  });
+
   it('tells a watcher when a heartbeat says the position moved', () => {
     const presence = createPresenceService();
     const said = vi.fn();

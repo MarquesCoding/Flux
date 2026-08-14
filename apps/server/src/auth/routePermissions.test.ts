@@ -132,6 +132,29 @@ describe('what a route actually requires', () => {
       expect((await context.request('/api/admin/sessions/abc', 'DELETE')).status).toBe(403);
     });
 
+    it('does not let somebody who may only send a note stop a stream', async () => {
+      const context = await signedInWith(['streaming.message']);
+
+      expect((await context.request('/api/admin/sessions/abc', 'DELETE')).status).toBe(403);
+      expect((await context.request('/api/admin/sessions/abc/pause')).status).toBe(403);
+    });
+
+    it('does not let stopping a stream stand in for messaging one', async () => {
+      const context = await signedInWith(['streaming.stop']);
+
+      const response = await context.app.request(`${TEST_ORIGIN}/api/admin/sessions/abc/message`, {
+        method: 'POST',
+        headers: {
+          cookie: context.cookie,
+          origin: TEST_ORIGIN,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ text: 'Restarting in five minutes.' }),
+      });
+
+      expect(response.status).toBe(403);
+    });
+
     it('lets somebody with streaming.stop reach that route', async () => {
       const context = await signedInWith(['streaming.stop']);
 
@@ -227,6 +250,12 @@ describe('every gated route, asked by somebody with no permissions', () => {
     ['DELETE', '/api/admin/sessions/tab-1', 'streaming.stop'],
     ['POST', '/api/admin/sessions/tab-1/pause', 'streaming.pause'],
     ['POST', '/api/admin/sessions/tab-1/resume', 'streaming.pause'],
+    [
+      'POST',
+      '/api/admin/sessions/tab-1/message',
+      'streaming.message',
+      { body: { text: 'Restarting in five minutes.' } },
+    ],
     ['GET', '/api/admin/jobs/definitions', 'jobs.run'],
     ['POST', '/api/admin/jobs/library.scan/run', 'jobs.run'],
     ['POST', '/api/admin/jobs/running/job-1/cancel', 'jobs.run'],
