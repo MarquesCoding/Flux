@@ -129,6 +129,33 @@ const transcodingPlan: PlaybackPlan = {
 const media = { id: 'media-1', title: 'Arrival', durationSeconds: 7200 };
 
 /**
+ * An item with something to change to.
+ *
+ * Changing the audio track is the ordinary reason a session is torn down and
+ * another started now that a seek is not one.
+ */
+const detailWithTwoAudioTracks = {
+  id: 'media-1',
+  libraryId: 'library-1',
+  title: 'Arrival',
+  year: 2016,
+  container: 'mkv',
+  durationSeconds: 7200,
+  videoCodec: 'hevc',
+  videoRange: 'HDR10',
+  width: 1920,
+  height: 1080,
+  bitrateKbps: 12000,
+  subtitleStreams: [],
+  addedAt: '2026-08-10T00:00:00.000Z',
+  metadata: { hasPoster: false, hasBackdrop: false },
+  audioStreams: [
+    { index: 1, codec: 'aac', channels: 2, language: 'jpn', isDefault: true, isAtmos: false },
+    { index: 2, codec: 'ac3', channels: 6, language: 'eng', isDefault: false, isAtmos: false },
+  ],
+};
+
+/**
  * Declares how much of the stream the element could seek within.
  *
  * jsdom has no media pipeline, so a growing transcode has to be described
@@ -360,26 +387,7 @@ describe('VideoPlayer', () => {
 
   it('does not say a tab has stopped watching just for changing quality or track', async () => {
     const actor = userEvent.setup();
-    detailMock.mockResolvedValue({
-      id: 'media-1',
-      libraryId: 'library-1',
-      title: 'Arrival',
-      year: 2016,
-      container: 'mkv',
-      durationSeconds: 7200,
-      videoCodec: 'hevc',
-      videoRange: 'HDR10',
-      width: 1920,
-      height: 1080,
-      bitrateKbps: 12000,
-      subtitleStreams: [],
-      addedAt: '2026-08-10T00:00:00.000Z',
-      metadata: { hasPoster: false, hasBackdrop: false },
-      audioStreams: [
-        { index: 1, codec: 'aac', channels: 2, language: 'jpn', isDefault: true, isAtmos: false },
-        { index: 2, codec: 'ac3', channels: 6, language: 'eng', isDefault: false, isAtmos: false },
-      ],
-    });
+    detailMock.mockResolvedValue(detailWithTwoAudioTracks);
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
@@ -669,7 +677,7 @@ describe('VideoPlayer', () => {
     });
   });
 
-  it('seeks inside the session when the target is already encoded', async () => {
+  it('seeks inside the stream rather than asking for anything', async () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
@@ -685,7 +693,7 @@ describe('VideoPlayer', () => {
     expect(startMock).toHaveBeenCalledTimes(1);
   });
 
-  it('starts a new session when the target has not been encoded yet', async () => {
+  it('seeks past what has been transcoded without starting another session', async () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
@@ -696,18 +704,13 @@ describe('VideoPlayer', () => {
     });
 
     await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith(
-        'media-1',
-        { name: 'Browser' },
-        'client-1',
-        3600,
-        undefined,
-        'original',
-      );
+      expect(element).toHaveProperty('currentTime', 3600);
     });
+
+    expect(startMock).toHaveBeenCalledTimes(1);
   });
 
-  it('stops the session it is seeking away from', async () => {
+  it('keeps the session it is seeking within', async () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
@@ -718,32 +721,19 @@ describe('VideoPlayer', () => {
     });
 
     await waitFor(() => {
-      expect(stopMock).toHaveBeenCalledWith('abc');
+      expect(element).toHaveProperty('currentTime', 3600);
     });
+
+    expect(stopMock).not.toHaveBeenCalled();
   });
 
-  it('reports the position on the film, not inside the session', async () => {
+  it('reports the position on the film, which is the timeline it is playing', async () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
-    seekableTo(element, 30);
+    seekableTo(element, 7200);
 
-    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
-      target: { value: '3600' },
-    });
-
-    await waitFor(() => {
-      expect(startMock).toHaveBeenCalledWith(
-        'media-1',
-        { name: 'Browser' },
-        'client-1',
-        3600,
-        undefined,
-        'original',
-      );
-    });
-
-    Object.defineProperty(element, 'currentTime', { value: 12, writable: true });
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 3612 });
     fireEvent.timeUpdate(element);
 
     expect(await screen.findByText('1:00:12')).toBeInTheDocument();
@@ -774,41 +764,47 @@ describe('VideoPlayer', () => {
     expect(startMock).toHaveBeenCalledTimes(1);
   });
 
-  it('holds the last frame rather than blanking while a seek restarts', async () => {
+  it('holds the last frame rather than blanking while the stream changes', async () => {
+    const actor = userEvent.setup();
+    detailMock.mockResolvedValue(detailWithTwoAudioTracks);
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival');
-    seekableTo(element, 30);
+    await settled();
+
+    const element = screen.getByLabelText('Arrival');
     showingAFrame(element);
     startMock.mockReturnValue(new Promise(() => undefined));
 
-    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
-      target: { value: '3600' },
-    });
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Audio track/ }));
+    await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }));
 
-    expect(await screen.findByRole('status', { name: 'Seeking' })).toBeInTheDocument();
+    expect(await screen.findByRole('status', { name: 'Changing the stream' })).toBeInTheDocument();
     expect(screen.queryByRole('status', { name: 'Preparing playback' })).not.toBeInTheDocument();
   });
 
-  it('lets the new session replace the held frame once it is playing', async () => {
+  it('lets the new stream replace the held frame once it is playing', async () => {
+    const actor = userEvent.setup();
+    detailMock.mockResolvedValue(detailWithTwoAudioTracks);
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    const element = await screen.findByLabelText('Arrival');
-    seekableTo(element, 30);
+    await settled();
+
+    const element = screen.getByLabelText('Arrival');
     showingAFrame(element);
     startMock.mockReturnValue(new Promise(() => undefined));
 
-    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
-      target: { value: '3600' },
-    });
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Audio track/ }));
+    await actor.click(await screen.findByRole('menuitemradio', { name: 'English · 5.1 · AC3' }));
 
-    await screen.findByRole('status', { name: 'Seeking' });
+    await screen.findByRole('status', { name: 'Changing the stream' });
 
     Object.defineProperty(element, 'currentTime', { configurable: true, value: 2 });
     fireEvent.timeUpdate(element);
 
     await waitFor(() => {
-      expect(screen.queryByRole('status', { name: 'Seeking' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('status', { name: 'Changing the stream' })).not.toBeInTheDocument();
     });
   });
 
@@ -1088,26 +1084,7 @@ describe('VideoPlayer', () => {
 
   it('restarts where it left off when a viewer picks another soundtrack', async () => {
     const actor = userEvent.setup();
-    detailMock.mockResolvedValue({
-      id: 'media-1',
-      libraryId: 'library-1',
-      title: 'Arrival',
-      year: 2016,
-      container: 'mkv',
-      durationSeconds: 7200,
-      videoCodec: 'hevc',
-      videoRange: 'HDR10',
-      width: 1920,
-      height: 1080,
-      bitrateKbps: 12000,
-      subtitleStreams: [],
-      addedAt: '2026-08-10T00:00:00.000Z',
-      metadata: { hasPoster: false, hasBackdrop: false },
-      audioStreams: [
-        { index: 1, codec: 'aac', channels: 2, language: 'jpn', isDefault: true, isAtmos: false },
-        { index: 2, codec: 'ac3', channels: 6, language: 'eng', isDefault: false, isAtmos: false },
-      ],
-    });
+    detailMock.mockResolvedValue(detailWithTwoAudioTracks);
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
