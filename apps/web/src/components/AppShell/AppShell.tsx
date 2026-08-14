@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import {
-  IconClock,
-  IconClockFilled,
+  IconDeviceTv,
+  IconDeviceTvFilled,
   IconDice5,
   IconHeart,
   IconHeartFilled,
@@ -15,7 +15,6 @@ import {
   IconTrendingUp,
   IconUserCircle,
   IconUserFilled,
-  IconVideoFilled,
 } from '@tabler/icons-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { NavDock } from '@FluxUI/NavDock';
@@ -31,7 +30,7 @@ import type { AppShellProps, ShellSection } from './AppShell.types';
  */
 const SECTION_ICONS: Record<ShellSection, ReactNode> = {
   home: <IconHome size={18} aria-hidden />,
-  shows: <IconClock size={18} aria-hidden />,
+  shows: <IconDeviceTv size={18} aria-hidden />,
   films: <IconMovie size={18} aria-hidden />,
   new: <IconTrendingUp size={18} aria-hidden />,
   favourites: <IconHeart size={18} aria-hidden />,
@@ -41,16 +40,19 @@ const SECTION_ICONS: Record<ShellSection, ReactNode> = {
 };
 
 /**
- * The same mark, filled, for the place being stood on.
+ * The same mark, heavier, for the place being stood on.
  *
- * Filled rather than a different glyph, so arriving somewhere changes the
- * weight of a shape that was already there instead of swapping it for another
- * drawing.
+ * Never a different glyph: arriving somewhere changes the weight of a shape
+ * that was already there rather than swapping it for another drawing.
+ *
+ * Filled where Tabler draws a filled twin, and a thicker stroke where it does
+ * not. `movie` and `trending-up` have none, and reaching for the nearest
+ * filled thing instead is how this section came to turn into a camcorder.
  */
 const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
   home: <IconHomeFilled size={18} aria-hidden />,
-  shows: <IconClockFilled size={18} aria-hidden />,
-  films: <IconVideoFilled size={18} aria-hidden />,
+  shows: <IconDeviceTvFilled size={18} aria-hidden />,
+  films: <IconMovie size={18} stroke={3} aria-hidden />,
   new: <IconTrendingUp size={18} stroke={3} aria-hidden />,
   favourites: <IconHeartFilled size={18} aria-hidden />,
   search: <IconSearchFilled size={18} aria-hidden />,
