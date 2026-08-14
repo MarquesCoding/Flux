@@ -16,6 +16,7 @@ pub mod integrity;
 pub mod keyframes;
 pub mod media;
 pub mod monitor;
+pub mod playlist;
 pub mod preview;
 pub mod probe;
 pub mod queue;
