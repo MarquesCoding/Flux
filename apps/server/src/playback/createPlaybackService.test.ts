@@ -119,6 +119,7 @@ const harness = (defaultAudioLanguage: string | null) => {
         encoders: [],
         hardwareAccels: [],
         hardwareScalers: [],
+        hardwareOverlays: [],
         rejected: [],
         toneMapping: 'unavailable' as const,
         canBurnTextSubtitles: true,
@@ -233,6 +234,7 @@ const CAPABILITIES = {
   canBurnTextSubtitles: true,
   canBurnImageSubtitles: true,
   hardwareScalers: [],
+  hardwareOverlays: [],
   rejected: [],
 };
 

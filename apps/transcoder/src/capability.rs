@@ -207,6 +207,16 @@ pub struct Capabilities {
     /// software, losing most of the point of the acceleration.
     #[serde(default)]
     pub hardware_scalers: Vec<String>,
+    /// The hardware compositors this build actually has.
+    ///
+    /// What lets subtitles be burned in without bringing the video down: the
+    /// overlay is built as its own small stream, uploaded, and drawn on the
+    /// device. Probed separately from the scaler because having one does not
+    /// imply the other — `overlay_videotoolbox` is a flux-ffmpeg patch rather
+    /// than an upstream filter, so a stock build has `scale_vt` and no
+    /// compositor to go with it.
+    #[serde(default)]
+    pub hardware_overlays: Vec<String>,
 }
 
 /// Chooses a tone mapping route from the filters a build actually has.
@@ -286,6 +296,21 @@ pub fn parse_listed_encoders(output: &str) -> Vec<String> {
 /// depends on how `FFmpeg` was compiled and on its version: `scale_vt` arrived
 /// in 7.0, and some builds ship `scale_npp` in place of `scale_cuda`.
 pub const HARDWARE_SCALERS: [&str; 4] = ["scale_vt", "scale_cuda", "vpp_qsv", "scale_vaapi"];
+
+/// Every hardware compositor Flux might ask for.
+///
+/// Verified against the shipped arm64 package, which has `overlay_vaapi`,
+/// `overlay_cuda`, `overlay_opencl`, `overlay_vulkan` and `overlay_rkrga`.
+/// `overlay_qsv` is absent there because QSV is not built for arm, and
+/// `overlay_videotoolbox` because the package is Linux only — both are listed
+/// so the backends that do have them are not left on the software path.
+pub const HARDWARE_OVERLAYS: [&str; 5] = [
+    "overlay_videotoolbox",
+    "overlay_cuda",
+    "overlay_qsv",
+    "overlay_vaapi",
+    "overlay_rkrga",
+];
 
 /// The smallest picture the encoders Flux drives are known to accept.
 ///
@@ -539,6 +564,11 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
             .filter(|scaler| filters.iter().any(|filter| filter == *scaler))
             .map(|scaler| (*scaler).to_owned())
             .collect(),
+        hardware_overlays: HARDWARE_OVERLAYS
+            .iter()
+            .filter(|overlay| filters.iter().any(|filter| filter == *overlay))
+            .map(|overlay| (*overlay).to_owned())
+            .collect(),
         rejected,
         can_burn_text_subtitles: filters.iter().any(|filter| filter == "subtitles"),
         can_burn_image_subtitles: filters.iter().any(|filter| filter == "overlay"),
@@ -780,6 +810,7 @@ mod tests {
             hardware_accels: Vec::new(),
             tone_mapping: ToneMapping::Unavailable,
             rejected: Vec::new(),
+            hardware_overlays: Vec::new(),
             hardware_scalers: Vec::new(),
             can_burn_text_subtitles: false,
             can_burn_image_subtitles: false,
