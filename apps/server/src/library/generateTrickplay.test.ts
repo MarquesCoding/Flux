@@ -48,6 +48,7 @@ const stubTranscoder = (requestTrickplay: Transcoder['requestTrickplay']): Trans
       encoders: [],
       hardwareAccels: [],
       hardwareScalers: [],
+      hardwareOverlays: [],
       rejected: [],
       toneMapping: 'unavailable' as const,
       canBurnTextSubtitles: true,

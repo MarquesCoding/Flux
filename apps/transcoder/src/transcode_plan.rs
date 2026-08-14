@@ -334,47 +334,181 @@ pub fn software_equivalent(encoder: &str) -> &'static str {
     "libx264"
 }
 
-/// Whether this session can run without ever bringing frames back.
+/// How frames travel from the decoder to the encoder.
 ///
-/// A single gate answering yes or no for the whole session, rather than
-/// downloading and re-uploading around individual filters. That is the shape
-/// Jellyfin settled on, and the reasoning holds here: the combinations that
-/// force frames down are the ones a mixed chain gets wrong, and a chain that
-/// is entirely one thing or entirely the other can be read and tested.
+/// This began as one gate answering yes or no for the whole session, on the
+/// reasoning that a chain entirely one thing or entirely the other can be read
+/// and tested. That held while the only alternative was a fully software
+/// chain, and it cost far too much: a single burned-in subtitle sent the
+/// decode, the scale and every frame back through system memory, when only the
+/// one filter needed to be there.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrameRoute {
+    /// Decoded, scaled and encoded without ever leaving the device.
+    OnDevice,
+    /// On the device, down for the one filter that needs system memory, back up
+    /// for the encoder.
+    ///
+    /// The scale happens before the descent, so what crosses the bus is the
+    /// output picture rather than the source — and a subtitle is drawn at the
+    /// size it will be watched at rather than shrunk afterwards.
+    DownAndBack,
+    /// The video never leaves the device; the subtitle is uploaded to meet it.
+    ///
+    /// Better than `DownAndBack` at the same job, because what crosses the bus
+    /// is the overlay rather than the film. A bitmap subtitle is a small
+    /// picture that changes a few times a minute, and text is drawn onto a
+    /// transparent canvas of the same size — either way the video stays put.
+    Composited,
+    /// System memory throughout, which is what Flux did everywhere.
+    InSoftware,
+}
+
+impl FrameRoute {
+    /// Whether the decoder should hand back device frames.
+    ///
+    /// True for every hardware route. `DownAndBack` still decodes on the
+    /// device — it comes down later and by choice, which is the whole
+    /// difference between it and `InSoftware`.
+    #[must_use]
+    pub fn decodes_on_the_device(self) -> bool {
+        !matches!(self, Self::InSoftware)
+    }
+}
+
+/// How often the transparent canvas carrying text subtitles is redrawn.
 ///
-/// It says no when:
+/// Text has no framerate of its own, so the canvas needs one chosen for it.
+/// Jellyfin drops plain subtitles to ten a second and follows the video for
+/// `ASS`, which can animate; Flux does not currently carry the subtitle codec
+/// or the source framerate this far, so it uses the figure Jellyfin falls back
+/// to when it does not know either. Raising it costs software rendering of the
+/// overlay and nothing on the device.
+const TEXT_OVERLAY_FPS: u32 = 25;
+
+/// The filter graph that draws subtitles on without bringing the video down.
+///
+/// Both kinds end the same way — a picture in the compositor's format, uploaded
+/// to the device, drawn onto frames that never left it. They differ only in
+/// where that picture comes from: a bitmap subtitle is already one, and text is
+/// rendered onto a transparent canvas by the same `subtitles` filter that used
+/// to be pointed at the video itself. `sub2video=1` is what makes it draw onto
+/// the canvas rather than expecting frames to write over.
+///
+/// The bitmap branch pads to the output size rather than trusting the subtitle
+/// to share the video's aspect ratio. `SubtitleAction` does not carry the
+/// subtitle's own dimensions, so this takes the general form, which is also
+/// what Jellyfin uses whenever it cannot compare the two.
+fn composited_graph(
+    scale: &str,
+    pipeline: HardwarePipeline,
+    subtitles: &SubtitleAction,
+    input_path: &str,
+    width: u32,
+    height: u32,
+) -> Option<String> {
+    let SubtitleAction::BurnIn {
+        subtitle_index,
+        is_image_based,
+    } = subtitles
+    else {
+        return None;
+    };
+
+    let overlay = format!("{}=eof_action=pass:repeatlast=0", pipeline.overlay);
+    let format = pipeline.overlay_format;
+    let upload = pipeline.overlay_upload;
+
+    let subtitle_branch = if *is_image_based {
+        format!(
+            "[0:s:{subtitle_index}]scale,scale=-1:{height}:fast_bilinear,crop,\
+             pad=max({width}\\,iw):max({height}\\,ih):(ow-iw)/2:(oh-ih)/2:black@0,\
+             crop={width}:{height},format={format},{upload}[sub]"
+        )
+    } else {
+        format!(
+            "alphasrc=s={width}x{height}:r={TEXT_OVERLAY_FPS},format={format},\
+             subtitles='{}':si={subtitle_index}:alpha=1:sub2video=1,{upload}[sub]",
+            escape_filter_path(input_path)
+        )
+    };
+
+    Some(format!(
+        "[0:v]{scale}[base];{subtitle_branch};[base][sub]{overlay}[v]"
+    ))
+}
+
+/// Which of the filters Flux needs this build actually has.
+///
+/// Both are properties of how `FFmpeg` was compiled rather than of the
+/// hardware, and having one does not imply the other: a stock macOS build has
+/// `scale_vt` and no `overlay_videotoolbox`, because that filter is a patch
+/// flux-ffmpeg carries. Asking separately keeps such a build on the route it
+/// can actually run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct DeviceFilters {
+    pub scaler: bool,
+    pub overlay: bool,
+}
+
+/// Which route this session can take.
+///
+/// `InSoftware` when:
 ///
 /// - this build has no scaler for the backend's frames;
-/// - the backend has no end-to-end pipeline, which is `Amf`, `Rkmpp` and no
+/// - the backend has no end-to-end pipeline, which is `Amf` and no
 ///   acceleration at all;
-/// - subtitles are being drawn on, since `subtitles` and `overlay` are
-///   software only;
+/// - nothing is being encoded, so there is no chain to place;
 /// - HDR is being converted, since `zscale` and `tonemap` are software and
 ///   `libplacebo` is a different filter with its own setup;
 /// - the picture has to be resized and nobody said how big it is, because the
 ///   hardware scalers need a number rather than an expression.
 ///
-/// Saying no costs what Flux does today. Saying yes wrongly costs a session
-/// that will not start, so each answer is a fact about the spec rather than a
-/// guess about the machine.
+/// With subtitles to burn in, `Composited` when the build has the backend's
+/// compositor, and `DownAndBack` when it does not but the subtitles are text —
+/// the one software filter that fits in a linear chain. A bitmap subtitle
+/// cannot be drawn that way at all: it is a second stream, so without a
+/// compositor there is nowhere for it to go but software.
+///
+/// Saying `InSoftware` costs what Flux did before. Saying anything else
+/// wrongly costs a session that will not start, so each answer is a fact about
+/// the spec rather than a guess about the machine.
 #[must_use]
-pub fn keeps_frames_on_the_gpu(spec: &SessionSpec, has_hardware_scaler: bool) -> bool {
-    if !has_hardware_scaler {
-        return false;
+pub fn frame_route(spec: &SessionSpec, filters: DeviceFilters) -> FrameRoute {
+    if !filters.scaler || spec.hardware_accel.pipeline().is_none() {
+        return FrameRoute::InSoftware;
     }
 
-    if spec.hardware_accel.pipeline().is_none() {
-        return false;
+    let VideoAction::Encode { tone_map, .. } = &spec.video else {
+        return FrameRoute::InSoftware;
+    };
+
+    if tone_map.is_some() || spec.source_size.is_none() {
+        return FrameRoute::InSoftware;
     }
 
-    if !matches!(spec.subtitles, SubtitleAction::None) {
-        return false;
+    match spec.subtitles {
+        SubtitleAction::None => FrameRoute::OnDevice,
+        SubtitleAction::BurnIn { .. } if filters.overlay => FrameRoute::Composited,
+        SubtitleAction::BurnIn {
+            is_image_based: false,
+            ..
+        } => FrameRoute::DownAndBack,
+        SubtitleAction::BurnIn {
+            is_image_based: true,
+            ..
+        } => FrameRoute::InSoftware,
     }
+}
 
-    match &spec.video {
-        VideoAction::Copy => false,
-        VideoAction::Encode { tone_map, .. } => tone_map.is_none() && spec.source_size.is_some(),
-    }
+/// Whether this session can run without ever bringing frames back.
+///
+/// The narrow question, kept because it is the one worth asking about a plain
+/// rescale: `DownAndBack` is faster than software and slower than never
+/// leaving at all.
+#[must_use]
+pub fn keeps_frames_on_the_gpu(spec: &SessionSpec, filters: DeviceFilters) -> bool {
+    matches!(frame_route(spec, filters), FrameRoute::OnDevice)
 }
 
 /// The complete video filter chain.
@@ -421,6 +555,35 @@ pub struct HardwarePipeline {
     pub output_format: &'static str,
     /// The scaler that works on this backend's frames.
     pub scaler: &'static str,
+    /// What a frame becomes on its way down to system memory.
+    ///
+    /// Named rather than left to ffmpeg. Asked to negotiate one it picks
+    /// `gray`, which `hwdownload` then refuses — the download has to be told a
+    /// format the frames context actually holds, and that is a property of the
+    /// backend. Measured: a Vulkan context rejects `nv12` and wants `yuv420p`,
+    /// where every backend here is the other way round.
+    pub download_format: &'static str,
+    /// The compositor that draws a second picture onto this backend's frames.
+    ///
+    /// Burning subtitles in does not have to bring the video down. The overlay
+    /// is built as its own small stream, uploaded, and drawn on the device,
+    /// which is what these filters are for. Only `overlay_videotoolbox` is not
+    /// upstream — it comes from a patch flux-ffmpeg carries, so a stock build
+    /// will not have it and the probe will say so.
+    pub overlay: &'static str,
+    /// The pixel format the overlay has to be in before it is uploaded.
+    ///
+    /// Not the same everywhere: `overlay_cuda` composites in `yuva420p` and
+    /// the rest take straight `bgra`. Handing a filter the other one is a
+    /// filtergraph that will not configure.
+    pub overlay_format: &'static str,
+    /// How the overlay gets onto the device.
+    ///
+    /// A bare `hwupload` only works where a frames context is already in hand,
+    /// as it is after a `hwdownload` in the same chain. The overlay starts on
+    /// its own branch from a software source, so it has to name the device to
+    /// derive from.
+    pub overlay_upload: &'static str,
 }
 
 impl HardwareAccel {
@@ -448,22 +611,42 @@ impl HardwareAccel {
             Self::VideoToolbox => Some(HardwarePipeline {
                 output_format: "videotoolbox_vld",
                 scaler: "scale_vt",
+                download_format: "nv12",
+                overlay: "overlay_videotoolbox",
+                overlay_format: "bgra",
+                overlay_upload: "hwupload",
             }),
             Self::Nvenc => Some(HardwarePipeline {
                 output_format: "cuda",
                 scaler: "scale_cuda",
+                download_format: "nv12",
+                overlay: "overlay_cuda",
+                overlay_format: "yuva420p",
+                overlay_upload: "hwupload=derive_device=cuda",
             }),
             Self::Qsv => Some(HardwarePipeline {
                 output_format: "qsv",
                 scaler: "vpp_qsv",
+                download_format: "nv12",
+                overlay: "overlay_qsv",
+                overlay_format: "bgra",
+                overlay_upload: "hwupload=derive_device=qsv:extra_hw_frames=64",
             }),
             Self::Vaapi => Some(HardwarePipeline {
                 output_format: "vaapi",
                 scaler: "scale_vaapi",
+                download_format: "nv12",
+                overlay: "overlay_vaapi",
+                overlay_format: "bgra",
+                overlay_upload: "hwupload=derive_device=vaapi",
             }),
             Self::Rkmpp => Some(HardwarePipeline {
                 output_format: "drm_prime",
                 scaler: "scale_rkrga",
+                download_format: "nv12",
+                overlay: "overlay_rkrga",
+                overlay_format: "bgra",
+                overlay_upload: "hwupload=derive_device=rkmpp",
             }),
             Self::None | Self::Amf => None,
         }
@@ -589,14 +772,14 @@ pub struct TranscodePlan {
     /// not part of the session key: pointing Flux at a different card should
     /// not orphan every segment already on disk.
     pub device: String,
-    /// Whether this build has the scaler this backend's frames need.
+    /// Which of the filters this backend needs the build actually has.
     ///
     /// Asked rather than assumed. `scale_vt` arrived in `FFmpeg` 7.0 and some
     /// builds ship `scale_npp` in place of `scale_cuda`, so the filter is a
     /// property of the binary. Assuming it exists produces a chain that fails
     /// and falls back to software, which costs most of the saving and says
     /// nothing about why.
-    pub has_hardware_scaler: bool,
+    pub device_filters: DeviceFilters,
 }
 
 /// The manifest file every session writes.
@@ -637,17 +820,53 @@ impl TranscodePlan {
                         .iter()
                         .map(|argument| (*argument).to_owned()),
                 );
-                if let (true, Some(pipeline), Some(source)) = (
-                    keeps_frames_on_the_gpu(&self.spec, self.has_hardware_scaler),
-                    self.spec.hardware_accel.pipeline(),
-                    self.spec.source_size,
-                ) {
+                let route = frame_route(&self.spec, self.device_filters);
+
+                if let (Some(pipeline), Some(source)) =
+                    (self.spec.hardware_accel.pipeline(), self.spec.source_size)
+                {
                     let (width, height) = fitted_size(source, *max_width, *max_height);
+                    let scale = format!("{}=w={width}:h={height}", pipeline.scaler);
 
-                    args.push("-vf".into());
-                    args.push(format!("{}=w={width}:h={height}", pipeline.scaler));
+                    match route {
+                        FrameRoute::OnDevice => {
+                            args.push("-vf".into());
+                            args.push(scale);
 
-                    return is_mapped;
+                            return is_mapped;
+                        }
+                        FrameRoute::DownAndBack => {
+                            if let SubtitleAction::BurnIn { subtitle_index, .. } =
+                                &self.spec.subtitles
+                            {
+                                args.push("-vf".into());
+                                args.push(format!(
+                                    "{scale},hwdownload,format={},subtitles='{}':si={subtitle_index},hwupload",
+                                    pipeline.download_format,
+                                    escape_filter_path(&self.spec.input_path),
+                                ));
+
+                                return is_mapped;
+                            }
+                        }
+                        FrameRoute::Composited => {
+                            if let Some(graph) = composited_graph(
+                                &scale,
+                                pipeline,
+                                &self.spec.subtitles,
+                                &self.spec.input_path,
+                                width,
+                                height,
+                            ) {
+                                args.push("-filter_complex".into());
+                                args.push(graph);
+                                self.push_graph_maps(args);
+
+                                return true;
+                            }
+                        }
+                        FrameRoute::InSoftware => {}
+                    }
                 }
 
                 let text_burn_in = match &self.spec.subtitles {
@@ -669,13 +888,7 @@ impl TranscodePlan {
                     args.push(format!(
                         "[0:v]{chain}[base];[base][0:s:{subtitle_index}]overlay[v]"
                     ));
-                    args.push("-map".into());
-                    args.push("[v]".into());
-                    args.push("-map".into());
-                    args.push(match self.spec.audio_stream_index {
-                        Some(index) => format!("0:{index}"),
-                        None => "0:a?".into(),
-                    });
+                    self.push_graph_maps(args);
 
                     is_mapped = true;
                 } else {
@@ -688,6 +901,22 @@ impl TranscodePlan {
         is_mapped
     }
 
+    /// Names the streams a filter graph produces.
+    ///
+    /// A graph labels its output, and once anything is mapped explicitly
+    /// `FFmpeg` stops choosing streams by itself — so the audio has to be named
+    /// here too or it is dropped. `0:a?` rather than `0:a` because a file with
+    /// no audio should still transcode rather than fail to start.
+    fn push_graph_maps(&self, args: &mut Vec<String>) {
+        args.push("-map".into());
+        args.push("[v]".into());
+        args.push("-map".into());
+        args.push(match self.spec.audio_stream_index {
+            Some(index) => format!("0:{index}"),
+            None => "0:a?".into(),
+        });
+    }
+
     /// Builds the `FFmpeg` argument vector for this plan.
     #[must_use]
     pub fn to_ffmpeg_args(&self) -> Vec<String> {
@@ -698,7 +927,7 @@ impl TranscodePlan {
             "error".into(),
         ];
 
-        let on_the_gpu = keeps_frames_on_the_gpu(&self.spec, self.has_hardware_scaler);
+        let on_the_gpu = frame_route(&self.spec, self.device_filters).decodes_on_the_device();
 
         if on_the_gpu {
             args.extend(self.spec.hardware_accel.device_arguments(&self.device));
@@ -777,8 +1006,21 @@ impl TranscodePlan {
 #[cfg(test)]
 mod tests {
     use super::{
-        fitted_size, keeps_frames_on_the_gpu, software_equivalent, AudioAction, HardwareAccel,
-        SessionSpec, SubtitleAction, ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE,
+        composited_graph, fitted_size, frame_route, keeps_frames_on_the_gpu, software_equivalent,
+        AudioAction, DeviceFilters, FrameRoute, HardwareAccel, SessionSpec, SubtitleAction,
+        ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
+    };
+
+    /// A build with a scaler and no compositor, as the existing routes assume.
+    const SCALER_ONLY: DeviceFilters = DeviceFilters {
+        scaler: true,
+        overlay: false,
+    };
+
+    /// A build with both, as the shipped package has.
+    const FULL: DeviceFilters = DeviceFilters {
+        scaler: true,
+        overlay: true,
     };
 
     fn spec() -> SessionSpec {
@@ -796,7 +1038,7 @@ mod tests {
     }
 
     fn keeps_frames_on_the_gpu_of(spec: &SessionSpec) -> bool {
-        keeps_frames_on_the_gpu(spec, true)
+        keeps_frames_on_the_gpu(spec, SCALER_ONLY)
     }
 
     fn on_gpu(accel: HardwareAccel) -> SessionSpec {
@@ -812,6 +1054,323 @@ mod tests {
             },
             ..spec()
         }
+    }
+
+    /// A burned-in subtitle used to send the whole session into software.
+    ///
+    /// It now goes down for the one filter that needs system memory and comes
+    /// straight back, so the decode and the scale stay where they were.
+    #[test]
+    fn comes_down_only_for_the_subtitle_and_goes_straight_back() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 2,
+                is_image_based: false,
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert_eq!(
+            frame_route(&spec, SCALER_ONLY),
+            FrameRoute::DownAndBack,
+            "a text burn in is the one software filter that fits a linear chain"
+        );
+
+        let args = plan(spec).to_ffmpeg_args();
+        let chain = args
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert_eq!(
+            chain,
+            "scale_vt=w=1280:h=532,hwdownload,format=nv12,\
+subtitles='/media/film.mkv':si=2,hwupload"
+        );
+
+        assert!(
+            args.windows(2)
+                .any(|pair| pair == ["-hwaccel_output_format", "videotoolbox_vld"]),
+            "it still decodes on the device — coming down is a choice made later"
+        );
+    }
+
+    /// The route that makes the descent unnecessary.
+    ///
+    /// Coming down for the subtitle was already better than running the whole
+    /// session in software, but it still sends every frame across the bus. A
+    /// build with the backend's compositor sends the subtitle the other way
+    /// instead, and the film never moves.
+    #[test]
+    fn sends_the_subtitle_up_rather_than_the_film_down() {
+        for is_image_based in [false, true] {
+            let spec = SessionSpec {
+                subtitles: SubtitleAction::BurnIn {
+                    subtitle_index: 2,
+                    is_image_based,
+                },
+                ..on_gpu(HardwareAccel::Vaapi)
+            };
+
+            assert_eq!(
+                frame_route(&spec, FULL),
+                FrameRoute::Composited,
+                "a compositor makes the descent unnecessary, image based: {is_image_based}"
+            );
+
+            let args = plan_compositing(spec).to_ffmpeg_args();
+            let graph = args
+                .windows(2)
+                .find(|pair| pair[0] == "-filter_complex")
+                .map(|pair| pair[1].clone())
+                .expect("a filter graph");
+
+            assert!(
+                !graph.contains("hwdownload"),
+                "the video must never come down, image based: {is_image_based}"
+            );
+            assert!(
+                graph.starts_with("[0:v]scale_vaapi=w=1280:h=532[base];"),
+                "the scale still happens on the device: {graph}"
+            );
+            assert!(
+                graph.ends_with("[base][sub]overlay_vaapi=eof_action=pass:repeatlast=0[v]"),
+                "the composite happens on the device: {graph}"
+            );
+        }
+    }
+
+    /// Text is drawn onto a canvas of its own rather than onto the video.
+    ///
+    /// `sub2video=1` is the whole trick: it makes the `subtitles` filter
+    /// produce pictures instead of writing over frames it was handed, which is
+    /// what lets the video stay where it is.
+    #[test]
+    fn draws_text_onto_a_transparent_canvas_of_the_output_size() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 2,
+                is_image_based: false,
+            },
+            ..on_gpu(HardwareAccel::Vaapi)
+        };
+
+        let graph = composited_graph(
+            "scale_vaapi=w=1280:h=532",
+            HardwareAccel::Vaapi.pipeline().expect("a pipeline"),
+            &spec.subtitles,
+            &spec.input_path,
+            1280,
+            532,
+        )
+        .expect("a graph");
+
+        assert_eq!(
+            graph,
+            "[0:v]scale_vaapi=w=1280:h=532[base];\
+alphasrc=s=1280x532:r=25,format=bgra,\
+subtitles='/media/film.mkv':si=2:alpha=1:sub2video=1,\
+hwupload=derive_device=vaapi[sub];\
+[base][sub]overlay_vaapi=eof_action=pass:repeatlast=0[v]"
+        );
+    }
+
+    /// A bitmap subtitle is padded to the output rather than trusted to match.
+    ///
+    /// `SubtitleAction` does not carry the subtitle's own size, so the general
+    /// form is the only correct one: a 1080p PGS track over a 2160p film shares
+    /// the aspect ratio, but a 4:3 track over a widescreen film does not, and
+    /// scaling that to fit would stretch it.
+    #[test]
+    fn pads_a_bitmap_subtitle_to_the_output_size() {
+        let subtitles = SubtitleAction::BurnIn {
+            subtitle_index: 0,
+            is_image_based: true,
+        };
+
+        let graph = composited_graph(
+            "scale_vaapi=w=1280:h=532",
+            HardwareAccel::Vaapi.pipeline().expect("a pipeline"),
+            &subtitles,
+            "/media/film.mkv",
+            1280,
+            532,
+        )
+        .expect("a graph");
+
+        assert!(
+            graph.contains(
+                "[0:s:0]scale,scale=-1:532:fast_bilinear,crop,\
+pad=max(1280\\,iw):max(532\\,ih):(ow-iw)/2:(oh-ih)/2:black@0,crop=1280:532,\
+format=bgra,hwupload=derive_device=vaapi[sub]"
+            ),
+            "{graph}"
+        );
+        assert!(
+            !graph.contains("alphasrc"),
+            "a bitmap subtitle is already a picture and needs no canvas"
+        );
+    }
+
+    /// `overlay_cuda` composites in `yuva420p` where the rest take `bgra`.
+    ///
+    /// Handing a compositor the format it does not take is a filtergraph that
+    /// will not configure, so the format belongs to the backend rather than to
+    /// the chain that builds it.
+    #[test]
+    fn gives_each_compositor_the_format_it_takes() {
+        for (accel, expected) in [
+            (HardwareAccel::Nvenc, "yuva420p"),
+            (HardwareAccel::Vaapi, "bgra"),
+            (HardwareAccel::VideoToolbox, "bgra"),
+            (HardwareAccel::Qsv, "bgra"),
+            (HardwareAccel::Rkmpp, "bgra"),
+        ] {
+            let pipeline = accel.pipeline().expect("a pipeline");
+
+            assert_eq!(pipeline.overlay_format, expected, "{accel:?}");
+
+            let graph = composited_graph(
+                "scale",
+                pipeline,
+                &SubtitleAction::BurnIn {
+                    subtitle_index: 0,
+                    is_image_based: true,
+                },
+                "/media/film.mkv",
+                1280,
+                532,
+            )
+            .expect("a graph");
+
+            assert!(graph.contains(&format!("format={expected},")), "{accel:?}");
+        }
+    }
+
+    /// A build without the compositor keeps the routes it had.
+    ///
+    /// The compositor is a property of the binary, and `overlay_videotoolbox`
+    /// is a patch flux-ffmpeg carries rather than an upstream filter — so a
+    /// stock macOS build has the scaler and no compositor, and has to fall back
+    /// rather than emit a graph it cannot run.
+    #[test]
+    fn falls_back_when_the_build_has_no_compositor() {
+        for (is_image_based, expected) in [
+            (false, FrameRoute::DownAndBack),
+            (true, FrameRoute::InSoftware),
+        ] {
+            let spec = SessionSpec {
+                subtitles: SubtitleAction::BurnIn {
+                    subtitle_index: 0,
+                    is_image_based,
+                },
+                ..on_gpu(HardwareAccel::VideoToolbox)
+            };
+
+            assert_eq!(
+                frame_route(&spec, SCALER_ONLY),
+                expected,
+                "image based: {is_image_based}"
+            );
+        }
+    }
+
+    /// The graph names its audio, because naming the video stops ffmpeg
+    /// choosing streams by itself.
+    #[test]
+    fn maps_audio_alongside_the_composited_video() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: true,
+            },
+            ..on_gpu(HardwareAccel::Vaapi)
+        };
+
+        let args = plan_compositing(spec).to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|pair| pair == ["-map", "[v]"]));
+        assert!(args.windows(2).any(|pair| pair == ["-map", "0:a?"]));
+    }
+
+    /// The canvas is redrawn often enough for the subtitles to keep time.
+    #[test]
+    fn redraws_the_text_canvas_at_a_sane_rate() {
+        assert!(
+            (10..=60).contains(&TEXT_OVERLAY_FPS),
+            "below ten drops cues, above sixty renders frames nobody sees"
+        );
+    }
+
+    #[test]
+    fn scales_before_coming_down_rather_than_after() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: false,
+            },
+            ..on_gpu(HardwareAccel::Vaapi)
+        };
+
+        let args = plan(spec).to_ffmpeg_args();
+        let chain = args
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        let scale = chain.find("scale_vaapi").expect("a hardware scale");
+        let down = chain.find("hwdownload").expect("a download");
+
+        assert!(
+            scale < down,
+            "what crosses the bus should be the output picture, not the source"
+        );
+    }
+
+    /// Compositing takes a second input, so it belongs to the other branch.
+    #[test]
+    fn leaves_bitmap_subtitles_in_software() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: true,
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert_eq!(frame_route(&spec, SCALER_ONLY), FrameRoute::InSoftware);
+    }
+
+    #[test]
+    fn leaves_tone_mapping_in_software_for_now() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: Some(ToneMapping::Zscale),
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert_eq!(frame_route(&spec, SCALER_ONLY), FrameRoute::InSoftware);
+    }
+
+    #[test]
+    fn a_route_that_comes_down_is_not_a_route_that_stays() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: false,
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert!(!keeps_frames_on_the_gpu_of(&spec));
+        assert!(frame_route(&spec, SCALER_ONLY).decodes_on_the_device());
     }
 
     #[test]
@@ -892,9 +1451,9 @@ mod tests {
     fn stays_in_software_when_the_build_has_no_scaler() {
         let spec = on_gpu(HardwareAccel::VideoToolbox);
 
-        assert!(keeps_frames_on_the_gpu(&spec, true));
+        assert!(keeps_frames_on_the_gpu(&spec, SCALER_ONLY));
         assert!(
-            !keeps_frames_on_the_gpu(&spec, false),
+            !keeps_frames_on_the_gpu(&spec, DeviceFilters::default()),
             "a chain that names a filter this build lacks fails and falls back for no reason"
         );
     }
@@ -925,7 +1484,7 @@ mod tests {
         let plan = TranscodePlan {
             spec: on_gpu(HardwareAccel::Vaapi),
             output_directory: "/transcodes/abc".into(),
-            has_hardware_scaler: true,
+            device_filters: SCALER_ONLY,
             device: "/dev/dri/renderD129".into(),
         };
 
@@ -1046,10 +1605,21 @@ mod tests {
         assert_ne!(one.session_id(), other.session_id());
     }
 
+    /// A build with a hardware scaler and no compositor, which is what the
+    /// fallback routes are about.
     fn plan(spec: SessionSpec) -> TranscodePlan {
+        plan_on(spec, SCALER_ONLY)
+    }
+
+    /// A build with both, which is what the shipped package has.
+    fn plan_compositing(spec: SessionSpec) -> TranscodePlan {
+        plan_on(spec, FULL)
+    }
+
+    fn plan_on(spec: SessionSpec, device_filters: DeviceFilters) -> TranscodePlan {
         TranscodePlan {
             device: DEFAULT_DEVICE.to_owned(),
-            has_hardware_scaler: true,
+            device_filters,
             spec,
             output_directory: "/transcodes/abc".into(),
         }

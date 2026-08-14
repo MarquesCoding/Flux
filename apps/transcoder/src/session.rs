@@ -7,7 +7,7 @@ use thiserror::Error;
 use tokio::process::Command;
 use tokio::sync::{oneshot, Mutex};
 
-use crate::transcode_plan::{SessionSpec, TranscodePlan, MANIFEST_NAME};
+use crate::transcode_plan::{DeviceFilters, SessionSpec, TranscodePlan, MANIFEST_NAME};
 
 /// Written only when ffmpeg exits cleanly.
 ///
@@ -315,25 +315,33 @@ impl SessionRegistry {
             return Ok(id);
         }
 
-        let scaler = spec
-            .hardware_accel
-            .pipeline()
-            .map(|pipeline| pipeline.scaler);
+        let device_filters = match spec.hardware_accel.pipeline() {
+            Some(pipeline) => {
+                let capabilities = crate::capability::detect_capabilities(
+                    &self.config.ffmpeg,
+                    &self.config.device,
+                )
+                .await;
+
+                DeviceFilters {
+                    scaler: capabilities
+                        .hardware_scalers
+                        .iter()
+                        .any(|found| found == pipeline.scaler),
+                    overlay: capabilities
+                        .hardware_overlays
+                        .iter()
+                        .any(|found| found == pipeline.overlay),
+                }
+            }
+            None => DeviceFilters::default(),
+        };
 
         let plan = TranscodePlan {
             spec: spec.clone(),
             output_directory: directory.to_string_lossy().into_owned(),
             device: self.config.device.clone(),
-            has_hardware_scaler: match scaler {
-                Some(name) => {
-                    crate::capability::detect_capabilities(&self.config.ffmpeg, &self.config.device)
-                        .await
-                        .hardware_scalers
-                        .iter()
-                        .any(|found| found == name)
-                }
-                None => false,
-            },
+            device_filters,
         };
 
         drop(spawn_ffmpeg(&self.config.ffmpeg, &plan)?);
@@ -544,7 +552,7 @@ async fn supervise(config: SessionConfig, plan: TranscodePlan, mut cancel: onesh
             spec: attempt.spec.without_hardware(),
             output_directory: attempt.output_directory,
             device: attempt.device,
-            has_hardware_scaler: false,
+            device_filters: DeviceFilters::default(),
         };
     }
 }

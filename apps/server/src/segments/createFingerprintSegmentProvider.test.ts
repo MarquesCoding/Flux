@@ -106,6 +106,7 @@ const transcoderThat = (
       encoders: [],
       hardwareAccels: [],
       hardwareScalers: [],
+      hardwareOverlays: [],
       rejected: [],
       toneMapping: 'unavailable' as const,
       canBurnTextSubtitles: true,
