@@ -374,6 +374,7 @@ impl SessionRegistry {
             output_directory: directory.to_string_lossy().into_owned(),
             device: self.config.device.clone(),
             device_filters,
+            start_at: crate::transcode_plan::SegmentStart::default(),
         };
 
         drop(spawn_ffmpeg(&self.config.ffmpeg, &plan)?);
@@ -771,6 +772,7 @@ async fn supervise(
             output_directory: attempt.output_directory,
             device: attempt.device,
             device_filters: DeviceFilters::default(),
+            start_at: attempt.start_at,
         };
     }
 }

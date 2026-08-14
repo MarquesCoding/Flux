@@ -898,13 +898,26 @@ fn force_key_frames_argument(segment_seconds: u32) -> String {
     format!("expr:gte(t,n_forced*{segment_seconds})")
 }
 
+/// Where a run begins.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct SegmentStart {
+    /// The segment's index, which its files are numbered from.
+    pub index: u32,
+    /// Where that segment begins, in seconds.
+    ///
+    /// Taken from the boundaries the keyframes gave rather than from a time
+    /// somebody asked for: a run must start exactly where a segment does, or
+    /// what it writes is not the segment the playlist promised.
+    pub seconds: f64,
+}
+
 /// A fully resolved transcode instruction.
 ///
 /// The `FFmpeg` command line is always built from this struct and never
 /// assembled from strings at call sites, so that invocations are
 /// deterministic, unit testable without spawning a process, and loggable in
 /// full for support. See ADR-0009.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TranscodePlan {
     pub spec: SessionSpec,
     pub output_directory: String,
@@ -922,10 +935,30 @@ pub struct TranscodePlan {
     /// and falls back to software, which costs most of the saving and says
     /// nothing about why.
     pub device_filters: DeviceFilters,
+    /// Which segment this run starts at, and where that segment begins.
+    ///
+    /// A run walks forward from here until it is stopped, so a viewer seeking
+    /// far ahead gets a new run rather than a wait for the old one to arrive.
+    /// The number matters as much as the time: `-start_number` makes the files
+    /// a run writes carry their place in the film, so the playlist can name
+    /// them before any run has produced them and a later run picks up where an
+    /// earlier one was stopped.
+    ///
+    /// Nought for a film played from the beginning, which is the common case.
+    pub start_at: SegmentStart,
 }
 
 /// The manifest file every session writes.
 pub const MANIFEST_NAME: &str = "index.m3u8";
+
+/// The playlist ffmpeg writes as it goes.
+///
+/// Deliberately not [`MANIFEST_NAME`]. The playlist Flux serves describes the
+/// whole film and is written before any of it is transcoded; ffmpeg's own
+/// grows as segments appear and would overwrite it on every run. Only the
+/// segments the run writes are wanted from it — the head of the transcode is
+/// read from the directory instead.
+pub const RUN_PLAYLIST_NAME: &str = "run.m3u8";
 
 /// The initialisation segment for fragmented MP4 output.
 pub const INIT_SEGMENT_NAME: &str = "init.mp4";
@@ -1089,52 +1122,6 @@ impl TranscodePlan {
         }
     }
 
-    /// The arguments describing what to produce, split around the input.
-    ///
-    /// A segment producer supplies its own input, its own extent and its own
-    /// output; what it needs from the plan is everything else — which device to
-    /// open, how to decode, what to encode to. Returned as the part that must
-    /// precede `-i` and the part that must follow it, because hardware
-    /// selection is an input option and codecs are output options, and putting
-    /// either in the wrong place changes what ffmpeg does.
-    #[must_use]
-    pub fn segment_arguments(&self) -> (Vec<String>, Vec<String>) {
-        let mut before: Vec<String> = Vec::new();
-        let on_the_gpu = frame_route(&self.spec, self.device_filters).decodes_on_the_device();
-
-        if on_the_gpu {
-            before.extend(self.spec.hardware_accel.device_arguments(&self.device));
-        }
-
-        if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
-            before.push("-hwaccel".into());
-            before.push(flag.into());
-        }
-
-        if on_the_gpu {
-            if let Some(pipeline) = self.spec.hardware_accel.pipeline() {
-                before.push("-hwaccel_output_format".into());
-                before.push(pipeline.output_format.into());
-            }
-        }
-
-        let mut after: Vec<String> = Vec::new();
-        let is_mapped = self.push_video_args(&mut after);
-
-        if let Some(index) = self.spec.audio_stream_index {
-            if !is_mapped {
-                after.push("-map".into());
-                after.push("0:v:0".into());
-                after.push("-map".into());
-                after.push(format!("0:{index}"));
-            }
-        }
-
-        self.push_audio_args(&mut after);
-
-        (before, after)
-    }
-
     /// Builds the `FFmpeg` argument vector for this plan.
     #[must_use]
     pub fn to_ffmpeg_args(&self) -> Vec<String> {
@@ -1163,9 +1150,9 @@ impl TranscodePlan {
             }
         }
 
-        if self.spec.start_seconds > 0 {
+        if self.start_at.seconds > 0.0 {
             args.push("-ss".into());
-            args.push(self.spec.start_seconds.to_string());
+            args.push(format!("{:.6}", self.start_at.seconds));
         }
 
         args.push("-i".into());
@@ -1196,6 +1183,8 @@ impl TranscodePlan {
         args.push("0".into());
         args.push("-hls_fmp4_init_filename".into());
         args.push(INIT_SEGMENT_NAME.into());
+        args.push("-start_number".into());
+        args.push(self.start_at.index.to_string());
         args.push("-hls_segment_filename".into());
         args.push(format!("{}/segment%05d.m4s", self.output_directory));
         args.push(format!("{}/{MANIFEST_NAME}", self.output_directory));
@@ -1209,8 +1198,8 @@ mod tests {
     use super::{
         composited_graph, filter_name, fitted_size, force_key_frames_argument, frame_route,
         keeps_frames_on_the_gpu, software_equivalent, AudioAction, DeviceFilters, FrameRoute,
-        HardwareAccel, SessionSpec, SubtitleAction, ToneMapping, TranscodePlan, VideoAction,
-        DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
+        HardwareAccel, SegmentStart, SessionSpec, SubtitleAction, ToneMapping, TranscodePlan,
+        VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
     };
 
     /// A build with a scaler and no compositor, as the existing routes assume.
@@ -1337,41 +1326,32 @@ mod tests {
         assert_ne!(plain.plan_id(), other_audio.plan_id());
     }
 
-    /// A producer supplies its own input and output; the plan supplies the rest.
+    /// A run started part way in still writes the film's own numbering.
+    ///
+    /// Without this the files a run writes are numbered from nought whatever
+    /// their place in the film, so a playlist naming segment three hundred is
+    /// never satisfied and a later run overwrites an earlier one's work.
     #[test]
-    fn splits_its_arguments_around_the_input() {
-        let (before, after) = plan(on_gpu(HardwareAccel::Vaapi)).segment_arguments();
-
-        assert!(
-            before.windows(2).any(|pair| pair == ["-hwaccel", "vaapi"]),
-            "decoding is chosen before the input: {before:?}"
-        );
-        assert!(
-            after.windows(2).any(|pair| pair[0] == "-c:v"),
-            "encoding is chosen after it: {after:?}"
-        );
-
-        for argument in before.iter().chain(after.iter()) {
-            assert_ne!(argument, "-i", "the producer supplies the input");
-            assert_ne!(argument, "-f", "the producer supplies the output");
-            assert_ne!(argument, "-ss", "the producer supplies the extent");
-        }
-    }
-
-    /// The audio is treated the same whether asked for whole or by segment.
-    #[test]
-    fn treats_audio_the_same_either_way() {
-        let session = plan(on_gpu(HardwareAccel::Vaapi));
-        let whole = session.to_ffmpeg_args();
-        let (_, after) = session.segment_arguments();
-
-        let codec_in = |args: &[String]| {
-            args.windows(2)
-                .find(|pair| pair[0] == "-c:a")
-                .map(|pair| pair[1].clone())
+    fn numbers_a_run_from_the_segment_it_starts_at() {
+        let mut session = plan(on_gpu(HardwareAccel::Vaapi));
+        session.start_at = SegmentStart {
+            index: 300,
+            seconds: 2306.4,
         };
 
-        assert_eq!(codec_in(&whole), codec_in(&after));
+        let args = session.to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|pair| pair == ["-start_number", "300"]));
+        assert!(args.windows(2).any(|pair| pair == ["-ss", "2306.400000"]));
+    }
+
+    /// A film played from the beginning seeks to nothing.
+    #[test]
+    fn does_not_seek_a_run_that_starts_at_the_beginning() {
+        let args = plan(on_gpu(HardwareAccel::Vaapi)).to_ffmpeg_args();
+
+        assert!(!args.iter().any(|argument| argument == "-ss"));
+        assert!(args.windows(2).any(|pair| pair == ["-start_number", "0"]));
     }
 
     fn keeps_frames_on_the_gpu_of(spec: &SessionSpec) -> bool {
@@ -2011,6 +1991,7 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             output_directory: "/transcodes/abc".into(),
             device_filters: SCALER_ONLY,
             device: "/dev/dri/renderD129".into(),
+            start_at: SegmentStart::default(),
         };
 
         assert!(plan
@@ -2147,6 +2128,7 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             device_filters,
             spec,
             output_directory: "/transcodes/abc".into(),
+            start_at: SegmentStart::default(),
         }
     }
 
