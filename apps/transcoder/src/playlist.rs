@@ -6,6 +6,11 @@
 //! already been written, and seeking past it starts a whole new transcode from
 //! there — the outcome ADR-0011 says must not happen.
 //!
+//! Segments are MPEG-TS, which every browser's media engine accepts: Chrome
+//! decoded four frames of a copied HEVC film delivered as fragmented MP4 and
+//! then stopped, and played the same video through as a transport stream. See
+//! FLUX-114.
+//!
 //! A `VOD` playlist covering the whole film says where every segment is before
 //! any of them exist. The player can then ask for any one of them, and the
 //! service's job becomes producing the segment that was asked for rather than
@@ -15,11 +20,13 @@
 
 use std::fmt::Write as _;
 
-/// The HLS version that fMP4 segments require.
+/// The HLS version this playlist needs.
 ///
-/// `EXT-X-MAP` arrived in 6 and fMP4 in 7. Declaring less than the features
-/// used is how a playlist becomes something a strict player refuses.
-const FMP4_VERSION: u8 = 7;
+/// Three is enough for what it uses: transport stream segments carry their own
+/// timing, so there is no initialisation segment to point at and no `EXT-X-MAP`
+/// to declare. Claiming a higher version than the features used is how a
+/// playlist becomes something an older player refuses for no reason.
+const PLAYLIST_VERSION: u8 = 3;
 
 /// The longest a segment could sensibly be, in seconds.
 ///
@@ -35,15 +42,15 @@ const LONGEST_SENSIBLE_SEGMENT: f64 = 86_400.0;
 /// instead would be a lie the player discovers one segment in, and a seek bar
 /// that lands somewhere other than where it was dropped.
 ///
-/// The names are positional — `segment00000.m4s` — because a segment is
+/// The names are positional — `segment00000.ts` — because a segment is
 /// addressed by its index, and the index is how a request for a moment in the
 /// film is turned back into work to do.
 #[must_use]
-pub fn build_vod_playlist(lengths: &[f64], init_name: &str) -> String {
+pub fn build_vod_playlist(lengths: &[f64]) -> String {
     let mut playlist = String::with_capacity(64 + lengths.len() * 48);
 
     playlist.push_str("#EXTM3U\n");
-    let _ = writeln!(playlist, "#EXT-X-VERSION:{FMP4_VERSION}");
+    let _ = writeln!(playlist, "#EXT-X-VERSION:{PLAYLIST_VERSION}");
     playlist.push_str("#EXT-X-PLAYLIST-TYPE:VOD\n");
     let _ = writeln!(
         playlist,
@@ -51,7 +58,6 @@ pub fn build_vod_playlist(lengths: &[f64], init_name: &str) -> String {
         target_duration(lengths)
     );
     playlist.push_str("#EXT-X-MEDIA-SEQUENCE:0\n");
-    let _ = writeln!(playlist, "#EXT-X-MAP:URI=\"{init_name}\"");
 
     for (index, length) in lengths.iter().enumerate() {
         let _ = writeln!(playlist, "#EXTINF:{length:.6},");
@@ -89,11 +95,11 @@ pub fn target_duration(lengths: &[f64]) -> u64 {
 
 /// What the segment at an index is called.
 ///
-/// Matches `-hls_segment_filename segment%05d.m4s`, so a playlist Flux writes
+/// Matches `-hls_segment_filename segment%05d.ts`, so a playlist Flux writes
 /// and segments ffmpeg writes agree on names without either being told.
 #[must_use]
 pub fn segment_name(index: usize) -> String {
-    format!("segment{index:05}.m4s")
+    format!("segment{index:05}.ts")
 }
 
 /// Which segment covers a moment in the film.
@@ -128,9 +134,9 @@ mod tests {
 
     #[test]
     fn names_segments_the_way_ffmpeg_does() {
-        assert_eq!(segment_name(0), "segment00000.m4s");
-        assert_eq!(segment_name(42), "segment00042.m4s");
-        assert_eq!(segment_name(12345), "segment12345.m4s");
+        assert_eq!(segment_name(0), "segment00000.ts");
+        assert_eq!(segment_name(42), "segment00042.ts");
+        assert_eq!(segment_name(12345), "segment12345.ts");
     }
 
     /// The tag has to be at least the longest segment.
@@ -149,12 +155,11 @@ mod tests {
     /// The whole film, before any of it has been transcoded.
     #[test]
     fn describes_every_segment_up_front() {
-        let playlist = build_vod_playlist(&[13.055, 10.427, 7.132], "init.mp4");
+        let playlist = build_vod_playlist(&[13.055, 10.427, 7.132]);
 
         assert!(playlist.starts_with("#EXTM3U\n"));
         assert!(playlist.contains("#EXT-X-PLAYLIST-TYPE:VOD\n"));
-        assert!(playlist.contains("#EXT-X-VERSION:7\n"));
-        assert!(playlist.contains("#EXT-X-MAP:URI=\"init.mp4\"\n"));
+        assert!(playlist.contains("#EXT-X-VERSION:3\n"));
         assert!(playlist.ends_with("#EXT-X-ENDLIST\n"));
         assert_eq!(playlist.matches("#EXTINF:").count(), 3);
     }
@@ -165,10 +170,10 @@ mod tests {
     /// out about one segment in.
     #[test]
     fn declares_the_lengths_the_segments_actually_are() {
-        let playlist = build_vod_playlist(&[13.055, 10.427], "init.mp4");
+        let playlist = build_vod_playlist(&[13.055, 10.427]);
 
-        assert!(playlist.contains("#EXTINF:13.055000,\nsegment00000.m4s\n"));
-        assert!(playlist.contains("#EXTINF:10.427000,\nsegment00001.m4s\n"));
+        assert!(playlist.contains("#EXTINF:13.055000,\nsegment00000.ts\n"));
+        assert!(playlist.contains("#EXTINF:10.427000,\nsegment00001.ts\n"));
     }
 
     /// A seek is a time, and the work is addressed by index.
@@ -201,12 +206,12 @@ mod tests {
     #[test]
     fn builds_the_playlist_the_measured_film_needs() {
         let lengths = [13.055, 10.427, 7.132, 10.427];
-        let playlist = build_vod_playlist(&lengths, "init.mp4");
+        let playlist = build_vod_playlist(&lengths);
 
         assert!(
             playlist.contains("#EXT-X-TARGETDURATION:14\n"),
             "the longest segment is 13.055 and the tag must cover it:\n{playlist}"
         );
-        assert_eq!(playlist.matches(".m4s\n").count(), lengths.len());
+        assert_eq!(playlist.matches(".ts\n").count(), lengths.len());
     }
 }

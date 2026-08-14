@@ -64,15 +64,11 @@ fn segment_a_film(directory: &Path) -> Vec<f64> {
             "2",
             "-hls_playlist_type",
             "vod",
-            "-hls_segment_type",
-            "fmp4",
             "-hls_list_size",
             "0",
-            "-hls_fmp4_init_filename",
-            "init.mp4",
             "-hls_segment_filename",
         ])
-        .arg(directory.join("segment%05d.m4s"))
+        .arg(directory.join("segment%05d.ts"))
         .arg(directory.join("ffmpeg.m3u8"))
         .status()
         .expect("ran ffmpeg");
@@ -103,7 +99,7 @@ fn ffprobe_reads_a_generated_playlist_as_a_film() {
     assert!(!lengths.is_empty(), "ffmpeg wrote no segments");
 
     let path = directory.join("flux.m3u8");
-    std::fs::write(&path, build_vod_playlist(&lengths, "init.mp4")).expect("wrote the playlist");
+    std::fs::write(&path, build_vod_playlist(&lengths)).expect("wrote the playlist");
 
     let output = Command::new(ffprobe())
         .args([

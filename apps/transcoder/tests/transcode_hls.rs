@@ -281,8 +281,8 @@ async fn remuxes_to_hls_without_re_encoding() {
     assert_eq!(manifest_status, StatusCode::OK);
     assert!(playlist.starts_with("#EXTM3U"), "playlist was {playlist}");
     assert!(
-        playlist.contains("#EXT-X-MAP:URI=\"init.mp4\""),
-        "expected fmp4 init"
+        !playlist.contains("#EXT-X-MAP"),
+        "a transport stream needs nothing before it: {playlist}"
     );
 }
 
@@ -297,7 +297,7 @@ async fn serves_the_segments_the_playlist_names() {
 
     let segment = playlist
         .lines()
-        .find(|line| line.ends_with(".m4s"))
+        .find(|line| line.ends_with(".ts"))
         .expect("playlist names a segment");
 
     let (status, bytes) = call(&app, get(&format!("/sessions/{id}/{segment}"))).await;
@@ -667,11 +667,11 @@ async fn describes_the_whole_film_before_transcoding_it() {
     assert!(manifest.contains("#EXTM3U"), "{manifest}");
     assert!(manifest.contains("#EXT-X-PLAYLIST-TYPE:VOD"), "{manifest}");
 
-    let named = manifest.matches(".m4s\n").count();
+    let named = manifest.matches(".ts\n").count();
     let written = std::fs::read_dir(cache_root("growing").join(id))
         .expect("reads the session directory")
         .filter_map(Result::ok)
-        .filter(|entry| entry.file_name().to_string_lossy().ends_with(".m4s"))
+        .filter(|entry| entry.file_name().to_string_lossy().ends_with(".ts"))
         .count();
 
     assert_eq!(named, 30, "a two minute film in four second segments");
@@ -724,7 +724,7 @@ async fn starts_a_run_where_a_viewer_seeked_to() {
     assert_eq!(status, StatusCode::OK, "{body}");
 
     let id = body["id"].as_str().expect("names the session").to_owned();
-    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00025.m4s"))).await;
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00025.ts"))).await;
 
     assert_eq!(status, StatusCode::OK, "a seek to 100 seconds in");
     assert!(bytes.len() > 512, "segment was {} bytes", bytes.len());
@@ -733,11 +733,11 @@ async fn starts_a_run_where_a_viewer_seeked_to() {
         .expect("reads the session directory")
         .filter_map(Result::ok)
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
-        .filter(|name| name.ends_with(".m4s"))
+        .filter(|name| name.ends_with(".ts"))
         .collect();
 
     assert!(
-        !written.contains(&"segment00012.m4s".to_owned()),
+        !written.contains(&"segment00012.ts".to_owned()),
         "nothing should have transcoded the film in between: {written:?}"
     );
 }

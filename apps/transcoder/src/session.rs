@@ -11,8 +11,7 @@ use tokio::sync::{oneshot, Mutex};
 use crate::boundaries::ensure_boundaries;
 use crate::playlist::segment_at;
 use crate::transcode_plan::{
-    DeviceFilters, SegmentStart, SessionSpec, TranscodePlan, INIT_SEGMENT_NAME, MANIFEST_NAME,
-    RUN_PLAYLIST_NAME,
+    DeviceFilters, SegmentStart, SessionSpec, TranscodePlan, MANIFEST_NAME, RUN_PLAYLIST_NAME,
 };
 
 /// Written only when ffmpeg exits cleanly.
@@ -571,7 +570,6 @@ impl SessionRegistry {
             device_filters,
             start_at: SegmentStart::default(),
             cut_seconds: boundaries.cut_seconds,
-            video_tag: boundaries.video_tag.clone(),
         };
 
         let mut session = Session {
@@ -751,39 +749,6 @@ impl SessionRegistry {
                     }
                 }
                 SegmentPlan::Wait => {}
-            }
-
-            if Instant::now() >= deadline {
-                return false;
-            }
-
-            tokio::time::sleep(SEGMENT_POLL).await;
-        }
-    }
-
-    /// Waits for the initialisation segment, starting a run if none will.
-    ///
-    /// Every segment of a plan decodes against the same initialisation
-    /// segment, whichever run produced it — measured, byte for byte, between a
-    /// run from the beginning and one from the middle. So this is only ever
-    /// waiting for the first run of a plan to open its output.
-    pub async fn await_init(&self, id: &str, timeout: Duration) -> bool {
-        let deadline = Instant::now() + timeout;
-
-        loop {
-            let Some(view) = self.segment_view(id).await else {
-                return false;
-            };
-
-            if tokio::fs::try_exists(view.directory.join(INIT_SEGMENT_NAME))
-                .await
-                .unwrap_or(false)
-            {
-                return true;
-            }
-
-            if view.running_from.is_none() && !self.restart_at(id, 0).await {
-                return false;
             }
 
             if Instant::now() >= deadline {
@@ -1180,7 +1145,6 @@ async fn supervise(
             device_filters: DeviceFilters::default(),
             start_at: attempt.start_at,
             cut_seconds: attempt.cut_seconds,
-            video_tag: attempt.video_tag,
         };
     }
 }

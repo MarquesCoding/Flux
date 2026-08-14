@@ -17,10 +17,19 @@ use serde::{Deserialize, Serialize};
 use crate::keyframes::{cut_interval, read_keyframes, segment_lengths};
 use crate::playlist::build_vod_playlist;
 use crate::probe::probe_media;
-use crate::transcode_plan::{SessionSpec, VideoAction, INIT_SEGMENT_NAME, MANIFEST_NAME};
+use crate::transcode_plan::{SessionSpec, VideoAction, MANIFEST_NAME};
 
 /// The segment boundaries, cached beside the segments they describe.
 pub const LENGTHS_NAME: &str = "lengths.json";
+
+/// What this version of Flux writes into a plan's directory.
+///
+/// Bumped whenever the segments themselves change shape — a different
+/// container, a different way of choosing boundaries — because a directory
+/// written by an older Flux describes files that will never be produced now,
+/// and a playlist naming them is a film that cannot play. The boundaries are
+/// then worked out again and the playlist rewritten, which costs one probe.
+const LAYOUT: u32 = 2;
 
 /// Where a plan's segments fall, and what the muxer has to be asked for to
 /// make them fall there.
@@ -31,16 +40,13 @@ pub const LENGTHS_NAME: &str = "lengths.json";
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Boundaries {
+    /// Which layout of a plan's directory these describe.
+    #[serde(default)]
+    pub layout: u32,
     /// How long each segment of the film is, in order.
     pub lengths: Vec<f64>,
     /// What to pass the muxer as its segment length.
     pub cut_seconds: f64,
-    /// What a copied video stream has to be called in the output.
-    ///
-    /// A property of the source, so it is worked out beside the boundaries and
-    /// kept with them rather than found again on every play.
-    #[serde(default)]
-    pub video_tag: Option<String>,
 }
 
 impl Boundaries {
@@ -54,26 +60,11 @@ impl Boundaries {
     #[must_use]
     fn unknown() -> Self {
         Self {
+            layout: LAYOUT,
             lengths: Vec::new(),
             cut_seconds: 0.0,
-            video_tag: None,
         }
     }
-}
-
-/// What a copied stream has to be called for a browser to play it.
-///
-/// `hev1` and `hvc1` are the same HEVC bitstream under two names. ffmpeg names
-/// it `hev1` when it fragments; Chrome and Safari accept only `hvc1` in Media
-/// Source, and Apple's HLS authoring rules require `hvc1`. Measured against
-/// this: a copied HEVC film played as a black picture with sound, the clock
-/// running on audio alone until the player gave up.
-///
-/// Nothing else needs renaming — H.264 fragments as `avc1`, which is the name
-/// everything expects.
-#[must_use]
-pub fn video_tag_for(codec: &str) -> Option<String> {
-    (codec == "hevc").then(|| "hvc1".to_owned())
 }
 
 /// The segments an encode produces, which are the length that was asked for.
@@ -111,7 +102,7 @@ async fn cached_boundaries(directory: &Path) -> Option<Boundaries> {
 
     let found: Boundaries = serde_json::from_str(&payload).ok()?;
 
-    (!found.is_empty()).then_some(found)
+    (!found.is_empty() && found.layout == LAYOUT).then_some(found)
 }
 
 /// Works out where every segment of a plan begins and ends.
@@ -128,18 +119,10 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
         return Boundaries::unknown();
     };
 
-    let video_tag = match &spec.video {
-        VideoAction::Copy => probe
-            .video
-            .as_ref()
-            .and_then(|video| video_tag_for(&video.codec)),
-        VideoAction::Encode { .. } => None,
-    };
-
     let equal = || Boundaries {
+        layout: LAYOUT,
         lengths: equal_lengths(probe.duration_seconds, spec.segment_seconds),
         cut_seconds: wanted,
-        video_tag: video_tag.clone(),
     };
 
     if matches!(spec.video, VideoAction::Encode { .. }) {
@@ -151,9 +134,9 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
             let cut_seconds = cut_interval(&keyframes, wanted);
 
             Boundaries {
+                layout: LAYOUT,
                 lengths: segment_lengths(&keyframes, cut_seconds),
                 cut_seconds,
-                video_tag,
             }
         }
         Err(failure) => {
@@ -193,7 +176,7 @@ pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSp
 
     let _ = tokio::fs::write(
         directory.join(MANIFEST_NAME),
-        build_vod_playlist(&found.lengths, INIT_SEGMENT_NAME),
+        build_vod_playlist(&found.lengths),
     )
     .await;
 
@@ -202,23 +185,7 @@ pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSp
 
 #[cfg(test)]
 mod tests {
-    use super::{equal_lengths, video_tag_for};
-
-    /// The same bitstream under the name a browser will play.
-    #[test]
-    fn renames_hevc_to_the_name_media_source_accepts() {
-        assert_eq!(video_tag_for("hevc"), Some("hvc1".to_owned()));
-    }
-
-    /// Everything else already carries the name everything expects, and
-    /// putting `hvc1` on an H.264 stream would describe it as something it is
-    /// not.
-    #[test]
-    fn leaves_every_other_codec_alone() {
-        assert_eq!(video_tag_for("h264"), None);
-        assert_eq!(video_tag_for("av1"), None);
-        assert_eq!(video_tag_for("vp9"), None);
-    }
+    use super::equal_lengths;
 
     /// An encode cuts where it is told to, so the segments are what was asked.
     #[test]

@@ -23,7 +23,7 @@ use crate::probe::probe_media;
 use crate::queue::WorkQueue;
 use crate::session::{await_run, segment_number, SessionRegistry};
 use crate::subtitle::{extract_subtitle, SubtitleRequest};
-use crate::transcode_plan::{SessionSpec, INIT_SEGMENT_NAME, MANIFEST_NAME};
+use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
 use crate::trickplay::{
     directory_for, is_complete, pending_index, tile_height_for, SheetSource, TrickplayRegistry,
     TrickplayRequest,
@@ -212,6 +212,7 @@ fn content_type_for(name: &str) -> &'static str {
 
     match extension.as_str() {
         "m3u8" => "application/vnd.apple.mpegurl",
+        "ts" => "video/mp2t",
         "m4s" | "mp4" => "video/mp4",
         "jpg" | "jpeg" => "image/jpeg",
         "vtt" => "text/vtt",
@@ -504,13 +505,6 @@ async fn session_file(
         state.registry.reached(&id, &name).await;
 
         return serve_file(&directory, &name, requested_range(&headers)).await;
-    }
-
-    if name == INIT_SEGMENT_NAME && !state.registry.await_init(&id, SEGMENT_TIMEOUT).await {
-        return error(
-            StatusCode::SERVICE_UNAVAILABLE,
-            "That stream has not opened yet.",
-        );
     }
 
     serve_file(&directory, &name, requested_range(&headers)).await
