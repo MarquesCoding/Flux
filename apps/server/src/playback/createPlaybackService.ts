@@ -268,7 +268,7 @@ const createPlaybackService = ({
       const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
-        return null;
+        return { kind: 'absent' };
       }
 
       const clip = await transcoder
@@ -282,11 +282,17 @@ const createPlaybackService = ({
         })
         .catch(() => null);
 
-      if (clip === null || !clip.isReady) {
-        return null;
+      if (clip === null) {
+        return { kind: 'absent' };
       }
 
-      return transcoder.readPreviewFile(clip.id, PREVIEW_NAME, range);
+      if (!clip.isReady) {
+        return { kind: 'pending' };
+      }
+
+      const file = await transcoder.readPreviewFile(clip.id, PREVIEW_NAME, range);
+
+      return file === null ? { kind: 'pending' } : { kind: 'ready', file };
     },
 
     readTrickplayFile: (trickplayId, name) => transcoder.readTrickplayFile(trickplayId, name),

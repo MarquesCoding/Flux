@@ -513,24 +513,24 @@ describe('the files a player asks for while it is watching', () => {
     });
   });
 
-  it('offers no preview while one is still being made', async () => {
+  it('says a preview is being made rather than that there is none', async () => {
     const { service } = build({
       requestPreview: () => Promise.resolve({ id: 'clip-1', url: '/clip', isReady: false }),
     });
 
-    await expect(service.readPreview(MEDIA_ID, null)).resolves.toBeNull();
+    await expect(service.readPreview(MEDIA_ID, null)).resolves.toEqual({ kind: 'pending' });
   });
 
   it('offers no preview when the media service refused to make one', async () => {
     const { service } = build({ requestPreview: () => Promise.reject(new Error('busy')) });
 
-    await expect(service.readPreview(MEDIA_ID, null)).resolves.toBeNull();
+    await expect(service.readPreview(MEDIA_ID, null)).resolves.toEqual({ kind: 'absent' });
   });
 
   it('offers no preview for something that is not there', async () => {
     const { service } = nothingInTheLibrary();
 
-    await expect(service.readPreview(MEDIA_ID, null)).resolves.toBeNull();
+    await expect(service.readPreview(MEDIA_ID, null)).resolves.toEqual({ kind: 'absent' });
   });
 
   it('reads a sheet file straight through', async () => {

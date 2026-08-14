@@ -53,9 +53,29 @@ beforeEach(() => {
 
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ tracks: [] }) }),
+    vi
+      .fn()
+      .mockResolvedValue({ ok: true, status: 206, json: () => Promise.resolve({ tracks: [] }) }),
   );
 });
+
+const urlOf = (input: RequestInfo | URL): string => {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  return input instanceof URL ? input.href : input.url;
+};
+
+const answersPreviewWith = (status: number) => {
+  vi.mocked(fetch).mockImplementation((input) =>
+    Promise.resolve(
+      urlOf(input).endsWith('/preview')
+        ? new Response(null, { status })
+        : new Response(JSON.stringify({ tracks: [] }), { status: 200 }),
+    ),
+  );
+};
 
 afterEach(() => {
   vi.useRealTimers();
@@ -336,6 +356,42 @@ describe('MediaPreview', () => {
     expect(screen.queryByRole('button', { name: 'Turn sound on' })).not.toBeInTheDocument();
   });
 
+  it('says a preview is being made rather than showing an empty picture', async () => {
+    render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+      />,
+    );
+
+    answersPreviewWith(202);
+
+    await settle();
+
+    expect(await screen.findByText(/being made/i)).toBeInTheDocument();
+    expect(play).not.toHaveBeenCalled();
+  });
+
+  it('says there is no preview when none is coming', async () => {
+    render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+      />,
+    );
+
+    answersPreviewWith(404);
+
+    await settle();
+
+    expect(await screen.findByText(/no preview available/i)).toBeInTheDocument();
+    expect(play).not.toHaveBeenCalled();
+  });
+
   it('does not ask for subtitles it was not asked to show', async () => {
     render(
       <MediaPreview
@@ -349,8 +405,12 @@ describe('MediaPreview', () => {
     await settle();
 
     await waitFor(() => {
-      expect(fetch).not.toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalled();
     });
+
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => urlOf(url))).not.toContain(
+      `/api/media/${MEDIA_ID}/subtitles`,
+    );
   });
 
   it('asks what a viewer would be reading if they pressed play', async () => {

@@ -1,5 +1,13 @@
 import type { ReactNode } from 'react';
 import type { MoodLight } from '@FluxUI/MoodBackground.types';
+/**
+ * Why there is no clip playing, when there is not one.
+ *
+ * `pending` is worth telling somebody about — the machine is making it and the
+ * card is worth returning to. `absent` is not. Null means nothing is wrong.
+ */
+type PreviewAbsence = 'pending' | 'absent' | null;
+
 type MediaPreviewProps = {
   mediaId: string;
   /**
@@ -81,4 +89,4 @@ type MediaPreviewProps = {
   actions?: ReactNode;
 };
 
-export type { MediaPreviewProps };
+export type { MediaPreviewProps, PreviewAbsence };
