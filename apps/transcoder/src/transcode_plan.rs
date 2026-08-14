@@ -236,6 +236,40 @@ impl SessionSpec {
         id
     }
 
+    /// A stable identifier for the treatment, wherever playback begins.
+    ///
+    /// Everything [`session_id`](Self::session_id) hashes except where the
+    /// viewer joined, which is the whole difference. Two people watching the
+    /// same film at the same quality get the same plan even if one started at
+    /// the beginning and the other forty minutes in, so the segments one of
+    /// them causes to be produced are the segments the other finds waiting.
+    ///
+    /// This is the address ADR-0011 asks for. Keying the work on where playback
+    /// started is what makes a seek a new transcode of the remainder rather
+    /// than a request for a segment.
+    #[must_use]
+    pub fn plan_id(&self) -> String {
+        let mut hasher = Sha256::new();
+
+        hasher.update(self.input_path.as_bytes());
+        hasher.update(self.segment_seconds.to_be_bytes());
+        hasher.update(format!("{:?}", self.hardware_accel).as_bytes());
+        hasher.update(format!("{:?}", self.video).as_bytes());
+        hasher.update(format!("{:?}", self.audio).as_bytes());
+        hasher.update(format!("{:?}", self.audio_stream_index).as_bytes());
+        hasher.update(format!("{:?}", self.subtitles).as_bytes());
+        hasher.update(format!("{:?}", self.source_size).as_bytes());
+
+        let digest = hasher.finalize();
+        let mut id = String::with_capacity(32);
+
+        for byte in digest.iter().take(16) {
+            let _ = write!(id, "{byte:02x}");
+        }
+
+        id
+    }
+
     /// Whether this specification asks for hardware acceleration.
     #[must_use]
     pub fn uses_hardware(&self) -> bool {
@@ -1204,6 +1238,52 @@ mod tests {
             !args.iter().any(|argument| argument == "-force_key_frames"),
             "{args:?}"
         );
+    }
+
+    /// Where a viewer joined is the one thing a plan does not care about.
+    #[test]
+    fn gives_two_viewers_of_the_same_film_the_same_plan() {
+        let beginning = spec();
+        let later = SessionSpec {
+            start_seconds: 2400,
+            ..spec()
+        };
+
+        assert_eq!(beginning.plan_id(), later.plan_id());
+        assert_ne!(
+            beginning.session_id(),
+            later.session_id(),
+            "the session is still where playback began, which is what the plan is not"
+        );
+    }
+
+    /// Everything that changes the bytes still changes the plan.
+    #[test]
+    fn gives_a_different_treatment_a_different_plan() {
+        let plain = spec();
+
+        let rescaled = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264".to_owned(),
+                max_bitrate_kbps: 4000,
+                max_width: 640,
+                max_height: 360,
+                tone_map: None,
+            },
+            ..spec()
+        };
+        let resegmented = SessionSpec {
+            segment_seconds: 6,
+            ..spec()
+        };
+        let other_audio = SessionSpec {
+            audio_stream_index: Some(3),
+            ..spec()
+        };
+
+        assert_ne!(plain.plan_id(), rescaled.plan_id());
+        assert_ne!(plain.plan_id(), resegmented.plan_id());
+        assert_ne!(plain.plan_id(), other_audio.plan_id());
     }
 
     fn keeps_frames_on_the_gpu_of(spec: &SessionSpec) -> bool {
