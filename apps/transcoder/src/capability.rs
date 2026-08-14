@@ -217,12 +217,18 @@ pub struct Capabilities {
     /// compositor to go with it.
     #[serde(default)]
     pub hardware_overlays: Vec<String>,
-    /// The hardware tone mappers this build actually has.
+    /// The hardware tone mappers this machine will actually run.
     ///
     /// Converting HDR to SDR is the most expensive thing Flux asks of a frame,
     /// and doing it in software costs the hardware decode and scale as well,
     /// because the conversion has to happen before the picture is resampled.
     /// A backend with its own tone mapper avoids all of that.
+    ///
+    /// Verified by running one, not by finding it in `ffmpeg -filters`.
+    /// `tonemap_vaapi` is VPP tone mapping, which Intel implements and AMD does
+    /// not, so a Radeon lists the filter and refuses the chain. Presence was
+    /// what this asked at first, and an RX 580 failed every HDR transcode as a
+    /// result. See FLUX-111.
     #[serde(default)]
     pub hardware_tone_maps: Vec<String>,
 }
@@ -320,15 +326,6 @@ pub const HARDWARE_OVERLAYS: [&str; 5] = [
     "overlay_rkrga",
 ];
 
-/// Every hardware tone mapper Flux might ask for.
-///
-/// Only the two that work on a backend's own frames without a second device
-/// being derived. `tonemap_opencl` and `libplacebo` are both in the package and
-/// both need one, which is what keeps QSV and RKMPP on the software path for
-/// now. `tonemap_videotoolbox` exists only in the patches, since the package is
-/// Linux and there is no macOS build yet to check it against.
-pub const HARDWARE_TONE_MAPS: [&str; 2] = ["tonemap_vaapi", "tonemap_cuda"];
-
 /// The smallest picture the encoders Flux drives are known to accept.
 ///
 ///
@@ -397,6 +394,90 @@ pub fn probe_arguments(candidate: &EncoderCandidate, device: &str) -> Vec<String
     ]);
 
     arguments
+}
+
+/// The arguments that ask a tone mapper to prove itself.
+///
+/// Ten-bit frames, because that is what a tone mapper is for and what the
+/// hardware paths are specialised on. Uploaded to the device, since these
+/// filters work on device surfaces and nothing else.
+#[must_use]
+pub fn tone_map_probe_arguments(accel: HardwareAccel, filter: &str, device: &str) -> Vec<String> {
+    let (width, height) = PROBE_SIZE;
+    let mut arguments = vec![
+        "-hide_banner".to_owned(),
+        "-loglevel".to_owned(),
+        "error".to_owned(),
+    ];
+
+    arguments.extend(accel.device_arguments(device));
+    arguments.extend([
+        "-f".to_owned(),
+        "lavfi".to_owned(),
+        "-i".to_owned(),
+        format!("testsrc2=size={width}x{height}:rate=1"),
+        "-frames:v".to_owned(),
+        "1".to_owned(),
+        "-vf".to_owned(),
+        format!("format=p010,hwupload,{filter}"),
+        "-f".to_owned(),
+        "null".to_owned(),
+        "-".to_owned(),
+    ]);
+
+    arguments
+}
+
+/// Runs a one frame conversion to prove a tone mapper works.
+///
+/// The filter being compiled in is not the question. `tonemap_vaapi` is VPP
+/// tone mapping, which **Intel implements and AMD does not** — Jellyfin gates
+/// its own use of the filter behind a check named `IsIntelVppTonemapAvailable`,
+/// and comments its `OpenCL` fallback as Intel-only interop. A Polaris card
+/// therefore lists the filter and fails every HDR transcode that uses it.
+///
+/// Measured on an RX 580 with Mesa 26.0.8: the filter is present and the chain
+/// does not run. Presence was what this originally asked, which is the same
+/// mistake `verify_encoder` exists to avoid — see FLUX-85, and FLUX-111 for
+/// this instance of it.
+async fn verify_tone_map(ffmpeg: &str, accel: HardwareAccel, filter: &str, device: &str) -> bool {
+    let Ok(outcome) = Command::new(ffmpeg)
+        .args(tone_map_probe_arguments(accel, filter, device))
+        .output()
+        .await
+    else {
+        return false;
+    };
+
+    outcome.status.success()
+}
+
+/// Every tone mapper this build has *and* this machine will run.
+///
+/// Two gates, and the second is the one that matters: a filter can be compiled
+/// in and still be refused by the driver underneath it. Only backends with a
+/// tone mapper of their own are asked, which is what keeps this to one or two
+/// short probes rather than a sweep.
+async fn verified_tone_maps(ffmpeg: &str, filters: &[String], device: &str) -> Vec<String> {
+    let mut verified = Vec::new();
+
+    for accel in [HardwareAccel::Vaapi, HardwareAccel::Nvenc] {
+        let Some(mapper) = accel.pipeline().and_then(|pipeline| pipeline.tone_map) else {
+            continue;
+        };
+
+        let name = crate::transcode_plan::filter_name(mapper);
+
+        if !filters.iter().any(|filter| filter == name) {
+            continue;
+        }
+
+        if verify_tone_map(ffmpeg, accel, mapper, device).await {
+            verified.push(name.to_owned());
+        }
+    }
+
+    verified
 }
 
 /// Runs a one frame encode to prove an encoder works.
@@ -586,11 +667,7 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
             .filter(|overlay| filters.iter().any(|filter| filter == *overlay))
             .map(|overlay| (*overlay).to_owned())
             .collect(),
-        hardware_tone_maps: HARDWARE_TONE_MAPS
-            .iter()
-            .filter(|mapper| filters.iter().any(|filter| filter == *mapper))
-            .map(|mapper| (*mapper).to_owned())
-            .collect(),
+        hardware_tone_maps: verified_tone_maps(ffmpeg, &filters, device).await,
         rejected,
         can_burn_text_subtitles: filters.iter().any(|filter| filter == "subtitles"),
         can_burn_image_subtitles: filters.iter().any(|filter| filter == "overlay"),
@@ -601,10 +678,51 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
 mod tests {
     use super::{
         parse_listed_encoders, parse_listed_filters, probe_arguments, select_tone_mapping,
-        Capabilities, EncoderCandidate, VerifiedEncoder, ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
+        tone_map_probe_arguments, Capabilities, EncoderCandidate, VerifiedEncoder,
+        ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
     };
     use crate::transcode_plan::HardwareAccel;
     use crate::transcode_plan::DEFAULT_DEVICE;
+
+    /// The probe has to ask for the thing tone mapping is for.
+    ///
+    /// Eight-bit frames would let a driver that cannot convert HDR pass, which
+    /// is the whole failure this probe exists to catch.
+    #[test]
+    fn asks_a_tone_mapper_for_ten_bit_frames_on_the_device() {
+        let arguments = tone_map_probe_arguments(
+            HardwareAccel::Vaapi,
+            "tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709",
+            DEFAULT_DEVICE,
+        );
+
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("the probe names a filter chain");
+
+        assert!(chain.starts_with("format=p010,hwupload,"), "{chain}");
+        assert!(chain.contains("tonemap_vaapi"), "{chain}");
+    }
+
+    /// A tone mapper works on device surfaces, so the probe needs a device.
+    ///
+    /// Without one the filter cannot open and a healthy Intel machine would
+    /// report itself unable to convert HDR — the same fault that made every
+    /// VAAPI encoder look broken before FLUX-80.
+    #[test]
+    fn gives_a_tone_mapper_probe_the_device_it_needs() {
+        let arguments =
+            tone_map_probe_arguments(HardwareAccel::Vaapi, "tonemap_vaapi", DEFAULT_DEVICE);
+
+        assert!(
+            arguments
+                .iter()
+                .any(|argument| argument.contains(DEFAULT_DEVICE)),
+            "{arguments:?}"
+        );
+    }
 
     fn candidate(encoder: &'static str, accel: HardwareAccel) -> EncoderCandidate {
         EncoderCandidate {
