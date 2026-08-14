@@ -173,6 +173,20 @@ const START_RETRY_MILLISECONDS = 1500;
  */
 const START_ATTEMPTS = 4;
 
+/**
+ * Stops a session that nobody is waiting for any more.
+ *
+ * The effect's cleanup stops whatever `startedId` holds, but a session started
+ * while the viewer was already seeking away was not in that variable when the
+ * cleanup ran — it did not exist yet, because the request was still in flight.
+ * Returning without this leaves the server transcoding the rest of the film
+ * for nobody until its idle timer collects the session ninety seconds later,
+ * and quick scrubbing leaves one behind per seek.
+ */
+const abandonStartedSession = (sessionId: string) => {
+  void stopPlaybackSession(sessionId);
+};
+
 const EMPTY_HEALTH: PlaybackHealth = {
   positionSeconds: 0,
   bufferedAheadSeconds: 0,
@@ -652,18 +666,22 @@ const VideoPlayer = ({
         request.requestedQuality,
       );
 
-      if (isAbandoned()) {
-        return;
-      }
-
       if (outcome.kind === 'failed') {
-        setProblem(outcome.reason);
-        setState('failed');
+        if (!isAbandoned()) {
+          setProblem(outcome.reason);
+          setState('failed');
+        }
 
         return;
       }
 
       startedId = outcome.session.sessionId;
+
+      if (isAbandoned()) {
+        abandonStartedSession(startedId);
+
+        return;
+      }
       setSession(outcome.session);
 
       const sessionId = startedId;

@@ -631,6 +631,33 @@ describe('VideoPlayer', () => {
     expect(screen.queryByText('Transcode')).not.toBeInTheDocument();
   });
 
+  it('stops a session that arrived after the viewer had already moved on', async () => {
+    const deferred: {
+      deliver: (outcome: { kind: string; session: typeof startedSession }) => void;
+    } = { deliver: () => undefined };
+
+    startMock.mockReturnValue(
+      new Promise((resolve) => {
+        deferred.deliver = resolve;
+      }),
+    );
+
+    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    rerender(
+      <VideoPlayer
+        media={{ id: 'media-2', title: 'Dune', durationSeconds: 600 }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    deferred.deliver({ kind: 'started', session: { ...startedSession, sessionId: 'orphan' } });
+
+    await waitFor(() => {
+      expect(stopMock).toHaveBeenCalledWith('orphan');
+    });
+  });
+
   it('seeks inside the session when the target is already encoded', async () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
