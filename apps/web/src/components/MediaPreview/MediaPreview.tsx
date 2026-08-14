@@ -15,7 +15,8 @@ import {
   previewTrack,
 } from '@FluxWeb/playback/fetchSubtitles';
 import { liftCues } from '@FluxWeb/playback/liftCues';
-import type { MediaPreviewProps } from './MediaPreview.types';
+import { readPreviewState } from '@FluxWeb/playback/readPreviewState';
+import type { MediaPreviewProps, PreviewAbsence } from './MediaPreview.types';
 
 /**
  * How long the page waits before starting anything.
@@ -43,6 +44,20 @@ const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`;
  * the very gradient that hides it.
  */
 const CUE_LINE = 80;
+
+/**
+ * Said over the still while the machine is making the clip.
+ *
+ * Worth saying rather than leaving the still to stand in silently: a preview
+ * arriving in a minute and one that is never coming look identical otherwise,
+ * and only one of them is worth hovering again for.
+ */
+const PREVIEW_PENDING = 'Preview is being made — check back shortly';
+
+/**
+ * Said over the still when there is no clip and none is on its way.
+ */
+const PREVIEW_ABSENT = 'No preview available';
 
 /**
  * How often to look at what is showing.
@@ -93,6 +108,7 @@ const MediaPreview = ({
   const [, setHasFrame] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
+  const [absence, setAbsence] = useState<PreviewAbsence>(null);
   const [subtitles, setSubtitles] = useState<{ id: string; language: string } | null>(null);
 
   /**
@@ -105,7 +121,7 @@ const MediaPreview = ({
    */
   const loops = repeats ?? onEnded === undefined;
 
-  const isShowingFrame = !hasStarted || hasEnded;
+  const isShowingFrame = !hasStarted || hasEnded || absence !== null;
   const startSeconds = Math.floor(durationSeconds * startFraction);
 
   useEffect(() => {
@@ -135,7 +151,22 @@ const MediaPreview = ({
       return;
     }
 
+    let abandoned = false;
+
     const play = async () => {
+      const state = await readPreviewState(previewUrl(mediaId));
+
+      if (abandoned) {
+        return;
+      }
+
+      if (state !== 'ready') {
+        setAbsence(state);
+
+        return;
+      }
+
+      setAbsence(null);
       element.muted = true;
       element.src = previewUrl(mediaId);
 
@@ -147,11 +178,13 @@ const MediaPreview = ({
     }, settleMilliseconds);
 
     return () => {
+      abandoned = true;
       clearTimeout(timer);
       setIsPlaying(false);
       setHasStarted(false);
       setHasEnded(false);
       setIsMuted(true);
+      setAbsence(null);
       element.removeAttribute('src');
       element.load();
     };
@@ -216,6 +249,14 @@ const MediaPreview = ({
           isShowingFrame ? 'opacity-100' : 'opacity-0'
         }`}
       />
+
+      {absence === null ? null : (
+        <div className="pointer-events-none absolute inset-0 flex items-end justify-start p-4">
+          <p className="rounded-md bg-black/65 px-2.5 py-1.5 text-xs font-medium text-white/85 backdrop-blur-sm">
+            {absence === 'pending' ? PREVIEW_PENDING : PREVIEW_ABSENT}
+          </p>
+        </div>
+      )}
 
       <VideoSurface
         label="Preview"

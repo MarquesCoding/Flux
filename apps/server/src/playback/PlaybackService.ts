@@ -50,6 +50,15 @@ type RangedFile = {
 };
 
 /**
+ * What came back when a card asked for an item's preview clip.
+ *
+ * `pending` says the media service is rendering one right now. It is a
+ * different answer from `absent`, and a card shows a different thing for each:
+ * one is worth coming back for, the other is not.
+ */
+type PreviewRead = { kind: 'ready'; file: RangedFile } | { kind: 'pending' } | { kind: 'absent' };
+
+/**
  * Playback as the HTTP layer sees it.
  *
  * Segment delivery goes through the server rather than exposing the media
@@ -90,10 +99,14 @@ type PlaybackService = {
   /**
    * The short clip a library page plays for an item.
    *
-   * Null while it is still being made: a page shows the still frame it
-   * already has rather than waiting for something decorative.
+   * `pending` and `absent` are kept apart rather than both reading as nothing
+   * to play. A card that cannot tell them apart has to guess, and it guessed
+   * wrong: a machine quietly rendering a clip looked exactly like one that had
+   * failed. The clip is deliberately not waited for — a viewer should not sit
+   * through minutes of encoding for decoration — so that window always exists
+   * and is worth naming.
    */
-  readPreview: (mediaId: string, range: string | null) => Promise<RangedFile | null>;
+  readPreview: (mediaId: string, range: string | null) => Promise<PreviewRead>;
   readTrickplayFile: (trickplayId: string, name: string) => Promise<SessionFile | null>;
   stop: (sessionId: string) => Promise<boolean>;
   /**
@@ -140,6 +153,7 @@ export type {
   Delivery,
   Explanation,
   PlaybackService,
+  PreviewRead,
   RangedFile,
   SessionFile,
   StartOutcome,

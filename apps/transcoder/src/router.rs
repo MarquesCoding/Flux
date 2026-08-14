@@ -16,8 +16,8 @@ use crate::fingerprint::{fingerprint, FingerprintRequest};
 use crate::frame::{take_frame, FrameRequest};
 use crate::monitor::{Monitor, Report};
 use crate::preview::{
-    directory_for as preview_directory, generate as generate_preview, is_complete as preview_ready,
-    PreviewClip, PreviewRequest,
+    directory_for as preview_directory, is_complete as preview_ready, PreviewClip, PreviewRegistry,
+    PreviewRequest,
 };
 use crate::probe::probe_media;
 use crate::queue::WorkQueue;
@@ -60,6 +60,12 @@ pub struct AppState {
     pub media_roots: Vec<PathBuf>,
     /// Keeps one set of thumbnails from being rendered twice at once.
     pub trickplay: TrickplayRegistry,
+    /// Keeps one clip from being rendered twice at once.
+    ///
+    /// Previews share an output path derived from the request, so concurrent
+    /// renders truncate each other's file and every one of them fails to
+    /// verify. See FLUX-104.
+    pub previews: PreviewRegistry,
     /// Where background work waits its turn.
     ///
     /// Everything that reads a whole file goes through here, so there is a
@@ -504,13 +510,14 @@ async fn start_preview(
         let ffmpeg = config.ffmpeg.clone();
         let cache_root = config.cache_root.clone();
         let found = capabilities.clone();
+        let previews = state.previews.clone();
 
         tokio::spawn(async move {
             let _ = queue
                 .run(
                     "preview",
                     &subject,
-                    generate_preview(&ffmpeg, &cache_root, &queued, range, &found, duration),
+                    previews.generate(&ffmpeg, &cache_root, &queued, range, &found, duration),
                 )
                 .await;
         });
@@ -531,7 +538,7 @@ async fn start_preview(
         .run(
             "preview",
             &name_of(&path),
-            generate_preview(
+            state.previews.generate(
                 &config.ffmpeg,
                 &config.cache_root,
                 &request,

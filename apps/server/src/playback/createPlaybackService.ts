@@ -2,6 +2,7 @@ import { negotiatePlayback } from '@FluxCore/functions/negotiatePlayback';
 import { resolveQualityStep } from '@FluxCore/functions/resolveQualityStep';
 import { describePlaybackMode } from '@FluxContracts/functions/describePlaybackMode';
 import { planToSessionSpec } from '@FluxCore/functions/planToSessionSpec';
+import { previewRequestFor } from '@FluxServer/library/previewRequestFor';
 import {
   SEGMENT_SECONDS,
   TRICKPLAY_INTERVAL_SECONDS,
@@ -267,18 +268,31 @@ const createPlaybackService = ({
       const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
-        return null;
+        return { kind: 'absent' };
       }
 
       const clip = await transcoder
-        .requestPreview({ inputPath: found.path, generation: found.generation, wait: false })
+        .requestPreview({
+          ...previewRequestFor(
+            { path: found.path, audioStreams: found.item.audioStreams },
+            found.generation,
+            found.defaultAudioLanguage,
+          ),
+          wait: false,
+        })
         .catch(() => null);
 
-      if (clip === null || !clip.isReady) {
-        return null;
+      if (clip === null) {
+        return { kind: 'absent' };
       }
 
-      return transcoder.readPreviewFile(clip.id, PREVIEW_NAME, range);
+      if (!clip.isReady) {
+        return { kind: 'pending' };
+      }
+
+      const file = await transcoder.readPreviewFile(clip.id, PREVIEW_NAME, range);
+
+      return file === null ? { kind: 'pending' } : { kind: 'ready', file };
     },
 
     readTrickplayFile: (trickplayId, name) => transcoder.readTrickplayFile(trickplayId, name),

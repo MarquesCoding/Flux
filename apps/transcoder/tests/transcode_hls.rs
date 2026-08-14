@@ -20,6 +20,7 @@ use http_body_util::BodyExt;
 use tower::ServiceExt;
 
 use flux_transcoder::monitor::{Journal, Monitor};
+use flux_transcoder::preview::PreviewRegistry;
 use flux_transcoder::queue::WorkQueue;
 use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
@@ -160,6 +161,7 @@ fn app(registry: SessionRegistry) -> axum::Router {
         registry,
         ffprobe: ffprobe(),
         trickplay: flux_transcoder::trickplay::TrickplayRegistry::default(),
+        previews: PreviewRegistry::default(),
         monitor: Monitor::new(Journal::new()),
         queue: WorkQueue::new(1),
         media_roots: Vec::new(),
