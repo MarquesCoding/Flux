@@ -103,6 +103,13 @@ pub enum ExitClass {
     HardwareFailure,
     /// The input is unusable. Retrying changes nothing.
     InputError,
+    /// ffmpeg died on its own — an assertion, a segfault, the OOM killer.
+    ///
+    /// Kept apart from `HardwareFailure` because the two want different
+    /// messages. "The encoder would not open" is a configuration an operator
+    /// can act on; "ffmpeg was killed by a signal" is a crash, and which one
+    /// they are reading decides where they look next.
+    Crashed,
     /// Stopped on request.
     Cancelled,
 }
@@ -125,6 +132,14 @@ fn tail_of(text: &str, lines: usize) -> String {
 /// Distinguishing hardware failure from a bad file is what makes the automatic
 /// software retry safe: retrying a corrupt file in software just burns CPU and
 /// fails again, while a busy or broken GPU is worth one more attempt.
+///
+/// No exit code means a signal killed the process, and that is a crash rather
+/// than a cancellation — a cancelled attempt never reaches here, because
+/// `run_attempt` takes it off the cancel channel before the process is waited
+/// on. Reading a signal death as cancellation cost both the software retry and
+/// the log entry, so an aborted transcode ended the session in silence. Seen on
+/// an RX 580, where the on-device subtitle chain aborted inside the VAAPI
+/// encoder about one run in eight. See FLUX-112.
 #[must_use]
 pub fn classify_exit(status: Option<i32>, stderr: &str) -> ExitClass {
     if status == Some(0) {
@@ -132,7 +147,7 @@ pub fn classify_exit(status: Option<i32>, stderr: &str) -> ExitClass {
     }
 
     if status.is_none() {
-        return ExitClass::Cancelled;
+        return ExitClass::Crashed;
     }
 
     let lowered = stderr.to_lowercase();
@@ -500,7 +515,8 @@ async fn run_attempt(
 
                 if !matches!(class, ExitClass::Completed | ExitClass::Cancelled) {
                     eprintln!(
-                        "transcode failed ({class:?}) for {}:\n{}",
+                        "transcode failed ({class:?}{}) for {}:\n{}",
+                        describe_signal(output.status),
                         plan.spec.input_path,
                         tail_of(&stderr, FFMPEG_LINES)
                     );
@@ -510,6 +526,26 @@ async fn run_attempt(
             }
         },
     }
+}
+
+/// Names the signal that killed a process, for the log.
+///
+/// Empty for an ordinary exit, so the caller can always interpolate it. The
+/// number rather than a name: `libc` is not a dependency here, and an operator
+/// reading "signal 6" can look it up, where a wrong name would mislead.
+#[cfg(unix)]
+fn describe_signal(status: std::process::ExitStatus) -> String {
+    use std::os::unix::process::ExitStatusExt as _;
+
+    match status.signal() {
+        Some(signal) => format!(", killed by signal {signal}"),
+        None => String::new(),
+    }
+}
+
+#[cfg(not(unix))]
+fn describe_signal(_status: std::process::ExitStatus) -> String {
+    String::new()
 }
 
 /// Whether a failed attempt is worth trying again without hardware.
@@ -618,9 +654,26 @@ mod tests {
         assert_eq!(classify_exit(Some(0), ""), ExitClass::Completed);
     }
 
+    /// A signal death is a crash, and a crash is worth another go.
+    ///
+    /// This asserted `Cancelled` for as long as the transcoder existed, which
+    /// meant an aborted ffmpeg took the session down with no retry and no log
+    /// — the cancellation path never reaches `classify_exit` at all, so the
+    /// branch only ever saw crashes. See FLUX-112.
     #[test]
-    fn no_status_means_it_was_killed() {
-        assert_eq!(classify_exit(None, ""), ExitClass::Cancelled);
+    fn no_status_means_it_crashed_rather_than_that_it_was_cancelled() {
+        assert_eq!(classify_exit(None, ""), ExitClass::Crashed);
+    }
+
+    #[test]
+    fn a_crash_is_retried_in_software() {
+        assert!(should_retry_in_software(ExitClass::Crashed, true));
+    }
+
+    /// Nobody is waiting for a cancelled session, so it stops.
+    #[test]
+    fn a_cancellation_is_not_retried() {
+        assert!(!should_retry_in_software(ExitClass::Cancelled, true));
     }
 
     #[test]
