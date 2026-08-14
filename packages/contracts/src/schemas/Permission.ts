@@ -41,6 +41,7 @@ const PERMISSIONS = [
   'streaming.view',
   'streaming.stop',
   'streaming.pause',
+  'streaming.message',
 
   'download.media',
 
