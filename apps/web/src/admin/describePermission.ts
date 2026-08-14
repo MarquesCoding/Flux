@@ -45,6 +45,7 @@ const LABELS: Record<Permission, string> = {
   'server.logs': 'Read the logs',
   'account.keys': 'Hold API keys for use outside the browser',
   'server.monitor': 'See what the server is doing',
+  'server.webhooks': 'Have the server call out when something happens',
 };
 
 /**
