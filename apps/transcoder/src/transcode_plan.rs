@@ -428,9 +428,20 @@ impl HardwareAccel {
     ///
     /// `Amf` has none: its `-hwaccel` here is `d3d11va`, which is Windows only,
     /// and AMD on Linux goes through `VAAPI` instead — as ADR-0010 says, AMF
-    /// there wants the closed `amdgpu-pro` driver. `Rkmpp` has none because
-    /// nobody has tested one. Both keep working exactly as before, on the
-    /// software filter chain.
+    /// there wants the closed `amdgpu-pro` driver. It keeps working exactly as
+    /// before, on the software filter chain.
+    ///
+    /// `Rkmpp` decodes to `drm_prime` and scales with `scale_rkrga`, the RGA 2D
+    /// block that `--enable-rkrga` is in the build for. **No Rockchip board has
+    /// ever run this.** It is here because the alternative was worse: Flux ships
+    /// the RKMPP encoders, so withholding the pipeline left that hardware with a
+    /// hardware encoder fed by a full round trip through system memory — the
+    /// most expensive arrangement available, and the exact defect this pipeline
+    /// work exists to remove.
+    ///
+    /// The three values are read out of the shipped arm64 package rather than
+    /// guessed, and a wrong one fails loudly: the transcode aborts, software
+    /// takes over, and the rejection is reported. See FLUX-103.
     #[must_use]
     pub fn pipeline(self) -> Option<HardwarePipeline> {
         match self {
@@ -450,7 +461,11 @@ impl HardwareAccel {
                 output_format: "vaapi",
                 scaler: "scale_vaapi",
             }),
-            Self::None | Self::Amf | Self::Rkmpp => None,
+            Self::Rkmpp => Some(HardwarePipeline {
+                output_format: "drm_prime",
+                scaler: "scale_rkrga",
+            }),
+            Self::None | Self::Amf => None,
         }
     }
 
@@ -885,12 +900,19 @@ mod tests {
     }
 
     #[test]
+    fn keeps_rockchip_frames_on_the_gpu() {
+        let pipeline = HardwareAccel::Rkmpp
+            .pipeline()
+            .expect("Rkmpp declares a pipeline");
+
+        assert_eq!(pipeline.output_format, "drm_prime");
+        assert_eq!(pipeline.scaler, "scale_rkrga");
+        assert!(keeps_frames_on_the_gpu_of(&on_gpu(HardwareAccel::Rkmpp)));
+    }
+
+    #[test]
     fn leaves_backends_with_no_pipeline_alone() {
-        for accel in [
-            HardwareAccel::Amf,
-            HardwareAccel::Rkmpp,
-            HardwareAccel::None,
-        ] {
+        for accel in [HardwareAccel::Amf, HardwareAccel::None] {
             assert!(
                 !keeps_frames_on_the_gpu_of(&on_gpu(accel)),
                 "{accel:?} has no end to end pipeline"
