@@ -503,6 +503,40 @@ const jobTrigger = pgTable(
  * managing them safe. Without it, "may manage roles" quietly means "may make
  * myself an administrator".
  */
+/**
+ * Somewhere an operator has asked to be told about things.
+ *
+ * `secret` is stored in the clear, unlike an API key's hash, and the
+ * difference is not an oversight: a key is verified, so a hash is enough,
+ * while a signature has to be *produced* on every delivery and cannot be
+ * computed from a digest of itself. It is read only by the delivery job and
+ * never leaves the server — no route returns it after the one response that
+ * creates it.
+ *
+ * The last attempt is kept on the row rather than as a log of every delivery.
+ * The question an operator has is "is this still working", not "what happened
+ * on the fourteenth", and a webhook that quietly stopped working is worse than
+ * no webhook at all. A full delivery history is a different feature with a
+ * different retention problem.
+ */
+const webhookSubscription = pgTable(
+  'webhook_subscription',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    url: text('url').notNull(),
+    secret: text('secret').notNull(),
+    preset: text('preset').notNull().default('generic'),
+    events: jsonb('events').notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+    lastAttemptAt: timestamp('lastAttemptAt'),
+    lastStatus: integer('lastStatus'),
+    lastError: text('lastError'),
+  },
+  (table) => [index('webhook_subscription_enabled_idx').on(table.enabled)],
+);
+
 const role = pgTable(
   'role',
   {
@@ -601,6 +635,7 @@ export {
   mediaSegment,
   mediaItemJob,
   jobTrigger,
+  webhookSubscription,
   watchProgress,
   favourite,
   user,
