@@ -332,6 +332,14 @@ impl SessionRegistry {
                         .hardware_overlays
                         .iter()
                         .any(|found| found == pipeline.overlay),
+                    tone_map: pipeline.tone_map.is_some_and(|mapper| {
+                        let name = crate::transcode_plan::filter_name(mapper);
+
+                        capabilities
+                            .hardware_tone_maps
+                            .iter()
+                            .any(|found| found == name)
+                    }),
                 }
             }
             None => DeviceFilters::default(),
