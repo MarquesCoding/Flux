@@ -90,6 +90,95 @@ describe('Slider', () => {
   });
 });
 
+describe('the value a press on the track picks', () => {
+  /**
+   * Gives the track a width, which jsdom otherwise reports as nought.
+   *
+   * Where a press lands is arithmetic on the track's box, and a box of no
+   * width maps every pointer to the same value.
+   */
+  const withTrackWidth = (width: number) => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      bottom: 6,
+      left: 0,
+      right: width,
+      width,
+      height: 6,
+      toJSON: () => ({}),
+    });
+  };
+
+  /**
+   * Presses the track at a point across it.
+   *
+   * jsdom implements none of the pointer capture the slider reaches for, so it
+   * is stubbed rather than the press being sent somewhere it is not handled.
+   */
+  const press = (at: number) => {
+    const control = slider().closest('[class*="touch-none"]');
+
+    if (!(control instanceof HTMLElement)) {
+      throw new Error('The slider has no control to press.');
+    }
+
+    control.setPointerCapture = () => undefined;
+    control.releasePointerCapture = () => undefined;
+    control.hasPointerCapture = () => false;
+
+    fireEvent.pointerDown(control, { clientX: at, clientY: 3, buttons: 1, pointerId: 1 });
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const draw = (onValueChange: (value: number) => void) =>
+    render(<Slider label="Seek" value={30} max={120} onValueChange={onValueChange} />);
+
+  it('picks the beginning at the beginning of the track', () => {
+    withTrackWidth(200);
+    const onSeek = vi.fn();
+    draw(onSeek);
+
+    press(0);
+
+    expect(onSeek).toHaveBeenCalledWith(0);
+  });
+
+  it('picks the middle at the middle of the track', () => {
+    withTrackWidth(200);
+    const onSeek = vi.fn();
+    draw(onSeek);
+
+    press(100);
+
+    expect(onSeek).toHaveBeenCalledWith(60);
+  });
+
+  it('picks the end at the end of the track', () => {
+    withTrackWidth(200);
+    const onSeek = vi.fn();
+    draw(onSeek);
+
+    press(200);
+
+    expect(onSeek).toHaveBeenCalledWith(120);
+  });
+
+  it('holds a press beyond the end to the end', () => {
+    withTrackWidth(200);
+    const onSeek = vi.fn();
+    draw(onSeek);
+
+    press(9000);
+
+    expect(onSeek).toHaveBeenCalledWith(120);
+  });
+});
+
 describe('the preview that follows the pointer', () => {
   /**
    * Gives the bar a width, which jsdom otherwise reports as nought.
