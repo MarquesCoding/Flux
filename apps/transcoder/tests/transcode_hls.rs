@@ -441,6 +441,44 @@ async fn stopping_a_session_forgets_it() {
     assert!(registry.is_empty().await);
 }
 
+/// Two viewers pressing play together must not start two transcodes.
+///
+/// Working out where a film can be cut takes a moment, and the session only
+/// exists once that is done — so both requests found nothing, both started a
+/// run, and two ffmpegs wrote over each other's segments in one directory. A
+/// player opens a stream by asking twice on its own, so this was every play
+/// rather than a rare collision.
+#[tokio::test]
+async fn starts_one_transcode_when_two_viewers_ask_at_once() {
+    let _ = std::fs::remove_dir_all(cache_root("together"));
+
+    let registry = registry("together");
+    let app = app(registry.clone());
+    let subject = spec(VideoAction::Copy, AudioAction::Copy);
+
+    let (first, second) = tokio::join!(start(&app, &subject), start(&app, &subject));
+
+    assert_eq!(first.0, StatusCode::OK, "{}", first.1);
+    assert_eq!(second.0, StatusCode::OK, "{}", second.1);
+    assert_eq!(first.1["id"], second.1["id"]);
+
+    let id = first.1["id"].as_str().expect("has an id").to_owned();
+    let leave = Request::builder()
+        .method("DELETE")
+        .uri(format!("/sessions/{id}"))
+        .body(Body::empty())
+        .expect("builds the request");
+
+    call(&app, leave).await;
+
+    assert_eq!(
+        registry.len().await,
+        1,
+        "the second request joined the first rather than replacing it, so one \
+         of them leaving leaves the other watching"
+    );
+}
+
 /// One viewer closing a tab must not take the film away from the other.
 ///
 /// Everybody watching the same thing shares one session, so a stop that

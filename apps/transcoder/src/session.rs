@@ -416,6 +416,15 @@ impl Default for SessionConfig {
 pub struct SessionRegistry {
     config: SessionConfig,
     sessions: Arc<Mutex<HashMap<String, Session>>>,
+    /// Which plans are being started right now.
+    ///
+    /// Working out where a film can be cut takes a moment, and a session is
+    /// only in the map once that is done — so two viewers pressing play
+    /// together both found nothing, both started a transcode, and two ffmpegs
+    /// wrote over each other's segments in one directory. A player opening a
+    /// stream asks twice on its own, so this is the common case rather than
+    /// the rare one.
+    starting: Arc<Mutex<std::collections::HashSet<String>>>,
 }
 
 impl SessionRegistry {
@@ -424,6 +433,7 @@ impl SessionRegistry {
         Self {
             config,
             sessions: Arc::new(Mutex::new(HashMap::new())),
+            starting: Arc::new(Mutex::new(std::collections::HashSet::new())),
         }
     }
 
@@ -450,25 +460,61 @@ impl SessionRegistry {
         device: Option<&str>,
     ) -> Result<String, SessionError> {
         let id = spec.plan_id();
+        let deadline = Instant::now() + STARTING_TIMEOUT;
 
-        {
-            let mut sessions = self.sessions.lock().await;
-
-            if let Some(existing) = sessions.get_mut(&id) {
-                existing.touch();
-                existing.holders += 1;
-
-                let directory = existing.directory.clone();
-
-                drop(sessions);
-
-                if let Some(device) = device {
-                    record_device(&directory, device).await;
-                }
-
-                return Ok(id);
+        loop {
+            if let Some(joined) = self.join(&id, device).await {
+                return Ok(joined);
             }
+
+            {
+                let mut starting = self.starting.lock().await;
+
+                if starting.insert(id.clone()) || Instant::now() >= deadline {
+                    break;
+                }
+            }
+
+            tokio::time::sleep(SEGMENT_POLL).await;
         }
+
+        let outcome = self.begin(&id, spec, device).await;
+
+        self.starting.lock().await.remove(&id);
+
+        outcome
+    }
+
+    /// Joins the session for a plan, if there is one.
+    ///
+    /// Counts the joiner as a holder, so the transcode outlives whichever of
+    /// them stops first.
+    async fn join(&self, id: &str, device: Option<&str>) -> Option<String> {
+        let mut sessions = self.sessions.lock().await;
+        let existing = sessions.get_mut(id)?;
+
+        existing.touch();
+        existing.holders += 1;
+
+        let directory = existing.directory.clone();
+
+        drop(sessions);
+
+        if let Some(device) = device {
+            record_device(&directory, device).await;
+        }
+
+        Some(id.to_owned())
+    }
+
+    /// Makes the session for a plan nothing is serving yet.
+    async fn begin(
+        &self,
+        id: &str,
+        spec: SessionSpec,
+        device: Option<&str>,
+    ) -> Result<String, SessionError> {
+        let id = id.to_owned();
 
         self.collect_idle().await;
 
@@ -1025,6 +1071,13 @@ const THROTTLE_AHEAD_SECONDS: u64 = 60;
 /// resuming feels immediate when a viewer reaches the end of what has been
 /// encoded.
 const THROTTLE_INTERVAL: Duration = Duration::from_secs(2);
+
+/// How long to wait for another viewer's start of the same plan.
+///
+/// Long enough to cover reading a large film's keyframes, which is the slow
+/// part of starting and is paid once per plan. Past it the wait is treated as
+/// a start that will never finish rather than one still working.
+const STARTING_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// How often a segment that is not ready yet is looked at again.
 ///

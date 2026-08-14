@@ -39,6 +39,13 @@ const MANIFEST_TIMEOUT: Duration = Duration::from_secs(20);
 /// told so than left holding a connection open.
 const SEGMENT_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// How long a segment can take before it is worth saying so.
+///
+/// A viewer notices a wait long before a request times out, and a wait is the
+/// only thing about delivery that a log can usefully carry: everything else is
+/// a file being sent. Anything under this is the transcode keeping up.
+const SLOW_SEGMENT: Duration = Duration::from_millis(250);
+
 /// How often a watching page is sent a new reading.
 ///
 /// A second is fast enough to watch a transcode start and slow enough that
@@ -473,11 +480,21 @@ async fn session_file(
     };
 
     if let Some(wanted) = segment_number(&name) {
-        if !state
+        let asked = std::time::Instant::now();
+        let is_ready = state
             .registry
             .await_segment(&id, wanted, SEGMENT_TIMEOUT)
-            .await
-        {
+            .await;
+        let waited = asked.elapsed();
+
+        if waited > SLOW_SEGMENT {
+            eprintln!(
+                "segment {wanted}: {} after {waited:?}",
+                if is_ready { "served" } else { "gave up" }
+            );
+        }
+
+        if !is_ready {
             return error(
                 StatusCode::SERVICE_UNAVAILABLE,
                 "That segment is not ready.",
