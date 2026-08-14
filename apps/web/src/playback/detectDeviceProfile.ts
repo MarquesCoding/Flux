@@ -21,9 +21,29 @@ type DetectDeviceProfileOptions = {
  */
 const VIDEO_PROBES = [
   { codec: 'h264', mimeType: 'video/mp4; codecs="avc1.640028"' },
-  { codec: 'hevc', mimeType: 'video/mp4; codecs="hvc1.1.6.L93.B0"' },
+  { codec: 'hevc', mimeType: 'video/mp4; codecs="hvc1.1.6.L120.B0"' },
   { codec: 'av1', mimeType: 'video/mp4; codecs="av01.0.05M.08"' },
   { codec: 'vp9', mimeType: 'video/webm; codecs="vp9"' },
+] as const;
+
+/**
+ * The same codecs asked again at ten bits.
+ *
+ * A browser answers these separately and often differently: Chrome on macOS
+ * accepts HEVC Main and declines Main 10, and a film copied to it regardless
+ * plays for twenty seconds and then stops with no error, a full buffer and a
+ * frozen picture. Asking once about eight bit HEVC and treating the answer as
+ * covering every HEVC file is what sent it there.
+ *
+ * Levels are the ones ordinary 1080p carries rather than the lowest that
+ * exists, for the same reason: a client that can only manage level 3.1 should
+ * not be handed a level 4 film on the strength of a question about smaller
+ * pictures.
+ */
+const TEN_BIT_VIDEO_PROBES = [
+  { codec: 'hevc', mimeType: 'video/mp4; codecs="hvc1.2.4.L120.B0"' },
+  { codec: 'av1', mimeType: 'video/mp4; codecs="av01.0.05M.10"' },
+  { codec: 'vp9', mimeType: 'video/webm; codecs="vp09.02.10.10"' },
 ] as const;
 
 const AUDIO_PROBES = [
@@ -65,6 +85,10 @@ const detectDeviceProfile = ({
     (probe) => probe.codec,
   );
 
+  const tenBitVideoCodecs = TEN_BIT_VIDEO_PROBES.filter((probe) =>
+    isTypeSupported(probe.mimeType),
+  ).map((probe) => probe.codec);
+
   const video = videoCodecs.length > 0 ? [...videoCodecs] : ['h264'];
   const audio = audioCodecs.length > 0 ? [...audioCodecs] : ['aac'];
 
@@ -76,6 +100,7 @@ const detectDeviceProfile = ({
     maxBitrateKbps,
     maxAudioChannels: 2,
     supportedVideoRanges: supportsHdr ? ['SDR', 'HDR10', 'HLG'] : ['SDR'],
+    tenBitVideoCodecs,
     supportedSubtitleFormats: ['webvtt'],
     directPlayProfiles: [
       {

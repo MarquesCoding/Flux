@@ -10,6 +10,7 @@ const media: MediaItem = {
   durationSeconds: 7200,
   videoCodec: 'hevc',
   videoRange: 'HDR10',
+  videoBitDepth: 8,
   width: 3840,
   height: 2160,
   bitrateKbps: 24000,
@@ -27,6 +28,7 @@ const profile: DeviceProfile = {
   maxBitrateKbps: 40000,
   maxAudioChannels: 8,
   supportedVideoRanges: ['SDR', 'HDR10'],
+  tenBitVideoCodecs: [],
   supportedSubtitleFormats: ['srt', 'webvtt'],
   directPlayProfiles: [
     { container: 'mkv', videoCodecs: ['hevc', 'h264'], audioCodecs: ['truehd', 'aac'] },
@@ -69,6 +71,32 @@ describe('negotiatePlayback', () => {
     expect(plan.video.kind).toBe('transcode');
     expect(plan.video.reason.code).toBe('VideoRangeNotSupported');
     expect(plan.audio.kind).toBe('passthrough');
+  });
+
+  it('will not copy ten bit video to a client that only claimed eight', () => {
+    const tenBit = { ...media, videoBitDepth: 10 };
+
+    const plan = negotiatePlayback(tenBit, profile);
+
+    expect(plan.video.kind).toBe('transcode');
+    expect(plan.video.reason.code).toBe('VideoProfileNotSupported');
+  });
+
+  it('copies ten bit video to a client that says it can decode it', () => {
+    const tenBit = { ...media, videoBitDepth: 10, videoRange: 'SDR' as const };
+    const capable: DeviceProfile = { ...profile, tenBitVideoCodecs: ['hevc'] };
+
+    const plan = negotiatePlayback(tenBit, capable);
+
+    expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('copies eight bit video to a client that claimed nothing about ten', () => {
+    const eightBit = { ...media, videoRange: 'SDR' as const };
+
+    const plan = negotiatePlayback(eightBit, { ...profile, supportedVideoRanges: ['SDR'] });
+
+    expect(plan.video.kind).toBe('passthrough');
   });
 
   it('preserves a supported HDR range through a bitrate transcode', () => {

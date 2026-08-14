@@ -548,6 +548,7 @@ const createDatabaseLibraryService = ({
         durationSeconds: row.durationSeconds,
         videoCodec: row.videoCodec,
         videoRange: row.videoRange,
+        videoBitDepth: row.videoBitDepth ?? 8,
         width: row.width,
         height: row.height,
         bitrateKbps: row.bitrateKbps ?? 1,
