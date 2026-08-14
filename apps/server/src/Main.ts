@@ -58,6 +58,7 @@ import {
   CLEANUP_SESSIONS_JOB,
   PRUNE_HISTORY_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
+  CHECK_TRANSCODER_JOB,
   DELIVER_WEBHOOK_JOB,
   DeliverWebhookJobSchema,
   scheduleTriggerKind,
@@ -65,6 +66,7 @@ import {
 import { createDatabaseWebhookStore } from '@FluxServer/webhooks/createDatabaseWebhookStore';
 import { runWebhookDelivery } from '@FluxServer/webhooks/runWebhookDelivery';
 import { createWebhookEventBus } from '@FluxServer/events/createWebhookEventBus';
+import { createReachabilityWatch } from '@FluxServer/events/createReachabilityWatch';
 import { createDatabaseMaintenanceService } from '@FluxServer/maintenance/createDatabaseMaintenanceService';
 import { cleanupImageCache } from '@FluxServer/maintenance/cleanupImageCache';
 import { sweepArtefactCache } from '@FluxServer/maintenance/sweepArtefactCache';
@@ -284,6 +286,17 @@ const scheduleAcrossLibraries =
 const libraryWork = createWorkLock();
 
 const webhookSubscriptions = createDatabaseWebhookStore(db);
+
+const transcoderWatch = createReachabilityWatch({
+  onLost: () => {
+    process.stderr.write('transcoder: stopped answering\n');
+
+    void events.publish({
+      event: 'transcoder.unreachable',
+      data: { reason: `${env.TRANSCODER_URL} did not answer a health check.` },
+    });
+  },
+});
 
 /**
  * Announces a job that ended, except the one that does the announcing.
@@ -530,6 +543,15 @@ const jobs = await createJobQueue({
         await events.publish({ event: 'catalogue.unreachable', data: {} });
       }
     },
+    [CHECK_TRANSCODER_JOB]: async (jobId) => {
+      jobs.reportProgress(jobId, 'checking', 0, 1);
+
+      const reachable = await transcoder.isReachable();
+
+      jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
+
+      transcoderWatch.record(reachable);
+    },
     [DELIVER_WEBHOOK_JOB]: async (_jobId, payload) => {
       const parsed = DeliverWebhookJobSchema.safeParse(payload);
 
@@ -571,11 +593,20 @@ const jobs = await createJobQueue({
   onFinished: announceFinishedJob,
 });
 
+/**
+ * Queues one delivery to one subscriber.
+ *
+ * Shared by the bus, which uses it for events the server raises, and by the
+ * test button, which addresses a single subscription. Both put the same job
+ * on the same queue; only who they are for differs.
+ */
+const queueWebhookDelivery = async (subscriptionId: string, payload: string): Promise<void> => {
+  await jobs.enqueue(DELIVER_WEBHOOK_JOB, { subscriptionId, payload });
+};
+
 const events = createWebhookEventBus({
   subscriptions: webhookSubscriptions,
-  enqueue: async (subscriptionId, payload) => {
-    await jobs.enqueue(DELIVER_WEBHOOK_JOB, { subscriptionId, payload });
-  },
+  enqueue: queueWebhookDelivery,
   onProblem: (reason) => {
     process.stderr.write(`events: ${reason}\n`);
   },
@@ -713,6 +744,8 @@ const app = createApp({
   segments: segmentService,
   progress: createDatabaseWatchProgressService(db),
   history: historyService,
+  webhooks: webhookSubscriptions,
+  queueWebhookDelivery,
   favourites: createDatabaseFavouriteService(db),
   profiles: profileService,
   promoteProfile: async ({ profileId, email, password }) => {

@@ -10,6 +10,7 @@ import {
   CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
+  CHECK_TRANSCODER_JOB,
   scheduleTriggerKind,
 } from './JobQueue';
 import type { ScheduleTrigger } from './scheduleTrigger';
@@ -142,6 +143,14 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     needsLibrary: false,
     destructive: false,
   },
+  {
+    kind: CHECK_TRANSCODER_JOB,
+    label: 'Check the transcoder',
+    description:
+      'Asks the transcoder whether it is still answering, so an operator hears about it going quiet from a notification rather than from somebody pressing play.',
+    needsLibrary: false,
+    destructive: false,
+  },
 ];
 
 /**
@@ -168,6 +177,7 @@ const DEFAULT_JOB_TRIGGERS: Record<string, ScheduleTrigger[]> = {
   [REGENERATE_TRICKPLAY_JOB]: [{ kind: 'daily', hour: 4, minute: 0 }],
   [DETECT_SEGMENTS_JOB]: [{ kind: 'daily', hour: 4, minute: 30 }],
   [CHECK_CATALOGUE_CONNECTIVITY_JOB]: [{ kind: 'daily', hour: 5, minute: 0 }],
+  [CHECK_TRANSCODER_JOB]: [{ kind: 'everyMinutes', minutes: 5 }],
   [CLEANUP_SESSIONS_JOB]: [{ kind: 'daily', hour: 5, minute: 30 }],
   [CLEANUP_IMAGE_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 0 }],
   [CLEANUP_ARTEFACT_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 30 }],

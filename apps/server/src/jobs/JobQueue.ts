@@ -146,6 +146,18 @@ const CLEANUP_SESSIONS_JOB = 'server.cleanupSessions';
 const CHECK_CATALOGUE_CONNECTIVITY_JOB = 'server.checkCatalogueConnectivity';
 
 /**
+ * Asks the transcoder whether it is still there.
+ *
+ * The health route already answers this question, but only when somebody
+ * asks it. Nothing was watching, so a transcoder that had gone unresponsive
+ * stayed unnoticed until the next person pressed play — which is the way
+ * round it has actually gone wrong more than once.
+ *
+ * Not library-scoped: one transcoder serves every library.
+ */
+const CHECK_TRANSCODER_JOB = 'server.checkTranscoder';
+
+/**
  * Sends one event to one subscriber.
  *
  * A job rather than a call made where the event was raised, which is the
@@ -331,6 +343,7 @@ export {
   CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
+  CHECK_TRANSCODER_JOB,
   DELIVER_WEBHOOK_JOB,
   DeliverWebhookJobSchema,
   scheduleTriggerKind,

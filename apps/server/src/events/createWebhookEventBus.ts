@@ -1,5 +1,4 @@
-import { randomUUID } from 'node:crypto';
-import { WEBHOOK_PAYLOAD_VERSION } from '@FluxContracts/schemas/Webhook';
+import { stampWebhookEnvelope } from './stampWebhookEnvelope';
 import type { EventBus } from './EventBus';
 import type { WebhookStore } from '@FluxServer/webhooks/WebhookStore';
 
@@ -48,12 +47,7 @@ const createWebhookEventBus = ({
         return;
       }
 
-      const payload = JSON.stringify({
-        version: WEBHOOK_PAYLOAD_VERSION,
-        id: randomUUID(),
-        occurredAt: new Date().toISOString(),
-        ...occurrence,
-      });
+      const payload = stampWebhookEnvelope(occurrence);
 
       for (const subscriptionId of listeners) {
         await enqueue(subscriptionId, payload);
