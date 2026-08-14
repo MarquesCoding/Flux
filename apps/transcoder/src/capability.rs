@@ -217,6 +217,14 @@ pub struct Capabilities {
     /// compositor to go with it.
     #[serde(default)]
     pub hardware_overlays: Vec<String>,
+    /// The hardware tone mappers this build actually has.
+    ///
+    /// Converting HDR to SDR is the most expensive thing Flux asks of a frame,
+    /// and doing it in software costs the hardware decode and scale as well,
+    /// because the conversion has to happen before the picture is resampled.
+    /// A backend with its own tone mapper avoids all of that.
+    #[serde(default)]
+    pub hardware_tone_maps: Vec<String>,
 }
 
 /// Chooses a tone mapping route from the filters a build actually has.
@@ -311,6 +319,15 @@ pub const HARDWARE_OVERLAYS: [&str; 5] = [
     "overlay_vaapi",
     "overlay_rkrga",
 ];
+
+/// Every hardware tone mapper Flux might ask for.
+///
+/// Only the two that work on a backend's own frames without a second device
+/// being derived. `tonemap_opencl` and `libplacebo` are both in the package and
+/// both need one, which is what keeps QSV and RKMPP on the software path for
+/// now. `tonemap_videotoolbox` exists only in the patches, since the package is
+/// Linux and there is no macOS build yet to check it against.
+pub const HARDWARE_TONE_MAPS: [&str; 2] = ["tonemap_vaapi", "tonemap_cuda"];
 
 /// The smallest picture the encoders Flux drives are known to accept.
 ///
@@ -569,6 +586,11 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
             .filter(|overlay| filters.iter().any(|filter| filter == *overlay))
             .map(|overlay| (*overlay).to_owned())
             .collect(),
+        hardware_tone_maps: HARDWARE_TONE_MAPS
+            .iter()
+            .filter(|mapper| filters.iter().any(|filter| filter == *mapper))
+            .map(|mapper| (*mapper).to_owned())
+            .collect(),
         rejected,
         can_burn_text_subtitles: filters.iter().any(|filter| filter == "subtitles"),
         can_burn_image_subtitles: filters.iter().any(|filter| filter == "overlay"),
@@ -811,6 +833,7 @@ mod tests {
             tone_mapping: ToneMapping::Unavailable,
             rejected: Vec::new(),
             hardware_overlays: Vec::new(),
+            hardware_tone_maps: Vec::new(),
             hardware_scalers: Vec::new(),
             can_burn_text_subtitles: false,
             can_burn_image_subtitles: false,

@@ -41,6 +41,7 @@ const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcode
       hardwareAccels: [],
       hardwareScalers: [],
       hardwareOverlays: [],
+      hardwareToneMaps: [],
       rejected: [],
       toneMapping: 'unavailable' as const,
       canBurnTextSubtitles: true,
