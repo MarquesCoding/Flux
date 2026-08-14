@@ -12,6 +12,8 @@ const Viewing = z
   .object({
     id: z.string(),
     mediaItemId: z.string(),
+    title: z.string().nullable(),
+    seriesTitle: z.string().nullable(),
     startedAt: z.string().datetime(),
     lastWatchedAt: z.string().datetime(),
     secondsWatched: z.number().nonnegative(),

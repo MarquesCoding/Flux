@@ -6,6 +6,11 @@ type MemoryViewing = Viewing & { profileId: string };
 
 type MemoryHistoryState = {
   viewings: MemoryViewing[];
+
+  /**
+   * What each item is called, standing in for the join the real one does.
+   */
+  titles?: Record<string, string>;
 };
 
 /**
@@ -22,9 +27,11 @@ const createMemoryHistoryService = (
   /**
    * A viewing without the profile it belongs to, which the caller already knows.
    */
-  const shown = (one: MemoryViewing): Viewing => ({
+  const shown = (one: MemoryViewing, named = false): Viewing => ({
     id: one.id,
     mediaItemId: one.mediaItemId,
+    title: named ? (state.titles?.[one.mediaItemId] ?? null) : null,
+    seriesTitle: null,
     startedAt: one.startedAt,
     lastWatchedAt: one.lastWatchedAt,
     secondsWatched: one.secondsWatched,
@@ -73,6 +80,8 @@ const createMemoryHistoryService = (
         profileId,
         id: randomUUID(),
         mediaItemId,
+        title: null,
+        seriesTitle: null,
         startedAt: seen.at.toISOString(),
         lastWatchedAt: seen.at.toISOString(),
         secondsWatched: decided.secondsWatched,
@@ -90,7 +99,7 @@ const createMemoryHistoryService = (
           .filter((one) => one.profileId === profileId)
           .sort((left, right) => Date.parse(right.lastWatchedAt) - Date.parse(left.lastWatchedAt))
           .slice(options.offset ?? 0, (options.offset ?? 0) + (options.limit ?? 50))
-          .map(shown),
+          .map((one) => shown(one, true)),
       ),
 
     forget: (profileId, viewingId) => {

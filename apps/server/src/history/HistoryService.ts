@@ -4,6 +4,21 @@
 type Viewing = {
   id: string;
   mediaItemId: string;
+  /**
+   * What was watched, as it should be read.
+   *
+   * Carried on the viewing rather than looked up by whoever draws it: a page
+   * of fifty would otherwise be fifty more requests, and the answer is one
+   * join away from where the rows already are.
+   *
+   * Answered by `list`, which is what a history is read through. Null from
+   * `record`, whose caller has just said what was watched — and null in a
+   * listing when the item has since left the library. The viewing survives
+   * that; somebody did watch it, and there is simply nothing left to name it
+   * with.
+   */
+  title: string | null;
+  seriesTitle: string | null;
   startedAt: string;
   lastWatchedAt: string;
   secondsWatched: number;

@@ -124,6 +124,25 @@ describe('a profile’s viewing history', () => {
     expect((await history.list('profile-1'))[0]?.isFinished).toBe(true);
   });
 
+  it('names what was watched, so a listing is not a column of identifiers', async () => {
+    const history = createMemoryHistoryService({ viewings: [], titles: { 'media-1': 'Arrival' } });
+
+    await history.record('profile-1', 'media-1', watched());
+
+    expect((await history.list('profile-1'))[0]?.title).toBe('Arrival');
+  });
+
+  it('still lists a viewing whose item has left the library, unnamed', async () => {
+    const history = createMemoryHistoryService();
+
+    await history.record('profile-1', 'media-1', watched());
+
+    const listed = await history.list('profile-1');
+
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.title).toBeNull();
+  });
+
   it('forgets viewings older than the horizon', async () => {
     const history = createMemoryHistoryService();
 

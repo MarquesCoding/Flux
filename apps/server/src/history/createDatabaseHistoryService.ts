@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, lt } from 'drizzle-orm';
-import { watchHistory } from '@FluxServer/db/Schema';
+import { watchHistory, mediaItem } from '@FluxServer/db/Schema';
 import { decideViewing } from './decideViewing';
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { HistoryService, Viewing } from './HistoryService';
@@ -8,6 +8,8 @@ import type { HistoryService, Viewing } from './HistoryService';
 type Row = {
   id: string;
   mediaItemId: string;
+  title: string | null;
+  seriesTitle: string | null;
   startedAt: Date;
   lastWatchedAt: Date;
   secondsWatched: number;
@@ -17,6 +19,8 @@ type Row = {
 const shown = (row: Row): Viewing => ({
   id: row.id,
   mediaItemId: row.mediaItemId,
+  title: row.title,
+  seriesTitle: row.seriesTitle,
   startedAt: row.startedAt.toISOString(),
   lastWatchedAt: row.lastWatchedAt.toISOString(),
   secondsWatched: row.secondsWatched,
@@ -73,7 +77,7 @@ const createDatabaseHistoryService = (db: FluxDatabase): HistoryService => ({
         .where(eq(watchHistory.id, decided.id))
         .returning();
 
-      return changed === undefined ? null : shown(changed);
+      return changed === undefined ? null : shown({ ...changed, title: null, seriesTitle: null });
     }
 
     const [made] = await db
@@ -89,7 +93,7 @@ const createDatabaseHistoryService = (db: FluxDatabase): HistoryService => ({
       })
       .returning();
 
-    return made === undefined ? null : shown(made);
+    return made === undefined ? null : shown({ ...made, title: null, seriesTitle: null });
   },
 
   list: async (profileId, options = {}) => {
@@ -97,12 +101,15 @@ const createDatabaseHistoryService = (db: FluxDatabase): HistoryService => ({
       .select({
         id: watchHistory.id,
         mediaItemId: watchHistory.mediaItemId,
+        title: mediaItem.title,
+        seriesTitle: mediaItem.seriesTitle,
         startedAt: watchHistory.startedAt,
         lastWatchedAt: watchHistory.lastWatchedAt,
         secondsWatched: watchHistory.secondsWatched,
         isFinished: watchHistory.isFinished,
       })
       .from(watchHistory)
+      .leftJoin(mediaItem, eq(mediaItem.id, watchHistory.mediaItemId))
       .where(eq(watchHistory.profileId, profileId))
       .orderBy(desc(watchHistory.lastWatchedAt))
       .limit(options.limit ?? 50)
