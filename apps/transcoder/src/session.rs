@@ -8,7 +8,12 @@ use thiserror::Error;
 use tokio::process::Command;
 use tokio::sync::{oneshot, Mutex};
 
-use crate::transcode_plan::{DeviceFilters, SessionSpec, TranscodePlan, MANIFEST_NAME};
+use crate::boundaries::ensure_boundaries;
+use crate::playlist::segment_at;
+use crate::transcode_plan::{
+    DeviceFilters, SegmentStart, SessionSpec, TranscodePlan, INIT_SEGMENT_NAME, MANIFEST_NAME,
+    RUN_PLAYLIST_NAME,
+};
 
 /// Written only when ffmpeg exits cleanly.
 ///
@@ -81,6 +86,8 @@ pub enum SessionError {
     Spawn(std::io::Error),
     #[error("ffmpeg exited immediately with status {status}: {stderr}")]
     Rejected { status: i32, stderr: String },
+    #[error("could not work out where {0} can be cut")]
+    Boundaries(String),
 }
 
 /// Messages that mean the hardware encoder, rather than the file, is the
@@ -169,7 +176,20 @@ pub struct Session {
     pub id: String,
     pub directory: PathBuf,
     pub spec: SessionSpec,
+    /// What a run of this session is built from.
+    ///
+    /// Kept because a run is started more than once: a viewer seeking away
+    /// from where the transcode has got to is answered by stopping it and
+    /// starting another at the segment they asked for, which is the same plan
+    /// pointed somewhere else.
+    plan: TranscodePlan,
     cancel: Option<oneshot::Sender<()>>,
+    /// Which segment the live run was started at, if one is running.
+    ///
+    /// Where the run began rather than where it has got to: how far it has got
+    /// is written in its own playlist, and a number held in memory would be a
+    /// second answer to a question the disk already answers.
+    running_from: Option<u64>,
     last_touched: Instant,
     /// The highest numbered segment this session has handed out.
     ///
@@ -178,10 +198,12 @@ pub struct Session {
     /// lock because the transcode reads it on a timer and the segment handler
     /// writes it on every fetch, and neither should wait on the other.
     reached: Arc<AtomicU64>,
+    /// Where every segment of this film begins and ends.
+    lengths: Arc<Vec<f64>>,
 }
 
 impl Session {
-    /// The manifest this session writes.
+    /// The manifest this session serves.
     #[must_use]
     pub fn manifest_path(&self) -> PathBuf {
         self.directory.join(MANIFEST_NAME)
@@ -216,16 +238,147 @@ impl Session {
     /// resource leak in this kind of software, so sessions are cancelled
     /// explicitly rather than left to finish.
     pub fn stop(&mut self) {
+        self.running_from = None;
+
         if let Some(cancel) = self.cancel.take() {
             let _ = cancel.send(());
         }
     }
 }
 
+/// Where a run of the transcode began and how far it has got.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RunPosition {
+    /// The segment the run was started at.
+    pub from: u64,
+    /// The last segment it has finished, if it has finished any.
+    pub head: Option<u64>,
+}
+
+impl RunPosition {
+    /// The furthest segment this run can be said to have reached.
+    ///
+    /// A run that has written nothing yet is treated as being where it began,
+    /// so the segment it was started for is waited for rather than taken as a
+    /// reason to start the run over.
+    #[must_use]
+    fn reached(self) -> u64 {
+        self.head.unwrap_or(self.from)
+    }
+}
+
+/// What to do about a segment somebody has asked for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SegmentPlan {
+    /// It is on disk and whole.
+    Serve,
+    /// A run is coming to it. Ask again shortly.
+    Wait,
+    /// Nothing is going to produce it. Start a run there.
+    StartAt(u64),
+}
+
+/// How far ahead of the transcode a viewer may ask before it is restarted.
+///
+/// Jellyfin's number, in seconds of film rather than segments so that it means
+/// the same thing whatever length was asked for. Nearer than this and waiting
+/// is quicker than starting again; further, and the transcode would have to
+/// walk through everything in between to reach what was asked for.
+const RESTART_AHEAD_SECONDS: u64 = 24;
+
+/// How many segments ahead that is.
+fn restart_gap(segment_seconds: u32) -> u64 {
+    (RESTART_AHEAD_SECONDS / u64::from(segment_seconds.max(1))).max(1)
+}
+
+/// Decides how a request for a segment is answered.
+///
+/// This is `DynamicHlsController`'s rule and it is the whole delivery model:
+/// one transcode walks forward through the film, a viewer near it waits, and a
+/// viewer who has gone somewhere else gets a run started where they are. A
+/// segment is never produced on its own, and a seek is never a new session.
+#[must_use]
+pub fn resolve_segment(
+    is_ready: bool,
+    run: Option<RunPosition>,
+    wanted: u64,
+    segment_seconds: u32,
+) -> SegmentPlan {
+    if is_ready {
+        return SegmentPlan::Serve;
+    }
+
+    let Some(run) = run else {
+        return SegmentPlan::StartAt(wanted);
+    };
+
+    if wanted < run.from || wanted > run.reached() + restart_gap(segment_seconds) {
+        return SegmentPlan::StartAt(wanted);
+    }
+
+    SegmentPlan::Wait
+}
+
+/// Whether a segment can be served.
+///
+/// Existing is not enough, and this is the piece Flux has never had: ffmpeg is
+/// writing the segment it is on, so a file that exists may be half of one. It
+/// is whole once the next one has been started, or once the run that was
+/// writing it has finished the film.
+///
+/// Serving a partial segment is not an error anything reports. The player gets
+/// fewer frames than the playlist promised and stalls at the boundary, which
+/// is what a viewer sees as a stutter every ten seconds.
+async fn is_segment_ready(directory: &Path, wanted: u64, is_complete: bool) -> bool {
+    if !tokio::fs::try_exists(directory.join(crate::playlist::segment_name(index_of(wanted))))
+        .await
+        .unwrap_or(false)
+    {
+        return false;
+    }
+
+    if is_complete {
+        return true;
+    }
+
+    tokio::fs::try_exists(directory.join(crate::playlist::segment_name(index_of(
+        wanted.saturating_add(1),
+    ))))
+    .await
+    .unwrap_or(false)
+}
+
+/// A segment number as the playlist counts them.
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "a film with more segments than a usize can count does not exist"
+)]
+fn index_of(number: u64) -> usize {
+    number as usize
+}
+
+/// How far the running transcode has got, from its own playlist.
+///
+/// ffmpeg names a segment there once it has closed it, so the last name in the
+/// file is the last segment that is whole. Read from disk rather than tracked
+/// in memory because the process writing it is the only thing that knows.
+async fn head_of_run(directory: &Path) -> Option<u64> {
+    let playlist = tokio::fs::read_to_string(directory.join(RUN_PLAYLIST_NAME))
+        .await
+        .ok()?;
+
+    playlist.lines().filter_map(segment_number).max()
+}
+
 /// Where sessions live and how long they survive unused.
 #[derive(Debug, Clone)]
 pub struct SessionConfig {
     pub ffmpeg: String,
+    /// How the source's own keyframes are read.
+    ///
+    /// The segment boundaries of a copied stream are the source's, so a
+    /// session cannot describe the film it is about to serve without asking.
+    pub ffprobe: String,
     /// The render node VAAPI and QSV are opened on.
     ///
     /// A machine with two cards has a `renderD129` as well, and the one Flux
@@ -242,6 +395,7 @@ impl Default for SessionConfig {
     fn default() -> Self {
         Self {
             ffmpeg: "ffmpeg".to_owned(),
+            ffprobe: "ffprobe".to_owned(),
             device: crate::transcode_plan::DEFAULT_DEVICE.to_owned(),
             cache_root: std::env::temp_dir().join("flux-transcodes"),
             idle_timeout: Duration::from_secs(90),
@@ -271,23 +425,24 @@ impl SessionRegistry {
         &self.config
     }
 
-    /// Starts a session, or returns the existing one for the same
-    /// specification.
+    /// Starts a session, or joins the one already serving this treatment.
     ///
-    /// Reuse is the point of content addressed identifiers: a client that
-    /// reconnects, or a second client asking for exactly the same output, joins
-    /// the running transcode instead of starting a competing one.
+    /// Addressed by the plan rather than by where playback began, so everybody
+    /// watching the same film at the same quality shares one directory and one
+    /// transcode however differently they joined it. Where a viewer joins
+    /// decides where the run starts, not which session they are in. See
+    /// ADR-0011.
     ///
     /// # Errors
     ///
-    /// Returns [`SessionError`] when the directory cannot be made, ffmpeg
-    /// cannot be spawned, or ffmpeg rejects the input immediately.
+    /// Returns [`SessionError`] when the directory cannot be made or the
+    /// source cannot be read well enough to say where its segments fall.
     pub async fn start(
         &self,
         spec: SessionSpec,
         device: Option<&str>,
     ) -> Result<String, SessionError> {
-        let id = spec.session_id();
+        let id = spec.plan_id();
 
         {
             let mut sessions = self.sessions.lock().await;
@@ -319,24 +474,10 @@ impl SessionRegistry {
             record_device(&directory, device).await;
         }
 
-        if is_already_complete(&directory).await {
-            mark_used(&directory).await;
+        let lengths = ensure_boundaries(&self.config.ffprobe, &directory, &spec).await;
 
-            let mut sessions = self.sessions.lock().await;
-
-            sessions.insert(
-                id.clone(),
-                Session {
-                    id: id.clone(),
-                    directory,
-                    spec,
-                    cancel: None,
-                    last_touched: Instant::now(),
-                    reached: Arc::new(AtomicU64::new(0)),
-                },
-            );
-
-            return Ok(id);
+        if lengths.is_empty() {
+            return Err(SessionError::Boundaries(spec.input_path.clone()));
         }
 
         let device_filters = match spec.hardware_accel.pipeline() {
@@ -374,34 +515,80 @@ impl SessionRegistry {
             output_directory: directory.to_string_lossy().into_owned(),
             device: self.config.device.clone(),
             device_filters,
-            start_at: crate::transcode_plan::SegmentStart::default(),
+            start_at: SegmentStart::default(),
         };
 
-        drop(spawn_ffmpeg(&self.config.ffmpeg, &plan)?);
+        let mut session = Session {
+            id: id.clone(),
+            directory,
+            spec,
+            plan,
+            cancel: None,
+            running_from: None,
+            last_touched: Instant::now(),
+            reached: Arc::new(AtomicU64::new(0)),
+            lengths: Arc::new(lengths),
+        };
 
-        let (cancel_tx, cancel_rx) = oneshot::channel();
-        let config = self.config.clone();
-        let supervised = plan.clone();
-        let reached = Arc::new(AtomicU64::new(0));
-        let watched = Arc::clone(&reached);
+        if is_already_complete(&session.directory).await {
+            mark_used(&session.directory).await;
+        } else {
+            let opening = segment_at(&session.lengths, f64::from(session.spec.start_seconds))
+                .and_then(|index| u64::try_from(index).ok())
+                .unwrap_or(0);
 
-        tokio::spawn(async move { supervise(config, supervised, cancel_rx, watched).await });
+            begin_run(&self.config, &mut session, opening).await;
+        }
 
         let mut sessions = self.sessions.lock().await;
 
-        sessions.insert(
-            id.clone(),
-            Session {
-                id: id.clone(),
-                directory,
-                spec,
-                cancel: Some(cancel_tx),
-                last_touched: Instant::now(),
-                reached,
-            },
-        );
+        sessions.insert(id.clone(), session);
 
         Ok(id)
+    }
+
+    /// Starts a run at a segment, stopping whatever was running before.
+    ///
+    /// A seek that lands outside what the transcode is about to produce is
+    /// answered here: the run walking through the wrong part of the film is
+    /// stopped and another is started where the viewer is. Nothing already on
+    /// disk is thrown away, so a viewer who seeks back into it waits for
+    /// nothing at all.
+    ///
+    /// `false` means there is no such session.
+    pub async fn restart_at(&self, id: &str, wanted: u64) -> bool {
+        let mut sessions = self.sessions.lock().await;
+
+        let Some(session) = sessions.get_mut(id) else {
+            return false;
+        };
+
+        if session.running_from == Some(wanted) {
+            return true;
+        }
+
+        session.stop();
+
+        begin_run(&self.config, session, wanted).await;
+
+        true
+    }
+
+    /// Where the running transcode is, and where every segment falls.
+    ///
+    /// One reading rather than four calls, because deciding what to do about a
+    /// segment request needs all of it and the answers have to describe the
+    /// same moment.
+    pub async fn segment_view(&self, id: &str) -> Option<SegmentView> {
+        let sessions = self.sessions.lock().await;
+        let session = sessions.get(id)?;
+
+        Some(SegmentView {
+            directory: session.directory.clone(),
+            segment_seconds: session.spec.segment_seconds,
+            lengths: Arc::clone(&session.lengths),
+            running_from: session.running_from,
+        })
     }
 
     /// Reports the directory of a session and marks it as used.
@@ -466,6 +653,76 @@ impl SessionRegistry {
         }
     }
 
+    /// Waits until a segment can be served, producing it if nothing will.
+    ///
+    /// The whole of the delivery model is here: a segment already written is
+    /// served at once, one the transcode is coming to is waited for, and one
+    /// nothing is going to reach starts a run where the viewer is.
+    ///
+    /// `false` means the wait ran out, which is a transcode that has stopped
+    /// making progress rather than a segment that does not exist.
+    pub async fn await_segment(&self, id: &str, wanted: u64, timeout: Duration) -> bool {
+        let deadline = Instant::now() + timeout;
+
+        loop {
+            let Some(view) = self.segment_view(id).await else {
+                return false;
+            };
+
+            let is_complete = is_already_complete(&view.directory).await;
+            let is_ready = is_segment_ready(&view.directory, wanted, is_complete).await;
+
+            match resolve_segment(is_ready, view.run().await, wanted, view.segment_seconds) {
+                SegmentPlan::Serve => return true,
+                SegmentPlan::StartAt(index) => {
+                    if !self.restart_at(id, index).await {
+                        return false;
+                    }
+                }
+                SegmentPlan::Wait => {}
+            }
+
+            if Instant::now() >= deadline {
+                return false;
+            }
+
+            tokio::time::sleep(SEGMENT_POLL).await;
+        }
+    }
+
+    /// Waits for the initialisation segment, starting a run if none will.
+    ///
+    /// Every segment of a plan decodes against the same initialisation
+    /// segment, whichever run produced it — measured, byte for byte, between a
+    /// run from the beginning and one from the middle. So this is only ever
+    /// waiting for the first run of a plan to open its output.
+    pub async fn await_init(&self, id: &str, timeout: Duration) -> bool {
+        let deadline = Instant::now() + timeout;
+
+        loop {
+            let Some(view) = self.segment_view(id).await else {
+                return false;
+            };
+
+            if tokio::fs::try_exists(view.directory.join(INIT_SEGMENT_NAME))
+                .await
+                .unwrap_or(false)
+            {
+                return true;
+            }
+
+            if view.running_from.is_none() && !self.restart_at(id, 0).await {
+                return false;
+            }
+
+            if Instant::now() >= deadline {
+                return false;
+            }
+
+            tokio::time::sleep(SEGMENT_POLL).await;
+        }
+    }
+
     /// How many sessions are currently tracked.
     pub async fn len(&self) -> usize {
         self.sessions.lock().await.len()
@@ -523,6 +780,68 @@ impl SessionRegistry {
     }
 }
 
+/// What deciding about a segment request needs to know.
+#[derive(Debug)]
+pub struct SegmentView {
+    directory: PathBuf,
+    segment_seconds: u32,
+    lengths: Arc<Vec<f64>>,
+    running_from: Option<u64>,
+}
+
+impl SegmentView {
+    /// How many segments the film has.
+    #[must_use]
+    pub fn segments(&self) -> usize {
+        self.lengths.len()
+    }
+
+    /// Where the live run is, if one is running.
+    async fn run(&self) -> Option<RunPosition> {
+        let from = self.running_from?;
+
+        Some(RunPosition {
+            from,
+            head: head_of_run(&self.directory).await,
+        })
+    }
+}
+
+/// Starts a run at a segment and records that it is the live one.
+///
+/// The run's own playlist is removed first. It is how far the transcode has
+/// got, and one left behind by the run being replaced would say the new one
+/// had already reached somewhere it has not started.
+async fn begin_run(config: &SessionConfig, session: &mut Session, wanted: u64) {
+    let start_at = SegmentStart {
+        index: u32::try_from(wanted).unwrap_or(u32::MAX),
+        seconds: crate::keyframes::segment_starts(&session.lengths)
+            .get(index_of(wanted))
+            .copied()
+            .unwrap_or(0.0),
+    };
+
+    let _ = tokio::fs::remove_file(session.directory.join(RUN_PLAYLIST_NAME)).await;
+
+    let plan = TranscodePlan {
+        start_at,
+        ..session.plan.clone()
+    };
+
+    let (cancel_tx, cancel_rx) = oneshot::channel();
+    let supervised = plan.clone();
+    let config = config.clone();
+    let watched = Arc::clone(&session.reached);
+
+    session.reached.store(wanted, Ordering::Relaxed);
+
+    tokio::spawn(async move { supervise(config, supervised, cancel_rx, watched).await });
+
+    session.plan = plan;
+    session.cancel = Some(cancel_tx);
+    session.running_from = Some(wanted);
+}
+
 /// Runs one ffmpeg attempt to completion, or until cancelled.
 async fn run_attempt(
     ffmpeg: &str,
@@ -537,6 +856,7 @@ async fn run_attempt(
     let pid = child.id();
     let directory = PathBuf::from(&plan.output_directory);
     let segment_seconds = plan.spec.segment_seconds;
+    let started_at = u64::from(plan.start_at.index);
 
     let waiting = child.wait_with_output();
     tokio::pin!(waiting);
@@ -555,9 +875,9 @@ async fn run_attempt(
                     continue;
                 };
 
-                let written = segments_written(&directory).await;
+                let head = head_of_run(&directory).await.unwrap_or(started_at);
                 let wanted = is_too_far_ahead(
-                    written,
+                    head,
                     reached.load(Ordering::Relaxed),
                     segment_seconds,
                 );
@@ -659,10 +979,17 @@ const THROTTLE_AHEAD_SECONDS: u64 = 60;
 
 /// How often the gap is measured.
 ///
-/// Cheap — a directory listing and a signal — so this can be frequent enough
-/// that resuming feels immediate when a viewer reaches the end of what has
-/// been encoded.
+/// Cheap — one small file and a signal — so this can be frequent enough that
+/// resuming feels immediate when a viewer reaches the end of what has been
+/// encoded.
 const THROTTLE_INTERVAL: Duration = Duration::from_secs(2);
+
+/// How often a segment that is not ready yet is looked at again.
+///
+/// Short enough that a viewer waiting on the transcode is not made to wait
+/// noticeably longer than it takes, and long enough that a hundred of them
+/// waiting is not a hundred directory reads a second.
+const SEGMENT_POLL: Duration = Duration::from_millis(100);
 
 /// The segment number out of a name ffmpeg wrote.
 ///
@@ -707,31 +1034,14 @@ fn set_paused(pid: u32, paused: bool) {
     }
 }
 
-/// How many segments a transcode has written.
-async fn segments_written(directory: &Path) -> u64 {
-    let Ok(mut entries) = tokio::fs::read_dir(directory).await else {
-        return 0;
-    };
-
-    let mut count = 0;
-
-    while let Ok(Some(entry)) = entries.next_entry().await {
-        if segment_number(&entry.file_name().to_string_lossy()).is_some() {
-            count += 1;
-        }
-    }
-
-    count
-}
-
 /// Whether a transcode should be paused, given where it and the viewer are.
 ///
-/// Both are counted in segments and converted here, so the decision is about
-/// seconds of film rather than a number of files whose length depends on how
-/// the session was configured.
+/// Both are segment numbers in the film's own numbering and converted here, so
+/// the decision is about seconds of film rather than a count of files whose
+/// length depends on how the session was configured.
 #[must_use]
-pub fn is_too_far_ahead(written: u64, reached: u64, segment_seconds: u32) -> bool {
-    let ahead = written.saturating_sub(reached) * u64::from(segment_seconds.max(1));
+pub fn is_too_far_ahead(head: u64, reached: u64, segment_seconds: u32) -> bool {
+    let ahead = head.saturating_sub(reached) * u64::from(segment_seconds.max(1));
 
     ahead > THROTTLE_AHEAD_SECONDS
 }
@@ -799,31 +1109,134 @@ fn spawn_ffmpeg(ffmpeg: &str, plan: &TranscodePlan) -> Result<tokio::process::Ch
     Ok(child)
 }
 
-/// Waits for a manifest to appear.
+/// Waits for a run to prove that it started.
 ///
-/// HLS playback cannot begin until ffmpeg has written the playlist, which
-/// takes a moment after the process starts. Callers wait rather than returning
-/// a 404 that the client would have to poll around.
+/// The playlist Flux serves is written before any transcoding happens, so
+/// waiting for that would prove nothing: it is there whether ffmpeg works or
+/// not. ffmpeg's own playlist is the evidence, and a session that never
+/// produces one is a session whose viewer should be told rather than left
+/// polling a manifest whose segments will never arrive.
+///
+/// A directory that already holds the finished film has nothing to run, and is
+/// ready by definition.
 #[must_use]
-pub async fn await_manifest(path: &Path, timeout: Duration) -> bool {
+pub async fn await_run(directory: &Path, timeout: Duration) -> bool {
     let deadline = Instant::now() + timeout;
 
-    while Instant::now() < deadline {
-        if tokio::fs::try_exists(path).await.unwrap_or(false) {
-            return true;
+    loop {
+        for name in [RUN_PLAYLIST_NAME, COMPLETE_MARKER] {
+            if tokio::fs::try_exists(directory.join(name))
+                .await
+                .unwrap_or(false)
+            {
+                return true;
+            }
+        }
+
+        if Instant::now() >= deadline {
+            return false;
         }
 
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
-
-    false
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        classify_exit, should_retry_in_software, ExitClass, SessionConfig, SessionRegistry,
+        classify_exit, resolve_segment, should_retry_in_software, ExitClass, RunPosition,
+        SegmentPlan, SessionConfig, SessionRegistry,
     };
+
+    fn run(from: u64, head: Option<u64>) -> RunPosition {
+        RunPosition { from, head }
+    }
+
+    /// A segment that is whole is served, whatever the transcode is doing.
+    #[test]
+    fn serves_a_segment_that_is_ready() {
+        assert_eq!(
+            resolve_segment(true, Some(run(300, Some(302))), 0, 4),
+            SegmentPlan::Serve
+        );
+    }
+
+    /// Nothing is running, so nothing is going to write it.
+    #[test]
+    fn starts_a_run_when_none_is_running() {
+        assert_eq!(
+            resolve_segment(false, None, 42, 4),
+            SegmentPlan::StartAt(42)
+        );
+    }
+
+    /// The transcode is about to reach it, and waiting beats starting again.
+    #[test]
+    fn waits_for_a_transcode_that_is_coming_to_it() {
+        assert_eq!(
+            resolve_segment(false, Some(run(0, Some(9))), 10, 4),
+            SegmentPlan::Wait
+        );
+    }
+
+    /// A run that has written nothing yet is still on its way to its own
+    /// first segment. Restarting it there would restart it forever.
+    #[test]
+    fn waits_for_a_run_that_has_not_written_anything_yet() {
+        assert_eq!(
+            resolve_segment(false, Some(run(300, None)), 300, 4),
+            SegmentPlan::Wait
+        );
+    }
+
+    /// Seeking back to something never produced: the run ahead will never
+    /// come back for it.
+    #[test]
+    fn starts_a_run_behind_the_one_that_is_running() {
+        assert_eq!(
+            resolve_segment(false, Some(run(300, Some(320))), 12, 4),
+            SegmentPlan::StartAt(12)
+        );
+    }
+
+    /// Seeking forty minutes on: waiting would mean transcoding everything in
+    /// between first.
+    #[test]
+    fn starts_a_run_where_a_viewer_has_seeked_to() {
+        assert_eq!(
+            resolve_segment(false, Some(run(0, Some(3))), 300, 4),
+            SegmentPlan::StartAt(300)
+        );
+    }
+
+    /// The line between waiting and starting again is seconds of film, so a
+    /// long segment reaches it in fewer of them.
+    #[test]
+    fn measures_the_gap_in_seconds_of_film() {
+        assert_eq!(
+            resolve_segment(false, Some(run(0, Some(0))), 6, 4),
+            SegmentPlan::Wait
+        );
+        assert_eq!(
+            resolve_segment(false, Some(run(0, Some(0))), 7, 4),
+            SegmentPlan::StartAt(7)
+        );
+    }
+
+    /// The number in the name is the position in the film, and the head is
+    /// read out of the playlist ffmpeg keeps as it goes.
+    #[test]
+    fn reads_the_head_of_a_run_out_of_its_playlist() {
+        let playlist = concat!(
+            "#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-MAP:URI=\"init.mp4\"\n",
+            "#EXTINF:13.055000,\nsegment00300.m4s\n",
+            "#EXTINF:10.427000,\nsegment00301.m4s\n"
+        );
+
+        let head = playlist.lines().filter_map(super::segment_number).max();
+
+        assert_eq!(head, Some(301));
+    }
 
     /// The number in the name is the viewer's place in the film.
     #[test]

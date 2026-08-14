@@ -1187,7 +1187,7 @@ impl TranscodePlan {
         args.push(self.start_at.index.to_string());
         args.push("-hls_segment_filename".into());
         args.push(format!("{}/segment%05d.m4s", self.output_directory));
-        args.push(format!("{}/{MANIFEST_NAME}", self.output_directory));
+        args.push(format!("{}/{RUN_PLAYLIST_NAME}", self.output_directory));
 
         args
     }
@@ -2203,15 +2203,18 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
 
     #[test]
     fn seeks_before_the_input_so_the_seek_is_fast() {
-        let args = plan(SessionSpec {
-            start_seconds: 90,
-            ..spec()
-        })
-        .to_ffmpeg_args();
+        let mut session = plan(spec());
+        session.start_at = SegmentStart {
+            index: 9,
+            seconds: 90.0,
+        };
+
+        let args = session.to_ffmpeg_args();
 
         let seek = args.iter().position(|a| a == "-ss");
         let input = args.iter().position(|a| a == "-i");
 
+        assert!(seek.is_some(), "expected a seek");
         assert!(seek < input, "expected -ss before -i");
     }
 
@@ -2226,7 +2229,17 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
 
         assert!(args.windows(2).any(|w| w == ["-hls_segment_type", "fmp4"]));
         assert!(args.contains(&"/transcodes/abc/segment%05d.m4s".to_owned()));
-        assert!(args.contains(&"/transcodes/abc/index.m3u8".to_owned()));
+        assert!(args.contains(&"/transcodes/abc/run.m3u8".to_owned()));
+    }
+
+    /// The playlist Flux serves describes the whole film, and ffmpeg's does
+    /// not. A run that wrote over it would replace the film with the part of
+    /// it that had been transcoded so far.
+    #[test]
+    fn leaves_the_playlist_flux_writes_alone() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(!args.iter().any(|argument| argument.ends_with("index.m3u8")));
     }
 
     #[test]

@@ -146,6 +146,7 @@ fn registry(name: &str) -> SessionRegistry {
     SessionRegistry::new(SessionConfig {
         device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
         ffmpeg: ffmpeg(),
+        ffprobe: ffprobe(),
         cache_root: cache_root(name),
         idle_timeout: Duration::from_secs(60),
         max_concurrent: 2,
@@ -396,8 +397,14 @@ async fn the_same_specification_reuses_one_session() {
     assert_eq!(registry.len().await, 1);
 }
 
+/// Where somebody joined is not what they are watching.
+///
+/// Two viewers of one film share its segments however differently they came to
+/// it, which is the whole point of addressing the work by the plan. Keying it
+/// on where playback began is what made a seek a second transcode of the rest
+/// of the film. See ADR-0011.
 #[tokio::test]
-async fn a_different_seek_is_a_different_session() {
+async fn a_different_seek_joins_the_same_session() {
     let registry = registry("seek");
     let app = app(registry.clone());
 
@@ -411,8 +418,8 @@ async fn a_different_seek_is_a_different_session() {
     )
     .await;
 
-    assert_ne!(first["id"], second["id"]);
-    assert_eq!(registry.len().await, 2);
+    assert_eq!(first["id"], second["id"]);
+    assert_eq!(registry.len().await, 1);
 }
 
 #[tokio::test]
@@ -549,8 +556,15 @@ async fn reports_capabilities_over_http() {
     );
 }
 
+/// The playlist describes the film, not the part of it that has been made.
+///
+/// A player given a playlist that grows as segments appear can only seek
+/// within what has already been transcoded, which is why seeking used to start
+/// a second transcode of the remainder. This one names every segment of a two
+/// minute source while almost none of them exist, and declares how long the
+/// film runs before any of it has been produced.
 #[tokio::test]
-async fn serves_a_manifest_before_the_transcode_has_finished() {
+async fn describes_the_whole_film_before_transcoding_it() {
     let _ = std::fs::remove_dir_all(cache_root("growing"));
 
     let app = app(registry("growing"));
@@ -578,10 +592,19 @@ async fn serves_a_manifest_before_the_transcode_has_finished() {
 
     assert_eq!(status, StatusCode::OK);
     assert!(manifest.contains("#EXTM3U"), "{manifest}");
-    assert!(manifest.contains(".m4s"), "{manifest}");
+    assert!(manifest.contains("#EXT-X-PLAYLIST-TYPE:VOD"), "{manifest}");
+
+    let named = manifest.matches(".m4s\n").count();
+    let written = std::fs::read_dir(cache_root("growing").join(id))
+        .expect("reads the session directory")
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_name().to_string_lossy().ends_with(".m4s"))
+        .count();
+
+    assert_eq!(named, 30, "a two minute film in four second segments");
     assert!(
-        !manifest.contains("#EXT-X-ENDLIST"),
-        "the transcode finished during the test, which proves nothing: {manifest}"
+        written < named,
+        "the transcode finished during the test, which proves nothing: {written} of {named}"
     );
 
     let (status, _) = call(
@@ -595,4 +618,53 @@ async fn serves_a_manifest_before_the_transcode_has_finished() {
     .await;
 
     assert_eq!(status, StatusCode::NO_CONTENT);
+}
+
+/// A seek is answered where it landed, not after everything before it.
+///
+/// The run walking through the opening of the film is stopped and another
+/// started at the segment that was asked for. Nothing produces the eighty
+/// seconds in between, and the file that arrives carries its own place in the
+/// film in its name — which is what lets a later run pick up where this one is
+/// stopped.
+#[tokio::test]
+async fn starts_a_run_where_a_viewer_seeked_to() {
+    let _ = std::fs::remove_dir_all(cache_root("far-seek"));
+
+    let app = app(registry("far-seek"));
+    let subject = SessionSpec {
+        input_path: long_source_file().to_string_lossy().into_owned(),
+        segment_seconds: 4,
+        video: VideoAction::Encode {
+            encoder: "libx264".into(),
+            max_bitrate_kbps: 6000,
+            max_width: 640,
+            max_height: 360,
+            tone_map: None,
+        },
+        audio: AudioAction::Copy,
+        ..spec(VideoAction::Copy, AudioAction::Copy)
+    };
+
+    let (status, body) = start(&app, &subject).await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let id = body["id"].as_str().expect("names the session").to_owned();
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00025.m4s"))).await;
+
+    assert_eq!(status, StatusCode::OK, "a seek to 100 seconds in");
+    assert!(bytes.len() > 512, "segment was {} bytes", bytes.len());
+
+    let written: Vec<String> = std::fs::read_dir(cache_root("far-seek").join(&id))
+        .expect("reads the session directory")
+        .filter_map(Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .filter(|name| name.ends_with(".m4s"))
+        .collect();
+
+    assert!(
+        !written.contains(&"segment00012.m4s".to_owned()),
+        "nothing should have transcoded the film in between: {written:?}"
+    );
 }

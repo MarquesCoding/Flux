@@ -31,10 +31,15 @@ pub struct Keyframes {
 
 /// Reads every keyframe position out of a file.
 ///
-/// `-skip_frame nokey` makes ffprobe decode nothing but keyframes, which is
-/// what keeps this a pass over the index rather than over the film. It is
-/// still a pass: on a six gigabyte remux it is not free, and the result is
-/// worth keeping beside the rest of what probing already learns.
+/// From the container's packet index rather than by decoding. `-skip_frame
+/// nokey` sounds like the cheaper option and is not: it decodes, and on a six
+/// gigabyte remux it took **twenty-two seconds** where reading the index takes
+/// **under one**. A viewer pressing play waited for the difference, and read it
+/// as the player having hung.
+///
+/// The index is also the better answer. It found 1444 keyframes on that film
+/// where decoding found 1389, and a packet's keyframe flag is what actually
+/// decides whether a segment can begin there.
 ///
 /// # Errors
 ///
@@ -51,10 +56,8 @@ pub async fn read_keyframes(
             "error",
             "-select_streams",
             "v:0",
-            "-skip_frame",
-            "nokey",
             "-show_entries",
-            "frame=pts_time",
+            "packet=pts_time,flags",
             "-of",
             "csv=p=0",
         ])
@@ -75,7 +78,11 @@ pub async fn read_keyframes(
     })
 }
 
-/// Reads the times out of ffprobe's csv, in order and without the gaps.
+/// Reads the keyframe times out of ffprobe's csv, in order and without gaps.
+///
+/// Each row is a packet: its time, then its flags. `K` marks a keyframe, and
+/// only those can begin a segment — every other packet depends on something
+/// before it.
 ///
 /// Sorted rather than trusted: asked for frames, ffprobe answers in decode
 /// order, and with B-frames that is not presentation order. A segment list
@@ -88,7 +95,13 @@ pub async fn read_keyframes(
 pub fn parse_keyframe_times(csv: &str) -> Vec<f64> {
     let mut times: Vec<f64> = csv
         .lines()
-        .filter_map(|line| line.trim().trim_end_matches(',').parse::<f64>().ok())
+        .filter_map(|line| {
+            let mut columns = line.trim().split(',');
+            let time = columns.next()?;
+            let flags = columns.next().unwrap_or_default();
+
+            flags.contains('K').then(|| time.parse::<f64>().ok())?
+        })
         .filter(|time| time.is_finite() && *time >= 0.0)
         .collect();
 
@@ -174,14 +187,25 @@ mod tests {
     /// order goes backwards.
     #[test]
     fn puts_the_keyframes_in_the_order_they_are_watched() {
-        let times = parse_keyframe_times("0.0\n13.055\n2.628\n30.614\n23.482\n");
+        let times = parse_keyframe_times("0.0,K__\n13.055,K__\n2.628,K__\n30.614,K__\n");
 
-        assert_eq!(times, vec![0.0, 2.628, 13.055, 23.482, 30.614]);
+        assert_eq!(times, vec![0.0, 2.628, 13.055, 30.614]);
+    }
+
+    /// Only a keyframe can begin a segment.
+    ///
+    /// Every other packet depends on something before it, so cutting there
+    /// gives a segment that cannot be decoded on its own.
+    #[test]
+    fn takes_only_the_packets_a_segment_could_start_at() {
+        let times = parse_keyframe_times("0.0,K__\n0.04,___\n0.08,___\n4.0,K__\n");
+
+        assert_eq!(times, vec![0.0, 4.0]);
     }
 
     #[test]
     fn drops_rows_that_are_not_a_time() {
-        let times = parse_keyframe_times("0.000000,\nN/A\n\n4.5\n");
+        let times = parse_keyframe_times("0.000000,K__\nN/A,K__\n\n4.5,K__\n");
 
         assert_eq!(times, vec![0.0, 4.5]);
     }

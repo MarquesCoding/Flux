@@ -84,6 +84,7 @@ fn app() -> axum::Router {
         registry: SessionRegistry::new(SessionConfig {
             device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg(),
+            ffprobe: ffprobe(),
             cache_root: std::env::temp_dir().join("flux-test-fingerprint"),
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,
@@ -177,6 +178,7 @@ async fn refuses_a_file_outside_the_media_roots() {
         registry: SessionRegistry::new(SessionConfig {
             device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg(),
+            ffprobe: ffprobe(),
             cache_root: std::env::temp_dir().join("flux-test-fingerprint-confined"),
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,

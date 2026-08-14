@@ -21,15 +21,23 @@ use crate::preview::{
 };
 use crate::probe::probe_media;
 use crate::queue::WorkQueue;
-use crate::session::{await_manifest, SessionRegistry};
+use crate::session::{await_run, segment_number, SessionRegistry};
 use crate::subtitle::{extract_subtitle, SubtitleRequest};
-use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
+use crate::transcode_plan::{SessionSpec, INIT_SEGMENT_NAME, MANIFEST_NAME};
 use crate::trickplay::{
     directory_for, is_complete, pending_index, tile_height_for, SheetSource, TrickplayRegistry,
     TrickplayRequest,
 };
 
 const MANIFEST_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// How long a request for a segment waits for the transcode to reach it.
+///
+/// Long enough to cover a run being restarted somewhere else in the film and
+/// producing the first segment there, which is where the longest honest wait
+/// is. Past that the transcode is not making progress, and a viewer is better
+/// told so than left holding a connection open.
+const SEGMENT_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// How often a watching page is sent a new reading.
 ///
@@ -421,7 +429,7 @@ async fn start_session(
         );
     };
 
-    if !await_manifest(&directory.join(MANIFEST_NAME), MANIFEST_TIMEOUT).await {
+    if !await_run(&directory, MANIFEST_TIMEOUT).await {
         eprintln!(
             "session {id} produced no manifest within {}s; see the ffmpeg output above",
             MANIFEST_TIMEOUT.as_secs()
@@ -445,6 +453,16 @@ async fn start_session(
         .into_response()
 }
 
+/// Serves a file out of a session, waiting for one that is still being made.
+///
+/// A segment is not a file that either exists or does not. It is a piece of
+/// film that has been produced, is being produced, or is somewhere nothing is
+/// heading — and the difference decides whether this waits, restarts the
+/// transcode, or answers at once.
+///
+/// Serving whatever was on disk is what produced a stutter at every segment
+/// boundary: ffmpeg is still writing the segment it is on, so the player was
+/// handed part of one and stalled where it ran out.
 async fn session_file(
     State(state): State<AppState>,
     AxumPath((id, name)): AxumPath<(String, String)>,
@@ -454,7 +472,29 @@ async fn session_file(
         return error(StatusCode::NOT_FOUND, "No such session.");
     };
 
-    state.registry.reached(&id, &name).await;
+    if let Some(wanted) = segment_number(&name) {
+        if !state
+            .registry
+            .await_segment(&id, wanted, SEGMENT_TIMEOUT)
+            .await
+        {
+            return error(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "That segment is not ready.",
+            );
+        }
+
+        state.registry.reached(&id, &name).await;
+
+        return serve_file(&directory, &name, requested_range(&headers)).await;
+    }
+
+    if name == INIT_SEGMENT_NAME && !state.registry.await_init(&id, SEGMENT_TIMEOUT).await {
+        return error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "That stream has not opened yet.",
+        );
+    }
 
     serve_file(&directory, &name, requested_range(&headers)).await
 }
