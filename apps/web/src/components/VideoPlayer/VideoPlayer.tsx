@@ -21,7 +21,7 @@ import {
   heartbeatPlaybackSession,
   sendPresenceHeartbeat,
 } from '@FluxWeb/playback/startPlaybackSession';
-import { attachShaka } from '@FluxWeb/playback/attachShaka';
+import { attachShaka, CRITICAL } from '@FluxWeb/playback/attachShaka';
 import {
   describePlaybackFailure,
   PlaybackEngineErrorSchema,
@@ -695,6 +695,14 @@ const VideoPlayer = ({
           teardown = await attachShaka({
             element,
             manifestUrl: outcome.session.delivery.manifestUrl,
+            onFault: (fault) => {
+              if (fault.severity < CRITICAL || isAbandoned()) {
+                return;
+              }
+
+              setProblem(describePlaybackFailure(fault.category));
+              setState('failed');
+            },
           });
 
           releaseRef.current = teardown;
