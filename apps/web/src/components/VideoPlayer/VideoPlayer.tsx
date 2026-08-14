@@ -1091,6 +1091,24 @@ const VideoPlayer = ({
     [seek, position, duration],
   );
 
+  /**
+   * The jump keys read the current skip through this rather than closing over
+   * it.
+   *
+   * `skip` is rebuilt whenever the position changes, which is several times a
+   * second while a film plays. The keyboard listener is registered once, so
+   * whichever `skip` existed when it was registered is the one it keeps —
+   * carrying a `position` of nought, from before anything had played. An hour
+   * in, `l` jumped to 0:30 rather than 1:00:30.
+   *
+   * A ref rather than a dependency: naming `skip` in the effect's array would
+   * fix the staleness by tearing the listener down and re-adding it on every
+   * position change, several times a second, for the whole film.
+   */
+  const skipRef = useRef(skip);
+
+  skipRef.current = skip;
+
   const toggleFullscreen = useCallback(() => {
     const stage = stageRef.current;
 
@@ -1212,10 +1230,10 @@ const VideoPlayer = ({
           stepFrame(1);
         },
         j: () => {
-          skip(-JUMP_SECONDS);
+          skipRef.current(-JUMP_SECONDS);
         },
         l: () => {
-          skip(JUMP_SECONDS);
+          skipRef.current(JUMP_SECONDS);
         },
         f: toggleFullscreen,
         m: () => {

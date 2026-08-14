@@ -631,6 +631,44 @@ describe('VideoPlayer', () => {
     expect(screen.queryByText('Transcode')).not.toBeInTheDocument();
   });
 
+  it('jumps forward from where the film has got to, not from the beginning', async () => {
+    render(<VideoPlayer media={media} isImmersive onClose={vi.fn()} />);
+
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 7200);
+
+    fireEvent.timeUpdate(element, { target: { currentTime: 600 } });
+
+    await waitFor(() => {
+      expect(screen.getByRole('slider', { name: 'Seek through Arrival' })).toHaveValue('600');
+    });
+
+    fireEvent.keyDown(window, { key: 'l' });
+
+    await waitFor(() => {
+      expect(element).toHaveProperty('currentTime', 630);
+    });
+  });
+
+  it('jumps back from where the film has got to', async () => {
+    render(<VideoPlayer media={media} isImmersive onClose={vi.fn()} />);
+
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 7200);
+
+    fireEvent.timeUpdate(element, { target: { currentTime: 600 } });
+
+    await waitFor(() => {
+      expect(screen.getByRole('slider', { name: 'Seek through Arrival' })).toHaveValue('600');
+    });
+
+    fireEvent.keyDown(window, { key: 'j' });
+
+    await waitFor(() => {
+      expect(element).toHaveProperty('currentTime', 570);
+    });
+  });
+
   it('seeks inside the session when the target is already encoded', async () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
