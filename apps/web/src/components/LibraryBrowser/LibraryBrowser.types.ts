@@ -25,6 +25,18 @@ type LibraryBrowserProps = {
   onPalette?: (lights: MoodLight[]) => void;
   onPlay: (media: MediaSummary) => void;
   /**
+   * Opens the programme an item belongs to, rather than the item.
+   *
+   * Only the hero asks for this, and only because what it features is a stand
+   * in: `pickFeatured` chooses one episode to represent a whole series, so
+   * reading more about it means reading about the programme.
+   *
+   * A card in the grid is not a stand in. A newly added episode is itself, and
+   * opening it shows that episode — collapsing it to the programme would lose
+   * the thing the row was pointing at.
+   */
+  onShow?: (seriesId: string) => void;
+  /**
    * Starts something, rather than opening the page about it.
    *
    * The hero's one button plays; a card opens the page. They are different

@@ -520,6 +520,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               onPlay={(media) => {
                 go({ inspecting: media.id });
               }}
+              onShow={(seriesId) => {
+                go({ show: seriesId });
+              }}
               onWatch={(media, startSeconds) => {
                 go({ playing: media.id, startSeconds });
               }}
