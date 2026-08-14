@@ -843,6 +843,27 @@ pub fn fitted_size(source: (u32, u32), max_width: u32, max_height: u32) -> (u32,
 /// right for ever.
 pub const NO_EMBEDDED_CAPTIONS: [&str; 2] = ["-a53cc", "0"];
 
+/// Tells the encoder to put a keyframe where every segment has to begin.
+///
+/// `-hls_time` is a request, not an instruction. The muxer can only start a
+/// segment on a keyframe, so asking for four seconds from a source with a ten
+/// second GOP produces ten second segments and no complaint at all. Measured on
+/// a realistic encode — B-frames, ten second GOP — Flux asked for four and got
+/// six segments of exactly ten. Forcing them gives fifteen of exactly four, and
+/// drops the first segment from 9.5 MB to 3.7 MB.
+///
+/// That first segment is what a viewer waits for before anything appears, and
+/// what has to be fetched again after every seek, because a seek starts a new
+/// session and a new session encodes from nothing. Segments larger than asked
+/// for make every one of those waits longer and lumpier.
+///
+/// Only meaningful where Flux is encoding. A copied stream keeps the keyframes
+/// it already has and there is no encoder to instruct.
+#[must_use]
+fn force_key_frames_argument(segment_seconds: u32) -> String {
+    format!("expr:gte(t,n_forced*{segment_seconds})")
+}
+
 /// A fully resolved transcode instruction.
 ///
 /// The `FFmpeg` command line is always built from this struct and never
@@ -907,6 +928,8 @@ impl TranscodePlan {
                         .iter()
                         .map(|argument| (*argument).to_owned()),
                 );
+                args.push("-force_key_frames".into());
+                args.push(force_key_frames_argument(self.spec.segment_seconds));
                 let route = frame_route(&self.spec, self.device_filters);
 
                 if let (Some(pipeline), Some(source)) =
@@ -1099,9 +1122,10 @@ impl TranscodePlan {
 #[cfg(test)]
 mod tests {
     use super::{
-        composited_graph, filter_name, fitted_size, frame_route, keeps_frames_on_the_gpu,
-        software_equivalent, AudioAction, DeviceFilters, FrameRoute, HardwareAccel, SessionSpec,
-        SubtitleAction, ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
+        composited_graph, filter_name, fitted_size, force_key_frames_argument, frame_route,
+        keeps_frames_on_the_gpu, software_equivalent, AudioAction, DeviceFilters, FrameRoute,
+        HardwareAccel, SessionSpec, SubtitleAction, ToneMapping, TranscodePlan, VideoAction,
+        DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
     };
 
     /// A build with a scaler and no compositor, as the existing routes assume.
@@ -1130,6 +1154,56 @@ mod tests {
             subtitles: SubtitleAction::None,
             source_size: None,
         }
+    }
+
+    /// `-hls_time` is a request the muxer can only honour on a keyframe.
+    ///
+    /// Measured before this: a four second request against a ten second GOP
+    /// produced ten second segments and said nothing. The two numbers have to
+    /// be the same one, so this reads both out of the emitted arguments rather
+    /// than asserting the expression in isolation.
+    #[test]
+    fn cuts_keyframes_where_segments_are_asked_to_begin() {
+        let args = plan(on_gpu(HardwareAccel::Vaapi)).to_ffmpeg_args();
+
+        let forced = args
+            .windows(2)
+            .find(|pair| pair[0] == "-force_key_frames")
+            .map(|pair| pair[1].clone())
+            .expect("keyframes are forced");
+
+        let segment = args
+            .windows(2)
+            .find(|pair| pair[0] == "-hls_time")
+            .map(|pair| pair[1].clone())
+            .expect("a segment length");
+
+        assert_eq!(forced, format!("expr:gte(t,n_forced*{segment})"));
+    }
+
+    #[test]
+    fn builds_the_expression_from_the_segment_length() {
+        assert_eq!(force_key_frames_argument(4), "expr:gte(t,n_forced*4)");
+        assert_eq!(force_key_frames_argument(6), "expr:gte(t,n_forced*6)");
+    }
+
+    /// A copied stream keeps the keyframes it already has.
+    ///
+    /// There is no encoder to instruct, and asking anyway is an argument
+    /// ffmpeg has nothing to apply it to.
+    #[test]
+    fn does_not_ask_a_copied_stream_for_keyframes() {
+        let spec = SessionSpec {
+            video: VideoAction::Copy,
+            ..spec()
+        };
+
+        let args = plan(spec).to_ffmpeg_args();
+
+        assert!(
+            !args.iter().any(|argument| argument == "-force_key_frames"),
+            "{args:?}"
+        );
     }
 
     fn keeps_frames_on_the_gpu_of(spec: &SessionSpec) -> bool {
