@@ -19,6 +19,15 @@ type ProgressReport = {
  */
 type WatchProgressService = {
   list: (profileId: string) => Promise<WatchProgress[]>;
+  /**
+   * Where somebody had got to in one thing, before this report.
+   *
+   * Asked for by name rather than found in the list, because it is read on
+   * every progress report — and reading a profile's whole viewing to answer a
+   * question about one item is the sort of thing that is fine until somebody
+   * has watched a thousand of them.
+   */
+  read: (profileId: string, mediaId: string) => Promise<WatchProgress | null>;
   record: (profileId: string, report: ProgressReport) => Promise<void>;
   forget: (profileId: string, mediaId: string) => Promise<void>;
 };

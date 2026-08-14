@@ -4,6 +4,7 @@ import {
   REGENERATE_PREVIEWS_JOB,
   REGENERATE_TRICKPLAY_JOB,
   FETCH_LOGOS_JOB,
+  PRUNE_HISTORY_JOB,
   DETECT_SEGMENTS_JOB,
   CLEANUP_IMAGE_CACHE_JOB,
   CLEANUP_ARTEFACT_CACHE_JOB,
@@ -118,6 +119,14 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Removes preview clips and scrub previews nothing addresses any more, freeing the space left behind by a reset or a change to how they are made.',
     needsLibrary: false,
     destructive: false,
+  },
+  {
+    kind: PRUNE_HISTORY_JOB,
+    label: 'Prune old viewing history',
+    description:
+      'Forgets viewings older than a year. What each profile has watched recently stays; the rest is removed, because this log grows every evening and nobody reads back that far.',
+    needsLibrary: false,
+    destructive: true,
   },
   {
     kind: CLEANUP_SESSIONS_JOB,

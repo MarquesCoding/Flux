@@ -219,6 +219,47 @@ const viewerProfile = pgTable(
   (table) => [index('viewer_profile_user_idx').on(table.userId)],
 );
 
+/**
+ * What somebody has watched, as events rather than as a position.
+ *
+ * Alongside `watch_progress` rather than replacing it. That table is the
+ * resume pointer — one row per profile and item, overwritten every time, read
+ * on every card and every detail page — and turning it into the latest row of
+ * a log would make a hot path slower for nothing.
+ *
+ * This answers the questions it cannot: what was watched last month, whether
+ * something has been seen before, and how long was actually spent on it.
+ *
+ * `secondsWatched` is on the row from the start deliberately. Usage figures
+ * aggregate these events and cannot do it without a duration, and adding the
+ * column later would make every event recorded in the meantime useless for it.
+ * It is accumulated honestly rather than taken from wall-clock time — a pause
+ * is not watching and a skipped intro is not watched.
+ *
+ * One log, not two. Statistics and history are the same facts asked different
+ * questions, and a second parallel table would guarantee the two disagree.
+ */
+const watchHistory = pgTable(
+  'watch_history',
+  {
+    id: text('id').primaryKey(),
+    profileId: text('profileId')
+      .notNull()
+      .references(() => viewerProfile.id, { onDelete: 'cascade' }),
+    mediaItemId: text('mediaItemId')
+      .notNull()
+      .references(() => mediaItem.id, { onDelete: 'cascade' }),
+    startedAt: timestamp('startedAt').notNull().defaultNow(),
+    lastWatchedAt: timestamp('lastWatchedAt').notNull().defaultNow(),
+    secondsWatched: real('secondsWatched').notNull().default(0),
+    isFinished: boolean('isFinished').notNull().default(false),
+  },
+  (table) => [
+    index('watch_history_recent_idx').on(table.profileId, table.lastWatchedAt),
+    index('watch_history_item_idx').on(table.mediaItemId),
+  ],
+);
+
 const watchProgress = pgTable(
   'watch_progress',
   {
@@ -550,6 +591,7 @@ const fluxSchema = { userProfile, viewerProfile, serverSetting, library, mediaIt
 
 export {
   accountActivity,
+  watchHistory,
   series,
   authSchema,
   fluxSchema,

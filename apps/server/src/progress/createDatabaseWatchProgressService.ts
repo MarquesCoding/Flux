@@ -18,6 +18,24 @@ const LIMIT = 60;
  * records where someone is, not everywhere they have been.
  */
 const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressService => ({
+  read: async (profileId, mediaId) => {
+    const [row] = await db
+      .select()
+      .from(watchProgress)
+      .where(and(eq(watchProgress.profileId, profileId), eq(watchProgress.mediaItemId, mediaId)))
+      .limit(1);
+
+    return row === undefined
+      ? null
+      : {
+          mediaId: row.mediaItemId,
+          positionSeconds: row.positionSeconds,
+          durationSeconds: row.durationSeconds,
+          isFinished: row.isFinished,
+          updatedAt: row.updatedAt.toISOString(),
+        };
+  },
+
   list: async (profileId) => {
     const rows = await db
       .select()

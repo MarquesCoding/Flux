@@ -149,9 +149,16 @@ import {
   revokeApiKeyRoute,
 } from '@FluxServer/routes/ApiKeyRoute';
 import { narrowToKey } from '@FluxServer/auth/narrowToKey';
+import { watchedBetween } from '@FluxServer/progress/accumulateWatchTime';
 import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
 import type { PermissionService } from '@FluxServer/auth/PermissionService';
 import type { ApiKeyService } from '@FluxServer/auth/ApiKeyService';
+import {
+  listHistoryRoute,
+  forgetViewingRoute,
+  forgetHistoryRoute,
+} from '@FluxServer/routes/HistoryRoute';
+import type { HistoryService } from '@FluxServer/history/HistoryService';
 import type { Permission } from '@FluxContracts/schemas/Permission';
 
 /**
@@ -270,6 +277,7 @@ type CreateAppOptions = {
    * default is the only safe way for this particular option to be missing.
    */
   permissions?: PermissionService;
+  history?: HistoryService;
   apiKeys?: ApiKeyService;
   /**
    * Stops an account signing in, ends its sessions, and answers whether there
@@ -456,6 +464,7 @@ const createApp = ({
   cancelJob = () => Promise.resolve(false),
   searchCatalogue = () => Promise.resolve([]),
   permissions = createMemoryPermissionService(),
+  history,
   apiKeys = createBetterAuthApiKeyService(auth),
 
   banAccount,
@@ -2196,7 +2205,41 @@ const createApp = ({
 
     const report = context.req.valid('json');
 
+    /**
+     * How much watching this report represents.
+     *
+     * Worked out from where they were and when, rather than from the report
+     * alone: a report says where somebody is, and two of them are what say how
+     * far they got. Measured before the new position is written, because
+     * writing it first is what makes the previous one unavailable.
+     *
+     * A first report has nothing to compare against and contributes nothing,
+     * which is right — the watching it represents is credited by the next one.
+     */
+    const before = await progress.read(profileId, mediaId);
+    const at = new Date();
+
+    const secondsWatched =
+      before === null
+        ? 0
+        : watchedBetween(
+            {
+              positionSeconds: before.positionSeconds,
+              atMs: Date.parse(before.updatedAt),
+              isPlaying: true,
+            },
+            { positionSeconds: report.positionSeconds, atMs: at.getTime(), isPlaying: true },
+          );
+
     await progress.record(profileId, { mediaId, ...report });
+
+    if (history !== undefined) {
+      await history.record(profileId, mediaId, {
+        at,
+        secondsWatched,
+        isFinished: report.isFinished,
+      });
+    }
 
     return context.body(null, 204);
   });
@@ -2211,6 +2254,50 @@ const createApp = ({
     await progress.forget(profileId, context.req.valid('param').mediaId);
 
     return context.body(null, 204);
+  });
+
+  app.openapi(listHistoryRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers);
+
+    if (profileId === null || history === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const { limit, offset } = context.req.valid('query');
+
+    return context.json(
+      {
+        viewings: await history.list(profileId, {
+          ...(limit === undefined ? {} : { limit }),
+          ...(offset === undefined ? {} : { offset }),
+        }),
+      },
+      200,
+    );
+  });
+
+  app.openapi(forgetViewingRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers);
+
+    if (profileId === null || history === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    if (!(await history.forget(profileId, context.req.valid('param').id))) {
+      return context.json({ error: 'No such viewing for this profile.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(forgetHistoryRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers);
+
+    if (profileId === null || history === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    return context.json({ forgotten: await history.forgetAll(profileId) }, 200);
   });
 
   app.openapi(listFavouritesRoute, async (context) => {

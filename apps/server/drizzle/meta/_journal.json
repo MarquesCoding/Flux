@@ -162,6 +162,13 @@
       "when": 1786659532347,
       "tag": "0022_wild_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1786661586753,
+      "tag": "0023_jittery_sally_floyd",
+      "breakpoints": true
     }
   ]
 }

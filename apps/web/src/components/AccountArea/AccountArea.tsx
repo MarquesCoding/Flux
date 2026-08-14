@@ -4,6 +4,7 @@ import { IconLogout, IconPencil } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { Badge } from '@FluxUI/Badge';
 import { ApiKeyPanel } from '@FluxWeb/components/ApiKeyPanel/ApiKeyPanel';
+import { HistoryPanel } from '@FluxWeb/components/HistoryPanel/HistoryPanel';
 import { Card } from '@FluxUI/Card';
 import { CardHeader } from '@FluxUI/CardHeader';
 import { Dialog } from '@FluxUI/Dialog';
@@ -26,6 +27,7 @@ const PANELS = [
   { id: 'profile', label: 'Profile' },
   { id: 'security', label: 'Security' },
   { id: 'devices', label: 'Devices' },
+  { id: 'history', label: 'History' },
 ] as const;
 
 type PanelId = (typeof PANELS)[number]['id'];
@@ -190,6 +192,23 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
           }
         >
           <DeviceList />
+        </TabPanel>
+
+        <TabPanel
+          value="history"
+          className="flex flex-col gap-6"
+          render={
+            <motion.section
+              variants={revealVariants(prefersReducedMotion)}
+              transition={revealTransition(prefersReducedMotion)}
+            />
+          }
+        >
+          <Card as="section" padding="none" className="flex flex-col">
+            <CardHeader title="What you have watched" />
+
+            <HistoryPanel />
+          </Card>
         </TabPanel>
 
         <TabPanel
