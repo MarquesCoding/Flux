@@ -12,7 +12,7 @@ import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService';
 import type { SegmentService } from '@FluxServer/segments/SegmentService';
 import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService';
 import type { FavouriteService } from '@FluxServer/favourites/FavouriteService';
-import type { PlaybackService } from '@FluxServer/playback/PlaybackService';
+import type { PlaybackService, PreviewRead } from '@FluxServer/playback/PlaybackService';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import type { PresenceService } from '@FluxServer/presence/PresenceService';
 import { healthRoute } from './routes/HealthRoute';
@@ -918,18 +918,22 @@ const createApp = ({
   });
 
   app.get('/api/media/:mediaId/preview', async (context) => {
-    const clip = await playback
+    const read = await playback
       .readPreview(context.req.param('mediaId'), context.req.header('range') ?? null)
-      .catch(() => null);
+      .catch((): PreviewRead => ({ kind: 'absent' }));
 
-    if (clip === null) {
+    if (read.kind === 'pending') {
+      return context.json({ status: 'generating' }, 202, { 'cache-control': 'no-store' });
+    }
+
+    if (read.kind === 'absent') {
       return context.json({ error: 'No preview yet.' }, 404);
     }
 
     return context.body(
-      clip.body,
-      clip.status === 206 ? 206 : 200,
-      forwardedFileHeaders(clip, { 'cache-control': 'public, max-age=86400' }),
+      read.file.body,
+      read.file.status === 206 ? 206 : 200,
+      forwardedFileHeaders(read.file, { 'cache-control': 'public, max-age=86400' }),
     );
   });
 

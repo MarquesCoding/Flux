@@ -11,12 +11,15 @@
 //! megabytes, and it can be played by any number of browsers at once because
 //! nothing is running behind it.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::process::Command;
+use tokio::sync::Mutex;
 
 use crate::capability::Capabilities;
 use crate::integrity::decodes;
@@ -423,6 +426,88 @@ pub async fn generate(
         .map_err(PreviewError::Marker)?;
 
     Ok(finish(true))
+}
+
+/// Serialises requests for the same clip.
+///
+/// Every caller that asks while a render is running would otherwise start its
+/// own ffmpeg writing the same `preview.mp4`, and `-y` truncates it on the way
+/// in. The completion marker cannot prevent it: none of them find one, because
+/// none of them have finished.
+///
+/// Measured before this existed. Six requests for one clip arrived in two
+/// waves, four ran at once, and the file they shared decoded as garbage —
+/// `Invalid NAL unit size (1107016360 > 45258)`. Every verification then failed,
+/// nothing was marked complete, so the item stayed outstanding and was rendered
+/// again, concurrently, into the same file. It could not converge.
+///
+/// Worse than it first looks: a job whose hardware encode fails retries in
+/// software to that same path, so four callers are up to eight writers.
+#[derive(Clone, Default)]
+pub struct PreviewRegistry {
+    in_flight: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
+}
+
+impl PreviewRegistry {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    async fn gate(&self, id: &str) -> Arc<Mutex<()>> {
+        let mut in_flight = self.in_flight.lock().await;
+
+        Arc::clone(in_flight.entry(id.to_owned()).or_default())
+    }
+
+    async fn release(&self, id: &str) {
+        let mut in_flight = self.in_flight.lock().await;
+
+        if in_flight
+            .get(id)
+            .is_some_and(|gate| Arc::strong_count(gate) <= 2)
+        {
+            in_flight.remove(id);
+        }
+    }
+
+    /// Renders the clip, or reuses what is already there.
+    ///
+    /// Waits rather than duplicating the work when the same clip is already
+    /// being rendered. The second caller through finds the finished marker and
+    /// returns it without starting anything.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PreviewError`] for the same reasons [`generate`] does.
+    pub async fn generate(
+        &self,
+        ffmpeg: &str,
+        cache_root: &Path,
+        request: &PreviewRequest,
+        range: VideoRange,
+        capabilities: &Capabilities,
+        duration_seconds: f64,
+    ) -> Result<PreviewClip, PreviewError> {
+        let id = request.id();
+        let gate = self.gate(&id).await;
+        let permit = gate.lock().await;
+
+        let outcome = generate(
+            ffmpeg,
+            cache_root,
+            request,
+            range,
+            capabilities,
+            duration_seconds,
+        )
+        .await;
+
+        drop(permit);
+        self.release(&id).await;
+
+        outcome
+    }
 }
 
 #[cfg(test)]

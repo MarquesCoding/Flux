@@ -120,13 +120,16 @@ const createMemoryPlaybackService = (
   readPreview: (mediaId, range) =>
     Promise.resolve(
       state.media[mediaId] === undefined
-        ? null
+        ? { kind: 'absent' }
         : {
-            body: streamOf('clip'),
-            contentType: 'video/mp4',
-            status: range === null ? 200 : 206,
-            contentRange: range === null ? null : 'bytes 0-3/4',
-            contentLength: '4',
+            kind: 'ready',
+            file: {
+              body: streamOf('clip'),
+              contentType: 'video/mp4',
+              status: range === null ? 200 : 206,
+              contentRange: range === null ? null : 'bytes 0-3/4',
+              contentLength: '4',
+            },
           },
     ),
 
