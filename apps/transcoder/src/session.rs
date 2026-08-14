@@ -198,6 +198,13 @@ pub struct Session {
     /// lock because the transcode reads it on a timer and the segment handler
     /// writes it on every fetch, and neither should wait on the other.
     reached: Arc<AtomicU64>,
+    /// How many viewers are holding this session open.
+    ///
+    /// A session is addressed by what it produces, so everyone watching the
+    /// same film at the same quality is holding the same one. Counting them is
+    /// what stops one viewer closing their tab from taking the transcode away
+    /// from the others. See ADR-0011.
+    holders: usize,
     /// Where every segment of this film begins and ends.
     lengths: Arc<Vec<f64>>,
 }
@@ -449,6 +456,7 @@ impl SessionRegistry {
 
             if let Some(existing) = sessions.get_mut(&id) {
                 existing.touch();
+                existing.holders += 1;
 
                 let directory = existing.directory.clone();
 
@@ -527,6 +535,7 @@ impl SessionRegistry {
             running_from: None,
             last_touched: Instant::now(),
             reached: Arc::new(AtomicU64::new(0)),
+            holders: 1,
             lengths: Arc::new(lengths),
         };
 
@@ -639,18 +648,32 @@ impl SessionRegistry {
         true
     }
 
-    /// Stops and forgets a session, leaving its segments on disk.
+    /// Lets go of a session, stopping the transcode when the last viewer does.
+    ///
+    /// Everybody watching the same film shares one session, so stopping it
+    /// unconditionally is one viewer closing a tab and taking the transcode
+    /// away from everyone else — demonstrated against the running service,
+    /// where the second viewer's manifest went missing the moment the first
+    /// stopped. See ADR-0011.
+    ///
+    /// The segments stay on disk either way. What ends is the process writing
+    /// more of them.
     pub async fn stop(&self, id: &str) -> bool {
         let mut sessions = self.sessions.lock().await;
 
-        match sessions.remove(id) {
-            None => false,
-            Some(mut session) => {
-                session.stop();
+        let Some(session) = sessions.get_mut(id) else {
+            return false;
+        };
 
-                true
+        session.holders = session.holders.saturating_sub(1);
+
+        if session.holders == 0 {
+            if let Some(mut last) = sessions.remove(id) {
+                last.stop();
             }
         }
+
+        true
     }
 
     /// Waits until a segment can be served, producing it if nothing will.

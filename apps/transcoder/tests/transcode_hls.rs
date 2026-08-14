@@ -441,6 +441,41 @@ async fn stopping_a_session_forgets_it() {
     assert!(registry.is_empty().await);
 }
 
+/// One viewer closing a tab must not take the film away from the other.
+///
+/// Everybody watching the same thing shares one session, so a stop that
+/// cancelled the transcode outright ended the other viewer's stream — their
+/// manifest went missing mid-film. The session lives until the last of them
+/// lets go. See ADR-0011.
+#[tokio::test]
+async fn keeps_a_session_while_another_viewer_is_watching() {
+    let registry = registry("shared");
+    let app = app(registry.clone());
+    let subject = spec(VideoAction::Copy, AudioAction::Copy);
+
+    let (_, first) = start(&app, &subject).await;
+    let (_, second) = start(&app, &subject).await;
+    let id = first["id"].as_str().expect("has an id").to_owned();
+
+    assert_eq!(second["id"].as_str(), Some(id.as_str()));
+
+    let leave = Request::builder()
+        .method("DELETE")
+        .uri(format!("/sessions/{id}"))
+        .body(Body::empty())
+        .expect("builds the request");
+
+    let (status, _) = call(&app, leave).await;
+
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    assert_eq!(registry.len().await, 1, "one viewer is still watching");
+
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/index.m3u8"))).await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert!(String::from_utf8_lossy(&bytes).starts_with("#EXTM3U"));
+}
+
 #[tokio::test]
 async fn a_heartbeat_keeps_a_session_off_the_idle_list() {
     let app = app(registry("heartbeat"));
