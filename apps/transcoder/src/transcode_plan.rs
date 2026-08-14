@@ -965,6 +965,17 @@ pub struct TranscodePlan {
     ///
     /// See [`crate::keyframes::cut_interval`].
     pub cut_seconds: f64,
+    /// What a copied video stream has to be called in the output.
+    ///
+    /// `hev1` and `hvc1` are the same HEVC bitstream under two names, and
+    /// which name is on it decides whether a browser will play it: Chrome and
+    /// Safari accept `hvc1` in Media Source and refuse `hev1`, and Apple's HLS
+    /// authoring rules require `hvc1` outright. ffmpeg writes `hev1` when it
+    /// fragments, so a copied HEVC stream plays as a black picture with sound
+    /// until it is renamed.
+    ///
+    /// Absent where nothing needs renaming, which is every other codec.
+    pub video_tag: Option<String>,
 }
 
 /// The manifest file every session writes.
@@ -990,14 +1001,22 @@ impl TranscodePlan {
     /// caller. Handing that fact back rather than working it out a second time
     /// downstream is what stops the two disagreeing and mapping the source
     /// video alongside the composited one.
+    /// Takes the video as it is, under the name a player will accept.
+    fn push_copied_video_args(&self, args: &mut Vec<String>) {
+        args.push("-c:v".into());
+        args.push("copy".into());
+
+        if let Some(tag) = &self.video_tag {
+            args.push("-tag:v".into());
+            args.push(tag.clone());
+        }
+    }
+
     fn push_video_args(&self, args: &mut Vec<String>) -> bool {
         let mut is_mapped = false;
 
         match &self.spec.video {
-            VideoAction::Copy => {
-                args.push("-c:v".into());
-                args.push("copy".into());
-            }
+            VideoAction::Copy => self.push_copied_video_args(args),
             VideoAction::Encode {
                 encoder,
                 max_bitrate_kbps,
@@ -2049,6 +2068,7 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             device: "/dev/dri/renderD129".into(),
             start_at: SegmentStart::default(),
             cut_seconds: 4.0,
+            video_tag: None,
         };
 
         assert!(plan
@@ -2187,6 +2207,7 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             output_directory: "/transcodes/abc".into(),
             start_at: SegmentStart::default(),
             cut_seconds: 4.0,
+            video_tag: None,
         }
     }
 
@@ -2298,6 +2319,27 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
         let args = plan(spec()).to_ffmpeg_args();
 
         assert!(!args.iter().any(|argument| argument.ends_with("index.m3u8")));
+    }
+
+    /// A browser will not play HEVC called `hev1`, and ffmpeg calls it that.
+    #[test]
+    fn names_a_copied_hevc_stream_the_way_a_browser_needs() {
+        let mut session = plan(spec());
+        session.video_tag = Some("hvc1".to_owned());
+
+        let args = session.to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|pair| pair == ["-tag:v", "hvc1"]));
+    }
+
+    /// Nothing else is renamed, and a name is never put on an encode: the
+    /// encoder writes the stream and names it itself.
+    #[test]
+    fn leaves_a_stream_that_needs_no_renaming_alone() {
+        assert!(!plan(spec())
+            .to_ffmpeg_args()
+            .iter()
+            .any(|argument| argument == "-tag:v"));
     }
 
     #[test]

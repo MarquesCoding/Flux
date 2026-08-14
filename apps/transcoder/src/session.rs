@@ -571,6 +571,7 @@ impl SessionRegistry {
             device_filters,
             start_at: SegmentStart::default(),
             cut_seconds: boundaries.cut_seconds,
+            video_tag: boundaries.video_tag.clone(),
         };
 
         let mut session = Session {
@@ -1179,6 +1180,7 @@ async fn supervise(
             device_filters: DeviceFilters::default(),
             start_at: attempt.start_at,
             cut_seconds: attempt.cut_seconds,
+            video_tag: attempt.video_tag,
         };
     }
 }

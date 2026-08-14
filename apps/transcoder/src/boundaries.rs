@@ -35,6 +35,12 @@ pub struct Boundaries {
     pub lengths: Vec<f64>,
     /// What to pass the muxer as its segment length.
     pub cut_seconds: f64,
+    /// What a copied video stream has to be called in the output.
+    ///
+    /// A property of the source, so it is worked out beside the boundaries and
+    /// kept with them rather than found again on every play.
+    #[serde(default)]
+    pub video_tag: Option<String>,
 }
 
 impl Boundaries {
@@ -50,8 +56,24 @@ impl Boundaries {
         Self {
             lengths: Vec::new(),
             cut_seconds: 0.0,
+            video_tag: None,
         }
     }
+}
+
+/// What a copied stream has to be called for a browser to play it.
+///
+/// `hev1` and `hvc1` are the same HEVC bitstream under two names. ffmpeg names
+/// it `hev1` when it fragments; Chrome and Safari accept only `hvc1` in Media
+/// Source, and Apple's HLS authoring rules require `hvc1`. Measured against
+/// this: a copied HEVC film played as a black picture with sound, the clock
+/// running on audio alone until the player gave up.
+///
+/// Nothing else needs renaming — H.264 fragments as `avc1`, which is the name
+/// everything expects.
+#[must_use]
+pub fn video_tag_for(codec: &str) -> Option<String> {
+    (codec == "hevc").then(|| "hvc1".to_owned())
 }
 
 /// The segments an encode produces, which are the length that was asked for.
@@ -106,9 +128,18 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
         return Boundaries::unknown();
     };
 
+    let video_tag = match &spec.video {
+        VideoAction::Copy => probe
+            .video
+            .as_ref()
+            .and_then(|video| video_tag_for(&video.codec)),
+        VideoAction::Encode { .. } => None,
+    };
+
     let equal = || Boundaries {
         lengths: equal_lengths(probe.duration_seconds, spec.segment_seconds),
         cut_seconds: wanted,
+        video_tag: video_tag.clone(),
     };
 
     if matches!(spec.video, VideoAction::Encode { .. }) {
@@ -122,6 +153,7 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
             Boundaries {
                 lengths: segment_lengths(&keyframes, cut_seconds),
                 cut_seconds,
+                video_tag,
             }
         }
         Err(failure) => {
@@ -170,7 +202,23 @@ pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSp
 
 #[cfg(test)]
 mod tests {
-    use super::equal_lengths;
+    use super::{equal_lengths, video_tag_for};
+
+    /// The same bitstream under the name a browser will play.
+    #[test]
+    fn renames_hevc_to_the_name_media_source_accepts() {
+        assert_eq!(video_tag_for("hevc"), Some("hvc1".to_owned()));
+    }
+
+    /// Everything else already carries the name everything expects, and
+    /// putting `hvc1` on an H.264 stream would describe it as something it is
+    /// not.
+    #[test]
+    fn leaves_every_other_codec_alone() {
+        assert_eq!(video_tag_for("h264"), None);
+        assert_eq!(video_tag_for("av1"), None);
+        assert_eq!(video_tag_for("vp9"), None);
+    }
 
     /// An encode cuts where it is told to, so the segments are what was asked.
     #[test]
