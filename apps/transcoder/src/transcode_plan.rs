@@ -334,47 +334,97 @@ pub fn software_equivalent(encoder: &str) -> &'static str {
     "libx264"
 }
 
-/// Whether this session can run without ever bringing frames back.
+/// How frames travel from the decoder to the encoder.
 ///
-/// A single gate answering yes or no for the whole session, rather than
-/// downloading and re-uploading around individual filters. That is the shape
-/// Jellyfin settled on, and the reasoning holds here: the combinations that
-/// force frames down are the ones a mixed chain gets wrong, and a chain that
-/// is entirely one thing or entirely the other can be read and tested.
+/// This began as one gate answering yes or no for the whole session, on the
+/// reasoning that a chain entirely one thing or entirely the other can be read
+/// and tested. That held while the only alternative was a fully software
+/// chain, and it cost far too much: a single burned-in subtitle sent the
+/// decode, the scale and every frame back through system memory, when only the
+/// one filter needed to be there.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrameRoute {
+    /// Decoded, scaled and encoded without ever leaving the device.
+    OnDevice,
+    /// On the device, down for the one filter that needs system memory, back up
+    /// for the encoder.
+    ///
+    /// The scale happens before the descent, so what crosses the bus is the
+    /// output picture rather than the source — and a subtitle is drawn at the
+    /// size it will be watched at rather than shrunk afterwards.
+    DownAndBack,
+    /// System memory throughout, which is what Flux did everywhere.
+    InSoftware,
+}
+
+impl FrameRoute {
+    /// Whether the decoder should hand back device frames.
+    ///
+    /// True for both hardware routes. `DownAndBack` still decodes on the
+    /// device — it comes down later and by choice, which is the whole
+    /// difference between it and `InSoftware`.
+    #[must_use]
+    pub fn decodes_on_the_device(self) -> bool {
+        !matches!(self, Self::InSoftware)
+    }
+}
+
+/// Which route this session can take.
 ///
-/// It says no when:
+/// `InSoftware` when:
 ///
 /// - this build has no scaler for the backend's frames;
-/// - the backend has no end-to-end pipeline, which is `Amf`, `Rkmpp` and no
+/// - the backend has no end-to-end pipeline, which is `Amf` and no
 ///   acceleration at all;
-/// - subtitles are being drawn on, since `subtitles` and `overlay` are
-///   software only;
+/// - nothing is being encoded, so there is no chain to place;
 /// - HDR is being converted, since `zscale` and `tonemap` are software and
 ///   `libplacebo` is a different filter with its own setup;
+/// - bitmap subtitles are being composited, since `overlay` takes a second
+///   input and belongs to the `-filter_complex` branch;
 /// - the picture has to be resized and nobody said how big it is, because the
 ///   hardware scalers need a number rather than an expression.
 ///
-/// Saying no costs what Flux does today. Saying yes wrongly costs a session
-/// that will not start, so each answer is a fact about the spec rather than a
-/// guess about the machine.
+/// `DownAndBack` when all of that holds and text subtitles are being drawn on,
+/// which is the one software filter that fits in a linear chain.
+///
+/// Saying `InSoftware` costs what Flux did before. Saying anything else
+/// wrongly costs a session that will not start, so each answer is a fact about
+/// the spec rather than a guess about the machine.
+#[must_use]
+pub fn frame_route(spec: &SessionSpec, has_hardware_scaler: bool) -> FrameRoute {
+    if !has_hardware_scaler || spec.hardware_accel.pipeline().is_none() {
+        return FrameRoute::InSoftware;
+    }
+
+    let VideoAction::Encode { tone_map, .. } = &spec.video else {
+        return FrameRoute::InSoftware;
+    };
+
+    if tone_map.is_some() || spec.source_size.is_none() {
+        return FrameRoute::InSoftware;
+    }
+
+    match spec.subtitles {
+        SubtitleAction::None => FrameRoute::OnDevice,
+        SubtitleAction::BurnIn {
+            is_image_based: false,
+            ..
+        } => FrameRoute::DownAndBack,
+        SubtitleAction::BurnIn {
+            is_image_based: true,
+            ..
+        } => FrameRoute::InSoftware,
+    }
+}
+
+/// Whether this session can run without ever bringing frames back.
+///
+/// The narrow question, kept because it is the one worth asking about a plain
+/// rescale: `DownAndBack` is faster than software and slower than never
+/// leaving at all.
 #[must_use]
 pub fn keeps_frames_on_the_gpu(spec: &SessionSpec, has_hardware_scaler: bool) -> bool {
-    if !has_hardware_scaler {
-        return false;
-    }
-
-    if spec.hardware_accel.pipeline().is_none() {
-        return false;
-    }
-
-    if !matches!(spec.subtitles, SubtitleAction::None) {
-        return false;
-    }
-
-    match &spec.video {
-        VideoAction::Copy => false,
-        VideoAction::Encode { tone_map, .. } => tone_map.is_none() && spec.source_size.is_some(),
-    }
+    matches!(frame_route(spec, has_hardware_scaler), FrameRoute::OnDevice)
 }
 
 /// The complete video filter chain.
@@ -421,6 +471,14 @@ pub struct HardwarePipeline {
     pub output_format: &'static str,
     /// The scaler that works on this backend's frames.
     pub scaler: &'static str,
+    /// What a frame becomes on its way down to system memory.
+    ///
+    /// Named rather than left to ffmpeg. Asked to negotiate one it picks
+    /// `gray`, which `hwdownload` then refuses — the download has to be told a
+    /// format the frames context actually holds, and that is a property of the
+    /// backend. Measured: a Vulkan context rejects `nv12` and wants `yuv420p`,
+    /// where every backend here is the other way round.
+    pub download_format: &'static str,
 }
 
 impl HardwareAccel {
@@ -448,22 +506,27 @@ impl HardwareAccel {
             Self::VideoToolbox => Some(HardwarePipeline {
                 output_format: "videotoolbox_vld",
                 scaler: "scale_vt",
+                download_format: "nv12",
             }),
             Self::Nvenc => Some(HardwarePipeline {
                 output_format: "cuda",
                 scaler: "scale_cuda",
+                download_format: "nv12",
             }),
             Self::Qsv => Some(HardwarePipeline {
                 output_format: "qsv",
                 scaler: "vpp_qsv",
+                download_format: "nv12",
             }),
             Self::Vaapi => Some(HardwarePipeline {
                 output_format: "vaapi",
                 scaler: "scale_vaapi",
+                download_format: "nv12",
             }),
             Self::Rkmpp => Some(HardwarePipeline {
                 output_format: "drm_prime",
                 scaler: "scale_rkrga",
+                download_format: "nv12",
             }),
             Self::None | Self::Amf => None,
         }
@@ -637,17 +700,37 @@ impl TranscodePlan {
                         .iter()
                         .map(|argument| (*argument).to_owned()),
                 );
-                if let (true, Some(pipeline), Some(source)) = (
-                    keeps_frames_on_the_gpu(&self.spec, self.has_hardware_scaler),
-                    self.spec.hardware_accel.pipeline(),
-                    self.spec.source_size,
-                ) {
+                let route = frame_route(&self.spec, self.has_hardware_scaler);
+
+                if let (Some(pipeline), Some(source)) =
+                    (self.spec.hardware_accel.pipeline(), self.spec.source_size)
+                {
                     let (width, height) = fitted_size(source, *max_width, *max_height);
+                    let scale = format!("{}=w={width}:h={height}", pipeline.scaler);
 
-                    args.push("-vf".into());
-                    args.push(format!("{}=w={width}:h={height}", pipeline.scaler));
+                    match route {
+                        FrameRoute::OnDevice => {
+                            args.push("-vf".into());
+                            args.push(scale);
 
-                    return is_mapped;
+                            return is_mapped;
+                        }
+                        FrameRoute::DownAndBack => {
+                            if let SubtitleAction::BurnIn { subtitle_index, .. } =
+                                &self.spec.subtitles
+                            {
+                                args.push("-vf".into());
+                                args.push(format!(
+                                    "{scale},hwdownload,format={},subtitles='{}':si={subtitle_index},hwupload",
+                                    pipeline.download_format,
+                                    escape_filter_path(&self.spec.input_path),
+                                ));
+
+                                return is_mapped;
+                            }
+                        }
+                        FrameRoute::InSoftware => {}
+                    }
                 }
 
                 let text_burn_in = match &self.spec.subtitles {
@@ -698,7 +781,7 @@ impl TranscodePlan {
             "error".into(),
         ];
 
-        let on_the_gpu = keeps_frames_on_the_gpu(&self.spec, self.has_hardware_scaler);
+        let on_the_gpu = frame_route(&self.spec, self.has_hardware_scaler).decodes_on_the_device();
 
         if on_the_gpu {
             args.extend(self.spec.hardware_accel.device_arguments(&self.device));
@@ -777,8 +860,9 @@ impl TranscodePlan {
 #[cfg(test)]
 mod tests {
     use super::{
-        fitted_size, keeps_frames_on_the_gpu, software_equivalent, AudioAction, HardwareAccel,
-        SessionSpec, SubtitleAction, ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE,
+        fitted_size, frame_route, keeps_frames_on_the_gpu, software_equivalent, AudioAction,
+        FrameRoute, HardwareAccel, SessionSpec, SubtitleAction, ToneMapping, TranscodePlan,
+        VideoAction, DEFAULT_DEVICE,
     };
 
     fn spec() -> SessionSpec {
@@ -812,6 +896,116 @@ mod tests {
             },
             ..spec()
         }
+    }
+
+    /// A burned-in subtitle used to send the whole session into software.
+    ///
+    /// It now goes down for the one filter that needs system memory and comes
+    /// straight back, so the decode and the scale stay where they were.
+    #[test]
+    fn comes_down_only_for_the_subtitle_and_goes_straight_back() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 2,
+                is_image_based: false,
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert_eq!(
+            frame_route(&spec, true),
+            FrameRoute::DownAndBack,
+            "a text burn in is the one software filter that fits a linear chain"
+        );
+
+        let args = plan(spec).to_ffmpeg_args();
+        let chain = args
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert_eq!(
+            chain,
+            "scale_vt=w=1280:h=532,hwdownload,format=nv12,\
+subtitles='/media/film.mkv':si=2,hwupload"
+        );
+
+        assert!(
+            args.windows(2)
+                .any(|pair| pair == ["-hwaccel_output_format", "videotoolbox_vld"]),
+            "it still decodes on the device — coming down is a choice made later"
+        );
+    }
+
+    #[test]
+    fn scales_before_coming_down_rather_than_after() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: false,
+            },
+            ..on_gpu(HardwareAccel::Vaapi)
+        };
+
+        let args = plan(spec).to_ffmpeg_args();
+        let chain = args
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        let scale = chain.find("scale_vaapi").expect("a hardware scale");
+        let down = chain.find("hwdownload").expect("a download");
+
+        assert!(
+            scale < down,
+            "what crosses the bus should be the output picture, not the source"
+        );
+    }
+
+    /// Compositing takes a second input, so it belongs to the other branch.
+    #[test]
+    fn leaves_bitmap_subtitles_in_software() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: true,
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert_eq!(frame_route(&spec, true), FrameRoute::InSoftware);
+    }
+
+    #[test]
+    fn leaves_tone_mapping_in_software_for_now() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: Some(ToneMapping::Zscale),
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert_eq!(frame_route(&spec, true), FrameRoute::InSoftware);
+    }
+
+    #[test]
+    fn a_route_that_comes_down_is_not_a_route_that_stays() {
+        let spec = SessionSpec {
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: false,
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert!(!keeps_frames_on_the_gpu_of(&spec));
+        assert!(frame_route(&spec, true).decodes_on_the_device());
     }
 
     #[test]
