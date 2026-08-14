@@ -149,6 +149,7 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
         registry: registry.clone(),
         ffprobe,
         trickplay: flux_transcoder::trickplay::TrickplayRegistry::new(),
+        previews: flux_transcoder::preview::PreviewRegistry::new(),
         monitor: flux_transcoder::monitor::Monitor::new(flux_transcoder::monitor::Journal::new()),
         queue: flux_transcoder::queue::WorkQueue::new(background_jobs()),
         media_roots: env::var("FLUX_MEDIA_ROOTS")

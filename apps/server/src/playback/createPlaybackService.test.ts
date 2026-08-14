@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createPlaybackService } from './createPlaybackService';
+import { previewRequestFor } from '@FluxServer/library/previewRequestFor';
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
 import type { SessionSpec, Transcoder } from '@FluxServer/transcoder/TranscoderClient';
@@ -484,6 +485,32 @@ describe('the files a player asks for while it is watching', () => {
     await service.readPreview(MEDIA_ID, null);
 
     expect(readPreviewFile).toHaveBeenCalledWith('clip-1', 'preview.mp4', null);
+  });
+
+  it('asks for the clip the regeneration job renders, not one of its own', async () => {
+    const requestPreview = vi.fn(() =>
+      Promise.resolve({ id: 'clip-1', url: '/clip', isReady: true }),
+    );
+    const { service } = build(
+      { requestPreview },
+      {
+        item: bilingual,
+        path: '/media/arrival.mkv',
+        defaultAudioLanguage: 'eng',
+        generation: 3,
+      },
+    );
+
+    await service.readPreview(MEDIA_ID, null);
+
+    expect(requestPreview).toHaveBeenCalledWith({
+      ...previewRequestFor(
+        { path: '/media/arrival.mkv', audioStreams: bilingual.audioStreams },
+        3,
+        'eng',
+      ),
+      wait: false,
+    });
   });
 
   it('offers no preview while one is still being made', async () => {

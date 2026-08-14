@@ -16,6 +16,7 @@ use http_body_util::BodyExt;
 use tower::ServiceExt;
 
 use flux_transcoder::monitor::{Journal, Monitor};
+use flux_transcoder::preview::PreviewRegistry;
 use flux_transcoder::queue::WorkQueue;
 use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
@@ -76,6 +77,7 @@ fn app(name: &str) -> axum::Router {
         }),
         ffprobe: ffprobe(),
         trickplay: TrickplayRegistry::default(),
+        previews: PreviewRegistry::default(),
         monitor: Monitor::new(Journal::new()),
         queue: WorkQueue::new(1),
         media_roots: Vec::new(),
@@ -218,6 +220,7 @@ async fn refuses_a_file_outside_the_media_roots() {
         }),
         ffprobe: ffprobe(),
         trickplay: TrickplayRegistry::default(),
+        previews: PreviewRegistry::default(),
         monitor: Monitor::new(Journal::new()),
         queue: WorkQueue::new(1),
         media_roots: vec![PathBuf::from("/nowhere")],
@@ -283,6 +286,7 @@ async fn asking_twice_at_once_renders_one_set_rather_than_two() {
             max_concurrent: 2,
         }),
         trickplay: TrickplayRegistry::default(),
+        previews: PreviewRegistry::default(),
         monitor: Monitor::new(Journal::new()),
         queue: WorkQueue::new(1),
         ffprobe: ffprobe(),
