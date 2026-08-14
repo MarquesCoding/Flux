@@ -546,6 +546,7 @@ mod tests {
             rejected: Vec::new(),
             hardware_scalers: Vec::new(),
             hardware_overlays: Vec::new(),
+            hardware_tone_maps: Vec::new(),
             can_burn_text_subtitles: true,
             can_burn_image_subtitles: true,
         }

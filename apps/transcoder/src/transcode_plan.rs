@@ -449,6 +449,17 @@ fn composited_graph(
 pub struct DeviceFilters {
     pub scaler: bool,
     pub overlay: bool,
+    pub tone_map: bool,
+}
+
+/// The name of a filter, given the expression that configures it.
+///
+/// A build either has a filter or it does not, and what it has is the name —
+/// so a probe compares names while a chain carries options. An expression is
+/// `name=options`, so the name is everything before the first `=`.
+#[must_use]
+pub fn filter_name(expression: &str) -> &str {
+    expression.split('=').next().unwrap_or(expression)
 }
 
 /// Which route this session can take.
@@ -461,6 +472,10 @@ pub struct DeviceFilters {
 /// - nothing is being encoded, so there is no chain to place;
 /// - HDR is being converted, since `zscale` and `tonemap` are software and
 ///   `libplacebo` is a different filter with its own setup;
+/// - HDR is being converted and this backend has no tone mapper of its own, or
+///   the build does not have it — the conversion has to happen before the
+///   picture is resampled, so a round trip around it would drag the scale down
+///   with it and there would be nothing left on the device to save;
 /// - the picture has to be resized and nobody said how big it is, because the
 ///   hardware scalers need a number rather than an expression.
 ///
@@ -473,6 +488,51 @@ pub struct DeviceFilters {
 /// Saying `InSoftware` costs what Flux did before. Saying anything else
 /// wrongly costs a session that will not start, so each answer is a fact about
 /// the spec rather than a guess about the machine.
+/// The tone mapper this session would use without leaving the device.
+///
+/// Two things have to hold: the backend has one at all, and this build was
+/// compiled with it. Neither implies the other — QSV has no tone mapper of its
+/// own whatever the build, and a package without `tonemap_vaapi` leaves a card
+/// that would otherwise manage it perfectly well.
+#[must_use]
+pub fn on_device_tone_map_filter(
+    spec: &SessionSpec,
+    filters: DeviceFilters,
+) -> Option<&'static str> {
+    if !filters.tone_map {
+        return None;
+    }
+
+    spec.hardware_accel.pipeline()?.tone_map
+}
+
+/// Whether HDR can be converted without the frames coming down.
+#[must_use]
+fn on_device_tone_map(spec: &SessionSpec, filters: DeviceFilters) -> bool {
+    on_device_tone_map_filter(spec, filters).is_some()
+}
+
+/// The chain that brings frames to the size and colour they leave in.
+///
+/// Tone mapping precedes the scale for the same reason it does in software:
+/// converting the already-resampled picture loses highlight detail. On the
+/// device the full-size conversion costs a fraction of what it does in system
+/// memory, so the order stays and the price does not.
+#[must_use]
+fn device_chain(
+    pipeline: HardwarePipeline,
+    tone_map: Option<&'static str>,
+    width: u32,
+    height: u32,
+) -> String {
+    let scale = format!("{}=w={width}:h={height}", pipeline.scaler);
+
+    match tone_map {
+        Some(mapper) => format!("{mapper},{scale}"),
+        None => scale,
+    }
+}
+
 #[must_use]
 pub fn frame_route(spec: &SessionSpec, filters: DeviceFilters) -> FrameRoute {
     if !filters.scaler || spec.hardware_accel.pipeline().is_none() {
@@ -483,7 +543,11 @@ pub fn frame_route(spec: &SessionSpec, filters: DeviceFilters) -> FrameRoute {
         return FrameRoute::InSoftware;
     };
 
-    if tone_map.is_some() || spec.source_size.is_none() {
+    if spec.source_size.is_none() {
+        return FrameRoute::InSoftware;
+    }
+
+    if tone_map.is_some() && !on_device_tone_map(spec, filters) {
         return FrameRoute::InSoftware;
     }
 
@@ -584,6 +648,22 @@ pub struct HardwarePipeline {
     /// its own branch from a software source, so it has to name the device to
     /// derive from.
     pub overlay_upload: &'static str,
+    /// The filter that converts HDR to SDR on this backend's own frames.
+    ///
+    /// `None` where the backend has no tone mapper of its own. QSV and RKMPP
+    /// are in that position: both would have to derive a second `OpenCL` or
+    /// Vulkan device, which is a different piece of work, and until it is done
+    /// they convert in software exactly as before. `VideoToolbox` has
+    /// `tonemap_videotoolbox` in the patches flux-ffmpeg carries, but the Linux
+    /// package does not build it and there is no macOS package yet to check the
+    /// options against — a guessed filter string is worse than the software
+    /// path it would replace. See FLUX-110.
+    ///
+    /// The whole expression rather than the name, because the two that exist do
+    /// not take the same options: `tonemap_vaapi` is fixed-function VPP with no
+    /// algorithm to choose, and `tonemap_cuda` has one but — unlike every other
+    /// `tonemap_*` — no `desat`.
+    pub tone_map: Option<&'static str>,
 }
 
 impl HardwareAccel {
@@ -615,6 +695,7 @@ impl HardwareAccel {
                 overlay: "overlay_videotoolbox",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload",
+                tone_map: None,
             }),
             Self::Nvenc => Some(HardwarePipeline {
                 output_format: "cuda",
@@ -623,6 +704,9 @@ impl HardwareAccel {
                 overlay: "overlay_cuda",
                 overlay_format: "yuva420p",
                 overlay_upload: "hwupload=derive_device=cuda",
+                tone_map: Some(
+                    "tonemap_cuda=format=yuv420p:p=bt709:t=bt709:m=bt709:tonemap=bt2390",
+                ),
             }),
             Self::Qsv => Some(HardwarePipeline {
                 output_format: "qsv",
@@ -631,6 +715,7 @@ impl HardwareAccel {
                 overlay: "overlay_qsv",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=qsv:extra_hw_frames=64",
+                tone_map: None,
             }),
             Self::Vaapi => Some(HardwarePipeline {
                 output_format: "vaapi",
@@ -639,6 +724,7 @@ impl HardwareAccel {
                 overlay: "overlay_vaapi",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=vaapi",
+                tone_map: Some("tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709"),
             }),
             Self::Rkmpp => Some(HardwarePipeline {
                 output_format: "drm_prime",
@@ -647,6 +733,7 @@ impl HardwareAccel {
                 overlay: "overlay_rkrga",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=rkmpp",
+                tone_map: None,
             }),
             Self::None | Self::Amf => None,
         }
@@ -826,7 +913,13 @@ impl TranscodePlan {
                     (self.spec.hardware_accel.pipeline(), self.spec.source_size)
                 {
                     let (width, height) = fitted_size(source, *max_width, *max_height);
-                    let scale = format!("{}=w={width}:h={height}", pipeline.scaler);
+
+                    let scale = device_chain(
+                        pipeline,
+                        tone_map.and(on_device_tone_map_filter(&self.spec, self.device_filters)),
+                        width,
+                        height,
+                    );
 
                     match route {
                         FrameRoute::OnDevice => {
@@ -1006,21 +1099,23 @@ impl TranscodePlan {
 #[cfg(test)]
 mod tests {
     use super::{
-        composited_graph, fitted_size, frame_route, keeps_frames_on_the_gpu, software_equivalent,
-        AudioAction, DeviceFilters, FrameRoute, HardwareAccel, SessionSpec, SubtitleAction,
-        ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
+        composited_graph, filter_name, fitted_size, frame_route, keeps_frames_on_the_gpu,
+        software_equivalent, AudioAction, DeviceFilters, FrameRoute, HardwareAccel, SessionSpec,
+        SubtitleAction, ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
     };
 
     /// A build with a scaler and no compositor, as the existing routes assume.
     const SCALER_ONLY: DeviceFilters = DeviceFilters {
         scaler: true,
         overlay: false,
+        tone_map: false,
     };
 
     /// A build with both, as the shipped package has.
     const FULL: DeviceFilters = DeviceFilters {
         scaler: true,
         overlay: true,
+        tone_map: true,
     };
 
     fn spec() -> SessionSpec {
@@ -1094,6 +1189,194 @@ subtitles='/media/film.mkv':si=2,hwupload"
                 .any(|pair| pair == ["-hwaccel_output_format", "videotoolbox_vld"]),
             "it still decodes on the device — coming down is a choice made later"
         );
+    }
+
+    /// HDR used to cost the whole session, and now costs nothing extra.
+    ///
+    /// Tone mapping was the last thing that forced everything into software:
+    /// the conversion has to precede the scale, so a round trip around it would
+    /// drag the scale down too and leave nothing on the device worth having.
+    #[test]
+    fn converts_hdr_without_leaving_the_device() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264_vaapi".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: Some(ToneMapping::Zscale),
+            },
+            ..on_gpu(HardwareAccel::Vaapi)
+        };
+
+        assert_eq!(frame_route(&spec, FULL), FrameRoute::OnDevice);
+
+        let args = plan_compositing(spec).to_ffmpeg_args();
+        let chain = args
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert_eq!(
+            chain,
+            "tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,scale_vaapi=w=1280:h=532"
+        );
+        assert!(
+            !chain.contains("zscale") && !chain.contains("hwdownload"),
+            "neither the software conversion nor a round trip: {chain}"
+        );
+    }
+
+    /// The conversion precedes the scale, as it does in software.
+    ///
+    /// Tone mapping the already-resampled picture loses highlight detail. On
+    /// the device the full-size conversion is cheap enough that the order costs
+    /// nothing worth trading the detail for.
+    #[test]
+    fn converts_before_resampling_rather_than_after() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264_nvenc".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: Some(ToneMapping::Libplacebo),
+            },
+            ..on_gpu(HardwareAccel::Nvenc)
+        };
+
+        let args = plan_compositing(spec).to_ffmpeg_args();
+        let chain = args
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        let mapper = chain.find("tonemap_cuda").expect("a tone mapper");
+        let scale = chain.find("scale_cuda").expect("a scaler");
+
+        assert!(mapper < scale, "convert then resample: {chain}");
+    }
+
+    /// `tonemap_cuda` has no `desat`, unlike every other `tonemap_*`.
+    ///
+    /// Jellyfin's shared format string appends one, and copying that verbatim
+    /// produces a filter this build rejects. Checked against the shipped
+    /// package rather than assumed from the family name.
+    #[test]
+    fn asks_each_tone_mapper_only_for_options_it_has() {
+        let cuda = HardwareAccel::Nvenc
+            .pipeline()
+            .and_then(|pipeline| pipeline.tone_map)
+            .expect("a tone mapper");
+
+        assert!(!cuda.contains("desat"), "{cuda}");
+
+        let vaapi = HardwareAccel::Vaapi
+            .pipeline()
+            .and_then(|pipeline| pipeline.tone_map)
+            .expect("a tone mapper");
+
+        assert!(
+            !vaapi.contains("extra_hw_frames") && !vaapi.contains("tonemap="),
+            "fixed-function VPP takes neither an algorithm nor a frame count: {vaapi}"
+        );
+    }
+
+    /// A backend with no tone mapper of its own converts in software as before.
+    ///
+    /// QSV and RKMPP would both have to derive a second `OpenCL` or Vulkan
+    /// device, which is its own piece of work. Until then this has to stay a
+    /// deliberate fallback rather than a chain that will not run.
+    #[test]
+    fn converts_in_software_where_the_backend_has_no_tone_mapper() {
+        for accel in [
+            HardwareAccel::Qsv,
+            HardwareAccel::Rkmpp,
+            HardwareAccel::VideoToolbox,
+        ] {
+            let spec = SessionSpec {
+                video: VideoAction::Encode {
+                    encoder: "h264".to_owned(),
+                    max_bitrate_kbps: 8000,
+                    max_width: 1280,
+                    max_height: 720,
+                    tone_map: Some(ToneMapping::Zscale),
+                },
+                ..on_gpu(accel)
+            };
+
+            assert_eq!(
+                frame_route(&spec, FULL),
+                FrameRoute::InSoftware,
+                "{accel:?} has no tone mapper of its own"
+            );
+        }
+    }
+
+    /// A build without the filter falls back even where the backend has one.
+    #[test]
+    fn converts_in_software_where_the_build_lacks_the_filter() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264_vaapi".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: Some(ToneMapping::Zscale),
+            },
+            ..on_gpu(HardwareAccel::Vaapi)
+        };
+
+        assert_eq!(frame_route(&spec, SCALER_ONLY), FrameRoute::InSoftware);
+    }
+
+    /// Converting HDR and burning subtitles in at once still never comes down.
+    #[test]
+    fn converts_and_composites_in_the_same_graph() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264_vaapi".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: Some(ToneMapping::Zscale),
+            },
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 1,
+                is_image_based: true,
+            },
+            ..on_gpu(HardwareAccel::Vaapi)
+        };
+
+        assert_eq!(frame_route(&spec, FULL), FrameRoute::Composited);
+
+        let args = plan_compositing(spec).to_ffmpeg_args();
+        let graph = args
+            .windows(2)
+            .find(|pair| pair[0] == "-filter_complex")
+            .map(|pair| pair[1].clone())
+            .expect("a filter graph");
+
+        assert!(
+            graph.starts_with(
+                "[0:v]tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,\
+scale_vaapi=w=1280:h=532[base];"
+            ),
+            "{graph}"
+        );
+        assert!(!graph.contains("hwdownload"), "{graph}");
+    }
+
+    /// A probe compares names; a chain carries options.
+    #[test]
+    fn reads_the_filter_name_out_of_its_expression() {
+        assert_eq!(
+            filter_name("tonemap_vaapi=format=nv12:p=bt709"),
+            "tonemap_vaapi"
+        );
+        assert_eq!(filter_name("hwupload"), "hwupload");
     }
 
     /// The route that makes the descent unnecessary.
