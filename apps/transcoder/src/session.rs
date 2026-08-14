@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -170,6 +171,13 @@ pub struct Session {
     pub spec: SessionSpec,
     cancel: Option<oneshot::Sender<()>>,
     last_touched: Instant,
+    /// The highest numbered segment this session has handed out.
+    ///
+    /// Shared with the transcode that is writing them, so it can tell how far
+    /// ahead of the viewer it has got. Atomic rather than behind the registry's
+    /// lock because the transcode reads it on a timer and the segment handler
+    /// writes it on every fetch, and neither should wait on the other.
+    reached: Arc<AtomicU64>,
 }
 
 impl Session {
@@ -324,6 +332,7 @@ impl SessionRegistry {
                     spec,
                     cancel: None,
                     last_touched: Instant::now(),
+                    reached: Arc::new(AtomicU64::new(0)),
                 },
             );
 
@@ -372,8 +381,10 @@ impl SessionRegistry {
         let (cancel_tx, cancel_rx) = oneshot::channel();
         let config = self.config.clone();
         let supervised = plan.clone();
+        let reached = Arc::new(AtomicU64::new(0));
+        let watched = Arc::clone(&reached);
 
-        tokio::spawn(async move { supervise(config, supervised, cancel_rx).await });
+        tokio::spawn(async move { supervise(config, supervised, cancel_rx, watched).await });
 
         let mut sessions = self.sessions.lock().await;
 
@@ -385,6 +396,7 @@ impl SessionRegistry {
                 spec,
                 cancel: Some(cancel_tx),
                 last_touched: Instant::now(),
+                reached,
             },
         );
 
@@ -400,6 +412,27 @@ impl SessionRegistry {
         session.touch();
 
         Some(session.directory.clone())
+    }
+
+    /// Records which segment a viewer has just been given.
+    ///
+    /// This is how a transcode knows where the viewer has got to. It serves
+    /// the segments itself, so nobody has to be told — the number is in the
+    /// name of the file that was asked for.
+    ///
+    /// The highest ever asked for rather than the latest, because a viewer
+    /// skipping backwards inside what is already encoded is not a reason to
+    /// start encoding again.
+    pub async fn reached(&self, id: &str, name: &str) {
+        let Some(number) = segment_number(name) else {
+            return;
+        };
+
+        let sessions = self.sessions.lock().await;
+
+        if let Some(session) = sessions.get(id) {
+            session.reached.fetch_max(number, Ordering::Relaxed);
+        }
     }
 
     /// Records a player's heartbeat: alive, and playing or paused.
@@ -494,20 +527,47 @@ async fn run_attempt(
     ffmpeg: &str,
     plan: &TranscodePlan,
     cancel: &mut oneshot::Receiver<()>,
+    reached: &Arc<AtomicU64>,
 ) -> ExitClass {
     let Ok(child) = spawn_ffmpeg(ffmpeg, plan) else {
         return ExitClass::InputError;
     };
 
+    let pid = child.id();
+    let directory = PathBuf::from(&plan.output_directory);
+    let segment_seconds = plan.spec.segment_seconds;
+
     let waiting = child.wait_with_output();
     tokio::pin!(waiting);
 
-    tokio::select! {
-        biased;
+    let mut ticker = tokio::time::interval(THROTTLE_INTERVAL);
+    let mut paused = false;
 
-        _ = &mut *cancel => ExitClass::Cancelled,
+    let outcome = loop {
+        tokio::select! {
+            biased;
 
-        finished = &mut waiting => match finished {
+            _ = &mut *cancel => break ExitClass::Cancelled,
+
+            _ = ticker.tick() => {
+                let Some(pid) = pid else {
+                    continue;
+                };
+
+                let written = segments_written(&directory).await;
+                let wanted = is_too_far_ahead(
+                    written,
+                    reached.load(Ordering::Relaxed),
+                    segment_seconds,
+                );
+
+                if wanted != paused {
+                    set_paused(pid, wanted);
+                    paused = wanted;
+                }
+            }
+
+            finished = &mut waiting => break match finished {
             Err(_) => ExitClass::InputError,
             Ok(output) => {
                 let stderr = String::from_utf8_lossy(&output.stderr);
@@ -525,6 +585,27 @@ async fn run_attempt(
                 class
             }
         },
+        }
+    };
+
+    release_if_paused(pid, paused);
+
+    outcome
+}
+
+/// Lets a paused transcode run again before it is taken away.
+///
+/// Not what makes cancellation work — a stopped process can still be killed.
+/// It is here so that nothing afterwards can leave ffmpeg stopped for good,
+/// holding its output directory and its place in the film with nobody left to
+/// resume it.
+fn release_if_paused(pid: Option<u32>, paused: bool) {
+    if !paused {
+        return;
+    }
+
+    if let Some(pid) = pid {
+        set_paused(pid, false);
     }
 }
 
@@ -566,16 +647,109 @@ pub fn should_retry_in_software(outcome: ExitClass, uses_hardware: bool) -> bool
     uses_hardware && !matches!(outcome, ExitClass::Completed | ExitClass::Cancelled)
 }
 
+/// How far ahead of the viewer a transcode is allowed to get.
+///
+/// Past this it is paused until they catch up. Sixty seconds is Jellyfin's
+/// floor and is chosen for the same reason: far enough that a viewer skipping
+/// about inside what is already encoded never waits, close enough that a
+/// session abandoned mid-film has done a minute of work rather than an hour of
+/// it.
+const THROTTLE_AHEAD_SECONDS: u64 = 60;
+
+/// How often the gap is measured.
+///
+/// Cheap — a directory listing and a signal — so this can be frequent enough
+/// that resuming feels immediate when a viewer reaches the end of what has
+/// been encoded.
+const THROTTLE_INTERVAL: Duration = Duration::from_secs(2);
+
+/// The segment number out of a name ffmpeg wrote.
+///
+/// Names come from `-hls_segment_filename segment%05d.m4s`, so the digits are
+/// the segment's position in the film. Anything else — the playlist, the
+/// initialisation segment — is not a position and returns nothing.
+#[must_use]
+pub fn segment_number(name: &str) -> Option<u64> {
+    let digits: String = name
+        .strip_prefix("segment")?
+        .chars()
+        .take_while(char::is_ascii_digit)
+        .collect();
+
+    digits.parse().ok()
+}
+
+/// Stops or restarts a transcode that is too far ahead of the viewer.
+///
+/// A paused process is not a stopped one: it holds its place, its open files
+/// and its position in the film, and carries on the moment it is told to. That
+/// is the whole point — the alternative to pausing is either doing work nobody
+/// asked for or throwing away the work already done.
+///
+/// `SIGSTOP` rather than writing to ffmpeg's stdin, which is how Jellyfin does
+/// it: Flux passes `-nostdin`, and a signal needs nothing of the process it is
+/// aimed at.
+fn set_paused(pid: u32, paused: bool) {
+    use sysinfo::{Pid, ProcessesToUpdate, Signal, System};
+
+    let mut system = System::new();
+    let pid = Pid::from_u32(pid);
+
+    system.refresh_processes(ProcessesToUpdate::Some(&[pid]), true);
+
+    if let Some(process) = system.process(pid) {
+        process.kill_with(if paused {
+            Signal::Stop
+        } else {
+            Signal::Continue
+        });
+    }
+}
+
+/// How many segments a transcode has written.
+async fn segments_written(directory: &Path) -> u64 {
+    let Ok(mut entries) = tokio::fs::read_dir(directory).await else {
+        return 0;
+    };
+
+    let mut count = 0;
+
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        if segment_number(&entry.file_name().to_string_lossy()).is_some() {
+            count += 1;
+        }
+    }
+
+    count
+}
+
+/// Whether a transcode should be paused, given where it and the viewer are.
+///
+/// Both are counted in segments and converted here, so the decision is about
+/// seconds of film rather than a number of files whose length depends on how
+/// the session was configured.
+#[must_use]
+pub fn is_too_far_ahead(written: u64, reached: u64, segment_seconds: u32) -> bool {
+    let ahead = written.saturating_sub(reached) * u64::from(segment_seconds.max(1));
+
+    ahead > THROTTLE_AHEAD_SECONDS
+}
+
 /// Supervises a transcode from start to finish.
 ///
 /// A hardware encoder that fails is retried once in software. A busy or broken
 /// GPU should mean a slower film, not a dead player. See ADR-0009.
-async fn supervise(config: SessionConfig, plan: TranscodePlan, mut cancel: oneshot::Receiver<()>) {
+async fn supervise(
+    config: SessionConfig,
+    plan: TranscodePlan,
+    mut cancel: oneshot::Receiver<()>,
+    reached: Arc<AtomicU64>,
+) {
     let directory = PathBuf::from(&plan.output_directory);
     let mut attempt = plan;
 
     for _ in 0..2 {
-        let outcome = run_attempt(&config.ffmpeg, &attempt, &mut cancel).await;
+        let outcome = run_attempt(&config.ffmpeg, &attempt, &mut cancel, &reached).await;
 
         if outcome == ExitClass::Completed {
             let _ = tokio::fs::write(directory.join(COMPLETE_MARKER), b"ok").await;
@@ -648,6 +822,48 @@ mod tests {
     use super::{
         classify_exit, should_retry_in_software, ExitClass, SessionConfig, SessionRegistry,
     };
+
+    /// The number in the name is the viewer's place in the film.
+    #[test]
+    fn reads_the_segment_number_out_of_the_name() {
+        assert_eq!(super::segment_number("segment00042.m4s"), Some(42));
+        assert_eq!(super::segment_number("segment00000.m4s"), Some(0));
+    }
+
+    /// Everything else in the directory is not a position.
+    #[test]
+    fn ignores_names_that_are_not_segments() {
+        assert_eq!(super::segment_number("index.m3u8"), None);
+        assert_eq!(super::segment_number("init.mp4"), None);
+        assert_eq!(super::segment_number(".complete"), None);
+    }
+
+    /// A minute ahead is the point, so a minute exactly is not too far.
+    #[test]
+    fn lets_a_transcode_stay_a_minute_ahead() {
+        assert!(!super::is_too_far_ahead(15, 0, 4));
+    }
+
+    #[test]
+    fn pauses_a_transcode_that_has_run_away() {
+        assert!(super::is_too_far_ahead(900, 3, 4));
+    }
+
+    /// The gap is seconds of film, not a count of files.
+    ///
+    /// Ten segments ahead is forty seconds at four second segments and a
+    /// hundred at ten, and only one of those is worth pausing for.
+    #[test]
+    fn measures_the_gap_in_seconds_rather_than_segments() {
+        assert!(!super::is_too_far_ahead(10, 0, 4));
+        assert!(super::is_too_far_ahead(10, 0, 10));
+    }
+
+    /// A viewer ahead of the encoder is not a reason to pause it.
+    #[test]
+    fn never_pauses_a_transcode_the_viewer_has_caught_up_with() {
+        assert!(!super::is_too_far_ahead(3, 900, 4));
+    }
 
     #[test]
     fn a_clean_exit_is_completion() {
