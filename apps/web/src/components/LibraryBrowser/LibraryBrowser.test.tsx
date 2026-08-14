@@ -156,6 +156,41 @@ describe('LibraryBrowser', () => {
     });
   });
 
+  it('opens the programme when the hero features one of its episodes', async () => {
+    const episode: MediaSummary = {
+      ...arrival,
+      id: 'ep-1',
+      seriesId: 'ted',
+      seriesTitle: 'Ted',
+    };
+
+    fetchItemsMock.mockResolvedValue({ items: [episode], total: 1 });
+
+    const onShow = vi.fn();
+    const onPlay = vi.fn();
+    const actor = userEvent.setup();
+
+    render(<LibraryBrowser onPlay={onPlay} onShow={onShow} hasHero />);
+
+    await actor.click(await screen.findByRole('button', { name: /more info/i }));
+
+    expect(onShow).toHaveBeenCalledWith('ted');
+    expect(onPlay).not.toHaveBeenCalled();
+  });
+
+  it('opens a film as itself, since it stands for nothing else', async () => {
+    const onShow = vi.fn();
+    const onPlay = vi.fn();
+    const actor = userEvent.setup();
+
+    render(<LibraryBrowser onPlay={onPlay} onShow={onShow} hasHero />);
+
+    await actor.click(await screen.findByRole('button', { name: /more info/i }));
+
+    expect(onPlay).toHaveBeenCalled();
+    expect(onShow).not.toHaveBeenCalled();
+  });
+
   it('asks the server for a page rather than the whole library', async () => {
     render(<LibraryBrowser onPlay={vi.fn()} />);
 

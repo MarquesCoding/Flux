@@ -42,6 +42,7 @@ const LibraryBrowser = ({
   isKept,
   onToggleKept,
   onPlay,
+  onShow,
   onWatch,
 }: LibraryBrowserProps) => {
   const [libraries, setLibraries] = useState<Library[]>([]);
@@ -187,7 +188,15 @@ const LibraryBrowser = ({
             }
           }}
           resumeFor={resumeFor}
-          onInspect={onPlay}
+          onInspect={(media) => {
+            if (media.seriesId !== null && onShow !== undefined) {
+              onShow(media.seriesId);
+
+              return;
+            }
+
+            onPlay(media);
+          }}
           {...(onFeatureChange === undefined ? {} : { onFeatureChange })}
           {...(onPalette === undefined ? {} : { onPalette })}
         />
