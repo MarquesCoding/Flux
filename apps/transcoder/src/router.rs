@@ -454,6 +454,8 @@ async fn session_file(
         return error(StatusCode::NOT_FOUND, "No such session.");
     };
 
+    state.registry.reached(&id, &name).await;
+
     serve_file(&directory, &name, requested_range(&headers)).await
 }
 
