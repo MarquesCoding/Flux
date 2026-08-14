@@ -65,6 +65,10 @@ const runWebhookDelivery = async ({
   const attempt = await deliverWebhook(target, read.data, fetchImpl);
 
   await subscriptions.recordAttempt(subscriptionId, attempt);
+  await subscriptions.recordDelivery(
+    { subscriptionId, eventId: read.data.id, event: read.data.event, body: payload },
+    attempt,
+  );
 
   return attempt.ok;
 };

@@ -60,6 +60,7 @@ import {
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   CHECK_TRANSCODER_JOB,
   DELIVER_WEBHOOK_JOB,
+  PRUNE_WEBHOOK_DELIVERIES_JOB,
   DeliverWebhookJobSchema,
   scheduleTriggerKind,
 } from '@FluxServer/jobs/JobQueue';
@@ -126,6 +127,16 @@ const settings = createDatabaseSettingsStore({
  * rolled-up figure rather than the events it came from.
  */
 const HISTORY_KEPT_FOR_DAYS = 365;
+
+/**
+ * How long a webhook delivery is worth remembering.
+ *
+ * A week, and deliberately far shorter than viewing history. The history
+ * answers whether a receiver has been working lately, and lately is the whole
+ * of it: nobody goes back a month to read what was sent. Keeping it longer
+ * would store a body per event per subscriber for no question anybody asks.
+ */
+const WEBHOOK_DELIVERIES_KEPT_FOR_DAYS = 7;
 
 const signInStore = createDatabaseSignInStore(db);
 const historyService = createDatabaseHistoryService(db);
@@ -551,6 +562,13 @@ const jobs = await createJobQueue({
       jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
 
       transcoderWatch.record(reachable);
+    },
+    [PRUNE_WEBHOOK_DELIVERIES_JOB]: async () => {
+      const forgotten = await webhookSubscriptions.pruneDeliveries(
+        new Date(Date.now() - WEBHOOK_DELIVERIES_KEPT_FOR_DAYS * 86_400_000),
+      );
+
+      process.stdout.write(`webhooks: forgot ${forgotten.toString()} old deliveries\n`);
     },
     [DELIVER_WEBHOOK_JOB]: async (_jobId, payload) => {
       const parsed = DeliverWebhookJobSchema.safeParse(payload);

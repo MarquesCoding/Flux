@@ -110,6 +110,44 @@ describe('runWebhookDelivery', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
+  it('files what it sent, so the history shows more than the last attempt', async () => {
+    const { subscription } = await aSubscription();
+
+    await runWebhookDelivery({
+      subscriptions,
+      subscriptionId: subscription.id,
+      payload: anEnvelope,
+      fetchImpl: answering(200),
+    });
+
+    const [filed] = await subscriptions.listDeliveries(subscription.id, 10);
+
+    expect(filed).toMatchObject({ event: 'job.failed', attempts: 1, ok: true, status: 200 });
+  });
+
+  it('counts a retry against the delivery it belongs to', async () => {
+    const { subscription } = await aSubscription();
+
+    await runWebhookDelivery({
+      subscriptions,
+      subscriptionId: subscription.id,
+      payload: anEnvelope,
+      fetchImpl: answering(503),
+    });
+
+    await runWebhookDelivery({
+      subscriptions,
+      subscriptionId: subscription.id,
+      payload: anEnvelope,
+      fetchImpl: answering(200),
+    });
+
+    const filed = await subscriptions.listDeliveries(subscription.id, 10);
+
+    expect(filed).toHaveLength(1);
+    expect(filed[0]).toMatchObject({ attempts: 2, ok: true });
+  });
+
   it('gives up on an envelope it cannot read rather than retrying it for ever', async () => {
     const { subscription } = await aSubscription();
     const fetchImpl = answering(200);

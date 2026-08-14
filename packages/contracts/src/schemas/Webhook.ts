@@ -177,6 +177,38 @@ const WebhookSubscriptionSchema = z
 
 type WebhookSubscription = z.infer<typeof WebhookSubscriptionSchema>;
 
+/**
+ * One event's journey to one subscriber, however many tries it took.
+ *
+ * A row per delivery rather than per attempt, because the envelope's `id` is
+ * the occurrence rather than the attempt: a retry is the same event reaching
+ * the same subscriber, and recording it twice would say a receiver failed
+ * twice when it failed once and was asked again.
+ *
+ * `attempts` is what makes that visible without a row each. A delivery that
+ * reads `attempts: 3, ok: true` is a receiver that was briefly down, which is
+ * a different fact from three separate deliveries that each failed once.
+ *
+ * The stored body is the exact bytes that were signed. A redelivery has to
+ * send those rather than re-encoding the event, or the signature differs from
+ * the one the receiver first saw — and the envelope's `id` exists precisely
+ * so a receiver can recognise the second arrival as the first event rather
+ * than acting on it twice.
+ */
+const WebhookDeliverySchema = z.object({
+  id: z.string().uuid(),
+  subscriptionId: z.string().uuid(),
+  event: WebhookEventSchema,
+  attempts: z.number().int().positive(),
+  firstAttemptAt: z.string().datetime(),
+  lastAttemptAt: z.string().datetime(),
+  ok: z.boolean(),
+  status: z.number().int().nullable(),
+  error: z.string().nullable(),
+});
+
+type WebhookDelivery = z.infer<typeof WebhookDeliverySchema>;
+
 type WebhookDeliveryResult = z.infer<typeof WebhookDeliveryResultSchema>;
 
 export {
@@ -185,6 +217,7 @@ export {
   WEBHOOK_PAYLOAD_VERSION,
   WEBHOOK_PRESETS,
   WebhookDeliveryResultSchema,
+  WebhookDeliverySchema,
   WebhookEventSchema,
   WebhookJobDataSchema,
   WebhookPayloadSchema,
@@ -193,6 +226,7 @@ export {
 };
 
 export type {
+  WebhookDelivery,
   WebhookDeliveryResult,
   WebhookEvent,
   WebhookPayload,

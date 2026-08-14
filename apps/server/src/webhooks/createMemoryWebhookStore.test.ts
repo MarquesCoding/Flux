@@ -87,3 +87,113 @@ describe('createMemoryWebhookStore', () => {
     expect(await store.readTarget('missing')).toBeNull();
   });
 });
+
+const anOccurrence = (eventId: string, subscriptionId: string) => ({
+  subscriptionId,
+  eventId,
+  event: 'job.failed' as const,
+  body: JSON.stringify({ id: eventId, event: 'job.failed' }),
+});
+
+const landed = { ok: true, status: 200, error: null };
+
+const refused = { ok: false, status: 503, error: 'The receiver answered 503.' };
+
+describe('the delivery history', () => {
+  it('files a delivery', async () => {
+    const { subscription } = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    await store.recordDelivery(anOccurrence('event-1', subscription.id), landed);
+
+    const [filed] = await store.listDeliveries(subscription.id, 10);
+
+    expect(filed).toMatchObject({ event: 'job.failed', attempts: 1, ok: true, status: 200 });
+  });
+
+  it('counts a retry as another try at the same delivery, not a second one', async () => {
+    const { subscription } = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    await store.recordDelivery(anOccurrence('event-1', subscription.id), refused);
+    await store.recordDelivery(anOccurrence('event-1', subscription.id), refused);
+    await store.recordDelivery(anOccurrence('event-1', subscription.id), landed);
+
+    const filed = await store.listDeliveries(subscription.id, 10);
+
+    expect(filed).toHaveLength(1);
+    expect(filed[0]).toMatchObject({ attempts: 3, ok: true });
+  });
+
+  it('keeps the moment it was first tried, not only the last', async () => {
+    const { subscription } = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    await store.recordDelivery(anOccurrence('event-1', subscription.id), refused);
+    await store.recordDelivery(anOccurrence('event-1', subscription.id), landed);
+
+    const [filed] = await store.listDeliveries(subscription.id, 10);
+
+    expect(filed?.firstAttemptAt).not.toBeUndefined();
+    expect(filed?.firstAttemptAt.localeCompare(filed.lastAttemptAt)).toBeLessThanOrEqual(0);
+  });
+
+  it('tells two different events apart', async () => {
+    const { subscription } = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    await store.recordDelivery(anOccurrence('event-1', subscription.id), landed);
+    await store.recordDelivery(anOccurrence('event-2', subscription.id), refused);
+
+    expect(await store.listDeliveries(subscription.id, 10)).toHaveLength(2);
+  });
+
+  it('keeps one subscriber out of another subscriber history', async () => {
+    const mine = await store.create({ ...aSubscription, events: ['job.failed'] });
+    const theirs = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    await store.recordDelivery(anOccurrence('event-1', mine.subscription.id), landed);
+
+    expect(await store.listDeliveries(theirs.subscription.id, 10)).toStrictEqual([]);
+  });
+
+  it('shows no more than was asked for', async () => {
+    const { subscription } = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    await store.recordDelivery(anOccurrence('event-1', subscription.id), landed);
+    await store.recordDelivery(anOccurrence('event-2', subscription.id), landed);
+    await store.recordDelivery(anOccurrence('event-3', subscription.id), landed);
+
+    expect(await store.listDeliveries(subscription.id, 2)).toHaveLength(2);
+  });
+
+  it('keeps the exact bytes, so a redelivery can be identical', async () => {
+    const { subscription } = await store.create({ ...aSubscription, events: ['job.failed'] });
+    const occurrence = anOccurrence('event-1', subscription.id);
+
+    await store.recordDelivery(occurrence, landed);
+
+    const [filed] = await store.listDeliveries(subscription.id, 10);
+
+    expect(await store.readDeliveryBody(subscription.id, filed?.id ?? '')).toBe(occurrence.body);
+  });
+
+  it('will not hand one subscription the body of another delivery', async () => {
+    const mine = await store.create({ ...aSubscription, events: ['job.failed'] });
+    const theirs = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    await store.recordDelivery(anOccurrence('event-1', mine.subscription.id), landed);
+
+    const [filed] = await store.listDeliveries(mine.subscription.id, 10);
+
+    expect(await store.readDeliveryBody(theirs.subscription.id, filed?.id ?? '')).toBeNull();
+  });
+
+  it('forgets what is older than the horizon and keeps what is not', async () => {
+    const { subscription } = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    await store.recordDelivery(anOccurrence('event-1', subscription.id), landed);
+
+    expect(await store.pruneDeliveries(new Date(Date.now() - 60_000))).toBe(0);
+    expect(await store.listDeliveries(subscription.id, 10)).toHaveLength(1);
+
+    expect(await store.pruneDeliveries(new Date(Date.now() + 60_000))).toBe(1);
+    expect(await store.listDeliveries(subscription.id, 10)).toStrictEqual([]);
+  });
+});

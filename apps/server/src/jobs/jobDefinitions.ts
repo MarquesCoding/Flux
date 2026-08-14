@@ -11,6 +11,7 @@ import {
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   CHECK_TRANSCODER_JOB,
+  PRUNE_WEBHOOK_DELIVERIES_JOB,
   scheduleTriggerKind,
 } from './JobQueue';
 import type { ScheduleTrigger } from './scheduleTrigger';
@@ -151,6 +152,14 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     needsLibrary: false,
     destructive: false,
   },
+  {
+    kind: PRUNE_WEBHOOK_DELIVERIES_JOB,
+    label: 'Prune old webhook deliveries',
+    description:
+      'Forgets what was sent to webhook subscribers more than a week ago. Recent deliveries stay, so a receiver that has started failing is still visible; the rest goes, because this table gains a row for every event sent to everybody.',
+    needsLibrary: false,
+    destructive: false,
+  },
 ];
 
 /**
@@ -179,6 +188,7 @@ const DEFAULT_JOB_TRIGGERS: Record<string, ScheduleTrigger[]> = {
   [CHECK_CATALOGUE_CONNECTIVITY_JOB]: [{ kind: 'daily', hour: 5, minute: 0 }],
   [CHECK_TRANSCODER_JOB]: [{ kind: 'everyMinutes', minutes: 5 }],
   [CLEANUP_SESSIONS_JOB]: [{ kind: 'daily', hour: 5, minute: 30 }],
+  [PRUNE_WEBHOOK_DELIVERIES_JOB]: [{ kind: 'daily', hour: 5, minute: 45 }],
   [CLEANUP_IMAGE_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 0 }],
   [CLEANUP_ARTEFACT_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 30 }],
 };

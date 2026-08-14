@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { WebhookSubscription } from '@FluxContracts/schemas/Webhook';
+import type { WebhookDelivery, WebhookSubscription } from '@FluxContracts/schemas/Webhook';
 import type { WebhookStore } from './WebhookStore';
 
 /**
@@ -13,6 +13,23 @@ import type { WebhookStore } from './WebhookStore';
  */
 const createMemoryWebhookStore = (): WebhookStore => {
   const subscriptions = new Map<string, { subscription: WebhookSubscription; secret: string }>();
+  const deliveries = new Map<
+    string,
+    { delivery: WebhookDelivery; body: string; eventId: string }
+  >();
+
+  /**
+   * The delivery already filed for this event and this subscriber, if there
+   * is one.
+   *
+   * The pair is the identity, the same as the unique index the database
+   * version relies on: a retry has to find its own row rather than making a
+   * second one.
+   */
+  const findOccurrence = (subscriptionId: string, eventId: string) =>
+    [...deliveries.values()].find(
+      (held) => held.delivery.subscriptionId === subscriptionId && held.eventId === eventId,
+    );
 
   return {
     list: () => Promise.resolve([...subscriptions.values()].map((held) => held.subscription)),
@@ -93,6 +110,76 @@ const createMemoryWebhookStore = (): WebhookStore => {
       }
 
       return Promise.resolve();
+    },
+
+    recordDelivery: ({ subscriptionId, eventId, event, body }, attempt) => {
+      const at = new Date().toISOString();
+      const existing = findOccurrence(subscriptionId, eventId);
+
+      if (existing === undefined) {
+        const id = randomUUID();
+
+        deliveries.set(id, {
+          eventId,
+          body,
+          delivery: {
+            id,
+            subscriptionId,
+            event,
+            attempts: 1,
+            firstAttemptAt: at,
+            lastAttemptAt: at,
+            ok: attempt.ok,
+            status: attempt.status,
+            error: attempt.error,
+          },
+        });
+
+        return Promise.resolve();
+      }
+
+      deliveries.set(existing.delivery.id, {
+        ...existing,
+        delivery: {
+          ...existing.delivery,
+          attempts: existing.delivery.attempts + 1,
+          lastAttemptAt: at,
+          ok: attempt.ok,
+          status: attempt.status,
+          error: attempt.error,
+        },
+      });
+
+      return Promise.resolve();
+    },
+
+    listDeliveries: (subscriptionId, limit) =>
+      Promise.resolve(
+        [...deliveries.values()]
+          .map((held) => held.delivery)
+          .filter((delivery) => delivery.subscriptionId === subscriptionId)
+          .sort((one, other) => other.lastAttemptAt.localeCompare(one.lastAttemptAt))
+          .slice(0, limit),
+      ),
+
+    readDeliveryBody: (subscriptionId, deliveryId) => {
+      const held = deliveries.get(deliveryId);
+
+      return Promise.resolve(
+        held === undefined || held.delivery.subscriptionId !== subscriptionId ? null : held.body,
+      );
+    },
+
+    pruneDeliveries: (before) => {
+      const doomed = [...deliveries.values()].filter(
+        (held) => new Date(held.delivery.lastAttemptAt) < before,
+      );
+
+      for (const held of doomed) {
+        deliveries.delete(held.delivery.id);
+      }
+
+      return Promise.resolve(doomed.length);
     },
   };
 };

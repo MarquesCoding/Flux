@@ -187,6 +187,18 @@ const DeliverWebhookJobSchema = z.object({
 type DeliverWebhookJob = z.infer<typeof DeliverWebhookJobSchema>;
 
 /**
+ * Forgets webhook deliveries older than the horizon.
+ *
+ * The history exists to answer "has this been working lately", and lately is
+ * the operative word: a delivery nobody has looked at within a week is one
+ * nobody is going to. Without this the table grows by a row per event per
+ * subscriber for as long as the server has run, and stores the body of each.
+ *
+ * Not library-scoped — subscriptions belong to the server.
+ */
+const PRUNE_WEBHOOK_DELIVERIES_JOB = 'server.pruneWebhookDeliveries';
+
+/**
  * The queue a schedule for a library-scoped kind actually fires on.
  *
  * A schedule cannot target `library.scan` itself — pg-boss sends the same
@@ -345,6 +357,7 @@ export {
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   CHECK_TRANSCODER_JOB,
   DELIVER_WEBHOOK_JOB,
+  PRUNE_WEBHOOK_DELIVERIES_JOB,
   DeliverWebhookJobSchema,
   scheduleTriggerKind,
   JobStateSchema,

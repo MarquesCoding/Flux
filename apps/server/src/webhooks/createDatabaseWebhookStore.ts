@@ -1,8 +1,8 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, lt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { toIso } from '@FluxCore/functions/toIso';
-import { webhookSubscription } from '@FluxServer/db/Schema';
+import { webhookDelivery, webhookSubscription } from '@FluxServer/db/Schema';
 import { WebhookEventSchema, WebhookPresetSchema } from '@FluxContracts/schemas/Webhook';
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { WebhookSubscription } from '@FluxContracts/schemas/Webhook';
@@ -156,6 +156,88 @@ const createDatabaseWebhookStore = (db: FluxDatabase): WebhookStore => {
           lastError: attempt.error,
         })
         .where(eq(webhookSubscription.id, id));
+    },
+
+    recordDelivery: async ({ subscriptionId, eventId, event, body }, attempt) => {
+      const at = new Date();
+
+      await db
+        .insert(webhookDelivery)
+        .values({
+          id: randomUUID(),
+          subscriptionId,
+          eventId,
+          event,
+          body,
+          attempts: 1,
+          firstAttemptAt: at,
+          lastAttemptAt: at,
+          ok: attempt.ok,
+          status: attempt.status,
+          error: attempt.error,
+        })
+        .onConflictDoUpdate({
+          target: [webhookDelivery.subscriptionId, webhookDelivery.eventId],
+          set: {
+            attempts: sql`${webhookDelivery.attempts} + 1`,
+            lastAttemptAt: at,
+            ok: attempt.ok,
+            status: attempt.status,
+            error: attempt.error,
+          },
+        });
+    },
+
+    listDeliveries: async (subscriptionId, limit) => {
+      const rows = await db
+        .select()
+        .from(webhookDelivery)
+        .where(eq(webhookDelivery.subscriptionId, subscriptionId))
+        .orderBy(desc(webhookDelivery.lastAttemptAt))
+        .limit(limit);
+
+      return rows.flatMap((row) => {
+        const event = WebhookEventSchema.safeParse(row.event);
+
+        return event.success
+          ? [
+              {
+                id: row.id,
+                subscriptionId: row.subscriptionId,
+                event: event.data,
+                attempts: row.attempts,
+                firstAttemptAt: row.firstAttemptAt.toISOString(),
+                lastAttemptAt: row.lastAttemptAt.toISOString(),
+                ok: row.ok,
+                status: row.status,
+                error: row.error,
+              },
+            ]
+          : [];
+      });
+    },
+
+    readDeliveryBody: async (subscriptionId, deliveryId) => {
+      const rows = await db
+        .select({ body: webhookDelivery.body })
+        .from(webhookDelivery)
+        .where(
+          and(
+            eq(webhookDelivery.id, deliveryId),
+            eq(webhookDelivery.subscriptionId, subscriptionId),
+          ),
+        );
+
+      return rows[0]?.body ?? null;
+    },
+
+    pruneDeliveries: async (before) => {
+      const removed = await db
+        .delete(webhookDelivery)
+        .where(lt(webhookDelivery.lastAttemptAt, before))
+        .returning({ id: webhookDelivery.id });
+
+      return removed.length;
     },
   };
 };

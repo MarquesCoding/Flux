@@ -176,6 +176,13 @@
       "when": 1786740421138,
       "tag": "0024_bumpy_morbius",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1786744871249,
+      "tag": "0025_blushing_madame_web",
+      "breakpoints": true
     }
   ]
 }
