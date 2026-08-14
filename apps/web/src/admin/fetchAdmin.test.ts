@@ -9,6 +9,7 @@ import {
   stopSession,
   pauseSession,
   resumeSession,
+  messageSession,
   fetchJobDefinitions,
   runJob,
   fetchJobSchedules,
@@ -261,6 +262,34 @@ describe('pauseSession', () => {
     answerWith({}, false);
 
     await expect(pauseSession('tab-1')).resolves.toBe(false);
+  });
+});
+
+describe('messageSession', () => {
+  it('sends the words to the tab an admin picked', async () => {
+    answerWith({});
+
+    await expect(messageSession('tab-1', 'Dinner is ready.')).resolves.toBe(true);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/sessions/tab-1/message',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ text: 'Dinner is ready.' }),
+      }),
+    );
+  });
+
+  it('fails quietly when the tab has just closed', async () => {
+    answerWith({ error: 'That tab is not open.' }, false);
+
+    await expect(messageSession('tab-1', 'Dinner is ready.')).resolves.toBe(false);
+  });
+
+  it('fails quietly when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(messageSession('tab-1', 'Dinner is ready.')).resolves.toBe(false);
   });
 });
 

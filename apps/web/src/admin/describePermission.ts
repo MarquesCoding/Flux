@@ -31,6 +31,7 @@ const LABELS: Record<Permission, string> = {
   'streaming.view': 'See who is watching',
   'streaming.stop': 'Stop somebody’s stream',
   'streaming.pause': 'Pause somebody’s stream',
+  'streaming.message': 'Send a message to somebody watching',
 
   'download.media': 'Download media',
 

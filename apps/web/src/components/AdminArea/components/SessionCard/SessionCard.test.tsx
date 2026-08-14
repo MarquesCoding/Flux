@@ -49,6 +49,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
 
@@ -64,6 +65,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
 
@@ -78,6 +80,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
 
@@ -95,6 +98,7 @@ describe('SessionCard', () => {
         onStop={onStop}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: /Stop/ }));
@@ -112,6 +116,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={onPause}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: /Pause/ }));
@@ -136,11 +141,51 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={onResume}
+        onMessage={vi.fn()}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: /Play/ }));
 
     expect(onResume).toHaveBeenCalled();
+  });
+
+  it('sends a message without touching what is playing', async () => {
+    const onMessage = vi.fn();
+    const onPause = vi.fn();
+    const onStop = vi.fn();
+
+    render(
+      <SessionCard
+        session={WATCHING_SESSION}
+        isBusy={false}
+        onStop={onStop}
+        onPause={onPause}
+        onResume={vi.fn()}
+        onMessage={onMessage}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Message' }));
+    await userEvent.type(screen.getByLabelText('Message for Dan'), 'Dinner is ready.');
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    expect(onMessage).toHaveBeenCalledWith('Dinner is ready.');
+    expect(onPause).not.toHaveBeenCalled();
+    expect(onStop).not.toHaveBeenCalled();
+  });
+
+  it('offers nobody to message in a tab that is watching nothing', () => {
+    render(
+      <SessionCard
+        session={IDLE_SESSION}
+        isBusy={false}
+        onStop={vi.fn()}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Message' })).not.toBeInTheDocument();
   });
 
   it('shows no progress bar until the player has reported its position', () => {
@@ -151,6 +196,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
 
@@ -182,6 +228,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
 
@@ -209,6 +256,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={onResume}
+        onMessage={vi.fn()}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: /Play/ }));

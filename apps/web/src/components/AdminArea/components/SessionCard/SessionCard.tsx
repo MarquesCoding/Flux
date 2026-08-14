@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   IconDeviceTvFilled,
   IconInfoCircle,
+  IconMessage,
   IconPlayerPause,
   IconPlayerPlay,
   IconPlayerStop,
@@ -12,6 +13,7 @@ import { Card } from '@FluxUI/Card';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { deviceIconFor } from './deviceIcon';
 import { SessionStatsDialog } from '@FluxWeb/components/AdminArea/components/SessionStatsDialog/SessionStatsDialog';
+import { SessionMessageDialog } from './components/SessionMessageDialog/SessionMessageDialog';
 import type { SessionCardProps } from './SessionCard.types';
 
 /**
@@ -27,10 +29,18 @@ import type { SessionCardProps } from './SessionCard.types';
  * fetched and the bright one is where the viewer actually is; the gap between
  * them is the answer to "why is it stuttering".
  */
-const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCardProps) => {
+const SessionCard = ({
+  session,
+  isBusy,
+  onStop,
+  onPause,
+  onResume,
+  onMessage,
+}: SessionCardProps) => {
   const { playback } = session;
   const DeviceIcon = deviceIconFor(session.deviceLabel);
   const [isShowingStats, setIsShowingStats] = useState(false);
+  const [isWritingMessage, setIsWritingMessage] = useState(false);
 
   const health = playback?.health ?? null;
   const hasProgress = health !== null && health.durationSeconds > 0;
@@ -144,6 +154,18 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
             >
               <IconPlayerStop size={15} aria-hidden />
             </Button>
+
+            <Button
+              isIconOnly
+              variant="ghost"
+              label="Message"
+              size="sm"
+              onClick={() => {
+                setIsWritingMessage(true);
+              }}
+            >
+              <IconMessage size={15} aria-hidden />
+            </Button>
           </>
         )}
 
@@ -165,6 +187,19 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
         isOpen={isShowingStats}
         onClose={() => {
           setIsShowingStats(false);
+        }}
+      />
+
+      <SessionMessageDialog
+        viewerName={session.profileName ?? session.deviceLabel}
+        isOpen={isWritingMessage}
+        isBusy={isBusy}
+        onClose={() => {
+          setIsWritingMessage(false);
+        }}
+        onSend={(text) => {
+          setIsWritingMessage(false);
+          onMessage(text);
         }}
       />
     </Card>

@@ -413,6 +413,24 @@ const resumeSession = async (clientId: string): Promise<boolean> => {
 };
 
 /**
+ * Sends a line of text to one watching tab, without touching what it is
+ * playing.
+ *
+ * Answers `false` rather than throwing when the tab has gone, which is the
+ * ordinary end of a viewer's evening rather than a fault worth an error.
+ */
+const messageSession = async (clientId: string, text: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/sessions/${clientId}/message`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text }),
+  }).catch(() => null);
+
+  return response !== null && response.ok;
+};
+
+/**
  * Reads every job an admin can start on demand from the Work tab.
  */
 const fetchJobDefinitions = async (): Promise<JobDefinition[]> => {
@@ -627,6 +645,7 @@ export {
   stopSession,
   pauseSession,
   resumeSession,
+  messageSession,
   fetchJobDefinitions,
   runJob,
   cancelJob,

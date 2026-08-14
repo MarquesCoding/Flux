@@ -26,6 +26,7 @@ import {
   stopSession,
   pauseSession,
   resumeSession,
+  messageSession,
   fetchJobDefinitions,
   fetchJobSchedules,
   addJobTrigger,
@@ -389,6 +390,23 @@ const AdminArea = ({
     }
   };
 
+  /**
+   * Sends a viewer a line of text.
+   *
+   * Deliberately does not read the session list back afterwards: a message
+   * changes nothing about who is watching what, and a list that redraws would
+   * suggest it had.
+   */
+  const messageViewer = async (clientId: string, text: string) => {
+    setBusyClientId(clientId);
+
+    try {
+      await messageSession(clientId, text);
+    } finally {
+      setBusyClientId(null);
+    }
+  };
+
   useEffect(() => {
     void loadAll();
     void resumeRunning();
@@ -641,6 +659,9 @@ const AdminArea = ({
                 }}
                 onResume={(clientId) => {
                   void resumeStream(clientId);
+                }}
+                onMessage={(clientId, text) => {
+                  void messageViewer(clientId, text);
                 }}
               />
             </TabPanel>

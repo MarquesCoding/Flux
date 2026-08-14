@@ -19,6 +19,7 @@ const ActivityPanel = ({
   onStop,
   onPause,
   onResume,
+  onMessage,
 }: ActivityPanelProps) => {
   return (
     <Card as="section" padding="none" className="flex flex-col">
@@ -51,6 +52,9 @@ const ActivityPanel = ({
                     }}
                     onResume={() => {
                       onResume(session.clientId);
+                    }}
+                    onMessage={(text) => {
+                      onMessage(session.clientId, text);
                     }}
                   />
                 ))}
