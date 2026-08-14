@@ -32,14 +32,25 @@ type NavDockAction = {
    */
   isCurrent?: boolean;
   badge?: ReactNode;
-  /**
-   * A control to draw in place of the button, for a tool that opens something
-   * where it stands. Drawn as given: a button inside a button is not a thing a
-   * browser will make sense of.
-   */
-  control?: ReactNode;
-  onSelect: () => void;
-};
+} & (
+  | {
+      /**
+       * A control to draw in place of the button, for a tool that opens
+       * something where it stands. Drawn as given: a button inside a button is
+       * not a thing a browser will make sense of.
+       *
+       * The dock renders this and nothing else, so there is no press of its own
+       * to answer — hence no `onSelect` alongside it. Asking for a callback
+       * that can never fire only invites a stub nobody reads.
+       */
+      control: ReactNode;
+      onSelect?: never;
+    }
+  | {
+      control?: undefined;
+      onSelect: () => void;
+    }
+);
 
 type NavDockProps = {
   /**

@@ -17,13 +17,29 @@ import {
   IconUserFilled,
 } from '@tabler/icons-react';
 import { motion, useReducedMotion } from 'motion/react';
+import { ActionMenu } from '@FluxUI/ActionMenu';
 import { NavDock } from '@FluxUI/NavDock';
 import { MoodBackground } from '@FluxUI/MoodBackground';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
 import type { NavDockAction, NavDockItem } from '@FluxUI/NavDock.types';
+import type { LibraryKind } from '@FluxContracts/schemas/Library';
 import type { AppShellProps, ShellSection } from './AppShell.types';
+
+/**
+ * What each kind of library is called when the dice offer to narrow to it.
+ *
+ * Written as a complete record rather than derived, so adding a kind to the
+ * contract fails to compile here until somebody says what to call it. A new
+ * kind appearing in the menu unnamed would be worse than being made to name
+ * it.
+ */
+const SURPRISE_LABELS: Record<LibraryKind, string> = {
+  movies: 'A film',
+  shows: 'A programme',
+  music: 'Something to listen to',
+};
 
 /**
  * The mark each place carries while it is the one being stood on.
@@ -95,6 +111,7 @@ const AppShell = ({
   isAdministrator = false,
   avatar,
   onSurprise,
+  surpriseKinds = [],
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion();
 
@@ -161,7 +178,42 @@ const AppShell = ({
             id: 'surprise',
             label: 'Randomiser',
             icon: <IconDice5 size={20} aria-hidden />,
-            onSelect: onSurprise,
+            ...(surpriseKinds.length > 1
+              ? {
+                  control: (
+                    <ActionMenu
+                      label="Choose something at random"
+                      align="center"
+                      className="hover:bg-transparent data-[popup-open]:bg-transparent"
+                      trigger={<IconDice5 size={20} aria-hidden />}
+                      groups={[
+                        {
+                          items: [
+                            {
+                              id: 'anything',
+                              label: 'Anything',
+                              onChoose: () => {
+                                onSurprise();
+                              },
+                            },
+                            ...surpriseKinds.map((kind) => ({
+                              id: kind,
+                              label: SURPRISE_LABELS[kind],
+                              onChoose: () => {
+                                onSurprise(kind);
+                              },
+                            })),
+                          ],
+                        },
+                      ]}
+                    />
+                  ),
+                }
+              : {
+                  onSelect: () => {
+                    onSurprise();
+                  },
+                }),
           },
         ]),
     ...(isAdministrator

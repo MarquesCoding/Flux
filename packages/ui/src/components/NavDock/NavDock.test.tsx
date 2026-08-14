@@ -115,7 +115,6 @@ describe('NavDock', () => {
             label: 'Notifications',
             icon: null,
             control: <button type="button">Bell</button>,
-            onSelect: vi.fn(),
           },
         ]}
       />,

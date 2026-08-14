@@ -39,7 +39,7 @@ import { signOut } from '@FluxWeb/session/signOut';
 import { SetupStatusSchema } from '@FluxContracts/schemas/Setup';
 import type { SetupStatus } from '@FluxContracts/schemas/Setup';
 import type { SessionUser } from '@FluxContracts/schemas/Session';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { LibraryKind, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 import type { AppProps } from './App.types';
 
@@ -80,6 +80,26 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [known, setKnown] = useState(new Map<string, MediaSummary>());
   const { place, go, replace } = usePlace();
   const prefersReducedMotion = useReducedMotion();
+
+  const [surpriseKinds, setSurpriseKinds] = useState<LibraryKind[]>([]);
+
+  useEffect(() => {
+    let abandoned = false;
+
+    void fetchLibraries()
+      .then((libraries) => {
+        if (!abandoned) {
+          setSurpriseKinds([...new Set(libraries.map((one) => one.kind))]);
+        }
+      })
+      .catch(() => {
+        setSurpriseKinds([]);
+      });
+
+    return () => {
+      abandoned = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (place.show === null) {
@@ -326,14 +346,21 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       }}
       moodLights={section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
-      onSurprise={() => {
-        void pickAnything().then((found) => {
+      surpriseKinds={surpriseKinds}
+      onSurprise={(only) => {
+        void pickAnything(only).then((found) => {
           if (found === null) {
             return;
           }
 
-          rememberItems([found]);
-          go({ inspecting: found.id });
+          if (found.kind === 'show') {
+            go({ show: found.showId });
+
+            return;
+          }
+
+          rememberItems([found.item]);
+          go({ inspecting: found.item.id });
         });
       }}
       {...(watcher === null
