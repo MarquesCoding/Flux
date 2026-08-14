@@ -22,6 +22,7 @@ pub mod preview;
 pub mod probe;
 pub mod queue;
 pub mod router;
+pub mod segments;
 pub mod session;
 pub mod session_sweep;
 pub mod subtitle;
