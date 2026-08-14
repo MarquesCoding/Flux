@@ -55,6 +55,7 @@ import {
   CLEANUP_IMAGE_CACHE_JOB,
   CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
+  PRUNE_HISTORY_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   scheduleTriggerKind,
 } from '@FluxServer/jobs/JobQueue';
@@ -78,6 +79,7 @@ import { createWorkLock } from '@FluxServer/jobs/createWorkLock';
 import { seedDefaultJobTriggers } from '@FluxServer/jobs/seedDefaultJobTriggers';
 import { seedDefaultRoles } from '@FluxServer/auth/seedDefaultRoles';
 import { DEFAULT_ROLE_NAME } from '@FluxCore/functions/defaultRoles';
+import { createDatabaseHistoryService } from '@FluxServer/history/createDatabaseHistoryService';
 import { createDatabaseSignInStore } from '@FluxServer/accounts/createDatabaseSignInStore';
 import { recordSignIn } from '@FluxServer/accounts/recordSignIn';
 import { createDatabasePermissionService } from '@FluxServer/auth/createDatabasePermissionService';
@@ -107,7 +109,18 @@ const settings = createDatabaseSettingsStore({
   },
 });
 
+/**
+ * How long a viewing is worth remembering in detail.
+ *
+ * A year, because that is long enough for "have I seen this" and for a look
+ * back over the year, and short enough that the table does not become the
+ * largest thing in the database. Anything an operator wants beyond it is a
+ * rolled-up figure rather than the events it came from.
+ */
+const HISTORY_KEPT_FOR_DAYS = 365;
+
 const signInStore = createDatabaseSignInStore(db);
+const historyService = createDatabaseHistoryService(db);
 
 const persisted = await settings.read();
 
@@ -439,6 +452,13 @@ const jobs = await createJobQueue({
         `artefact cache cleanup: removed ${swept.removed.toString()} directory(ies), freed ${swept.freedBytes.toString()} byte(s), kept ${swept.kept.toString()}, skipped ${swept.tooNew.toString()} as too new\n`,
       );
     },
+    [PRUNE_HISTORY_JOB]: async () => {
+      const forgotten = await historyService.prune(
+        new Date(Date.now() - HISTORY_KEPT_FOR_DAYS * 86_400_000),
+      );
+
+      process.stdout.write(`history: forgot ${forgotten.toString()} old viewings\n`);
+    },
     [CLEANUP_SESSIONS_JOB]: async (jobId) => {
       const removed = await cleanupSessions({
         deleteExpiredSessions: async () => {
@@ -626,6 +646,7 @@ const app = createApp({
   subtitles: subtitleService,
   segments: segmentService,
   progress: createDatabaseWatchProgressService(db),
+  history: historyService,
   favourites: createDatabaseFavouriteService(db),
   profiles: profileService,
   promoteProfile: async ({ profileId, email, password }) => {

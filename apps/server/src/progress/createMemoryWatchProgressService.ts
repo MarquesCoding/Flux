@@ -14,6 +14,9 @@ const createMemoryWatchProgressService = (
 
   list: (userId) => Promise.resolve(state[userId] ?? []),
 
+  read: (userId, mediaId) =>
+    Promise.resolve((state[userId] ?? []).find((entry) => entry.mediaId === mediaId) ?? null),
+
   record: (userId, report) => {
     const existing = (state[userId] ?? []).filter((entry) => entry.mediaId !== report.mediaId);
 
