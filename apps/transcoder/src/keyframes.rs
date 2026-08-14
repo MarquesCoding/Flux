@@ -113,10 +113,21 @@ pub fn parse_keyframe_times(csv: &str) -> Vec<f64> {
 
 /// The segments a source actually yields, given the length asked for.
 ///
-/// Walks the keyframes and takes the first one at or past each multiple of the
-/// desired length, so a segment is never shorter than asked for and is only as
-/// long as the next cut allows. This is Jellyfin's `ComputeSegments` and it is
-/// the same shape for the same reason: the boundaries are not ours to choose.
+/// Walks the keyframes and cuts at the first one that reaches the muxer's
+/// target, which advances by exactly one segment length per cut and is
+/// therefore left behind whenever a cut lands late. A source whose keyframes
+/// are ten seconds apart puts the target four seconds further on and the film
+/// ten, so after a few segments the target is minutes behind and every
+/// keyframe becomes a cut.
+///
+/// That is not a rule anybody would choose. It is `hlsenc.c`'s, and the
+/// playlist has to describe what ffmpeg will really write rather than what
+/// would be tidy. Catching the target up to the last cut — which is the
+/// obvious reading, and what this did — predicted the film's first seventeen
+/// segments exactly and then drifted: 621 seconds declared against 497 seconds
+/// produced across 94 segments, so the playlist ran out before the film did
+/// and every seek landed further from where it was dropped. Following the
+/// muxer instead matches all 94.
 ///
 /// The result is what the playlist must declare. Declaring the requested
 /// length instead would be a lie the player discovers one segment in.
@@ -137,10 +148,7 @@ pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> 
 
         lengths.push(keyframe - last_cut);
         last_cut = *keyframe;
-
-        while next_cut <= last_cut {
-            next_cut += desired_seconds;
-        }
+        next_cut += desired_seconds;
     }
 
     let remaining = keyframes.duration_seconds - last_cut;
@@ -150,6 +158,40 @@ pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> 
     }
 
     lengths
+}
+
+/// What to ask the muxer for, so that where it cuts does not depend on where
+/// the run started.
+///
+/// The muxer's target advances by one segment length per cut and never catches
+/// up, so a run walking through the whole film and a run restarted part way
+/// through it hold different targets in the same place and cut differently.
+/// Measured on the Bluray remux: a run restarted at segment 596 agreed with a
+/// run from the beginning for nine segments and then diverged, and one
+/// restarted at segment 400 diverged immediately — so after a seek the
+/// playlist described a film the transcode was no longer producing.
+///
+/// Asking for less than the closest pair of keyframes takes the target out of
+/// it: every keyframe then satisfies it, so every run cuts at every keyframe
+/// wherever it began. Segments come out as long as the source allows, which is
+/// what a copied stream was always going to give.
+///
+/// Never more than was asked for, so a source with keyframes further apart than
+/// the requested length still gets the request rather than a longer segment.
+#[must_use]
+pub fn cut_interval(keyframes: &Keyframes, requested_seconds: f64) -> f64 {
+    let closest = keyframes
+        .at_seconds
+        .windows(2)
+        .map(|pair| pair[1] - pair[0])
+        .filter(|gap| *gap > 0.0)
+        .fold(f64::INFINITY, f64::min);
+
+    if !closest.is_finite() {
+        return requested_seconds;
+    }
+
+    requested_seconds.min(closest * 0.9)
 }
 
 /// Where each segment begins, which is what producing one on demand needs.
@@ -171,7 +213,7 @@ pub fn segment_starts(lengths: &[f64]) -> Vec<f64> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_keyframe_times, segment_lengths, segment_starts, Keyframes};
+    use super::{cut_interval, parse_keyframe_times, segment_lengths, segment_starts, Keyframes};
 
     fn keyframes(at_seconds: &[f64], duration_seconds: f64) -> Keyframes {
         Keyframes {
@@ -242,6 +284,74 @@ mod tests {
         assert!(
             lengths.iter().all(|length| *length > 4.0),
             "no segment can be shorter than the gap between keyframes: {lengths:?}"
+        );
+    }
+
+    /// Asking for less than the closest keyframes are makes every keyframe a
+    /// cut, whatever the run has done before.
+    #[test]
+    fn asks_for_less_than_the_closest_keyframes_are() {
+        let source = keyframes(&[0.0, 10.0, 20.0, 21.0, 22.0], 30.0);
+
+        let interval = cut_interval(&source, 4.0);
+
+        assert!((interval - 0.9).abs() < 1e-9, "interval was {interval}");
+        assert_eq!(
+            segment_lengths(&source, interval),
+            vec![10.0, 10.0, 1.0, 1.0, 8.0]
+        );
+    }
+
+    /// A source cut less often than asked for still gets what was asked for.
+    #[test]
+    fn never_asks_for_more_than_the_length_wanted() {
+        let source = keyframes(&[0.0, 60.0, 120.0], 180.0);
+
+        assert!((cut_interval(&source, 4.0) - 4.0).abs() < f64::EPSILON);
+    }
+
+    /// A film with one keyframe has no pair to measure.
+    #[test]
+    fn asks_for_what_was_wanted_when_there_is_nothing_to_measure() {
+        assert!((cut_interval(&keyframes(&[0.0], 30.0), 4.0) - 4.0).abs() < f64::EPSILON);
+    }
+
+    /// The measured film: keyframes never closer than 0.959 seconds, so the
+    /// muxer is asked for 0.863 and cuts at all 1444 of them.
+    #[test]
+    fn asks_the_measured_film_for_less_than_its_closest_keyframes() {
+        let source = keyframes(&[0.0, 2.628, 13.055, 14.014, 24.441], 30.0);
+
+        let interval = cut_interval(&source, 4.0);
+        let lengths = segment_lengths(&source, interval);
+        let wanted = [2.628, 10.427, 0.959, 10.427, 30.0 - 24.441];
+
+        assert!((interval - 0.863_1).abs() < 1e-9, "interval was {interval}");
+        assert_eq!(lengths.len(), wanted.len(), "lengths were {lengths:?}");
+        assert!(
+            lengths
+                .iter()
+                .zip(wanted)
+                .all(|(found, expected)| (found - expected).abs() < 1e-6),
+            "lengths were {lengths:?}"
+        );
+    }
+
+    /// Once the muxer's target falls behind, every keyframe is a cut.
+    ///
+    /// The target moves four seconds per segment while a film with sparse
+    /// keyframes moves ten, so it ends up minutes behind and stops holding
+    /// anything back. Measured on the Bluray remux: from its eighteenth
+    /// segment on, ffmpeg's own playlist is the raw gaps between keyframes —
+    /// 1.876, 10.428, 10.427, 8.216, 6.382 — and a prediction that expected
+    /// four second segments there described a different film.
+    #[test]
+    fn cuts_at_every_keyframe_once_the_target_is_left_behind() {
+        let source = keyframes(&[0.0, 10.0, 20.0, 21.0, 22.0], 30.0);
+
+        assert_eq!(
+            segment_lengths(&source, 4.0),
+            vec![10.0, 10.0, 1.0, 1.0, 8.0]
         );
     }
 

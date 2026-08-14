@@ -482,9 +482,9 @@ impl SessionRegistry {
             record_device(&directory, device).await;
         }
 
-        let lengths = ensure_boundaries(&self.config.ffprobe, &directory, &spec).await;
+        let boundaries = ensure_boundaries(&self.config.ffprobe, &directory, &spec).await;
 
-        if lengths.is_empty() {
+        if boundaries.is_empty() {
             return Err(SessionError::Boundaries(spec.input_path.clone()));
         }
 
@@ -524,6 +524,7 @@ impl SessionRegistry {
             device: self.config.device.clone(),
             device_filters,
             start_at: SegmentStart::default(),
+            cut_seconds: boundaries.cut_seconds,
         };
 
         let mut session = Session {
@@ -536,7 +537,7 @@ impl SessionRegistry {
             last_touched: Instant::now(),
             reached: Arc::new(AtomicU64::new(0)),
             holders: 1,
-            lengths: Arc::new(lengths),
+            lengths: Arc::new(boundaries.lengths),
         };
 
         if is_already_complete(&session.directory).await {
@@ -830,6 +831,27 @@ impl SegmentView {
     }
 }
 
+/// Where to seek to for a run that is to begin at a segment.
+///
+/// The middle of it, not its edge. A seek lands on the last keyframe decoded
+/// at or before the time asked for, and a keyframe is decoded before it is
+/// shown, so asking for the boundary itself lands on the one before it and the
+/// run writes every segment one place out. The middle cannot overshoot: the
+/// next keyframe is the segment's far edge.
+///
+/// Nought for the first segment, which is where the film starts and needs no
+/// seek at all.
+#[must_use]
+fn seek_into(lengths: &[f64], index: usize) -> f64 {
+    if index == 0 {
+        return 0.0;
+    }
+
+    let start: f64 = lengths.iter().take(index).sum();
+
+    start + lengths.get(index).copied().unwrap_or(0.0) / 2.0
+}
+
 /// Starts a run at a segment and records that it is the live one.
 ///
 /// The run's own playlist is removed first. It is how far the transcode has
@@ -838,10 +860,7 @@ impl SegmentView {
 async fn begin_run(config: &SessionConfig, session: &mut Session, wanted: u64) {
     let start_at = SegmentStart {
         index: u32::try_from(wanted).unwrap_or(u32::MAX),
-        seconds: crate::keyframes::segment_starts(&session.lengths)
-            .get(index_of(wanted))
-            .copied()
-            .unwrap_or(0.0),
+        seconds: seek_into(&session.lengths, index_of(wanted)),
     };
 
     let _ = tokio::fs::remove_file(session.directory.join(RUN_PLAYLIST_NAME)).await;
@@ -1106,6 +1125,7 @@ async fn supervise(
             device: attempt.device,
             device_filters: DeviceFilters::default(),
             start_at: attempt.start_at,
+            cut_seconds: attempt.cut_seconds,
         };
     }
 }
@@ -1244,6 +1264,23 @@ mod tests {
             resolve_segment(false, Some(run(0, Some(0))), 7, 4),
             SegmentPlan::StartAt(7)
         );
+    }
+
+    /// A run is aimed inside the segment it is to start at, not at its edge.
+    ///
+    /// Measured on the Bluray remux: seeking to 2394.1, where segment 596
+    /// begins, started the run at 2383.673 — the keyframe before it, because
+    /// that is the last one decoded by the time asked for. Seeking to 2394.6
+    /// starts it at 2394.100.
+    #[test]
+    fn seeks_into_a_segment_rather_than_at_it() {
+        assert!((super::seek_into(&[13.055, 10.427, 7.132], 1) - 18.2685).abs() < 1e-9);
+    }
+
+    /// The film's beginning is not somewhere to seek to.
+    #[test]
+    fn does_not_seek_a_run_that_starts_at_the_beginning() {
+        assert!((super::seek_into(&[13.055, 10.427], 0)).abs() < f64::EPSILON);
     }
 
     /// The number in the name is the position in the film, and the head is

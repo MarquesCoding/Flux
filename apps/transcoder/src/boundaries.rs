@@ -12,13 +12,47 @@
 
 use std::path::Path;
 
-use crate::keyframes::{read_keyframes, segment_lengths};
+use serde::{Deserialize, Serialize};
+
+use crate::keyframes::{cut_interval, read_keyframes, segment_lengths};
 use crate::playlist::build_vod_playlist;
 use crate::probe::probe_media;
 use crate::transcode_plan::{SessionSpec, VideoAction, INIT_SEGMENT_NAME, MANIFEST_NAME};
 
 /// The segment boundaries, cached beside the segments they describe.
 pub const LENGTHS_NAME: &str = "lengths.json";
+
+/// Where a plan's segments fall, and what the muxer has to be asked for to
+/// make them fall there.
+///
+/// The two belong together: the lengths are what the playlist declares, and
+/// they are only what ffmpeg produces if it is asked to cut at the interval
+/// worked out beside them.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Boundaries {
+    /// How long each segment of the film is, in order.
+    pub lengths: Vec<f64>,
+    /// What to pass the muxer as its segment length.
+    pub cut_seconds: f64,
+}
+
+impl Boundaries {
+    /// Whether anything could be worked out at all.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.lengths.is_empty()
+    }
+
+    /// Nothing, for a source that could not be read.
+    #[must_use]
+    fn unknown() -> Self {
+        Self {
+            lengths: Vec::new(),
+            cut_seconds: 0.0,
+        }
+    }
+}
 
 /// The segments an encode produces, which are the length that was asked for.
 ///
@@ -48,14 +82,14 @@ pub fn equal_lengths(duration_seconds: f64, segment_seconds: u32) -> Vec<f64> {
 }
 
 /// Reads boundaries a previous play of this plan already worked out.
-async fn cached_lengths(directory: &Path) -> Option<Vec<f64>> {
+async fn cached_boundaries(directory: &Path) -> Option<Boundaries> {
     let payload = tokio::fs::read_to_string(directory.join(LENGTHS_NAME))
         .await
         .ok()?;
 
-    let lengths: Vec<f64> = serde_json::from_str(&payload).ok()?;
+    let found: Boundaries = serde_json::from_str(&payload).ok()?;
 
-    (!lengths.is_empty()).then_some(lengths)
+    (!found.is_empty()).then_some(found)
 }
 
 /// Works out where every segment of a plan begins and ends.
@@ -64,26 +98,39 @@ async fn cached_lengths(directory: &Path) -> Option<Vec<f64>> {
 /// source allows, which is what the keyframes say — and if they cannot be read,
 /// equal lengths are a worse answer than the truth but a better one than
 /// refusing to play the film.
-async fn compute_lengths(ffprobe: &str, spec: &SessionSpec) -> Vec<f64> {
+async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
     let path = Path::new(&spec.input_path);
+    let wanted = f64::from(spec.segment_seconds.max(1));
 
     let Ok(probe) = probe_media(ffprobe, path).await else {
-        return Vec::new();
+        return Boundaries::unknown();
+    };
+
+    let equal = || Boundaries {
+        lengths: equal_lengths(probe.duration_seconds, spec.segment_seconds),
+        cut_seconds: wanted,
     };
 
     if matches!(spec.video, VideoAction::Encode { .. }) {
-        return equal_lengths(probe.duration_seconds, spec.segment_seconds);
+        return equal();
     }
 
     match read_keyframes(ffprobe, path, probe.duration_seconds).await {
-        Ok(keyframes) => segment_lengths(&keyframes, f64::from(spec.segment_seconds.max(1))),
+        Ok(keyframes) => {
+            let cut_seconds = cut_interval(&keyframes, wanted);
+
+            Boundaries {
+                lengths: segment_lengths(&keyframes, cut_seconds),
+                cut_seconds,
+            }
+        }
         Err(failure) => {
             eprintln!(
                 "transcode: could not read the keyframes of {}: {failure}",
                 spec.input_path
             );
 
-            equal_lengths(probe.duration_seconds, spec.segment_seconds)
+            equal()
         }
     }
 }
@@ -97,28 +144,28 @@ async fn compute_lengths(ffprobe: &str, spec: &SessionSpec) -> Vec<f64> {
 /// An empty answer means the source could not be read at all, which the caller
 /// should refuse to start a session over rather than serve a playlist naming
 /// nothing.
-pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSpec) -> Vec<f64> {
-    if let Some(lengths) = cached_lengths(directory).await {
-        return lengths;
+pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSpec) -> Boundaries {
+    if let Some(found) = cached_boundaries(directory).await {
+        return found;
     }
 
-    let lengths = compute_lengths(ffprobe, spec).await;
+    let found = compute_boundaries(ffprobe, spec).await;
 
-    if lengths.is_empty() {
-        return lengths;
+    if found.is_empty() {
+        return found;
     }
 
-    if let Ok(payload) = serde_json::to_string(&lengths) {
+    if let Ok(payload) = serde_json::to_string(&found) {
         let _ = tokio::fs::write(directory.join(LENGTHS_NAME), payload).await;
     }
 
     let _ = tokio::fs::write(
         directory.join(MANIFEST_NAME),
-        build_vod_playlist(&lengths, INIT_SEGMENT_NAME),
+        build_vod_playlist(&found.lengths, INIT_SEGMENT_NAME),
     )
     .await;
 
-    lengths
+    found
 }
 
 #[cfg(test)]

@@ -903,11 +903,19 @@ fn force_key_frames_argument(segment_seconds: u32) -> String {
 pub struct SegmentStart {
     /// The segment's index, which its files are numbered from.
     pub index: u32,
-    /// Where that segment begins, in seconds.
+    /// Where to seek to, which is inside that segment rather than at its edge.
     ///
-    /// Taken from the boundaries the keyframes gave rather than from a time
-    /// somebody asked for: a run must start exactly where a segment does, or
-    /// what it writes is not the segment the playlist promised.
+    /// A seek lands on the last keyframe whose *decode* time is at or before
+    /// the time asked for, and a keyframe is decoded before it is shown — by
+    /// 0.376 seconds on the film this was measured against. Asking for the
+    /// exact boundary therefore lands on the keyframe before it, and a run
+    /// that starts a segment early writes every segment one place out for as
+    /// long as it lasts.
+    ///
+    /// Asking from inside the segment cannot overshoot, because the next
+    /// keyframe is its far edge. Measured: `-ss 2394.1` started at 2383.673
+    /// and `-ss 2394.6` started at 2394.100, exactly where the playlist says
+    /// segment 596 begins.
     pub seconds: f64,
 }
 
@@ -946,6 +954,17 @@ pub struct TranscodePlan {
     ///
     /// Nought for a film played from the beginning, which is the common case.
     pub start_at: SegmentStart,
+    /// What to ask the muxer to cut at, in seconds.
+    ///
+    /// Not the same as the segment length asked for, and deliberately so. The
+    /// muxer can only cut on a keyframe, and its target advances by this much
+    /// per cut whether or not a cut lands where the target was — so on a copied
+    /// stream, asking for less than the closest pair of keyframes is what makes
+    /// every run cut in the same places wherever it started. Where Flux encodes
+    /// it puts the keyframes itself and this is simply the length wanted.
+    ///
+    /// See [`crate::keyframes::cut_interval`].
+    pub cut_seconds: f64,
 }
 
 /// The manifest file every session writes.
@@ -1153,6 +1172,7 @@ impl TranscodePlan {
         if self.start_at.seconds > 0.0 {
             args.push("-ss".into());
             args.push(format!("{:.6}", self.start_at.seconds));
+            args.push("-copyts".into());
         }
 
         args.push("-i".into());
@@ -1174,7 +1194,7 @@ impl TranscodePlan {
         args.push("-f".into());
         args.push("hls".into());
         args.push("-hls_time".into());
-        args.push(self.spec.segment_seconds.to_string());
+        args.push(format!("{:.6}", self.cut_seconds));
         args.push("-hls_playlist_type".into());
         args.push("event".into());
         args.push("-hls_segment_type".into());
@@ -1246,13 +1266,13 @@ mod tests {
             .map(|pair| pair[1].clone())
             .expect("keyframes are forced");
 
-        let segment = args
+        let segment: f64 = args
             .windows(2)
             .find(|pair| pair[0] == "-hls_time")
-            .map(|pair| pair[1].clone())
+            .and_then(|pair| pair[1].parse().ok())
             .expect("a segment length");
 
-        assert_eq!(forced, format!("expr:gte(t,n_forced*{segment})"));
+        assert_eq!(forced, format!("expr:gte(t,n_forced*{})", segment.round()));
     }
 
     #[test]
@@ -1343,6 +1363,42 @@ mod tests {
 
         assert!(args.windows(2).any(|pair| pair == ["-start_number", "300"]));
         assert!(args.windows(2).any(|pair| pair == ["-ss", "2306.400000"]));
+    }
+
+    /// A run that starts part way in still writes the film's own clock.
+    ///
+    /// Without this its fragments are stamped from nought, so a player that
+    /// seeked to forty minutes is handed something claiming to be the opening
+    /// second and has nowhere to put it. Measured on the Bluray remux: the
+    /// first fragment of a run seeking to 2394.1 carried 0.083 without
+    /// `-copyts` and 2394.100 with it.
+    #[test]
+    fn keeps_the_films_own_timestamps_when_a_run_starts_part_way_in() {
+        let mut session = plan(spec());
+        session.start_at = SegmentStart {
+            index: 300,
+            seconds: 2306.4,
+        };
+
+        let args = session.to_ffmpeg_args();
+        let seek = args.iter().position(|argument| argument == "-ss");
+        let copy = args.iter().position(|argument| argument == "-copyts");
+        let input = args.iter().position(|argument| argument == "-i");
+
+        assert!(copy.is_some(), "expected -copyts");
+        assert!(
+            seek < copy && copy < input,
+            "expected -ss -copyts before -i"
+        );
+    }
+
+    /// A run from the beginning has nothing to preserve.
+    #[test]
+    fn does_not_ask_to_copy_timestamps_a_run_starts_with_anyway() {
+        assert!(!plan(spec())
+            .to_ffmpeg_args()
+            .iter()
+            .any(|argument| argument == "-copyts"));
     }
 
     /// A film played from the beginning seeks to nothing.
@@ -1992,6 +2048,7 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             device_filters: SCALER_ONLY,
             device: "/dev/dri/renderD129".into(),
             start_at: SegmentStart::default(),
+            cut_seconds: 4.0,
         };
 
         assert!(plan
@@ -2129,6 +2186,7 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             spec,
             output_directory: "/transcodes/abc".into(),
             start_at: SegmentStart::default(),
+            cut_seconds: 4.0,
         }
     }
 
