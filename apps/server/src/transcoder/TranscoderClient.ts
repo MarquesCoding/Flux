@@ -99,6 +99,7 @@ const CapabilitiesSchema = z.object({
   ),
   hardwareAccels: z.array(z.string()),
   hardwareScalers: z.array(z.string()).default([]),
+  hardwareOverlays: z.array(z.string()).default([]),
   rejected: z
     .array(
       z.object({
