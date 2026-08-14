@@ -30,6 +30,13 @@ const DRAWS_IN_BY_PIXELS = 640;
  * drawing it is under the fold and nothing sees it, and afterwards the library
  * starts at the card's own bottom edge rather than a quarter of a screen
  * beneath it.
+ *
+ * This is why the runway takes no pointer events. The library is pulled up
+ * inside the runway's box, and the runway is positioned while the library is
+ * not — so it paints over the very content it made room for, whatever the
+ * order in the markup. Left as it was, everything in this much of the library
+ * was unclickable, with no cursor and no hover to say why. The card puts the
+ * pointer back for itself, since it has buttons of its own.
  */
 const FOOT_OF_THE_CARD = '24svh';
 
@@ -255,7 +262,7 @@ const Hero = ({
   return (
     <div
       ref={runwayRef}
-      className="relative"
+      className="pointer-events-none relative"
       style={{
         height:
           prefersReducedMotion === true
@@ -289,7 +296,7 @@ const Hero = ({
               : { top: lift, left: inset, right: inset, bottom: foot, borderRadius: corner }
           }
           className={cn(
-            'absolute flex flex-col justify-end overflow-hidden',
+            'pointer-events-auto absolute flex flex-col justify-end overflow-hidden',
             'ring-1 ring-white/10 shadow-[0_40px_80px_-40px_rgba(0,0,0,0.9)]',
           )}
         >

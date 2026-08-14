@@ -245,4 +245,13 @@ describe('Hero', () => {
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
   });
+  it('does not take the pointer for the page it is pulled up over', () => {
+    render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} onInspect={vi.fn()} />);
+
+    const card = screen.getByLabelText('Featured');
+    const runway = card.parentElement?.parentElement;
+
+    expect(runway).toHaveClass('pointer-events-none');
+    expect(card).toHaveClass('pointer-events-auto');
+  });
 });
