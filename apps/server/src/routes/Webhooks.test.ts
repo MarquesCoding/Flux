@@ -11,12 +11,14 @@ import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemor
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
 import { createMemoryWebhookStore } from '@FluxServer/webhooks/createMemoryWebhookStore';
-import { WebhookSubscriptionSchema } from '@FluxContracts/schemas/Webhook';
+import { WebhookDeliverySchema, WebhookSubscriptionSchema } from '@FluxContracts/schemas/Webhook';
 import type { Permission } from '@FluxContracts/schemas/Permission';
 
 const WebhookListSchema = z.object({ webhooks: z.array(WebhookSubscriptionSchema) });
 
 const CreatedWebhookSchema = WebhookSubscriptionSchema.extend({ secret: z.string() });
+
+const DeliveryListSchema = z.object({ deliveries: z.array(WebhookDeliverySchema) });
 
 const aSubscription = {
   name: 'Discord',
@@ -78,7 +80,7 @@ const signedInWith = async (granted: readonly Permission[]) => {
   const create = async (body: object = aSubscription) =>
     CreatedWebhookSchema.parse(await (await request('/api/webhooks', 'POST', body)).json());
 
-  return { app, request, create, queueWebhookDelivery };
+  return { app, request, create, queueWebhookDelivery, webhooks };
 };
 
 const asKeeper = () => signedInWith(['server.webhooks']);
@@ -199,6 +201,108 @@ describe('the webhook routes', () => {
     const { request } = await signedInWith(['administrator']);
 
     expect((await request('/api/webhooks')).status).toBe(200);
+  });
+
+  it('has an empty history for a subscription nothing has been sent to', async () => {
+    const { request, create } = await asKeeper();
+    const made = await create();
+
+    const read = DeliveryListSchema.parse(
+      await (await request(`/api/webhooks/${made.id}/deliveries`)).json(),
+    );
+
+    expect(read.deliveries).toStrictEqual([]);
+  });
+
+  it('tells an empty history apart from a subscription that is not there', async () => {
+    const { request } = await asKeeper();
+
+    const response = await request('/api/webhooks/3f2504e0-4f89-41d3-9a0c-0305e82c3301/deliveries');
+
+    expect(response.status).toBe(404);
+  });
+
+  it('shows what was sent, and how many tries it took', async () => {
+    const { request, create, webhooks } = await asKeeper();
+    const made = await create();
+
+    await webhooks.recordDelivery(
+      {
+        subscriptionId: made.id,
+        eventId: 'event-1',
+        event: 'job.failed',
+        body: '{"id":"event-1"}',
+      },
+      { ok: false, status: 503, error: 'The receiver answered 503.' },
+    );
+
+    const read = DeliveryListSchema.parse(
+      await (await request(`/api/webhooks/${made.id}/deliveries`)).json(),
+    );
+
+    expect(read.deliveries[0]).toMatchObject({ event: 'job.failed', attempts: 1, status: 503 });
+  });
+
+  it('does not answer the body it kept for resending', async () => {
+    const { request, create, webhooks } = await asKeeper();
+    const made = await create();
+
+    await webhooks.recordDelivery(
+      {
+        subscriptionId: made.id,
+        eventId: 'event-1',
+        event: 'job.failed',
+        body: '{"secretish":"do not answer this"}',
+      },
+      { ok: true, status: 200, error: null },
+    );
+
+    const body = await (await request(`/api/webhooks/${made.id}/deliveries`)).text();
+
+    expect(body).not.toContain('do not answer this');
+  });
+
+  it('sends a delivery again, with the bytes it kept', async () => {
+    const { request, create, webhooks, queueWebhookDelivery } = await asKeeper();
+    const made = await create();
+
+    await webhooks.recordDelivery(
+      { subscriptionId: made.id, eventId: 'event-1', event: 'job.failed', body: '{"id":"one"}' },
+      { ok: false, status: 503, error: 'The receiver answered 503.' },
+    );
+
+    const [filed] = await webhooks.listDeliveries(made.id, 10);
+
+    const response = await request(
+      `/api/webhooks/${made.id}/deliveries/${filed?.id ?? ''}/redeliver`,
+      'POST',
+    );
+
+    expect(response.status).toBe(202);
+    expect(queueWebhookDelivery).toHaveBeenCalledWith(made.id, '{"id":"one"}');
+  });
+
+  it('has nothing to send again for a delivery that never happened', async () => {
+    const { request, create, queueWebhookDelivery } = await asKeeper();
+    const made = await create();
+
+    const response = await request(
+      `/api/webhooks/${made.id}/deliveries/3f2504e0-4f89-41d3-9a0c-0305e82c3399/redeliver`,
+      'POST',
+    );
+
+    expect(response.status).toBe(404);
+    expect(queueWebhookDelivery).not.toHaveBeenCalled();
+  });
+
+  it('keeps the history behind the same permission as the rest', async () => {
+    const { request } = await signedInWith(['server.settings']);
+    const anyId = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+    expect((await request(`/api/webhooks/${anyId}/deliveries`)).status).toBe(403);
+    expect(
+      (await request(`/api/webhooks/${anyId}/deliveries/${anyId}/redeliver`, 'POST')).status,
+    ).toBe(403);
   });
 
   it('refuses somebody who is not signed in', async () => {

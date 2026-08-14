@@ -28,6 +28,11 @@ const draw = (overrides: Partial<Parameters<typeof WebhooksPanel>[0]> = {}) => {
     onSetEnabled: vi.fn(),
     onDelete: vi.fn(),
     onTest: vi.fn(),
+    deliveries: [],
+    openHistoryId: null,
+    isHistoryLoading: false,
+    onOpenHistory: vi.fn(),
+    onRedeliver: vi.fn(),
     ...overrides,
   };
 
@@ -113,6 +118,37 @@ describe('WebhooksPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Delete', hidden: false }));
 
     expect(onDelete).toHaveBeenCalledWith(aWebhook().id);
+  });
+
+  it('opens the history for the subscription that was asked about', async () => {
+    const user = userEvent.setup();
+    const { onOpenHistory } = draw({ webhooks: [aWebhook()] });
+
+    await user.click(screen.getByRole('button', { name: 'History' }));
+
+    expect(onOpenHistory).toHaveBeenCalledWith(aWebhook().id);
+  });
+
+  it('closes an open history rather than opening it twice', async () => {
+    const user = userEvent.setup();
+    const { onOpenHistory } = draw({
+      webhooks: [aWebhook()],
+      openHistoryId: aWebhook().id,
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Hide history' }));
+
+    expect(onOpenHistory).toHaveBeenCalledWith(null);
+  });
+
+  it('shows the history only for the subscription it belongs to', () => {
+    draw({
+      webhooks: [aWebhook(), aWebhook({ id: 'other', name: 'ntfy' })],
+      openHistoryId: aWebhook().id,
+      deliveries: [],
+    });
+
+    expect(screen.getAllByText('Nothing has been sent to this yet.')).toHaveLength(1);
   });
 
   it('shows a new secret once, and says it will not be shown again', () => {

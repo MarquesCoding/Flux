@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createWebhook,
   deleteWebhook,
+  fetchWebhookDeliveries,
   fetchWebhooks,
+  redeliverWebhook,
   setWebhookEnabled,
   testWebhook,
 } from './fetchWebhooks';
@@ -117,6 +119,56 @@ describe('deleteWebhook', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
 
     expect(await deleteWebhook(aSubscription.id)).toBeNull();
+  });
+});
+
+describe('fetchWebhookDeliveries', () => {
+  it('reads what was sent', async () => {
+    vi.stubGlobal(
+      'fetch',
+      answering({
+        deliveries: [
+          {
+            id: '3f2504e0-4f89-41d3-9a0c-0305e82c3303',
+            subscriptionId: aSubscription.id,
+            event: 'job.failed',
+            attempts: 2,
+            firstAttemptAt: '2026-08-14T20:00:00.000Z',
+            lastAttemptAt: '2026-08-14T20:01:00.000Z',
+            ok: true,
+            status: 200,
+            error: null,
+          },
+        ],
+      }),
+    );
+
+    const read = await fetchWebhookDeliveries(aSubscription.id);
+
+    expect(read).toHaveLength(1);
+    expect(read[0]?.attempts).toBe(2);
+  });
+
+  it('shows nothing rather than breaking when the history cannot be read', async () => {
+    vi.stubGlobal('fetch', answering({ error: 'No such subscription.' }, 404));
+
+    expect(await fetchWebhookDeliveries(aSubscription.id)).toStrictEqual([]);
+  });
+});
+
+describe('redeliverWebhook', () => {
+  it('reports nothing wrong once the redelivery is queued', async () => {
+    vi.stubGlobal('fetch', answering({ queued: true }, 202));
+
+    expect(await redeliverWebhook(aSubscription.id, 'delivery-1')).toBeNull();
+  });
+
+  it('carries back a refusal for a delivery that is no longer there', async () => {
+    vi.stubGlobal('fetch', answering({ error: 'No such delivery.' }, 404));
+
+    expect((await redeliverWebhook(aSubscription.id, 'delivery-1'))?.message).toContain(
+      'No such delivery',
+    );
   });
 });
 

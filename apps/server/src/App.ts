@@ -154,10 +154,14 @@ import {
   updateWebhookRoute,
   deleteWebhookRoute,
   testWebhookRoute,
+  listWebhookDeliveriesRoute,
+  redeliverWebhookRoute,
+  DELIVERY_PAGE,
 } from '@FluxServer/routes/WebhookRoute';
 import { createMemoryWebhookStore } from '@FluxServer/webhooks/createMemoryWebhookStore';
 import { isSafeWebhookUrl } from '@FluxServer/webhooks/isSafeWebhookUrl';
 import { queueWebhookTest } from '@FluxServer/webhooks/queueWebhookTest';
+import { queueWebhookRedelivery } from '@FluxServer/webhooks/queueWebhookRedelivery';
 import { narrowToKey } from '@FluxServer/auth/narrowToKey';
 import { watchedBetween } from '@FluxServer/progress/accumulateWatchTime';
 import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
@@ -1233,6 +1237,59 @@ const createApp = ({
     return queued
       ? context.json({ queued }, 202)
       : context.json({ error: 'No such subscription, or it is turned off.' }, 404);
+  });
+
+  app.openapi(listWebhookDeliveriesRoute, async (context) => {
+    const keeper = await readWebhookKeeper(context.req.raw.headers);
+
+    if (keeper !== 'allowed') {
+      const refusal = refuseWebhookKeeper(keeper);
+
+      return context.json({ error: refusal.error }, refusal.status);
+    }
+
+    const { id } = context.req.valid('param');
+
+    /**
+     * Whether there is a subscription to have a history at all.
+     *
+     * Asked separately because an empty history and a subscription that does
+     * not exist are different answers, and a listing that returned `[]` for
+     * both would say a deleted webhook was simply quiet.
+     */
+    const exists = (await webhooks.list()).some((webhook) => webhook.id === id);
+
+    if (!exists) {
+      return context.json({ error: 'No such subscription.' }, 404);
+    }
+
+    return context.json({ deliveries: await webhooks.listDeliveries(id, DELIVERY_PAGE) }, 200);
+  });
+
+  app.openapi(redeliverWebhookRoute, async (context) => {
+    const keeper = await readWebhookKeeper(context.req.raw.headers);
+
+    if (keeper !== 'allowed') {
+      const refusal = refuseWebhookKeeper(keeper);
+
+      return context.json({ error: refusal.error }, refusal.status);
+    }
+
+    const { id, deliveryId } = context.req.valid('param');
+
+    const queued = await queueWebhookRedelivery({
+      subscriptions: webhooks,
+      subscriptionId: id,
+      deliveryId,
+      enqueue: queueWebhookDelivery,
+    });
+
+    return queued
+      ? context.json({ queued }, 202)
+      : context.json(
+          { error: 'No such delivery, or the subscription is gone or turned off.' },
+          404,
+        );
   });
 
   app.openapi(listProfilesRoute, async (context) => {

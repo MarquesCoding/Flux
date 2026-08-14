@@ -8,6 +8,7 @@ import { Switch } from '@FluxUI/Switch';
 import { WEBHOOK_EVENT_LABELS } from '@FluxContracts/schemas/Webhook';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import { AddWebhookDialog } from './components/AddWebhookDialog/AddWebhookDialog';
+import { DeliveryHistory } from './components/DeliveryHistory/DeliveryHistory';
 import type { WebhookSubscription } from '@FluxContracts/schemas/Webhook';
 import type { WebhooksPanelProps } from './WebhooksPanel.types';
 
@@ -46,6 +47,11 @@ const WebhooksPanel = ({
   onSetEnabled,
   onDelete,
   onTest,
+  deliveries,
+  openHistoryId,
+  isHistoryLoading,
+  onOpenHistory,
+  onRedeliver,
 }: WebhooksPanelProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [deleting, setDeleting] = useState<WebhookSubscription | null>(null);
@@ -172,6 +178,18 @@ const WebhooksPanel = ({
                     </Button>
 
                     <Button
+                      variant="secondary"
+                      isPill
+                      size="sm"
+                      aria-expanded={openHistoryId === webhook.id}
+                      onClick={() => {
+                        onOpenHistory(openHistoryId === webhook.id ? null : webhook.id);
+                      }}
+                    >
+                      {openHistoryId === webhook.id ? 'Hide history' : 'History'}
+                    </Button>
+
+                    <Button
                       variant="danger"
                       isPill
                       size="sm"
@@ -182,6 +200,17 @@ const WebhooksPanel = ({
                       Delete
                     </Button>
                   </div>
+
+                  {openHistoryId === webhook.id ? (
+                    <DeliveryHistory
+                      deliveries={deliveries}
+                      isLoading={isHistoryLoading}
+                      canRedeliver={webhook.enabled}
+                      onRedeliver={(deliveryId) => {
+                        onRedeliver(webhook.id, deliveryId);
+                      }}
+                    />
+                  ) : null}
                 </li>
               );
             })}

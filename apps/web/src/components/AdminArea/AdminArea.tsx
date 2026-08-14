@@ -18,7 +18,9 @@ import { WebhooksPanel } from './components/WebhooksPanel/WebhooksPanel';
 import {
   createWebhook,
   deleteWebhook,
+  fetchWebhookDeliveries,
   fetchWebhooks,
+  redeliverWebhook,
   setWebhookEnabled,
   testWebhook,
 } from '@FluxWeb/admin/fetchWebhooks';
@@ -72,7 +74,7 @@ import type {
   Monitor,
   ScheduleTrigger,
 } from '@FluxWeb/admin/fetchAdmin';
-import type { WebhookSubscription } from '@FluxContracts/schemas/Webhook';
+import type { WebhookDelivery, WebhookSubscription } from '@FluxContracts/schemas/Webhook';
 import type { CreatedWebhook } from '@FluxWeb/admin/fetchWebhooks';
 import type { AdminAreaProps } from './AdminArea.types';
 
@@ -198,6 +200,9 @@ const AdminArea = ({
    * second chance to read it.
    */
   const [createdWebhook, setCreatedWebhook] = useState<CreatedWebhook | null>(null);
+  const [openHistoryId, setOpenHistoryId] = useState<string | null>(null);
+  const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [sessions, setSessions] = useState<ActiveSession[]>([]);
   const [busyClientId, setBusyClientId] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -429,6 +434,33 @@ const AdminArea = ({
       void reloadWebhooks();
     }
   }, [panel, reloadWebhooks]);
+
+  /**
+   * Reads the open subscription's history, and nobody else's.
+   *
+   * Per subscription rather than with the listing, because a server with
+   * twenty subscriptions should not read twenty histories to draw a page on
+   * which nineteen of them are closed.
+   */
+  const reloadDeliveries = useCallback(async (id: string) => {
+    setIsHistoryLoading(true);
+
+    try {
+      setDeliveries(await fetchWebhookDeliveries(id));
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (openHistoryId === null) {
+      setDeliveries([]);
+
+      return;
+    }
+
+    void reloadDeliveries(openHistoryId);
+  }, [openHistoryId, reloadDeliveries]);
 
   useEffect(() => watchActiveSessions(setSessions), []);
 
@@ -842,6 +874,15 @@ const AdminArea = ({
                 }}
                 onTest={(id) => {
                   void testWebhook(id);
+                }}
+                deliveries={deliveries}
+                openHistoryId={openHistoryId}
+                isHistoryLoading={isHistoryLoading}
+                onOpenHistory={setOpenHistoryId}
+                onRedeliver={(subscriptionId, deliveryId) => {
+                  void redeliverWebhook(subscriptionId, deliveryId).then(() =>
+                    reloadDeliveries(subscriptionId),
+                  );
                 }}
               />
             </TabPanel>

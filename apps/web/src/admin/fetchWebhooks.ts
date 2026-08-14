@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { WebhookSubscriptionSchema } from '@FluxContracts/schemas/Webhook';
+import { WebhookDeliverySchema, WebhookSubscriptionSchema } from '@FluxContracts/schemas/Webhook';
 import type {
+  WebhookDelivery,
   WebhookEvent,
   WebhookPreset,
   WebhookSubscription,
@@ -130,6 +131,51 @@ const testWebhook = async (id: string): Promise<Refusal> => {
     : readRefusal(response);
 };
 
-export { createWebhook, deleteWebhook, fetchWebhooks, setWebhookEnabled, testWebhook };
+/**
+ * What has been sent to one subscriber lately, newest first.
+ *
+ * Answers nothing rather than failing where the subscription has gone: a
+ * history that cannot be read is not worth breaking the page over, and the
+ * listing beside it already says whether the subscription is there.
+ */
+const fetchWebhookDeliveries = async (id: string): Promise<WebhookDelivery[]> => {
+  const response = await fetch(`/api/webhooks/${id}/deliveries`, {
+    credentials: 'same-origin',
+  }).catch(() => null);
+
+  if (response === null || !response.ok) {
+    return [];
+  }
+
+  return z.object({ deliveries: z.array(WebhookDeliverySchema) }).parse(await response.json())
+    .deliveries;
+};
+
+/**
+ * Asks for a delivery to be sent again.
+ *
+ * Answers as soon as it is queued. The result appears on the delivery it
+ * belongs to, as another attempt at it, rather than as a new row.
+ */
+const redeliverWebhook = async (id: string, deliveryId: string): Promise<Refusal> => {
+  const response = await fetch(`/api/webhooks/${id}/deliveries/${deliveryId}/redeliver`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  }).catch(() => null);
+
+  return response === null
+    ? { message: 'The server could not be reached.' }
+    : readRefusal(response);
+};
+
+export {
+  createWebhook,
+  deleteWebhook,
+  fetchWebhookDeliveries,
+  fetchWebhooks,
+  redeliverWebhook,
+  setWebhookEnabled,
+  testWebhook,
+};
 
 export type { CreatedWebhook, NewWebhook, Refusal };
