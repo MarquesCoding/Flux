@@ -14,6 +14,16 @@ import { MediaPanel } from './components/MediaPanel/MediaPanel';
 import { MatchPicker } from './components/MatchPicker/MatchPicker';
 import { OverviewPanel } from './components/OverviewPanel/OverviewPanel';
 import { RolesPanel } from './components/RolesPanel/RolesPanel';
+import { WebhooksPanel } from './components/WebhooksPanel/WebhooksPanel';
+import {
+  createWebhook,
+  deleteWebhook,
+  fetchWebhookDeliveries,
+  fetchWebhooks,
+  redeliverWebhook,
+  setWebhookEnabled,
+  testWebhook,
+} from '@FluxWeb/admin/fetchWebhooks';
 import { AccountsPanel } from './components/AccountsPanel/AccountsPanel';
 import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
@@ -64,6 +74,8 @@ import type {
   Monitor,
   ScheduleTrigger,
 } from '@FluxWeb/admin/fetchAdmin';
+import type { WebhookDelivery, WebhookSubscription } from '@FluxContracts/schemas/Webhook';
+import type { CreatedWebhook } from '@FluxWeb/admin/fetchWebhooks';
 import type { AdminAreaProps } from './AdminArea.types';
 
 /**
@@ -101,7 +113,13 @@ const SECTIONS = [
       { id: 'roles', label: 'Roles' },
     ],
   },
-  { label: 'System', items: [{ id: 'settings', label: 'Settings' }] },
+  {
+    label: 'System',
+    items: [
+      { id: 'settings', label: 'Settings' },
+      { id: 'webhooks', label: 'Webhooks' },
+    ],
+  },
 ] as const;
 
 type PanelId = (typeof SECTIONS)[number]['items'][number]['id'];
@@ -172,6 +190,19 @@ const AdminArea = ({
     isScanningAll,
     isResettingAll,
   } = useSyncExternalStore(subscribeToScans, getScanSnapshot);
+  const [webhooks, setWebhooks] = useState<WebhookSubscription[]>([]);
+  /**
+   * The subscription just made, still showing its secret.
+   *
+   * Held here rather than in the panel because it has to survive the reload
+   * of the listing that follows a creation. A secret that vanished when the
+   * list refreshed would be a secret nobody could write down, and there is no
+   * second chance to read it.
+   */
+  const [createdWebhook, setCreatedWebhook] = useState<CreatedWebhook | null>(null);
+  const [openHistoryId, setOpenHistoryId] = useState<string | null>(null);
+  const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [sessions, setSessions] = useState<ActiveSession[]>([]);
   const [busyClientId, setBusyClientId] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -393,6 +424,43 @@ const AdminArea = ({
     void loadAll();
     void resumeRunning();
   }, [loadAll]);
+
+  const reloadWebhooks = useCallback(async () => {
+    setWebhooks(await fetchWebhooks());
+  }, []);
+
+  useEffect(() => {
+    if (panel === 'webhooks') {
+      void reloadWebhooks();
+    }
+  }, [panel, reloadWebhooks]);
+
+  /**
+   * Reads the open subscription's history, and nobody else's.
+   *
+   * Per subscription rather than with the listing, because a server with
+   * twenty subscriptions should not read twenty histories to draw a page on
+   * which nineteen of them are closed.
+   */
+  const reloadDeliveries = useCallback(async (id: string) => {
+    setIsHistoryLoading(true);
+
+    try {
+      setDeliveries(await fetchWebhookDeliveries(id));
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (openHistoryId === null) {
+      setDeliveries([]);
+
+      return;
+    }
+
+    void reloadDeliveries(openHistoryId);
+  }, [openHistoryId, reloadDeliveries]);
 
   useEffect(() => watchActiveSessions(setSessions), []);
 
@@ -768,6 +836,53 @@ const AdminArea = ({
                 }}
                 onHardwareAccelSaved={() => {
                   void fetchAdminOverview().then(setOverview);
+                }}
+              />
+            </TabPanel>
+
+            <TabPanel
+              value="webhooks"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <WebhooksPanel
+                webhooks={webhooks}
+                created={createdWebhook}
+                onCreate={async (webhook) => {
+                  const { created, refusal } = await createWebhook(webhook);
+
+                  if (refusal === null) {
+                    setCreatedWebhook(created);
+                    await reloadWebhooks();
+                  }
+
+                  return refusal;
+                }}
+                onDismissCreated={() => {
+                  setCreatedWebhook(null);
+                }}
+                onSetEnabled={(id, enabled) => {
+                  void setWebhookEnabled(id, enabled).then(reloadWebhooks);
+                }}
+                onDelete={(id) => {
+                  void deleteWebhook(id).then(reloadWebhooks);
+                }}
+                onTest={(id) => {
+                  void testWebhook(id);
+                }}
+                deliveries={deliveries}
+                openHistoryId={openHistoryId}
+                isHistoryLoading={isHistoryLoading}
+                onOpenHistory={setOpenHistoryId}
+                onRedeliver={(subscriptionId, deliveryId) => {
+                  void redeliverWebhook(subscriptionId, deliveryId).then(() =>
+                    reloadDeliveries(subscriptionId),
+                  );
                 }}
               />
             </TabPanel>

@@ -125,6 +125,7 @@ describe('DEFAULT_ROLES', () => {
       'account.profiles',
       'server.settings',
       'server.backup',
+      'server.webhooks',
     ]);
   });
 });
