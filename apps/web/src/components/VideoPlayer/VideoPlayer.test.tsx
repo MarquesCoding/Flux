@@ -160,6 +160,22 @@ const seekableTo = (element: HTMLElement, seconds: number) => {
   Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 0 });
 };
 
+/**
+ * Puts the element part way through the film and says so.
+ *
+ * A jump is measured from where the film has got to, and jsdom never gets
+ * anywhere on its own, so the position has to be both set and announced.
+ */
+const playingAt = (element: HTMLElement, seconds: number) => {
+  Object.defineProperty(element, 'currentTime', {
+    configurable: true,
+    writable: true,
+    value: seconds,
+  });
+
+  fireEvent.timeUpdate(element);
+};
+
 const startedSession: {
   sessionId: string;
   delivery: { kind: 'hls'; manifestUrl: string } | { kind: 'direct'; url: string };
@@ -1225,6 +1241,66 @@ describe('VideoPlayer', () => {
     expect(at).toBeGreaterThan(10);
     expect(at).toBeLessThan(10.5);
     expect(startMock).toHaveBeenCalledOnce();
+  });
+
+  it('jumps from where the film has got to, not from where the session opened', async () => {
+    const actor = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 3000);
+    playingAt(element, 600);
+
+    await actor.keyboard('l');
+
+    expect(element).toHaveProperty('currentTime', 630);
+  });
+
+  it('jumps backwards from where the film has got to', async () => {
+    const actor = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 3000);
+    playingAt(element, 600);
+
+    await actor.keyboard('j');
+
+    expect(element).toHaveProperty('currentTime', 570);
+  });
+
+  it('holds a jump back past the beginning at the beginning', async () => {
+    const actor = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 3000);
+    playingAt(element, 10);
+
+    await actor.keyboard('j');
+
+    expect(element).toHaveProperty('currentTime', 0);
+  });
+
+  it('holds a jump past the end at the end', async () => {
+    const actor = userEvent.setup();
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    await settled();
+
+    const element = await screen.findByLabelText('Arrival');
+    seekableTo(element, 7200);
+    playingAt(element, 7190);
+
+    await actor.keyboard('l');
+
+    expect(element).toHaveProperty('currentTime', 7200);
   });
 
   it('pauses to step, since a frame examined while running has gone by', async () => {

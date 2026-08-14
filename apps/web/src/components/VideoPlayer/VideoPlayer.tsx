@@ -1091,6 +1091,10 @@ const VideoPlayer = ({
     [seek, position, duration],
   );
 
+  const skipRef = useRef(skip);
+
+  skipRef.current = skip;
+
   const toggleFullscreen = useCallback(() => {
     const stage = stageRef.current;
 
@@ -1212,10 +1216,10 @@ const VideoPlayer = ({
           stepFrame(1);
         },
         j: () => {
-          skip(-JUMP_SECONDS);
+          skipRef.current(-JUMP_SECONDS);
         },
         l: () => {
-          skip(JUMP_SECONDS);
+          skipRef.current(JUMP_SECONDS);
         },
         f: toggleFullscreen,
         m: () => {
