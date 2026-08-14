@@ -39,6 +39,7 @@ import { createEmbeddedSubtitleService } from '@FluxServer/subtitles/createEmbed
 import { createLayeredSubtitleService } from '@FluxServer/subtitles/createLayeredSubtitleService';
 import { createPlaybackService } from '@FluxServer/playback/createPlaybackService';
 import { createJobQueue } from '@FluxServer/jobs/createJobQueue';
+import type { FinishedJob } from '@FluxServer/jobs/createJobQueue';
 import {
   SCAN_LIBRARY_JOB,
   READ_AGAIN_JOB,
@@ -57,8 +58,13 @@ import {
   CLEANUP_SESSIONS_JOB,
   PRUNE_HISTORY_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
+  DELIVER_WEBHOOK_JOB,
+  DeliverWebhookJobSchema,
   scheduleTriggerKind,
 } from '@FluxServer/jobs/JobQueue';
+import { createDatabaseWebhookStore } from '@FluxServer/webhooks/createDatabaseWebhookStore';
+import { runWebhookDelivery } from '@FluxServer/webhooks/runWebhookDelivery';
+import { createWebhookEventBus } from '@FluxServer/events/createWebhookEventBus';
 import { createDatabaseMaintenanceService } from '@FluxServer/maintenance/createDatabaseMaintenanceService';
 import { cleanupImageCache } from '@FluxServer/maintenance/cleanupImageCache';
 import { sweepArtefactCache } from '@FluxServer/maintenance/sweepArtefactCache';
@@ -277,6 +283,32 @@ const scheduleAcrossLibraries =
 
 const libraryWork = createWorkLock();
 
+const webhookSubscriptions = createDatabaseWebhookStore(db);
+
+/**
+ * Announces a job that ended, except the one that does the announcing.
+ *
+ * A delivery that fails is itself a job that failed, and announcing it would
+ * queue another delivery, which would fail, which would announce it. The
+ * exclusion is what stops one unreachable receiver turning into a queue that
+ * never empties.
+ *
+ * The publish is deliberately not awaited. Nothing about a job that has
+ * already finished depends on whether anybody was told about it, and the bus
+ * swallows its own failures.
+ */
+const announceFinishedJob = ({ kind, jobId, subject, reason }: FinishedJob): void => {
+  if (kind === DELIVER_WEBHOOK_JOB) {
+    return;
+  }
+
+  void events.publish(
+    reason === null
+      ? { event: 'job.completed', data: { kind, jobId, subject } }
+      : { event: 'job.failed', data: { kind, jobId, subject, reason } },
+  );
+};
+
 const jobs = await createJobQueue({
   connectionString: env.DATABASE_URL,
   handlers: {
@@ -493,6 +525,29 @@ const jobs = await createJobQueue({
 
       jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
       process.stdout.write(`catalogue connectivity: ${reachable ? 'reachable' : 'unreachable'}\n`);
+
+      if (!reachable) {
+        await events.publish({ event: 'catalogue.unreachable', data: {} });
+      }
+    },
+    [DELIVER_WEBHOOK_JOB]: async (_jobId, payload) => {
+      const parsed = DeliverWebhookJobSchema.safeParse(payload);
+
+      if (!parsed.success) {
+        process.stderr.write('job queue: a delivery job carried data Flux could not read.\n');
+
+        return;
+      }
+
+      const delivered = await runWebhookDelivery({
+        subscriptions: webhookSubscriptions,
+        subscriptionId: parsed.data.subscriptionId,
+        payload: parsed.data.payload,
+      });
+
+      if (!delivered) {
+        throw new Error(`The delivery to ${parsed.data.subscriptionId} did not land.`);
+      }
     },
     [scheduleTriggerKind(SCAN_LIBRARY_JOB)]: scheduleAcrossLibraries((id) =>
       libraryService.scan(id, false),
@@ -512,6 +567,17 @@ const jobs = await createJobQueue({
   },
   onProblem: (message) => {
     process.stderr.write(`job queue: ${message}\n`);
+  },
+  onFinished: announceFinishedJob,
+});
+
+const events = createWebhookEventBus({
+  subscriptions: webhookSubscriptions,
+  enqueue: async (subscriptionId, payload) => {
+    await jobs.enqueue(DELIVER_WEBHOOK_JOB, { subscriptionId, payload });
+  },
+  onProblem: (reason) => {
+    process.stderr.write(`events: ${reason}\n`);
   },
 });
 

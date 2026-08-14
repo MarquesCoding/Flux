@@ -146,6 +146,35 @@ const CLEANUP_SESSIONS_JOB = 'server.cleanupSessions';
 const CHECK_CATALOGUE_CONNECTIVITY_JOB = 'server.checkCatalogueConnectivity';
 
 /**
+ * Sends one event to one subscriber.
+ *
+ * A job rather than a call made where the event was raised, which is the
+ * whole reason the event bus does not deliver: this can be retried with
+ * backoff, it can fail without taking down the scan that caused it, and it
+ * is visible in the Work tab like everything else.
+ *
+ * One job per subscriber rather than one per event, so a receiver that is
+ * down does not hold up delivery to a receiver that is not.
+ *
+ * The queue's retry settings are right for this as they stand — two attempts
+ * with backoff, then it gives up. The two-hour expiry sized for scans never
+ * comes into it, because a delivery abandons its request after ten seconds
+ * long before the queue would wonder whether the job is still alive.
+ */
+const DELIVER_WEBHOOK_JOB = 'webhook.deliver';
+
+/**
+ * Which subscriber, and the envelope as a string exactly as it will be
+ * signed.
+ */
+const DeliverWebhookJobSchema = z.object({
+  subscriptionId: z.string().uuid(),
+  payload: z.string().min(1),
+});
+
+type DeliverWebhookJob = z.infer<typeof DeliverWebhookJobSchema>;
+
+/**
  * The queue a schedule for a library-scoped kind actually fires on.
  *
  * A schedule cannot target `library.scan` itself — pg-boss sends the same
@@ -269,6 +298,7 @@ type JobQueue = {
 };
 
 export type {
+  DeliverWebhookJob,
   DetectSegmentsJob,
   JobProgress,
   JobQueue,
@@ -301,6 +331,8 @@ export {
   CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
+  DELIVER_WEBHOOK_JOB,
+  DeliverWebhookJobSchema,
   scheduleTriggerKind,
   JobStateSchema,
 };
