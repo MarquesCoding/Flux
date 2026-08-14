@@ -1,5 +1,6 @@
 import type { MoodLight } from '@FluxUI/MoodBackground.types';
 import type { ReactNode } from 'react';
+import type { LibraryKind } from '@FluxContracts/schemas/Library';
 
 /**
  * The places the bar can take a viewer.
@@ -48,8 +49,19 @@ type AppShellProps = {
    *
    * Left out where there is nothing to choose from, and the control is not
    * drawn at all rather than drawn and refusing.
+   *
+   * Called with nothing to mean anything on the server, or with a kind for
+   * somebody who has already decided they want a film.
    */
-  onSurprise?: () => void;
+  onSurprise?: (only?: LibraryKind) => void;
+  /**
+   * The kinds of library this server holds.
+   *
+   * What the dice offer to narrow to, so a server with no music does not
+   * offer to pick some. One kind offers no choice worth making, and the dice
+   * stay a plain button.
+   */
+  surpriseKinds?: LibraryKind[];
 };
 
 export type { AppShellProps, ShellSection };

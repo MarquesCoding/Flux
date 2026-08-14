@@ -86,6 +86,47 @@ describe('AppShell', () => {
     expect(screen.queryByRole('button', { name: /sidebar/i })).not.toBeInTheDocument();
   });
 
+  it('keeps the dice a plain press where there is only one kind to choose from', async () => {
+    const user = userEvent.setup();
+    const onSurprise = vi.fn();
+
+    draw({ onSurprise, surpriseKinds: ['movies'] });
+
+    await user.click(screen.getByRole('button', { name: 'Randomiser' }));
+
+    expect(onSurprise).toHaveBeenCalledWith();
+  });
+
+  it('offers a choice of kind once the server holds more than one', async () => {
+    const user = userEvent.setup();
+    const onSurprise = vi.fn();
+
+    draw({ onSurprise, surpriseKinds: ['movies', 'shows'] });
+
+    await user.click(screen.getByRole('button', { name: 'Choose something at random' }));
+
+    expect(await screen.findByRole('menuitem', { name: 'Anything' })).toBeInTheDocument();
+    expect(await screen.findByRole('menuitem', { name: 'A programme' })).toBeInTheDocument();
+
+    await user.click(await screen.findByRole('menuitem', { name: 'A film' }));
+
+    expect(onSurprise).toHaveBeenCalledWith('movies');
+  });
+
+  it('names only the kinds the server actually holds', async () => {
+    const user = userEvent.setup();
+
+    draw({ onSurprise: vi.fn(), surpriseKinds: ['movies', 'shows'] });
+
+    await user.click(screen.getByRole('button', { name: 'Choose something at random' }));
+
+    await screen.findByRole('menuitem', { name: 'Anything' });
+
+    expect(
+      screen.queryByRole('menuitem', { name: 'Something to listen to' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(AppShell.displayName).toBe('AppShell');
   });
