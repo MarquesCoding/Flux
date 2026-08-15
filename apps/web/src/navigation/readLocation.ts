@@ -60,6 +60,14 @@ type Place = {
    */
   genre: string | null;
   /**
+   * The library being browsed, if one has been chosen.
+   *
+   * In the address for the same reason a genre is: a library is a place
+   * somebody can be sent to, and a reload that lands back on whichever
+   * library happens to be first is a reload that loses where they were.
+   */
+  library: string | null;
+  /**
    * Which panel of the admin page is open, when the section is admin.
    *
    * Kept in the address for the same reason everything else here is: a
@@ -84,6 +92,7 @@ const HOME: Place = {
   playing: null,
   startSeconds: 0,
   genre: null,
+  library: null,
   adminPanel: null,
   adminJob: null,
 };
@@ -117,6 +126,7 @@ const readLocation = (url: string): Place => {
     playing: watching,
     startSeconds: Number.isFinite(started) && started > 0 ? started : 0,
     genre: query.get('genre'),
+    library: query.get('library'),
     adminPanel: query.get('panel'),
     adminJob: query.get('job'),
   };
@@ -152,6 +162,10 @@ const writeLocation = (place: Place): string => {
 
   if (place.genre !== null) {
     query.set('genre', place.genre);
+  }
+
+  if (place.library !== null) {
+    query.set('library', place.library);
   }
 
   if (place.section === 'admin' && place.adminPanel !== null) {

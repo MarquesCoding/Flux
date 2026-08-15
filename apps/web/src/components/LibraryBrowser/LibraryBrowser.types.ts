@@ -15,6 +15,22 @@ type LibraryBrowserProps = {
   hasHero?: boolean;
   onSearchChange?: (search: string) => void;
   /**
+   * Which library to show, when something outside has an opinion.
+   *
+   * The address is that something: a library is a place worth being able to
+   * link to and worth surviving a reload. Naming one that this server does not
+   * have falls back to the first, rather than showing nothing.
+   */
+  libraryId?: string | null;
+  /**
+   * Told which library is being shown, including the one chosen on arrival.
+   *
+   * Said even when nobody pressed anything, so the address can name the
+   * library somebody is actually looking at rather than only the ones they
+   * picked by hand.
+   */
+  onLibraryChange?: (libraryId: string) => void;
+  /**
    * Told which item the hero is showing, so the page can be lit by it.
    */
   onFeatureChange?: (media: MediaSummary) => void;

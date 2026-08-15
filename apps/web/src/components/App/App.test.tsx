@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { JsonValueSchema, type JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 type FetchLike = (
   input: string,
@@ -26,6 +26,37 @@ const user = {
 };
 
 const ok = (body: JsonValue) => ({ ok: true, status: 200, json: () => Promise.resolve(body) });
+
+/**
+ * What a request carried, read back as data rather than as a string.
+ */
+const bodyOf = (init: RequestInit | undefined): JsonValue =>
+  JsonValueSchema.parse(JSON.parse(typeof init?.body === 'string' ? init.body : 'null'));
+
+const arrivalId = '9c858901-8a57-4791-81fe-4c455b099bc9';
+
+/**
+ * Arrival as the server describes it in full, for the addresses that name an
+ * item nothing has drawn yet.
+ */
+const arrivalInFull = {
+  id: arrivalId,
+  libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+  title: 'Arrival',
+  year: 2016,
+  container: 'mkv',
+  durationSeconds: 7200,
+  videoCodec: 'hevc',
+  videoRange: 'HDR10',
+  videoBitDepth: 10,
+  width: 1920,
+  height: 1080,
+  bitrateKbps: 12000,
+  audioStreams: [{ index: 1, codec: 'aac', channels: 2, isDefault: true, isAtmos: false }],
+  subtitleStreams: [],
+  addedAt: '2026-08-10T00:00:00.000Z',
+  metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false },
+} satisfies JsonValue;
 
 const aLibraryWithArrival = {
   libraries: [
@@ -74,6 +105,8 @@ const serverState = (options: {
   session: JsonValue;
   libraries?: JsonValue;
   items?: JsonValue;
+  detail?: JsonValue;
+  watched?: JsonValue;
 }) => {
   fetchMock.mockImplementation((input) => {
     if (input === '/api/setup/status') {
@@ -105,12 +138,22 @@ const serverState = (options: {
       );
     }
 
+    if (input.startsWith('/api/progress')) {
+      return Promise.resolve(ok({ progress: options.watched ?? [] }));
+    }
+
     if (input.startsWith('/api/health')) {
       return Promise.resolve(ok({ version: '0.0.0' }));
     }
 
     if (input.startsWith('/api/media/')) {
-      return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) });
+      const isWholeItem = input === `/api/media/${arrivalId}`;
+
+      return Promise.resolve(
+        options.detail !== undefined && isWholeItem
+          ? ok(options.detail)
+          : { ok: false, status: 404, json: () => Promise.resolve(null) },
+      );
     }
 
     return Promise.resolve(ok(options.session));
@@ -382,6 +425,144 @@ describe('App routing', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Arrival' })).not.toBeInTheDocument();
     });
+  });
+
+  it('plays what an address names, without anything having been browsed first', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}`);
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+    });
+    render(<App />);
+
+    await arrive();
+
+    expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument();
+  });
+
+  it('brings the address up to date as watching goes on', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}`);
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+    });
+    render(<App />);
+
+    await arrive();
+
+    const player = await screen.findByLabelText('Arrival');
+
+    Object.defineProperty(player, 'currentTime', { configurable: true, value: 1800 });
+
+    await act(async () => {
+      player.dispatchEvent(new Event('timeupdate'));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(window.location.search).toContain('t=1800');
+    });
+  });
+
+  it('starts where the address says, rather than at the beginning', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}?t=1800`);
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+    });
+    render(<App />);
+
+    await arrive();
+
+    await screen.findByRole('slider', { name: 'Seek through Arrival' });
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.find(([input]) =>
+        input.includes(`/api/playback/${arrivalId}/session`),
+      );
+
+      expect(bodyOf(asked?.[1])).toMatchObject({ startSeconds: 1800 });
+    });
+  });
+
+  it('carries on from where the server says, when the address names no second', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}`);
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+      watched: [
+        {
+          mediaId: arrivalId,
+          positionSeconds: 2400,
+          durationSeconds: 7200,
+          isFinished: false,
+          updatedAt: '2026-08-15T00:00:00.000Z',
+        },
+      ],
+    });
+    render(<App />);
+
+    await arrive();
+
+    await screen.findByRole('slider', { name: 'Seek through Arrival' });
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.find(([input]) =>
+        input.includes(`/api/playback/${arrivalId}/session`),
+      );
+
+      expect(bodyOf(asked?.[1])).toMatchObject({ startSeconds: 2400 });
+    });
+  });
+
+  it('puts what it resumed from into the address, so a reload lands there again', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}`);
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+      watched: [
+        {
+          mediaId: arrivalId,
+          positionSeconds: 2400,
+          durationSeconds: 7200,
+          isFinished: false,
+          updatedAt: '2026-08-15T00:00:00.000Z',
+        },
+      ],
+    });
+    render(<App />);
+
+    await arrive();
+
+    await waitFor(() => {
+      expect(window.location.search).toContain('t=2400');
+    });
+  });
+
+  it('gives up on an address naming something the server no longer has', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}`);
+
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    render(<App />);
+
+    await arrive();
+
+    expect(await screen.findByRole('region', { name: 'Recently added' })).toBeInTheDocument();
   });
 
   it('remembers where somebody got to when the player is closed', async () => {

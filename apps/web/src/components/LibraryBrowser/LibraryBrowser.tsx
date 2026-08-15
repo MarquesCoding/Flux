@@ -54,6 +54,8 @@ const LibraryBrowser = ({
   onPlay,
   onShow,
   onWatch,
+  libraryId,
+  onLibraryChange,
 }: LibraryBrowserProps) => {
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -101,6 +103,10 @@ const LibraryBrowser = ({
 
   reportItems.current = onItemsLoaded;
 
+  const reportLibrary = useRef(onLibraryChange);
+
+  reportLibrary.current = onLibraryChange;
+
   useEffect(() => {
     if (items.length > 0) {
       reportItems.current?.(items);
@@ -116,9 +122,16 @@ const LibraryBrowser = ({
           return;
         }
 
+        const asked = found.find((entry) => entry.id === libraryId)?.id;
+        const opening = asked ?? found[0]?.id ?? null;
+
         setLibraries(found);
-        setSelectedId(found[0]?.id ?? null);
+        setSelectedId(opening);
         setState('ready');
+
+        if (opening !== null) {
+          reportLibrary.current?.(opening);
+        }
       })
       .catch(() => {
         if (!abandoned) {
@@ -130,6 +143,16 @@ const LibraryBrowser = ({
       abandoned = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (libraryId === undefined || libraryId === null) {
+      return;
+    }
+
+    if (libraries.some((entry) => entry.id === libraryId)) {
+      setSelectedId(libraryId);
+    }
+  }, [libraryId, libraries]);
 
   useEffect(() => {
     let abandoned = false;
@@ -274,6 +297,7 @@ const LibraryBrowser = ({
                 variant={entry.id === selectedId ? 'glossy' : 'secondary'}
                 onClick={() => {
                   setSelectedId(entry.id);
+                  onLibraryChange?.(entry.id);
                 }}
               >
                 {entry.name}

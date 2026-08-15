@@ -39,16 +39,24 @@ const fetchWatchProgress = async (): Promise<WatchProgress[]> => {
  *
  * Best effort, and deliberately quiet about failure: someone watching a film
  * should never be interrupted to be told their bookmark did not save.
+ *
+ * `isLeaving` is for the report sent as the page goes away — a reload, a
+ * closed tab, a link followed. The browser is free to cancel ordinary requests
+ * from a page it is tearing down, and that one request is the only thing
+ * standing between a viewer and losing the last ten seconds they watched, so
+ * it is sent as one the browser has promised to finish.
  */
 const reportWatchProgress = async (
   mediaId: string,
   report: { positionSeconds: number; durationSeconds: number; isFinished?: boolean },
+  { isLeaving = false }: { isLeaving?: boolean } = {},
 ): Promise<void> => {
   try {
     await fetch(`/api/media/${mediaId}/progress`, {
       method: 'PUT',
       headers: { 'content-type': 'application/json', ...profileHeaders() },
       body: JSON.stringify({ isFinished: false, ...report }),
+      keepalive: isLeaving,
     });
   } catch {}
 };

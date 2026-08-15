@@ -644,6 +644,22 @@ const VideoPlayer = ({
     const clientId = readClientId();
 
     const onPageHide = () => {
+      const element = videoRef.current;
+      const reached = element?.currentTime ?? 0;
+      const whole = element?.duration ?? Number.NaN;
+
+      if (Number.isFinite(whole) && whole > 0 && reached > 0) {
+        void reportWatchProgress(
+          media.id,
+          {
+            positionSeconds: reached,
+            durationSeconds: whole,
+            isFinished: reached >= whole - FINISHED_WITHIN_SECONDS,
+          },
+          { isLeaving: true },
+        );
+      }
+
       if (startedId !== null) {
         void fetch(`/api/playback/session/${startedId}`, {
           method: 'DELETE',

@@ -467,6 +467,37 @@ describe('VideoPlayer', () => {
     vi.unstubAllGlobals();
   });
 
+  it('saves where it got to when the tab actually closes', async () => {
+    const fetchMock = vi
+      .fn<(input: string, init?: RequestInit) => Promise<{ ok: boolean }>>()
+      .mockResolvedValue({ ok: true });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    const element = await screen.findByLabelText('Arrival');
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 1800 });
+    Object.defineProperty(element, 'duration', { configurable: true, value: 7200 });
+
+    await waitFor(() => {
+      expect(attachMock).toHaveBeenCalled();
+    });
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    const saved = fetchMock.mock.calls.find(([input]) =>
+      input.endsWith('/api/media/media-1/progress'),
+    );
+    const body = saved?.[1]?.body;
+
+    expect(saved?.[1]).toMatchObject({ method: 'PUT', keepalive: true });
+    expect(typeof body === 'string' ? body : '').toContain('"positionSeconds":1800');
+
+    vi.unstubAllGlobals();
+  });
+
   it('does not send a keepalive stop before a session has actually started', () => {
     const fetchMock = vi.fn();
 

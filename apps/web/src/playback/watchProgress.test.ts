@@ -100,6 +100,28 @@ describe('reportWatchProgress', () => {
     expect(sentBody()).toMatchObject({ isFinished: true });
   });
 
+  it('asks the browser to finish the report sent as a page goes away', async () => {
+    await reportWatchProgress(
+      'abc',
+      { positionSeconds: 1800, durationSeconds: 7200 },
+      { isLeaving: true },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/abc/progress',
+      expect.objectContaining({ keepalive: true }),
+    );
+  });
+
+  it('leaves an ordinary report as an ordinary request', async () => {
+    await reportWatchProgress('abc', { positionSeconds: 90, durationSeconds: 7200 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/abc/progress',
+      expect.objectContaining({ keepalive: false }),
+    );
+  });
+
   it('says nothing when it fails, rather than interrupting a film', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 

@@ -10,7 +10,7 @@ import { SearchArea } from '@FluxWeb/components/SearchArea/SearchArea';
 import { BrowseArea } from '@FluxWeb/components/BrowseArea/BrowseArea';
 import { ShowDialog } from '@FluxWeb/components/ShowDialog/ShowDialog';
 import { fetchShows } from '@FluxWeb/library/fetchShows';
-import { fetchLibraries } from '@FluxWeb/library/fetchLibrary';
+import { fetchLibraries, fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import { useFavourites } from '@FluxWeb/library/useFavourites';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
@@ -39,6 +39,7 @@ import { ProfileGate } from '@FluxWeb/components/ProfileGate/ProfileGate';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
 import { findSiblings, nextEpisode } from '@FluxWeb/library/pickFeatured';
 import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
+import { summariseDetail } from '@FluxWeb/library/summariseDetail';
 import { watchPresence } from '@FluxWeb/presence/watchPresence';
 import {
   isWorthResuming,
@@ -58,6 +59,16 @@ import type { AppProps } from './App.types';
 type LoadState = 'loading' | 'ready' | 'unreachable';
 
 /**
+ * How often the address is brought up to date with where a film has got to.
+ *
+ * The player reports several times a second, which is the right rate for a
+ * scrubber and far too fast for anything that writes to history or to state.
+ * Every few seconds is close enough that a copied link lands where somebody
+ * meant it to, without rewriting the address a hundred times a minute.
+ */
+const ADDRESS_EVERY_SECONDS = 5;
+
+/**
  * Application shell and routing.
  *
  * Setup, sign-in and the library are chosen from what the server reports, not
@@ -70,6 +81,22 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
   const reportedRef = useRef(new Map<string, WatchProgress>());
+  /**
+   * The second the address was last told about.
+   *
+   * A ref rather than state: it decides whether to write, and writing is what
+   * causes the render — keeping it in state would cause the render it is meant
+   * to be rationing.
+   */
+  const markedAtRef = useRef(0);
+  /**
+   * Whether the server has been asked where this viewer got to.
+   *
+   * The player is told where to start once, when it mounts, so opening it
+   * before the answer has arrived opens it at the beginning and there is no
+   * second chance to correct that.
+   */
+  const [hasReadProgress, setHasReadProgress] = useState(false);
   const [, setFeatured] = useState<MediaSummary | null>(null);
   const [moodLights, setMoodLights] = useState<MoodLight[]>([]);
   const favourites = useFavourites();
@@ -228,7 +255,71 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     }
 
     setProgress(merged);
+    setHasReadProgress(true);
   }, []);
+
+  useEffect(() => {
+    const wanted = [place.playing, place.inspecting]
+      .filter((id) => id !== null)
+      .filter((id) => !known.has(id));
+
+    if (wanted.length === 0) {
+      return;
+    }
+
+    let abandoned = false;
+
+    void Promise.all(wanted.map(async (id) => ({ id, detail: await fetchMediaDetail(id) }))).then(
+      (answers) => {
+        if (abandoned) {
+          return;
+        }
+
+        const summaries = answers
+          .map((answer) => answer.detail)
+          .filter((detail) => detail !== null)
+          .map(summariseDetail);
+
+        if (summaries.length > 0) {
+          rememberItems(summaries);
+        }
+
+        const missing = answers
+          .filter((answer) => answer.detail === null)
+          .map((answer) => answer.id);
+
+        if (missing.includes(place.playing ?? '')) {
+          replace({ playing: null, startSeconds: 0 });
+        }
+
+        if (missing.includes(place.inspecting ?? '')) {
+          replace({ inspecting: null });
+        }
+      },
+    );
+
+    return () => {
+      abandoned = true;
+    };
+  }, [place.playing, place.inspecting, known, rememberItems, replace]);
+
+  useEffect(() => {
+    markedAtRef.current = place.playing === null ? 0 : place.startSeconds;
+  }, [place.playing, place.startSeconds]);
+
+  useEffect(() => {
+    if (place.playing === null || !hasReadProgress || place.startSeconds > 0) {
+      return;
+    }
+
+    const found = progress.get(place.playing);
+    const resumed =
+      found !== undefined && isWorthResuming(found) ? Math.floor(found.positionSeconds) : 0;
+
+    if (resumed > 0) {
+      replace({ startSeconds: resumed });
+    }
+  }, [place.playing, place.startSeconds, hasReadProgress, progress, replace]);
 
   const refresh = useCallback(async () => {
     try {
@@ -306,6 +397,26 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     );
   }
 
+  if (place.playing !== null && (playing === null || !hasReadProgress)) {
+    return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />;
+  }
+
+  /**
+   * Where the thing being watched should start.
+   *
+   * The address wins when it names a second, since a link somebody was sent is
+   * a link to a moment. Otherwise it is wherever the server says this viewer
+   * got to — which is what makes a reload carry on rather than start again,
+   * given that the address of something opened from a card names no second at
+   * all.
+   */
+  const startAt =
+    playing === null
+      ? 0
+      : place.startSeconds > 0
+        ? place.startSeconds
+        : Math.floor(resumeFor(playing.id) ?? 0);
+
   if (playing !== null) {
     return (
       <motion.main
@@ -316,7 +427,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       >
         <VideoPlayer
           media={playing}
-          startSeconds={place.startSeconds}
+          startSeconds={startAt}
           isImmersive
           episodes={
             playing.seriesTitle === null || playing.seriesTitle === undefined
@@ -343,6 +454,16 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             };
 
             reportedRef.current.set(playing.id, entry);
+
+            const whole = Math.floor(positionSeconds);
+
+            if (Math.abs(whole - markedAtRef.current) < ADDRESS_EVERY_SECONDS) {
+              return;
+            }
+
+            markedAtRef.current = whole;
+
+            replace({ startSeconds: whole });
 
             setProgress((current) => {
               const next = new Map(current);
@@ -596,6 +717,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           ) : (
             <LibraryBrowser
               search={place.search}
+              libraryId={place.library}
+              onLibraryChange={(libraryId) => {
+                replace({ library: libraryId });
+              }}
               onPlay={(media) => {
                 go({ inspecting: media.id });
               }}

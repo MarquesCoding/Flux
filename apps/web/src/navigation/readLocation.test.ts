@@ -114,6 +114,18 @@ describe('writeLocation', () => {
     expect(writeLocation({ ...HOME, playing: 'abc', startSeconds: 0 })).toBe('/watch/abc');
   });
 
+  it('names the library being browsed, so one can be linked to', () => {
+    expect(writeLocation({ ...HOME, library: 'films-id' })).toBe('/?library=films-id');
+  });
+
+  it('reads a library back out of an address', () => {
+    expect(readLocation('http://flux.local/?library=films-id').library).toBe('films-id');
+  });
+
+  it('leaves the library out when none has been chosen', () => {
+    expect(writeLocation(HOME)).toBe('/');
+  });
+
   it('writes what it can read back', () => {
     const place = {
       section: 'search',
@@ -123,6 +135,7 @@ describe('writeLocation', () => {
       playing: null,
       startSeconds: 0,
       genre: null,
+      library: null,
       adminPanel: null,
       adminJob: null,
     } as const;
