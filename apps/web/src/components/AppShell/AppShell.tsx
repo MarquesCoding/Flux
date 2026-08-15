@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import {
+  IconBell,
   IconDeviceTv,
   IconDeviceTvFilled,
   IconDice5,
@@ -112,6 +113,7 @@ const AppShell = ({
   avatar,
   onSurprise,
   surpriseKinds = [],
+  notifications,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion();
 
@@ -214,6 +216,16 @@ const AppShell = ({
                     onSurprise();
                   },
                 }),
+          },
+        ]),
+    ...(notifications === undefined
+      ? []
+      : [
+          {
+            id: 'notifications',
+            label: 'Notifications',
+            icon: <IconBell size={20} aria-hidden />,
+            control: notifications,
           },
         ]),
     ...(isAdministrator

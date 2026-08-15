@@ -13,6 +13,9 @@ const emptySettings = () =>
     hardwareAccel: '',
     seededJobTriggerKinds: [],
     seededRoleNames: [],
+    pushPublicKey: '',
+    pushPrivateKey: '',
+    mediaDigestReadTo: null,
   });
 
 /**

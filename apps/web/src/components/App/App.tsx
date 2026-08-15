@@ -17,6 +17,18 @@ import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles';
 import { readCurrentProfile } from '@FluxWeb/profiles/currentProfile';
 import { pickAnything } from '@FluxWeb/library/pickAnything';
+import { NotificationBell } from '@FluxWeb/components/NotificationBell/NotificationBell';
+import {
+  fetchNotificationSettings,
+  fetchNotifications,
+  markNotificationsRead,
+} from '@FluxWeb/notifications/fetchNotifications';
+import {
+  canReceivePush,
+  subscribeToPush,
+  unsubscribeFromPush,
+} from '@FluxWeb/notifications/subscribeToPush';
+import type { Inbox } from '@FluxWeb/notifications/fetchNotifications';
 import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer';
 import { MediaDetailDialog } from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog';
 import { AppShell } from '@FluxWeb/components/AppShell/AppShell';
@@ -82,6 +94,32 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const prefersReducedMotion = useReducedMotion();
 
   const [surpriseKinds, setSurpriseKinds] = useState<LibraryKind[]>([]);
+  const [inbox, setInbox] = useState<Inbox>({ notifications: [], unread: 0 });
+  const [pushKey, setPushKey] = useState('');
+  const [isPushOn, setIsPushOn] = useState(false);
+
+  useEffect(() => {
+    let abandoned = false;
+
+    void fetchNotifications().then((read) => {
+      if (!abandoned) {
+        setInbox(read);
+      }
+    });
+
+    void fetchNotificationSettings().then((settings) => {
+      if (abandoned) {
+        return;
+      }
+
+      setPushKey(settings.pushPublicKey);
+      setIsPushOn(settings.preferences.some((one) => one.push));
+    });
+
+    return () => {
+      abandoned = true;
+    };
+  }, []);
 
   useEffect(() => {
     let abandoned = false;
@@ -347,6 +385,47 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       moodLights={section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
       surpriseKinds={surpriseKinds}
+      notifications={
+        <NotificationBell
+          notifications={inbox.notifications}
+          unread={inbox.unread}
+          {...(pushKey === '' || !canReceivePush()
+            ? {}
+            : {
+                push: {
+                  isOn: isPushOn,
+                  onToggle: () => {
+                    void (
+                      isPushOn ? unsubscribeFromPush().then(() => false) : subscribeToPush(pushKey)
+                    ).then(setIsPushOn);
+                  },
+                },
+              })}
+          onOpen={() => {
+            void fetchNotifications().then(setInbox);
+          }}
+          onRead={(id) => {
+            void markNotificationsRead(id).then((unread) => {
+              setInbox((held) => ({
+                unread,
+                notifications: held.notifications.map((one) =>
+                  one.id === id && one.readAt === null
+                    ? { ...one, readAt: new Date().toISOString() }
+                    : one,
+                ),
+              }));
+            });
+          }}
+          onReadAll={() => {
+            void markNotificationsRead().then(() => {
+              void fetchNotifications().then(setInbox);
+            });
+          }}
+          onFollow={(link) => {
+            window.location.assign(link);
+          }}
+        />
+      }
       onSurprise={(only) => {
         void pickAnything(only).then((found) => {
           if (found === null) {

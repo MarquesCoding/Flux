@@ -172,6 +172,21 @@ const CHECK_TRANSCODER_JOB = 'server.checkTranscoder';
 const CHECK_DISK_SPACE_JOB = 'server.checkDiskSpace';
 
 /**
+ * Tells the household what has arrived since it was last told.
+ *
+ * A job on a window rather than something the scan raises, and that is the
+ * whole design. A scan importing four hundred files would raise four hundred
+ * facts; reading them as a window collapses them into one thing to say, and
+ * it catches media that arrived by any other route as well — a re-read, a
+ * file dropped in by hand — without each of those having to remember to
+ * announce itself.
+ *
+ * Not library-scoped: a household hears about new media, not about which
+ * library it landed in.
+ */
+const SEND_MEDIA_DIGEST_JOB = 'server.sendMediaDigest';
+
+/**
  * Sends one event to one subscriber.
  *
  * A job rather than a call made where the event was raised, which is the
@@ -371,6 +386,7 @@ export {
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   CHECK_TRANSCODER_JOB,
   CHECK_DISK_SPACE_JOB,
+  SEND_MEDIA_DIGEST_JOB,
   DELIVER_WEBHOOK_JOB,
   PRUNE_WEBHOOK_DELIVERIES_JOB,
   DeliverWebhookJobSchema,

@@ -589,6 +589,90 @@ const webhookDelivery = pgTable(
   ],
 );
 
+/**
+ * Something the household has been told.
+ *
+ * The sentence is stored rather than rebuilt on read. A digest knows things
+ * the reader does not — how many episodes, of how many programmes — and
+ * freezing it at the moment it was true means a notification read next week
+ * still says what it said, instead of being re-rendered against a library
+ * that has moved on.
+ *
+ * Per account rather than per viewer profile. Profiles are how a household
+ * separates what it has watched; a notification is addressed to somebody who
+ * signs in, and the devices push reaches belong to the account too.
+ */
+const notification = pgTable(
+  'notification',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    event: text('event').notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    link: text('link'),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+    readAt: timestamp('readAt'),
+  },
+  (table) => [
+    index('notification_unread_idx').on(table.userId, table.readAt),
+    index('notification_recent_idx').on(table.userId, table.createdAt),
+  ],
+);
+
+/**
+ * How one account wants to be told about one kind of event.
+ *
+ * A row only where somebody has chosen something. An absent row means the
+ * default, which keeps a table of one row per account per event from existing
+ * for a household that never opened the settings.
+ */
+const notificationPreference = pgTable(
+  'notification_preference',
+  {
+    userId: text('userId')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    event: text('event').notNull(),
+    inApp: boolean('inApp').notNull().default(true),
+    push: boolean('push').notNull().default(false),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.event] })],
+);
+
+/**
+ * One browser that has agreed to be interrupted.
+ *
+ * The endpoint is the push service's address for this browser and is what
+ * identifies it — a person with a phone and a laptop has two rows, and
+ * reinstalling the app makes a third rather than replacing one, because the
+ * old endpoint stays valid until the push service says otherwise.
+ *
+ * A subscription that the push service rejects as gone is deleted rather than
+ * retried. Unlike a webhook, there is no operator to tell: the browser has
+ * been uninstalled or the permission revoked, and nothing about it will start
+ * working again.
+ */
+const pushSubscription = pgTable(
+  'push_subscription',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('push_subscription_endpoint_idx').on(table.endpoint),
+    index('push_subscription_user_idx').on(table.userId),
+  ],
+);
+
 const role = pgTable(
   'role',
   {
@@ -689,6 +773,9 @@ export {
   jobTrigger,
   webhookSubscription,
   webhookDelivery,
+  notification,
+  notificationPreference,
+  pushSubscription,
   watchProgress,
   favourite,
   user,
