@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
+import { RiAlertLine, RiCheckboxCircleLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { HoverCard } from '@FluxUI/HoverCard';
 import { Button } from '@FluxUI/Button';
@@ -533,9 +533,9 @@ const AdminArea = ({
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-muted">
               <span className="flex items-center gap-1.5">
                 {overview?.transcoder.isReachable === true ? (
-                  <IconCircleCheck size={16} className="text-accent" aria-hidden />
+                  <RiCheckboxCircleLine size={16} className="text-accent" aria-hidden />
                 ) : (
-                  <IconAlertTriangle size={16} className="text-danger" aria-hidden />
+                  <RiAlertLine size={16} className="text-danger" aria-hidden />
                 )}
                 {overview === null
                   ? 'Reading the server…'
@@ -646,7 +646,7 @@ const AdminArea = ({
             transition={revealTransition(prefersReducedMotion)}
             className="flex flex-wrap items-center gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
           >
-            <IconAlertTriangle size={18} className="shrink-0 text-danger" aria-hidden />
+            <RiAlertLine size={18} className="shrink-0 text-danger" aria-hidden />
             Some of this could not be read from the server, so parts of the page may be missing
             rather than empty.
             <Button

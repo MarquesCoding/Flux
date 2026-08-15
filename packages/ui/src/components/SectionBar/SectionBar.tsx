@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Menu } from '@base-ui/react/menu';
-import { IconCheck, IconChevronDown } from '@tabler/icons-react';
+import { RiArrowDownSLine, RiCheckLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { cn } from '@FluxUI/cn';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
@@ -207,7 +207,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
 
                   {group.label}
 
-                  <IconChevronDown size={14} aria-hidden />
+                  <RiArrowDownSLine size={14} aria-hidden />
                 </Menu.Trigger>
 
                 <Menu.Portal container={portalContainer}>
@@ -245,7 +245,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
                               {item.label}
 
                               <Menu.RadioItemIndicator className="flex size-4 shrink-0 items-center justify-center text-accent">
-                                <IconCheck size={15} stroke={3} aria-hidden />
+                                <RiCheckLine size={15} aria-hidden />
                               </Menu.RadioItemIndicator>
                             </Menu.RadioItem>
                           ))}

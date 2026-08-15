@@ -1,5 +1,5 @@
 import { Button } from '@FluxUI/Button';
-import { IconInfoCircle, IconPlayerPlayFilled } from '@tabler/icons-react';
+import { RiInformationLine, RiPlayFill } from '@remixicon/react';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import type { EpisodeRowProps } from './EpisodeRow.types';
 
@@ -55,7 +55,7 @@ const EpisodeRow = ({
         )}
 
         <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover/episode:opacity-100">
-          <IconPlayerPlayFilled size={20} className="text-white" aria-hidden />
+          <RiPlayFill size={20} className="text-white" aria-hidden />
         </span>
 
         {watchedFraction === undefined ? null : (
@@ -87,7 +87,7 @@ const EpisodeRow = ({
           onInspect(episode);
         }}
       >
-        <IconInfoCircle size={18} aria-hidden />
+        <RiInformationLine size={18} aria-hidden />
       </Button>
     )}
   </div>

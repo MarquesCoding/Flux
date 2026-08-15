@@ -1,29 +1,29 @@
 import {
-  IconAdjustmentsHorizontal,
-  IconBadgeCc,
-  IconShareplay,
-  IconBadgeCcFilled,
-  IconChartDots,
-  IconClock,
-  IconGauge,
-  IconHeadphones,
-  IconSettings,
-  IconSettingsFilled,
-  IconTypography,
-  IconMaximize,
-  IconMinus,
-  IconPictureInPicture,
-  IconPictureInPictureFilled,
-  IconMinimize,
-  IconPlus,
-  IconRefresh,
-  IconPlayerPause,
-  IconPlayerPlay,
-  IconRotate,
-  IconRotateClockwise,
-  IconVolume,
-  IconVolumeOff,
-} from '@tabler/icons-react';
+  RiAddLine,
+  RiAnticlockwiseLine,
+  RiBubbleChartLine,
+  RiCastLine,
+  RiClockwiseLine,
+  RiClosedCaptioningFill,
+  RiClosedCaptioningLine,
+  RiEqualizerLine,
+  RiFontSize,
+  RiFullscreenExitLine,
+  RiFullscreenLine,
+  RiHeadphoneLine,
+  RiPauseFill,
+  RiPictureInPicture2Fill,
+  RiPictureInPicture2Line,
+  RiPlayFill,
+  RiRefreshLine,
+  RiSettings3Fill,
+  RiSettings3Line,
+  RiSpeedLine,
+  RiSubtractLine,
+  RiTimeLine,
+  RiVolumeMuteLine,
+  RiVolumeUpLine,
+} from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Slider } from '@FluxUI/Slider';
 import { SettingsMenu } from '@FluxUI/SettingsMenu';
@@ -147,7 +147,7 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        <IconRotateClockwise size={22} aria-hidden className="-scale-x-100" />
+        <RiAnticlockwiseLine size={22} aria-hidden />
       </Button>
 
       <Button
@@ -158,11 +158,7 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        {isPlaying ? (
-          <IconPlayerPause size={22} fill="currentColor" aria-hidden />
-        ) : (
-          <IconPlayerPlay size={22} fill="currentColor" aria-hidden />
-        )}
+        {isPlaying ? <RiPauseFill size={22} aria-hidden /> : <RiPlayFill size={22} aria-hidden />}
       </Button>
 
       <Button
@@ -175,7 +171,7 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        <IconRotate size={22} aria-hidden className="-scale-x-100" />
+        <RiClockwiseLine size={22} aria-hidden />
       </Button>
 
       <span className="flex-1" />
@@ -189,9 +185,9 @@ const PlayerControls = ({
           size="md"
         >
           {isMuted || volume === 0 ? (
-            <IconVolumeOff size={20} aria-hidden />
+            <RiVolumeMuteLine size={20} aria-hidden />
           ) : (
-            <IconVolume size={20} aria-hidden />
+            <RiVolumeUpLine size={20} aria-hidden />
           )}
         </Button>
 
@@ -235,9 +231,9 @@ const PlayerControls = ({
           size="md"
         >
           {selectedSubtitleId === SUBTITLES_OFF ? (
-            <IconBadgeCc size={22} aria-hidden />
+            <RiClosedCaptioningLine size={22} aria-hidden />
           ) : (
-            <IconBadgeCcFilled size={22} aria-hidden />
+            <RiClosedCaptioningFill size={22} aria-hidden />
           )}
         </Button>
       )}
@@ -246,8 +242,8 @@ const PlayerControls = ({
         label="Settings"
         {...(onMenuOpenChange === undefined ? {} : { onOpenChange: onMenuOpenChange })}
         isDisabled={isDisabled}
-        trigger={<IconSettings size={20} aria-hidden />}
-        triggerWhenOpen={<IconSettingsFilled size={20} aria-hidden />}
+        trigger={<RiSettings3Line size={20} aria-hidden />}
+        triggerWhenOpen={<RiSettings3Fill size={20} aria-hidden />}
         rows={[
           ...(audioTracks.length < 2
             ? []
@@ -256,7 +252,7 @@ const PlayerControls = ({
                   kind: 'choice' as const,
                   id: 'audio',
                   label: 'Audio track',
-                  icon: <IconHeadphones size={18} aria-hidden />,
+                  icon: <RiHeadphoneLine size={18} aria-hidden />,
                   selectedId: (selectedAudioIndex ?? audioTracks[0]?.index ?? 0).toString(),
                   onSelect: (id: string) => {
                     onAudioChange(Number(id));
@@ -271,7 +267,7 @@ const PlayerControls = ({
             kind: 'choice' as const,
             id: 'subtitles',
             label: 'Subtitles/CC',
-            icon: <IconBadgeCc size={18} aria-hidden />,
+            icon: <RiClosedCaptioningLine size={18} aria-hidden />,
             selectedId: selectedSubtitleId,
             onSelect: onSubtitleChange,
             choices: [
@@ -290,7 +286,7 @@ const PlayerControls = ({
                   kind: 'custom' as const,
                   id: 'timing',
                   label: 'Subtitle timing',
-                  icon: <IconClock size={18} aria-hidden />,
+                  icon: <RiTimeLine size={18} aria-hidden />,
                   detail:
                     subtitleOffsetSeconds === 0
                       ? 'In time'
@@ -306,7 +302,7 @@ const PlayerControls = ({
                           onSubtitleOffsetChange(subtitleOffsetSeconds - SUBTITLE_STEP_SECONDS);
                         }}
                       >
-                        <IconMinus size={16} aria-hidden />
+                        <RiSubtractLine size={16} aria-hidden />
                       </Button>
 
                       <Button
@@ -318,7 +314,7 @@ const PlayerControls = ({
                           onSubtitleOffsetChange(0);
                         }}
                       >
-                        <IconRefresh size={16} aria-hidden />
+                        <RiRefreshLine size={16} aria-hidden />
                       </Button>
 
                       <Button
@@ -330,7 +326,7 @@ const PlayerControls = ({
                           onSubtitleOffsetChange(subtitleOffsetSeconds + SUBTITLE_STEP_SECONDS);
                         }}
                       >
-                        <IconPlus size={16} aria-hidden />
+                        <RiAddLine size={16} aria-hidden />
                       </Button>
                     </span>
                   ),
@@ -340,7 +336,7 @@ const PlayerControls = ({
             kind: 'panel' as const,
             id: 'appearance',
             label: 'Caption settings',
-            icon: <IconTypography size={18} aria-hidden />,
+            icon: <RiFontSize size={18} aria-hidden />,
             content: (
               <CaptionSettings
                 style={captionStyle}
@@ -353,7 +349,7 @@ const PlayerControls = ({
             kind: 'choice' as const,
             id: 'speed',
             label: 'Playback speed',
-            icon: <IconGauge size={18} aria-hidden />,
+            icon: <RiSpeedLine size={18} aria-hidden />,
             selectedId: playbackRate.toString(),
             onSelect: (id: string) => {
               onPlaybackRateChange(Number(id));
@@ -370,7 +366,7 @@ const PlayerControls = ({
                   kind: 'choice' as const,
                   id: 'quality',
                   label: 'Quality',
-                  icon: <IconAdjustmentsHorizontal size={18} aria-hidden />,
+                  icon: <RiEqualizerLine size={18} aria-hidden />,
                   selectedId: selectedQuality,
                   onSelect: (id: string) => {
                     onQualityChange(
@@ -397,7 +393,7 @@ const PlayerControls = ({
             kind: 'toggle' as const,
             id: 'stats',
             label: 'Stats for nerds',
-            icon: <IconChartDots size={18} aria-hidden />,
+            icon: <RiBubbleChartLine size={18} aria-hidden />,
             isOn: isShowingStats,
             onToggle: onToggleStats,
           },
@@ -418,7 +414,7 @@ const PlayerControls = ({
           onClick={onCast}
           size="md"
         >
-          <IconShareplay size={20} aria-hidden />
+          <RiCastLine size={20} aria-hidden />
         </Button>
       )}
 
@@ -432,9 +428,9 @@ const PlayerControls = ({
           size="md"
         >
           {isPoppedOut ? (
-            <IconPictureInPictureFilled size={20} aria-hidden />
+            <RiPictureInPicture2Fill size={20} aria-hidden />
           ) : (
-            <IconPictureInPicture size={20} aria-hidden />
+            <RiPictureInPicture2Line size={20} aria-hidden />
           )}
         </Button>
       )}
@@ -447,9 +443,9 @@ const PlayerControls = ({
         size="md"
       >
         {isFullscreen ? (
-          <IconMinimize size={20} aria-hidden />
+          <RiFullscreenExitLine size={20} aria-hidden />
         ) : (
-          <IconMaximize size={20} aria-hidden />
+          <RiFullscreenLine size={20} aria-hidden />
         )}
       </Button>
     </div>

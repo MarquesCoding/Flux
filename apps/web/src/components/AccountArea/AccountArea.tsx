@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { IconLogout, IconPencil } from '@tabler/icons-react';
+import { RiLogoutBoxRLine, RiPencilLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Badge } from '@FluxUI/Badge';
 import { ApiKeyPanel } from '@FluxWeb/components/ApiKeyPanel/ApiKeyPanel';
@@ -132,7 +132,7 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
                     setIsEditing(true);
                   }}
                 >
-                  <IconPencil size={15} aria-hidden />
+                  <RiPencilLine size={15} aria-hidden />
                   Change
                 </Button>
               )}
@@ -254,7 +254,7 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
           </p>
 
           <Button variant="ghost" size="sm" isPill onClick={onSignOut}>
-            <IconLogout size={16} aria-hidden />
+            <RiLogoutBoxRLine size={16} aria-hidden />
             Sign out
           </Button>
         </motion.footer>

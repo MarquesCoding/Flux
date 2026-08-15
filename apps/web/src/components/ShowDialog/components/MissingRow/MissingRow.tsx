@@ -1,4 +1,4 @@
-import { IconDownload } from '@tabler/icons-react';
+import { RiDownloadLine } from '@remixicon/react';
 import type { MissingRowProps } from './MissingRow.types';
 
 /**
@@ -31,7 +31,7 @@ const MissingRow = ({ episodeNumber, title, stillUrl }: MissingRowProps) => (
         )}
 
         <span className="absolute inset-0 flex items-center justify-center text-text-muted">
-          <IconDownload size={20} aria-hidden />
+          <RiDownloadLine size={20} aria-hidden />
         </span>
       </span>
 

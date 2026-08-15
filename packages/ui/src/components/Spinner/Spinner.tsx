@@ -1,4 +1,4 @@
-import { IconLoader2 } from '@tabler/icons-react';
+import { RiLoader4Line } from '@remixicon/react';
 import { motion, useReducedMotion } from 'motion/react';
 import { cn } from '@FluxUI/cn';
 import { spinVariants, spinTransition, reducedSpinTransition } from '@FluxUI/animations/spin';
@@ -29,7 +29,7 @@ const Spinner = ({ size = 'md', label, className }: SpinnerProps) => {
       animate={prefersReducedMotion === true ? 'idle' : 'spinning'}
       transition={prefersReducedMotion === true ? reducedSpinTransition : spinTransition}
     >
-      <IconLoader2 size={SIZE_PIXELS[size]} stroke={2} aria-hidden />
+      <RiLoader4Line size={SIZE_PIXELS[size]} aria-hidden />
     </motion.span>
   );
 };

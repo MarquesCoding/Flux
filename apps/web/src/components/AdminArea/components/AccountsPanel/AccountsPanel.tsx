@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  IconAlertTriangle,
-  IconBan,
-  IconDots,
-  IconPlus,
-  IconSelector,
-  IconTrash,
-  IconUserCog,
-} from '@tabler/icons-react';
+  RiAddLine,
+  RiAlertLine,
+  RiDeleteBinLine,
+  RiExpandUpDownLine,
+  RiForbidLine,
+  RiMoreLine,
+  RiUserSettingsLine,
+} from '@remixicon/react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
 import { CardHeader } from '@FluxUI/CardHeader';
@@ -194,14 +194,14 @@ const AccountsPanel = () => {
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.name}`}
-              trigger={<IconDots size={16} aria-hidden />}
+              trigger={<RiMoreLine size={16} aria-hidden />}
               groups={[
                 {
                   items: [
                     {
                       id: 'roles',
                       label: 'Edit roles',
-                      icon: <IconUserCog size={15} aria-hidden />,
+                      icon: <RiUserSettingsLine size={15} aria-hidden />,
                       onChoose: () => {
                         setAccountId(row.original.id);
                         setRefusal(null);
@@ -210,7 +210,7 @@ const AccountsPanel = () => {
                     {
                       id: 'ban',
                       label: row.original.isBanned ? 'Let back in' : 'Ban',
-                      icon: <IconBan size={15} aria-hidden />,
+                      icon: <RiForbidLine size={15} aria-hidden />,
                       onChoose: () => {
                         if (row.original.isBanned) {
                           void act(() => unbanAccount(row.original.id));
@@ -228,7 +228,7 @@ const AccountsPanel = () => {
                     {
                       id: 'remove',
                       label: 'Delete account',
-                      icon: <IconTrash size={15} aria-hidden />,
+                      icon: <RiDeleteBinLine size={15} aria-hidden />,
                       isDestructive: true,
                       onChoose: () => {
                         setAsking({ kind: 'remove', account: row.original });
@@ -356,7 +356,7 @@ const AccountsPanel = () => {
           role="alert"
           className="flex items-start gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
         >
-          <IconAlertTriangle size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
+          <RiAlertLine size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
           {refusal.message}
         </p>
       )}
@@ -383,7 +383,7 @@ const AccountsPanel = () => {
               setIsInviting(true);
             }}
           >
-            <IconPlus size={15} aria-hidden />
+            <RiAddLine size={15} aria-hidden />
             Add user
           </Button>
         </CardHeader>
@@ -427,11 +427,7 @@ const AccountsPanel = () => {
                   role="alert"
                   className="flex items-start gap-3 rounded-md border border-danger/40 bg-danger/10 p-3 text-sm text-text"
                 >
-                  <IconAlertTriangle
-                    size={16}
-                    className="mt-0.5 shrink-0 text-danger"
-                    aria-hidden
-                  />
+                  <RiAlertLine size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
                   {refusal.message}
                 </p>
               )}
@@ -492,7 +488,7 @@ const AccountsPanel = () => {
                             void act(() => clearOverride(accountId, grant.permission));
                           }}
                         >
-                          <IconTrash size={14} aria-hidden />
+                          <RiDeleteBinLine size={14} aria-hidden />
                         </Button>
                       </li>
                     ))}
@@ -512,7 +508,11 @@ const AccountsPanel = () => {
                             ? 'Pick a permission'
                             : describePermission(addingPermission)}
                         </span>
-                        <IconSelector size={16} className="shrink-0 text-text-muted" aria-hidden />
+                        <RiExpandUpDownLine
+                          size={16}
+                          className="shrink-0 text-text-muted"
+                          aria-hidden
+                        />
                       </span>
                     }
                     groups={[

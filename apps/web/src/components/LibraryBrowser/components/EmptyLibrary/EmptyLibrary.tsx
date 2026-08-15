@@ -1,4 +1,4 @@
-import { IconFolderOpen, IconSearch } from '@tabler/icons-react';
+import { RiFolderOpenLine, RiSearchLine } from '@remixicon/react';
 import type { EmptyLibraryProps } from './EmptyLibrary.types';
 
 /**
@@ -26,7 +26,7 @@ const EmptyLibrary = ({ search, libraryName, hasContentElsewhere }: EmptyLibrary
   if (search !== '') {
     return (
       <div className="flex flex-col items-center gap-2 py-10 text-center">
-        <IconSearch size={28} className="text-text-muted" aria-hidden />
+        <RiSearchLine size={28} className="text-text-muted" aria-hidden />
 
         <p className="text-sm font-medium text-text">Nothing matches “{search}”</p>
 
@@ -40,7 +40,7 @@ const EmptyLibrary = ({ search, libraryName, hasContentElsewhere }: EmptyLibrary
 
   return (
     <div className="flex flex-col items-center gap-2 py-10 text-center">
-      <IconFolderOpen size={28} className="text-text-muted" aria-hidden />
+      <RiFolderOpenLine size={28} className="text-text-muted" aria-hidden />
 
       <p className="text-sm font-medium text-text">
         {hasContentElsewhere

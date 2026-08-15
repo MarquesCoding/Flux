@@ -405,14 +405,20 @@ only when a new primitive gets an owner.
 
 ## 10. Icons
 
-**All icons come from `@tabler/icons-react`.**
+**All icons come from `@remixicon/react`.** `@tabler/icons-react` is banned in
+ESLint, so the set that was here before cannot come back a file at a time.
+
+**Prefer the `-line` icon, and its `-fill` twin for the active state.** Remix
+draws both for effectively everything, which is what lets a selected thing
+change weight rather than change drawing. Reaching for a different glyph to
+mean "this one is selected" is how a section turns into a camcorder.
 
 **No raw SVG anywhere in the codebase.** No inline `<svg>` elements, no
 `.svg` imported as a component, no SVG strings.
 
 The sole exception is brand assets — logo, wordmark, favicon — which live as
 files in `packages/ui/assets/brand/` and are referenced by URL, never inlined
-into JSX. If Tabler lacks an icon you need, request it upstream or add it to the
+into JSX. If Remix lacks an icon you need, request it upstream or add it to the
 brand assets directory as a considered decision, not inline in a component.
 
 ---

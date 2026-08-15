@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconSelector } from '@tabler/icons-react';
+import { RiExpandUpDownLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
@@ -125,7 +125,7 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
         trigger={
           <>
             <span className="truncate">{selectedLabel}</span>
-            <IconSelector size={15} className="shrink-0 text-text-muted" aria-hidden />
+            <RiExpandUpDownLine size={15} className="shrink-0 text-text-muted" aria-hidden />
           </>
         }
         triggerShape="field"

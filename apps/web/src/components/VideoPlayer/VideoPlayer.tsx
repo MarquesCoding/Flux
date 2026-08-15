@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
-  IconAlertTriangle,
-  IconShareplay,
-  IconPictureInPicture,
-  IconPlayerTrackNext,
-  IconX,
-} from '@tabler/icons-react';
+  RiAlertLine,
+  RiCastLine,
+  RiCloseLine,
+  RiPictureInPicture2Line,
+  RiSkipForwardFill,
+} from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
 import { VideoSurface } from '@FluxUI/VideoSurface';
@@ -1332,7 +1332,7 @@ const VideoPlayer = ({
         </h2>
 
         <Button isIconOnly variant="overlay" label="Close" onClick={onClose} size="md">
-          <IconX size={20} aria-hidden />
+          <RiCloseLine size={20} aria-hidden />
         </Button>
       </header>
 
@@ -1376,7 +1376,7 @@ const VideoPlayer = ({
 
         {!isPoppedOut ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
-            <IconPictureInPicture size={32} className="text-text-muted" aria-hidden />
+            <RiPictureInPicture2Line size={32} className="text-text-muted" aria-hidden />
 
             <p className="text-sm text-text-muted">Playing in a floating window</p>
 
@@ -1420,7 +1420,7 @@ const VideoPlayer = ({
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
-            <IconShareplay size={32} className="text-text-muted" aria-hidden />
+            <RiCastLine size={32} className="text-text-muted" aria-hidden />
 
             <p className="text-sm text-text-muted">Playing on another device</p>
 
@@ -1488,7 +1488,7 @@ const VideoPlayer = ({
               }}
             >
               {describeSkip(skippable)}
-              <IconPlayerTrackNext size={18} fill="currentColor" aria-hidden />
+              <RiSkipForwardFill size={18} aria-hidden />
             </Button>
           </div>
         )}
@@ -1608,7 +1608,7 @@ const VideoPlayer = ({
         <ul className="flex flex-col gap-1 rounded-md border border-border p-3 text-sm text-text-muted">
           {session.warnings.map((warning) => (
             <li key={warning} className="flex items-start gap-2">
-              <IconAlertTriangle size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
+              <RiAlertLine size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
               {warning}
             </li>
           ))}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { IconCheck, IconKey, IconPencil, IconTrash } from '@tabler/icons-react';
+import { RiCheckLine, RiDeleteBinLine, RiKey2Line, RiPencilLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
 import { TextField } from '@FluxUI/TextField';
@@ -145,7 +145,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
                   />
 
                   <Button type="submit" size="sm">
-                    <IconCheck size={16} aria-hidden />
+                    <RiCheckLine size={16} aria-hidden />
                     Save
                   </Button>
 
@@ -163,7 +163,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
               ) : (
                 <>
                   <span className="flex items-center gap-2 text-sm text-text">
-                    <IconKey size={16} aria-hidden />
+                    <RiKey2Line size={16} aria-hidden />
                     {passkey.name ?? 'Unnamed passkey'}
                   </span>
 
@@ -176,7 +176,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
                         setRenameValue(passkey.name ?? '');
                       }}
                     >
-                      <IconPencil size={16} aria-hidden />
+                      <RiPencilLine size={16} aria-hidden />
                       Rename
                     </Button>
 
@@ -187,7 +187,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
                         void remove(passkey);
                       }}
                     >
-                      <IconTrash size={16} aria-hidden />
+                      <RiDeleteBinLine size={16} aria-hidden />
                       Remove
                     </Button>
                   </span>

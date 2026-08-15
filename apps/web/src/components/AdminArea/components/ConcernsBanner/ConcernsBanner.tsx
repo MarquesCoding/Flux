@@ -1,4 +1,4 @@
-import { IconAlertTriangle, IconChevronRight, IconInfoCircle } from '@tabler/icons-react';
+import { RiAlertLine, RiArrowRightSLine, RiInformationLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
 import type { ConcernTone } from '@FluxWeb/components/AdminArea/collectConcerns';
@@ -50,9 +50,9 @@ const ConcernsBanner = ({ concerns, onOpenPanel }: ConcernsBannerProps) => {
             >
               <span className={`mt-0.5 shrink-0 ${TONE_CLASSES[concern.tone]}`}>
                 {concern.tone === 'setup' ? (
-                  <IconInfoCircle size={16} aria-hidden />
+                  <RiInformationLine size={16} aria-hidden />
                 ) : (
-                  <IconAlertTriangle size={16} aria-hidden />
+                  <RiAlertLine size={16} aria-hidden />
                 )}
               </span>
 
@@ -61,7 +61,7 @@ const ConcernsBanner = ({ concerns, onOpenPanel }: ConcernsBannerProps) => {
                 <span className="truncate text-xs text-text-muted">{concern.detail}</span>
               </span>
 
-              <IconChevronRight size={14} className="shrink-0 text-text-muted" aria-hidden />
+              <RiArrowRightSLine size={14} className="shrink-0 text-text-muted" aria-hidden />
             </Button>
           </li>
         ))}

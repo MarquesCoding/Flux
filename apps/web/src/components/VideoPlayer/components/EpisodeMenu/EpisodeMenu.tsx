@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconArticle, IconArticleFilled } from '@tabler/icons-react';
+import { RiArticleFill, RiArticleLine } from '@remixicon/react';
 import { PopoverPanel } from '@FluxUI/PopoverPanel';
 import { MediaCard } from '@FluxUI/MediaCard';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
@@ -53,7 +53,7 @@ const EpisodeMenu = ({
       isOpen={isOpen}
       onOpenChange={show}
       trigger={
-        isOpen ? <IconArticleFilled size={20} aria-hidden /> : <IconArticle size={20} aria-hidden />
+        isOpen ? <RiArticleFill size={20} aria-hidden /> : <RiArticleLine size={20} aria-hidden />
       }
       className="w-80 sm:w-96 mb-7.5"
     >

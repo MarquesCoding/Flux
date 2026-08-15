@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { IconPlayerPlayFilled } from '@tabler/icons-react';
+import { RiPlayFill } from '@remixicon/react';
 import { cn } from '@FluxUI/cn';
 import { hasFinePointer } from '@FluxUI/hasFinePointer';
 import { Badge } from '@FluxUI/Badge';
@@ -85,7 +85,7 @@ const MediaCard = ({
 
         <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <span className="flux-glass flex size-14 items-center justify-center rounded-full">
-            <IconPlayerPlayFilled size={22} className="text-white" aria-hidden />
+            <RiPlayFill size={22} className="text-white" aria-hidden />
           </span>
         </span>
 

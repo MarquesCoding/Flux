@@ -1,13 +1,14 @@
 import {
-  IconBrandChrome,
-  IconBrandEdge,
-  IconBrandFirefox,
-  IconBrandOperaFilled,
-  IconBrandSafari,
-  IconDeviceTvFilled,
-} from '@tabler/icons-react';
+  RiChromeLine,
+  RiEdgeNewLine,
+  RiFirefoxLine,
+  RiOperaFill,
+  RiSafariLine,
+  RiTvFill,
+} from '@remixicon/react';
+import type { RemixiconComponentType } from '@remixicon/react';
 
-type Match = { prefix: string; icon: typeof IconDeviceTvFilled };
+type Match = { prefix: string; icon: RemixiconComponentType };
 
 /**
  * Checked in this order for the same reason `detectClientLabel` builds its
@@ -15,11 +16,11 @@ type Match = { prefix: string; icon: typeof IconDeviceTvFilled };
  * a laxer check would mistake for Chrome.
  */
 const MATCHES: Match[] = [
-  { prefix: 'Edge', icon: IconBrandEdge },
-  { prefix: 'Opera', icon: IconBrandOperaFilled },
-  { prefix: 'Chromium', icon: IconBrandChrome },
-  { prefix: 'Firefox', icon: IconBrandFirefox },
-  { prefix: 'Safari', icon: IconBrandSafari },
+  { prefix: 'Edge', icon: RiEdgeNewLine },
+  { prefix: 'Opera', icon: RiOperaFill },
+  { prefix: 'Chromium', icon: RiChromeLine },
+  { prefix: 'Firefox', icon: RiFirefoxLine },
+  { prefix: 'Safari', icon: RiSafariLine },
 ];
 
 /**
@@ -30,7 +31,7 @@ const MATCHES: Match[] = [
  * the label `detectClientLabel` already built — asking twice would mean
  * agreeing with itself on two separate parses.
  */
-const deviceIconFor = (deviceLabel: string): typeof IconDeviceTvFilled =>
-  MATCHES.find((candidate) => deviceLabel.startsWith(candidate.prefix))?.icon ?? IconDeviceTvFilled;
+const deviceIconFor = (deviceLabel: string): RemixiconComponentType =>
+  MATCHES.find((candidate) => deviceLabel.startsWith(candidate.prefix))?.icon ?? RiTvFill;
 
 export { deviceIconFor };

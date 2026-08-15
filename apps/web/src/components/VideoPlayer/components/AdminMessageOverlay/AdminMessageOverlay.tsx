@@ -1,4 +1,4 @@
-import { IconPlayerPause, IconPlayerStop } from '@tabler/icons-react';
+import { RiPauseLine, RiStopLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { GlassPanel } from '@FluxUI/GlassPanel';
 import type { AdminMessageOverlayProps } from './AdminMessageOverlay.types';
@@ -13,7 +13,7 @@ const AdminMessageOverlay = ({ kind, reason, onDismiss }: AdminMessageOverlayPro
   if (kind === 'stopped') {
     return (
       <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black text-center">
-        <IconPlayerStop size={32} className="text-text-muted" aria-hidden />
+        <RiStopLine size={32} className="text-text-muted" aria-hidden />
 
         <p className="max-w-sm text-sm text-white">{reason}</p>
 
@@ -27,7 +27,7 @@ const AdminMessageOverlay = ({ kind, reason, onDismiss }: AdminMessageOverlayPro
   return (
     <div className="pointer-events-none absolute inset-x-0 top-16 z-30 flex justify-center">
       <GlassPanel className="pointer-events-auto flex items-center gap-3 px-4 py-3 text-white">
-        <IconPlayerPause size={18} className="shrink-0 text-text-muted" aria-hidden />
+        <RiPauseLine size={18} className="shrink-0 text-text-muted" aria-hidden />
 
         <p className="text-sm">{reason}</p>
 

@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import {
-  IconDeviceTvFilled,
-  IconInfoCircle,
-  IconPlayerPause,
-  IconPlayerPlay,
-  IconPlayerStop,
-} from '@tabler/icons-react';
+import { RiInformationLine, RiPauseLine, RiPlayLine, RiStopLine, RiTvFill } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
@@ -45,7 +39,7 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
             className="h-full w-full object-cover"
           />
         ) : (
-          <IconDeviceTvFilled size={20} className="text-text-muted" aria-hidden />
+          <RiTvFill size={20} className="text-text-muted" aria-hidden />
         )}
       </span>
 
@@ -119,7 +113,7 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
                 disabled={isBusy}
                 onClick={onPause}
               >
-                <IconPlayerPause size={15} aria-hidden />
+                <RiPauseLine size={15} aria-hidden />
               </Button>
             ) : (
               <Button
@@ -130,7 +124,7 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
                 disabled={isBusy}
                 onClick={onResume}
               >
-                <IconPlayerPlay size={15} aria-hidden />
+                <RiPlayLine size={15} aria-hidden />
               </Button>
             )}
 
@@ -142,7 +136,7 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
               disabled={isBusy}
               onClick={onStop}
             >
-              <IconPlayerStop size={15} aria-hidden />
+              <RiStopLine size={15} aria-hidden />
             </Button>
           </>
         )}
@@ -156,7 +150,7 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
             setIsShowingStats(true);
           }}
         >
-          <IconInfoCircle size={15} aria-hidden />
+          <RiInformationLine size={15} aria-hidden />
         </Button>
       </div>
 
