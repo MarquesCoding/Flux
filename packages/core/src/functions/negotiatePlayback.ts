@@ -56,6 +56,7 @@ const decideVideo = (
   const transcodeTo = (
     code:
       | 'VideoCodecNotSupported'
+      | 'VideoProfileNotSupported'
       | 'VideoBitrateAboveLimit'
       | 'VideoResolutionAboveLimit'
       | 'VideoRangeNotSupported'
@@ -79,6 +80,13 @@ const decideVideo = (
     return transcodeTo(
       'VideoCodecNotSupported',
       `Client does not support the ${media.videoCodec} video codec`,
+    );
+  }
+
+  if (media.videoBitDepth > 8 && !profile.tenBitVideoCodecs.includes(media.videoCodec)) {
+    return transcodeTo(
+      'VideoProfileNotSupported',
+      `Client does not support ${media.videoCodec} at ${media.videoBitDepth.toString()} bits`,
     );
   }
 

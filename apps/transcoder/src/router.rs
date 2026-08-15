@@ -21,7 +21,7 @@ use crate::preview::{
 };
 use crate::probe::probe_media;
 use crate::queue::WorkQueue;
-use crate::session::{await_manifest, SessionRegistry};
+use crate::session::{await_run, segment_number, SessionRegistry};
 use crate::subtitle::{extract_subtitle, SubtitleRequest};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
 use crate::trickplay::{
@@ -30,6 +30,21 @@ use crate::trickplay::{
 };
 
 const MANIFEST_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// How long a request for a segment waits for the transcode to reach it.
+///
+/// Long enough to cover a run being restarted somewhere else in the film and
+/// producing the first segment there, which is where the longest honest wait
+/// is. Past that the transcode is not making progress, and a viewer is better
+/// told so than left holding a connection open.
+const SEGMENT_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// How long a segment can take before it is worth saying so.
+///
+/// A viewer notices a wait long before a request times out, and a wait is the
+/// only thing about delivery that a log can usefully carry: everything else is
+/// a file being sent. Anything under this is the transcode keeping up.
+const SLOW_SEGMENT: Duration = Duration::from_millis(250);
 
 /// How often a watching page is sent a new reading.
 ///
@@ -197,6 +212,7 @@ fn content_type_for(name: &str) -> &'static str {
 
     match extension.as_str() {
         "m3u8" => "application/vnd.apple.mpegurl",
+        "ts" => "video/mp2t",
         "m4s" | "mp4" => "video/mp4",
         "jpg" | "jpeg" => "image/jpeg",
         "vtt" => "text/vtt",
@@ -421,7 +437,7 @@ async fn start_session(
         );
     };
 
-    if !await_manifest(&directory.join(MANIFEST_NAME), MANIFEST_TIMEOUT).await {
+    if !await_run(&directory, MANIFEST_TIMEOUT).await {
         eprintln!(
             "session {id} produced no manifest within {}s; see the ffmpeg output above",
             MANIFEST_TIMEOUT.as_secs()
@@ -445,6 +461,16 @@ async fn start_session(
         .into_response()
 }
 
+/// Serves a file out of a session, waiting for one that is still being made.
+///
+/// A segment is not a file that either exists or does not. It is a piece of
+/// film that has been produced, is being produced, or is somewhere nothing is
+/// heading — and the difference decides whether this waits, restarts the
+/// transcode, or answers at once.
+///
+/// Serving whatever was on disk is what produced a stutter at every segment
+/// boundary: ffmpeg is still writing the segment it is on, so the player was
+/// handed part of one and stalled where it ran out.
 async fn session_file(
     State(state): State<AppState>,
     AxumPath((id, name)): AxumPath<(String, String)>,
@@ -454,7 +480,32 @@ async fn session_file(
         return error(StatusCode::NOT_FOUND, "No such session.");
     };
 
-    state.registry.reached(&id, &name).await;
+    if let Some(wanted) = segment_number(&name) {
+        let asked = std::time::Instant::now();
+        let is_ready = state
+            .registry
+            .await_segment(&id, wanted, SEGMENT_TIMEOUT)
+            .await;
+        let waited = asked.elapsed();
+
+        if waited > SLOW_SEGMENT {
+            eprintln!(
+                "segment {wanted}: {} after {waited:?}",
+                if is_ready { "served" } else { "gave up" }
+            );
+        }
+
+        if !is_ready {
+            return error(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "That segment is not ready.",
+            );
+        }
+
+        state.registry.reached(&id, &name).await;
+
+        return serve_file(&directory, &name, requested_range(&headers)).await;
+    }
 
     serve_file(&directory, &name, requested_range(&headers)).await
 }

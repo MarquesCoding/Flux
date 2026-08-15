@@ -39,6 +39,7 @@ const inTheLibrary: MediaDetail = {
   durationSeconds: 7_200,
   videoCodec: 'hevc',
   videoRange: 'SDR',
+  videoBitDepth: 8,
   width: 1920,
   height: 1080,
   bitrateKbps: 12_000,

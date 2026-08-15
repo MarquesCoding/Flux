@@ -6,6 +6,7 @@
 
 #![cfg_attr(test, allow(clippy::expect_used, clippy::unwrap_used))]
 
+pub mod boundaries;
 pub mod cache_sweep;
 pub mod cache_usage;
 pub mod capability;
@@ -13,8 +14,10 @@ pub mod fingerprint;
 pub mod frame;
 pub mod graphics;
 pub mod integrity;
+pub mod keyframes;
 pub mod media;
 pub mod monitor;
+pub mod playlist;
 pub mod preview;
 pub mod probe;
 pub mod queue;

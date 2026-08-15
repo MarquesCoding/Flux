@@ -72,11 +72,12 @@ fn listen_target(read: &impl Fn(&str) -> Option<String>) -> ListenTarget {
     ListenTarget::Socket(shared.unwrap_or_else(|| DEFAULT_SOCKET.to_owned()))
 }
 
-fn session_config(ffmpeg: String) -> SessionConfig {
+fn session_config(ffmpeg: String, ffprobe: String) -> SessionConfig {
     let defaults = SessionConfig::default();
 
     SessionConfig {
         ffmpeg,
+        ffprobe,
         device: from_env("FLUX_VAAPI_DEVICE").unwrap_or(defaults.device),
         cache_root: env::var("FLUX_TRANSCODE_DIR").map_or(defaults.cache_root, PathBuf::from),
         idle_timeout: env::var("FLUX_SESSION_IDLE_SECONDS")
@@ -256,9 +257,11 @@ async fn main() {
             }
         }
         Some((command, _)) if command == "capabilities" => {
-            let capabilities =
-                capability::detect_capabilities(&ffmpeg, &session_config(ffmpeg.clone()).device)
-                    .await;
+            let capabilities = capability::detect_capabilities(
+                &ffmpeg,
+                &session_config(ffmpeg.clone(), ffprobe.clone()).device,
+            )
+            .await;
 
             println!(
                 "{}",
@@ -266,7 +269,7 @@ async fn main() {
             );
         }
         Some((command, _)) if command == "serve" => {
-            let registry = SessionRegistry::new(session_config(ffmpeg));
+            let registry = SessionRegistry::new(session_config(ffmpeg, ffprobe.clone()));
 
             serve(registry, ffprobe).await;
         }

@@ -72,6 +72,14 @@ const MediaItemSchema = z.object({
   durationSeconds: z.number().positive(),
   videoCodec: VideoCodecSchema,
   videoRange: VideoRangeSchema,
+  videoBitDepth: z
+    .number()
+    .int()
+    .positive()
+    .default(8)
+    .describe(
+      'How many bits each colour sample carries. Eight where a file predates knowing. A client that plays a codec at eight bits may refuse it at ten, so this decides whether the source can be copied.',
+    ),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   bitrateKbps: z.number().int().positive(),

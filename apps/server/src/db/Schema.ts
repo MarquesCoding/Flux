@@ -405,6 +405,7 @@ const mediaItem = pgTable(
     bitrateKbps: integer('bitrateKbps'),
     videoCodec: text('videoCodec').notNull(),
     videoRange: text('videoRange').notNull(),
+    videoBitDepth: integer('videoBitDepth'),
     width: integer('width').notNull(),
     height: integer('height').notNull(),
     audioStreams: jsonb('audioStreams').notNull(),
