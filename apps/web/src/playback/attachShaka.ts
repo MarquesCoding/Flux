@@ -86,6 +86,6 @@ const attachShaka = async ({
   return () => player.destroy();
 };
 
-export type { AttachOptions, PlaybackFault, ShakaModule, ShakaPlayer };
+export type { ShakaModule, ShakaPlayer };
 
-export { attachShaka, loadShakaPlayer, faultFrom, CRITICAL };
+export { attachShaka, faultFrom, CRITICAL };

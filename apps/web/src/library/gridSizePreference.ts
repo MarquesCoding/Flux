@@ -29,4 +29,4 @@ const saveGridSize = (size: MediaGridSize): void => {
   } catch {}
 };
 
-export { GridSizePreferenceSchema, DEFAULT_GRID_SIZE, STORAGE_KEY, readGridSize, saveGridSize };
+export { DEFAULT_GRID_SIZE, STORAGE_KEY, readGridSize, saveGridSize };

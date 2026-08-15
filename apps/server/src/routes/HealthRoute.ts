@@ -21,4 +21,4 @@ const healthRoute = createRoute({
   },
 });
 
-export { healthRoute, HealthResponseSchema };
+export { healthRoute };

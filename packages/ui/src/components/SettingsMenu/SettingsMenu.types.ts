@@ -65,13 +65,4 @@ type SettingsMenuProps = {
   className?: string;
 };
 
-export type {
-  SettingsActionRow,
-  SettingsChoice,
-  SettingsChoiceRow,
-  SettingsCustomRow,
-  SettingsMenuProps,
-  SettingsPanelRow,
-  SettingsRow,
-  SettingsToggleRow,
-};
+export type { SettingsChoiceRow, SettingsMenuProps, SettingsPanelRow, SettingsRow };

@@ -74,4 +74,4 @@ const fetchNotificationSettings = async (): Promise<NotificationSettings> => {
 
 export { fetchNotificationSettings, fetchNotifications, markNotificationsRead };
 
-export type { Inbox, Notification, NotificationSettings };
+export type { Inbox, Notification };

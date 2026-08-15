@@ -38,8 +38,4 @@ const FLUX_TOKENS = {
   ease: FLUX_EASE,
 } as const;
 
-type FluxTokens = typeof FLUX_TOKENS;
-
-export type { FluxTokens };
-
-export { FLUX_EASE, FLUX_TOKENS };
+export { FLUX_TOKENS };

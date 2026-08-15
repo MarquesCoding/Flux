@@ -70,6 +70,4 @@ const groupBareNumberedEpisodes = (paths: readonly string[]): Map<string, BareEp
   return episodes;
 };
 
-export type { BareEpisode };
-
-export { groupBareNumberedEpisodes, BARE_NUMBER, MIN_RUN };
+export { groupBareNumberedEpisodes };

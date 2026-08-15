@@ -20,4 +20,4 @@ type VideoSurfaceProps = {
   loops?: boolean;
 };
 
-export type { TextTrack, VideoSurfaceProps };
+export type { VideoSurfaceProps };

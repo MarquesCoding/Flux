@@ -24,4 +24,3 @@ const groupSessionsByViewer = (sessions: ActiveSession[]): SessionGroup[] => {
 };
 
 export { groupSessionsByViewer };
-export type { SessionGroup };

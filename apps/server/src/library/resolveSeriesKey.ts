@@ -27,6 +27,4 @@ const resolveSeriesKey = ({
   return `title:${seriesTitle.toLowerCase()}`;
 };
 
-export type { SeriesEvidence };
-
 export { resolveSeriesKey };

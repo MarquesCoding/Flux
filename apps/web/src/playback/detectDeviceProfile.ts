@@ -108,6 +108,4 @@ const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
   });
 };
 
-export type { CodecProbe, DetectDeviceProfileOptions };
-
-export { detectDeviceProfile, detectFromBrowser, VIDEO_PROBES, AUDIO_PROBES };
+export { detectDeviceProfile, detectFromBrowser };

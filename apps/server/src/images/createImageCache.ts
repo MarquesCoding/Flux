@@ -88,8 +88,6 @@ const createImageCache = ({ directory, fetchImpl, onProblem }: CreateImageCacheO
   };
 };
 
-type ImageCache = ReturnType<typeof createImageCache>;
+export type { ImageFetcher };
 
-export type { CachedImage, ImageCache, ImageFetcher };
-
-export { createImageCache, MAX_BYTES, IMAGE_TYPES };
+export { createImageCache };

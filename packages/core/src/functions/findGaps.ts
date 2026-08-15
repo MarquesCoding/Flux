@@ -111,4 +111,3 @@ const findGaps = (show: ShowDetail): Gaps => {
 };
 
 export { findGaps };
-export type { Gaps };

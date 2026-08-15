@@ -81,6 +81,6 @@ const deliverWebhook = async (
   }
 };
 
-export { deliverWebhook, WEBHOOK_TIMEOUT_MILLISECONDS };
+export { deliverWebhook };
 
 export type { WebhookAttempt, WebhookFetcher, WebhookTarget };

@@ -233,15 +233,6 @@ const agreeRange = (candidates: Range[], toleranceSeconds = 4): Range | null => 
   };
 };
 
-export type { CompareOptions, Range, SharedAudio };
+export type { Range };
 
-export {
-  findSharedAudio,
-  proposeOffsets,
-  agreeRange,
-  bitsDiffering,
-  longestRunAt,
-  overlaps,
-  DEFAULT_MAX_BITS_DIFFERING,
-  DEFAULT_MIN_SECONDS,
-};
+export { findSharedAudio, agreeRange, bitsDiffering, overlaps };

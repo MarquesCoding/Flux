@@ -24,4 +24,4 @@ type TextFieldProps = {
   className?: string;
 };
 
-export type { TextFieldProps, TextFieldType };
+export type { TextFieldProps };

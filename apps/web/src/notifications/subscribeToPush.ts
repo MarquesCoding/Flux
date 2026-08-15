@@ -91,4 +91,4 @@ const unsubscribeFromPush = async (): Promise<void> => {
   await subscription.unsubscribe();
 };
 
-export { canReceivePush, subscribeToPush, unsubscribeFromPush, SERVICE_WORKER_PATH };
+export { canReceivePush, subscribeToPush, unsubscribeFromPush };

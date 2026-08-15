@@ -65,4 +65,3 @@ const createArtworkUsage = ({ directory, everyMs = HOUR }: CreateArtworkUsageOpt
 };
 
 export { createArtworkUsage };
-export type { ArtworkUsage };

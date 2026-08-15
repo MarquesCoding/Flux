@@ -136,12 +136,10 @@ const saveCaptionStyle = (style: CaptionStyle): void => {
   } catch {}
 };
 
-export type { CaptionStyle, CueDeclarations };
+export type { CaptionStyle };
 
 export {
-  CaptionStyleSchema,
   DEFAULT_CAPTION_STYLE,
-  FONT_FAMILIES,
   edgeStyle,
   STORAGE_KEY,
   toCueCss,

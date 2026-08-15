@@ -71,6 +71,6 @@ const fetchLogos = async ({
   return { found, missing };
 };
 
-export type { FetchLogosOptions, FetchLogosResult, LogolessItem };
+export type { LogolessItem };
 
 export { fetchLogos };

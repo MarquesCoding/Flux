@@ -26,6 +26,4 @@ const previewRequestFor = (
   };
 };
 
-export type { PreviewSubject };
-
 export { previewRequestFor };

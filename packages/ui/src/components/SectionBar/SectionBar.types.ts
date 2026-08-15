@@ -16,4 +16,4 @@ type SectionBarProps = {
   className?: string;
 };
 
-export type { SectionBarGroup, SectionBarItem, SectionBarProps };
+export type { SectionBarGroup, SectionBarProps };

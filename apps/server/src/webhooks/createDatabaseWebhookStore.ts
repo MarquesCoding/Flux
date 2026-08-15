@@ -221,4 +221,4 @@ const createDatabaseWebhookStore = (db: FluxDatabase): WebhookStore => {
   };
 };
 
-export { createDatabaseWebhookStore, WEBHOOK_SECRET_PREFIX };
+export { createDatabaseWebhookStore };

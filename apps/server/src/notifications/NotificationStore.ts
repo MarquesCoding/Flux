@@ -30,4 +30,4 @@ type NotificationStore = {
   removePushEndpoint: (endpoint: string) => Promise<void>;
 };
 
-export type { NewNotification, NotificationStore, PushEndpoint };
+export type { NotificationStore, PushEndpoint };

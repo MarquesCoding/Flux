@@ -53,4 +53,4 @@ const describeSkip = (segment: MediaSegment): string => {
 
 export type { MediaSegment };
 
-export { fetchSegments, skippableAt, describeSkip, OFFER_SECONDS };
+export { fetchSegments, skippableAt, describeSkip };

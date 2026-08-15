@@ -68,6 +68,4 @@ const readPlaybackHealth = (element: HTMLVideoElement): PlaybackHealth => {
   };
 };
 
-export type { FrameCountSource };
-
 export { readPlaybackHealth, encodedSeconds, bufferedAhead };

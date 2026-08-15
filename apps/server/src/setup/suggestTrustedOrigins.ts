@@ -16,4 +16,4 @@ const suggestTrustedOrigins = (detectedOrigin: string): string[] => {
   return [...new Set(suggestions)];
 };
 
-export { suggestTrustedOrigins, WEB_DEV_PORT };
+export { suggestTrustedOrigins };

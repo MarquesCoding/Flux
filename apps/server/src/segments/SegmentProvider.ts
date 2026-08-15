@@ -105,6 +105,6 @@ const resolveSegments = async (
   return { segments: resolved, wasAsked: answered };
 };
 
-export type { Detection, SegmentCandidate, SegmentProvider };
+export type { SegmentCandidate, SegmentProvider };
 
-export { resolveSegments, isPlausible, INTRO_BOUNDS, CREDITS_BOUNDS };
+export { resolveSegments, isPlausible, INTRO_BOUNDS };

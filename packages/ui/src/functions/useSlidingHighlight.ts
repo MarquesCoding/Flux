@@ -90,6 +90,6 @@ const useSlidingHighlight = (): SlidingHighlight => {
   return { containerRef, rect, name, follow, clear, moveTo };
 };
 
-export type { Aimed, HighlightRect, SlidingHighlight };
+export type { HighlightRect };
 
 export { useSlidingHighlight };

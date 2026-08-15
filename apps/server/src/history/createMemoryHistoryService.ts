@@ -128,6 +128,4 @@ const createMemoryHistoryService = (
   };
 };
 
-export type { MemoryHistoryState };
-
 export { createMemoryHistoryService };

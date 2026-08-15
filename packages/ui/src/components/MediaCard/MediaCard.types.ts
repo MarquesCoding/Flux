@@ -18,4 +18,4 @@ type MediaCardProps = {
   className?: string;
 };
 
-export type { MediaCardEmphasis, MediaCardProps, MediaCardShape };
+export type { MediaCardProps, MediaCardShape };

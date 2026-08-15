@@ -46,6 +46,4 @@ const validateSetupForm = (values: SetupFormValues): SetupFormErrors => {
   return errors;
 };
 
-export type { SetupFormValues };
-
-export { validateSetupForm, parseOrigins, MINIMUM_PASSWORD_LENGTH };
+export { validateSetupForm, parseOrigins };

@@ -41,4 +41,3 @@ const groupPermissions = (permissions: readonly Permission[]): PermissionGroup[]
 };
 
 export { groupPermissions };
-export type { PermissionGroup };

@@ -91,4 +91,4 @@ const createMemoryAuth = (
   return { auth, settings, profiles, resetLinks, store };
 };
 
-export { createMemoryAuth, TEST_SECRET };
+export { createMemoryAuth };

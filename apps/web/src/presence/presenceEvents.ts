@@ -26,6 +26,4 @@ const onPresenceEvent = (listener: PresenceEventListener): (() => void) => {
   };
 };
 
-export type { PresenceEvent };
-
 export { emitPresenceEvent, onPresenceEvent };

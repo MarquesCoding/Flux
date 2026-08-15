@@ -193,6 +193,6 @@ const createJobQueue = async ({
   };
 };
 
-export type { FinishedJob, JobHandler };
+export type { FinishedJob };
 
-export { createJobQueue, PG_BOSS_STATES };
+export { createJobQueue };

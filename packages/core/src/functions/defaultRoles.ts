@@ -55,4 +55,3 @@ const DEFAULT_ROLES: readonly DefaultRole[] = [
 const DEFAULT_ROLE_NAME = 'Member';
 
 export { DEFAULT_ROLES, DEFAULT_ROLE_NAME };
-export type { DefaultRole };

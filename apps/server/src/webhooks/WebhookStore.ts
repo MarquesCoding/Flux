@@ -43,10 +43,4 @@ type RecordedDelivery = {
   body: string;
 };
 
-export type {
-  CreatedWebhookSubscription,
-  NewWebhookSubscription,
-  RecordedDelivery,
-  WebhookStore,
-  WebhookSubscriptionChange,
-};
+export type { WebhookStore };

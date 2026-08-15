@@ -541,7 +541,6 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
 
 export type {
   CatalogueMatch,
-  RunningScan,
   ActiveSession,
   AdminOverview,
   Job,

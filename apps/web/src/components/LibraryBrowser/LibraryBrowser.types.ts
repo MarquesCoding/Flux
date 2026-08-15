@@ -1,5 +1,5 @@
 import type { MoodLight } from '@FluxUI/MoodBackground.types';
-import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 type LibraryBrowserProps = {
   search?: string;
@@ -20,9 +20,4 @@ type LibraryBrowserProps = {
 
 type BrowserState = 'loading' | 'ready' | 'unreachable';
 
-type LoadedLibraries = {
-  libraries: Library[];
-  selectedId: string | null;
-};
-
-export type { BrowserState, LibraryBrowserProps, LoadedLibraries };
+export type { BrowserState, LibraryBrowserProps };

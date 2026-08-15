@@ -32,6 +32,6 @@ const recordSignIn = async ({
   return { counted: true };
 };
 
-export type { SignInStore, RecordSignInOptions };
+export type { SignInStore };
 
 export { recordSignIn, SAME_VISIT_MILLISECONDS };

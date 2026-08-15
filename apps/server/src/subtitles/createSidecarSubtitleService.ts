@@ -114,6 +114,4 @@ const createSidecarSubtitleService = ({
   };
 };
 
-export type { CreateSidecarSubtitleServiceOptions, MediaPathLookup };
-
-export { createSidecarSubtitleService, listFiles, findSubtitleDirectories };
+export { createSidecarSubtitleService, listFiles };

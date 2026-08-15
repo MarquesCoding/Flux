@@ -46,6 +46,6 @@ const createMemorySubtitleService = (state: MemoryState = {}): SubtitleService =
   };
 };
 
-export type { MemoryState, MemorySubtitle };
+export type { MemoryState };
 
 export { createMemorySubtitleService };

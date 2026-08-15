@@ -25,4 +25,4 @@ type OptionMenuProps = {
   triggerShape?: 'icon' | 'field';
 };
 
-export type { MenuGroup, MenuOption, OptionMenuProps };
+export type { MenuGroup, OptionMenuProps };

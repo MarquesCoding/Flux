@@ -230,6 +230,4 @@ export {
   readLanguage,
   selectAudioStream,
   LANGUAGE_NAMES,
-  LANGUAGE_CODES,
-  CHANNEL_NAMES,
 };

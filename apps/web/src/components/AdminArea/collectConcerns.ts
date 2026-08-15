@@ -227,14 +227,5 @@ const collectConcerns = ({
   return [...concerns].sort((a, b) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone]);
 };
 
-export {
-  collectConcerns,
-  MEMORY_PRESSURE,
-  CPU_PRESSURE,
-  CPU_READINGS,
-  ENCODER_PRESSURE,
-  DISK_PRESSURE,
-  FLUX_BLAME,
-  STARVED_SECONDS,
-};
+export { collectConcerns };
 export type { Concern, ConcernTone };

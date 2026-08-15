@@ -162,6 +162,4 @@ const createMemoryPlaybackService = (
   heartbeat: (sessionId) => Promise.resolve(state.sessions[sessionId] !== undefined),
 });
 
-export type { MemoryPlaybackState };
-
 export { createMemoryPlaybackService };

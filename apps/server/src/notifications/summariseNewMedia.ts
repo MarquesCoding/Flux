@@ -80,6 +80,6 @@ const summariseNewMedia = (items: AddedItem[]): NewMediaSummary | null => {
   };
 };
 
-export { summariseNewMedia, NAMED_AT_MOST };
+export { summariseNewMedia };
 
-export type { AddedItem, NewMediaSummary };
+export type { AddedItem };

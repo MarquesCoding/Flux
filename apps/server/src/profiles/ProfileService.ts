@@ -24,4 +24,4 @@ type ProfileService = {
   ) => Promise<boolean>;
 };
 
-export type { ProfileRequest, ProfileService };
+export type { ProfileService };

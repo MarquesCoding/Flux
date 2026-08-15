@@ -45,4 +45,3 @@ const resolvePermissions = ({
 };
 
 export { resolvePermissions };
-export type { ResolvePermissionsOptions };

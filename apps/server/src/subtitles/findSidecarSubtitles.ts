@@ -125,13 +125,6 @@ const findSidecarSubtitles = (
   return found;
 };
 
-export type { SidecarFile, SidecarSubtitle };
+export type { SidecarFile };
 
-export {
-  findSidecarSubtitles,
-  describeTags,
-  describeLabel,
-  splitName,
-  SUBTITLE_EXTENSIONS,
-  SUBTITLE_DIRECTORIES,
-};
+export { findSidecarSubtitles, describeTags, describeLabel, splitName, SUBTITLE_DIRECTORIES };

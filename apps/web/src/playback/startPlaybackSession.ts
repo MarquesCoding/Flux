@@ -155,5 +155,4 @@ export {
   heartbeatPlaybackSession,
   sendPresenceHeartbeat,
   describeWhy,
-  StartedSessionSchema,
 };

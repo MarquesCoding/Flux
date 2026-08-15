@@ -24,8 +24,6 @@ const RegeneratePreviewsJobSchema = z.object({
 
 const PRUNE_HISTORY_JOB = 'library.pruneHistory';
 
-const PruneHistoryJobSchema = z.object({});
-
 const FETCH_LOGOS_JOB = 'library.fetchLogos';
 
 const FetchLogosJobSchema = z.object({
@@ -72,9 +70,7 @@ const PRUNE_WEBHOOK_DELIVERIES_JOB = 'server.pruneWebhookDeliveries';
  */
 const scheduleTriggerKind = (kind: string): string => `${kind}.scheduled`;
 
-const JobStateSchema = z.enum(['queued', 'running', 'completed', 'failed', 'unknown']);
-
-type JobState = z.infer<typeof JobStateSchema>;
+type JobState = 'queued' | 'running' | 'completed' | 'failed' | 'unknown';
 
 type JobProgress = {
   phase: string;
@@ -121,7 +117,6 @@ export {
   PRUNE_HISTORY_JOB,
   RegenerateTrickplayJobSchema,
   FetchLogosJobSchema,
-  PruneHistoryJobSchema,
   DETECT_SEGMENTS_JOB,
   DetectSegmentsJobSchema,
   CLEANUP_IMAGE_CACHE_JOB,
@@ -135,5 +130,4 @@ export {
   PRUNE_WEBHOOK_DELIVERIES_JOB,
   DeliverWebhookJobSchema,
   scheduleTriggerKind,
-  JobStateSchema,
 };

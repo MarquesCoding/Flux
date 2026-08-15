@@ -122,6 +122,6 @@ const createEmbeddedSubtitleService = ({
   };
 };
 
-export type { CreateEmbeddedSubtitleServiceOptions, EmbeddedLookup, EmbeddedStream };
+export type { EmbeddedStream };
 
 export { createEmbeddedSubtitleService, describeSubtitle, marksHearingImpaired };

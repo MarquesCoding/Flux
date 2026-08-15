@@ -10,4 +10,4 @@ type TooltipProps = {
   delayMilliseconds?: number;
 };
 
-export type { ControlProperties, TooltipProps };
+export type { TooltipProps };

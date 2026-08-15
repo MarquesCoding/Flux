@@ -157,6 +157,6 @@ const createMemoryProfileService = (
   };
 };
 
-export type { Held, MemoryState };
+export type { MemoryState };
 
 export { createMemoryProfileService };

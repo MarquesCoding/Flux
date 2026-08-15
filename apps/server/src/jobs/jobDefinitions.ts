@@ -177,9 +177,7 @@ const JobRunRequestSchema = z.object({
   force: z.boolean().optional(),
 });
 
-type JobRunRequest = z.infer<typeof JobRunRequestSchema>;
-
-export type { JobDefinition, JobRunRequest };
+export type { JobDefinition };
 
 export {
   JOB_DEFINITIONS,

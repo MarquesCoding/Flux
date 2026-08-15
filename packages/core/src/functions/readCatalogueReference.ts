@@ -30,4 +30,3 @@ const readCatalogueReference = (pasted: string): CatalogueReference | null => {
 };
 
 export { readCatalogueReference };
-export type { CatalogueKind, CatalogueReference };

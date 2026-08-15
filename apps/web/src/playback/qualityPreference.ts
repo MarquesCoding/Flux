@@ -39,10 +39,4 @@ const saveQualityPreference = (preference: QualityPreference): void => {
 
 export type { QualityPreference };
 
-export {
-  QualityPreferenceSchema,
-  DEFAULT_QUALITY_PREFERENCE,
-  STORAGE_KEY,
-  readQualityPreference,
-  saveQualityPreference,
-};
+export { DEFAULT_QUALITY_PREFERENCE, STORAGE_KEY, readQualityPreference, saveQualityPreference };

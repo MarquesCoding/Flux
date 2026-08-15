@@ -102,7 +102,6 @@ const revealItemVariants = (prefersReducedMotion: boolean | null): Variants => (
 
 export {
   spring,
-  heavySpring,
   liquidSpring,
   settleTween,
   stillTransition,
@@ -113,8 +112,4 @@ export {
   revealItemVariants,
   revealVariants,
   revealTransition,
-  staggerDelay,
-  RISE,
-  STAGGER_STEP,
-  STAGGER_CEILING,
 };

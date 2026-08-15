@@ -47,6 +47,4 @@ const authenticateWithPasskey = async (): Promise<AuthenticateOutcome> => {
   }
 };
 
-export type { AuthenticateOutcome };
-
 export { authenticateWithPasskey };

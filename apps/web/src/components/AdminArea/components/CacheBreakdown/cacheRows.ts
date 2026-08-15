@@ -79,4 +79,3 @@ const cacheRows = (
 };
 
 export { cacheRows };
-export type { CacheRow };

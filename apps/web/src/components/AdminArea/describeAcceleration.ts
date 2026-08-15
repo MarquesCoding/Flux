@@ -49,4 +49,3 @@ const describeAcceleration = (forced: string, probed: string[]): Acceleration =>
 };
 
 export { describeAcceleration };
-export type { Acceleration };

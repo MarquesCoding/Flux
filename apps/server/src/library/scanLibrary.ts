@@ -66,9 +66,7 @@ type ScanLibraryOptions = {
   isCancelled?: () => boolean;
 };
 
-const SCAN_PHASES = ['probing'] as const;
-
-type ScanPhase = (typeof SCAN_PHASES)[number];
+type ScanPhase = 'probing';
 
 /**
  * Decides which files need probing.
@@ -247,14 +245,6 @@ const scanLibrary = async ({
   return { added, updated, removed, failed };
 };
 
-export type {
-  MediaOverride,
-  MediaFileSystem,
-  MediaRow,
-  MediaStore,
-  ScanPhase,
-  ScannedFile,
-  StoredItem,
-};
+export type { MediaFileSystem, MediaRow, MediaStore, ScanPhase, ScannedFile, StoredItem };
 
-export { scanLibrary, selectChanged, SCAN_PHASES };
+export { scanLibrary, selectChanged };

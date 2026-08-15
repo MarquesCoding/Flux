@@ -249,6 +249,6 @@ const planToSessionSpec = ({
   };
 };
 
-export type { Capabilities, SessionSpec, SpecOutcome, ToneMapping, VerifiedEncoder };
+export type { Capabilities, SessionSpec };
 
-export { planToSessionSpec, selectEncoder, planToneMapping, AUDIO_ENCODER };
+export { planToSessionSpec, selectEncoder };

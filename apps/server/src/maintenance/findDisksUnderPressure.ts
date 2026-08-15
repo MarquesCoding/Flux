@@ -55,4 +55,4 @@ const findDisksUnderPressure = (paths: string[], disks: DiskUse[]): DiskUse[] =>
   return [...used.values()];
 };
 
-export { findDisksUnderPressure, findMountFor, isUnderPressure, LOW_DISK_BYTES, LOW_DISK_FRACTION };
+export { findDisksUnderPressure, findMountFor, isUnderPressure, LOW_DISK_BYTES };

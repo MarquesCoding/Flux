@@ -62,6 +62,6 @@ const rebuildItemArtefacts = async ({
   return { preview, trickplay: sheets };
 };
 
-export type { RebuildSubject, Rebuilt };
+export type { RebuildSubject };
 
 export { rebuildItemArtefacts };

@@ -128,11 +128,4 @@ const toWebVtt = (source: string, format: string): string => {
   return fromSubRip(source);
 };
 
-export {
-  toWebVtt,
-  fromSubRip,
-  fromAdvancedSubStation,
-  formatTimestamp,
-  readAssTimestamp,
-  stripAssMarkup,
-};
+export { toWebVtt, fromSubRip, fromAdvancedSubStation, formatTimestamp, readAssTimestamp };

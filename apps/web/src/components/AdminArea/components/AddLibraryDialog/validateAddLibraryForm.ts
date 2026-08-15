@@ -22,6 +22,4 @@ const validateAddLibraryForm = (values: AddLibraryFormValues): AddLibraryFormErr
   return errors;
 };
 
-export type { AddLibraryFormValues };
-
 export { validateAddLibraryForm };

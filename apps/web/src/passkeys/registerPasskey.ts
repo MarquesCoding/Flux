@@ -47,6 +47,4 @@ const registerPasskey = async (name: string): Promise<RegisterOutcome> => {
   }
 };
 
-export type { RegisterOutcome };
-
 export { registerPasskey };

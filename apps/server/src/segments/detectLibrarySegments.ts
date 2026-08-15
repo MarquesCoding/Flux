@@ -89,6 +89,6 @@ const detectLibrarySegments = async ({
   return marked;
 };
 
-export type { DetectLibrarySegmentsOptions, GroupedCandidate };
+export type { GroupedCandidate };
 
 export { detectLibrarySegments, groupBySeason };

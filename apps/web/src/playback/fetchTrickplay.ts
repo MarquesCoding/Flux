@@ -149,6 +149,6 @@ const fetchTrickplay = async (mediaId: string): Promise<Trickplay | null> => {
   }
 };
 
-export type { Thumbnail, Trickplay };
+export type { Trickplay };
 
 export { fetchTrickplay, parseTrickplayIndex, thumbnailAt, readTimestamp };

@@ -565,7 +565,7 @@ const createCatalogueMetadataProvider = ({
   };
 };
 
-export type { CreateCatalogueMetadataProviderOptions, Fetcher };
+export type { Fetcher };
 
 export {
   createCatalogueMetadataProvider,
@@ -575,7 +575,5 @@ export {
   significantWords,
   shareASignificantWord,
   similarity,
-  pickBestMatch,
-  CAST_LIMIT,
   isAccessToken,
 };

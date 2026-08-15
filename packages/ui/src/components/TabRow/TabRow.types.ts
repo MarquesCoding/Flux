@@ -14,4 +14,4 @@ type TabRowProps = {
   className?: string;
 };
 
-export type { TabRowGroup, TabRowItem, TabRowProps };
+export type { TabRowProps };

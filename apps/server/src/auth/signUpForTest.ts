@@ -105,4 +105,4 @@ const makeAdministrator = async (
   }
 };
 
-export { signUpForTest, signedInApp, makeAdministrator, TEST_CREDENTIALS, TEST_ORIGIN };
+export { signUpForTest, signedInApp, makeAdministrator, TEST_ORIGIN };

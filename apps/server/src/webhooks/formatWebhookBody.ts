@@ -91,5 +91,3 @@ const formatWebhookBody = (preset: WebhookPreset, payload: WebhookPayload): Webh
 };
 
 export { formatWebhookBody };
-
-export type { WebhookRequestBody };

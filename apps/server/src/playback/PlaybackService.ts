@@ -76,17 +76,7 @@ const TRICKPLAY_TILE_WIDTH = 320;
 const TRICKPLAY_COLUMNS = 10;
 const TRICKPLAY_ROWS = 10;
 
-export type {
-  Delivery,
-  Explanation,
-  PlaybackService,
-  PreviewRead,
-  RangedFile,
-  SessionFile,
-  StartOutcome,
-  StartedSession,
-  Trickplay,
-};
+export type { Delivery, PlaybackService, PreviewRead, StartOutcome, StartedSession, Trickplay };
 
 export {
   SEGMENT_SECONDS,

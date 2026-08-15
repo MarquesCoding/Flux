@@ -124,6 +124,4 @@ const createFingerprintSegmentProvider = ({
   },
 });
 
-export type { CreateFingerprintSegmentProviderOptions };
-
-export { createFingerprintSegmentProvider, WINDOW_SECONDS, MIN_EPISODES, MAX_EPISODES };
+export { createFingerprintSegmentProvider };

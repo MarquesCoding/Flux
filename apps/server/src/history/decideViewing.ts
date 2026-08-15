@@ -44,6 +44,6 @@ const decideViewing = (open: OpenViewing | null, seen: Observation): Decision =>
   return { kind: 'ignore' };
 };
 
-export type { OpenViewing, Observation, Decision };
+export type { OpenViewing };
 
 export { decideViewing, SAME_VIEWING_MILLISECONDS, WORTH_REMEMBERING_SECONDS };

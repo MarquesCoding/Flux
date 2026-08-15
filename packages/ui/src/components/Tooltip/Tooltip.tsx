@@ -57,4 +57,4 @@ const Tooltip = ({
 
 Tooltip.displayName = 'Tooltip';
 
-export { Tooltip, DELAY_MILLISECONDS };
+export { Tooltip };

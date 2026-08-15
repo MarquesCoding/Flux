@@ -13,5 +13,3 @@ const readDigestWindow = (readTo: string | null, now: Date): DigestWindow =>
   readTo === null ? { since: now, announce: false } : { since: new Date(readTo), announce: true };
 
 export { readDigestWindow };
-
-export type { DigestWindow };

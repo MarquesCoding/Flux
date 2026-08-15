@@ -84,5 +84,5 @@ const seedDefaultRoles = async ({
   return { rolesCreated, administratorsCarried, membersAssigned };
 };
 
-export { seedDefaultRoles, ADMINISTRATOR_ROLE_NAME };
-export type { SeedableAccount, SeedOutcome };
+export { seedDefaultRoles };
+export type { SeedableAccount };

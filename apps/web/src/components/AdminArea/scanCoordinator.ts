@@ -210,7 +210,7 @@ const runDefinedJobAll = (
     () => undefined,
   );
 
-export type { ScanEntry, ScanSnapshot };
+export type { ScanEntry };
 
 /**
  * Clears every tracked scan.

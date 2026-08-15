@@ -55,4 +55,4 @@ const createChapterSegmentProvider = (): SegmentProvider => ({
   },
 });
 
-export { createChapterSegmentProvider, readChapterKind, CHAPTER_NAMES };
+export { createChapterSegmentProvider, readChapterKind };

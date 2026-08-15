@@ -43,4 +43,4 @@ const readEnv = (source: NodeJS.ProcessEnv): Env => EnvSchema.parse(source);
 
 export type { Env };
 
-export { readEnv, EnvSchema };
+export { readEnv };

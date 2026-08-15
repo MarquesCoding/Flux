@@ -51,6 +51,4 @@ const writePlaybackPreferences = (change: Partial<PlaybackPreferences>): void =>
   } catch {}
 };
 
-export type { PlaybackPreferences };
-
 export { readPlaybackPreferences, writePlaybackPreferences, STORAGE_KEY, SUBTITLES_OFF, DEFAULTS };

@@ -62,6 +62,6 @@ type PlayerControlsProps = {
   renderPreview?: (seconds: number) => ReactNode;
 };
 
-export type { AudioTrack, PlayerControlsProps };
+export type { PlayerControlsProps };
 
 export { SKIP_SECONDS, PLAYBACK_RATES };

@@ -107,6 +107,6 @@ const createAuth = ({
 
 type FluxAuth = ReturnType<typeof createAuth>;
 
-export type { CreateAuthOptions, FluxAuth, AuthDatabase };
+export type { FluxAuth };
 
-export { createAuth, FLUX_APP_NAME };
+export { createAuth };

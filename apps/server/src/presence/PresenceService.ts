@@ -208,12 +208,6 @@ const createPresenceService = (): PresenceService => {
   };
 };
 
-export type {
-  PresenceControlEvent,
-  PresenceEntry,
-  PresencePlayback,
-  PresencePlaybackHealth,
-  PresenceService,
-};
+export type { PresenceService };
 
 export { createPresenceService };

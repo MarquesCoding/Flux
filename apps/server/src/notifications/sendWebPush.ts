@@ -65,6 +65,6 @@ const sendWebPush = async (
   }
 };
 
-export { sendWebPush, GONE_STATUSES, VAPID_CONTACT };
+export { sendWebPush };
 
-export type { PushOutcome, PushPayload, VapidKeys, WebPushSender };
+export type { VapidKeys, WebPushSender };

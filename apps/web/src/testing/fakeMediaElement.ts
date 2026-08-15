@@ -164,6 +164,4 @@ const fakeMediaElement = (element: HTMLElement): FakeMediaControls => {
   };
 };
 
-export type { FakeMediaControls };
-
 export { fakeMediaElement };

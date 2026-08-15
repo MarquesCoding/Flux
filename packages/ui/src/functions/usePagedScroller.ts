@@ -64,5 +64,4 @@ const usePagedScroller = <Element extends HTMLElement>(
   return { trackRef, pages, measure, scrollTo };
 };
 
-export { usePagedScroller, SCROLL_FRACTION };
-export type { PagedScroller };
+export { usePagedScroller };
