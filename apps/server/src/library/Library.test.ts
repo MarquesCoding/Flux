@@ -351,6 +351,67 @@ describe('library routes', () => {
     expect(body).toMatchObject({ total: 1, items: [{ title: 'Dune' }] });
   });
 
+  it('finds a film by somebody in it', async () => {
+    const { app } = build([
+      detail(),
+      detail({
+        id: '11111111-1111-4111-8111-111111111111',
+        title: 'Man on Fire',
+        metadata: {
+          hasPoster: false,
+          hasBackdrop: false,
+          hasLogo: false,
+          cast: [{ name: 'Denzel Washington', role: 'Creasy', imageUrl: null }],
+        },
+      }),
+    ]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?search=denzel`);
+
+    expect(await response.json()).toMatchObject({ total: 1, items: [{ title: 'Man on Fire' }] });
+  });
+
+  it('finds a programme’s episodes by the name of the programme', async () => {
+    const { app } = build([
+      detail(),
+      detail({
+        id: '11111111-1111-4111-8111-111111111111',
+        title: 'Pilot',
+        metadata: {
+          hasPoster: false,
+          hasBackdrop: false,
+          hasLogo: false,
+          seriesTitle: 'Ted Lasso',
+        },
+      }),
+    ]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?search=lasso`);
+
+    expect(await response.json()).toMatchObject({ total: 1, items: [{ title: 'Pilot' }] });
+  });
+
+  it('lists the genres anything is filed under', async () => {
+    const { app } = build([
+      detail({
+        metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false, genres: ['Sci-Fi'] },
+      }),
+      detail({
+        id: '11111111-1111-4111-8111-111111111111',
+        metadata: {
+          hasPoster: false,
+          hasBackdrop: false,
+          hasLogo: false,
+          genres: ['Drama', 'Sci-Fi'],
+        },
+      }),
+    ]);
+
+    const response = await app.request(`${BASE}/api/genres`);
+
+    expect(await response.json()).toStrictEqual({ genres: ['Drama', 'Sci-Fi'] });
+  });
+
   it('pages through items', async () => {
     const { app } = build([
       detail(),

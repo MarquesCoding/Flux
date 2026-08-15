@@ -102,10 +102,40 @@ const updateLibraryRoute = createRoute({
 });
 
 /**
+ * Every genre anything is actually filed under, across every library.
+ *
+ * Its own route because the alternative was reading a couple of hundred items
+ * per library into the browser and collecting the genres out of them — which
+ * costs a page of requests to answer a question the database can answer with
+ * one, and quietly misses any genre that only appears further down.
+ *
+ * Not scoped to a library, because search is not either.
+ */
+const listGenresRoute = createRoute({
+  method: 'get',
+  path: '/api/genres',
+  tags: ['Library'],
+  summary: 'List the genres in use',
+  responses: {
+    200: {
+      description: 'The genres, in alphabetical order',
+      content: { 'application/json': { schema: z.object({ genres: z.array(z.string()) }) } },
+    },
+    401: {
+      description: 'Not signed in',
+      content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+    },
+  },
+});
+
+/**
  * Lists the items in a library.
  *
  * Returns summaries rather than full detail: a library of tens of thousands of
  * items should not ship every stream's details to draw a page of posters.
+ *
+ * `search` matches the title, the series title and the cast, so an actor's
+ * name finds their films and a programme's name finds its episodes.
  */
 const listItemsRoute = createRoute({
   method: 'get',
@@ -463,6 +493,7 @@ export {
   createLibraryRoute,
   updateLibraryRoute,
   listItemsRoute,
+  listGenresRoute,
   getMediaRoute,
   scanLibraryRoute,
   scanStateRoute,

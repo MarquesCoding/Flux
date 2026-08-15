@@ -21,6 +21,7 @@ import {
   createLibraryRoute,
   updateLibraryRoute,
   listItemsRoute,
+  listGenresRoute,
   getMediaRoute,
   listShowsRoute,
   getShowRoute,
@@ -668,6 +669,14 @@ const createApp = ({
     }
 
     return context.json(updated, 200);
+  });
+
+  app.openapi(listGenresRoute, async (context) => {
+    if ((await readAccount(context.req.raw.headers)) === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    return context.json({ genres: await library.listGenres() }, 200);
   });
 
   app.openapi(listItemsRoute, async (context) => {

@@ -37,6 +37,20 @@ type MemoryState = {
 };
 
 /**
+ * What a typed search matches, kept in step with the database version.
+ *
+ * The same three places — title, series title, cast — because a memory
+ * service that searched differently would let every test of the HTTP surface
+ * pass while describing behaviour the real server does not have.
+ */
+const matchesSearch = (item: MediaDetail, search: string): boolean =>
+  [
+    item.title,
+    item.metadata.seriesTitle ?? '',
+    ...(item.metadata.cast ?? []).map((member) => member.name),
+  ].some((against) => against.toLowerCase().includes(search));
+
+/**
  * A library held in memory.
  *
  * Lets the HTTP surface be tested without Postgres, in the same way the memory
@@ -89,6 +103,13 @@ const createMemoryLibraryService = (
     return Promise.resolve(found);
   },
 
+  listGenres: () =>
+    Promise.resolve(
+      [...new Set(state.media.flatMap((item) => item.metadata.genres ?? []))].sort((one, other) =>
+        one.localeCompare(other),
+      ),
+    ),
+
   listItems: (libraryId, options) => {
     if (!state.libraries.some((entry) => entry.id === libraryId)) {
       return Promise.resolve(null);
@@ -98,7 +119,7 @@ const createMemoryLibraryService = (
 
     const matching = state.media
       .filter((item) => item.libraryId === libraryId)
-      .filter((item) => search === '' || item.title.toLowerCase().includes(search))
+      .filter((item) => search === '' || matchesSearch(item, search))
       .filter(
         (item) =>
           options.kind === undefined ||

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { stat } from 'node:fs/promises';
 import { z } from 'zod';
-import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { library, mediaItem } from '@FluxServer/db/Schema';
 import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
@@ -67,6 +67,39 @@ type CreateDatabaseLibraryServiceOptions = {
    */
   providers?: MetadataProvider[];
   onProblem?: (path: string, reason: string) => void;
+};
+
+/**
+ * What a typed search matches against.
+ *
+ * Three places rather than one, because somebody typing into a search box is
+ * naming whatever they can remember about a thing, and the title is only
+ * sometimes it. "Denzel" is a perfectly ordinary way to look for a film, and
+ * a title-only search answers it with nothing while the server holds the cast
+ * list that would have found it.
+ *
+ * The series title is in here for the same reason: searching "Ted" should
+ * find the programme's episodes, which are each titled something else
+ * entirely.
+ *
+ * Cast is matched by reading the stored array rather than by containment,
+ * because somebody types a surname and containment wants the whole name
+ * exactly. That costs a scan of the column — there is no index that serves a
+ * substring — which is affordable at the size a household library reaches and
+ * is the thing to revisit if this is ever pointed at twenty thousand items.
+ */
+const matchesSearch = (search: string) => {
+  const like = `%${search.trim()}%`;
+
+  return or(
+    ilike(mediaItem.title, like),
+    ilike(mediaItem.seriesTitle, like),
+    sql`exists (
+      select 1
+      from jsonb_array_elements(coalesce(${mediaItem.castMembers}, '[]'::jsonb)) as member
+      where member->>'name' ilike ${like}
+    )`,
+  );
 };
 
 /**
@@ -427,6 +460,18 @@ const createDatabaseLibraryService = ({
       };
     },
 
+    listGenres: async () => {
+      const rows = await db
+        .select({ genre: sql<string>`genre` })
+        .from(
+          sql`${mediaItem}, jsonb_array_elements_text(coalesce(${mediaItem.genres}, '[]'::jsonb)) as genre`,
+        )
+        .groupBy(sql`genre`)
+        .orderBy(sql`genre asc`);
+
+      return rows.map((row) => row.genre);
+    },
+
     listItems: async (libraryId, options) => {
       if ((await findLibrary(libraryId)) === null) {
         return null;
@@ -436,7 +481,7 @@ const createDatabaseLibraryService = ({
         eq(mediaItem.libraryId, libraryId),
         ...(options.search === undefined || options.search.trim() === ''
           ? []
-          : [ilike(mediaItem.title, `%${options.search}%`)]),
+          : [matchesSearch(options.search)]),
         ...(options.kind === undefined
           ? []
           : [

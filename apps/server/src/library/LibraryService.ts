@@ -97,6 +97,16 @@ type LibraryService = ShowService & {
     libraryId: string,
     options: ListItemsOptions,
   ) => Promise<{ items: MediaSummary[]; total: number } | null>;
+  /**
+   * Every genre anything in the libraries is actually filed under.
+   *
+   * Read from the items rather than from a catalogue's taxonomy, because a
+   * genre is only real here if something carries it — offering forty headings
+   * where thirty lead to an empty page is worse than offering ten that work.
+   *
+   * Across every library rather than one, because search already is.
+   */
+  listGenres: () => Promise<string[]>;
   getMedia: (id: string) => Promise<MediaDetail | null>;
   /**
    * Queues a scan and reports the job.
