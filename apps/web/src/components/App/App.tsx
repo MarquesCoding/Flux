@@ -269,7 +269,13 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   }, []);
 
   const readProgress = useCallback(async () => {
-    const fromServer = byMediaId(await fetchWatchProgress());
+    const answer = await fetchWatchProgress();
+
+    if (answer === null) {
+      return;
+    }
+
+    const fromServer = byMediaId(answer);
     const merged = new Map(fromServer);
 
     for (const [mediaId, mine] of reportedRef.current) {

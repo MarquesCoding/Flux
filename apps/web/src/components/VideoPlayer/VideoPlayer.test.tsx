@@ -498,6 +498,36 @@ describe('VideoPlayer', () => {
     vi.unstubAllGlobals();
   });
 
+  it('takes a starting position that only arrives after it opened', async () => {
+    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    const element = await screen.findByLabelText('Arrival');
+
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 0 });
+
+    rerender(<VideoPlayer media={media} startSeconds={2400} onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(element).toHaveProperty('currentTime', 2400);
+    });
+  });
+
+  it('leaves somebody who is already watching where they are', async () => {
+    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    const element = await screen.findByLabelText('Arrival');
+
+    Object.defineProperty(element, 'currentTime', {
+      configurable: true,
+      writable: true,
+      value: 600,
+    });
+
+    rerender(<VideoPlayer media={media} startSeconds={2400} onClose={vi.fn()} />);
+
+    expect(element).toHaveProperty('currentTime', 600);
+  });
+
   it('does not send a keepalive stop before a session has actually started', () => {
     const fetchMock = vi.fn();
 

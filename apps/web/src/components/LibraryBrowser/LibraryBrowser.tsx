@@ -158,7 +158,7 @@ const LibraryBrowser = ({
     let abandoned = false;
 
     void fetchWatchProgress().then((found) => {
-      if (!abandoned) {
+      if (!abandoned && found !== null) {
         setProgress(byMediaId(found));
       }
     });

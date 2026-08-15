@@ -121,6 +121,15 @@ const JUMP_SECONDS = 30;
  */
 const FINISHED_WITHIN_SECONDS = 90;
 
+/**
+ * How far in still counts as not having started.
+ *
+ * A position that arrives late is only applied while the film is still at its
+ * opening: past this, somebody is watching, and moving them is worse than
+ * having started them from the beginning.
+ */
+const RESUMED_WITHIN_SECONDS = 3;
+
 const HEALTH_INTERVAL_MILLISECONDS = 500;
 
 /**
@@ -219,6 +228,17 @@ const VideoPlayer = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /**
+   * Whether a starting position has already been applied to this film.
+   *
+   * Where to start is read from the server, and that answer can lose the race
+   * against the film being ready — in which case this opened at the beginning
+   * and the position turned up a moment later with nothing to do. Rather than
+   * make the whole player wait on that request, a late answer is honoured
+   * once, while nothing has moved off the opening seconds, so it can never
+   * fight somebody who has already started scrubbing.
+   */
+  const hasResumedRef = useRef(false);
   const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS);
   const [session, setSession] = useState<StartedSession | null>(null);
   const [state, setState] = useState<PlayerState>('starting');
@@ -587,6 +607,23 @@ const VideoPlayer = ({
     });
   }
 
+  useEffect(() => {
+    const element = videoRef.current;
+    const wanted = Math.floor(startSeconds);
+
+    if (element === null || wanted <= 0 || hasResumedRef.current) {
+      return;
+    }
+
+    if (element.currentTime > RESUMED_WITHIN_SECONDS) {
+      return;
+    }
+
+    hasResumedRef.current = true;
+    element.currentTime = wanted;
+    setPosition(wanted);
+  }, [startSeconds]);
+
   /**
    * Tells presence whether this tab is playing, and what it can measure
    * about the stream right now.
@@ -743,6 +780,7 @@ const VideoPlayer = ({
         }
 
         if (request.startSeconds > 0) {
+          hasResumedRef.current = true;
           element.currentTime = request.startSeconds;
         }
 

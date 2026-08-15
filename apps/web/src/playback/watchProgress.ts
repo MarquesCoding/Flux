@@ -19,22 +19,27 @@ const REPORT_EVERY_MILLISECONDS = 5_000;
 /**
  * Reads where this viewer got to in everything.
  *
- * Answers with nothing rather than throwing: a progress bar is an addition to
- * a library, and its absence must not stop one being browsed.
+ * Null means the question could not be asked — refused, unreachable, or an
+ * answer that did not parse — and is deliberately not the same as an empty
+ * list. A caller drawing progress bars can treat both as nothing to draw, but
+ * a caller deciding where to start a film must not: "you have watched none of
+ * this" and "I could not find out" lead to the same screen and only one of
+ * them is true, which is how a film that was half watched comes to open at the
+ * beginning.
  */
-const fetchWatchProgress = async (): Promise<WatchProgress[]> => {
+const fetchWatchProgress = async (): Promise<WatchProgress[] | null> => {
   try {
     const response = await fetch('/api/progress', {
       headers: { accept: 'application/json', ...profileHeaders() },
     });
 
     if (!response.ok) {
-      return [];
+      return null;
     }
 
     return WatchProgressListSchema.parse(await response.json()).progress;
   } catch {
-    return [];
+    return null;
   }
 };
 
