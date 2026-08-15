@@ -1,18 +1,9 @@
 import { useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
 import { AnimatedIcon } from '@FluxUI/AnimatedIcon';
 import { Button } from '@FluxUI/Button';
+import { SlidingMark } from '@FluxUI/SlidingMark';
 import { cn } from '@FluxUI/cn';
 import type { NavDockProps } from './NavDock.types';
-
-/**
- * How the mark travels between items.
- *
- * A spring rather than a duration: it is following a pointer, and a pointer
- * does not move on a curve somebody chose in advance. Stiff enough to keep up
- * with a quick pass along the dock, damped enough not to wobble when it lands.
- */
-const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;
 
 /**
  * The one bar, floating.
@@ -54,19 +45,11 @@ const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;
  * what is being shown, and the navigation rests on top of it.
  */
 const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }: NavDockProps) => {
-  const prefersReducedMotion = useReducedMotion();
-  const isStill = prefersReducedMotion === true;
   const [pointedAt, setPointedAt] = useState<string | null>(null);
 
   const lit = pointedAt ?? selectedId;
 
-  const mark = (
-    <motion.span
-      layoutId="nav-dock-mark"
-      transition={isStill ? { duration: 0 } : MARK_MOTION}
-      className="absolute inset-0 -z-10 rounded-full bg-[var(--surface-active)]"
-    />
-  );
+  const mark = <SlidingMark group="nav-dock-mark" />;
 
   return (
     <header
