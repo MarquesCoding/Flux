@@ -1,3 +1,4 @@
+import { formatBytes } from '@FluxCore/functions/formatBytes';
 import type { WebhookPayload, WebhookPreset } from '@FluxContracts/schemas/Webhook';
 
 /**
@@ -69,6 +70,14 @@ const sentenceFor = (payload: WebhookPayload): string => {
 
     case 'transcoder.reachable': {
       return 'The transcoder is answering again. Nothing needs doing.';
+    }
+
+    case 'disk.low': {
+      return `${payload.data.mountPoint} is running out of room — ${formatBytes(payload.data.availableBytes)} left of ${formatBytes(payload.data.totalBytes)}.`;
+    }
+
+    case 'disk.recovered': {
+      return `${payload.data.mountPoint} has room again — ${formatBytes(payload.data.availableBytes)} free. Nothing needs doing.`;
     }
   }
 };

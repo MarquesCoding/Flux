@@ -64,7 +64,7 @@ import {
   runDefinedJobAll,
   stopJobs,
 } from './scanCoordinator';
-import { formatBytes } from './formatBytes';
+import { formatBytes } from '@FluxCore/functions/formatBytes';
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
 import type {
   ActiveSession,

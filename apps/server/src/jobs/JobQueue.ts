@@ -158,6 +158,20 @@ const CHECK_CATALOGUE_CONNECTIVITY_JOB = 'server.checkCatalogueConnectivity';
 const CHECK_TRANSCODER_JOB = 'server.checkTranscoder';
 
 /**
+ * Asks how much room is left where Flux writes.
+ *
+ * The media service already measures every mounted filesystem, and the admin
+ * page already draws the figures — but only while somebody has it open, which
+ * is not when a disk fills. A full disk stops a scan, stops a transcode and
+ * stops a recording partway through, and it is the one failure on this list
+ * that gives plenty of warning to anybody watching for it.
+ *
+ * Not library-scoped: two libraries on one array are one disk, and the
+ * question is about the filesystem rather than the library.
+ */
+const CHECK_DISK_SPACE_JOB = 'server.checkDiskSpace';
+
+/**
  * Sends one event to one subscriber.
  *
  * A job rather than a call made where the event was raised, which is the
@@ -356,6 +370,7 @@ export {
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   CHECK_TRANSCODER_JOB,
+  CHECK_DISK_SPACE_JOB,
   DELIVER_WEBHOOK_JOB,
   PRUNE_WEBHOOK_DELIVERIES_JOB,
   DeliverWebhookJobSchema,

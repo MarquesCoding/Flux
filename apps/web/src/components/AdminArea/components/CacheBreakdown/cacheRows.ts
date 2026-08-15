@@ -1,5 +1,5 @@
 import type { AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin';
-import { formatBytes } from '@FluxWeb/components/AdminArea/formatBytes';
+import { formatBytes } from '@FluxCore/functions/formatBytes';
 
 type CacheRow = {
   label: string;
