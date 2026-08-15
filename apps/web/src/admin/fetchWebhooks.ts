@@ -1,3 +1,5 @@
+import { readRefusal } from './readRefusal';
+import type { Refusal } from './readRefusal';
 import { z } from 'zod';
 import { WebhookDeliverySchema, WebhookSubscriptionSchema } from '@FluxContracts/schemas/Webhook';
 import type {
@@ -16,24 +18,6 @@ type NewWebhook = {
   url: string;
   preset: WebhookPreset;
   events: WebhookEvent[];
-};
-
-type Refusal = { message: string } | null;
-
-const readRefusal = async (response: Response): Promise<Refusal> => {
-  if (response.ok) {
-    return null;
-  }
-
-  const body = await response
-    .json()
-    .then((value) => z.object({ error: z.string() }).safeParse(value))
-    .catch(() => null);
-
-  return {
-    message:
-      body?.success === true ? body.data.error : 'That could not be done. Try again in a moment.',
-  };
 };
 
 const fetchWebhooks = async (): Promise<WebhookSubscription[]> => {

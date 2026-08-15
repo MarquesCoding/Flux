@@ -41,11 +41,8 @@ import { findSiblings, nextEpisode } from '@FluxWeb/library/pickFeatured';
 import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
 import { summariseDetail } from '@FluxWeb/library/summariseDetail';
 import { watchPresence } from '@FluxWeb/presence/watchPresence';
-import {
-  isWorthResuming,
-  watchedFraction,
-  FINISHED_WITHIN_SECONDS,
-} from '@FluxContracts/schemas/WatchProgress';
+import { watchedFraction, FINISHED_WITHIN_SECONDS } from '@FluxContracts/schemas/WatchProgress';
+import { resumeFor } from '@FluxWeb/playback/resumeFor';
 import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types';
 import { fetchSession } from '@FluxWeb/session/fetchSession';
 import { signOut } from '@FluxWeb/session/signOut';
@@ -183,15 +180,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const section: ShellSection = place.section;
   const inspecting = place.inspecting === null ? null : (known.get(place.inspecting) ?? null);
   const playing = place.playing === null ? null : (known.get(place.playing) ?? null);
-
-  /**
-   * Where this viewer left an item, when it is worth coming back to.
-   */
-  const resumeFor = (mediaId: string): number | null => {
-    const found = progress.get(mediaId);
-
-    return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null;
-  };
 
   /**
    * Where something actually got to, for picking it up again.
@@ -549,7 +537,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
           return found === undefined ? undefined : watchedFraction(found);
         }}
-        resumeFor={resumeFor}
+        resumeFor={(mediaId) => resumeFor(progress, mediaId)}
         isFinished={(mediaId) => progress.get(mediaId)?.isFinished === true}
       />
 
@@ -564,8 +552,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         onSelectSibling={(sibling) => {
           go({ inspecting: sibling.id });
         }}
-        {...(inspecting !== null && resumeFor(inspecting.id) !== null
-          ? { resumeSeconds: resumeFor(inspecting.id) ?? 0 }
+        {...(inspecting !== null && resumeFor(progress, inspecting.id) !== null
+          ? { resumeSeconds: resumeFor(progress, inspecting.id) ?? 0 }
           : {})}
         {...(openShow === null
           ? {}
@@ -647,7 +635,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
                 return found === undefined ? undefined : watchedFraction(found);
               }}
-              resumeFor={resumeFor}
+              resumeFor={(mediaId) => resumeFor(progress, mediaId)}
               isKept={favourites.isKept}
               onToggleKept={(media) => {
                 favourites.toggle(media.id);
@@ -676,7 +664,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
                 return found === undefined ? undefined : watchedFraction(found);
               }}
-              resumeFor={resumeFor}
+              resumeFor={(mediaId) => resumeFor(progress, mediaId)}
               isKept={favourites.isKept}
               onToggleKept={(media) => {
                 favourites.toggle(media.id);

@@ -12,7 +12,8 @@ import { groupIntoRails } from '@FluxWeb/library/groupIntoRails';
 import { pickFeatured } from '@FluxWeb/library/pickFeatured';
 import { EmptyLibrary } from '@FluxWeb/components/LibraryBrowser/components/EmptyLibrary/EmptyLibrary';
 import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
-import { watchedFraction, isWorthResuming } from '@FluxContracts/schemas/WatchProgress';
+import { watchedFraction } from '@FluxContracts/schemas/WatchProgress';
+import { resumeFor } from '@FluxWeb/playback/resumeFor';
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types';
@@ -49,14 +50,6 @@ const LibraryBrowser = ({
   const [appliedSearch, setAppliedSearch] = useState('');
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
 
-  /**
-   * Where this viewer left something, when it is worth coming back to.
-   */
-  const resumeFor = (mediaId: string): number | null => {
-    const found = progress.get(mediaId);
-
-    return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null;
-  };
   const [state, setState] = useState<BrowserState>('loading');
 
   const reportItems = useRef(onItemsLoaded);
@@ -231,7 +224,7 @@ const LibraryBrowser = ({
               onWatch(media, startSeconds);
             }
           }}
-          resumeFor={resumeFor}
+          resumeFor={(mediaId) => resumeFor(progress, mediaId)}
           onInspect={(media) => {
             if (media.seriesId !== null && onShow !== undefined) {
               onShow(media.seriesId);
@@ -316,9 +309,9 @@ const LibraryBrowser = ({
                                 ),
                               }
                             : {})}
-                          {...(resumeFor(media.id) === null
+                          {...(resumeFor(progress, media.id) === null
                             ? {}
-                            : { resumeSeconds: Math.floor(resumeFor(media.id) ?? 0) })}
+                            : { resumeSeconds: Math.floor(resumeFor(progress, media.id) ?? 0) })}
                           onPlay={(media, startSeconds) => {
                             if (onWatch === undefined) {
                               onPlay(media);

@@ -129,7 +129,12 @@ const CHANNEL_NAMES: Record<number, string> = {
 };
 
 /**
- * Normalises whatever a file called a language into a two-letter code.
+ * Normalises whatever a file called a language into a two-letter code. Files carry two-letter codes,
+ * three-letter codes, both competing three-letter standards, and sometimes the language written out
+ * in full; all of them mean the same thing to a viewer and are answered with the same code here.
+ *
+ * @param raw - The language as the file tagged it, in any spelling, or nothing at all.
+ * @returns The two-letter code, or null where the tag was absent or meant "nobody said".
  */
 const readLanguage = (raw: string | null | undefined): string | null => {
   const lowered = (raw ?? '').trim().toLowerCase();
@@ -142,7 +147,12 @@ const readLanguage = (raw: string | null | undefined): string | null => {
 };
 
 /**
- * Names a language for a viewer.
+ * Names a language the way a viewer reads it, in that language's own words — Deutsch rather than
+ * German. A code nothing recognises is shown upper-cased rather than replaced by a guess, so
+ * somebody seeing `TLH` at least learns something true about the file.
+ *
+ * @param raw - The language as the file tagged it, in any spelling.
+ * @returns The name to show, or null where the file named no language.
  */
 const describeLanguage = (raw: string | null | undefined): string | null => {
   const code = readLanguage(raw);
@@ -155,7 +165,12 @@ const describeLanguage = (raw: string | null | undefined): string | null => {
 };
 
 /**
- * Describes a channel count the way it is sold.
+ * Describes a channel count the way it is printed on a box rather than the way a decoder counts:
+ * six discrete streams are `5.1` to everybody choosing what to listen to. A count with no common
+ * name falls back to the number followed by `ch`.
+ *
+ * @param channels - How many discrete audio channels the track carries.
+ * @returns The arrangement as it is sold, such as `5.1` or `Stereo`.
  */
 const describeChannels = (channels: number): string =>
   CHANNEL_NAMES[channels] ?? `${channels.toString()}ch`;
@@ -171,7 +186,17 @@ type AudioTrackFacts = {
 };
 
 /**
- * Names an audio track for a menu.
+ * Names one audio track for a menu of them, built from whatever the file actually said and in
+ * descending order of how much it tells a viewer: the language, then any title distinguishing two
+ * tracks of the same language, then the channel arrangement and either Atmos or the codec. Real
+ * files are inconsistent about all of this, so a track naming nothing falls back to its position
+ * rather than to the word "Unknown".
+ *
+ * @param track - What the file says about this track: codec, channels, language, title and whether
+ *   it is Atmos.
+ * @param position - Which audio track this is, counting from one — not the stream index, which
+ *   means nothing to a viewer.
+ * @returns The line to show in a menu.
  */
 const describeAudioTrack = (track: AudioTrackFacts, position: number): string => {
   const language = describeLanguage(track.language);
@@ -201,8 +226,16 @@ type SelectableAudioStream = {
 };
 
 /**
- * Picks which of a file's audio streams should be used, when one language is preferred over the
- * others.
+ * Picks which of a file's audio streams to play, preferring one language where the library has been
+ * told to. A file with nothing in that language is left exactly as it would have been without any
+ * preference at all — its own default, or its first — so a preference that does not apply to this
+ * file cannot break it. Shared by playback negotiation and the scanner's preview generation so the
+ * two never disagree about the same file.
+ *
+ * @param streams - The file's audio streams, in the order the container lists them.
+ * @param preferredLanguage - The language to prefer, in any spelling, or nothing to take the file's
+ *   own choice.
+ * @returns The stream to play, or undefined for a file carrying no audio at all.
  */
 const selectAudioStream = <TStream extends SelectableAudioStream>(
   streams: TStream[],

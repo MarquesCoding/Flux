@@ -1,5 +1,6 @@
+import { readRefusal } from './readRefusal';
+import type { Refusal } from './readRefusal';
 import { z } from 'zod';
-import type { Refusal } from './fetchRoles';
 
 const AccountSchema = z.object({
   id: z.string(),
@@ -14,22 +15,6 @@ const AccountSchema = z.object({
 });
 
 type Account = z.infer<typeof AccountSchema>;
-
-const readRefusal = async (response: Response): Promise<Refusal> => {
-  if (response.ok) {
-    return null;
-  }
-
-  const body = await response
-    .json()
-    .then((value) => z.object({ error: z.string() }).safeParse(value))
-    .catch(() => null);
-
-  return {
-    message:
-      body?.success === true ? body.data.error : 'That could not be done. Try again in a moment.',
-  };
-};
 
 /**
  * Everybody with an account, as the administration page needs them.

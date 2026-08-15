@@ -1,3 +1,5 @@
+import { addedAtMs } from '@FluxCore/functions/addedAtMs';
+import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
 import { isWorthResuming } from '@FluxContracts/schemas/WatchProgress';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
@@ -16,30 +18,6 @@ const SERIES_RAIL_LIMIT = 60;
 const MIN_SERIES_ITEMS = 2;
 
 const RECENT_DAYS = 30;
-
-/**
- * Reads a timestamp, treating anything unreadable as long ago.
- */
-const addedAtMs = (media: MediaSummary): number => {
-  const parsed = Date.parse(media.addedAt);
-
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
-
-/**
- * Orders episodes the way they are watched.
- */
-const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
-  const season = (left.seasonNumber ?? 0) - (right.seasonNumber ?? 0);
-
-  if (season !== 0) {
-    return season;
-  }
-
-  const episode = (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0);
-
-  return episode === 0 ? left.title.localeCompare(right.title) : episode;
-};
 
 /**
  * Sorts a library into the rows it is browsed by.
@@ -77,8 +55,8 @@ const groupIntoRails = (
   const seenSeries = new Set<string>();
 
   const recent = [...items]
-    .filter((media) => addedAtMs(media) >= recentThreshold)
-    .sort((left, right) => addedAtMs(right) - addedAtMs(left))
+    .filter((media) => addedAtMs(media.addedAt) >= recentThreshold)
+    .sort((left, right) => addedAtMs(right.addedAt) - addedAtMs(left.addedAt))
     .filter((media) => {
       const series = media.seriesTitle ?? '';
 

@@ -3,7 +3,12 @@ import { usePagedScroller } from '@FluxUI/usePagedScroller';
 import type { CastGridProps } from './CastGrid.types';
 
 /**
- * Who is in it.
+ * Shows the cast of a film or programme as a horizontal rail of faces, each with the performer's
+ * name and the part they played. The rail pages rather than scrolls freely, and carries a row of
+ * dots and a count once there is more than one page of it. A performer the catalogue has no
+ * photograph for is drawn as an empty frame rather than being left out.
+ *
+ * @param members - The cast in billing order, each with a name, a role and an image if one is known.
  */
 const CastGrid = ({ members }: CastGridProps) => {
   const { trackRef, pages, measure, scrollTo } = usePagedScroller<HTMLUListElement>([members]);

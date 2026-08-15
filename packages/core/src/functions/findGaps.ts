@@ -7,7 +7,12 @@ type Gaps = {
 };
 
 /**
- * The whole numbers missing between the ends of a list.
+ * Finds the whole numbers absent from between the smallest and largest a list holds, so a shelf
+ * holding episodes one, two and five is missing three and four — and is not considered to be
+ * missing anything beyond five, since nothing here says how many there were.
+ *
+ * @param numbers - The numbers present, in any order.
+ * @returns The numbers absent from between the ends, ascending.
  */
 const between = (numbers: number[]): number[] => {
   const present = new Set(numbers);
@@ -23,7 +28,13 @@ const between = (numbers: number[]): number[] => {
 };
 
 /**
- * The whole numbers from one up to a count that a list does not have.
+ * Finds which of the numbers from one up to a known total a list does not hold. Used where a
+ * catalogue has said how many episodes a season has, so absence past the last one held is real
+ * absence rather than the end of the shelf.
+ *
+ * @param numbers - The numbers present, in any order.
+ * @param count - How many there should be in total.
+ * @returns The missing numbers, ascending.
  */
 const upTo = (numbers: number[], count: number): number[] => {
   const present = new Set(numbers);
@@ -39,7 +50,12 @@ const upTo = (numbers: number[], count: number): number[] => {
 };
 
 /**
- * The episode numbers a season holds.
+ * Reads the episode numbers one season of a programme actually holds, ignoring any episode the
+ * scanner could not number.
+ *
+ * @param show - The programme, with its seasons and their episodes.
+ * @param seasonNumber - The season being asked about.
+ * @returns The episode numbers held, in the order the season lists them.
  */
 const numbersIn = (show: ShowDetail, seasonNumber: number): number[] =>
   (show.seasons.find((season) => season.seasonNumber === seasonNumber)?.episodes ?? [])
@@ -47,7 +63,13 @@ const numbersIn = (show: ShowDetail, seasonNumber: number): number[] =>
     .filter((number): number is number => number !== null && number !== undefined);
 
 /**
- * What a series is missing.
+ * Works out what a programme is missing, preferring the catalogue's own shape where one is known —
+ * which is the only way to tell a season that ends at episode nine from one missing its tenth. With
+ * no catalogue to ask, absence is only reported between the episodes actually held, since nothing
+ * else can be known from the files alone.
+ *
+ * @param show - The programme as Flux holds it, with the catalogue's shape when one was fetched.
+ * @returns The missing seasons, the missing episodes by season, and whether a catalogue said so.
  */
 const findGaps = (show: ShowDetail): Gaps => {
   const shape = show.shape ?? null;

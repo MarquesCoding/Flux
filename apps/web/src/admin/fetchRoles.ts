@@ -1,3 +1,5 @@
+import { readRefusal } from './readRefusal';
+import type { Refusal } from './readRefusal';
 import { z } from 'zod';
 import { PermissionSchema } from '@FluxContracts/schemas/Permission';
 import type { Permission, PermissionGrant, Role } from '@FluxContracts/schemas/Permission';
@@ -21,24 +23,6 @@ const AccountPermissionsSchema = z.object({
 });
 
 type AccountPermissions = z.infer<typeof AccountPermissionsSchema>;
-
-type Refusal = { message: string } | null;
-
-const readRefusal = async (response: Response): Promise<Refusal> => {
-  if (response.ok) {
-    return null;
-  }
-
-  const body = await response
-    .json()
-    .then((value) => z.object({ error: z.string() }).safeParse(value))
-    .catch(() => null);
-
-  return {
-    message:
-      body?.success === true ? body.data.error : 'That could not be done. Try again in a moment.',
-  };
-};
 
 const fetchPermissionCatalogue = async (): Promise<Permission[]> => {
   const response = await fetch('/api/admin/permissions', { credentials: 'same-origin' }).catch(

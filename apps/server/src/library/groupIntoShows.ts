@@ -1,30 +1,8 @@
+import { addedAtMs } from '@FluxCore/functions/addedAtMs';
+import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
-
-/**
- * Reads a timestamp, treating anything unreadable as long ago.
- */
-const addedAtMs = (media: MediaSummary): number => {
-  const parsed = Date.parse(media.addedAt);
-
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
-
-/**
- * Orders episodes the way they are watched.
- */
-const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
-  const season = (left.seasonNumber ?? 0) - (right.seasonNumber ?? 0);
-
-  if (season !== 0) {
-    return season;
-  }
-
-  const episode = (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0);
-
-  return episode === 0 ? left.title.localeCompare(right.title) : episode;
-};
 
 /**
  * Everything belonging to the same series, gathered.
@@ -67,7 +45,7 @@ const describeShow = (id: string, episodes: MediaSummary[]): ShowSummary | null 
     seasonCount: seasons.size,
     episodeCount: inOrder.length,
     latestAddedAt: new Date(
-      Math.max(...inOrder.map((episode) => addedAtMs(episode))),
+      Math.max(...inOrder.map((episode) => addedAtMs(episode.addedAt))),
     ).toISOString(),
     coverMediaId: cover.id,
     year: inOrder.find((episode) => episode.year !== null)?.year ?? null,
