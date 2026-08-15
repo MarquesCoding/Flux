@@ -891,11 +891,22 @@ pub const NO_EMBEDDED_CAPTIONS: [&str; 2] = ["-a53cc", "0"];
 /// session and a new session encodes from nothing. Segments larger than asked
 /// for make every one of those waits longer and lumpier.
 ///
+/// A run that starts part way in keeps the film's own clock, so the expression
+/// has to start from where the run does. Counting from nought against an
+/// absolute clock is satisfied by every frame until the count catches up:
+/// measured on a run seeking to 1070 seconds, that is a forced keyframe on
+/// each of the next few hundred frames, which is a picture nobody asked for
+/// and segments nothing predicted.
+///
 /// Only meaningful where Flux is encoding. A copied stream keeps the keyframes
 /// it already has and there is no encoder to instruct.
 #[must_use]
-fn force_key_frames_argument(segment_seconds: u32) -> String {
-    format!("expr:gte(t,n_forced*{segment_seconds})")
+fn force_key_frames_argument(segment_seconds: u32, from_seconds: f64) -> String {
+    if from_seconds <= 0.0 {
+        return format!("expr:gte(t,n_forced*{segment_seconds})");
+    }
+
+    format!("expr:gte(t,{from_seconds:.6}+n_forced*{segment_seconds})")
 }
 
 /// Where a run begins.
@@ -987,6 +998,11 @@ impl TranscodePlan {
     /// caller. Handing that fact back rather than working it out a second time
     /// downstream is what stops the two disagreeing and mapping the source
     /// video alongside the composited one.
+    /// Where this run's encoder must put its keyframes.
+    fn forced_keyframes(&self) -> String {
+        force_key_frames_argument(self.spec.segment_seconds, self.start_at.seconds)
+    }
+
     fn push_video_args(&self, args: &mut Vec<String>) -> bool {
         let mut is_mapped = false;
 
@@ -1012,7 +1028,8 @@ impl TranscodePlan {
                         .map(|argument| (*argument).to_owned()),
                 );
                 args.push("-force_key_frames".into());
-                args.push(force_key_frames_argument(self.spec.segment_seconds));
+                args.push(self.forced_keyframes());
+
                 let route = frame_route(&self.spec, self.device_filters);
 
                 if let (Some(pipeline), Some(source)) =
@@ -1249,6 +1266,26 @@ mod tests {
     /// produced ten second segments and said nothing. The two numbers have to
     /// be the same one, so this reads both out of the emitted arguments rather
     /// than asserting the expression in isolation.
+    /// A run that seeks counts from where it starts, not from nought.
+    ///
+    /// With the film's own clock the counting form is satisfied by every frame
+    /// until it catches up, so a run starting at 1070 seconds forces a
+    /// keyframe on hundreds of consecutive frames.
+    #[test]
+    fn counts_forced_keyframes_from_where_the_run_starts() {
+        let mut session = plan(on_gpu(HardwareAccel::Vaapi));
+        session.start_at = SegmentStart {
+            index: 267,
+            seconds: 1070.0,
+        };
+
+        let args = session.to_ffmpeg_args();
+
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-force_key_frames", "expr:gte(t,1070.000000+n_forced*4)"]));
+    }
+
     #[test]
     fn cuts_keyframes_where_segments_are_asked_to_begin() {
         let args = plan(on_gpu(HardwareAccel::Vaapi)).to_ffmpeg_args();
@@ -1270,8 +1307,8 @@ mod tests {
 
     #[test]
     fn builds_the_expression_from_the_segment_length() {
-        assert_eq!(force_key_frames_argument(4), "expr:gte(t,n_forced*4)");
-        assert_eq!(force_key_frames_argument(6), "expr:gte(t,n_forced*6)");
+        assert_eq!(force_key_frames_argument(4, 0.0), "expr:gte(t,n_forced*4)");
+        assert_eq!(force_key_frames_argument(6, 0.0), "expr:gte(t,n_forced*6)");
     }
 
     /// A copied stream keeps the keyframes it already has.

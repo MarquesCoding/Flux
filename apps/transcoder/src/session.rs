@@ -592,7 +592,7 @@ impl SessionRegistry {
                 .and_then(|index| u64::try_from(index).ok())
                 .unwrap_or(0);
 
-            begin_run(&self.config, &mut session, opening).await;
+            self.begin_run(&mut session, opening).await;
         }
 
         let mut sessions = self.sessions.lock().await;
@@ -624,9 +624,30 @@ impl SessionRegistry {
 
         session.stop();
 
-        begin_run(&self.config, session, wanted).await;
+        self.begin_run(session, wanted).await;
 
         true
+    }
+
+    /// Starts a run at a segment, recording it as the live one.
+    async fn begin_run(&self, session: &mut Session, wanted: u64) {
+        begin_run_inner(self, session, wanted).await;
+    }
+
+    /// Records that a run has ended, however it ended.
+    ///
+    /// Only if it is still the run the session believes in: a restart has
+    /// already replaced it, and the run being replaced must not clear the
+    /// record of the one that replaced it.
+    async fn run_ended(&self, id: &str, from: u64) {
+        let mut sessions = self.sessions.lock().await;
+
+        if let Some(session) = sessions.get_mut(id) {
+            if session.running_from == Some(from) {
+                session.running_from = None;
+                session.cancel = None;
+            }
+        }
     }
 
     /// Where the running transcode is, and where every segment falls.
@@ -869,7 +890,19 @@ fn seek_into(lengths: &[f64], index: usize) -> f64 {
 /// The run's own playlist is removed first. It is how far the transcode has
 /// got, and one left behind by the run being replaced would say the new one
 /// had already reached somewhere it has not started.
-async fn begin_run(config: &SessionConfig, session: &mut Session, wanted: u64) {
+///
+/// The registry is told when the run ends, whether it finished the film or
+/// died on its own. Without that a session goes on believing a transcode is
+/// coming: every request for a segment the dead run never wrote waits the
+/// full timeout and is then refused, which a viewer sees as the stream
+/// stopping for good after a scrub. Measured in a scrubbing session — twenty
+/// one runs, and segment 237 waited 30 seconds for a run that had already
+/// exited.
+#[allow(
+    clippy::used_underscore_items,
+    reason = "the free function is the body of the method beside it"
+)]
+async fn begin_run_inner(registry: &SessionRegistry, session: &mut Session, wanted: u64) {
     let start_at = SegmentStart {
         index: u32::try_from(wanted).unwrap_or(u32::MAX),
         seconds: seek_into(&session.lengths, index_of(wanted)),
@@ -884,12 +917,18 @@ async fn begin_run(config: &SessionConfig, session: &mut Session, wanted: u64) {
 
     let (cancel_tx, cancel_rx) = oneshot::channel();
     let supervised = plan.clone();
-    let config = config.clone();
+    let config = registry.config.clone();
     let watched = Arc::clone(&session.reached);
+    let ending = registry.clone();
+    let id = session.id.clone();
 
     session.reached.store(wanted, Ordering::Relaxed);
 
-    tokio::spawn(async move { supervise(config, supervised, cancel_rx, watched).await });
+    tokio::spawn(async move {
+        supervise(config, supervised, cancel_rx, watched).await;
+
+        ending.run_ended(&id, wanted).await;
+    });
 
     session.plan = plan;
     session.cancel = Some(cancel_tx);

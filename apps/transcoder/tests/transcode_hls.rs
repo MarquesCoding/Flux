@@ -479,6 +479,46 @@ async fn starts_one_transcode_when_two_viewers_ask_at_once() {
     );
 }
 
+/// A run that has ended must not be waited for.
+///
+/// A session recorded which run was live and nothing cleared it when the run
+/// exited, so every request for a segment that run never wrote waited the full
+/// timeout and was then refused. A viewer saw the stream stop for good after
+/// scrubbing — measured across twenty one runs, where segment 237 waited
+/// thirty seconds for a transcode that had already finished.
+#[tokio::test]
+async fn produces_a_segment_again_after_the_run_that_wrote_it_has_ended() {
+    let _ = std::fs::remove_dir_all(cache_root("ended"));
+
+    let app = app(registry("ended"));
+    let (_, body) = start(&app, &spec(VideoAction::Copy, AudioAction::Copy)).await;
+    let id = body["id"].as_str().expect("has an id").to_owned();
+    let directory = cache_root("ended").join(&id);
+
+    for _ in 0..100 {
+        if directory.join(".complete").exists() {
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    let segment = directory.join("segment00001.ts");
+
+    assert!(segment.exists(), "the run wrote the segment first");
+
+    std::fs::remove_file(&segment).expect("takes the segment away");
+
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00001.ts"))).await;
+
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "the run should have been started again"
+    );
+    assert!(bytes.len() > 512, "segment was {} bytes", bytes.len());
+}
+
 /// One viewer closing a tab must not take the film away from the other.
 ///
 /// Everybody watching the same thing shares one session, so a stop that
