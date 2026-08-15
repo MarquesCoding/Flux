@@ -27,6 +27,16 @@ type ListItemsOptions = {
   kind?: 'films' | 'shows';
   genre?: string;
   /**
+   * The years to keep, inclusive at both ends, either end optional.
+   */
+  yearFrom?: number;
+  yearTo?: number;
+  /**
+   * The lowest rating worth showing, out of ten. Anything nobody has rated is
+   * left out rather than treated as passing.
+   */
+  minRating?: number;
+  /**
    * Particular items, named outright — for a page built from a list kept
    * elsewhere, such as what this viewer has favourited.
    */
@@ -122,7 +132,18 @@ const updateLibrary = async (libraryId: string, input: UpdateLibraryInput): Prom
  */
 const fetchLibraryItems = async (
   libraryId: string,
-  { search, kind, genre, ids, order, limit = 60, offset = 0 }: ListItemsOptions = {},
+  {
+    search,
+    kind,
+    genre,
+    yearFrom,
+    yearTo,
+    minRating,
+    ids,
+    order,
+    limit = 60,
+    offset = 0,
+  }: ListItemsOptions = {},
 ): Promise<MediaPage> => {
   const query = new URLSearchParams({ limit: String(limit), offset: String(offset) });
 
@@ -136,6 +157,18 @@ const fetchLibraryItems = async (
 
   if (genre !== undefined && genre !== '') {
     query.set('genre', genre);
+  }
+
+  if (yearFrom !== undefined) {
+    query.set('yearFrom', String(yearFrom));
+  }
+
+  if (yearTo !== undefined) {
+    query.set('yearTo', String(yearTo));
+  }
+
+  if (minRating !== undefined) {
+    query.set('minRating', String(minRating));
   }
 
   if (ids !== undefined) {
