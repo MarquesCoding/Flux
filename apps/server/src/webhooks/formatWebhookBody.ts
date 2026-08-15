@@ -19,6 +19,11 @@ type WebhookRequestBody = {
  * `job.failed` turned into prose mechanically reads "job failed", which is
  * the one thing the reader already knows from having been sent it at all.
  * What they need is which job, and why.
+ *
+ * A recovery says so plainly and says nothing needs doing, because it arrives
+ * through the same channel, at the same hour, looking like the alert that
+ * woke somebody. Delivered with the same weight as an outage it reads as a
+ * second alarm, and the point of sending it is the opposite.
  */
 const sentenceFor = (payload: WebhookPayload): string => {
   switch (payload.event) {
@@ -42,8 +47,16 @@ const sentenceFor = (payload: WebhookPayload): string => {
       return 'The catalogue could not be reached. Scans will import files without matching them.';
     }
 
+    case 'catalogue.reachable': {
+      return 'The catalogue can be reached again. Nothing needs doing.';
+    }
+
     case 'transcoder.unreachable': {
       return `The transcoder could not be reached — ${payload.data.reason}`;
+    }
+
+    case 'transcoder.reachable': {
+      return 'The transcoder is answering again. Nothing needs doing.';
     }
   }
 };

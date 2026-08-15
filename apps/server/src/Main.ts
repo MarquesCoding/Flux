@@ -307,6 +307,30 @@ const transcoderWatch = createReachabilityWatch({
       data: { reason: `${env.TRANSCODER_URL} did not answer a health check.` },
     });
   },
+  onRegained: () => {
+    process.stdout.write('transcoder: answering again\n');
+
+    void events.publish({ event: 'transcoder.reachable', data: {} });
+  },
+});
+
+/**
+ * Whether the catalogue was answering last time anybody asked.
+ *
+ * Behind a watch for the same reason the transcoder is, and it changes what
+ * this check announces. It used to say the catalogue was unreachable on every
+ * failed run: once a day, which was tolerable only because the check is
+ * daily. Paired with a recovery that rule breaks — a catalogue that came back
+ * would be announced as recovered every morning for ever — so both directions
+ * became transitions, and the two checks now follow one rule instead of two.
+ */
+const catalogueWatch = createReachabilityWatch({
+  onLost: () => {
+    void events.publish({ event: 'catalogue.unreachable', data: {} });
+  },
+  onRegained: () => {
+    void events.publish({ event: 'catalogue.reachable', data: {} });
+  },
 });
 
 /**
@@ -550,9 +574,7 @@ const jobs = await createJobQueue({
       jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
       process.stdout.write(`catalogue connectivity: ${reachable ? 'reachable' : 'unreachable'}\n`);
 
-      if (!reachable) {
-        await events.publish({ event: 'catalogue.unreachable', data: {} });
-      }
+      catalogueWatch.record(reachable);
     },
     [CHECK_TRANSCODER_JOB]: async (jobId) => {
       jobs.reportProgress(jobId, 'checking', 0, 1);
