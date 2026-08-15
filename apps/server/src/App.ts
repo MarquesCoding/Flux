@@ -159,6 +159,21 @@ import {
   DELIVERY_PAGE,
 } from '@FluxServer/routes/WebhookRoute';
 import { createMemoryWebhookStore } from '@FluxServer/webhooks/createMemoryWebhookStore';
+import { createMemoryNotificationStore } from '@FluxServer/notifications/createMemoryNotificationStore';
+import {
+  listNotificationsRoute,
+  readNotificationsRoute,
+  readNotificationPreferencesRoute,
+  writeNotificationPreferenceRoute,
+  subscribeToPushRoute,
+  unsubscribeFromPushRoute,
+  NOTIFICATION_PAGE,
+} from '@FluxServer/routes/NotificationRoute';
+import {
+  DEFAULT_NOTIFICATION_PREFERENCE,
+  NOTIFICATION_EVENTS,
+} from '@FluxContracts/schemas/Notification';
+import type { NotificationStore } from '@FluxServer/notifications/NotificationStore';
 import { isSafeWebhookUrl } from '@FluxServer/webhooks/isSafeWebhookUrl';
 import { queueWebhookTest } from '@FluxServer/webhooks/queueWebhookTest';
 import { queueWebhookRedelivery } from '@FluxServer/webhooks/queueWebhookRedelivery';
@@ -303,6 +318,22 @@ type CreateAppOptions = {
    * rather than failing.
    */
   webhooks?: WebhookStore;
+  /**
+   * Where the household's notifications are kept.
+   *
+   * Optional so a suite exercising an unrelated route need not build one. The
+   * in-memory default holds nothing and knows of no accounts, which means the
+   * routes work and list nothing rather than failing.
+   */
+  notifications?: NotificationStore;
+  /**
+   * The public half of the push identity, for a browser about to subscribe.
+   *
+   * Read rather than held, because it is generated on first need and a server
+   * that has never sent a push has none yet. Empty means push is unavailable,
+   * which the browser can act on by not offering it.
+   */
+  readPushPublicKey?: () => Promise<string>;
   /**
    * Queues one delivery.
    *
@@ -500,6 +531,8 @@ const createApp = ({
   history,
   apiKeys = createBetterAuthApiKeyService(auth),
   webhooks = createMemoryWebhookStore(),
+  notifications = createMemoryNotificationStore(),
+  readPushPublicKey = () => Promise.resolve(''),
   queueWebhookDelivery = () => Promise.resolve(),
 
   banAccount,
@@ -1290,6 +1323,98 @@ const createApp = ({
           { error: 'No such delivery, or the subscription is gone or turned off.' },
           404,
         );
+  });
+
+  app.openapi(listNotificationsRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    return context.json(
+      {
+        notifications: await notifications.list(account.id, NOTIFICATION_PAGE),
+        unread: await notifications.countUnread(account.id),
+      },
+      200,
+    );
+  });
+
+  app.openapi(readNotificationsRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const { id } = context.req.valid('json');
+
+    await notifications.markRead(account.id, id);
+
+    return context.json({ unread: await notifications.countUnread(account.id) }, 200);
+  });
+
+  app.openapi(readNotificationPreferencesRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const stored = await notifications.readPreferences(account.id);
+
+    /**
+     * Every event, whether or not somebody has chosen about it.
+     *
+     * A caller reading this should see what will actually happen, and what
+     * happens without a stored row is the default — answering only the rows
+     * that exist would make a fresh account look like one that had turned
+     * everything off.
+     */
+    const chosen = new Map(stored.map((one) => [one.event, one]));
+
+    const preferences = NOTIFICATION_EVENTS.map(
+      (event) => chosen.get(event) ?? { event, ...DEFAULT_NOTIFICATION_PREFERENCE },
+    );
+
+    return context.json({ preferences, pushPublicKey: await readPushPublicKey() }, 200);
+  });
+
+  app.openapi(writeNotificationPreferenceRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    await notifications.writePreference(account.id, context.req.valid('json'));
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(subscribeToPushRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    await notifications.addPushEndpoint(account.id, context.req.valid('json'));
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(unsubscribeFromPushRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    await notifications.removePushEndpoint(context.req.valid('json').endpoint);
+
+    return context.body(null, 204);
   });
 
   app.openapi(listProfilesRoute, async (context) => {

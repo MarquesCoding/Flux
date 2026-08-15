@@ -936,6 +936,8 @@ const app = createApp({
   history: historyService,
   webhooks: webhookSubscriptions,
   queueWebhookDelivery,
+  notifications,
+  readPushPublicKey: async () => (await readPushKeys()).publicKey,
   favourites: createDatabaseFavouriteService(db),
   profiles: profileService,
   promoteProfile: async ({ profileId, email, password }) => {
