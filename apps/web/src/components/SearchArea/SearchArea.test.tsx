@@ -10,10 +10,16 @@ type Options = { search?: string; kind?: string; genre?: string; limit?: number 
 const fetchLibraries = vi.fn<() => Promise<{ id: string }[]>>();
 const fetchLibraryItems = vi.fn<(libraryId: string, options?: Options) => Promise<Page>>();
 
+const fetchGenres = vi.fn<() => Promise<string[]>>();
+
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
   fetchLibraries: () => fetchLibraries(),
   fetchLibraryItems: (libraryId: string, options?: Options) =>
     fetchLibraryItems(libraryId, options),
+}));
+
+vi.mock('@FluxWeb/library/fetchGenres', () => ({
+  fetchGenres: () => fetchGenres(),
 }));
 
 const item = (id: string, title: string, genres?: string[]): MediaSummary => ({
@@ -39,6 +45,7 @@ beforeEach(() => {
   fetchLibraryItems
     .mockReset()
     .mockResolvedValue({ items: [item('a', 'Arrival', ['Science fiction'])], total: 1 });
+  fetchGenres.mockReset().mockResolvedValue(['Science fiction']);
 });
 
 describe('SearchArea', () => {
@@ -166,6 +173,52 @@ describe('SearchArea', () => {
     await user.click(await screen.findByRole('button', { name: /Clear/ }));
 
     expect(onSearchChange).toHaveBeenCalledWith('');
+  });
+
+  it('draws a programme once rather than once per episode', async () => {
+    fetchLibraryItems.mockResolvedValue({
+      items: [
+        { ...item('e1', 'Pilot'), seriesId: 'ted', seriesTitle: 'Ted Lasso', episodeNumber: 1 },
+        { ...item('e2', 'Biscuits'), seriesId: 'ted', seriesTitle: 'Ted Lasso', episodeNumber: 2 },
+      ],
+      total: 2,
+    });
+
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('1 result')).toBeInTheDocument();
+  });
+
+  it('replaces the whole result set on a filter change, not only the cards that differ', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
+
+    const before = await screen.findByRole('button', { name: /Arrival/ });
+
+    await user.click(screen.getByRole('button', { name: 'Films' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Arrival/ })).not.toBe(before);
+    });
   });
 
   it('sets a display name so devtools can identify it', () => {

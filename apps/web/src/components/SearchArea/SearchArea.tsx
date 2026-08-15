@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { IconSearch, IconX } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
@@ -7,6 +7,7 @@ import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { fetchGenres } from '@FluxWeb/library/fetchGenres';
 import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
+import { collapseToShows } from '@FluxWeb/library/pickFeatured';
 import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
 import { GridSizeChooser } from '@FluxWeb/components/GridSizeChooser/GridSizeChooser';
 import { readGridSize, saveGridSize } from '@FluxWeb/library/gridSizePreference';
@@ -61,7 +62,6 @@ const SearchArea = ({
 }: SearchAreaProps) => {
   const [libraryIds, setLibraryIds] = useState<string[]>([]);
   const [items, setItems] = useState<MediaSummary[]>([]);
-  const [total, setTotal] = useState(0);
   const [kind, setKind] = useState<SearchKind>('everything');
   const [genres, setGenres] = useState<string[]>([]);
   const [isReading, setIsReading] = useState(false);
@@ -96,10 +96,9 @@ const SearchArea = ({
       ),
     );
 
-    const found = pages.flatMap((page) => page.items);
+    const found = collapseToShows(pages.flatMap((page) => page.items));
 
     setItems(found);
-    setTotal(pages.reduce((count, page) => count + page.total, 0));
     setIsReading(false);
     reportItems.current?.(found);
   }, [libraryIds, search, kind, genre]);
@@ -217,7 +216,11 @@ const SearchArea = ({
             <Spinner label="Searching" size="sm" />
           ) : (
             <span>
-              {total === 0 ? 'Nothing here' : total === 1 ? '1 item' : `${total.toString()} items`}
+              {items.length === 0
+                ? 'Nothing here'
+                : items.length === 1
+                  ? '1 result'
+                  : `${items.length.toString()} results`}
             </span>
           )}
 
@@ -232,24 +235,34 @@ const SearchArea = ({
           )}
         </header>
 
-        {items.length === 0 && !isReading ? (
-          <p className="max-w-prose text-text-muted">
-            {isNarrowed
-              ? 'Nothing matches all of that. Taking one of the filters off is usually the fastest way back.'
-              : 'This library has nothing in it yet. Scanning one from the home page is where things come from.'}
-          </p>
-        ) : (
-          <MediaGrid
-            items={items}
-            size={size}
-            onPlay={onPlay}
-            onInspect={onInspect}
-            {...(watchedFractionFor === undefined ? {} : { watchedFractionFor })}
-            {...(resumeFor === undefined ? {} : { resumeFor })}
-            {...(isKept === undefined ? {} : { isKept })}
-            {...(onToggleKept === undefined ? {} : { onToggleKept })}
-          />
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={`${kind}:${genre ?? ''}`}
+            variants={staggerVariants}
+            initial="hidden"
+            animate="shown"
+            exit="gone"
+          >
+            {items.length === 0 && !isReading ? (
+              <p className="max-w-prose text-text-muted">
+                {isNarrowed
+                  ? 'Nothing matches all of that. Taking one of the filters off is usually the fastest way back.'
+                  : 'This library has nothing in it yet. Scanning one from the home page is where things come from.'}
+              </p>
+            ) : (
+              <MediaGrid
+                items={items}
+                size={size}
+                onPlay={onPlay}
+                onInspect={onInspect}
+                {...(watchedFractionFor === undefined ? {} : { watchedFractionFor })}
+                {...(resumeFor === undefined ? {} : { resumeFor })}
+                {...(isKept === undefined ? {} : { isKept })}
+                {...(onToggleKept === undefined ? {} : { onToggleKept })}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </motion.section>
     </motion.div>
   );

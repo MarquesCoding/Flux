@@ -1,35 +1,31 @@
-import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
+import { z } from 'zod';
+
+const GenreListSchema = z.object({ genres: z.array(z.string()) });
 
 /**
- * How much of each library is read to find out what genres it holds.
+ * Every genre anything is actually filed under, in alphabetical order.
  *
- * There is no endpoint that answers "what genres are there", so the answer is
- * gathered from a sample of what is in the library. A few hundred items name
- * every genre a library of any size actually contains — genres repeat, and one
- * that appears on nothing in the first two hundred items is not a heading
- * worth putting in a footer.
- */
-const SAMPLED = 200;
-
-/**
- * Every genre the library has anything filed under, in alphabetical order.
+ * Asked of the server rather than gathered here. This used to read a couple
+ * of hundred items out of every library and collect the genres from them,
+ * which cost a request per library to answer a question one query answers —
+ * and quietly missed any genre that happened to appear further down than the
+ * sample reached, so a chip for it never existed.
  *
- * Read from the items rather than from a list of its own, because a genre is
- * only real here if something carries it: a catalogue's full taxonomy would
- * offer a viewer forty headings, thirty of which lead to an empty page.
+ * Answers nothing rather than failing when the server cannot be reached: the
+ * chips are a way to narrow a search, and a search page that will not draw
+ * because a list of headings could not be fetched is worse than one with no
+ * headings.
  */
 const fetchGenres = async (): Promise<string[]> => {
-  const libraries = await fetchLibraries().catch(() => []);
+  const response = await fetch('/api/genres', { credentials: 'same-origin' }).catch(() => null);
 
-  const pages = await Promise.all(
-    libraries.map((library) =>
-      fetchLibraryItems(library.id, { limit: SAMPLED }).catch(() => ({ items: [], total: 0 })),
-    ),
-  );
+  if (response === null || !response.ok) {
+    return [];
+  }
 
-  const named = new Set(pages.flatMap((page) => page.items).flatMap((item) => item.genres ?? []));
+  const read = GenreListSchema.safeParse(await response.json().catch(() => null));
 
-  return [...named].sort((left, right) => left.localeCompare(right));
+  return read.success ? read.data.genres : [];
 };
 
 export { fetchGenres };
