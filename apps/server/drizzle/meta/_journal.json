@@ -190,6 +190,13 @@
       "when": 1786755870094,
       "tag": "0026_stiff_miss_america",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1786812765641,
+      "tag": "0027_daffy_ma_gnuci",
+      "breakpoints": true
     }
   ]
 }

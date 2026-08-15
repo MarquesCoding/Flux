@@ -12,6 +12,20 @@ const LIBRARY_KINDS = ['movies', 'shows', 'music'] as const;
 const LibraryKindSchema = z.enum(LIBRARY_KINDS);
 
 /**
+ * What a scan did, counted.
+ *
+ * `failed` is the files a scan could not read at all — unreadable, or a probe
+ * that errored — and is kept apart from the rest because it is the count that
+ * means something is wrong with the media rather than with the library.
+ */
+const ScanResultSchema = z.object({
+  added: z.number().int().nonnegative(),
+  updated: z.number().int().nonnegative(),
+  removed: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+});
+
+/**
  * A root the scanner walks.
  *
  * `path` is a location inside the read-only media mount. Flux never writes
@@ -26,6 +40,15 @@ const LibraryKindSchema = z.enum(LIBRARY_KINDS);
  * four divides that wire four ways while adding seeking to it. Measured on a
  * Wi-Fi SMB share, one at a time read roughly ten times faster per file than
  * four did.
+ *
+ * `lastScan` sits beside `lastScannedAt` because "scanned an hour ago" and
+ * "scanned an hour ago and removed two hundred items" answer the same
+ * question, and only the second tells somebody their mount was missing. A
+ * scan that changed nothing and a scan that emptied a library are otherwise
+ * indistinguishable from the outside. It is absent rather than nullable, and
+ * the difference is meant: a library last scanned by a version that did not
+ * keep count has no record, which is not the same as a scan that counted zero
+ * of everything.
  */
 const LibrarySchema = z.object({
   id: z.string().uuid(),
@@ -34,6 +57,7 @@ const LibrarySchema = z.object({
   path: z.string().min(1),
   itemCount: z.number().int().nonnegative(),
   lastScannedAt: z.string().datetime().nullable(),
+  lastScan: ScanResultSchema.optional(),
   defaultAudioLanguage: z.string().nullable(),
   filesAtOnce: z.number().int().positive().max(16).nullable(),
 });
@@ -125,13 +149,6 @@ const MediaDetailSchema = MediaItemSchema.extend({
 const MediaPageSchema = z.object({
   items: z.array(MediaSummarySchema),
   total: z.number().int().nonnegative(),
-});
-
-const ScanResultSchema = z.object({
-  added: z.number().int().nonnegative(),
-  updated: z.number().int().nonnegative(),
-  removed: z.number().int().nonnegative(),
-  failed: z.number().int().nonnegative(),
 });
 
 export type LibraryKind = z.infer<typeof LibraryKindSchema>;

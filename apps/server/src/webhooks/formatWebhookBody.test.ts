@@ -82,6 +82,59 @@ describe('formatWebhookBody', () => {
     expect(written.body).toContain('without matching them');
   });
 
+  it('names the library and what a scan changed', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'library.scanned',
+      data: {
+        libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
+        libraryName: 'Films',
+        added: 4,
+        updated: 1,
+        removed: 0,
+        failed: 0,
+      },
+    });
+
+    expect(written.body).toContain('Films');
+    expect(written.body).toContain('4 added');
+    expect(written.body).toContain('0 removed');
+  });
+
+  it('states removals, which is the number a mount going missing shows up in', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'library.scanned',
+      data: {
+        libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
+        libraryName: 'Films',
+        added: 0,
+        updated: 0,
+        removed: 214,
+        failed: 0,
+      },
+    });
+
+    expect(written.body).toContain('214 removed');
+  });
+
+  it('mentions unreadable files only when there are some', () => {
+    const clean = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'library.scanned',
+      data: {
+        libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
+        libraryName: 'Films',
+        added: 1,
+        updated: 0,
+        removed: 0,
+        failed: 0,
+      },
+    });
+
+    expect(clean.body).not.toContain('unreadable');
+  });
+
   it('says a recovery is not something to act on', () => {
     const written = formatWebhookBody('ntfy', {
       ...anEnvelope,
