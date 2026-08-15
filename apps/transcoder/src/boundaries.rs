@@ -208,6 +208,34 @@ avoiding them makes segments up to {longest:.1}s, so it will be encoded rather t
 /// An empty answer means the source could not be read at all, which the caller
 /// should refuse to start a session over rather than serve a playlist naming
 /// nothing.
+/// Throws away segments that describe a film this plan no longer produces.
+///
+/// Boundaries are only worked out afresh when none were cached, which means
+/// either nothing has played this yet or the ones on disk were written by a
+/// Flux that cut differently. In the second case every segment beside them is
+/// the wrong length and the completion marker is a lie: a source that used to
+/// be copied in ten second pieces and is now encoded in four second ones would
+/// otherwise serve the old pieces against the new playlist, or serve nothing at
+/// all because the directory claims to be finished.
+///
+/// The names are positional, so a stale `segment00001.ts` is indistinguishable
+/// from a fresh one by anything except what wrote it. Removing them costs the
+/// transcode again and is the only way to be sure.
+async fn discard_segments(directory: &Path) {
+    let Ok(mut entries) = tokio::fs::read_dir(directory).await else {
+        return;
+    };
+
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+
+        if name.starts_with("segment") || name == crate::session::COMPLETE_MARKER {
+            let _ = tokio::fs::remove_file(entry.path()).await;
+        }
+    }
+}
+
 pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSpec) -> Boundaries {
     if let Some(found) = cached_boundaries(directory).await {
         return found;
@@ -218,6 +246,8 @@ pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSp
     if found.is_empty() {
         return found;
     }
+
+    discard_segments(directory).await;
 
     if let Ok(payload) = serde_json::to_string(&found) {
         let _ = tokio::fs::write(directory.join(LENGTHS_NAME), payload).await;
