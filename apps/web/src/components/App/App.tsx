@@ -208,15 +208,34 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const playing = place.playing === null ? null : (known.get(place.playing) ?? null);
 
   /**
-   * Forgets who was watching on this device.
-   */
-  /**
    * Where this viewer left an item, when it is worth coming back to.
+   *
+   * For the offer to resume that a card or a hero makes, which is why it is
+   * choosy: nobody wants to be asked whether to carry on with a film they
+   * opened for thirty seconds last week.
    */
   const resumeFor = (mediaId: string): number | null => {
     const found = progress.get(mediaId);
 
     return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null;
+  };
+
+  /**
+   * Where something actually got to, for picking it up again.
+   *
+   * Deliberately not the same question as `resumeFor`. Whether to *offer* to
+   * resume is a judgement about whether somebody meant to start something;
+   * where to start once they are already watching is a fact, and a page that
+   * reloads forty seconds into a film should carry on at forty seconds rather
+   * than be told that does not count as having started.
+   *
+   * Something already finished starts again, since carrying on from the credits
+   * is not carrying on.
+   */
+  const positionFor = (mediaId: string): number => {
+    const found = progress.get(mediaId);
+
+    return found === undefined || found.isFinished ? 0 : Math.floor(found.positionSeconds);
   };
 
   /**
@@ -313,8 +332,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     }
 
     const found = progress.get(place.playing);
-    const resumed =
-      found !== undefined && isWorthResuming(found) ? Math.floor(found.positionSeconds) : 0;
+    const resumed = found === undefined || found.isFinished ? 0 : Math.floor(found.positionSeconds);
 
     if (resumed > 0) {
       replace({ startSeconds: resumed });
@@ -411,11 +429,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
    * all.
    */
   const startAt =
-    playing === null
-      ? 0
-      : place.startSeconds > 0
-        ? place.startSeconds
-        : Math.floor(resumeFor(playing.id) ?? 0);
+    playing === null ? 0 : place.startSeconds > 0 ? place.startSeconds : positionFor(playing.id);
 
   if (playing !== null) {
     return (

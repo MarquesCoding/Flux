@@ -6,11 +6,15 @@ import { profileHeaders } from '@FluxWeb/profiles/currentProfile';
 /**
  * How often a position is sent while something is playing.
  *
- * Often enough that closing a laptop loses seconds rather than minutes, rarely
- * enough that a two hour film is a few hundred small requests instead of tens
- * of thousands.
+ * Often enough that a tab killed outright loses a moment rather than a scene,
+ * rarely enough that a two hour film is a few hundred small requests instead
+ * of tens of thousands.
+ *
+ * An orderly departure — a reload, a closed tab, a followed link — does not
+ * rely on this at all: the position is sent as the page goes away, exactly, so
+ * this interval only bounds what a crash can lose.
  */
-const REPORT_EVERY_MILLISECONDS = 10_000;
+const REPORT_EVERY_MILLISECONDS = 5_000;
 
 /**
  * Reads where this viewer got to in everything.

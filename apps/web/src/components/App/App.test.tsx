@@ -565,6 +565,72 @@ describe('App routing', () => {
     expect(await screen.findByRole('region', { name: 'Recently added' })).toBeInTheDocument();
   });
 
+  it('carries on from a position too early to be worth offering as a resume', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}`);
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+      watched: [
+        {
+          mediaId: arrivalId,
+          positionSeconds: 40,
+          durationSeconds: 7200,
+          isFinished: false,
+          updatedAt: '2026-08-15T00:00:00.000Z',
+        },
+      ],
+    });
+    render(<App />);
+
+    await arrive();
+
+    await screen.findByRole('slider', { name: 'Seek through Arrival' });
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.find(([input]) =>
+        input.includes(`/api/playback/${arrivalId}/session`),
+      );
+
+      expect(bodyOf(asked?.[1])).toMatchObject({ startSeconds: 40 });
+    });
+  });
+
+  it('starts something already finished again, rather than at its credits', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}`);
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+      watched: [
+        {
+          mediaId: arrivalId,
+          positionSeconds: 7150,
+          durationSeconds: 7200,
+          isFinished: true,
+          updatedAt: '2026-08-15T00:00:00.000Z',
+        },
+      ],
+    });
+    render(<App />);
+
+    await arrive();
+
+    await screen.findByRole('slider', { name: 'Seek through Arrival' });
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.find(([input]) =>
+        input.includes(`/api/playback/${arrivalId}/session`),
+      );
+
+      expect(bodyOf(asked?.[1])).toMatchObject({ startSeconds: 0 });
+    });
+  });
+
   it('remembers where somebody got to when the player is closed', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
