@@ -71,7 +71,7 @@ import { createDatabaseNotificationStore } from '@FluxServer/notifications/creat
 import { notifyHousehold } from '@FluxServer/notifications/notifyHousehold';
 import { summariseNewMedia } from '@FluxServer/notifications/summariseNewMedia';
 import { readDigestWindow } from '@FluxServer/notifications/readDigestWindow';
-import { generateVAPIDKeys } from 'web-push';
+import webPush from 'web-push';
 import type { VapidKeys } from '@FluxServer/notifications/sendWebPush';
 import { runWebhookDelivery } from '@FluxServer/webhooks/runWebhookDelivery';
 import { createWebhookEventBus } from '@FluxServer/events/createWebhookEventBus';
@@ -332,7 +332,7 @@ const readPushKeys = async (): Promise<VapidKeys> => {
     return { publicKey: held.pushPublicKey, privateKey: held.pushPrivateKey };
   }
 
-  const made = generateVAPIDKeys();
+  const made = webPush.generateVAPIDKeys();
 
   await settings.write({ pushPublicKey: made.publicKey, pushPrivateKey: made.privateKey });
 

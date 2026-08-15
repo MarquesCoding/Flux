@@ -1,5 +1,15 @@
-import { sendNotification, setVapidDetails } from 'web-push';
+import webPush from 'web-push';
 import type { PushEndpoint } from './NotificationStore';
+
+/**
+ * `web-push` is CommonJS, so its exports come off the default.
+ *
+ * Named imports appear to work under a bundler and fail at runtime under
+ * Node's ESM loader, which cannot always read named exports out of a CJS
+ * module — the server would not boot at all. Destructuring here keeps that
+ * one fact in one place rather than at every call site.
+ */
+const { sendNotification, setVapidDetails } = webPush;
 
 /**
  * What a browser is handed when it is woken.
