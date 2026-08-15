@@ -1,10 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  IconPlayerPauseFilled,
-  IconPlayerPlayFilled,
-  IconVolume,
-  IconVolumeOff,
-} from '@tabler/icons-react';
+import { RiPauseFill, RiPlayFill, RiVolumeMuteLine, RiVolumeUpLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { VideoSurface } from '@FluxUI/VideoSurface';
 import { frameUrl } from '@FluxWeb/playback/frameUrl';
@@ -329,9 +324,9 @@ const MediaPreview = ({
                 className="bg-black/50 text-white backdrop-blur"
               >
                 {isPlaying ? (
-                  <IconPlayerPauseFilled size={18} aria-hidden />
+                  <RiPauseFill size={18} aria-hidden />
                 ) : (
-                  <IconPlayerPlayFilled size={18} aria-hidden />
+                  <RiPlayFill size={18} aria-hidden />
                 )}
               </Button>
 
@@ -350,9 +345,9 @@ const MediaPreview = ({
                 className="bg-black/50 text-white backdrop-blur"
               >
                 {isMuted ? (
-                  <IconVolumeOff size={18} aria-hidden />
+                  <RiVolumeMuteLine size={18} aria-hidden />
                 ) : (
-                  <IconVolume size={18} aria-hidden />
+                  <RiVolumeUpLine size={18} aria-hidden />
                 )}
               </Button>
             </>

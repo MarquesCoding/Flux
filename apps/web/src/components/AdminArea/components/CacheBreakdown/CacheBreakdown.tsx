@@ -1,4 +1,4 @@
-import { IconInfoCircle } from '@tabler/icons-react';
+import { RiInformationLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { HoverCard } from '@FluxUI/HoverCard';
 import { formatBytes } from '@FluxCore/functions/formatBytes';
@@ -56,7 +56,7 @@ const CacheBreakdown = ({ cache, artwork, liveSessions, library }: CacheBreakdow
                     hasTooltip={false}
                     className="text-text-muted transition-colors hover:text-text"
                   >
-                    <IconInfoCircle size={14} aria-hidden />
+                    <RiInformationLine size={14} aria-hidden />
                   </Button>
                 </HoverCard>
               )}

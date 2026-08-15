@@ -1,4 +1,4 @@
-import { IconX } from '@tabler/icons-react';
+import { RiCloseLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import {
@@ -56,7 +56,7 @@ const StreamStats = ({
         <h3 className="text-sm font-medium tracking-tight">Stats for nerds</h3>
 
         <Button isIconOnly variant="ghost" label="Close stats" size="sm" onClick={onClose}>
-          <IconX size={16} aria-hidden />
+          <RiCloseLine size={16} aria-hidden />
         </Button>
       </header>
 

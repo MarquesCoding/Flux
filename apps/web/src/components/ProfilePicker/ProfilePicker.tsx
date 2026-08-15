@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
+import { RiAddLine, RiDeleteBinLine, RiPencilLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { removeProfile } from '@FluxWeb/profiles/fetchProfiles';
@@ -91,7 +91,7 @@ const ProfilePicker = ({
                   }}
                   className="bg-surface-raised"
                 >
-                  <IconPencil size={16} aria-hidden />
+                  <RiPencilLine size={16} aria-hidden />
                 </Button>
 
                 {profiles.length < 2 ? null : (
@@ -104,7 +104,7 @@ const ProfilePicker = ({
                     }}
                     className="bg-surface-raised"
                   >
-                    <IconTrash size={16} aria-hidden />
+                    <RiDeleteBinLine size={16} aria-hidden />
                   </Button>
                 )}
               </span>
@@ -123,7 +123,7 @@ const ProfilePicker = ({
               className="flex w-24 flex-col items-center gap-3 sm:w-32"
             >
               <span className="flex aspect-square w-full items-center justify-center rounded-3xl border border-dashed border-white/20 text-text-muted">
-                <IconPlus size={28} aria-hidden />
+                <RiAddLine size={28} aria-hidden />
               </span>
 
               <span className="text-sm text-text-muted">Add</span>

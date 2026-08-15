@@ -1,22 +1,24 @@
 import { useEffect, useRef } from 'react';
 import {
-  IconBell,
-  IconDeviceTv,
-  IconDeviceTvFilled,
-  IconDice5,
-  IconHeart,
-  IconHeartFilled,
-  IconHome,
-  IconHomeFilled,
-  IconMovie,
-  IconSearch,
-  IconSearchFilled,
-  IconSettings,
-  IconSettingsFilled,
-  IconTrendingUp,
-  IconUserCircle,
-  IconUserFilled,
-} from '@tabler/icons-react';
+  RiAccountCircleFill,
+  RiAccountCircleLine,
+  RiDice5Line,
+  RiFilmFill,
+  RiFilmLine,
+  RiHeartFill,
+  RiHeartLine,
+  RiHome5Fill,
+  RiHome5Line,
+  RiFireFill,
+  RiFireLine,
+  RiNotification3Line,
+  RiSearchFill,
+  RiSearchLine,
+  RiSettings3Fill,
+  RiSettings3Line,
+  RiTvFill,
+  RiTvLine,
+} from '@remixicon/react';
 import { motion, useReducedMotion } from 'motion/react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { NavDock } from '@FluxUI/NavDock';
@@ -24,6 +26,7 @@ import { MoodBackground } from '@FluxUI/MoodBackground';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
+import type { IconGesture } from '@FluxUI/AnimatedIcon.types';
 import type { NavDockAction, NavDockItem } from '@FluxUI/NavDock.types';
 import type { LibraryKind } from '@FluxContracts/schemas/Library';
 import type { AppShellProps, ShellSection } from './AppShell.types';
@@ -46,14 +49,14 @@ const SURPRISE_LABELS: Record<LibraryKind, string> = {
  * The mark each place carries while it is the one being stood on.
  */
 const SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <IconHome size={18} aria-hidden />,
-  shows: <IconDeviceTv size={18} aria-hidden />,
-  films: <IconMovie size={18} aria-hidden />,
-  new: <IconTrendingUp size={18} aria-hidden />,
-  favourites: <IconHeart size={18} aria-hidden />,
-  search: <IconSearch size={18} aria-hidden />,
-  account: <IconUserCircle size={18} aria-hidden />,
-  admin: <IconSettings size={18} aria-hidden />,
+  home: <RiHome5Line size={18} aria-hidden />,
+  shows: <RiTvLine size={18} aria-hidden />,
+  films: <RiFilmLine size={18} aria-hidden />,
+  new: <RiFireLine size={18} aria-hidden />,
+  favourites: <RiHeartLine size={18} aria-hidden />,
+  search: <RiSearchLine size={18} aria-hidden />,
+  account: <RiAccountCircleLine size={18} aria-hidden />,
+  admin: <RiSettings3Line size={18} aria-hidden />,
 };
 
 /**
@@ -62,19 +65,41 @@ const SECTION_ICONS: Record<ShellSection, ReactNode> = {
  * Never a different glyph: arriving somewhere changes the weight of a shape
  * that was already there rather than swapping it for another drawing.
  *
- * Filled where Tabler draws a filled twin, and a thicker stroke where it does
- * not. `movie` and `trending-up` have none, and reaching for the nearest
- * filled thing instead is how this section came to turn into a camcorder.
+ * Filled throughout, which Remix makes possible: every icon here has a real
+ * `-fill` twin. Films and New & Popular used to fake it with a heavier stroke
+ * because Tabler drew no filled version of either, and the alternative —
+ * reaching for the nearest filled thing instead — is how this section once
+ * came to turn into a camcorder.
  */
 const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <IconHomeFilled size={18} aria-hidden />,
-  shows: <IconDeviceTvFilled size={18} aria-hidden />,
-  films: <IconMovie size={18} stroke={3} aria-hidden />,
-  new: <IconTrendingUp size={18} stroke={3} aria-hidden />,
-  favourites: <IconHeartFilled size={18} aria-hidden />,
-  search: <IconSearchFilled size={18} aria-hidden />,
-  account: <IconUserFilled size={18} aria-hidden />,
-  admin: <IconSettingsFilled size={18} aria-hidden />,
+  home: <RiHome5Fill size={18} aria-hidden />,
+  shows: <RiTvFill size={18} aria-hidden />,
+  films: <RiFilmFill size={18} aria-hidden />,
+  new: <RiFireFill size={18} aria-hidden />,
+  favourites: <RiHeartFill size={18} aria-hidden />,
+  search: <RiSearchFill size={18} aria-hidden />,
+  account: <RiAccountCircleFill size={18} aria-hidden />,
+  admin: <RiSettings3Fill size={18} aria-hidden />,
+};
+
+/**
+ * How each mark moves when a pointer arrives on it.
+ *
+ * Chosen to say what the place is rather than to be movement for its own sake:
+ * favourites fills the way a heart fills, New & Popular catches from the
+ * bottom the way a flame does, and everywhere that is simply somewhere to go
+ * rises a little and settles. A gesture that meant nothing would be worse than
+ * stillness, which is why most of these are the quiet one.
+ */
+const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
+  home: 'settle',
+  shows: 'settle',
+  films: 'settle',
+  new: 'fill',
+  favourites: 'fill',
+  search: 'settle',
+  account: 'settle',
+  admin: 'spin',
 };
 
 const SECTION_LABELS: Record<ShellSection, string> = {
@@ -160,14 +185,16 @@ const AppShell = ({
     label: SECTION_LABELS[id],
     icon: SECTION_ICONS[id],
     activeIcon: ACTIVE_SECTION_ICONS[id],
+    gesture: SECTION_GESTURES[id],
   }));
 
   const actions: NavDockAction[] = [
     {
       id: 'search',
       label: 'Search',
-      icon: <IconSearch size={20} aria-hidden />,
-      activeIcon: <IconSearchFilled size={20} aria-hidden />,
+      icon: <RiSearchLine size={20} aria-hidden />,
+      activeIcon: <RiSearchFill size={20} aria-hidden />,
+      gesture: 'settle' as const,
       isCurrent: section === 'search',
       onSelect: () => {
         onSectionChange('search');
@@ -179,7 +206,8 @@ const AppShell = ({
           {
             id: 'surprise',
             label: 'Randomiser',
-            icon: <IconDice5 size={20} aria-hidden />,
+            icon: <RiDice5Line size={20} aria-hidden />,
+            gesture: 'tumble' as const,
             ...(surpriseKinds.length > 1
               ? {
                   control: (
@@ -187,7 +215,7 @@ const AppShell = ({
                       label="Choose something at random"
                       align="center"
                       className="hover:bg-transparent data-[popup-open]:bg-transparent"
-                      trigger={<IconDice5 size={20} aria-hidden />}
+                      trigger={<RiDice5Line size={20} aria-hidden />}
                       groups={[
                         {
                           items: [
@@ -224,7 +252,8 @@ const AppShell = ({
           {
             id: 'notifications',
             label: 'Notifications',
-            icon: <IconBell size={20} aria-hidden />,
+            icon: <RiNotification3Line size={20} aria-hidden />,
+            gesture: 'ring' as const,
             control: notifications,
           },
         ]),
@@ -233,8 +262,9 @@ const AppShell = ({
           {
             id: 'admin',
             label: 'Admin',
-            icon: <IconSettings size={20} aria-hidden />,
-            activeIcon: <IconSettingsFilled size={20} aria-hidden />,
+            icon: <RiSettings3Line size={20} aria-hidden />,
+            activeIcon: <RiSettings3Fill size={20} aria-hidden />,
+            gesture: 'spin' as const,
             isCurrent: section === 'admin',
             onSelect: () => {
               onSectionChange('admin');
@@ -245,8 +275,9 @@ const AppShell = ({
     {
       id: 'account',
       label: 'Account',
-      icon: avatar ?? <IconUserCircle size={22} aria-hidden />,
-      activeIcon: avatar ?? <IconUserFilled size={20} aria-hidden />,
+      icon: avatar ?? <RiAccountCircleLine size={22} aria-hidden />,
+      activeIcon: avatar ?? <RiAccountCircleFill size={20} aria-hidden />,
+      gesture: 'settle' as const,
       isCurrent: section === 'account',
       onSelect: () => {
         onSectionChange('account');

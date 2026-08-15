@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { IconAdjustmentsHorizontal, IconSearch, IconX } from '@tabler/icons-react';
+import { RiCloseLine, RiEqualizerLine, RiSearchLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
 import { Spinner } from '@FluxUI/Spinner';
@@ -185,7 +185,7 @@ const SearchArea = ({
           hasFocusOnMount
           value={search}
           placeholder="Everything you own"
-          icon={<IconSearch size={28} aria-hidden />}
+          icon={<RiSearchLine size={28} aria-hidden />}
           onValueChange={onSearchChange}
         />
       </motion.div>
@@ -219,7 +219,7 @@ const SearchArea = ({
               setIsShowingFilters(!isShowingFilters);
             }}
           >
-            <IconAdjustmentsHorizontal size={16} aria-hidden />
+            <RiEqualizerLine size={16} aria-hidden />
             {narrowed === 0 ? 'Filters' : `Filters (${narrowed.toString()})`}
           </Button>
 
@@ -235,7 +235,7 @@ const SearchArea = ({
                 clearFilters();
               }}
             >
-              <IconX size={16} aria-hidden />
+              <RiCloseLine size={16} aria-hidden />
               Clear
             </Button>
           )}

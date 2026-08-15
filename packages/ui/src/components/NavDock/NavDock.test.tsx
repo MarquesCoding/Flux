@@ -204,6 +204,53 @@ describe('what a dock can carry besides places', () => {
     expect(screen.getByTestId('outline')).toBeInTheDocument();
   });
 
+  it('holds both drawings for a place whose mark fills as it is pointed at', () => {
+    render(
+      <NavDock
+        {...props}
+        items={[
+          {
+            id: 'favourites',
+            label: 'Favourites',
+            icon: <span data-testid="outline" />,
+            activeIcon: <span data-testid="filled" />,
+            gesture: 'fill',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId('outline')).toBeInTheDocument();
+    expect(screen.getByTestId('filled')).toBeInTheDocument();
+  });
+
+  it('uncovers the filled drawing while a place is pointed at', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <NavDock
+        {...props}
+        items={[
+          {
+            id: 'favourites',
+            label: 'Favourites',
+            icon: <span data-testid="outline" />,
+            activeIcon: <span data-testid="filled" />,
+            gesture: 'fill',
+          },
+        ]}
+      />,
+    );
+
+    const covering = screen.getByTestId('filled').parentElement;
+
+    expect(covering).toHaveStyle({ clipPath: 'inset(100% 0% 0% 0%)' });
+
+    await user.hover(screen.getByRole('button', { name: 'Favourites' }));
+
+    expect(covering).toHaveStyle({ clipPath: 'inset(0% 0% 0% 0%)' });
+  });
+
   it('shows a count on a tool that has something to say', () => {
     render(
       <NavDock

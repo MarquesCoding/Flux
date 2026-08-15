@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { IconCopy, IconTrash, IconAlertTriangle } from '@tabler/icons-react';
+import { RiAlertLine, RiDeleteBinLine, RiFileCopyLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
 import { Switch } from '@FluxUI/Switch';
@@ -103,7 +103,7 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
       {made === null ? null : (
         <div className="flex flex-col gap-2 rounded-xl border border-accent/40 bg-accent/10 p-3">
           <span className="flex items-center gap-2 text-sm font-medium text-text">
-            <IconAlertTriangle size={16} aria-hidden />
+            <RiAlertLine size={16} aria-hidden />
             Copy {made.name} now — it will not be shown again.
           </span>
 
@@ -122,7 +122,7 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
                 });
               }}
             >
-              <IconCopy size={15} aria-hidden />
+              <RiFileCopyLine size={15} aria-hidden />
               {hasCopied ? 'Copied' : 'Copy'}
             </Button>
           </span>
@@ -221,7 +221,7 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
                   void revokeApiKey(key.id).then(read);
                 }}
               >
-                <IconTrash size={16} aria-hidden />
+                <RiDeleteBinLine size={16} aria-hidden />
               </Button>
             </li>
           ))}

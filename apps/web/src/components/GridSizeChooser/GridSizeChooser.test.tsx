@@ -38,6 +38,47 @@ describe('GridSizeChooser', () => {
     );
   });
 
+  it('rests its mark on the size in force', () => {
+    render(<GridSizeChooser value="small" onValueChange={vi.fn()} />);
+
+    const marks = document.querySelectorAll('[data-mark]');
+
+    expect(marks).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Small cards, more of them' })).toContainElement(
+      marks[0] instanceof HTMLElement ? marks[0] : null,
+    );
+  });
+
+  it('moves the one mark to whatever the pointer passes over', async () => {
+    const user = userEvent.setup();
+
+    render(<GridSizeChooser value="small" onValueChange={vi.fn()} />);
+
+    await user.hover(screen.getByRole('button', { name: 'Large cards, fewer of them' }));
+
+    const marks = document.querySelectorAll('[data-mark]');
+
+    expect(marks).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Large cards, fewer of them' })).toContainElement(
+      marks[0] instanceof HTMLElement ? marks[0] : null,
+    );
+  });
+
+  it('gives the mark back to the size in force when the pointer leaves', async () => {
+    const user = userEvent.setup();
+
+    render(<GridSizeChooser value="small" onValueChange={vi.fn()} />);
+
+    await user.hover(screen.getByRole('button', { name: 'Large cards, fewer of them' }));
+    await user.unhover(screen.getByRole('button', { name: 'Large cards, fewer of them' }));
+
+    const marks = document.querySelectorAll('[data-mark]');
+
+    expect(screen.getByRole('button', { name: 'Small cards, more of them' })).toContainElement(
+      marks[0] instanceof HTMLElement ? marks[0] : null,
+    );
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(GridSizeChooser.displayName).toBe('GridSizeChooser');
   });

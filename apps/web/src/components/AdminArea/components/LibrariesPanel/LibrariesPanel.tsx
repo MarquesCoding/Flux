@@ -1,14 +1,14 @@
 import { useMemo, useRef, useState } from 'react';
 import {
-  IconDots,
-  IconInfoCircle,
-  IconPhoto,
-  IconPlus,
-  IconRefresh,
-  IconRefreshAlert,
-  IconSettings,
-  IconTrash,
-} from '@tabler/icons-react';
+  RiAddLine,
+  RiDeleteBinLine,
+  RiImageLine,
+  RiInformationLine,
+  RiMoreLine,
+  RiRefreshLine,
+  RiRestartLine,
+  RiSettings3Line,
+} from '@remixicon/react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
 import { DataTable } from '@FluxUI/DataTable';
@@ -160,7 +160,7 @@ const LibrariesPanel = ({
                 Reading
               </Badge>
 
-              <IconInfoCircle size={15} className="shrink-0 text-text-muted" aria-hidden />
+              <RiInformationLine size={15} className="shrink-0 text-text-muted" aria-hidden />
             </HoverCard>
           );
         },
@@ -173,14 +173,14 @@ const LibrariesPanel = ({
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.name}`}
-              trigger={<IconDots size={16} aria-hidden />}
+              trigger={<RiMoreLine size={16} aria-hidden />}
               groups={[
                 {
                   items: [
                     {
                       id: 'scan',
                       label: 'Scan for changes',
-                      icon: <IconRefresh size={15} aria-hidden />,
+                      icon: <RiRefreshLine size={15} aria-hidden />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onScan(row.original.id);
@@ -189,7 +189,7 @@ const LibrariesPanel = ({
                     {
                       id: 'reread',
                       label: 'Read every file again',
-                      icon: <IconRefreshAlert size={15} aria-hidden />,
+                      icon: <RiRestartLine size={15} aria-hidden />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onScan(row.original.id, true);
@@ -198,7 +198,7 @@ const LibrariesPanel = ({
                     {
                       id: 'previews',
                       label: 'Generate missing previews',
-                      icon: <IconPhoto size={15} aria-hidden />,
+                      icon: <RiImageLine size={15} aria-hidden />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onRegeneratePreviews(row.original.id);
@@ -211,7 +211,7 @@ const LibrariesPanel = ({
                     {
                       id: 'settings',
                       label: 'Library settings',
-                      icon: <IconSettings size={15} aria-hidden />,
+                      icon: <RiSettings3Line size={15} aria-hidden />,
                       onChoose: () => {
                         live.current.setSettingsLibraryId(row.original.id);
                       },
@@ -239,7 +239,7 @@ const LibrariesPanel = ({
             disabled={isBusy}
             onClick={onScanAll}
           >
-            <IconRefreshAlert size={16} aria-hidden />
+            <RiRestartLine size={16} aria-hidden />
             Scan all libraries
           </Button>
 
@@ -253,7 +253,7 @@ const LibrariesPanel = ({
               setIsConfirmingReset(true);
             }}
           >
-            <IconTrash size={16} aria-hidden />
+            <RiDeleteBinLine size={16} aria-hidden />
             Reset and rebuild
           </Button>
 
@@ -265,7 +265,7 @@ const LibrariesPanel = ({
               setIsAdding(true);
             }}
           >
-            <IconPlus size={16} aria-hidden />
+            <RiAddLine size={16} aria-hidden />
             Add library
           </Button>
         </div>

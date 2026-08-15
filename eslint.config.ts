@@ -44,6 +44,11 @@ export default tseslint.config(
               message:
                 'Parent-relative imports are banned. Use @FluxUI/*, @FluxCore/*, @FluxContracts/* or @FluxSDK/*.',
             },
+            {
+              group: ['@tabler/icons-react'],
+              message:
+                'Icons come from @remixicon/react — see code standards section 10. Prefer the -line icon and its -fill twin for the active state.',
+            },
           ],
         },
       ],

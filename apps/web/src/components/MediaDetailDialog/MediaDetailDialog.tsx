@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
-  IconArrowLeft,
-  IconHeart,
-  IconHeartFilled,
-  IconInfoCircle,
-  IconPlayerPlayFilled,
-  IconRotateClockwise,
-  IconX,
-} from '@tabler/icons-react';
+  RiArrowLeftLine,
+  RiClockwiseLine,
+  RiCloseLine,
+  RiHeartFill,
+  RiHeartLine,
+  RiInformationLine,
+  RiPlayFill,
+} from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
@@ -170,9 +170,9 @@ const MediaDetailDialog = ({
                           }}
                         >
                           {isKept ? (
-                            <IconHeartFilled size={18} aria-hidden />
+                            <RiHeartFill size={18} aria-hidden />
                           ) : (
-                            <IconHeart size={18} aria-hidden />
+                            <RiHeartLine size={18} aria-hidden />
                           )}
                         </Button>
                       ),
@@ -188,7 +188,7 @@ const MediaDetailDialog = ({
             {onBack === undefined ? null : (
               <div className="absolute left-4 top-4">
                 <Button variant="overlay" size="sm" isPill onClick={onBack}>
-                  <IconArrowLeft size={16} aria-hidden />
+                  <RiArrowLeftLine size={16} aria-hidden />
                   {backLabel ?? 'Back'}
                 </Button>
               </div>
@@ -196,7 +196,7 @@ const MediaDetailDialog = ({
 
             <div className="absolute right-4 top-4">
               <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
-                <IconX size={20} aria-hidden />
+                <RiCloseLine size={20} aria-hidden />
               </Button>
             </div>
 
@@ -264,7 +264,7 @@ const MediaDetailDialog = ({
                   onPlay(shown, shownResume ?? 0);
                 }}
               >
-                <IconPlayerPlayFilled size={18} aria-hidden />
+                <RiPlayFill size={18} aria-hidden />
                 {shownResume === undefined ? 'Play' : `Resume from ${formatDuration(shownResume)}`}
               </Button>
 
@@ -277,7 +277,7 @@ const MediaDetailDialog = ({
                     onPlay(shown, 0);
                   }}
                 >
-                  <IconRotateClockwise size={18} aria-hidden />
+                  <RiClockwiseLine size={18} aria-hidden />
                   Start again
                 </Button>
               )}
@@ -298,7 +298,7 @@ const MediaDetailDialog = ({
                 <p className="text-[0.95rem] leading-relaxed text-text">{metadata.overview}</p>
               ) : (
                 <p className="flex items-center gap-2 text-sm text-text-muted">
-                  <IconInfoCircle size={16} aria-hidden />
+                  <RiInformationLine size={16} aria-hidden />
                   No synopsis yet. Configure a metadata provider and rescan to fill this in.
                 </p>
               )}
@@ -338,7 +338,7 @@ const MediaDetailDialog = ({
                   </h3>
 
                   <p className="flex items-center gap-2 text-sm text-text-muted">
-                    <IconInfoCircle size={16} aria-hidden />
+                    <RiInformationLine size={16} aria-hidden />
                     Nobody is credited yet. A metadata provider supplies the cast.
                   </p>
                 </>

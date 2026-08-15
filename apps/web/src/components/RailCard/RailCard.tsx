@@ -2,12 +2,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
-  IconHeart,
-  IconHeartFilled,
-  IconInfoCircle,
-  IconRotateClockwise,
-  IconPlayerPlayFilled,
-} from '@tabler/icons-react';
+  RiClockwiseLine,
+  RiHeartFill,
+  RiHeartLine,
+  RiInformationLine,
+  RiPlayFill,
+} from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { MediaCard } from '@FluxUI/MediaCard';
 import { Badge } from '@FluxUI/Badge';
@@ -328,7 +328,7 @@ const RailCard = ({
                       onPlay(media, resumeSeconds ?? 0);
                     }}
                   >
-                    <IconPlayerPlayFilled size={15} aria-hidden />
+                    <RiPlayFill size={15} aria-hidden />
                     {resumeSeconds === undefined
                       ? 'Play'
                       : `Resume from ${formatDuration(resumeSeconds)}`}
@@ -345,7 +345,7 @@ const RailCard = ({
                         onPlay(media, 0);
                       }}
                     >
-                      <IconRotateClockwise size={17} aria-hidden />
+                      <RiClockwiseLine size={17} aria-hidden />
                     </Button>
                   )}
 
@@ -359,7 +359,7 @@ const RailCard = ({
                       onInspect(media);
                     }}
                   >
-                    <IconInfoCircle size={17} aria-hidden />
+                    <RiInformationLine size={17} aria-hidden />
                   </Button>
 
                   {onToggleKept === undefined ? null : (
@@ -375,9 +375,9 @@ const RailCard = ({
                       }}
                     >
                       {isKept ? (
-                        <IconHeartFilled size={17} aria-hidden />
+                        <RiHeartFill size={17} aria-hidden />
                       ) : (
-                        <IconHeart size={17} aria-hidden />
+                        <RiHeartLine size={17} aria-hidden />
                       )}
                     </Button>
                   )}

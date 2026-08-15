@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { IconArrowBackUp, IconSearch } from '@tabler/icons-react';
+import { RiArrowGoBackLine, RiSearchLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
@@ -134,7 +134,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
               void look(query);
             }}
           >
-            <IconSearch size={16} aria-hidden />
+            <RiSearchLine size={16} aria-hidden />
             Search
           </Button>
         </div>
@@ -198,7 +198,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
             void forget();
           }}
         >
-          <IconArrowBackUp size={16} aria-hidden />
+          <RiArrowGoBackLine size={16} aria-hidden />
           Forget the correction
         </Button>
 

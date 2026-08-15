@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconPlus, IconX } from '@tabler/icons-react';
+import { RiAddLine, RiCloseLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { AddTriggerDialog } from '@FluxWeb/components/AdminArea/components/AddTriggerDialog/AddTriggerDialog';
 import { describeTrigger } from '@FluxWeb/admin/describeTrigger';
@@ -37,7 +37,7 @@ const JobSchedulePage = ({ triggers, onAdd, onRemove }: JobSchedulePageProps) =>
               setIsAdding(true);
             }}
           >
-            <IconPlus size={16} aria-hidden />
+            <RiAddLine size={16} aria-hidden />
             Add trigger
           </Button>
         </div>
@@ -61,7 +61,7 @@ const JobSchedulePage = ({ triggers, onAdd, onRemove }: JobSchedulePageProps) =>
                     onRemove(entry.id);
                   }}
                 >
-                  <IconX size={16} aria-hidden />
+                  <RiCloseLine size={16} aria-hidden />
                 </Button>
               </li>
             ))}

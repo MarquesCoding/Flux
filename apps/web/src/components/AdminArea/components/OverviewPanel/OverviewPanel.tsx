@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { IconChevronRight, IconRefresh } from '@tabler/icons-react';
+import { RiArrowRightSLine, RiRefreshLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
@@ -71,7 +71,7 @@ const Region = ({
           isLoading={isActionBusy}
         >
           {action}
-          {actionIcon ?? <IconChevronRight size={14} aria-hidden />}
+          {actionIcon ?? <RiArrowRightSLine size={14} aria-hidden />}
         </Button>
       )}
     </header>
@@ -316,7 +316,7 @@ const OverviewPanel = ({
           title="Storage Flux is using"
           className="lg:col-span-4"
           action="Refresh"
-          actionIcon={<IconRefresh size={14} aria-hidden />}
+          actionIcon={<RiRefreshLine size={14} aria-hidden />}
           isActionBusy={isCounting}
           onAction={() => {
             void recount();
@@ -349,7 +349,7 @@ const OverviewPanel = ({
               }}
             >
               All work
-              <IconChevronRight size={14} aria-hidden />
+              <RiArrowRightSLine size={14} aria-hidden />
             </Button>
           </CardHeader>
 

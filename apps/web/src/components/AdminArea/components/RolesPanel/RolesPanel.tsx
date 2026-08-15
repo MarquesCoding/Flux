@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { IconAlertTriangle, IconDots, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
+import {
+  RiAddLine,
+  RiAlertLine,
+  RiDeleteBinLine,
+  RiMoreLine,
+  RiPencilLine,
+} from '@remixicon/react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
 import { CardHeader } from '@FluxUI/CardHeader';
@@ -147,14 +153,14 @@ const RolesPanel = () => {
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.name}`}
-              trigger={<IconDots size={16} aria-hidden />}
+              trigger={<RiMoreLine size={16} aria-hidden />}
               groups={[
                 {
                   items: [
                     {
                       id: 'edit',
                       label: 'Edit role',
-                      icon: <IconPencil size={15} aria-hidden />,
+                      icon: <RiPencilLine size={15} aria-hidden />,
                       onChoose: () => {
                         live.current.onEdit(row.original.id);
                       },
@@ -166,7 +172,7 @@ const RolesPanel = () => {
                     {
                       id: 'delete',
                       label: 'Delete role',
-                      icon: <IconTrash size={15} aria-hidden />,
+                      icon: <RiDeleteBinLine size={15} aria-hidden />,
                       isDestructive: true,
                       onChoose: () => {
                         live.current.onAskDelete(row.original);
@@ -190,7 +196,7 @@ const RolesPanel = () => {
           role="alert"
           className="flex items-start gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
         >
-          <IconAlertTriangle size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
+          <RiAlertLine size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
           {refusal.message}
         </p>
       )}
@@ -205,7 +211,7 @@ const RolesPanel = () => {
               setIsCreating(true);
             }}
           >
-            <IconPlus size={15} aria-hidden />
+            <RiAddLine size={15} aria-hidden />
             Create role
           </Button>
         </CardHeader>
@@ -356,11 +362,7 @@ const RolesPanel = () => {
                   role="alert"
                   className="flex items-start gap-3 rounded-md border border-danger/40 bg-danger/10 p-3 text-sm text-text"
                 >
-                  <IconAlertTriangle
-                    size={16}
-                    className="mt-0.5 shrink-0 text-danger"
-                    aria-hidden
-                  />
+                  <RiAlertLine size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
                   {refusal.message}
                 </p>
               )}

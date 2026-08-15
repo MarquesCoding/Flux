@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconSelector } from '@tabler/icons-react';
+import { RiExpandUpDownLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
 import { CardHeader } from '@FluxUI/CardHeader';
@@ -64,7 +64,7 @@ const SettingsPanel = ({
                   {accelerationOptions.find((option) => option.id === accel)?.label ?? 'Automatic'}
                 </span>
 
-                <IconSelector size={15} className="shrink-0 text-text-muted" aria-hidden />
+                <RiExpandUpDownLine size={15} className="shrink-0 text-text-muted" aria-hidden />
               </>
             }
             triggerShape="field"

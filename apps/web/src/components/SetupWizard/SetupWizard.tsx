@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconLock, IconLockOpen } from '@tabler/icons-react';
+import { RiLockLine, RiLockUnlockLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Checkbox } from '@FluxUI/Checkbox';
 import { TextField } from '@FluxUI/TextField';
@@ -123,9 +123,9 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
 
         <p className="flex items-start gap-2 text-sm text-text-muted">
           {cookieSecure ? (
-            <IconLock size={16} className="mt-0.5 shrink-0" aria-hidden />
+            <RiLockLine size={16} className="mt-0.5 shrink-0" aria-hidden />
           ) : (
-            <IconLockOpen size={16} className="mt-0.5 shrink-0" aria-hidden />
+            <RiLockUnlockLine size={16} className="mt-0.5 shrink-0" aria-hidden />
           )}
           {cookieSecure
             ? 'Secure cookies will be used. Login will not work over plain HTTP.'
