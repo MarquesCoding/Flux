@@ -45,6 +45,32 @@ describe('detectDeviceProfile', () => {
     expect(profile.directPlayProfiles[0]?.audioCodecs).not.toContain('eac3');
   });
 
+  it('asks about ten bit video separately from eight', () => {
+    const profile = build((mimeType) => mimeType.includes('hvc1.1') || mimeType.includes('mp4a'));
+
+    expect(profile.directPlayProfiles[0]?.videoCodecs).toContain('hevc');
+    expect(profile.tenBitVideoCodecs).not.toContain('hevc');
+  });
+
+  it('claims ten bit only where the browser accepts it', () => {
+    const profile = build((mimeType) => mimeType.includes('hvc1') || mimeType.includes('mp4a'));
+
+    expect(profile.tenBitVideoCodecs).toContain('hevc');
+  });
+
+  it('asks about the level ordinary high definition carries', () => {
+    const seen: string[] = [];
+
+    build((mimeType) => {
+      seen.push(mimeType);
+
+      return false;
+    });
+
+    expect(seen).toContain('video/mp4; codecs="hvc1.1.6.L120.B0"');
+    expect(seen).toContain('video/mp4; codecs="hvc1.2.4.L120.B0"');
+  });
+
   it('probes concrete codec strings rather than container families', () => {
     const seen: string[] = [];
 

@@ -236,6 +236,40 @@ impl SessionSpec {
         id
     }
 
+    /// A stable identifier for the treatment, wherever playback begins.
+    ///
+    /// Everything [`session_id`](Self::session_id) hashes except where the
+    /// viewer joined, which is the whole difference. Two people watching the
+    /// same film at the same quality get the same plan even if one started at
+    /// the beginning and the other forty minutes in, so the segments one of
+    /// them causes to be produced are the segments the other finds waiting.
+    ///
+    /// This is the address ADR-0011 asks for. Keying the work on where playback
+    /// started is what makes a seek a new transcode of the remainder rather
+    /// than a request for a segment.
+    #[must_use]
+    pub fn plan_id(&self) -> String {
+        let mut hasher = Sha256::new();
+
+        hasher.update(self.input_path.as_bytes());
+        hasher.update(self.segment_seconds.to_be_bytes());
+        hasher.update(format!("{:?}", self.hardware_accel).as_bytes());
+        hasher.update(format!("{:?}", self.video).as_bytes());
+        hasher.update(format!("{:?}", self.audio).as_bytes());
+        hasher.update(format!("{:?}", self.audio_stream_index).as_bytes());
+        hasher.update(format!("{:?}", self.subtitles).as_bytes());
+        hasher.update(format!("{:?}", self.source_size).as_bytes());
+
+        let digest = hasher.finalize();
+        let mut id = String::with_capacity(32);
+
+        for byte in digest.iter().take(16) {
+            let _ = write!(id, "{byte:02x}");
+        }
+
+        id
+    }
+
     /// Whether this specification asks for hardware acceleration.
     #[must_use]
     pub fn uses_hardware(&self) -> bool {
@@ -843,13 +877,66 @@ pub fn fitted_size(source: (u32, u32), max_width: u32, max_height: u32) -> (u32,
 /// right for ever.
 pub const NO_EMBEDDED_CAPTIONS: [&str; 2] = ["-a53cc", "0"];
 
+/// Tells the encoder to put a keyframe where every segment has to begin.
+///
+/// `-hls_time` is a request, not an instruction. The muxer can only start a
+/// segment on a keyframe, so asking for four seconds from a source with a ten
+/// second GOP produces ten second segments and no complaint at all. Measured on
+/// a realistic encode — B-frames, ten second GOP — Flux asked for four and got
+/// six segments of exactly ten. Forcing them gives fifteen of exactly four, and
+/// drops the first segment from 9.5 MB to 3.7 MB.
+///
+/// That first segment is what a viewer waits for before anything appears, and
+/// what has to be fetched again after every seek, because a seek starts a new
+/// session and a new session encodes from nothing. Segments larger than asked
+/// for make every one of those waits longer and lumpier.
+///
+/// A run that starts part way in keeps the film's own clock, so the expression
+/// has to start from where the run does. Counting from nought against an
+/// absolute clock is satisfied by every frame until the count catches up:
+/// measured on a run seeking to 1070 seconds, that is a forced keyframe on
+/// each of the next few hundred frames, which is a picture nobody asked for
+/// and segments nothing predicted.
+///
+/// Only meaningful where Flux is encoding. A copied stream keeps the keyframes
+/// it already has and there is no encoder to instruct.
+#[must_use]
+fn force_key_frames_argument(segment_seconds: u32, from_seconds: f64) -> String {
+    if from_seconds <= 0.0 {
+        return format!("expr:gte(t,n_forced*{segment_seconds})");
+    }
+
+    format!("expr:gte(t,{from_seconds:.6}+n_forced*{segment_seconds})")
+}
+
+/// Where a run begins.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct SegmentStart {
+    /// The segment's index, which its files are numbered from.
+    pub index: u32,
+    /// Where to seek to, which is inside that segment rather than at its edge.
+    ///
+    /// A seek lands on the last keyframe whose *decode* time is at or before
+    /// the time asked for, and a keyframe is decoded before it is shown — by
+    /// 0.376 seconds on the film this was measured against. Asking for the
+    /// exact boundary therefore lands on the keyframe before it, and a run
+    /// that starts a segment early writes every segment one place out for as
+    /// long as it lasts.
+    ///
+    /// Asking from inside the segment cannot overshoot, because the next
+    /// keyframe is its far edge. Measured: `-ss 2394.1` started at 2383.673
+    /// and `-ss 2394.6` started at 2394.100, exactly where the playlist says
+    /// segment 596 begins.
+    pub seconds: f64,
+}
+
 /// A fully resolved transcode instruction.
 ///
 /// The `FFmpeg` command line is always built from this struct and never
 /// assembled from strings at call sites, so that invocations are
 /// deterministic, unit testable without spawning a process, and loggable in
 /// full for support. See ADR-0009.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TranscodePlan {
     pub spec: SessionSpec,
     pub output_directory: String,
@@ -867,13 +954,41 @@ pub struct TranscodePlan {
     /// and falls back to software, which costs most of the saving and says
     /// nothing about why.
     pub device_filters: DeviceFilters,
+    /// Which segment this run starts at, and where that segment begins.
+    ///
+    /// A run walks forward from here until it is stopped, so a viewer seeking
+    /// far ahead gets a new run rather than a wait for the old one to arrive.
+    /// The number matters as much as the time: `-start_number` makes the files
+    /// a run writes carry their place in the film, so the playlist can name
+    /// them before any run has produced them and a later run picks up where an
+    /// earlier one was stopped.
+    ///
+    /// Nought for a film played from the beginning, which is the common case.
+    pub start_at: SegmentStart,
+    /// What to ask the muxer to cut at, in seconds.
+    ///
+    /// Not the same as the segment length asked for, and deliberately so. The
+    /// muxer can only cut on a keyframe, and its target advances by this much
+    /// per cut whether or not a cut lands where the target was — so on a copied
+    /// stream, asking for less than the closest pair of keyframes is what makes
+    /// every run cut in the same places wherever it started. Where Flux encodes
+    /// it puts the keyframes itself and this is simply the length wanted.
+    ///
+    /// See [`crate::keyframes::cut_interval`].
+    pub cut_seconds: f64,
 }
 
 /// The manifest file every session writes.
 pub const MANIFEST_NAME: &str = "index.m3u8";
 
-/// The initialisation segment for fragmented MP4 output.
-pub const INIT_SEGMENT_NAME: &str = "init.mp4";
+/// The playlist ffmpeg writes as it goes.
+///
+/// Deliberately not [`MANIFEST_NAME`]. The playlist Flux serves describes the
+/// whole film and is written before any of it is transcoded; ffmpeg's own
+/// grows as segments appear and would overwrite it on every run. Only the
+/// segments the run writes are wanted from it — the head of the transcode is
+/// read from the directory instead.
+pub const RUN_PLAYLIST_NAME: &str = "run.m3u8";
 
 impl TranscodePlan {
     /// Adds the video arguments, saying whether they mapped the streams.
@@ -883,6 +998,11 @@ impl TranscodePlan {
     /// caller. Handing that fact back rather than working it out a second time
     /// downstream is what stops the two disagreeing and mapping the source
     /// video alongside the composited one.
+    /// Where this run's encoder must put its keyframes.
+    fn forced_keyframes(&self) -> String {
+        force_key_frames_argument(self.spec.segment_seconds, self.start_at.seconds)
+    }
+
     fn push_video_args(&self, args: &mut Vec<String>) -> bool {
         let mut is_mapped = false;
 
@@ -907,6 +1027,9 @@ impl TranscodePlan {
                         .iter()
                         .map(|argument| (*argument).to_owned()),
                 );
+                args.push("-force_key_frames".into());
+                args.push(self.forced_keyframes());
+
                 let route = frame_route(&self.spec, self.device_filters);
 
                 if let (Some(pipeline), Some(source)) =
@@ -1010,6 +1133,28 @@ impl TranscodePlan {
         });
     }
 
+    /// How the audio is treated, which is the same wherever it is asked for.
+    fn push_audio_args(&self, args: &mut Vec<String>) {
+        match &self.spec.audio {
+            AudioAction::Copy => {
+                args.push("-c:a".into());
+                args.push("copy".into());
+            }
+            AudioAction::Encode {
+                encoder,
+                channels,
+                max_bitrate_kbps,
+            } => {
+                args.push("-c:a".into());
+                args.push(encoder.clone());
+                args.push("-ac".into());
+                args.push(channels.to_string());
+                args.push("-b:a".into());
+                args.push(format!("{max_bitrate_kbps}k"));
+            }
+        }
+    }
+
     /// Builds the `FFmpeg` argument vector for this plan.
     #[must_use]
     pub fn to_ffmpeg_args(&self) -> Vec<String> {
@@ -1038,9 +1183,10 @@ impl TranscodePlan {
             }
         }
 
-        if self.spec.start_seconds > 0 {
+        if self.start_at.seconds > 0.0 {
             args.push("-ss".into());
-            args.push(self.spec.start_seconds.to_string());
+            args.push(format!("{:.6}", self.start_at.seconds));
+            args.push("-copyts".into());
         }
 
         args.push("-i".into());
@@ -1057,40 +1203,21 @@ impl TranscodePlan {
             }
         }
 
-        match &self.spec.audio {
-            AudioAction::Copy => {
-                args.push("-c:a".into());
-                args.push("copy".into());
-            }
-            AudioAction::Encode {
-                encoder,
-                channels,
-                max_bitrate_kbps,
-            } => {
-                args.push("-c:a".into());
-                args.push(encoder.clone());
-                args.push("-ac".into());
-                args.push(channels.to_string());
-                args.push("-b:a".into());
-                args.push(format!("{max_bitrate_kbps}k"));
-            }
-        }
+        self.push_audio_args(&mut args);
 
         args.push("-f".into());
         args.push("hls".into());
         args.push("-hls_time".into());
-        args.push(self.spec.segment_seconds.to_string());
+        args.push(format!("{:.6}", self.cut_seconds));
         args.push("-hls_playlist_type".into());
         args.push("event".into());
-        args.push("-hls_segment_type".into());
-        args.push("fmp4".into());
         args.push("-hls_list_size".into());
         args.push("0".into());
-        args.push("-hls_fmp4_init_filename".into());
-        args.push(INIT_SEGMENT_NAME.into());
+        args.push("-start_number".into());
+        args.push(self.start_at.index.to_string());
         args.push("-hls_segment_filename".into());
-        args.push(format!("{}/segment%05d.m4s", self.output_directory));
-        args.push(format!("{}/{MANIFEST_NAME}", self.output_directory));
+        args.push(format!("{}/segment%05d.ts", self.output_directory));
+        args.push(format!("{}/{RUN_PLAYLIST_NAME}", self.output_directory));
 
         args
     }
@@ -1099,9 +1226,10 @@ impl TranscodePlan {
 #[cfg(test)]
 mod tests {
     use super::{
-        composited_graph, filter_name, fitted_size, frame_route, keeps_frames_on_the_gpu,
-        software_equivalent, AudioAction, DeviceFilters, FrameRoute, HardwareAccel, SessionSpec,
-        SubtitleAction, ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
+        composited_graph, filter_name, fitted_size, force_key_frames_argument, frame_route,
+        keeps_frames_on_the_gpu, software_equivalent, AudioAction, DeviceFilters, FrameRoute,
+        HardwareAccel, SegmentStart, SessionSpec, SubtitleAction, ToneMapping, TranscodePlan,
+        VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
     };
 
     /// A build with a scaler and no compositor, as the existing routes assume.
@@ -1130,6 +1258,186 @@ mod tests {
             subtitles: SubtitleAction::None,
             source_size: None,
         }
+    }
+
+    /// `-hls_time` is a request the muxer can only honour on a keyframe.
+    ///
+    /// Measured before this: a four second request against a ten second GOP
+    /// produced ten second segments and said nothing. The two numbers have to
+    /// be the same one, so this reads both out of the emitted arguments rather
+    /// than asserting the expression in isolation.
+    /// A run that seeks counts from where it starts, not from nought.
+    ///
+    /// With the film's own clock the counting form is satisfied by every frame
+    /// until it catches up, so a run starting at 1070 seconds forces a
+    /// keyframe on hundreds of consecutive frames.
+    #[test]
+    fn counts_forced_keyframes_from_where_the_run_starts() {
+        let mut session = plan(on_gpu(HardwareAccel::Vaapi));
+        session.start_at = SegmentStart {
+            index: 267,
+            seconds: 1070.0,
+        };
+
+        let args = session.to_ffmpeg_args();
+
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-force_key_frames", "expr:gte(t,1070.000000+n_forced*4)"]));
+    }
+
+    #[test]
+    fn cuts_keyframes_where_segments_are_asked_to_begin() {
+        let args = plan(on_gpu(HardwareAccel::Vaapi)).to_ffmpeg_args();
+
+        let forced = args
+            .windows(2)
+            .find(|pair| pair[0] == "-force_key_frames")
+            .map(|pair| pair[1].clone())
+            .expect("keyframes are forced");
+
+        let segment: f64 = args
+            .windows(2)
+            .find(|pair| pair[0] == "-hls_time")
+            .and_then(|pair| pair[1].parse().ok())
+            .expect("a segment length");
+
+        assert_eq!(forced, format!("expr:gte(t,n_forced*{})", segment.round()));
+    }
+
+    #[test]
+    fn builds_the_expression_from_the_segment_length() {
+        assert_eq!(force_key_frames_argument(4, 0.0), "expr:gte(t,n_forced*4)");
+        assert_eq!(force_key_frames_argument(6, 0.0), "expr:gte(t,n_forced*6)");
+    }
+
+    /// A copied stream keeps the keyframes it already has.
+    ///
+    /// There is no encoder to instruct, and asking anyway is an argument
+    /// ffmpeg has nothing to apply it to.
+    #[test]
+    fn does_not_ask_a_copied_stream_for_keyframes() {
+        let spec = SessionSpec {
+            video: VideoAction::Copy,
+            ..spec()
+        };
+
+        let args = plan(spec).to_ffmpeg_args();
+
+        assert!(
+            !args.iter().any(|argument| argument == "-force_key_frames"),
+            "{args:?}"
+        );
+    }
+
+    /// Where a viewer joined is the one thing a plan does not care about.
+    #[test]
+    fn gives_two_viewers_of_the_same_film_the_same_plan() {
+        let beginning = spec();
+        let later = SessionSpec {
+            start_seconds: 2400,
+            ..spec()
+        };
+
+        assert_eq!(beginning.plan_id(), later.plan_id());
+        assert_ne!(
+            beginning.session_id(),
+            later.session_id(),
+            "the session is still where playback began, which is what the plan is not"
+        );
+    }
+
+    /// Everything that changes the bytes still changes the plan.
+    #[test]
+    fn gives_a_different_treatment_a_different_plan() {
+        let plain = spec();
+
+        let rescaled = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264".to_owned(),
+                max_bitrate_kbps: 4000,
+                max_width: 640,
+                max_height: 360,
+                tone_map: None,
+            },
+            ..spec()
+        };
+        let resegmented = SessionSpec {
+            segment_seconds: 6,
+            ..spec()
+        };
+        let other_audio = SessionSpec {
+            audio_stream_index: Some(3),
+            ..spec()
+        };
+
+        assert_ne!(plain.plan_id(), rescaled.plan_id());
+        assert_ne!(plain.plan_id(), resegmented.plan_id());
+        assert_ne!(plain.plan_id(), other_audio.plan_id());
+    }
+
+    /// A run started part way in still writes the film's own numbering.
+    ///
+    /// Without this the files a run writes are numbered from nought whatever
+    /// their place in the film, so a playlist naming segment three hundred is
+    /// never satisfied and a later run overwrites an earlier one's work.
+    #[test]
+    fn numbers_a_run_from_the_segment_it_starts_at() {
+        let mut session = plan(on_gpu(HardwareAccel::Vaapi));
+        session.start_at = SegmentStart {
+            index: 300,
+            seconds: 2306.4,
+        };
+
+        let args = session.to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|pair| pair == ["-start_number", "300"]));
+        assert!(args.windows(2).any(|pair| pair == ["-ss", "2306.400000"]));
+    }
+
+    /// A run that starts part way in still writes the film's own clock.
+    ///
+    /// Without this its fragments are stamped from nought, so a player that
+    /// seeked to forty minutes is handed something claiming to be the opening
+    /// second and has nowhere to put it. Measured on the Bluray remux: the
+    /// first fragment of a run seeking to 2394.1 carried 0.083 without
+    /// `-copyts` and 2394.100 with it.
+    #[test]
+    fn keeps_the_films_own_timestamps_when_a_run_starts_part_way_in() {
+        let mut session = plan(spec());
+        session.start_at = SegmentStart {
+            index: 300,
+            seconds: 2306.4,
+        };
+
+        let args = session.to_ffmpeg_args();
+        let seek = args.iter().position(|argument| argument == "-ss");
+        let copy = args.iter().position(|argument| argument == "-copyts");
+        let input = args.iter().position(|argument| argument == "-i");
+
+        assert!(copy.is_some(), "expected -copyts");
+        assert!(
+            seek < copy && copy < input,
+            "expected -ss -copyts before -i"
+        );
+    }
+
+    /// A run from the beginning has nothing to preserve.
+    #[test]
+    fn does_not_ask_to_copy_timestamps_a_run_starts_with_anyway() {
+        assert!(!plan(spec())
+            .to_ffmpeg_args()
+            .iter()
+            .any(|argument| argument == "-copyts"));
+    }
+
+    /// A film played from the beginning seeks to nothing.
+    #[test]
+    fn does_not_seek_a_run_that_starts_at_the_beginning() {
+        let args = plan(on_gpu(HardwareAccel::Vaapi)).to_ffmpeg_args();
+
+        assert!(!args.iter().any(|argument| argument == "-ss"));
+        assert!(args.windows(2).any(|pair| pair == ["-start_number", "0"]));
     }
 
     fn keeps_frames_on_the_gpu_of(spec: &SessionSpec) -> bool {
@@ -1769,6 +2077,8 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             output_directory: "/transcodes/abc".into(),
             device_filters: SCALER_ONLY,
             device: "/dev/dri/renderD129".into(),
+            start_at: SegmentStart::default(),
+            cut_seconds: 4.0,
         };
 
         assert!(plan
@@ -1905,6 +2215,8 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             device_filters,
             spec,
             output_directory: "/transcodes/abc".into(),
+            start_at: SegmentStart::default(),
+            cut_seconds: 4.0,
         }
     }
 
@@ -1979,15 +2291,18 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
 
     #[test]
     fn seeks_before_the_input_so_the_seek_is_fast() {
-        let args = plan(SessionSpec {
-            start_seconds: 90,
-            ..spec()
-        })
-        .to_ffmpeg_args();
+        let mut session = plan(spec());
+        session.start_at = SegmentStart {
+            index: 9,
+            seconds: 90.0,
+        };
+
+        let args = session.to_ffmpeg_args();
 
         let seek = args.iter().position(|a| a == "-ss");
         let input = args.iter().position(|a| a == "-i");
 
+        assert!(seek.is_some(), "expected a seek");
         assert!(seek < input, "expected -ss before -i");
     }
 
@@ -1997,12 +2312,31 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
     }
 
     #[test]
-    fn writes_fragmented_hls_into_the_session_directory() {
+    /// Transport streams rather than fragmented MP4.
+    ///
+    /// Measured against Chrome: a copied HEVC film delivered as fMP4 decoded
+    /// four frames and stopped, whoever wrote the playlist and however the
+    /// segments were cut. The same video as a transport stream played
+    /// through. See FLUX-114.
+    fn writes_transport_stream_segments_into_the_session_directory() {
         let args = plan(spec()).to_ffmpeg_args();
 
-        assert!(args.windows(2).any(|w| w == ["-hls_segment_type", "fmp4"]));
-        assert!(args.contains(&"/transcodes/abc/segment%05d.m4s".to_owned()));
-        assert!(args.contains(&"/transcodes/abc/index.m3u8".to_owned()));
+        assert!(args.contains(&"/transcodes/abc/segment%05d.ts".to_owned()));
+        assert!(args.contains(&"/transcodes/abc/run.m3u8".to_owned()));
+        assert!(!args.iter().any(|argument| argument == "-hls_segment_type"));
+        assert!(!args
+            .iter()
+            .any(|argument| argument == "-hls_fmp4_init_filename"));
+    }
+
+    /// The playlist Flux serves describes the whole film, and ffmpeg's does
+    /// not. A run that wrote over it would replace the film with the part of
+    /// it that had been transcoded so far.
+    #[test]
+    fn leaves_the_playlist_flux_writes_alone() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(!args.iter().any(|argument| argument.ends_with("index.m3u8")));
     }
 
     #[test]

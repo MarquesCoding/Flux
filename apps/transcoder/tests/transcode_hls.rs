@@ -146,6 +146,7 @@ fn registry(name: &str) -> SessionRegistry {
     SessionRegistry::new(SessionConfig {
         device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
         ffmpeg: ffmpeg(),
+        ffprobe: ffprobe(),
         cache_root: cache_root(name),
         idle_timeout: Duration::from_secs(60),
         max_concurrent: 2,
@@ -280,8 +281,8 @@ async fn remuxes_to_hls_without_re_encoding() {
     assert_eq!(manifest_status, StatusCode::OK);
     assert!(playlist.starts_with("#EXTM3U"), "playlist was {playlist}");
     assert!(
-        playlist.contains("#EXT-X-MAP:URI=\"init.mp4\""),
-        "expected fmp4 init"
+        !playlist.contains("#EXT-X-MAP"),
+        "a transport stream needs nothing before it: {playlist}"
     );
 }
 
@@ -296,7 +297,7 @@ async fn serves_the_segments_the_playlist_names() {
 
     let segment = playlist
         .lines()
-        .find(|line| line.ends_with(".m4s"))
+        .find(|line| line.ends_with(".ts"))
         .expect("playlist names a segment");
 
     let (status, bytes) = call(&app, get(&format!("/sessions/{id}/{segment}"))).await;
@@ -396,8 +397,14 @@ async fn the_same_specification_reuses_one_session() {
     assert_eq!(registry.len().await, 1);
 }
 
+/// Where somebody joined is not what they are watching.
+///
+/// Two viewers of one film share its segments however differently they came to
+/// it, which is the whole point of addressing the work by the plan. Keying it
+/// on where playback began is what made a seek a second transcode of the rest
+/// of the film. See ADR-0011.
 #[tokio::test]
-async fn a_different_seek_is_a_different_session() {
+async fn a_different_seek_joins_the_same_session() {
     let registry = registry("seek");
     let app = app(registry.clone());
 
@@ -411,8 +418,8 @@ async fn a_different_seek_is_a_different_session() {
     )
     .await;
 
-    assert_ne!(first["id"], second["id"]);
-    assert_eq!(registry.len().await, 2);
+    assert_eq!(first["id"], second["id"]);
+    assert_eq!(registry.len().await, 1);
 }
 
 #[tokio::test]
@@ -432,6 +439,235 @@ async fn stopping_a_session_forgets_it() {
 
     assert_eq!(status, StatusCode::NO_CONTENT);
     assert!(registry.is_empty().await);
+}
+
+/// Two viewers pressing play together must not start two transcodes.
+///
+/// Working out where a film can be cut takes a moment, and the session only
+/// exists once that is done — so both requests found nothing, both started a
+/// run, and two ffmpegs wrote over each other's segments in one directory. A
+/// player opens a stream by asking twice on its own, so this was every play
+/// rather than a rare collision.
+#[tokio::test]
+async fn starts_one_transcode_when_two_viewers_ask_at_once() {
+    let _ = std::fs::remove_dir_all(cache_root("together"));
+
+    let registry = registry("together");
+    let app = app(registry.clone());
+    let subject = spec(VideoAction::Copy, AudioAction::Copy);
+
+    let (first, second) = tokio::join!(start(&app, &subject), start(&app, &subject));
+
+    assert_eq!(first.0, StatusCode::OK, "{}", first.1);
+    assert_eq!(second.0, StatusCode::OK, "{}", second.1);
+    assert_eq!(first.1["id"], second.1["id"]);
+
+    let id = first.1["id"].as_str().expect("has an id").to_owned();
+    let leave = Request::builder()
+        .method("DELETE")
+        .uri(format!("/sessions/{id}"))
+        .body(Body::empty())
+        .expect("builds the request");
+
+    call(&app, leave).await;
+
+    assert_eq!(
+        registry.len().await,
+        1,
+        "the second request joined the first rather than replacing it, so one \
+         of them leaving leaves the other watching"
+    );
+}
+
+/// Scrubbing must not leave two requests fighting over the transcode.
+///
+/// A request that has been abandoned — the viewer scrubbed on, but its wait
+/// has not run out — used to drag the run back to itself on every poll, while
+/// the live request dragged it forward. Measured in one scrubbing session:
+/// 1750 runs, the last dozen alternating between segment 355 and segment 570,
+/// and both requests refused in the end.
+///
+/// The newest asker steers. The older one takes what it can get.
+#[tokio::test]
+async fn answers_the_newest_request_when_a_viewer_scrubs_past_an_older_one() {
+    let _ = std::fs::remove_dir_all(cache_root("scrubbing"));
+
+    let app = app(registry("scrubbing"));
+    let subject = SessionSpec {
+        input_path: long_source_file().to_string_lossy().into_owned(),
+        segment_seconds: 4,
+        video: VideoAction::Encode {
+            encoder: "libx264".into(),
+            max_bitrate_kbps: 2000,
+            max_width: 640,
+            max_height: 360,
+            tone_map: None,
+        },
+        audio: AudioAction::Copy,
+        ..spec(VideoAction::Copy, AudioAction::Copy)
+    };
+
+    let (status, body) = start(&app, &subject).await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let id = body["id"].as_str().expect("names the session").to_owned();
+
+    let far = call(&app, get(&format!("/sessions/{id}/segment00028.ts")));
+    let near = call(&app, get(&format!("/sessions/{id}/segment00004.ts")));
+
+    let (far, near) = tokio::join!(far, near);
+
+    assert_eq!(
+        near.0,
+        StatusCode::OK,
+        "the newest request is the one answered"
+    );
+    assert!(near.1.len() > 512, "segment was {} bytes", near.1.len());
+
+    let started = std::fs::read_to_string(cache_root("scrubbing").join(&id).join("run.m3u8"))
+        .unwrap_or_default();
+
+    assert!(
+        started.contains("segment00004.ts"),
+        "the run should be where the newest request is, not where the older one was: {started}"
+    );
+
+    let _ = far;
+}
+
+/// A viewer waiting for a segment must be able to un-pause the transcode.
+///
+/// The throttle stops a run that is further ahead than anyone is watching, and
+/// it reads how far the viewer has got from the segments served. So a viewer
+/// asking for a segment beyond a paused run waited for a process only a served
+/// segment could restart, and only that segment could serve. Measured against
+/// the running service: a run restarted at segment 397 produced to 435, paused,
+/// and the request for 439 was refused thirty seconds later.
+#[tokio::test]
+async fn serves_a_segment_beyond_a_transcode_that_has_run_ahead() {
+    let _ = std::fs::remove_dir_all(cache_root("throttled"));
+
+    let app = app(registry("throttled"));
+    let subject = SessionSpec {
+        input_path: long_source_file().to_string_lossy().into_owned(),
+        segment_seconds: 4,
+        video: VideoAction::Encode {
+            encoder: "libx264".into(),
+            max_bitrate_kbps: 2000,
+            max_width: 640,
+            max_height: 360,
+            tone_map: None,
+        },
+        audio: AudioAction::Copy,
+        ..spec(VideoAction::Copy, AudioAction::Copy)
+    };
+
+    let (status, body) = start(&app, &subject).await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let id = body["id"].as_str().expect("names the session").to_owned();
+    let directory = cache_root("throttled").join(&id);
+
+    for _ in 0..600 {
+        let ahead = std::fs::read_dir(&directory).map_or(0, |entries| {
+            entries
+                .filter_map(Result::ok)
+                .filter(|entry| entry.file_name().to_string_lossy().ends_with(".ts"))
+                .count()
+        });
+
+        if ahead > 20 {
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00025.ts"))).await;
+
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "a paused run must be woken, not waited on"
+    );
+    assert!(bytes.len() > 512, "segment was {} bytes", bytes.len());
+}
+
+/// A run that has ended must not be waited for.
+///
+/// A session recorded which run was live and nothing cleared it when the run
+/// exited, so every request for a segment that run never wrote waited the full
+/// timeout and was then refused. A viewer saw the stream stop for good after
+/// scrubbing — measured across twenty one runs, where segment 237 waited
+/// thirty seconds for a transcode that had already finished.
+#[tokio::test]
+async fn produces_a_segment_again_after_the_run_that_wrote_it_has_ended() {
+    let _ = std::fs::remove_dir_all(cache_root("ended"));
+
+    let app = app(registry("ended"));
+    let (_, body) = start(&app, &spec(VideoAction::Copy, AudioAction::Copy)).await;
+    let id = body["id"].as_str().expect("has an id").to_owned();
+    let directory = cache_root("ended").join(&id);
+
+    for _ in 0..100 {
+        if directory.join(".complete").exists() {
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    let segment = directory.join("segment00001.ts");
+
+    assert!(segment.exists(), "the run wrote the segment first");
+
+    std::fs::remove_file(&segment).expect("takes the segment away");
+
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00001.ts"))).await;
+
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "the run should have been started again"
+    );
+    assert!(bytes.len() > 512, "segment was {} bytes", bytes.len());
+}
+
+/// One viewer closing a tab must not take the film away from the other.
+///
+/// Everybody watching the same thing shares one session, so a stop that
+/// cancelled the transcode outright ended the other viewer's stream — their
+/// manifest went missing mid-film. The session lives until the last of them
+/// lets go. See ADR-0011.
+#[tokio::test]
+async fn keeps_a_session_while_another_viewer_is_watching() {
+    let registry = registry("shared");
+    let app = app(registry.clone());
+    let subject = spec(VideoAction::Copy, AudioAction::Copy);
+
+    let (_, first) = start(&app, &subject).await;
+    let (_, second) = start(&app, &subject).await;
+    let id = first["id"].as_str().expect("has an id").to_owned();
+
+    assert_eq!(second["id"].as_str(), Some(id.as_str()));
+
+    let leave = Request::builder()
+        .method("DELETE")
+        .uri(format!("/sessions/{id}"))
+        .body(Body::empty())
+        .expect("builds the request");
+
+    let (status, _) = call(&app, leave).await;
+
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    assert_eq!(registry.len().await, 1, "one viewer is still watching");
+
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/index.m3u8"))).await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert!(String::from_utf8_lossy(&bytes).starts_with("#EXTM3U"));
 }
 
 #[tokio::test]
@@ -549,8 +785,15 @@ async fn reports_capabilities_over_http() {
     );
 }
 
+/// The playlist describes the film, not the part of it that has been made.
+///
+/// A player given a playlist that grows as segments appear can only seek
+/// within what has already been transcoded, which is why seeking used to start
+/// a second transcode of the remainder. This one names every segment of a two
+/// minute source while almost none of them exist, and declares how long the
+/// film runs before any of it has been produced.
 #[tokio::test]
-async fn serves_a_manifest_before_the_transcode_has_finished() {
+async fn describes_the_whole_film_before_transcoding_it() {
     let _ = std::fs::remove_dir_all(cache_root("growing"));
 
     let app = app(registry("growing"));
@@ -578,10 +821,19 @@ async fn serves_a_manifest_before_the_transcode_has_finished() {
 
     assert_eq!(status, StatusCode::OK);
     assert!(manifest.contains("#EXTM3U"), "{manifest}");
-    assert!(manifest.contains(".m4s"), "{manifest}");
+    assert!(manifest.contains("#EXT-X-PLAYLIST-TYPE:VOD"), "{manifest}");
+
+    let named = manifest.matches(".ts\n").count();
+    let written = std::fs::read_dir(cache_root("growing").join(id))
+        .expect("reads the session directory")
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_name().to_string_lossy().ends_with(".ts"))
+        .count();
+
+    assert_eq!(named, 30, "a two minute film in four second segments");
     assert!(
-        !manifest.contains("#EXT-X-ENDLIST"),
-        "the transcode finished during the test, which proves nothing: {manifest}"
+        written < named,
+        "the transcode finished during the test, which proves nothing: {written} of {named}"
     );
 
     let (status, _) = call(
@@ -595,4 +847,53 @@ async fn serves_a_manifest_before_the_transcode_has_finished() {
     .await;
 
     assert_eq!(status, StatusCode::NO_CONTENT);
+}
+
+/// A seek is answered where it landed, not after everything before it.
+///
+/// The run walking through the opening of the film is stopped and another
+/// started at the segment that was asked for. Nothing produces the eighty
+/// seconds in between, and the file that arrives carries its own place in the
+/// film in its name — which is what lets a later run pick up where this one is
+/// stopped.
+#[tokio::test]
+async fn starts_a_run_where_a_viewer_seeked_to() {
+    let _ = std::fs::remove_dir_all(cache_root("far-seek"));
+
+    let app = app(registry("far-seek"));
+    let subject = SessionSpec {
+        input_path: long_source_file().to_string_lossy().into_owned(),
+        segment_seconds: 4,
+        video: VideoAction::Encode {
+            encoder: "libx264".into(),
+            max_bitrate_kbps: 6000,
+            max_width: 640,
+            max_height: 360,
+            tone_map: None,
+        },
+        audio: AudioAction::Copy,
+        ..spec(VideoAction::Copy, AudioAction::Copy)
+    };
+
+    let (status, body) = start(&app, &subject).await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let id = body["id"].as_str().expect("names the session").to_owned();
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00025.ts"))).await;
+
+    assert_eq!(status, StatusCode::OK, "a seek to 100 seconds in");
+    assert!(bytes.len() > 512, "segment was {} bytes", bytes.len());
+
+    let written: Vec<String> = std::fs::read_dir(cache_root("far-seek").join(&id))
+        .expect("reads the session directory")
+        .filter_map(Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .filter(|name| name.ends_with(".ts"))
+        .collect();
+
+    assert!(
+        !written.contains(&"segment00012.ts".to_owned()),
+        "nothing should have transcoded the film in between: {written:?}"
+    );
 }

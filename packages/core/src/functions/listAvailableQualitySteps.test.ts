@@ -9,6 +9,7 @@ const media: MediaItem = {
   durationSeconds: 7200,
   videoCodec: 'hevc',
   videoRange: 'SDR',
+  videoBitDepth: 8,
   width: 1920,
   height: 1080,
   bitrateKbps: 8000,

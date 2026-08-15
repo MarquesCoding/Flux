@@ -39,6 +39,7 @@ import { createEmbeddedSubtitleService } from '@FluxServer/subtitles/createEmbed
 import { createLayeredSubtitleService } from '@FluxServer/subtitles/createLayeredSubtitleService';
 import { createPlaybackService } from '@FluxServer/playback/createPlaybackService';
 import { createJobQueue } from '@FluxServer/jobs/createJobQueue';
+import type { FinishedJob } from '@FluxServer/jobs/createJobQueue';
 import {
   SCAN_LIBRARY_JOB,
   READ_AGAIN_JOB,
@@ -57,8 +58,16 @@ import {
   CLEANUP_SESSIONS_JOB,
   PRUNE_HISTORY_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
+  CHECK_TRANSCODER_JOB,
+  DELIVER_WEBHOOK_JOB,
+  PRUNE_WEBHOOK_DELIVERIES_JOB,
+  DeliverWebhookJobSchema,
   scheduleTriggerKind,
 } from '@FluxServer/jobs/JobQueue';
+import { createDatabaseWebhookStore } from '@FluxServer/webhooks/createDatabaseWebhookStore';
+import { runWebhookDelivery } from '@FluxServer/webhooks/runWebhookDelivery';
+import { createWebhookEventBus } from '@FluxServer/events/createWebhookEventBus';
+import { createReachabilityWatch } from '@FluxServer/events/createReachabilityWatch';
 import { createDatabaseMaintenanceService } from '@FluxServer/maintenance/createDatabaseMaintenanceService';
 import { cleanupImageCache } from '@FluxServer/maintenance/cleanupImageCache';
 import { sweepArtefactCache } from '@FluxServer/maintenance/sweepArtefactCache';
@@ -118,6 +127,16 @@ const settings = createDatabaseSettingsStore({
  * rolled-up figure rather than the events it came from.
  */
 const HISTORY_KEPT_FOR_DAYS = 365;
+
+/**
+ * How long a webhook delivery is worth remembering.
+ *
+ * A week, and deliberately far shorter than viewing history. The history
+ * answers whether a receiver has been working lately, and lately is the whole
+ * of it: nobody goes back a month to read what was sent. Keeping it longer
+ * would store a body per event per subscriber for no question anybody asks.
+ */
+const WEBHOOK_DELIVERIES_KEPT_FOR_DAYS = 7;
 
 const signInStore = createDatabaseSignInStore(db);
 const historyService = createDatabaseHistoryService(db);
@@ -276,6 +295,43 @@ const scheduleAcrossLibraries =
   };
 
 const libraryWork = createWorkLock();
+
+const webhookSubscriptions = createDatabaseWebhookStore(db);
+
+const transcoderWatch = createReachabilityWatch({
+  onLost: () => {
+    process.stderr.write('transcoder: stopped answering\n');
+
+    void events.publish({
+      event: 'transcoder.unreachable',
+      data: { reason: `${env.TRANSCODER_URL} did not answer a health check.` },
+    });
+  },
+});
+
+/**
+ * Announces a job that ended, except the one that does the announcing.
+ *
+ * A delivery that fails is itself a job that failed, and announcing it would
+ * queue another delivery, which would fail, which would announce it. The
+ * exclusion is what stops one unreachable receiver turning into a queue that
+ * never empties.
+ *
+ * The publish is deliberately not awaited. Nothing about a job that has
+ * already finished depends on whether anybody was told about it, and the bus
+ * swallows its own failures.
+ */
+const announceFinishedJob = ({ kind, jobId, subject, reason }: FinishedJob): void => {
+  if (kind === DELIVER_WEBHOOK_JOB) {
+    return;
+  }
+
+  void events.publish(
+    reason === null
+      ? { event: 'job.completed', data: { kind, jobId, subject } }
+      : { event: 'job.failed', data: { kind, jobId, subject, reason } },
+  );
+};
 
 const jobs = await createJobQueue({
   connectionString: env.DATABASE_URL,
@@ -493,6 +549,45 @@ const jobs = await createJobQueue({
 
       jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
       process.stdout.write(`catalogue connectivity: ${reachable ? 'reachable' : 'unreachable'}\n`);
+
+      if (!reachable) {
+        await events.publish({ event: 'catalogue.unreachable', data: {} });
+      }
+    },
+    [CHECK_TRANSCODER_JOB]: async (jobId) => {
+      jobs.reportProgress(jobId, 'checking', 0, 1);
+
+      const reachable = await transcoder.isReachable();
+
+      jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
+
+      transcoderWatch.record(reachable);
+    },
+    [PRUNE_WEBHOOK_DELIVERIES_JOB]: async () => {
+      const forgotten = await webhookSubscriptions.pruneDeliveries(
+        new Date(Date.now() - WEBHOOK_DELIVERIES_KEPT_FOR_DAYS * 86_400_000),
+      );
+
+      process.stdout.write(`webhooks: forgot ${forgotten.toString()} old deliveries\n`);
+    },
+    [DELIVER_WEBHOOK_JOB]: async (_jobId, payload) => {
+      const parsed = DeliverWebhookJobSchema.safeParse(payload);
+
+      if (!parsed.success) {
+        process.stderr.write('job queue: a delivery job carried data Flux could not read.\n');
+
+        return;
+      }
+
+      const delivered = await runWebhookDelivery({
+        subscriptions: webhookSubscriptions,
+        subscriptionId: parsed.data.subscriptionId,
+        payload: parsed.data.payload,
+      });
+
+      if (!delivered) {
+        throw new Error(`The delivery to ${parsed.data.subscriptionId} did not land.`);
+      }
     },
     [scheduleTriggerKind(SCAN_LIBRARY_JOB)]: scheduleAcrossLibraries((id) =>
       libraryService.scan(id, false),
@@ -512,6 +607,26 @@ const jobs = await createJobQueue({
   },
   onProblem: (message) => {
     process.stderr.write(`job queue: ${message}\n`);
+  },
+  onFinished: announceFinishedJob,
+});
+
+/**
+ * Queues one delivery to one subscriber.
+ *
+ * Shared by the bus, which uses it for events the server raises, and by the
+ * test button, which addresses a single subscription. Both put the same job
+ * on the same queue; only who they are for differs.
+ */
+const queueWebhookDelivery = async (subscriptionId: string, payload: string): Promise<void> => {
+  await jobs.enqueue(DELIVER_WEBHOOK_JOB, { subscriptionId, payload });
+};
+
+const events = createWebhookEventBus({
+  subscriptions: webhookSubscriptions,
+  enqueue: queueWebhookDelivery,
+  onProblem: (reason) => {
+    process.stderr.write(`events: ${reason}\n`);
   },
 });
 
@@ -647,6 +762,8 @@ const app = createApp({
   segments: segmentService,
   progress: createDatabaseWatchProgressService(db),
   history: historyService,
+  webhooks: webhookSubscriptions,
+  queueWebhookDelivery,
   favourites: createDatabaseFavouriteService(db),
   profiles: profileService,
   promoteProfile: async ({ profileId, email, password }) => {

@@ -12,10 +12,33 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
  */
 type JobHandler = (jobId: string, payload: { [key: string]: JsonValue }) => Promise<void>;
 
+/**
+ * How a job ended, whatever kind it was.
+ *
+ * `reason` is null where it finished and the message where it threw.
+ */
+type FinishedJob = {
+  kind: string;
+  jobId: string;
+  subject: string | null;
+  reason: string | null;
+};
+
 type CreateJobQueueOptions = {
   connectionString: string;
   handlers: Record<string, JobHandler>;
   onProblem?: (message: string) => void;
+  /**
+   * Told about every job that ends, so something else can announce it.
+   *
+   * Here rather than around each handler because this is the one place every
+   * job already passes through, and a per-handler version would be eleven
+   * copies of the same wrapper with one of them eventually forgotten.
+   *
+   * Deliberately knows nothing about what listens. A queue that imported the
+   * event bus would be a queue that could not be tested without one.
+   */
+  onFinished?: (finished: FinishedJob) => void;
 };
 
 /**
@@ -51,6 +74,7 @@ const createJobQueue = async ({
   connectionString,
   handlers,
   onProblem,
+  onFinished,
 }: CreateJobQueueOptions): Promise<JobQueue> => {
   const boss = new PgBoss({ connectionString, schema: 'flux_jobs' });
   const kinds = Object.keys(handlers);
@@ -111,10 +135,23 @@ const createJobQueue = async ({
     await boss.createQueue(kind);
     await boss.work(kind, async (jobs: Job<{ [key: string]: JsonValue }>[]) => {
       for (const job of jobs) {
-        running.set(job.id, { kind, subject: subjectOf(job.data) });
+        const subject = subjectOf(job.data);
+
+        running.set(job.id, { kind, subject });
 
         try {
           await handler(job.id, job.data);
+
+          onFinished?.({ kind, jobId: job.id, subject, reason: null });
+        } catch (error) {
+          onFinished?.({
+            kind,
+            jobId: job.id,
+            subject,
+            reason: error instanceof Error ? error.message : 'The job failed.',
+          });
+
+          throw error;
         } finally {
           running.delete(job.id);
           progressByJobId.delete(job.id);
@@ -209,6 +246,6 @@ const createJobQueue = async ({
   };
 };
 
-export type { JobHandler };
+export type { FinishedJob, JobHandler };
 
 export { createJobQueue, PG_BOSS_STATES };

@@ -19,6 +19,7 @@ import { resolveSeriesShape } from './MetadataProvider';
 import { regeneratePreviews } from './regeneratePreviews';
 import { generateTrickplay } from './generateTrickplay';
 import { rebuildItemArtefacts } from './rebuildItemArtefacts';
+import { toIso } from '@FluxCore/functions/toIso';
 import {
   TRICKPLAY_INTERVAL_SECONDS,
   TRICKPLAY_TILE_WIDTH,
@@ -62,8 +63,6 @@ type CreateDatabaseLibraryServiceOptions = {
   providers?: MetadataProvider[];
   onProblem?: (path: string, reason: string) => void;
 };
-
-const toIso = (value: Date | null): string | null => value?.toISOString() ?? null;
 
 /**
  * The library backed by Postgres.
@@ -548,6 +547,7 @@ const createDatabaseLibraryService = ({
         durationSeconds: row.durationSeconds,
         videoCodec: row.videoCodec,
         videoRange: row.videoRange,
+        videoBitDepth: row.videoBitDepth ?? 8,
         width: row.width,
         height: row.height,
         bitrateKbps: row.bitrateKbps ?? 1,

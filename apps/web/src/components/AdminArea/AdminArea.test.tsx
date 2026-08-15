@@ -365,13 +365,14 @@ const chooseLibrary = async (
  */
 const FAMILY: Record<string, string | null> = {
   Overview: null,
-  Settings: null,
   Sessions: 'Activity',
   Jobs: 'Activity',
   Libraries: 'Content',
   Media: 'Content',
   Accounts: 'People',
   Roles: 'People',
+  Settings: 'System',
+  Webhooks: 'System',
 };
 
 const goTo = async (actor: ReturnType<typeof userEvent.setup>, section: string) => {

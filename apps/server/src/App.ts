@@ -148,11 +148,26 @@ import {
   updateApiKeyRoute,
   revokeApiKeyRoute,
 } from '@FluxServer/routes/ApiKeyRoute';
+import {
+  listWebhooksRoute,
+  createWebhookRoute,
+  updateWebhookRoute,
+  deleteWebhookRoute,
+  testWebhookRoute,
+  listWebhookDeliveriesRoute,
+  redeliverWebhookRoute,
+  DELIVERY_PAGE,
+} from '@FluxServer/routes/WebhookRoute';
+import { createMemoryWebhookStore } from '@FluxServer/webhooks/createMemoryWebhookStore';
+import { isSafeWebhookUrl } from '@FluxServer/webhooks/isSafeWebhookUrl';
+import { queueWebhookTest } from '@FluxServer/webhooks/queueWebhookTest';
+import { queueWebhookRedelivery } from '@FluxServer/webhooks/queueWebhookRedelivery';
 import { narrowToKey } from '@FluxServer/auth/narrowToKey';
 import { watchedBetween } from '@FluxServer/progress/accumulateWatchTime';
 import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
 import type { PermissionService } from '@FluxServer/auth/PermissionService';
 import type { ApiKeyService } from '@FluxServer/auth/ApiKeyService';
+import type { WebhookStore } from '@FluxServer/webhooks/WebhookStore';
 import {
   listHistoryRoute,
   forgetViewingRoute,
@@ -279,6 +294,24 @@ type CreateAppOptions = {
   permissions?: PermissionService;
   history?: HistoryService;
   apiKeys?: ApiKeyService;
+  /**
+   * Where webhook subscriptions are kept.
+   *
+   * Optional so a suite exercising an unrelated route need not build one. The
+   * in-memory default holds nothing, which is the right thing for a server
+   * that has not been given a real store: the routes work and list nothing,
+   * rather than failing.
+   */
+  webhooks?: WebhookStore;
+  /**
+   * Queues one delivery.
+   *
+   * Passed in rather than reached for, because the queue belongs to `Main`.
+   * The default does nothing, which is what a test that is not looking at
+   * deliveries wants — and means a test send answers that it was queued
+   * without anything having to be running to receive it.
+   */
+  queueWebhookDelivery?: (subscriptionId: string, payload: string) => Promise<void>;
   /**
    * Stops an account signing in, ends its sessions, and answers whether there
    * was one. Passed in because ending a session is better-auth's business.
@@ -466,6 +499,8 @@ const createApp = ({
   permissions = createMemoryPermissionService(),
   history,
   apiKeys = createBetterAuthApiKeyService(auth),
+  webhooks = createMemoryWebhookStore(),
+  queueWebhookDelivery = () => Promise.resolve(),
 
   banAccount,
   unbanAccount,
@@ -1092,6 +1127,169 @@ const createApp = ({
     }
 
     return context.body(null, 204);
+  });
+
+  /**
+   * Whether this request may manage subscriptions, and why not if it may not.
+   *
+   * Its own helper because all five webhook routes ask the same question and
+   * answer it the same way, and because the permission is one of the few that
+   * is restrictive by default — an operator capability rather than a
+   * household one, since it decides what addresses the server will make
+   * requests to.
+   */
+  const readWebhookKeeper = async (
+    headers: Headers,
+  ): Promise<'anonymous' | 'forbidden' | 'allowed'> => {
+    const account = await readAccount(headers);
+
+    if (account === null) {
+      return 'anonymous';
+    }
+
+    return (await requires(headers, 'server.webhooks')) ? 'allowed' : 'forbidden';
+  };
+
+  const refuseWebhookKeeper = (keeper: 'anonymous' | 'forbidden') =>
+    keeper === 'anonymous'
+      ? ({ error: 'Nobody is signed in.', status: 401 } as const)
+      : ({ error: 'This account may not manage webhooks.', status: 403 } as const);
+
+  app.openapi(listWebhooksRoute, async (context) => {
+    const keeper = await readWebhookKeeper(context.req.raw.headers);
+
+    if (keeper !== 'allowed') {
+      const refusal = refuseWebhookKeeper(keeper);
+
+      return context.json({ error: refusal.error }, refusal.status);
+    }
+
+    return context.json({ webhooks: await webhooks.list() }, 200);
+  });
+
+  app.openapi(createWebhookRoute, async (context) => {
+    const keeper = await readWebhookKeeper(context.req.raw.headers);
+
+    if (keeper !== 'allowed') {
+      const refusal = refuseWebhookKeeper(keeper);
+
+      return context.json({ error: refusal.error }, refusal.status);
+    }
+
+    const asked = context.req.valid('json');
+
+    if (!isSafeWebhookUrl(asked.url)) {
+      return context.json({ error: 'Flux will not send deliveries to that address.' }, 400);
+    }
+
+    const made = await webhooks.create(asked);
+
+    return context.json({ ...made.subscription, secret: made.secret }, 201);
+  });
+
+  app.openapi(updateWebhookRoute, async (context) => {
+    const keeper = await readWebhookKeeper(context.req.raw.headers);
+
+    if (keeper !== 'allowed') {
+      const refusal = refuseWebhookKeeper(keeper);
+
+      return context.json({ error: refusal.error }, refusal.status);
+    }
+
+    const changed = await webhooks.update(context.req.valid('param').id, context.req.valid('json'));
+
+    return changed === null
+      ? context.json({ error: 'No such subscription.' }, 404)
+      : context.json(changed, 200);
+  });
+
+  app.openapi(deleteWebhookRoute, async (context) => {
+    const keeper = await readWebhookKeeper(context.req.raw.headers);
+
+    if (keeper !== 'allowed') {
+      const refusal = refuseWebhookKeeper(keeper);
+
+      return context.json({ error: refusal.error }, refusal.status);
+    }
+
+    if (!(await webhooks.remove(context.req.valid('param').id))) {
+      return context.json({ error: 'No such subscription.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(testWebhookRoute, async (context) => {
+    const keeper = await readWebhookKeeper(context.req.raw.headers);
+
+    if (keeper !== 'allowed') {
+      const refusal = refuseWebhookKeeper(keeper);
+
+      return context.json({ error: refusal.error }, refusal.status);
+    }
+
+    const queued = await queueWebhookTest({
+      subscriptions: webhooks,
+      subscriptionId: context.req.valid('param').id,
+      enqueue: queueWebhookDelivery,
+    });
+
+    return queued
+      ? context.json({ queued }, 202)
+      : context.json({ error: 'No such subscription, or it is turned off.' }, 404);
+  });
+
+  app.openapi(listWebhookDeliveriesRoute, async (context) => {
+    const keeper = await readWebhookKeeper(context.req.raw.headers);
+
+    if (keeper !== 'allowed') {
+      const refusal = refuseWebhookKeeper(keeper);
+
+      return context.json({ error: refusal.error }, refusal.status);
+    }
+
+    const { id } = context.req.valid('param');
+
+    /**
+     * Whether there is a subscription to have a history at all.
+     *
+     * Asked separately because an empty history and a subscription that does
+     * not exist are different answers, and a listing that returned `[]` for
+     * both would say a deleted webhook was simply quiet.
+     */
+    const exists = (await webhooks.list()).some((webhook) => webhook.id === id);
+
+    if (!exists) {
+      return context.json({ error: 'No such subscription.' }, 404);
+    }
+
+    return context.json({ deliveries: await webhooks.listDeliveries(id, DELIVERY_PAGE) }, 200);
+  });
+
+  app.openapi(redeliverWebhookRoute, async (context) => {
+    const keeper = await readWebhookKeeper(context.req.raw.headers);
+
+    if (keeper !== 'allowed') {
+      const refusal = refuseWebhookKeeper(keeper);
+
+      return context.json({ error: refusal.error }, refusal.status);
+    }
+
+    const { id, deliveryId } = context.req.valid('param');
+
+    const queued = await queueWebhookRedelivery({
+      subscriptions: webhooks,
+      subscriptionId: id,
+      deliveryId,
+      enqueue: queueWebhookDelivery,
+    });
+
+    return queued
+      ? context.json({ queued }, 202)
+      : context.json(
+          { error: 'No such delivery, or the subscription is gone or turned off.' },
+          404,
+        );
   });
 
   app.openapi(listProfilesRoute, async (context) => {
