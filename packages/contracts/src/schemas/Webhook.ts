@@ -37,6 +37,8 @@ const WEBHOOK_EVENTS = [
   'catalogue.reachable',
   'transcoder.unreachable',
   'transcoder.reachable',
+  'disk.low',
+  'disk.recovered',
 ] as const;
 
 const WebhookEventSchema = z.enum(WEBHOOK_EVENTS);
@@ -60,6 +62,8 @@ const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, string> = {
   'catalogue.reachable': 'The catalogue can be reached again',
   'transcoder.unreachable': 'The transcoder could not be reached',
   'transcoder.reachable': 'The transcoder is answering again',
+  'disk.low': 'A disk is running out of room',
+  'disk.recovered': 'A disk has room again',
 };
 
 /**
@@ -96,6 +100,23 @@ const WebhookJobDataSchema = z.object({
   kind: z.string(),
   jobId: z.string(),
   subject: z.string().nullable(),
+});
+
+/**
+ * How much room is left on a filesystem Flux writes to.
+ *
+ * The mount point rather than the library, because two libraries on one array
+ * are one problem: telling somebody twice that the same disk is filling makes
+ * them think two are.
+ *
+ * Both figures are sent rather than a percentage, so a receiver can decide
+ * for itself what counts as alarming — the numbers are the fact, and the
+ * threshold Flux applied is only Flux's opinion of them.
+ */
+const DiskRoomSchema = z.object({
+  mountPoint: z.string(),
+  totalBytes: z.number().nonnegative(),
+  availableBytes: z.number().nonnegative(),
 });
 
 /**
@@ -152,6 +173,16 @@ const WebhookPayloadSchema = z.discriminatedUnion('event', [
     ...WebhookEnvelopeSchema,
     event: z.literal('transcoder.reachable'),
     data: z.object({}),
+  }),
+  z.object({
+    ...WebhookEnvelopeSchema,
+    event: z.literal('disk.low'),
+    data: DiskRoomSchema,
+  }),
+  z.object({
+    ...WebhookEnvelopeSchema,
+    event: z.literal('disk.recovered'),
+    data: DiskRoomSchema,
   }),
 ]);
 

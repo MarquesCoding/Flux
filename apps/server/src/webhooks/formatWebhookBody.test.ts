@@ -156,6 +156,33 @@ describe('formatWebhookBody', () => {
     expect(written.body).toContain('Nothing needs doing');
   });
 
+  it('says which disk is filling and how much is left', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'disk.low',
+      data: { mountPoint: '/media', totalBytes: 2_000_000_000_000, availableBytes: 5_000_000_000 },
+    });
+
+    expect(written.body).toContain('/media');
+    expect(written.body).toContain('4.7 GB');
+    expect(written.body).toContain('1.8 TB');
+  });
+
+  it('says a disk with room again needs nothing doing', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'disk.recovered',
+      data: {
+        mountPoint: '/media',
+        totalBytes: 2_000_000_000_000,
+        availableBytes: 900_000_000_000,
+      },
+    });
+
+    expect(written.body).toContain('/media');
+    expect(written.body).toContain('Nothing needs doing');
+  });
+
   it('carries the reason the transcoder could not be reached', () => {
     const written = formatWebhookBody('ntfy', {
       ...anEnvelope,
