@@ -692,6 +692,18 @@ impl SessionRegistry {
             return;
         };
 
+        self.wants(id, number).await;
+    }
+
+    /// Records which segment a viewer is asking for.
+    ///
+    /// Asking counts, not only being served. The throttle pauses a transcode
+    /// that is further ahead than anyone is watching, and it reads this — so a
+    /// viewer waiting for a segment beyond a paused run would wait for a
+    /// process that only a served segment could restart, and only that segment
+    /// could serve. Measured: a run restarted at segment 397 produced to 435,
+    /// paused, and a request for 439 waited the full timeout and was refused.
+    async fn wants(&self, id: &str, number: u64) {
         let sessions = self.sessions.lock().await;
 
         if let Some(session) = sessions.get(id) {
@@ -761,6 +773,8 @@ impl SessionRegistry {
 
             let is_complete = is_already_complete(&view.directory).await;
             let is_ready = is_segment_ready(&view.directory, wanted, is_complete).await;
+
+            self.wants(id, wanted).await;
 
             match resolve_segment(is_ready, view.run().await, wanted, view.segment_seconds) {
                 SegmentPlan::Serve => return true,

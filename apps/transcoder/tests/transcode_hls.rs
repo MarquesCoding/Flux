@@ -479,6 +479,65 @@ async fn starts_one_transcode_when_two_viewers_ask_at_once() {
     );
 }
 
+/// A viewer waiting for a segment must be able to un-pause the transcode.
+///
+/// The throttle stops a run that is further ahead than anyone is watching, and
+/// it reads how far the viewer has got from the segments served. So a viewer
+/// asking for a segment beyond a paused run waited for a process only a served
+/// segment could restart, and only that segment could serve. Measured against
+/// the running service: a run restarted at segment 397 produced to 435, paused,
+/// and the request for 439 was refused thirty seconds later.
+#[tokio::test]
+async fn serves_a_segment_beyond_a_transcode_that_has_run_ahead() {
+    let _ = std::fs::remove_dir_all(cache_root("throttled"));
+
+    let app = app(registry("throttled"));
+    let subject = SessionSpec {
+        input_path: long_source_file().to_string_lossy().into_owned(),
+        segment_seconds: 4,
+        video: VideoAction::Encode {
+            encoder: "libx264".into(),
+            max_bitrate_kbps: 2000,
+            max_width: 640,
+            max_height: 360,
+            tone_map: None,
+        },
+        audio: AudioAction::Copy,
+        ..spec(VideoAction::Copy, AudioAction::Copy)
+    };
+
+    let (status, body) = start(&app, &subject).await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let id = body["id"].as_str().expect("names the session").to_owned();
+    let directory = cache_root("throttled").join(&id);
+
+    for _ in 0..600 {
+        let ahead = std::fs::read_dir(&directory).map_or(0, |entries| {
+            entries
+                .filter_map(Result::ok)
+                .filter(|entry| entry.file_name().to_string_lossy().ends_with(".ts"))
+                .count()
+        });
+
+        if ahead > 20 {
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00025.ts"))).await;
+
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "a paused run must be woken, not waited on"
+    );
+    assert!(bytes.len() > 512, "segment was {} bytes", bytes.len());
+}
+
 /// A run that has ended must not be waited for.
 ///
 /// A session recorded which run was live and nothing cleared it when the run
