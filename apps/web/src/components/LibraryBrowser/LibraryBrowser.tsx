@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
 import { staggerVariants } from '@FluxUI/animations/reveal';
 import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
@@ -58,6 +58,17 @@ const LibraryBrowser = ({
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [items, setItems] = useState<MediaSummary[]>([]);
+  /**
+   * Which library the held items actually came from.
+   *
+   * `selectedId` changes the moment somebody presses a name; the items follow
+   * a request later. Anything that describes what is on screen has to use
+   * this rather than the selection, or it describes a library whose contents
+   * have not arrived — which is how an empty state came to announce that a
+   * library of seventy-three films had nothing in it, right up until they
+   * appeared.
+   */
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
   /**
    * What the hero may choose from, drawn from every library at once.
    *
@@ -156,6 +167,7 @@ const LibraryBrowser = ({
       });
 
       setItems(page.items);
+      setLoadedFor(selectedId);
     } catch {
       setState('unreachable');
     }
@@ -270,71 +282,81 @@ const LibraryBrowser = ({
           </div>
         </header>
 
-        {items.length === 0 ? (
-          <EmptyLibrary
-            search={appliedSearch}
-            libraryName={libraries.find((entry) => entry.id === selectedId)?.name ?? null}
-            hasContentElsewhere={heroItems.length > 0}
-          />
-        ) : (
-          <div className="flex flex-col gap-10">
-            {groupIntoRails(items, Date.now(), progress).map(({ showOf, ...rail }) => (
-              <Rail
-                key={rail.id}
-                title={rail.title}
-                className="px-0"
-                {...(showOf === undefined || onOpenShow === undefined
-                  ? {}
-                  : {
-                      onOpenTitle: () => {
-                        onOpenShow(showOf);
-                      },
-                    })}
-              >
-                {rail.items.map((media, at) => (
-                  <RevealItem
-                    key={media.id}
-                    index={at}
-                    className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80"
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={loadedFor ?? 'nothing-loaded'}
+            variants={staggerVariants}
+            initial="hidden"
+            animate="shown"
+            exit="gone"
+          >
+            {items.length === 0 ? (
+              <EmptyLibrary
+                search={appliedSearch}
+                libraryName={libraries.find((entry) => entry.id === loadedFor)?.name ?? null}
+                hasContentElsewhere={heroItems.length > 0}
+              />
+            ) : (
+              <div className="flex flex-col gap-10">
+                {groupIntoRails(items, Date.now(), progress).map(({ showOf, ...rail }) => (
+                  <Rail
+                    key={rail.id}
+                    title={rail.title}
+                    className="px-0"
+                    {...(showOf === undefined || onOpenShow === undefined
+                      ? {}
+                      : {
+                          onOpenTitle: () => {
+                            onOpenShow(showOf);
+                          },
+                        })}
                   >
-                    <RailCard
-                      media={media}
-                      {...(progress.has(media.id)
-                        ? {
-                            watchedFraction: watchedFraction(
-                              progress.get(media.id) ?? {
-                                mediaId: media.id,
-                                positionSeconds: 0,
-                                durationSeconds: media.durationSeconds,
-                                isFinished: false,
-                                updatedAt: media.addedAt,
-                              },
-                            ),
-                          }
-                        : {})}
-                      {...(resumeFor(media.id) === null
-                        ? {}
-                        : { resumeSeconds: Math.floor(resumeFor(media.id) ?? 0) })}
-                      onPlay={(media, startSeconds) => {
-                        if (onWatch === undefined) {
-                          onPlay(media);
+                    {rail.items.map((media, at) => (
+                      <RevealItem
+                        key={media.id}
+                        index={at}
+                        className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80"
+                      >
+                        <RailCard
+                          media={media}
+                          {...(progress.has(media.id)
+                            ? {
+                                watchedFraction: watchedFraction(
+                                  progress.get(media.id) ?? {
+                                    mediaId: media.id,
+                                    positionSeconds: 0,
+                                    durationSeconds: media.durationSeconds,
+                                    isFinished: false,
+                                    updatedAt: media.addedAt,
+                                  },
+                                ),
+                              }
+                            : {})}
+                          {...(resumeFor(media.id) === null
+                            ? {}
+                            : { resumeSeconds: Math.floor(resumeFor(media.id) ?? 0) })}
+                          onPlay={(media, startSeconds) => {
+                            if (onWatch === undefined) {
+                              onPlay(media);
 
-                          return;
-                        }
+                              return;
+                            }
 
-                        onWatch(media, startSeconds);
-                      }}
-                      onInspect={onPlay}
-                      {...(onOpenShow === undefined ? {} : { onOpenShow })}
-                      {...(isKept === undefined ? {} : { isKept: isKept(media.id) })}
-                      {...(onToggleKept === undefined ? {} : { onToggleKept })}
-                    />
-                  </RevealItem>
+                            onWatch(media, startSeconds);
+                          }}
+                          onInspect={onPlay}
+                          {...(onOpenShow === undefined ? {} : { onOpenShow })}
+                          {...(isKept === undefined ? {} : { isKept: isKept(media.id) })}
+                          {...(onToggleKept === undefined ? {} : { onToggleKept })}
+                        />
+                      </RevealItem>
+                    ))}
+                  </Rail>
                 ))}
-              </Rail>
-            ))}
-          </div>
-        )}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </section>
     </motion.div>
   );
