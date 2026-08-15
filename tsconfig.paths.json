@@ -17,6 +17,10 @@
       "@FluxUI/StatTile.types": ["./packages/ui/src/components/StatTile/StatTile.types.ts"],
       "@FluxUI/ActionMenu": ["./packages/ui/src/components/ActionMenu/ActionMenu.tsx"],
       "@FluxUI/ActionMenu.types": ["./packages/ui/src/components/ActionMenu/ActionMenu.types.ts"],
+      "@FluxUI/AnimatedIcon": ["./packages/ui/src/components/AnimatedIcon/AnimatedIcon.tsx"],
+      "@FluxUI/AnimatedIcon.types": [
+        "./packages/ui/src/components/AnimatedIcon/AnimatedIcon.types.ts"
+      ],
       "@FluxUI/Card": ["./packages/ui/src/components/Card/Card.tsx"],
       "@FluxUI/ConfirmDialog": ["./packages/ui/src/components/ConfirmDialog/ConfirmDialog.tsx"],
       "@FluxUI/ConfirmDialog.types": [

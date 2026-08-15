@@ -26,6 +26,7 @@ import { MoodBackground } from '@FluxUI/MoodBackground';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
+import type { IconGesture } from '@FluxUI/AnimatedIcon.types';
 import type { NavDockAction, NavDockItem } from '@FluxUI/NavDock.types';
 import type { LibraryKind } from '@FluxContracts/schemas/Library';
 import type { AppShellProps, ShellSection } from './AppShell.types';
@@ -79,6 +80,26 @@ const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
   search: <RiSearchFill size={18} aria-hidden />,
   account: <RiAccountCircleFill size={18} aria-hidden />,
   admin: <RiSettings3Fill size={18} aria-hidden />,
+};
+
+/**
+ * How each mark moves when a pointer arrives on it.
+ *
+ * Chosen to say what the place is rather than to be movement for its own sake:
+ * favourites fills the way a heart fills, New & Popular draws its line upward,
+ * and everywhere that is simply somewhere to go rises a little and settles. A
+ * gesture that meant nothing would be worse than stillness, which is why most
+ * of these are the quiet one.
+ */
+const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
+  home: 'settle',
+  shows: 'settle',
+  films: 'settle',
+  new: 'climb',
+  favourites: 'fill',
+  search: 'settle',
+  account: 'settle',
+  admin: 'spin',
 };
 
 const SECTION_LABELS: Record<ShellSection, string> = {
@@ -164,6 +185,7 @@ const AppShell = ({
     label: SECTION_LABELS[id],
     icon: SECTION_ICONS[id],
     activeIcon: ACTIVE_SECTION_ICONS[id],
+    gesture: SECTION_GESTURES[id],
   }));
 
   const actions: NavDockAction[] = [
@@ -172,6 +194,7 @@ const AppShell = ({
       label: 'Search',
       icon: <RiSearchLine size={20} aria-hidden />,
       activeIcon: <RiSearchFill size={20} aria-hidden />,
+      gesture: 'settle' as const,
       isCurrent: section === 'search',
       onSelect: () => {
         onSectionChange('search');
@@ -184,6 +207,7 @@ const AppShell = ({
             id: 'surprise',
             label: 'Randomiser',
             icon: <RiDice5Line size={20} aria-hidden />,
+            gesture: 'tumble' as const,
             ...(surpriseKinds.length > 1
               ? {
                   control: (
@@ -229,6 +253,7 @@ const AppShell = ({
             id: 'notifications',
             label: 'Notifications',
             icon: <RiNotification3Line size={20} aria-hidden />,
+            gesture: 'ring' as const,
             control: notifications,
           },
         ]),
@@ -239,6 +264,7 @@ const AppShell = ({
             label: 'Admin',
             icon: <RiSettings3Line size={20} aria-hidden />,
             activeIcon: <RiSettings3Fill size={20} aria-hidden />,
+            gesture: 'spin' as const,
             isCurrent: section === 'admin',
             onSelect: () => {
               onSectionChange('admin');
@@ -251,6 +277,7 @@ const AppShell = ({
       label: 'Account',
       icon: avatar ?? <RiAccountCircleLine size={22} aria-hidden />,
       activeIcon: avatar ?? <RiAccountCircleFill size={20} aria-hidden />,
+      gesture: 'settle' as const,
       isCurrent: section === 'account',
       onSelect: () => {
         onSectionChange('account');

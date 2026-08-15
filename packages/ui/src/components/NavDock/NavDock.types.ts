@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { IconGesture } from '@FluxUI/AnimatedIcon.types';
 
 /**
  * One place the dock can take a viewer.
@@ -14,6 +15,14 @@ type NavDockItem = {
    * changes, so nothing about the dock moves as you arrive.
    */
   activeIcon?: ReactNode;
+  /**
+   * How the icon moves when it is pointed at.
+   *
+   * Named here rather than decided by the dock, because what a movement should
+   * say depends on what the place is, which is the one thing the dock does not
+   * know about its items.
+   */
+  gesture?: IconGesture;
 };
 
 /**
@@ -27,6 +36,7 @@ type NavDockAction = {
    * Drawn instead of the icon while this reads as the current place.
    */
   activeIcon?: ReactNode;
+  gesture?: IconGesture;
   /**
    * Whether this reads as the current place. Search is both a tool and a page.
    */
