@@ -1,11 +1,11 @@
 import type { PlaybackHealth } from '@FluxWeb/components/VideoPlayer/components/StreamStats/StreamStats.types';
 
 /**
- * The last moment of the stream that exists.
+ * The last moment of the stream the element will let anyone seek to.
  *
- * A transcode is delivered as a playlist that grows, so this is how much has
- * been encoded rather than how long the film is. Read defensively because an
- * element that has loaded nothing reports no ranges at all.
+ * The playlist describes the whole film, so this is the film's length rather
+ * than how much of it has been transcoded. Read defensively because an element
+ * that has loaded nothing reports no ranges at all.
  */
 const encodedSeconds = (element: HTMLVideoElement): number => {
   try {
@@ -75,14 +75,11 @@ const frameCounts = (
  * because the two disagreeing is the situation the stats panel exists to make
  * visible.
  */
-const readPlaybackHealth = (
-  element: HTMLVideoElement,
-  sessionStartSeconds: number,
-): PlaybackHealth => {
+const readPlaybackHealth = (element: HTMLVideoElement): PlaybackHealth => {
   const frames = frameCounts(element);
 
   return {
-    positionSeconds: sessionStartSeconds + element.currentTime,
+    positionSeconds: element.currentTime,
     bufferedAheadSeconds: bufferedAhead(element),
     encodedSeconds: encodedSeconds(element),
     droppedFrames: frames.dropped,

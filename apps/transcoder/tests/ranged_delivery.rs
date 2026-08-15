@@ -44,6 +44,7 @@ fn app(name: &str) -> axum::Router {
         registry: SessionRegistry::new(SessionConfig {
             device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: "ffmpeg".to_owned(),
+            ffprobe: "ffprobe".to_owned(),
             cache_root: root,
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,

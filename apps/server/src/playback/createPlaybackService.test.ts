@@ -16,6 +16,7 @@ const bilingual: MediaItem = {
   durationSeconds: 7200,
   videoCodec: 'hevc',
   videoRange: 'HDR10',
+  videoBitDepth: 8,
   width: 3840,
   height: 2160,
   bitrateKbps: 24000,
@@ -34,6 +35,7 @@ const capableProfile: DeviceProfile = {
   maxBitrateKbps: 40000,
   maxAudioChannels: 8,
   supportedVideoRanges: ['SDR', 'HDR10'],
+  tenBitVideoCodecs: [],
   supportedSubtitleFormats: ['webvtt'],
   directPlayProfiles: [
     { container: 'mkv', videoCodecs: ['hevc', 'h264'], audioCodecs: ['truehd', 'aac'] },
@@ -196,6 +198,7 @@ const item = (overrides: Partial<MediaItem> = {}): MediaItem => ({
   durationSeconds: 7200,
   videoCodec: 'h264',
   videoRange: 'SDR',
+  videoBitDepth: 8,
   width: 1920,
   height: 1080,
   bitrateKbps: 8000,
@@ -218,6 +221,7 @@ const profile = (overrides: Partial<DeviceProfile> = {}): DeviceProfile => ({
   maxBitrateKbps: 40000,
   maxAudioChannels: 8,
   supportedVideoRanges: ['SDR', 'HDR10'],
+  tenBitVideoCodecs: [],
   supportedSubtitleFormats: ['srt', 'webvtt'],
   directPlayProfiles: [{ container: 'mp4', videoCodecs: ['h264'], audioCodecs: ['aac'] }],
   transcodingProfiles: [

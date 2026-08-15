@@ -76,14 +76,14 @@ describe('bufferedAhead', () => {
 });
 
 describe('readPlaybackHealth', () => {
-  it('reports the position on the film, not inside the session', () => {
-    const health = readPlaybackHealth(player({ currentTime: 12 }), 3600);
+  it('reports the position on the film, which is the timeline the element is on', () => {
+    const health = readPlaybackHealth(player({ currentTime: 3612 }));
 
     expect(health.positionSeconds).toBe(3612);
   });
 
   it('reports the size actually being decoded', () => {
-    const health = readPlaybackHealth(player({ width: 1920, height: 1040 }), 0);
+    const health = readPlaybackHealth(player({ width: 1920, height: 1040 }));
 
     expect(health).toMatchObject({ presentedWidth: 1920, presentedHeight: 1040 });
   });
@@ -91,14 +91,13 @@ describe('readPlaybackHealth', () => {
   it('reports frame counts where the browser keeps them', () => {
     const health = readPlaybackHealth(
       player({ quality: { droppedVideoFrames: 4, totalVideoFrames: 900 } }),
-      0,
     );
 
     expect(health).toMatchObject({ droppedFrames: 4, decodedFrames: 900 });
   });
 
   it('says nothing rather than zero when the browser does not count frames', () => {
-    const health = readPlaybackHealth(player({}), 0);
+    const health = readPlaybackHealth(player({}));
 
     expect(health).toMatchObject({ droppedFrames: null, decodedFrames: null });
   });

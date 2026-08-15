@@ -24,6 +24,7 @@ const FILM: MediaDetail = {
   durationSeconds: 7200,
   videoCodec: 'hevc',
   videoRange: 'HDR10',
+  videoBitDepth: 8,
   width: 3840,
   height: 2160,
   bitrateKbps: 24000,

@@ -21,7 +21,7 @@ import {
   heartbeatPlaybackSession,
   sendPresenceHeartbeat,
 } from '@FluxWeb/playback/startPlaybackSession';
-import { attachShaka } from '@FluxWeb/playback/attachShaka';
+import { attachShaka, CRITICAL } from '@FluxWeb/playback/attachShaka';
 import {
   describePlaybackFailure,
   PlaybackEngineErrorSchema,
@@ -37,7 +37,7 @@ import { loadCastSender, castStateOf, castStream } from '@FluxWeb/playback/castS
 import { fetchTrickplay } from '@FluxWeb/playback/fetchTrickplay';
 import { popOutWithCaptions } from '@FluxWeb/playback/popOutWithCaptions';
 import { captureFrame } from '@FluxWeb/playback/captureFrame';
-import { readPlaybackHealth, encodedSeconds } from '@FluxWeb/playback/readPlaybackHealth';
+import { readPlaybackHealth } from '@FluxWeb/playback/readPlaybackHealth';
 import {
   fetchSubtitleTracks,
   subtitleTrackUrl,
@@ -408,7 +408,7 @@ const VideoPlayer = ({
         void castStream(context, {
           url: whole,
           title: media.title,
-          startSeconds: request.startSeconds + element.currentTime,
+          startSeconds: element.currentTime,
         }).then((accepted) => {
           if (accepted) {
             element.pause();
@@ -584,7 +584,7 @@ const VideoPlayer = ({
    * interval.
    */
   const reportPresenceHeartbeat = useCallback(
-    (clientId: string, startSeconds: number) => {
+    (clientId: string) => {
       const current = videoRef.current;
       const playing = current !== null && !current.paused;
 
@@ -594,7 +594,7 @@ const VideoPlayer = ({
         return;
       }
 
-      const measured = readPlaybackHealth(current, startSeconds);
+      const measured = readPlaybackHealth(current);
       const totalDuration =
         media.durationSeconds > 0
           ? media.durationSeconds
@@ -679,7 +679,7 @@ const VideoPlayer = ({
       }, HEARTBEAT_INTERVAL_MILLISECONDS);
 
       presenceHealthInterval = setInterval(() => {
-        reportPresenceHeartbeat(clientId, request.startSeconds);
+        reportPresenceHeartbeat(clientId);
       }, PRESENCE_HEALTH_INTERVAL_MILLISECONDS);
 
       const element = videoRef.current;
@@ -695,9 +695,21 @@ const VideoPlayer = ({
           teardown = await attachShaka({
             element,
             manifestUrl: outcome.session.delivery.manifestUrl,
+            onFault: (fault) => {
+              if (fault.severity < CRITICAL || isAbandoned()) {
+                return;
+              }
+
+              setProblem(describePlaybackFailure(fault.category));
+              setState('failed');
+            },
           });
 
           releaseRef.current = teardown;
+        }
+
+        if (request.startSeconds > 0) {
+          element.currentTime = request.startSeconds;
         }
 
         if (!isAbandoned()) {
@@ -866,7 +878,7 @@ const VideoPlayer = ({
       const element = videoRef.current;
 
       if (element !== null) {
-        setHealth(readPlaybackHealth(element, request.startSeconds));
+        setHealth(readPlaybackHealth(element));
       }
     };
 
@@ -877,7 +889,7 @@ const VideoPlayer = ({
     return () => {
       clearInterval(timer);
     };
-  }, [isShowingStats, request.startSeconds]);
+  }, [isShowingStats]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -913,42 +925,29 @@ const VideoPlayer = ({
     element.pause();
   }, []);
 
-  const seek = useCallback(
-    (seconds: number) => {
-      const element = videoRef.current;
+  /**
+   * Moves to a moment in the film.
+   *
+   * A seek is a seek. The playlist describes the whole film, so the timeline
+   * the element is on is the film's own and every position on it is one the
+   * element can be told to go to — the service decides whether that means
+   * serving what it has or starting the transcode there.
+   *
+   * This used to branch on whether the target was inside what had been
+   * encoded, and start a new session for anywhere else, which is what made
+   * seeking cost a transcode of the rest of the film.
+   */
+  const seek = useCallback((seconds: number) => {
+    const element = videoRef.current;
 
-      if (element === null) {
-        return;
-      }
+    if (element === null) {
+      return;
+    }
 
-      setPosition(seconds);
+    setPosition(seconds);
 
-      if (session?.delivery.kind === 'direct') {
-        element.currentTime = seconds;
-
-        return;
-      }
-
-      const withinSession = seconds - request.startSeconds;
-
-      if (withinSession >= 0 && withinSession <= encodedSeconds(element)) {
-        element.currentTime = withinSession;
-
-        return;
-      }
-
-      hold(element);
-      setRequest({
-        mediaId: request.mediaId,
-        startSeconds: Math.floor(seconds),
-        requestedQuality: request.requestedQuality,
-        ...(request.audioStreamIndex === undefined
-          ? {}
-          : { audioStreamIndex: request.audioStreamIndex }),
-      });
-    },
-    [request, session],
-  );
+    element.currentTime = seconds;
+  }, []);
 
   useEffect(() => {
     saveCaptionStyle(captionStyle);
@@ -1044,7 +1043,7 @@ const VideoPlayer = ({
         return;
       }
 
-      const at = request.startSeconds + element.currentTime;
+      const at = element.currentTime;
 
       void reportWatchProgress(media.id, {
         positionSeconds: at,
@@ -1059,7 +1058,7 @@ const VideoPlayer = ({
       clearInterval(timer);
       report();
     };
-  }, [state, duration, media.id, request.startSeconds]);
+  }, [state, duration, media.id]);
 
   /**
    * Moves by a single frame of the film.
@@ -1339,11 +1338,11 @@ const VideoPlayer = ({
                   id: selectedTrack.id,
                   label: selectedTrack.label,
                   language: selectedTrack.language ?? 'und',
-                  src: subtitleTrackUrl(media.id, selectedTrack.id, request.startSeconds),
+                  src: subtitleTrackUrl(media.id, selectedTrack.id),
                 },
               })}
           onTimeUpdate={(seconds) => {
-            const at = request.startSeconds + seconds;
+            const at = seconds;
 
             setPosition(at);
             setHeldFrame(null);
@@ -1435,7 +1434,7 @@ const VideoPlayer = ({
                   ? 'Preparing playback'
                   : heldFrame.isItemChange
                     ? 'Loading the next episode'
-                    : 'Seeking'
+                    : 'Changing the stream'
               }
               size={heldFrame === null ? 'lg' : 'sm'}
             />

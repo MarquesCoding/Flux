@@ -183,6 +183,13 @@
       "when": 1786744871249,
       "tag": "0025_blushing_madame_web",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1786755870094,
+      "tag": "0026_stiff_miss_america",
+      "breakpoints": true
     }
   ]
 }

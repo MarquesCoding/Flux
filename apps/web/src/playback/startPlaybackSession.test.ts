@@ -48,6 +48,7 @@ const profile: DeviceProfile = {
   maxBitrateKbps: 8000,
   maxAudioChannels: 2,
   supportedVideoRanges: ['SDR'],
+  tenBitVideoCodecs: [],
   supportedSubtitleFormats: ['webvtt'],
   directPlayProfiles: [{ container: 'mp4', videoCodecs: ['h264'], audioCodecs: ['aac'] }],
   transcodingProfiles: [

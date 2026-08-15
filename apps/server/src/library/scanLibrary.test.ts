@@ -46,6 +46,7 @@ const stored = (path: string, overrides: Partial<StoredItem> = {}): StoredItem =
   sizeBytes: 1000,
   modifiedAtMs: 1000,
   externalId: null,
+  videoBitDepth: 8,
   ...overrides,
 });
 
@@ -183,6 +184,28 @@ describe('a library whose files have gone from under it', () => {
     await run();
 
     expect(problems.join(' ')).toContain('not mounted');
+  });
+
+  it('probes again where nobody recorded the colour depth', async () => {
+    const { run, rows } = harness({
+      found: [file('/a.mkv')],
+      existing: [stored('/a.mkv', { videoBitDepth: null })],
+    });
+
+    await run();
+
+    expect(rows.map((row) => row.path)).toEqual(['/a.mkv']);
+  });
+
+  it('leaves a file alone once its colour depth is known', async () => {
+    const { run, rows } = harness({
+      found: [file('/a.mkv')],
+      existing: [stored('/a.mkv')],
+    });
+
+    await run();
+
+    expect(rows).toEqual([]);
   });
 
   it('still removes what has gone while other files remain, which is a real deletion', async () => {

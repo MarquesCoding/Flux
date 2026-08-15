@@ -26,6 +26,16 @@ type StoredItem = {
    * the wrong thing in the first place.
    */
   externalId: string | null;
+  /**
+   * How many bits the stored probe recorded per colour sample, if it recorded
+   * any.
+   *
+   * Nothing, for a row written before Flux asked. Such a row is probed again:
+   * a depth nobody knows is what let a ten bit film be copied to a browser
+   * that could only decode eight, and a library already scanned would
+   * otherwise carry that decision until every file in it happened to change.
+   */
+  videoBitDepth: number | null;
 };
 
 type MediaRow = {
@@ -138,6 +148,11 @@ type ScanPhase = (typeof SCAN_PHASES)[number];
  * A file already stored at the same size and modification time is left alone.
  * Re-probing an unchanged library of thousands of files on every scan would
  * make scanning unusably slow and pointlessly spin disks.
+ *
+ * The exception is a file whose stored probe is missing something Flux has
+ * since learned to read. It is the file that has not changed, not the
+ * question being asked of it, and a library scanned before the question
+ * existed would otherwise never answer it.
  */
 const selectChanged = (
   found: ScannedFile[],
@@ -152,7 +167,8 @@ const selectChanged = (
     return (
       existing === undefined ||
       existing.sizeBytes !== file.sizeBytes ||
-      existing.modifiedAtMs !== file.modifiedAtMs
+      existing.modifiedAtMs !== file.modifiedAtMs ||
+      existing.videoBitDepth === null
     );
   });
 

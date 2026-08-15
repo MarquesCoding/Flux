@@ -160,6 +160,7 @@ async fn asking_twice_at_once_renders_one_clip_rather_than_two() {
         registry: SessionRegistry::new(SessionConfig {
             device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg_path,
+            ffprobe: ffprobe(),
             cache_root: root.clone(),
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,
