@@ -89,6 +89,7 @@
       "@FluxUI/hasFinePointer": ["./packages/ui/src/functions/hasFinePointer.ts"],
       "@FluxUI/usePagedScroller": ["./packages/ui/src/functions/usePagedScroller.ts"],
       "@FluxUI/useSlidingHighlight": ["./packages/ui/src/functions/useSlidingHighlight.ts"],
+      "@FluxUI/usePortalContainer": ["./packages/ui/src/functions/usePortalContainer.ts"],
       "@FluxUI/cn": ["./packages/ui/src/functions/cn.ts"],
       "@FluxUI/tokens": ["./packages/ui/src/tokens/tokens.ts"],
       "@FluxWeb/*": ["./apps/web/src/*"]

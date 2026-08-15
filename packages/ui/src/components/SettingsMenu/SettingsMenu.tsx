@@ -8,6 +8,7 @@ import { Switch } from '@FluxUI/Switch';
 import { useSlidingHighlight } from '@FluxUI/useSlidingHighlight';
 import { cn } from '@FluxUI/cn';
 import { Tooltip } from '@FluxUI/Tooltip';
+import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type {
   SettingsChoiceRow,
   SettingsMenuProps,
@@ -83,6 +84,8 @@ const SettingsMenu = ({
   isDisabled = false,
   className,
 }: SettingsMenuProps) => {
+  const portalContainer = usePortalContainer();
+
   const [openId, setOpenId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
@@ -126,7 +129,7 @@ const SettingsMenu = ({
         </Popover.Trigger>
       </Tooltip>
 
-      <Popover.Portal>
+      <Popover.Portal container={portalContainer}>
         <Popover.Positioner
           side="top"
           sideOffset={12}
