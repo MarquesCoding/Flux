@@ -12,6 +12,7 @@ import {
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   CHECK_TRANSCODER_JOB,
   CHECK_DISK_SPACE_JOB,
+  SEND_MEDIA_DIGEST_JOB,
   PRUNE_WEBHOOK_DELIVERIES_JOB,
   scheduleTriggerKind,
 } from './JobQueue';
@@ -162,6 +163,14 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     destructive: false,
   },
   {
+    kind: SEND_MEDIA_DIGEST_JOB,
+    label: 'Tell the household about new media',
+    description:
+      'Collects what has been imported since the last time and says it once, so a scan of four hundred files is one notification rather than four hundred.',
+    needsLibrary: false,
+    destructive: false,
+  },
+  {
     kind: PRUNE_WEBHOOK_DELIVERIES_JOB,
     label: 'Prune old webhook deliveries',
     description:
@@ -197,6 +206,7 @@ const DEFAULT_JOB_TRIGGERS: Record<string, ScheduleTrigger[]> = {
   [CHECK_CATALOGUE_CONNECTIVITY_JOB]: [{ kind: 'daily', hour: 5, minute: 0 }],
   [CHECK_TRANSCODER_JOB]: [{ kind: 'everyMinutes', minutes: 5 }],
   [CHECK_DISK_SPACE_JOB]: [{ kind: 'everyMinutes', minutes: 15 }],
+  [SEND_MEDIA_DIGEST_JOB]: [{ kind: 'everyHours', hours: 1 }],
   [CLEANUP_SESSIONS_JOB]: [{ kind: 'daily', hour: 5, minute: 30 }],
   [PRUNE_WEBHOOK_DELIVERIES_JOB]: [{ kind: 'daily', hour: 5, minute: 45 }],
   [CLEANUP_IMAGE_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 0 }],
