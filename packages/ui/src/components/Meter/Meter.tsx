@@ -4,15 +4,6 @@ import type { MeterProps } from './Meter.types';
 
 /**
  * How much of something is being used.
- *
- * The bar carries the shape of the answer and the words carry the answer
- * itself, because a bar alone cannot say whether it is eighty percent of a
- * gigabyte or of a terabyte. Colour shifts as it fills: something running near
- * its limit should look different at a glance from something idling.
- *
- * Built on Base UI's meter, so it is a `meter` to anything reading the page
- * rather than a decorated `div`: the fraction is announced, and the words
- * beside it are its label and its value rather than two unrelated spans.
  */
 const Meter = ({ label, fraction, value, className }: MeterProps) => {
   const filled = Math.min(Math.max(fraction, 0), 1);

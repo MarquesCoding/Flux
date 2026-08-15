@@ -16,10 +16,6 @@ const SIZE_CLASSES: Record<BadgeSize, string> = {
 
 /**
  * A small fact about something.
- *
- * A pill rather than a box, uppercase and widely tracked, so a row of them
- * reads as a specification line rather than as a set of buttons. Nothing here
- * is interactive: a badge that looks pressable is a badge people press.
  */
 const Badge = ({ children, tone = 'quiet', size = 'sm', className }: BadgeProps) => (
   <span

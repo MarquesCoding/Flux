@@ -14,13 +14,8 @@ type QualityClamp = {
 };
 
 /**
- * Resolves a requested quality step against a source into a clamp, or `null`
- * when no clamp should apply.
- *
- * `null` covers two cases that both mean "treat this like Original": the
- * viewer picked Original itself, or the step would not actually reduce
- * anything below what the source already is — forcing a re-encode of an
- * already-modest file wastes a transcode slot for no visible benefit.
+ * Resolves a requested quality step against a source into a clamp, or `null` when no clamp should
+ * apply.
  */
 const resolveQualityStep = (
   media: MediaItem,

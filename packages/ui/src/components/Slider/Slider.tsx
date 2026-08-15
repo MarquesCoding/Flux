@@ -16,14 +16,6 @@ const FILL_CLASSES: Record<SliderTone, string> = {
 
 /**
  * A track with a handle on it.
- *
- * Built on the Base UI slider so dragging, arrow keys and the ARIA wiring come
- * from a primitive that already gets them right, rather than from a div with a
- * pointer handler that keyboard users cannot reach.
- *
- * Hovering reports the value under the pointer so a caller can draw a preview
- * there. That is measured from the track's own rectangle, because the pointer
- * event's offset is relative to whichever child element it landed on.
  */
 const Slider = ({
   label,

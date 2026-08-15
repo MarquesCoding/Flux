@@ -6,24 +6,10 @@ import { Switch } from '@FluxUI/Switch';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import type { NotificationBellProps } from './NotificationBell.types';
 
-/**
- * How many unread the count shows before it gives up counting.
- *
- * Nobody reads "37" as a number of things to do; past a point it is simply
- * "a lot", and a two-character badge keeps the dock from reflowing.
- */
 const COUNTED_UP_TO = 9;
 
 /**
  * The bell, and what is behind it.
- *
- * Lives among the dock's tools rather than its places, which is where the
- * shell's own notes said notifications belong: searching, notifications and
- * the account are things you do rather than places to browse.
- *
- * Opening marks nothing read on its own. A glance at a list is not the same
- * as having read it, and a bell that empties because somebody looked is one
- * that loses the thing they opened it to find. Clearing is a press.
  */
 const NotificationBell = ({
   notifications,

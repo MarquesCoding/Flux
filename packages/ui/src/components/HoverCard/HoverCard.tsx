@@ -13,14 +13,6 @@ const POPUP_MOTION = [
 
 /**
  * More about the thing under the pointer, without pressing anything.
- *
- * For detail that would crowd the row it belongs to — which file a job is on,
- * what a figure is made of. A table can then say the short version in its
- * column and keep the long version a rest away, rather than choosing between
- * a cramped cell and a dialog nobody opens.
- *
- * Unlike a tooltip this can be pointed at and read from, so it may hold
- * several lines and its own structure.
  */
 const HoverCard = ({
   children,

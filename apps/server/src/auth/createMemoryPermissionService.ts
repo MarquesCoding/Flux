@@ -12,12 +12,7 @@ type MemoryState = {
 };
 
 /**
- * Roles and grants held in memory, so the HTTP surface can be exercised
- * without a database.
- *
- * Seeded with the same default roles a real instance gets, because a test
- * asserting that a Member cannot reset a library should be asserting against
- * the roles people actually have.
+ * Roles and grants held in memory, so the HTTP surface can be exercised without a database.
  */
 const createMemoryPermissionService = (
   state: MemoryState = {

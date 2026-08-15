@@ -8,11 +8,6 @@ import type { SetupFormErrors, SetupWizardProps } from './SetupWizard.types';
 
 /**
  * First-run setup.
- *
- * The origin fields are pre-filled from what the server observed on the
- * incoming request, because the operator reaching this page has by definition
- * just proved which URL works. Asking them to type it invites the mismatch
- * that makes login silently fail.
  */
 const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
   const [name, setName] = useState('');

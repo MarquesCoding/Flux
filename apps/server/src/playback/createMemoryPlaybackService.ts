@@ -23,10 +23,6 @@ const streamOf = (content: string): ReadableStream<Uint8Array> =>
 
 /**
  * Playback held in memory.
- *
- * Runs the real negotiator over the supplied items, so the routes are tested
- * against genuine plans rather than canned ones. Only the media service is
- * stood in for.
  */
 const createMemoryPlaybackService = (
   state: MemoryPlaybackState = { media: {}, sessions: {} },

@@ -4,15 +4,6 @@ import type { Place } from './readLocation';
 
 /**
  * Where the application is, kept in the address bar.
- *
- * The address is the state rather than a copy of it, so a reload lands where
- * somebody was, the back button undoes what they last did, and a link to a
- * film is a link to a film. Everything that decides what is on screen goes
- * through here.
- *
- * Moving pushes a new entry; correcting where you already are replaces it, so
- * that typing into a search box does not fill the history with one entry per
- * letter.
  */
 const usePlace = (): {
   place: Place;

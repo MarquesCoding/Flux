@@ -4,10 +4,6 @@ import type { ProgressBarProps } from './ProgressBar.types';
 
 /**
  * How far through something long-running is.
- *
- * Base UI owns the part that is a contract with the browser — the role, the
- * bounds, and the difference between "half done" and "nobody has counted yet" —
- * and this owns the shape of it.
  */
 const ProgressBar = ({
   label,

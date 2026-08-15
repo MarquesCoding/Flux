@@ -29,11 +29,6 @@ Row.displayName = 'Row';
 
 /**
  * Everything Flux knows about what is on screen.
- *
- * The negotiator already records why it chose every treatment, and the media
- * element already knows what it is managing to decode. Neither is any use
- * locked inside a log file on the server, so this puts both in front of the
- * person watching.
  */
 const StreamStats = ({
   media,

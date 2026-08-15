@@ -5,12 +5,6 @@ type CacheRow = {
   label: string;
   value: string;
   detail: string;
-  /**
-   * What somebody needs told about this figure that the figure cannot say.
-   *
-   * Only where the number is genuinely surprising. A hint beside every row is
-   * a row of icons nobody reads.
-   */
   hint?: string;
 };
 
@@ -22,24 +16,6 @@ const counted = (count: number, one: string, many: string): string =>
 
 /**
  * What is on the disk, a kind at a time.
- *
- * Four kinds, and they are not all measured by the same service: previews,
- * scrub sheets and live transcodes belong to the media service, while artwork
- * is fetched and kept by the API server. Either can be missing while the other
- * is known — one of them having just started does not make the cache empty —
- * so a kind nobody has counted yet says so rather than showing nothing.
- *
- * The media library is the odd one out and belongs anyway. It is the only
- * figure here Flux did not create, and it is the first thing an operator of a
- * media server wants to know — so it sits at the end of the row, after the
- * four that Flux is responsible for, rather than being counted among them.
- *
- * Transcode working directories are counted against the sessions actually
- * running, because the two come apart badly: a session that ended without
- * being collected leaves its directory behind, and on a real server almost
- * every directory is one of those. Calling the total "live transcodes" would
- * report sixty gigabytes of abandoned segments as work in progress, which is
- * the opposite of what somebody needs to know about it.
  */
 const cacheRows = (
   cache: Monitor['cache'],

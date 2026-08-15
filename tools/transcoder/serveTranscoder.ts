@@ -7,11 +7,6 @@ const ROOT = join(import.meta.dirname, '..', '..');
 
 /**
  * Loads the same file the server reads.
- *
- * Cargo has no notion of `.env`, so without this the media service would start
- * with none of the configuration the rest of the stack has and bind the
- * packaged socket path, which is the mismatch this whole script exists to
- * prevent.
  */
 const loadEnvFile = (): void => {
   const path = join(ROOT, '.env');

@@ -7,42 +7,6 @@ import type { NavDockProps } from './NavDock.types';
 
 /**
  * The one bar, floating.
- *
- * Places and tools used to be two capsules with a gap between them, which read
- * as two navigations rather than one — a viewer had to learn which half of the
- * screen answered which question. They are one dock now, divided by a hairline
- * instead of by empty space: still plainly two kinds of thing, but plainly one
- * bar holding them.
- *
- * One mark, not two. It rests on the place being stood on, follows the pointer
- * to whatever it passes over, and returns the moment the pointer leaves. Two
- * backgrounds — one lit, one hovered — meant the dock always had a spare
- * highlight lying about claiming to mean something; this way the mark is
- * always answering the same question, which is "what would happen if I pressed
- * now".
- *
- * The names arrive at once rather than after a pause. A tooltip waits so that
- * crossing a bar of controls does not flash a box on each one, but here the
- * bar is nothing but icons and the name is the only thing saying what each
- * does — waiting is the interface withholding the one thing being asked for.
- *
- * The names are tooltips above the icons rather than words beside them. A word
- * that opens inline pushes every icon along as the pointer arrives, so the
- * thing being aimed at moves while it is being aimed at — and on a dock, where
- * the pointer travels the whole row, that happens on every pass. Above the
- * icon, the row holds still and the mark is the only thing that moves.
- *
- * The filled icon stays with the place actually being stood on, so that
- * pointing at somewhere else never loses where you are.
- *
- * At the foot of the window rather than the head of it. The top of a page is
- * where the thing being looked at introduces itself — a title, a hero, the
- * first row of a library — and a bar pinned over that is a bar covering the
- * one part of the page that was doing the explaining. Down here it is under
- * the thumb and out of the way of the artwork.
- *
- * Glass, so what passes beneath carries on being visible: the page belongs to
- * what is being shown, and the navigation rests on top of it.
  */
 const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }: NavDockProps) => {
   const [pointedAt, setPointedAt] = useState<string | null>(null);

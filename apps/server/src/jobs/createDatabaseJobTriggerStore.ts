@@ -7,11 +7,6 @@ import type { JobTriggerStore } from './JobTriggerStore';
 
 /**
  * Job triggers in Postgres.
- *
- * A stored row that no longer parses is dropped from the listing rather than
- * failing the read: a trigger shape removed in a later version would
- * otherwise make the whole schedules page unopenable, when the right outcome
- * is that the trigger nobody can express any more quietly stops counting.
  */
 const createDatabaseJobTriggerStore = (db: FluxDatabase): JobTriggerStore => ({
   list: async () => {

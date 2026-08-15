@@ -1,15 +1,5 @@
 import { z } from 'zod';
 
-/**
- * One thing somebody watched, once.
- *
- * `secondsWatched` is how long was actually spent rather than how long the
- * thing is, so a film abandoned after ten minutes reads as ten minutes.
- *
- * The names are nullable because an item can leave the library after it was
- * watched. The viewing outlives it — somebody did watch it — and a history
- * that quietly dropped those rows would be lying about the evening.
- */
 const ViewingSchema = z.object({
   id: z.string(),
   mediaItemId: z.string(),

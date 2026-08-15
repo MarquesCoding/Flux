@@ -21,15 +21,6 @@ const AudioCodecSchema = z.enum([
 
 const ContainerSchema = z.enum(['mp4', 'mkv', 'webm', 'ts', 'm2ts', 'mov', 'avi']);
 
-/**
- * The subtitle formats Flux understands, and the admission that a file may
- * carry one it does not.
- *
- * `unknown` is what the transcoder reports for a codec it has no mapping for,
- * and leaving it out of this list did not stop such files existing: it stopped
- * them being read at all, because the whole item failed to parse on the way to
- * the client.
- */
 const SubtitleFormatSchema = z.enum([
   'srt',
   'webvtt',
@@ -59,11 +50,6 @@ const SubtitleStreamSchema = z.object({
   isForced: z.boolean(),
 });
 
-/**
- * A single playable media file with the stream details the playback negotiator
- * needs. Every field here is derived from probing the file, never from the
- * filename or from user input.
- */
 const MediaItemSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1),

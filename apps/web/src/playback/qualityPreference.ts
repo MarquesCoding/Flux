@@ -11,9 +11,6 @@ const DEFAULT_QUALITY_PREFERENCE: QualityPreference = 'original';
 
 /**
  * Reads a viewer's quality preference.
- *
- * Anything unreadable or out of date falls back to Original rather than
- * throwing: a stale setting must not stop playback from starting.
  */
 const readQualityPreference = (): QualityPreference => {
   try {
@@ -33,10 +30,6 @@ const readQualityPreference = (): QualityPreference => {
 
 /**
  * Remembers a viewer's quality preference.
- *
- * Kept in the browser rather than on the server: a laptop on Wi-Fi and a TV
- * on ethernet want different defaults, and that is a property of the device
- * rather than the account.
  */
 const saveQualityPreference = (preference: QualityPreference): void => {
   try {

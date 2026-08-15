@@ -10,14 +10,6 @@ const stillUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backd
 
 /**
  * One episode, in a list of them.
- *
- * A line rather than a card: a season is read down the page, and twelve cards
- * of the same programme is the thing this dialog exists to replace. The still
- * is small and the number is large, because in a list of episodes the number
- * is what somebody is looking for.
- *
- * The whole line plays it. Reading about it is a separate press, since that is
- * the rarer intention.
  */
 const EpisodeRow = ({
   episode,

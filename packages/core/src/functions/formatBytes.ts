@@ -2,10 +2,6 @@ const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
 
 /**
  * Says a size the way a person would.
- *
- * One decimal at most: an operator glancing at memory use wants to know
- * whether it is three gigabytes or thirty, and "3.4 GB" answers that where
- * "3,623,878,656 bytes" makes them count digits.
  */
 const formatBytes = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes <= 0) {

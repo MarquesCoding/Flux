@@ -3,15 +3,6 @@ import type { DialogTitleProps } from './DialogTitle.types';
 
 /**
  * The head of a dialog, which does not scroll.
- *
- * Pinned above the content so that whatever is being read, the thing being
- * answered stays on screen. A dialog whose title scrolls away is a question
- * you have to scroll back up to remember.
- *
- * Set in the same small capitals as a card's header, because a dialog is a
- * card that arrived over the page and there is no reason for the two to name
- * themselves differently. The line under it is quieter still: it explains, and
- * an explanation competing with its own heading is neither.
  */
 const DialogTitle = ({ title, detail, children, className }: DialogTitleProps) => (
   <header

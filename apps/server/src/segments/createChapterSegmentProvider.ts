@@ -1,12 +1,6 @@
 import type { SegmentCandidate, SegmentProvider } from './SegmentProvider';
 import type { MediaSegment, SegmentKind } from '@FluxContracts/schemas/MediaSegment';
 
-/**
- * What a chapter has to be called for its meaning to be clear.
- *
- * Deliberately narrow. A chapter called "Part 1" might be anything, and
- * guessing wrong hands the viewer a button that skips the opening scene.
- */
 const CHAPTER_NAMES: { kind: SegmentKind; patterns: RegExp[] }[] = [
   {
     kind: 'intro',
@@ -29,10 +23,6 @@ const readChapterKind = (title: string | null): SegmentKind | null =>
 
 /**
  * Segments a release already marked.
- *
- * Free and exact: someone sat down and named these, so where a chapter says
- * "Intro" there is nothing to detect. Asked before anything that measures,
- * which is why a season with proper chapters never needs its audio decoded.
  */
 const createChapterSegmentProvider = (): SegmentProvider => ({
   name: 'chapters',

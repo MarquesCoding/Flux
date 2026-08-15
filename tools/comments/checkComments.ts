@@ -7,13 +7,6 @@ const ROOT = join(import.meta.dirname, '..', '..');
 
 const SKIPPED = new Set(['node_modules', 'target', 'dist', '.git', '.turbo', '.astro', 'coverage']);
 
-/**
- * The languages ESLint cannot reach.
- *
- * TypeScript is covered by `flux/no-comments`. These are not, which is how
- * sixty-five comments in the transcoder and twenty-six in the stylesheets
- * outlived a sweep that claimed to have removed every comment in the codebase.
- */
 const LANGUAGES: Record<string, Language> = {
   '.rs': 'rust',
   '.css': 'css',
@@ -54,9 +47,6 @@ const isFixing = process.argv.includes('--fix');
 
 /**
  * The file with its comments taken out.
- *
- * Removed back to front so that earlier line numbers still mean what they said,
- * and a line left holding nothing but whitespace goes with them.
  */
 const withoutComments = (source: string, comments: ProseComment[]): string => {
   const lines = source.split('\n');

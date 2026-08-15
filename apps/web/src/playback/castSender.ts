@@ -1,41 +1,13 @@
 import type { CastCarrier, CastConnectionState, CastContext, ScriptHost } from './castSender.types';
 
-/**
- * Where Google's sender library is fetched from.
- *
- * The one thing in Flux fetched from somebody else at runtime. Fonts are
- * self-hosted, the media engine is bundled, and this is the exception: casting
- * to a Chromecast is a conversation with Google's own protocol, and the
- * library that speaks it is not distributable. Loaded only when somebody asks
- * to cast, so a viewer who never does is never told about it. See ADR-0015.
- */
 const SENDER_URL = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
 
-/**
- * How long to wait for the library before giving up on it.
- *
- * A browser with no network, or one where the request is blocked, must not
- * leave a press with nothing to answer it.
- */
 const PATIENCE_MILLISECONDS = 8000;
 
-/**
- * The receiver that plays what it is sent.
- *
- * Google's default receiver, which plays a URL and needs no registration.
- * A receiver of our own would let the television carry Flux's own colours and
- * its own subtitle styling; it would also mean an application id, an account
- * and a review, which is a great deal of ceremony for a first version.
- */
 const RECEIVER = 'CC1AD845';
 
 /**
  * Loads the sender library and hands back what it provides.
- *
- * Once per page: the library installs itself globally and complains if it is
- * asked twice. Answers with nothing where it could not be had — no network,
- * a browser that blocked it, or a browser without the extension that backs it
- * — because casting is a thing a page offers, not a thing it depends on.
  */
 const loadCastSender = (
   host: ScriptHost = document,
@@ -101,9 +73,6 @@ const castStateOf = (context: CastContext | null): CastConnectionState =>
 
 /**
  * Sends a stream to whichever device the viewer chose.
- *
- * The receiver fetches the address itself, so what is sent is a URL and a
- * position rather than any pixels. Answers with whether it was accepted.
  */
 const castStream = async (
   context: CastContext,

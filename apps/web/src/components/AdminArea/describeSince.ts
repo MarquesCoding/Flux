@@ -5,11 +5,6 @@ const DAY = 24 * HOUR;
 /**
  * How long ago something happened, in words.
  *
- * Coarse on purpose. An operator reading when a library was last scanned wants
- * "2 hours ago", not a timestamp they have to subtract from the clock — and
- * the difference between 2 hours and 2 hours 14 minutes has never mattered to
- * that question.
- *
  * @param at When it happened, or null if it never has.
  * @param now What to measure against.
  */

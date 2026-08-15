@@ -1,10 +1,3 @@
-/**
- * Language codes seen in the wild, mapped to the two-letter form.
- *
- * Files carry two-letter codes, three-letter codes, both of the two competing
- * three-letter standards, and sometimes the language written out. All of them
- * mean the same thing to a viewer.
- */
 const LANGUAGE_CODES: Record<string, string> = {
   english: 'en',
   eng: 'en',
@@ -92,9 +85,6 @@ const LANGUAGE_CODES: Record<string, string> = {
   vi: 'vi',
 };
 
-/**
- * How a language is written for the person reading it.
- */
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
   fr: 'Français',
@@ -124,18 +114,8 @@ const LANGUAGE_NAMES: Record<string, string> = {
   vi: 'Tiếng Việt',
 };
 
-/**
- * The values files use to mean "nobody said".
- */
 const UNKNOWN_LANGUAGES = new Set(['', 'und', 'unknown', 'zxx', 'mul', 'mis']);
 
-/**
- * How many channels are described as what.
- *
- * "5.1" is what is printed on the box and what a viewer is choosing between.
- * "6ch" is how many discrete streams the decoder sees, which is a fact about
- * the decoder rather than about the sound.
- */
 const CHANNEL_NAMES: Record<number, string> = {
   1: 'Mono',
   2: 'Stereo',
@@ -150,9 +130,6 @@ const CHANNEL_NAMES: Record<number, string> = {
 
 /**
  * Normalises whatever a file called a language into a two-letter code.
- *
- * Answers with nothing when the file said nothing, or said one of the several
- * things that mean nothing.
  */
 const readLanguage = (raw: string | null | undefined): string | null => {
   const lowered = (raw ?? '').trim().toLowerCase();
@@ -166,9 +143,6 @@ const readLanguage = (raw: string | null | undefined): string | null => {
 
 /**
  * Names a language for a viewer.
- *
- * An unrecognised code is shown as written rather than replaced with a guess:
- * a viewer who sees `tlh` at least learns something true about the file.
  */
 const describeLanguage = (raw: string | null | undefined): string | null => {
   const code = readLanguage(raw);
@@ -198,16 +172,6 @@ type AudioTrackFacts = {
 
 /**
  * Names an audio track for a menu.
- *
- * Real files are inconsistent about this in every possible way: many carry no
- * language at all, many carry `und`, and two tracks of the same language are
- * routinely distinguished only by a title like "Commentary". So the name is
- * built from whatever the file actually said, in descending order of how much
- * it tells a viewer, and falls back to the track's position rather than
- * calling everything "Unknown".
- *
- * `position` is which audio track this is, counting from one, not the stream
- * index — a viewer has no idea what stream 3 of a container is.
  */
 const describeAudioTrack = (track: AudioTrackFacts, position: number): string => {
   const language = describeLanguage(track.language);
@@ -237,15 +201,8 @@ type SelectableAudioStream = {
 };
 
 /**
- * Picks which of a file's audio streams should be used, when one language is
- * preferred over the others.
- *
- * A stream in the preferred language wins when the file has one. Otherwise
- * this file is left exactly as it would have been without a preference: its
- * own default stream, or its first, so a preference that does not apply to
- * this file cannot break it. Shared between playback negotiation and the
- * scanner's preview generation, so the two never pick differently for the
- * same file.
+ * Picks which of a file's audio streams should be used, when one language is preferred over the
+ * others.
  */
 const selectAudioStream = <TStream extends SelectableAudioStream>(
   streams: TStream[],

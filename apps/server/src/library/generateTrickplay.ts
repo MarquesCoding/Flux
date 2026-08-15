@@ -1,13 +1,7 @@
 import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
 
-/**
- * The library table, as trickplay regeneration sees it.
- */
 type TrickplayStore = {
-  /**
-   * The items still without a thumbnail sheet, rather than all of them.
-   */
   listOutstanding: (libraryId: string) => Promise<{ id: string; path: string }[]>;
   markComplete: (mediaItemId: string) => Promise<void>;
 };
@@ -21,39 +15,18 @@ type TrickplayParams = {
 
 type GenerateTrickplayOptions = {
   libraryId: string;
-  /**
-   * How many times this library has been reset.
-   *
-   * Addresses the sheets, so it has to be the same number a player will ask
-   * with. Taken from the library row rather than assumed, since a reset raises
-   * it and a rebuild that used the old one would redraw nothing.
-   */
   generation: number;
   store: TrickplayStore;
   transcoder: Transcoder;
   trickplay: TrickplayParams;
-  /**
-   * How many sheets to draw at once. One is the safe answer and the slow one.
-   */
   atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (processed: number, total: number) => void;
-  /**
-   * Asked before each sheet whether somebody has stopped this job.
-   *
-   * Nothing is marked for the items that were skipped, so the next run finds
-   * them outstanding and carries on from there.
-   */
   isCancelled?: () => boolean;
 };
 
 /**
  * Renders the scrubbing thumbnail sheets a library is still missing.
- *
- * Only what is outstanding, the same way `regeneratePreviews` is: a sheet
- * that exists is not drawn again, so a nightly run over a complete library
- * costs one query. A render that fails is not marked, so the next run tries
- * it again.
  */
 const generateTrickplay = async ({
   libraryId,

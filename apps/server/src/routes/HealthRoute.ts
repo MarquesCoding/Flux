@@ -8,13 +8,6 @@ const HealthResponseSchema = z
   })
   .openapi('HealthResponse');
 
-/**
- * Liveness and readiness for the container health check.
- *
- * Reports `degraded` when the transcoder child is unreachable, so that a dead
- * transcoder is visible rather than surfacing later as playback that spins
- * forever. See ADR-0006.
- */
 const healthRoute = createRoute({
   method: 'get',
   path: '/api/health',

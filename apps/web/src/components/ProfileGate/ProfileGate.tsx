@@ -30,29 +30,8 @@ import { authenticateWithPasskey } from '@FluxWeb/passkeys/authenticateWithPassk
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import type { ProfileGateProps } from './ProfileGate.types';
 
-/**
- * How many faces one page of the wall holds.
- *
- * Ten, which fills two even rows of five at the width the wall is held to. A
- * household fits on one page and never sees the controls; a server with thirty
- * accounts on it should not ask somebody to read all thirty to find
- * themselves.
- */
 const PER_PAGE = 10;
 
-/**
- * How far each arrow moves through the faces.
- *
- * Five is a row at the width the wall is held to, so up and down move between
- * rows rather than to the ends.
- */
-/**
- * How long the wordmark holds the screen on its own.
- *
- * Long enough to be read as a title rather than as something that flashed,
- * short enough that nobody waiting to watch something resents it. It is also
- * the least the faces need to arrive, so the two rarely wait on each other.
- */
 const TITLE_MILLISECONDS = 1100;
 
 const ARROWS: Record<string, number | undefined> = {
@@ -62,24 +41,11 @@ const ARROWS: Record<string, number | undefined> = {
   ArrowUp: -5,
 };
 
-/**
- * How the faces on a page arrive.
- *
- * Quick and close together: a stagger long enough to notice on four faces is
- * a stagger long enough to annoy on ten. The delay before the first is what
- * separates the faces from the heading above them.
- */
 const FACES: Variants = {
   hidden: {},
   shown: { transition: { staggerChildren: 0.045, delayChildren: 0.05 } },
 };
 
-/**
- * How one face arrives.
- *
- * Lifted and slightly small, because a portrait that grows into place reads as
- * being dealt onto the table rather than fading up through it.
- */
 const FACE: Variants = {
   hidden: { opacity: 0, y: 16, scale: 0.9 },
   shown: { opacity: 1, y: 0, scale: 1 },
@@ -87,11 +53,6 @@ const FACE: Variants = {
 
 /**
  * The face somebody picked, drawn at whatever size the moment calls for.
- *
- * Shared between the wall and the password screen through a layout animation,
- * so choosing a face moves that face rather than replacing one screen with
- * another. It is the same person either side of the transition, and the
- * interface should say so.
  */
 const Portrait = ({ profile, isLarge = false }: { profile: ViewerProfile; isLarge?: boolean }) => (
   <ProfileFace
@@ -106,15 +67,6 @@ Portrait.displayName = 'Portrait';
 
 /**
  * The way in.
- *
- * A wall of faces rather than a form: on a shared machine the question is
- * which person is sitting there, and everybody already knows the answer by
- * looking. An address adds nothing to that — it is a thing people mistype,
- * and the only party who needs one is the server.
- *
- * Picking a face carries it to the middle of the screen and asks for a
- * password beneath it. Everything else fades away rather than being replaced,
- * so the two screens read as one screen paying attention to somebody.
  */
 const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   const [everyone, setEveryone] = useState<ViewerProfile[] | null>(null);

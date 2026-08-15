@@ -8,8 +8,8 @@ import {
 import type { CastState } from './castPlayback.types';
 
 /**
- * A video element as Safari presents one: its own route picker, and no sign of
- * the standard interface.
+ * A video element as Safari presents one: its own route picker, and no sign of the standard
+ * interface.
  */
 const wireless = (isPlayingRemotely = false) => {
   const element = document.createElement('video');

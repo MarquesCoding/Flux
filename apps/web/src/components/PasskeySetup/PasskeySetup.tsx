@@ -13,11 +13,6 @@ const DEFAULT_NAME = 'This device';
 
 /**
  * Passkey enrollment and removal.
- *
- * Passkeys need a secure context, so an instance reached over plain HTTP on a
- * LAN address cannot use them. That is a common self-hosted setup, so the
- * unavailable case is explained rather than presented as a button that fails
- * when pressed.
  */
 const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);

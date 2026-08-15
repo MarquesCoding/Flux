@@ -10,16 +10,6 @@ import type { SessionCardProps } from './SessionCard.types';
 
 /**
  * One open tab, across rather than down.
- *
- * It used to be a poster with the details written over it, which meant a tab
- * watching nothing — most of them, most of the time — was a large black
- * rectangle saying "not watching anything". Presence is the point of this
- * list, so the shape is the same whether or not there is a film in it: a
- * thumbnail, what it is, and the controls, in one row.
- *
- * The progress bar carries two figures. The pale one is how much has been
- * fetched and the bright one is where the viewer actually is; the gap between
- * them is the answer to "why is it stuttering".
  */
 const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCardProps) => {
   const { playback } = session;

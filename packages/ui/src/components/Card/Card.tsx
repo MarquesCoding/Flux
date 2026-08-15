@@ -22,16 +22,6 @@ const RADIUS_CLASSES: Record<CardRadius, string> = {
 
 /**
  * A surface that holds something.
- *
- * The only place a panel's material is decided. Before this, three hundred
- * files each chose their own rounding, their own hairline and their own tint,
- * which is why some surfaces were glass and some were not for no reason a
- * viewer could see. A card that wants to look different says which tone it is,
- * and the tones are a closed set.
- *
- * It is a box and not a button: a card that can be pressed puts a `Button`
- * inside itself rather than becoming one, because a pressable div is a button
- * that has forgotten its keyboard.
  */
 const Card = ({
   children,

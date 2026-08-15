@@ -10,10 +10,6 @@ import type { MediaStore } from './scanLibrary';
 
 /**
  * The library tables, for the scanner.
- *
- * Upserts on (library, path) so that re-scanning a changed file replaces its
- * row rather than duplicating it, and so a scan interrupted halfway can simply
- * be run again.
  */
 const createMediaStore = (
   db: FluxDatabase,
@@ -52,16 +48,6 @@ const createMediaStore = (
 
     const seriesTitle = row.metadata.seriesTitle ?? row.episode.seriesTitle;
 
-    /**
-     * The programme this file belongs to, made if it is new.
-     *
-     * Written every scan rather than only when the row is created, because the
-     * evidence improves: a file first read from its path alone gets a folder
-     * key, and once a catalogue names it the key it would resolve to changes.
-     * Upserting on the key means the programme is recognised again rather than
-     * duplicated, and its title is refreshed from whatever the catalogue last
-     * said without anything losing hold of the row.
-     */
     const seriesKey = resolveSeriesKey({
       externalId: row.metadata.externalId ?? null,
       seriesFolder: row.episode.seriesFolder,
@@ -229,16 +215,6 @@ const countItems = async (db: FluxDatabase, libraryId: string): Promise<number> 
 
 /**
  * The items in a library that have not finished the given job.
- *
- * Nothing here touches the filesystem, re-runs metadata providers or
- * re-samples a colour: the derived work is redone from what a previous scan
- * already probed, which is the whole point of these being their own jobs
- * rather than a forced rescan.
- *
- * A left join rather than a "needs work" column: what counts as outstanding
- * is one row's absence, so an item is offered to a job exactly until that job
- * says it is done with it, and a job added later starts with every item
- * outstanding without a migration.
  */
 const listOutstandingFor = async (
   db: FluxDatabase,
@@ -273,12 +249,7 @@ const markJobComplete = async (
 };
 
 /**
- * Forgets a job's completions across a whole library, putting every item back
- * in front of it.
- *
- * For when what the job produces has been invalidated by something other than
- * the file changing — a library's forced audio language, which every preview
- * clip was rendered against.
+ * Forgets a job's completions across a whole library, putting every item back in front of it.
  */
 const clearJobCompletions = async (
   db: FluxDatabase,

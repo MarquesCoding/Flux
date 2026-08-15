@@ -2,17 +2,10 @@ import { z } from 'zod';
 import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
-/**
- * What better-auth answers with when a password is right but not enough.
- */
 const TwoFactorPendingSchema = z.object({ twoFactorRedirect: z.literal(true) });
 
 /**
  * Everybody who could sign in here.
- *
- * Read before anybody has, because it is the way in: a wall of faces rather
- * than a box asking for an address. Names and pictures only — the server never
- * sends an address to a page nobody has signed into.
  */
 const fetchEveryone = async (): Promise<ViewerProfile[]> => {
   try {
@@ -32,9 +25,6 @@ const fetchEveryone = async (): Promise<ViewerProfile[]> => {
 
 /**
  * Signs somebody in by the face they picked.
- *
- * Answers with why it failed rather than with nothing, because the one thing a
- * person needs here is to know whether it was the password.
  */
 const signInAsProfile = async (
   profileId: string,

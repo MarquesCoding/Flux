@@ -21,25 +21,11 @@ type ScanProgress = z.infer<typeof ScanProgressSchema>;
 
 type ListItemsOptions = {
   search?: string;
-  /**
-   * Films or programmes, told apart by whether a file belongs to a series.
-   */
   kind?: 'films' | 'shows';
   genre?: string;
-  /**
-   * The years to keep, inclusive at both ends, either end optional.
-   */
   yearFrom?: number;
   yearTo?: number;
-  /**
-   * The lowest rating worth showing, out of ten. Anything nobody has rated is
-   * left out rather than treated as passing.
-   */
   minRating?: number;
-  /**
-   * Particular items, named outright — for a page built from a list kept
-   * elsewhere, such as what this viewer has favourited.
-   */
   ids?: string[];
   order?: 'title' | 'newest';
   limit?: number;
@@ -54,10 +40,6 @@ type CreateLibraryInput = {
 
 type UpdateLibraryInput = {
   defaultAudioLanguage: string | null;
-  /**
-   * How many of the library's files to render at once, or null to leave it to
-   * the server.
-   */
   filesAtOnce?: number | null;
 };
 
@@ -76,9 +58,6 @@ const fetchLibraries = async (): Promise<Library[]> => {
 
 /**
  * Adds a library root.
- *
- * Surfaces the server's own message on failure — it is the side that checked
- * the path is a readable directory — rather than a generic status code.
  */
 const createLibrary = async (input: CreateLibraryInput): Promise<Library> => {
   const response = await fetch('/api/libraries', {
@@ -101,8 +80,7 @@ const createLibrary = async (input: CreateLibraryInput): Promise<Library> => {
 };
 
 /**
- * Changes a library's settings, such as which language its audio track
- * selection should prefer.
+ * Changes a library's settings, such as which language its audio track selection should prefer.
  */
 const updateLibrary = async (libraryId: string, input: UpdateLibraryInput): Promise<Library> => {
   const response = await fetch(`/api/libraries/${libraryId}`, {
@@ -126,9 +104,6 @@ const updateLibrary = async (libraryId: string, input: UpdateLibraryInput): Prom
 
 /**
  * Reads a page of items from a library.
- *
- * Paging is a server concern rather than a client one: a library of tens of
- * thousands of items must not be shipped whole to draw one screen of posters.
  */
 const fetchLibraryItems = async (
   libraryId: string,
@@ -192,10 +167,6 @@ const fetchLibraryItems = async (
 
 /**
  * Reads everything about one item, including its streams.
- *
- * Kept separate from the grid, which deliberately carries only enough to draw
- * a poster. Answers with nothing rather than throwing: this detail decorates
- * playback and must not be able to stop it.
  */
 const fetchMediaDetail = async (mediaId: string): Promise<MediaDetail | null> => {
   try {
@@ -213,33 +184,16 @@ const fetchMediaDetail = async (mediaId: string): Promise<MediaDetail | null> =>
   }
 };
 
-/**
- * Asks the server to queue a rescan.
- *
- * Answers as soon as the scan is queued, not when it finishes: a real library
- * takes minutes to walk and probe. Returns the job so a caller that wants to
- * know when the walk is actually done can poll `readScanState`.
- *
- * A forced scan probes every file again rather than only those that changed on
- * disk, which is what picks up a change in how Flux reads files.
- */
 const CorrectionSchema = z.object({ corrected: z.number(), jobId: z.string().nullable() });
 
 type Correction = z.infer<typeof CorrectionSchema>;
 
 const ProblemSchema = z.object({ error: z.string() });
 
-/**
- * What the server says to a correction: how many files it reached, or why not.
- */
 const AnswerSchema = z.union([CorrectionSchema, ProblemSchema]);
 
 /**
  * Corrects which catalogue entry a file is.
- *
- * `reference` is whatever somebody pasted: an address or a bare id. `kind` is
- * only needed for a bare number, since the same number names one series and one
- * unrelated film.
  */
 const correctMatch = async (
   mediaId: string,
@@ -289,18 +243,12 @@ const forgetCorrection = async (mediaId: string): Promise<Correction | null> => 
   return body.success ? body.data : null;
 };
 
-/**
- * What throwing away an item's artefacts found to throw away.
- */
 const RebuiltArtefactsSchema = z.object({ preview: z.boolean(), trickplay: z.boolean() });
 
 type RebuiltArtefacts = z.infer<typeof RebuiltArtefactsSchema>;
 
 /**
  * Throws away one item's preview and thumbnails, so they are made again.
- *
- * Null when the server would not do it. Both fields false is not a failure — it
- * means the item had nothing cached, which is the state the operator wanted.
  */
 const rebuildArtefacts = async (mediaId: string): Promise<RebuiltArtefacts | null> => {
   const response = await fetch(`/api/media/${mediaId}/artefacts/rebuild`, {
@@ -330,10 +278,6 @@ const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | 
 
 /**
  * Reads how a queued scan is getting on.
- *
- * A scan the server no longer knows about — restarted since, or the id was
- * never real — is reported as `unknown` rather than thrown on, since that is
- * itself a terminal answer: whatever was watching it should stop.
  */
 const readScanState = async (jobId: string): Promise<ScanProgress> => {
   const response = await fetch(`/api/libraries/scans/${jobId}`, {
@@ -348,12 +292,7 @@ const readScanState = async (jobId: string): Promise<ScanProgress> => {
 };
 
 /**
- * Deletes every item in a library, then queues a scan to repopulate it from
- * nothing.
- *
- * A rebuild rather than a rescan: nothing already in the database is kept or
- * reconciled against, which is the point of reaching for this instead of an
- * ordinary — even forced — scan.
+ * Deletes every item in a library, then queues a scan to repopulate it from nothing.
  */
 const resetLibrary = async (libraryId: string): Promise<ScanJob | null> => {
   const response = await fetch(`/api/libraries/${libraryId}/reset`, { method: 'POST' });
@@ -366,11 +305,7 @@ const resetLibrary = async (libraryId: string): Promise<ScanJob | null> => {
 };
 
 /**
- * Asks the server to re-render preview clips against the library's current
- * forced audio language.
- *
- * Lighter than a rescan: nothing is re-probed, re-matched against a
- * catalogue, or re-sampled for colour — only the previews are redrawn.
+ * Asks the server to re-render preview clips against the library's current forced audio language.
  */
 const regenerateLibraryPreviews = async (libraryId: string): Promise<ScanJob | null> => {
   const response = await fetch(`/api/libraries/${libraryId}/regenerate-previews`, {

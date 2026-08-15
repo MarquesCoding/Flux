@@ -4,39 +4,15 @@ type Range = {
 };
 
 type SharedAudio = {
-  /**
-   * Where the shared run sits in the first fingerprint.
-   */
   left: Range;
-  /**
-   * Where the same run sits in the second.
-   */
   right: Range;
   frames: number;
 };
 
 type CompareOptions = {
   framesPerSecond: number;
-  /**
-   * How many bits two hashes may differ by and still count as the same audio.
-   *
-   * Zero would demand bit-perfect agreement, which two encodes of the same
-   * theme tune never quite reach. Too high and unrelated dialogue starts
-   * matching. Six of thirty-two is loose enough for a re-encode and tight
-   * enough that silence does not match noise.
-   */
   maxBitsDiffering?: number;
-  /**
-   * The shortest run worth reporting, in seconds.
-   */
   minSeconds?: number;
-  /**
-   * Gaps shorter than this are treated as part of the run.
-   *
-   * A theme tune is not identical throughout — a channel logo or a spoken
-   * title lands over it — and without this the run would be chopped into
-   * fragments none of which are long enough to report.
-   */
   toleratedGapSeconds?: number;
 };
 
@@ -46,28 +22,10 @@ const DEFAULT_MIN_SECONDS = 15;
 
 const DEFAULT_TOLERATED_GAP_SECONDS = 3;
 
-/**
- * How much work is worth doing exhaustively.
- *
- * Trying every alignment is exact and costs the product of the two lengths. On
- * ten minutes of audio that is ninety million comparisons per pair, which is
- * minutes of arithmetic for one season. Below this, exhaustive is instant and
- * worth keeping.
- */
 const EXHAUSTIVE_LIMIT = 4_000_000;
 
-/**
- * The bits an offset is proposed from.
- *
- * The low bits compare the lowest frequency bands, which are the ones that
- * survive re-encoding best. Indexing on them finds the frames two recordings
- * genuinely share without demanding they agree bit for bit.
- */
 const INDEX_MASK = 0xffff;
 
-/**
- * How many proposed alignments are worth scoring properly.
- */
 const CANDIDATE_OFFSETS = 24;
 
 /**
@@ -87,9 +45,6 @@ const bitsDiffering = (left: number, right: number): number => {
 
 /**
  * The longest run of near-matching frames at one alignment.
- *
- * Runs are allowed to survive a short interruption, so a title card spoken
- * over a theme tune does not split one intro into three fragments.
  */
 const longestRunAt = (
   left: number[],
@@ -146,15 +101,6 @@ const longestRunAt = (
 
 /**
  * Proposes the alignments worth scoring.
- *
- * Every frame of one recording votes for the offsets at which a frame of the
- * other carries the same robust bits. Real shared audio casts thousands of
- * votes at one offset; coincidences scatter theirs. Scoring only the winners
- * turns a quadratic search into a linear one.
- *
- * Alignment cannot be approximated — a run misaligned by a single frame
- * matches nothing at all — which is why this narrows *which* offsets to try
- * rather than how carefully to try them.
  */
 const proposeOffsets = (left: number[], right: number[]): number[] => {
   const positions = new Map<number, number[]>();
@@ -188,15 +134,6 @@ const proposeOffsets = (left: number[], right: number[]): number[] => {
 
 /**
  * Finds the longest stretch of audio two recordings have in common.
- *
- * Two episodes of the same series share exactly one substantial thing: the
- * music that opens both of them. Everything else — dialogue, effects, score —
- * is different, so the longest run of frames that fingerprint alike is the
- * theme, and its length and position are the intro.
- *
- * Every alignment of the two sequences is tried, because an intro rarely
- * begins at the same second in two episodes: one has a longer cold open than
- * the other.
  */
 const findSharedAudio = (
   left: number[],
@@ -261,12 +198,6 @@ const overlaps = (left: Range, right: Range, toleranceSeconds: number): boolean 
 
 /**
  * Settles on the range the most comparisons agreed about.
- *
- * One pair of episodes can agree on nonsense — a shared stretch of near
- * silence, or a sound effect both happen to use. A range several independent
- * pairs land on is the theme tune. The answer is the median of the agreeing
- * group rather than any single measurement, so one loose match cannot drag the
- * boundary.
  */
 const agreeRange = (candidates: Range[], toleranceSeconds = 4): Range | null => {
   if (candidates.length === 0) {

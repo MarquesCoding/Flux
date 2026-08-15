@@ -3,10 +3,6 @@ import { popOutWithCaptions, currentLines } from './popOutWithCaptions';
 
 /**
  * A video with the cues a browser would say are showing.
- *
- * The real thing decides which cue is current from the clock, which a test
- * cannot usefully run; what matters here is that whatever it says is showing
- * is what gets drawn.
  */
 const videoShowing = (tracks: { mode: string; cues: string[] }[]): HTMLVideoElement => {
   const video = document.createElement('video');

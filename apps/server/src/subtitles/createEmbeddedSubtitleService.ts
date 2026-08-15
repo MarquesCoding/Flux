@@ -2,27 +2,10 @@ import { describeLanguage, readLanguage } from '@FluxCore/functions/describeTrac
 import { trackId } from './SubtitleService';
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';
 
-/**
- * Marks a title puts on a track that carries more than dialogue.
- */
 const HEARING_IMPAIRED_MARKERS = ['sdh', 'cc', 'hearing', 'hard of hearing'];
 
-/**
- * Formats that carry pictures of words rather than words.
- */
-/**
- * The formats that cannot be handed to a browser as text.
- *
- * The picture ones because they are pictures, and `unknown` because that is
- * the transcoder saying it did not recognise the codec: offering it as a text
- * track means converting bytes nobody has identified and showing whatever
- * falls out.
- */
 const NOT_TEXT = new Set(['pgs', 'vobsub', 'dvbsub', 'unknown']);
 
-/**
- * One subtitle stream, as the container describes it.
- */
 type EmbeddedStream = {
   index: number;
   format: string;
@@ -31,9 +14,6 @@ type EmbeddedStream = {
   isForced: boolean;
 };
 
-/**
- * A file and what is inside it.
- */
 type EmbeddedLookup = {
   find: (mediaId: string) => Promise<{ path: string; streams: EmbeddedStream[] } | null>;
 };
@@ -50,11 +30,6 @@ type CreateEmbeddedSubtitleServiceOptions = {
 
 /**
  * Names a track for a menu.
- *
- * Built from whatever the container actually said, in descending order of how
- * much it tells a viewer. A file that names its tracks — "English-SRT",
- * "French-SDH" — has already done this job better than any convention could,
- * so its own name wins.
  */
 const describeSubtitle = (stream: EmbeddedStream, position: number): string => {
   const language = describeLanguage(stream.language);
@@ -82,17 +57,6 @@ const marksHearingImpaired = (title: string | null | undefined): boolean => {
 
 /**
  * Subtitles read out of the container itself.
- *
- * This is why a file VLC offers three subtitle tracks for is not a file Flux
- * says has none: most releases carry their subtitles inside the video rather
- * than beside it. Text tracks are pulled out on demand and converted to
- * WebVTT, which costs about a second because nothing but the subtitle packets
- * is read.
- *
- * Picture based tracks — PGS, VobSub — are left out on purpose. They carry
- * images of words rather than words, so they cannot become text at all; when
- * one of those is wanted it is burned into the video, which playback
- * negotiation decides.
  */
 const createEmbeddedSubtitleService = ({
   media,

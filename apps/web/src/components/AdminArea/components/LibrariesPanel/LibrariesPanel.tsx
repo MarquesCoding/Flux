@@ -30,15 +30,6 @@ import type { LibrariesPanelProps } from './LibrariesPanel.types';
 
 /**
  * The folders Flux reads, and what it is doing to them.
- *
- * Which dialog is open is held here rather than by the admin area: adding a
- * library, confirming a rebuild and editing one are all this panel's business
- * and nothing else ever asks.
- *
- * Scanning everything and rebuilding everything are both disabled while any
- * one library is already scanning. Two scans over the same files is not twice
- * the work, it is the same work twice — and a rebuild starting underneath a
- * running scan is worse than that.
  */
 const LibrariesPanel = ({
   isUnreachable = false,
@@ -59,13 +50,6 @@ const LibrariesPanel = ({
 
   const isBusy = libraries.length === 0 || progress.size > 0;
 
-  /**
-   * What a column needs, without being rebuilt when it changes.
-   *
-   * Scanning pushes progress several times a second; a column rebuilt on each
-   * push is a new `cell`, which React remounts — closing any menu or hover
-   * card open in that row.
-   */
   const live = useRef({ progress, onScan, onRegeneratePreviews, setSettingsLibraryId });
 
   live.current = { progress, onScan, onRegeneratePreviews, setSettingsLibraryId };

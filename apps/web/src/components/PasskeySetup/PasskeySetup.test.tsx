@@ -24,7 +24,9 @@ vi.mock('@FluxWeb/passkeys/isPasskeySupported', () => ({
   describePasskeyUnavailability: describeUnavailabilityMock,
 }));
 
-/** The rename form and the add form share a label, so take the first. */
+/**
+ * The rename form and the add form share a label, so take the first.
+ */
 const nameField = () =>
   screen.getAllByLabelText('Passkey name')[0] ?? screen.getByLabelText('Passkey name');
 

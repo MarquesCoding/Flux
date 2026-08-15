@@ -1,44 +1,17 @@
-/**
- * How many frames a second the composed picture is offered at.
- *
- * A floating window is small and nobody is studying it. Matching the film
- * exactly would mean drawing every frame of a fifty frame source into a canvas
- * for the sake of a thumbnail.
- */
 const FRAMES_PER_SECOND = 30;
 
-/**
- * How wide the composed picture is drawn, at most.
- *
- * A picture-in-picture window is a few hundred pixels across. Drawing a 4K
- * frame into a canvas thirty times a second to shrink it into that would cost
- * more than playing the film does.
- */
 const MAX_WIDTH = 1280;
 
-/**
- * How large the caption text is, as a fraction of the picture's height.
- */
 const TEXT_SCALE = 0.062;
 
-/**
- * How far above the bottom edge captions sit.
- */
 const BASELINE = 0.055;
 
-/**
- * What is running, so it can be stopped.
- */
 type PoppedOut = {
   stop: () => void;
 };
 
 /**
  * The cues showing on a video at this moment, as plain lines.
- *
- * Read from whichever track is on rather than from Flux's own state: the
- * browser is the thing that decides which cue is current, and asking it is
- * both simpler and always right.
  */
 const currentLines = (video: HTMLVideoElement): string[] => {
   const lines: string[] = [];
@@ -101,20 +74,6 @@ const compose = (
 
 /**
  * Pops a film out with its subtitles still on it.
- *
- * A floating window shows the video element and nothing layered over it, so
- * captions — which a browser draws as an overlay — simply vanish. The way
- * round it is to stop giving the window the original video at all: the frames
- * and the cues are drawn together into a canvas, and the canvas is what
- * floats.
- *
- * Sound stays with the original element, since a canvas has none. The floating
- * copy is silent and its controls are forwarded, so pausing the little window
- * pauses the film rather than freezing a picture of it while the audio
- * carries on.
- *
- * Returns null when the browser will not float anything, so a caller can fall
- * back to asking it directly.
  */
 const popOutWithCaptions = async (video: HTMLVideoElement): Promise<PoppedOut | null> => {
   if (!document.pictureInPictureEnabled) {

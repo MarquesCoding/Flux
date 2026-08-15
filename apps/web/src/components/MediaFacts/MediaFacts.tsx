@@ -5,18 +5,6 @@ import type { MediaFactsProps } from './MediaFacts.types';
 
 /**
  * Everything that places an item, on one line.
- *
- * Where it sits in its series, what it scored, and when it was made —
- * separated by dots rather than by space alone, so four facts read as a list
- * rather than as a row of unrelated numbers.
- *
- * One component because the hero and every card say the same things about the
- * same items, and two versions of this line is two chances to describe one
- * film two ways.
- *
- * Whatever is not known is left out rather than shown empty. A film has no
- * episode, plenty of things have no rating, and a line of placeholders is
- * worse than a shorter line.
  */
 const MediaFacts = ({
   media,

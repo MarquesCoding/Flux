@@ -49,11 +49,8 @@ const build = () => {
 };
 
 /**
- * Signs somebody up and gives them exactly the permissions named, through a
- * role made for the purpose.
- *
- * Exactly, because the point of these tests is what a permission does and does
- * not open — a helper that quietly granted anything else would prove nothing.
+ * Signs somebody up and gives them exactly the permissions named, through a role made for the
+ * purpose.
  */
 const signedInWith = async (permissionNames: readonly Permission[]) => {
   const context = build();
@@ -183,19 +180,6 @@ describe('what a route actually requires', () => {
 });
 
 describe('every gated route, asked by somebody with no permissions', () => {
-  /**
-   * Every route that asks the permission service before doing anything, and
-   * what it asks for.
-   *
-   * A table rather than a test each, because the interesting property is that
-   * *all* of them refuse — a route added without a guard is the failure this
-   * catches, and it cannot be caught by tests written one at a time for the
-   * routes somebody remembered.
-   *
-   * Correcting a match answers 404 rather than 403 on purpose, and its
-   * contract declares no 403 at all: somebody who may not override a match is
-   * not told that overriding one is a thing this server does.
-   */
   const GATED: [
     string,
     string,
@@ -271,13 +255,6 @@ describe('every gated route, asked by somebody with no permissions', () => {
 });
 
 describe('every route that needs somebody signed in, asked by nobody', () => {
-  /**
-   * Routes that turn on who is asking rather than on what they may do.
-   *
-   * Watch progress and favourites belong to a viewer, devices belong to an
-   * account, and presence belongs to a tab — none of them mean anything
-   * without somebody behind them, so all of them answer the same way.
-   */
   const NEEDS_SOMEBODY: [string, string, object?][] = [
     ['GET', '/api/progress'],
     ['PUT', `/api/media/${LIBRARY_ID}/progress`, { positionSeconds: 10, durationSeconds: 100 }],
@@ -311,15 +288,6 @@ describe('every route that needs somebody signed in, asked by nobody', () => {
 });
 
 describe('the routes that read who is asking, asked by nobody at all', () => {
-  /**
-   * Routes that resolve the actor themselves rather than asking the
-   * permission service a question.
-   *
-   * They answer 401 rather than 403, because the session gate turns an
-   * unauthenticated request away before any route sees it. Their own
-   * "there is nobody here" branch is therefore unreachable over HTTP — it is
-   * a guard against being called another way, not a path a browser can take.
-   */
   const ROLE_ROUTES: [string, string, object?][] = [
     ['POST', '/api/admin/roles', { name: 'Staff', position: 10, permissions: [] }],
     ['PATCH', '/api/admin/roles/role-1', { name: 'Staff' }],

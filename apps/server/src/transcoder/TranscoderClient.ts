@@ -3,13 +3,6 @@ import { z } from 'zod';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
-/**
- * The part of a response Flux uses.
- *
- * Structural rather than the global `Response`, because a Unix socket request
- * goes through undici and returns undici's own type. Both satisfy this, so no
- * assertion is needed to treat them alike.
- */
 type HttpResponse = {
   ok: boolean;
   status: number;
@@ -56,13 +49,6 @@ const ProbeSubtitleSchema = z.object({
   isImageBased: z.boolean(),
 });
 
-/**
- * What the media service reports about a file.
- *
- * Mirrors the Rust `MediaProbe`. Validated here rather than trusted, because a
- * version mismatch between the two halves of the server should fail loudly at
- * the boundary instead of producing a half-populated library row.
- */
 const MediaProbeSchema = z.object({
   container: z.string(),
   durationSeconds: z.number(),
@@ -124,16 +110,6 @@ const FingerprintSchema = z.object({
 
 const SubtitleTrackSchema = z.object({ content: z.string() });
 
-/**
- * What a sweep did, as the media service reports it.
- *
- * `tooNew` is not a failure. A directory modified in the last hour is left
- * alone whatever its name, because an artefact halfway through being written
- * looks exactly like an abandoned one.
- */
-/**
- * Whether a forget found anything to remove.
- */
 const ForgetReportSchema = z.object({ forgotten: z.boolean() });
 
 const SweepReportSchema = z.object({
@@ -179,9 +155,6 @@ type MediaProbe = z.infer<typeof MediaProbeSchema>;
 type Fingerprint = z.infer<typeof FingerprintSchema>;
 type SweepReport = z.infer<typeof SweepReportSchema>;
 
-/**
- * A preview clip a sweep should keep, as the request that addresses it.
- */
 type PreviewSweepSubject = {
   inputPath: string;
   generation: number;
@@ -197,24 +170,11 @@ type TrickplayIndex = z.infer<typeof TrickplayIndexSchema>;
 
 type TrickplayRequest = {
   inputPath: string;
-  /**
-   * How many times the file's library has been reset.
-   *
-   * Required for the same reason as on a preview: it addresses the sheets, and
-   * a caller that omitted it would redraw a feature film's worth of them on
-   * every hover instead of once.
-   */
   generation: number;
   intervalSeconds: number;
   tileWidth: number;
   columns: number;
   rows: number;
-  /**
-   * Whether the caller will wait for rendering to finish.
-   *
-   * An import waits. A player does not: a feature length film takes minutes,
-   * and seek previews are not worth delaying the film for.
-   */
   wait?: boolean;
 };
 type SessionResponse = z.infer<typeof SessionResponseSchema>;
@@ -237,162 +197,43 @@ type SessionSpec = {
   audio:
     | { kind: 'copy' }
     | { kind: 'encode'; encoder: string; channels: number; maxBitrateKbps: number };
-  /**
-   * The source picture's size, so the media service can size a hardware
-   * scaler without guessing at expression support across four backends.
-   */
   sourceSize?: [number, number];
 };
 
-/**
- * The media service as the rest of the server sees it.
- *
- * An interface rather than a concrete client so the transport can change from
- * a local socket to a remote pool without touching call sites. That seam is
- * the whole reason single-box deployment does not foreclose multi-node
- * transcoding. See ADR-0006.
- */
 type Transcoder = {
   isReachable: () => Promise<boolean>;
   probe: (path: string) => Promise<MediaProbe>;
-  /**
-   * Starts a transcode, saying which device asked.
-   *
-   * The device does not change what is made — two devices asking for the same
-   * thing share one transcode — only which one is worth keeping afterwards,
-   * since each device's most recent is the one somebody would resume.
-   */
   startSession: (spec: SessionSpec, deviceId?: string) => Promise<SessionResponse>;
   readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>;
-  /**
-   * Opens an original file for direct play, forwarding a byte range.
-   *
-   * Streamed rather than read: this is whole media, and a viewer who opens one
-   * without a `Range` would otherwise put the entire film through the server's
-   * memory on the way past.
-   */
   readFile: (path: string, range: string | null) => Promise<TranscoderStreamedFile | null>;
-  /**
-   * Renders seek-bar previews, or reuses ones already on disk.
-   */
-  /**
-   * Reduces a window of a file's audio to one hash per frame.
-   *
-   * Answers with hashes rather than a verdict: what two episodes share is
-   * arithmetic over them, and that belongs where it can be tested without
-   * media.
-   */
   fingerprint: (request: FingerprintRequest) => Promise<Fingerprint>;
-  /**
-   * Reads one subtitle track out of a container as WebVTT.
-   */
   readSubtitle: (request: { inputPath: string; streamIndex: number }) => Promise<string>;
-  /**
-   * Reads what the media service is doing right now.
-   *
-   * Left as parsed JSON rather than given a schema of its own: this is a
-   * live reading for a person to look at, not something Flux makes decisions
-   * from, and a monitoring endpoint that stops working because it grew a
-   * field is worse than one that shows an unexpected one.
-   */
   readMonitor: () => Promise<JsonValue>;
-  /**
-   * Opens the stream of readings, for a page that wants to watch.
-   *
-   * Null when the media service cannot be reached, so a monitoring page can
-   * say so rather than hanging on a connection that will never open.
-   */
   openMonitorStream: () => Promise<ReadableStream<Uint8Array> | null>;
-  /**
-   * Takes one frame of a file as a JPEG.
-   */
   readFrame: (request: {
     inputPath: string;
     atSeconds: number;
     width: number;
   }) => Promise<ArrayBuffer>;
-  /**
-   * Makes, or finds, the short clip a library page plays.
-   *
-   * Made once when a file is imported and served as a file afterwards, so a
-   * page full of previews costs nothing running.
-   */
   requestPreview: (request: {
     inputPath: string;
-    /**
-     * How many times the file's library has been reset.
-     *
-     * Required rather than optional, and required on purpose: it is part of the
-     * clip's address, so a call that left it out would ask for a different clip
-     * than the scan made and re-encode one on every request.
-     */
     generation: number;
     wait?: boolean;
-    /**
-     * Which audio stream the clip should carry, when one was chosen for it.
-     *
-     * Left out means whichever ffmpeg would pick on its own — the same as a
-     * file with no forced language.
-     */
     audioStreamIndex?: number;
   }) => Promise<{ id: string; url: string; isReady: boolean }>;
-  /**
-   * Reads a made clip, passing a byte range on to the media service.
-   *
-   * The range is forwarded rather than applied here so that the service reads
-   * only the bytes asked for, and the answer is streamed rather than collected:
-   * a preview is around 18 MB, and a hover that fetches one without a `Range`
-   * used to put all of it on this heap before sending a byte.
-   */
   readPreviewFile: (
     id: string,
     name: string,
     range: string | null,
   ) => Promise<TranscoderStreamedFile | null>;
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>;
-  /**
-   * Deletes preview clips nothing addresses any more.
-   *
-   * Told what is still wanted as the requests that would ask for it, never as
-   * addresses: the address is a hash of the request and belongs to the media
-   * service, so computing one here would be a second implementation of its
-   * naming scheme — and the first disagreement would delete clips in use.
-   */
   sweepPreviews: (keep: PreviewSweepSubject[]) => Promise<SweepReport>;
-  /**
-   * Deletes thumbnail sheets nothing addresses any more.
-   */
   sweepTrickplay: (keep: TrickplayRequest[]) => Promise<SweepReport>;
-  /**
-   * Counts what the artefact cache holds, rather than reading the figure the
-   * media service took on its own timer.
-   *
-   * Null when the media service cannot be reached or answers with something
-   * unreadable, so a page can say the count did not happen rather than show a
-   * cache that appears to have emptied.
-   */
   measureCache: () => Promise<CacheUse | null>;
-  /**
-   * Removes one item's artefacts, so the next request makes them again.
-   *
-   * The safe kind of deletion, unlike a sweep: an operator points at one item
-   * rather than at a computed list of everything unwanted, and the worst case
-   * is that a clip is rendered a second time.
-   *
-   * Answers whether anything was there, so a caller can tell "removed it" from
-   * "there was nothing to remove".
-   */
   forgetPreview: (request: PreviewSweepSubject) => Promise<boolean>;
   forgetTrickplay: (request: TrickplayRequest) => Promise<boolean>;
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>;
   stopSession: (id: string) => Promise<boolean>;
-  /**
-   * Tells the media service a session is still wanted, and whether it is
-   * currently playing or paused.
-   *
-   * `false` means the service no longer knows this session — the caller
-   * should stop sending heartbeats for it.
-   */
   heartbeatSession: (id: string, isPlaying: boolean) => Promise<boolean>;
   capabilities: () => Promise<TranscoderCapabilities>;
 };
@@ -407,14 +248,6 @@ type TranscoderRangedFile = TranscoderFile & {
   contentRange: string | null;
 };
 
-/**
- * A file being forwarded as it arrives, rather than after it has all arrived.
- *
- * What the media service sends is what a browser asked for, so there is nothing
- * for the server to do to it but pass it on. Holding it first is pure cost, and
- * the cost is the size of the file: a viewer opening a film with no `Range` had
- * the whole film read into this process before any of it was sent.
- */
 type TranscoderStreamedFile = {
   body: ReadableStream<Uint8Array>;
   contentType: string;
@@ -424,15 +257,6 @@ type TranscoderStreamedFile = {
 };
 
 type CreateTranscoderClientOptions = {
-  /**
-   * Where the media service listens.
-   *
-   * `unix:/run/flux-transcoder.sock` uses a Unix socket, which is what a
-   * single-box deployment does: no port to expose, no chance of another
-   * process on the network reaching a service that has no authentication of
-   * its own. An `http://` address is used when the media service runs
-   * elsewhere. See ADR-0006.
-   */
   baseUrl: string;
   fetchImpl?: FetchLike;
 };
@@ -441,23 +265,10 @@ const UNIX_PREFIX = 'unix:';
 
 /**
  * Splits a socket URL into the path to connect to and the URL to request.
- *
- * Undici needs a real origin even over a socket, so requests are addressed to
- * a placeholder host that the dispatcher ignores.
  */
 const readSocketPath = (baseUrl: string): string | null =>
   baseUrl.startsWith(UNIX_PREFIX) ? baseUrl.slice(UNIX_PREFIX.length) : null;
 
-/**
- * Builds a fetch bound to a Unix socket.
- */
-/**
- * Narrows any response to the shape Flux uses.
- *
- * The body is parsed through the JSON contract rather than trusted, which also
- * types it: `Response.json()` is `unknown`, and casting it would be exactly
- * the thing the standards forbid.
- */
 const narrow = <TBody>(response: {
   ok: boolean;
   status: number;
@@ -477,22 +288,8 @@ const narrow = <TBody>(response: {
  */
 const httpFetch: FetchLike = async (url, init) => narrow(await fetch(url, init));
 
-/**
- * How long a request to the media service may take before it is abandoned.
- *
- * Generous, because probing a large file over a slow disk is genuinely slow.
- * Finite, because the alternative is what this replaced: a request that hangs
- * for ever if the service accepts a connection and then never answers, which
- * leaves the page that asked waiting for ever with nothing to report.
- */
 const REQUEST_TIMEOUT_MILLISECONDS = 60_000;
 
-/**
- * How long a question about whether the service is alive may take.
- *
- * Much shorter: this one is asked to draw a page, and an answer that arrives
- * after a minute is no use to anybody looking at it.
- */
 const HEALTH_TIMEOUT_MILLISECONDS = 5_000;
 
 const createSocketFetch = (socketPath: string): FetchLike => {
@@ -505,13 +302,6 @@ const createSocketFetch = (socketPath: string): FetchLike => {
   return async (url, init) => narrow(await undiciFetch(url, { ...init, dispatcher: agent }));
 };
 
-/**
- * A response whose body is still arriving.
- *
- * Carries the status and headers as well as the body, because a media file is
- * fetched with a `Range` and the answer to that is a 206 and a `content-range`
- * the browser has to be told about.
- */
 type StreamedResponse = {
   ok: boolean;
   status: number;
@@ -521,19 +311,6 @@ type StreamedResponse = {
 
 /**
  * Opens a response whose body is read as it arrives.
- *
- * Separate from the narrowed fetch every other call uses, because that one
- * reads a whole body before returning it — which is right for a probe, wrong
- * for a stream that never ends, and wrong for a film. A viewer opening a file
- * Flux can send as it is does so without a `Range`, and reading that whole
- * answer before forwarding it means a gigabyte of film through this heap to
- * deliver a gigabyte of film.
- *
- * The connection pool is made once and kept, like the one every other call
- * uses. Making one per request leaks a pool and its socket every time: the
- * admin monitor is an `EventSource`, which reconnects on its own, so a page
- * left open during a scan quietly consumed file descriptors until the media
- * service could no longer be reached at all.
  */
 const createStreamFetch = (
   socketPath: string | null,
@@ -581,10 +358,6 @@ const createTranscoderClient = ({
 
   /**
    * Opens a file on the media service and hands back the body still arriving.
-   *
-   * Used for anything whose size is the media's rather than Flux's — an
-   * original file and a preview clip. The status and the range headers come
-   * straight from the service, because it is the one that decided them.
    */
   const openStream = async (
     url: string,

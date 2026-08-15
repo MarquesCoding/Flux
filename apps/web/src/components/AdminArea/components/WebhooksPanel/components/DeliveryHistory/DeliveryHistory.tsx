@@ -7,15 +7,6 @@ import type { DeliveryHistoryProps } from './DeliveryHistory.types';
 
 /**
  * What was sent lately, and how it went each time.
- *
- * The count of attempts is shown wherever it is more than one, because that
- * is the number that separates a receiver which was briefly down from one
- * that is failing: `3 tries` against a delivered event is a blip, and the
- * same number against a failed one is a receiver that never answered.
- *
- * Resending is offered on failures only. A delivery that landed can be sent
- * again — the route allows it — but offering it invites somebody to duplicate
- * an event a receiver already acted on, for no reason anybody has.
  */
 const DeliveryHistory = ({
   deliveries,

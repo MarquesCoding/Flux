@@ -1,21 +1,3 @@
-/**
- * Takes whatever is scrolling around an element back to its beginning.
- *
- * `scrollIntoView` asks the browser to bring a particular element into view,
- * which is a different question: it depends on where that element is at the
- * moment of asking, and an element that has just been mounted is somewhere
- * that has not been laid out yet. Asking the container to go to nought is the
- * same request with none of that doubt.
- *
- * The container is looked for rather than passed in, because the thing that
- * scrolls here is a dialog's own panel — owned by the component that draws the
- * dialog, not by the page inside it.
- *
- * Finding nothing that scrolls means there is nothing to do. It emphatically
- * does not mean the page: a dialog opening over a library somebody has scrolled
- * halfway down must not throw them back to the top of it, and a dialog whose
- * contents have not arrived yet has nothing scrollable in it to find.
- */
 const scrollToTopOf = (from: HTMLElement | null, isSmooth = true): void => {
   if (from === null) {
     return;

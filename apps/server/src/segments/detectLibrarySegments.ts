@@ -3,24 +3,8 @@ import type { SegmentCandidate, SegmentProvider } from './SegmentProvider';
 import type { SegmentService } from './SegmentService';
 
 type GroupedCandidate = SegmentCandidate & {
-  /**
-   * Which programme this belongs to. Files that belong to none are films, and
-   * a film has no siblings to be compared against.
-   *
-   * The programme's id rather than its title, because two programmes share a
-   * title — The Office, Shameless, Skins, and every remake — and this key
-   * decides what gets compared against what. Keyed on the title, season one of
-   * both was fingerprinted as a single set and whatever the comparison found
-   * was written to two unrelated programmes.
-   */
   seriesId: string | null;
   seasonNumber: number | null;
-  /**
-   * Whether this file has already been listened to.
-   *
-   * Per file rather than per season, but acted on per season — see
-   * `detectLibrarySegments`.
-   */
   isComplete: boolean;
 };
 
@@ -29,48 +13,14 @@ type DetectLibrarySegmentsOptions = {
   providers: SegmentProvider[];
   segments: SegmentService;
   listCandidates: (libraryId: string) => Promise<GroupedCandidate[]>;
-  /**
-   * Records that a file has been listened to, whatever was or was not found
-   * in it.
-   *
-   * An episode with no intro is still an episode that has been checked, so
-   * finding nothing marks it done — otherwise the one file in a season with
-   * no theme tune would be re-fingerprinted forever.
-   */
   markComplete: (mediaId: string) => Promise<void>;
   onProblem?: (provider: string, reason: string) => void;
-  /**
-   * Told after every season, how many of the library's episodes have been
-   * looked at.
-   *
-   * Counted in episodes rather than seasons: a library's few seasons say
-   * nothing about how much listening is left, and a season of one and a
-   * season of twenty should not look like equal steps.
-   */
   onProgress?: (processed: number, total: number) => void;
-  /**
-   * Asked between seasons whether somebody has stopped this job.
-   *
-   * A season is the smallest unit worth finishing — its episodes are compared
-   * against each other, and half a comparison answers nothing. Only the
-   * seasons that were finished are marked, so the next run starts at the one
-   * this stopped before.
-   */
   isCancelled?: () => boolean;
 };
 
 /**
  * Sorts a library's files into the groups worth comparing.
- *
- * A season is the unit, not a series: a theme tune is often re-recorded
- * between seasons, and comparing across them finds either nothing or something
- * misleading. Films are left out entirely — they have nothing to be compared
- * against, and a chapter provider reads them one at a time anyway.
- *
- * A season of which programme, decided by the programme's id. Two programmes
- * with one title are two groups, which they were not when this keyed on the
- * title: The Office (UK) and The Office (US) were one set, listened to as
- * though they shared a theme tune.
  */
 const groupBySeason = (candidates: GroupedCandidate[]): Map<string, GroupedCandidate[]> => {
   const groups = new Map<string, GroupedCandidate[]>();
@@ -89,21 +39,6 @@ const groupBySeason = (candidates: GroupedCandidate[]): Map<string, GroupedCandi
 
 /**
  * Finds and records the marked stretches of a library.
- *
- * Runs after a scan rather than during one: a scan should finish in the time it
- * takes to walk a directory, and listening to a season takes far longer than
- * that.
- *
- * A season nothing could be asked about is left outstanding rather than marked
- * done. A media service that is down must cost a library a delay, not its
- * intros: marking those files complete is a decision nothing ever revisits.
- *
- * Only the seasons with something outstanding, but each of those in full. A
- * season is the unit of comparison — an episode fingerprinted on its own has
- * nothing to match against — so one new episode brings its whole season back
- * through, and every episode in that season is marked afterwards. A library
- * where nothing has changed does no listening at all, which is what makes a
- * nightly run of this affordable.
  */
 const detectLibrarySegments = async ({
   libraryId,

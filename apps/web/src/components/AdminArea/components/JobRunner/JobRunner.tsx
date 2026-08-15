@@ -23,23 +23,8 @@ import type { JobDefinition } from '@FluxWeb/admin/fetchAdmin';
 import type { ScanEntry } from '@FluxWeb/components/AdminArea/scanCoordinator';
 import type { JobRunnerProps } from './JobRunner.types';
 
-/**
- * How many of the files a job is working through are worth naming.
- */
 const WORKING_SHOWN = 4;
 
-/**
- * What each job kind puts on the media service's queue.
- *
- * The queue names work rather than jobs — "preview", "thumbnails" — because
- * that is what it is doing, so a job has to be translated into the work it
- * causes to say which file it is on. A scan causes all of it, which is why it
- * is absent here: anything running belongs to it.
- *
- * These are the queue's own strings and must stay as it spells them, since they
- * are matched against rather than shown. What an operator reads comes from
- * `describeQueueKind`.
- */
 const QUEUED_AS: Record<string, string[]> = {
   'library.regeneratePreviews': ['preview'],
   'library.regenerateTrickplay': ['thumbnails'],
@@ -47,14 +32,8 @@ const QUEUED_AS: Record<string, string[]> = {
 };
 
 /**
- * Lets an admin start any job on demand, or press into it to see how often
- * it runs on its own — Jellyfin's scheduled-tasks page style.
- *
- * Reads from the same `scanCoordinator` progress map the Libraries panel's
- * own scan buttons use, so a job started here shows up there too, and a job
- * already running disables its own row rather than letting an operator
- * queue a second one. A job that does not need a library is tracked under
- * its own kind instead — see `scanCoordinator.runDefinedJob`.
+ * Lets an admin start any job on demand, or press into it to see how often it runs on its own —
+ * Jellyfin's scheduled-tasks page style.
  */
 const JobRunner = ({
   definitions,
@@ -67,15 +46,6 @@ const JobRunner = ({
 }: JobRunnerProps) => {
   const [confirming, setConfirming] = useState<JobDefinition | null>(null);
 
-  /**
-   * Everything running under one job kind, folded into the one bar its row
-   * shows.
-   *
-   * A library-scoped job is tracked per library and a server-wide one under
-   * its own kind, so both are gathered here — an operator pressing Run once
-   * expects one answer about it, not a bar for every library it happened to
-   * fan out across.
-   */
   const summaryFor = useCallback(
     (kind: string) =>
       summariseProgress(
@@ -99,15 +69,6 @@ const JobRunner = ({
     [onRun],
   );
 
-  /**
-   * The live figures, reachable from a column without being part of it.
-   *
-   * Columns are built once and never again: a column rebuilt is a new `cell`
-   * function, which React treats as a different component and remounts —
-   * closing the very hover card these figures are for. The table re-renders on
-   * its own every time a reading arrives, and each cell reads whatever is in
-   * here at that moment.
-   */
   const isBusy = definitions.some((definition) => summaryFor(definition.kind) !== null);
 
   const live = useRef({ summaryFor, working, askOrRun, onStop, onOpenSchedule, isBusy });

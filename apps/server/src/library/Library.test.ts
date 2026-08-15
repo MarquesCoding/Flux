@@ -39,8 +39,8 @@ const detail = (overrides: Partial<MediaDetail> = {}): MediaDetail => ({
 });
 
 /**
- * An episode of a series, which is what an item is when its metadata names
- * one — there is no other kind of show.
+ * An episode of a series, which is what an item is when its metadata names one — there is no other
+ * kind of show.
  */
 const episodeOf = ({
   id = MEDIA_ID,

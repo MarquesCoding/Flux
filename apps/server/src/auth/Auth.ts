@@ -23,13 +23,6 @@ type CreateAuthOptions = {
   settings: SettingsStore;
   cookieSecure: boolean;
   onUserCreated?: (userId: string) => Promise<void>;
-  /**
-   * Told when an account signs in, so the fact outlives the session row.
-   *
-   * The nightly cleanup deletes expired sessions, which is correct and is also
-   * why `session.createdAt` cannot answer "when were they last here" — the
-   * evidence is on a schedule to be removed.
-   */
   onSignedIn?: (userId: string, at: Date) => Promise<void>;
   onPasswordResetRequested?: (email: string, url: string) => Promise<void>;
 };
@@ -38,16 +31,6 @@ const FLUX_APP_NAME = 'Flux';
 
 /**
  * Builds the Flux authentication layer.
- *
- * Cookie and origin settings are taken from the parsed environment rather than
- * hard-coded, because a self-hosted instance is reached over plain HTTP on a
- * LAN address as often as over TLS on a domain. Getting this wrong is the
- * single largest source of support load for software of this kind, so it is
- * configuration, never a build-time constant.
- *
- * `bearer` and `jwt` are enabled alongside cookie sessions from the first
- * release. Any capability reachable only by cookie is a capability native
- * clients do not have. See ADR-0004.
  */
 const createAuth = ({
   env,

@@ -34,15 +34,6 @@ type PanelId = (typeof PANELS)[number]['id'];
 
 /**
  * A person's own account.
- *
- * Two things live here and they are genuinely different questions: how you
- * appear to everybody sharing this server, and how you get in. Putting them
- * in one column would mean scrolling past a password field to change a
- * picture.
- *
- * The face is the same one on the way-in wall, shown at the size it is
- * actually chosen at, because the whole point of picking a colour or a
- * portrait is what it looks like there.
  */
 const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
   const [profile, setProfile] = useState<ViewerProfile | null>(null);

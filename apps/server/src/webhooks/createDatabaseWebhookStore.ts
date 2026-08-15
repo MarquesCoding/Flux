@@ -8,35 +8,14 @@ import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { WebhookSubscription } from '@FluxContracts/schemas/Webhook';
 import type { WebhookStore } from './WebhookStore';
 
-/**
- * How the signing secret announces what it is.
- *
- * The prefix is for the person who finds one in a config file six months
- * later and has to work out what they are looking at, and for the scanners
- * that recognise a leaked credential by its shape.
- */
 const WEBHOOK_SECRET_PREFIX = 'whsec_';
 
-/**
- * How much randomness a secret carries.
- *
- * Thirty-two bytes, which is the digest size of the HMAC it keys. More would
- * be hashed down to this anyway; less would be the weakest part of a
- * signature that is otherwise sound.
- */
 const WEBHOOK_SECRET_BYTES = 32;
 
 const StoredEventsSchema = z.array(WebhookEventSchema);
 
 /**
  * Subscriptions in Postgres.
- *
- * A row whose stored events or preset no longer parse is dropped from the
- * listing rather than failing the read, the same as a job trigger: an event
- * removed from the catalogue in a later version should quietly stop counting,
- * not make the whole page unopenable. Such a row still exists and can still
- * be deleted — it simply stops being delivered to, which is the safe
- * direction for a thing whose job is to make outbound requests.
  */
 const createDatabaseWebhookStore = (db: FluxDatabase): WebhookStore => {
   const readRow = (row: typeof webhookSubscription.$inferSelect): WebhookSubscription[] => {

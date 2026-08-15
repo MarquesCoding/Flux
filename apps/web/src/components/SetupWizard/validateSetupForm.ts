@@ -19,9 +19,6 @@ const parseOrigins = (raw: string): string[] =>
 
 /**
  * Validates the first-run form before it reaches the server.
- *
- * The server validates the same rules; this exists so the operator is told
- * which field is wrong rather than being handed a generic failure.
  */
 const validateSetupForm = (values: SetupFormValues): SetupFormErrors => {
   const errors: SetupFormErrors = {};

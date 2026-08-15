@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { usePagedScroller } from './usePagedScroller';
 
 /**
- * jsdom lays nothing out and scrolls nothing, so a row has to be described:
- * how wide it looks, and how wide it really is.
+ * jsdom lays nothing out and scrolls nothing, so a row has to be described: how wide it looks, and
+ * how wide it really is.
  */
 const rowOf = (visible: number, whole: number) => {
   Object.defineProperty(HTMLElement.prototype, 'clientWidth', {

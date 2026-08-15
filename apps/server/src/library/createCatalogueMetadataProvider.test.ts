@@ -773,10 +773,6 @@ describe('choosing between what a catalogue answers with', () => {
   });
 });
 
-/**
- * Real titles, one or two per script, for asserting that none of them is
- * quietly deleted and that no two of them are mistaken for each other.
- */
 const CORPUS = [
   { script: 'Japanese', title: '君の名は' },
   { script: 'Japanese', title: '千と千尋の神隠し' },

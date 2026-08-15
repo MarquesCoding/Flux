@@ -135,13 +135,6 @@ const TWO_LIBRARIES: Library[] = [
 
 const fetchMock = vi.fn();
 
-/**
- * Answers whatever the admin page's requests ask for.
- *
- * One implementation shared by every test rather than one per test, so a
- * test that overrides the overview does not have to relearn how libraries,
- * scans and the monitor stream are answered too.
- */
 type FakeSession = {
   clientId: string;
   profileId: string | null;
@@ -356,13 +349,6 @@ const chooseLibrary = async (
   await actor.click(await screen.findByRole('menuitem', { name: action }));
 };
 
-/**
- * Which family each section is folded into.
- *
- * Overview and Settings stand on their own, so they are a press. The rest
- * live behind the family that holds them, which is a press to open and a
- * press to choose.
- */
 const FAMILY: Record<string, string | null> = {
   Overview: null,
   Sessions: 'Activity',

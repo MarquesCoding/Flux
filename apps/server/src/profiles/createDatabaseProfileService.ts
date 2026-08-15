@@ -9,12 +9,6 @@ import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { ProfileService } from './ProfileService';
 import type { ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
-/**
- * The picture formats a profile photograph may arrive in.
- *
- * Raster formats only. An uploaded SVG is a document that can carry script,
- * and there is no reason a photograph of somebody needs to be one.
- */
 const PHOTO_TYPES: Record<string, string> = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
@@ -25,39 +19,16 @@ const PHOTO_TYPES: Record<string, string> = {
   'video/mp4': '.mp4',
 };
 
-/**
- * The formats that are video rather than picture.
- */
 const MOVING_FORMATS = new Set(['.webm', '.mp4']);
 
-/**
- * How large a profile picture may be.
- *
- * Generous for a photograph, and enough for a few seconds of something
- * moving at the size a portrait is drawn. Anything larger is a video somebody
- * meant to watch rather than a face.
- */
 const PHOTO_MAX_BYTES = 6 * 1024 * 1024;
 
-/**
- * The same mapping read the other way, for serving what was stored.
- */
 const PHOTO_CONTENT_TYPES: Record<string, string> = Object.fromEntries(
   Object.entries(PHOTO_TYPES).map(([contentType, extension]) => [extension, contentType]),
 );
 
-/**
- * The colour a profile nobody chose one for is drawn in.
- */
 const [DEFAULT_COLOUR] = PROFILE_COLOURS;
 
-/**
- * How many people may share one account.
- *
- * A household, not a tenancy. The limit exists so that a shared login cannot
- * quietly become a service somebody is running for a hundred people on a
- * machine sized for six.
- */
 const LIMIT = 6;
 
 type ProfileRow = {
@@ -73,9 +44,6 @@ type ProfileRow = {
 
 /**
  * Reads a stored colour, falling back rather than failing.
- *
- * A row written before a colour was retired is still a person's profile, and
- * refusing to draw it would lose them their viewing over a shade.
  */
 const readColour = (stored: string): ProfileColour => {
   const parsed = ProfileColourSchema.safeParse(stored);
@@ -85,9 +53,6 @@ const readColour = (stored: string): ProfileColour => {
 
 /**
  * What a stored row says the profile is drawn with.
- *
- * A photograph wins over a drawn face, and a letter is what is left when
- * neither has been chosen.
  */
 const readAvatarChoice = (row: ProfileRow): ViewerProfile['avatar'] => {
   if (row.photoPath !== null) {
@@ -112,9 +77,6 @@ const toProfile = (row: ProfileRow): ViewerProfile => ({
 
 /**
  * How a chosen avatar is written to the columns that hold it.
- *
- * Choosing one clears the others, so a profile is never both a photograph and
- * a drawn face with the answer depending on which field is read first.
  */
 const avatarColumns = (
   avatar: ViewerProfile['avatar'] | undefined,
@@ -134,12 +96,6 @@ const avatarColumns = (
   return null;
 };
 
-/**
- * Profiles held in Postgres.
- */
-/**
- * The columns a profile is read from, named once.
- */
 const COLUMNS = {
   id: viewerProfile.id,
   name: viewerProfile.name,

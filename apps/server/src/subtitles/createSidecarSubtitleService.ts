@@ -17,9 +17,6 @@ type CreateSidecarSubtitleServiceOptions = {
 
 /**
  * Lists a directory, treating an unreadable one as empty.
- *
- * A library on a network share disappears from time to time, and a viewer
- * pressing play should get their film without subtitles rather than an error.
  */
 const listFiles = async (directory: string): Promise<SidecarFile[]> => {
   try {
@@ -50,12 +47,6 @@ const findSubtitleDirectories = async (directory: string): Promise<string[]> => 
 
 /**
  * Subtitles read from the files beside a video.
- *
- * This is what Jellyfin calls external subtitles, and it is the whole of
- * Flux's built-in support: a track that already exists as text is served as
- * text. Nothing is demuxed out of the container and nothing is fetched from
- * the internet — a plugin that downloads subtitles writes them here, and they
- * appear like any other.
  */
 const createSidecarSubtitleService = ({
   media,

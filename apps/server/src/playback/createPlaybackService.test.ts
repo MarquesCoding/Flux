@@ -47,9 +47,6 @@ const capableProfile: DeviceProfile = {
 
 /**
  * A media service that refuses everything it is not asked about.
- *
- * The port is wide, and a test about one call should not have to answer for
- * the other twenty.
  */
 const anything = (): Transcoder => ({
   isReachable: () => Promise.resolve(true),
@@ -210,8 +207,8 @@ const item = (overrides: Partial<MediaItem> = {}): MediaItem => ({
 });
 
 /**
- * A client that plays anything, so a plan comes back as passthrough unless a
- * test deliberately asks for something it cannot manage.
+ * A client that plays anything, so a plan comes back as passthrough unless a test deliberately asks
+ * for something it cannot manage.
  */
 const profile = (overrides: Partial<DeviceProfile> = {}): DeviceProfile => ({
   schemaVersion: 1,
@@ -246,11 +243,6 @@ const CAPABILITIES = {
 
 /**
  * The media service and the library, both as ports.
- *
- * A second harness beside the one above because these tests turn on what the
- * service does with what it is handed — a file that cannot be played as it
- * is, a media service that refuses, a preview that is not ready — rather than
- * on which audio track is chosen.
  */
 const build = (
   transcoderOverrides: Partial<Transcoder> = {},

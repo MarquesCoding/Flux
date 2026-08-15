@@ -1,12 +1,5 @@
 import { findYear } from './readTitleFromPath';
 
-/**
- * The shapes an episode number is written in.
- *
- * Ordered by how much each one asserts. `S01E02` says exactly what it means;
- * `1x02` is nearly as clear; a bare `102` could be anything, so it is only
- * read when a directory has already said which season this is.
- */
 const EPISODE_PATTERNS = [
   /\bs(?<season>\d{1,2})[\s._-]*e(?<episode>\d{1,3})\b/i,
   /\b(?<season>\d{1,2})x(?<episode>\d{1,3})\b/i,
@@ -15,56 +8,17 @@ const EPISODE_PATTERNS = [
 
 const SEASON_DIRECTORY = /\b(?:season|series|s)[\s._-]*(?<season>\d{1,2})\b/i;
 
-/**
- * The first word a release group adds rather than a person.
- *
- * An episode title runs until one of these appears: everything after
- * `1080p` is how the file was made, not what it is called.
- */
 const RELEASE_NOISE =
   /\b(?:\d{3,4}p|4k|uhd|web[\s._-]?dl|webrip|bluray|blu[\s._-]?ray|hdtv|dvdrip|remux|proper|repack|x26[45]|h\.?26[45]|hevc|avc|aac\d*|ac3|eac3|ddp?\d?|dts[\w]*|flac|opus|10bit|8bit|hdr\d*|dv|sdr|amzn|nf|dsnp|hulu|atvp|multi|dual)\b/i;
 
 const SPECIALS_DIRECTORY = /\b(?:specials?|extras?)\b/i;
 
 type EpisodeNumbering = {
-  /**
-   * The show this file belongs to, as far as the path says.
-   *
-   * Taken from the filename where it names the show before saying which
-   * episode it is, and from the directory structure otherwise. A file called
-   * `A Sign of Affection - 1x01 - ....mkv` says the show's name plainly, and
-   * trusting the folder over it means searching a catalogue for whatever the
-   * library folder happens to be called.
-   */
   seriesTitle: string | null;
-  /**
-   * The year a folder names alongside the show, when it does.
-   *
-   * Release folders reach for this exactly when a name alone is ambiguous —
-   * "Ted (2024)" says which "Ted", the same way a film's filename does. Absent
-   * far more often than a film's year is, since only a name collision usually
-   * makes anyone bother writing it down.
-   */
   seriesYear: number | null;
-  /**
-   * The directory that separates this programme from every other one.
-   *
-   * The path rather than the name, because two libraries can each hold a
-   * folder called `Season 1` and two households can each hold a folder called
-   * `The Office`. What makes this useful is that a directory is what actually
-   * keeps two same-named programmes apart on disk — which is the one thing a
-   * title cannot do.
-   *
-   * Null for a film, which has no series to be told apart from.
-   */
   seriesFolder: string | null;
   seasonNumber: number | null;
   episodeNumber: number | null;
-  /**
-   * What this particular episode is called, where the filename says.
-   *
-   * Only ever a guess, and only used when a catalogue has nothing better.
-   */
   episodeTitle: string | null;
 };
 
@@ -92,14 +46,6 @@ const readSeasonDirectory = (name: string): number | null => {
 
 /**
  * Reads a series, season and episode out of a path.
- *
- * Everything here is a guess from a filename, and a wrong guess groups two
- * unrelated files together. It therefore refuses more readily than it asserts:
- * a file has to say which episode it is before Flux will treat it as one.
- *
- * The series name comes from the directory structure rather than the filename
- * because `Some.Show.S01E02.1080p.WEB-DL.mkv` and
- * `Some Show - S01E02 - Title.mkv` sit in the same folder and should group.
  */
 const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
   const parts = filePath.split('/').filter((part) => part !== '');
@@ -168,10 +114,6 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
 
 /**
  * Whether two files are episodes of the same season.
- *
- * The question intro detection actually asks: comparing a file against
- * something from another show finds nothing, and comparing it against another
- * season finds a theme tune that may well have changed.
  */
 const isSameSeason = (left: EpisodeNumbering, right: EpisodeNumbering): boolean =>
   left.seriesTitle !== null &&

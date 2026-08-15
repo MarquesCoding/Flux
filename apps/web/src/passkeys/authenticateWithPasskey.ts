@@ -12,16 +12,6 @@ const readChallenge = async (response: Response): Promise<PublicKeyCredentialReq
 
 /**
  * Signs in with a passkey.
- *
- * The server issues no `allowCredentials`, so this is a discoverable
- * credential flow: the user chooses an account on their device and never types
- * an email address. The challenge is held server-side against a cookie set by
- * the options request, so both requests must be made from the same origin in
- * the same session.
- *
- * A dismissed prompt is `cancelled`, not a failure. Someone who opens the
- * passkey sheet and changes their mind should be returned to the password form
- * without being told anything went wrong.
  */
 const authenticateWithPasskey = async (): Promise<AuthenticateOutcome> => {
   try {

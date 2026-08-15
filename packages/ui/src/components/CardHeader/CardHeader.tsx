@@ -3,11 +3,6 @@ import type { CardHeaderProps } from './CardHeader.types';
 
 /**
  * The bar across the top of a card.
- *
- * One height for all of them, held by a minimum rather than by padding, so a
- * card carrying a search field and a card carrying only a word still line up
- * across a page. Every table in Flux wears one, which is what stops one panel
- * announcing itself an inch taller than the one beside it.
  */
 const CardHeader = ({ title, children, className }: CardHeaderProps) => (
   <header

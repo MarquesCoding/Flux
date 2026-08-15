@@ -11,8 +11,7 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { MediaPanelProps } from './MediaPanel.types';
 
 /**
- * What a row is called, which is the programme rather than the episode
- * standing in for it.
+ * What a row is called, which is the programme rather than the episode standing in for it.
  */
 const nameOf = (item: MediaSummary): string => item.seriesTitle ?? item.title;
 
@@ -21,16 +20,6 @@ const isSeries = (item: MediaSummary): boolean =>
 
 /**
  * Everything the libraries hold, and a way to say what one of them really is.
- *
- * One row per programme and per film rather than one per file: a correction
- * names a programme, so a list of ninety episodes would be ninety ways to do
- * the same thing.
- *
- * A table rather than a list, because the question asked of this page is
- * comparative — what came in last, what has no artwork, which of these two
- * films is the one that matched wrongly — and sorting is how that gets
- * answered. Kind and year are columns for the same reason: a wrong match is
- * usually obvious from the year alone.
  */
 const MediaPanel = ({
   isUnreachable = false,
@@ -42,14 +31,6 @@ const MediaPanel = ({
   const [rebuilding, setRebuilding] = useState<string | null>(null);
   const [rebuilt, setRebuilt] = useState<ReadonlySet<string>>(new Set());
 
-  /**
-   * Throws away an item's artefacts, and says so on the button that asked.
-   *
-   * The wording afterwards is "will rebuild" rather than "rebuilt", because
-   * nothing has been made yet — the clip is thrown away and the next page that
-   * wants it makes it again. Saying "rebuilt" would promise something that has
-   * not happened.
-   */
   const rebuild = useCallback(
     async (item: MediaSummary) => {
       setRebuilding(item.id);

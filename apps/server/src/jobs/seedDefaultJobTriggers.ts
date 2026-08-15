@@ -9,15 +9,6 @@ type SeedDefaultJobTriggersOptions = {
 
 /**
  * Gives a job kind its default triggers the first time Flux ever sees it.
- *
- * Once per kind, not once per boot: which kinds have been seeded is recorded
- * in settings, so deleting a default is a decision that sticks while a job
- * added in a later version still arrives with sensible defaults of its own. A
- * kind that already has triggers is left alone regardless — whatever is there
- * came from an operator, and defaults are for an empty schedule, not an
- * opinion about one.
- *
- * Reports the kinds it seeded.
  */
 const seedDefaultJobTriggers = async ({
   schedules,

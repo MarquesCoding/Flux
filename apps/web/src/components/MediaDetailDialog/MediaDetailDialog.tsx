@@ -25,9 +25,6 @@ import { CastGrid } from './components/CastGrid/CastGrid';
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types';
 
-/**
- * How many faces stand in for a cast that has not arrived.
- */
 const CAST_PLACEHOLDERS = 5;
 
 /**
@@ -38,15 +35,6 @@ const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
 
 /**
  * Everything known about one item, before deciding to watch it.
- *
- * Laid out like a page about a film rather than a form about a file: the
- * preview runs across the top with the title over it, and the detail reads
- * down the page in the order someone wants it — what it is, who is in it, what
- * else there is.
- *
- * While the details are arriving, the shapes they will occupy are drawn in
- * their place. A panel that fills in without moving can be read as it loads;
- * one that grows as each part lands cannot.
  */
 const MediaDetailDialog = ({
   media,
@@ -62,19 +50,8 @@ const MediaDetailDialog = ({
   onToggleKept,
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
-  /**
-   * Whether the description is still being read.
-   *
-   * Cleared when the dialog closes as well as when a read finishes: closing
-   * part-way through abandons whatever was in flight, so nothing was left to
-   * turn this off, and the next thing opened inherited it — showing its
-   * skeletons over a description that had already arrived.
-   */
   const [isLoading, setIsLoading] = useState(false);
 
-  /**
-   * The item whose lettering would not load, so the title falls back to words.
-   */
   const [unlettered, setUnlettered] = useState<string | null>(null);
   const [lastShown, setLastShown] = useState<MediaSummary | null>(null);
   const heldRef = useRef<{ resume: number | undefined; siblings: MediaSummary[] }>({

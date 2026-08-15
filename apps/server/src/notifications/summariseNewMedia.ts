@@ -1,33 +1,16 @@
-/**
- * Enough about a newly imported item to write a sentence about it.
- */
 type AddedItem = {
   id: string;
   title: string;
-  /**
-   * The programme it belongs to, or null for a film.
-   */
   seriesId: string | null;
   seriesTitle: string | null;
 };
 
-/**
- * What a digest says, and where pressing it goes.
- */
 type NewMediaSummary = {
   title: string;
   body: string;
   link: string | null;
 };
 
-/**
- * How many things a sentence names before it starts counting instead.
- *
- * Three, because "The Office, Taskmaster and Poirot" is a sentence somebody
- * reads and "The Office, Taskmaster, Poirot, Ghosts, Would I Lie To You and
- * 24 others" is a paragraph they skip. Past three, the count is the
- * information and the names are decoration.
- */
 const NAMED_AT_MOST = 3;
 
 /**
@@ -46,23 +29,6 @@ const inWords = (names: string[]): string => {
 
 /**
  * Turns everything imported in a window into one thing worth saying.
- *
- * This is the whole reason the household half could not simply reuse the
- * webhook path. A scan importing four hundred files raises four hundred
- * facts, and four hundred notifications is not a feature — it is the evening
- * somebody turns notifications off and never turns them back on.
- *
- * Episodes collapse into their programme, because a viewer thinks in
- * programmes: twelve files of one series is one thing arriving, said once,
- * with the count as the detail rather than the subject.
- *
- * The link is offered only where a single destination is honest — one
- * programme, or one film. A digest spanning several has nowhere to point, and
- * a notification that opens something arbitrary is worse than one that opens
- * nothing.
- *
- * Null where there is nothing to say, so a window in which nothing arrived
- * produces no notification rather than an empty one.
  *
  * @param items Everything imported since the last digest.
  */

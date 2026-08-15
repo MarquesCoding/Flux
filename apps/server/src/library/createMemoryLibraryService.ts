@@ -5,9 +5,6 @@ import type { LibraryService, ListItemsOptions } from './LibraryService';
 
 /**
  * What a browser is told about an item, from everything held about it.
- *
- * Written once and used by both the listing and the grouping into shows, so a
- * show cannot come to different conclusions about an episode than a rail does.
  */
 const toSummary = (item: MediaDetail): MediaSummary => ({
   id: item.id,
@@ -38,10 +35,6 @@ type MemoryState = {
 
 /**
  * What a typed search matches, kept in step with the database version.
- *
- * The same places — title, series title, description, tagline, cast — because
- * a memory service that searched differently would let every test of the HTTP
- * surface pass while describing behaviour the real server does not have.
  */
 const matchesSearch = (item: MediaDetail, search: string): boolean =>
   [
@@ -53,12 +46,8 @@ const matchesSearch = (item: MediaDetail, search: string): boolean =>
   ].some((against) => against.toLowerCase().includes(search));
 
 /**
- * Whether an item survives the narrowing filters, kept in step with the
- * database version for the same reason the search is.
- *
- * An item with no year or no rating fails a filter that asks about one, rather
- * than passing it by default: somebody asking for "at least seven out of ten"
- * is not asking to also be shown everything nobody has scored.
+ * Whether an item survives the narrowing filters, kept in step with the database version for the
+ * same reason the search is.
  */
 const matchesFilters = (item: MediaDetail, options: ListItemsOptions): boolean => {
   const year = item.year ?? null;
@@ -73,10 +62,6 @@ const matchesFilters = (item: MediaDetail, options: ListItemsOptions): boolean =
 
 /**
  * A library held in memory.
- *
- * Lets the HTTP surface be tested without Postgres, in the same way the memory
- * auth adapter does. The behaviour it models — searching, paging, missing
- * identifiers — is the behaviour the routes depend on.
  */
 const createMemoryLibraryService = (
   state: MemoryState = { libraries: [], media: [] },

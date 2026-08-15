@@ -10,43 +10,12 @@ import { dataTableFeatures } from './dataTableFeatures';
 import type { RowData, SortingState } from '@tanstack/react-table';
 import type { DataTableProps } from './DataTable.types';
 
-/**
- * How many rows a page holds before it is worth splitting.
- *
- * Large enough that most tables never paginate, small enough that a library of
- * hundreds does not become a scroll with no end in sight.
- */
 const ROWS_A_PAGE = 25;
 
-/**
- * How close to the bottom counts as having reached it.
- *
- * A little before the end rather than at it, so the next rows are already
- * there by the time somebody scrolls to where they would be.
- */
 const NEAR_THE_END = 200;
 
 /**
  * A table of things, sortable, with the highlight that follows the pointer.
- *
- * The one table in Flux. Every list of rows an operator reads — media,
- * accounts, jobs, sessions — is this, so that sorting works the same way
- * everywhere and a column added to one is a column and not a redesign.
- *
- * The header is a row of buttons rather than a row of headings with click
- * handlers, because sorting a table is something you do and a keyboard should
- * be able to do it.
- *
- * A long table can either page or grow. Paging suits a list somebody works
- * through — accounts, media — where "which page was I on" is a real question.
- * Growing suits a log, where the interesting rows are at the top and the rest
- * is history nobody navigates by number.
- *
- * Columns and rows must keep their identity between renders — memo the columns
- * and hold the rows in state. A column definition rebuilt each pass is a new
- * `cell` function each pass, which React reads as a different component and
- * remounts: any menu open in a row closes the moment anything on the page
- * changes, which on a page polling a server is constantly.
  */
 const DataTable = <Row extends RowData>({
   label,
@@ -64,13 +33,6 @@ const DataTable = <Row extends RowData>({
   const [shown, setShown] = useState(pageSize);
   const { containerRef, rect, follow, clear } = useSlidingHighlight();
 
-  /**
-   * How many rows a growing table is currently holding.
-   *
-   * Kept as its own count rather than a page, and never allowed past what
-   * there is: rows arrive and leave under a live table, and a count left
-   * pointing beyond the end would ask for a page that is not there.
-   */
   const holding = Math.min(shown, Math.max(rows.length, pageSize));
 
   const reachEnd = (box: HTMLElement) => {

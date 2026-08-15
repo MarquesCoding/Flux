@@ -1,13 +1,6 @@
 type ProseComment = {
   line: number;
-  /**
-   * Where on the line the comment opens, so a caller can remove it without
-   * taking the code that shares the line with it.
-   */
   column: number;
-  /**
-   * The line it closes on, which differs from `line` only for a block comment.
-   */
   endLine: number;
   text: string;
 };
@@ -16,10 +9,6 @@ type Language = 'rust' | 'css';
 
 /**
  * The comments each language keeps.
- *
- * Rust doc comments are the published API of a crate and are required by the
- * standard, and `// SAFETY:` is required by clippy on every `unsafe` block. A
- * CSS file has no such thing: nothing generates documentation from it.
  */
 const isKept = (language: Language, text: string): boolean => {
   if (language === 'css') {
@@ -30,13 +19,7 @@ const isKept = (language: Language, text: string): boolean => {
 };
 
 /**
- * Where a line's code ends and a comment begins, ignoring anything inside a
- * string.
- *
- * A URL in a string literal is not a comment, and neither is a `/*` in a
- * content property. Walking the line one character at a time is the only way to
- * tell the difference; a regular expression cannot, and one that tries deletes
- * somebody's `"https://…"` the first time it is run.
+ * Where a line's code ends and a comment begins, ignoring anything inside a string.
  */
 const commentStartsAt = (line: string, language: Language): number => {
   let quote: string | null = null;
@@ -75,10 +58,6 @@ const commentStartsAt = (line: string, language: Language): number => {
 
 /**
  * Every comment in a file that is prose rather than documentation.
- *
- * Reads the file rather than pattern-matching it, so a `//` inside a string
- * stays where it is. Block comments are reported at the line they open on and
- * counted once however many lines they run to.
  */
 const findProseComments = (source: string, language: Language): ProseComment[] => {
   const found: ProseComment[] = [];

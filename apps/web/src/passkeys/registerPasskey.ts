@@ -12,15 +12,6 @@ const readChallenge = async (response: Response): Promise<PublicKeyCredentialCre
 
 /**
  * Runs the WebAuthn registration ceremony and hands the result to the server.
- *
- * better-auth returns options already in `@simplewebauthn` JSON form and
- * verifies with the matching major version of that library, so the browser
- * half is delegated rather than hand-rolled. Getting base64url encoding subtly
- * wrong here fails inside the authenticator with no useful error.
- *
- * A user dismissing the platform prompt is reported as `cancelled` rather than
- * as a failure: declining is an ordinary choice and must not be shown as an
- * error.
  */
 const registerPasskey = async (name: string): Promise<RegisterOutcome> => {
   try {

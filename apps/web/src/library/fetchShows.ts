@@ -3,10 +3,6 @@ import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
 
 /**
  * The series in a library.
- *
- * Answers with nothing rather than throwing, like every other read a page
- * makes: a shelf of shows is one row of a page, and its absence must not take
- * the page down with it.
  */
 const fetchShows = async (libraryId: string): Promise<ShowSummary[]> => {
   try {

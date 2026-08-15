@@ -2,19 +2,12 @@ import type { AudioDecision, VideoDecision } from '@FluxContracts/schemas/Playba
 
 /**
  * Reads any plan axis as the decision plus the reason behind it.
- *
- * The shared shape every axis line reads as, whether it is a simple
- * passthrough/remux/none or one of the two axes with numbers of their own.
  */
 const describeAxis = (kind: string, detail: string): string => `${kind} — ${detail}`;
 
 /**
- * Reads the video axis with the resolution/bitrate ceiling actually being
- * encoded to, when it is transcoding.
- *
- * `plan.video` already carries these numbers whether the transcode came from
- * device capability or a chosen quality step, so this is the one place they
- * need to be shown.
+ * Reads the video axis with the resolution/bitrate ceiling actually being encoded to, when it is
+ * transcoding.
  */
 const describeVideoAxis = (video: VideoDecision): string =>
   video.kind === 'passthrough'

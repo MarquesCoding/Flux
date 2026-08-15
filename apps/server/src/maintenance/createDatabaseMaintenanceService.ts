@@ -12,10 +12,9 @@ type CreateDatabaseMaintenanceServiceOptions = {
 };
 
 /**
- * Queues each server-wide job under its own kind as a singleton key, so
- * pressing the same one twice joins the run already queued rather than
- * starting a second sweep alongside it. Different kinds are independent —
- * a cache cleanup and a session cleanup may run at once.
+ * Queues each server-wide job under its own kind as a singleton key, so pressing the same one twice
+ * joins the run already queued rather than starting a second sweep alongside it. Different kinds
+ * are independent — a cache cleanup and a session cleanup may run at once.
  */
 const enqueueSingleton = async (jobs: JobQueue, kind: string): Promise<QueuedJob> => {
   const jobId = await jobs.enqueue(kind, {}, kind);

@@ -12,17 +12,7 @@ import { JobSchedulePage } from '@FluxWeb/components/AdminArea/components/JobSch
 import type { JobsPanelProps } from './JobsPanel.types';
 
 /**
- * What can be started by hand, and what is running because something started
- * it earlier.
- *
- * Two cards rather than one with a rule down the middle: what can be started
- * and what is already running are different questions, and a card apiece says
- * so without a heading having to.
- *
- * A job's schedule opens in a dialog over the list rather than replacing the
- * page. Setting a trigger is a small edit to one row, and going away to a page
- * to do it loses the list, the scroll position, and any sense of which of the
- * eight jobs is being changed.
+ * What can be started by hand, and what is running because something started it earlier.
  */
 const JobsPanel = ({
   isUnreachable = false,

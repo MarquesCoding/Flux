@@ -35,17 +35,6 @@ const nameSeason = (seasonNumber: number | null): string =>
 
 /**
  * A series, and everywhere you could go in it.
- *
- * Opened from a shelf of shows rather than from an episode, because a viewer
- * looking at ten cards of the same programme is looking at one programme. The
- * page about an episode still exists and is one press away; this is the page
- * about the thing that contains them.
- *
- * It leads with one button. Somebody halfway through means the episode they
- * stopped in; somebody who finished it means the next; somebody who has never
- * seen it means the first — and all three are the same press, because finding
- * your place in a list of ninety is the library's job rather than the
- * viewer's.
  */
 const ShowDialog = ({
   show,
@@ -58,9 +47,6 @@ const ShowDialog = ({
 }: ShowDialogProps) => {
   const [detail, setDetail] = useState<ShowDetail | null>(null);
 
-  /**
-   * The item whose lettering would not load, so the title falls back to words.
-   */
   const [unlettered, setUnlettered] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastShown, setLastShown] = useState(show);
@@ -110,25 +96,11 @@ const ShowDialog = ({
 
   const seasons = detail?.seasons ?? [];
 
-  /**
-   * An episode carrying the programme's lettering.
-   *
-   * Taken from an episode rather than from the programme, because a logo
-   * belongs to a title and Flux files artwork against the items it scanned —
-   * every episode of a programme was matched to the same entry and so carries
-   * the same lettering. The first one that has any will do.
-   */
   const lettered =
     seasons.flatMap((one) => one.episodes).find((episode) => episode.hasLogo) ?? null;
   const carryingOn = detail === null ? null : pickUpFrom(detail, { resumeFor, isFinished });
   const gaps = detail === null ? null : findGaps(detail);
 
-  /**
-   * Every season the series has, whether or not this library holds any of it.
-   *
-   * A season nobody holds is still a season somebody wants to look inside, so
-   * it is offered the same way as the rest rather than named and left shut.
-   */
   const chooseFrom = [
     ...seasons.map((one) => ({ seasonNumber: one.seasonNumber, isHeld: true })),
     ...(gaps?.seasons ?? []).map((number) => ({ seasonNumber: number, isHeld: false })),
@@ -143,10 +115,6 @@ const ShowDialog = ({
 
   const listedHere = (detail?.shape ?? []).find((one) => one.seasonNumber === (showing ?? -1));
 
-  /**
-   * The numbers this season is missing: the holes in a season partly held, and
-   * every episode of one held not at all.
-   */
   const missingHere =
     chosen?.isHeld === false
       ? (listedHere?.episodes.map((one) => one.episodeNumber) ?? [])

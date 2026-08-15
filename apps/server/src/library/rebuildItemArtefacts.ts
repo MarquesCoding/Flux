@@ -5,9 +5,6 @@ import type {
   TrickplayRequest,
 } from '@FluxServer/transcoder/TranscoderClient';
 
-/**
- * One item, and everything its artefacts are addressed by.
- */
 type RebuildSubject = {
   path: string;
   audioStreams: AudioStream[];
@@ -15,9 +12,6 @@ type RebuildSubject = {
   defaultAudioLanguage: string | null;
 };
 
-/**
- * The tile geometry sheets are drawn to, which is part of their address.
- */
 type TrickplayGeometry = {
   intervalSeconds: number;
   tileWidth: number;
@@ -35,35 +29,13 @@ type RebuildItemArtefactsOptions = {
   onProblem?: (what: string, reason: string) => void;
 };
 
-/**
- * What was actually there to remove.
- */
 type Rebuilt = {
   preview: boolean;
   trickplay: boolean;
 };
 
 /**
- * Throws away one item's preview and sheets, so the next request makes them
- * again.
- *
- * The answer to a viewer saying "that one looks wrong". Everything else Flux can
- * do is wholesale: a reset rebuilds a library, a recipe bump rebuilds every
- * artefact of a kind. Neither is a reasonable response to one bad clip, and
- * before this the only remedy was deleting a hashed directory out of a temp
- * folder by hand.
- *
- * Deleting rather than orphaning, unlike a recipe bump. The reasoning that
- * favours orphaning is about *computed* lists, where being wrong takes artefacts
- * nobody meant to touch. Here an operator has pointed at one item and asked for
- * it again, the address comes from hashing that item's own request, and the
- * worst outcome is that a clip is rendered twice.
- *
- * Built with `previewRequestFor`, the same function the generator and the sweep
- * use, so all three agree about which clip is which.
- *
- * A failure on one kind does not stop the other: half a rebuild is better than
- * none, and the half that failed can be asked for again.
+ * Throws away one item's preview and sheets, so the next request makes them again.
  */
 const rebuildItemArtefacts = async ({
   item,

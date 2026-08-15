@@ -19,12 +19,6 @@ const post = (path: string, body: Record<string, string>, headers: Record<string
 
 /**
  * Builds auth with better-auth's test-mode relaxations turned off.
- *
- * better-auth skips trusted-origin validation when `isTest()` is true, which it
- * derives from `NODE_ENV === 'test' || TEST`. Vitest sets `TEST`, so a
- * trusted-origin assertion written the obvious way passes without ever
- * exercising the check. `NODE_ENV` is pinned to production in vitest.config.ts;
- * this clears `TEST` so the real behaviour is what gets asserted.
  */
 const createProductionAuth = (overrides: Partial<NodeJS.ProcessEnv>) => {
   vi.stubEnv('TEST', '');

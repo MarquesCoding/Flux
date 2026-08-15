@@ -5,9 +5,6 @@ import type { AdminMessageOverlayProps } from './AdminMessageOverlay.types';
 
 /**
  * What an admin's stop or pause looks like to the viewer it happened to.
- *
- * A stream that just stalls, or a player that just sits there paused with no
- * explanation, reads as broken. Whichever this is, it says so.
  */
 const AdminMessageOverlay = ({ kind, reason, onDismiss }: AdminMessageOverlayProps) => {
   if (kind === 'stopped') {

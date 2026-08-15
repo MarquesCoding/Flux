@@ -5,9 +5,6 @@ const pad = (value: number): string => value.toString().padStart(2, '0');
 
 /**
  * Formats a duration in seconds as `h:mm:ss`, or `m:ss` when under an hour.
- *
- * Fractional seconds are truncated. Negative input is treated as zero, because
- * a negative duration is never meaningful to display.
  */
 const formatDuration = (totalSeconds: number): string => {
   const safeSeconds = Number.isFinite(totalSeconds) ? Math.max(0, Math.floor(totalSeconds)) : 0;

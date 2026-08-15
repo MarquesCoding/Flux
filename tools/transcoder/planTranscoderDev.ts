@@ -1,12 +1,5 @@
 const UNIX_PREFIX = 'unix:';
 
-/**
- * What `pnpm dev` should do about the media service.
- *
- * Separated from starting it so the awkward cases — no Rust, no configuration,
- * a media service that lives on another machine — can be decided in a test
- * rather than found out by a developer whose stack half started.
- */
 type DevPlan =
   | { kind: 'run'; socketPath: string }
   | { kind: 'skip'; message: string }
@@ -19,10 +12,6 @@ type PlanTranscoderDevOptions = {
 
 /**
  * Decides whether the media service can be started, and says why when it cannot.
- *
- * Reads `TRANSCODER_URL` rather than a setting of its own, because that is the
- * address the server dials: anything else here would let the two ends disagree
- * about where the socket is, which is the failure this replaced.
  */
 const planTranscoderDev = ({
   transcoderUrl,

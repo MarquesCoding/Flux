@@ -6,11 +6,6 @@ const MAX_DEPTH = 12;
 
 /**
  * Walks a library root.
- *
- * Symlinks are not followed. A library mount is user-controlled and a symlink
- * loop, or a link pointing outside the mount, would either hang the scan or
- * pull files Flux was never given access to. Depth is capped for the same
- * reason.
  */
 const walk = async (root: string, depth: number): Promise<ScannedFile[]> => {
   if (depth > MAX_DEPTH) {

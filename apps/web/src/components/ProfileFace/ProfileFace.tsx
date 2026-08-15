@@ -5,15 +5,6 @@ import type { ProfileFaceProps } from './ProfileFace.types';
 
 /**
  * What a profile looks like.
- *
- * One component because four screens draw the same thing — the wall, the
- * picker, the editor and the account page — and a face that means something
- * different in each of them is four faces.
- *
- * A moving picture needs an element that can play it. A GIF is still a
- * picture as far as a browser is concerned, but a WebM in an image tag shows
- * nothing at all, which is exactly the sort of blank square somebody would
- * assume was a failed upload.
  */
 const ProfileFace = ({ profile, pending = null, className }: ProfileFaceProps) => {
   const [chosen, setChosen] = useState<string | null>(null);

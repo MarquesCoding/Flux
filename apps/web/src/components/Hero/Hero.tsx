@@ -11,46 +11,12 @@ import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import { PageDots } from '@FluxUI/PageDots';
 import type { HeroProps } from './Hero.types';
 
-/**
- * How much scrolling the hero holds on to before the page moves on.
- *
- * The picture stays where it is for this much of the page, drawing itself into
- * a card as it goes, and only then does the library start to come up. Somebody
- * scrolling gets the change of shape first and the change of place second,
- * rather than both at once.
- */
 const DRAWS_IN_BY_PIXELS = 640;
 
-/**
- * How much of the screen the card gives up at its foot.
- *
- * The slot the card is drawn in has to stay a whole screen tall while it
- * forms, or the page underneath moves. What is left below the finished card is
- * dead space, so the page is pulled up over exactly that much — during the
- * drawing it is under the fold and nothing sees it, and afterwards the library
- * starts at the card's own bottom edge rather than a quarter of a screen
- * beneath it.
- *
- * This is why the runway takes no pointer events. The library is pulled up
- * inside the runway's box, and the runway is positioned while the library is
- * not — so it paints over the very content it made room for, whatever the
- * order in the markup. Left as it was, everything in this much of the library
- * was unclickable, with no cursor and no hover to say why. The card puts the
- * pointer back for itself, since it has buttons of its own.
- */
 const FOOT_OF_THE_CARD = '24svh';
 
-/**
- * How long an item holds the screen before the next one takes it.
- */
 const ROTATE_AFTER_MILLISECONDS = 14_000;
 
-/**
- * How long the hero waits before starting a preview.
- *
- * Arriving at a home page is not the same as choosing something, and a page
- * that starts transcoding the moment it loads transcodes for nobody.
- */
 const PREVIEW_SETTLE_MILLISECONDS = 2500;
 
 /**
@@ -60,51 +26,8 @@ const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/bac
 
 const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
 
-/**
- * How much of the frame the mark may take.
- *
- * It is the title rather than a badge beside it: where a programme has
- * lettering of its own, that lettering is its name and setting the name again
- * underneath in the interface's typeface says the same thing twice in two
- * voices. It still stands in a heading and still carries the name as its
- * alternative text, so anything reading the page rather than looking at it
- * finds the title exactly where it expects to.
- *
- * Sized to sit where a heading sits rather than to fill the card. A mark given
- * the whole frame reads as a splash screen; this reads as a title.
- *
- * A logo is artwork with its own proportions — some are a word set wide, some
- * are a word stacked three lines deep inside a device — so it is given a box
- * rather than a size and told to fit whatever shape it turns out to be, capped
- * in viewport height as well as width so a tall one cannot run down the
- * picture.
- *
- * Shadowed, because a frame can be pale where the wash is thin, and white
- * lettering on a pale frame is lettering nobody can see.
- */
-/**
- * How long the synopsis stays before it goes.
- *
- * Long enough to read three lines without hurrying, and short enough that it
- * is gone before the picture underneath it has been covered up for any length
- * of time. It leaves rather than staying because the frame is the point of a
- * hero: the words say what this is, and once they have said it they are
- * standing in front of the thing they were describing.
- */
 const SYNOPSIS_MILLISECONDS = 8000;
 
-/**
- * The synopsis with no room taken up.
- *
- * Height as well as opacity, because a paragraph that only fades leaves its
- * space behind until the instant it unmounts, and then everything resting on
- * it drops by three lines in one frame. Folding the height away carries the
- * buttons and the mark down with it instead.
- *
- * The negative margin cancels the column's own gap. A child of a flex column
- * still earns its gap at zero height, so without this the fold stops three
- * quarters of a rem short and finishes with a snap after all.
- */
 const SYNOPSIS_FOLDED = { opacity: 0, height: 0, marginTop: '-0.75rem' } as const;
 
 const LOGO_BOX = [
@@ -114,15 +37,6 @@ const LOGO_BOX = [
 
 /**
  * The screen the library opens with.
- *
- * Editorial rather than catalogue: the title is set at a size a poster would
- * use and allowed to overlap the picture, the supporting detail is a thin
- * column beside it, and the composition is deliberately off centre. A frame
- * with everything neatly stacked in the middle is a frame nobody looks at
- * twice.
- *
- * Everything is sized in viewport units so a phone gets the same composition
- * rather than a squeezed version of a desktop one.
  */
 const Hero = ({
   items,
@@ -135,38 +49,10 @@ const Hero = ({
 }: HeroProps) => {
   const [index, setIndex] = useState(0);
 
-  /**
-   * The items whose lettering would not load.
-   *
-   * Kept per item rather than as one flag, because a hero rotates: one title
-   * whose logo has gone missing from the cache must not leave every other
-   * title in the rotation nameless. An item in here falls back to its name set
-   * in the interface's own typeface, which is what every item did before there
-   * were logos at all.
-   */
   const [unlettered, setUnlettered] = useState<ReadonlySet<string>>(new Set());
 
-  /**
-   * What this item is about, once the server has been asked.
-   *
-   * Held against the item it describes rather than on its own, so a synopsis
-   * that arrives after the hero has moved on is not shown under the wrong
-   * picture. Read here rather than carried on every card in the library: a
-   * page of eighty items would be eighty overviews sent to draw one.
-   */
   const [synopsis, setSynopsis] = useState<{ mediaId: string; text: string } | null>(null);
   const [isTelling, setIsTelling] = useState(true);
-  /**
-   * Whether a pointer is resting on the hero, and whether anything in it holds
-   * focus.
-   *
-   * Two flags rather than one, because they are set and cleared by different
-   * events and one boolean cannot tell whose turn it is to clear it. Focus
-   * moving into the hero — pressing Play, tabbing to More info — set it, and
-   * nothing set it back while the focus stayed there. The countdown stopped
-   * and never restarted, so the marker sat empty for as long as the page was
-   * open.
-   */
   const [isPointedAt, setIsPointedAt] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 

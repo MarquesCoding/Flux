@@ -25,19 +25,6 @@ const said = (when: string): string => {
 
 /**
  * Everywhere this account is signed in.
- *
- * A self-hosted server is shared with a household, and a household loses track
- * of what is signed in where: a television at a friend's, a phone that was
- * replaced, a browser on a machine at work. This is the answer and the way to
- * do something about it.
- *
- * The names are guesses read from what each browser said about itself. They
- * are labels rather than facts, which is enough for the job — telling one line
- * of a list from another.
- *
- * Signing something out asks first. The thing being ended might be the
- * television somebody else in the house is watching, and there is no undo
- * beyond walking over and signing in again.
  */
 const DeviceList = () => {
   const [devices, setDevices] = useState<Device[] | null>(null);

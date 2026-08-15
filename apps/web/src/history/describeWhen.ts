@@ -12,14 +12,6 @@ const withYear = new Intl.DateTimeFormat(undefined, {
 
 /**
  * When something was watched, said the way somebody would say it.
- *
- * Vague near today and precise further back, which is the opposite of what a
- * timestamp does and the same as what memory does. "Yesterday" is more useful
- * than a date somebody has to count back from; "12 Mar 2024" is more useful
- * than "517 days ago", which nobody can picture.
- *
- * The year appears only once it is a different one, so a list of this year's
- * viewing is not a column of the same four digits.
  */
 const describeWhen = (at: Date, now: Date): string => {
   const since = now.getTime() - at.getTime();

@@ -5,9 +5,6 @@ const A_PAGE = 30;
 
 /**
  * What this profile has watched, most recent first.
- *
- * Answers with nothing rather than throwing, like every other read a page
- * makes. A history that cannot load is an empty history, not a broken page.
  */
 const fetchHistory = async (offset = 0): Promise<Viewing[]> => {
   try {

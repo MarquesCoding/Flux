@@ -29,10 +29,6 @@ const shown = (row: Row): Viewing => ({
 
 /**
  * A profile's viewing history, in the database.
- *
- * The rules about what counts as a viewing live in `decideViewing` rather than
- * here, so this and the in-memory one cannot drift apart — and so the
- * judgements can be read without a query in the way.
  */
 const createDatabaseHistoryService = (db: FluxDatabase): HistoryService => ({
   record: async (profileId, mediaItemId, seen) => {

@@ -1,22 +1,9 @@
 import { describeLanguage, readLanguage } from '@FluxCore/functions/describeTrack';
 
-/**
- * Subtitle formats Flux can turn into something a browser renders.
- *
- * Deliberately text only. A picture-based track sitting beside a file is a
- * `.sup` or `.idx`/`.sub` pair, and turning those into text means character
- * recognition, which is not a thing to do inside a playback request.
- */
 const SUBTITLE_EXTENSIONS = new Set(['srt', 'vtt', 'ass', 'ssa']);
 
-/**
- * Directories a release commonly hides subtitles in.
- */
 const SUBTITLE_DIRECTORIES = new Set(['subs', 'subtitles']);
 
-/**
- * Markers that describe a track rather than name its language.
- */
 const FORCED_MARKERS = new Set(['forced']);
 
 const HEARING_IMPAIRED_MARKERS = new Set(['sdh', 'cc', 'hi']);
@@ -48,10 +35,6 @@ const splitName = (name: string): { stem: string; extension: string } => {
 
 /**
  * Reads what a subtitle filename says about the track.
- *
- * The convention every tool has settled on is the video's name followed by
- * dot-separated tags: `Arrival (2016).en.forced.srt`. Tags may appear in any
- * order and a file may carry none at all.
  */
 const describeTags = (
   tags: string[],
@@ -101,12 +84,6 @@ const describeLabel = (
 
 /**
  * Picks the subtitle files that belong to one video.
- *
- * A file belongs if its name starts with the video's name, which is how every
- * naming convention in use expresses the relationship. Files in a `Subs`
- * directory are taken as belonging to the only video beside them, because
- * that layout usually carries names like `English.srt` with no video name at
- * all.
  */
 const findSidecarSubtitles = (
   videoName: string,

@@ -1,11 +1,3 @@
-/**
- * Matches a cue's timing line and captures both ends of it.
- *
- * WebVTT allows either `hh:mm:ss.mmm` or `mm:ss.mmm`, and settings may follow
- * the second timestamp on the same line — alignment, position, size. Those are
- * kept exactly as they were: shifting a cue in time says nothing about where
- * on screen it belongs.
- */
 const TIMING = /^((?:\d+:)?\d{1,2}:\d{2}\.\d{1,3})\s+-->\s+((?:\d+:)?\d{1,2}:\d{2}\.\d{1,3})(.*)$/;
 
 /**
@@ -19,9 +11,6 @@ const readTimestamp = (stamp: string): number => {
 
 /**
  * Writes seconds back as a WebVTT timestamp.
- *
- * Always with hours, which is always valid and avoids a cue crossing the hour
- * mark changing shape halfway down a file.
  */
 const writeTimestamp = (seconds: number): string => {
   const whole = Math.max(seconds, 0);
@@ -36,14 +25,6 @@ const writeTimestamp = (seconds: number): string => {
 
 /**
  * Moves a subtitle file's cues to match a stream that starts partway in.
- *
- * A transcode asked to begin forty minutes into a film hands the browser a
- * video whose clock starts at zero, while the subtitle file still counts from
- * the beginning of the film. Left alone, every line arrives forty minutes
- * late. Shifting the cues is what keeps them on the words.
- *
- * Cues that finish before the stream starts are dropped rather than clamped to
- * zero, where they would all pile up on the first frame.
  */
 const shiftWebVtt = (content: string, seconds: number): string => {
   if (seconds === 0) {

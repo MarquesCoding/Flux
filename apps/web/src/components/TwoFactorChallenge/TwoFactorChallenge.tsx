@@ -12,14 +12,6 @@ const ENDPOINTS: Record<ChallengeMode, string> = {
 
 /**
  * The second step of signing in to an account with two-factor enrolled.
- *
- * better-auth issues a short-lived two-factor cookie alongside the
- * `twoFactorRedirect` response, and this request completes the sign-in against
- * it. No session exists until a code is accepted.
- *
- * Carries no layout of its own: it appears under a portrait on the way in,
- * where the screen has already said who is being asked and offers its own way
- * back. A component that brings a page with it can only ever be a page.
  */
 const TwoFactorChallenge = ({ onVerified }: TwoFactorChallengeProps) => {
   const [mode, setMode] = useState<ChallengeMode>('totp');

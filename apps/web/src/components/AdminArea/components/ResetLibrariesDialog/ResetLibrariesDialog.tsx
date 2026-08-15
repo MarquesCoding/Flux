@@ -7,9 +7,6 @@ import type { ResetLibrariesDialogProps } from './ResetLibrariesDialog.types';
 
 /**
  * Asks before a rebuild, because a rebuild cannot be asked to stop.
- *
- * Every item in every library is deleted before a single one is re-added —
- * unlike a scan, which only ever adds to or corrects what is already there.
  */
 const ResetLibrariesDialog = ({
   isOpen,

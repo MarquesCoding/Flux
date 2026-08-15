@@ -22,15 +22,6 @@ const AccountPermissionsSchema = z.object({
 
 type AccountPermissions = z.infer<typeof AccountPermissionsSchema>;
 
-/**
- * Why the server refused, or null when it did not.
- *
- * Carried back rather than swallowed, because every refusal these routes make
- * is one somebody needs explaining — being outranked, granting what you do not
- * hold, and taking the last administrator away are all deliberate rules rather
- * than failures, and a UI that reports them as "something went wrong" makes
- * the system look broken instead of careful.
- */
 type Refusal = { message: string } | null;
 
 const readRefusal = async (response: Response): Promise<Refusal> => {

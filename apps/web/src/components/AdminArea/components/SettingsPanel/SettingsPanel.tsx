@@ -11,13 +11,6 @@ import type { SettingsPanelProps } from './SettingsPanel.types';
 
 /**
  * What the instance is configured with, and who can sign into it.
- *
- * The key field and whether it is saving are held here rather than by the
- * admin area, because nothing outside this panel has any use for either.
- *
- * The field is emptied once a key is accepted. There is nowhere to read one
- * back from — the server keeps it and never returns it — so leaving what was
- * typed on screen would suggest it is still unsaved.
  */
 const SettingsPanel = ({
   overview,

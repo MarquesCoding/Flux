@@ -41,9 +41,6 @@ const candidate = (index: number): SegmentCandidate => ({
 
 /**
  * A season whose episodes open with the same theme.
- *
- * The theme sits at a different offset in each episode, because a cold open is
- * never the same length twice.
  */
 const season = (options: {
   episodes: number;

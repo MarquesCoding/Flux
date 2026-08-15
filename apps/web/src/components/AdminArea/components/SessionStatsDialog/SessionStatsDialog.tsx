@@ -26,11 +26,6 @@ Row.displayName = 'Row';
 
 /**
  * What an admin can see about one tab's stream.
- *
- * Buffer and picture size come from the viewer's own player, carried here on
- * its heartbeat — the server has no way to measure either of those itself.
- * They lag behind by up to one heartbeat interval, and by however long the
- * admin page's own poll takes to catch up after that.
  */
 const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProps) => {
   const { playback } = session;

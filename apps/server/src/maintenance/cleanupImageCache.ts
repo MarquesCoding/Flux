@@ -1,12 +1,5 @@
 import { join } from 'node:path';
 
-/**
- * The cache directories as cleanup sees them.
- *
- * `list` answers with file names only, never subdirectories — a real
- * implementation excludes them, so a job walking the top-level cache
- * directory never has to know its `profiles` subdirectory lives inside it.
- */
 type CacheFileSystem = {
   list: (directory: string) => Promise<string[]>;
   remove: (path: string) => Promise<void>;
@@ -21,21 +14,10 @@ type CleanupImageCacheOptions = {
   imageCacheDir: string;
   profilesDir: string;
   files: CacheFileSystem;
-  /**
-   * The same hash a read builds a cache file's name from — reused rather
-   * than reimplemented, so a cleanup that disagrees with the cache about its
-   * own naming scheme is not possible.
-   */
   nameFor: (url: string) => string;
   listMediaImageUrls: () => Promise<MediaImageUrls[]>;
   listProfilePhotoPaths: () => Promise<(string | null)[]>;
   onProblem?: (path: string, reason: string) => void;
-  /**
-   * `phase` tells the two directories apart, the same way a scan's phases
-   * tell probing apart from previews — the cache is swept first, then
-   * profile photos, and each restarts its own count rather than continuing
-   * the other's total.
-   */
   onProgress?: (phase: 'cache' | 'profiles', processed: number, total: number) => void;
 };
 
@@ -76,15 +58,7 @@ const sweep = async (
 };
 
 /**
- * Deletes every cached artwork and profile photo file nothing in the
- * database references any more.
- *
- * A cache file survives the media item or profile it was fetched for by
- * design — deleting an item does not walk the filesystem — so this is the
- * only thing that ever reclaims that space. Orphaned rows are not swept
- * here on purpose: every table a cached image could belong to cascades on
- * delete already, so there is never a row this could find that Postgres
- * has not already removed.
+ * Deletes every cached artwork and profile photo file nothing in the database references any more.
  */
 const cleanupImageCache = async ({
   imageCacheDir,

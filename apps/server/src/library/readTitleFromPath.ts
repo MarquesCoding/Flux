@@ -15,18 +15,6 @@ const MEDIA_EXTENSIONS = new Set([
   '3gp',
 ]);
 
-/**
- * Noise that appears in scene release names and is never part of a title.
- *
- * The language and subtitle tags matter as much as the codecs do: a file
- * called `Some Show 01 ITA JAP Sub Ita` was being handed to a catalogue whole,
- * and no catalogue holds a film of that name — so a perfectly ordinary
- * programme came back missing. Every word here is one a catalogue would have
- * to ignore anyway.
- *
- * Only ever removed as a whole word, so a title that happens to contain one of
- * them keeps it.
- */
 const NOISE = new Set([
   '1080p',
   '2160p',
@@ -103,10 +91,6 @@ const NOISE = new Set([
 
 /**
  * Reports whether a file looks like something Flux can play.
- *
- * An extension allowlist rather than a denylist: a library directory contains
- * artwork, subtitles, `.nfo` files and assorted junk, and probing every one of
- * them would make a first scan needlessly slow.
  */
 const isMediaFile = (fileName: string): boolean => {
   const extension = fileName.split('.').pop()?.toLowerCase() ?? '';
@@ -122,10 +106,6 @@ const stripExtension = (fileName: string): string => {
 
 /**
  * Finds a release year in a piece of text, bracketed or bare.
- *
- * Shared between reading a title out of a filename and reading one out of a
- * series' folder name — "Ted (2024)" says which "Ted" exactly the same way
- * whether it names a file or a directory.
  */
 const findYear = (text: string): { year: number; index: number } | null => {
   const matches = [...text.matchAll(/(?<open>[([])?\b(?<year>19\d{2}|20\d{2})\b\)?]?/g)];
@@ -140,10 +120,6 @@ const findYear = (text: string): { year: number; index: number } | null => {
 
 /**
  * Reads a display title and year out of a filename.
- *
- * A best effort only. Filenames in real libraries are unreliable, which is why
- * nothing about playback is decided from them — this feeds the title shown in
- * the interface until a metadata provider plugin supplies something better.
  */
 const readTitleFromPath = (filePath: string): { title: string; year: number | null } => {
   const fileName = filePath.split('/').pop() ?? filePath;

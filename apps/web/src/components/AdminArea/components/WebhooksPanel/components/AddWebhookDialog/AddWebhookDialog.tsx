@@ -14,34 +14,16 @@ import {
 import type { WebhookEvent, WebhookPreset } from '@FluxContracts/schemas/Webhook';
 import type { AddWebhookDialogProps } from './AddWebhookDialog.types';
 
-/**
- * What each preset is for, in the words somebody choosing one would use.
- *
- * A complete record, so a preset added to the contract fails to compile here
- * until somebody says what it is. A preset offered without an explanation is
- * a guess the operator has to make.
- */
 const PRESET_LABELS: Record<WebhookPreset, string> = {
   generic: 'Flux’s own envelope, as JSON — build against this one',
   discord: 'A message in a Discord channel',
   ntfy: 'A notification through ntfy',
 };
 
-/**
- * What a fresh subscription starts listening for.
- *
- * Failures only. Somebody setting up notifications for the first time wants
- * to hear when something breaks; every completed job as well is how the first
- * evening ends with the channel muted.
- */
 const DEFAULT_EVENTS: WebhookEvent[] = ['job.failed'];
 
 /**
  * Everything needed to point the server at somewhere new.
- *
- * The events are checkboxes rather than a menu because this is the decision
- * that determines whether these notifications get read: it is several answers
- * rather than one, and it wants to be seen all at once.
  */
 const AddWebhookDialog = ({ isOpen, onClose, onCreate }: AddWebhookDialogProps) => {
   const [name, setName] = useState('');

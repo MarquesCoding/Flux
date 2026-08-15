@@ -16,17 +16,8 @@ import { FilterChips } from './components/FilterChips/FilterChips';
 import type { LibraryFacets, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { SearchAreaProps, SearchKind } from './SearchArea.types';
 
-/**
- * How long to wait after a keystroke before asking the server.
- *
- * Long enough that typing a word is one request rather than five, short enough
- * that stopping to think brings the results with it.
- */
 const SETTLE_MILLISECONDS = 250;
 
-/**
- * How many results to hold at once.
- */
 const PAGE_SIZE = 60;
 
 const KINDS: { id: SearchKind; label: string }[] = [
@@ -35,42 +26,18 @@ const KINDS: { id: SearchKind; label: string }[] = [
   { id: 'shows', label: 'Shows' },
 ];
 
-/**
- * Nothing known about the libraries, until the server has said.
- */
 const NO_FACETS: LibraryFacets = { genres: [], decades: [], maxRating: 0 };
 
-/**
- * How long a decade is, for turning a chip into the years either side of it.
- */
 const DECADE = 10;
 
 /**
  * Reads a chip's value back as a number, or nothing.
- *
- * The chips deal in strings because that is what a value on a control is;
- * everything downstream of them is arithmetic.
  */
 const asNumber = (value: string | null): number | undefined =>
   value === null ? undefined : Number(value);
 
 /**
  * Searching the library, and narrowing it.
- *
- * A field on its own answers "what is this called"; most of the time somebody
- * is asking something looser than that — a kind of thing, or a mood, or an
- * evening's worth of something. The filters are that question, and they are
- * asked of the server rather than of the page: a library is longer than one
- * page of it, and sifting what happened to arrive would answer with whatever
- * the first sixty items were.
- *
- * Every list of chips is drawn from what is actually in the libraries rather
- * than from a fixed list, because a list offering "Western" to somebody who
- * owns no westerns is a list of dead ends.
- *
- * The narrower filters are folded away behind a press. The row of kinds and
- * the genres answer most of what people come here for, and the rest is there
- * for somebody who came looking for the good films of the nineties.
  */
 const SearchArea = ({
   search,

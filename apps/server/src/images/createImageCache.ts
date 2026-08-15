@@ -20,25 +20,12 @@ type CreateImageCacheOptions = {
   onProblem?: (url: string, reason: string) => void;
 };
 
-/**
- * The largest artwork worth keeping.
- *
- * A poster is a few hundred kilobytes. Anything far past that is either not a
- * poster or not worth serving, and this stops a hostile or broken catalogue
- * filling a disk.
- */
 const MAX_BYTES = 8 * 1024 * 1024;
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 
 /**
  * A cache of artwork fetched from elsewhere.
- *
- * Artwork is proxied rather than linked for two reasons. A browser loading a
- * poster straight from a catalogue tells that catalogue what its viewer is
- * looking at, which is precisely what self-hosting is meant to avoid. And a
- * library whose covers vanish when a third party reorganises its URLs is a
- * library that has quietly rotted.
  */
 const createImageCache = ({ directory, fetchImpl, onProblem }: CreateImageCacheOptions) => {
   const call: ImageFetcher = fetchImpl ?? ((url: string) => fetch(url));

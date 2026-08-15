@@ -7,15 +7,6 @@ import type { ConfirmDialogProps } from './ConfirmDialog.types';
 
 /**
  * Asks before something that cannot be taken back.
- *
- * One component rather than a confirmation written out wherever one is needed,
- * so the wording, the ordering of the buttons and the colour of the dangerous
- * one are decided once. A confirmation that looks different each time it
- * appears trains somebody to press through it without reading.
- *
- * The affirmative button names the act — "Ban", "Delete account" — rather than
- * saying yes. It is the only part of the dialog somebody is guaranteed to
- * read, so it is the part that should say what happens.
  */
 const ConfirmDialog = ({
   title,

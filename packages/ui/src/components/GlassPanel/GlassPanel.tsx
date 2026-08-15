@@ -8,11 +8,6 @@ const ELEVATION_CLASSES: Record<GlassElevation, string> = {
 
 /**
  * A translucent pane.
- *
- * The one place the glass treatment is defined, so every bar, menu and card
- * that floats over content catches the light the same way. Composed rather
- * than themed: what goes inside is the caller's business, the material is
- * this component's.
  */
 const GlassPanel = ({
   children,

@@ -2,10 +2,6 @@ import type { PlaybackHealth } from '@FluxWeb/components/VideoPlayer/components/
 
 /**
  * The last moment of the stream the element will let anyone seek to.
- *
- * The playlist describes the whole film, so this is the film's length rather
- * than how much of it has been transcoded. Read defensively because an element
- * that has loaded nothing reports no ranges at all.
  */
 const encodedSeconds = (element: HTMLVideoElement): number => {
   try {
@@ -19,9 +15,6 @@ const encodedSeconds = (element: HTMLVideoElement): number => {
 
 /**
  * How much is buffered past where the viewer is.
- *
- * The range containing the current position is the only one that matters: a
- * later range is separated by a gap playback will stall in.
  */
 const bufferedAhead = (element: HTMLVideoElement): number => {
   try {
@@ -39,22 +32,12 @@ const bufferedAhead = (element: HTMLVideoElement): number => {
   }
 };
 
-/**
- * A source of frame counts.
- *
- * Declared optional because not every browser implements it, which the DOM
- * types do not admit.
- */
 type FrameCountSource = {
   getVideoPlaybackQuality?: () => { droppedVideoFrames: number; totalVideoFrames: number };
 };
 
 /**
  * Frame counts, where the browser keeps them.
- *
- * Not every browser implements this, and a decoder that is dropping frames is
- * precisely when someone opens this panel, so absence is reported rather than
- * shown as zero.
  */
 const frameCounts = (
   element: FrameCountSource,
@@ -70,10 +53,6 @@ const frameCounts = (
 
 /**
  * Samples what the browser is actually doing with the stream.
- *
- * Everything here comes from the media element rather than from the server,
- * because the two disagreeing is the situation the stats panel exists to make
- * visible.
  */
 const readPlaybackHealth = (element: HTMLVideoElement): PlaybackHealth => {
   const frames = frameCounts(element);

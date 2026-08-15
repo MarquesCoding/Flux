@@ -58,22 +58,10 @@ import type { AppProps } from './App.types';
 
 type LoadState = 'loading' | 'ready' | 'unreachable';
 
-/**
- * How often what is held about a position is brought up to date.
- *
- * The player reports several times a second, which is the right rate for a
- * scrubber and far too fast for anything that causes a render. What this holds
- * is only read by cards and by the resume, so a few seconds behind is close
- * enough — and the report the server gets is on its own clock anyway.
- */
 const PROGRESS_EVERY_SECONDS = 5;
 
 /**
  * Application shell and routing.
- *
- * Setup, sign-in and the library are chosen from what the server reports, not
- * from local state, so a second browser cannot skip setup and a stale tab
- * cannot behave as though it is still signed in.
  */
 const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [status, setStatus] = useState<SetupStatus | null>(null);
@@ -81,32 +69,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
   const reportedRef = useRef(new Map<string, WatchProgress>());
-  /**
-   * The second last written into what this holds about progress.
-   *
-   * A ref rather than state: it decides whether to write, and writing is what
-   * causes the render — keeping it in state would cause the render it is meant
-   * to be rationing.
-   */
   const markedAtRef = useRef(0);
-  /**
-   * Where to start something in spite of what the server holds.
-   *
-   * Only "Start again" needs this. Everything else resumes, and the position to
-   * resume from is the server's to answer — but somebody who has just asked to
-   * watch a film from the beginning is asking for the one thing that answer
-   * cannot express, and it lasts until they open something else.
-   */
   const [startOverride, setStartOverride] = useState<{ mediaId: string; seconds: number } | null>(
     null,
   );
-  /**
-   * Whether the server has been asked where this viewer got to.
-   *
-   * The player is told where to start once, when it mounts, so opening it
-   * before the answer has arrived opens it at the beginning and there is no
-   * second chance to correct that.
-   */
   const [hasReadProgress, setHasReadProgress] = useState(false);
   const [, setFeatured] = useState<MediaSummary | null>(null);
   const [moodLights, setMoodLights] = useState<MoodLight[]>([]);
@@ -220,10 +186,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
   /**
    * Where this viewer left an item, when it is worth coming back to.
-   *
-   * For the offer to resume that a card or a hero makes, which is why it is
-   * choosy: nobody wants to be asked whether to carry on with a film they
-   * opened for thirty seconds last week.
    */
   const resumeFor = (mediaId: string): number | null => {
     const found = progress.get(mediaId);
@@ -233,15 +195,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
   /**
    * Where something actually got to, for picking it up again.
-   *
-   * Deliberately not the same question as `resumeFor`. Whether to *offer* to
-   * resume is a judgement about whether somebody meant to start something;
-   * where to start once they are already watching is a fact, and a page that
-   * reloads forty seconds into a film should carry on at forty seconds rather
-   * than be told that does not count as having started.
-   *
-   * Something already finished starts again, since carrying on from the credits
-   * is not carrying on.
    */
   const positionFor = (mediaId: string): number => {
     const found = progress.get(mediaId);
@@ -249,13 +202,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     return found === undefined || found.isFinished ? 0 : Math.floor(found.positionSeconds);
   };
 
-  /**
-   * Keeps what the library has shown, so an address naming an item can be
-   * turned back into one.
-   *
-   * Stable, because a callback rebuilt on every render is a callback that
-   * makes anything depending on it run again.
-   */
   const rememberItems = useCallback((items: MediaSummary[]) => {
     setKnown((current) => {
       const next = new Map(current);
@@ -431,15 +377,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />;
   }
 
-  /**
-   * Where the thing being watched should start.
-   *
-   * The address wins when it names a second, since a link somebody was sent is
-   * a link to a moment. Otherwise it is wherever the server says this viewer
-   * got to — which is what makes a reload carry on rather than start again,
-   * given that the address of something opened from a card names no second at
-   * all.
-   */
   const startAt =
     playing === null
       ? 0
@@ -767,16 +704,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               onFeatureChange={setFeatured}
               onPalette={setMoodLights}
               onOpenShow={(media) => {
-                /**
-                 * The programme's own id, or a slug of its title where there
-                 * is none.
-                 *
-                 * The slug is only reached by an item scanned before
-                 * programmes were rows of their own, and it carries the fault
-                 * it always had: two programmes of one name are one address.
-                 * The first scan after this gives every episode an id and the
-                 * fallback stops being reachable.
-                 */
                 const series = media.seriesId ?? showSlug(media.seriesTitle ?? '');
 
                 if (series !== '') {

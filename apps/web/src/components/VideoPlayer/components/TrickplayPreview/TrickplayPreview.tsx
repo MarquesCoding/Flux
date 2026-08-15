@@ -4,9 +4,6 @@ import type { TrickplayPreviewProps } from './TrickplayPreview.types';
 
 /**
  * The frame under the pointer while scrubbing.
- *
- * Drawn by offsetting a sheet inside a window the size of one tile, so hovering
- * across a timeline costs no requests beyond the sheets already fetched.
  */
 const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
   const thumbnail = thumbnailAt(trickplay.thumbnails, seconds);

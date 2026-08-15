@@ -1,13 +1,5 @@
 import type { Permission } from '@FluxContracts/schemas/Permission';
 
-/**
- * What each permission is called on screen.
- *
- * Written out rather than derived from the identifier, because
- * "jobs.runDestructive" uncamel-cased is "run destructive", which says nothing
- * about what is destroyed. The point of this screen is somebody deciding what
- * to hand out, and that decision is made from the sentence, not the key.
- */
 const LABELS: Record<Permission, string> = {
   administrator: 'Everything, including anything added later',
 

@@ -4,11 +4,6 @@ import { usePortalContainer } from './usePortalContainer';
 
 /**
  * Puts an element into fullscreen the way a browser reports it.
- *
- * jsdom implements neither `requestFullscreen` nor `fullscreenElement`, so
- * the property is defined and the event dispatched by hand. That is faithful
- * to what the hook actually reads — it never calls `requestFullscreen`, it
- * only answers what the document says afterwards.
  */
 const enterFullscreen = (element: Element | null) => {
   Object.defineProperty(document, 'fullscreenElement', {

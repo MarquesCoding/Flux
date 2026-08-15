@@ -9,10 +9,6 @@ type NotifyHouseholdOptions = {
   title: string;
   body: string;
   link: string | null;
-  /**
-   * The identity push services check this server by, or null on a server that
-   * has none — push is simply not attempted, and in-app still happens.
-   */
   vapid: VapidKeys | null;
   send?: WebPushSender;
   onProblem?: (reason: string) => void;
@@ -20,19 +16,6 @@ type NotifyHouseholdOptions = {
 
 /**
  * Tells the household something, by every transport they asked for.
- *
- * The two transports are chosen separately and neither depends on the other:
- * somebody with push off still gets the bell, and a server with no keys still
- * notifies in-app rather than failing. That is what keeps push an addition to
- * the bus rather than the thing the bus needs.
- *
- * A push service answering that a subscription is gone has it deleted rather
- * than retried. Unlike a webhook there is no operator to tell — the browser
- * was uninstalled or the permission revoked, and nothing about that endpoint
- * will start working again.
- *
- * Never throws. Being unable to tell somebody about new media must not fail
- * the scan that found it, which is the same rule the webhook bus follows.
  *
  * @param store Where notifications, preferences and browsers are kept.
  * @param event Which event this is, so preferences can be read against it.

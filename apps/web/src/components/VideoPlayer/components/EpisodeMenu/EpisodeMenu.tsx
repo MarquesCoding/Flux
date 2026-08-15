@@ -18,11 +18,6 @@ const headingOf = (seasonNumber: number | null | undefined): string =>
 
 /**
  * The rest of the season, without leaving the film.
- *
- * Somebody four episodes into a series does not want to close the player, find
- * the page, and pick the next one; they want the list where they already are.
- * The same card the library draws episodes with, so an episode looks like an
- * episode wherever it is met — including how far through it this viewer is.
  */
 const EpisodeMenu = ({
   episodes,

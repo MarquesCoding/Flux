@@ -29,11 +29,6 @@ const COLOURS = [
 
 /**
  * How captions should look, decided by the person reading them.
- *
- * Every setting here exists because the right answer depends on the room: a
- * television across a lounge wants large text with a solid background, a
- * laptop at arm's length wants neither. The preview is styled with the same
- * CSS the cues get, so what is chosen here is what appears on the film.
  */
 const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => (
   <section aria-label="Caption settings" className="flex w-full flex-col gap-4 text-sm text-white">

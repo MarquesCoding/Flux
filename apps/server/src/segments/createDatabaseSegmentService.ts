@@ -8,9 +8,6 @@ import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
 
 /**
  * Segments held in Postgres.
- *
- * Replaced wholesale per item rather than merged, so a rerun of detection
- * corrects itself instead of accumulating every range it has ever believed.
  */
 const createDatabaseSegmentService = (db: FluxDatabase): SegmentService => ({
   list: async (mediaId) => {

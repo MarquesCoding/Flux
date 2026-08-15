@@ -19,9 +19,6 @@ const KIND_LABELS: Record<LibraryKind, string> = {
 
 /**
  * Adds a library root.
- *
- * The path is a location on the machine running Flux, not the browser, which
- * is easy to forget on a desktop reaching a server elsewhere on the network.
  */
 const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps) => {
   const [name, setName] = useState('');

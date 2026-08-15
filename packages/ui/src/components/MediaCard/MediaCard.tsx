@@ -14,18 +14,6 @@ const SHAPE_CLASSES: Record<MediaCardShape, string> = {
 
 /**
  * One item in a library.
- *
- * A button rather than a card with a nested button: the whole tile is the
- * target, which is what a pointer expects and what keyboard and screen reader
- * users need. A clickable `div` would be reachable by neither.
- *
- * A lead card wears its title over the artwork, where a standard one carries
- * it underneath. That difference is what gives a row a shape — the eye lands
- * on the large one and reads outwards from it.
- *
- * With no artwork, the initial is set enormous and cropped rather than
- * centred politely. A library before its first metadata provider should look
- * deliberate, not unfinished.
  */
 const MediaCard = ({
   title,

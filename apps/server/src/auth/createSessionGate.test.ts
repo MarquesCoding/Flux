@@ -50,12 +50,6 @@ const build = () => {
   return { app, store, permissions };
 };
 
-/**
- * Requests that must not be answered to somebody with no session.
- *
- * Listed as concrete requests rather than route patterns, because the point
- * is what an anonymous caller can actually reach.
- */
 const GUARDED: readonly { method: string; path: string }[] = [
   { method: 'GET', path: '/api/libraries' },
   { method: 'POST', path: '/api/libraries' },

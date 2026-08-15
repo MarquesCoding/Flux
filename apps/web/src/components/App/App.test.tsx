@@ -35,10 +35,6 @@ const bodyOf = (init: RequestInit | undefined): JsonValue =>
 
 const arrivalId = '9c858901-8a57-4791-81fe-4c455b099bc9';
 
-/**
- * Arrival as the server describes it in full, for the addresses that name an
- * item nothing has drawn yet.
- */
 const arrivalInFull = {
   id: arrivalId,
   libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
@@ -97,8 +93,8 @@ const aLibraryWithArrival = {
 } satisfies { libraries: JsonValue; items: JsonValue };
 
 /**
- * Routes the two endpoints the shell depends on, so tests describe server
- * state rather than call ordering.
+ * Routes the two endpoints the shell depends on, so tests describe server state rather than call
+ * ordering.
  */
 const serverState = (options: {
   setup: JsonValue;
@@ -160,13 +156,6 @@ const serverState = (options: {
   });
 };
 
-/**
- * Stands in for presence's connection, opened once a viewer is signed in.
- *
- * Nothing here asserts against it — these are routing tests — but jsdom has
- * no `EventSource` of its own, and opening one for real would leave a
- * dangling connection every test would otherwise have to account for.
- */
 class FakeEventSource {
   onmessage: ((event: MessageEvent<string>) => void) | null = null;
 
@@ -188,9 +177,6 @@ afterEach(() => {
 
 /**
  * Lets the opening wordmark finish holding the screen.
- *
- * Flux opens on its own mark rather than on a spinner, so nothing else is
- * drawn until it has had its moment.
  */
 const arrive = async () => {
   for (let pass = 0; pass < 2; pass += 1) {

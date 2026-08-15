@@ -15,24 +15,12 @@ const PreferencesSchema = z.object({
   pushPublicKey: z.string(),
 });
 
-/**
- * What somebody has been told, and how much of it is new.
- */
 type Inbox = z.infer<typeof InboxSchema>;
 
 type NotificationSettings = z.infer<typeof PreferencesSchema>;
 
 /**
  * What is on the bell.
- *
- * Answers an empty inbox rather than failing, whether the server could not be
- * reached, refused, or said something this version cannot read. A bell is
- * furniture on every page, and a page that will not draw because a count
- * could not be fetched is a worse outcome than a bell reading zero.
- *
- * That covers a real case rather than a theoretical one: a browser left open
- * across an upgrade talks to a server that has moved on, and every one of
- * these is a background read nothing was waiting for.
  */
 const fetchNotifications = async (): Promise<Inbox> => {
   const empty = { notifications: [], unread: 0 };

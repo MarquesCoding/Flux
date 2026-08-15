@@ -6,11 +6,6 @@ import type { PopoverPanelProps } from './PopoverPanel.types';
 
 /**
  * A panel of glass hung off a control.
- *
- * The plumbing every overlay on the player needs and none of them should own:
- * a trigger the size of the other buttons, a panel above it that stays inside
- * the window, and the same glass as the bar it belongs to. What goes inside is
- * the caller's business.
  */
 const PopoverPanel = ({
   label,

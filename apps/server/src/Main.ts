@@ -106,9 +106,6 @@ import { createDatabaseHistoryService } from '@FluxServer/history/createDatabase
 import { createDatabaseSignInStore } from '@FluxServer/accounts/createDatabaseSignInStore';
 import { recordSignIn } from '@FluxServer/accounts/recordSignIn';
 import { createDatabasePermissionService } from '@FluxServer/auth/createDatabasePermissionService';
-/**
- * Chapters as they were stored, which may be from an older shape.
- */
 const ChapterListSchema = z.array(
   z.object({
     title: z.string().nullable(),
@@ -135,24 +132,8 @@ const settings = createDatabaseSettingsStore({
   },
 });
 
-/**
- * How long a viewing is worth remembering in detail.
- *
- * A year, because that is long enough for "have I seen this" and for a look
- * back over the year, and short enough that the table does not become the
- * largest thing in the database. Anything an operator wants beyond it is a
- * rolled-up figure rather than the events it came from.
- */
 const HISTORY_KEPT_FOR_DAYS = 365;
 
-/**
- * How long a webhook delivery is worth remembering.
- *
- * A week, and deliberately far shorter than viewing history. The history
- * answers whether a receiver has been working lately, and lately is the whole
- * of it: nobody goes back a month to read what was sent. Keeping it longer
- * would store a body per event per subscriber for no question anybody asks.
- */
 const WEBHOOK_DELIVERIES_KEPT_FOR_DAYS = 7;
 
 const signInStore = createDatabaseSignInStore(db);
@@ -191,10 +172,6 @@ const countUsers = async (): Promise<number> => {
 
 /**
  * How much disk the media itself takes, across every library.
- *
- * A sum over rows Flux already keeps rather than a walk of the disk, so it
- * costs a query rather than a directory traversal of a media array. Scanning
- * is what keeps `sizeBytes` honest; this only adds it up.
  */
 const readLibraryBytes = async (): Promise<number> => {
   const rows = await db
@@ -212,9 +189,6 @@ const permissions = createDatabasePermissionService(db);
 
 /**
  * Gives a freshly made account the role a new one is meant to have.
- *
- * Seeding does this for accounts that already existed; somebody invited after
- * that has to be given it here, or they arrive able to do nothing at all.
  */
 const giveDefaultRole = async (userId: string): Promise<void> => {
   const member = (await permissions.listRoles()).find((role) => role.name === DEFAULT_ROLE_NAME);
@@ -228,14 +202,7 @@ const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL });
 
 /**
- * Finds intros, outros and other skippable segments across a library's
- * already-scanned media.
- *
- * Its own function rather than inline in a handler because it runs from two
- * places: after every scan (walking a directory takes seconds; listening to
- * a season takes minutes, and a library should be browsable long before its
- * intros are known), and on its own from the Work tab, for redoing detection
- * without a full rescan.
+ * Finds intros, outros and other skippable segments across a library's already-scanned media.
  */
 const runDetectSegments = async (libraryId: string, jobId: string): Promise<void> => {
   const marked = await detectLibrarySegments({
@@ -299,9 +266,9 @@ const runDetectSegments = async (libraryId: string, jobId: string): Promise<void
 };
 
 /**
- * Wraps a per-library job so a schedule can fire it against every current
- * library, decided at the moment it runs rather than whatever existed when
- * the schedule was set — see `scheduleTriggerKind`.
+ * Wraps a per-library job so a schedule can fire it against every current library, decided at the
+ * moment it runs rather than whatever existed when the schedule was set — see
+ * `scheduleTriggerKind`.
  */
 const scheduleAcrossLibraries =
   (run: (libraryId: string) => Promise<{ jobId: string; state: string } | null>) =>
@@ -318,12 +285,6 @@ const notifications = createDatabaseNotificationStore(db);
 
 /**
  * The identity push services check this server by, made on first need.
- *
- * Generated rather than configured, because an operator should not have to
- * produce a keypair by hand to be told about new media. Kept for ever after:
- * every subscription a browser takes out is against this public key, so
- * replacing the pair silently stops every phone in the house being reachable
- * with nothing to say why.
  */
 const readPushKeys = async (): Promise<VapidKeys> => {
   const held = await settings.read();
@@ -370,28 +331,12 @@ const diskWatch = createDiskPressureWatch({
 
 /**
  * Everywhere Flux writes, which is what it is worth warning about.
- *
- * The libraries and the image cache. Every other filesystem the machine has
- * is somebody else's business: a media server usually has a full disk
- * somewhere — a read-only install image, a snap loopback, a backup drive —
- * and warning about those teaches an operator to ignore the warning that
- * matters.
  */
 const pathsFluxWritesTo = async (): Promise<string[]> => [
   ...(await libraryService.list()).map((entry) => entry.path),
   env.IMAGE_CACHE_DIR,
 ];
 
-/**
- * Whether the catalogue was answering last time anybody asked.
- *
- * Behind a watch for the same reason the transcoder is, and it changes what
- * this check announces. It used to say the catalogue was unreachable on every
- * failed run: once a day, which was tolerable only because the check is
- * daily. Paired with a recovery that rule breaks — a catalogue that came back
- * would be announced as recovered every morning for ever — so both directions
- * became transitions, and the two checks now follow one rule instead of two.
- */
 const catalogueWatch = createReachabilityWatch({
   onLost: () => {
     void events.publish({ event: 'catalogue.unreachable', data: {} });
@@ -403,15 +348,6 @@ const catalogueWatch = createReachabilityWatch({
 
 /**
  * Announces a job that ended, except the one that does the announcing.
- *
- * A delivery that fails is itself a job that failed, and announcing it would
- * queue another delivery, which would fail, which would announce it. The
- * exclusion is what stops one unreachable receiver turning into a queue that
- * never empties.
- *
- * The publish is deliberately not awaited. Nothing about a job that has
- * already finished depends on whether anybody was told about it, and the bus
- * swallows its own failures.
  */
 const announceFinishedJob = ({ kind, jobId, subject, reason }: FinishedJob): void => {
   if (kind === DELIVER_WEBHOOK_JOB) {
@@ -785,10 +721,6 @@ const jobs = await createJobQueue({
 
 /**
  * Queues one delivery to one subscriber.
- *
- * Shared by the bus, which uses it for events the server raises, and by the
- * test button, which addresses a single subscription. Both put the same job
- * on the same queue; only who they are for differs.
  */
 const queueWebhookDelivery = async (subscriptionId: string, payload: string): Promise<void> => {
   await jobs.enqueue(DELIVER_WEBHOOK_JOB, { subscriptionId, payload });

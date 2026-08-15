@@ -4,10 +4,6 @@ import { useSlidingHighlight } from './useSlidingHighlight';
 
 /**
  * A container holding two items, measured as though it had been laid out.
- *
- * jsdom gives every element a zero-sized rectangle, so the measurements are
- * planted. What is being tested is which element gets measured and when, not
- * the arithmetic of a layout engine.
  */
 const layOut = () => {
   const container = document.createElement('div');

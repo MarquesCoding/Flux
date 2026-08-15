@@ -192,18 +192,10 @@ import {
 import type { HistoryService } from '@FluxServer/history/HistoryService';
 import type { Permission } from '@FluxContracts/schemas/Permission';
 
-/**
- * The header a browser names the watching profile in.
- */
 const PROFILE_HEADER = 'x-flux-profile';
 
 /**
  * The headers that carry a forwarded media file.
- *
- * The media service decided the status, the range and the length; the server's
- * job is to repeat them rather than recompute them. Assembled in one place
- * because whole media and preview clips are forwarded identically and differ
- * only in whether they may be cached.
  */
 const forwardedFileHeaders = (
   file: { contentType: string; contentRange: string | null; contentLength: string | null },
@@ -226,25 +218,12 @@ const forwardedFileHeaders = (
   return headers;
 };
 
-/**
- * What signing in by face carries.
- */
 const SignInBodySchema = z.object({ password: z.string().min(1) });
 
 const SERVER_VERSION = '0.0.0';
 
-/**
- * How long the admin page waits on the media service before drawing without it.
- */
 const OVERVIEW_PATIENCE_MILLISECONDS = 5_000;
 
-/**
- * An answer, or the given one if it takes too long.
- *
- * A page describing the server must not be held open by the part of the server
- * it is describing. A media service that has stopped answering is something to
- * report, not something to wait for.
- */
 const within = async <Answer>(work: Promise<Answer>, fallback: Answer): Promise<Answer> =>
   Promise.race([
     work,
@@ -273,13 +252,6 @@ const describeRefusal = (refusal: RoleChangeRefusal): string =>
 
 type ArtefactCount = { count: number; bytes: number };
 
-/**
- * What a count of the caches found.
- *
- * Written out rather than borrowed from the transcoder client so the route's
- * response stays a plain shape. A recursive `JsonValue` here is enough to
- * defeat the OpenAPI schema inference for the whole app.
- */
 type StorageCount = {
   cache: {
     previews: ArtefactCount;
@@ -298,113 +270,35 @@ type CreateAppOptions = {
   promoteToAdmin: (email: string) => Promise<void>;
   library: LibraryService;
   playback: PlaybackService;
-  /**
-   * What each account may do.
-   *
-   * Optional so that a suite exercising an unrelated route need not build one,
-   * and a fresh in-memory service is made when none is given. Note what that
-   * default means: it holds the standard roles and assigns none of them, so
-   * every guarded route refuses until somebody is given a role. Refusing by
-   * default is the only safe way for this particular option to be missing.
-   */
   permissions?: PermissionService;
   history?: HistoryService;
   apiKeys?: ApiKeyService;
-  /**
-   * Where webhook subscriptions are kept.
-   *
-   * Optional so a suite exercising an unrelated route need not build one. The
-   * in-memory default holds nothing, which is the right thing for a server
-   * that has not been given a real store: the routes work and list nothing,
-   * rather than failing.
-   */
   webhooks?: WebhookStore;
-  /**
-   * Where the household's notifications are kept.
-   *
-   * Optional so a suite exercising an unrelated route need not build one. The
-   * in-memory default holds nothing and knows of no accounts, which means the
-   * routes work and list nothing rather than failing.
-   */
   notifications?: NotificationStore;
-  /**
-   * The public half of the push identity, for a browser about to subscribe.
-   *
-   * Read rather than held, because it is generated on first need and a server
-   * that has never sent a push has none yet. Empty means push is unavailable,
-   * which the browser can act on by not offering it.
-   */
   readPushPublicKey?: () => Promise<string>;
-  /**
-   * Queues one delivery.
-   *
-   * Passed in rather than reached for, because the queue belongs to `Main`.
-   * The default does nothing, which is what a test that is not looking at
-   * deliveries wants — and means a test send answers that it was queued
-   * without anything having to be running to receive it.
-   */
   queueWebhookDelivery?: (subscriptionId: string, payload: string) => Promise<void>;
-  /**
-   * Stops an account signing in, ends its sessions, and answers whether there
-   * was one. Passed in because ending a session is better-auth's business.
-   */
   banAccount?: (userId: string, reason: string) => Promise<boolean>;
   unbanAccount?: (userId: string) => Promise<boolean>;
   removeAccount?: (userId: string) => Promise<boolean>;
   isAccountBanned?: (userId: string) => Promise<boolean>;
-  /**
-   * Creates an account, or answers null when the address is taken. Passed in
-   * because turning a password into a credential is better-auth's business.
-   */
   inviteAccount?: (request: {
     name: string;
     email: string;
     password: string;
   }) => Promise<{ id: string; name: string; email: string; createdAt: string } | null>;
-  /**
-   * Changes what an account is called or reached at.
-   */
   editAccount?: (
     userId: string,
     changes: { name?: string; email?: string },
   ) => Promise<'changed' | 'missing' | 'taken'>;
   readBanReason?: (userId: string) => Promise<string | null>;
-  /**
-   * Server-wide upkeep an admin can start on demand — cache cleanup, session
-   * cleanup, catalogue connectivity.
-   *
-   * Optional for the same reason `presence` is: most tests exercise routes
-   * that never touch it, and a memory implementation is made when none is
-   * given.
-   */
   maintenance?: MaintenanceService;
-  /**
-   * How often each job runs on its own.
-   *
-   * Optional for the same reason `maintenance` is.
-   */
   schedules?: JobScheduleService;
-  /**
-   * Who has the app open right now.
-   *
-   * Optional because most tests exercise routes that never touch presence;
-   * a fresh in-memory registry is made when none is given.
-   */
   presence?: PresenceService;
   subtitles: SubtitleService;
   segments: SegmentService;
   progress: WatchProgressService;
   favourites: FavouriteService;
-  /**
-   * The people using each account.
-   */
   profiles?: ProfileService;
-  /**
-   * Gives a profile an account of its own.
-   *
-   * Passed in rather than done here, because making an account is better-auth's
-   * business and it owns how a password becomes a credential.
-   */
   promoteProfile?: (request: {
     profileId: string;
     email: string;
@@ -412,92 +306,30 @@ type CreateAppOptions = {
   }) => Promise<
     { kind: 'promoted'; profile: ViewerProfile } | { kind: 'taken' } | { kind: 'missing' }
   >;
-  /**
-   * Everyone with an account, for the administration page.
-   */
   listUsers?: () => Promise<
     { id: string; name: string; email: string; role: string | null; createdAt: string }[]
   >;
   capabilities?: () => Promise<{
     ffmpegVersion: string;
-    /**
-     * Whether that version is one Flux vouches for.
-     *
-     * Optional so an older media service, which does not report it, reads as
-     * supported rather than as a warning nobody can act on.
-     */
     ffmpegSupported?: boolean;
     hardwareAccels: string[];
     rejected?: { encoder: string; reason: string }[];
   }>;
-  /**
-   * What the media service is doing right now.
-   */
   monitor?: () => Promise<JsonValue>;
-  /**
-   * How much disk the cached artwork is taking, counted on a timer elsewhere.
-   *
-   * Null while the first count is still running, and absent on a server with
-   * no artwork cache at all. Neither is an error and neither is zero.
-   */
   artworkUsage?: () => { count: number; bytes: number; atMs: number } | null;
-  /**
-   * How much disk the media itself takes, across every library.
-   *
-   * The question an operator asks about a media server before any other, and
-   * the one figure on the storage section that is not Flux's own doing. A sum
-   * over rows Flux already keeps rather than a walk of the disk.
-   */
   libraryBytes?: () => Promise<number>;
-  /**
-   * Counts both caches now, because an operator asked and is waiting.
-   *
-   * Separate from `artworkUsage` because that hands back what was already
-   * counted and this goes and walks the disks.
-   */
   measureStorage?: () => Promise<StorageCount>;
   monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>;
-  /**
-   * Reads artwork from Flux's own cache, fetching it once if needed.
-   *
-   * Optional because an instance with no metadata provider configured has no
-   * artwork to serve.
-   */
   readImage?: (url: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>;
   isTranscoderReachable?: () => Promise<boolean>;
-  /**
-   * The address the media service is dialled at, for the administration page.
-   *
-   * Carried through so an unreachable service can say where it was looked for
-   * rather than only that it was not found.
-   */
   transcoderAddress?: string;
-  /**
-   * What the server is working on, so a page reloaded mid-scan can find it.
-   */
   listRunningJobs?: () => RunningJob[];
-  /**
-   * Asks a job to stop, reporting whether there was one to ask.
-   *
-   * Absent where there is no queue behind the application, in which case
-   * nothing is running and there is nothing to stop.
-   */
   cancelJob?: (jobId: string) => Promise<boolean>;
-  /**
-   * What the catalogue offers under a name, for somebody correcting a match.
-   */
   searchCatalogue?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
 };
 
 /**
  * Builds the Flux HTTP application.
- *
- * Every Flux route is registered through its OpenAPI definition, so the
- * published specification cannot drift from the implementation. See ADR-0002.
- *
- * The `/api/auth/*` prefix is delegated wholesale to better-auth, which owns
- * its own routing and documents itself through its `openAPI` plugin. It is the
- * one part of the surface Flux does not define route by route.
  */
 const createApp = ({
   auth,
@@ -550,23 +382,6 @@ const createApp = ({
 
   /**
    * Whether whoever is asking holds a particular permission.
-   *
-   * Checked per request rather than trusted from the browser: an interface
-   * that hides a section is a courtesy, not a permission.
-   *
-   * Named after what a route needs rather than who somebody is, which is the
-   * whole point of the change from a single administrator flag. `administrator`
-   * still implies everything, so the operator running the server keeps working
-   * without holding twenty separate grants — but a route now says what it
-   * actually requires, and a role can be built that grants exactly that.
-   *
-   * Declared above the routes that ask it, so that reading down this file
-   * shows what a route requires before it shows what the route does.
-   *
-   * A request carrying an API key is narrowed by it after the account has been
-   * asked, which is what makes a key a restriction rather than a grant. Which
-   * key it is comes from the session better-auth already resolved, so the
-   * secret is not hashed a second time to learn what is known.
    */
   const requires = async (headers: Headers, permission: Permission): Promise<boolean> => {
     const session = await readSessionOnce(auth, headers);
@@ -1032,20 +847,9 @@ const createApp = ({
 
   /**
    * Who is asking.
-   *
-   * Progress belongs to a person, so these are the first routes that need to
-   * know who that is. better-auth owns the session, and asking it is cheaper
-   * than Flux keeping a second idea of who is signed in.
    */
   /**
    * Which person on this account is watching.
-   *
-   * Named by a header the browser sets from whoever was picked. The identifier
-   * is not a secret — it sits in local storage — so it is checked against the
-   * account on every request rather than trusted. An unrecognised one falls
-   * back to the account's default profile rather than failing: somebody whose
-   * profile was removed on another device should carry on watching, not meet
-   * an error.
    */
   const readProfileId = async (headers: Headers): Promise<string | null> => {
     const session = await readSessionOnce(auth, headers);
@@ -1072,11 +876,6 @@ const createApp = ({
 
   /**
    * Whoever is asking, if they may hold keys at all.
-   *
-   * Two questions in one because they are always asked together: who this is,
-   * and whether they are allowed keys. Answering both here keeps the four
-   * handlers below from each remembering to ask, which is how one of them
-   * eventually does not.
    */
   const readKeyHolder = async (headers: Headers) => {
     const account = await readAccount(headers);
@@ -1115,15 +914,6 @@ const createApp = ({
 
     const { name, expiresInDays, permissions: asked, rateLimit } = context.req.valid('json');
 
-    /**
-     * What the key is restricted to, never what it is granted.
-     *
-     * Whatever was asked for is intersected with what the account actually
-     * holds before it is written down, so a key cannot outlive a demotion by
-     * carrying a permission its owner has since lost. The guard intersects
-     * again on every request, so this is belt and braces — but a stored list
-     * that reads as a grant is the thing somebody will later mistake it for.
-     */
     const held = await permissions.resolve(account.id);
     const restricted = asked === null ? null : asked.filter((one) => held.has(one));
 
@@ -1177,12 +967,6 @@ const createApp = ({
 
   /**
    * Whether this request may manage subscriptions, and why not if it may not.
-   *
-   * Its own helper because all five webhook routes ask the same question and
-   * answer it the same way, and because the permission is one of the few that
-   * is restrictive by default — an operator capability rather than a
-   * household one, since it decides what addresses the server will make
-   * requests to.
    */
   const readWebhookKeeper = async (
     headers: Headers,
@@ -1296,13 +1080,6 @@ const createApp = ({
 
     const { id } = context.req.valid('param');
 
-    /**
-     * Whether there is a subscription to have a history at all.
-     *
-     * Asked separately because an empty history and a subscription that does
-     * not exist are different answers, and a listing that returned `[]` for
-     * both would say a deleted webhook was simply quiet.
-     */
     const exists = (await webhooks.list()).some((webhook) => webhook.id === id);
 
     if (!exists) {
@@ -1377,14 +1154,6 @@ const createApp = ({
 
     const stored = await notifications.readPreferences(account.id);
 
-    /**
-     * Every event, whether or not somebody has chosen about it.
-     *
-     * A caller reading this should see what will actually happen, and what
-     * happens without a stored row is the default — answering only the rows
-     * that exist would make a fresh account look like one that had turned
-     * everything off.
-     */
     const chosen = new Map(stored.map((one) => [one.event, one]));
 
     const preferences = NOTIFICATION_EVENTS.map(
@@ -1884,8 +1653,8 @@ const createApp = ({
   });
 
   /**
-   * Who is asking, and what they may do — resolved once for the role routes,
-   * which need both their permissions and their rank.
+   * Who is asking, and what they may do — resolved once for the role routes, which need both their
+   * permissions and their rank.
    */
   const readActor = async (headers: Headers) => {
     const session = await readSessionOnce(auth, headers);
@@ -1904,23 +1673,7 @@ const createApp = ({
   };
 
   /**
-   * Whether taking something away would leave the server with nobody able to
-   * administer it.
-   *
-   * Asked after the change rather than reasoned about beforehand: the rules
-   * for who ends up holding `administrator` live in `resolvePermissions`, and
-   * working out the answer a second time here is how the two come to disagree.
-   * So the change is made, counted, and rolled back if it emptied the room.
-   *
-   * Counted before as well as after, because taking the last administrator
-   * away is the thing to refuse — an instance that had none to begin with is
-   * not made worse by an unrelated change, and blocking one would make a
-   * half-set-up server impossible to configure.
-   *
-   * Only safe where the undo genuinely restores what was there. Deleting a
-   * role is not such a change — the row takes every assignment to it away by
-   * cascade, and recreating it makes a different role with the same name — so
-   * that route refuses outright rather than trying to put it back.
+   * Whether taking something away would leave the server with nobody able to administer it.
    */
   const wouldStrandTheServer = async (apply: () => Promise<void>, undo: () => Promise<void>) => {
     const before = await permissions.countAdministrators();
@@ -2545,17 +2298,6 @@ const createApp = ({
 
     const report = context.req.valid('json');
 
-    /**
-     * How much watching this report represents.
-     *
-     * Worked out from where they were and when, rather than from the report
-     * alone: a report says where somebody is, and two of them are what say how
-     * far they got. Measured before the new position is written, because
-     * writing it first is what makes the previous one unavailable.
-     *
-     * A first report has nothing to compare against and contributes nothing,
-     * which is right — the watching it represents is credited by the next one.
-     */
     const before = await progress.read(profileId, mediaId);
     const at = new Date();
 
@@ -2804,13 +2546,6 @@ const createApp = ({
 
     let close = () => {};
 
-    /**
-     * Whether the connection has already been let go.
-     *
-     * A browser that goes away both aborts the request and cancels the body,
-     * and the second of those used to close an already-closed stream, which
-     * throws. Letting go twice is ordinary rather than exceptional.
-     */
     let isClosed = false;
 
     const stream = new ReadableStream<Uint8Array>({

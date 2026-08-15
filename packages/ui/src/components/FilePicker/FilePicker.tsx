@@ -4,12 +4,6 @@ import type { FilePickerProps } from './FilePicker.types';
 
 /**
  * A control for choosing one file.
- *
- * The native input is the only thing that can open a file browser, and it is
- * unstyleable, so it is hidden and a real label drives it. A label is what
- * makes this work with a keyboard and a screen reader without reimplementing
- * anything: clicking it activates the input, which is the browser's own
- * behaviour rather than a handler pretending to be one.
  */
 const FilePicker = ({
   label,

@@ -3,10 +3,6 @@ import { readLights, READ_AT, ZONES } from './readLights';
 
 /**
  * A canvas that answers with a picture divided into quarters.
- *
- * jsdom draws nothing, so what a frame looks like has to be described. Each
- * read is answered from where it was asked: a red top left, a green top right,
- * a blue bottom left and a white bottom right.
  */
 const painted = () => {
   const patch = (left: number, top: number, width: number, height: number) => {
@@ -40,8 +36,7 @@ const painted = () => {
 };
 
 /**
- * Defined rather than spied on: jsdom draws nothing, so there is no context
- * on it to replace.
+ * Defined rather than spied on: jsdom draws nothing, so there is no context on it to replace.
  */
 const withCanvas = (answer: () => ReturnType<typeof painted> | null) => {
   Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {

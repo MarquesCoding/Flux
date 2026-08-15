@@ -256,23 +256,6 @@ const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDeci
 
 /**
  * Decides how a media item should be delivered to a client.
- *
- * Each axis is decided independently, so a mismatch on one can never force a
- * re-encode on another. This is what prevents the class of bug where an
- * unsupported video range silently strips lossless or Atmos audio.
- *
- * `qualityClamp` layers a viewer-picked quality step on top of the device's
- * own capability: it can only tighten the effective limit, never loosen it
- * beyond what the device already declared, and a transcode it alone causes
- * is reported as `UserForcedTranscode` rather than a capability mismatch.
- *
- * Pure by design: it depends only on the item, the profile, the clamp, and
- * nothing else. That is what makes the dry-run explainer possible. See
- * ADR-0011.
- *
- * `preferredAudioLanguage` comes from the item's library, not the device: a
- * library operator forcing a language is a statement about the collection,
- * not about what any one client can play.
  */
 const negotiatePlayback = (
   media: MediaItem,

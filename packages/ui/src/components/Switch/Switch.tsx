@@ -4,14 +4,6 @@ import type { SwitchProps } from './Switch.types';
 
 /**
  * One setting that is either on or off.
- *
- * A switch rather than a checkbox because it takes effect where it stands:
- * nothing is being submitted, and the thing it names changes as it moves.
- *
- * Base UI owns what it is — the role, the checked state, the space bar — and
- * this owns what it looks like. Written once here rather than at each menu that
- * needs one, so a reader meets the same control everywhere and a theme has one
- * place to move it.
  */
 const Switch = ({
   label,

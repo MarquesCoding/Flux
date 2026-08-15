@@ -9,14 +9,6 @@ const FONT_FAMILIES = {
 
 /**
  * The edge drawn behind the lettering, at a given strength.
- *
- * Faded along with the text it belongs to. An outline that stayed solid while
- * the letters were turned down would keep the caption exactly as heavy as it
- * was — which is why the opacity control looked like it did nothing.
- *
- * A drop shadow reads on a bright scene; an outline reads on a busy one. Both
- * are built from text-shadow, which is the only edge treatment WebVTT cues
- * honour across browsers.
  */
 const edgeStyle = (edge: CaptionStyle['edgeStyle'], opacity: number): string => {
   const ink = (strength: number): string => `rgba(0, 0, 0, ${(strength * opacity).toFixed(2)})`;
@@ -60,9 +52,6 @@ const DEFAULT_CAPTION_STYLE: CaptionStyle = CaptionStyleSchema.parse({});
 
 /**
  * Turns a hex colour and an opacity into something CSS accepts.
- *
- * Kept separate from the colour itself so a viewer can change how solid a
- * caption background is without also choosing its colour again.
  */
 const withOpacity = (color: string, opacity: number): string => {
   const hex = color.replace('#', '');
@@ -95,9 +84,6 @@ type CueDeclarations = {
 
 /**
  * A caption style as the properties that draw it.
- *
- * One source for both the rule applied to `::cue` and the preview shown while
- * choosing, so what a viewer sees in the settings is what appears on the film.
  */
 const toCueDeclarations = (style: CaptionStyle): CueDeclarations => ({
   fontFamily: FONT_FAMILIES[style.fontFamily],
@@ -109,11 +95,6 @@ const toCueDeclarations = (style: CaptionStyle): CueDeclarations => ({
 
 /**
  * Writes a caption style as the CSS that renders it.
- *
- * Targets `::cue`, which is the only handle a page has on the text a browser
- * draws for a native track. The rest of the caption box — its position and
- * width — belongs to the browser, which is why this sets appearance and not
- * layout.
  */
 const toCueCss = (style: CaptionStyle): string => {
   const declarations = toCueDeclarations(style);
@@ -129,9 +110,6 @@ const toCueCss = (style: CaptionStyle): string => {
 
 /**
  * Reads a viewer's caption preferences.
- *
- * Anything unreadable or out of date falls back to the defaults rather than
- * throwing: a stale setting must not stop captions from being drawn.
  */
 const readCaptionStyle = (): CaptionStyle => {
   try {
@@ -151,10 +129,6 @@ const readCaptionStyle = (): CaptionStyle => {
 
 /**
  * Remembers a viewer's caption preferences.
- *
- * Kept in the browser rather than on the server: captions are read at arm's
- * length on a television and up close on a laptop, and the right size differs
- * per screen rather than per account.
  */
 const saveCaptionStyle = (style: CaptionStyle): void => {
   try {

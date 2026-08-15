@@ -7,10 +7,6 @@ type AddLibraryFormValues = {
 
 /**
  * Validates the add-library form before it reaches the server.
- *
- * The server checks the path is a readable directory; this only catches the
- * empty-field case, so the operator is told which field is wrong rather than
- * waiting on a round trip for something checkable locally.
  */
 const validateAddLibraryForm = (values: AddLibraryFormValues): AddLibraryFormErrors => {
   const errors: AddLibraryFormErrors = {};

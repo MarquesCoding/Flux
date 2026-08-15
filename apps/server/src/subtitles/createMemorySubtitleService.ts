@@ -16,9 +16,6 @@ type MemoryState = Record<string, MemorySubtitle[]>;
 
 /**
  * Subtitles held in memory.
- *
- * Lets the HTTP surface be tested without a library on disk, in the same way
- * the memory library and playback adapters do.
  */
 const createMemorySubtitleService = (state: MemoryState = {}): SubtitleService => {
   const tracksFor = (mediaId: string): SubtitleTrack[] | null => {

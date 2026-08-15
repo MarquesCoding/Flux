@@ -16,16 +16,6 @@ import type {
   SettingsRow,
 } from './SettingsMenu.types';
 
-/**
- * The class every row shares.
- *
- * One line, an icon, a name on the left and the answer on the right. A panel
- * where each row is laid out slightly differently is a panel that reads as a
- * list of unrelated things.
- */
-/**
- * How the panel arrives, matching every other menu in Flux.
- */
 const POPUP_MOTION = cn(
   'origin-[var(--transform-origin)] transition-[transform,opacity] duration-[var(--duration-base)] ease-[var(--ease-soft)]',
   'data-[starting-style]:scale-95 data-[starting-style]:opacity-0',
@@ -35,12 +25,6 @@ const POPUP_MOTION = cn(
 const ROW =
   'relative z-10 flex w-full items-center gap-4 rounded-[1.375rem] px-3 py-2.5 text-left text-sm';
 
-/**
- * How far a subsection slides in from.
- *
- * Enough to read as coming from the right, and not so far that the panel looks
- * like it is throwing its contents about.
- */
 const SLIDE = 28;
 
 /**
@@ -62,18 +46,6 @@ const opensSomething = (row: SettingsRow): row is SettingsChoiceRow | SettingsPa
 
 /**
  * Everything about what is playing, behind one control.
- *
- * A bar with nine buttons on it asks a viewer to learn nine icons. A bar with
- * one asks them to open it and read, and reading is what somebody changing a
- * setting is doing anyway. The panel says what each thing is set to without
- * being opened item by item, so the common case — checking, not changing — is
- * a glance.
- *
- * Subsections open in place rather than beside the panel: a menu that flies
- * out sideways has nowhere to go on a phone, and a panel that replaces its own
- * contents has the same shape at every width. It slides as it does, because a
- * panel whose contents change without moving reads as a different panel rather
- * than as a step further into the same one.
  */
 const SettingsMenu = ({
   label,

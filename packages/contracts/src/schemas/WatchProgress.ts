@@ -1,11 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Where a viewer got to in something.
- *
- * Kept per viewer rather than per item: a household sharing a server does not
- * share a place in a film.
- */
 const WatchProgressSchema = z.object({
   mediaId: z.string().uuid(),
   positionSeconds: z.number().nonnegative(),
@@ -16,20 +10,8 @@ const WatchProgressSchema = z.object({
 
 const WatchProgressListSchema = z.object({ progress: z.array(WatchProgressSchema) });
 
-/**
- * How far in something must be before it counts as started.
- *
- * Someone who opened a film and closed it again has not started watching it,
- * and offering to resume thirty seconds in is noise.
- */
 const STARTED_AFTER_SECONDS = 60;
 
-/**
- * How close to the end counts as finished.
- *
- * Credits run for minutes. Somebody who stops during them has watched the
- * film, and asking them to resume it is asking them to sit through the credits.
- */
 const FINISHED_WITHIN_SECONDS = 90;
 
 type WatchProgress = z.infer<typeof WatchProgressSchema>;

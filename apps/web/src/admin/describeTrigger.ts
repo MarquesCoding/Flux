@@ -18,10 +18,6 @@ const toClock = (hour: number, minute: number): string =>
 
 /**
  * Says what a trigger does, in the words an operator would use.
- *
- * The stored shape is not something to read — `{ kind: 'everyHours', hours: 6 }`
- * is a thing to schedule on, not a thing to put in a list — so a row shows
- * this instead.
  */
 const describeTrigger = (trigger: ScheduleTrigger): string => {
   switch (trigger.kind) {

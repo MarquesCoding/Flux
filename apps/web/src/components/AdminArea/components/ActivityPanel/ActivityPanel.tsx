@@ -6,12 +6,6 @@ import type { ActivityPanelProps } from './ActivityPanel.types';
 
 /**
  * Who has the app open, and what they are watching.
- *
- * The readings that used to sit above this live on the overview, where the
- * rest of the figures are. A page about people should be about people.
- *
- * The list is pushed rather than polled, so it changes the moment somebody
- * arrives or presses play instead of up to five seconds later.
  */
 const ActivityPanel = ({
   sessions,

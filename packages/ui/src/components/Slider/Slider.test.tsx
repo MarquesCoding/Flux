@@ -93,10 +93,6 @@ describe('Slider', () => {
 describe('the preview that follows the pointer', () => {
   /**
    * Gives the bar a width, which jsdom otherwise reports as nought.
-   *
-   * Everything the preview does is arithmetic on the bar's box, and a box of
-   * no width is the one case the component refuses to guess from — so without
-   * this there is nothing to test.
    */
   const withTrackWidth = (width: number, offsetWidth = 0) => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({

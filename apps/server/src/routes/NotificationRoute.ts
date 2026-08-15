@@ -5,9 +5,6 @@ const NotificationError = z.object({ error: z.string() }).openapi('NotificationE
 
 const NotificationEvent = z.enum(NOTIFICATION_EVENTS);
 
-/**
- * One thing somebody has been told.
- */
 const Notification = z
   .object({
     id: z.string().uuid(),
@@ -28,21 +25,8 @@ const NotificationPreference = z
   })
   .openapi('NotificationPreference');
 
-/**
- * How many notifications a listing answers with.
- *
- * A bell is glanced at rather than read through. Somebody who wants more than
- * this wants a history, which is a different screen and a different question.
- */
 const NOTIFICATION_PAGE = 30;
 
-/**
- * What this account has been told, newest first.
- *
- * Always this account's own. A notification is addressed to somebody, and an
- * endpoint that would list anybody's is a different feature with a permission
- * of its own.
- */
 const listNotificationsRoute = createRoute({
   method: 'get',
   path: '/api/notifications',
@@ -67,13 +51,6 @@ const listNotificationsRoute = createRoute({
   },
 });
 
-/**
- * Marks one as read, or everything where no id is given.
- *
- * Both in one route rather than two, because they are the same act at
- * different scales and a bell needs "clear all" far more often than it needs
- * to clear one.
- */
 const readNotificationsRoute = createRoute({
   method: 'post',
   path: '/api/notifications/read',
@@ -100,16 +77,6 @@ const readNotificationsRoute = createRoute({
   },
 });
 
-/**
- * What this account wants to be told about, and how.
- *
- * Answers a row per event whether or not one has been stored, so a caller
- * sees the defaults rather than an empty list it has to know how to fill in.
- *
- * `pushPublicKey` comes back with them because a browser about to subscribe
- * needs it and there is no other moment it would sensibly ask. Empty means
- * push is unavailable on this server.
- */
 const readNotificationPreferencesRoute = createRoute({
   method: 'get',
   path: '/api/notifications/preferences',
@@ -149,13 +116,6 @@ const writeNotificationPreferenceRoute = createRoute({
   },
 });
 
-/**
- * Records a browser that has agreed to be interrupted.
- *
- * The browser has already asked its user for permission by the time this is
- * called — the prompt belongs to the browser and cannot be moved to the
- * server. This only stores what the push service handed back.
- */
 const subscribeToPushRoute = createRoute({
   method: 'post',
   path: '/api/notifications/push',
@@ -183,12 +143,6 @@ const subscribeToPushRoute = createRoute({
   },
 });
 
-/**
- * Forgets a browser.
- *
- * By endpoint rather than by id, because the browser knows its endpoint and
- * has no idea what Flux called the row.
- */
 const unsubscribeFromPushRoute = createRoute({
   method: 'delete',
   path: '/api/notifications/push',

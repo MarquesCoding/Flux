@@ -3,11 +3,6 @@ import type { DialogContentProps } from './DialogContent.types';
 
 /**
  * The part of a dialog that scrolls.
- *
- * The only part. A dialog that grows with its contents pushes its own actions
- * off the bottom of the window, and the taller it gets the further the button
- * you were reaching for moves — so the box is bounded and this scrolls inside
- * it.
  */
 const DialogContent = ({ children, className }: DialogContentProps) => (
   <div className={cn('flux-rail min-h-0 flex-1 overflow-y-auto px-6 py-5', className)}>

@@ -12,9 +12,6 @@ const SIZE_PIXELS: Record<SpinnerSize, number> = {
 
 /**
  * An indeterminate loading indicator.
- *
- * Honours `prefers-reduced-motion` by holding still rather than spinning, per
- * code standards section 11.
  */
 const Spinner = ({ size = 'md', label, className }: SpinnerProps) => {
   const prefersReducedMotion = useReducedMotion();

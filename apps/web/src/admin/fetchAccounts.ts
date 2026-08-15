@@ -33,11 +33,6 @@ const readRefusal = async (response: Response): Promise<Refusal> => {
 
 /**
  * Everybody with an account, as the administration page needs them.
- *
- * Read from Flux's own route rather than from the overview, because this one
- * answers what each account resolves to — whether it is an administrator by
- * its permissions, and what rank it holds — which is what decides whether the
- * person looking may act on it.
  */
 const fetchAccounts = async (): Promise<Account[]> => {
   const response = await fetch('/api/admin/accounts', { credentials: 'same-origin' }).catch(
@@ -88,9 +83,6 @@ const removeAccount = async (userId: string): Promise<Refusal> => {
 
 /**
  * Adds somebody to this server.
- *
- * The password is set here and handed over by whoever is inviting, because
- * Flux cannot send email — an invitation link would be one nobody receives.
  */
 const inviteAccount = async (request: {
   name: string;

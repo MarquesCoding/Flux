@@ -11,16 +11,6 @@ const certificate = (name: string): Buffer | null => {
   return existsSync(path) ? readFileSync(path) : null;
 };
 
-/**
- * Where the push service worker is served from, and what it is written in.
- *
- * A service worker has to be a script at a stable path — it may only control
- * pages at or below its own — and it cannot be bundled with the app, because
- * it runs when the app is not open. That is the one case the no-JavaScript
- * rule cannot accommodate directly, so the source is TypeScript and the
- * served file is a build artifact: compiled on demand in development, emitted
- * once at build, and never committed.
- */
 const WORKER_SOURCE = 'src/notifications/pushWorker.ts';
 
 const WORKER_PATH = '/push-worker.js';

@@ -3,14 +3,6 @@ import type { SplashScreenProps } from './SplashScreen.types';
 
 /**
  * The screen shown while the application works out what it is showing.
- *
- * A cold load has to ask the server whether setup is needed and who is signed
- * in before it can draw anything true, and a blank page during that reads as a
- * broken one. A name and a moving bar say the same thing a spinner would, but
- * say it as an opening title rather than as an apology.
- *
- * The bar is indeterminate on purpose. Nothing here knows how long it will
- * take, and a progress bar that guesses is a progress bar that lies.
  */
 const SplashScreen = ({ name = 'Flux', label = 'Loading' }: SplashScreenProps) => {
   const prefersReducedMotion = useReducedMotion();

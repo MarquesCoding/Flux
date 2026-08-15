@@ -1,6 +1,3 @@
-/**
- * The only subtitle format a browser renders.
- */
 const WEBVTT_HEADER = 'WEBVTT';
 
 const SUBRIP_TIMESTAMP = /(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})/g;
@@ -24,11 +21,6 @@ const formatTimestamp = (totalSeconds: number): string => {
 
 /**
  * Converts a SubRip file to `WebVTT`.
- *
- * The two formats are near identical: the differences are a header, a comma
- * where `WebVTT` wants a full stop, and cue numbers `WebVTT` ignores. Doing
- * this here rather than through ffmpeg keeps a text conversion a text
- * conversion, with no process to spawn and nothing to cache.
  */
 const fromSubRip = (source: string): string => {
   const body = source
@@ -63,10 +55,6 @@ const readAssTimestamp = (value: string): number | null => {
 
 /**
  * Strips the drawing and styling codes an Advanced SubStation line carries.
- *
- * Override blocks in braces position, rotate, animate and recolour text. None
- * of it survives the trip to `WebVTT`, and Flux styles captions to the
- * viewer's own preference anyway.
  */
 const stripAssMarkup = (text: string): string =>
   text
@@ -77,10 +65,6 @@ const stripAssMarkup = (text: string): string =>
 
 /**
  * Converts an Advanced SubStation script to `WebVTT`.
- *
- * Only the dialogue survives: positioning, fonts and colours defined by the
- * script are dropped, because `WebVTT` cannot express most of them and a
- * viewer's own caption settings should win regardless.
  */
 const fromAdvancedSubStation = (source: string): string => {
   const lines = source.replace(/\r\n/g, '\n').split('\n');
@@ -127,9 +111,6 @@ const fromAdvancedSubStation = (source: string): string => {
 
 /**
  * Converts a subtitle file to `WebVTT`.
- *
- * A file already in `WebVTT` is passed through, gaining only the header if it
- * somehow lacks one.
  */
 const toWebVtt = (source: string, format: string): string => {
   const normalised = format.toLowerCase();

@@ -48,10 +48,6 @@ const readTimestamp = (value: string): number | null => {
 
 /**
  * Reads the rectangle a cue points at.
- *
- * The `#xywh` fragment is what tells a player where in a sheet a thumbnail
- * sits. A cue without one names a whole image, which Flux never writes, so it
- * is skipped rather than guessed at.
  */
 const readRectangle = (
   payload: string,
@@ -75,9 +71,6 @@ const readRectangle = (
 
 /**
  * Turns a `WebVTT` index into thumbnails.
- *
- * Sheet names in the index are relative, so they are resolved against the
- * index's own URL exactly as a browser would resolve them.
  */
 const parseTrickplayIndex = (vtt: string, indexUrl: string): Thumbnail[] => {
   const thumbnails: Thumbnail[] = [];
@@ -113,10 +106,6 @@ const parseTrickplayIndex = (vtt: string, indexUrl: string): Thumbnail[] => {
 
 /**
  * Finds the thumbnail covering a moment.
- *
- * Answers with the nearest earlier thumbnail rather than nothing when a moment
- * falls past the last cue, so scrubbing to the very end of a film still shows
- * a picture.
  */
 const thumbnailAt = (thumbnails: Thumbnail[], seconds: number): Thumbnail | null => {
   let best: Thumbnail | null = null;
@@ -132,9 +121,6 @@ const thumbnailAt = (thumbnails: Thumbnail[], seconds: number): Thumbnail | null
 
 /**
  * Asks the server for seek-bar previews.
- *
- * Answers with nothing rather than throwing when they cannot be made: previews
- * are a convenience, and a film that cannot have them must still play.
  */
 const fetchTrickplay = async (mediaId: string): Promise<Trickplay | null> => {
   try {

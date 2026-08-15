@@ -20,36 +20,18 @@ import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import type { MediaDetail } from '@FluxContracts/schemas/Library';
 import type { RailCardProps } from './RailCard.types';
 
-/**
- * How long a pointer rests before a card opens.
- */
 const HOVER_DELAY_MILLISECONDS = 600;
 
-/**
- * How much larger the open card is than the one it grew from.
- */
 const GROWTH = 1.18;
 
-/**
- * How far from the edge of the window the open card must stay.
- */
 const MARGIN = 12;
 
-/**
- * How many genres are worth naming on a card.
- */
 const GENRE_LIMIT = 3;
 
-/**
- * Where a card is on screen.
- */
 type Anchor = { left: number; top: number; width: number };
 
 /**
  * Places the open card over the one it grew from.
- *
- * Kept inside the window on both sides, because the first and last cards of a
- * row are exactly the ones whose expansion would otherwise fall off screen.
  */
 const placeOver = (rect: DOMRect): Anchor => {
   const width = rect.width * GROWTH;
@@ -65,12 +47,6 @@ const placeOver = (rect: DOMRect): Anchor => {
 
 /**
  * Moves an opened card back inside the window.
- *
- * The panel is taller than the card it grew from — that is the point of it —
- * and a row near the foot of the screen grows straight past the bottom edge,
- * where the description and the buttons are simply not there. Measured after
- * it is drawn, because how tall it is depends on how much is known about the
- * item.
  */
 const fitInside = (top: number, height: number): number => {
   const lowest = window.innerHeight - height - MARGIN;
@@ -80,16 +56,6 @@ const fitInside = (top: number, height: number): number => {
 
 /**
  * A card in a row that opens when a pointer rests on it.
- *
- * The open card is drawn in a portal at the position of the card it grew
- * from, rather than inside the row. A row scrolls horizontally, which means it
- * clips anything growing out of it — the portal is what lets a card become
- * larger than the thing containing it.
- *
- * It shows what the item actually looks like, moving and silent, along with
- * the two things anyone wants from a card they have stopped on: play it, or
- * find out more. Nothing opens on a touch screen, where a hover is just the
- * beginning of a scroll, or under a reduced-motion preference.
  */
 const RailCard = ({
   media,

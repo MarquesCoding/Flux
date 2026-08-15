@@ -4,17 +4,6 @@ import type { TabBarProps } from './TabBar.types';
 
 /**
  * Words across the top that choose what is beneath them.
- *
- * Text rather than boxes: a row of buttons competes with the artwork under it,
- * while a row of words reads as a heading that happens to be interactive. The
- * underline slides between them so the eye follows one moving thing.
- *
- * Scrolls horizontally rather than wrapping, because a phone will not fit them
- * and a second row of tabs is a menu nobody asked for.
- *
- * Belongs inside `Tabs`, which is where it learns which of them is showing. It
- * is told nothing about that directly: a bar that is passed the answer as well
- * as sitting inside the thing that knows it is two answers to keep in step.
  */
 const TabBar = ({ tabs, label, className }: TabBarProps) => (
   <Tabs.List

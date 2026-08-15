@@ -4,8 +4,7 @@ import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
 type MemoryState = Record<string, MediaSegment[]>;
 
 /**
- * Segments held in memory, so the HTTP surface can be tested without a
- * database.
+ * Segments held in memory, so the HTTP surface can be tested without a database.
  */
 const createMemorySegmentService = (
   state: MemoryState = {},

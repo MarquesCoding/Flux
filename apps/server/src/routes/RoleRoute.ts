@@ -28,10 +28,6 @@ const OverrideBody = z
   .object({ permission: PermissionName, effect: z.enum(['allow', 'deny']) })
   .openapi('OverrideBody');
 
-/**
- * The whole catalogue, so an interface can draw a permission picker without
- * keeping its own copy of the list.
- */
 const listPermissionsRoute = createRoute({
   method: 'get',
   path: '/api/admin/permissions',

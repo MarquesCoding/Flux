@@ -1,12 +1,5 @@
 import { z } from 'zod';
 
-/**
- * What the server reports about its own first-run state.
- *
- * `detectedOrigin` is derived from the incoming request rather than from
- * configuration, because the point of the wizard is to discover the URL the
- * operator actually reaches the server on.
- */
 const SetupStatusSchema = z.object({
   isComplete: z.boolean(),
   detectedOrigin: z.string(),

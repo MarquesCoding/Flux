@@ -29,10 +29,6 @@ const shows: Library = { ...films, id: '11111111-1111-4111-8111-111111111111', n
 
 /**
  * The card for an item, in the row that is being asked about.
- *
- * An item legitimately appears in more than one row — something that arrived
- * yesterday is both recent and a film — so a bare query by title finds several
- * and says nothing about either.
  */
 const cardIn = (rail: string, title: string) =>
   within(screen.getByRole('region', { name: rail })).getByRole('button', {
@@ -449,11 +445,6 @@ describe('LibraryBrowser', () => {
 
     /**
      * Films is empty and Shows is not, and Shows answers slowly.
-     *
-     * That is the shape of the bug: the selection changed at once, the items
-     * followed later, and the empty state in between described the library it
-     * had not read yet — announcing that a full library was empty, right up
-     * until its contents appeared.
      */
     let answerShows = (page: { items: MediaSummary[]; total: number }) => {
       expect(page).toBeDefined();

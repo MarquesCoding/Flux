@@ -21,11 +21,6 @@ const readGrants = (rows: readonly { permission: string; effect: string }[]): Pe
 
 /**
  * Roles and grants held in Postgres.
- *
- * The resolution itself is not done here — `resolvePermissions` owns the
- * rules about unioning roles, expanding `administrator` and deny winning, so
- * that they are decided in one pure place rather than in a query somebody
- * later rewrites.
  */
 const createDatabasePermissionService = (db: FluxDatabase): PermissionService => {
   const permissionsByRole = async (

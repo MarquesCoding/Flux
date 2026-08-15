@@ -17,30 +17,14 @@ import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types';
 
-/**
- * How many items the hero rotates between.
- *
- * A handful: a carousel of thirty is a carousel nobody reaches the end of.
- */
 const HERO_COUNT = 5;
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
 
-/**
- * How many items are read from each library to choose the hero from.
- *
- * Enough to find a few different programmes in each, and far short of a page:
- * this runs once per library on load, and the hero only needs candidates
- * rather than a catalogue.
- */
 const HERO_SAMPLE = 24;
 
 /**
  * Browses a library.
- *
- * Search is debounced and served by the database rather than filtered in the
- * browser: the client only ever holds one page, so filtering here would search
- * the page rather than the library and quietly lie about the results.
  */
 const LibraryBrowser = ({
   search = '',
@@ -60,31 +44,7 @@ const LibraryBrowser = ({
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [items, setItems] = useState<MediaSummary[]>([]);
-  /**
-   * Which library the held items actually came from.
-   *
-   * `selectedId` changes the moment somebody presses a name; the items follow
-   * a request later. Anything that describes what is on screen has to use
-   * this rather than the selection, or it describes a library whose contents
-   * have not arrived — which is how an empty state came to announce that a
-   * library of seventy-three films had nothing in it, right up until they
-   * appeared.
-   */
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
-  /**
-   * What the hero may choose from, drawn from every library at once.
-   *
-   * Held apart from `items` rather than derived from it, because `items` is
-   * one library filtered by whatever is in the search box, and the hero is
-   * neither of those things. It is the front of the whole server: switching
-   * to a library of documentaries should not replace it, and typing in the
-   * search box should not empty it.
-   *
-   * Filled by asking every library for a sample at once. One request each
-   * rather than a single call, because no endpoint reads across them — and a
-   * library that fails to answer drops out rather than emptying the hero,
-   * since a hero missing one library's films is worth more than no hero.
-   */
   const [heroItems, setHeroItems] = useState<MediaSummary[]>([]);
   const [appliedSearch, setAppliedSearch] = useState('');
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());

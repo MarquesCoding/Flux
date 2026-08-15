@@ -2,9 +2,6 @@ import type { MaintenanceService } from './MaintenanceService';
 
 /**
  * Server-wide upkeep that answers as if queued, without a real queue.
- *
- * Lets the admin routes be tested without Postgres, the same reason
- * `createMemoryLibraryService` exists.
  */
 const createMemoryMaintenanceService = (): MaintenanceService => ({
   cleanupImageCache: () => Promise.resolve({ jobId: 'job-cleanup-image-cache', state: 'queued' }),

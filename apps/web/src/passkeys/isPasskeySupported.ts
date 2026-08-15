@@ -1,11 +1,3 @@
-/**
- * Reports whether this browser can register a passkey here.
- *
- * WebAuthn requires a secure context: HTTPS, or localhost. A self-hosted
- * instance reached at `http://192.168.1.40:8420` therefore cannot use
- * passkeys at all, which is a common enough deployment that the interface must
- * explain it rather than offer a button that fails when pressed.
- */
 const isPasskeySupported = (): boolean =>
   typeof window !== 'undefined' &&
   window.isSecureContext &&

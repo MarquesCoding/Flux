@@ -8,11 +8,6 @@ import type { Enrollment, SetupStage, TwoFactorSetupProps } from './TwoFactorSet
 
 /**
  * Two-factor enrollment and removal.
- *
- * Enabling is deliberately two steps: better-auth hands back a secret and
- * backup codes, but does not protect the account until a generated code is
- * verified. That is what stops an operator locking themselves out with a
- * mistyped or unscanned secret.
  */
 const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
   const [stage, setStage] = useState<SetupStage>('idle');

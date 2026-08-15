@@ -43,10 +43,6 @@ const MOVIES: Library = {
 
 /**
  * Chooses something from a job's actions menu.
- *
- * Run and Edit schedule used to be a button and a row press. They are two
- * items behind one control now, which is one press more and one convention
- * fewer.
  */
 const choose = async (user: ReturnType<typeof userEvent.setup>, job: string, action: RegExp) => {
   await user.click(await screen.findByRole('button', { name: `Actions for ${job}` }));

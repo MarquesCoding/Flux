@@ -7,19 +7,11 @@ type MemoryViewing = Viewing & { profileId: string };
 type MemoryHistoryState = {
   viewings: MemoryViewing[];
 
-  /**
-   * What each item is called, standing in for the join the real one does.
-   */
   titles?: Record<string, string>;
 };
 
 /**
- * History held in memory, for tests and for a server started without a
- * database.
- *
- * Applies the same rules as the real one, because the rules live in
- * `decideViewing` rather than in either of them — which is the point of having
- * put them there.
+ * History held in memory, for tests and for a server started without a database.
  */
 const createMemoryHistoryService = (
   state: MemoryHistoryState = { viewings: [] },

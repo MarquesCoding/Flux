@@ -1,15 +1,5 @@
-/**
- * Where the chosen profile is remembered.
- *
- * On the device rather than on the account, because which person is watching
- * is a property of the sofa, not of the login: the same account on a phone and
- * a television is usually two different people.
- */
 const STORAGE_KEY = 'flux.profile';
 
-/**
- * The header the server reads the watching profile from.
- */
 const PROFILE_HEADER = 'x-flux-profile';
 
 /**
@@ -38,9 +28,6 @@ const writeCurrentProfile = (profileId: string | null): void => {
 
 /**
  * The headers that say who is watching.
- *
- * Empty when nobody has been chosen, which the server reads as "whoever this
- * account defaults to" rather than as an error.
  */
 const profileHeaders = (): Record<string, string> => {
   const profileId = readCurrentProfile();

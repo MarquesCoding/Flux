@@ -78,12 +78,6 @@ import type { PlaybackHealth } from './components/StreamStats/StreamStats.types'
 import type { QualityPreference } from '@FluxWeb/playback/qualityPreference';
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types';
 
-/**
- * An element that may be able to go full screen.
- *
- * Declared optional because the DOM types promise a fullscreen API that not
- * every browser ships.
- */
 type FullscreenTarget = {
   requestFullscreen?: () => Promise<void>;
 };
@@ -94,94 +88,28 @@ type FullscreenOwner = {
 
 const IDLE_MILLISECONDS = 2500;
 
-/**
- * How long the casting note stays up before taking itself away.
- *
- * Long enough to read twice, since it explains something to go and do rather
- * than merely reporting. It answers a press that has already happened, so
- * there is nothing to dismiss and nobody waiting on it — left up it becomes
- * part of the picture, and the next press has no way to say anything new.
- */
 const CAST_NOTE_MILLISECONDS = 6000;
 
-/**
- * How far a jump moves.
- *
- * The arrows step a frame at a time, which is for looking at something. This
- * is for getting past it: thirty seconds is a scene, and the buttons on the
- * bar do ten.
- */
 const JUMP_SECONDS = 30;
 
-/**
- * How close to the end counts as finished.
- *
- * Credits run for minutes, and someone who stops during them has watched the
- * film. Offering to resume it would be offering them the credits.
- */
 const FINISHED_WITHIN_SECONDS = 90;
 
 const HEALTH_INTERVAL_MILLISECONDS = 500;
 
-/**
- * How often the player tells the server a session is still wanted.
- *
- * Sent regardless of pause state — the server's idle timeout allows three
- * missed heartbeats, so this has to be well under a third of that to give a
- * genuine hiccup room to recover before a session is reaped.
- */
 const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000;
 
-/**
- * How often presence is told where this tab actually is in the film.
- *
- * Much faster than the liveness heartbeat above: that one only has to arrive
- * before the idle reaper's patience runs out, but an admin watching a
- * progress bar notices anything slower than about a second, and a scrub
- * jumps the position outside the normal rate of change entirely.
- */
 const PRESENCE_HEALTH_INTERVAL_MILLISECONDS = 1000;
 
-/**
- * How long to let a change settle before asking for the cue again.
- *
- * Long enough that dragging a slider is one redraw at the end rather than
- * thirty on the way, short enough that letting go and looking at the result
- * feels like the same action.
- */
 const REDRAW_AFTER_MILLISECONDS = 150;
 
-/**
- * How long a frame lasts until the film says otherwise.
- *
- * Twenty five a second, which is wrong for most things and close enough for
- * all of them: it is only used for the first press, before two frames have
- * gone past to be measured.
- */
 const DEFAULT_FRAME_SECONDS = 1 / 25;
 
-/**
- * How long to wait before asking a stalled stream again.
- */
 const START_RETRY_MILLISECONDS = 1500;
 
-/**
- * How many times that is worth doing.
- *
- * A few seconds of trying, and then the picture is somebody else's problem:
- * a player that retries forever is a player that hides a broken file.
- */
 const START_ATTEMPTS = 4;
 
 /**
  * Stops a session that nobody is waiting for any more.
- *
- * The effect's cleanup stops whatever `startedId` holds, but a session started
- * while the viewer was already seeking away was not in that variable when the
- * cleanup ran — it did not exist yet, because the request was still in flight.
- * Returning without this leaves the server transcoding the rest of the film
- * for nobody until its idle timer collects the session ninety seconds later,
- * and quick scrubbing leaves one behind per seek.
  */
 const abandonStartedSession = (sessionId: string) => {
   void stopPlaybackSession(sessionId);
@@ -199,11 +127,6 @@ const EMPTY_HEALTH: PlaybackHealth = {
 
 /**
  * Plays a library item.
- *
- * Asks the server for a session using a profile built from this browser's real
- * capabilities, then attaches a media engine to the returned manifest. The
- * reason the server chose the treatment it did is always available, because
- * "why is this transcoding?" should not require reading server logs.
  */
 const VideoPlayer = ({
   media,
@@ -219,14 +142,6 @@ const VideoPlayer = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  /**
-   * Whether the sound is off because a browser insisted rather than because
-   * anybody asked.
-   *
-   * Kept apart so that silence is not remembered: a film muted to get it
-   * started at all says nothing about how this viewer likes their films, and
-   * writing it down would leave every later one silent too.
-   */
   const isSilencedByPolicyRef = useRef(false);
   const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS);
   const [session, setSession] = useState<StartedSession | null>(null);
@@ -530,29 +445,6 @@ const VideoPlayer = ({
     };
   }, []);
 
-  /**
-   * Gets a stream running, and keeps trying for as long as that is sensible.
-   *
-   * A transcode is delivered as a playlist that is still being written, so
-   * asking to play it the instant it is attached can find nothing there yet.
-   * The element answers that by sitting at nothing rather than by failing,
-   * which is the state a viewer used to escape by dragging the scrub bar —
-   * seeking made the element ask again, and asking again was all it needed.
-   */
-  /**
-   * Gets the picture moving, however the browser feels about that.
-   *
-   * A page opened by a reload carries no press, and no browser will start a
-   * film with sound on its own — the play is simply refused, which used to
-   * leave the player sitting on a black frame having reported nothing wrong.
-   * So that refusal, and only that one, is answered by muting and asking
-   * again: a film that starts silently says what happened and can be unmuted,
-   * where one that never starts says nothing at all.
-   *
-   * Every other failure is left alone. A play interrupted by the next load
-   * fails too, and muting somebody's film because a stream was replaced would
-   * be a worse bug than the one this fixes.
-   */
   const start = useCallback((element: HTMLVideoElement) => {
     let attempts = 0;
 
@@ -589,13 +481,6 @@ const VideoPlayer = ({
     }, START_RETRY_MILLISECONDS);
   }, []);
 
-  /**
-   * Keeps whatever is on screen on screen.
-   *
-   * Tearing a session down blanks the media element, so without this the
-   * picture goes black between one stream and the next — which reads as the
-   * player breaking rather than as a seek, or as the following episode.
-   */
   const hold = useCallback((element: HTMLVideoElement | null, isItemChange = false) => {
     const url = element === null ? null : captureFrame(element, document.createElement('canvas'));
 
@@ -620,16 +505,6 @@ const VideoPlayer = ({
     });
   }
 
-  /**
-   * Tells presence whether this tab is playing, and what it can measure
-   * about the stream right now.
-   *
-   * Shared by the periodic heartbeat and the immediate one sent on every
-   * play/pause and session change, so a track or quality change — which
-   * tears the old session down and starts a new one — never leaves the
-   * admin's progress bar without a position for up to a whole heartbeat
-   * interval.
-   */
   const reportPresenceHeartbeat = useCallback(
     (clientId: string) => {
       const current = videoRef.current;
@@ -997,18 +872,6 @@ const VideoPlayer = ({
     element.pause();
   }, []);
 
-  /**
-   * Moves to a moment in the film.
-   *
-   * A seek is a seek. The playlist describes the whole film, so the timeline
-   * the element is on is the film's own and every position on it is one the
-   * element can be told to go to — the service decides whether that means
-   * serving what it has or starting the transcode there.
-   *
-   * This used to branch on whether the target was inside what had been
-   * encoded, and start a new session for anywhere else, which is what made
-   * seeking cost a transcode of the rest of the film.
-   */
   const seek = useCallback((seconds: number) => {
     const element = videoRef.current;
 
@@ -1027,14 +890,6 @@ const VideoPlayer = ({
 
   const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null;
 
-  /**
-   * Takes a viewer at their word about subtitles.
-   *
-   * Their choice is kept as a language, which is the part of it that means
-   * anything to the next episode. Turning them off is kept too, and kept
-   * distinctly from never having said: one is an instruction, the other is
-   * only silence.
-   */
   const chooseSubtitle = useCallback(
     (trackId: string) => {
       setSelectedSubtitleId(trackId);
@@ -1132,14 +987,6 @@ const VideoPlayer = ({
     };
   }, [state, duration, media.id]);
 
-  /**
-   * Moves by a single frame of the film.
-   *
-   * Done to the element rather than through a seek, because one frame is
-   * always inside what has already been decoded: asking the server for a new
-   * session to move a fortieth of a second would throw away the stream to
-   * land on the next picture in it.
-   */
   const stepFrame = useCallback((direction: number) => {
     const element = videoRef.current;
 
@@ -1162,20 +1009,6 @@ const VideoPlayer = ({
     [seek, position, duration],
   );
 
-  /**
-   * The jump keys read the current skip through this rather than closing over
-   * it.
-   *
-   * `skip` is rebuilt whenever the position changes, which is several times a
-   * second while a film plays. The keyboard listener is registered once, so
-   * whichever `skip` existed when it was registered is the one it keeps —
-   * carrying a `position` of nought, from before anything had played. An hour
-   * in, `l` jumped to 0:30 rather than 1:00:30.
-   *
-   * A ref rather than a dependency: naming `skip` in the effect's array would
-   * fix the staleness by tearing the listener down and re-adding it on every
-   * position change, several times a second, for the whole film.
-   */
   const skipRef = useRef(skip);
 
   skipRef.current = skip;

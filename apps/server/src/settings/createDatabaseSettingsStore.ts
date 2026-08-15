@@ -11,11 +11,6 @@ type CreateDatabaseSettingsStoreOptions = {
 
 /**
  * Builds a settings store backed by the `server_setting` table.
- *
- * Values are validated on read, so a row hand-edited into an invalid shape
- * falls back to the configured defaults rather than crashing the server on a
- * request. A self-hosted instance that will not boot is worse than one running
- * on defaults with a warning.
  */
 const createDatabaseSettingsStore = ({
   db,

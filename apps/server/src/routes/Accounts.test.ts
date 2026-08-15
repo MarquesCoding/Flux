@@ -533,9 +533,6 @@ describe('account administration', () => {
 describe('a server with no way to act on accounts', () => {
   /**
    * The application without the account operations wired in.
-   *
-   * They are optional: a deployment can leave them out, and every route that
-   * needs one has to answer rather than crash when it is missing.
    */
   const withoutAccountActions = async () => {
     const { auth, settings, store } = createMemoryAuth();

@@ -14,14 +14,6 @@ const RADIUS_CLASSES = {
 
 /**
  * The background that follows the pointer.
- *
- * Drawn once behind a group rather than once per item, and moved. It is
- * deliberately not a child of the thing it highlights: a background that lives
- * inside a row cannot travel to the next one, and travelling is the point.
- *
- * It fades in where the pointer arrived rather than sliding in from wherever
- * it was last, since sliding across a menu nobody was pointing at reads as the
- * page doing something on its own.
  */
 const HoverHighlight = ({ rect, radius = 'md', className }: HoverHighlightProps) => {
   const prefersReducedMotion = useReducedMotion();

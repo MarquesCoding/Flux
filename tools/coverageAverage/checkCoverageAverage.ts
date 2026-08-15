@@ -6,9 +6,6 @@ import type { CoverageCounts } from './readCoverageAverage';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 
-/**
- * Every package that runs tests, in the order they are worth reading.
- */
 const PACKAGES = [
   'packages/contracts',
   'packages/core',
@@ -18,15 +15,6 @@ const PACKAGES = [
   'apps/web',
 ] as const;
 
-/**
- * What the codebase as a whole is held to.
- *
- * Each package has thresholds of its own, which stop it slipping from where it
- * stands. This is the figure for all of it together, and it is the one worth
- * stating: some code is far easier to cover than other code, and holding every
- * package to one number would be either lax for the pure ones or punishing for
- * the parts that talk to a browser.
- */
 const FLOOR = 90;
 
 const MeasureSchema = z.object({ covered: z.number(), total: z.number() });

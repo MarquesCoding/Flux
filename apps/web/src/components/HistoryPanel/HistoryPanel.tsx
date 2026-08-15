@@ -17,14 +17,6 @@ const nameOf = (viewing: Viewing): string => viewing.title ?? 'No longer in the 
 
 /**
  * What this profile has watched.
- *
- * Yours, and only yours — which for a shared house is the whole point of it
- * being per profile. Somebody who would rather a thing were not listed can
- * remove it here without asking anybody, and that is why the forget controls
- * sit beside each row rather than behind a settings page.
- *
- * A page at a time, oldest never loaded until asked for: this grows every
- * evening somebody watches anything, and a year of it is not a first render.
  */
 const HistoryPanel = ({ now }: HistoryPanelProps) => {
   const [viewings, setViewings] = useState<Viewing[]>([]);

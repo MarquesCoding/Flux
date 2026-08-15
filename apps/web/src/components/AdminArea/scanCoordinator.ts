@@ -9,21 +9,10 @@ import type { ScanJob } from '@FluxWeb/library/fetchLibrary';
 import type { Library } from '@FluxContracts/schemas/Library';
 
 type ScanEntry = {
-  /**
-   * A widely-known kind (`'scan'`, `'regeneratePreviews'`) or any job kind
-   * the server's job registry names — the Work tab's picker can track a
-   * kind this module has never heard of before.
-   */
   kind: string;
   phase: string | null;
   processed: number | null;
   total: number | null;
-  /**
-   * The job the server is running this under, once it has said what it is.
-   *
-   * Null for the moment between asking for work and being told its id, which
-   * is the one moment there is nothing to stop.
-   */
   jobId: string | null;
 };
 
@@ -33,18 +22,6 @@ type ScanSnapshot = {
   isResettingAll: boolean;
 };
 
-/**
- * Tracks running scans outside any component.
- *
- * The admin page unmounts every time an operator navigates away from it —
- * the library section is one panel among several, and switching panels
- * elsewhere in the app throws the whole tree away. A scan started before
- * that has no component left to report its progress to, and used to simply
- * vanish from the screen even though it kept running on the server. Kept
- * here instead, a scan started once is visible again the moment the admin
- * page is back, whether that's the same tab a second later or a different
- * one entirely.
- */
 let progress = new Map<string, ScanEntry>();
 let isScanningAll = false;
 let isResettingAll = false;
@@ -61,8 +38,6 @@ const notify = () => {
 
 /**
  * Listens for changes, for `useSyncExternalStore` to drive a component from.
- *
- * Returns the function that stops listening.
  */
 const subscribe = (listener: () => void): (() => void) => {
   listeners.add(listener);
@@ -93,11 +68,6 @@ const untrack = (libraryId: string) => {
 
 /**
  * Queues one library's job and tracks its progress until it finishes.
- *
- * The one place that enqueues, polls and untracks — every job kind this
- * module offers, generic or not, runs through this so there is a single
- * implementation of "track a library job to completion" rather than one per
- * kind.
  */
 const runAndTrack = async (
   libraryId: string,
@@ -129,11 +99,6 @@ const runAndTrack = async (
 
 /**
  * Picks up scans the server is already running.
- *
- * A reload loses the job ids this page was following, but not the work: the
- * server is still scanning, and a page that shows nothing is telling the
- * operator something untrue. Asked once when the page opens, so a refresh
- * mid-scan rejoins rather than starts again.
  */
 const resumeRunning = async (): Promise<void> => {
   const running = await fetchRunningScans();
@@ -175,22 +140,12 @@ const resumeRunning = async (): Promise<void> => {
 
 /**
  * Follows a job somebody else queued, as though this page had started it.
- *
- * A correction is made from a dialog rather than from the Libraries panel, so
- * without this the work it sets off would run unwatched and the operator
- * would be told it was done while the files were still being read.
  */
 const watchJob = (libraryId: string, kind: string, jobId: string): Promise<void> =>
   runAndTrack(libraryId, kind, () => Promise.resolve({ jobId, state: 'queued' }));
 
 /**
  * Scans one library, tracking its progress until it finishes.
- *
- * Forced, every file is read again whatever the filesystem says about it. An
- * ordinary scan skips anything whose size and date are unchanged, which is
- * right for finding new files and useless for fixing what is known about the
- * old ones: a title that came out wrong stays wrong however many times the
- * button is pressed, because the file it came from has not moved.
  */
 const startScan = (libraryId: string, force = false): Promise<void> =>
   runAndTrack(libraryId, force ? 'rescan' : 'scan', () => scanLibrary(libraryId, force));
@@ -239,14 +194,6 @@ const startRegeneratePreviews = (libraryId: string): Promise<void> =>
 
 /**
  * Starts a job by kind, as picked from the Work tab's job registry.
- *
- * Works for any kind the server offers without this module needing to know
- * about it in advance — unlike `startScan`/`startRegeneratePreviews`, which
- * exist for the Libraries panel's own fixed buttons.
- *
- * `libraryId` is left out for a job that does not need one — tracked under
- * its own kind instead, since there is no library id to key it by and at
- * most one of a given kind ever runs at once.
  */
 const runDefinedJob = (kind: string, libraryId?: string, force?: boolean): Promise<void> =>
   runAndTrack(libraryId ?? kind, kind, () => runJob(kind, libraryId, force));
@@ -267,22 +214,9 @@ export type { ScanEntry, ScanSnapshot };
 
 /**
  * Clears every tracked scan.
- *
- * For tests only: this module is a singleton for the lifetime of the page on
- * purpose, but a test file reuses the same module instance across every
- * `it()` block, and a scan a test left running (deliberately, to inspect
- * mid-flight state) would otherwise leak into whichever test runs next.
  */
 /**
  * Asks every run of one job kind to stop.
- *
- * A kind rather than a job, because that is what a row in the jobs table is:
- * one scan fanned out across four libraries is four jobs and one thing an
- * operator started, and stopping it means stopping all of them.
- *
- * Tracking is left alone. The jobs are still running until they reach a point
- * where stopping is safe, and the progress bar should keep saying so until
- * they do rather than vanishing on a request that has not been acted on yet.
  */
 const stopJobs = async (kind: string): Promise<void> => {
   const ids = [...snapshot.progress.values()]

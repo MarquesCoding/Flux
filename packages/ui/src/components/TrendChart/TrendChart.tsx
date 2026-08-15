@@ -11,15 +11,6 @@ const toRows = (values: number[]): { at: number; value: number }[] =>
 
 /**
  * A reading over time, drawn as a filled line.
- *
- * For the figures somebody watches rather than reads: whether the processor
- * has been at eighty for a minute or spiked once is a different fact from
- * "eighty per cent", and only the shape says which.
- *
- * No axes and no gridlines. This is the shape of a number that is already
- * printed in full somewhere above it, and a chart that has to be read twice is
- * not doing that job. Resting on it names the reading under the pointer, which
- * is the one question the shape alone cannot answer.
  */
 const TrendChart = ({ values, ceiling, label, caption, className }: TrendChartProps) => {
   const fillId = useId();

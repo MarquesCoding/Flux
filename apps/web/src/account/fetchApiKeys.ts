@@ -12,11 +12,6 @@ const asJson = {
 
 /**
  * The keys on this account.
- *
- * Answers with nothing rather than throwing, like every other read the account
- * page makes: an account without permission to hold keys is answered with a
- * refusal, and a refusal is a reason to draw no section rather than to take
- * the page down.
  */
 const fetchApiKeys = async (): Promise<ApiKey[] | null> => {
   try {

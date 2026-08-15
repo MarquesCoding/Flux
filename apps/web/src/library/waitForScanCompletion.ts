@@ -6,11 +6,6 @@ const POLL_INTERVAL_MS = 800;
 
 /**
  * Waits for a queued scan to actually finish.
- *
- * A scan is queued and answered for immediately, long before the walk it
- * describes is done. Polled rather than pushed: one more scan is not worth a
- * stream of its own, so this checks in occasionally until the state stops
- * changing, handing each reading to `onProgress` along the way.
  */
 const waitForScanCompletion = async (
   jobId: string,

@@ -15,9 +15,6 @@ const trackOf = (id: string): SubtitleTrack => ({
 
 /**
  * A source with a fixed answer.
- *
- * Null means "never heard of it", which is the one answer that is not the same
- * as having nothing to offer.
  */
 const sourceOf = (
   tracks: SubtitleTrack[] | null,

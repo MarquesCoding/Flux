@@ -17,17 +17,6 @@ const SubtitleListSchema = z
   .object({ tracks: z.array(SubtitleTrackSchema) })
   .openapi('SubtitleList');
 
-/**
- * Lists the subtitle tracks an item has.
- *
- * Text tracks from both places they live: files sitting beside the video, and
- * streams inside the container itself. Which one a track came from is not
- * something a viewer should have to think about, so the list does not say.
- *
- * Picture based tracks are absent by design. They hold images rather than
- * characters, so they are burned into the video instead, which playback
- * negotiation decides.
- */
 const listSubtitlesRoute = createRoute({
   method: 'get',
   path: '/api/media/{mediaId}/subtitles',
@@ -46,12 +35,6 @@ const listSubtitlesRoute = createRoute({
   },
 });
 
-/**
- * Serves one track as WebVTT.
- *
- * Converted on the way out whatever it arrived as, because WebVTT is the only
- * subtitle format a browser renders.
- */
 const readSubtitleRoute = createRoute({
   method: 'get',
   path: '/api/media/{mediaId}/subtitles/{trackId}',

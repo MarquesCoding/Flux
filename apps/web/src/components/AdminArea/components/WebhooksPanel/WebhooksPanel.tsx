@@ -14,11 +14,6 @@ import type { WebhooksPanelProps } from './WebhooksPanel.types';
 
 /**
  * How the last delivery went, in a word and a colour.
- *
- * This is the reason the listing exists. A webhook that has quietly stopped
- * working looks exactly like one that works, right up until somebody needed
- * it and it was not there — so the state of the last attempt is the thing the
- * row leads with rather than something to go digging for.
  */
 const describeLastAttempt = (
   webhook: WebhookSubscription,
@@ -36,8 +31,8 @@ const describeLastAttempt = (
 };
 
 /**
- * Where an operator says what they want to be told about, and sees whether
- * they are still being told.
+ * Where an operator says what they want to be told about, and sees whether they are still being
+ * told.
  */
 const WebhooksPanel = ({
   webhooks,

@@ -4,8 +4,7 @@ import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 type MemoryState = Record<string, WatchProgress[]>;
 
 /**
- * Watch progress held in memory, so the HTTP surface can be exercised without
- * a database.
+ * Watch progress held in memory, so the HTTP surface can be exercised without a database.
  */
 const createMemoryWatchProgressService = (
   state: MemoryState = {},

@@ -14,17 +14,6 @@ import type { MatchPickerProps } from './MatchPicker.types';
 
 /**
  * Finds what a file should have been matched to, and says so.
- *
- * Searching by name rather than asking for an id, because somebody looking at
- * a wrong title knows the right title — the id is a detail of the catalogue
- * they should not have to go and look up. Picking from what comes back is also
- * the confirmation step: the poster and the year say whether this is the one.
- *
- * A correction here reaches the whole series, since the id names a programme.
- *
- * Forgetting one is deleting a row rather than fetching anything: the
- * catalogue's own answer was never overwritten, so putting a file back is
- * letting the matcher speak again rather than restoring a copy.
  */
 const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
   const isEpisode = media?.seriesTitle !== null && media?.seriesTitle !== undefined;

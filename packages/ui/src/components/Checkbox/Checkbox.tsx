@@ -5,12 +5,8 @@ import { cn } from '@FluxUI/cn';
 import type { CheckboxProps } from './Checkbox.types';
 
 /**
- * A labelled checkbox built on the Base UI primitive, which supplies the
- * keyboard interaction and ARIA wiring.
- *
- * Base UI renders the control as a span with `role="checkbox"` rather than a
- * native input, so the label is associated with `aria-labelledby` and not by
- * wrapping. Implicit label association only works for labelable elements.
+ * A labelled checkbox built on the Base UI primitive, which supplies the keyboard interaction and
+ * ARIA wiring.
  */
 const Checkbox = ({
   label,

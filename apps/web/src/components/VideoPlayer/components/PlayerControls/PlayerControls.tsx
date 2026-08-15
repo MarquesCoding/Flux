@@ -41,28 +41,18 @@ import type { PlayerControlsProps } from './PlayerControls.types';
 const rateLabel = (rate: number): string => `${rate.toString()}x`;
 
 /**
- * Formats a step's bitrate for the menu, the way a viewer judges it rather
- * than the way the ladder stores it.
+ * Formats a step's bitrate for the menu, the way a viewer judges it rather than the way the ladder
+ * stores it.
  */
 const bitrateDetail = (maxVideoBitrateKbps: number): string =>
   maxVideoBitrateKbps >= 1000
     ? `${(maxVideoBitrateKbps / 1000).toFixed(1)} Mbps`
     : `${maxVideoBitrateKbps.toString()} kbps`;
 
-/**
- * How far one press moves the subtitles.
- *
- * A quarter of a second is about the smallest gap anybody can see, and small
- * enough that overshooting costs one press back.
- */
 const SUBTITLE_STEP_SECONDS = 0.25;
 
 /**
  * The bar that sits over the bottom of the video.
- *
- * Every control here is stateless: it reports what was pressed and draws what
- * it is told. Playback state belongs to the player, which owns the media
- * element the state actually lives in.
  */
 const PlayerControls = ({
   title,

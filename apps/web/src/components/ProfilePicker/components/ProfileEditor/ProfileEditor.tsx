@@ -13,32 +13,16 @@ import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import type { Avatar, AvatarStyle, ProfileColour } from '@FluxContracts/schemas/ViewerProfile';
 import type { ProfileEditorProps } from './ProfileEditor.types';
 
-/**
- * What a picture may be.
- *
- * Raster and video, matching what the server will keep. No SVG: it is a
- * document that can carry script, and a picture of somebody's face has no
- * reason to be one.
- */
 const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/webm,video/mp4';
 
 /**
  * Where a drawn face is previewed from.
- *
- * Through Flux like everything else: a self-hosted server has no business
- * telling a third party who has profiles on it, so the faces are drawn here
- * rather than fetched from whoever generates them.
  */
 const previewUrl = (style: AvatarStyle, seed: string): string =>
   `/api/profiles/avatars/${style}?seed=${encodeURIComponent(seed)}`;
 
 /**
  * Changing what somebody is called and what they look like.
- *
- * Three ways to have a face, in the order people actually want them: the
- * letter they already have, one of a handful of drawn ones, or a photograph
- * of their own. Every drawn style is shown at once rather than behind a menu,
- * because choosing a picture is a thing done by looking.
  */
 const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
   const [name, setName] = useState(profile?.name ?? '');

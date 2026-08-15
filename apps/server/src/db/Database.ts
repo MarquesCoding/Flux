@@ -8,9 +8,6 @@ type FluxDatabase = ReturnType<typeof createDatabase>['db'];
 
 /**
  * Opens the Postgres connection pool and binds the Drizzle schema to it.
- *
- * Postgres is the only datastore: it holds the library, sessions, and the job
- * queue. See ADR-0005.
  */
 const createDatabase = (databaseUrl: string) => {
   const pool = new Pool({ connectionString: databaseUrl });

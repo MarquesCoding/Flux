@@ -15,13 +15,6 @@ const DeviceSchema = z
 
 const DeviceListSchema = z.object({ devices: z.array(DeviceSchema) }).openapi('DeviceList');
 
-/**
- * Everywhere this account is signed in.
- *
- * A self-hosted server is shared with a household, and a household loses
- * track of what is signed in where. This is the answer, and the way to do
- * something about it.
- */
 const listDevicesRoute = createRoute({
   method: 'get',
   path: '/api/account/devices',
@@ -39,9 +32,6 @@ const listDevicesRoute = createRoute({
   },
 });
 
-/**
- * Ends one of them.
- */
 const endDeviceRoute = createRoute({
   method: 'delete',
   path: '/api/account/devices/{id}',
@@ -57,13 +47,6 @@ const endDeviceRoute = createRoute({
   },
 });
 
-/**
- * Ends all of them but this one.
- *
- * The thing somebody wants after losing a laptop, and the reason it does not
- * end the session asking: being signed out of the page you are using to sign
- * everything else out is its own small disaster.
- */
 const endOtherDevicesRoute = createRoute({
   method: 'post',
   path: '/api/account/devices/end-others',

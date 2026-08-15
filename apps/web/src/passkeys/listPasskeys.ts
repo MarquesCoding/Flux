@@ -31,9 +31,6 @@ const deletePasskey = async (id: string): Promise<boolean> => {
 
 /**
  * Renames a registered passkey.
- *
- * A list of identically named keys is useless when the time comes to remove
- * the one from a device you no longer have.
  */
 const renamePasskey = async (id: string, name: string): Promise<boolean> => {
   const response = await fetch('/api/auth/passkey/update-passkey', {

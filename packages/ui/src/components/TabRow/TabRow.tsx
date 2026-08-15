@@ -4,23 +4,6 @@ import type { TabRowProps } from './TabRow.types';
 
 /**
  * A row of places, as pills.
- *
- * A column down the side gave each section a line of its own and cost a
- * quarter of the page to say eight words. Across the top they take one line,
- * and the page beneath gets the width — which is what a page of tables and
- * figures wanted in the first place.
- *
- * Grouping survives the move as a hairline rather than a heading: the sections
- * still arrive in their families, and the rule says where one ends without
- * spending a row on the word.
- *
- * One mark slides between them rather than each pill lighting itself, so the
- * eye follows a single moving thing. Glass, the same height and the same
- * travelling mark as the navigation dock, because it is the same gesture
- * answering the same question — where am I, and where could I go — and two
- * ways of saying that is one too many.
- *
- * Belongs inside `Tabs`, which is where it learns which one is showing.
  */
 const TabRow = ({ label, groups, className }: TabRowProps) => (
   <Tabs.List

@@ -11,12 +11,6 @@ type CreateJobScheduleServiceOptions = {
 
 /**
  * What makes each job run on its own.
- *
- * The store is the source of truth and pg-boss is a projection of it: every
- * write reconciles the queue's schedules against the stored triggers, keyed
- * by trigger id, so the two cannot drift apart. Startup triggers take no part
- * in that — they have no cron to project — and are reported out of `sync` for
- * the caller to run instead.
  */
 const createJobScheduleService = ({
   store,

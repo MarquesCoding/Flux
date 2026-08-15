@@ -4,15 +4,6 @@ import type { TextFieldProps } from './TextField.types';
 
 /**
  * A labelled single-line text input.
- *
- * This is the only place text entry is written; see code standards section 9.
- * The label, the description, the error and the wiring between them are Base
- * UI's `Field`, which owns the part that is easy to get subtly wrong: which
- * element describes which, and what a reader is told when a field goes invalid.
- * What is left here is what the field looks like.
- *
- * A `time` field is told the surface under it is dark, because the browser
- * paints the clock button it draws for itself for a light page otherwise.
  */
 const TextField = ({
   label,

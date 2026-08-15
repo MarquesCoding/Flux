@@ -7,10 +7,6 @@ type Session = Awaited<ReturnType<FluxAuth['api']['getSession']>>;
 
 /**
  * An authentication layer that counts how often it is asked.
- *
- * Counting is the whole point: an API key is verified on every resolution and
- * charged to its own rate limit, so how many times one request asks is the
- * thing under test rather than an implementation detail.
  */
 const countingAuth = (answer: Session = null) => {
   const getSession = vi.fn(() => Promise.resolve(answer));

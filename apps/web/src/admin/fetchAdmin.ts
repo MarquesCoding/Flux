@@ -142,9 +142,6 @@ const ActiveSessionSchema = z.object({
     .nullable(),
 });
 
-/**
- * A job an admin can start on demand, as the Work tab's picker sees it.
- */
 const JobDefinitionSchema = z.object({
   kind: z.string(),
   label: z.string(),
@@ -153,10 +150,6 @@ const JobDefinitionSchema = z.object({
   destructive: z.boolean(),
 });
 
-/**
- * What makes a job run on its own, matching the server's own set of triggers
- * — see `apps/server/src/jobs/scheduleTrigger.ts`.
- */
 const ScheduleTriggerSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('startup') }),
   z.object({
@@ -216,9 +209,6 @@ type RunningScan = z.infer<typeof RunningScansSchema>['scans'][number];
 
 /**
  * What the server is working on right now.
- *
- * Asked when the page opens, because a scan started before a reload is still
- * running and the browser that started it no longer remembers its job id.
  */
 const fetchRunningScans = async (): Promise<RunningScan[]> => {
   const response = await fetch('/api/libraries/scans', { credentials: 'same-origin' }).catch(
@@ -251,9 +241,6 @@ type CatalogueMatch = z.infer<typeof CatalogueMatchesSchema>['matches'][number];
 
 /**
  * Asks the catalogue what it holds under a name.
- *
- * For the moment somebody knows the match is wrong and wants to say what it
- * should have been, in the words they would use rather than an id.
  */
 const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<CatalogueMatch[]> => {
   const parameters = new URLSearchParams({ query, kind });
@@ -272,11 +259,6 @@ const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<Cat
 
 /**
  * Reads the state of the server.
- *
- * Throws with the reason rather than answering null, so that a page which
- * could not read this says so. Returning nothing is indistinguishable from a
- * server that holds nothing, and a page cannot tell an operator which it is
- * looking at unless the difference reaches it.
  */
 const fetchAdminOverview = async (): Promise<AdminOverview> => {
   const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
@@ -296,9 +278,6 @@ const fetchAdminOverview = async (): Promise<AdminOverview> => {
 
 /**
  * Reads one measurement of what the media service is doing.
- *
- * Used for the first paint, before the stream has had time to say anything.
- * A page that opens empty and fills in a second later reads as broken.
  */
 const fetchMonitor = async (): Promise<Monitor | null> => {
   const response = await fetch('/api/admin/monitor', { credentials: 'same-origin' }).catch(
@@ -314,11 +293,6 @@ const fetchMonitor = async (): Promise<Monitor | null> => {
 
 /**
  * Watches the media service, calling back on every reading.
- *
- * Returns the function that stops watching. Server-sent events rather than
- * polling: the service already knows when it has something new to say, and a
- * page asking every second whether anything happened is a page that costs
- * something even when nothing does.
  */
 const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
   const source = new EventSource('/api/admin/monitor/stream', { withCredentials: true });
@@ -338,12 +312,6 @@ const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
 
 /**
  * Follows who has the app open, as it changes.
- *
- * Pushed rather than asked for: presence changes when somebody arrives,
- * leaves, presses play or is paused by an admin, and none of those happen on
- * a schedule a poll could match. The server sends the whole list each time —
- * it is a handful of rows, and a list that arrives whole cannot drift out of
- * step with itself the way a stream of edits can.
  */
 const watchActiveSessions = (onSessions: (sessions: ActiveSession[]) => void): (() => void) => {
   const source = new EventSource('/api/admin/sessions/stream', { withCredentials: true });
@@ -433,12 +401,6 @@ const fetchJobDefinitions = async (): Promise<JobDefinition[]> => {
 
 /**
  * Starts a job of the given kind against a library, from the Work tab.
- *
- * Additive to the per-library `scanLibrary`/`resetLibrary`/
- * `regenerateLibraryPreviews` calls in `fetchLibrary.ts` rather than a
- * replacement for them — this is the admin-gated, kind-generic entry point
- * the job picker needs, working for any kind the server's job registry
- * returns without further changes here.
  */
 const runJob = async (
   kind: string,
@@ -464,11 +426,6 @@ const runJob = async (
 
 /**
  * Asks a job to stop.
- *
- * True when there was something to stop. False covers both a job that had
- * already finished and one that was never there — from the page's side those
- * are the same answer: there is nothing running to act on, so read the list
- * again rather than reporting a failure.
  */
 const cancelJob = async (jobId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/jobs/running/${jobId}/cancel`, {
@@ -531,16 +488,6 @@ const removeJobTrigger = async (kind: string, triggerId: string): Promise<boolea
   return response !== null && response.ok;
 };
 
-/**
- * Saves a setting an operator owns.
- */
-/**
- * Tells the server which hardware backend to insist on.
- *
- * Empty means use whichever the media service proves it can do, which is right
- * almost always. Naming one is for the case where that proof is wrong — it has
- * been twice — and an operator can see their card working.
- */
 const StorageCountSchema = z.object({
   cache: z
     .object({
@@ -558,14 +505,6 @@ type StorageCount = z.infer<typeof StorageCountSchema>;
 
 /**
  * Asks both services to count their caches now.
- *
- * The figures on the page are taken on timers, because walking every artefact
- * directory is far too expensive to do when a page loads. This is the one way
- * an operator can insist — after running a sweep, say, when waiting five
- * minutes to see whether it worked is its own kind of answer.
- *
- * Null when the count could not be made, so a caller can leave the figures
- * where they were rather than blanking them.
  */
 const measureStorage = async (): Promise<StorageCount | null> => {
   const response = await fetch('/api/admin/storage/measure', { method: 'POST' }).catch(() => null);

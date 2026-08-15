@@ -36,13 +36,6 @@ const StartResponse = z
   })
   .openapi('PlaybackStartResponse');
 
-/**
- * Explains how an item would be played, without starting anything.
- *
- * The dry run from ADR-0011. It answers "why is this transcoding?" without
- * reading server logs, makes device profiles testable, and lets negotiation be
- * regression tested as pure data.
- */
 const explainRoute = createRoute({
   method: 'post',
   path: '/api/playback/{mediaId}/explain',
@@ -93,12 +86,6 @@ const startRoute = createRoute({
   },
 });
 
-/**
- * Serves a manifest or segment from a session.
- *
- * Segment names in an HLS playlist are relative, so they resolve against this
- * path and no rewriting of the playlist is needed.
- */
 const sessionFileRoute = createRoute({
   method: 'get',
   path: '/api/playback/session/{sessionId}/{name}',
@@ -139,14 +126,6 @@ const HeartbeatRequest = z
   })
   .openapi('PlaybackHeartbeatRequest');
 
-/**
- * Tells the server a session is still wanted.
- *
- * The authoritative liveness signal, sent on a fixed interval regardless of
- * play state — unlike segment fetching, which a paused player stops doing.
- * Without this, idle collection could not tell a viewer who is letting the
- * buffer fill apart from one who closed the tab.
- */
 const heartbeatRoute = createRoute({
   method: 'post',
   path: '/api/playback/session/{sessionId}/heartbeat',
@@ -165,13 +144,6 @@ const heartbeatRoute = createRoute({
   },
 });
 
-/**
- * Serves the original file for direct play, honouring byte ranges.
- *
- * Proxied through the server rather than exposed directly, for the same reason
- * segments are: the media service has no authentication and would read any
- * path it is given.
- */
 const directFileRoute = createRoute({
   method: 'get',
   path: '/api/playback/{mediaId}/file',
@@ -198,13 +170,6 @@ const TrickplayResponse = z
   })
   .openapi('TrickplayResponse');
 
-/**
- * Renders seek-bar previews for an item.
- *
- * Answers with the index rather than the images. Generating them decodes the
- * whole file, so the first call on a long film takes a while; the result is
- * content addressed and every later call reuses it.
- */
 const trickplayRoute = createRoute({
   method: 'post',
   path: '/api/playback/{mediaId}/trickplay',
@@ -227,12 +192,6 @@ const trickplayRoute = createRoute({
   },
 });
 
-/**
- * Serves the frame a preview is going to start from.
- *
- * A still rather than the backdrop, because it is the one picture that can be
- * replaced by the playing video without anything appearing to jump.
- */
 const frameRoute = createRoute({
   method: 'get',
   path: '/api/playback/{mediaId}/frame',
@@ -254,12 +213,6 @@ const frameRoute = createRoute({
   },
 });
 
-/**
- * Serves an index or a sheet.
- *
- * Cue payloads inside the index name sheets relatively, so they resolve
- * against this path without rewriting the index.
- */
 const trickplayFileRoute = createRoute({
   method: 'get',
   path: '/api/playback/trickplay/{trickplayId}/{name}',

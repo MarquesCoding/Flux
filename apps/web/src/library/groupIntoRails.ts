@@ -3,50 +3,18 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 
 type Rail = {
-  /**
-   * Stable across renders, so React keeps a row's scroll position when the
-   * library around it changes.
-   */
   id: string;
   title: string;
   items: MediaSummary[];
-  /**
-   * An episode of the series this row is of, for a row whose heading names a
-   * programme rather than a mood. A viewer who reads "A Sign of Affection" and
-   * presses it means the programme, so the heading has to know which one it is
-   * talking about. Absent on rows like `Continue watching`, which are about no
-   * one series.
-   */
   showOf?: MediaSummary;
 };
 
-/**
- * How many items a row shows before it is just a list again.
- */
 const RAIL_LIMIT = 24;
 
-/**
- * How many episodes a programme's own row shows.
- *
- * Higher than the rest, because this row is a whole programme across every
- * season it has rather than a handful of picks, and a long-running one cut off
- * two dozen in would stop partway through its second year. Still a limit: past
- * this the row is a chore to scroll and the programme's own page is the place
- * to be.
- */
 const SERIES_RAIL_LIMIT = 60;
 
-/**
- * The fewest episodes worth a row of their own.
- *
- * One episode of something is not a season, and a row containing a single card
- * looks like a mistake.
- */
 const MIN_SERIES_ITEMS = 2;
 
-/**
- * How recently something must have arrived to count as new.
- */
 const RECENT_DAYS = 30;
 
 /**
@@ -60,9 +28,6 @@ const addedAtMs = (media: MediaSummary): number => {
 
 /**
  * Orders episodes the way they are watched.
- *
- * By season and then by episode, rather than by title: `Episode 10` sorts
- * before `Episode 2` alphabetically, which is no use to anyone.
  */
 const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
   const season = (left.seasonNumber ?? 0) - (right.seasonNumber ?? 0);
@@ -78,14 +43,6 @@ const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
 
 /**
  * Sorts a library into the rows it is browsed by.
- *
- * A library is not one list, it is several: what arrived recently, each season
- * of each series, and everything else. Rows rather than a grid because that is
- * how someone browses when they do not already know what they want.
- *
- * Nothing here invents a row it cannot fill. Continue watching appears only
- * once there is something to continue, because a row that is always empty
- * teaches people to ignore rows.
  */
 const groupIntoRails = (
   items: MediaSummary[],

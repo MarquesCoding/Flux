@@ -3,10 +3,6 @@ import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schema
 
 /**
  * The people using this account.
- *
- * Answers with nothing rather than throwing, like every other read a page
- * makes: a picker that cannot load is a picker that shows nobody, not a page
- * that fails.
  */
 const fetchProfiles = async (): Promise<ViewerProfile[]> => {
   try {
@@ -59,9 +55,6 @@ const saveProfile = async (
 
 /**
  * Uploads somebody's own photograph for a profile.
- *
- * Sent as the picture itself rather than as a form: there is one file and no
- * other fields, and multipart would be ceremony around a single body.
  */
 const uploadProfilePhoto = async (profileId: string, file: File): Promise<boolean> => {
   const response = await fetch(`/api/profiles/${profileId}/photo`, {

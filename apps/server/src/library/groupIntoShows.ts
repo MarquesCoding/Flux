@@ -13,9 +13,6 @@ const addedAtMs = (media: MediaSummary): number => {
 
 /**
  * Orders episodes the way they are watched.
- *
- * By season and then by episode rather than by title: `Episode 10` sorts
- * before `Episode 2` alphabetically, which is no use to anyone.
  */
 const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
   const season = (left.seasonNumber ?? 0) - (right.seasonNumber ?? 0);
@@ -31,14 +28,6 @@ const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
 
 /**
  * Everything belonging to the same series, gathered.
- *
- * By the programme's id rather than by its title. Two programmes share a title
- * and gathering on it put both of them under one cover — so hiding, rating or
- * opening "the series" reached the wrong one, and a corrected match silently
- * moved everything to a new heading.
- *
- * Items that belong to no series are not shows and are left where they were: a
- * film is not a series of one.
  */
 const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
   const shows = new Map<string, MediaSummary[]>();
@@ -50,13 +39,6 @@ const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
       continue;
     }
 
-    /**
-     * The programme's own id, or a slug of its title where there is none.
-     *
-     * The id is what keeps two programmes of one name apart. The slug remains
-     * only for an item scanned before programmes were rows — it collides
-     * exactly where it always did, and the first scan after this replaces it.
-     */
     const id = media.seriesId ?? showSlug(series);
 
     shows.set(id, [...(shows.get(id) ?? []), media]);
@@ -67,14 +49,6 @@ const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
 
 /**
  * What a series is, said from what its episodes agree on.
- *
- * The cover is the first episode in broadcast order rather than the newest:
- * the picture that stands for a series should be the one that opens it, and
- * anyone meeting a show for the first time is offered episode one.
- *
- * The year, the rating and the genres are taken from whichever episode carries
- * them. A catalogue describes a series once, and every episode of it repeats
- * that description, so the first that has one is as good as any.
  */
 const describeShow = (id: string, episodes: MediaSummary[]): ShowSummary | null => {
   const inOrder = [...episodes].sort(inBroadcastOrder);
@@ -104,9 +78,6 @@ const describeShow = (id: string, episodes: MediaSummary[]): ShowSummary | null 
 
 /**
  * Every series in a set of items, newest arrival first.
- *
- * Ordered by what arrived rather than by name, because a shelf of shows is
- * read for what is new on it.
  */
 const groupIntoShows = (items: MediaSummary[]): ShowSummary[] =>
   [...gather(items)]
@@ -116,10 +87,6 @@ const groupIntoShows = (items: MediaSummary[]): ShowSummary[] =>
 
 /**
  * One series, with its episodes in the order they are watched.
- *
- * Seasons are whatever the episodes claim to be in, in numerical order, with
- * anything unnumbered last — a special nobody has labelled belongs after the
- * series rather than before it.
  */
 const buildShowDetail = (items: MediaSummary[], showId: string): ShowDetail | null => {
   const episodes = gather(items).get(showId);

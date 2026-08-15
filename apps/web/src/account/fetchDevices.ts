@@ -15,10 +15,6 @@ type Device = z.infer<typeof DeviceSchema>;
 
 /**
  * Everywhere this account is signed in.
- *
- * Answers with nothing rather than throwing, like every other read a page
- * makes: a list of devices is something to check, and its absence must not
- * take the account page down with it.
  */
 const fetchDevices = async (): Promise<Device[]> => {
   try {
