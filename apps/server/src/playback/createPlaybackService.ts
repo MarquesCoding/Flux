@@ -10,6 +10,8 @@ import {
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
 } from './PlaybackService';
+import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
+import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
 import type { PlaybackService } from './PlaybackService';
 import type { Transcoder, TranscoderCapabilities } from '@FluxServer/transcoder/TranscoderClient';
 
@@ -45,6 +47,40 @@ const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub']);
  * so a direct serve can be trusted only when it would land on the stream
  * negotiation actually chose.
  */
+/**
+ * The plan as it was actually carried out.
+ *
+ * The media service refuses to copy a source whose own keyframes cannot produce
+ * segments a player will take, and encodes it instead. Only it can tell — the
+ * decision needs the packet index, which the server never reads — so a plan
+ * that said the video would pass through has to be corrected before anybody is
+ * shown it. Reporting a direct stream while encoding is a claim about the
+ * viewer's own playback that is not true, and the mode label is derived from
+ * this plan rather than kept beside it.
+ */
+const asDelivered = (plan: PlaybackPlan, item: MediaItem, encodesVideo: boolean): PlaybackPlan => {
+  if (!encodesVideo || plan.video.kind !== 'passthrough') {
+    return plan;
+  }
+
+  return {
+    ...plan,
+    video: {
+      kind: 'transcode',
+      codec: 'h264',
+      range: item.videoRange,
+      maxBitrateKbps: item.bitrateKbps,
+      maxWidth: item.width,
+      maxHeight: item.height,
+      reason: {
+        code: 'VideoNotSegmentable',
+        detail:
+          'The source cannot be cut into segments a player can start at, so it is encoded instead',
+      },
+    },
+  };
+};
+
 const naturalAudioStreamIndex = (item: Parameters<typeof negotiatePlayback>[0]): number | null =>
   (item.audioStreams.find((stream) => stream.isDefault) ?? item.audioStreams[0])?.index ?? null;
 
@@ -193,6 +229,8 @@ const createPlaybackService = ({
       try {
         const session = await transcoder.startSession(outcome.spec, deviceId);
 
+        const delivered = asDelivered(plan, found.item, session.encodesVideo);
+
         return {
           kind: 'started',
           session: {
@@ -201,8 +239,8 @@ const createPlaybackService = ({
               kind: 'hls',
               manifestUrl: `${sessionUrlPrefix}/${session.id}/index.m3u8`,
             },
-            mode: describePlaybackMode(plan),
-            plan,
+            mode: describePlaybackMode(delivered),
+            plan: delivered,
             warnings: outcome.warnings,
           },
         };
