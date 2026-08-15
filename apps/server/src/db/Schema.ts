@@ -504,6 +504,87 @@ const jobTrigger = pgTable(
  * managing them safe. Without it, "may manage roles" quietly means "may make
  * myself an administrator".
  */
+/**
+ * Somewhere an operator has asked to be told about things.
+ *
+ * `secret` is stored in the clear, unlike an API key's hash, and the
+ * difference is not an oversight: a key is verified, so a hash is enough,
+ * while a signature has to be *produced* on every delivery and cannot be
+ * computed from a digest of itself. It is read only by the delivery job and
+ * never leaves the server — no route returns it after the one response that
+ * creates it.
+ *
+ * The last attempt is kept on the row rather than as a log of every delivery.
+ * The question an operator has is "is this still working", not "what happened
+ * on the fourteenth", and a webhook that quietly stopped working is worse than
+ * no webhook at all. A full delivery history is a different feature with a
+ * different retention problem.
+ */
+const webhookSubscription = pgTable(
+  'webhook_subscription',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    url: text('url').notNull(),
+    secret: text('secret').notNull(),
+    preset: text('preset').notNull().default('generic'),
+    events: jsonb('events').notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+    lastAttemptAt: timestamp('lastAttemptAt'),
+    lastStatus: integer('lastStatus'),
+    lastError: text('lastError'),
+  },
+  (table) => [index('webhook_subscription_enabled_idx').on(table.enabled)],
+);
+
+/**
+ * What was sent where, and how it went.
+ *
+ * The subscription already carries its last attempt, which answers "is this
+ * still working". This answers the question after it: a receiver that fails
+ * one delivery in five looks identical, on the subscription alone, to one
+ * that has never failed, because the last attempt is only ever the most
+ * recent thing that happened.
+ *
+ * A row per delivery rather than per attempt. The envelope's id names the
+ * occurrence, not the try, so a retry finds its own row and increments
+ * `attempts` — which keeps the stored body written once and makes "was down
+ * briefly" legible as something other than repeated failure.
+ *
+ * `body` is the exact bytes that were signed, kept so a delivery can be sent
+ * again unchanged. Re-encoding the event instead would produce a different
+ * signature from the one the receiver first saw, and would defeat the
+ * deduplication the envelope's id exists to allow.
+ *
+ * Rows are pruned on a schedule — see `PRUNE_WEBHOOK_DELIVERIES_JOB`. Without
+ * that this is a table with a row per event per subscriber for as long as the
+ * server has run, read approximately never.
+ */
+const webhookDelivery = pgTable(
+  'webhook_delivery',
+  {
+    id: text('id').primaryKey(),
+    subscriptionId: text('subscriptionId')
+      .notNull()
+      .references(() => webhookSubscription.id, { onDelete: 'cascade' }),
+    eventId: text('eventId').notNull(),
+    event: text('event').notNull(),
+    body: text('body').notNull(),
+    attempts: integer('attempts').notNull().default(1),
+    firstAttemptAt: timestamp('firstAttemptAt').notNull().defaultNow(),
+    lastAttemptAt: timestamp('lastAttemptAt').notNull().defaultNow(),
+    ok: boolean('ok').notNull().default(false),
+    status: integer('status'),
+    error: text('error'),
+  },
+  (table) => [
+    uniqueIndex('webhook_delivery_occurrence_idx').on(table.subscriptionId, table.eventId),
+    index('webhook_delivery_recent_idx').on(table.subscriptionId, table.lastAttemptAt),
+    index('webhook_delivery_pruning_idx').on(table.lastAttemptAt),
+  ],
+);
+
 const role = pgTable(
   'role',
   {
@@ -602,6 +683,8 @@ export {
   mediaSegment,
   mediaItemJob,
   jobTrigger,
+  webhookSubscription,
+  webhookDelivery,
   watchProgress,
   favourite,
   user,

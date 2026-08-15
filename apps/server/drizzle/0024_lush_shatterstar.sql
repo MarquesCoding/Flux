@@ -1,1 +1,0 @@
-ALTER TABLE "media_item" ADD COLUMN "videoBitDepth" integer;
