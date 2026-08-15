@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
-import { IconCheck } from '@tabler/icons-react';
+import { RiCheckLine } from '@remixicon/react';
 import { cn } from '@FluxUI/cn';
 import type { CheckboxProps } from './Checkbox.types';
 
@@ -38,7 +38,7 @@ const Checkbox = ({
         )}
       >
         <BaseCheckbox.Indicator className="flex text-accent-contrast">
-          <IconCheck size={14} stroke={3} aria-hidden />
+          <RiCheckLine size={14} aria-hidden />
         </BaseCheckbox.Indicator>
       </BaseCheckbox.Root>
       <span id={labelId}>{label}</span>

@@ -1,5 +1,5 @@
 import { Menu } from '@base-ui/react/menu';
-import { IconCheck } from '@tabler/icons-react';
+import { RiCheckLine } from '@remixicon/react';
 import { cn } from '@FluxUI/cn';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { OptionMenuProps } from './OptionMenu.types';
@@ -113,7 +113,7 @@ const OptionMenu = ({
                         </span>
 
                         <Menu.RadioItemIndicator className="flex size-4 shrink-0 items-center justify-center text-accent">
-                          <IconCheck size={15} stroke={3} aria-hidden />
+                          <RiCheckLine size={15} aria-hidden />
                         </Menu.RadioItemIndicator>
                       </Menu.RadioItem>
                     ))}

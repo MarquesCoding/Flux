@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { AnimatedIcon } from '@FluxUI/AnimatedIcon';
 import { Button } from '@FluxUI/Button';
+import { SlidingMark } from '@FluxUI/SlidingMark';
 import { cn } from '@FluxUI/cn';
 import type { NavDockProps } from './NavDock.types';
 
@@ -43,29 +44,12 @@ import type { NavDockProps } from './NavDock.types';
  * Glass, so what passes beneath carries on being visible: the page belongs to
  * what is being shown, and the navigation rests on top of it.
  */
-/**
- * How the mark travels between items.
- *
- * A spring rather than a duration: it is following a pointer, and a pointer
- * does not move on a curve somebody chose in advance. Stiff enough to keep up
- * with a quick pass along the dock, damped enough not to wobble when it lands.
- */
-const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;
-
 const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }: NavDockProps) => {
-  const prefersReducedMotion = useReducedMotion();
-  const isStill = prefersReducedMotion === true;
   const [pointedAt, setPointedAt] = useState<string | null>(null);
 
   const lit = pointedAt ?? selectedId;
 
-  const mark = (
-    <motion.span
-      layoutId="nav-dock-mark"
-      transition={isStill ? { duration: 0 } : MARK_MOTION}
-      className="absolute inset-0 -z-10 rounded-full bg-[var(--surface-active)]"
-    />
-  );
+  const mark = <SlidingMark group="nav-dock-mark" />;
 
   return (
     <header
@@ -122,9 +106,12 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                     {isNamed ? mark : null}
 
                     {item.icon === undefined ? null : (
-                      <span className="flex shrink-0 items-center">
-                        {isCurrent ? (item.activeIcon ?? item.icon) : item.icon}
-                      </span>
+                      <AnimatedIcon
+                        isPlaying={pointedAt === item.id}
+                        icon={isCurrent ? (item.activeIcon ?? item.icon) : item.icon}
+                        {...(item.gesture === undefined ? {} : { gesture: item.gesture })}
+                        {...(item.activeIcon === undefined ? {} : { activeIcon: item.activeIcon })}
+                      />
                     )}
                   </Button>
                 </li>
@@ -167,7 +154,14 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                 >
                   {lit === action.id ? mark : null}
 
-                  {action.isCurrent === true ? (action.activeIcon ?? action.icon) : action.icon}
+                  <AnimatedIcon
+                    isPlaying={pointedAt === action.id}
+                    icon={
+                      action.isCurrent === true ? (action.activeIcon ?? action.icon) : action.icon
+                    }
+                    {...(action.gesture === undefined ? {} : { gesture: action.gesture })}
+                    {...(action.activeIcon === undefined ? {} : { activeIcon: action.activeIcon })}
+                  />
 
                   {action.badge === undefined ? null : (
                     <span className="absolute -right-0.5 -top-0.5">{action.badge}</span>
@@ -193,7 +187,11 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                 >
                   {lit === action.id ? mark : null}
 
-                  {action.control}
+                  <AnimatedIcon
+                    isPlaying={pointedAt === action.id}
+                    icon={action.control}
+                    {...(action.gesture === undefined ? {} : { gesture: action.gesture })}
+                  />
                 </div>
               ),
             )}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { IconInfoCircle, IconPlayerPlayFilled, IconX } from '@tabler/icons-react';
+import { RiCloseLine, RiInformationLine, RiPlayFill } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
@@ -189,7 +189,7 @@ const ShowDialog = ({
 
           <div className="absolute right-4 top-4">
             <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
-              <IconX size={20} aria-hidden />
+              <RiCloseLine size={20} aria-hidden />
             </Button>
           </div>
 
@@ -261,7 +261,7 @@ const ShowDialog = ({
                   onPlay(carryingOn.episode, carryingOn.startSeconds);
                 }}
               >
-                <IconPlayerPlayFilled size={18} aria-hidden />
+                <RiPlayFill size={18} aria-hidden />
                 {carryingOn.isResuming
                   ? `Resume ${formatDuration(carryingOn.startSeconds)}`
                   : `Play ${nameSeason(carryingOn.episode.seasonNumber ?? null)}, episode ${(
@@ -279,7 +279,7 @@ const ShowDialog = ({
                   onInspect(carryingOn.episode);
                 }}
               >
-                <IconInfoCircle size={18} aria-hidden />
+                <RiInformationLine size={18} aria-hidden />
                 About this episode
               </Button>
             )}

@@ -17,6 +17,10 @@
       "@FluxUI/StatTile.types": ["./packages/ui/src/components/StatTile/StatTile.types.ts"],
       "@FluxUI/ActionMenu": ["./packages/ui/src/components/ActionMenu/ActionMenu.tsx"],
       "@FluxUI/ActionMenu.types": ["./packages/ui/src/components/ActionMenu/ActionMenu.types.ts"],
+      "@FluxUI/AnimatedIcon": ["./packages/ui/src/components/AnimatedIcon/AnimatedIcon.tsx"],
+      "@FluxUI/AnimatedIcon.types": [
+        "./packages/ui/src/components/AnimatedIcon/AnimatedIcon.types.ts"
+      ],
       "@FluxUI/Card": ["./packages/ui/src/components/Card/Card.tsx"],
       "@FluxUI/ConfirmDialog": ["./packages/ui/src/components/ConfirmDialog/ConfirmDialog.tsx"],
       "@FluxUI/ConfirmDialog.types": [
@@ -70,6 +74,10 @@
       "@FluxUI/SettingsMenu": ["./packages/ui/src/components/SettingsMenu/SettingsMenu.tsx"],
       "@FluxUI/Skeleton": ["./packages/ui/src/components/Skeleton/Skeleton.tsx"],
       "@FluxUI/Slider": ["./packages/ui/src/components/Slider/Slider.tsx"],
+      "@FluxUI/SlidingMark": ["./packages/ui/src/components/SlidingMark/SlidingMark.tsx"],
+      "@FluxUI/SlidingMark.types": [
+        "./packages/ui/src/components/SlidingMark/SlidingMark.types.ts"
+      ],
       "@FluxUI/Spinner": ["./packages/ui/src/components/Spinner/Spinner.tsx"],
       "@FluxUI/SplashScreen": ["./packages/ui/src/components/SplashScreen/SplashScreen.tsx"],
       "@FluxUI/Switch": ["./packages/ui/src/components/Switch/Switch.tsx"],

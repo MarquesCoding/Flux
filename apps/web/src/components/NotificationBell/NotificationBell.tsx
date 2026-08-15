@@ -1,4 +1,4 @@
-import { IconBell, IconBellFilled } from '@tabler/icons-react';
+import { RiNotification3Fill, RiNotification3Line } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { PopoverPanel } from '@FluxUI/PopoverPanel';
@@ -48,9 +48,9 @@ const NotificationBell = ({
       trigger={
         <span className="relative flex size-9 items-center justify-center">
           {unread === 0 ? (
-            <IconBell size={20} aria-hidden />
+            <RiNotification3Line size={20} aria-hidden />
           ) : (
-            <IconBellFilled size={20} aria-hidden />
+            <RiNotification3Fill size={20} aria-hidden />
           )}
 
           {unread === 0 ? null : (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { IconDots, IconLogout } from '@tabler/icons-react';
+import { RiLogoutBoxRLine, RiMoreLine } from '@remixicon/react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
@@ -100,14 +100,14 @@ const DeviceList = () => {
             <span className="flex justify-end">
               <ActionMenu
                 label={`Actions for ${row.original.name}`}
-                trigger={<IconDots size={16} aria-hidden />}
+                trigger={<RiMoreLine size={16} aria-hidden />}
                 groups={[
                   {
                     items: [
                       {
                         id: 'end',
                         label: 'Sign this out',
-                        icon: <IconLogout size={15} aria-hidden />,
+                        icon: <RiLogoutBoxRLine size={15} aria-hidden />,
                         isDestructive: true,
                         onChoose: () => {
                           live.current.onEnd(row.original);
@@ -183,7 +183,7 @@ const DeviceList = () => {
               setIsEndingRest(true);
             }}
           >
-            <IconLogout size={15} aria-hidden />
+            <RiLogoutBoxRLine size={15} aria-hidden />
             Sign out everywhere else
           </Button>
         )}

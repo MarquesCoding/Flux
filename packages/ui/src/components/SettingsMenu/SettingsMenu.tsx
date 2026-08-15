@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { RiArrowLeftSLine, RiArrowRightSLine, RiCheckLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { HoverHighlight } from '@FluxUI/HoverHighlight';
 import { Switch } from '@FluxUI/Switch';
@@ -224,7 +224,7 @@ const SettingsMenu = ({
                             <span className="truncate" title={answer ?? undefined}>
                               {answer}
                             </span>
-                            <IconChevronRight size={16} className="shrink-0" aria-hidden />
+                            <RiArrowRightSLine size={16} className="shrink-0" aria-hidden />
                           </span>
                         </Button>
                       );
@@ -240,7 +240,7 @@ const SettingsMenu = ({
                           'shrink-0 border-b border-[var(--surface-line)] font-medium ',
                         )}
                       >
-                        <IconChevronLeft size={18} aria-hidden />
+                        <RiArrowLeftSLine size={18} aria-hidden />
                         {opened.label}
                       </Button>,
 
@@ -266,7 +266,7 @@ const SettingsMenu = ({
                             >
                               <span className="flex size-4 shrink-0 items-center justify-center">
                                 {choice.id === opened.selectedId ? (
-                                  <IconCheck size={16} stroke={3} aria-hidden />
+                                  <RiCheckLine size={16} aria-hidden />
                                 ) : null}
                               </span>
 

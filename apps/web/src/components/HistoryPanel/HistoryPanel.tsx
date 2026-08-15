@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { IconCheck, IconTrash } from '@tabler/icons-react';
+import { RiCheckLine, RiDeleteBinLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Badge } from '@FluxUI/Badge';
 import { Spinner } from '@FluxUI/Spinner';
@@ -108,7 +108,7 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
 
               {viewing.isFinished ? (
                 <Badge tone="accent">
-                  <IconCheck size={12} aria-hidden />
+                  <RiCheckLine size={12} aria-hidden />
                   Finished
                 </Badge>
               ) : null}
@@ -123,7 +123,7 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
                   void forgetOne(viewing.id);
                 }}
               >
-                <IconTrash size={16} aria-hidden />
+                <RiDeleteBinLine size={16} aria-hidden />
               </Button>
             </motion.li>
           ))}
@@ -158,7 +158,7 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
             void forgetTheLot();
           }}
         >
-          <IconTrash size={16} aria-hidden />
+          <RiDeleteBinLine size={16} aria-hidden />
           Forget everything
         </Button>
       </div>

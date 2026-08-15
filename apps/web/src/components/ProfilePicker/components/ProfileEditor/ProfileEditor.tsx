@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconPhotoUp, IconRefresh } from '@tabler/icons-react';
+import { RiImageAddLine, RiRefreshLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
 import { FilePicker } from '@FluxUI/FilePicker';
@@ -204,7 +204,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               }
             }}
           >
-            <IconRefresh size={16} aria-hidden />
+            <RiRefreshLine size={16} aria-hidden />
             Different faces
           </Button>
 
@@ -217,7 +217,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               }}
             >
               <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-white/10 hover:text-text">
-                <IconPhotoUp size={16} aria-hidden />
+                <RiImageAddLine size={16} aria-hidden />
                 {photo === null ? 'Upload a photo' : photo.name}
               </span>
             </FilePicker>

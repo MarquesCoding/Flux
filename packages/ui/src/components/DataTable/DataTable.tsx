@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTable } from '@tanstack/react-table';
-import { IconArrowDown, IconArrowUp, IconArrowsSort } from '@tabler/icons-react';
+import { RiArrowDownLine, RiArrowUpLine, RiExpandUpDownLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { cn } from '@FluxUI/cn';
 import { HoverHighlight } from '@FluxUI/HoverHighlight';
@@ -147,11 +147,11 @@ const DataTable = <Row extends RowData>({
                           <table.FlexRender header={header} />
 
                           {direction === 'asc' ? (
-                            <IconArrowUp size={13} aria-hidden />
+                            <RiArrowUpLine size={13} aria-hidden />
                           ) : direction === 'desc' ? (
-                            <IconArrowDown size={13} aria-hidden />
+                            <RiArrowDownLine size={13} aria-hidden />
                           ) : (
-                            <IconArrowsSort size={13} className="opacity-40" aria-hidden />
+                            <RiExpandUpDownLine size={13} className="opacity-40" aria-hidden />
                           )}
                         </Button>
                       ) : (
