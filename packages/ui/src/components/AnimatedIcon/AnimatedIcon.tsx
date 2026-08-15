@@ -35,10 +35,6 @@ const GESTURES: Record<IconGesture, Variants> = {
     rest: { scale: 1 },
     play: { scale: [1, 1.18, 1], transition: { duration: 0.4, delay: 0.3, ease: 'easeOut' } },
   },
-  climb: {
-    rest: { y: 0 },
-    play: { y: [0, -2, 0], transition: { duration: 0.6, ease: 'easeOut' } },
-  },
   settle: {
     rest: { y: 0 },
     play: { y: [0, -2, 0], transition: { duration: 0.45, ease: 'easeOut' } },
@@ -46,20 +42,16 @@ const GESTURES: Record<IconGesture, Variants> = {
 };
 
 /**
- * How the filled twin arrives, for the gestures that fill.
+ * How the filled twin arrives, for the gesture that fills.
  *
- * A wipe rather than a fade: `fill` rises from the bottom, the way something
- * fills up, and `climb` runs left to right, the way a line is drawn. Both are
- * clip paths, so the icon underneath is never moved or scaled by the reveal.
+ * A wipe rather than a fade, rising from the bottom the way something fills
+ * up — a heart with what is kept in it, a flame catching. A clip path, so the
+ * icon underneath is never moved or scaled by the reveal.
  */
 const WIPES: Partial<Record<IconGesture, Variants>> = {
   fill: {
     rest: { clipPath: 'inset(100% 0% 0% 0%)' },
     play: { clipPath: 'inset(0% 0% 0% 0%)', transition: { duration: 0.45, ease: 'easeOut' } },
-  },
-  climb: {
-    rest: { clipPath: 'inset(0% 100% 0% 0%)' },
-    play: { clipPath: 'inset(0% 0% 0% 0%)', transition: { duration: 0.5, ease: 'easeOut' } },
   },
 };
 

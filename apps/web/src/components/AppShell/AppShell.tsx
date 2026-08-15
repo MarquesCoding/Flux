@@ -9,8 +9,8 @@ import {
   RiHeartLine,
   RiHome5Fill,
   RiHome5Line,
-  RiLineChartFill,
-  RiLineChartLine,
+  RiFireFill,
+  RiFireLine,
   RiNotification3Line,
   RiSearchFill,
   RiSearchLine,
@@ -52,7 +52,7 @@ const SECTION_ICONS: Record<ShellSection, ReactNode> = {
   home: <RiHome5Line size={18} aria-hidden />,
   shows: <RiTvLine size={18} aria-hidden />,
   films: <RiFilmLine size={18} aria-hidden />,
-  new: <RiLineChartLine size={18} aria-hidden />,
+  new: <RiFireLine size={18} aria-hidden />,
   favourites: <RiHeartLine size={18} aria-hidden />,
   search: <RiSearchLine size={18} aria-hidden />,
   account: <RiAccountCircleLine size={18} aria-hidden />,
@@ -75,7 +75,7 @@ const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
   home: <RiHome5Fill size={18} aria-hidden />,
   shows: <RiTvFill size={18} aria-hidden />,
   films: <RiFilmFill size={18} aria-hidden />,
-  new: <RiLineChartFill size={18} aria-hidden />,
+  new: <RiFireFill size={18} aria-hidden />,
   favourites: <RiHeartFill size={18} aria-hidden />,
   search: <RiSearchFill size={18} aria-hidden />,
   account: <RiAccountCircleFill size={18} aria-hidden />,
@@ -86,16 +86,16 @@ const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
  * How each mark moves when a pointer arrives on it.
  *
  * Chosen to say what the place is rather than to be movement for its own sake:
- * favourites fills the way a heart fills, New & Popular draws its line upward,
- * and everywhere that is simply somewhere to go rises a little and settles. A
- * gesture that meant nothing would be worse than stillness, which is why most
- * of these are the quiet one.
+ * favourites fills the way a heart fills, New & Popular catches from the
+ * bottom the way a flame does, and everywhere that is simply somewhere to go
+ * rises a little and settles. A gesture that meant nothing would be worse than
+ * stillness, which is why most of these are the quiet one.
  */
 const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
   home: 'settle',
   shows: 'settle',
   films: 'settle',
-  new: 'climb',
+  new: 'fill',
   favourites: 'fill',
   search: 'settle',
   account: 'settle',

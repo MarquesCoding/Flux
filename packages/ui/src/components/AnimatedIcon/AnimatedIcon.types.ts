@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
  * anything unnamed gets. An icon whose movement would say nothing about what
  * it does is better still than busy.
  */
-type IconGesture = 'spin' | 'ring' | 'tumble' | 'fill' | 'climb' | 'settle';
+type IconGesture = 'spin' | 'ring' | 'tumble' | 'fill' | 'settle';
 
 type AnimatedIconProps = {
   gesture?: IconGesture;
@@ -24,12 +24,12 @@ type AnimatedIconProps = {
   isPlaying: boolean;
   icon: ReactNode;
   /**
-   * The filled twin of the same mark, for the gestures that fill.
+   * The filled twin of the same mark, for the gesture that fills.
    *
-   * `fill` and `climb` reveal this over the icon rather than crossfading to
-   * it, which is what makes a heart look like it is filling rather than like
-   * two hearts dissolving into each other. Left out, both gestures fall back
-   * to their movement alone.
+   * `fill` reveals this over the icon rather than crossfading to it, which is
+   * what makes a heart look like it is filling rather than like two hearts
+   * dissolving into each other. Left out, the gesture falls back to its
+   * movement alone.
    */
   activeIcon?: ReactNode;
 };
