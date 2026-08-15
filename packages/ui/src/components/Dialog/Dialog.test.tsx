@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Dialog } from './Dialog';
 
 describe('Dialog', () => {
@@ -91,5 +91,57 @@ describe('Dialog', () => {
     expect(panel.className).toContain('duration-[280ms]');
     expect(panel.className).not.toContain('data-[ending-style]:duration-150');
     expect(panel.className).toContain('sm:data-[ending-style]:scale-[0.92]');
+  });
+
+  describe('in fullscreen', () => {
+    /**
+     * Says an element is fullscreen the way a browser reports it.
+     *
+     * jsdom implements neither `requestFullscreen` nor `fullscreenElement`,
+     * so the property is set and the event dispatched by hand.
+     */
+    const goFullscreen = (element: Element | null) => {
+      Object.defineProperty(document, 'fullscreenElement', {
+        configurable: true,
+        value: element,
+        writable: true,
+      });
+
+      document.dispatchEvent(new Event('fullscreenchange'));
+    };
+
+    afterEach(() => {
+      goFullscreen(null);
+    });
+
+    it('lands on the fullscreen element though it is rendered outside that tree', () => {
+      const stage = document.createElement('div');
+
+      document.body.append(stage);
+      goFullscreen(stage);
+
+      render(
+        <Dialog label="Arrival" isOpen onClose={vi.fn()}>
+          <p>Details</p>
+        </Dialog>,
+      );
+
+      expect(stage.contains(screen.getByText('Details'))).toBe(true);
+    });
+
+    it('goes back to the body when nothing is fullscreen', () => {
+      const stage = document.createElement('div');
+
+      document.body.append(stage);
+
+      render(
+        <Dialog label="Arrival" isOpen onClose={vi.fn()}>
+          <p>Details</p>
+        </Dialog>,
+      );
+
+      expect(stage.contains(screen.getByText('Details'))).toBe(false);
+      expect(document.body.contains(screen.getByText('Details'))).toBe(true);
+    });
   });
 });

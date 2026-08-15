@@ -1,4 +1,5 @@
 import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
+import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { TooltipProps } from './Tooltip.types';
 
 /**
@@ -58,6 +59,8 @@ const Tooltip = ({
   isDisabled = false,
   delayMilliseconds = DELAY_MILLISECONDS,
 }: TooltipProps) => {
+  const portalContainer = usePortalContainer();
+
   if (isDisabled) {
     return children;
   }
@@ -67,7 +70,7 @@ const Tooltip = ({
       <BaseTooltip.Root>
         <BaseTooltip.Trigger render={children} />
 
-        <BaseTooltip.Portal>
+        <BaseTooltip.Portal container={portalContainer}>
           <BaseTooltip.Positioner side={side} sideOffset={8} collisionPadding={8} className="z-50">
             <BaseTooltip.Popup
               aria-hidden

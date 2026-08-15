@@ -1,6 +1,7 @@
 import { Popover } from '@base-ui/react/popover';
 import { cn } from '@FluxUI/cn';
 import { Tooltip } from '@FluxUI/Tooltip';
+import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { PopoverPanelProps } from './PopoverPanel.types';
 
 /**
@@ -21,50 +22,54 @@ const PopoverPanel = ({
   side = 'top',
   isDisabled = false,
   className,
-}: PopoverPanelProps) => (
-  <Popover.Root
-    {...(isOpen === undefined ? {} : { open: isOpen })}
-    {...(onOpenChange === undefined ? {} : { onOpenChange })}
-  >
-    <Tooltip label={label} side={side === 'top' ? 'top' : 'bottom'}>
-      <Popover.Trigger
-        aria-label={label}
-        disabled={isDisabled}
-        className={cn(
-          'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
-          'text-current transition-colors hover:bg-white/15',
-          'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
-        )}
-      >
-        {trigger}
-      </Popover.Trigger>
-    </Tooltip>
+}: PopoverPanelProps) => {
+  const portalContainer = usePortalContainer();
 
-    <Popover.Portal>
-      <Popover.Positioner
-        side={side}
-        sideOffset={12}
-        align="end"
-        collisionPadding={12}
-        className="z-50"
-      >
-        <Popover.Popup
+  return (
+    <Popover.Root
+      {...(isOpen === undefined ? {} : { open: isOpen })}
+      {...(onOpenChange === undefined ? {} : { onOpenChange })}
+    >
+      <Tooltip label={label} side={side === 'top' ? 'top' : 'bottom'}>
+        <Popover.Trigger
           aria-label={label}
+          disabled={isDisabled}
           className={cn(
-            'flux-glass flex max-h-[70vh] flex-col overflow-hidden rounded-2xl p-3 text-white',
-            className,
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
+            'text-current transition-colors hover:bg-white/15',
+            'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
-          {heading === undefined ? null : (
-            <h3 className="shrink-0 px-1 pb-3 text-base font-medium tracking-tight">{heading}</h3>
-          )}
+          {trigger}
+        </Popover.Trigger>
+      </Tooltip>
 
-          <div className="flux-rail min-h-0 flex-1 overflow-y-auto">{children}</div>
-        </Popover.Popup>
-      </Popover.Positioner>
-    </Popover.Portal>
-  </Popover.Root>
-);
+      <Popover.Portal container={portalContainer}>
+        <Popover.Positioner
+          side={side}
+          sideOffset={12}
+          align="end"
+          collisionPadding={12}
+          className="z-50"
+        >
+          <Popover.Popup
+            aria-label={label}
+            className={cn(
+              'flux-glass flex max-h-[70vh] flex-col overflow-hidden rounded-2xl p-3 text-white',
+              className,
+            )}
+          >
+            {heading === undefined ? null : (
+              <h3 className="shrink-0 px-1 pb-3 text-base font-medium tracking-tight">{heading}</h3>
+            )}
+
+            <div className="flux-rail min-h-0 flex-1 overflow-y-auto">{children}</div>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+};
 
 PopoverPanel.displayName = 'PopoverPanel';
 

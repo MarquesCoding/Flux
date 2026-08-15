@@ -2,6 +2,7 @@ import { Menu } from '@base-ui/react/menu';
 import { cn } from '@FluxUI/cn';
 import { HoverHighlight } from '@FluxUI/HoverHighlight';
 import { useSlidingHighlight } from '@FluxUI/useSlidingHighlight';
+import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { ActionMenuProps } from './ActionMenu.types';
 
 const POPUP_MOTION = cn(
@@ -30,6 +31,8 @@ const ActionMenu = ({
   isDisabled = false,
   className,
 }: ActionMenuProps) => {
+  const portalContainer = usePortalContainer();
+
   const { containerRef, rect, follow, clear } = useSlidingHighlight();
 
   return (
@@ -48,7 +51,7 @@ const ActionMenu = ({
         {trigger}
       </Menu.Trigger>
 
-      <Menu.Portal>
+      <Menu.Portal container={portalContainer}>
         <Menu.Positioner sideOffset={8} align={align} className="z-50">
           <Menu.Popup
             aria-label={label}
