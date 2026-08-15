@@ -81,9 +81,19 @@ const MediaProbeSchema = z.object({
   subtitleStreams: z.array(ProbeSubtitleSchema),
 });
 
+/**
+ * What the media service says it has started.
+ *
+ * `encodesVideo` is how the server learns that the copy it asked for was
+ * refused: a source whose own keyframes cannot produce segments a player will
+ * take is encoded instead, and only the media service can tell, because the
+ * decision needs the packet index the server never reads. Defaulted so a media
+ * service that predates the field still parses.
+ */
 const SessionResponseSchema = z.object({
   id: z.string().min(1),
   manifest: z.string().min(1),
+  encodesVideo: z.boolean().default(false),
 });
 
 const CapabilitiesSchema = z.object({

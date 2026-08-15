@@ -167,9 +167,17 @@ pub fn parse_range(header: &str, length: u64) -> Option<ByteRange> {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionResponse {
     pub id: String,
     pub manifest: String,
+    /// Whether the video is being encoded, whatever the caller asked for.
+    ///
+    /// A copy is refused when the source's own keyframes cannot produce
+    /// segments a player will take. The caller decided to copy and will tell a
+    /// viewer so, and this is how it learns that what it decided is not what is
+    /// happening. See FLUX-125.
+    pub encodes_video: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -421,14 +429,16 @@ async fn start_session(
         return error(StatusCode::NOT_FOUND, "No such input file.");
     }
 
-    let id = match state.registry.start(spec, device_id.as_deref()).await {
-        Ok(id) => id,
+    let started = match state.registry.start(spec, device_id.as_deref()).await {
+        Ok(started) => started,
         Err(failure) => {
             eprintln!("session refused: {failure}");
 
             return error(StatusCode::INTERNAL_SERVER_ERROR, &failure.to_string());
         }
     };
+
+    let id = started.id;
 
     let Some(directory) = state.registry.touch(&id).await else {
         return error(
@@ -456,6 +466,7 @@ async fn start_session(
         Json(SessionResponse {
             manifest: format!("/sessions/{id}/{MANIFEST_NAME}"),
             id,
+            encodes_video: started.encodes_video,
         }),
     )
         .into_response()

@@ -11,8 +11,8 @@ use tokio::sync::{oneshot, Mutex, Notify};
 use crate::boundaries::ensure_boundaries;
 use crate::playlist::segment_at;
 use crate::transcode_plan::{
-    DeviceFilters, SegmentStart, SessionSpec, TranscodePlan, VideoAction, MANIFEST_NAME,
-    RUN_PLAYLIST_NAME,
+    DeviceFilters, HardwareAccel, SegmentStart, SessionSpec, TranscodePlan, VideoAction,
+    MANIFEST_NAME, RUN_PLAYLIST_NAME,
 };
 
 /// Written only when ffmpeg exits cleanly.
@@ -270,14 +270,27 @@ impl Session {
     }
 }
 
-/// The encoder used when a source cannot be copied after all.
+/// What to encode with when a source cannot be copied after all.
 ///
-/// Software H.264, because this is a correctness backstop rather than a
-/// considered choice: the server picks encoders from the client's profile and
-/// the machine's capabilities, and it has already been told this stream would
-/// be copied. Every browser plays H.264, so a film that would otherwise not
-/// play at all does.
-const FALLBACK_ENCODER: &str = "libx264";
+/// H.264 because every browser plays it and the client was never asked which
+/// codec it would prefer for a stream nobody expected to encode. Which H.264
+/// encoder is the machine's business: capabilities are listed hardware first
+/// and verified by running a frame through them, so the best one this box can
+/// actually drive is the first that matches.
+///
+/// `libx264` only when nothing was verified, which is a build with no working
+/// encoder at all — the transcode will fail either way, and failing on the
+/// encoder ffmpeg always ships is the clearer failure.
+fn fallback_encoder(capabilities: &crate::capability::Capabilities) -> (String, HardwareAccel) {
+    capabilities
+        .encoders
+        .iter()
+        .find(|found| found.codec == "h264" && found.verified)
+        .map_or_else(
+            || ("libx264".to_owned(), HardwareAccel::None),
+            |found| (found.encoder.clone(), found.accel),
+        )
+}
 
 /// The spec that can actually be delivered.
 ///
@@ -295,10 +308,14 @@ async fn deliverable(config: &SessionConfig, spec: SessionSpec, can_copy: bool) 
         return spec;
     }
 
-    match crate::probe::probe_media(&config.ffprobe, Path::new(&spec.input_path)).await {
-        Ok(probe) => encode_instead(spec, &probe),
-        Err(_) => spec,
-    }
+    let Ok(probe) = crate::probe::probe_media(&config.ffprobe, Path::new(&spec.input_path)).await
+    else {
+        return spec;
+    };
+
+    let capabilities = crate::capability::detect_capabilities(&config.ffmpeg, &config.device).await;
+
+    encode_instead(spec, &probe, &capabilities)
 }
 
 /// Turns a copy into an encode of the same picture.
@@ -312,8 +329,13 @@ async fn deliverable(config: &SessionConfig, spec: SessionSpec, can_copy: bool) 
 /// The session keeps the id it was addressed by. The request has not changed —
 /// only what has to be done to answer it — and the substitution is the same
 /// every time, so the directory stays stable across restarts.
-fn encode_instead(spec: SessionSpec, probe: &crate::media::MediaProbe) -> SessionSpec {
+fn encode_instead(
+    spec: SessionSpec,
+    probe: &crate::media::MediaProbe,
+    capabilities: &crate::capability::Capabilities,
+) -> SessionSpec {
     let video = probe.video.as_ref();
+    let (encoder, accel) = fallback_encoder(capabilities);
 
     let (max_width, max_height) = spec
         .source_size
@@ -326,8 +348,9 @@ fn encode_instead(spec: SessionSpec, probe: &crate::media::MediaProbe) -> Sessio
         .unwrap_or(8_000);
 
     SessionSpec {
+        hardware_accel: accel,
         video: VideoAction::Encode {
-            encoder: FALLBACK_ENCODER.to_owned(),
+            encoder,
             max_bitrate_kbps,
             max_width,
             max_height,
@@ -335,6 +358,19 @@ fn encode_instead(spec: SessionSpec, probe: &crate::media::MediaProbe) -> Sessio
         },
         ..spec
     }
+}
+
+/// A session that is now serving, and what it turned out to be doing.
+#[derive(Debug, Clone)]
+pub struct Started {
+    pub id: String,
+    /// Whether the video is being encoded, whatever the caller asked for.
+    ///
+    /// A copy is refused when the source's own keyframes cannot produce
+    /// deliverable segments, and the caller has to be told: it decided to copy,
+    /// it will report that decision to a viewer, and it would otherwise report
+    /// something that is not happening.
+    pub encodes_video: bool,
 }
 
 /// Where a run of the transcode began and how far it has got.
@@ -567,7 +603,7 @@ impl SessionRegistry {
         &self,
         spec: SessionSpec,
         device: Option<&str>,
-    ) -> Result<String, SessionError> {
+    ) -> Result<Started, SessionError> {
         let id = spec.plan_id();
         let deadline = Instant::now() + STARTING_TIMEOUT;
 
@@ -598,7 +634,7 @@ impl SessionRegistry {
     ///
     /// Counts the joiner as a holder, so the transcode outlives whichever of
     /// them stops first.
-    async fn join(&self, id: &str, device: Option<&str>) -> Option<String> {
+    async fn join(&self, id: &str, device: Option<&str>) -> Option<Started> {
         let mut sessions = self.sessions.lock().await;
         let existing = sessions.get_mut(id)?;
 
@@ -606,6 +642,7 @@ impl SessionRegistry {
         existing.holders += 1;
 
         let directory = existing.directory.clone();
+        let encodes_video = matches!(existing.spec.video, VideoAction::Encode { .. });
 
         drop(sessions);
 
@@ -613,7 +650,10 @@ impl SessionRegistry {
             record_device(&directory, device).await;
         }
 
-        Some(id.to_owned())
+        Some(Started {
+            id: id.to_owned(),
+            encodes_video,
+        })
     }
 
     /// Makes the session for a plan nothing is serving yet.
@@ -622,7 +662,7 @@ impl SessionRegistry {
         id: &str,
         spec: SessionSpec,
         device: Option<&str>,
-    ) -> Result<String, SessionError> {
+    ) -> Result<Started, SessionError> {
         let id = id.to_owned();
 
         self.collect_idle().await;
@@ -709,11 +749,13 @@ impl SessionRegistry {
             self.begin_run(&mut session, opening).await;
         }
 
+        let encodes_video = matches!(session.spec.video, VideoAction::Encode { .. });
+
         let mut sessions = self.sessions.lock().await;
 
         sessions.insert(id.clone(), session);
 
-        Ok(id)
+        Ok(Started { id, encodes_video })
     }
 
     /// Starts a run at a segment, stopping whatever was running before.
