@@ -29,7 +29,7 @@ pub const LENGTHS_NAME: &str = "lengths.json";
 /// written by an older Flux describes files that will never be produced now,
 /// and a playlist naming them is a film that cannot play. The boundaries are
 /// then worked out again and the playlist rewritten, which costs one probe.
-const LAYOUT: u32 = 2;
+const LAYOUT: u32 = 3;
 
 /// Where a plan's segments fall, and what the muxer has to be asked for to
 /// make them fall there.

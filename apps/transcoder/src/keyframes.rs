@@ -20,11 +20,34 @@ use tokio::process::Command;
 
 use crate::probe::ProbeError;
 
+/// A keyframe a segment can begin at, and where that segment really begins.
+///
+/// The two are not the same on an open GOP. The muxer cuts in decode order at
+/// the keyframe, so the packets that follow it there include leading pictures —
+/// frames shown *before* the keyframe but decoded after it. They travel with
+/// the segment the keyframe opens, and they carry its earliest presentation
+/// time with them.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Cut {
+    /// The keyframe's own presentation time.
+    ///
+    /// What the muxer measures its target against, so this is what decides
+    /// which keyframes become cuts.
+    pub at_seconds: f64,
+    /// The earliest presentation time in the segment beginning here.
+    ///
+    /// What the playlist has to declare, because it is where the player will
+    /// find the segment's media once it has been transmuxed.
+    pub starts_at_seconds: f64,
+}
+
 /// Where a source can be cut, and how long it runs.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Keyframes {
-    /// Every keyframe's presentation time, in seconds, ascending.
-    pub at_seconds: Vec<f64>,
+    /// Every keyframe, ascending, with the boundary it really produces.
+    pub cuts: Vec<Cut>,
+    /// The film's earliest presentation time, where its first segment begins.
+    pub starts_at_seconds: f64,
     /// How long the film runs, so the last segment has an end.
     pub duration_seconds: f64,
 }
@@ -72,43 +95,75 @@ pub async fn read_keyframes(
         });
     }
 
-    Ok(Keyframes {
-        at_seconds: parse_keyframe_times(&String::from_utf8_lossy(&output.stdout)),
+    Ok(parse_cuts(
+        &String::from_utf8_lossy(&output.stdout),
         duration_seconds,
-    })
+    ))
 }
 
-/// Reads the keyframe times out of ffprobe's csv, in order and without gaps.
+/// Reads where a source can be cut out of ffprobe's csv.
 ///
 /// Each row is a packet: its time, then its flags. `K` marks a keyframe, and
 /// only those can begin a segment — every other packet depends on something
 /// before it.
 ///
-/// Sorted rather than trusted: asked for frames, ffprobe answers in decode
-/// order, and with B-frames that is not presentation order. A segment list
-/// that goes backwards is worse than no segment list at all.
+/// The rows arrive in decode order, which is the order the muxer writes in, so
+/// they are walked backwards to find the earliest presentation time still ahead
+/// of each keyframe. That is the boundary the keyframe really produces: on an
+/// open GOP it sits a few frames before the keyframe's own time, and by a
+/// different few for every GOP.
+///
+/// Measured across five sources — H.264 and HEVC, 8 and 10 bit, MKV and MP4,
+/// keyframes two and ten seconds apart — this predicts the start of every
+/// segment ffmpeg wrote exactly. The keyframe's own time predicts the closed
+/// GOPs and is up to 0.167s out on the open ones, which is the wobble a player
+/// turns into a hole at every join. See FLUX-125.
+///
+/// Sorted rather than trusted, because decode order is not presentation order
+/// and a segment list that goes backwards is worse than no segment list at all.
 ///
 /// Rows that are not a number are dropped. ffprobe emits a bare `N/A` for a
 /// frame whose timestamp the container never carried, and a trailing empty
 /// line for every file.
 #[must_use]
-pub fn parse_keyframe_times(csv: &str) -> Vec<f64> {
-    let mut times: Vec<f64> = csv
+pub fn parse_cuts(csv: &str, duration_seconds: f64) -> Keyframes {
+    let packets: Vec<(f64, bool)> = csv
         .lines()
         .filter_map(|line| {
             let mut columns = line.trim().split(',');
-            let time = columns.next()?;
+            let time = columns.next()?.parse::<f64>().ok()?;
             let flags = columns.next().unwrap_or_default();
 
-            flags.contains('K').then(|| time.parse::<f64>().ok())?
+            (time.is_finite() && time >= 0.0).then_some((time, flags.contains('K')))
         })
-        .filter(|time| time.is_finite() && *time >= 0.0)
         .collect();
 
-    times.sort_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal));
-    times.dedup();
+    let mut cuts = Vec::new();
+    let mut earliest = f64::INFINITY;
 
-    times
+    for (time, is_keyframe) in packets.iter().rev() {
+        earliest = earliest.min(*time);
+
+        if *is_keyframe {
+            cuts.push(Cut {
+                at_seconds: *time,
+                starts_at_seconds: earliest,
+            });
+        }
+    }
+
+    cuts.sort_by(|left, right| {
+        left.at_seconds
+            .partial_cmp(&right.at_seconds)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    cuts.dedup_by(|left, right| (left.at_seconds - right.at_seconds).abs() < f64::EPSILON);
+
+    Keyframes {
+        cuts,
+        starts_at_seconds: if earliest.is_finite() { earliest } else { 0.0 },
+        duration_seconds,
+    }
 }
 
 /// The segments a source actually yields, given the length asked for.
@@ -131,6 +186,12 @@ pub fn parse_keyframe_times(csv: &str) -> Vec<f64> {
 ///
 /// The result is what the playlist must declare. Declaring the requested
 /// length instead would be a lie the player discovers one segment in.
+///
+/// Which keyframes become cuts is decided on their own times, because that is
+/// what the muxer compares its target against. How long the segments between
+/// them are is measured on the boundaries those cuts produce, because that is
+/// what the player will find in the media. Keeping the two apart is what lets
+/// the lengths be corrected without moving a single cut.
 #[must_use]
 pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> {
     if desired_seconds <= 0.0 {
@@ -138,20 +199,20 @@ pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> 
     }
 
     let mut lengths = Vec::new();
-    let mut last_cut = 0.0;
+    let mut last_start = keyframes.starts_at_seconds;
     let mut next_cut = desired_seconds;
 
-    for keyframe in &keyframes.at_seconds {
-        if *keyframe < next_cut {
+    for cut in &keyframes.cuts {
+        if cut.at_seconds < next_cut {
             continue;
         }
 
-        lengths.push(keyframe - last_cut);
-        last_cut = *keyframe;
+        lengths.push(cut.starts_at_seconds - last_start);
+        last_start = cut.starts_at_seconds;
         next_cut += desired_seconds;
     }
 
-    let remaining = keyframes.duration_seconds - last_cut;
+    let remaining = keyframes.duration_seconds - (last_start - keyframes.starts_at_seconds);
 
     if remaining > 0.0 {
         lengths.push(remaining);
@@ -181,9 +242,9 @@ pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> 
 #[must_use]
 pub fn cut_interval(keyframes: &Keyframes, requested_seconds: f64) -> f64 {
     let closest = keyframes
-        .at_seconds
+        .cuts
         .windows(2)
-        .map(|pair| pair[1] - pair[0])
+        .map(|pair| pair[1].at_seconds - pair[0].at_seconds)
         .filter(|gap| *gap > 0.0)
         .fold(f64::INFINITY, f64::min);
 
@@ -213,13 +274,29 @@ pub fn segment_starts(lengths: &[f64]) -> Vec<f64> {
 
 #[cfg(test)]
 mod tests {
-    use super::{cut_interval, parse_keyframe_times, segment_lengths, segment_starts, Keyframes};
+    use super::{cut_interval, parse_cuts, segment_lengths, segment_starts, Cut, Keyframes};
 
+    /// A source whose segments begin exactly at their keyframes.
+    ///
+    /// What a closed GOP gives, and what every case that is not about leading
+    /// pictures wants to be told.
     fn keyframes(at_seconds: &[f64], duration_seconds: f64) -> Keyframes {
         Keyframes {
-            at_seconds: at_seconds.to_vec(),
+            cuts: at_seconds
+                .iter()
+                .map(|at| Cut {
+                    at_seconds: *at,
+                    starts_at_seconds: *at,
+                })
+                .collect(),
+            starts_at_seconds: 0.0,
             duration_seconds,
         }
+    }
+
+    /// The keyframe times a parse found, for the cases that only care about those.
+    fn times_of(keyframes: &Keyframes) -> Vec<f64> {
+        keyframes.cuts.iter().map(|cut| cut.at_seconds).collect()
     }
 
     /// ffprobe answers in decode order, which is not presentation order.
@@ -229,9 +306,9 @@ mod tests {
     /// order goes backwards.
     #[test]
     fn puts_the_keyframes_in_the_order_they_are_watched() {
-        let times = parse_keyframe_times("0.0,K__\n13.055,K__\n2.628,K__\n30.614,K__\n");
+        let found = parse_cuts("0.0,K__\n13.055,K__\n2.628,K__\n30.614,K__\n", 40.0);
 
-        assert_eq!(times, vec![0.0, 2.628, 13.055, 30.614]);
+        assert_eq!(times_of(&found), vec![0.0, 2.628, 13.055, 30.614]);
     }
 
     /// Only a keyframe can begin a segment.
@@ -240,16 +317,136 @@ mod tests {
     /// gives a segment that cannot be decoded on its own.
     #[test]
     fn takes_only_the_packets_a_segment_could_start_at() {
-        let times = parse_keyframe_times("0.0,K__\n0.04,___\n0.08,___\n4.0,K__\n");
+        let found = parse_cuts("0.0,K__\n0.04,___\n0.08,___\n4.0,K__\n", 8.0);
 
-        assert_eq!(times, vec![0.0, 4.0]);
+        assert_eq!(times_of(&found), vec![0.0, 4.0]);
     }
 
     #[test]
     fn drops_rows_that_are_not_a_time() {
-        let times = parse_keyframe_times("0.000000,K__\nN/A,K__\n\n4.5,K__\n");
+        let found = parse_cuts("0.000000,K__\nN/A,K__\n\n4.5,K__\n", 9.0);
 
-        assert_eq!(times, vec![0.0, 4.5]);
+        assert_eq!(times_of(&found), vec![0.0, 4.5]);
+    }
+
+    /// A closed GOP begins its segment at its keyframe and nowhere else.
+    ///
+    /// Every packet after the keyframe in decode order is also after it in
+    /// presentation, so there is nothing in front of it to pull the boundary
+    /// back. Measured on all three H.264 fixtures, which drift by nothing.
+    #[test]
+    fn begins_a_closed_gop_at_its_keyframe() {
+        let found = parse_cuts("0.0,K__\n0.042,___\n0.084,___\n4.0,K__\n4.042,___\n", 8.0);
+
+        assert_eq!(
+            found.cuts,
+            vec![
+                Cut {
+                    at_seconds: 0.0,
+                    starts_at_seconds: 0.0
+                },
+                Cut {
+                    at_seconds: 4.0,
+                    starts_at_seconds: 4.0
+                },
+            ]
+        );
+    }
+
+    /// An open GOP begins its segment before its keyframe.
+    ///
+    /// The two rows after the keyframe are leading pictures: decoded after it,
+    /// shown before it. They are written into the segment the keyframe opens,
+    /// so the segment's media starts at 3.916 however loudly the keyframe says
+    /// 4.0. Declaring 4.0 is what opens a hole at the join.
+    #[test]
+    fn begins_an_open_gop_before_its_keyframe() {
+        let found = parse_cuts(
+            "0.0,K__\n0.042,___\n4.0,K__\n3.916,___\n3.958,___\n4.042,___\n",
+            8.0,
+        );
+
+        assert_eq!(
+            found.cuts,
+            vec![
+                Cut {
+                    at_seconds: 0.0,
+                    starts_at_seconds: 0.0
+                },
+                Cut {
+                    at_seconds: 4.0,
+                    starts_at_seconds: 3.916
+                },
+            ]
+        );
+    }
+
+    /// A leading picture belongs to the keyframe it follows, not the one before.
+    ///
+    /// The running minimum is taken over what is still ahead in decode order,
+    /// so a frame shown early cannot reach back past the cut it arrived after
+    /// and shorten a segment that was already whole.
+    #[test]
+    fn does_not_let_a_leading_picture_reach_back_past_an_earlier_cut() {
+        let found = parse_cuts("0.0,K__\n4.0,K__\n3.916,___\n8.0,K__\n7.916,___\n", 12.0);
+
+        assert_eq!(
+            found
+                .cuts
+                .iter()
+                .map(|cut| cut.starts_at_seconds)
+                .collect::<Vec<_>>(),
+            vec![0.0, 3.916, 7.916]
+        );
+    }
+
+    /// The film begins where its earliest frame is shown.
+    #[test]
+    fn starts_the_film_at_its_earliest_frame() {
+        let found = parse_cuts("0.084,K__\n0.0,___\n0.042,___\n4.0,K__\n", 8.0);
+
+        assert!((found.starts_at_seconds - 0.0).abs() < f64::EPSILON);
+    }
+
+    /// Leading pictures shorten the segment before them and lengthen their own.
+    ///
+    /// The lengths still add up to the film, and every one of them is what the
+    /// muxer will really write. This is the whole of the FLUX-125 fix.
+    #[test]
+    fn measures_the_segments_an_open_gop_really_produces() {
+        let source = Keyframes {
+            cuts: vec![
+                Cut {
+                    at_seconds: 0.0,
+                    starts_at_seconds: 0.0,
+                },
+                Cut {
+                    at_seconds: 2.669,
+                    starts_at_seconds: 2.544,
+                },
+                Cut {
+                    at_seconds: 13.096,
+                    starts_at_seconds: 12.971,
+                },
+                Cut {
+                    at_seconds: 23.524,
+                    starts_at_seconds: 23.357,
+                },
+            ],
+            starts_at_seconds: 0.0,
+            duration_seconds: 30.0,
+        };
+
+        let lengths = segment_lengths(&source, 1.6893);
+
+        assert_eq!(
+            lengths,
+            vec![2.544, 12.971 - 2.544, 23.357 - 12.971, 30.0 - 23.357,]
+        );
+
+        let total: f64 = lengths.iter().sum();
+
+        assert!((total - 30.0).abs() < 1e-9, "total was {total}");
     }
 
     /// Where Flux chose the keyframes, the segments are what was asked for.
