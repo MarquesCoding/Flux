@@ -208,57 +208,12 @@ describe('LibraryBrowser', () => {
     expect(await screen.findByRole('heading', { name: 'No libraries yet' })).toBeInTheDocument();
   });
 
-  it('never says a library is empty before its items have arrived', async () => {
-    const actor = userEvent.setup();
-
-    fetchLibrariesMock.mockResolvedValue([films, shows]);
-
-    /**
-     * Films is empty and Shows is not, and Shows answers slowly.
-     *
-     * That is the shape of the bug: the selection changed at once, the items
-     * followed later, and the empty state in between described the library it
-     * had not read yet — announcing that a full library was empty, right up
-     * until its contents appeared.
-     */
-    let answerShows = (page: { items: MediaSummary[]; total: number }) => {
-      expect(page).toBeDefined();
-    };
-
-    fetchItemsMock.mockImplementation((libraryId: string, options: { limit: number }) => {
-      const isHeroSample = options.limit !== 60;
-
-      if (isHeroSample) {
-        return Promise.resolve(
-          libraryId === films.id ? { items: [], total: 0 } : { items: [arrival], total: 1 },
-        );
-      }
-
-      return libraryId === films.id
-        ? Promise.resolve({ items: [], total: 0 })
-        : new Promise((resolve) => {
-            answerShows = resolve;
-          });
-    });
-
-    render(<LibraryBrowser onPlay={vi.fn()} />);
-
-    await screen.findByText('Nothing in Films yet');
-
-    await actor.click(screen.getByRole('button', { name: 'Shows' }));
-
-    expect(screen.queryByText('Nothing in Shows yet')).not.toBeInTheDocument();
-
-    answerShows({ items: [arrival], total: 1 });
-
-    await waitFor(() => {
-      expect(cardIn('Recently added', 'Arrival')).toBeInTheDocument();
-    });
-  });
-
   it('says a server with nothing anywhere has not been scanned yet', async () => {
     fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
     render(<LibraryBrowser onPlay={vi.fn()} />);
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    screen.debug(document.body, 4000);
 
     expect(await screen.findByText('Nothing has been scanned yet')).toBeInTheDocument();
   });
@@ -421,6 +376,54 @@ describe('LibraryBrowser', () => {
       await screen.findByText('Nothing has been scanned yet');
 
       expect(screen.queryByRole('region', { name: 'Featured' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('never says a library is empty before its items have arrived', async () => {
+    const actor = userEvent.setup();
+
+    fetchLibrariesMock.mockResolvedValue([films, shows]);
+
+    /**
+     * Films is empty and Shows is not, and Shows answers slowly.
+     *
+     * That is the shape of the bug: the selection changed at once, the items
+     * followed later, and the empty state in between described the library it
+     * had not read yet — announcing that a full library was empty, right up
+     * until its contents appeared.
+     */
+    let answerShows = (page: { items: MediaSummary[]; total: number }) => {
+      expect(page).toBeDefined();
+    };
+
+    fetchItemsMock.mockImplementation((libraryId: string, options: { limit: number }) => {
+      const isHeroSample = options.limit !== 60;
+
+      if (isHeroSample) {
+        return Promise.resolve(
+          libraryId === films.id ? { items: [], total: 0 } : { items: [arrival], total: 1 },
+        );
+      }
+
+      return libraryId === films.id
+        ? Promise.resolve({ items: [], total: 0 })
+        : new Promise((resolve) => {
+            answerShows = resolve;
+          });
+    });
+
+    render(<LibraryBrowser onPlay={vi.fn()} />);
+
+    await screen.findByText('Nothing in Films yet');
+
+    await actor.click(screen.getByRole('button', { name: 'Shows' }));
+
+    expect(screen.queryByText('Nothing in Shows yet')).not.toBeInTheDocument();
+
+    answerShows({ items: [arrival], total: 1 });
+
+    await waitFor(() => {
+      expect(cardIn('Recently added', 'Arrival')).toBeInTheDocument();
     });
   });
 });
