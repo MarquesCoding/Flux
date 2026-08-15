@@ -180,6 +180,48 @@ describe('LibrariesPanel', () => {
     });
   });
 
+  describe('what the last scan changed', () => {
+    it('says nothing for a library scanned before Flux kept count', () => {
+      render(<LibrariesPanel {...props} libraries={[library()]} />);
+
+      expect(screen.queryByText(/Nothing changed/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/−/)).not.toBeInTheDocument();
+    });
+
+    it('shows what a scan changed', () => {
+      render(
+        <LibrariesPanel
+          {...props}
+          libraries={[library({ lastScan: { added: 4, updated: 1, removed: 0, failed: 0 } })]}
+        />,
+      );
+
+      expect(screen.getByText('+4 ~1 −0')).toBeInTheDocument();
+    });
+
+    it('says so plainly when a scan changed nothing', () => {
+      render(
+        <LibrariesPanel
+          {...props}
+          libraries={[library({ lastScan: { added: 0, updated: 0, removed: 0, failed: 0 } })]}
+        />,
+      );
+
+      expect(screen.getByText('Nothing changed')).toBeInTheDocument();
+    });
+
+    it('makes a scan that removed things impossible to mistake for a quiet one', () => {
+      render(
+        <LibrariesPanel
+          {...props}
+          libraries={[library({ lastScan: { added: 0, updated: 0, removed: 214, failed: 0 } })]}
+        />,
+      );
+
+      expect(screen.getByText('+0 ~0 −214')).toHaveClass('text-danger');
+    });
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(LibrariesPanel.displayName).toBe('LibrariesPanel');
   });

@@ -373,10 +373,29 @@ const jobs = await createJobQueue({
 
       await libraryWork.run(libraryId, async () => {
         const libraries = await libraryService.list();
-        const language = libraries.find((entry) => entry.id === libraryId)?.defaultAudioLanguage;
+        const scanned = libraries.find((entry) => entry.id === libraryId);
+        const language = scanned?.defaultAudioLanguage;
 
         for (const phase of [
-          () => libraryService.runScan(libraryId, force, jobId),
+          async () => {
+            const result = await libraryService.runScan(libraryId, force, jobId);
+
+            if (result === null) {
+              return;
+            }
+
+            jobs.reportProgress(
+              jobId,
+              `added ${result.added.toString()}, updated ${result.updated.toString()}, removed ${result.removed.toString()}`,
+              1,
+              1,
+            );
+
+            await events.publish({
+              event: 'library.scanned',
+              data: { libraryId, libraryName: scanned?.name ?? 'A library', ...result },
+            });
+          },
           () => libraryService.runRegeneratePreviews(libraryId, language ?? null, jobId),
           () => libraryService.runRegenerateTrickplay(libraryId, jobId),
           () => runDetectSegments(libraryId, jobId),

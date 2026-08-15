@@ -16,6 +16,8 @@ import { HoverCard } from '@FluxUI/HoverCard';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
 import { CardHeader } from '@FluxUI/CardHeader';
+import { cn } from '@FluxUI/cn';
+import { describeScanResult } from '@FluxWeb/admin/describeScanResult';
 import { AddLibraryDialog } from '@FluxWeb/components/AdminArea/components/AddLibraryDialog/AddLibraryDialog';
 import { LibrarySettingsDialog } from '@FluxWeb/components/AdminArea/components/LibrarySettingsDialog/LibrarySettingsDialog';
 import { ResetLibrariesDialog } from '@FluxWeb/components/AdminArea/components/ResetLibrariesDialog/ResetLibrariesDialog';
@@ -102,9 +104,22 @@ const LibrariesPanel = ({
         header: 'Last read',
         accessorFn: (library) => library.lastScannedAt ?? '',
         cell: ({ row }) => (
-          <span className="whitespace-nowrap text-xs text-text-muted">
-            {describeSince(row.original.lastScannedAt, Date.now())}
-          </span>
+          <div className="flex flex-col gap-0.5">
+            <span className="whitespace-nowrap text-xs text-text-muted">
+              {describeSince(row.original.lastScannedAt, Date.now())}
+            </span>
+
+            {row.original.lastScan === undefined ? null : (
+              <span
+                className={cn(
+                  'whitespace-nowrap text-xs',
+                  row.original.lastScan.removed === 0 ? 'text-text-muted' : 'text-danger',
+                )}
+              >
+                {describeScanResult(row.original.lastScan)}
+              </span>
+            )}
+          </div>
         ),
       },
       {

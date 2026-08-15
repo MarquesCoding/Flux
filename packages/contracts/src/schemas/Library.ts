@@ -27,6 +27,20 @@ const LibraryKindSchema = z.enum(LIBRARY_KINDS);
  * Wi-Fi SMB share, one at a time read roughly ten times faster per file than
  * four did.
  */
+/**
+ * What a scan did, counted.
+ *
+ * `failed` is the files a scan could not read at all — unreadable, or a probe
+ * that errored — and is kept apart from the rest because it is the count that
+ * means something is wrong with the media rather than with the library.
+ */
+const ScanResultSchema = z.object({
+  added: z.number().int().nonnegative(),
+  updated: z.number().int().nonnegative(),
+  removed: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+});
+
 const LibrarySchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(100),
@@ -34,6 +48,7 @@ const LibrarySchema = z.object({
   path: z.string().min(1),
   itemCount: z.number().int().nonnegative(),
   lastScannedAt: z.string().datetime().nullable(),
+  lastScan: ScanResultSchema.optional(),
   defaultAudioLanguage: z.string().nullable(),
   filesAtOnce: z.number().int().positive().max(16).nullable(),
 });
@@ -125,13 +140,6 @@ const MediaDetailSchema = MediaItemSchema.extend({
 const MediaPageSchema = z.object({
   items: z.array(MediaSummarySchema),
   total: z.number().int().nonnegative(),
-});
-
-const ScanResultSchema = z.object({
-  added: z.number().int().nonnegative(),
-  updated: z.number().int().nonnegative(),
-  removed: z.number().int().nonnegative(),
-  failed: z.number().int().nonnegative(),
 });
 
 export type LibraryKind = z.infer<typeof LibraryKindSchema>;

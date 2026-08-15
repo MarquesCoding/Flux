@@ -27,7 +27,12 @@ import {
   TRICKPLAY_ROWS,
 } from '@FluxServer/playback/PlaybackService';
 import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type {
+  Library,
+  MediaDetail,
+  MediaSummary,
+  ScanResult,
+} from '@FluxContracts/schemas/Library';
 import type { MediaFileSystem, ScanPhase } from './scanLibrary';
 import type { MetadataProvider, SeriesShape } from './MetadataProvider';
 import type { ShowDetail } from '@FluxContracts/schemas/Show';
@@ -92,7 +97,13 @@ const readGenres = (stored: JsonValue): string[] | null => {
  * library, and the work that only a real one can do.
  */
 type DatabaseLibraryService = LibraryService & {
-  runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<void>;
+  /**
+   * Scans, and reports what it changed.
+   *
+   * Null where there is no such library, which is a different answer from a
+   * scan that ran and changed nothing.
+   */
+  runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<ScanResult | null>;
   /**
    * Reads a few named files again, having been told what they are.
    */
@@ -277,6 +288,34 @@ const createDatabaseLibraryService = ({
   const filesAtOnceFor = async (libraryId: string): Promise<number> =>
     (await findLibrary(libraryId))?.filesAtOnce ?? atOnce;
 
+  /**
+   * What the last scan changed, or null where none has run since Flux began
+   * recording it.
+   *
+   * All four columns are written together, so one being absent means the
+   * library was last scanned by a version that did not keep count rather than
+   * that the scan did nothing.
+   */
+  const readLastScan = (row: {
+    lastScanAdded: number | null;
+    lastScanUpdated: number | null;
+    lastScanRemoved: number | null;
+    lastScanFailed: number | null;
+  }): { lastScan: ScanResult } | Record<string, never> =>
+    row.lastScanAdded === null ||
+    row.lastScanUpdated === null ||
+    row.lastScanRemoved === null ||
+    row.lastScanFailed === null
+      ? {}
+      : {
+          lastScan: {
+            added: row.lastScanAdded,
+            updated: row.lastScanUpdated,
+            removed: row.lastScanRemoved,
+            failed: row.lastScanFailed,
+          },
+        };
+
   const service: DatabaseLibraryService = {
     list: async () => {
       const rows = await db
@@ -286,6 +325,10 @@ const createDatabaseLibraryService = ({
           kind: library.kind,
           path: library.path,
           lastScannedAt: library.lastScannedAt,
+          lastScanAdded: library.lastScanAdded,
+          lastScanUpdated: library.lastScanUpdated,
+          lastScanRemoved: library.lastScanRemoved,
+          lastScanFailed: library.lastScanFailed,
           defaultAudioLanguage: library.defaultAudioLanguage,
           filesAtOnce: library.filesAtOnce,
           itemCount: sql<number>`count(${mediaItem.id})::int`,
@@ -302,6 +345,7 @@ const createDatabaseLibraryService = ({
         path: row.path,
         itemCount: row.itemCount,
         lastScannedAt: toIso(row.lastScannedAt),
+        ...readLastScan(row),
         defaultAudioLanguage: row.defaultAudioLanguage,
         filesAtOnce: row.filesAtOnce,
       })) satisfies Library[];
@@ -691,10 +735,10 @@ const createDatabaseLibraryService = ({
       const found = await findLibrary(libraryId);
 
       if (found === null) {
-        return;
+        return null;
       }
 
-      await scanLibrary({
+      const result = await scanLibrary({
         libraryId,
         root: found.path,
         files,
@@ -711,6 +755,18 @@ const createDatabaseLibraryService = ({
               isCancelled: () => jobs.isCancelled(jobId),
             }),
       });
+
+      await db
+        .update(library)
+        .set({
+          lastScanAdded: result.added,
+          lastScanUpdated: result.updated,
+          lastScanRemoved: result.removed,
+          lastScanFailed: result.failed,
+        })
+        .where(eq(library.id, libraryId));
+
+      return result;
     },
 
     runRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {

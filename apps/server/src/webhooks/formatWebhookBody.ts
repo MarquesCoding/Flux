@@ -43,6 +43,18 @@ const sentenceFor = (payload: WebhookPayload): string => {
       return `Failed: ${payload.data.kind}${about} — ${payload.data.reason}`;
     }
 
+    case 'library.scanned': {
+      const { libraryName, added, updated, removed, failed } = payload.data;
+      const counts = [
+        `${added.toString()} added`,
+        `${updated.toString()} updated`,
+        `${removed.toString()} removed`,
+        ...(failed === 0 ? [] : [`${failed.toString()} unreadable`]),
+      ];
+
+      return `${libraryName}: ${counts.join(', ')}`;
+    }
+
     case 'catalogue.unreachable': {
       return 'The catalogue could not be reached. Scans will import files without matching them.';
     }
