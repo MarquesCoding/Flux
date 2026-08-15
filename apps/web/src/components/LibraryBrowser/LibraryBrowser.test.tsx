@@ -293,6 +293,69 @@ describe('LibraryBrowser', () => {
     expect(onFeatureChange).toHaveBeenCalledWith(expect.objectContaining({ title: 'Arrival' }));
   });
 
+  describe('which library is being browsed', () => {
+    it('opens on the one the address named rather than the first', async () => {
+      fetchLibrariesMock.mockResolvedValue([films, shows]);
+
+      render(<LibraryBrowser onPlay={vi.fn()} libraryId={shows.id} />);
+
+      await waitFor(() => {
+        expect(fetchItemsMock).toHaveBeenCalledWith(shows.id, expect.anything());
+      });
+    });
+
+    it('falls back to the first for a library this server does not have', async () => {
+      fetchLibrariesMock.mockResolvedValue([films, shows]);
+
+      render(<LibraryBrowser onPlay={vi.fn()} libraryId="00000000-0000-4000-8000-000000000000" />);
+
+      await waitFor(() => {
+        expect(fetchItemsMock).toHaveBeenCalledWith(films.id, expect.anything());
+      });
+    });
+
+    it('says which library it opened on, so the address can name it', async () => {
+      const onLibraryChange = vi.fn<(libraryId: string) => void>();
+
+      fetchLibrariesMock.mockResolvedValue([films, shows]);
+
+      render(<LibraryBrowser onPlay={vi.fn()} onLibraryChange={onLibraryChange} />);
+
+      await waitFor(() => {
+        expect(onLibraryChange).toHaveBeenCalledWith(films.id);
+      });
+    });
+
+    it('says so again when somebody chooses another', async () => {
+      const onLibraryChange = vi.fn<(libraryId: string) => void>();
+      const user = userEvent.setup();
+
+      fetchLibrariesMock.mockResolvedValue([films, shows]);
+
+      render(<LibraryBrowser onPlay={vi.fn()} onLibraryChange={onLibraryChange} />);
+
+      await user.click(await screen.findByRole('button', { name: 'Shows' }));
+
+      expect(onLibraryChange).toHaveBeenCalledWith(shows.id);
+    });
+
+    it('follows the address when it changes underneath, as the back button does', async () => {
+      fetchLibrariesMock.mockResolvedValue([films, shows]);
+
+      const { rerender } = render(<LibraryBrowser onPlay={vi.fn()} libraryId={films.id} />);
+
+      await waitFor(() => {
+        expect(fetchItemsMock).toHaveBeenCalledWith(films.id, expect.anything());
+      });
+
+      rerender(<LibraryBrowser onPlay={vi.fn()} libraryId={shows.id} />);
+
+      await waitFor(() => {
+        expect(fetchItemsMock).toHaveBeenCalledWith(shows.id, expect.anything());
+      });
+    });
+  });
+
   describe('the hero', () => {
     const heat: MediaSummary = { ...arrival, id: 'heat-1', title: 'Heat', libraryId: shows.id };
 

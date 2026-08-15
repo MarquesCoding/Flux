@@ -52,25 +52,31 @@ describe('fetchWatchProgress', () => {
     expect(fetchMock.mock.calls.at(-1)?.[1]?.headers).toMatchObject({ 'x-flux-profile': 'abc' });
   });
 
-  it('answers with nothing when the server refuses, rather than stopping the library', async () => {
+  it('says it could not ask when the server refuses, rather than throwing', async () => {
     fetchMock.mockResolvedValue({ ok: false, json: () => Promise.resolve({}) });
 
-    await expect(fetchWatchProgress()).resolves.toEqual([]);
+    await expect(fetchWatchProgress()).resolves.toBeNull();
   });
 
-  it('answers with nothing when the server cannot be reached', async () => {
+  it('says it could not ask when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchWatchProgress()).resolves.toEqual([]);
+    await expect(fetchWatchProgress()).resolves.toBeNull();
   });
 
-  it('answers with nothing rather than throwing on an answer it cannot read', async () => {
+  it('says it could not ask rather than throwing on an answer it cannot read', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ progress: 'all of it' }),
     });
 
-    await expect(fetchWatchProgress()).resolves.toEqual([]);
+    await expect(fetchWatchProgress()).resolves.toBeNull();
+  });
+
+  it('tells an empty library apart from a question it could not ask', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve({ progress: [] }) });
+
+    await expect(fetchWatchProgress()).resolves.toStrictEqual([]);
   });
 });
 
@@ -98,6 +104,28 @@ describe('reportWatchProgress', () => {
     });
 
     expect(sentBody()).toMatchObject({ isFinished: true });
+  });
+
+  it('asks the browser to finish the report sent as a page goes away', async () => {
+    await reportWatchProgress(
+      'abc',
+      { positionSeconds: 1800, durationSeconds: 7200 },
+      { isLeaving: true },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/abc/progress',
+      expect.objectContaining({ keepalive: true }),
+    );
+  });
+
+  it('leaves an ordinary report as an ordinary request', async () => {
+    await reportWatchProgress('abc', { positionSeconds: 90, durationSeconds: 7200 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/abc/progress',
+      expect.objectContaining({ keepalive: false }),
+    );
   });
 
   it('says nothing when it fails, rather than interrupting a film', async () => {

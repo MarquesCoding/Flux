@@ -219,6 +219,15 @@ const VideoPlayer = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /**
+   * Whether the sound is off because a browser insisted rather than because
+   * anybody asked.
+   *
+   * Kept apart so that silence is not remembered: a film muted to get it
+   * started at all says nothing about how this viewer likes their films, and
+   * writing it down would leave every later one silent too.
+   */
+  const isSilencedByPolicyRef = useRef(false);
   const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS);
   const [session, setSession] = useState<StartedSession | null>(null);
   const [state, setState] = useState<PlayerState>('starting');
@@ -530,11 +539,35 @@ const VideoPlayer = ({
    * which is the state a viewer used to escape by dragging the scrub bar —
    * seeking made the element ask again, and asking again was all it needed.
    */
+  /**
+   * Gets the picture moving, however the browser feels about that.
+   *
+   * A page opened by a reload carries no press, and no browser will start a
+   * film with sound on its own — the play is simply refused, which used to
+   * leave the player sitting on a black frame having reported nothing wrong.
+   * So that refusal, and only that one, is answered by muting and asking
+   * again: a film that starts silently says what happened and can be unmuted,
+   * where one that never starts says nothing at all.
+   *
+   * Every other failure is left alone. A play interrupted by the next load
+   * fails too, and muting somebody's film because a stream was replaced would
+   * be a worse bug than the one this fixes.
+   */
   const start = useCallback((element: HTMLVideoElement) => {
     let attempts = 0;
 
     const attempt = () => {
-      void element.play().catch(() => {});
+      void element.play().catch((refusal) => {
+        if (!(refusal instanceof DOMException) || refusal.name !== 'NotAllowedError') {
+          return;
+        }
+
+        isSilencedByPolicyRef.current = true;
+        element.muted = true;
+        setIsMuted(true);
+
+        void element.play().catch(() => {});
+      });
     };
 
     attempt();
@@ -644,6 +677,22 @@ const VideoPlayer = ({
     const clientId = readClientId();
 
     const onPageHide = () => {
+      const element = videoRef.current;
+      const reached = element?.currentTime ?? 0;
+      const whole = element?.duration ?? Number.NaN;
+
+      if (Number.isFinite(whole) && whole > 0 && reached > 0) {
+        void reportWatchProgress(
+          media.id,
+          {
+            positionSeconds: reached,
+            durationSeconds: whole,
+            isFinished: reached >= whole - FINISHED_WITHIN_SECONDS,
+          },
+          { isLeaving: true },
+        );
+      }
+
       if (startedId !== null) {
         void fetch(`/api/playback/session/${startedId}`, {
           method: 'DELETE',
@@ -713,6 +762,7 @@ const VideoPlayer = ({
           teardown = await attachShaka({
             element,
             manifestUrl: outcome.session.delivery.manifestUrl,
+            startSeconds: request.startSeconds,
             onFault: (fault) => {
               if (fault.severity < CRITICAL || isAbandoned()) {
                 return;
@@ -726,7 +776,7 @@ const VideoPlayer = ({
           releaseRef.current = teardown;
         }
 
-        if (request.startSeconds > 0) {
+        if (request.startSeconds > 0 && outcome.session.delivery.kind === 'direct') {
           element.currentTime = request.startSeconds;
         }
 
@@ -874,6 +924,10 @@ const VideoPlayer = ({
     if (element !== null) {
       element.volume = volume;
       element.muted = isMuted;
+    }
+
+    if (isSilencedByPolicyRef.current) {
+      return;
     }
 
     writePlaybackPreferences({ volume, isMuted });
@@ -1254,6 +1308,7 @@ const VideoPlayer = ({
         },
         f: toggleFullscreen,
         m: () => {
+          isSilencedByPolicyRef.current = false;
           setIsMuted((muted) => !muted);
         },
         c: () => {
@@ -1542,9 +1597,11 @@ const VideoPlayer = ({
             }}
             onVolumeChange={(next) => {
               setVolume(next);
+              isSilencedByPolicyRef.current = false;
               setIsMuted(next === 0);
             }}
             onToggleMute={() => {
+              isSilencedByPolicyRef.current = false;
               setIsMuted((muted) => !muted);
             }}
             onToggleFullscreen={toggleFullscreen}
