@@ -16,11 +16,11 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
   }
 
   return (
-    <figure className="flux-glass mb-2 flex flex-col gap-1 rounded-3xl px-2 py-2 text-white">
+    <figure className="flux-glass mb-2 flex flex-col gap-1 rounded-xl px-2 py-2 text-white">
       <div
         role="img"
         aria-label={`Preview at ${formatDuration(seconds)}`}
-        className="rounded-xl bg-surface bg-no-repeat"
+        className="rounded-lg bg-surface bg-no-repeat"
         style={{
           width: `${thumbnail.width.toString()}px`,
           height: `${thumbnail.height.toString()}px`,
