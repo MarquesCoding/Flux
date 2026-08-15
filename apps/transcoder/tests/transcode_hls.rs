@@ -479,6 +479,63 @@ async fn starts_one_transcode_when_two_viewers_ask_at_once() {
     );
 }
 
+/// Scrubbing must not leave two requests fighting over the transcode.
+///
+/// A request that has been abandoned — the viewer scrubbed on, but its wait
+/// has not run out — used to drag the run back to itself on every poll, while
+/// the live request dragged it forward. Measured in one scrubbing session:
+/// 1750 runs, the last dozen alternating between segment 355 and segment 570,
+/// and both requests refused in the end.
+///
+/// The newest asker steers. The older one takes what it can get.
+#[tokio::test]
+async fn answers_the_newest_request_when_a_viewer_scrubs_past_an_older_one() {
+    let _ = std::fs::remove_dir_all(cache_root("scrubbing"));
+
+    let app = app(registry("scrubbing"));
+    let subject = SessionSpec {
+        input_path: long_source_file().to_string_lossy().into_owned(),
+        segment_seconds: 4,
+        video: VideoAction::Encode {
+            encoder: "libx264".into(),
+            max_bitrate_kbps: 2000,
+            max_width: 640,
+            max_height: 360,
+            tone_map: None,
+        },
+        audio: AudioAction::Copy,
+        ..spec(VideoAction::Copy, AudioAction::Copy)
+    };
+
+    let (status, body) = start(&app, &subject).await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let id = body["id"].as_str().expect("names the session").to_owned();
+
+    let far = call(&app, get(&format!("/sessions/{id}/segment00028.ts")));
+    let near = call(&app, get(&format!("/sessions/{id}/segment00004.ts")));
+
+    let (far, near) = tokio::join!(far, near);
+
+    assert_eq!(
+        near.0,
+        StatusCode::OK,
+        "the newest request is the one answered"
+    );
+    assert!(near.1.len() > 512, "segment was {} bytes", near.1.len());
+
+    let started = std::fs::read_to_string(cache_root("scrubbing").join(&id).join("run.m3u8"))
+        .unwrap_or_default();
+
+    assert!(
+        started.contains("segment00004.ts"),
+        "the run should be where the newest request is, not where the older one was: {started}"
+    );
+
+    let _ = far;
+}
+
 /// A viewer waiting for a segment must be able to un-pause the transcode.
 ///
 /// The throttle stops a run that is further ahead than anyone is watching, and

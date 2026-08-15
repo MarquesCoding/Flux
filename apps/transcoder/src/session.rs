@@ -206,6 +206,15 @@ pub struct Session {
     holders: usize,
     /// Where every segment of this film begins and ends.
     lengths: Arc<Vec<f64>>,
+    /// The segment most recently asked for.
+    ///
+    /// Which viewer the transcode is for. A request that has been abandoned —
+    /// the viewer scrubbed on, but its wait has not run out — must not drag
+    /// the run back to where it was: two requests far apart otherwise restart
+    /// each other for as long as they both last. Measured in one scrubbing
+    /// session: 1750 runs, the last dozen alternating between segment 355 and
+    /// segment 570, with both requests refused in the end.
+    last_wanted: u64,
 }
 
 impl Session {
@@ -583,6 +592,7 @@ impl SessionRegistry {
             reached: Arc::new(AtomicU64::new(0)),
             holders: 1,
             lengths: Arc::new(boundaries.lengths),
+            last_wanted: 0,
         };
 
         if is_already_complete(&session.directory).await {
@@ -704,11 +714,25 @@ impl SessionRegistry {
     /// could serve. Measured: a run restarted at segment 397 produced to 435,
     /// paused, and a request for 439 waited the full timeout and was refused.
     async fn wants(&self, id: &str, number: u64) {
+        let mut sessions = self.sessions.lock().await;
+
+        if let Some(session) = sessions.get_mut(id) {
+            session.reached.fetch_max(number, Ordering::Relaxed);
+            session.last_wanted = number;
+        }
+    }
+
+    /// Whether this request is the one the transcode is being steered by.
+    ///
+    /// The most recent asker steers. Anything earlier waits for what it can
+    /// get and gives up if it cannot, rather than pulling the run back to
+    /// itself and starting the fight again.
+    async fn steers(&self, id: &str, wanted: u64) -> bool {
         let sessions = self.sessions.lock().await;
 
-        if let Some(session) = sessions.get(id) {
-            session.reached.fetch_max(number, Ordering::Relaxed);
-        }
+        sessions
+            .get(id)
+            .is_some_and(|session| session.last_wanted == wanted)
     }
 
     /// Records a player's heartbeat: alive, and playing or paused.
@@ -766,6 +790,8 @@ impl SessionRegistry {
     pub async fn await_segment(&self, id: &str, wanted: u64, timeout: Duration) -> bool {
         let deadline = Instant::now() + timeout;
 
+        self.wants(id, wanted).await;
+
         loop {
             let Some(view) = self.segment_view(id).await else {
                 return false;
@@ -774,12 +800,10 @@ impl SessionRegistry {
             let is_complete = is_already_complete(&view.directory).await;
             let is_ready = is_segment_ready(&view.directory, wanted, is_complete).await;
 
-            self.wants(id, wanted).await;
-
             match resolve_segment(is_ready, view.run().await, wanted, view.segment_seconds) {
                 SegmentPlan::Serve => return true,
                 SegmentPlan::StartAt(index) => {
-                    if !self.restart_at(id, index).await {
+                    if self.steers(id, wanted).await && !self.restart_at(id, index).await {
                         return false;
                     }
                 }
