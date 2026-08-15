@@ -443,34 +443,7 @@ describe('App routing', () => {
     expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument();
   });
 
-  it('brings the address up to date as watching goes on', async () => {
-    window.history.replaceState(null, '', `/watch/${arrivalId}`);
-
-    serverState({
-      setup: setupComplete,
-      session: { user },
-      ...aLibraryWithArrival,
-      detail: arrivalInFull,
-    });
-    render(<App />);
-
-    await arrive();
-
-    const player = await screen.findByLabelText('Arrival');
-
-    Object.defineProperty(player, 'currentTime', { configurable: true, value: 1800 });
-
-    await act(async () => {
-      player.dispatchEvent(new Event('timeupdate'));
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(window.location.search).toContain('t=1800');
-    });
-  });
-
-  it('starts where the address says, rather than at the beginning', async () => {
+  it('ignores a second left in an address, the server holding the only position', async () => {
     window.history.replaceState(null, '', `/watch/${arrivalId}?t=1800`);
 
     serverState({
@@ -478,6 +451,15 @@ describe('App routing', () => {
       session: { user },
       ...aLibraryWithArrival,
       detail: arrivalInFull,
+      watched: [
+        {
+          mediaId: arrivalId,
+          positionSeconds: 40,
+          durationSeconds: 7200,
+          isFinished: false,
+          updatedAt: '2026-08-15T00:00:00.000Z',
+        },
+      ],
     });
     render(<App />);
 
@@ -490,10 +472,73 @@ describe('App routing', () => {
         input.includes(`/api/playback/${arrivalId}/session`),
       );
 
-      expect(bodyOf(asked?.[1])).toMatchObject({ startSeconds: 1800 });
+      expect(bodyOf(asked?.[1])).toMatchObject({ startSeconds: 40 });
     });
   });
 
+  it('keeps no second in the address while watching', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}`);
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+      watched: [
+        {
+          mediaId: arrivalId,
+          positionSeconds: 40,
+          durationSeconds: 7200,
+          isFinished: false,
+          updatedAt: '2026-08-15T00:00:00.000Z',
+        },
+      ],
+    });
+    render(<App />);
+
+    await arrive();
+
+    await screen.findByRole('slider', { name: 'Seek through Arrival' });
+
+    expect(window.location.pathname).toBe(`/watch/${arrivalId}`);
+    expect(window.location.search).toBe('');
+  });
+
+  it('starts again from nothing when that is what was asked for', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+      watched: [
+        {
+          mediaId: arrivalId,
+          positionSeconds: 2400,
+          durationSeconds: 7200,
+          isFinished: false,
+          updatedAt: '2026-08-15T00:00:00.000Z',
+        },
+      ],
+    });
+    render(<App />);
+
+    await arrive();
+
+    const rail = await screen.findByRole('region', { name: 'Recently added' });
+
+    await actor.click(within(rail).getByRole('button', { name: /Arrival/ }));
+    await actor.click(await screen.findByRole('button', { name: /Start again/ }));
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.find(([input]) =>
+        input.includes(`/api/playback/${arrivalId}/session`),
+      );
+
+      expect(bodyOf(asked?.[1])).toMatchObject({ startSeconds: 0 });
+    });
+  });
   it('carries on from where the server says, when the address names no second', async () => {
     window.history.replaceState(null, '', `/watch/${arrivalId}`);
 
@@ -524,33 +569,6 @@ describe('App routing', () => {
       );
 
       expect(bodyOf(asked?.[1])).toMatchObject({ startSeconds: 2400 });
-    });
-  });
-
-  it('puts what it resumed from into the address, so a reload lands there again', async () => {
-    window.history.replaceState(null, '', `/watch/${arrivalId}`);
-
-    serverState({
-      setup: setupComplete,
-      session: { user },
-      ...aLibraryWithArrival,
-      detail: arrivalInFull,
-      watched: [
-        {
-          mediaId: arrivalId,
-          positionSeconds: 2400,
-          durationSeconds: 7200,
-          isFinished: false,
-          updatedAt: '2026-08-15T00:00:00.000Z',
-        },
-      ],
-    });
-    render(<App />);
-
-    await arrive();
-
-    await waitFor(() => {
-      expect(window.location.search).toContain('t=2400');
     });
   });
 

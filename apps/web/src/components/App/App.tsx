@@ -59,14 +59,14 @@ import type { AppProps } from './App.types';
 type LoadState = 'loading' | 'ready' | 'unreachable';
 
 /**
- * How often the address is brought up to date with where a film has got to.
+ * How often what is held about a position is brought up to date.
  *
  * The player reports several times a second, which is the right rate for a
- * scrubber and far too fast for anything that writes to history or to state.
- * Every few seconds is close enough that a copied link lands where somebody
- * meant it to, without rewriting the address a hundred times a minute.
+ * scrubber and far too fast for anything that causes a render. What this holds
+ * is only read by cards and by the resume, so a few seconds behind is close
+ * enough — and the report the server gets is on its own clock anyway.
  */
-const ADDRESS_EVERY_SECONDS = 5;
+const PROGRESS_EVERY_SECONDS = 5;
 
 /**
  * Application shell and routing.
@@ -82,13 +82,24 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
   const reportedRef = useRef(new Map<string, WatchProgress>());
   /**
-   * The second the address was last told about.
+   * The second last written into what this holds about progress.
    *
    * A ref rather than state: it decides whether to write, and writing is what
    * causes the render — keeping it in state would cause the render it is meant
    * to be rationing.
    */
   const markedAtRef = useRef(0);
+  /**
+   * Where to start something in spite of what the server holds.
+   *
+   * Only "Start again" needs this. Everything else resumes, and the position to
+   * resume from is the server's to answer — but somebody who has just asked to
+   * watch a film from the beginning is asking for the one thing that answer
+   * cannot express, and it lasts until they open something else.
+   */
+  const [startOverride, setStartOverride] = useState<{ mediaId: string; seconds: number } | null>(
+    null,
+  );
   /**
    * Whether the server has been asked where this viewer got to.
    *
@@ -308,7 +319,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           .map((answer) => answer.id);
 
         if (missing.includes(place.playing ?? '')) {
-          replace({ playing: null, startSeconds: 0 });
+          replace({ playing: null });
         }
 
         if (missing.includes(place.inspecting ?? '')) {
@@ -323,21 +334,16 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   }, [place.playing, place.inspecting, known, rememberItems, replace]);
 
   useEffect(() => {
-    markedAtRef.current = place.playing === null ? 0 : place.startSeconds;
-  }, [place.playing, place.startSeconds]);
+    markedAtRef.current = 0;
 
-  useEffect(() => {
-    if (place.playing === null || !hasReadProgress || place.startSeconds > 0) {
+    if (place.playing === null) {
+      setStartOverride(null);
+
       return;
     }
 
-    const found = progress.get(place.playing);
-    const resumed = found === undefined || found.isFinished ? 0 : Math.floor(found.positionSeconds);
-
-    if (resumed > 0) {
-      replace({ startSeconds: resumed });
-    }
-  }, [place.playing, place.startSeconds, hasReadProgress, progress, replace]);
+    void readProgress();
+  }, [place.playing, readProgress]);
 
   const refresh = useCallback(async () => {
     try {
@@ -408,7 +414,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       <ProfileGate
         name={initialTitle}
         onSignedIn={() => {
-          go({ section: 'home', search: '', inspecting: null, playing: null, startSeconds: 0 });
+          go({ section: 'home', search: '', inspecting: null, playing: null });
           void refresh();
         }}
       />
@@ -429,7 +435,11 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
    * all.
    */
   const startAt =
-    playing === null ? 0 : place.startSeconds > 0 ? place.startSeconds : positionFor(playing.id);
+    playing === null
+      ? 0
+      : startOverride?.mediaId === playing.id
+        ? startOverride.seconds
+        : positionFor(playing.id);
 
   if (playing !== null) {
     return (
@@ -451,7 +461,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
                 )
           }
           onSelectEpisode={(episode) => {
-            go({ playing: episode.id, startSeconds: Math.floor(resumeFor(episode.id) ?? 0) });
+            go({ playing: episode.id });
           }}
           watchedFractionFor={(mediaId) => {
             const found = progress.get(mediaId);
@@ -471,13 +481,11 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
             const whole = Math.floor(positionSeconds);
 
-            if (Math.abs(whole - markedAtRef.current) < ADDRESS_EVERY_SECONDS) {
+            if (Math.abs(whole - markedAtRef.current) < PROGRESS_EVERY_SECONDS) {
               return;
             }
 
             markedAtRef.current = whole;
-
-            replace({ startSeconds: whole });
 
             setProgress((current) => {
               const next = new Map(current);
@@ -491,15 +499,15 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             const following = nextEpisode([...known.values()], playing);
 
             if (following === null) {
-              go({ playing: null, startSeconds: 0, inspecting: playing.id });
+              go({ playing: null, inspecting: playing.id });
 
               return;
             }
 
-            go({ playing: following.id, startSeconds: 0, inspecting: null });
+            go({ playing: following.id, inspecting: null });
           }}
           onClose={() => {
-            go({ playing: null, startSeconds: 0, inspecting: playing.id });
+            go({ playing: null, inspecting: playing.id });
             void readProgress();
           }}
         />
@@ -587,7 +595,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           go({ show: null });
         }}
         onPlay={(media, startSeconds) => {
-          go({ playing: media.id, startSeconds: Math.floor(startSeconds), show: null });
+          setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
+          go({ playing: media.id, show: null });
         }}
         onInspect={(media) => {
           go({ inspecting: media.id });
@@ -631,7 +640,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           go({ inspecting: null });
         }}
         onPlay={(media, startSeconds) => {
-          go({ inspecting: null, playing: media.id, startSeconds });
+          setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
+          go({ inspecting: null, playing: media.id });
         }}
       />
 
@@ -668,7 +678,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
                     search: '',
                     inspecting: null,
                     playing: null,
-                    startSeconds: 0,
                   });
 
                   return refresh();
@@ -683,7 +692,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               kind={section}
               favourites={[...favourites.kept]}
               onPlay={(media, startSeconds) => {
-                go({ playing: media.id, startSeconds: Math.floor(startSeconds) });
+                setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
+                go({ playing: media.id });
               }}
               onInspect={(media) => {
                 go({ inspecting: media.id });
@@ -711,7 +721,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
                 replace({ genre: next });
               }}
               onPlay={(media, startSeconds) => {
-                go({ playing: media.id, startSeconds: Math.floor(startSeconds) });
+                setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
+                go({ playing: media.id });
               }}
               onInspect={(media) => {
                 go({ inspecting: media.id });
@@ -742,7 +753,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
                 go({ show: seriesId });
               }}
               onWatch={(media, startSeconds) => {
-                go({ playing: media.id, startSeconds });
+                setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
+                go({ playing: media.id });
               }}
               onItemsLoaded={rememberItems}
               hasHero

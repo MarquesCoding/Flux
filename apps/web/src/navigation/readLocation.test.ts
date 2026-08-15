@@ -32,16 +32,8 @@ describe('readLocation', () => {
     expect(at('/watch/abc').playing).toBe('abc');
   });
 
-  it('reads where to start what is being watched', () => {
-    expect(at('/watch/abc?t=930').startSeconds).toBe(930);
-  });
-
-  it('starts at the beginning when the time is not a number', () => {
-    expect(at('/watch/abc?t=soon').startSeconds).toBe(0);
-  });
-
-  it('starts at the beginning rather than before it', () => {
-    expect(at('/watch/abc?t=-30').startSeconds).toBe(0);
+  it('says nothing about where to start, that being the server\u2019s to answer', () => {
+    expect(at('/watch/abc?t=930')).toStrictEqual(at('/watch/abc'));
   });
 
   it('is not watching anything when the path names no item', () => {
@@ -106,12 +98,8 @@ describe('writeLocation', () => {
     expect(writeLocation({ ...HOME, playing: 'abc' })).toBe('/watch/abc');
   });
 
-  it('writes where to start, when it is not the beginning', () => {
-    expect(writeLocation({ ...HOME, playing: 'abc', startSeconds: 930 })).toBe('/watch/abc?t=930');
-  });
-
-  it('leaves the time out when there is nothing to resume', () => {
-    expect(writeLocation({ ...HOME, playing: 'abc', startSeconds: 0 })).toBe('/watch/abc');
+  it('keeps no second beside what is playing, so there is one answer and not two', () => {
+    expect(writeLocation({ ...HOME, playing: 'abc' })).toBe('/watch/abc');
   });
 
   it('names the library being browsed, so one can be linked to', () => {
@@ -133,7 +121,6 @@ describe('writeLocation', () => {
       inspecting: 'abc',
       show: null,
       playing: null,
-      startSeconds: 0,
       genre: null,
       library: null,
       adminPanel: null,
