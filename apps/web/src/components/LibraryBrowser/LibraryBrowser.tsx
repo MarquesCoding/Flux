@@ -10,6 +10,7 @@ import { RevealItem } from '@FluxUI/RevealItem';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { groupIntoRails } from '@FluxWeb/library/groupIntoRails';
 import { pickFeatured } from '@FluxWeb/library/pickFeatured';
+import { EmptyLibrary } from '@FluxWeb/components/LibraryBrowser/components/EmptyLibrary/EmptyLibrary';
 import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
 import { watchedFraction, isWorthResuming } from '@FluxContracts/schemas/WatchProgress';
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
@@ -24,6 +25,15 @@ import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types';
 const HERO_COUNT = 5;
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
+
+/**
+ * How many items are read from each library to choose the hero from.
+ *
+ * Enough to find a few different programmes in each, and far short of a page:
+ * this runs once per library on load, and the hero only needs candidates
+ * rather than a catalogue.
+ */
+const HERO_SAMPLE = 24;
 
 /**
  * Browses a library.
@@ -48,7 +58,21 @@ const LibraryBrowser = ({
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [items, setItems] = useState<MediaSummary[]>([]);
-  const [total, setTotal] = useState(0);
+  /**
+   * What the hero may choose from, drawn from every library at once.
+   *
+   * Held apart from `items` rather than derived from it, because `items` is
+   * one library filtered by whatever is in the search box, and the hero is
+   * neither of those things. It is the front of the whole server: switching
+   * to a library of documentaries should not replace it, and typing in the
+   * search box should not empty it.
+   *
+   * Filled by asking every library for a sample at once. One request each
+   * rather than a single call, because no endpoint reads across them — and a
+   * library that fails to answer drops out rather than emptying the hero,
+   * since a hero missing one library's films is worth more than no hero.
+   */
+  const [heroItems, setHeroItems] = useState<MediaSummary[]>([]);
   const [appliedSearch, setAppliedSearch] = useState('');
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
 
@@ -132,7 +156,6 @@ const LibraryBrowser = ({
       });
 
       setItems(page.items);
-      setTotal(page.total);
     } catch {
       setState('unreachable');
     }
@@ -141,6 +164,32 @@ const LibraryBrowser = ({
   useEffect(() => {
     void loadItems();
   }, [loadItems]);
+
+  useEffect(() => {
+    if (libraries.length === 0) {
+      setHeroItems([]);
+
+      return;
+    }
+
+    let abandoned = false;
+
+    void Promise.all(
+      libraries.map((entry) =>
+        fetchLibraryItems(entry.id, { search: '', limit: HERO_SAMPLE })
+          .then((page) => page.items)
+          .catch(() => []),
+      ),
+    ).then((pages) => {
+      if (!abandoned) {
+        setHeroItems(pages.flat());
+      }
+    });
+
+    return () => {
+      abandoned = true;
+    };
+  }, [libraries]);
 
   if (state === 'loading') {
     return (
@@ -177,9 +226,9 @@ const LibraryBrowser = ({
       exit="gone"
       className="flex flex-col gap-8"
     >
-      {hasHero && items.length > 0 ? (
+      {hasHero && heroItems.length > 0 ? (
         <Hero
-          items={pickFeatured(items, HERO_COUNT)}
+          items={pickFeatured(heroItems, HERO_COUNT)}
           onPlay={(media, startSeconds) => {
             if (onWatch === undefined) {
               onPlay(media);
@@ -205,12 +254,6 @@ const LibraryBrowser = ({
       <section className="flex flex-col gap-5 px-5 sm:px-10">
         <header className="flux-rail flex items-center gap-3 overflow-x-auto pb-1">
           <div className="flex shrink-0 items-center gap-2">
-            {total === 0 ? null : (
-              <span className="mr-1 text-sm text-text-muted">
-                {total === 1 ? '1 item' : `${String(total)} items`}
-              </span>
-            )}
-
             {libraries.map((entry) => (
               <Button
                 key={entry.id}
@@ -228,11 +271,11 @@ const LibraryBrowser = ({
         </header>
 
         {items.length === 0 ? (
-          <p className="text-text-muted">
-            {appliedSearch === ''
-              ? 'This library is empty. Scan it to find your media.'
-              : `Nothing matches “${appliedSearch}”.`}
-          </p>
+          <EmptyLibrary
+            search={appliedSearch}
+            libraryName={libraries.find((entry) => entry.id === selectedId)?.name ?? null}
+            hasContentElsewhere={heroItems.length > 0}
+          />
         ) : (
           <div className="flex flex-col gap-10">
             {groupIntoRails(items, Date.now(), progress).map(({ showOf, ...rail }) => (

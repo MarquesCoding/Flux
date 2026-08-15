@@ -84,10 +84,12 @@ describe('LibraryBrowser', () => {
     expect(cardIn('Recently added', 'Arrival')).toBeInTheDocument();
   });
 
-  it('reports how many items there are', async () => {
+  it('does not count the library at somebody, since nobody asked', async () => {
     render(<LibraryBrowser onPlay={vi.fn()} />);
 
-    expect(await screen.findByText('1 item')).toBeInTheDocument();
+    await screen.findByRole('region', { name: 'Recently added' });
+
+    expect(screen.queryByText(/\d+ items?$/)).not.toBeInTheDocument();
   });
 
   it('plays the item that was chosen', async () => {
@@ -206,11 +208,11 @@ describe('LibraryBrowser', () => {
     expect(await screen.findByRole('heading', { name: 'No libraries yet' })).toBeInTheDocument();
   });
 
-  it('says when an empty library needs scanning', async () => {
+  it('says a server with nothing anywhere has not been scanned yet', async () => {
     fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
     render(<LibraryBrowser onPlay={vi.fn()} />);
 
-    expect(await screen.findByText(/Scan it to find your media/)).toBeInTheDocument();
+    expect(await screen.findByText('Nothing has been scanned yet')).toBeInTheDocument();
   });
 
   it('reports an unreachable server', async () => {
@@ -238,7 +240,7 @@ describe('LibraryBrowser', () => {
     fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
     render(<LibraryBrowser hasHero onPlay={vi.fn()} />);
 
-    await screen.findByText(/This library is empty/);
+    await screen.findByText('Nothing has been scanned yet');
 
     expect(screen.queryByRole('region', { name: 'Featured' })).not.toBeInTheDocument();
   });
@@ -286,5 +288,91 @@ describe('LibraryBrowser', () => {
     await screen.findByRole('region', { name: 'Featured' });
 
     expect(onFeatureChange).toHaveBeenCalledWith(expect.objectContaining({ title: 'Arrival' }));
+  });
+
+  describe('the hero', () => {
+    const heat: MediaSummary = { ...arrival, id: 'heat-1', title: 'Heat', libraryId: shows.id };
+
+    /**
+     * Two libraries, each holding one thing, with only one of them selected.
+     */
+    const twoLibraries = () => {
+      fetchLibrariesMock.mockResolvedValue([films, shows]);
+      fetchItemsMock.mockImplementation((libraryId: string) =>
+        Promise.resolve(
+          libraryId === films.id ? { items: [arrival], total: 1 } : { items: [heat], total: 1 },
+        ),
+      );
+    };
+
+    it('draws on every library, not only the one being browsed', async () => {
+      const onFeatureChange = vi.fn();
+
+      twoLibraries();
+      render(<LibraryBrowser hasHero onFeatureChange={onFeatureChange} onPlay={vi.fn()} />);
+
+      await screen.findByRole('region', { name: 'Featured' });
+
+      await waitFor(() => {
+        expect(fetchItemsMock).toHaveBeenCalledWith(shows.id, expect.anything());
+      });
+    });
+
+    it('stays put when a different library is chosen', async () => {
+      const actor = userEvent.setup();
+      const onFeatureChange = vi.fn();
+
+      twoLibraries();
+      render(<LibraryBrowser hasHero onFeatureChange={onFeatureChange} onPlay={vi.fn()} />);
+
+      await screen.findByRole('region', { name: 'Featured' });
+
+      onFeatureChange.mockClear();
+
+      await actor.click(screen.getByRole('button', { name: 'Shows' }));
+
+      await waitFor(() => {
+        expect(cardIn('Recently added', 'Heat')).toBeInTheDocument();
+      });
+
+      expect(onFeatureChange).not.toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Nothing' }),
+      );
+      expect(screen.getByRole('region', { name: 'Featured' })).toBeInTheDocument();
+    });
+
+    it('survives a search that matches nothing in the library being browsed', async () => {
+      const actor = userEvent.setup();
+
+      twoLibraries();
+
+      const { rerender } = render(<LibraryBrowser hasHero onPlay={vi.fn()} />);
+
+      await screen.findByRole('region', { name: 'Featured' });
+
+      fetchItemsMock.mockImplementation((_libraryId: string, options: { search: string }) =>
+        Promise.resolve(
+          options.search === '' ? { items: [arrival], total: 1 } : { items: [], total: 0 },
+        ),
+      );
+
+      rerender(<LibraryBrowser hasHero search="nothing matches this" onPlay={vi.fn()} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Nothing matches/)).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('region', { name: 'Featured' })).toBeInTheDocument();
+      expect(actor).toBeDefined();
+    });
+
+    it('is not drawn on a server with nothing in any library', async () => {
+      fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
+      render(<LibraryBrowser hasHero onPlay={vi.fn()} />);
+
+      await screen.findByText('Nothing has been scanned yet');
+
+      expect(screen.queryByRole('region', { name: 'Featured' })).not.toBeInTheDocument();
+    });
   });
 });
