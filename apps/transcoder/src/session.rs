@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use thiserror::Error;
 use tokio::process::Command;
-use tokio::sync::{oneshot, Mutex};
+use tokio::sync::{oneshot, Mutex, Notify};
 
 use crate::boundaries::ensure_boundaries;
 use crate::playlist::segment_at;
@@ -197,6 +197,14 @@ pub struct Session {
     /// lock because the transcode reads it on a timer and the segment handler
     /// writes it on every fetch, and neither should wait on the other.
     reached: Arc<AtomicU64>,
+    /// Told whenever a viewer asks for something.
+    ///
+    /// The throttle pauses a run that is further ahead than anyone is watching
+    /// and looks again on a timer, so a viewer arriving at the edge of a paused
+    /// transcode waited up to a whole interval for it to notice. A request is
+    /// the news that the gap has closed, so it says so rather than letting the
+    /// tick discover it.
+    woken: Arc<Notify>,
     /// How many viewers are holding this session open.
     ///
     /// A session is addressed by what it produces, so everyone watching the
@@ -334,17 +342,42 @@ pub fn resolve_segment(
     SegmentPlan::Wait
 }
 
+/// Whether the run that is writing has said this segment is whole.
+///
+/// ffmpeg names a segment in its own playlist only once it has closed it, so
+/// being named there is the muxer's own word that nothing more is coming. That
+/// is exactly as strong a guarantee as waiting for the next segment to appear,
+/// and it arrives one whole segment sooner — up to 10.4 seconds on a copied
+/// stream, which is a long time to hold a draining buffer at the live edge.
+///
+/// Only for a run that began at or before the segment. A run restarted further
+/// on has a playlist that names none of what came before it, and its head says
+/// nothing about a file some earlier run left behind.
+#[must_use]
+pub fn run_has_closed(run: Option<RunPosition>, wanted: u64) -> bool {
+    run.is_some_and(|run| run.from <= wanted && run.head.is_some_and(|head| head >= wanted))
+}
+
 /// Whether a segment can be served.
 ///
 /// Existing is not enough, and this is the piece Flux has never had: ffmpeg is
 /// writing the segment it is on, so a file that exists may be half of one. It
-/// is whole once the next one has been started, or once the run that was
-/// writing it has finished the film.
+/// is whole once the run that is writing it has named it, once the next one has
+/// been started, or once the run that was writing it has finished the film.
 ///
 /// Serving a partial segment is not an error anything reports. The player gets
 /// fewer frames than the playlist promised and stalls at the boundary, which
 /// is what a viewer sees as a stutter every ten seconds.
-async fn is_segment_ready(directory: &Path, wanted: u64, is_complete: bool) -> bool {
+///
+/// The next segment existing stays as the fallback, because a run's playlist is
+/// deleted when the next run starts and the segments it left behind are still
+/// perfectly good.
+async fn is_segment_ready(
+    directory: &Path,
+    wanted: u64,
+    is_complete: bool,
+    run: Option<RunPosition>,
+) -> bool {
     if !tokio::fs::try_exists(directory.join(crate::playlist::segment_name(index_of(wanted))))
         .await
         .unwrap_or(false)
@@ -352,7 +385,7 @@ async fn is_segment_ready(directory: &Path, wanted: u64, is_complete: bool) -> b
         return false;
     }
 
-    if is_complete {
+    if is_complete || run_has_closed(run, wanted) {
         return true;
     }
 
@@ -590,6 +623,7 @@ impl SessionRegistry {
             running_from: None,
             last_touched: Instant::now(),
             reached: Arc::new(AtomicU64::new(0)),
+            woken: Arc::new(Notify::new()),
             holders: 1,
             lengths: Arc::new(boundaries.lengths),
             last_wanted: 0,
@@ -719,6 +753,7 @@ impl SessionRegistry {
         if let Some(session) = sessions.get_mut(id) {
             session.reached.fetch_max(number, Ordering::Relaxed);
             session.last_wanted = number;
+            session.woken.notify_one();
         }
     }
 
@@ -798,9 +833,10 @@ impl SessionRegistry {
             };
 
             let is_complete = is_already_complete(&view.directory).await;
-            let is_ready = is_segment_ready(&view.directory, wanted, is_complete).await;
+            let run = view.run().await;
+            let is_ready = is_segment_ready(&view.directory, wanted, is_complete, run).await;
 
-            match resolve_segment(is_ready, view.run().await, wanted, view.segment_seconds) {
+            match resolve_segment(is_ready, run, wanted, view.segment_seconds) {
                 SegmentPlan::Serve => return true,
                 SegmentPlan::StartAt(index) => {
                     if self.steers(id, wanted).await && !self.restart_at(id, index).await {
@@ -957,13 +993,14 @@ async fn begin_run_inner(registry: &SessionRegistry, session: &mut Session, want
     let supervised = plan.clone();
     let config = registry.config.clone();
     let watched = Arc::clone(&session.reached);
+    let woken = Arc::clone(&session.woken);
     let ending = registry.clone();
     let id = session.id.clone();
 
     session.reached.store(wanted, Ordering::Relaxed);
 
     tokio::spawn(async move {
-        supervise(config, supervised, cancel_rx, watched).await;
+        supervise(config, supervised, cancel_rx, watched, woken).await;
 
         ending.run_ended(&id, wanted).await;
     });
@@ -979,6 +1016,7 @@ async fn run_attempt(
     plan: &TranscodePlan,
     cancel: &mut oneshot::Receiver<()>,
     reached: &Arc<AtomicU64>,
+    woken: &Arc<Notify>,
 ) -> ExitClass {
     let Ok(child) = spawn_ffmpeg(ffmpeg, plan) else {
         return ExitClass::InputError;
@@ -1001,22 +1039,28 @@ async fn run_attempt(
 
             _ = &mut *cancel => break ExitClass::Cancelled,
 
-            _ = ticker.tick() => {
-                let Some(pid) = pid else {
-                    continue;
-                };
-
-                let head = head_of_run(&directory).await.unwrap_or(started_at);
-                let wanted = is_too_far_ahead(
-                    head,
-                    reached.load(Ordering::Relaxed),
+            () = woken.notified() => {
+                follow_the_viewer(
+                    pid,
+                    &directory,
+                    started_at,
                     segment_seconds,
-                );
+                    reached,
+                    &mut paused,
+                )
+                .await;
+            }
 
-                if wanted != paused {
-                    set_paused(pid, wanted);
-                    paused = wanted;
-                }
+            _ = ticker.tick() => {
+                follow_the_viewer(
+                    pid,
+                    &directory,
+                    started_at,
+                    segment_seconds,
+                    reached,
+                    &mut paused,
+                )
+                .await;
             }
 
             finished = &mut waiting => break match finished {
@@ -1043,6 +1087,33 @@ async fn run_attempt(
     release_if_paused(pid, paused);
 
     outcome
+}
+
+/// Pauses or resumes the run to match how far ahead of the viewer it has got.
+///
+/// Called both on the throttle's own tick and the moment a request tells the
+/// session where a viewer is. The tick alone meant a viewer arriving at the
+/// edge of a paused transcode waited up to `THROTTLE_INTERVAL` for it to
+/// notice, which is long enough to empty a small buffer.
+async fn follow_the_viewer(
+    pid: Option<u32>,
+    directory: &Path,
+    started_at: u64,
+    segment_seconds: u32,
+    reached: &Arc<AtomicU64>,
+    paused: &mut bool,
+) {
+    let Some(pid) = pid else {
+        return;
+    };
+
+    let head = head_of_run(directory).await.unwrap_or(started_at);
+    let wanted = is_too_far_ahead(head, reached.load(Ordering::Relaxed), segment_seconds);
+
+    if wanted != *paused {
+        set_paused(pid, wanted);
+        *paused = wanted;
+    }
 }
 
 /// Lets a paused transcode run again before it is taken away.
@@ -1193,12 +1264,13 @@ async fn supervise(
     plan: TranscodePlan,
     mut cancel: oneshot::Receiver<()>,
     reached: Arc<AtomicU64>,
+    woken: Arc<Notify>,
 ) {
     let directory = PathBuf::from(&plan.output_directory);
     let mut attempt = plan;
 
     for _ in 0..2 {
-        let outcome = run_attempt(&config.ffmpeg, &attempt, &mut cancel, &reached).await;
+        let outcome = run_attempt(&config.ffmpeg, &attempt, &mut cancel, &reached, &woken).await;
 
         if outcome == ExitClass::Completed {
             let _ = tokio::fs::write(directory.join(COMPLETE_MARKER), b"ok").await;
@@ -1283,12 +1355,46 @@ pub async fn await_run(directory: &Path, timeout: Duration) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        classify_exit, resolve_segment, should_retry_in_software, ExitClass, RunPosition,
-        SegmentPlan, SessionConfig, SessionRegistry,
+        classify_exit, resolve_segment, run_has_closed, should_retry_in_software, ExitClass,
+        RunPosition, SegmentPlan, SessionConfig, SessionRegistry,
     };
 
     fn run(from: u64, head: Option<u64>) -> RunPosition {
         RunPosition { from, head }
+    }
+
+    /// The muxer has named it, so it is whole and need not be waited on.
+    #[test]
+    fn takes_the_muxers_word_that_a_segment_is_closed() {
+        assert!(run_has_closed(Some(run(0, Some(9))), 9));
+        assert!(run_has_closed(Some(run(0, Some(9))), 4));
+    }
+
+    /// The segment the run is writing right now is not named yet.
+    #[test]
+    fn does_not_take_the_segment_still_being_written() {
+        assert!(!run_has_closed(Some(run(0, Some(9))), 10));
+    }
+
+    /// A run that has written nothing has said nothing.
+    #[test]
+    fn takes_no_word_from_a_run_that_has_written_nothing() {
+        assert!(!run_has_closed(Some(run(300, None)), 300));
+    }
+
+    /// A run's playlist names what that run wrote, and nothing before it.
+    ///
+    /// A run restarted at 300 says nothing about segment 12, which some earlier
+    /// run left on disk — its own playlist was deleted when this one started.
+    #[test]
+    fn takes_no_word_about_a_segment_an_earlier_run_left() {
+        assert!(!run_has_closed(Some(run(300, Some(320))), 12));
+    }
+
+    /// Nothing is running, so nobody has said anything.
+    #[test]
+    fn takes_no_word_when_nothing_is_running() {
+        assert!(!run_has_closed(None, 4));
     }
 
     /// A segment that is whole is served, whatever the transcode is doing.
