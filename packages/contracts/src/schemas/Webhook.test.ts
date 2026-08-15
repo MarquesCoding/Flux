@@ -34,6 +34,20 @@ describe('WEBHOOK_EVENT_LABELS', () => {
   });
 });
 
+describe('WEBHOOK_EVENTS', () => {
+  it('pairs everything that can break with the news that it mended', () => {
+    const breakages = WEBHOOK_EVENTS.filter((event) => event.endsWith('.unreachable'));
+
+    for (const breakage of breakages) {
+      const recovery = breakage.replace('.unreachable', '.reachable');
+
+      expect(WEBHOOK_EVENTS).toContain(recovery);
+    }
+
+    expect(breakages.length).toBeGreaterThan(0);
+  });
+});
+
 describe('WebhookPayloadSchema', () => {
   it('reads a job failure with the job it was about', () => {
     const payload = WebhookPayloadSchema.parse({

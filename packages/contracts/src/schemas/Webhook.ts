@@ -14,6 +14,14 @@ import { z } from 'zod';
  * nothing raises is indistinguishable, to a subscriber, from one that is
  * broken.
  *
+ * Anything that can break comes in a pair. Being told something stopped
+ * answering and then hearing nothing leaves a reader unable to tell a blip
+ * from an outage that is still running, which sends them to the admin page —
+ * the thing being notified was meant to save them. The recovery is named as
+ * its own event rather than a flag on the failure, so that a subscriber can
+ * take one without the other, and so that filtering does not mean reading the
+ * payload to find out which way round this one is.
+ *
  * The household half of notifications — new episodes, a download ready, a
  * watch party invitation — is deliberately absent. Those want in-app and push
  * delivery rather than a webhook, and the noisiest of them needs batching
@@ -25,7 +33,9 @@ const WEBHOOK_EVENTS = [
   'job.completed',
   'job.failed',
   'catalogue.unreachable',
+  'catalogue.reachable',
   'transcoder.unreachable',
+  'transcoder.reachable',
 ] as const;
 
 const WebhookEventSchema = z.enum(WEBHOOK_EVENTS);
@@ -45,7 +55,9 @@ const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, string> = {
   'job.completed': 'A background job finished',
   'job.failed': 'A background job failed',
   'catalogue.unreachable': 'The catalogue could not be reached',
+  'catalogue.reachable': 'The catalogue can be reached again',
   'transcoder.unreachable': 'The transcoder could not be reached',
+  'transcoder.reachable': 'The transcoder is answering again',
 };
 
 /**
@@ -114,8 +126,18 @@ const WebhookPayloadSchema = z.discriminatedUnion('event', [
   }),
   z.object({
     ...WebhookEnvelopeSchema,
+    event: z.literal('catalogue.reachable'),
+    data: z.object({}),
+  }),
+  z.object({
+    ...WebhookEnvelopeSchema,
     event: z.literal('transcoder.unreachable'),
     data: z.object({ reason: z.string() }),
+  }),
+  z.object({
+    ...WebhookEnvelopeSchema,
+    event: z.literal('transcoder.reachable'),
+    data: z.object({}),
   }),
 ]);
 
