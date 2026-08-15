@@ -8,6 +8,9 @@ const ServerSettingsSchema = z.object({
   hardwareAccel: z.string().default(''),
   seededJobTriggerKinds: z.array(z.string()).default([]),
   seededRoleNames: z.array(z.string()).default([]),
+  pushPublicKey: z.string().default(''),
+  pushPrivateKey: z.string().default(''),
+  mediaDigestReadTo: z.string().datetime().nullable().default(null),
 });
 
 type ServerSettings = z.infer<typeof ServerSettingsSchema>;

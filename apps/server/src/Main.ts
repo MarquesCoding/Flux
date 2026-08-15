@@ -3,7 +3,7 @@ import { readdir, unlink } from 'node:fs/promises';
 import { z } from 'zod';
 import { serve } from '@hono/node-server';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { and, count, eq, lt, sql } from 'drizzle-orm';
+import { and, count, eq, gt, lt, lte, sql } from 'drizzle-orm';
 import { createApp } from './App';
 import { createAuth } from '@FluxServer/auth/Auth';
 import { createDatabase } from '@FluxServer/db/Database';
@@ -60,12 +60,19 @@ import {
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   CHECK_TRANSCODER_JOB,
   CHECK_DISK_SPACE_JOB,
+  SEND_MEDIA_DIGEST_JOB,
   DELIVER_WEBHOOK_JOB,
   PRUNE_WEBHOOK_DELIVERIES_JOB,
   DeliverWebhookJobSchema,
   scheduleTriggerKind,
 } from '@FluxServer/jobs/JobQueue';
 import { createDatabaseWebhookStore } from '@FluxServer/webhooks/createDatabaseWebhookStore';
+import { createDatabaseNotificationStore } from '@FluxServer/notifications/createDatabaseNotificationStore';
+import { notifyHousehold } from '@FluxServer/notifications/notifyHousehold';
+import { summariseNewMedia } from '@FluxServer/notifications/summariseNewMedia';
+import { readDigestWindow } from '@FluxServer/notifications/readDigestWindow';
+import { generateVAPIDKeys } from 'web-push';
+import type { VapidKeys } from '@FluxServer/notifications/sendWebPush';
 import { runWebhookDelivery } from '@FluxServer/webhooks/runWebhookDelivery';
 import { createWebhookEventBus } from '@FluxServer/events/createWebhookEventBus';
 import { createReachabilityWatch } from '@FluxServer/events/createReachabilityWatch';
@@ -122,6 +129,9 @@ const settings = createDatabaseSettingsStore({
     hardwareAccel: '',
     seededJobTriggerKinds: [],
     seededRoleNames: [],
+    pushPublicKey: '',
+    pushPrivateKey: '',
+    mediaDigestReadTo: null,
   },
 });
 
@@ -304,6 +314,30 @@ const scheduleAcrossLibraries =
 const libraryWork = createWorkLock();
 
 const webhookSubscriptions = createDatabaseWebhookStore(db);
+const notifications = createDatabaseNotificationStore(db);
+
+/**
+ * The identity push services check this server by, made on first need.
+ *
+ * Generated rather than configured, because an operator should not have to
+ * produce a keypair by hand to be told about new media. Kept for ever after:
+ * every subscription a browser takes out is against this public key, so
+ * replacing the pair silently stops every phone in the house being reachable
+ * with nothing to say why.
+ */
+const readPushKeys = async (): Promise<VapidKeys> => {
+  const held = await settings.read();
+
+  if (held.pushPublicKey !== '' && held.pushPrivateKey !== '') {
+    return { publicKey: held.pushPublicKey, privateKey: held.pushPrivateKey };
+  }
+
+  const made = generateVAPIDKeys();
+
+  await settings.write({ pushPublicKey: made.publicKey, pushPrivateKey: made.privateKey });
+
+  return { publicKey: made.publicKey, privateKey: made.privateKey };
+};
 
 const transcoderWatch = createReachabilityWatch({
   onLost: () => {
@@ -656,6 +690,50 @@ const jobs = await createJobQueue({
       diskWatch.record(mounts, findDisksUnderPressure(paths, disks));
 
       jobs.reportProgress(jobId, `${mounts.length.toString()} checked`, 1, 1);
+    },
+    [SEND_MEDIA_DIGEST_JOB]: async (jobId) => {
+      jobs.reportProgress(jobId, 'reading', 0, 1);
+
+      const now = new Date();
+      const { since, announce } = readDigestWindow((await settings.read()).mediaDigestReadTo, now);
+
+      await settings.write({ mediaDigestReadTo: now.toISOString() });
+
+      if (!announce) {
+        process.stdout.write('digest: first run, noting where to read from next time\n');
+
+        return;
+      }
+
+      const arrived = await db
+        .select({
+          id: mediaItem.id,
+          title: mediaItem.title,
+          seriesId: mediaItem.seriesId,
+          seriesTitle: mediaItem.seriesTitle,
+        })
+        .from(mediaItem)
+        .where(and(gt(mediaItem.addedAt, since), lte(mediaItem.addedAt, now)));
+
+      const summary = summariseNewMedia(arrived);
+
+      jobs.reportProgress(jobId, `${arrived.length.toString()} arrived`, 1, 1);
+
+      if (summary === null) {
+        return;
+      }
+
+      await notifyHousehold({
+        store: notifications,
+        event: 'media.added',
+        title: summary.title,
+        body: summary.body,
+        link: summary.link,
+        vapid: await readPushKeys(),
+        onProblem: (reason) => {
+          process.stderr.write(`digest: ${reason}\n`);
+        },
+      });
     },
     [PRUNE_WEBHOOK_DELIVERIES_JOB]: async () => {
       const forgotten = await webhookSubscriptions.pruneDeliveries(

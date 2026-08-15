@@ -13,6 +13,9 @@ const SETTINGS: ServerSettings = {
   hardwareAccel: '',
   seededJobTriggerKinds: [],
   seededRoleNames: [],
+  pushPublicKey: '',
+  pushPrivateKey: '',
+  mediaDigestReadTo: null,
 };
 
 const build = (seededJobTriggerKinds: string[] = []) => ({

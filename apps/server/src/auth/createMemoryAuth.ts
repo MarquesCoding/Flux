@@ -90,6 +90,9 @@ const createMemoryAuth = (
     hardwareAccel: '',
     seededJobTriggerKinds: [],
     seededRoleNames: [],
+    pushPublicKey: '',
+    pushPrivateKey: '',
+    mediaDigestReadTo: null,
   });
 
   const auth = createAuth({
