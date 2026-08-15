@@ -2,8 +2,6 @@ import { PageDots } from '@FluxUI/PageDots';
 import { usePagedScroller } from '@FluxUI/usePagedScroller';
 import type { CastGridProps } from './CastGrid.types';
 
-const FACE_WIDTH = 170;
-
 /**
  * Who is in it.
  */
@@ -66,4 +64,4 @@ const CastGrid = ({ members }: CastGridProps) => {
 
 CastGrid.displayName = 'CastGrid';
 
-export { CastGrid, FACE_WIDTH };
+export { CastGrid };

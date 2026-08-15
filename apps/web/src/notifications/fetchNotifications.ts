@@ -3,7 +3,7 @@ import {
   NotificationPreferenceSchema,
   NotificationSchema,
 } from '@FluxContracts/schemas/Notification';
-import type { Notification, NotificationPreference } from '@FluxContracts/schemas/Notification';
+import type { Notification } from '@FluxContracts/schemas/Notification';
 
 const InboxSchema = z.object({
   notifications: z.array(NotificationSchema),
@@ -72,20 +72,6 @@ const fetchNotificationSettings = async (): Promise<NotificationSettings> => {
   return read.success ? read.data : unknownYet;
 };
 
-const writeNotificationPreference = async (preference: NotificationPreference): Promise<void> => {
-  await fetch('/api/notifications/preferences', {
-    method: 'PUT',
-    credentials: 'same-origin',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(preference),
-  }).catch(() => null);
-};
-
-export {
-  fetchNotificationSettings,
-  fetchNotifications,
-  markNotificationsRead,
-  writeNotificationPreference,
-};
+export { fetchNotificationSettings, fetchNotifications, markNotificationsRead };
 
 export type { Inbox, Notification, NotificationSettings };

@@ -10,14 +10,10 @@ const ReadAgainJobSchema = z.object({
   paths: z.array(z.string().min(1)).min(1),
 });
 
-type ReadAgainJob = z.infer<typeof ReadAgainJobSchema>;
-
 const ScanLibraryJobSchema = z.object({
   libraryId: z.string().uuid(),
   force: z.boolean().default(false),
 });
-
-type ScanLibraryJob = z.infer<typeof ScanLibraryJobSchema>;
 
 const REGENERATE_PREVIEWS_JOB = 'library.regeneratePreviews';
 
@@ -26,13 +22,9 @@ const RegeneratePreviewsJobSchema = z.object({
   defaultAudioLanguage: z.string().nullable(),
 });
 
-type RegeneratePreviewsJob = z.infer<typeof RegeneratePreviewsJobSchema>;
-
 const PRUNE_HISTORY_JOB = 'library.pruneHistory';
 
 const PruneHistoryJobSchema = z.object({});
-
-type PruneHistoryJob = z.infer<typeof PruneHistoryJobSchema>;
 
 const FETCH_LOGOS_JOB = 'library.fetchLogos';
 
@@ -40,23 +32,17 @@ const FetchLogosJobSchema = z.object({
   libraryId: z.string().uuid(),
 });
 
-type FetchLogosJob = z.infer<typeof FetchLogosJobSchema>;
-
 const REGENERATE_TRICKPLAY_JOB = 'library.regenerateTrickplay';
 
 const RegenerateTrickplayJobSchema = z.object({
   libraryId: z.string().uuid(),
 });
 
-type RegenerateTrickplayJob = z.infer<typeof RegenerateTrickplayJobSchema>;
-
 const DETECT_SEGMENTS_JOB = 'library.detectSegments';
 
 const DetectSegmentsJobSchema = z.object({
   libraryId: z.string().uuid(),
 });
-
-type DetectSegmentsJob = z.infer<typeof DetectSegmentsJobSchema>;
 
 const CLEANUP_IMAGE_CACHE_JOB = 'server.cleanupImageCache';
 
@@ -78,8 +64,6 @@ const DeliverWebhookJobSchema = z.object({
   subscriptionId: z.string().uuid(),
   payload: z.string().min(1),
 });
-
-type DeliverWebhookJob = z.infer<typeof DeliverWebhookJobSchema>;
 
 const PRUNE_WEBHOOK_DELIVERIES_JOB = 'server.pruneWebhookDeliveries';
 
@@ -123,20 +107,7 @@ type JobQueue = {
   stop: () => Promise<void>;
 };
 
-export type {
-  DeliverWebhookJob,
-  DetectSegmentsJob,
-  JobProgress,
-  JobQueue,
-  JobState,
-  RegeneratePreviewsJob,
-  ReadAgainJob,
-  RegenerateTrickplayJob,
-  FetchLogosJob,
-  PruneHistoryJob,
-  RunningJob,
-  ScanLibraryJob,
-};
+export type { JobProgress, JobQueue, JobState, RunningJob };
 
 export {
   SCAN_LIBRARY_JOB,

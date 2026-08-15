@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { mediaItem, mediaItemJob, mediaOverride, library, series } from '@FluxServer/db/Schema';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
 import type { FluxDatabase } from '@FluxServer/db/Database';
@@ -202,18 +202,6 @@ const createMediaStore = (
 });
 
 /**
- * Counts the items in a library.
- */
-const countItems = async (db: FluxDatabase, libraryId: string): Promise<number> => {
-  const rows = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(mediaItem)
-    .where(eq(mediaItem.libraryId, libraryId));
-
-  return rows[0]?.total ?? 0;
-};
-
-/**
  * The items in a library that have not finished the given job.
  */
 const listOutstandingFor = async (
@@ -276,4 +264,4 @@ const clearJobCompletions = async (
   );
 };
 
-export { createMediaStore, countItems, listOutstandingFor, markJobComplete, clearJobCompletions };
+export { createMediaStore, listOutstandingFor, markJobComplete, clearJobCompletions };
