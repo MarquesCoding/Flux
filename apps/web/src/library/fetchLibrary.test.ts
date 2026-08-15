@@ -349,6 +349,34 @@ describe('narrowing a request for items', () => {
     expect(fetchMock.mock.calls.at(-1)?.[0]).not.toContain('genre=');
   });
 
+  it('passes every narrowing on to the server rather than sifting the answer', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ items: [], total: 0 }),
+    });
+
+    await fetchLibraryItems(library.id, { yearFrom: 1990, yearTo: 1999, minRating: 7.5 });
+
+    const asked = fetchMock.mock.calls.at(-1)?.[0];
+
+    expect(asked).toContain('yearFrom=1990');
+    expect(asked).toContain('yearTo=1999');
+    expect(asked).toContain('minRating=7.5');
+  });
+
+  it('asks for a floor of zero rather than treating it as nothing asked', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ items: [], total: 0 }),
+    });
+
+    await fetchLibraryItems(library.id, { minRating: 0 });
+
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toContain('minRating=0');
+  });
+
   it('asks for particular items by id', async () => {
     fetchMock.mockResolvedValue({
       ok: true,

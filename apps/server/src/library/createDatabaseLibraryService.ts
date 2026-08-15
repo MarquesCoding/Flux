@@ -1,7 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { stat } from 'node:fs/promises';
 import { z } from 'zod';
-import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { library, mediaItem } from '@FluxServer/db/Schema';
 import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
@@ -70,15 +83,41 @@ type CreateDatabaseLibraryServiceOptions = {
 };
 
 /**
- * The library backed by Postgres.
+ * What a typed search matches against.
  *
- * Item detail is validated on the way out with the shared contract schema, so
- * a row written by an older version that no longer matches the contract fails
- * here rather than reaching a client as a half-populated object.
+ * Everything written about a thing rather than its title alone, because
+ * somebody typing into a search box is naming whatever they can remember, and
+ * the title is only sometimes it. "Denzel" is a perfectly ordinary way to look
+ * for a film, and a title-only search answers it with nothing while the server
+ * holds the cast list that would have found it. The same goes for half a
+ * remembered plot, which is in the description Flux already stores.
+ *
+ * The series title is in here for the same reason: searching "Ted" should
+ * find the programme's episodes, which are each titled something else
+ * entirely.
+ *
+ * Cast is matched by reading the stored array rather than by containment,
+ * because somebody types a surname and containment wants the whole name
+ * exactly. That costs a scan of the column — there is no index that serves a
+ * substring — which is affordable at the size a household library reaches and
+ * is the thing to revisit if this is ever pointed at twenty thousand items.
  */
-/**
- * The library backed by Postgres, plus the worker body the queue calls.
- */
+const matchesSearch = (search: string) => {
+  const like = `%${search.trim()}%`;
+
+  return or(
+    ilike(mediaItem.title, like),
+    ilike(mediaItem.seriesTitle, like),
+    ilike(mediaItem.overview, like),
+    ilike(mediaItem.tagline, like),
+    sql`exists (
+      select 1
+      from jsonb_array_elements(coalesce(${mediaItem.castMembers}, '[]'::jsonb)) as member
+      where member->>'name' ilike ${like}
+    )`,
+  );
+};
+
 /**
  * The genres a stored row carries.
  *
@@ -125,6 +164,13 @@ type DatabaseLibraryService = LibraryService & {
  */
 const EVERY_EPISODE = 2000;
 
+/**
+ * The library backed by Postgres, plus the worker body the queue calls.
+ *
+ * Item detail is validated on the way out with the shared contract schema, so
+ * a row written by an older version that no longer matches the contract fails
+ * here rather than reaching a client as a half-populated object.
+ */
 const createDatabaseLibraryService = ({
   db,
   files,
@@ -427,6 +473,33 @@ const createDatabaseLibraryService = ({
       };
     },
 
+    listFacets: async () => {
+      const genreRows = await db
+        .select({ value: sql<string>`genre` })
+        .from(
+          sql`${mediaItem}, jsonb_array_elements_text(coalesce(${mediaItem.genres}, '[]'::jsonb)) as genre`,
+        )
+        .groupBy(sql`genre`)
+        .orderBy(sql`genre asc`);
+
+      const decadeRows = await db
+        .select({ value: sql<number>`((${mediaItem.year} / 10) * 10)::int` })
+        .from(mediaItem)
+        .where(isNotNull(mediaItem.year))
+        .groupBy(sql`(${mediaItem.year} / 10) * 10`)
+        .orderBy(sql`(${mediaItem.year} / 10) * 10 desc`);
+
+      const [best] = await db
+        .select({ rating: sql<number>`coalesce(max(${mediaItem.rating}), 0)::float` })
+        .from(mediaItem);
+
+      return {
+        genres: genreRows.map((row) => row.value),
+        decades: decadeRows.map((row) => row.value),
+        maxRating: best?.rating ?? 0,
+      };
+    },
+
     listItems: async (libraryId, options) => {
       if ((await findLibrary(libraryId)) === null) {
         return null;
@@ -436,7 +509,7 @@ const createDatabaseLibraryService = ({
         eq(mediaItem.libraryId, libraryId),
         ...(options.search === undefined || options.search.trim() === ''
           ? []
-          : [ilike(mediaItem.title, `%${options.search}%`)]),
+          : [matchesSearch(options.search)]),
         ...(options.kind === undefined
           ? []
           : [
@@ -447,6 +520,9 @@ const createDatabaseLibraryService = ({
         ...(options.genre === undefined || options.genre === ''
           ? []
           : [sql`${mediaItem.genres} @> ${JSON.stringify([options.genre])}::jsonb`]),
+        ...(options.yearFrom === undefined ? [] : [gte(mediaItem.year, options.yearFrom)]),
+        ...(options.yearTo === undefined ? [] : [lte(mediaItem.year, options.yearTo)]),
+        ...(options.minRating === undefined ? [] : [gte(mediaItem.rating, options.minRating)]),
         ...(options.ids === undefined
           ? []
           : options.ids.length === 0

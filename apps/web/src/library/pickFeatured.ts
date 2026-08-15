@@ -14,21 +14,28 @@ const isEarlier = (candidate: MediaSummary, against: MediaSummary): boolean => {
 };
 
 /**
- * The items worth putting on the front of a library.
+ * One card per thing, rather than one per file.
  *
- * One per show rather than one per file. A hero that rotates through every
- * episode of a series is a hero that shows the same programme twelve times
- * and calls each one a different thing — and the picture and the name a
- * viewer needs at that moment belong to the show, not to episode seven.
- *
+ * A library of twelve episodes is one programme, and a page that draws it as
+ * twelve tiles is a page nobody can find anything on — the same picture, the
+ * same name, twelve times, with the actual variety pushed off the screen.
  * Films stand for themselves, since there is nothing to group them under.
+ *
+ * The earliest episode stands in for the series: somebody meeting a
+ * programme on a page is being introduced to it, and being introduced at
+ * episode nine is no introduction. The card already reads the series title
+ * off it, so what shows is the programme rather than that episode.
+ *
+ * Grouped by `seriesId` where there is one, falling back to the title. Two
+ * programmes share a title — The Office, Shameless, and every remake — so
+ * grouping on the title alone quietly merges them into one card.
  */
-const pickFeatured = (items: MediaSummary[], limit: number): MediaSummary[] => {
+const collapseToShows = (items: MediaSummary[]): MediaSummary[] => {
   const shows = new Map<string, MediaSummary>();
   const featured: MediaSummary[] = [];
 
   for (const item of items) {
-    const series = item.seriesTitle ?? null;
+    const series = item.seriesId ?? item.seriesTitle ?? null;
 
     if (series === null) {
       featured.push(item);
@@ -56,8 +63,17 @@ const pickFeatured = (items: MediaSummary[], limit: number): MediaSummary[] => {
     }
   }
 
-  return featured.slice(0, limit);
+  return featured;
 };
+
+/**
+ * The items worth putting on the front of a library.
+ *
+ * The same collapsing every page does, cut to what a hero can rotate
+ * through.
+ */
+const pickFeatured = (items: MediaSummary[], limit: number): MediaSummary[] =>
+  collapseToShows(items).slice(0, limit);
 
 /**
  * The other episodes of the same season.
@@ -100,4 +116,4 @@ const nextEpisode = (items: MediaSummary[], after: MediaSummary): MediaSummary |
   return findSiblings(items, after).find((item) => (item.episodeNumber ?? 0) > at) ?? null;
 };
 
-export { pickFeatured, isEarlier, findSiblings, nextEpisode };
+export { collapseToShows, pickFeatured, isEarlier, findSiblings, nextEpisode };

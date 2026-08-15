@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
+import { collapseToShows } from '@FluxWeb/library/pickFeatured';
 import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
 import { GridSizeChooser } from '@FluxWeb/components/GridSizeChooser/GridSizeChooser';
 import { readGridSize, saveGridSize } from '@FluxWeb/library/gridSizePreference';
@@ -113,7 +114,7 @@ const BrowseArea = ({
       ),
     );
 
-    const found = pages.flatMap((entry) => entry.items);
+    const found = collapseToShows(pages.flatMap((entry) => entry.items));
 
     setItems(found);
     setIsReading(false);

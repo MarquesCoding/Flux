@@ -1,4 +1,9 @@
-import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type {
+  Library,
+  LibraryFacets,
+  MediaDetail,
+  MediaSummary,
+} from '@FluxContracts/schemas/Library';
 import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
 
 type ListItemsOptions = {
@@ -15,6 +20,22 @@ type ListItemsOptions = {
    * A genre the item must carry, as a catalogue named it.
    */
   genre?: string;
+  /**
+   * The years to keep, inclusive at both ends.
+   *
+   * Either end may be left out, so "anything since 2010" and "anything before
+   * 1980" are the same filter asked half-open rather than two more.
+   */
+  yearFrom?: number;
+  yearTo?: number;
+  /**
+   * The lowest rating worth showing, out of ten.
+   *
+   * An item nobody has rated is left out when this is asked for. Treating
+   * unrated as zero would bury everything new under everything old, and
+   * treating it as passing would make the filter meaningless.
+   */
+  minRating?: number;
   /**
    * Particular items, named outright.
    *
@@ -97,6 +118,21 @@ type LibraryService = ShowService & {
     libraryId: string,
     options: ListItemsOptions,
   ) => Promise<{ items: MediaSummary[]; total: number } | null>;
+  /**
+   * What there is to narrow by: the genres and decades anything is actually
+   * filed under, and the best rating anything carries.
+   *
+   * Read from the items rather than from a catalogue's taxonomy, because a
+   * genre is only real here if something carries it — offering forty headings
+   * where thirty lead to an empty page is worse than offering ten that work.
+   *
+   * All of it in one answer rather than a route each, because a search page
+   * needs the whole set before it can draw its filters, and four requests to
+   * assemble one row of chips is three too many.
+   *
+   * Across every library rather than one, because search already is.
+   */
+  listFacets: () => Promise<LibraryFacets>;
   getMedia: (id: string) => Promise<MediaDetail | null>;
   /**
    * Queues a scan and reports the job.

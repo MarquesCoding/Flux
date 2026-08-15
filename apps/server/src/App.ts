@@ -21,6 +21,7 @@ import {
   createLibraryRoute,
   updateLibraryRoute,
   listItemsRoute,
+  listFacetsRoute,
   getMediaRoute,
   listShowsRoute,
   getShowRoute,
@@ -670,14 +671,26 @@ const createApp = ({
     return context.json(updated, 200);
   });
 
+  app.openapi(listFacetsRoute, async (context) => {
+    if ((await readAccount(context.req.raw.headers)) === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    return context.json(await library.listFacets(), 200);
+  });
+
   app.openapi(listItemsRoute, async (context) => {
     const { id } = context.req.valid('param');
-    const { search, kind, genre, ids, order, limit, offset } = context.req.valid('query');
+    const { search, kind, genre, yearFrom, yearTo, minRating, ids, order, limit, offset } =
+      context.req.valid('query');
 
     const page = await library.listItems(id, {
       ...(search === undefined ? {} : { search }),
       ...(kind === undefined ? {} : { kind }),
       ...(genre === undefined ? {} : { genre }),
+      ...(yearFrom === undefined ? {} : { yearFrom }),
+      ...(yearTo === undefined ? {} : { yearTo }),
+      ...(minRating === undefined ? {} : { minRating }),
       ...(ids === undefined ? {} : { ids: ids.split(',').filter((named) => named.trim() !== '') }),
       ...(order === undefined ? {} : { order }),
       limit: limit ?? DEFAULT_LIMIT,

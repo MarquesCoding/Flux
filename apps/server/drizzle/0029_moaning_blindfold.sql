@@ -1,0 +1,1 @@
+CREATE INDEX "media_item_genres_idx" ON "media_item" USING gin ("genres");

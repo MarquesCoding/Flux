@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
-import type { LibraryService } from './LibraryService';
+import type { LibraryService, ListItemsOptions } from './LibraryService';
 
 /**
  * What a browser is told about an item, from everything held about it.
@@ -34,6 +34,41 @@ const toSummary = (item: MediaDetail): MediaSummary => ({
 type MemoryState = {
   libraries: Library[];
   media: MediaDetail[];
+};
+
+/**
+ * What a typed search matches, kept in step with the database version.
+ *
+ * The same places — title, series title, description, tagline, cast — because
+ * a memory service that searched differently would let every test of the HTTP
+ * surface pass while describing behaviour the real server does not have.
+ */
+const matchesSearch = (item: MediaDetail, search: string): boolean =>
+  [
+    item.title,
+    item.metadata.seriesTitle ?? '',
+    item.metadata.overview ?? '',
+    item.metadata.tagline ?? '',
+    ...(item.metadata.cast ?? []).map((member) => member.name),
+  ].some((against) => against.toLowerCase().includes(search));
+
+/**
+ * Whether an item survives the narrowing filters, kept in step with the
+ * database version for the same reason the search is.
+ *
+ * An item with no year or no rating fails a filter that asks about one, rather
+ * than passing it by default: somebody asking for "at least seven out of ten"
+ * is not asking to also be shown everything nobody has scored.
+ */
+const matchesFilters = (item: MediaDetail, options: ListItemsOptions): boolean => {
+  const year = item.year ?? null;
+  const rating = item.metadata.rating ?? null;
+
+  return (
+    (options.yearFrom === undefined || (year !== null && year >= options.yearFrom)) &&
+    (options.yearTo === undefined || (year !== null && year <= options.yearTo)) &&
+    (options.minRating === undefined || (rating !== null && rating >= options.minRating))
+  );
 };
 
 /**
@@ -89,6 +124,22 @@ const createMemoryLibraryService = (
     return Promise.resolve(found);
   },
 
+  listFacets: () =>
+    Promise.resolve({
+      genres: [...new Set(state.media.flatMap((item) => item.metadata.genres ?? []))].sort(
+        (one, other) => one.localeCompare(other),
+      ),
+      decades: [
+        ...new Set(
+          state.media
+            .map((item) => item.year ?? null)
+            .filter((year) => year !== null)
+            .map((year) => Math.floor(year / 10) * 10),
+        ),
+      ].sort((one, other) => other - one),
+      maxRating: state.media.reduce((best, item) => Math.max(best, item.metadata.rating ?? 0), 0),
+    }),
+
   listItems: (libraryId, options) => {
     if (!state.libraries.some((entry) => entry.id === libraryId)) {
       return Promise.resolve(null);
@@ -98,7 +149,7 @@ const createMemoryLibraryService = (
 
     const matching = state.media
       .filter((item) => item.libraryId === libraryId)
-      .filter((item) => search === '' || item.title.toLowerCase().includes(search))
+      .filter((item) => search === '' || matchesSearch(item, search))
       .filter(
         (item) =>
           options.kind === undefined ||
@@ -110,6 +161,7 @@ const createMemoryLibraryService = (
         (item) =>
           options.genre === undefined || (item.metadata.genres ?? []).includes(options.genre),
       )
+      .filter((item) => matchesFilters(item, options))
       .filter((item) => options.ids === undefined || options.ids.includes(item.id))
       .sort((left, right) =>
         options.order === 'newest'

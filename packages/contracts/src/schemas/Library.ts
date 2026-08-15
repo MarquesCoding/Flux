@@ -151,6 +151,28 @@ const MediaPageSchema = z.object({
   total: z.number().int().nonnegative(),
 });
 
+/**
+ * What is actually in the libraries, for a page that offers ways to narrow
+ * them.
+ *
+ * Both lists are read from the items rather than from a fixed taxonomy,
+ * because a filter is only worth offering if something answers to it: a chip
+ * for a genre nobody owns is a control whose only outcome is an empty page.
+ *
+ * Decades rather than years, since a year-by-year list of a large library is
+ * eighty chips and nobody is looking for 1994 in particular.
+ *
+ * `maxRating` is the best score anything carries, which is how a caller
+ * decides whether offering a rating floor at all is honest. It is zero for a
+ * library nobody has matched against a catalogue.
+ */
+const LibraryFacetsSchema = z.object({
+  genres: z.array(z.string()),
+  decades: z.array(z.number().int()),
+  maxRating: z.number().nonnegative(),
+});
+
+export type LibraryFacets = z.infer<typeof LibraryFacetsSchema>;
 export type LibraryKind = z.infer<typeof LibraryKindSchema>;
 export type Library = z.infer<typeof LibrarySchema>;
 export type UpdateLibraryRequest = z.infer<typeof UpdateLibraryRequestSchema>;
@@ -166,6 +188,7 @@ export {
   LibraryKindSchema,
   LibrarySchema,
   UpdateLibraryRequestSchema,
+  LibraryFacetsSchema,
   MediaSummarySchema,
   MediaPageSchema,
   MediaDetailSchema,
