@@ -2,15 +2,23 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchArea } from './SearchArea';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { LibraryFacets, MediaSummary } from '@FluxContracts/schemas/Library';
 
 type Page = { items: MediaSummary[]; total: number };
-type Options = { search?: string; kind?: string; genre?: string; limit?: number };
+type Options = {
+  search?: string;
+  kind?: string;
+  genre?: string;
+  yearFrom?: number;
+  yearTo?: number;
+  minRating?: number;
+  limit?: number;
+};
 
 const fetchLibraries = vi.fn<() => Promise<{ id: string }[]>>();
 const fetchLibraryItems = vi.fn<(libraryId: string, options?: Options) => Promise<Page>>();
 
-const fetchGenres = vi.fn<() => Promise<string[]>>();
+const fetchFacets = vi.fn<() => Promise<LibraryFacets>>();
 
 vi.mock('@FluxWeb/library/fetchLibrary', () => ({
   fetchLibraries: () => fetchLibraries(),
@@ -18,9 +26,15 @@ vi.mock('@FluxWeb/library/fetchLibrary', () => ({
     fetchLibraryItems(libraryId, options),
 }));
 
-vi.mock('@FluxWeb/library/fetchGenres', () => ({
-  fetchGenres: () => fetchGenres(),
+vi.mock('@FluxWeb/library/fetchFacets', () => ({
+  fetchFacets: () => fetchFacets(),
 }));
+
+const facets: LibraryFacets = {
+  genres: ['Science fiction'],
+  decades: [2010, 1990],
+  maxRating: 8.4,
+};
 
 const item = (id: string, title: string, genres?: string[]): MediaSummary => ({
   id,
@@ -45,7 +59,7 @@ beforeEach(() => {
   fetchLibraryItems
     .mockReset()
     .mockResolvedValue({ items: [item('a', 'Arrival', ['Science fiction'])], total: 1 });
-  fetchGenres.mockReset().mockResolvedValue(['Science fiction']);
+  fetchFacets.mockReset().mockResolvedValue(facets);
 });
 
 describe('SearchArea', () => {
@@ -219,6 +233,132 @@ describe('SearchArea', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Arrival/ })).not.toBe(before);
     });
+  });
+
+  it('keeps the narrower filters folded away until they are asked for', async () => {
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
+
+    await screen.findByRole('button', { name: 'Filters' });
+
+    expect(screen.queryByRole('button', { name: '1990s' })).not.toBeInTheDocument();
+  });
+
+  it('asks for a decade as the years either side of it', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Filters' }));
+    await user.click(await screen.findByRole('button', { name: '1990s' }));
+
+    await waitFor(() => {
+      expect(fetchLibraryItems).toHaveBeenCalledWith(
+        'library-1',
+        expect.objectContaining({ yearFrom: 1990, yearTo: 1999 }),
+      );
+    });
+  });
+
+  it('asks for a rating floor', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Filters' }));
+    await user.click(await screen.findByRole('button', { name: '8+' }));
+
+    await waitFor(() => {
+      expect(fetchLibraryItems).toHaveBeenCalledWith(
+        'library-1',
+        expect.objectContaining({ minRating: 8 }),
+      );
+    });
+  });
+
+  it('says how many filters are on, since they are folded away', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Filters' }));
+    await user.click(await screen.findByRole('button', { name: '1990s' }));
+
+    expect(await screen.findByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
+  });
+
+  it('takes every filter off at once when asked to clear', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Filters' }));
+    await user.click(await screen.findByRole('button', { name: '1990s' }));
+    await user.click(await screen.findByRole('button', { name: /Clear/ }));
+
+    expect(await screen.findByRole('button', { name: 'Filters' })).toBeInTheDocument();
+  });
+
+  it('offers nothing that would only lead to an empty page', async () => {
+    fetchFacets.mockResolvedValue({ genres: [], decades: [1990], maxRating: 0 });
+
+    const user = userEvent.setup();
+
+    render(
+      <SearchArea
+        search=""
+        onSearchChange={vi.fn()}
+        genre={null}
+        onGenreChange={vi.fn()}
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Filters' }));
+
+    expect(screen.queryByRole('group', { name: 'Rating' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Genre' })).not.toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Decade' })).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

@@ -1,7 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { stat } from 'node:fs/promises';
 import { z } from 'zod';
-import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { library, mediaItem } from '@FluxServer/db/Schema';
 import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
@@ -72,11 +85,12 @@ type CreateDatabaseLibraryServiceOptions = {
 /**
  * What a typed search matches against.
  *
- * Three places rather than one, because somebody typing into a search box is
- * naming whatever they can remember about a thing, and the title is only
- * sometimes it. "Denzel" is a perfectly ordinary way to look for a film, and
- * a title-only search answers it with nothing while the server holds the cast
- * list that would have found it.
+ * Everything written about a thing rather than its title alone, because
+ * somebody typing into a search box is naming whatever they can remember, and
+ * the title is only sometimes it. "Denzel" is a perfectly ordinary way to look
+ * for a film, and a title-only search answers it with nothing while the server
+ * holds the cast list that would have found it. The same goes for half a
+ * remembered plot, which is in the description Flux already stores.
  *
  * The series title is in here for the same reason: searching "Ted" should
  * find the programme's episodes, which are each titled something else
@@ -94,6 +108,8 @@ const matchesSearch = (search: string) => {
   return or(
     ilike(mediaItem.title, like),
     ilike(mediaItem.seriesTitle, like),
+    ilike(mediaItem.overview, like),
+    ilike(mediaItem.tagline, like),
     sql`exists (
       select 1
       from jsonb_array_elements(coalesce(${mediaItem.castMembers}, '[]'::jsonb)) as member
@@ -102,16 +118,6 @@ const matchesSearch = (search: string) => {
   );
 };
 
-/**
- * The library backed by Postgres.
- *
- * Item detail is validated on the way out with the shared contract schema, so
- * a row written by an older version that no longer matches the contract fails
- * here rather than reaching a client as a half-populated object.
- */
-/**
- * The library backed by Postgres, plus the worker body the queue calls.
- */
 /**
  * The genres a stored row carries.
  *
@@ -158,6 +164,13 @@ type DatabaseLibraryService = LibraryService & {
  */
 const EVERY_EPISODE = 2000;
 
+/**
+ * The library backed by Postgres, plus the worker body the queue calls.
+ *
+ * Item detail is validated on the way out with the shared contract schema, so
+ * a row written by an older version that no longer matches the contract fails
+ * here rather than reaching a client as a half-populated object.
+ */
 const createDatabaseLibraryService = ({
   db,
   files,
@@ -460,16 +473,31 @@ const createDatabaseLibraryService = ({
       };
     },
 
-    listGenres: async () => {
-      const rows = await db
-        .select({ genre: sql<string>`genre` })
+    listFacets: async () => {
+      const genreRows = await db
+        .select({ value: sql<string>`genre` })
         .from(
           sql`${mediaItem}, jsonb_array_elements_text(coalesce(${mediaItem.genres}, '[]'::jsonb)) as genre`,
         )
         .groupBy(sql`genre`)
         .orderBy(sql`genre asc`);
 
-      return rows.map((row) => row.genre);
+      const decadeRows = await db
+        .select({ value: sql<number>`((${mediaItem.year} / 10) * 10)::int` })
+        .from(mediaItem)
+        .where(isNotNull(mediaItem.year))
+        .groupBy(sql`(${mediaItem.year} / 10) * 10`)
+        .orderBy(sql`(${mediaItem.year} / 10) * 10 desc`);
+
+      const [best] = await db
+        .select({ rating: sql<number>`coalesce(max(${mediaItem.rating}), 0)::float` })
+        .from(mediaItem);
+
+      return {
+        genres: genreRows.map((row) => row.value),
+        decades: decadeRows.map((row) => row.value),
+        maxRating: best?.rating ?? 0,
+      };
     },
 
     listItems: async (libraryId, options) => {
@@ -492,6 +520,9 @@ const createDatabaseLibraryService = ({
         ...(options.genre === undefined || options.genre === ''
           ? []
           : [sql`${mediaItem.genres} @> ${JSON.stringify([options.genre])}::jsonb`]),
+        ...(options.yearFrom === undefined ? [] : [gte(mediaItem.year, options.yearFrom)]),
+        ...(options.yearTo === undefined ? [] : [lte(mediaItem.year, options.yearTo)]),
+        ...(options.minRating === undefined ? [] : [gte(mediaItem.rating, options.minRating)]),
         ...(options.ids === undefined
           ? []
           : options.ids.length === 0

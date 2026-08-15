@@ -407,9 +407,92 @@ describe('library routes', () => {
       }),
     ]);
 
-    const response = await app.request(`${BASE}/api/genres`);
+    const response = await app.request(`${BASE}/api/library-facets`);
 
-    expect(await response.json()).toStrictEqual({ genres: ['Drama', 'Sci-Fi'] });
+    expect(await response.json()).toMatchObject({ genres: ['Drama', 'Sci-Fi'] });
+  });
+
+  it('says what else there is to narrow by, from what is actually held', async () => {
+    const { app } = build([
+      detail({
+        year: 1999,
+        metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false, rating: 8.2 },
+      }),
+      detail({ id: '11111111-1111-4111-8111-111111111111', year: 2016 }),
+    ]);
+
+    const response = await app.request(`${BASE}/api/library-facets`);
+
+    expect(await response.json()).toStrictEqual({
+      genres: [],
+      decades: [2010, 1990],
+      maxRating: 8.2,
+    });
+  });
+
+  it('keeps only what was made in the years asked for', async () => {
+    const { app } = build([
+      detail({ year: 1994 }),
+      detail({ id: '11111111-1111-4111-8111-111111111111', title: 'Dune', year: 2021 }),
+    ]);
+
+    const response = await app.request(
+      `${BASE}/api/libraries/${LIBRARY_ID}/items?yearFrom=1990&yearTo=1999`,
+    );
+
+    expect(await response.json()).toMatchObject({ total: 1, items: [{ title: 'Arrival' }] });
+  });
+
+  it('leaves out what nobody has rated when a rating floor is asked for', async () => {
+    const { app } = build([
+      detail({
+        metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false, rating: 8.2 },
+      }),
+      detail({ id: '11111111-1111-4111-8111-111111111111', title: 'Dune' }),
+    ]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?minRating=8`);
+
+    expect(await response.json()).toMatchObject({ total: 1, items: [{ title: 'Arrival' }] });
+  });
+
+  it('searches what a thing is about, not only what it is called', async () => {
+    const { app } = build([
+      detail({
+        metadata: {
+          hasPoster: false,
+          hasBackdrop: false,
+          hasLogo: false,
+          overview: 'A linguist is asked to speak to the visitors.',
+        },
+      }),
+      detail({ id: '11111111-1111-4111-8111-111111111111', title: 'Dune' }),
+    ]);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?search=linguist`);
+
+    expect(await response.json()).toMatchObject({ total: 1, items: [{ title: 'Arrival' }] });
+  });
+
+  it('combines what was asked rather than answering the last of it', async () => {
+    const { app } = build([
+      detail({
+        year: 1994,
+        metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false, rating: 6 },
+      }),
+      detail({
+        id: '11111111-1111-4111-8111-111111111111',
+        title: 'Dune',
+        year: 1994,
+        metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false, rating: 8.4 },
+      }),
+    ]);
+
+    const response = await app.request(
+      `${BASE}/api/libraries/${LIBRARY_ID}/items?yearFrom=1990&yearTo=1999&minRating=8`,
+    );
+
+    expect(await response.json()).toMatchObject({ total: 1, items: [{ title: 'Dune' }] });
   });
 
   it('pages through items', async () => {

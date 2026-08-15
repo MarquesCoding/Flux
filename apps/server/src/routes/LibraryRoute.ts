@@ -4,6 +4,7 @@ import {
   UpdateLibraryRequestSchema,
   MediaSummarySchema,
   MediaDetailSchema,
+  LibraryFacetsSchema,
   LIBRARY_KINDS,
 } from '@FluxContracts/schemas/Library';
 import {
@@ -14,6 +15,7 @@ import {
 const Library = LibrarySchema.openapi('Library');
 const MediaSummary = MediaSummarySchema.openapi('MediaSummary');
 const MediaDetail = MediaDetailSchema.openapi('MediaDetail');
+const LibraryFacets = LibraryFacetsSchema.openapi('LibraryFacets');
 const NotFound = z.object({ error: z.string() }).openapi('LibraryNotFound');
 /**
  * What every route that changes a library answers to somebody who may not.
@@ -102,24 +104,27 @@ const updateLibraryRoute = createRoute({
 });
 
 /**
- * Every genre anything is actually filed under, across every library.
+ * What there is to narrow by, across every library.
  *
  * Its own route because the alternative was reading a couple of hundred items
  * per library into the browser and collecting the genres out of them — which
  * costs a page of requests to answer a question the database can answer with
  * one, and quietly misses any genre that only appears further down.
  *
+ * One answer covering all of it rather than a route per kind of filter, since
+ * nothing can draw half a filter bar.
+ *
  * Not scoped to a library, because search is not either.
  */
-const listGenresRoute = createRoute({
+const listFacetsRoute = createRoute({
   method: 'get',
-  path: '/api/genres',
+  path: '/api/library-facets',
   tags: ['Library'],
-  summary: 'List the genres in use',
+  summary: 'List what there is to filter by',
   responses: {
     200: {
-      description: 'The genres, in alphabetical order',
-      content: { 'application/json': { schema: z.object({ genres: z.array(z.string()) }) } },
+      description: 'The genres and decades in use, and the best rating held',
+      content: { 'application/json': { schema: LibraryFacets } },
     },
     401: {
       description: 'Not signed in',
@@ -134,8 +139,14 @@ const listGenresRoute = createRoute({
  * Returns summaries rather than full detail: a library of tens of thousands of
  * items should not ship every stream's details to draw a page of posters.
  *
- * `search` matches the title, the series title and the cast, so an actor's
- * name finds their films and a programme's name finds its episodes.
+ * `search` matches the title, the series title, the description and the cast,
+ * so an actor's name finds their films and a programme's name finds its
+ * episodes.
+ *
+ * The rest narrow rather than search: what a thing is, when it was made, and
+ * how well it was received. Every one of them is optional and they combine,
+ * because the question somebody actually has is usually more than one of them
+ * at once — the well-reviewed science fiction of the nineties.
  */
 const listItemsRoute = createRoute({
   method: 'get',
@@ -148,6 +159,9 @@ const listItemsRoute = createRoute({
       search: z.string().optional(),
       kind: z.enum(['films', 'shows']).optional(),
       genre: z.string().optional(),
+      yearFrom: z.coerce.number().int().optional(),
+      yearTo: z.coerce.number().int().optional(),
+      minRating: z.coerce.number().min(0).max(10).optional(),
       ids: z.string().optional(),
       order: z.enum(['title', 'newest']).optional(),
       limit: z.coerce.number().int().positive().max(200).optional(),
@@ -493,7 +507,7 @@ export {
   createLibraryRoute,
   updateLibraryRoute,
   listItemsRoute,
-  listGenresRoute,
+  listFacetsRoute,
   getMediaRoute,
   scanLibraryRoute,
   scanStateRoute,

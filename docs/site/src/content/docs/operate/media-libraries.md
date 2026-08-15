@@ -77,3 +77,22 @@ so a plugin overrides the built-in reader without replacing it.
 
 A provider that fails is skipped rather than failing the scan. A metadata
 service being down must not make your library unreadable.
+
+## Finding things again
+
+Search reads what a catalogue stored, not only what a file is called. Typing a
+name finds titles, series names, descriptions, taglines and cast, so an actor's
+name finds their films and half a remembered plot finds the film it belongs to.
+
+The filters beside it narrow rather than search: genre, decade, and a rating
+floor. They combine, so "the well-reviewed science fiction of the nineties" is
+one set of presses rather than a question Flux cannot answer.
+
+Every filter is offered only where something answers to it. A library with no
+westerns in it is not shown a western chip, and one nobody has matched against
+a catalogue is offered no rating floor at all — a control whose only possible
+outcome is an empty page is worse than no control.
+
+Ratings work the same way at the item level: something nobody has scored is
+left out of a search asking for at least seven, rather than passing by
+default.

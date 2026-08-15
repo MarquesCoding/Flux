@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { IconSearch, IconX } from '@tabler/icons-react';
+import { IconAdjustmentsHorizontal, IconSearch, IconX } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { fetchGenres } from '@FluxWeb/library/fetchGenres';
+import { fetchFacets } from '@FluxWeb/library/fetchFacets';
 import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
 import { collapseToShows } from '@FluxWeb/library/pickFeatured';
 import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
 import { GridSizeChooser } from '@FluxWeb/components/GridSizeChooser/GridSizeChooser';
 import { readGridSize, saveGridSize } from '@FluxWeb/library/gridSizePreference';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import { buildFilterOptions } from './buildFilterOptions';
+import { FilterChips } from './components/FilterChips/FilterChips';
+import type { LibraryFacets, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { SearchAreaProps, SearchKind } from './SearchArea.types';
 
 /**
@@ -34,6 +36,25 @@ const KINDS: { id: SearchKind; label: string }[] = [
 ];
 
 /**
+ * Nothing known about the libraries, until the server has said.
+ */
+const NO_FACETS: LibraryFacets = { genres: [], decades: [], maxRating: 0 };
+
+/**
+ * How long a decade is, for turning a chip into the years either side of it.
+ */
+const DECADE = 10;
+
+/**
+ * Reads a chip's value back as a number, or nothing.
+ *
+ * The chips deal in strings because that is what a value on a control is;
+ * everything downstream of them is arithmetic.
+ */
+const asNumber = (value: string | null): number | undefined =>
+  value === null ? undefined : Number(value);
+
+/**
  * Searching the library, and narrowing it.
  *
  * A field on its own answers "what is this called"; most of the time somebody
@@ -43,9 +64,13 @@ const KINDS: { id: SearchKind; label: string }[] = [
  * page of it, and sifting what happened to arrive would answer with whatever
  * the first sixty items were.
  *
- * Genres are drawn from what is actually in the library rather than from a
- * fixed list, because a list offering "Western" to somebody who owns no
- * westerns is a list of dead ends.
+ * Every list of chips is drawn from what is actually in the libraries rather
+ * than from a fixed list, because a list offering "Western" to somebody who
+ * owns no westerns is a list of dead ends.
+ *
+ * The narrower filters are folded away behind a press. The row of kinds and
+ * the genres answer most of what people come here for, and the rest is there
+ * for somebody who came looking for the good films of the nineties.
  */
 const SearchArea = ({
   search,
@@ -63,10 +88,15 @@ const SearchArea = ({
   const [libraryIds, setLibraryIds] = useState<string[]>([]);
   const [items, setItems] = useState<MediaSummary[]>([]);
   const [kind, setKind] = useState<SearchKind>('everything');
-  const [genres, setGenres] = useState<string[]>([]);
+  const [facets, setFacets] = useState<LibraryFacets>(NO_FACETS);
+  const [decade, setDecade] = useState<string | null>(null);
+  const [minRating, setMinRating] = useState<string | null>(null);
+  const [isShowingFilters, setIsShowingFilters] = useState(false);
   const [isReading, setIsReading] = useState(false);
   const [size, setSize] = useState(readGridSize);
   const prefersReducedMotion = useReducedMotion();
+
+  const options = useMemo(() => buildFilterOptions(facets), [facets]);
 
   const reportItems = useRef(onItemsLoaded);
 
@@ -85,12 +115,16 @@ const SearchArea = ({
 
     setIsReading(true);
 
+    const startsAt = asNumber(decade);
+
     const pages = await Promise.all(
       libraryIds.map(async (libraryId) =>
         fetchLibraryItems(libraryId, {
           ...(search.trim() === '' ? {} : { search }),
           ...(kind === 'everything' ? {} : { kind }),
           ...(genre === null ? {} : { genre }),
+          ...(startsAt === undefined ? {} : { yearFrom: startsAt, yearTo: startsAt + DECADE - 1 }),
+          ...(minRating === null ? {} : { minRating: Number(minRating) }),
           limit: PAGE_SIZE,
         }).catch(() => ({ items: [], total: 0 })),
       ),
@@ -101,7 +135,7 @@ const SearchArea = ({
     setItems(found);
     setIsReading(false);
     reportItems.current?.(found);
-  }, [libraryIds, search, kind, genre]);
+  }, [libraryIds, search, kind, genre, decade, minRating]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -114,10 +148,18 @@ const SearchArea = ({
   }, [read]);
 
   useEffect(() => {
-    void fetchGenres().then(setGenres);
+    void fetchFacets().then(setFacets);
   }, []);
 
-  const isNarrowed = kind !== 'everything' || genre !== null || search.trim() !== '';
+  const narrowed = [decade, minRating].filter((chosen) => chosen !== null).length;
+
+  const isNarrowed =
+    kind !== 'everything' || genre !== null || search.trim() !== '' || narrowed > 0;
+
+  const clearFilters = () => {
+    setDecade(null);
+    setMinRating(null);
+  };
 
   return (
     <motion.div
@@ -168,6 +210,19 @@ const SearchArea = ({
             </Button>
           ))}
 
+          <Button
+            size="sm"
+            isPill
+            variant={isShowingFilters ? 'glossy' : 'secondary'}
+            isActive={isShowingFilters}
+            onClick={() => {
+              setIsShowingFilters(!isShowingFilters);
+            }}
+          >
+            <IconAdjustmentsHorizontal size={16} aria-hidden />
+            {narrowed === 0 ? 'Filters' : `Filters (${narrowed.toString()})`}
+          </Button>
+
           {!isNarrowed ? null : (
             <Button
               variant="ghost"
@@ -177,6 +232,7 @@ const SearchArea = ({
                 setKind('everything');
                 onGenreChange(null);
                 onSearchChange('');
+                clearFilters();
               }}
             >
               <IconX size={16} aria-hidden />
@@ -185,24 +241,40 @@ const SearchArea = ({
           )}
         </div>
 
-        {genres.length === 0 ? null : (
-          <ul className="flux-rail flex flex-wrap gap-2">
-            {genres.map((named) => (
-              <li key={named}>
-                <Button
-                  size="sm"
-                  isPill
-                  variant={named === genre ? 'glossy' : 'ghost'}
-                  onClick={() => {
-                    onGenreChange(named === genre ? null : named);
-                  }}
-                >
-                  {named}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <FilterChips
+          legend="Genre"
+          options={options.genres}
+          value={genre}
+          onValueChange={onGenreChange}
+        />
+
+        <AnimatePresence initial={false}>
+          {!isShowingFilters ? null : (
+            <motion.div
+              key="filters"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={revealTransition(prefersReducedMotion)}
+              className="overflow-hidden"
+            >
+              <div className="flex flex-col gap-5 pt-2">
+                <FilterChips
+                  legend="Decade"
+                  options={options.decades}
+                  value={decade}
+                  onValueChange={setDecade}
+                />
+                <FilterChips
+                  legend="Rating"
+                  options={options.ratings}
+                  value={minRating}
+                  onValueChange={setMinRating}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       <motion.section
@@ -237,7 +309,7 @@ const SearchArea = ({
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={`${kind}:${genre ?? ''}`}
+            key={[kind, genre, decade, minRating].join(':')}
             variants={staggerVariants}
             initial="hidden"
             animate="shown"
