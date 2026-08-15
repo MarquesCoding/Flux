@@ -59,6 +59,7 @@ import {
   PRUNE_HISTORY_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   CHECK_TRANSCODER_JOB,
+  CHECK_DISK_SPACE_JOB,
   DELIVER_WEBHOOK_JOB,
   PRUNE_WEBHOOK_DELIVERIES_JOB,
   DeliverWebhookJobSchema,
@@ -68,6 +69,12 @@ import { createDatabaseWebhookStore } from '@FluxServer/webhooks/createDatabaseW
 import { runWebhookDelivery } from '@FluxServer/webhooks/runWebhookDelivery';
 import { createWebhookEventBus } from '@FluxServer/events/createWebhookEventBus';
 import { createReachabilityWatch } from '@FluxServer/events/createReachabilityWatch';
+import { createDiskPressureWatch } from '@FluxServer/events/createDiskPressureWatch';
+import { MonitorDisksSchema } from '@FluxServer/maintenance/DiskUse';
+import {
+  findDisksUnderPressure,
+  findMountFor,
+} from '@FluxServer/maintenance/findDisksUnderPressure';
 import { createDatabaseMaintenanceService } from '@FluxServer/maintenance/createDatabaseMaintenanceService';
 import { cleanupImageCache } from '@FluxServer/maintenance/cleanupImageCache';
 import { sweepArtefactCache } from '@FluxServer/maintenance/sweepArtefactCache';
@@ -313,6 +320,33 @@ const transcoderWatch = createReachabilityWatch({
     void events.publish({ event: 'transcoder.reachable', data: {} });
   },
 });
+
+const diskWatch = createDiskPressureWatch({
+  onLow: (disk) => {
+    process.stderr.write(`disk: ${disk.mountPoint} is running out of room\n`);
+
+    void events.publish({ event: 'disk.low', data: disk });
+  },
+  onRecovered: (disk) => {
+    process.stdout.write(`disk: ${disk.mountPoint} has room again\n`);
+
+    void events.publish({ event: 'disk.recovered', data: disk });
+  },
+});
+
+/**
+ * Everywhere Flux writes, which is what it is worth warning about.
+ *
+ * The libraries and the image cache. Every other filesystem the machine has
+ * is somebody else's business: a media server usually has a full disk
+ * somewhere — a read-only install image, a snap loopback, a backup drive —
+ * and warning about those teaches an operator to ignore the warning that
+ * matters.
+ */
+const pathsFluxWritesTo = async (): Promise<string[]> => [
+  ...(await libraryService.list()).map((entry) => entry.path),
+  env.IMAGE_CACHE_DIR,
+];
 
 /**
  * Whether the catalogue was answering last time anybody asked.
@@ -603,6 +637,25 @@ const jobs = await createJobQueue({
       jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
 
       transcoderWatch.record(reachable);
+    },
+    [CHECK_DISK_SPACE_JOB]: async (jobId) => {
+      jobs.reportProgress(jobId, 'reading', 0, 1);
+
+      const reading = MonitorDisksSchema.safeParse(await transcoder.readMonitor());
+
+      if (!reading.success) {
+        process.stderr.write('disk: the monitor did not say what the filesystems hold\n');
+
+        return;
+      }
+
+      const { disks } = reading.data.resources;
+      const paths = await pathsFluxWritesTo();
+      const mounts = [...new Set(paths.flatMap((path) => findMountFor(path, disks) ?? []))];
+
+      diskWatch.record(mounts, findDisksUnderPressure(paths, disks));
+
+      jobs.reportProgress(jobId, `${mounts.length.toString()} checked`, 1, 1);
     },
     [PRUNE_WEBHOOK_DELIVERIES_JOB]: async () => {
       const forgotten = await webhookSubscriptions.pruneDeliveries(

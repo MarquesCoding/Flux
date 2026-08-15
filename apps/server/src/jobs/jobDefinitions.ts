@@ -11,6 +11,7 @@ import {
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
   CHECK_TRANSCODER_JOB,
+  CHECK_DISK_SPACE_JOB,
   PRUNE_WEBHOOK_DELIVERIES_JOB,
   scheduleTriggerKind,
 } from './JobQueue';
@@ -153,6 +154,14 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     destructive: false,
   },
   {
+    kind: CHECK_DISK_SPACE_JOB,
+    label: 'Check disk space',
+    description:
+      'Asks how much room is left on the filesystems Flux writes to, so a disk about to fill is something an operator hears about rather than something a scan discovers.',
+    needsLibrary: false,
+    destructive: false,
+  },
+  {
     kind: PRUNE_WEBHOOK_DELIVERIES_JOB,
     label: 'Prune old webhook deliveries',
     description:
@@ -187,6 +196,7 @@ const DEFAULT_JOB_TRIGGERS: Record<string, ScheduleTrigger[]> = {
   [DETECT_SEGMENTS_JOB]: [{ kind: 'daily', hour: 4, minute: 30 }],
   [CHECK_CATALOGUE_CONNECTIVITY_JOB]: [{ kind: 'daily', hour: 5, minute: 0 }],
   [CHECK_TRANSCODER_JOB]: [{ kind: 'everyMinutes', minutes: 5 }],
+  [CHECK_DISK_SPACE_JOB]: [{ kind: 'everyMinutes', minutes: 15 }],
   [CLEANUP_SESSIONS_JOB]: [{ kind: 'daily', hour: 5, minute: 30 }],
   [PRUNE_WEBHOOK_DELIVERIES_JOB]: [{ kind: 'daily', hour: 5, minute: 45 }],
   [CLEANUP_IMAGE_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 0 }],

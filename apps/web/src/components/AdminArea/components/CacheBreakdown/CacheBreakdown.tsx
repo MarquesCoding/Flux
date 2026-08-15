@@ -1,7 +1,7 @@
 import { IconInfoCircle } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { HoverCard } from '@FluxUI/HoverCard';
-import { formatBytes } from '@FluxWeb/components/AdminArea/formatBytes';
+import { formatBytes } from '@FluxCore/functions/formatBytes';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import { cacheRows } from './cacheRows';
 import type { CacheBreakdownProps } from './CacheBreakdown.types';

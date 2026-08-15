@@ -10,7 +10,7 @@ import { BackgroundJobs } from '@FluxWeb/components/AdminArea/components/Backgro
 import { CacheBreakdown } from '@FluxWeb/components/AdminArea/components/CacheBreakdown/CacheBreakdown';
 import { TrendChart } from '@FluxUI/TrendChart';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
-import { formatBytes } from '@FluxWeb/components/AdminArea/formatBytes';
+import { formatBytes } from '@FluxCore/functions/formatBytes';
 import { describeQueueKind } from '@FluxWeb/components/AdminArea/describeQueueKind';
 import { describeAcceleration } from '@FluxWeb/components/AdminArea/describeAcceleration';
 import { measureStorage } from '@FluxWeb/admin/fetchAdmin';

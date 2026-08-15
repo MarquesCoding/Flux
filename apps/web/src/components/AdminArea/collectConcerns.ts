@@ -2,7 +2,7 @@ import type { ActiveSession, AdminOverview, Monitor } from '@FluxWeb/admin/fetch
 import type { Library } from '@FluxContracts/schemas/Library';
 import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
-import { formatBytes } from './formatBytes';
+import { formatBytes } from '@FluxCore/functions/formatBytes';
 
 /**
  * How much somebody should care, which is what decides the order.
