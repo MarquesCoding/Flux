@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { cn } from '@FluxUI/cn';
+import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { DialogProps } from './Dialog.types';
 
 /**
@@ -51,6 +52,8 @@ const BACKDROP_MOTION = [
  * and tabbing still starts at the top — it just does not press anything.
  */
 const Dialog = ({ label, isOpen, onClose, children, className }: DialogProps) => {
+  const portalContainer = usePortalContainer();
+
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   return (
@@ -62,7 +65,7 @@ const Dialog = ({ label, isOpen, onClose, children, className }: DialogProps) =>
         }
       }}
     >
-      <BaseDialog.Portal>
+      <BaseDialog.Portal container={portalContainer}>
         <BaseDialog.Backdrop
           className={cn('fixed inset-0 z-40 bg-black/70 backdrop-blur-sm', BACKDROP_MOTION)}
         />

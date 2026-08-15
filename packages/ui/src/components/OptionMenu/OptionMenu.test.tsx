@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { OptionMenu } from './OptionMenu';
 import type { MenuGroup } from './OptionMenu.types';
 
@@ -105,6 +105,64 @@ describe('OptionMenu', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Playback speed' })).toBeDisabled();
+  });
+
+  describe('in fullscreen', () => {
+    /**
+     * Says an element is fullscreen the way a browser reports it.
+     *
+     * jsdom implements neither `requestFullscreen` nor `fullscreenElement`,
+     * so the property is set and the event dispatched by hand. That is what
+     * the component actually reads: it never asks for fullscreen, it only
+     * answers what the document says afterwards.
+     */
+    const goFullscreen = (element: Element | null) => {
+      Object.defineProperty(document, 'fullscreenElement', {
+        configurable: true,
+        value: element,
+        writable: true,
+      });
+
+      document.dispatchEvent(new Event('fullscreenchange'));
+    };
+
+    afterEach(() => {
+      goFullscreen(null);
+    });
+
+    it('opens inside the element that is fullscreen, where it can be seen', async () => {
+      const stage = document.createElement('div');
+
+      document.body.append(stage);
+      goFullscreen(stage);
+
+      const user = userEvent.setup();
+
+      render(<OptionMenu label="Playback speed" trigger={<span>1x</span>} groups={[speed()]} />, {
+        container: stage.appendChild(document.createElement('div')),
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Playback speed' }));
+
+      const chosen = await screen.findByRole('menuitemradio', { name: '2x' });
+
+      expect(stage.contains(chosen)).toBe(true);
+    });
+
+    it('opens in the body again once fullscreen is left, with no leftover', async () => {
+      const stage = document.createElement('div');
+
+      document.body.append(stage);
+      goFullscreen(stage);
+      goFullscreen(null);
+
+      await open([speed()]);
+
+      const chosen = await screen.findByRole('menuitemradio', { name: '2x' });
+
+      expect(document.body.contains(chosen)).toBe(true);
+      expect(stage.contains(chosen)).toBe(false);
+    });
   });
 
   it('sets a display name so devtools can identify it', () => {

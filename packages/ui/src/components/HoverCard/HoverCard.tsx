@@ -1,5 +1,6 @@
 import { PreviewCard } from '@base-ui/react/preview-card';
 import { cn } from '@FluxUI/cn';
+import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { HoverCardProps } from './HoverCard.types';
 
 const POPUP_MOTION = [
@@ -27,29 +28,33 @@ const HoverCard = ({
   side = 'top',
   align = 'end',
   className,
-}: HoverCardProps) => (
-  <PreviewCard.Root>
-    <PreviewCard.Trigger
-      render={<span className="inline-flex cursor-default items-center gap-2" />}
-    >
-      {children}
-    </PreviewCard.Trigger>
+}: HoverCardProps) => {
+  const portalContainer = usePortalContainer();
 
-    <PreviewCard.Portal>
-      <PreviewCard.Positioner side={side} align={align} sideOffset={8} className="z-50">
-        <PreviewCard.Popup
-          className={cn(
-            'flux-glass w-72 rounded-xl p-4 text-sm text-text',
-            POPUP_MOTION,
-            className,
-          )}
-        >
-          {detail}
-        </PreviewCard.Popup>
-      </PreviewCard.Positioner>
-    </PreviewCard.Portal>
-  </PreviewCard.Root>
-);
+  return (
+    <PreviewCard.Root>
+      <PreviewCard.Trigger
+        render={<span className="inline-flex cursor-default items-center gap-2" />}
+      >
+        {children}
+      </PreviewCard.Trigger>
+
+      <PreviewCard.Portal container={portalContainer}>
+        <PreviewCard.Positioner side={side} align={align} sideOffset={8} className="z-50">
+          <PreviewCard.Popup
+            className={cn(
+              'flux-glass w-72 rounded-xl p-4 text-sm text-text',
+              POPUP_MOTION,
+              className,
+            )}
+          >
+            {detail}
+          </PreviewCard.Popup>
+        </PreviewCard.Positioner>
+      </PreviewCard.Portal>
+    </PreviewCard.Root>
+  );
+};
 
 HoverCard.displayName = 'HoverCard';
 

@@ -4,6 +4,7 @@ import { Menu } from '@base-ui/react/menu';
 import { IconCheck, IconChevronDown } from '@tabler/icons-react';
 import { Button } from '@FluxUI/Button';
 import { cn } from '@FluxUI/cn';
+import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { SectionBarProps } from './SectionBar.types';
 
 /**
@@ -100,6 +101,8 @@ const CLOSE_DELAY_MILLISECONDS = 180;
  * moving rather than doing.
  */
 const SectionBar = ({ label, groups, value, onValueChange, className }: SectionBarProps) => {
+  const portalContainer = usePortalContainer();
+
   const prefersReducedMotion = useReducedMotion();
   const [pointedAt, setPointedAt] = useState<string | null>(null);
 
@@ -207,7 +210,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
                   <IconChevronDown size={14} aria-hidden />
                 </Menu.Trigger>
 
-                <Menu.Portal>
+                <Menu.Portal container={portalContainer}>
                   <Menu.Positioner sideOffset={8} align="start" className="z-50">
                     <Menu.Popup
                       aria-label={group.label}
