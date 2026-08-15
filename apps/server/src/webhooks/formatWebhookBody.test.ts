@@ -82,6 +82,27 @@ describe('formatWebhookBody', () => {
     expect(written.body).toContain('without matching them');
   });
 
+  it('says a recovery is not something to act on', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'transcoder.reachable',
+      data: {},
+    });
+
+    expect(written.body).toContain('answering again');
+    expect(written.body).toContain('Nothing needs doing');
+  });
+
+  it('says the same for a catalogue that came back', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'catalogue.reachable',
+      data: {},
+    });
+
+    expect(written.body).toContain('Nothing needs doing');
+  });
+
   it('carries the reason the transcoder could not be reached', () => {
     const written = formatWebhookBody('ntfy', {
       ...anEnvelope,
