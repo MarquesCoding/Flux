@@ -14,7 +14,9 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::keyframes::{cut_interval, read_keyframes, segment_lengths};
+use crate::keyframes::{
+    cut_interval, longest_segment, read_keyframes, safe_segment_lengths, segment_lengths,
+};
 use crate::playlist::build_vod_playlist;
 use crate::probe::probe_media;
 use crate::transcode_plan::{SessionSpec, VideoAction, MANIFEST_NAME};
@@ -29,7 +31,21 @@ pub const LENGTHS_NAME: &str = "lengths.json";
 /// written by an older Flux describes files that will never be produced now,
 /// and a playlist naming them is a film that cannot play. The boundaries are
 /// then worked out again and the playlist rewritten, which costs one probe.
-const LAYOUT: u32 = 3;
+const LAYOUT: u32 = 4;
+
+/// The longest segment a copied stream may produce before copying is refused.
+///
+/// A segment is fetched and appended whole, so its length is also its size. On
+/// the measured remux — HEVC Main 10 at 14.5 Mbps — ten second segments are
+/// 17.5 megabytes, and Chrome ended the stream on the second one with
+/// `QUOTA_EXCEEDED`. Skipping the keyframes a decoder cannot start at makes
+/// them longer still: 28, 55, 57 seconds, and 131 at worst.
+///
+/// Sixteen seconds is four times the length ordinarily asked for. Past it a
+/// source is not being delivered as HLS in any useful sense, and encoding —
+/// which puts a keyframe on every boundary and yields segments of a few
+/// megabytes — is the only thing that plays. See FLUX-125.
+const LONGEST_COPYABLE_SEGMENT: f64 = 16.0;
 
 /// Where a plan's segments fall, and what the muxer has to be asked for to
 /// make them fall there.
@@ -47,6 +63,13 @@ pub struct Boundaries {
     pub lengths: Vec<f64>,
     /// What to pass the muxer as its segment length.
     pub cut_seconds: f64,
+    /// Whether this source can be delivered by copying it at all.
+    ///
+    /// False when its own keyframes cannot yield segments a player will take:
+    /// either they are places a decoder cannot start, or avoiding those makes
+    /// the segments far too long. The lengths then describe an encode, because
+    /// that is the only way the film plays.
+    pub can_copy: bool,
 }
 
 impl Boundaries {
@@ -63,6 +86,7 @@ impl Boundaries {
             layout: LAYOUT,
             lengths: Vec::new(),
             cut_seconds: 0.0,
+            can_copy: true,
         }
     }
 }
@@ -119,25 +143,50 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
         return Boundaries::unknown();
     };
 
-    let equal = || Boundaries {
+    let equal = |can_copy: bool| Boundaries {
         layout: LAYOUT,
         lengths: equal_lengths(probe.duration_seconds, spec.segment_seconds),
         cut_seconds: wanted,
+        can_copy,
     };
 
     if matches!(spec.video, VideoAction::Encode { .. }) {
-        return equal();
+        return equal(true);
     }
 
     match read_keyframes(ffprobe, path, probe.duration_seconds).await {
         Ok(keyframes) => {
             let cut_seconds = cut_interval(&keyframes, wanted);
+            let unsafe_cuts = keyframes.cuts.iter().filter(|cut| !cut.is_safe()).count();
 
-            Boundaries {
-                layout: LAYOUT,
-                lengths: segment_lengths(&keyframes, cut_seconds),
-                cut_seconds,
+            if unsafe_cuts == 0 {
+                return Boundaries {
+                    layout: LAYOUT,
+                    lengths: segment_lengths(&keyframes, cut_seconds),
+                    cut_seconds,
+                    can_copy: true,
+                };
             }
+
+            let avoided = safe_segment_lengths(&keyframes, cut_seconds);
+            let longest = longest_segment(&avoided);
+
+            if longest <= LONGEST_COPYABLE_SEGMENT {
+                return Boundaries {
+                    layout: LAYOUT,
+                    lengths: avoided,
+                    cut_seconds,
+                    can_copy: true,
+                };
+            }
+
+            eprintln!(
+                "transcode: {} has {unsafe_cuts} keyframes a decoder cannot start at, and \
+avoiding them makes segments up to {longest:.1}s, so it will be encoded rather than copied",
+                spec.input_path
+            );
+
+            equal(false)
         }
         Err(failure) => {
             eprintln!(
@@ -145,7 +194,7 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
                 spec.input_path
             );
 
-            equal()
+            equal(true)
         }
     }
 }

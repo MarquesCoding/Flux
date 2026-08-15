@@ -41,6 +41,24 @@ pub struct Cut {
     pub starts_at_seconds: f64,
 }
 
+impl Cut {
+    /// Whether a decoder can start here.
+    ///
+    /// An open GOP opens its segment with a CRA and then sends pictures shown
+    /// before it, which reference the GOP that came earlier. A decoder handed
+    /// those without the frames they refer to cannot produce them: `VideoToolbox`
+    /// answers `kVTVideoDecoderReferenceMissingErr` and Chrome ends the stream.
+    ///
+    /// Measured on a Bluray remux of HEVC Main 10: 154 of its 1444 keyframes
+    /// carry such pictures, and playback died at the first of them every time.
+    /// A cut whose segment begins at the keyframe itself has nothing in front
+    /// of it and is safe to start at. See FLUX-125.
+    #[must_use]
+    pub fn is_safe(self) -> bool {
+        (self.at_seconds - self.starts_at_seconds).abs() < f64::EPSILON
+    }
+}
+
 /// Where a source can be cut, and how long it runs.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Keyframes {
@@ -255,6 +273,58 @@ pub fn cut_interval(keyframes: &Keyframes, requested_seconds: f64) -> f64 {
     requested_seconds.min(closest * 0.9)
 }
 
+/// The segments a source yields when only safe keyframes may begin one.
+///
+/// The same walk as [`segment_lengths`], with the keyframes a decoder cannot
+/// start at passed over. Skipping one merges its GOP into the segment before
+/// it, so a source with a long run of them produces very long segments — which
+/// is what makes this a test of whether a source can be copied at all rather
+/// than a fix that always applies.
+///
+/// Measured on the Bluray remux: 154 unsafe keyframes fall in 91 runs, most of
+/// them one or two long, but runs of 11 and 12 merge into segments of 120 and
+/// 131 seconds. A player asked for 200 megabytes in one piece stalls as surely
+/// as one handed a frame it cannot decode.
+#[must_use]
+pub fn safe_segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> {
+    if desired_seconds <= 0.0 {
+        return Vec::new();
+    }
+
+    let mut lengths = Vec::new();
+    let mut last_start = keyframes.starts_at_seconds;
+    let mut next_cut = desired_seconds;
+
+    for cut in keyframes.cuts.iter().filter(|cut| cut.is_safe()) {
+        if cut.at_seconds < next_cut {
+            continue;
+        }
+
+        lengths.push(cut.starts_at_seconds - last_start);
+        last_start = cut.starts_at_seconds;
+        next_cut += desired_seconds;
+    }
+
+    let remaining = keyframes.duration_seconds - (last_start - keyframes.starts_at_seconds);
+
+    if remaining > 0.0 {
+        lengths.push(remaining);
+    }
+
+    lengths
+}
+
+/// The longest segment in a set, which is what decides whether they can be
+/// delivered.
+#[must_use]
+pub fn longest_segment(lengths: &[f64]) -> f64 {
+    lengths
+        .iter()
+        .copied()
+        .filter(|length| length.is_finite())
+        .fold(0.0_f64, f64::max)
+}
+
 /// Where each segment begins, which is what producing one on demand needs.
 ///
 /// A segment is addressed by its index, so turning that index back into a
@@ -274,7 +344,10 @@ pub fn segment_starts(lengths: &[f64]) -> Vec<f64> {
 
 #[cfg(test)]
 mod tests {
-    use super::{cut_interval, parse_cuts, segment_lengths, segment_starts, Cut, Keyframes};
+    use super::{
+        cut_interval, longest_segment, parse_cuts, safe_segment_lengths, segment_lengths,
+        segment_starts, Cut, Keyframes,
+    };
 
     /// A source whose segments begin exactly at their keyframes.
     ///
@@ -585,6 +658,72 @@ mod tests {
             segment_starts(&[13.055, 10.427, 7.132]),
             vec![0.0, 13.055, 13.055 + 10.427]
         );
+    }
+
+    /// A keyframe with nothing shown before it is a place a decoder can start.
+    #[test]
+    fn calls_a_keyframe_with_nothing_before_it_safe() {
+        let found = parse_cuts("0.0,K__\n0.042,___\n4.0,K__\n4.042,___\n", 8.0);
+
+        assert!(found.cuts.iter().copied().all(Cut::is_safe));
+    }
+
+    /// One whose segment carries pictures shown before it is not.
+    ///
+    /// Those pictures reference the GOP before them, and a decoder starting
+    /// here has never seen it. Measured on a real remux: playback stopped at
+    /// the first such keyframe every time, with
+    /// `kVTVideoDecoderReferenceMissingErr`.
+    #[test]
+    fn calls_a_keyframe_with_pictures_before_it_unsafe() {
+        let found = parse_cuts("0.0,K__\n4.0,K__\n3.916,___\n3.958,___\n", 8.0);
+
+        assert!(found.cuts[0].is_safe());
+        assert!(!found.cuts[1].is_safe());
+    }
+
+    /// Avoiding an unsafe keyframe merges its segment into the one before.
+    #[test]
+    fn passes_over_a_keyframe_a_decoder_cannot_start_at() {
+        let source = Keyframes {
+            cuts: vec![
+                Cut {
+                    at_seconds: 0.0,
+                    starts_at_seconds: 0.0,
+                },
+                Cut {
+                    at_seconds: 4.0,
+                    starts_at_seconds: 3.9,
+                },
+                Cut {
+                    at_seconds: 8.0,
+                    starts_at_seconds: 8.0,
+                },
+            ],
+            starts_at_seconds: 0.0,
+            duration_seconds: 12.0,
+        };
+
+        assert_eq!(segment_lengths(&source, 2.0), vec![3.9, 8.0 - 3.9, 4.0]);
+        assert_eq!(safe_segment_lengths(&source, 2.0), vec![8.0, 4.0]);
+    }
+
+    /// A source every decoder can start anywhere in is cut the same either way.
+    #[test]
+    fn cuts_a_closed_gop_the_same_whether_or_not_safety_is_asked_for() {
+        let source = keyframes(&[0.0, 4.0, 8.0, 12.0], 16.0);
+
+        assert_eq!(
+            segment_lengths(&source, 4.0),
+            safe_segment_lengths(&source, 4.0)
+        );
+    }
+
+    /// The longest segment is what decides whether they can be delivered.
+    #[test]
+    fn finds_the_longest_segment() {
+        assert!((longest_segment(&[4.0, 131.8, 10.4]) - 131.8).abs() < f64::EPSILON);
+        assert!((longest_segment(&[]) - 0.0).abs() < f64::EPSILON);
     }
 
     /// The starts are what an index is resolved through, so they have to line

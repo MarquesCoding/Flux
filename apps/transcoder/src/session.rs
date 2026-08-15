@@ -11,7 +11,8 @@ use tokio::sync::{oneshot, Mutex, Notify};
 use crate::boundaries::ensure_boundaries;
 use crate::playlist::segment_at;
 use crate::transcode_plan::{
-    DeviceFilters, SegmentStart, SessionSpec, TranscodePlan, MANIFEST_NAME, RUN_PLAYLIST_NAME,
+    DeviceFilters, SegmentStart, SessionSpec, TranscodePlan, VideoAction, MANIFEST_NAME,
+    RUN_PLAYLIST_NAME,
 };
 
 /// Written only when ffmpeg exits cleanly.
@@ -266,6 +267,73 @@ impl Session {
         if let Some(cancel) = self.cancel.take() {
             let _ = cancel.send(());
         }
+    }
+}
+
+/// The encoder used when a source cannot be copied after all.
+///
+/// Software H.264, because this is a correctness backstop rather than a
+/// considered choice: the server picks encoders from the client's profile and
+/// the machine's capabilities, and it has already been told this stream would
+/// be copied. Every browser plays H.264, so a film that would otherwise not
+/// play at all does.
+const FALLBACK_ENCODER: &str = "libx264";
+
+/// The spec that can actually be delivered.
+///
+/// The keyframes have just been read, and if they say this source cannot be cut
+/// into segments a player will take then copying it is not an option, however
+/// it was asked for. Encoding puts a keyframe on every boundary, so the
+/// segments come out the length that was asked for and every one of them is a
+/// place a decoder can start.
+///
+/// A source that cannot be probed a second time is left as it was asked for.
+/// That is the state Flux was in before any of this, so it is no worse, and
+/// refusing to play over it would be.
+async fn deliverable(config: &SessionConfig, spec: SessionSpec, can_copy: bool) -> SessionSpec {
+    if can_copy {
+        return spec;
+    }
+
+    match crate::probe::probe_media(&config.ffprobe, Path::new(&spec.input_path)).await {
+        Ok(probe) => encode_instead(spec, &probe),
+        Err(_) => spec,
+    }
+}
+
+/// Turns a copy into an encode of the same picture.
+///
+/// Only reached when the source's own keyframes cannot produce deliverable
+/// segments. Every limit is taken from the source, which is safe because the
+/// server only asked for a copy after deciding the source already satisfied
+/// the client: its size, its bitrate and its range were all acceptable, so an
+/// encode that matches them is acceptable too.
+///
+/// The session keeps the id it was addressed by. The request has not changed —
+/// only what has to be done to answer it — and the substitution is the same
+/// every time, so the directory stays stable across restarts.
+fn encode_instead(spec: SessionSpec, probe: &crate::media::MediaProbe) -> SessionSpec {
+    let video = probe.video.as_ref();
+
+    let (max_width, max_height) = spec
+        .source_size
+        .or_else(|| video.map(|stream| (stream.width, stream.height)))
+        .unwrap_or((1920, 1080));
+
+    let max_bitrate_kbps = video
+        .and_then(|stream| stream.bitrate_kbps)
+        .or(probe.bitrate_kbps)
+        .unwrap_or(8_000);
+
+    SessionSpec {
+        video: VideoAction::Encode {
+            encoder: FALLBACK_ENCODER.to_owned(),
+            max_bitrate_kbps,
+            max_width,
+            max_height,
+            tone_map: None,
+        },
+        ..spec
     }
 }
 
@@ -574,6 +642,8 @@ impl SessionRegistry {
         if boundaries.is_empty() {
             return Err(SessionError::Boundaries(spec.input_path.clone()));
         }
+
+        let spec = deliverable(&self.config, spec, boundaries.can_copy).await;
 
         let device_filters = match spec.hardware_accel.pipeline() {
             Some(pipeline) => {
