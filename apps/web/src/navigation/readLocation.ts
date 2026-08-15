@@ -48,10 +48,6 @@ type Place = {
    */
   playing: string | null;
   /**
-   * Where to start what is being watched, in seconds.
-   */
-  startSeconds: number;
-  /**
    * The genre a search is narrowed to, if one is.
    *
    * In the address rather than held by the page, so that a genre is a place
@@ -59,6 +55,14 @@ type Place = {
    * having — and so the back button undoes choosing one.
    */
   genre: string | null;
+  /**
+   * The library being browsed, if one has been chosen.
+   *
+   * In the address for the same reason a genre is: a library is a place
+   * somebody can be sent to, and a reload that lands back on whichever
+   * library happens to be first is a reload that loses where they were.
+   */
+  library: string | null;
   /**
    * Which panel of the admin page is open, when the section is admin.
    *
@@ -82,8 +86,8 @@ const HOME: Place = {
   inspecting: null,
   show: null,
   playing: null,
-  startSeconds: 0,
   genre: null,
+  library: null,
   adminPanel: null,
   adminJob: null,
 };
@@ -107,7 +111,6 @@ const readLocation = (url: string): Place => {
 
   const section = SectionSchema.safeParse(first);
   const watching = first === 'watch' && second !== '' ? second : null;
-  const started = Number.parseInt(query.get('t') ?? '', 10);
 
   return {
     section: section.success ? section.data : 'home',
@@ -115,8 +118,8 @@ const readLocation = (url: string): Place => {
     inspecting: first === 'media' && second !== '' ? second : query.get('item'),
     show: query.get('show'),
     playing: watching,
-    startSeconds: Number.isFinite(started) && started > 0 ? started : 0,
     genre: query.get('genre'),
+    library: query.get('library'),
     adminPanel: query.get('panel'),
     adminJob: query.get('job'),
   };
@@ -128,12 +131,15 @@ const readLocation = (url: string): Place => {
  * Watching owns the path, because it is the thing worth sending somebody. An
  * item being read about is a query, since it sits over whatever section it was
  * opened from and should return there when it closes.
+ *
+ * No second is written beside what is playing. Where something resumes from is
+ * a fact the server holds about this viewer, and one kept in the address as
+ * well would be a second copy of it — free to disagree, and the one a browser
+ * would believe.
  */
 const writeLocation = (place: Place): string => {
   if (place.playing !== null) {
-    const at = place.startSeconds > 0 ? `?t=${place.startSeconds.toString()}` : '';
-
-    return `/watch/${place.playing}${at}`;
+    return `/watch/${place.playing}`;
   }
 
   const query = new URLSearchParams();
@@ -152,6 +158,10 @@ const writeLocation = (place: Place): string => {
 
   if (place.genre !== null) {
     query.set('genre', place.genre);
+  }
+
+  if (place.library !== null) {
+    query.set('library', place.library);
   }
 
   if (place.section === 'admin' && place.adminPanel !== null) {
