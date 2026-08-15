@@ -16,7 +16,12 @@ type CoverageAverage = {
 const MEASURES = ['statements', 'branches', 'functions', 'lines'] as const;
 
 /**
- * Works out how well covered the whole repository is.
+ * Works out how well covered the repository is as a whole, weighting each package by how much code
+ * it actually holds rather than averaging the percentages — otherwise a tiny package with perfect
+ * coverage counts for as much as the application it supports.
+ *
+ * @param summaries - Each package's coverage summary, as its test run wrote it.
+ * @returns The overall percentages across every package.
  */
 const readCoverageAverage = (summaries: readonly CoverageCounts[]): CoverageAverage => {
   const shares = MEASURES.map((measure) => {

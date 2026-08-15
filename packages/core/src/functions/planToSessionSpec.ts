@@ -65,8 +65,14 @@ type SpecOutcome =
 const HDR_RANGES = new Set(['HDR10', 'HDR10Plus', 'HLG', 'DolbyVision']);
 
 /**
- * Decides whether this transcode has to convert HDR to SDR, and whether the server can actually do
- * it.
+ * Decides whether a transcode has to convert HDR to SDR, and whether this server can actually do it.
+ * A conversion the hardware cannot manage is not refused — the picture is still delivered, with a
+ * warning saying it will look flat, since a washed-out film is better than no film.
+ *
+ * @param sourceRange - The range the file is graded in.
+ * @param targetRange - The range being encoded to.
+ * @param capability - What tone mapping this server has available.
+ * @returns The tone mapping to apply where one is both needed and possible, and any warnings.
  */
 const planToneMapping = (
   sourceRange: string,
@@ -93,7 +99,14 @@ const planToneMapping = (
 const AUDIO_ENCODER = 'aac';
 
 /**
- * Picks the encoder for a codec, preferring hardware.
+ * Picks which encoder to use for a codec, preferring hardware over software since a transcode is the
+ * expensive thing a server does. An operator can force a particular acceleration, in which case that
+ * one is used even if it was rejected at startup — forcing is how somebody investigates why it was.
+ *
+ * @param capabilities - The encoders this server verified at startup, and those it rejected.
+ * @param codec - The codec being encoded to.
+ * @param forced - An acceleration an operator insisted on, or empty to choose freely.
+ * @returns The encoder to run, or null where this server can encode that codec no way at all.
  */
 const selectEncoder = (
   capabilities: Capabilities,
@@ -124,7 +137,15 @@ const selectEncoder = (
 };
 
 /**
- * Turns a negotiated plan into an instruction the media service can run.
+ * Turns a negotiated plan into the instruction the media service actually runs: which file, which
+ * encoder, what ceilings, which streams, where to start and how long each segment should be. This
+ * is the boundary between deciding and doing — everything above it reasons about what a client can
+ * play, and everything below it runs ffmpeg.
+ *
+ * @param options - The plan, the file it applies to, this server's capabilities, and the session's
+ *   own particulars: where to start, how long segments run, and which audio and subtitle streams
+ *   were asked for.
+ * @returns The session specification, and any warnings worth showing an operator.
  */
 const planToSessionSpec = ({
   plan,

@@ -7,7 +7,13 @@ type ResolvePermissionsOptions = {
 };
 
 /**
- * What an account may actually do, once its roles and its own exceptions have been read together.
+ * Works out what an account may actually do, by gathering every permission its roles grant and then
+ * applying the exceptions set on the account itself. A denial always wins, whichever role granted
+ * it: taking something away from one person has to be possible without unpicking a role that dozens
+ * of others share.
+ *
+ * @param options - The account's roles, and any permissions granted or denied to it directly.
+ * @returns Every permission the account holds, once denials have been applied.
  */
 const resolvePermissions = ({
   roles,

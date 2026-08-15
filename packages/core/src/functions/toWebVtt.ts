@@ -5,7 +5,11 @@ const SUBRIP_TIMESTAMP = /(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})/g;
 const ASS_TIMESTAMP = /^(\d{1,2}):(\d{2}):(\d{2})[.:](\d{1,2})$/;
 
 /**
- * Formats seconds as the `hh:mm:ss.mmm` `WebVTT` insists on.
+ * Formats a position as the `hh:mm:ss.mmm` timestamp WebVTT insists on, every field padded to the
+ * width the format requires. A position before the start of the file is written as zero.
+ *
+ * @param totalSeconds - The position to write, in seconds.
+ * @returns The timestamp as WebVTT spells it.
  */
 const formatTimestamp = (totalSeconds: number): string => {
   const safe = Math.max(0, totalSeconds);
@@ -20,7 +24,13 @@ const formatTimestamp = (totalSeconds: number): string => {
 };
 
 /**
- * Converts a SubRip file to `WebVTT`.
+ * Converts a SubRip file to WebVTT, which is the same format in all but three details: the header,
+ * the comma before the milliseconds, and hours that SubRip files sometimes write with one digit.
+ * A byte order mark and Windows line endings are taken off on the way through, both being things
+ * real files carry and browsers refuse.
+ *
+ * @param source - The subtitle file as SubRip.
+ * @returns The same subtitles as WebVTT.
  */
 const fromSubRip = (source: string): string => {
   const body = source
@@ -34,7 +44,11 @@ const fromSubRip = (source: string): string => {
 };
 
 /**
- * Reads an Advanced SubStation timestamp as seconds.
+ * Reads an Advanced SubStation timestamp as a number of seconds. That format counts hundredths
+ * rather than thousandths and pads nothing, so `0:00:01.5` means a second and a half.
+ *
+ * @param value - The timestamp as the script wrote it.
+ * @returns The position in seconds, or null where the line was not a timestamp at all.
  */
 const readAssTimestamp = (value: string): number | null => {
   const match = ASS_TIMESTAMP.exec(value.trim());
@@ -54,7 +68,13 @@ const readAssTimestamp = (value: string): number | null => {
 };
 
 /**
- * Strips the drawing and styling codes an Advanced SubStation line carries.
+ * Strips the styling an Advanced SubStation line carries — override blocks in braces, drawing
+ * commands, and its own escapes for line breaks and hard spaces — leaving the words a viewer is
+ * meant to read. WebVTT has no way to express most of it, and a browser shown the codes displays
+ * them.
+ *
+ * @param text - The line as the script wrote it, styling and all.
+ * @returns The words alone, with its line breaks turned into real ones.
  */
 const stripAssMarkup = (text: string): string =>
   text
@@ -64,7 +84,12 @@ const stripAssMarkup = (text: string): string =>
     .trim();
 
 /**
- * Converts an Advanced SubStation script to `WebVTT`.
+ * Converts an Advanced SubStation script to WebVTT. The format declares its own column order in a
+ * `Format:` line, so that is read first and the start, end and text columns are taken from wherever
+ * this particular script put them rather than from where they usually are.
+ *
+ * @param source - The subtitle file as Advanced SubStation or SubStation Alpha.
+ * @returns The same subtitles as WebVTT, with the styling stripped.
  */
 const fromAdvancedSubStation = (source: string): string => {
   const lines = source.replace(/\r\n/g, '\n').split('\n');
@@ -110,7 +135,13 @@ const fromAdvancedSubStation = (source: string): string => {
 };
 
 /**
- * Converts a subtitle file to `WebVTT`.
+ * Converts a subtitle file to WebVTT, which is the only format a browser will take. A file already
+ * in WebVTT is passed through, gaining the header if it was missing one; anything unrecognised is
+ * treated as SubRip, that being the format most likely to be mislabelled.
+ *
+ * @param source - The subtitle file as it was stored.
+ * @param format - What the file is meant to be, as the scanner recorded it.
+ * @returns The subtitles as WebVTT.
  */
 const toWebVtt = (source: string, format: string): string => {
   const normalised = format.toLowerCase();

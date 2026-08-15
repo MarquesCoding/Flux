@@ -33,7 +33,12 @@ const DOCUMENTABLE = [
 const TRIPLE_SLASH = /^\/\s*<(reference|amd-module|amd-dependency)\b/;
 
 /**
- * Whether a comment is addressed to a tool.
+ * Decides whether a comment is addressed to a tool rather than to a reader — a lint directive, a
+ * TypeScript instruction, a bundler hint, or a triple-slash reference. Deleting one of these changes
+ * what the build does, which is why they are the only single-line comments kept.
+ *
+ * @param text - The comment's text, without its slashes.
+ * @returns Whether it is an instruction rather than prose.
  */
 const isDirective = (text: string): boolean => {
   const trimmed = text.trim();
@@ -44,13 +49,22 @@ const isDirective = (text: string): boolean => {
 };
 
 /**
- * Whether a comment is TSDoc, which opens with a second asterisk.
+ * Decides whether a block comment is TSDoc, which is to say whether it opens with a second asterisk.
+ * That is the whole distinction the language draws, and the whole distinction this rule needs.
+ *
+ * @param comment - The comment as the parser found it.
+ * @returns Whether it is documentation rather than a plain block comment.
  */
 const isTsDoc = (comment: TSESTree.Comment): boolean =>
   comment.type === TSESTree.AST_TOKEN_TYPES.Block && comment.value.startsWith('*');
 
 /**
- * Whether a lint directive says why it is there.
+ * Decides whether a directive that silences a rule explains itself, which is required of anything
+ * turning a rule off — a suppression with no reason is one nobody can review or remove later.
+ * Directives that silence nothing, such as a formatter hint, need no reason.
+ *
+ * @param text - The directive's text, without its slashes.
+ * @returns Whether it either needs no reason or gives one.
  */
 const hasReason = (text: string): boolean => {
   const trimmed = text.trim();
@@ -86,8 +100,12 @@ const noComments = createRule({
     const documented = new Set<TSESTree.Comment>();
 
     /**
-     * Removes the comment, and the JSX braces around it when they hold nothing else — `{}` on its
-     * own is not valid where a comment container was.
+     * Builds the fix that removes a comment, taking the JSX braces with it where they hold nothing
+     * else, since `{}` on its own is not valid where a comment container was. A comment occupying
+     * its whole line takes the line with it rather than leaving a blank one behind.
+     *
+     * @param comment - The comment to remove.
+     * @returns The fix ESLint applies under `--fix`.
      */
     const remove = (comment: TSESTree.Comment): TSESLint.ReportFixFunction => {
       return (fixer) => {

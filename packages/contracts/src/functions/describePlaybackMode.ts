@@ -5,7 +5,12 @@ const PLAYBACK_MODES = ['DirectPlay', 'Remux', 'DirectStream', 'Transcode'] as c
 type PlaybackMode = (typeof PLAYBACK_MODES)[number];
 
 /**
- * Derives the human-facing playback mode label from a plan.
+ * Names how a session is being delivered, in the words an operator watching the sessions page reads:
+ * transcoding the picture is the expensive case, transcoding only the sound is a direct stream,
+ * repackaging without touching either is a remux, and sending the file as it lies is direct play.
+ *
+ * @param plan - The negotiated plan for the session.
+ * @returns The mode to show, from the most expensive case that applies.
  */
 const describePlaybackMode = (plan: PlaybackPlan): PlaybackMode => {
   if (plan.video.kind === 'transcode' || plan.subtitles.kind === 'burnIn') {

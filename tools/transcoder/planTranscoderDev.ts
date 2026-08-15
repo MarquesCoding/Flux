@@ -11,7 +11,13 @@ type PlanTranscoderDevOptions = {
 };
 
 /**
- * Decides whether the media service can be started, and says why when it cannot.
+ * Decides whether the media service can be started for development, and says why when it cannot. A
+ * developer without Rust installed should be told that in a sentence rather than shown a stack
+ * trace, and one pointing at a service already running elsewhere should not have a second started
+ * underneath them.
+ *
+ * @param options - Where the transcoder is expected to be, and whether Rust is installed here.
+ * @returns Whether to start it, and the reason when the answer is no.
  */
 const planTranscoderDev = ({
   transcoderUrl,

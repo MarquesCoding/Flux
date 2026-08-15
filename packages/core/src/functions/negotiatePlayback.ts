@@ -255,7 +255,16 @@ const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDeci
 };
 
 /**
- * Decides how a media item should be delivered to a client.
+ * Decides how one file should reach one client, one axis at a time: whether its container, picture,
+ * sound and subtitles can be sent as they are, or have to be re-encoded, and why. Every decision
+ * carries the reason for it, so a session can explain itself afterwards rather than being a verdict
+ * nobody can argue with.
+ *
+ * @param media - The file being played, as the scanner probed it.
+ * @param profile - What this client says it can play.
+ * @param qualityClamp - A ceiling a viewer chose, or nothing to let the client's own limits decide.
+ * @param preferredAudioLanguage - The language to pick an audio track in where the file has one.
+ * @returns The plan for this file and this client, axis by axis.
  */
 const negotiatePlayback = (
   media: MediaItem,

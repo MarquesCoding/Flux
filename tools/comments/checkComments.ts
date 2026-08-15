@@ -13,7 +13,11 @@ const LANGUAGES: Record<string, Language> = {
 };
 
 /**
- * Every file worth reading, below a directory.
+ * Walks a directory and every directory below it, gathering the files worth checking and stepping
+ * over the ones nothing is ever written in — dependencies, build output and version control.
+ *
+ * @param directory - Where to start walking.
+ * @returns Every file found, as paths.
  */
 const filesUnder = (directory: string): string[] => {
   const found: string[] = [];
@@ -46,7 +50,13 @@ const languageOf = (path: string): Language | null => {
 const isFixing = process.argv.includes('--fix');
 
 /**
- * The file with its comments taken out.
+ * Rewrites a file with its prose comments removed. Cuts are made back to front so that the line
+ * numbers found earlier still mean what they said, and a line left holding nothing but the comment
+ * goes with it rather than being left blank.
+ *
+ * @param source - The file as it stands.
+ * @param comments - Where each prose comment starts and ends.
+ * @returns The file without them.
  */
 const withoutComments = (source: string, comments: ProseComment[]): string => {
   const lines = source.split('\n');
