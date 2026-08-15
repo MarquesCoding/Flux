@@ -129,6 +129,30 @@ const transcodingPlan: PlaybackPlan = {
 const media = { id: 'media-1', title: 'Arrival', durationSeconds: 7200 };
 
 /**
+ * Stands in for how a browser answers a request to start playing.
+ *
+ * Swapped on the prototype and put back afterwards, since what is being
+ * described is a browser's own refusal rather than anything Flux calls.
+ */
+const replacePlay = (play: () => Promise<void>): PropertyDescriptor | undefined => {
+  const original = Object.getOwnPropertyDescriptor(window.HTMLMediaElement.prototype, 'play');
+
+  Object.defineProperty(window.HTMLMediaElement.prototype, 'play', {
+    configurable: true,
+    writable: true,
+    value: play,
+  });
+
+  return original;
+};
+
+const restorePlay = (original: PropertyDescriptor | undefined): void => {
+  if (original !== undefined) {
+    Object.defineProperty(window.HTMLMediaElement.prototype, 'play', original);
+  }
+};
+
+/**
  * An item with something to change to.
  *
  * Changing the audio track is the ordinary reason a session is torn down and
@@ -498,34 +522,40 @@ describe('VideoPlayer', () => {
     vi.unstubAllGlobals();
   });
 
-  it('takes a starting position that only arrives after it opened', async () => {
-    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
+  it('starts muted when the browser refuses to start it with sound', async () => {
+    const play = vi
+      .fn<() => Promise<void>>()
+      .mockRejectedValueOnce(new DOMException('not allowed', 'NotAllowedError'))
+      .mockResolvedValue(undefined);
+    const allowed = replacePlay(play);
 
-    const element = await screen.findByLabelText('Arrival');
+    try {
+      render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 0 });
+      await waitFor(() => {
+        expect(play).toHaveBeenCalledTimes(2);
+      });
 
-    rerender(<VideoPlayer media={media} startSeconds={2400} onClose={vi.fn()} />);
-
-    await waitFor(() => {
-      expect(element).toHaveProperty('currentTime', 2400);
-    });
+      expect(await screen.findByLabelText('Arrival')).toHaveProperty('muted', true);
+    } finally {
+      restorePlay(allowed);
+    }
   });
 
-  it('leaves somebody who is already watching where they are', async () => {
-    const { rerender } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
+  it('leaves the sound alone when a play fails for any other reason', async () => {
+    const play = vi
+      .fn<() => Promise<void>>()
+      .mockRejectedValueOnce(new DOMException('interrupted', 'AbortError'))
+      .mockResolvedValue(undefined);
+    const allowed = replacePlay(play);
 
-    const element = await screen.findByLabelText('Arrival');
+    try {
+      render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
-    Object.defineProperty(element, 'currentTime', {
-      configurable: true,
-      writable: true,
-      value: 600,
-    });
-
-    rerender(<VideoPlayer media={media} startSeconds={2400} onClose={vi.fn()} />);
-
-    expect(element).toHaveProperty('currentTime', 600);
+      expect(await screen.findByLabelText('Arrival')).toHaveProperty('muted', false);
+    } finally {
+      restorePlay(allowed);
+    }
   });
 
   it('does not send a keepalive stop before a session has actually started', () => {

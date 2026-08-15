@@ -14,7 +14,7 @@ import { profileHeaders } from '@FluxWeb/profiles/currentProfile';
  * rely on this at all: the position is sent as the page goes away, exactly, so
  * this interval only bounds what a crash can lose.
  */
-const REPORT_EVERY_MILLISECONDS = 5_000;
+const REPORT_EVERY_MILLISECONDS = 10_000;
 
 /**
  * Reads where this viewer got to in everything.

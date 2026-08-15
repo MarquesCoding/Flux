@@ -121,15 +121,6 @@ const JUMP_SECONDS = 30;
  */
 const FINISHED_WITHIN_SECONDS = 90;
 
-/**
- * How far in still counts as not having started.
- *
- * A position that arrives late is only applied while the film is still at its
- * opening: past this, somebody is watching, and moving them is worse than
- * having started them from the beginning.
- */
-const RESUMED_WITHIN_SECONDS = 3;
-
 const HEALTH_INTERVAL_MILLISECONDS = 500;
 
 /**
@@ -229,16 +220,14 @@ const VideoPlayer = ({
   const stageRef = useRef<HTMLDivElement>(null);
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /**
-   * Whether a starting position has already been applied to this film.
+   * Whether the sound is off because a browser insisted rather than because
+   * anybody asked.
    *
-   * Where to start is read from the server, and that answer can lose the race
-   * against the film being ready — in which case this opened at the beginning
-   * and the position turned up a moment later with nothing to do. Rather than
-   * make the whole player wait on that request, a late answer is honoured
-   * once, while nothing has moved off the opening seconds, so it can never
-   * fight somebody who has already started scrubbing.
+   * Kept apart so that silence is not remembered: a film muted to get it
+   * started at all says nothing about how this viewer likes their films, and
+   * writing it down would leave every later one silent too.
    */
-  const hasResumedRef = useRef(false);
+  const isSilencedByPolicyRef = useRef(false);
   const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS);
   const [session, setSession] = useState<StartedSession | null>(null);
   const [state, setState] = useState<PlayerState>('starting');
@@ -550,11 +539,35 @@ const VideoPlayer = ({
    * which is the state a viewer used to escape by dragging the scrub bar —
    * seeking made the element ask again, and asking again was all it needed.
    */
+  /**
+   * Gets the picture moving, however the browser feels about that.
+   *
+   * A page opened by a reload carries no press, and no browser will start a
+   * film with sound on its own — the play is simply refused, which used to
+   * leave the player sitting on a black frame having reported nothing wrong.
+   * So that refusal, and only that one, is answered by muting and asking
+   * again: a film that starts silently says what happened and can be unmuted,
+   * where one that never starts says nothing at all.
+   *
+   * Every other failure is left alone. A play interrupted by the next load
+   * fails too, and muting somebody's film because a stream was replaced would
+   * be a worse bug than the one this fixes.
+   */
   const start = useCallback((element: HTMLVideoElement) => {
     let attempts = 0;
 
     const attempt = () => {
-      void element.play().catch(() => {});
+      void element.play().catch((refusal) => {
+        if (!(refusal instanceof DOMException) || refusal.name !== 'NotAllowedError') {
+          return;
+        }
+
+        isSilencedByPolicyRef.current = true;
+        element.muted = true;
+        setIsMuted(true);
+
+        void element.play().catch(() => {});
+      });
     };
 
     attempt();
@@ -606,23 +619,6 @@ const VideoPlayer = ({
       requestedQuality: request.requestedQuality,
     });
   }
-
-  useEffect(() => {
-    const element = videoRef.current;
-    const wanted = Math.floor(startSeconds);
-
-    if (element === null || wanted <= 0 || hasResumedRef.current) {
-      return;
-    }
-
-    if (element.currentTime > RESUMED_WITHIN_SECONDS) {
-      return;
-    }
-
-    hasResumedRef.current = true;
-    element.currentTime = wanted;
-    setPosition(wanted);
-  }, [startSeconds]);
 
   /**
    * Tells presence whether this tab is playing, and what it can measure
@@ -766,6 +762,7 @@ const VideoPlayer = ({
           teardown = await attachShaka({
             element,
             manifestUrl: outcome.session.delivery.manifestUrl,
+            startSeconds: request.startSeconds,
             onFault: (fault) => {
               if (fault.severity < CRITICAL || isAbandoned()) {
                 return;
@@ -779,8 +776,7 @@ const VideoPlayer = ({
           releaseRef.current = teardown;
         }
 
-        if (request.startSeconds > 0) {
-          hasResumedRef.current = true;
+        if (request.startSeconds > 0 && outcome.session.delivery.kind === 'direct') {
           element.currentTime = request.startSeconds;
         }
 
@@ -928,6 +924,10 @@ const VideoPlayer = ({
     if (element !== null) {
       element.volume = volume;
       element.muted = isMuted;
+    }
+
+    if (isSilencedByPolicyRef.current) {
+      return;
     }
 
     writePlaybackPreferences({ volume, isMuted });
@@ -1308,6 +1308,7 @@ const VideoPlayer = ({
         },
         f: toggleFullscreen,
         m: () => {
+          isSilencedByPolicyRef.current = false;
           setIsMuted((muted) => !muted);
         },
         c: () => {
@@ -1596,9 +1597,11 @@ const VideoPlayer = ({
             }}
             onVolumeChange={(next) => {
               setVolume(next);
+              isSilencedByPolicyRef.current = false;
               setIsMuted(next === 0);
             }}
             onToggleMute={() => {
+              isSilencedByPolicyRef.current = false;
               setIsMuted((muted) => !muted);
             }}
             onToggleFullscreen={toggleFullscreen}

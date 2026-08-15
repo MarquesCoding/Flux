@@ -9,7 +9,7 @@ import type shaka from 'shaka-player/dist/shaka-player.compiled';
  */
 type ShakaPlayer = {
   attach: (element: HTMLMediaElement) => Promise<void>;
-  load: (manifestUrl: string) => Promise<void>;
+  load: (manifestUrl: string, startSeconds?: number) => Promise<void>;
   destroy: () => Promise<void>;
   addEventListener?: (name: string, listener: (event: Event) => void) => void;
 };
@@ -39,6 +39,15 @@ type PlaybackFault = z.infer<typeof PlaybackFaultSchema>['detail'];
 type AttachOptions = {
   element: HTMLVideoElement;
   manifestUrl: string;
+  /**
+   * Where to begin, in seconds into the film.
+   *
+   * Given to the engine rather than set on the element afterwards, because the
+   * engine decides where playback starts as it finishes loading a manifest and
+   * will overwrite anything set before then — which looks exactly like a
+   * resume that worked for an instant and then went back to the beginning.
+   */
+  startSeconds?: number;
   onFault?: (fault: PlaybackFault) => void;
   loadShaka?: () => Promise<ShakaModule>;
 };
@@ -88,6 +97,7 @@ const faultFrom = (event: Event): PlaybackFault | null => {
 const attachShaka = async ({
   element,
   manifestUrl,
+  startSeconds = 0,
   onFault,
   loadShaka = loadShakaPlayer,
 }: AttachOptions): Promise<() => Promise<void>> => {
@@ -106,7 +116,12 @@ const attachShaka = async ({
   });
 
   await player.attach(element);
-  await player.load(manifestUrl);
+
+  if (startSeconds > 0) {
+    await player.load(manifestUrl, startSeconds);
+  } else {
+    await player.load(manifestUrl);
+  }
 
   return () => player.destroy();
 };
