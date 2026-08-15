@@ -62,6 +62,15 @@ type AppShellProps = {
    * stay a plain button.
    */
   surpriseKinds?: LibraryKind[];
+  /**
+   * The bell, drawn among the tools at the right of the bar.
+   *
+   * Passed as a node rather than as data because what hangs behind it is a
+   * panel with its own state, and the shell's business is where it sits
+   * rather than what it says. Left out where there is nobody signed in to
+   * have notifications.
+   */
+  notifications?: ReactNode;
 };
 
 export type { AppShellProps, ShellSection };

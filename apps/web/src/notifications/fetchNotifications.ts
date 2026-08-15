@@ -25,21 +25,28 @@ type NotificationSettings = z.infer<typeof PreferencesSchema>;
 /**
  * What is on the bell.
  *
- * Answers an empty inbox rather than failing when the server cannot be
- * reached. A bell is furniture on every page, and a page that will not draw
- * because a count could not be fetched is a worse outcome than a bell that
- * reads zero.
+ * Answers an empty inbox rather than failing, whether the server could not be
+ * reached, refused, or said something this version cannot read. A bell is
+ * furniture on every page, and a page that will not draw because a count
+ * could not be fetched is a worse outcome than a bell reading zero.
+ *
+ * That covers a real case rather than a theoretical one: a browser left open
+ * across an upgrade talks to a server that has moved on, and every one of
+ * these is a background read nothing was waiting for.
  */
 const fetchNotifications = async (): Promise<Inbox> => {
+  const empty = { notifications: [], unread: 0 };
   const response = await fetch('/api/notifications', { credentials: 'same-origin' }).catch(
     () => null,
   );
 
   if (response === null || !response.ok) {
-    return { notifications: [], unread: 0 };
+    return empty;
   }
 
-  return InboxSchema.parse(await response.json());
+  const read = InboxSchema.safeParse(await response.json().catch(() => null));
+
+  return read.success ? read.data : empty;
 };
 
 /**
@@ -57,19 +64,24 @@ const markNotificationsRead = async (id?: string): Promise<number> => {
     return 0;
   }
 
-  return z.object({ unread: z.number() }).parse(await response.json()).unread;
+  const read = z.object({ unread: z.number() }).safeParse(await response.json().catch(() => null));
+
+  return read.success ? read.data.unread : 0;
 };
 
 const fetchNotificationSettings = async (): Promise<NotificationSettings> => {
+  const unknownYet = { preferences: [], pushPublicKey: '' };
   const response = await fetch('/api/notifications/preferences', {
     credentials: 'same-origin',
   }).catch(() => null);
 
   if (response === null || !response.ok) {
-    return { preferences: [], pushPublicKey: '' };
+    return unknownYet;
   }
 
-  return PreferencesSchema.parse(await response.json());
+  const read = PreferencesSchema.safeParse(await response.json().catch(() => null));
+
+  return read.success ? read.data : unknownYet;
 };
 
 const writeNotificationPreference = async (preference: NotificationPreference): Promise<void> => {
