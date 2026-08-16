@@ -7,6 +7,7 @@ import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins';
 import type { FluxAuth } from '@FluxServer/auth/Auth';
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
 import { DEFAULT_LIMIT } from '@FluxServer/library/LibraryService';
+import { splitPersonCredits } from '@FluxServer/library/splitPersonCredits';
 import type { LibraryService } from '@FluxServer/library/LibraryService';
 import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService';
 import type { SegmentService } from '@FluxServer/segments/SegmentService';
@@ -57,6 +58,7 @@ import {
   recordProgressRoute,
   forgetProgressRoute,
 } from '@FluxServer/routes/ProgressRoute';
+import { readPersonRoute, readPersonCreditsRoute } from '@FluxServer/routes/PersonRoute';
 import {
   listFavouritesRoute,
   keepFavouriteRoute,
@@ -2403,6 +2405,30 @@ const createApp = ({
     }
 
     return context.json({ forgotten: await history.forgetAll(profileId) }, 200);
+  });
+
+  app.openapi(readPersonRoute, async (context) => {
+    if ((await readProfileId(context.req.raw.headers)) === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const found = await library.readPerson(context.req.valid('param').personId);
+
+    if (found === null) {
+      return context.json({ error: 'The catalogue knows nobody by that identifier.' }, 404);
+    }
+
+    return context.json(found, 200);
+  });
+
+  app.openapi(readPersonCreditsRoute, async (context) => {
+    if ((await readProfileId(context.req.raw.headers)) === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const held = await library.findByPerson(context.req.valid('param').personId);
+
+    return context.json(splitPersonCredits(held), 200);
   });
 
   app.openapi(listFavouritesRoute, async (context) => {

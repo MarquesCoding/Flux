@@ -51,6 +51,7 @@ const MediaSummarySchema = z.object({
 });
 
 const CastMemberSchema = z.object({
+  personId: z.number().int().positive().nullable().default(null),
   name: z.string(),
   role: z.string(),
   imageUrl: z.string().nullable(),
