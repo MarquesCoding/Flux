@@ -28,6 +28,14 @@ use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
 use flux_transcoder::trickplay::{TrickplayRegistry, TrickplayRequest};
 
+fn ffmpeg() -> String {
+    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
+}
+
+fn ffprobe() -> String {
+    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
+}
+
 fn cache_root(name: &str) -> std::path::PathBuf {
     let path = std::env::temp_dir().join(format!("flux-test-sweep-{name}"));
 
@@ -40,13 +48,13 @@ fn app(root: std::path::PathBuf) -> axum::Router {
     create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
             device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
-            ffmpeg: "ffmpeg".to_owned(),
-            ffprobe: "ffprobe".to_owned(),
+            ffmpeg: ffmpeg(),
+            ffprobe: ffprobe(),
             cache_root: root,
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,
         }),
-        ffprobe: "ffprobe".to_owned(),
+        ffprobe: ffprobe(),
         trickplay: TrickplayRegistry::default(),
         previews: PreviewRegistry::default(),
         monitor: Monitor::new(Journal::new()),

@@ -92,6 +92,11 @@ jobs:
           apt-get install -y --no-install-recommends /tmp/flux-ffmpeg.deb
           "$FLUX_FFMPEG" -version | head -1
           "$FLUX_FFMPEG" -hide_banner -filters | grep -E "zscale|libplacebo" || (echo "the shipped build lost its tone mapping filters" && exit 1)
+          # On the path as well as in the variables. The package installs beside the system's own
+          # ffmpeg rather than as it, and a slim image has no system ffmpeg at all — so anything
+          # that reaches for the name rather than the variable finds nothing.
+          ln -sf "$FLUX_FFMPEG" /usr/local/bin/ffmpeg
+          ln -sf "$FLUX_FFPROBE" /usr/local/bin/ffprobe
 
       - run: pnpm install --frozen-lockfile
 

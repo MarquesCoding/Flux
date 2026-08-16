@@ -16,6 +16,10 @@ use std::path::PathBuf;
 use flux_transcoder::media::VideoRange;
 use flux_transcoder::probe::probe_media;
 
+fn ffprobe() -> String {
+    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
+}
+
 fn library() -> Vec<PathBuf> {
     let root = std::env::var("FLUX_LOCAL_MEDIA").map_or_else(
         |_| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join("Flux"),
@@ -67,7 +71,7 @@ async fn reads_the_range_of_every_real_file() {
     }
 
     for path in files {
-        let Ok(probe) = probe_media("ffprobe", &path).await else {
+        let Ok(probe) = probe_media(&ffprobe(), &path).await else {
             continue;
         };
 
