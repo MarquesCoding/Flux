@@ -32,7 +32,7 @@ pub const LENGTHS_NAME: &str = "lengths.json";
 /// written by an older Flux describes files that will never be produced now,
 /// and a playlist naming them is a film that cannot play. The boundaries are
 /// then worked out again and the playlist rewritten, which costs one probe.
-const LAYOUT: u32 = 4;
+const LAYOUT: u32 = 5;
 
 /// The longest segment a copied stream may produce before copying is refused.
 ///
@@ -275,7 +275,7 @@ pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSp
 
     let _ = tokio::fs::write(
         directory.join(MANIFEST_NAME),
-        build_vod_playlist(&found.lengths),
+        build_vod_playlist(&found.lengths, spec.container),
     )
     .await;
 

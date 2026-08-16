@@ -84,7 +84,7 @@ const detectDeviceProfile = ({
       },
     ],
     transcodingProfiles: [
-      { container: 'ts', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
+      { container: 'mp4', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
     ],
   });
 };

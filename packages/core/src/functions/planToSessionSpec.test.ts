@@ -41,6 +41,7 @@ const build = (plan: PlaybackPlan, caps: Capabilities = capabilities, sourceRang
     capabilities: caps,
     startSeconds: 0,
     segmentSeconds: 4,
+    container: 'fmp4',
   });
 
 const transcodeVideo: PlaybackPlan['video'] = {
@@ -249,6 +250,7 @@ describe('planToSessionSpec', () => {
       capabilities,
       startSeconds: 0,
       segmentSeconds: 4,
+      container: 'fmp4',
       subtitleIndexes: [2, 4, 5],
     });
 
@@ -266,6 +268,7 @@ describe('planToSessionSpec', () => {
       capabilities,
       startSeconds: 0,
       segmentSeconds: 4,
+      container: 'fmp4',
       subtitleIndexes: [2],
     });
 
@@ -289,6 +292,7 @@ describe('planToSessionSpec', () => {
       capabilities,
       startSeconds: 120,
       segmentSeconds: 6,
+      container: 'fmp4',
     });
 
     expect(outcome).toMatchObject({
@@ -308,6 +312,7 @@ describe('sourceSize', () => {
       capabilities,
       startSeconds: 0,
       segmentSeconds: 4,
+      container: 'fmp4',
     });
 
     expect(outcome.kind === 'ok' && outcome.spec.sourceSize).toEqual([1920, 800]);
@@ -336,6 +341,7 @@ describe('forcedAccel', () => {
       forcedAccel: 'vaapi',
       startSeconds: 0,
       segmentSeconds: 4,
+      container: 'fmp4',
     });
 
     expect(outcome).toMatchObject({ kind: 'ok', spec: { hardwareAccel: 'vaapi' } });
@@ -349,6 +355,7 @@ describe('forcedAccel', () => {
       capabilities: withRejected,
       startSeconds: 0,
       segmentSeconds: 4,
+      container: 'fmp4',
     });
 
     expect(outcome).toMatchObject({ kind: 'ok', spec: { hardwareAccel: 'none' } });
@@ -363,6 +370,7 @@ describe('forcedAccel', () => {
       forcedAccel: 'nvenc',
       startSeconds: 0,
       segmentSeconds: 4,
+      container: 'fmp4',
     });
 
     expect(outcome).toMatchObject({ kind: 'ok', spec: { hardwareAccel: 'none' } });
@@ -377,6 +385,7 @@ describe('forcedAccel', () => {
       forcedAccel: '',
       startSeconds: 0,
       segmentSeconds: 4,
+      container: 'fmp4',
     });
 
     expect(outcome.kind).toBe('ok');
