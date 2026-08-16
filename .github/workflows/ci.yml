@@ -99,7 +99,6 @@ jobs:
       # A cache hit skips three minutes of encoding; a miss regenerates rather than failing, because
       # a generated fixture is reproducible from its inputs and never downloaded.
       - name: Cache the generated corpus
-        id: corpus
         uses: actions/cache@v4
         with:
           path: ~/.cache/flux-fixtures
@@ -118,3 +117,15 @@ jobs:
 
       - name: Test the media pipeline against it
         run: cargo test
+
+      # The one thing this job knows that a laptop cannot: what the corpus comes out as on amd64,
+      # against the build the product ships. Kept so the two can be compared without paying for
+      # another run — a generated fixture is reproducible from its inputs, so a checksum that moves
+      # between architectures is worth being able to see rather than guess at.
+      - name: Keep what this architecture produced
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixtures-manifest-amd64
+          path: fixtures.manifest.json
+          if-no-files-found: warn
