@@ -30,6 +30,7 @@ const show = (seasons: { seasonNumber: number | null; episodes: number[] }[]): S
   episodeCount: seasons.reduce((count, season) => count + season.episodes.length, 0),
   latestAddedAt: '2026-08-10T00:00:00.000Z',
   coverMediaId: '9c858901-8a57-4791-81fe-4c455b099bc9',
+  seriesId: null,
   year: 2024,
   rating: 8.1,
   genres: [],

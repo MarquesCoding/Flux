@@ -21,6 +21,7 @@ import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
+import { RatingPanel } from '@FluxWeb/components/RatingPanel/RatingPanel';
 import { CastGrid } from './components/CastGrid/CastGrid';
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types';
@@ -54,6 +55,8 @@ const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
  * @param backLabel - What going back is called.
  * @param isKept - Whether it is kept.
  * @param onToggleKept - Told to keep it, or stop.
+ * @param stars - What this viewer gave it, or null where they have not rated it.
+ * @param onRate - Told what they gave it, or null to take the rating back.
  */
 const MediaDetailDialog = ({
   media,
@@ -67,6 +70,8 @@ const MediaDetailDialog = ({
   backLabel,
   isKept = false,
   onToggleKept,
+  stars = null,
+  onRate,
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -280,6 +285,17 @@ const MediaDetailDialog = ({
                 </Button>
               )}
             </div>
+
+            {onRate === undefined ? null : (
+              <RatingPanel
+                subject={{ mediaId: shown.id }}
+                title={shown.title}
+                stars={stars}
+                onRate={(given) => {
+                  onRate(shown, given);
+                }}
+              />
+            )}
 
             <section className="flex flex-col gap-3">
               <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">

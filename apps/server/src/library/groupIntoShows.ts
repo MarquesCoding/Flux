@@ -35,6 +35,11 @@ const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
  * most recent arrived, and which episode's artwork should stand for the whole thing. A programme is
  * not stored anywhere, so everything about it is derived from the files that belong to it.
  *
+ * Carries the series identifier separately from the programme's own, because the two are not always
+ * the same thing: a programme the scanner resolved to a series is identified by that series, and one
+ * it could not is identified by a slug of its title. Anything keyed on a real series — a rating, for
+ * one — needs to tell those apart rather than trusting the shape of the string.
+ *
  * @param id - What identifies the programme, which is derived rather than stored.
  * @param episodes - Every episode of the one programme.
  * @returns What to show for the programme itself.
@@ -59,6 +64,7 @@ const describeShow = (id: string, episodes: MediaSummary[]): ShowSummary | null 
       Math.max(...inOrder.map((episode) => addedAtMs(episode.addedAt))),
     ).toISOString(),
     coverMediaId: cover.id,
+    seriesId: inOrder.find((episode) => episode.seriesId !== null)?.seriesId ?? null,
     year: inOrder.find((episode) => episode.year !== null)?.year ?? null,
     rating: inOrder.find((episode) => (episode.rating ?? null) !== null)?.rating ?? null,
     genres: inOrder.find((episode) => (episode.genres ?? []).length > 0)?.genres ?? [],

@@ -4,6 +4,7 @@ import { createMemoryAuth } from './auth/createMemoryAuth';
 import { createMemoryLibraryService } from './library/createMemoryLibraryService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
 import { createMemoryPlaybackService } from './playback/createMemoryPlaybackService';
@@ -22,6 +23,7 @@ const app = createApp({
   segments: createMemorySegmentService(),
   progress: createMemoryWatchProgressService(),
   favourites: createMemoryFavouriteService(),
+  ratings: createMemoryRatingService(),
   playback: createMemoryPlaybackService(),
 });
 
@@ -48,6 +50,7 @@ describe('createApp', () => {
       segments: createMemorySegmentService(),
       progress: createMemoryWatchProgressService(),
       favourites: createMemoryFavouriteService(),
+      ratings: createMemoryRatingService(),
       playback: createMemoryPlaybackService(),
       isTranscoderReachable: () => Promise.resolve(true),
     });
@@ -97,6 +100,7 @@ describe('what the server says it is working on', () => {
         segments: createMemorySegmentService(),
         progress: createMemoryWatchProgressService(),
         favourites: createMemoryFavouriteService(),
+        ratings: createMemoryRatingService(),
         playback: createMemoryPlaybackService(),
         listRunningJobs: () => running,
       }),
