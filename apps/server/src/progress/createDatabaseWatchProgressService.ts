@@ -7,7 +7,11 @@ import type { WatchProgressService } from './WatchProgressService';
 const LIMIT = 60;
 
 /**
- * Watch progress held in Postgres.
+ * Where each profile has got to in each item, held in Postgres. This is the record a resume reads
+ * and a reload depends on, so it is written on a timer while watching and once more on the way out.
+ *
+ * @param db - The database to read and write.
+ * @returns The watch progress service.
  */
 const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressService => ({
   read: async (profileId, mediaId) => {

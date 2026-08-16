@@ -28,7 +28,11 @@ const shown = (row: Row): Viewing => ({
 });
 
 /**
- * A profile's viewing history, in the database.
+ * What each profile has actually watched and when, held in Postgres — one entry per viewing rather
+ * than per report, so an evening's watching reads as an evening rather than as hundreds of ticks.
+ *
+ * @param db - The database to read and write.
+ * @returns The history service.
  */
 const createDatabaseHistoryService = (db: FluxDatabase): HistoryService => ({
   record: async (profileId, mediaItemId, seen) => {

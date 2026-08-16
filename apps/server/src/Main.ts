@@ -188,7 +188,10 @@ const promoteToAdmin = async (email: string): Promise<void> => {
 const permissions = createDatabasePermissionService(db);
 
 /**
- * Gives a freshly made account the role a new one is meant to have.
+ * Gives a freshly created account the role new accounts are meant to have, so somebody who has just
+ * signed up can do something rather than nothing until an administrator notices them.
+ *
+ * @param userId - The account that was just created.
  */
 const giveDefaultRole = async (userId: string): Promise<void> => {
   const member = (await permissions.listRoles()).find((role) => role.name === DEFAULT_ROLE_NAME);
@@ -202,7 +205,13 @@ const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL });
 
 /**
- * Finds intros, outros and other skippable segments across a library's already-scanned media.
+ * Finds intros, outros and recaps across a library's already-scanned files by fingerprinting their
+ * audio and looking for stretches every episode of a season shares. Runs against what has been
+ * scanned rather than as part of a scan, since it compares episodes against each other and so needs
+ * them all present.
+ *
+ * @param libraryId - The library to work through.
+ * @param jobId - The job to report progress against.
  */
 const runDetectSegments = async (libraryId: string, jobId: string): Promise<void> => {
   const marked = await detectLibrarySegments({
@@ -266,9 +275,12 @@ const runDetectSegments = async (libraryId: string, jobId: string): Promise<void
 };
 
 /**
- * Wraps a per-library job so a schedule can fire it against every current library, decided at the
- * moment it runs rather than whatever existed when the schedule was set — see
- * `scheduleTriggerKind`.
+ * Wraps a job that runs against one library so a single schedule can fire it against every library
+ * there is. Which libraries those are is decided when it runs rather than when the schedule was set,
+ * so a library added last week is included without anybody rescheduling anything.
+ *
+ * @param run - The work to do for one library.
+ * @returns A handler that does it for all of them.
  */
 const scheduleAcrossLibraries =
   (run: (libraryId: string) => Promise<{ jobId: string; state: string } | null>) =>
@@ -347,7 +359,10 @@ const catalogueWatch = createReachabilityWatch({
 });
 
 /**
- * Announces a job that ended, except the one that does the announcing.
+ * Announces a job that has ended, to whatever is subscribed — except the announcing job itself,
+ * which would otherwise announce its own announcements for ever.
+ *
+ * @param outcome - Which job ended, what it was about, and whether it succeeded.
  */
 const announceFinishedJob = ({ kind, jobId, subject, reason }: FinishedJob): void => {
   if (kind === DELIVER_WEBHOOK_JOB) {
@@ -720,7 +735,11 @@ const jobs = await createJobQueue({
 });
 
 /**
- * Queues one delivery to one subscriber.
+ * Queues one webhook delivery to one subscriber. Queued rather than sent inline so a slow or
+ * unreachable subscriber delays nothing, and so a failed delivery can be retried on its own.
+ *
+ * @param subscriptionId - Who is being delivered to.
+ * @param payload - The event to deliver.
  */
 const queueWebhookDelivery = async (subscriptionId: string, payload: string): Promise<void> => {
   await jobs.enqueue(DELIVER_WEBHOOK_JOB, { subscriptionId, payload });

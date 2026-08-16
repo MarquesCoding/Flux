@@ -15,7 +15,11 @@ const WEBHOOK_SECRET_BYTES = 32;
 const StoredEventsSchema = z.array(WebhookEventSchema);
 
 /**
- * Subscriptions in Postgres.
+ * Webhook subscriptions and their delivery history, held in Postgres — who asked about what, and
+ * what happened when Flux tried to tell them.
+ *
+ * @param db - The database to read and write.
+ * @returns The webhook store.
  */
 const createDatabaseWebhookStore = (db: FluxDatabase): WebhookStore => {
   const readRow = (row: typeof webhookSubscription.$inferSelect): WebhookSubscription[] => {

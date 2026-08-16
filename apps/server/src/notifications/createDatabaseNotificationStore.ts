@@ -16,7 +16,11 @@ import type { Notification } from '@FluxContracts/schemas/Notification';
 import type { NotificationStore } from './NotificationStore';
 
 /**
- * Notifications in Postgres.
+ * Notifications and their read state, held in Postgres, along with the preferences saying which
+ * kinds each account wants and where.
+ *
+ * @param db - The database to read and write.
+ * @returns The notification store.
  */
 const createDatabaseNotificationStore = (db: FluxDatabase): NotificationStore => {
   const readRow = (row: typeof notification.$inferSelect): Notification[] => {

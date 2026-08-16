@@ -17,7 +17,12 @@ const stripExtension = (name: string): string => {
 };
 
 /**
- * Reads the episodes out of files numbered without saying so.
+ * Reads episode numbers out of files that are numbered without saying so — `01.mkv`, `02.mkv` — by
+ * treating a folder of consecutively numbered files as a season. Common in ripped collections, and
+ * without this every one of them is a separate film named after a number.
+ *
+ * @param files - The files in one folder, with what was already read from their names.
+ * @returns Which episode each file is, where the folder read as a season.
  */
 const groupBareNumberedEpisodes = (paths: readonly string[]): Map<string, BareEpisode> => {
   const runs = new Map<string, { path: string; folder: string; stem: string; number: number }[]>();

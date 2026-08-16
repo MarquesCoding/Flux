@@ -70,7 +70,15 @@ type ScanLibraryOptions = {
 type ScanPhase = 'probing';
 
 /**
- * Decides which files need probing.
+ * Decides which of a library's files actually need probing: the ones that are new, and the ones
+ * whose size or modification time has moved since they were last read. Probing launches a process
+ * per file, so a library of twenty thousand that has gained two should cost two probes.
+ *
+ * @param found - Every file on disk now.
+ * @param stored - What the database holds about them.
+ * @param force - Whether to probe everything regardless, which is what picks up a change in how
+ *   Flux reads files rather than a change in the files.
+ * @returns The files to probe.
  */
 const selectChanged = (
   found: ScannedFile[],
@@ -97,7 +105,13 @@ const selectChanged = (
 };
 
 /**
- * Walks a library root and brings the database in line with it.
+ * Walks a library root and brings the database in line with what is actually there: probing what is
+ * new or changed, asking the metadata providers about each, and removing rows for files that have
+ * gone. Reports its progress as it goes, since a first scan of a real library takes minutes.
+ *
+ * @param options - Where to walk, what to write to, who to ask about files, how many to work on at
+ *   once, and where to report progress and problems.
+ * @returns What the scan changed, counted.
  */
 const scanLibrary = async ({
   libraryId,

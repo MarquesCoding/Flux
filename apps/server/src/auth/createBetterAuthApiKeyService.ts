@@ -40,7 +40,11 @@ const asIsoString = (value: Date | string | null | undefined): string =>
   value instanceof Date ? value.toISOString() : (value ?? '');
 
 /**
- * Reads the Flux permissions off a key.
+ * Reads the Flux permissions stored against an API key, through a schema rather than trusting the
+ * column, since what is stored there was written by an earlier version of Flux.
+ *
+ * @param raw - The permissions column as stored.
+ * @returns The permissions the key was restricted to, or null where it was not restricted.
  */
 const readPermissions = (raw: Record<string, string[]> | null | undefined): Permission[] | null => {
   const named = raw?.[NAMESPACE];
@@ -57,7 +61,12 @@ const readPermissions = (raw: Record<string, string[]> | null | undefined): Perm
 };
 
 /**
- * Keys, kept where better-auth already keeps them.
+ * API keys, kept where the authentication layer already keeps them rather than in a table of Flux's
+ * own — issuing, listing and revoking, with each key's permissions narrowed to whatever its account
+ * still holds.
+ *
+ * @param auth - The authentication layer that owns the keys.
+ * @returns The key service.
  */
 const createBetterAuthApiKeyService = (auth: FluxAuth): ApiKeyService => {
   const describe = (candidate: z.input<typeof RowSchema>): ApiKey => {

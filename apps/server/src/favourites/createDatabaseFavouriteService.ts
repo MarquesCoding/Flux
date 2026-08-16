@@ -7,7 +7,10 @@ import type { FavouriteService } from './FavouriteService';
 const LIMIT = 500;
 
 /**
- * Favourites held in Postgres.
+ * What each profile has kept, held in Postgres — the list a favourites page is built from.
+ *
+ * @param db - The database to read and write.
+ * @returns The favourite service.
  */
 const createDatabaseFavouriteService = (db: FluxDatabase): FavouriteService => ({
   list: async (profileId) => {

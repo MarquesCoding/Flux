@@ -22,7 +22,11 @@ const PREVIEW_NAME = 'preview.mp4';
 const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub']);
 
 /**
- * Whether a plan asks for nothing to be changed.
+ * Decides whether a plan leaves the file untouched on every axis, which is what says a session can
+ * be served as the file lies rather than through the media service at all.
+ *
+ * @param plan - The negotiated plan.
+ * @returns Whether nothing about the file needs changing.
  */
 /**
  * The audio stream a raw file serve would carry, with no say from Flux.
@@ -85,7 +89,13 @@ type CreatePlaybackServiceOptions = {
 };
 
 /**
- * Playback backed by the media service.
+ * Playback as it actually runs: negotiating what a client can take, starting a session on the media
+ * service where anything needs changing, and serving the file directly where nothing does. Also
+ * where a session is stopped, kept alive and asked about.
+ *
+ * @param options - The library to read files from, the transcoder to run sessions on, and the
+ *   settings that bound what a session may cost.
+ * @returns The playback service.
  */
 const createPlaybackService = ({
   media,

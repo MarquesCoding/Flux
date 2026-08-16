@@ -7,7 +7,11 @@ import type { SegmentService } from './SegmentService';
 import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
 
 /**
- * Segments held in Postgres.
+ * The marked stretches of each item — intros, outros, recaps — held in Postgres, so detection runs
+ * once and every playback afterwards simply reads them.
+ *
+ * @param db - The database to read and write.
+ * @returns The segment service.
  */
 const createDatabaseSegmentService = (db: FluxDatabase): SegmentService => ({
   list: async (mediaId) => {

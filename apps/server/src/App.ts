@@ -195,7 +195,13 @@ import type { Permission } from '@FluxContracts/schemas/Permission';
 const PROFILE_HEADER = 'x-flux-profile';
 
 /**
- * The headers that carry a forwarded media file.
+ * Picks the headers worth carrying from a media file the server is forwarding — the type, the
+ * length, the range it answered with — and leaves the rest behind rather than passing an upstream
+ * response's headers through wholesale.
+ *
+ * @param file - The response from the file or the media service.
+ * @param extra - Anything to add on top.
+ * @returns The headers to answer with.
  */
 const forwardedFileHeaders = (
   file: { contentType: string; contentRange: string | null; contentLength: string | null },

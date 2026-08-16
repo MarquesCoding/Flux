@@ -14,7 +14,11 @@ type NewMediaSummary = {
 const NAMED_AT_MOST = 3;
 
 /**
- * Joins names the way a person writing the sentence would.
+ * Joins a list of names the way somebody writing the sentence would — commas between, "and" before
+ * the last — so a notification reads as English rather than as a list.
+ *
+ * @param names - The names to join.
+ * @returns The names as a phrase.
  */
 const inWords = (names: string[]): string => {
   const shown = names.slice(0, NAMED_AT_MOST);

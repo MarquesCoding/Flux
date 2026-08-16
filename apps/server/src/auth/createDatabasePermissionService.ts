@@ -20,7 +20,11 @@ const readGrants = (rows: readonly { permission: string; effect: string }[]): Pe
   });
 
 /**
- * Roles and grants held in Postgres.
+ * Roles, their permissions, and the grants and denials set on individual accounts, held in Postgres.
+ * This is what every permission check in the server eventually reads.
+ *
+ * @param db - The database to read and write.
+ * @returns The permission service.
  */
 const createDatabasePermissionService = (db: FluxDatabase): PermissionService => {
   const permissionsByRole = async (

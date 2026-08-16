@@ -12,7 +12,11 @@ type RecordSignInOptions = {
 };
 
 /**
- * Notes that somebody signed in.
+ * Records that somebody signed in, ignoring a repeat within the same short window so that a browser
+ * refreshing its session does not fill the history with one entry per request.
+ *
+ * @param options - The store to write to, whose account it is, when it happened, and when they last
+ * signed in.
  */
 const recordSignIn = async ({
   store,

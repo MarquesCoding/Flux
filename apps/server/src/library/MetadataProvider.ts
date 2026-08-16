@@ -67,7 +67,14 @@ type MetadataProvider = {
 };
 
 /**
- * Asks each provider in turn what a series should contain.
+ * Asks each metadata provider in turn what a series is meant to contain, taking the first real
+ * answer. This is what makes a missing episode visible: without a catalogue's own list, a season
+ * that stops at episode nine and a season missing its tenth look identical.
+ *
+ * @param providers - The providers to ask, in order of preference.
+ * @param externalId - The catalogue's identifier for the programme.
+ * @param onProblem - Told when a provider fails, so a scan can report it without stopping.
+ * @returns The shape of the series, or null where nobody could say.
  */
 const resolveSeriesShape = async (
   providers: MetadataProvider[],
@@ -94,7 +101,15 @@ const resolveSeriesShape = async (
 };
 
 /**
- * Asks each provider in turn.
+ * Asks each metadata provider in turn about one file and takes the first real answer, so a plugin's
+ * provider overrides the built-in filename reader without replacing it. A provider that fails is
+ * skipped rather than failing the scan — a metadata service being down must not make a library
+ * unreadable.
+ *
+ * @param providers - The providers to ask, in order of preference.
+ * @param request - What is known about the file from its path.
+ * @param onProblem - Told when a provider fails.
+ * @returns The metadata found, or an empty answer where nobody recognised the file.
  */
 const resolveMetadata = async (
   providers: MetadataProvider[],

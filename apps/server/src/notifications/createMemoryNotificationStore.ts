@@ -11,7 +11,10 @@ type CreateMemoryNotificationStoreOptions = {
 };
 
 /**
- * Notifications held in memory, for tests and for a server without a database.
+ * Notifications held in memory, so the routes can be exercised without Postgres.
+ *
+ * @param state - Anything already notified.
+ * @returns The notification store.
  */
 const createMemoryNotificationStore = ({
   listAccountIds = () => Promise.resolve([]),

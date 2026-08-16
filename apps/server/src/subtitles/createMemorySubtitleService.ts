@@ -15,7 +15,10 @@ type MemorySubtitle = {
 type MemoryState = Record<string, MemorySubtitle[]>;
 
 /**
- * Subtitles held in memory.
+ * Subtitles held in memory, so the routes can be exercised without files on disk.
+ *
+ * @param state - Any tracks to offer.
+ * @returns The subtitle service.
  */
 const createMemorySubtitleService = (state: MemoryState = {}): SubtitleService => {
   const tracksFor = (mediaId: string): SubtitleTrack[] | null => {

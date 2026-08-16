@@ -12,7 +12,12 @@ type MemoryState = {
 };
 
 /**
- * Roles and grants held in memory, so the HTTP surface can be exercised without a database.
+ * Roles and grants held in memory, so the routes can be exercised without Postgres. Models the same
+ * rank and denial rules the database version enforces, since a test passing against weaker rules
+ * would describe a server that does not exist.
+ *
+ * @param state - Any roles and grants to start with.
+ * @returns The permission service.
  */
 const createMemoryPermissionService = (
   state: MemoryState = {

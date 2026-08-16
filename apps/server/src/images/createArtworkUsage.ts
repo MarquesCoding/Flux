@@ -18,7 +18,11 @@ const AT_ONCE = 32;
 const HOUR = 60 * 60 * 1000;
 
 /**
- * How much disk the cached artwork is taking.
+ * Measures how much disk the cached artwork is taking, for the storage figures an operator reads
+ * before deciding whether to sweep it.
+ *
+ * @param directory - The cache directory to measure.
+ * @returns How many files there are and how much they hold.
  */
 const createArtworkUsage = ({ directory, everyMs = HOUR }: CreateArtworkUsageOptions) => {
   let last: ArtworkUsage | null = null;

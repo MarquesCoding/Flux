@@ -35,7 +35,12 @@ const emptyStore = (): {
 });
 
 /**
- * Builds an in-memory authentication layer and its settings store.
+ * Builds an authentication layer and settings store held in memory, so the HTTP surface can be
+ * tested without Postgres. Models the behaviour the routes depend on — signing up, signing in,
+ * sessions, missing accounts — and nothing else.
+ *
+ * @param overrides - Anything to start with, such as accounts that already exist.
+ * @returns The authentication layer, its settings store, and the state behind them.
  */
 const createMemoryAuth = (
   overrides: Partial<NodeJS.ProcessEnv> = {},

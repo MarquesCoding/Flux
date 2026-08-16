@@ -9,7 +9,12 @@ type CreateWebhookEventBusOptions = {
 };
 
 /**
- * The bus that turns something happening into queued deliveries.
+ * Turns something happening on the server into a delivery queued for every subscriber that asked
+ * about it. The bus knows nothing about HTTP or retries — it decides who cares, and the queue does
+ * the rest.
+ *
+ * @param options - Where subscriptions are stored, and how to queue a delivery.
+ * @returns The event bus.
  */
 const createWebhookEventBus = ({
   subscriptions,

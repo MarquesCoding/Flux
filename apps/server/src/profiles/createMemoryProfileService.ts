@@ -19,7 +19,10 @@ const stamp = (): string => {
 };
 
 /**
- * Profiles held in memory, so the routes can be exercised without a database.
+ * Profiles held in memory, so the routes can be exercised without Postgres.
+ *
+ * @param state - Any profiles that already exist.
+ * @returns The profile service.
  */
 const createMemoryProfileService = (
   state: MemoryState = [],

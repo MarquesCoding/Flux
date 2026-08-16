@@ -30,7 +30,13 @@ type CreateAuthOptions = {
 const FLUX_APP_NAME = 'Flux';
 
 /**
- * Builds the Flux authentication layer.
+ * Builds the authentication layer: accounts, sessions, cookies, password resets and API keys, wired
+ * to Flux's own database and settings. Everything about who somebody is comes from here rather than
+ * being reimplemented per route.
+ *
+ * @param options - The environment, the database, the settings store, whether cookies are secure,
+ * and the hooks fired when an account is made, signs in, or asks for a reset.
+ * @returns The authentication layer.
  */
 const createAuth = ({
   env,

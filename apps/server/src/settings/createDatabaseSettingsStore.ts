@@ -10,7 +10,11 @@ type CreateDatabaseSettingsStoreOptions = {
 };
 
 /**
- * Builds a settings store backed by the `server_setting` table.
+ * The server's own settings, held in one row of Postgres — everything an operator configures that is
+ * not an environment variable, from the catalogue key to what this instance calls itself.
+ *
+ * @param db - The database to read and write.
+ * @returns The settings store.
  */
 const createDatabaseSettingsStore = ({
   db,

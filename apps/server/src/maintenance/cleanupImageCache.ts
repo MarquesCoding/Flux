@@ -24,7 +24,13 @@ type CleanupImageCacheOptions = {
 const baseName = (path: string): string => path.split('/').pop() ?? path;
 
 /**
- * Removes every file in a directory that nothing valid still points at.
+ * Removes every file in a directory that nothing in the database points at any more, which is what
+ * makes an artwork cache shrink when a library does. Reads what is referenced first and deletes
+ * second, so a fetch happening mid-sweep is never deleted out from under itself.
+ *
+ * @param directory - The cache directory to sweep.
+ * @param referenced - The filenames still pointed at.
+ * @returns How many files were removed, and how much disk they held.
  */
 const sweep = async (
   directory: string,
@@ -58,7 +64,12 @@ const sweep = async (
 };
 
 /**
- * Deletes every cached artwork and profile photo file nothing in the database references any more.
+ * Deletes cached artwork and profile photographs that nothing references any more — the posters of
+ * removed films, the faces of removed profiles. Artwork is fetched once and kept, so without this a
+ * cache only ever grows.
+ *
+ * @param options - Where the cache is, and the database saying what is still referenced.
+ * @returns What was removed, counted and measured.
  */
 const cleanupImageCache = async ({
   imageCacheDir,

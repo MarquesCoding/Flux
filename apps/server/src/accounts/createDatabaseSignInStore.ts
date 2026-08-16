@@ -4,7 +4,11 @@ import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { SignInStore } from './recordSignIn';
 
 /**
- * Where an account's sign-ins are written down.
+ * Records when each account signs in, which is what the admin pages read to show who has been
+ * active and what an operator checks before removing an account nobody uses.
+ *
+ * @param db - The database to read and write.
+ * @returns The sign-in store.
  */
 const createDatabaseSignInStore = (
   db: FluxDatabase,

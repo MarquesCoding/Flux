@@ -40,7 +40,13 @@ const add = (left: SweepReport, right: SweepReport): SweepReport => ({
 });
 
 /**
- * Deletes preview clips and thumbnail sheets nothing in any library addresses.
+ * Deletes preview clips and scrubbing thumbnails that no item in any library addresses any more.
+ * These are rendered on demand and cost real time to make, so they are kept until the thing they
+ * were made for has gone.
+ *
+ * @param options - The transcoder holding the artefacts, and the libraries saying what is still
+ *   addressed.
+ * @returns What was removed, counted and measured.
  */
 const sweepArtefactCache = async ({
   listLiveItems,

@@ -21,7 +21,13 @@ type Decision =
   | { kind: 'extend'; id: string; secondsWatched: number; isFinished: boolean };
 
 /**
- * Decides what a moment of watching does to the history.
+ * Decides what one report of watching does to the history: start a new viewing, extend the one in
+ * progress, or be ignored. Somebody who pauses for ten minutes and carries on has watched one thing,
+ * not two, and somebody who opens a film and closes it has not watched it at all.
+ *
+ * @param observation - What was reported: which item, where in it, and when.
+ * @param current - The viewing already in progress, where there is one.
+ * @returns What to do with it.
  */
 const decideViewing = (open: OpenViewing | null, seen: Observation): Decision => {
   const isSameSitting =
