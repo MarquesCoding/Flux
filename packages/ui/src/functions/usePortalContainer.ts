@@ -15,18 +15,22 @@ const subscribe = (onChange: () => void): (() => void) => {
 };
 
 /**
- * The element currently filling the screen, where there is one.
+ * The element currently filling the screen, where there is one, asked of every vendor's spelling of
+ * the property since browsers still differ on it.
  */
 const readFullscreenElement = (): HTMLElement | undefined =>
   document.fullscreenElement instanceof HTMLElement ? document.fullscreenElement : undefined;
 
 /**
- * Nothing is fullscreen where there is no document to ask.
+ * Answers that nothing is filling the screen, for a render with no document to ask — the server has
+ * no fullscreen element and no way to acquire one.
  */
 const readOnServer = (): HTMLElement | undefined => undefined;
 
 /**
- * Where a popup should be rendered so that it can actually be seen.
+ * Where a popup should be rendered so that it can actually be seen: the body normally, but whatever
+ * is filling the screen while something is. A menu portalled to the body while a video is fullscreen
+ * is drawn behind the video, which is to say not drawn at all.
  */
 const usePortalContainer = (): HTMLElement | undefined =>
   useSyncExternalStore(subscribe, readFullscreenElement, readOnServer);

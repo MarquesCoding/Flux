@@ -8,7 +8,8 @@ const STORAGE_KEY = 'flux.gridSize';
 const DEFAULT_GRID_SIZE: MediaGridSize = 'medium';
 
 /**
- * Reads how large this viewer likes the cards.
+ * Reads how large this viewer likes the cards. Held on the device rather than on the profile, since
+ * the right size depends on the screen being looked at rather than on who is looking.
  */
 const readGridSize = (): MediaGridSize => {
   try {

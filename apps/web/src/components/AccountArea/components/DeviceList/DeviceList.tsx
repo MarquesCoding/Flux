@@ -29,7 +29,9 @@ const said = (when: string): string => {
 };
 
 /**
- * Everywhere this account is signed in.
+ * Everywhere this account is signed in — each device, when it was last used, and a way to end it.
+ * This session is marked as this one so nobody ends it by accident, and there is one gesture for
+ * ending every other at once.
  */
 const DeviceList = () => {
   const [devices, setDevices] = useState<Device[] | null>(null);

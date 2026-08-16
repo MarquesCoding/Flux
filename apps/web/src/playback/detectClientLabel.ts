@@ -33,7 +33,8 @@ const detectClientLabel = (userAgent: string): string => {
 };
 
 /**
- * The same label, read from this browser.
+ * Reads the device label from this browser, so a session list says "Firefox on macOS" rather than a
+ * user agent string.
  */
 const detectFromNavigator = (): string => detectClientLabel(navigator.userAgent);
 

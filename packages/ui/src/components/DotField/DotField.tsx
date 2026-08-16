@@ -79,7 +79,8 @@ const DotField = ({
     let height = 0;
 
     /**
-     * Works out where every dot is and when each ripple reaches it.
+     * Works out where every dot sits and when each ripple reaches it, once, so that the animation itself
+     * is a matter of reading a number per frame rather than measuring anything.
      */
     const lay = () => {
       const ratio = Math.min(window.devicePixelRatio, 2);

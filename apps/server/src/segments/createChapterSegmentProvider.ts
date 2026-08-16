@@ -27,7 +27,9 @@ const readChapterKind = (title: string | null): SegmentKind | null =>
     ?.kind ?? null;
 
 /**
- * Segments a release already marked.
+ * Reads intros, recaps and credits out of the chapter marks a release already carries, which costs
+ * nothing to read and is right whenever it is present. Tried before anything that compares audio,
+ * since a release that has been marked by hand has better marks than any detector will find.
  */
 const createChapterSegmentProvider = (): SegmentProvider => ({
   name: 'chapters',

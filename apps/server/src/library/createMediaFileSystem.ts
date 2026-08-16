@@ -55,7 +55,8 @@ const walk = async (root: string, depth: number): Promise<ScannedFile[]> => {
 };
 
 /**
- * The real filesystem, for the scanner.
+ * The real filesystem, as the scanner uses it. Kept behind an interface so a scan can be tested
+ * against a directory tree described in a test rather than one that has to exist on disk.
  */
 const createMediaFileSystem = (): MediaFileSystem => ({
   listFiles: (root) => walk(root, 0),

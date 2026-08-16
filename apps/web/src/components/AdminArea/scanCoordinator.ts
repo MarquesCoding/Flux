@@ -131,7 +131,9 @@ const runAndTrack = async (
 };
 
 /**
- * Picks up scans the server is already running.
+ * Picks up scans the server is already running, so that reloading the page mid-scan shows its
+ * progress rather than an idle library. Ignores any library this page is already tracking, since a
+ * scan started here is already being followed.
  */
 const resumeRunning = async (): Promise<void> => {
   const running = await fetchRunningScans();
@@ -183,7 +185,9 @@ const watchJob = (libraryId: string, kind: string, jobId: string): Promise<void>
   runAndTrack(libraryId, kind, () => Promise.resolve({ jobId, state: 'queued' }));
 
 /**
- * Scans one library, tracking its progress until it finishes.
+ * Scans one library, tracking its progress until it finishes. Scanning reads what has changed;
+ * forcing re-probes every file, which is what to do when the catalogue is wrong rather than merely
+ * out of date.
  *
  * @param libraryId - The library to scan.
  * @param force - Whether to re-probe every file rather than only what has changed.
@@ -192,7 +196,9 @@ const startScan = (libraryId: string, force = false): Promise<void> =>
   runAndTrack(libraryId, force ? 'rescan' : 'scan', () => scanLibrary(libraryId, force));
 
 /**
- * Scans every library at once, forcing a full re-probe of each file.
+ * Scans every library at once, re-probing every file. Tracked as one thing as well as per library, so
+ * the page can show that a sweep is under way rather than only that several libraries happen to be
+ * scanning.
  *
  * @param libraries - The libraries to scan.
  */
@@ -253,7 +259,8 @@ const runDefinedJob = (kind: string, libraryId?: string, force?: boolean): Promi
   runAndTrack(libraryId ?? kind, kind, () => runJob(kind, libraryId, force));
 
 /**
- * Starts a job by kind against every library at once.
+ * Starts a job by kind against every library at once, each tracked separately so the progress shows
+ * which library is where rather than one bar for all of them.
  *
  * @param kind - The job to run.
  * @param libraries - The libraries to run it against.

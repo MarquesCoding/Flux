@@ -47,7 +47,10 @@ import type { Permission, Role } from '@FluxContracts/schemas/Permission';
 type Asked = { kind: 'ban' | 'remove'; account: Account };
 
 /**
- * Who is on this server, and what each of them may do.
+ * Who is on this server and what each of them may do: their roles, the permissions set against them
+ * directly, and the ways an administrator can ban, unban or remove them. Permissions set against one
+ * person are shown beside their roles rather than hidden behind them, since that is where a
+ * surprising answer usually comes from.
  */
 const AccountsPanel = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);

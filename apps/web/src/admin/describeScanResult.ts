@@ -1,7 +1,9 @@
 import type { ScanResult } from '@FluxContracts/schemas/Library';
 
 /**
- * What a scan changed, in the few words a table cell has room for.
+ * Says what a scan changed in the few words a table cell has room for. "Scanned an hour ago" and
+ * "scanned an hour ago, removed two hundred items" answer the same question, and only the second
+ * tells an operator their mount was missing.
  *
  * @param result What the last scan counted.
  */

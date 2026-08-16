@@ -34,7 +34,8 @@ type AttachOptions = {
 const CRITICAL = 2;
 
 /**
- * Loads Shaka Player on demand.
+ * Loads Shaka Player the first time something needs it. Not part of the main bundle: it is a large
+ * dependency, and a session that turns out to be direct play never needs it at all.
  */
 const loadShakaPlayer = async (): Promise<ShakaModule> => {
   const imported: typeof shaka = (await import('shaka-player/dist/shaka-player.compiled')).default;

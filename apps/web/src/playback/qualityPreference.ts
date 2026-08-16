@@ -10,7 +10,9 @@ const STORAGE_KEY = 'flux.qualityPreference';
 const DEFAULT_QUALITY_PREFERENCE: QualityPreference = 'original';
 
 /**
- * Reads a viewer's quality preference.
+ * Reads whether this viewer has pinned quality to a rung of the ladder or left it to be chosen. A
+ * pinned choice is honoured even where the connection would carry more, since somebody who chose it
+ * usually had a reason the player cannot see.
  */
 const readQualityPreference = (): QualityPreference => {
   try {

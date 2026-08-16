@@ -67,7 +67,9 @@ const measure = (item: Element, container: Element): HighlightRect => {
 };
 
 /**
- * One background that slides between the things a pointer rests on.
+ * One background that slides between the things a pointer rests on, rather than a highlight per item
+ * fading in and out. The movement is what makes a row of controls read as one set of choices instead
+ * of several separate ones.
  */
 const useSlidingHighlight = (): SlidingHighlight => {
   const containerRef = useRef<HTMLDivElement | null>(null);

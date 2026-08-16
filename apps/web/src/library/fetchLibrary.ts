@@ -44,7 +44,7 @@ type UpdateLibraryInput = {
 };
 
 /**
- * Reads every library on this server.
+ * Reads every library on this server, with where each reads from and when it was last scanned.
  */
 const fetchLibraries = async (): Promise<Library[]> => {
   const response = await fetch('/api/libraries', { headers: { accept: 'application/json' } });

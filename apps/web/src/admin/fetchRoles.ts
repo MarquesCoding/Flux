@@ -44,7 +44,8 @@ const fetchPermissionCatalogue = async (): Promise<Permission[]> => {
 };
 
 /**
- * Reads the roles on this server and what each grants.
+ * Reads the roles on this server and what each grants. Roles are how a household gives somebody a
+ * set of permissions without choosing them one by one.
  *
  * @returns The roles, or none where the request failed.
  */
@@ -61,7 +62,8 @@ const fetchRoles = async (): Promise<Role[]> => {
 };
 
 /**
- * Adds a role: what it is called and what it grants.
+ * Adds a role: what it is called and what it grants. Granting it to anybody is a separate step, so a
+ * role can be got right before it applies to a single person.
  *
  * @param role - The role to add.
  * @returns Any refusal from the server.
@@ -101,7 +103,8 @@ const updateRole = async (id: string, changes: Partial<Omit<Role, 'id'>>): Promi
 };
 
 /**
- * Removes a role, and with it whatever it granted to everyone holding it.
+ * Removes a role, and with it whatever it granted to everyone holding it. Anything set against a
+ * person directly is untouched, so somebody may keep a permission the role also happened to give.
  *
  * @param id - The role to remove.
  * @returns Any refusal from the server.
@@ -137,7 +140,8 @@ const fetchAccountPermissions = async (userId: string): Promise<AccountPermissio
 };
 
 /**
- * Gives an account a role.
+ * Gives an account a role, adding what it grants to whatever the account already had rather than
+ * replacing it — an account may hold several.
  *
  * @param userId - The account.
  * @param roleId - The role to give it.

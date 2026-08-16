@@ -17,7 +17,8 @@ const AccountSchema = z.object({
 type Account = z.infer<typeof AccountSchema>;
 
 /**
- * Everybody with an account, as the administration page needs them.
+ * Everybody with an account on this server, with what each may do and whether they are banned. What
+ * the administration page needs to show them all in one table.
  */
 const fetchAccounts = async (): Promise<Account[]> => {
   const response = await fetch('/api/admin/accounts', { credentials: 'same-origin' }).catch(

@@ -15,7 +15,9 @@ type NotifyHouseholdOptions = {
 };
 
 /**
- * Tells the household something, by every transport they asked for.
+ * Tells the household something, by every means each person asked to be told by — in the app, by
+ * push, or not at all. One thing that happened becomes as many deliveries as there are people
+ * wanting to hear about it, and a transport failing for one person does not stop the others.
  *
  * @param store Where notifications, preferences and browsers are kept.
  * @param event Which event this is, so preferences can be read against it.

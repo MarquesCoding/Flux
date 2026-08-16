@@ -19,7 +19,9 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 /**
- * The catalogue arranged as somebody choosing from it would read it.
+ * Arranges the permission catalogue the way somebody choosing from it reads it — by the thing being
+ * permitted rather than in the order the server happens to list them, so that everything about
+ * libraries sits together.
  *
  * @param permissions The catalogue, as the server gave it.
  */

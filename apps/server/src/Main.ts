@@ -177,7 +177,8 @@ const countUsers = async (): Promise<number> => {
 };
 
 /**
- * How much disk the media itself takes, across every library.
+ * How much disk the media itself takes, across every library. Reported beside what Flux has added to
+ * it, since the useful question on the dashboard is which of the two is growing.
  */
 const readLibraryBytes = async (): Promise<number> => {
   const rows = await db
@@ -308,7 +309,9 @@ const webhookSubscriptions = createDatabaseWebhookStore(db);
 const notifications = createDatabaseNotificationStore(db);
 
 /**
- * The identity push services check this server by, made on first need.
+ * The identity push services check this server by, made on first need and then kept. Generated here
+ * rather than configured, because the keys mean nothing outside this server and asking an operator
+ * to make a key pair before they can be told about new films would be a poor trade.
  */
 const readPushKeys = async (): Promise<VapidKeys> => {
   const held = await settings.read();
@@ -354,7 +357,8 @@ const diskWatch = createDiskPressureWatch({
 });
 
 /**
- * Everywhere Flux writes, which is what it is worth warning about.
+ * Everywhere Flux writes: the library folders and the image cache. This is what the disk warnings are
+ * measured against, since a filesystem filling up only matters where something is filling it.
  */
 const pathsFluxWritesTo = async (): Promise<string[]> => [
   ...(await libraryService.list()).map((entry) => entry.path),

@@ -8,7 +8,9 @@ type Favourites = {
 };
 
 /**
- * What this viewer has kept, and the one gesture that changes it.
+ * What this viewer has kept, and the one gesture that changes it. Keeps its own copy so a heart fills
+ * the moment it is pressed rather than when the server answers, and puts it back if the server
+ * refuses.
  */
 const useFavourites = (): Favourites => {
   const [kept, setKept] = useState<Set<string>>(new Set());

@@ -5,7 +5,8 @@ const LOW_DISK_FRACTION = 0.05;
 const LOW_DISK_BYTES = 5 * 1024 * 1024 * 1024;
 
 /**
- * Whether a filesystem is close enough to full to be worth saying so.
+ * Whether a filesystem is close enough to full to be worth saying so. A filesystem reporting no size
+ * at all is not under pressure but unreadable, and is left alone rather than warned about.
  *
  * @param disk One mounted filesystem as the media service measured it.
  */
@@ -21,7 +22,8 @@ const isUnderPressure = (disk: DiskUse): boolean => {
 };
 
 /**
- * Which mount a path is stored on.
+ * Which mount a path is stored on, taking the deepest where several nest — a path under both `/` and
+ * `/mnt/media` is on the latter, and the room left on the former says nothing about it.
  *
  * @param path Somewhere Flux writes.
  * @param disks Every filesystem the machine reported.
@@ -36,7 +38,9 @@ const findMountFor = (path: string, disks: DiskUse[]): DiskUse | null =>
     .sort((one, other) => other.mountPoint.length - one.mountPoint.length)[0] ?? null;
 
 /**
- * The filesystems Flux writes to that are running out of room.
+ * The filesystems Flux writes to that are running out of room, each named once however many paths sit
+ * on it. Only the ones written to: a full disk holding nothing of Flux's is somebody else's problem
+ * and warning about it teaches an operator to ignore the warnings.
  *
  * @param paths Everywhere Flux writes: the libraries, and its caches.
  * @param disks Every filesystem the machine reported.

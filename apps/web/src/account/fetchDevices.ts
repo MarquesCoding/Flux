@@ -14,7 +14,9 @@ const DeviceListSchema = z.object({ devices: z.array(DeviceSchema) });
 type Device = z.infer<typeof DeviceSchema>;
 
 /**
- * Everywhere this account is signed in.
+ * Everywhere this account is signed in, so somebody can see a session they do not recognise and end
+ * it. Includes this one, marked as this one, since a list that quietly omitted it would look wrong
+ * to anybody counting.
  */
 const fetchDevices = async (): Promise<Device[]> => {
   try {
@@ -49,7 +51,9 @@ const endDevice = async (deviceId: string): Promise<boolean> => {
 };
 
 /**
- * Signs out everywhere but here.
+ * Ends every session but this one, which is what somebody does after losing a device or suspecting
+ * their password. Deliberately keeps the session it is called from, so nobody locks themselves out
+ * of the page they are securing their account on.
  */
 const endOtherDevices = async (): Promise<boolean> => {
   const response = await fetch('/api/account/devices/end-others', {

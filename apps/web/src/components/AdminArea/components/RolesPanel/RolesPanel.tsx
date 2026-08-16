@@ -35,7 +35,9 @@ import type { Permission, Role } from '@FluxContracts/schemas/Permission';
 const NEW_ROLE_POSITION = 50;
 
 /**
- * Roles, what they grant, and who holds them.
+ * The roles on this server, what each grants and who holds them, with the making and changing of
+ * them. Permissions are offered grouped by what they are about rather than as one long list, since
+ * choosing from a hundred flat checkboxes is how a role ends up granting something nobody meant.
  */
 const RolesPanel = () => {
   const [catalogue, setCatalogue] = useState<Permission[]>([]);

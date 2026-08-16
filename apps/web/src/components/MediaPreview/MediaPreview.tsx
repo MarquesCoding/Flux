@@ -16,7 +16,8 @@ import type { MediaPreviewProps, PreviewAbsence } from './MediaPreview.types';
 const SETTLE_MILLISECONDS = 2600;
 
 /**
- * Builds the address an item's preview clip is served from.
+ * Builds the address an item's preview clip is served from — the short silent clip rendered when the
+ * library was scanned, which is what plays under a pointer resting on a card.
  *
  * @param mediaId - The item.
  * @returns The address to load.

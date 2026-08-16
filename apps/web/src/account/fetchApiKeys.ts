@@ -11,7 +11,8 @@ const asJson = {
 } as const;
 
 /**
- * The keys on this account.
+ * The API keys on this account, with what each may do and when it was last used. Never the keys
+ * themselves — the server keeps only a hash, so a key is readable once at the moment it is made.
  */
 const fetchApiKeys = async (): Promise<ApiKey[] | null> => {
   try {

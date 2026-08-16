@@ -5,7 +5,8 @@ type Episode = {
 };
 
 /**
- * Orders episodes the way they are watched.
+ * Orders episodes the way they are watched: by season, then by number within it, with anything the
+ * scanner could not place in a season left at the end rather than mixed in at the front.
  *
  * @param left - One episode.
  * @param right - The episode to place it against.

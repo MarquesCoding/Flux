@@ -2,7 +2,7 @@ import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
 import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 /**
- * The people using this account.
+ * The profiles on this account, each with their own history, favourites and watch progress.
  */
 const fetchProfiles = async (): Promise<ViewerProfile[]> => {
   try {
@@ -41,7 +41,8 @@ const createProfile = async (
 };
 
 /**
- * Changes what a profile is called and what it is drawn as.
+ * Changes what a profile is called and what it is drawn as. Nothing it has watched, kept or got part
+ * way through is affected: those hang off the profile itself rather than off its name.
  *
  * @param profileId - The profile to change.
  * @param name - What to call them.

@@ -27,7 +27,9 @@ type WebPushSender = (
 ) => Promise<{ statusCode: number }>;
 
 /**
- * Wakes one browser, and says whether it is worth keeping.
+ * Wakes one browser, and says whether its subscription is worth keeping. A browser that has cleared
+ * its data or a subscription that has expired answers in a way that will never work again, and
+ * saying so is what stops the list of endpoints growing forever.
  *
  * @param endpoint The browser, as the push service names it.
  * @param payload What the service worker will draw.

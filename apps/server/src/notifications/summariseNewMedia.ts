@@ -32,7 +32,9 @@ const inWords = (names: string[]): string => {
 };
 
 /**
- * Turns everything imported in a window into one thing worth saying.
+ * Turns everything imported in a window into the one thing worth saying about it — a film by name, or
+ * a count and what most of it was. Somebody who has just scanned a drive should be told their
+ * library grew, not told two hundred times that it did.
  *
  * @param items Everything imported since the last digest.
  */

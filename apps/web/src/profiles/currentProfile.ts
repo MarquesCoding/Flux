@@ -3,7 +3,8 @@ const STORAGE_KEY = 'flux.profile';
 const PROFILE_HEADER = 'x-flux-profile';
 
 /**
- * Who is watching on this device, if anybody has said.
+ * Who is watching on this device, where somebody has chosen. Held on the device rather than in the
+ * session, since a household shares one account and each screen in it may be a different person.
  */
 const readCurrentProfile = (): string | null => {
   try {
@@ -31,7 +32,8 @@ const writeCurrentProfile = (profileId: string | null): void => {
 };
 
 /**
- * The headers that say who is watching.
+ * The headers that tell the server which profile a request is for, so that history, favourites and
+ * progress land against the right person rather than against the account.
  */
 const profileHeaders = (): Record<string, string> => {
   const profileId = readCurrentProfile();

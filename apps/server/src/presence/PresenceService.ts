@@ -68,7 +68,9 @@ type Connection = {
 };
 
 /**
- * Presence held in memory.
+ * Who has the app open, held in memory rather than in Postgres. Presence is true only while a
+ * connection is open, so it has nothing to survive a restart for — a server that has just come back
+ * has no connections, and that is the honest answer.
  */
 const createPresenceService = (): PresenceService => {
   const connections = new Map<string, Connection>();

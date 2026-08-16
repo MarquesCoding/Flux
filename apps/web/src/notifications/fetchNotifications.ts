@@ -20,7 +20,8 @@ type Inbox = z.infer<typeof InboxSchema>;
 type NotificationSettings = z.infer<typeof PreferencesSchema>;
 
 /**
- * What is on the bell.
+ * What is on the bell: the notices this viewer has been sent, newest first, and how many they have
+ * not read.
  */
 const fetchNotifications = async (): Promise<Inbox> => {
   const empty = { notifications: [], unread: 0 };

@@ -9,7 +9,8 @@ const PresenceEventSchema = z.discriminatedUnion('kind', [
 ]);
 
 /**
- * Opens this tab's own presence connection.
+ * Opens this tab's presence connection, which is what puts it in the administrator's list of open
+ * sessions and what carries an instruction to stop or pause back to it.
  */
 const watchPresence = (): (() => void) => {
   const params = new URLSearchParams({

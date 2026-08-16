@@ -27,7 +27,8 @@ type Trickplay = {
 const TIMESTAMP = /(\d+):(\d{2}):(\d{2})(?:\.(\d{1,3}))?/;
 
 /**
- * Reads a WebVTT timestamp as a number of seconds.
+ * Reads a WebVTT timestamp as a number of seconds, in either of the forms the format allows — with
+ * hours and without.
  *
  * @param value - The timestamp as the index wrote it.
  * @returns The position in seconds.

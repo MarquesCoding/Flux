@@ -126,7 +126,8 @@ const toCueCss = (style: CaptionStyle): string => {
 };
 
 /**
- * Reads a viewer's caption preferences.
+ * Reads how this viewer likes captions drawn. Held on the device rather than on the profile, since
+ * legibility depends on the screen and the room it is in.
  */
 const readCaptionStyle = (): CaptionStyle => {
   try {

@@ -4,7 +4,8 @@ import type { Viewing } from '@FluxContracts/schemas/Viewing';
 const A_PAGE = 30;
 
 /**
- * Reads what this profile has watched, most recent first.
+ * Reads what this profile has watched, most recent first, in pages — a household that has been using
+ * Flux for a year has more history than any one request should carry.
  *
  * @param offset - How many viewings to read.
  * @returns The viewings, or none where the request failed.
@@ -40,7 +41,8 @@ const forgetViewing = async (viewingId: string): Promise<boolean> => {
 };
 
 /**
- * Forgets everything this profile has watched.
+ * Forgets everything this profile has watched. Only this profile's: history hangs off the profile
+ * rather than the account, so one person clearing theirs leaves the rest of the household alone.
  */
 const forgetHistory = async (): Promise<number> => {
   try {

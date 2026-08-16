@@ -4,7 +4,9 @@ type DigestWindow = {
 };
 
 /**
- * Where the next digest should read from, and whether it may speak.
+ * Decides where the next digest reads from and whether it may say anything at all. A server that has
+ * never sent one starts its window now and stays silent: the first digest after Flux is installed
+ * would otherwise announce the entire library as new.
  *
  * @param readTo Where the last digest finished, or null on a fresh server.
  * @param now The moment this digest is running.

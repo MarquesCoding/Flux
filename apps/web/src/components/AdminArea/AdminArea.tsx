@@ -119,7 +119,8 @@ const PANELS: readonly { id: PanelId; label: string }[] = SECTIONS.flatMap((sect
 ]);
 
 /**
- * Every job's triggers, keyed by kind.
+ * Reads every job's triggers at once and keys them by job, so that a list of jobs can show what makes
+ * each run without a request per row.
  */
 const readJobSchedules = async (): Promise<Map<string, JobTrigger[]>> =>
   new Map((await fetchJobSchedules()).map((entry) => [entry.kind, entry.triggers]));

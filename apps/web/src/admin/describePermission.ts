@@ -41,7 +41,8 @@ const LABELS: Record<Permission, string> = {
 };
 
 /**
- * A permission in words.
+ * Names a permission in words rather than in the identifier it is stored as, so that a role editor
+ * reads as sentences about what somebody may do.
  *
  * @param permission The permission as the server names it.
  */

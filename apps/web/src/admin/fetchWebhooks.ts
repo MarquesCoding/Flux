@@ -86,7 +86,8 @@ const setWebhookEnabled = async (id: string, enabled: boolean): Promise<Refusal>
 };
 
 /**
- * Removes a subscription and its delivery history.
+ * Removes a subscription and the record of everything it was sent. Turning it off is the reversible
+ * answer to an endpoint that has started failing; this is not.
  *
  * @param id - The subscription to remove.
  * @returns Any refusal from the server.

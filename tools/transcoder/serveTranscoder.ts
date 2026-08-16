@@ -6,7 +6,8 @@ import { planTranscoderDev } from './planTranscoderDev';
 const ROOT = join(import.meta.dirname, '..', '..');
 
 /**
- * Loads the same file the server reads.
+ * Loads the same environment file the server reads, so that the transcoder started for development
+ * agrees with it about ports and paths rather than being configured twice.
  */
 const loadEnvFile = (): void => {
   const path = join(ROOT, '.env');

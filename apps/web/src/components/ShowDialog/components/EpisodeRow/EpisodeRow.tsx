@@ -4,7 +4,8 @@ import { formatDuration } from '@FluxCore/functions/formatDuration';
 import type { EpisodeRowProps } from './EpisodeRow.types';
 
 /**
- * Builds the address an episode's still is served from.
+ * Builds the address an episode's still is served from, so a row is chosen by what somebody remembers
+ * seeing rather than by its number.
  *
  * @param mediaId - The episode.
  * @returns The address to load.

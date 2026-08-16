@@ -20,7 +20,7 @@ const ROTATE_AFTER_MILLISECONDS = 14_000;
 const PREVIEW_SETTLE_MILLISECONDS = 2500;
 
 /**
- * Builds the address an item's backdrop is served from.
+ * Builds the address an item's backdrop is served from, which is what the hero is drawn over.
  *
  * @param mediaId - The item.
  * @returns The address to load.

@@ -70,7 +70,9 @@ const sentenceFor = (payload: WebhookPayload): string => {
 };
 
 /**
- * Writes a delivery the way its subscriber reads.
+ * Writes a delivery in the shape its subscriber expects — the event itself for anything generic, and
+ * the message shapes Discord and Slack require for those. The same event, said in whichever way the
+ * receiver understands.
  *
  * @param preset The shape this subscriber expects.
  * @param payload The event being delivered.

@@ -37,7 +37,9 @@ const toBase64Url = (buffer: ArrayBuffer | null): string => {
 };
 
 /**
- * Whether this browser can be woken at all.
+ * Whether this browser can be woken at all, which needs a service worker, the push machinery and a
+ * secure context. Asked before offering push, since a switch that cannot do anything is worse than
+ * no switch.
  */
 const canReceivePush = (): boolean =>
   'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -80,7 +82,8 @@ const subscribeToPush = async (publicKey: string): Promise<boolean> => {
 };
 
 /**
- * Stops this browser being woken, on both sides.
+ * Stops this browser being woken, telling both the browser and the server. Either alone leaves a
+ * subscription that one side believes in and the other does not.
  */
 const unsubscribeFromPush = async (): Promise<void> => {
   if (!canReceivePush()) {

@@ -28,7 +28,10 @@ type WebhookAttempt = {
 };
 
 /**
- * Sends one event to one subscriber, and reports how it went.
+ * Sends one event to one subscriber and reports how it went, without throwing — a subscriber being
+ * down is an ordinary thing that has to be recorded and retried rather than an error. Refuses
+ * outright to send anywhere the address checks reject, and gives up on anything too slow to answer,
+ * so that one unresponsive endpoint cannot hold a worker open.
  *
  * @param target Where to send it, and what to sign it with.
  * @param payload The event being delivered.

@@ -3,7 +3,9 @@ const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
 /**
- * How long ago something happened, in words.
+ * Says how long ago something happened in words rather than as a timestamp, since on an
+ * administration page the useful question is nearly always how long it has been rather than when
+ * exactly it was.
  *
  * @param at When it happened, or null if it never has.
  * @param now What to measure against.

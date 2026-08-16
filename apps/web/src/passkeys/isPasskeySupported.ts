@@ -10,7 +10,10 @@ const isPasskeySupported = (): boolean =>
   typeof window.PublicKeyCredential === 'function';
 
 /**
- * Explains why passkeys are unavailable, or null when they are available.
+ * Says why passkeys cannot be offered here — no support at all, or a page not served securely — so
+ * that the account page explains rather than silently omitting them.
+ *
+ * @returns The reason, or null where they are available.
  */
 const describePasskeyUnavailability = (): string | null => {
   if (typeof window === 'undefined') {

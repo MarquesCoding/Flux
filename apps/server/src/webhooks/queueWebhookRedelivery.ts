@@ -8,7 +8,9 @@ type QueueWebhookRedeliveryOptions = {
 };
 
 /**
- * Sends a delivery again, exactly as it was sent the first time.
+ * Queues a delivery to be sent again exactly as it was the first time, body and signature alike. The
+ * stored payload is replayed rather than rebuilt, since an event resent should be the same event and
+ * not what that event would look like described today.
  *
  * @param subscriptions Where subscriptions and their history are kept.
  * @param subscriptionId Who the delivery was for.

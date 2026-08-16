@@ -18,7 +18,9 @@ const PUBLIC_ROUTES: readonly PublicRoute[] = [
 ];
 
 /**
- * Whether a request may be answered without a session.
+ * Whether a request may be answered without a session — signing in, first-run setup, and the handful
+ * of things a browser asks for before anybody has signed in. Matched on both method and path, so
+ * that reading something openly does not also mean writing it.
  *
  * @param method The HTTP method, as the request reports it.
  * @param path The request path, without its query.

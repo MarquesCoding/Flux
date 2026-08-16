@@ -20,7 +20,8 @@ const TEST_CREDENTIALS = {
 };
 
 /**
- * Signs an account up and answers the cookie that keeps it signed in.
+ * Signs an account up through the real endpoints and answers with the cookie that keeps it signed in,
+ * so that a test exercises the same path a browser does rather than reaching past authentication.
  *
  * @param app The application under test.
  * @param credentials Who to sign up, when a suite needs more than one account.
@@ -39,7 +40,8 @@ const signUpForTest = async (
 };
 
 /**
- * The same application, with a session on every request it is given.
+ * Wraps an application so that every request through it carries a session, for tests about what a
+ * signed-in caller can do rather than about signing in.
  *
  * @param app The application under test.
  * @param options `store` and `isAdministrator` together promote the account, for the routes that ask for more than merely being signed in.

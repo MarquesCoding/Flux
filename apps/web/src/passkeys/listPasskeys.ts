@@ -2,7 +2,8 @@ import { PasskeyListSchema } from '@FluxContracts/schemas/Passkey';
 import type { Passkey } from '@FluxContracts/schemas/Passkey';
 
 /**
- * Lists the passkeys registered to the signed-in user.
+ * Lists the passkeys enrolled on this account, with when each was last used. A passkey nobody
+ * recognises is one worth removing, and last use is what makes that judgeable.
  */
 const listPasskeys = async (): Promise<Passkey[]> => {
   const response = await fetch('/api/auth/passkey/list-user-passkeys', {

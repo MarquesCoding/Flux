@@ -6,7 +6,8 @@ import { profileHeaders } from '@FluxWeb/profiles/currentProfile';
 const REPORT_EVERY_MILLISECONDS = 10_000;
 
 /**
- * Reads where this viewer got to in everything.
+ * Reads where this viewer got to in everything they have started, which is what fills the
+ * part-watched row and what a card's progress bar is drawn from.
  */
 const fetchWatchProgress = async (): Promise<WatchProgress[] | null> => {
   try {

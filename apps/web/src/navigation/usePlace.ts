@@ -3,7 +3,8 @@ import { readLocation, writeLocation } from './readLocation';
 import type { Place } from './readLocation';
 
 /**
- * Where the application is, kept in the address bar.
+ * Where the application is, kept in the address bar rather than in state, so that every place in Flux
+ * is somewhere the browser can go back to, reload into, or have a link sent to.
  */
 const usePlace = (): {
   place: Place;

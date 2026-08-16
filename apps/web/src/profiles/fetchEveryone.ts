@@ -5,7 +5,9 @@ import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 const TwoFactorPendingSchema = z.object({ twoFactorRedirect: z.literal(true) });
 
 /**
- * Everybody who could sign in here.
+ * Everybody who could sign in on this server, which is what the way-in screen shows before anybody
+ * has. Names and faces only — enough to be picked from, and nothing that says anything about the
+ * accounts behind them.
  */
 const fetchEveryone = async (): Promise<ViewerProfile[]> => {
   try {

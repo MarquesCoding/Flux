@@ -18,7 +18,9 @@ const readChallenge = async (response: Response): Promise<PublicKeyCredentialReq
   PasskeyAuthenticationOptionsSchema.parse(await response.json());
 
 /**
- * Signs in with a passkey.
+ * Signs in with a passkey: asks the server for a challenge, has the browser sign it with whatever
+ * credential the person chooses, and hands the result back to be checked. The password is never
+ * involved, and nothing secret leaves the device.
  */
 const authenticateWithPasskey = async (): Promise<AuthenticateOutcome> => {
   try {

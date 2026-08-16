@@ -28,7 +28,8 @@ import type { MediaDetailDialogProps } from './MediaDetailDialog.types';
 const CAST_PLACEHOLDERS = 5;
 
 /**
- * Builds the address an item's artwork is served from.
+ * Builds the address an item's artwork is served from, served by Flux rather than by the catalogue so
+ * that a library keeps working when the catalogue does not.
  *
  * @param mediaId - The item.
  * @param kind - Which artwork.

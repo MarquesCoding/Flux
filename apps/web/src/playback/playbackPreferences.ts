@@ -21,7 +21,9 @@ const DEFAULTS: PlaybackPreferences = {
 };
 
 /**
- * How this device likes to watch.
+ * How this device likes to watch: the volume, whether the clock counts down, and the rest of what
+ * survives between sessions. Held on the device rather than on the profile, since these follow the
+ * screen and the speakers rather than the person.
  */
 const readPlaybackPreferences = (): PlaybackPreferences => {
   try {

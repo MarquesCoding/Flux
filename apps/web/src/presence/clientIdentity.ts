@@ -1,7 +1,9 @@
 const STORAGE_KEY = 'flux.clientId';
 
 /**
- * Which open tab this is.
+ * Which open tab this is, made once and then kept for as long as the tab lives. Presence is per tab
+ * rather than per account, since one person with the app open on a phone and a television is two
+ * things to show and two sessions to be able to stop.
  */
 const readClientId = (): string => {
   try {

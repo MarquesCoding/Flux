@@ -208,7 +208,8 @@ const RunningScansSchema = z.object({
 type RunningScan = z.infer<typeof RunningScansSchema>['scans'][number];
 
 /**
- * What the server is working on right now.
+ * What the server is working on right now, so a page arriving mid-scan shows its progress rather than
+ * an idle library that quietly finishes later.
  */
 const fetchRunningScans = async (): Promise<RunningScan[]> => {
   const response = await fetch('/api/libraries/scans', { credentials: 'same-origin' }).catch(
@@ -263,7 +264,9 @@ const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<Cat
 };
 
 /**
- * Reads the state of the server.
+ * Reads the state of the server as a whole: whether the media service answers, what the libraries
+ * hold, how much artwork has been kept, and what it is configured with. The single request the
+ * dashboard is built from.
  */
 const fetchAdminOverview = async (): Promise<AdminOverview> => {
   const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
@@ -282,7 +285,9 @@ const fetchAdminOverview = async (): Promise<AdminOverview> => {
 };
 
 /**
- * Reads one measurement of what the media service is doing.
+ * Reads one measurement of what the machine and the media service are doing. Called repeatedly to
+ * build the graphs, which is why it is one reading rather than a history — the page keeps the
+ * history it wants and the server keeps none.
  */
 const fetchMonitor = async (): Promise<Monitor | null> => {
   const response = await fetch('/api/admin/monitor', { credentials: 'same-origin' }).catch(
@@ -343,7 +348,8 @@ const watchActiveSessions = (onSessions: (sessions: ActiveSession[]) => void): (
 };
 
 /**
- * Reads every tab that has the app open right now.
+ * Reads every tab that has the app open right now, with who has it and what they are watching. This
+ * is presence rather than history: a session appears while it is open and is gone once it is not.
  */
 const fetchActiveSessions = async (): Promise<ActiveSession[]> => {
   const response = await fetch('/api/admin/sessions', { credentials: 'same-origin' }).catch(
@@ -388,7 +394,7 @@ const pauseSession = async (clientId: string): Promise<boolean> => {
 };
 
 /**
- * Resumes a stream an operator paused.
+ * Lets a stream carry on after an operator paused it, clearing the message the viewer was shown.
  *
  * @param clientId - The session to resume.
  */
@@ -402,7 +408,9 @@ const resumeSession = async (clientId: string): Promise<boolean> => {
 };
 
 /**
- * Reads every job an admin can start on demand from the Work tab.
+ * Reads every job an administrator can start by hand, with what each is for and whether it takes a
+ * library. The Work tab is built from what the server offers rather than from a list written into
+ * the page, so a job added to the server appears without the page being changed.
  */
 const fetchJobDefinitions = async (): Promise<JobDefinition[]> => {
   const response = await fetch('/api/admin/jobs/definitions', {
@@ -467,7 +475,8 @@ const cancelJob = async (jobId: string): Promise<boolean> => {
 };
 
 /**
- * Reads what makes each job run on its own.
+ * Reads what makes each job run on its own — the triggers set against it, which may be several per
+ * job or none at all.
  */
 const fetchJobSchedules = async (): Promise<JobSchedule[]> => {
   const response = await fetch('/api/admin/jobs/schedules', { credentials: 'same-origin' }).catch(
@@ -512,7 +521,8 @@ const addJobTrigger = async (
 };
 
 /**
- * Removes one trigger from a job's schedule.
+ * Removes one trigger from a job, leaving its other triggers alone. A job with no triggers left is
+ * not removed, it simply stops running on its own.
  *
  * @param kind - Which job.
  * @param triggerId - The trigger to remove.
@@ -542,7 +552,9 @@ const StorageCountSchema = z.object({
 type StorageCount = z.infer<typeof StorageCountSchema>;
 
 /**
- * Asks both services to count their caches now.
+ * Asks the server and the media service to count what they are holding on disk. Counting walks whole
+ * directories, so it is asked for rather than measured continuously, and the answer arrives with the
+ * next reading rather than from this call.
  */
 const measureStorage = async (): Promise<StorageCount | null> => {
   const response = await fetch('/api/admin/storage/measure', { method: 'POST' }).catch(() => null);
