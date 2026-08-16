@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { LibraryService, ListItemsOptions } from './LibraryService';
+import type { Person } from '@FluxContracts/schemas/Person';
 
 /**
  * Cuts everything held about an item down to what a browser needs to draw it. Written once and used
@@ -38,6 +39,7 @@ type MemoryState = {
   media: MediaDetail[];
   series?: { id: string; title: string }[];
   starsFor?: (mediaId: string) => number | null;
+  people?: Record<number, Person>;
 };
 
 /**
@@ -199,6 +201,16 @@ const createMemoryLibraryService = (
 
   getSeries: (seriesId) =>
     Promise.resolve((state.series ?? []).find((entry) => entry.id === seriesId) ?? null),
+
+  findByPerson: (personId) =>
+    Promise.resolve(
+      state.media
+        .filter((item) => (item.metadata.cast ?? []).some((member) => member.personId === personId))
+        .map(toSummary)
+        .sort((left, right) => left.title.localeCompare(right.title)),
+    ),
+
+  readPerson: (personId) => Promise.resolve(state.people?.[personId] ?? null),
 
   listShows: (libraryId) =>
     Promise.resolve(

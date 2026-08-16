@@ -1,4 +1,5 @@
 import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient';
+import type { Person } from '@FluxContracts/schemas/Person';
 
 type MediaFacts = {
   path: string;
@@ -16,6 +17,7 @@ type MediaFacts = {
 };
 
 type CastMember = {
+  personId: number | null;
   name: string;
   role: string;
   imageUrl: string | null;
@@ -63,6 +65,7 @@ type MetadataProvider = {
   describe: (facts: MediaFacts) => Promise<Metadata | null>;
   describeSeries?: (externalId: string) => Promise<SeriesShape | null>;
   readLogoUrl?: (options: { externalId: string; isSeries: boolean }) => Promise<string | null>;
+  readPerson?: (personId: number) => Promise<Person | null>;
   search?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
 };
 

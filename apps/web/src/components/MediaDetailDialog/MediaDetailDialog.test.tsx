@@ -122,7 +122,9 @@ describe('MediaDetailDialog', () => {
 
   it('names the cast with their roles', async () => {
     detailMock.mockResolvedValue(
-      detail({ cast: [{ name: 'Amy Adams', role: 'Louise Banks', imageUrl: null }] }),
+      detail({
+        cast: [{ personId: null, name: 'Amy Adams', role: 'Louise Banks', imageUrl: null }],
+      }),
     );
     render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 

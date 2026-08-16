@@ -120,6 +120,7 @@ describe('writeLocation', () => {
       search: 'blade',
       inspecting: 'abc',
       show: null,
+      person: null,
       playing: null,
       genre: null,
       library: null,
@@ -164,5 +165,42 @@ describe('a genre kept in the address', () => {
 
   it('has no genre when the address names none', () => {
     expect(readLocation('http://flux.local/search').genre).toBeNull();
+  });
+});
+
+describe('a person in the address', () => {
+  it('reads somebody named in the address', () => {
+    expect(readLocation('https://flux.local/films?person=1245').person).toBe(1245);
+  });
+
+  it('names nobody when the address names nobody', () => {
+    expect(readLocation('https://flux.local/films').person).toBeNull();
+  });
+
+  it('names nobody for an identifier that is not one', () => {
+    expect(readLocation('https://flux.local/films?person=amy').person).toBeNull();
+    expect(readLocation('https://flux.local/films?person=0').person).toBeNull();
+    expect(readLocation('https://flux.local/films?person=-3').person).toBeNull();
+    expect(readLocation('https://flux.local/films?person=1.5').person).toBeNull();
+  });
+
+  it('writes somebody back into the address, so a person can be linked to', () => {
+    expect(writeLocation({ ...HOME, section: 'films', person: 1245 })).toBe('/films?person=1245');
+  });
+
+  it('leaves the address alone when nobody is open', () => {
+    expect(writeLocation({ ...HOME, section: 'films' })).toBe('/films');
+  });
+
+  it('carries a person alongside the item they were opened from', () => {
+    const written = writeLocation({
+      ...HOME,
+      section: 'films',
+      inspecting: 'abc',
+      person: 1245,
+    });
+
+    expect(written).toContain('item=abc');
+    expect(written).toContain('person=1245');
   });
 });

@@ -57,6 +57,7 @@ const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
  * @param onToggleKept - Told to keep it, or stop.
  * @param stars - What this viewer gave it, or null where they have not rated it.
  * @param onRate - Told what they gave it, or null to take the rating back.
+ * @param onOpenPerson - Told which performer to open from the cast, where opening one is offered.
  */
 const MediaDetailDialog = ({
   media,
@@ -72,6 +73,7 @@ const MediaDetailDialog = ({
   onToggleKept,
   stars = null,
   onRate,
+  onOpenPerson,
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -138,12 +140,7 @@ const MediaDetailDialog = ({
   const cast = metadata?.cast ?? [];
 
   return (
-    <Dialog
-      label={shown.title}
-      isOpen={media !== null}
-      onClose={onClose}
-      className="h-full w-full max-w-none rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:w-[min(60rem,94vw)] sm:rounded-3xl"
-    >
+    <Dialog label={shown.title} isOpen={media !== null} onClose={onClose} size="stage">
       <DialogContent className="p-0">
         <motion.div
           key={shown.id}
@@ -357,7 +354,10 @@ const MediaDetailDialog = ({
                   </p>
                 </>
               ) : (
-                <CastGrid members={cast} />
+                <CastGrid
+                  members={cast}
+                  {...(onOpenPerson === undefined ? {} : { onOpenPerson })}
+                />
               )}
             </section>
 

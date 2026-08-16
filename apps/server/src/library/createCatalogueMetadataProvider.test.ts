@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { CAST_SHOWN, CAST_STORED } from '@FluxContracts/schemas/Person';
 import {
   createCatalogueMetadataProvider,
   readYear,
@@ -395,11 +396,12 @@ describe('createCatalogueMetadataProvider', () => {
     expect(found).not.toBeNull();
   });
 
-  it('never names more of the cast than anyone reads', async () => {
+  it('keeps more of the cast than a film shows, so a person is not lost past the twelfth name', async () => {
     const crowded = {
       ...DETAIL,
       credits: {
-        cast: Array.from({ length: 40 }, (_, index) => ({
+        cast: Array.from({ length: 400 }, (_, index) => ({
+          id: index + 1,
           name: `Actor ${index.toString()}`,
           character: 'Someone',
           profile_path: null,
@@ -410,7 +412,34 @@ describe('createCatalogueMetadataProvider', () => {
 
     const found = await instance.describe(facts('/media/Arrival (2016).mkv'));
 
-    expect(found?.cast).toHaveLength(12);
+    expect(found?.cast).toHaveLength(CAST_STORED);
+    expect(CAST_STORED).toBeGreaterThan(CAST_SHOWN);
+  });
+
+  it('carries the catalogue’s identifier, so a person is never matched by name', async () => {
+    const named = {
+      ...DETAIL,
+      credits: {
+        cast: [{ id: 1245, name: 'Amy Adams', character: 'Louise', profile_path: null }],
+      },
+    };
+    const { instance } = provider({ '/search/movie': SEARCH, '/movie/329': named });
+
+    const found = await instance.describe(facts('/media/Arrival (2016).mkv'));
+
+    expect(found?.cast?.[0]?.personId).toBe(1245);
+  });
+
+  it('leaves a cast member the catalogue gave no identifier without one', async () => {
+    const unnamed = {
+      ...DETAIL,
+      credits: { cast: [{ name: 'Amy Adams', character: 'Louise', profile_path: null }] },
+    };
+    const { instance } = provider({ '/search/movie': SEARCH, '/movie/329': unnamed });
+
+    const found = await instance.describe(facts('/media/Arrival (2016).mkv'));
+
+    expect(found?.cast?.[0]?.personId).toBeNull();
   });
 });
 

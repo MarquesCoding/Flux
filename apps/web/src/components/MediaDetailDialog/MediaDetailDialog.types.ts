@@ -1,4 +1,5 @@
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { CastMember } from './components/CastGrid/CastGrid.types';
 
 type MediaDetailDialogProps = {
   media: MediaSummary | null;
@@ -14,6 +15,7 @@ type MediaDetailDialogProps = {
   onToggleKept?: (media: MediaSummary) => void;
   stars?: number | null;
   onRate?: (media: MediaSummary, stars: number | null) => void;
+  onOpenPerson?: (member: CastMember) => void;
 };
 
 export type { MediaDetailDialogProps };

@@ -160,12 +160,7 @@ const ShowDialog = ({
   ].sort((left, right) => left.at - right.at);
 
   return (
-    <Dialog
-      label={shown.title}
-      isOpen={show !== null}
-      onClose={onClose}
-      className="h-full w-full max-w-none rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:w-[min(60rem,94vw)] sm:rounded-3xl"
-    >
+    <Dialog label={shown.title} isOpen={show !== null} onClose={onClose} size="stage">
       <DialogContent className="p-0">
         <div ref={topRef} className="relative">
           <div className="h-[34vh] min-h-[14rem] sm:h-[22rem]">
