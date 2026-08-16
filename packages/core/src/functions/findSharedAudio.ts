@@ -30,8 +30,8 @@ const CANDIDATE_OFFSETS = 24;
 
 /**
  * Counts the bits by which two audio fingerprints differ, which is how alike two moments of sound
- * are: identical audio hashes identically, and a re-encode of the same audio differs in a handful of
- * bits rather than in half of them.
+ * are: identical audio hashes identically, and a re-encode of the same audio differs in a handful
+ * of bits rather than in half of them.
  *
  * @param left - One frame's fingerprint.
  * @param right - The frame to compare it against.
@@ -50,10 +50,10 @@ const bitsDiffering = (left: number, right: number): number => {
 };
 
 /**
- * Measures the longest unbroken stretch of near-matching frames when two recordings are laid against
- * each other at one particular offset. A short run of mismatches inside a longer agreement is
- * tolerated rather than ending the run, since real recordings differ for a moment where one has an
- * announcement or a louder transfer.
+ * Measures the longest unbroken stretch of near-matching frames when two recordings are laid
+ * against each other at one particular offset. A short run of mismatches inside a longer agreement
+ * is tolerated rather than ending the run, since real recordings differ for a moment where one has
+ * an announcement or a louder transfer.
  *
  * @param left - One recording's fingerprints, in order.
  * @param right - The other recording's fingerprints.
@@ -116,10 +116,10 @@ const longestRunAt = (
 };
 
 /**
- * Proposes which alignments are worth measuring, rather than trying every one. Frames are indexed by
- * part of their fingerprint, so offsets that put identical-looking frames on top of each other are
- * found directly — comparing every offset against every other would be the length of one recording
- * multiplied by the other.
+ * Proposes which alignments are worth measuring, rather than trying every one. Frames are indexed
+ * by part of their fingerprint, so offsets that put identical-looking frames on top of each other
+ * are found directly — comparing every offset against every other would be the length of one
+ * recording multiplied by the other.
  *
  * @param left - One recording's fingerprints, in order.
  * @param right - The other recording's fingerprints.
@@ -163,8 +163,7 @@ const proposeOffsets = (left: number[], right: number[]): number[] => {
  *
  * @param left - One recording's fingerprints, in order.
  * @param right - The other recording's fingerprints.
- * @param options - How alike frames must be, how long a stretch has to be to count, and how much of
- *   a gap may sit inside one.
+ * @param options - How alike frames must be, how long a stretch has to be to count, and how much of a gap may sit inside one.
  * @returns Where the shared stretch falls in each recording, or null where they share nothing.
  */
 const findSharedAudio = (
@@ -223,8 +222,8 @@ const findSharedAudio = (
 
 /**
  * Decides whether two ranges are describing the same stretch of a recording, allowing for the ends
- * to disagree slightly — two comparisons of the same intro rarely find its edges in exactly the same
- * frame.
+ * to disagree slightly — two comparisons of the same intro rarely find its edges in exactly the
+ * same frame.
  *
  * @param left - One range.
  * @param right - The range to compare it against.
@@ -236,10 +235,10 @@ const overlaps = (left: Range, right: Range, toleranceSeconds: number): boolean 
   Math.abs(left.endSeconds - right.endSeconds) <= toleranceSeconds;
 
 /**
- * Settles on one range from many comparisons by taking the largest group that agree with each other,
- * and averaging their ends. Comparing an episode against several others gives several answers, most
- * of them the same intro and one or two of them noise; this is what picks the consensus rather than
- * the first or the longest.
+ * Settles on one range from many comparisons by taking the largest group that agree with each
+ * other, and averaging their ends. Comparing an episode against several others gives several
+ * answers, most of them the same intro and one or two of them noise; this is what picks the
+ * consensus rather than the first or the longest.
  *
  * @param candidates - Every range the comparisons proposed.
  * @param toleranceSeconds - How far two ranges may differ and still be counted as agreeing.

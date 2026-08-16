@@ -17,6 +17,7 @@ const bilingual: MediaItem = {
   videoCodec: 'hevc',
   videoRange: 'HDR10',
   videoBitDepth: 8,
+  canCopySegments: true,
   width: 3840,
   height: 2160,
   bitrateKbps: 24000,
@@ -56,7 +57,8 @@ const anything = (): Transcoder => ({
   forgetTrickplay: () => Promise.reject(new Error('not used')),
   sweepTrickplay: () => Promise.reject(new Error('not used')),
   probe: () => Promise.reject(new Error('not used')),
-  startSession: () => Promise.resolve({ id: 'session-1', manifest: '/session-1' }),
+  startSession: () =>
+    Promise.resolve({ id: 'session-1', manifest: '/session-1', encodesVideo: false }),
   readSessionFile: () => Promise.resolve(null),
   readFile: () => Promise.resolve(null),
   fingerprint: () => Promise.reject(new Error('not used')),
@@ -73,7 +75,7 @@ const anything = (): Transcoder => ({
   capabilities: () => Promise.resolve(CAPABILITIES),
 });
 
-const harness = (defaultAudioLanguage: string | null) => {
+const harness = (defaultAudioLanguage: string | null, encodesVideo = false) => {
   const media: MediaLookup = {
     findForPlayback: (mediaId) =>
       Promise.resolve(
@@ -96,7 +98,7 @@ const harness = (defaultAudioLanguage: string | null) => {
     startSession: (spec) => {
       startedSpecs.push(spec);
 
-      return Promise.resolve({ id: 'session-1', manifest: '/session-1' });
+      return Promise.resolve({ id: 'session-1', manifest: '/session-1', encodesVideo });
     },
     readSessionFile: () => Promise.resolve(null),
     readFile: () => Promise.resolve(null),
@@ -139,6 +141,33 @@ const harness = (defaultAudioLanguage: string | null) => {
 };
 
 describe('createPlaybackService', () => {
+  it('reports an encode the media service substituted for a copy it refused', async () => {
+    const { service } = harness('en', true);
+
+    const outcome = await service.start(MEDIA_ID, capableProfile, 0);
+
+    expect(outcome).toMatchObject({
+      kind: 'started',
+      session: {
+        mode: 'Transcode',
+        plan: {
+          video: { kind: 'transcode', reason: { code: 'VideoNotSegmentable' } },
+        },
+      },
+    });
+  });
+
+  it('leaves the plan alone when the media service copied as it was asked to', async () => {
+    const { service } = harness('en');
+
+    const outcome = await service.start(MEDIA_ID, capableProfile, 0);
+
+    expect(outcome).toMatchObject({
+      kind: 'started',
+      session: { plan: { video: { kind: 'passthrough' } } },
+    });
+  });
+
   it('direct plays when no language is forced', async () => {
     const { service } = harness(null);
 
@@ -196,6 +225,7 @@ const item = (overrides: Partial<MediaItem> = {}): MediaItem => ({
   videoCodec: 'h264',
   videoRange: 'SDR',
   videoBitDepth: 8,
+  canCopySegments: true,
   width: 1920,
   height: 1080,
   bitrateKbps: 8000,
@@ -251,7 +281,8 @@ const build = (
   const transcoder: Transcoder = {
     ...anything(),
     capabilities: () => Promise.resolve(CAPABILITIES),
-    startSession: () => Promise.resolve({ id: 'session-1', manifest: 'index.m3u8' }),
+    startSession: () =>
+      Promise.resolve({ id: 'session-1', manifest: 'index.m3u8', encodesVideo: false }),
     readFrame: () => Promise.resolve(new ArrayBuffer(4)),
     requestPreview: () => Promise.resolve({ id: 'clip-1', url: '/clip', isReady: true }),
     requestTrickplay: () =>

@@ -4,8 +4,8 @@ import type { SwitchProps } from './Switch.types';
 
 /**
  * One setting that is either on or off, and takes effect the moment it is pressed rather than
- * waiting for a form to be submitted. The label is part of the control rather than beside it, so the
- * words are a press target too.
+ * waiting for a form to be submitted. The label is part of the control rather than beside it, so
+ * the words are a press target too.
  *
  * @param label - What the setting is.
  * @param isOn - Whether it is on now.

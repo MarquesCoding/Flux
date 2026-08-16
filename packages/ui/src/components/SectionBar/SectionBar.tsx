@@ -47,9 +47,9 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
   const [opened, setOpened] = useState<string | null>(null);
 
   /**
-   * Names the group a pill belongs to, which is what the travelling mark moves between — a family of
-   * sections is one destination as far as the mark is concerned, so moving within a family does not
-   * send it sliding.
+   * Names the group a pill belongs to, which is what the travelling mark moves between — a family
+   * of sections is one destination as far as the mark is concerned, so moving within a family does
+   * not send it sliding.
    *
    * @param groupIndex - Which group the pill sits in.
    * @param itemId - The pill itself, used where its group has no name.

@@ -35,8 +35,8 @@ const ICON_SIZE_CLASSES: Record<ButtonSize, string> = {
 /**
  * The one place a `<button>` is written. Everything pressable in Flux is this or composes it, which
  * is what keeps focus rings, disabled states, loading behaviour and tooltips the same everywhere
- * rather than reinvented per screen. A raw button elsewhere is lint-banned, and there is deliberately
- * no separate icon button — an icon button is this with an icon and a label.
+ * rather than reinvented per screen. A raw button elsewhere is lint-banned, and there is
+ * deliberately no separate icon button — an icon button is this with an icon and a label.
  *
  * @param children - What the button shows; optional, since a control can be its own content.
  * @param variant - How it is painted, from the headline glossy down to bare, which paints nothing.

@@ -60,6 +60,7 @@ const decideVideo = (
       | 'VideoBitrateAboveLimit'
       | 'VideoResolutionAboveLimit'
       | 'VideoRangeNotSupported'
+      | 'VideoNotSegmentable'
       | 'UserForcedTranscode',
     detail: string,
   ): VideoDecision => ({
@@ -80,6 +81,13 @@ const decideVideo = (
     return transcodeTo(
       'VideoCodecNotSupported',
       `Client does not support the ${media.videoCodec} video codec`,
+    );
+  }
+
+  if (!media.canCopySegments) {
+    return transcodeTo(
+      'VideoNotSegmentable',
+      'The source cannot be cut into segments a player can start at',
     );
   }
 

@@ -4,9 +4,9 @@ import type { TextFieldProps } from './TextField.types';
 
 /**
  * The one place a single line of text is typed. Owns the label, the description and the error
- * together, so a field is always announced with whatever explains it rather than leaving a caller to
- * remember the wiring. Every text input in Flux is this or composes it — a bare input elsewhere is
- * lint-banned.
+ * together, so a field is always announced with whatever explains it rather than leaving a caller
+ * to remember the wiring. Every text input in Flux is this or composes it — a bare input elsewhere
+ * is lint-banned.
  *
  * @param label - What is being asked for, shown unless the caller hides it.
  * @param value - What the field holds now.

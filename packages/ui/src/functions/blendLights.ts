@@ -19,9 +19,9 @@ const readColour = (colour: string): [number, number, number] | null => {
 };
 
 /**
- * Moves the light the page is lit by part of the way towards the light of whatever is on screen now,
- * so that changing what is featured warms the room rather than switching it. A light that cannot be
- * read is passed through untouched rather than being blended into grey.
+ * Moves the light the page is lit by part of the way towards the light of whatever is on screen
+ * now, so that changing what is featured warms the room rather than switching it. A light that
+ * cannot be read is passed through untouched rather than being blended into grey.
  *
  * @param from - The lights currently in force.
  * @param to - The lights being moved towards.

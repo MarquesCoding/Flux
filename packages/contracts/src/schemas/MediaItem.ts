@@ -66,6 +66,12 @@ const MediaItemSchema = z.object({
     .describe(
       'How many bits each colour sample carries. Eight where a file predates knowing. A client that plays a codec at eight bits may refuse it at ten, so this decides whether the source can be copied.',
     ),
+  canCopySegments: z
+    .boolean()
+    .default(true)
+    .describe(
+      'Whether this source can be delivered by copying it. False when its own keyframes cannot yield segments a player will take, either because a decoder cannot start at them or because avoiding those makes the segments far too long. True where a file predates knowing, which is what Flux assumed anyway.',
+    ),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   bitrateKbps: z.number().int().positive(),

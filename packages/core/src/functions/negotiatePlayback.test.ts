@@ -11,6 +11,7 @@ const media: MediaItem = {
   videoCodec: 'hevc',
   videoRange: 'HDR10',
   videoBitDepth: 8,
+  canCopySegments: true,
   width: 3840,
   height: 2160,
   bitrateKbps: 24000,
@@ -71,6 +72,15 @@ describe('negotiatePlayback', () => {
     expect(plan.video.kind).toBe('transcode');
     expect(plan.video.reason.code).toBe('VideoRangeNotSupported');
     expect(plan.audio.kind).toBe('passthrough');
+  });
+
+  it('will not copy a source whose keyframes cannot be cut into playable segments', () => {
+    const openGop = { ...media, canCopySegments: false };
+
+    const plan = negotiatePlayback(openGop, profile);
+
+    expect(plan.video.kind).toBe('transcode');
+    expect(plan.video.reason.code).toBe('VideoNotSegmentable');
   });
 
   it('will not copy ten bit video to a client that only claimed eight', () => {

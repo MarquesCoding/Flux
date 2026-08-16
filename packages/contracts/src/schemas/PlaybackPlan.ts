@@ -15,6 +15,7 @@ const ReasonCodeSchema = z.enum([
   'VideoBitrateAboveLimit',
   'VideoResolutionAboveLimit',
   'VideoRangeNotSupported',
+  'VideoNotSegmentable',
   'AudioCodecNotSupported',
   'AudioChannelsAboveLimit',
   'AudioBitrateAboveLimit',

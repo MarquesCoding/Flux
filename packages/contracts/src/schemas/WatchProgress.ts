@@ -18,8 +18,8 @@ type WatchProgress = z.infer<typeof WatchProgressSchema>;
 
 /**
  * Decides whether to offer to carry on with something, which is a different question from where it
- * got to. Something barely started was probably opened by accident, and something within the credits
- * has been watched — offering either is offering a viewer their own mistake back.
+ * got to. Something barely started was probably opened by accident, and something within the
+ * credits has been watched — offering either is offering a viewer their own mistake back.
  *
  * @param progress - Where this viewer got to, and how long the thing is.
  * @returns Whether resuming is worth suggesting.
@@ -30,9 +30,9 @@ const isWorthResuming = (progress: WatchProgress): boolean =>
   progress.positionSeconds <= progress.durationSeconds - FINISHED_WITHIN_SECONDS;
 
 /**
- * Works out how far through something a viewer is, as a fraction between nothing and everything, for
- * the bar drawn across the foot of a card. Anything with no duration reads as unwatched rather than
- * as divided by zero.
+ * Works out how far through something a viewer is, as a fraction between nothing and everything,
+ * for the bar drawn across the foot of a card. Anything with no duration reads as unwatched rather
+ * than as divided by zero.
  *
  * @param progress - Where this viewer got to, and how long the thing is.
  * @returns A fraction from zero to one.

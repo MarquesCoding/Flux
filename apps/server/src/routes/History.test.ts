@@ -37,6 +37,7 @@ const inTheLibrary: MediaDetail = {
   videoCodec: 'hevc',
   videoRange: 'SDR',
   videoBitDepth: 8,
+  canCopySegments: true,
   width: 1920,
   height: 1080,
   bitrateKbps: 12_000,

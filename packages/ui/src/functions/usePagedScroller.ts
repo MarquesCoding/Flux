@@ -15,8 +15,7 @@ type PagedScroller<Element extends HTMLElement> = {
  * its contents come to and which is showing. Measured from the element rather than calculated from
  * the item count, since what fits depends on the window rather than on the data.
  *
- * @param dependencies - What the contents depend on, so the measurement is taken again when they
- *   change.
+ * @param dependencies - What the contents depend on, so the measurement is taken again when they change.
  * @returns A ref for the track, the pages found, a way to measure again, and a way to scroll to one.
  */
 const usePagedScroller = <Element extends HTMLElement>(

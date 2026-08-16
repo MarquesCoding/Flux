@@ -45,8 +45,8 @@ const ViewerProfileListSchema = z.object({ profiles: z.array(ViewerProfileSchema
 
 /**
  * Picks the letter a profile is drawn with while it has no picture of its own — the first character
- * of the name, upper-cased. A name that is empty or only spaces falls back to a question mark rather
- * than to a blank circle nobody can aim at.
+ * of the name, upper-cased. A name that is empty or only spaces falls back to a question mark
+ * rather than to a blank circle nobody can aim at.
  *
  * @param name - The profile's name as somebody typed it.
  * @returns A single character to draw in the circle.
@@ -55,9 +55,9 @@ const profileInitial = (name: string): string => (name.trim()[0] ?? '?').toUpper
 
 /**
  * Builds the address a profile's picture is served from, carrying the profile's own last-updated
- * time as part of the query so that changing the picture changes the address. Without that a browser
- * shows the old face until its cache expires, which is long after somebody has changed it and gone
- * looking for the new one.
+ * time as part of the query so that changing the picture changes the address. Without that a
+ * browser shows the old face until its cache expires, which is long after somebody has changed it
+ * and gone looking for the new one.
  *
  * @param profile - The profile being drawn, with the time it was last changed.
  * @returns The address to load the picture from.

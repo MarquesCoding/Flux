@@ -167,9 +167,17 @@ pub fn parse_range(header: &str, length: u64) -> Option<ByteRange> {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionResponse {
     pub id: String,
     pub manifest: String,
+    /// Whether the video is being encoded, whatever the caller asked for.
+    ///
+    /// A copy is refused when the source's own keyframes cannot produce
+    /// segments a player will take. The caller decided to copy and will tell a
+    /// viewer so, and this is how it learns that what it decided is not what is
+    /// happening. See FLUX-125.
+    pub encodes_video: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -382,11 +390,44 @@ async fn capabilities(State(state): State<AppState>) -> Json<Capabilities> {
     Json(detect_capabilities(&config.ffmpeg, &config.device).await)
 }
 
+/// The segment length a probe judges copyability against.
+///
+/// The same length a session asks for, because the question is whether this
+/// source could be delivered by copying it, and that depends on what would be
+/// asked of it. See [`crate::boundaries::can_copy_segments`].
+const PROBE_SEGMENT_SECONDS: f64 = 4.0;
+
+/// Everything Flux needs to know about a file, including whether it can be
+/// copied.
+///
+/// Copyability costs a read of the whole packet index — about a second on a six
+/// gigabyte remux — so it is answered here, where the library scan asks once
+/// per file, rather than inside `probe_media`, which is called for previews and
+/// trickplay and boundaries and wants none of it.
+///
+/// A file with no video stream is not copyable or otherwise; the question does
+/// not apply and nothing is claimed.
 async fn probe(State(state): State<AppState>, Json(request): Json<ProbeRequest>) -> Response {
-    match probe_media(&state.ffprobe, Path::new(&request.path)).await {
-        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
-        Err(failure) => error(StatusCode::BAD_REQUEST, &failure.to_string()),
+    let path = Path::new(&request.path);
+
+    let Ok(mut result) = probe_media(&state.ffprobe, path).await else {
+        return error(StatusCode::BAD_REQUEST, "That file could not be probed.");
+    };
+
+    if result.video.is_some() {
+        if let Ok(keyframes) =
+            crate::keyframes::read_keyframes(&state.ffprobe, path, result.duration_seconds).await
+        {
+            let cut_seconds = crate::keyframes::cut_interval(&keyframes, PROBE_SEGMENT_SECONDS);
+
+            result.can_copy_segments = Some(crate::boundaries::can_copy_segments(
+                &keyframes,
+                cut_seconds,
+            ));
+        }
     }
+
+    (StatusCode::OK, Json(result)).into_response()
 }
 
 /// A request to start a session, and who is asking.
@@ -421,14 +462,16 @@ async fn start_session(
         return error(StatusCode::NOT_FOUND, "No such input file.");
     }
 
-    let id = match state.registry.start(spec, device_id.as_deref()).await {
-        Ok(id) => id,
+    let started = match state.registry.start(spec, device_id.as_deref()).await {
+        Ok(started) => started,
         Err(failure) => {
             eprintln!("session refused: {failure}");
 
             return error(StatusCode::INTERNAL_SERVER_ERROR, &failure.to_string());
         }
     };
+
+    let id = started.id;
 
     let Some(directory) = state.registry.touch(&id).await else {
         return error(
@@ -456,6 +499,7 @@ async fn start_session(
         Json(SessionResponse {
             manifest: format!("/sessions/{id}/{MANIFEST_NAME}"),
             id,
+            encodes_video: started.encodes_video,
         }),
     )
         .into_response()

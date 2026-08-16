@@ -2,8 +2,8 @@ import { motion, useReducedMotion } from 'motion/react';
 import type { SplashScreenProps } from './SplashScreen.types';
 
 /**
- * Holds the screen with the platform's own mark while the application works out what it is showing —
- * whether setup is done, who is signed in, and what was being watched. Its own mark rather than a
+ * Holds the screen with the platform's own mark while the application works out what it is showing
+ * — whether setup is done, who is signed in, and what was being watched. Its own mark rather than a
  * spinner, since this is the first thing anybody sees.
  *
  * @param name - What the platform is called, which may have been renamed by an operator.

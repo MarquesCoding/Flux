@@ -15,8 +15,8 @@ const toRows = (values: number[]): { at: number; value: number }[] =>
 
 /**
  * Draws one reading over time as a filled line, for figures that only mean something in motion —
- * throughput, sessions, cache size. The ceiling is given rather than taken from the data, so a chart
- * does not rescale itself every time a reading arrives and make a flat line look dramatic.
+ * throughput, sessions, cache size. The ceiling is given rather than taken from the data, so a
+ * chart does not rescale itself every time a reading arrives and make a flat line look dramatic.
  *
  * @param values - The readings, oldest first.
  * @param ceiling - The top of the scale.

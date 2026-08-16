@@ -22,8 +22,8 @@ const RADIUS_CLASSES: Record<CardRadius, string> = {
 
 /**
  * Draws the surface that everything else sits on: a raised rectangle with the padding, corner and
- * tone the platform uses everywhere. Renders as whatever element the caller needs, so a card that is
- * one big press target is still a button underneath.
+ * tone the platform uses everywhere. Renders as whatever element the caller needs, so a card that
+ * is one big press target is still a button underneath.
  *
  * @param children - What the card holds.
  * @param tone - How the surface is painted, from quiet to raised.

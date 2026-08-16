@@ -8,8 +8,8 @@ import type { RailProps } from './Rail.types';
 
 /**
  * One titled row of a library, scrolling sideways rather than wrapping, which is how a shelf is
- * read: along, not down. The title can lead somewhere when there is more than the row shows, and the
- * caller can hang a control off the right of it.
+ * read: along, not down. The title can lead somewhere when there is more than the row shows, and
+ * the caller can hang a control off the right of it.
  *
  * @param title - What the row holds.
  * @param children - The cards in it.

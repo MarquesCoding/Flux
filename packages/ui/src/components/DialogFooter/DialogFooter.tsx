@@ -2,8 +2,8 @@ import { cn } from '@FluxUI/cn';
 import type { DialogFooterProps } from './DialogFooter.types';
 
 /**
- * The foot of a dialog, holding the buttons that answer it. Pinned rather than scrolled, so the
- * way out of a dialog is always visible however long its content runs.
+ * The foot of a dialog, holding the buttons that answer it. Pinned rather than scrolled, so the way
+ * out of a dialog is always visible however long its content runs.
  *
  * @param children - The buttons answering the dialog.
  * @param className - Extra classes for the caller's own layout.

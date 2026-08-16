@@ -15,8 +15,7 @@ type CheckRoleChangeOptions = {
  * about not exceeding your own reach: a role at or above your own highest is out of bounds, and you
  * cannot grant a permission you do not hold yourself. An administrator is exempt from both.
  *
- * @param options - How senior the actor is, what they may do, the role being changed, and any
- *   permissions being granted to it.
+ * @param options - How senior the actor is, what they may do, the role being changed, and any permissions being granted to it.
  * @returns Why the change is refused, or null where it is allowed.
  */
 const checkRoleChange = ({

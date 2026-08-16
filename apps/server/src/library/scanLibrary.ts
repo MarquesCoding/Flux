@@ -20,6 +20,7 @@ type StoredItem = {
   modifiedAtMs: number;
   externalId: string | null;
   videoBitDepth: number | null;
+  canCopySegments: boolean | null;
 };
 
 type MediaRow = {
@@ -85,7 +86,8 @@ const selectChanged = (
       existing === undefined ||
       existing.sizeBytes !== file.sizeBytes ||
       existing.modifiedAtMs !== file.modifiedAtMs ||
-      existing.videoBitDepth === null
+      existing.videoBitDepth === null ||
+      existing.canCopySegments === null
     );
   });
 

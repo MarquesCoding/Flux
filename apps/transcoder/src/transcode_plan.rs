@@ -1207,6 +1207,10 @@ impl TranscodePlan {
 
         args.push("-f".into());
         args.push("hls".into());
+        args.push("-muxdelay".into());
+        args.push("0".into());
+        args.push("-muxpreload".into());
+        args.push("0".into());
         args.push("-hls_time".into());
         args.push(format!("{:.6}", self.cut_seconds));
         args.push("-hls_playlist_type".into());
@@ -2327,6 +2331,29 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
         assert!(!args
             .iter()
             .any(|argument| argument == "-hls_fmp4_init_filename"));
+    }
+
+    /// The media's clock is the film's clock.
+    ///
+    /// The mpegts muxer starts its own at 1.4 seconds by default, so every
+    /// timestamp in every segment was 1.4 seconds further on than the moment of
+    /// film it held. Harmless to play, since the engine places each segment by
+    /// the playlist regardless, and pure noise in a log or a probe. Measured:
+    /// it moves the offset from 1.483s to 0.083s and moves nothing else.
+    #[test]
+    fn starts_the_muxers_clock_where_the_film_starts() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        let at = |name: &str| args.iter().position(|argument| argument == name);
+
+        assert_eq!(
+            at("-muxdelay").map(|index| args[index + 1].clone()),
+            Some("0".to_owned())
+        );
+        assert_eq!(
+            at("-muxpreload").map(|index| args[index + 1].clone()),
+            Some("0".to_owned())
+        );
     }
 
     /// The playlist Flux serves describes the whole film, and ffmpeg's does

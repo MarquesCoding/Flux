@@ -25,9 +25,9 @@ const formatTimestamp = (totalSeconds: number): string => {
 
 /**
  * Converts a SubRip file to WebVTT, which is the same format in all but three details: the header,
- * the comma before the milliseconds, and hours that SubRip files sometimes write with one digit.
- * A byte order mark and Windows line endings are taken off on the way through, both being things
- * real files carry and browsers refuse.
+ * the comma before the milliseconds, and hours that SubRip files sometimes write with one digit. A
+ * byte order mark and Windows line endings are taken off on the way through, both being things real
+ * files carry and browsers refuse.
  *
  * @param source - The subtitle file as SubRip.
  * @returns The same subtitles as WebVTT.

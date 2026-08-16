@@ -7,8 +7,8 @@ type CatalogueReference = {
 
 /**
  * Reads whatever somebody pasted into a correction box as a reference to a catalogue entry. Accepts
- * a full address, from which the kind and the id are both taken, or a bare number, where the kind is
- * unknown and has to be asked for separately.
+ * a full address, from which the kind and the id are both taken, or a bare number, where the kind
+ * is unknown and has to be asked for separately.
  *
  * @param pasted - The address or identifier somebody pasted, with any surrounding space.
  * @returns The identifier and the kind where the paste said which, or null if it named nothing.

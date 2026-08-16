@@ -54,6 +54,7 @@ const MediaProbeSchema = z.object({
   durationSeconds: z.number(),
   bitrateKbps: z.number().int().nullable(),
   video: ProbeVideoSchema.nullable(),
+  canCopySegments: z.boolean().optional(),
   audioStreams: z.array(ProbeAudioSchema),
   chapters: z
     .array(
@@ -70,6 +71,7 @@ const MediaProbeSchema = z.object({
 const SessionResponseSchema = z.object({
   id: z.string().min(1),
   manifest: z.string().min(1),
+  encodesVideo: z.boolean().default(false),
 });
 
 const CapabilitiesSchema = z.object({

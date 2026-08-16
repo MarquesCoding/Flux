@@ -1,8 +1,8 @@
 const TIMING = /^((?:\d+:)?\d{1,2}:\d{2}\.\d{1,3})\s+-->\s+((?:\d+:)?\d{1,2}:\d{2}\.\d{1,3})(.*)$/;
 
 /**
- * Reads a WebVTT timestamp as a number of seconds, accepting both the `hh:mm:ss.mmm` and `mm:ss.mmm`
- * forms the format allows by folding each part in from the left.
+ * Reads a WebVTT timestamp as a number of seconds, accepting both the `hh:mm:ss.mmm` and
+ * `mm:ss.mmm` forms the format allows by folding each part in from the left.
  *
  * @param stamp - The timestamp as it appears in the file.
  * @returns The position in seconds.
@@ -33,10 +33,10 @@ const writeTimestamp = (seconds: number): string => {
 };
 
 /**
- * Moves every cue in a subtitle file so it lines up with a stream that begins partway into the film,
- * which is what a session started at a resume point delivers. Cues that would fall before the new
- * beginning are dropped along with their text, since a cue at a negative time is a cue no player
- * will show and some will choke on.
+ * Moves every cue in a subtitle file so it lines up with a stream that begins partway into the
+ * film, which is what a session started at a resume point delivers. Cues that would fall before the
+ * new beginning are dropped along with their text, since a cue at a negative time is a cue no
+ * player will show and some will choke on.
  *
  * @param content - The subtitle file as WebVTT.
  * @param seconds - How far into the film the stream begins.

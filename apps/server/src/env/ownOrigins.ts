@@ -11,8 +11,8 @@ const ownAddresses = (): string[] =>
 
 /**
  * Collects the ports Flux is already known to be read at, from the origins an operator configured,
- * so that guessing an address for this machine guesses the right port. An origin that will not parse
- * is skipped rather than failing the lot.
+ * so that guessing an address for this machine guesses the right port. An origin that will not
+ * parse is skipped rather than failing the lot.
  *
  * @param origins - The origins an operator configured.
  * @param fallback - The port to include regardless, being the one Flux is listening on.

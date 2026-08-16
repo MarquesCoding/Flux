@@ -10,6 +10,8 @@ import {
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
 } from './PlaybackService';
+import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
+import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
 import type { PlaybackService } from './PlaybackService';
 import type { Transcoder, TranscoderCapabilities } from '@FluxServer/transcoder/TranscoderClient';
 
@@ -25,6 +27,32 @@ const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub']);
 /**
  * The audio stream a raw file serve would carry, with no say from Flux.
  */
+/**
+ * The plan as it was actually carried out.
+ */
+const asDelivered = (plan: PlaybackPlan, item: MediaItem, encodesVideo: boolean): PlaybackPlan => {
+  if (!encodesVideo || plan.video.kind !== 'passthrough') {
+    return plan;
+  }
+
+  return {
+    ...plan,
+    video: {
+      kind: 'transcode',
+      codec: 'h264',
+      range: item.videoRange,
+      maxBitrateKbps: item.bitrateKbps,
+      maxWidth: item.width,
+      maxHeight: item.height,
+      reason: {
+        code: 'VideoNotSegmentable',
+        detail:
+          'The source cannot be cut into segments a player can start at, so it is encoded instead',
+      },
+    },
+  };
+};
+
 const naturalAudioStreamIndex = (item: Parameters<typeof negotiatePlayback>[0]): number | null =>
   (item.audioStreams.find((stream) => stream.isDefault) ?? item.audioStreams[0])?.index ?? null;
 
@@ -147,6 +175,8 @@ const createPlaybackService = ({
       try {
         const session = await transcoder.startSession(outcome.spec, deviceId);
 
+        const delivered = asDelivered(plan, found.item, session.encodesVideo);
+
         return {
           kind: 'started',
           session: {
@@ -155,8 +185,8 @@ const createPlaybackService = ({
               kind: 'hls',
               manifestUrl: `${sessionUrlPrefix}/${session.id}/index.m3u8`,
             },
-            mode: describePlaybackMode(plan),
-            plan,
+            mode: describePlaybackMode(delivered),
+            plan: delivered,
             warnings: outcome.warnings,
           },
         };

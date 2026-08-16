@@ -3,9 +3,9 @@ import { cn } from '@FluxUI/cn';
 import type { FilePickerProps } from './FilePicker.types';
 
 /**
- * The one place a file is chosen. Wraps the file input that browsers insist on styling their own way
- * in a control that looks like every other control here, and hands back the file itself rather than
- * an event to be unpicked. A bare file input elsewhere is lint-banned.
+ * The one place a file is chosen. Wraps the file input that browsers insist on styling their own
+ * way in a control that looks like every other control here, and hands back the file itself rather
+ * than an event to be unpicked. A bare file input elsewhere is lint-banned.
  *
  * @param label - What the file is for, read out to anybody who cannot see the control.
  * @param accept - Which kinds of file to offer, as the browser's accept list.

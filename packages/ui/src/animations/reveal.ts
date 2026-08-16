@@ -53,9 +53,10 @@ const staggerVariants: Variants = {
 };
 
 /**
- * Picks how something should arrive: rising into place, or simply fading, for somebody who has asked
- * their system for less movement. The two are kept as separate variant sets rather than one set with
- * the distance zeroed, so a reduced-motion arrival is a deliberate design rather than a broken one.
+ * Picks how something should arrive: rising into place, or simply fading, for somebody who has
+ * asked their system for less movement. The two are kept as separate variant sets rather than one
+ * set with the distance zeroed, so a reduced-motion arrival is a deliberate design rather than a
+ * broken one.
  *
  * @param prefersReducedMotion - What the system reports, which is null until it has been read.
  * @returns The variants to hand a Motion component.
@@ -65,8 +66,8 @@ const revealVariants = (prefersReducedMotion: boolean | null): Variants =>
 
 /**
  * Picks the curve something moves on. Reduced motion gets no duration at all, so the end state
- * simply is. The heavier spring is for the large things — a page, a hero — which look wrong arriving
- * as fast as a card does.
+ * simply is. The heavier spring is for the large things — a page, a hero — which look wrong
+ * arriving as fast as a card does.
  *
  * @param prefersReducedMotion - What the system reports, which is null until it has been read.
  * @param weight - Whether this is a large thing arriving or an ordinary one.
@@ -89,8 +90,8 @@ const STAGGER_CEILING = 0.42;
 
 /**
  * Works out how long the card at a given place in a row waits before arriving, so a row assembles
- * left to right rather than appearing at once. The wait stops growing past a ceiling: a row of forty
- * would otherwise still be arriving long after somebody had started reading it.
+ * left to right rather than appearing at once. The wait stops growing past a ceiling: a row of
+ * forty would otherwise still be arriving long after somebody had started reading it.
  *
  * @param index - Where the card sits in the row, counting from zero.
  * @returns How long to wait, in seconds.

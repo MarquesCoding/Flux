@@ -6,8 +6,8 @@ import type { QrCodeProps } from './QrCode.types';
 const DEFAULT_SIZE = 192;
 
 /**
- * Draws a value as a QR code, for handing something to a phone that would be miserable to type —
- * a sign-in address, a pairing code. Rendered here rather than fetched, so nothing about it leaves
+ * Draws a value as a QR code, for handing something to a phone that would be miserable to type — a
+ * sign-in address, a pairing code. Rendered here rather than fetched, so nothing about it leaves
  * the server.
  *
  * @param value - What the code should carry.

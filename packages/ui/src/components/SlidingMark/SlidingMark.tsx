@@ -10,8 +10,7 @@ const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;
  * slides reads as a single thing being moved, which is what a viewer is actually doing. Sits behind
  * its control and answers to nobody: the control keeps the press, the label and the focus ring.
  *
- * @param group - Which row this mark belongs to; one mark travels between every control naming the
- *   same group, so two rows on a page need two names.
+ * @param group - Which row this mark belongs to; one mark travels between every control naming the same group, so two rows on a page need two names.
  * @param className - The shape to take, where a row is not made of pills.
  */
 const SlidingMark = ({ group, className }: SlidingMarkProps) => {

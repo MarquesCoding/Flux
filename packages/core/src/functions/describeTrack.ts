@@ -129,9 +129,10 @@ const CHANNEL_NAMES: Record<number, string> = {
 };
 
 /**
- * Normalises whatever a file called a language into a two-letter code. Files carry two-letter codes,
- * three-letter codes, both competing three-letter standards, and sometimes the language written out
- * in full; all of them mean the same thing to a viewer and are answered with the same code here.
+ * Normalises whatever a file called a language into a two-letter code. Files carry two-letter
+ * codes, three-letter codes, both competing three-letter standards, and sometimes the language
+ * written out in full; all of them mean the same thing to a viewer and are answered with the same
+ * code here.
  *
  * @param raw - The language as the file tagged it, in any spelling, or nothing at all.
  * @returns The two-letter code, or null where the tag was absent or meant "nobody said".
@@ -192,10 +193,8 @@ type AudioTrackFacts = {
  * files are inconsistent about all of this, so a track naming nothing falls back to its position
  * rather than to the word "Unknown".
  *
- * @param track - What the file says about this track: codec, channels, language, title and whether
- *   it is Atmos.
- * @param position - Which audio track this is, counting from one — not the stream index, which
- *   means nothing to a viewer.
+ * @param track - What the file says about this track: codec, channels, language, title and whether it is Atmos.
+ * @param position - Which audio track this is, counting from one — not the stream index, which means nothing to a viewer.
  * @returns The line to show in a menu.
  */
 const describeAudioTrack = (track: AudioTrackFacts, position: number): string => {
@@ -233,8 +232,7 @@ type SelectableAudioStream = {
  * two never disagree about the same file.
  *
  * @param streams - The file's audio streams, in the order the container lists them.
- * @param preferredLanguage - The language to prefer, in any spelling, or nothing to take the file's
- *   own choice.
+ * @param preferredLanguage - The language to prefer, in any spelling, or nothing to take the file's own choice.
  * @returns The stream to play, or undefined for a file carrying no audio at all.
  */
 const selectAudioStream = <TStream extends SelectableAudioStream>(
