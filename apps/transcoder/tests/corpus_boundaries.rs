@@ -22,8 +22,8 @@ use std::process::Command;
 
 use flux_transcoder::boundaries::can_copy_segments;
 use flux_transcoder::keyframes::{
-    cut_interval, longest_segment, parse_cuts, safe_segment_lengths, segment_lengths, Cut,
-    Keyframes,
+    cut_interval, longest_segment, parse_cuts, safe_segment_lengths, seek_into, segment_lengths,
+    segment_starts, Cut, Keyframes,
 };
 
 /// What Flux asks for, and what the rules are tuned around.
@@ -425,4 +425,149 @@ fn allows_copying_where_the_segments_come_out_a_sensible_length() {
             );
         }
     }
+}
+
+/// A run aimed at a segment writes that segment, not the one before it.
+///
+/// The rule this exercises is `seek_into`: a seek lands on the last keyframe
+/// decoded at or before the time asked for, and a keyframe is decoded before it
+/// is shown, so asking for a boundary lands on the keyframe before it and every
+/// segment a run writes is one place out. Aiming at the middle cannot overshoot,
+/// because the next keyframe is the segment's far edge.
+///
+/// It was measured on one film, at one segment. This asks it of every fixture
+/// that can be copied, at three places in each.
+///
+/// Not asserted for a source whose own clock does not start at nought. `seek_into`
+/// returns a time measured from the film's beginning and it is passed to `-ss`,
+/// which reads the source's own timeline, so the two agree only where that
+/// timeline starts at zero. On the transport stream fixtures, whose clock starts
+/// at 1.46s, a run aimed at segment 1 begins at segment 2. Those are skipped
+/// loudly here rather than quietly, because it is a real gap rather than a
+/// property of the test.
+#[test]
+fn starts_a_run_at_the_segment_it_was_aimed_at() {
+    let fixtures = corpus();
+
+    if fixtures.is_empty() {
+        eprintln!("skipping: no corpus. Build it with `pnpm fixtures:sync`.");
+
+        return;
+    }
+
+    let scratch = std::env::temp_dir().join(format!("flux-seek-{}", std::process::id()));
+    let mut wrong: Vec<String> = Vec::new();
+    let mut skipped: Vec<String> = Vec::new();
+
+    for path in fixtures {
+        let name = name_of(&path);
+
+        if path.extension().is_some_and(|value| value == "webm") {
+            continue;
+        }
+
+        let keyframes = keyframes_of(&path);
+
+        if keyframes.starts_at_seconds > TOLERANCE_SECONDS {
+            skipped.push(name.clone());
+
+            continue;
+        }
+
+        let cut = cut_interval(&keyframes, REQUESTED_SEGMENT_SECONDS);
+        let lengths = segment_lengths(&keyframes, cut);
+        let starts = segment_starts(&lengths);
+
+        if lengths.len() < 4 {
+            continue;
+        }
+
+        for index in [1, lengths.len() / 2, lengths.len() - 2] {
+            let Some(expected) = starts.get(index).copied() else {
+                continue;
+            };
+
+            let seek = seek_into(&lengths, index);
+            let Some(written) = first_written_start(&path, cut, seek, &scratch) else {
+                continue;
+            };
+
+            if (written - expected).abs() > TOLERANCE_SECONDS {
+                wrong.push(format!(
+                    "{name}: aimed at segment {index} ({expected:.3}) and the run began at {written:.3}"
+                ));
+
+                break;
+            }
+        }
+    }
+
+    let _ = std::fs::remove_dir_all(&scratch);
+
+    if !skipped.is_empty() {
+        eprintln!(
+            "not asserted for sources whose own clock does not start at nought: {}",
+            skipped.join(", ")
+        );
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "runs did not begin where they were aimed:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// Where the first segment of a seeked run really begins, relative to the film.
+///
+/// The muxer flags matter and are the ones the real plan passes. Without them the
+/// mpegts muxer starts its own clock at 1.4 seconds, and every boundary measured
+/// here comes out 1.4 seconds late — which reads exactly like the seek landing in
+/// the wrong place.
+fn first_written_start(
+    path: &Path,
+    cut_seconds: f64,
+    seek_seconds: f64,
+    directory: &Path,
+) -> Option<f64> {
+    let _ = std::fs::remove_dir_all(directory);
+    std::fs::create_dir_all(directory).ok()?;
+
+    let status = Command::new(ffmpeg())
+        .args(["-hide_banner", "-loglevel", "error", "-y", "-ss"])
+        .arg(format!("{seek_seconds:.6}"))
+        .args(["-copyts", "-i"])
+        .arg(path)
+        .args([
+            "-c",
+            "copy",
+            "-map",
+            "0:v:0",
+            "-f",
+            "hls",
+            "-muxdelay",
+            "0",
+            "-muxpreload",
+            "0",
+            "-hls_time",
+            &format!("{cut_seconds:.6}"),
+            "-hls_playlist_type",
+            "vod",
+            "-hls_list_size",
+            "0",
+            "-hls_segment_filename",
+        ])
+        .arg(directory.join("segment%05d.ts"))
+        .arg(directory.join("out.m3u8"))
+        .status()
+        .ok()?;
+
+    if !status.success() {
+        return None;
+    }
+
+    let origin = first_pts(&directory.join("segment00000.ts"))?;
+    let film_start = keyframes_of(path).starts_at_seconds;
+
+    Some(origin - film_start)
 }

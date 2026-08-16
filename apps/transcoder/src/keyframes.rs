@@ -348,11 +348,49 @@ pub fn segment_starts(lengths: &[f64]) -> Vec<f64> {
     starts
 }
 
+/// Where to seek to for a run that is to begin at a segment.
+///
+/// The middle of it, not its edge. A seek lands on the last keyframe decoded
+/// at or before the time asked for, and a keyframe is decoded before it is
+/// shown, so asking for the boundary itself lands on the one before it and the
+/// run writes every segment one place out. The middle cannot overshoot: the
+/// next keyframe is the segment's far edge.
+///
+/// Nought for the first segment, which is where the film starts and needs no
+/// seek at all.
+#[must_use]
+pub fn seek_into(lengths: &[f64], index: usize) -> f64 {
+    if index == 0 {
+        return 0.0;
+    }
+
+    let start: f64 = lengths.iter().take(index).sum();
+
+    start + lengths.get(index).copied().unwrap_or(0.0) / 2.0
+}
+
 #[cfg(test)]
 mod tests {
+    /// A run is aimed inside the segment it is to start at, not at its edge.
+    ///
+    /// Measured on the Bluray remux: seeking to 2394.1, where segment 596
+    /// begins, started the run at 2383.673 — the keyframe before it, because
+    /// that is the last one decoded by the time asked for. Seeking to 2394.6
+    /// starts it at 2394.100.
+    #[test]
+    fn seeks_into_a_segment_rather_than_at_it() {
+        assert!((seek_into(&[13.055, 10.427, 7.132], 1) - 18.2685).abs() < 1e-9);
+    }
+
+    /// The film's beginning is not somewhere to seek to.
+    #[test]
+    fn does_not_seek_a_run_that_starts_at_the_beginning() {
+        assert!((seek_into(&[13.055, 10.427], 0)).abs() < f64::EPSILON);
+    }
+
     use super::{
-        cut_interval, longest_segment, parse_cuts, safe_segment_lengths, segment_lengths,
-        segment_starts, Cut, Keyframes,
+        cut_interval, longest_segment, parse_cuts, safe_segment_lengths, seek_into,
+        segment_lengths, segment_starts, Cut, Keyframes,
     };
 
     /// A stream whose clock does not start at nought.
