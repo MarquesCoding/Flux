@@ -356,6 +356,24 @@
       "sha256": "d021b3dfbfb7ad42eacdad9c3391b5268603d6f1c6bcf171e57292ff1ada06fb",
       "bytes": 241061,
       "source": "https://www2.iis.fraunhofer.de/AAC/SBRtestStereoAot29Sig1.mp4"
+    },
+    {
+      "name": "vobsub-subtitles",
+      "file": "vobsub-subtitles.mkv",
+      "tier": 1,
+      "licence": "Derived from a fetched fixture; never redistributed",
+      "sha256": "96661787a5cc305f5690036ba9a9530199e50b64c7841ead0dec8dcd57e3c242",
+      "bytes": 16070,
+      "source": "pgs-subtitles.mkv"
+    },
+    {
+      "name": "dvbsub-subtitles",
+      "file": "dvbsub-subtitles.mkv",
+      "tier": 1,
+      "licence": "Derived from a fetched fixture; never redistributed",
+      "sha256": "a7216afa06d7bd4c6b6850eaa55ce6ea7813af2e9ad3944cef72dd4cb8398680",
+      "bytes": 30788,
+      "source": "pgs-subtitles.mkv"
     }
   ]
 }

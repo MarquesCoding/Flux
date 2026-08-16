@@ -9,6 +9,8 @@ import type { Fixture, FixtureTier } from './fixtureMatrix';
 import { fixturesDirectoryHere } from './fixturesDirectory';
 import { fetchedUpTo } from './fetchedFixtures';
 import type { FetchedFixture } from './fetchedFixtures';
+import { derivedArguments, derivedUpTo } from './derivedFixtures';
+import type { DerivedFixture } from './derivedFixtures';
 
 const ManifestEntrySchema = z.object({
   name: z.string().min(1),
@@ -203,6 +205,61 @@ const fetchFixture = async (
   return { kind: 'built', entry: describe() };
 };
 
+/**
+ * Builds one fixture out of another, when the second cannot be made from nothing.
+ *
+ * Skipped rather than failed when its source is absent, because the source is fetched and a
+ * contributor who declined the download should not be told a build broke.
+ *
+ * @param fixture - What to derive.
+ * @param directory - Where the corpus lives.
+ * @param force - Whether to rebuild one already present.
+ * @returns The manifest entry, the reason it failed, or that its source was not there.
+ */
+const deriveFixture = (
+  fixture: DerivedFixture,
+  directory: string,
+  force: boolean,
+):
+  | { kind: 'built' | 'kept'; entry: ManifestEntry }
+  | { kind: 'failed'; reason: string }
+  | { kind: 'no-source' } => {
+  const source = join(directory, fixture.from);
+  const path = join(directory, fixture.file);
+
+  if (!existsSync(source)) {
+    return { kind: 'no-source' };
+  }
+
+  const describe = (): ManifestEntry => ({
+    name: fixture.name,
+    file: fixture.file,
+    tier: fixture.tier,
+    licence: fixture.licence,
+    sha256: digestOf(path),
+    bytes: statSync(path).size,
+    source: fixture.from,
+  });
+
+  if (!force && existsSync(path) && statSync(path).size > 0) {
+    return { kind: 'kept', entry: describe() };
+  }
+
+  const result = spawnSync(ffmpeg(), derivedArguments(fixture, source, path), {
+    encoding: 'utf8',
+  });
+
+  if (result.status !== 0 || !existsSync(path) || statSync(path).size === 0) {
+    if (existsSync(path)) {
+      rmSync(path);
+    }
+
+    return { kind: 'failed', reason: result.stderr.trim().split('\n').slice(-2).join('\n') };
+  }
+
+  return { kind: 'built', entry: describe() };
+};
+
 const main = async (): Promise<void> => {
   const argv = process.argv.slice(2);
   const tier = requestedTier(argv);
@@ -258,6 +315,34 @@ const main = async (): Promise<void> => {
       entries.push(outcome.entry);
       process.stdout.write(
         `  ${outcome.kind === 'built' ? '↓' : '='} ${fixture.name} (${(outcome.entry.bytes / 1024).toFixed(0)}kb) — ${fixture.covers}\n`,
+      );
+    }
+  }
+
+  const derived = derivedUpTo(tier);
+
+  if (derived.length > 0) {
+    process.stdout.write(`\nDeriving ${derived.length.toString()} fixtures from fetched ones\n`);
+
+    for (const fixture of derived) {
+      const outcome = deriveFixture(fixture, directory, force);
+
+      if (outcome.kind === 'no-source') {
+        process.stdout.write(`  · ${fixture.name} (needs ${fixture.from}, which is not here)\n`);
+
+        continue;
+      }
+
+      if (outcome.kind === 'failed') {
+        failures.push(`${fixture.name}: ${outcome.reason}`);
+        process.stdout.write(`  ✗ ${fixture.name}\n`);
+
+        continue;
+      }
+
+      entries.push(outcome.entry);
+      process.stdout.write(
+        `  ${outcome.kind === 'built' ? '→' : '='} ${fixture.name} (${(outcome.entry.bytes / 1024).toFixed(0)}kb) — ${fixture.covers}\n`,
       );
     }
   }

@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { DERIVED } from './derivedFixtures';
 import { FETCHED } from './fetchedFixtures';
 import { fixturesDirectoryHere } from './fixturesDirectory';
 
@@ -51,6 +52,36 @@ describe('the fetched corpus is what it claims', () => {
       });
     },
   );
+
+  const bitmapFormats: Record<string, string> = {
+    'pgs-subtitles.mkv': 'hdmv_pgs_subtitle',
+    'vobsub-subtitles.mkv': 'dvd_subtitle',
+    'dvbsub-subtitles.mkv': 'dvb_subtitle',
+  };
+
+  const derived = DERIVED.filter((fixture) => existsSync(join(directory, fixture.file)));
+
+  describe.each(derived.map((fixture) => ({ fixture, name: fixture.name })))(
+    '$name',
+    ({ fixture }) => {
+      it('carries the bitmap format it was derived into', () => {
+        expect(streamsOf(join(directory, fixture.file))).toContain(
+          bitmapFormats[fixture.file] ?? 'unknown',
+        );
+      });
+    },
+  );
+
+  it('covers all three bitmap subtitle formats the schema claims', () => {
+    const covered = [...FETCHED, ...DERIVED]
+      .filter((fixture) => existsSync(join(directory, fixture.file)))
+      .map((fixture) => bitmapFormats[fixture.file])
+      .filter((codec): codec is string => codec !== undefined);
+
+    expect(new Set(covered)).toEqual(
+      new Set(['hdmv_pgs_subtitle', 'dvd_subtitle', 'dvb_subtitle']),
+    );
+  });
 
   it('covers both HE-AAC signalling modes rather than one twice', () => {
     const profiles = highEfficiencyAudio.map((fixture) =>
