@@ -5,6 +5,7 @@ import type {
   MediaSummary,
 } from '@FluxContracts/schemas/Library';
 import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
+import type { Person } from '@FluxContracts/schemas/Person';
 
 type ListItemsOptions = {
   search?: string;
@@ -50,6 +51,8 @@ type LibraryService = ShowService & {
   ) => Promise<{ items: MediaSummary[]; total: number } | null>;
   listFacets: () => Promise<LibraryFacets>;
   getMedia: (id: string) => Promise<MediaDetail | null>;
+  findByPerson: (personId: number) => Promise<MediaSummary[]>;
+  readPerson: (personId: number) => Promise<Person | null>;
   scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>;
   reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   correctMatch: (

@@ -126,6 +126,8 @@ type DatabaseLibraryService = LibraryService & {
 
 const EVERY_EPISODE = 2000;
 
+const CREDITS_LIMIT = 200;
+
 /**
  * The library as Postgres holds it, and the work the job queue runs against it — scanning, probing,
  * fetching artwork, building previews. Item detail is validated on the way out with the shared
@@ -605,6 +607,50 @@ const createDatabaseLibraryService = ({
         transcoder,
         ...(onProblem === undefined ? {} : { onProblem }),
       });
+    },
+
+    findByPerson: async (personId) => {
+      const rows = await db
+        .select({
+          id: mediaItem.id,
+          libraryId: mediaItem.libraryId,
+          title: mediaItem.title,
+          year: mediaItem.year,
+          durationSeconds: mediaItem.durationSeconds,
+          width: mediaItem.width,
+          height: mediaItem.height,
+          videoCodec: mediaItem.videoCodec,
+          videoRange: mediaItem.videoRange,
+          addedAt: mediaItem.addedAt,
+          posterUrl: mediaItem.posterUrl,
+          backdropUrl: mediaItem.backdropUrl,
+          logoUrl: mediaItem.logoUrl,
+          seriesId: mediaItem.seriesId,
+          seriesTitle: mediaItem.seriesTitle,
+          seasonNumber: mediaItem.seasonNumber,
+          episodeNumber: mediaItem.episodeNumber,
+          rating: mediaItem.rating,
+          genres: mediaItem.genres,
+        })
+        .from(mediaItem)
+        .where(sql`${mediaItem.castMembers} @> ${JSON.stringify([{ personId }])}::jsonb`)
+        .orderBy(asc(mediaItem.title))
+        .limit(CREDITS_LIMIT);
+
+      return rows.map(({ posterUrl, backdropUrl, logoUrl, genres, ...row }) => ({
+        ...row,
+        addedAt: row.addedAt.toISOString(),
+        hasPoster: posterUrl !== null,
+        hasBackdrop: backdropUrl !== null,
+        hasLogo: logoUrl !== null,
+        genres: readGenres(JsonValueSchema.parse(genres ?? null)),
+      })) satisfies MediaSummary[];
+    },
+
+    readPerson: async (personId) => {
+      const asking = (providers ?? []).find((provider) => provider.readPerson !== undefined);
+
+      return (await asking?.readPerson?.(personId)) ?? null;
     },
 
     getMedia: async (id) => {

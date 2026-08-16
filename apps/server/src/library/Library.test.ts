@@ -362,7 +362,7 @@ describe('library routes', () => {
           hasPoster: false,
           hasBackdrop: false,
           hasLogo: false,
-          cast: [{ name: 'Denzel Washington', role: 'Creasy', imageUrl: null }],
+          cast: [{ personId: 5292, name: 'Denzel Washington', role: 'Creasy', imageUrl: null }],
         },
       }),
     ]);

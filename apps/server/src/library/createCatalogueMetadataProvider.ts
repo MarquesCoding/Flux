@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CAST_STORED } from '@FluxContracts/schemas/Person';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { readTitleFromPath } from './readTitleFromPath';
@@ -18,8 +19,6 @@ const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3';
 const isAccessToken = (key: string): boolean => key.split('.').length === 3 && key.startsWith('ey');
 
 const DEFAULT_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
-
-const CAST_LIMIT = 12;
 
 const RETRIES = 3;
 
@@ -43,6 +42,15 @@ const isWorthRetrying = (status: number): boolean => status === 429 || status >=
  */
 const wait = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const PersonResponseSchema = z.object({
+  id: z.number().int().positive(),
+  name: z.string(),
+  profile_path: z.string().nullish(),
+  biography: z.string().nullish(),
+  birthday: z.string().nullish(),
+  place_of_birth: z.string().nullish(),
+});
 
 const SearchResultSchema = z.object({
   id: z.number(),
@@ -116,6 +124,7 @@ const DetailResponseSchema = z.object({
       cast: z
         .array(
           z.object({
+            id: z.number().int().positive().nullish(),
             name: z.string(),
             character: z.string().optional(),
             profile_path: z.string().nullish(),
@@ -388,7 +397,8 @@ const createCatalogueMetadataProvider = ({
         isTheRightSeries = false,
       ): Promise<Metadata | null> => {
         const cast: CastMember[] =
-          detail.credits?.cast.slice(0, CAST_LIMIT).map((member) => ({
+          detail.credits?.cast.slice(0, CAST_STORED).map((member) => ({
+            personId: member.id ?? null,
             name: member.name,
             role: member.character ?? '',
             imageUrl: imageUrl(imageBaseUrl, member.profile_path, 'w185'),
@@ -523,6 +533,33 @@ const createCatalogueMetadataProvider = ({
       }
 
       return describeFrom(detail.data, exact !== undefined);
+    },
+
+    readPerson: async (personId) => {
+      const key = await readApiKey();
+
+      if (key === null || key === '') {
+        return null;
+      }
+
+      const found = PersonResponseSchema.safeParse(
+        await request(`/person/${personId.toString()}`, key, {}),
+      );
+
+      if (!found.success) {
+        return null;
+      }
+
+      const said = found.data;
+
+      return {
+        id: said.id,
+        name: said.name,
+        portraitUrl: imageUrl(imageBaseUrl, said.profile_path, 'w300'),
+        biography: said.biography === undefined || said.biography === '' ? null : said.biography,
+        bornOn: said.birthday ?? null,
+        bornIn: said.place_of_birth ?? null,
+      };
     },
 
     readLogoUrl: async ({ externalId, isSeries }) => {

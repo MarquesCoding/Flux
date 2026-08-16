@@ -346,6 +346,7 @@ const mediaItem = pgTable(
     index('media_item_library_idx').on(table.libraryId),
     index('media_item_title_idx').on(table.title),
     index('media_item_genres_idx').using('gin', table.genres),
+    index('media_item_cast_idx').using('gin', table.castMembers),
     index('media_item_series_idx').on(table.seriesTitle, table.seasonNumber),
     index('media_item_series_id_idx').on(table.seriesId, table.seasonNumber),
   ],

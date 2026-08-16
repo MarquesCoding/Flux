@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
 import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { LibraryService, ListItemsOptions } from './LibraryService';
+import type { Person } from '@FluxContracts/schemas/Person';
 
 /**
  * Cuts everything held about an item down to what a browser needs to draw it. Written once and used
@@ -36,6 +37,7 @@ const toSummary = (item: MediaDetail): MediaSummary => ({
 type MemoryState = {
   libraries: Library[];
   media: MediaDetail[];
+  people?: Record<number, Person>;
 };
 
 /**
@@ -183,6 +185,16 @@ const createMemoryLibraryService = (
   },
 
   getMedia: (id) => Promise.resolve(state.media.find((item) => item.id === id) ?? null),
+
+  findByPerson: (personId) =>
+    Promise.resolve(
+      state.media
+        .filter((item) => (item.metadata.cast ?? []).some((member) => member.personId === personId))
+        .map(toSummary)
+        .sort((left, right) => left.title.localeCompare(right.title)),
+    ),
+
+  readPerson: (personId) => Promise.resolve(state.people?.[personId] ?? null),
 
   listShows: (libraryId) =>
     Promise.resolve(
