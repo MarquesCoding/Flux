@@ -38,6 +38,12 @@ const createMediaStore = (
         externalId: mediaItem.externalId,
         videoBitDepth: mediaItem.videoBitDepth,
         canCopySegments: mediaItem.canCopySegments,
+        videoLevel: mediaItem.videoLevel,
+        videoFrameRate: mediaItem.videoFrameRate,
+        videoIsInterlaced: mediaItem.videoIsInterlaced,
+        videoRefFrames: mediaItem.videoRefFrames,
+        videoPixelAspect: mediaItem.videoPixelAspect,
+        videoRotationDegrees: mediaItem.videoRotationDegrees,
       })
       .from(mediaItem)
       .where(eq(mediaItem.libraryId, libraryId));
@@ -98,6 +104,12 @@ const createMediaStore = (
       videoRange: video.range,
       videoBitDepth: video.bitDepth ?? null,
       canCopySegments: row.probe.canCopySegments ?? null,
+      videoLevel: video.level,
+      videoFrameRate: video.frameRate,
+      videoIsInterlaced: video.isInterlaced,
+      videoRefFrames: video.refFrames,
+      videoPixelAspect: video.pixelAspect,
+      videoRotationDegrees: video.rotationDegrees,
       width: video.width,
       height: video.height,
       audioStreams: row.probe.audioStreams,

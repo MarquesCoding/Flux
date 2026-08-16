@@ -36,6 +36,8 @@ const AudioStreamSchema = z.object({
   index: z.number().int().nonnegative(),
   codec: AudioCodecSchema,
   channels: z.number().int().positive(),
+  sampleRate: z.number().int().positive().nullish(),
+  profile: z.string().nullish(),
   language: z.string().nullish(),
   title: z.string().nullish(),
   isDefault: z.boolean().default(false),
@@ -75,6 +77,22 @@ const MediaItemSchema = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   bitrateKbps: z.number().int().positive(),
+  videoLevel: z
+    .number()
+    .int()
+    .positive()
+    .nullish()
+    .describe(
+      'The codec level as the codec numbers it. H.264 calls level 5.1 fifty-one and HEVC calls level 2.1 sixty-three, so it is only comparable against a limit for the same codec.',
+    ),
+  videoFrameRate: z.number().positive().nullish(),
+  videoIsInterlaced: z.boolean().default(false),
+  videoRefFrames: z.number().int().positive().nullish(),
+  videoPixelAspect: z
+    .string()
+    .nullish()
+    .describe('The pixel shape where it is not square, as a ratio like 4/3. Absent means square.'),
+  videoRotationDegrees: z.number().int().nullish(),
   audioStreams: z.array(AudioStreamSchema).min(1),
   subtitleStreams: z.array(SubtitleStreamSchema),
 });

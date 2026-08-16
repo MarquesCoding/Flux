@@ -30,6 +30,7 @@ const FILM: MediaDetail = {
   videoRange: 'HDR10',
   videoBitDepth: 8,
   canCopySegments: true,
+  videoIsInterlaced: false,
   width: 3840,
   height: 2160,
   bitrateKbps: 24000,

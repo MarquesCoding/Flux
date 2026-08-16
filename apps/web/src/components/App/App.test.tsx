@@ -46,6 +46,7 @@ const arrivalInFull = {
   videoRange: 'HDR10',
   videoBitDepth: 10,
   canCopySegments: true,
+  videoIsInterlaced: false,
   width: 1920,
   height: 1080,
   bitrateKbps: 12000,
