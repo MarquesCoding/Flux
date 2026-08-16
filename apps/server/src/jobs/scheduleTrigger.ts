@@ -26,7 +26,11 @@ const ScheduleTriggerSchema = z.discriminatedUnion('kind', [
 type ScheduleTrigger = z.infer<typeof ScheduleTriggerSchema>;
 
 /**
- * Writes a trigger as the cron expression pg-boss schedules on.
+ * Writes a trigger as the cron expression the queue schedules on, from the shape an operator
+ * configured — every so many hours, daily at a time, weekly on a day.
+ *
+ * @param trigger - The schedule as an operator set it.
+ * @returns The cron expression, or null for a trigger that fires on an event rather than a clock.
  */
 const toCron = (trigger: ScheduleTrigger): string | null => {
   switch (trigger.kind) {

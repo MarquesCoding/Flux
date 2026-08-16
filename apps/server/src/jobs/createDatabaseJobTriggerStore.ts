@@ -6,7 +6,11 @@ import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { JobTriggerStore } from './JobTriggerStore';
 
 /**
- * Job triggers in Postgres.
+ * Keeps job triggers in Postgres, so what an operator scheduled survives a restart rather than
+ * living in the queue alone.
+ *
+ * @param db - The database to read and write.
+ * @returns The trigger store.
  */
 const createDatabaseJobTriggerStore = (db: FluxDatabase): JobTriggerStore => ({
   list: async () => {

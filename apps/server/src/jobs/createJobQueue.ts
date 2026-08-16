@@ -31,7 +31,12 @@ const PG_BOSS_STATES: Record<string, JobState> = {
 };
 
 /**
- * Starts the job queue.
+ * Starts the job queue and registers a worker for every kind of background work Flux does — scans,
+ * previews, thumbnails, artwork, webhook deliveries. Work outlives the request that asked for it and
+ * survives a restart, which is the whole reason a queue exists rather than a promise.
+ *
+ * @param options - The database to keep the queue in, and the handlers for each kind of job.
+ * @returns The queue, ready to be enqueued against.
  */
 const createJobQueue = async ({
   connectionString,
@@ -48,13 +53,24 @@ const createJobQueue = async ({
   const cancelled = new Set<string>();
 
   /**
-   * What a job is about, read from its own payload.
+   * Reads what a job is about from its own payload — which library, which item — so that progress and
+   * failures can be reported against something an operator recognises rather than against an
+   * identifier.
+   *
+   * @param kind - The kind of job.
+   * @param payload - What it was enqueued with.
+   * @returns What the job is about, or null where its payload names nothing.
    */
   const subjectOf = (payload: { [key: string]: JsonValue }): string | null =>
     typeof payload['libraryId'] === 'string' ? payload['libraryId'] : null;
 
   /**
-   * Drops a job that has not started, holding the stop flag across the gap.
+   * Cancels a job that has not started yet, and remembers that it was cancelled for long enough that a
+   * worker picking it up in the same moment stops rather than running it — pg-boss has no way to
+   * withdraw a job that is already being fetched.
+   *
+   * @param jobId - The job to drop.
+   * @returns Whether it was still droppable.
    */
   const dropQueued = async (kind: string, jobId: string): Promise<void> => {
     cancelled.add(jobId);

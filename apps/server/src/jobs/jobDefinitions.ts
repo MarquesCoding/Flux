@@ -164,7 +164,12 @@ const DEFAULT_JOB_TRIGGERS: Record<string, ScheduleTrigger[]> = {
 };
 
 /**
- * Which queue a kind's schedule actually fires on.
+ * Names the queue a kind's schedule fires on. A library-scoped job runs once per library, so its
+ * schedule cannot fire on the job's own queue — it fires on a queue of its own, whose worker fans it
+ * out across every library that exists at the time.
+ *
+ * @param kind - The kind of job being scheduled.
+ * @returns The queue its schedule should fire on.
  */
 const scheduleQueueNameFor = (kind: string): string => {
   const definition = JOB_DEFINITIONS.find((candidate) => candidate.kind === kind);

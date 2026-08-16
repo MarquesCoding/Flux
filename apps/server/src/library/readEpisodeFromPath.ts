@@ -23,7 +23,11 @@ type EpisodeNumbering = {
 };
 
 /**
- * Tidies a directory name into something readable.
+ * Tidies a directory name into something worth showing, turning separators into spaces, dropping
+ * the scene-release noise a folder name collects, and trimming what is left.
+ *
+ * @param name - The directory name as it is on disk.
+ * @returns The name as a person would write it.
  */
 const tidy = (name: string): string =>
   name
@@ -32,7 +36,11 @@ const tidy = (name: string): string =>
     .trim();
 
 /**
- * Reads the season a directory name declares.
+ * Reads the season a directory declares, accepting the several ways people write it — `Season 2`,
+ * `S02`, `Series 2` — since a shelf is arranged by whoever filled it rather than by a convention.
+ *
+ * @param name - The directory name as it is on disk.
+ * @returns The season number, or null where the directory names none.
  */
 const readSeasonDirectory = (name: string): number | null => {
   if (SPECIALS_DIRECTORY.test(name)) {
@@ -45,7 +53,13 @@ const readSeasonDirectory = (name: string): number | null => {
 };
 
 /**
- * Reads a series, season and episode out of a path.
+ * Reads which programme, season and episode a file is from its path, using the folders above it as
+ * well as its own name — a file called `s02e04.mkv` says nothing about which programme it belongs to,
+ * and the folder holding it usually does.
+ *
+ * @param path - The file's full path inside the library.
+ * @returns What could be read: the series, the season and the episode, each absent where the path
+ *   did not say.
  */
 const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
   const parts = filePath.split('/').filter((part) => part !== '');
@@ -113,7 +127,12 @@ const readEpisodeFromPath = (filePath: string): EpisodeNumbering => {
 };
 
 /**
- * Whether two files are episodes of the same season.
+ * Decides whether two files are episodes of the same season of the same programme, which is what
+ * decides whether they can be compared for a shared intro.
+ *
+ * @param left - One episode, as read from its path.
+ * @param right - The episode to compare it against.
+ * @returns Whether both name the same programme and the same season.
  */
 const isSameSeason = (left: EpisodeNumbering, right: EpisodeNumbering): boolean =>
   left.seriesTitle !== null &&

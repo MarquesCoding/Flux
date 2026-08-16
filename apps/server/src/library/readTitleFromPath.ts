@@ -90,7 +90,12 @@ const NOISE = new Set([
 ]);
 
 /**
- * Reports whether a file looks like something Flux can play.
+ * Decides whether a file is worth probing, from its extension alone. A library holds artwork,
+ * subtitles, sample clips and stray archives, and probing each of them costs a process launch for an
+ * answer already known from the name.
+ *
+ * @param path - The file's path.
+ * @returns Whether it looks like something to play.
  */
 const isMediaFile = (fileName: string): boolean => {
   const extension = fileName.split('.').pop()?.toLowerCase() ?? '';
@@ -105,7 +110,11 @@ const stripExtension = (fileName: string): string => {
 };
 
 /**
- * Finds a release year in a piece of text, bracketed or bare.
+ * Finds a release year in a piece of text, bracketed or bare, ignoring numbers that cannot be one —
+ * a resolution, a track count, a year before films existed.
+ *
+ * @param text - The filename or folder name to read.
+ * @returns The year, or null where the text names none.
  */
 const findYear = (text: string): { year: number; index: number } | null => {
   const matches = [...text.matchAll(/(?<open>[([])?\b(?<year>19\d{2}|20\d{2})\b\)?]?/g)];
@@ -119,7 +128,12 @@ const findYear = (text: string): { year: number; index: number } | null => {
 };
 
 /**
- * Reads a display title and year out of a filename.
+ * Reads a title and a year out of a filename, stripping the scene-release noise that surrounds them:
+ * resolutions, codecs, source tags, group names. This is the whole of the built-in metadata provider,
+ * and what a library falls back to when no catalogue is configured or none recognises a file.
+ *
+ * @param path - The file's path inside the library.
+ * @returns The title as it should be shown, and the year where the name gave one.
  */
 const readTitleFromPath = (filePath: string): { title: string; year: number | null } => {
   const fileName = filePath.split('/').pop() ?? filePath;

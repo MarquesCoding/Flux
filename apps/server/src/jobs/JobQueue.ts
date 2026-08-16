@@ -66,7 +66,11 @@ const DeliverWebhookJobSchema = z.object({
 const PRUNE_WEBHOOK_DELIVERIES_JOB = 'server.pruneWebhookDeliveries';
 
 /**
- * The queue a schedule for a library-scoped kind actually fires on.
+ * Names the queue a library-scoped kind's schedule fires on, which is a queue of its own rather than
+ * the job's, since one schedule has to fan out across every library.
+ *
+ * @param kind - The kind of job.
+ * @returns The name of the queue its schedule fires on.
  */
 const scheduleTriggerKind = (kind: string): string => `${kind}.scheduled`;
 

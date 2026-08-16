@@ -6,7 +6,12 @@ type LogoCandidate = {
 };
 
 /**
- * How much each kind of language is preferred, lowest first.
+ * Ranks how much each kind of logo language is wanted, so the best available is chosen rather than
+ * the first returned. A logo with no lettering at all beats one in a language nobody in the house
+ * reads.
+ *
+ * @param language - The language a catalogue tagged the logo with.
+ * @returns How much it is preferred, lower being better.
  */
 const rankLanguage = (language: string | null, wanted: string, original: string | null): number => {
   if (language === wanted) {
@@ -21,7 +26,12 @@ const rankLanguage = (language: string | null, wanted: string, original: string 
 };
 
 /**
- * Chooses the logo to draw a title with.
+ * Chooses which of a catalogue's logos to draw a title with, preferring the viewer's language, then
+ * one with no lettering, then anything. A logo is the title as its designer set it, so getting the
+ * language wrong is worse than showing plain text.
+ *
+ * @param candidates - The logos the catalogue offered, each with its language.
+ * @returns The logo to use, or null where none were offered.
  */
 const pickLogo = (
   candidates: readonly LogoCandidate[],

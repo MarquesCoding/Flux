@@ -8,7 +8,12 @@ import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider'
 const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3';
 
 /**
- * Whether a credential is the newer kind.
+ * Decides which kind of credential an operator pasted, since the catalogue takes both an older key
+ * and a newer token and they are sent in different places — one as a query parameter, one as a
+ * bearer header.
+ *
+ * @param credential - What the operator configured.
+ * @returns Whether it is the newer kind.
  */
 const isAccessToken = (key: string): boolean => key.split('.').length === 3 && key.startsWith('ey');
 
@@ -21,7 +26,12 @@ const RETRIES = 3;
 const BACKOFF_MILLISECONDS = 500;
 
 /**
- * Whether answering again is worth anything.
+ * Decides whether asking the catalogue again could produce a different answer. A rate limit or a
+ * server fault will pass; a bad key or a film that does not exist will not, and retrying those only
+ * makes a scan slower.
+ *
+ * @param status - What the catalogue answered with.
+ * @returns Whether the request is worth repeating.
  */
 const isWorthRetrying = (status: number): boolean => status === 429 || status >= 500;
 
@@ -124,7 +134,11 @@ type CreateCatalogueMetadataProviderOptions = {
 };
 
 /**
- * Reads a year out of a catalogue's date, which may be absent or empty.
+ * Reads the year out of a catalogue's release date, which is absent for anything unreleased and an
+ * empty string for plenty of entries that are.
+ *
+ * @param date - The date as the catalogue gave it.
+ * @returns The year, or null where there was none to read.
  */
 const readYear = (date: string | undefined): number | null => {
   const year = Number(date?.slice(0, 4));
@@ -133,7 +147,11 @@ const readYear = (date: string | undefined): number | null => {
 };
 
 /**
- * A title stripped to the letters and digits in it, in any script.
+ * Strips a title to the letters and digits in it, in any script, so that punctuation, spacing and
+ * case cannot make two spellings of the same title look different.
+ *
+ * @param title - The title as written.
+ * @returns The title as letters and digits alone.
  */
 const normalizeTitle = (value: string): string =>
   value
@@ -150,7 +168,11 @@ const LEAST_MEANINGFUL_DENSE = 2;
 const SEGMENTER = new Intl.Segmenter(undefined, { granularity: 'word' });
 
 /**
- * The words of a title worth comparing.
+ * Picks the words of a title worth comparing, dropping the articles and prepositions that almost
+ * every title contains — two films sharing only the word "the" share nothing.
+ *
+ * @param title - The title as written.
+ * @returns The words worth matching on.
  */
 const significantWords = (value: string): Set<string> => {
   const words = new Set<string>();
@@ -167,7 +189,12 @@ const significantWords = (value: string): Set<string> => {
 };
 
 /**
- * Whether two titles have a real word in common.
+ * Decides whether two titles share a word that means anything, which is the guard against a high
+ * similarity score between short titles that merely look alike.
+ *
+ * @param left - One title.
+ * @param right - The title to compare it against.
+ * @returns Whether they share a word worth sharing.
  */
 const shareASignificantWord = (left: string, right: string): boolean => {
   const leftWords = significantWords(left);
@@ -181,7 +208,13 @@ const shareASignificantWord = (left: string, right: string): boolean => {
 };
 
 /**
- * How alike two titles are, from nought to one.
+ * Scores how alike two titles are, from nothing to one, on the letters they have in common once
+ * both have been stripped. Used to choose between what a catalogue answered a search with, where the
+ * filename is the only thing to judge by.
+ *
+ * @param left - One title.
+ * @param right - The title to compare it against.
+ * @returns How alike they are.
  */
 const similarity = (left: string, right: string): number => {
   const pairsOf = (value: string): string[] => {
@@ -219,7 +252,14 @@ const similarity = (left: string, right: string): number => {
 const YEAR_BONUS = 0.15;
 
 /**
- * The likeliest of what a catalogue answered with.
+ * Picks the likeliest of the entries a catalogue answered a search with, scoring each on its title
+ * and its year and refusing everything below a threshold. A wrong match is worse than no match: it
+ * fills a library with confident nonsense, where no match leaves the filename showing.
+ *
+ * @param candidates - What the catalogue offered.
+ * @param title - The title read from the file.
+ * @param year - The year read from the file, where it had one.
+ * @returns The entry to use, or null where none were likely enough.
  */
 const pickBestMatch = (
   candidates: readonly SearchResult[],
@@ -247,13 +287,24 @@ const pickBestMatch = (
 };
 
 /**
- * Builds an image address at a sensible width.
+ * Builds the address of a catalogue image at a width worth fetching — the catalogue offers sizes up
+ * to originals measured in megabytes, and a poster in a grid is a few hundred pixels wide.
+ *
+ * @param path - The image path the catalogue gave.
+ * @param width - Which of the catalogue's sizes to ask for.
+ * @returns The full address, or null where the catalogue gave no image.
  */
 const imageUrl = (base: string, path: string | null | undefined, size: string): string | null =>
   path === null || path === undefined || path === '' ? null : `${base}/${size}${path}`;
 
 /**
- * Metadata from an online catalogue.
+ * Reads metadata from an online catalogue — descriptions, cast, artwork, ratings — for files whose
+ * names alone say little. Everything it answers with is chosen against what the filename said, and a
+ * catalogue that is unreachable, throttled or simply ignorant of a file leaves the filename reader's
+ * answer standing rather than failing the scan.
+ *
+ * @param options - The credential to use, which catalogue to ask, and how to report a problem.
+ * @returns The provider, ready to be asked about files.
  */
 const createCatalogueMetadataProvider = ({
   readApiKey,
@@ -318,7 +369,12 @@ const createCatalogueMetadataProvider = ({
         : fromFilename.title;
 
       /**
-       * Turns a catalogue entry into metadata.
+       * Turns a catalogue entry into the metadata Flux stores, taking only the fields it has a use for
+       * and building full addresses for the artwork.
+       *
+       * @param entry - The catalogue's own record.
+       * @param kind - Whether it is a film or a programme, which decides where the title lives.
+       * @returns The metadata to store against the file.
        */
       const describeFrom = async (
         detail: z.infer<typeof DetailResponseSchema>,
@@ -472,7 +528,14 @@ const createCatalogueMetadataProvider = ({
       const path = `/${isSeries ? 'tv' : 'movie'}/${externalId}/images`;
 
       /**
-       * Asked twice rather than once, narrow before wide.
+       * Asks the catalogue for logos twice: first in the language the library prefers, then without a
+       * language at all. One request cannot express "this language, or failing that anything", and asking
+       * wide first means taking whichever logo the catalogue happens to list first.
+       *
+       * @param id - The catalogue's identifier for the title.
+       * @param kind - Whether it is a film or a programme.
+       * @param language - The language to prefer.
+       * @returns Every logo found, the preferred language first.
        */
       const readLogos = async (query: Record<string, string>) => {
         const images = ImagesResponseSchema.safeParse(await request(path, key, query));

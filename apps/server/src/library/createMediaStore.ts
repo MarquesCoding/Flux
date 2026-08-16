@@ -9,7 +9,12 @@ import { resolveSeriesKey } from './resolveSeriesKey';
 import type { MediaStore } from './scanLibrary';
 
 /**
- * The library tables, for the scanner.
+ * The library's tables as the scanner uses them: what is stored now, what to write, what to remove,
+ * and the corrections an operator has made. Everything the scanner needs of the database and nothing
+ * else, so the scan itself can be tested against a store held in memory.
+ *
+ * @param db - The database to read and write.
+ * @returns The store, plus the operations only a real library performs.
  */
 const createMediaStore = (
   db: FluxDatabase,
@@ -204,7 +209,13 @@ const createMediaStore = (
 });
 
 /**
- * The items in a library that have not finished the given job.
+ * Finds the items in a library that a given job has not yet finished with, which is what lets
+ * previews, thumbnails and segment detection resume after a restart rather than beginning again.
+ *
+ * @param db - The database to ask.
+ * @param libraryId - The library being worked through.
+ * @param kind - The job being asked about.
+ * @returns The items still outstanding, with what each needs to be worked on.
  */
 const listOutstandingFor = async (
   db: FluxDatabase,
@@ -228,7 +239,11 @@ const listOutstandingFor = async (
 };
 
 /**
- * Records that a job has finished with one item.
+ * Records that a job has finished with one item, so a restart does not do it again.
+ *
+ * @param db - The database to write to.
+ * @param mediaItemId - The item that was finished with.
+ * @param kind - The job that finished.
  */
 const markJobComplete = async (
   db: FluxDatabase,
@@ -239,7 +254,13 @@ const markJobComplete = async (
 };
 
 /**
- * Forgets a job's completions across a whole library, putting every item back in front of it.
+ * Forgets a job's completions across a whole library, putting every item back in front of it. This
+ * is what a recipe change means — new preview settings, a different thumbnail interval — where the
+ * work was done correctly and is simply no longer what is wanted.
+ *
+ * @param db - The database to write to.
+ * @param libraryId - The library to forget across.
+ * @param kind - The job whose completions to forget.
  */
 const clearJobCompletions = async (
   db: FluxDatabase,

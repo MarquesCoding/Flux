@@ -10,7 +10,11 @@ type CreateJobScheduleServiceOptions = {
 };
 
 /**
- * What makes each job run on its own.
+ * Keeps each job kind's schedule in step with what an operator has configured: registering what
+ * should run on a clock, removing what should not, and answering what is currently set.
+ *
+ * @param options - The queue to schedule on, and the store the triggers are kept in.
+ * @returns The schedule service.
  */
 const createJobScheduleService = ({
   store,
