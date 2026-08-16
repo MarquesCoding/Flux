@@ -87,4 +87,42 @@ describe('CastGrid', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(CastGrid.displayName).toBe('CastGrid');
   });
+  it('opens a performer the catalogue gave an identifier', async () => {
+    const onOpenPerson = vi.fn();
+
+    render(
+      <CastGrid
+        members={[{ personId: 1245, name: 'Amy Adams', role: 'Louise', imageUrl: null }]}
+        onOpenPerson={onOpenPerson}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'About Amy Adams' }));
+
+    expect(onOpenPerson).toHaveBeenCalledWith(
+      expect.objectContaining({ personId: 1245, name: 'Amy Adams' }),
+    );
+  });
+
+  it('will not open a name the catalogue never matched', async () => {
+    const onOpenPerson = vi.fn();
+
+    render(
+      <CastGrid
+        members={[{ personId: null, name: 'Amy Adams', role: 'Louise', imageUrl: null }]}
+        onOpenPerson={onOpenPerson}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'About Amy Adams' }));
+
+    expect(onOpenPerson).not.toHaveBeenCalled();
+  });
+
+  it('still names everybody when there is nowhere to open them', () => {
+    render(<CastGrid members={[{ name: 'Amy Adams', role: 'Louise', imageUrl: null }]} />);
+
+    expect(screen.getByText('Amy Adams')).toBeInTheDocument();
+    expect(screen.getByText('Louise')).toBeInTheDocument();
+  });
 });

@@ -18,6 +18,7 @@ type Place = {
   search: string;
   inspecting: string | null;
   show: string | null;
+  person: number | null;
   playing: string | null;
   genre: string | null;
   library: string | null;
@@ -30,6 +31,7 @@ const HOME: Place = {
   search: '',
   inspecting: null,
   show: null,
+  person: null,
   playing: null,
   genre: null,
   library: null,
@@ -45,6 +47,24 @@ const HOME: Place = {
  * @param url - The address to read.
  * @returns Where to be: the section, what is open, and what is playing.
  */
+/**
+ * Reads a person out of the address, where somebody is named by the catalogue's own identifier
+ * rather than by name. Anything that is not a positive whole number is nobody, so a hand-edited or
+ * truncated address opens no dialog rather than one about somebody who does not exist.
+ *
+ * @param said - What the address carried, if anything.
+ * @returns The person, or null where the address named nobody.
+ */
+const readPersonId = (said: string | null): number | null => {
+  if (said === null) {
+    return null;
+  }
+
+  const read = Number(said);
+
+  return Number.isInteger(read) && read > 0 ? read : null;
+};
+
 const readLocation = (url: string): Place => {
   const parsed = URL.parse(url);
 
@@ -63,6 +83,7 @@ const readLocation = (url: string): Place => {
     search: query.get('q') ?? '',
     inspecting: first === 'media' && second !== '' ? second : query.get('item'),
     show: query.get('show'),
+    person: readPersonId(query.get('person')),
     playing: watching,
     genre: query.get('genre'),
     library: query.get('library'),
@@ -94,6 +115,10 @@ const writeLocation = (place: Place): string => {
 
   if (place.show !== null) {
     query.set('show', place.show);
+  }
+
+  if (place.person !== null) {
+    query.set('person', place.person.toString());
   }
 
   if (place.inspecting !== null) {

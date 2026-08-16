@@ -54,6 +54,7 @@ const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
  * @param backLabel - What going back is called.
  * @param isKept - Whether it is kept.
  * @param onToggleKept - Told to keep it, or stop.
+ * @param onOpenPerson - Told which performer to open from the cast, where opening one is offered.
  */
 const MediaDetailDialog = ({
   media,
@@ -67,6 +68,7 @@ const MediaDetailDialog = ({
   backLabel,
   isKept = false,
   onToggleKept,
+  onOpenPerson,
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -341,7 +343,10 @@ const MediaDetailDialog = ({
                   </p>
                 </>
               ) : (
-                <CastGrid members={cast} />
+                <CastGrid
+                  members={cast}
+                  {...(onOpenPerson === undefined ? {} : { onOpenPerson })}
+                />
               )}
             </section>
 

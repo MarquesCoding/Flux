@@ -1,4 +1,7 @@
 import { PageDots } from '@FluxUI/PageDots';
+import { Button } from '@FluxUI/Button';
+import { cn } from '@FluxUI/cn';
+import { canOpenPerson } from '@FluxContracts/schemas/Person';
 import { usePagedScroller } from '@FluxUI/usePagedScroller';
 import type { CastGridProps } from './CastGrid.types';
 
@@ -8,9 +11,14 @@ import type { CastGridProps } from './CastGrid.types';
  * dots and a count once there is more than one page of it. A performer the catalogue has no
  * photograph for is drawn as an empty frame rather than being left out.
  *
+ * A performer the catalogue gave an identifier can be opened to see what else of theirs is here.
+ * One the catalogue never matched is drawn the same but cannot be pressed — there is nothing behind
+ * a name on its own, and offering to open it would open an empty dialog.
+ *
  * @param members - The cast in billing order, each with a name, a role and an image if one is known.
+ * @param onOpenPerson - Told which performer to open, where opening one is offered at all.
  */
-const CastGrid = ({ members }: CastGridProps) => {
+const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
   const { trackRef, pages, measure, scrollTo } = usePagedScroller<HTMLUListElement>([members]);
 
   return (
@@ -42,23 +50,40 @@ const CastGrid = ({ members }: CastGridProps) => {
               key={`${member.name}-${member.role}`}
               className="flex w-[42vw] shrink-0 snap-start flex-col gap-3 sm:w-[10.625rem]"
             >
-              <span className="aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface-raised ring-1 ring-white/10">
-                {member.imageUrl === null ? null : (
-                  <img
-                    src={member.imageUrl}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                  />
+              <Button
+                variant="bare"
+                size="none"
+                label={`About ${member.name}`}
+                hasTooltip={false}
+                disabled={!canOpenPerson(member.personId) || onOpenPerson === undefined}
+                className={cn(
+                  'flex flex-col gap-3 rounded-xl text-left',
+                  canOpenPerson(member.personId) && onOpenPerson !== undefined
+                    ? 'transition-transform hover:scale-[1.03]'
+                    : 'disabled:cursor-default disabled:opacity-100',
                 )}
-              </span>
-
-              <span className="flex flex-col items-center gap-0.5 text-center">
-                <span className="text-sm font-medium leading-tight text-text">{member.name}</span>
-                <span className="font-body text-xs leading-tight text-text-muted">
-                  {member.role}
+                onClick={() => {
+                  onOpenPerson?.(member);
+                }}
+              >
+                <span className="aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface-raised ring-1 ring-white/10">
+                  {member.imageUrl === null ? null : (
+                    <img
+                      src={member.imageUrl}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                  )}
                 </span>
-              </span>
+
+                <span className="flex w-full flex-col items-center gap-0.5 text-center">
+                  <span className="text-sm font-medium leading-tight text-text">{member.name}</span>
+                  <span className="font-body text-xs leading-tight text-text-muted">
+                    {member.role}
+                  </span>
+                </span>
+              </Button>
             </li>
           ))}
         </ul>

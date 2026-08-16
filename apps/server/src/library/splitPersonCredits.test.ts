@@ -53,7 +53,7 @@ describe('splitPersonCredits', () => {
     expect(found.films).toHaveLength(0);
     expect(found.episodes).toHaveLength(1);
     expect(found.shows).toHaveLength(1);
-    expect(found.shows[0]?.title).toBe('The Bear');
+    expect(found.shows[0]?.seriesTitle).toBe('The Bear');
   });
 
   it('names a programme once however many of its episodes they were in', () => {
@@ -67,10 +67,20 @@ describe('splitPersonCredits', () => {
     expect(found.episodes).toHaveLength(3);
   });
 
+  it('stands a programme up as its earliest episode, so the card opens the programme', () => {
+    const found = splitPersonCredits([
+      episodeOf('The Bear', 3),
+      episodeOf('The Bear', 1),
+      episodeOf('The Bear', 2),
+    ]);
+
+    expect(found.shows[0]?.episodeNumber).toBe(1);
+  });
+
   it('keeps two programmes apart', () => {
     const found = splitPersonCredits([episodeOf('The Bear', 1), episodeOf('Severance', 1)]);
 
-    expect(found.shows.map((show) => show.title).sort()).toEqual(['Severance', 'The Bear']);
+    expect(found.shows.map((show) => show.seriesTitle).sort()).toEqual(['Severance', 'The Bear']);
   });
 
   it('sorts films and episodes into their own lists rather than mixing them', () => {

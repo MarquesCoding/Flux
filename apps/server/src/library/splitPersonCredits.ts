@@ -1,4 +1,4 @@
-import { groupIntoShows } from './groupIntoShows';
+import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { PersonCredits } from '@FluxContracts/schemas/Person';
 
@@ -9,7 +9,9 @@ import type { PersonCredits } from '@FluxContracts/schemas/Person';
  * derived from the episodes rather than being a separate list to keep in step.
  *
  * A programme appears once however many of its episodes they were in, which is the answer to "what
- * else of theirs is here": one entry for the thing somebody would go and watch.
+ * else of theirs is here": one entry for the thing somebody would go and watch. It is represented by
+ * its earliest episode rather than by a programme of its own, so that a card on a person's page is
+ * the same card as anywhere else and opens the programme the same way.
  *
  * @param items - Everything on this server whose cast names them.
  * @returns The films, the programmes and the episodes, each in the order they should read.
@@ -21,11 +23,21 @@ const splitPersonCredits = (items: MediaSummary[]): PersonCredits => {
 
   const films = items.filter((item) => item.seriesTitle === null || item.seriesTitle === undefined);
 
-  return {
-    films,
-    shows: groupIntoShows(episodes),
-    episodes,
-  };
+  const byProgramme = new Map<string, MediaSummary[]>();
+
+  for (const episode of episodes) {
+    const key = episode.seriesId ?? episode.seriesTitle ?? '';
+
+    byProgramme.set(key, [...(byProgramme.get(key) ?? []), episode]);
+  }
+
+  const shows = [...byProgramme.values()].flatMap((held) => {
+    const [first] = [...held].sort(inBroadcastOrder);
+
+    return first === undefined ? [] : [first];
+  });
+
+  return { films, shows, episodes };
 };
 
 export { splitPersonCredits };

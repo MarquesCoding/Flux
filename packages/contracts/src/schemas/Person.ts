@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { MediaSummarySchema } from './Library';
-import { ShowSummarySchema } from './Show';
 
 const CAST_SHOWN = 12;
 
@@ -17,7 +16,7 @@ const PersonSchema = z.object({
 
 const PersonCreditsSchema = z.object({
   films: z.array(MediaSummarySchema),
-  shows: z.array(ShowSummarySchema),
+  shows: z.array(MediaSummarySchema),
   episodes: z.array(MediaSummarySchema),
 });
 

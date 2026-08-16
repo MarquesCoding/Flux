@@ -31,6 +31,7 @@ import {
 import type { Inbox } from '@FluxWeb/notifications/fetchNotifications';
 import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer';
 import { MediaDetailDialog } from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog';
+import { PersonDialog } from '@FluxWeb/components/PersonDialog/PersonDialog';
 import { AppShell } from '@FluxWeb/components/AppShell/AppShell';
 import { SplashScreen } from '@FluxUI/SplashScreen';
 import { AdminArea } from '@FluxWeb/components/AdminArea/AdminArea';
@@ -79,6 +80,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [moodLights, setMoodLights] = useState<MoodLight[]>([]);
   const favourites = useFavourites();
   const [openShow, setOpenShow] = useState<ShowSummary | null>(null);
+  const [openRole, setOpenRole] = useState<string | null>(null);
   const [watcher, setWatcher] = useState<ViewerProfile | null>(null);
 
   useEffect(() => {
@@ -577,12 +579,38 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         onToggleKept={(media) => {
           favourites.toggle(media.id);
         }}
+        onOpenPerson={(member) => {
+          setOpenRole(member.role);
+          go({ person: member.personId ?? null });
+        }}
         onClose={() => {
           go({ inspecting: null });
         }}
         onPlay={(media, startSeconds) => {
           setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
           go({ inspecting: null, playing: media.id });
+        }}
+      />
+
+      <PersonDialog
+        personId={place.person}
+        role={openRole}
+        onClose={() => {
+          go({ person: null });
+        }}
+        onPlay={(media, startSeconds) => {
+          setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
+          go({ person: null, inspecting: null, playing: media.id });
+        }}
+        onInspect={(media) => {
+          go({ person: null, inspecting: media.id });
+        }}
+        onOpenShow={(media) => {
+          const series = media.seriesId ?? showSlug(media.seriesTitle ?? '');
+
+          if (series !== '') {
+            go({ person: null, show: series });
+          }
         }}
       />
 
