@@ -20,7 +20,12 @@ type DetectLibrarySegmentsOptions = {
 };
 
 /**
- * Sorts a library's files into the groups worth comparing.
+ * Sorts a library's files into the groups worth comparing — episodes of the same season of the same
+ * programme, which is where a shared intro would be. Comparing across programmes would be work spent
+ * to find nothing.
+ *
+ * @param items - The library's items.
+ * @returns The files grouped, one group per season.
  */
 const groupBySeason = (candidates: GroupedCandidate[]): Map<string, GroupedCandidate[]> => {
   const groups = new Map<string, GroupedCandidate[]>();
@@ -38,7 +43,13 @@ const groupBySeason = (candidates: GroupedCandidate[]): Map<string, GroupedCandi
 };
 
 /**
- * Finds and records the marked stretches of a library.
+ * Finds and records the intros, recaps and credits across a library, reading chapters where files
+ * carry them and listening to the audio where they do not. Reports progress as it goes, since
+ * fingerprinting a season is minutes of work.
+ *
+ * @param options - The library to work through, the providers to ask, where to record what is
+ *   found, and where to report progress.
+ * @returns How many items were marked.
  */
 const detectLibrarySegments = async ({
   libraryId,

@@ -266,7 +266,11 @@ type CreateTranscoderClientOptions = {
 const UNIX_PREFIX = 'unix:';
 
 /**
- * Splits a socket URL into the path to connect to and the URL to request.
+ * Splits a socket address into the socket to connect to and the URL to ask for over it, since a
+ * request over a Unix socket still needs a host and a path that mean nothing to anybody.
+ *
+ * @param url - The configured address.
+ * @returns The socket path and the URL to request, or null where it is an ordinary address.
  */
 const readSocketPath = (baseUrl: string): string | null =>
   baseUrl.startsWith(UNIX_PREFIX) ? baseUrl.slice(UNIX_PREFIX.length) : null;

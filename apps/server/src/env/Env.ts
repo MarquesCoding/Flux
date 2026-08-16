@@ -37,7 +37,11 @@ const EnvSchema = z.object({
 type Env = z.infer<typeof EnvSchema>;
 
 /**
- * Parses process environment into a validated configuration object.
+ * Reads the process environment into a checked configuration, so a server that is misconfigured
+ * fails at startup with a message naming the variable rather than at midnight with a type error.
+ *
+ * @param source - The process environment.
+ * @returns The configuration, validated.
  */
 const readEnv = (source: NodeJS.ProcessEnv): Env => EnvSchema.parse(source);
 

@@ -23,7 +23,13 @@ type RegeneratePreviewsOptions = {
 };
 
 /**
- * Renders the preview clips a library is still missing.
+ * Renders the short clips shown when a pointer rests on a card, for the items of a library that have
+ * none. Also what runs after the library's preferred audio language changes, since a preview is cut
+ * with sound.
+ *
+ * @param options - The library to work through, the transcoder that renders, the language to prefer,
+ *   and where to report progress.
+ * @returns How many clips were rendered.
  */
 const regeneratePreviews = async ({
   libraryId,

@@ -11,13 +11,20 @@ type MemoryHistoryState = {
 };
 
 /**
- * History held in memory, for tests and for a server started without a database.
+ * Viewing history held in memory, so the routes can be exercised without Postgres.
+ *
+ * @param state - Any viewings that already happened.
+ * @returns The history service.
  */
 const createMemoryHistoryService = (
   state: MemoryHistoryState = { viewings: [] },
 ): HistoryService & { state: MemoryHistoryState } => {
   /**
-   * A viewing without the profile it belongs to, which the caller already knows.
+   * Strips the profile off a viewing before it is answered with, since a caller asking for one
+   * profile's history already knows whose it is.
+   *
+   * @param viewing - The viewing as stored.
+   * @returns The viewing as a caller reads it.
    */
   const shown = (one: MemoryViewing, named = false): Viewing => ({
     id: one.id,

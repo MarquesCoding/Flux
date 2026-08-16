@@ -1,7 +1,11 @@
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';
 
 /**
- * Several sources of subtitles, presented as one.
+ * Presents several sources of subtitles as one list — the container's own tracks and the files
+ * beside it — so a viewer chooses between tracks rather than between where they came from.
+ *
+ * @param services - The sources to ask, in the order their tracks should appear.
+ * @returns One subtitle service covering all of them.
  */
 const createLayeredSubtitleService = (sources: SubtitleService[]): SubtitleService => ({
   list: async (mediaId) => {

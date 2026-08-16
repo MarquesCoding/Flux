@@ -78,7 +78,13 @@ const matchesFilters = (item: MediaDetail, options: ListItemsOptions): boolean =
 };
 
 /**
- * A library held in memory.
+ * A library held in memory, so the HTTP surface can be exercised without Postgres. Models the
+ * behaviour the routes depend on — searching, filtering, paging, missing identifiers — in step with
+ * the database version, since a test passing against different behaviour describes a server that
+ * does not exist.
+ *
+ * @param state - Any libraries and items to start with.
+ * @returns The library service, and the state behind it.
  */
 const createMemoryLibraryService = (
   state: MemoryState = { libraries: [], media: [] },

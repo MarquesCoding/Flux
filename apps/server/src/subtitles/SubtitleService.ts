@@ -15,7 +15,11 @@ type SubtitleService = {
 };
 
 /**
- * Names a track from its path.
+ * Builds the identifier for a subtitle file from its path, so that listing the tracks and later
+ * fetching one agree on what each is called without the path itself appearing in an address.
+ *
+ * @param path - The subtitle file's path.
+ * @returns The track identifier.
  */
 const trackId = (path: string): string =>
   createHash('sha256').update(path).digest('hex').slice(0, 16);

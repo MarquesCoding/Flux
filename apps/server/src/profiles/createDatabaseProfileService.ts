@@ -43,7 +43,11 @@ type ProfileRow = {
 };
 
 /**
- * Reads a stored colour, falling back rather than failing.
+ * Reads a profile's colour from what is stored, falling back to the default rather than failing —
+ * a colour written by an older version should leave a profile plain, not unreadable.
+ *
+ * @param stored - The colour column as stored.
+ * @returns The colour to draw with.
  */
 const readColour = (stored: string): ProfileColour => {
   const parsed = ProfileColourSchema.safeParse(stored);
@@ -52,7 +56,11 @@ const readColour = (stored: string): ProfileColour => {
 };
 
 /**
- * What a stored row says the profile is drawn with.
+ * Reads what a profile is drawn with — an uploaded photograph, a drawn avatar, or its initial —
+ * from the columns that hold each, checked rather than trusted.
+ *
+ * @param row - The profile row as stored.
+ * @returns What to draw.
  */
 const readAvatarChoice = (row: ProfileRow): ViewerProfile['avatar'] => {
   if (row.photoPath !== null) {
@@ -76,7 +84,11 @@ const toProfile = (row: ProfileRow): ViewerProfile => ({
 });
 
 /**
- * How a chosen avatar is written to the columns that hold it.
+ * Turns a chosen avatar into the columns that hold it, so that choosing one kind clears whatever
+ * the other kind had left behind.
+ *
+ * @param choice - What the profile should be drawn with.
+ * @returns The columns to write.
  */
 const avatarColumns = (
   avatar: ViewerProfile['avatar'] | undefined,
@@ -119,7 +131,12 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
   };
 
   /**
-   * The profile an account uses, made if it has none.
+   * Finds the profile an account watches under, creating one named after the account where it has
+   * none — every account has a profile, since watch progress and history hang off it rather than off
+   * the account.
+   *
+   * @param userId - The account being asked about.
+   * @returns The profile to use.
    */
   const ensure = async (userId: string, name: string): Promise<ViewerProfile> => {
     const existing = await listFor(userId);

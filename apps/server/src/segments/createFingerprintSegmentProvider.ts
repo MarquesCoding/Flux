@@ -19,7 +19,12 @@ type CreateFingerprintSegmentProviderOptions = {
 };
 
 /**
- * Segments found by listening to a season.
+ * Finds intros and recaps by fingerprinting the audio of several episodes of the same season and
+ * looking for the stretch they all share. Slower than reading chapters and available for every file,
+ * which is why it is what runs when a file carries no chapters.
+ *
+ * @param options - The transcoder that fingerprints audio, and how alike two stretches must be.
+ * @returns The segment provider.
  */
 const createFingerprintSegmentProvider = ({
   transcoder,

@@ -23,7 +23,11 @@ type SidecarSubtitle = {
 };
 
 /**
- * Splits a filename into its stem and extension.
+ * Splits a filename into the part before the final dot and the part after it, which is how a
+ * subtitle file beside a video is matched to it.
+ *
+ * @param name - The filename.
+ * @returns The stem and the extension, the extension lowered.
  */
 const splitName = (name: string): { stem: string; extension: string } => {
   const dot = name.lastIndexOf('.');
@@ -34,7 +38,13 @@ const splitName = (name: string): { stem: string; extension: string } => {
 };
 
 /**
- * Reads what a subtitle filename says about the track.
+ * Reads what a subtitle filename claims about its track — the language, whether it is forced,
+ * whether it transcribes more than the dialogue — from the tags people put between dots. There is no
+ * standard for this, so several spellings of each are accepted.
+ *
+ * @param stem - The filename without its extension.
+ * @param videoStem - The video's own stem, which is stripped before the tags are read.
+ * @returns The language and flags the name claimed.
  */
 const describeTags = (
   tags: string[],
@@ -67,7 +77,12 @@ const describeTags = (
 };
 
 /**
- * Names a track the way it should appear in a menu.
+ * Names a subtitle track the way it should read in a menu: the language in its own words, then what
+ * makes it different from the other track in the same language — forced, or transcribing the sound
+ * as well as the dialogue.
+ *
+ * @param tags - What the filename claimed about the track.
+ * @returns The line to show in a menu.
  */
 const describeLabel = (
   language: string | null,
@@ -83,7 +98,12 @@ const describeLabel = (
 };
 
 /**
- * Picks the subtitle files that belong to one video.
+ * Picks the subtitle files belonging to one video from the files beside it, matching on the video's
+ * own name so that a folder holding a season does not offer every episode's subtitles for each.
+ *
+ * @param videoPath - The video being played.
+ * @param candidates - The files found beside it and in any subtitle directories.
+ * @returns One track per file that belongs, named for a menu.
  */
 const findSidecarSubtitles = (
   videoName: string,

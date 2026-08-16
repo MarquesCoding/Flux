@@ -29,7 +29,13 @@ const CREDITS_BOUNDS = {
 } as const;
 
 /**
- * Whether a range is plausible for the kind of thing it claims to be.
+ * Decides whether a marked stretch is plausible for what it claims to be — an intro that runs
+ * twenty minutes, or a recap at the very end, is a detection gone wrong rather than an unusual
+ * episode, and skipping it would lose real film.
+ *
+ * @param segment - The stretch found, with what it claims to be.
+ * @param durationSeconds - How long the item is.
+ * @returns Whether it is worth recording.
  */
 const isPlausible = (
   segment: { kind: SegmentKind; startSeconds: number; endSeconds: number },

@@ -35,7 +35,13 @@ type Rebuilt = {
 };
 
 /**
- * Throws away one item's preview and sheets, so the next request makes them again.
+ * Throws away one item's preview clip and thumbnail sheets so the next request renders them again.
+ * The answer to "that one looks wrong": a reset rebuilds a whole library and a recipe change
+ * rebuilds every artefact of a kind, and neither is a reasonable response to one bad clip.
+ *
+ * @param options - Which item, the transcoder holding its artefacts, and the store recording what
+ *   has been made.
+ * @returns Whether there was a preview and sheets to throw away.
  */
 const rebuildItemArtefacts = async ({
   item,

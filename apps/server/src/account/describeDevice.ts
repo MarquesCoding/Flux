@@ -18,7 +18,12 @@ const SYSTEMS = [
 const KEPT = 40;
 
 /**
- * What to call a device, from what its browser said about itself.
+ * Names a device from what its browser said about itself, for the list of sessions an account can
+ * review and end. A user agent nobody recognises is described as an unknown device rather than
+ * printed raw, which would be a line of noise nobody can act on.
+ *
+ * @param userAgent - What the browser sent, if it sent anything.
+ * @returns The browser and system, as a person would say them.
  */
 const describeDevice = (userAgent: string | null | undefined): string => {
   const said = userAgent ?? '';

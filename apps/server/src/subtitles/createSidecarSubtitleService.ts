@@ -16,7 +16,11 @@ type CreateSidecarSubtitleServiceOptions = {
 };
 
 /**
- * Lists a directory, treating an unreadable one as empty.
+ * Lists a directory, treating one that cannot be read as empty. A subtitle folder that is missing or
+ * unreadable should cost a viewer the subtitles in it, not the film.
+ *
+ * @param directory - The directory to list.
+ * @returns Its filenames, or none where it could not be read.
  */
 const listFiles = async (directory: string): Promise<SidecarFile[]> => {
   try {
@@ -31,7 +35,12 @@ const listFiles = async (directory: string): Promise<SidecarFile[]> => {
 };
 
 /**
- * Finds the subtitle directories sitting beside a video.
+ * Finds the directories people keep subtitles in beside a video — `Subs`, `Subtitles`, and the same
+ * named after the file itself — since plenty of collections separate them rather than leaving them
+ * alongside.
+ *
+ * @param videoPath - The video being played.
+ * @returns The directories worth looking in.
  */
 const findSubtitleDirectories = async (directory: string): Promise<string[]> => {
   try {
@@ -46,7 +55,12 @@ const findSubtitleDirectories = async (directory: string): Promise<string[]> => 
 };
 
 /**
- * Subtitles read from the files beside a video.
+ * Subtitles read from the files sitting beside a video, converted to the one format a browser will
+ * take. These are the tracks somebody downloaded themselves, and are usually better than what the
+ * container holds.
+ *
+ * @param options - How to read the directory and the files in it.
+ * @returns The subtitle service.
  */
 const createSidecarSubtitleService = ({
   media,

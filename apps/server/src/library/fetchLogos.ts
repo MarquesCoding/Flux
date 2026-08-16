@@ -22,7 +22,12 @@ type FetchLogosResult = {
 };
 
 /**
- * Collects the lettering each title is written in.
+ * Fetches the logo each title is written in — the lettering as its designer set it — for the items
+ * of a library that have none yet. Runs as its own job rather than during a scan, since it is a
+ * request per title and a scan is slow enough already.
+ *
+ * @param options - The library to work through, the providers to ask, and where to report progress.
+ * @returns How many logos were found.
  */
 const fetchLogos = async ({
   libraryId,

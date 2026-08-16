@@ -86,7 +86,11 @@ const signedInApp = (
 };
 
 /**
- * Gives an account the Administrator role.
+ * Gives an account the Administrator role, for tests that need a request to be allowed to do
+ * everything without walking through the setup wizard.
+ *
+ * @param permissions - The permission service to write to.
+ * @param userId - The account to promote.
  */
 const makeAdministrator = async (
   permissions: RoleGranting | undefined,

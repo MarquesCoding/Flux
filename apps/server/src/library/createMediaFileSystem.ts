@@ -5,7 +5,13 @@ import type { MediaFileSystem, ScannedFile } from './scanLibrary';
 const MAX_DEPTH = 12;
 
 /**
- * Walks a library root.
+ * Walks a library root and everything below it, gathering the files worth considering with their
+ * sizes and modification times — the two facts a scan uses to decide what has changed. Stops at a
+ * depth, since a symlink loop would otherwise walk for ever.
+ *
+ * @param directory - Where to start.
+ * @param depth - How far down this walk already is.
+ * @returns Every file found, with what the scan needs to know about it.
  */
 const walk = async (root: string, depth: number): Promise<ScannedFile[]> => {
   if (depth > MAX_DEPTH) {

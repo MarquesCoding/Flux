@@ -22,7 +22,13 @@ type SeedOutcome = {
 const ADMINISTRATOR_ROLE_NAME = 'Administrator';
 
 /**
- * Gives an instance its default roles, and gives every existing account one.
+ * Gives an instance its default roles the first time it starts, and gives every account that already
+ * exists the one it should have. Recorded in settings once done, so an operator who deletes a role
+ * does not find it back on the next restart.
+ *
+ * @param options - The permission service, the settings recording what has been seeded, and the
+ *   accounts to give roles to.
+ * @returns Which roles were created and how many accounts were given one.
  */
 const seedDefaultRoles = async ({
   permissions,

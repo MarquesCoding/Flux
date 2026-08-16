@@ -29,7 +29,12 @@ type CreateEmbeddedSubtitleServiceOptions = {
 };
 
 /**
- * Names a track for a menu.
+ * Names an embedded subtitle track for a menu, from what the container says about it — its
+ * language, its own title, and whether it is forced or transcribes the sound.
+ *
+ * @param stream - The subtitle stream as the file declares it.
+ * @param position - Which subtitle track this is, counting from one, for a stream naming nothing.
+ * @returns The line to show in a menu.
  */
 const describeSubtitle = (stream: EmbeddedStream, position: number): string => {
   const language = describeLanguage(stream.language);
@@ -47,7 +52,11 @@ const describeSubtitle = (stream: EmbeddedStream, position: number): string => {
 };
 
 /**
- * Whether a track's own name says it transcribes more than the dialogue.
+ * Decides whether a track's own title says it transcribes more than the dialogue — the several
+ * spellings of SDH and "hearing impaired" that files carry.
+ *
+ * @param title - The track's title as the container gives it.
+ * @returns Whether it claims to transcribe the sound as well.
  */
 const marksHearingImpaired = (title: string | null | undefined): boolean => {
   const lowered = (title ?? '').toLowerCase();
@@ -56,7 +65,11 @@ const marksHearingImpaired = (title: string | null | undefined): boolean => {
 };
 
 /**
- * Subtitles read out of the container itself.
+ * Subtitles read out of the video container itself, extracted on demand and converted to the one
+ * format a browser will take. Extracting is the expensive part, so each track is cut once and kept.
+ *
+ * @param options - The library to read files from, and the transcoder that does the extracting.
+ * @returns The subtitle service.
  */
 const createEmbeddedSubtitleService = ({
   media,
@@ -76,7 +89,11 @@ const createEmbeddedSubtitleService = ({
   };
 
   /**
-   * Names a stream, so listing and reading agree on what a track is called.
+   * Builds the identifier for one embedded stream, so listing the tracks and later fetching one agree
+   * on what each is called.
+   *
+   * @param index - The stream's index inside the container.
+   * @returns The track identifier.
    */
   const idFor = (path: string, index: number): string => trackId(`${path}#${index.toString()}`);
 

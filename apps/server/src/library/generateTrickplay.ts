@@ -26,7 +26,12 @@ type GenerateTrickplayOptions = {
 };
 
 /**
- * Renders the scrubbing thumbnail sheets a library is still missing.
+ * Renders the sheets of thumbnails shown while scrubbing, for the items of a library that have none.
+ * Records each item as done as it goes, so a restart resumes rather than beginning again.
+ *
+ * @param options - The library to work through, the transcoder that renders, and where to report
+ *   progress.
+ * @returns How many items were rendered.
  */
 const generateTrickplay = async ({
   libraryId,

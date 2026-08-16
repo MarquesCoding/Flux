@@ -5,7 +5,11 @@ type CleanupSessionsOptions = {
 };
 
 /**
- * Clears out expired sign-in sessions and device-authorization codes.
+ * Deletes sign-in sessions and device authorisation codes that have expired. Neither is read once
+ * expired, so this is purely about the tables not growing for ever.
+ *
+ * @param db - The database to sweep.
+ * @returns How many of each were removed.
  */
 const cleanupSessions = async ({
   deleteExpiredSessions,

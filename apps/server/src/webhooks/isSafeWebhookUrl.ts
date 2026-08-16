@@ -7,7 +7,12 @@ const METADATA_HOSTNAMES = new Set(['metadata.google.internal', 'metadata.goog']
 const IPV4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 
 /**
- * Whether a dotted-quad is in the link-local range.
+ * Decides whether an address is in the link-local range, which on a cloud host is where the instance
+ * metadata service lives — the one address a webhook must never be pointed at, since anything that
+ * can read it can read the machine's credentials.
+ *
+ * @param address - The address as four numbers.
+ * @returns Whether it is link-local.
  */
 const isLinkLocalIpv4 = (hostname: string): boolean => {
   const match = IPV4.exec(hostname);
@@ -24,7 +29,12 @@ const isLinkLocalIpv4 = (hostname: string): boolean => {
 const LINK_LOCAL_IPV6_GROUP = 'a9fe';
 
 /**
- * Whether an IPv6 literal is link-local, including one wearing an IPv4 suffix.
+ * Decides whether an IPv6 literal is link-local, including the forms that wear an IPv4 address as a
+ * suffix and the hexadecimal spelling of the same — all of which reach the same metadata service by
+ * a different-looking route.
+ *
+ * @param address - The literal as written in the address.
+ * @returns Whether it is link-local.
  */
 const isLinkLocalIpv6 = (hostname: string): boolean => {
   const address = hostname.replace('[', '').replace(']', '').toLowerCase();

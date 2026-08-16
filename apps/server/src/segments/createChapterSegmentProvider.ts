@@ -15,7 +15,12 @@ const CHAPTER_NAMES: { kind: SegmentKind; patterns: RegExp[] }[] = [
 ];
 
 /**
- * Reads what a chapter's name says it is.
+ * Reads what a chapter's own name says it is — an intro, a recap, credits — from the words people
+ * put in chapter titles. Where a file carries chapters at all this is free and exact, which is why
+ * it is tried before listening to the audio.
+ *
+ * @param title - The chapter's title as the container gives it.
+ * @returns What kind of stretch it is, or null where the name says nothing.
  */
 const readChapterKind = (title: string | null): SegmentKind | null =>
   CHAPTER_NAMES.find((entry) => entry.patterns.some((pattern) => pattern.test(title ?? '')))

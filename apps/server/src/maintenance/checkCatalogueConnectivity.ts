@@ -13,8 +13,12 @@ type CheckCatalogueConnectivityOptions = {
 };
 
 /**
- * Verifies the configured catalogue key can actually reach the catalogue, rather than only checking
- * that a key is stored.
+ * Checks that the configured catalogue credential actually reaches the catalogue, rather than only
+ * that a key is stored — so an operator finds out when they paste the wrong one, rather than when a
+ * scan quietly files a thousand films under their filenames.
+ *
+ * @param options - The credential to try and how to reach the catalogue.
+ * @returns Whether it worked, and what went wrong when it did not.
  */
 const checkCatalogueConnectivity = async ({
   readApiKey,

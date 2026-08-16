@@ -13,7 +13,13 @@ const createMemoryWebhookStore = (): WebhookStore => {
   >();
 
   /**
-   * The delivery already filed for this event and this subscriber, if there is one.
+   * Finds the delivery already filed for one event and one subscriber, so a retry updates the attempt
+   * that exists rather than filing a second record of the same thing.
+   *
+   * @param state - The deliveries held.
+   * @param subscriptionId - Who is being delivered to.
+   * @param eventId - Which event.
+   * @returns The delivery already filed, or undefined where this is the first attempt.
    */
   const findOccurrence = (subscriptionId: string, eventId: string) =>
     [...deliveries.values()].find(
