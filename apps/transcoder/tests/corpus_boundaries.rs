@@ -438,13 +438,14 @@ fn allows_copying_where_the_segments_come_out_a_sensible_length() {
 /// It was measured on one film, at one segment. This asks it of every fixture
 /// that can be copied, at three places in each.
 ///
-/// Not asserted for a source whose own clock does not start at nought. `seek_into`
-/// returns a time measured from the film's beginning and it is passed to `-ss`,
-/// which reads the source's own timeline, so the two agree only where that
-/// timeline starts at zero. On the transport stream fixtures, whose clock starts
-/// at 1.46s, a run aimed at segment 1 begins at segment 2. Those are skipped
-/// loudly here rather than quietly, because it is a real gap rather than a
-/// property of the test.
+/// Not asserted for transport stream sources, which seek the other way. `-ss` is
+/// measured from the file's own start in every container — a fixture whose clock
+/// begins ten minutes in seeks correctly — but MP4 and Matroska round back to the
+/// keyframe before the time asked for while MPEG-TS rounds forward to the one
+/// after. Aiming at the middle of a segment therefore finds that segment in the
+/// first two and the next one along in the third, so a run aimed at segment 1
+/// begins at segment 2. Skipped loudly here rather than quietly, because it is a
+/// real gap rather than a property of the test.
 #[test]
 fn starts_a_run_at_the_segment_it_was_aimed_at() {
     let fixtures = corpus();
@@ -466,14 +467,16 @@ fn starts_a_run_at_the_segment_it_was_aimed_at() {
             continue;
         }
 
-        let keyframes = keyframes_of(&path);
-
-        if keyframes.starts_at_seconds > TOLERANCE_SECONDS {
+        if path
+            .extension()
+            .is_some_and(|value| value == "ts" || value == "m2ts")
+        {
             skipped.push(name.clone());
 
             continue;
         }
 
+        let keyframes = keyframes_of(&path);
         let cut = cut_interval(&keyframes, REQUESTED_SEGMENT_SECONDS);
         let lengths = segment_lengths(&keyframes, cut);
         let starts = segment_starts(&lengths);
