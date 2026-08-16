@@ -11,15 +11,6 @@ import { DAY_NAMES } from '@FluxWeb/admin/describeTrigger';
 import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin';
 import type { AddTriggerDialogProps } from './AddTriggerDialog.types';
 
-/**
- * The kinds of trigger as an operator picks them, which is not quite how they
- * are stored.
- *
- * "On an interval" is one choice here and two stored kinds — a step in
- * minutes and a step in hours — because an operator thinks "every 15 minutes"
- * and "every 6 hours" as the same decision with a different unit, while cron
- * needs them in different fields.
- */
 const TRIGGER_TYPES = [
   { id: 'daily', label: 'Daily' },
   { id: 'weekly', label: 'Weekly' },
@@ -37,10 +28,10 @@ const INTERVAL_UNITS = [
 type IntervalUnit = (typeof INTERVAL_UNITS)[number]['id'];
 
 /**
- * Reads an `HH:MM` field back into the numbers a trigger is stored with.
+ * Reads an `HH:MM` field back into the hours and minutes a trigger is stored as.
  *
- * Null for anything a time field can still be holding mid-edit, such as an
- * empty value or a half-typed hour.
+ * @param value - What the time field holds.
+ * @returns The hour and minute.
  */
 const readClock = (value: string): { hour: number; minute: number } | null => {
   const match = /^(\d{1,2}):(\d{2})$/.exec(value);
@@ -55,13 +46,14 @@ const readClock = (value: string): { hour: number; minute: number } | null => {
 };
 
 /**
- * Adds one trigger to a job, Jellyfin's Add Trigger dialog style: pick what
- * kind of trigger it is, then answer only what that kind needs.
+ * Adds one trigger to a job: pick what kind it is — daily, weekly, on an interval, or when the server
+ * starts — and then answer only what that kind needs, rather than being shown every field a trigger
+ * of any kind could have.
  *
- * The Add button stays disabled rather than reporting a fault, because every
- * way of getting it wrong here is a half-finished field — a blank time, an
- * interval of nothing — and a field that is not filled in yet is not an
- * error worth telling somebody about.
+ * @param isOpen - Whether the dialog is showing.
+ * @param onAdd - Called with the trigger that was described.
+ * @param onClose - Called when it is dismissed.
+ * @param isSaving - Whether a trigger is being written, which holds the dialog open and inert.
  */
 const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTriggerDialogProps) => {
   const [type, setType] = useState<TriggerType>('daily');

@@ -2,16 +2,12 @@ import { RiDownloadLine } from '@remixicon/react';
 import type { MissingRowProps } from './MissingRow.types';
 
 /**
- * An episode the series has and the library does not.
+ * An episode the catalogue says exists and this library does not have, drawn in place among the ones
+ * it does — so a gap is visible where it falls rather than being something to notice by counting.
  *
- * Drawn where it belongs in the season rather than listed as a warning
- * elsewhere, and drawn as fully as the catalogue allows: its name, its still,
- * its number. A viewer meeting a gap wants to know which episode it is, and
- * "Episode 3 is absent" answers a question nobody asked.
- *
- * What it does not have is a way to play it, because there is nothing to play.
- * The still is dimmed and unpressable, which is the only honest way to draw a
- * row for a file that is not here.
+ * @param episodeNumber - Which episode is missing.
+ * @param title - What the catalogue calls it.
+ * @param stillUrl - The catalogue's own still, where it has one.
  */
 const MissingRow = ({ episodeNumber, title, stillUrl }: MissingRowProps) => (
   <div className="flex items-center gap-3 py-3">

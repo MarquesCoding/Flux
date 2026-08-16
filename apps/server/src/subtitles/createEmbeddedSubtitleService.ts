@@ -2,27 +2,10 @@ import { describeLanguage, readLanguage } from '@FluxCore/functions/describeTrac
 import { trackId } from './SubtitleService';
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';
 
-/**
- * Marks a title puts on a track that carries more than dialogue.
- */
 const HEARING_IMPAIRED_MARKERS = ['sdh', 'cc', 'hearing', 'hard of hearing'];
 
-/**
- * Formats that carry pictures of words rather than words.
- */
-/**
- * The formats that cannot be handed to a browser as text.
- *
- * The picture ones because they are pictures, and `unknown` because that is
- * the transcoder saying it did not recognise the codec: offering it as a text
- * track means converting bytes nobody has identified and showing whatever
- * falls out.
- */
 const NOT_TEXT = new Set(['pgs', 'vobsub', 'dvbsub', 'unknown']);
 
-/**
- * One subtitle stream, as the container describes it.
- */
 type EmbeddedStream = {
   index: number;
   format: string;
@@ -31,9 +14,6 @@ type EmbeddedStream = {
   isForced: boolean;
 };
 
-/**
- * A file and what is inside it.
- */
 type EmbeddedLookup = {
   find: (mediaId: string) => Promise<{ path: string; streams: EmbeddedStream[] } | null>;
 };
@@ -49,12 +29,12 @@ type CreateEmbeddedSubtitleServiceOptions = {
 };
 
 /**
- * Names a track for a menu.
+ * Names an embedded subtitle track for a menu, from what the container says about it — its
+ * language, its own title, and whether it is forced or transcribes the sound.
  *
- * Built from whatever the container actually said, in descending order of how
- * much it tells a viewer. A file that names its tracks — "English-SRT",
- * "French-SDH" — has already done this job better than any convention could,
- * so its own name wins.
+ * @param stream - The subtitle stream as the file declares it.
+ * @param position - Which subtitle track this is, counting from one, for a stream naming nothing.
+ * @returns The line to show in a menu.
  */
 const describeSubtitle = (stream: EmbeddedStream, position: number): string => {
   const language = describeLanguage(stream.language);
@@ -72,7 +52,11 @@ const describeSubtitle = (stream: EmbeddedStream, position: number): string => {
 };
 
 /**
- * Whether a track's own name says it transcribes more than the dialogue.
+ * Decides whether a track's own title says it transcribes more than the dialogue — the several
+ * spellings of SDH and "hearing impaired" that files carry.
+ *
+ * @param title - The track's title as the container gives it.
+ * @returns Whether it claims to transcribe the sound as well.
  */
 const marksHearingImpaired = (title: string | null | undefined): boolean => {
   const lowered = (title ?? '').toLowerCase();
@@ -81,18 +65,11 @@ const marksHearingImpaired = (title: string | null | undefined): boolean => {
 };
 
 /**
- * Subtitles read out of the container itself.
+ * Subtitles read out of the video container itself, extracted on demand and converted to the one
+ * format a browser will take. Extracting is the expensive part, so each track is cut once and kept.
  *
- * This is why a file VLC offers three subtitle tracks for is not a file Flux
- * says has none: most releases carry their subtitles inside the video rather
- * than beside it. Text tracks are pulled out on demand and converted to
- * WebVTT, which costs about a second because nothing but the subtitle packets
- * is read.
- *
- * Picture based tracks — PGS, VobSub — are left out on purpose. They carry
- * images of words rather than words, so they cannot become text at all; when
- * one of those is wanted it is burned into the video, which playback
- * negotiation decides.
+ * @param options - The library to read files from, and the transcoder that does the extracting.
+ * @returns The subtitle service.
  */
 const createEmbeddedSubtitleService = ({
   media,
@@ -112,7 +89,12 @@ const createEmbeddedSubtitleService = ({
   };
 
   /**
-   * Names a stream, so listing and reading agree on what a track is called.
+   * Builds the identifier for one embedded stream, so listing the tracks and later fetching one agree
+   * on what each is called.
+   *
+   * @param path - The file the stream is in.
+   * @param index - The stream's index inside the container.
+   * @returns The track identifier.
    */
   const idFor = (path: string, index: number): string => trackId(`${path}#${index.toString()}`);
 
@@ -158,6 +140,6 @@ const createEmbeddedSubtitleService = ({
   };
 };
 
-export type { CreateEmbeddedSubtitleServiceOptions, EmbeddedLookup, EmbeddedStream };
+export type { EmbeddedStream };
 
 export { createEmbeddedSubtitleService, describeSubtitle, marksHearingImpaired };

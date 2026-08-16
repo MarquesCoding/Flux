@@ -1,14 +1,12 @@
 const WEB_DEV_PORT = '5173';
 
 /**
- * Suggests the origins an operator most likely needs to trust, given the
- * origin they reached the server on.
+ * Suggests the addresses an operator most likely needs to trust, worked out from the one they
+ * reached the server on — so setting up on a home network is a matter of confirming an address
+ * rather than knowing what one is.
  *
- * A self-hosted instance is commonly reached on several origins at once — a
- * LAN address, a Tailscale name, and a real domain. Missing one is the most
- * common cause of a login that appears to do nothing, so the wizard offers the
- * detected origin plus the development client rather than the detected origin
- * alone.
+ * @param detectedOrigin - The address the setup page was reached at.
+ * @returns The origins worth offering, most likely first.
  */
 const suggestTrustedOrigins = (detectedOrigin: string): string[] => {
   const suggestions = [detectedOrigin];
@@ -22,4 +20,4 @@ const suggestTrustedOrigins = (detectedOrigin: string): string[] => {
   return [...new Set(suggestions)];
 };
 
-export { suggestTrustedOrigins, WEB_DEV_PORT };
+export { suggestTrustedOrigins };

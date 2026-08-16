@@ -15,10 +15,11 @@ import type { ApiKey } from '@FluxContracts/schemas/ApiKey';
 import type { ApiKeyPanelProps } from './ApiKeyPanel.types';
 
 /**
- * Says when a key was last used, in words rather than as a timestamp.
+ * Says when a key was last used in words rather than as a timestamp, and says plainly when it never
+ * has been — which is the thing worth noticing in a list of keys.
  *
- * The question somebody is actually asking of this column is "does anything
- * still use this", and a date makes them work that out for themselves.
+ * @param at - When it was last used, or nothing where it never has been.
+ * @returns The phrase to show.
  */
 const lastUsed = (at: string | null): string => {
   if (at === null) {
@@ -35,16 +36,10 @@ const lastUsed = (at: string | null): string => {
 };
 
 /**
- * The keys on this account, and the making of new ones.
+ * The API keys on this account: what each may do, when it was last used, and the making of new ones.
+ * A new key is shown once and never again, since the server keeps only a hash of it.
  *
- * A key is how something that is not a browser acts as this account — a
- * script, a dashboard, an assistant. It can do what the account can do and
- * never more, so making one grants nothing that was not already held, which is
- * why anybody allowed keys at all may make their own.
- *
- * The key itself is shown once, when it is made, because it is stored hashed
- * and cannot be read back. That is stated where somebody will read it rather
- * than left to be discovered when they come back for it.
+ * @param onChanged - Told when a key was made, disabled or removed.
  */
 const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
   const [keys, setKeys] = useState<ApiKey[] | null>(null);

@@ -46,13 +46,6 @@ const CapabilitySchema = z.discriminatedUnion('kind', [
   StorageCapabilitySchema,
 ]);
 
-/**
- * The declaration a plugin ships with. Every capability the broker will grant
- * must appear here, so that the admin sees a complete permission list before
- * the plugin runs and a diff of it on update.
- *
- * See ADR-0007.
- */
 const PluginManifestSchema = z.object({
   id: z
     .string()

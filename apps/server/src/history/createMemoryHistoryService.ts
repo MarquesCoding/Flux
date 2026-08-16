@@ -7,25 +7,25 @@ type MemoryViewing = Viewing & { profileId: string };
 type MemoryHistoryState = {
   viewings: MemoryViewing[];
 
-  /**
-   * What each item is called, standing in for the join the real one does.
-   */
   titles?: Record<string, string>;
 };
 
 /**
- * History held in memory, for tests and for a server started without a
- * database.
+ * Viewing history held in memory, so the routes can be exercised without Postgres.
  *
- * Applies the same rules as the real one, because the rules live in
- * `decideViewing` rather than in either of them — which is the point of having
- * put them there.
+ * @param state - Any viewings that already happened.
+ * @returns The history service.
  */
 const createMemoryHistoryService = (
   state: MemoryHistoryState = { viewings: [] },
 ): HistoryService & { state: MemoryHistoryState } => {
   /**
-   * A viewing without the profile it belongs to, which the caller already knows.
+   * Strips the profile off a viewing before it is answered with, since a caller asking for one
+   * profile's history already knows whose it is.
+   *
+   * @param one - The viewing as stored.
+   * @param named - Whether to fill in the item's title, which only the listing needs.
+   * @returns The viewing as a caller reads it.
    */
   const shown = (one: MemoryViewing, named = false): Viewing => ({
     id: one.id,
@@ -135,7 +135,5 @@ const createMemoryHistoryService = (
     },
   };
 };
-
-export type { MemoryHistoryState };
 
 export { createMemoryHistoryService };

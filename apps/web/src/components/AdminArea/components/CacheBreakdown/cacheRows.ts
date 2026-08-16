@@ -5,41 +5,31 @@ type CacheRow = {
   label: string;
   value: string;
   detail: string;
-  /**
-   * What somebody needs told about this figure that the figure cannot say.
-   *
-   * Only where the number is genuinely surprising. A hint beside every row is
-   * a row of icons nobody reads.
-   */
   hint?: string;
 };
 
 /**
- * Says how many of something there are without saying "1 items".
+ * Counts something in words that read properly at one as well as at many, so a row says "1 clip"
+ * rather than "1 clips".
+ *
+ * @param count - How many there are.
+ * @param one - What one is called.
+ * @param many - What several are called.
+ * @returns The count and its noun.
  */
 const counted = (count: number, one: string, many: string): string =>
   count === 1 ? `1 ${one}` : `${count.toString()} ${many}`;
 
 /**
- * What is on the disk, a kind at a time.
+ * Builds the rows of the disk breakdown, one per kind of thing Flux keeps, each with its size and how
+ * many of it there are. Anything not yet counted is shown as still counting rather than as zero —
+ * zero is a claim, and the wrong one while a count is in progress.
  *
- * Four kinds, and they are not all measured by the same service: previews,
- * scrub sheets and live transcodes belong to the media service, while artwork
- * is fetched and kept by the API server. Either can be missing while the other
- * is known — one of them having just started does not make the cache empty —
- * so a kind nobody has counted yet says so rather than showing nothing.
- *
- * The media library is the odd one out and belongs anyway. It is the only
- * figure here Flux did not create, and it is the first thing an operator of a
- * media server wants to know — so it sits at the end of the row, after the
- * four that Flux is responsible for, rather than being counted among them.
- *
- * Transcode working directories are counted against the sessions actually
- * running, because the two come apart badly: a session that ended without
- * being collected leaves its directory behind, and on a real server almost
- * every directory is one of those. Calling the total "live transcodes" would
- * report sixty gigabytes of abandoned segments as work in progress, which is
- * the opposite of what somebody needs to know about it.
+ * @param cache - What the monitor found on disk, or null while it is still counting.
+ * @param artwork - How much artwork has been fetched and kept.
+ * @param liveSessions - How many sessions are writing at the moment.
+ * @param library - How much the library itself holds, where that has been worked out.
+ * @returns The rows to show.
  */
 const cacheRows = (
   cache: Monitor['cache'],
@@ -103,4 +93,3 @@ const cacheRows = (
 };
 
 export { cacheRows };
-export type { CacheRow };

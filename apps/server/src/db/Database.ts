@@ -7,10 +7,11 @@ const schema = { ...authSchema, ...fluxSchema };
 type FluxDatabase = ReturnType<typeof createDatabase>['db'];
 
 /**
- * Opens the Postgres connection pool and binds the Drizzle schema to it.
+ * Opens the connection pool and binds the schema to it, which is the one place the server learns
+ * where its database is.
  *
- * Postgres is the only datastore: it holds the library, sessions, and the job
- * queue. See ADR-0005.
+ * @param databaseUrl - Where Postgres is.
+ * @returns The database, ready to query.
  */
 const createDatabase = (databaseUrl: string) => {
   const pool = new Pool({ connectionString: databaseUrl });

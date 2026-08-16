@@ -1,12 +1,6 @@
 import { z } from 'zod';
 import type shaka from 'shaka-player/dist/shaka-player.compiled';
 
-/**
- * The slice of Shaka that Flux uses.
- *
- * Narrowed from the shipped types so tests can supply a stand-in without
- * reproducing a media engine, and so it is obvious what Flux depends on.
- */
 type ShakaPlayer = {
   attach: (element: HTMLMediaElement) => Promise<void>;
   load: (manifestUrl: string, startSeconds?: number) => Promise<void>;
@@ -19,13 +13,6 @@ type ShakaModule = {
   Player: new () => ShakaPlayer;
 };
 
-/**
- * What the engine reports when something goes wrong after loading.
- *
- * Severity distinguishes the two cases that matter: an error the engine
- * recovers from on its own, and one that has ended playback. Parsed rather
- * than trusted, because it arrives on a DOM event the engine builds.
- */
 const PlaybackFaultSchema = z.object({
   detail: z.object({
     severity: z.number().int(),
@@ -39,30 +26,16 @@ type PlaybackFault = z.infer<typeof PlaybackFaultSchema>['detail'];
 type AttachOptions = {
   element: HTMLVideoElement;
   manifestUrl: string;
-  /**
-   * Where to begin, in seconds into the film.
-   *
-   * Given to the engine rather than set on the element afterwards, because the
-   * engine decides where playback starts as it finishes loading a manifest and
-   * will overwrite anything set before then — which looks exactly like a
-   * resume that worked for an instant and then went back to the beginning.
-   */
   startSeconds?: number;
   onFault?: (fault: PlaybackFault) => void;
   loadShaka?: () => Promise<ShakaModule>;
 };
 
-/**
- * The engine's own value for an error it could not recover from.
- */
 const CRITICAL = 2;
 
 /**
- * Loads Shaka Player on demand.
- *
- * Imported dynamically so the engine is not in the initial bundle: most of a
- * session is spent browsing, and a viewer who never presses play should never
- * download a media engine.
+ * Loads Shaka Player the first time something needs it. Not part of the main bundle: it is a large
+ * dependency, and a session that turns out to be direct play never needs it at all.
  */
 const loadShakaPlayer = async (): Promise<ShakaModule> => {
   const imported: typeof shaka = (await import('shaka-player/dist/shaka-player.compiled')).default;
@@ -71,11 +44,12 @@ const loadShakaPlayer = async (): Promise<ShakaModule> => {
 };
 
 /**
- * Reads an engine error event, if that is what it is.
+ * Reads an error out of an event the media engine raised, checking rather than trusting it —
+ * everything about the event comes from the engine, and an event carrying no error is not a fault
+ * worth reporting.
  *
- * Everything about the event comes from the engine rather than from Flux, so
- * it is checked rather than trusted: an event carrying no error at all is not
- * a fault worth reporting.
+ * @param event - The event the engine raised.
+ * @returns The fault, or null where the event carried none.
  */
 const faultFrom = (event: Event): PlaybackFault | null => {
   const found = PlaybackFaultSchema.safeParse(event);
@@ -84,15 +58,15 @@ const faultFrom = (event: Event): PlaybackFault | null => {
 };
 
 /**
- * Attaches a player to a video element and loads a manifest.
+ * Attaches the media engine to a video element and loads a stream into it, starting at a given
+ * position where one was asked for. The position goes into the load rather than being set on the
+ * element afterwards: the engine decides where playback begins as it finishes loading, and will
+ * overwrite anything set before then — which looks exactly like a resume that worked for an instant
+ * and then went back to the beginning.
  *
- * Returns a teardown function. Callers must call it: an orphaned player keeps
- * buffering and holds the media element open.
- *
- * Errors after loading are reported through `onFault`. The engine raises them
- * as events rather than by rejecting, so without this a stream that stopped
- * mid-film left the viewer looking at a frozen picture and Flux with nothing
- * to say about it.
+ * @param options - The element to attach to, the manifest to load, where to start, and how to report
+ *   a fault the engine could not recover from.
+ * @returns The teardown to call; an orphaned engine keeps buffering and holds the element open.
  */
 const attachShaka = async ({
   element,
@@ -126,6 +100,6 @@ const attachShaka = async ({
   return () => player.destroy();
 };
 
-export type { AttachOptions, PlaybackFault, ShakaModule, ShakaPlayer };
+export type { ShakaModule, ShakaPlayer };
 
-export { attachShaka, loadShakaPlayer, faultFrom, CRITICAL };
+export { attachShaka, faultFrom, CRITICAL };

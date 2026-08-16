@@ -4,16 +4,12 @@ import { profileInitial, profileAvatarUrl } from '@FluxContracts/schemas/ViewerP
 import type { ProfileFaceProps } from './ProfileFace.types';
 
 /**
- * What a profile looks like.
+ * Draws what a profile looks like — their photograph, their drawn avatar, or their initial — and
+ * shows a photograph being uploaded before the server has taken it, so choosing one feels immediate.
  *
- * One component because four screens draw the same thing — the wall, the
- * picker, the editor and the account page — and a face that means something
- * different in each of them is four faces.
- *
- * A moving picture needs an element that can play it. A GIF is still a
- * picture as far as a browser is concerned, but a WebM in an image tag shows
- * nothing at all, which is exactly the sort of blank square somebody would
- * assume was a failed upload.
+ * @param profile - Whose face to draw.
+ * @param pending - A photograph being uploaded, drawn in place of the stored one.
+ * @param className - Extra classes for the caller's own layout.
  */
 const ProfileFace = ({ profile, pending = null, className }: ProfileFaceProps) => {
   const [chosen, setChosen] = useState<string | null>(null);

@@ -1,20 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } from './liftCues';
 
-/**
- * A cue as a browser hands one over.
- *
- * The position is optional because not every format carries one: a cue made of
- * pictures has nothing to place, and the lifting has to leave it alone rather
- * than throw at it.
- */
 type FakeCue = { text: string; line?: number | 'auto'; snapToLines?: boolean };
 
 /**
  * A track list of the shape a browser hands back, which jsdom does not have.
- *
- * The listeners are real, because what is being tested is when the cues are
- * moved as much as where they are moved to.
  */
 const videoWith = (cues: FakeCue[], mode = 'showing') => {
   const listeners = new Map<string, () => void>();

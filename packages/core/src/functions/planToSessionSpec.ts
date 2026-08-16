@@ -10,14 +10,6 @@ type ToneMapping = 'zscale' | 'libplacebo' | 'unavailable';
 
 type Capabilities = {
   encoders: VerifiedEncoder[];
-  /**
-   * Encoders the media service offered and could not run.
-   *
-   * Only consulted when an operator has insisted on a backend, which is the
-   * one case where using an encoder that failed its check is the right answer:
-   * the check has been wrong before, and a machine whose card demonstrably
-   * works should not be held hostage to it.
-   */
   rejected?: VerifiedEncoder[];
   toneMapping?: ToneMapping;
   canBurnTextSubtitles?: boolean;
@@ -47,23 +39,9 @@ type SessionSpec = {
     | { kind: 'none' }
     | {
         kind: 'burnIn';
-        /**
-         * Which subtitle stream, counting only the subtitle streams.
-         *
-         * Not the stream's index in the container. ffmpeg's `subtitles` filter
-         * and its `[0:s:N]` specifier both count subtitles alone, so a file
-         * whose only subtitles sit at container index 2 wants nought here.
-         */
         subtitleIndex: number;
         isImageBased: boolean;
       };
-  /**
-   * The source picture's size, so a hardware scaler can be given a number.
-   *
-   * The hardware scalers do not all accept `force_original_aspect_ratio`, and
-   * clamping each axis on its own squashes anything shaped differently from
-   * the box. The media service works the output size out from this instead.
-   */
   sourceSize?: [number, number];
 };
 
@@ -71,29 +49,13 @@ type PlanToSessionSpecOptions = {
   plan: PlaybackPlan;
   inputPath: string;
   sourceRange: string;
-  /**
-   * How big the source picture is, when it is known.
-   */
   sourceSize?: [number, number];
   imageSubtitleIndexes?: number[];
-  /**
-   * Every subtitle stream's container index, in the order the container holds
-   * them, so the one being burned in can be counted among its own kind.
-   */
   subtitleIndexes?: number[];
   capabilities: Capabilities;
-  /**
-   * The backend an operator insisted on, or empty to use what was detected.
-   */
   forcedAccel?: string;
   startSeconds: number;
   segmentSeconds: number;
-  /**
-   * The audio stream a viewer asked for, when they asked for one.
-   *
-   * Left out means whichever the container marks as default, which is what
-   * someone who has expressed no preference should get.
-   */
   audioStreamIndex?: number;
 };
 
@@ -103,12 +65,14 @@ type SpecOutcome =
 const HDR_RANGES = new Set(['HDR10', 'HDR10Plus', 'HLG', 'DolbyVision']);
 
 /**
- * Decides whether this transcode has to convert HDR to SDR, and whether the
- * server can actually do it.
+ * Decides whether a transcode has to convert HDR to SDR, and whether this server can actually do
+ * it. A conversion the hardware cannot manage is not refused — the picture is still delivered, with
+ * a warning saying it will look flat, since a washed-out film is better than no film.
  *
- * A build with no tone mapping filter still produces a picture, but a washed
- * out one. Saying so is the difference between a viewer knowing their server
- * needs a better ffmpeg and thinking the film itself is broken. See ADR-0010.
+ * @param sourceRange - The range the file is graded in.
+ * @param targetRange - The range being encoded to.
+ * @param capability - What tone mapping this server has available.
+ * @returns The tone mapping to apply where one is both needed and possible, and any warnings.
  */
 const planToneMapping = (
   sourceRange: string,
@@ -132,28 +96,18 @@ const planToneMapping = (
   return { toneMap: capability, warnings: [] };
 };
 
-/**
- * The audio encoder Flux transcodes to.
- *
- * FFmpeg's native AAC encoder is always present in any build worth shipping,
- * so audio never needs the capability negotiation that video does.
- */
 const AUDIO_ENCODER = 'aac';
 
 /**
- * Picks the encoder for a codec, preferring hardware.
+ * Picks which encoder to use for a codec, preferring hardware over software since a transcode is
+ * the expensive thing a server does. An operator can force a particular acceleration, in which case
+ * that one is used even if it was rejected at startup — forcing is how somebody investigates why it
+ * was.
  *
- * Only encoders the media service actually ran a frame through are listed, so
- * anything chosen here is known to work on this machine rather than merely
- * compiled in. See ADR-0009.
- *
- * `forced` is an operator saying which backend to use. It narrows the choice to
- * that backend, and will take an encoder the media service *rejected* — which
- * sounds reckless and is the point. The check that decides an encoder works has
- * twice been wrong in a way that cost a working card its hardware encoding, and
- * an operator who can see their card working needs a way to say so. Software is
- * still reachable, so a machine forced to a backend it cannot manage plays
- * films slowly rather than not at all.
+ * @param capabilities - The encoders this server verified at startup, and those it rejected.
+ * @param codec - The codec being encoded to.
+ * @param forced - An acceleration an operator insisted on, or empty to choose freely.
+ * @returns The encoder to run, or null where this server can encode that codec no way at all.
  */
 const selectEncoder = (
   capabilities: Capabilities,
@@ -184,15 +138,13 @@ const selectEncoder = (
 };
 
 /**
- * Turns a negotiated plan into an instruction the media service can run.
+ * Turns a negotiated plan into the instruction the media service actually runs: which file, which
+ * encoder, what ceilings, which streams, where to start and how long each segment should be. This
+ * is the boundary between deciding and doing — everything above it reasons about what a client can
+ * play, and everything below it runs ffmpeg.
  *
- * This is the join between the two halves of playback: the negotiator decides
- * *what* has to change, this decides *how* the machine will do it. Keeping
- * them apart means the decision can be explained without knowing what hardware
- * is present, and the hardware choice can change without touching negotiation.
- *
- * Subtitle burn-in forces a video encode even when the video itself is
- * acceptable, because burning in means drawing on the frames.
+ * @param options - The plan, the file it applies to, this server's capabilities, and the session's own particulars: where to start, how long segments run, and which audio and subtitle streams were asked for.
+ * @returns The session specification, and any warnings worth showing an operator.
  */
 const planToSessionSpec = ({
   plan,
@@ -317,6 +269,6 @@ const planToSessionSpec = ({
   };
 };
 
-export type { Capabilities, SessionSpec, SpecOutcome, ToneMapping, VerifiedEncoder };
+export type { Capabilities, SessionSpec };
 
-export { planToSessionSpec, selectEncoder, planToneMapping, AUDIO_ENCODER };
+export { planToSessionSpec, selectEncoder };

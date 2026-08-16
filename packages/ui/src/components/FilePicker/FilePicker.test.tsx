@@ -6,9 +6,8 @@ import { FilePicker } from './FilePicker';
 const fileOf = (name: string) => new File(['a picture'], name, { type: 'image/webp' });
 
 /**
- * The control itself, found the way a screen reader would name it — by its
- * label rather than by a test identifier. Matched loosely because the label
- * also wraps whatever the caller drew inside it.
+ * The control itself, found the way a screen reader would name it — by its label rather than by a
+ * test identifier. Matched loosely because the label also wraps whatever the caller drew inside it.
  */
 const inputOf = (): HTMLElement => screen.getByLabelText(/Upload a photograph/);
 

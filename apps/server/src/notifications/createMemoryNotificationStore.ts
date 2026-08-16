@@ -7,21 +7,14 @@ import type { Notification } from '@FluxContracts/schemas/Notification';
 import type { NotificationStore, PushEndpoint } from './NotificationStore';
 
 type CreateMemoryNotificationStoreOptions = {
-  /**
-   * The accounts that exist, since a default preference applies to everybody
-   * rather than to whoever has a row.
-   */
   listAccountIds?: () => Promise<string[]>;
 };
 
 /**
- * Notifications held in memory, for tests and for a server without a
- * database.
+ * Notifications held in memory, so the routes can be exercised without Postgres.
  *
- * Listed in reverse insertion order rather than sorted by the moment they
- * were written. Two notifications created in the same millisecond carry the
- * same timestamp, and sorting on it would order them arbitrarily — the order
- * they were added in is the one that is actually known.
+ * @param state - Anything already notified.
+ * @returns The notification store.
  */
 const createMemoryNotificationStore = ({
   listAccountIds = () => Promise.resolve([]),

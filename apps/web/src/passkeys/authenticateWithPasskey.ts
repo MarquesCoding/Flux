@@ -7,21 +7,20 @@ type AuthenticateOutcome =
 
 const CANCELLED_ERRORS = new Set(['NotAllowedError', 'AbortError']);
 
+/**
+ * Reads the challenge the server issued, through a schema — this is handed straight to the browser's
+ * credential machinery, which is not somewhere to pass an unchecked object.
+ *
+ * @param response - The server's answer.
+ * @returns The challenge to sign.
+ */
 const readChallenge = async (response: Response): Promise<PublicKeyCredentialRequestOptionsJSON> =>
   PasskeyAuthenticationOptionsSchema.parse(await response.json());
 
 /**
- * Signs in with a passkey.
- *
- * The server issues no `allowCredentials`, so this is a discoverable
- * credential flow: the user chooses an account on their device and never types
- * an email address. The challenge is held server-side against a cookie set by
- * the options request, so both requests must be made from the same origin in
- * the same session.
- *
- * A dismissed prompt is `cancelled`, not a failure. Someone who opens the
- * passkey sheet and changes their mind should be returned to the password form
- * without being told anything went wrong.
+ * Signs in with a passkey: asks the server for a challenge, has the browser sign it with whatever
+ * credential the person chooses, and hands the result back to be checked. The password is never
+ * involved, and nothing secret leaves the device.
  */
 const authenticateWithPasskey = async (): Promise<AuthenticateOutcome> => {
   try {
@@ -56,7 +55,5 @@ const authenticateWithPasskey = async (): Promise<AuthenticateOutcome> => {
     return { kind: 'failed', reason: 'Your device could not use a passkey here.' };
   }
 };
-
-export type { AuthenticateOutcome };
 
 export { authenticateWithPasskey };

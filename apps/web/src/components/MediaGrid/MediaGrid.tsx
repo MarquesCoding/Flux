@@ -4,17 +4,6 @@ import { groupVariants } from '@FluxUI/animations/reveal';
 import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
 import type { MediaGridProps, MediaGridSize } from './MediaGrid.types';
 
-/**
- * How many cards each size puts across the page.
- *
- * Written out in full rather than built from a number, because Tailwind reads
- * the source for class names and a string it never sees written down is a
- * class it never generates.
- *
- * Every size climbs with the window. What the setting changes is how fast: at
- * `large` a phone still shows one card, because two on a phone are two cards
- * nobody can see anything in.
- */
 const COLUMNS: Record<MediaGridSize, string> = {
   small: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6',
   medium: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
@@ -22,20 +11,18 @@ const COLUMNS: Record<MediaGridSize, string> = {
 };
 
 /**
- * A page of items, laid out as a grid.
+ * Lays a page of items out as a grid of cards, at whichever size a viewer chose. Each card carries
+ * how far through it they are and whether they have kept it, both asked of the caller rather than
+ * fetched here.
  *
- * What every page that is not the home page shows: results, a kind of thing,
- * everything kept. Rails are for a page that is arguing for something — this
- * is for a page answering a question, where the answer is a set and the shape
- * of a set is a grid.
- *
- * The same card as a rail uses, so an item looks like itself wherever it is
- * found and behaves the same when stopped on.
- *
- * The cards arrive in order rather than all at once, and how many go across is
- * the viewer's to choose: somebody looking for one thing they can half
- * remember wants as many as will fit, and somebody browsing wants to see what
- * each one is.
+ * @param items - What to draw.
+ * @param onPlay - Told to start something, and where from.
+ * @param onInspect - Told to open the page about something.
+ * @param watchedFractionFor - How far through each item this viewer is.
+ * @param resumeFor - Where they left each item.
+ * @param isKept - Whether each item is kept.
+ * @param onToggleKept - Told to keep something, or stop.
+ * @param size - How large the cards are.
  */
 const MediaGrid = ({
   items,

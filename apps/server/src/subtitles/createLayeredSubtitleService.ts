@@ -1,16 +1,11 @@
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';
 
 /**
- * Several sources of subtitles, presented as one.
+ * Presents several sources of subtitles as one list — the container's own tracks and the files
+ * beside it — so a viewer chooses between tracks rather than between where they came from.
  *
- * A viewer does not care whether a track came out of the container or off the
- * disk beside it, so the menu does not say. Sources are asked in the order
- * they were given and their tracks appear in that order, which is what puts a
- * hand-picked sidecar above whatever the release happened to embed.
- *
- * Identifiers stay unique across sources because each names its tracks from
- * something only it has: a sidecar from the file's own path, an embedded track
- * from that path and a stream index.
+ * @param sources - The sources to ask, in the order their tracks should appear.
+ * @returns One subtitle service covering all of them.
  */
 const createLayeredSubtitleService = (sources: SubtitleService[]): SubtitleService => ({
   list: async (mediaId) => {

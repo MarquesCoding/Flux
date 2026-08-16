@@ -1,13 +1,6 @@
 type ProseComment = {
   line: number;
-  /**
-   * Where on the line the comment opens, so a caller can remove it without
-   * taking the code that shares the line with it.
-   */
   column: number;
-  /**
-   * The line it closes on, which differs from `line` only for a block comment.
-   */
   endLine: number;
   text: string;
 };
@@ -15,11 +8,13 @@ type ProseComment = {
 type Language = 'rust' | 'css';
 
 /**
- * The comments each language keeps.
+ * Decides whether a comment is one its language is allowed to keep. Rust keeps its doc comments and
+ * the safety notes clippy demands on unsafe blocks; every language keeps the directives that are
+ * instructions to tooling rather than prose for a reader.
  *
- * Rust doc comments are the published API of a crate and are required by the
- * standard, and `// SAFETY:` is required by clippy on every `unsafe` block. A
- * CSS file has no such thing: nothing generates documentation from it.
+ * @param language - The language the file is written in.
+ * @param text - The comment, as written.
+ * @returns Whether to leave it where it is.
  */
 const isKept = (language: Language, text: string): boolean => {
   if (language === 'css') {
@@ -30,13 +25,13 @@ const isKept = (language: Language, text: string): boolean => {
 };
 
 /**
- * Where a line's code ends and a comment begins, ignoring anything inside a
- * string.
+ * Finds where a line stops being code and starts being a comment, reading the line character by
+ * character so that a comment marker inside a string literal is left alone. Pattern matching cannot
+ * tell those apart, and a URL in a string looks exactly like the start of a comment.
  *
- * A URL in a string literal is not a comment, and neither is a `/*` in a
- * content property. Walking the line one character at a time is the only way to
- * tell the difference; a regular expression cannot, and one that tries deletes
- * somebody's `"https://…"` the first time it is run.
+ * @param line - The line of source to read.
+ * @param language - The language, which decides what opens a comment.
+ * @returns The column the comment starts at, or null where the line holds none.
  */
 const commentStartsAt = (line: string, language: Language): number => {
   let quote: string | null = null;
@@ -74,11 +69,13 @@ const commentStartsAt = (line: string, language: Language): number => {
 };
 
 /**
- * Every comment in a file that is prose rather than documentation.
+ * Finds every comment in a file that is prose rather than something the language or the tooling
+ * needs, for the languages ESLint cannot reach. Reports where each one begins and ends so a caller
+ * can remove it without disturbing anything around it.
  *
- * Reads the file rather than pattern-matching it, so a `//` inside a string
- * stays where it is. Block comments are reported at the line they open on and
- * counted once however many lines they run to.
+ * @param source - The file to read.
+ * @param language - The language it is written in.
+ * @returns Each prose comment, with its position.
  */
 const findProseComments = (source: string, language: Language): ProseComment[] => {
   const found: ProseComment[] = [];

@@ -3,15 +3,17 @@ import { cn } from '@FluxUI/cn';
 import type { SwitchProps } from './Switch.types';
 
 /**
- * One setting that is either on or off.
+ * One setting that is either on or off, and takes effect the moment it is pressed rather than
+ * waiting for a form to be submitted. The label is part of the control rather than beside it, so
+ * the words are a press target too.
  *
- * A switch rather than a checkbox because it takes effect where it stands:
- * nothing is being submitted, and the thing it names changes as it moves.
- *
- * Base UI owns what it is — the role, the checked state, the space bar — and
- * this owns what it looks like. Written once here rather than at each menu that
- * needs one, so a reader meets the same control everywhere and a theme has one
- * place to move it.
+ * @param label - What the setting is.
+ * @param isOn - Whether it is on now.
+ * @param onToggle - Told that it was pressed; the caller decides what the new state is.
+ * @param icon - Something to draw beside the label.
+ * @param disabled - Whether it can be changed at all.
+ * @param tone - Whether it sits on the page or over artwork, where the page's colours say nothing.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Switch = ({
   label,

@@ -1,11 +1,11 @@
 import type { PlaybackHealth } from '@FluxWeb/components/VideoPlayer/components/StreamStats/StreamStats.types';
 
 /**
- * The last moment of the stream the element will let anyone seek to.
+ * Reads the last moment of the stream the element will let anybody seek to, which for a live
+ * transcode is how far the encoder has got rather than the end of the film.
  *
- * The playlist describes the whole film, so this is the film's length rather
- * than how much of it has been transcoded. Read defensively because an element
- * that has loaded nothing reports no ranges at all.
+ * @param element - The video element.
+ * @returns The furthest seekable position, in seconds.
  */
 const encodedSeconds = (element: HTMLVideoElement): number => {
   try {
@@ -18,10 +18,11 @@ const encodedSeconds = (element: HTMLVideoElement): number => {
 };
 
 /**
- * How much is buffered past where the viewer is.
+ * Measures how much is buffered ahead of where the viewer is, which is the figure that says whether
+ * playback is about to stall.
  *
- * The range containing the current position is the only one that matters: a
- * later range is separated by a gap playback will stall in.
+ * @param element - The video element.
+ * @returns The seconds buffered ahead.
  */
 const bufferedAhead = (element: HTMLVideoElement): number => {
   try {
@@ -39,22 +40,16 @@ const bufferedAhead = (element: HTMLVideoElement): number => {
   }
 };
 
-/**
- * A source of frame counts.
- *
- * Declared optional because not every browser implements it, which the DOM
- * types do not admit.
- */
 type FrameCountSource = {
   getVideoPlaybackQuality?: () => { droppedVideoFrames: number; totalVideoFrames: number };
 };
 
 /**
- * Frame counts, where the browser keeps them.
+ * Reads the decoded and dropped frame counts where the browser keeps them, which not every browser
+ * does.
  *
- * Not every browser implements this, and a decoder that is dropping frames is
- * precisely when someone opens this panel, so absence is reported rather than
- * shown as zero.
+ * @param element - The video element.
+ * @returns The counts, or nothing where this browser does not report them.
  */
 const frameCounts = (
   element: FrameCountSource,
@@ -69,11 +64,11 @@ const frameCounts = (
 };
 
 /**
- * Samples what the browser is actually doing with the stream.
+ * Samples what the browser is actually doing with the stream — buffer, dropped frames, how far the
+ * encoder has got — for the stats panel and for the presence heartbeat an operator watches.
  *
- * Everything here comes from the media element rather than from the server,
- * because the two disagreeing is the situation the stats panel exists to make
- * visible.
+ * @param element - The video element.
+ * @returns What the browser reports right now.
  */
 const readPlaybackHealth = (element: HTMLVideoElement): PlaybackHealth => {
   const frames = frameCounts(element);
@@ -88,7 +83,5 @@ const readPlaybackHealth = (element: HTMLVideoElement): PlaybackHealth => {
     presentedHeight: element.videoHeight,
   };
 };
-
-export type { FrameCountSource };
 
 export { readPlaybackHealth, encodedSeconds, bufferedAhead };

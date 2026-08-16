@@ -3,13 +3,7 @@ import type { WebhookDelivery, WebhookSubscription } from '@FluxContracts/schema
 import type { WebhookStore } from './WebhookStore';
 
 /**
- * Subscriptions held in memory, for tests and for a server started without a
- * database.
- *
- * The secret is derived from the id rather than drawn from a random source,
- * so a test can predict it and check what was signed. That is exactly what
- * makes it unfit for anything real, which is why it lives here and not in the
- * database store.
+ * Subscriptions held in memory, for tests and for a server started without a database.
  */
 const createMemoryWebhookStore = (): WebhookStore => {
   const subscriptions = new Map<string, { subscription: WebhookSubscription; secret: string }>();
@@ -19,12 +13,13 @@ const createMemoryWebhookStore = (): WebhookStore => {
   >();
 
   /**
-   * The delivery already filed for this event and this subscriber, if there
-   * is one.
+   * Finds the delivery already filed for one event and one subscriber, so a retry updates the attempt
+   * that exists rather than filing a second record of the same thing.
    *
-   * The pair is the identity, the same as the unique index the database
-   * version relies on: a retry has to find its own row rather than making a
-   * second one.
+   * @param state - The deliveries held.
+   * @param subscriptionId - Who is being delivered to.
+   * @param eventId - Which event.
+   * @returns The delivery already filed, or undefined where this is the first attempt.
    */
   const findOccurrence = (subscriptionId: string, eventId: string) =>
     [...deliveries.values()].find(

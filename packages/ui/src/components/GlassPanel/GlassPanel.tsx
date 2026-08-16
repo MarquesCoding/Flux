@@ -7,12 +7,14 @@ const ELEVATION_CLASSES: Record<GlassElevation, string> = {
 };
 
 /**
- * A translucent pane.
+ * Draws a pane of glass — translucent, blurred, with a hairline edge — which is the surface the
+ * platform floats things on: the dock, the player's controls, popovers. What passes beneath stays
+ * visible, so the page belongs to what is being shown and the interface rests on top of it.
  *
- * The one place the glass treatment is defined, so every bar, menu and card
- * that floats over content catches the light the same way. Composed rather
- * than themed: what goes inside is the caller's business, the material is
- * this component's.
+ * @param children - What the pane holds.
+ * @param elevation - How far off the page it reads, which sets the blur and the edge.
+ * @param as - The element to render as, where a plain division is not the right thing.
+ * @param className - Extra classes for the caller's own layout.
  */
 const GlassPanel = ({
   children,

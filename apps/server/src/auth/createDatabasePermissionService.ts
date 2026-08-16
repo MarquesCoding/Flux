@@ -8,6 +8,14 @@ import type { FluxDatabase } from '@FluxServer/db/Database';
 import { readPermission } from './readPermission';
 import type { PermissionService } from './PermissionService';
 
+/**
+ * Reads permission rows into grants, dropping any naming a permission or an effect this version of
+ * Flux does not recognise. Rows outlive the code that wrote them, and an unreadable grant is safer
+ * discarded than guessed at.
+ *
+ * @param rows - The rows as stored.
+ * @returns The grants that could be read.
+ */
 const readGrants = (rows: readonly { permission: string; effect: string }[]): PermissionGrant[] =>
   rows.flatMap((row) => {
     const permission = readPermission(row.permission);
@@ -20,12 +28,11 @@ const readGrants = (rows: readonly { permission: string; effect: string }[]): Pe
   });
 
 /**
- * Roles and grants held in Postgres.
+ * Roles, their permissions, and the grants and denials set on individual accounts, held in Postgres.
+ * This is what every permission check in the server eventually reads.
  *
- * The resolution itself is not done here — `resolvePermissions` owns the
- * rules about unioning roles, expanding `administrator` and deny winning, so
- * that they are decided in one pure place rather than in a query somebody
- * later rewrites.
+ * @param db - The database to read and write.
+ * @returns The permission service.
  */
 const createDatabasePermissionService = (db: FluxDatabase): PermissionService => {
   const permissionsByRole = async (

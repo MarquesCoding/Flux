@@ -1,17 +1,5 @@
 type Match = { name: string; pattern: RegExp };
 
-/**
- * Checked in this order because a browser's own user agent string usually
- * names its rivals too: Edge and Opera both carry "Chrome", and Chrome
- * itself carries "Safari". The first match wins, so the browser that most
- * specifically identifies itself has to be checked first.
- *
- * "Chrome" itself is named Chromium rather than Chrome: modern browsers no
- * longer carry brand information in their user agent string precisely to
- * stop this kind of detection, so anything that matches here is only known
- * to be Chromium-based — it could just as easily be Brave, Vivaldi or Arc,
- * and calling all of them Chrome would be a guess this cannot back up.
- */
 const BROWSERS: Match[] = [
   { name: 'Edge', pattern: /Edg\// },
   { name: 'Opera', pattern: /OPR\// },
@@ -29,13 +17,12 @@ const OPERATING_SYSTEMS: Match[] = [
 ];
 
 /**
- * Names what a viewer is watching from, the way Jellyfin's session list
- * does — "Chrome on macOS" rather than a generic "Browser".
+ * Names what a viewer is watching from — "Chrome on macOS" rather than a generic "Browser" — for the
+ * sessions an operator sees and the devices an account can review. Built from the user agent, in the
+ * shape other media servers use, so an operator reading it recognises what they are looking at.
  *
- * Read from capability probes everywhere else in this codebase, but a device
- * profile's own capabilities say nothing a person would recognise their
- * laptop by. This is purely for that — a label an admin reads, never sent
- * for negotiation.
+ * @param userAgent - What the browser says about itself.
+ * @returns The device as a person would describe it.
  */
 const detectClientLabel = (userAgent: string): string => {
   const browser =
@@ -46,7 +33,8 @@ const detectClientLabel = (userAgent: string): string => {
 };
 
 /**
- * The same label, read from this browser.
+ * Reads the device label from this browser, so a session list says "Firefox on macOS" rather than a
+ * user agent string.
  */
 const detectFromNavigator = (): string => detectClientLabel(navigator.userAgent);
 

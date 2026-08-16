@@ -1,20 +1,16 @@
 import type { LibraryFacets } from '@FluxContracts/schemas/Library';
 import type { FilterOption } from './components/FilterChips/FilterChips.types';
 
-/**
- * The rating floors worth offering.
- *
- * Whole numbers out of ten, and only the top of the scale: nobody narrows a
- * library to "at least three".
- */
 const RATING_FLOORS = [6, 7, 8, 9];
 
 /**
- * Everything the filter rows offer, from what the libraries actually hold.
+ * Builds everything the filter rows offer from what the libraries actually hold, so a chip whose only
+ * possible outcome is an empty page is never drawn. Kept apart from the page that draws them, so the
+ * wording of a chip — and the decision not to offer one — can be read and tested without rendering a
+ * search page.
  *
- * Kept apart from the page that draws them so the wording of a chip — and the
- * decision not to offer one at all — is somewhere it can be read and tested
- * without rendering a search page.
+ * @param facets - What the server says there is to filter by.
+ * @returns The chips for each row.
  */
 const buildFilterOptions = (
   facets: LibraryFacets,

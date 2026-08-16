@@ -1,11 +1,12 @@
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 /**
- * Which item stands for a show.
+ * Decides which of two episodes should stand for a whole programme, preferring the earliest — a
+ * shelf shows a series by its first episode rather than by whichever was scanned first.
  *
- * The earliest episode there is: somebody meeting a series on a home page is
- * being introduced to it, and being introduced at episode nine is no
- * introduction at all.
+ * @param candidate - One episode.
+ * @param against - The episode to compare it against.
+ * @returns Whether the first should stand for the programme.
  */
 const isEarlier = (candidate: MediaSummary, against: MediaSummary): boolean => {
   const season = (candidate.seasonNumber ?? 0) - (against.seasonNumber ?? 0);
@@ -14,21 +15,11 @@ const isEarlier = (candidate: MediaSummary, against: MediaSummary): boolean => {
 };
 
 /**
- * One card per thing, rather than one per file.
+ * Collapses a list of files into one card per thing: a programme once rather than once per episode.
+ * A page holds sixty things, and without this a single series can fill it.
  *
- * A library of twelve episodes is one programme, and a page that draws it as
- * twelve tiles is a page nobody can find anything on — the same picture, the
- * same name, twelve times, with the actual variety pushed off the screen.
- * Films stand for themselves, since there is nothing to group them under.
- *
- * The earliest episode stands in for the series: somebody meeting a
- * programme on a page is being introduced to it, and being introduced at
- * episode nine is no introduction. The card already reads the series title
- * off it, so what shows is the programme rather than that episode.
- *
- * Grouped by `seriesId` where there is one, falling back to the title. Two
- * programmes share a title — The Office, Shameless, and every remake — so
- * grouping on the title alone quietly merges them into one card.
+ * @param items - The files as the server listed them.
+ * @returns One entry per film and per programme.
  */
 const collapseToShows = (items: MediaSummary[]): MediaSummary[] => {
   const shows = new Map<string, MediaSummary>();
@@ -67,20 +58,23 @@ const collapseToShows = (items: MediaSummary[]): MediaSummary[] => {
 };
 
 /**
- * The items worth putting on the front of a library.
+ * Picks the items worth putting at the front of a library, collapsed so a programme appears once
+ * however many episodes of it have been scanned.
  *
- * The same collapsing every page does, cut to what a hero can rotate
- * through.
+ * @param items - Everything the library holds.
+ * @param limit - How many to choose.
+ * @returns The items to feature.
  */
 const pickFeatured = (items: MediaSummary[], limit: number): MediaSummary[] =>
   collapseToShows(items).slice(0, limit);
 
 /**
- * The other episodes of the same season.
+ * Finds the other episodes of the same season as one episode, which is what the player's episode
+ * list is built from.
  *
- * In broadcast order and without the one being read about, because a list of
- * what to watch next that includes what is already open is a list with a hole
- * in it.
+ * @param items - Everything known about the library.
+ * @param of - The episode being watched.
+ * @returns Its siblings, in the order they are watched.
  */
 const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] => {
   const series = of.seriesTitle ?? null;
@@ -100,11 +94,12 @@ const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] =
 };
 
 /**
- * What follows an episode.
+ * Finds the episode that follows one, for playing on at the end. Answers with nothing at the end of
+ * a season rather than wrapping to the beginning.
  *
- * The next one in the same season, and nothing at all for a film or for the
- * last episode there is. A season that runs on into whatever happened to be
- * listed next would be worse than stopping.
+ * @param items - Everything known about the library.
+ * @param after - The episode that just finished.
+ * @returns The next episode, or null where there is none.
  */
 const nextEpisode = (items: MediaSummary[], after: MediaSummary): MediaSummary | null => {
   const at = after.episodeNumber ?? null;

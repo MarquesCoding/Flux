@@ -130,9 +130,6 @@ const media = { id: 'media-1', title: 'Arrival', durationSeconds: 7200 };
 
 /**
  * Stands in for how a browser answers a request to start playing.
- *
- * Swapped on the prototype and put back afterwards, since what is being
- * described is a browser's own refusal rather than anything Flux calls.
  */
 const replacePlay = (play: () => Promise<void>): PropertyDescriptor | undefined => {
   const original = Object.getOwnPropertyDescriptor(window.HTMLMediaElement.prototype, 'play');
@@ -152,12 +149,6 @@ const restorePlay = (original: PropertyDescriptor | undefined): void => {
   }
 };
 
-/**
- * An item with something to change to.
- *
- * Changing the audio track is the ordinary reason a session is torn down and
- * another started now that a seek is not one.
- */
 const detailWithTwoAudioTracks = {
   id: 'media-1',
   libraryId: 'library-1',
@@ -181,9 +172,6 @@ const detailWithTwoAudioTracks = {
 
 /**
  * Declares how much of the stream the element could seek within.
- *
- * jsdom has no media pipeline, so a growing transcode has to be described
- * rather than produced.
  */
 const showingAFrame = (element: HTMLElement) => {
   Object.defineProperty(element, 'videoWidth', { configurable: true, value: 1920 });
@@ -193,9 +181,6 @@ const showingAFrame = (element: HTMLElement) => {
 
 /**
  * Waits for the session to have started and been attached.
- *
- * The spinner going away is the only thing on screen that says so once the
- * mode moved into the stats panel.
  */
 const settled = async () => {
   await waitFor(() => {
@@ -1477,8 +1462,7 @@ describe('playing on another device', () => {
   const CAST_LABEL = 'Play on a device — your browser will ask which';
 
   /**
-   * A cast framework that is present and idle, which is what makes the
-   * control appear at all.
+   * A cast framework that is present and idle, which is what makes the control appear at all.
    */
   const withACastFramework = (requestSession = vi.fn()) => {
     loadCastSenderMock.mockResolvedValue({

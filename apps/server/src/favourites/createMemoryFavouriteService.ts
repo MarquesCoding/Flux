@@ -4,8 +4,10 @@ import type { Favourite } from '@FluxContracts/schemas/Favourite';
 type MemoryState = Record<string, Favourite[]>;
 
 /**
- * Favourites held in memory, so the HTTP surface can be exercised without a
- * database.
+ * Favourites held in memory, so the routes can be exercised without Postgres.
+ *
+ * @param state - Anything already kept.
+ * @returns The favourite service.
  */
 const createMemoryFavouriteService = (
   state: MemoryState = {},

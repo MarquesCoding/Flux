@@ -31,23 +31,12 @@ import type { NavDockAction, NavDockItem } from '@FluxUI/NavDock.types';
 import type { LibraryKind } from '@FluxContracts/schemas/Library';
 import type { AppShellProps, ShellSection } from './AppShell.types';
 
-/**
- * What each kind of library is called when the dice offer to narrow to it.
- *
- * Written as a complete record rather than derived, so adding a kind to the
- * contract fails to compile here until somebody says what to call it. A new
- * kind appearing in the menu unnamed would be worse than being made to name
- * it.
- */
 const SURPRISE_LABELS: Record<LibraryKind, string> = {
   movies: 'A film',
   shows: 'A programme',
   music: 'Something to listen to',
 };
 
-/**
- * The mark each place carries while it is the one being stood on.
- */
 const SECTION_ICONS: Record<ShellSection, ReactNode> = {
   home: <RiHome5Line size={18} aria-hidden />,
   shows: <RiTvLine size={18} aria-hidden />,
@@ -59,18 +48,6 @@ const SECTION_ICONS: Record<ShellSection, ReactNode> = {
   admin: <RiSettings3Line size={18} aria-hidden />,
 };
 
-/**
- * The same mark, heavier, for the place being stood on.
- *
- * Never a different glyph: arriving somewhere changes the weight of a shape
- * that was already there rather than swapping it for another drawing.
- *
- * Filled throughout, which Remix makes possible: every icon here has a real
- * `-fill` twin. Films and New & Popular used to fake it with a heavier stroke
- * because Tabler drew no filled version of either, and the alternative —
- * reaching for the nearest filled thing instead — is how this section once
- * came to turn into a camcorder.
- */
 const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
   home: <RiHome5Fill size={18} aria-hidden />,
   shows: <RiTvFill size={18} aria-hidden />,
@@ -82,15 +59,6 @@ const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
   admin: <RiSettings3Fill size={18} aria-hidden />,
 };
 
-/**
- * How each mark moves when a pointer arrives on it.
- *
- * Chosen to say what the place is rather than to be movement for its own sake:
- * favourites fills the way a heart fills, New & Popular catches from the
- * bottom the way a flame does, and everywhere that is simply somewhere to go
- * rises a little and settles. A gesture that meant nothing would be worse than
- * stillness, which is why most of these are the quiet one.
- */
 const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
   home: 'settle',
   shows: 'settle',
@@ -114,20 +82,20 @@ const SECTION_LABELS: Record<ShellSection, string> = {
 };
 
 /**
- * The frame everything is drawn inside.
+ * The frame every page is drawn inside: the dock at the foot, the light behind, and the footer at
+ * the end of the scroll. Sections arrive rather than appear, and each remembers how far down it was
+ * scrolled so moving between them and back lands where it was left.
  *
- * One dock, floating at the bottom, sectioned: the places in the middle, the
- * tools at the right. Two bars — one for places, one for tools — meant every
- * arrival had to be read twice to find out where anything was. The library
- * gets the whole surface behind it, which is what the dock floats over.
- *
- * The footer sits at the end of the scroll on every page but the admin one,
- * which is a dashboard somebody works in rather than a page they read to the
- * bottom of. It carries its own room for the dock; the admin page is given
- * that room instead.
- *
- * Sections arrive rather than appear. The page is keyed on the section, so
- * moving between them animates out and in instead of swapping silently.
+ * @param section - Which section is showing.
+ * @param onSectionChange - Told which section was chosen.
+ * @param children - The page itself.
+ * @param moodLights - The colours to light the page with.
+ * @param isAdministrator - Whether to offer the admin section at all.
+ * @param avatar - The face to draw on the account control.
+ * @param onSurprise - Told to choose something at random, optionally from one kind of library.
+ * @param surpriseKinds - Which kinds of library there are, which decides whether the dice offer a
+ *   menu or simply act.
+ * @param notifications - The bell and what is behind it.
  */
 const AppShell = ({
   section,

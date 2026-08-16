@@ -10,4 +10,4 @@ type CaptionChoiceProps = {
   onSelect: (id: string) => void;
 };
 
-export type { CaptionChoiceOption, CaptionChoiceProps };
+export type { CaptionChoiceProps };

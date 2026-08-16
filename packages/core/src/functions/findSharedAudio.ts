@@ -4,39 +4,15 @@ type Range = {
 };
 
 type SharedAudio = {
-  /**
-   * Where the shared run sits in the first fingerprint.
-   */
   left: Range;
-  /**
-   * Where the same run sits in the second.
-   */
   right: Range;
   frames: number;
 };
 
 type CompareOptions = {
   framesPerSecond: number;
-  /**
-   * How many bits two hashes may differ by and still count as the same audio.
-   *
-   * Zero would demand bit-perfect agreement, which two encodes of the same
-   * theme tune never quite reach. Too high and unrelated dialogue starts
-   * matching. Six of thirty-two is loose enough for a re-encode and tight
-   * enough that silence does not match noise.
-   */
   maxBitsDiffering?: number;
-  /**
-   * The shortest run worth reporting, in seconds.
-   */
   minSeconds?: number;
-  /**
-   * Gaps shorter than this are treated as part of the run.
-   *
-   * A theme tune is not identical throughout — a channel logo or a spoken
-   * title lands over it — and without this the run would be chopped into
-   * fragments none of which are long enough to report.
-   */
   toleratedGapSeconds?: number;
 };
 
@@ -46,32 +22,20 @@ const DEFAULT_MIN_SECONDS = 15;
 
 const DEFAULT_TOLERATED_GAP_SECONDS = 3;
 
-/**
- * How much work is worth doing exhaustively.
- *
- * Trying every alignment is exact and costs the product of the two lengths. On
- * ten minutes of audio that is ninety million comparisons per pair, which is
- * minutes of arithmetic for one season. Below this, exhaustive is instant and
- * worth keeping.
- */
 const EXHAUSTIVE_LIMIT = 4_000_000;
 
-/**
- * The bits an offset is proposed from.
- *
- * The low bits compare the lowest frequency bands, which are the ones that
- * survive re-encoding best. Indexing on them finds the frames two recordings
- * genuinely share without demanding they agree bit for bit.
- */
 const INDEX_MASK = 0xffff;
 
-/**
- * How many proposed alignments are worth scoring properly.
- */
 const CANDIDATE_OFFSETS = 24;
 
 /**
- * How many bits two hashes differ by.
+ * Counts the bits by which two audio fingerprints differ, which is how alike two moments of sound
+ * are: identical audio hashes identically, and a re-encode of the same audio differs in a handful
+ * of bits rather than in half of them.
+ *
+ * @param left - One frame's fingerprint.
+ * @param right - The frame to compare it against.
+ * @returns How many bits differ, from zero to thirty two.
  */
 const bitsDiffering = (left: number, right: number): number => {
   let value = (left ^ right) >>> 0;
@@ -86,10 +50,17 @@ const bitsDiffering = (left: number, right: number): number => {
 };
 
 /**
- * The longest run of near-matching frames at one alignment.
+ * Measures the longest unbroken stretch of near-matching frames when two recordings are laid
+ * against each other at one particular offset. A short run of mismatches inside a longer agreement
+ * is tolerated rather than ending the run, since real recordings differ for a moment where one has
+ * an announcement or a louder transfer.
  *
- * Runs are allowed to survive a short interruption, so a title card spoken
- * over a theme tune does not split one intro into three fragments.
+ * @param left - One recording's fingerprints, in order.
+ * @param right - The other recording's fingerprints.
+ * @param offset - How far to slide the second against the first, in frames.
+ * @param maxBitsDiffering - How different two frames may be and still count as matching.
+ * @param toleratedGap - How many mismatching frames may sit inside a run without ending it.
+ * @returns Where the longest run starts in the first recording, and how long it is.
  */
 const longestRunAt = (
   left: number[],
@@ -145,16 +116,14 @@ const longestRunAt = (
 };
 
 /**
- * Proposes the alignments worth scoring.
+ * Proposes which alignments are worth measuring, rather than trying every one. Frames are indexed
+ * by part of their fingerprint, so offsets that put identical-looking frames on top of each other
+ * are found directly — comparing every offset against every other would be the length of one
+ * recording multiplied by the other.
  *
- * Every frame of one recording votes for the offsets at which a frame of the
- * other carries the same robust bits. Real shared audio casts thousands of
- * votes at one offset; coincidences scatter theirs. Scoring only the winners
- * turns a quadratic search into a linear one.
- *
- * Alignment cannot be approximated — a run misaligned by a single frame
- * matches nothing at all — which is why this narrows *which* offsets to try
- * rather than how carefully to try them.
+ * @param left - One recording's fingerprints, in order.
+ * @param right - The other recording's fingerprints.
+ * @returns The offsets worth scoring, most promising first.
  */
 const proposeOffsets = (left: number[], right: number[]): number[] => {
   const positions = new Map<number, number[]>();
@@ -187,16 +156,15 @@ const proposeOffsets = (left: number[], right: number[]): number[] => {
 };
 
 /**
- * Finds the longest stretch of audio two recordings have in common.
+ * Finds the longest stretch of sound two recordings have in common, which is how an intro or a
+ * credit sequence is detected: the same music appears in every episode, at a different point in
+ * each. Works from fingerprints rather than from the audio itself, so two encodes of the same
+ * material still match.
  *
- * Two episodes of the same series share exactly one substantial thing: the
- * music that opens both of them. Everything else — dialogue, effects, score —
- * is different, so the longest run of frames that fingerprint alike is the
- * theme, and its length and position are the intro.
- *
- * Every alignment of the two sequences is tried, because an intro rarely
- * begins at the same second in two episodes: one has a longer cold open than
- * the other.
+ * @param left - One recording's fingerprints, in order.
+ * @param right - The other recording's fingerprints.
+ * @param options - How alike frames must be, how long a stretch has to be to count, and how much of a gap may sit inside one.
+ * @returns Where the shared stretch falls in each recording, or null where they share nothing.
  */
 const findSharedAudio = (
   left: number[],
@@ -253,20 +221,28 @@ const findSharedAudio = (
 };
 
 /**
- * Whether two ranges describe the same stretch of a recording.
+ * Decides whether two ranges are describing the same stretch of a recording, allowing for the ends
+ * to disagree slightly — two comparisons of the same intro rarely find its edges in exactly the
+ * same frame.
+ *
+ * @param left - One range.
+ * @param right - The range to compare it against.
+ * @param toleranceSeconds - How far the ends may differ and still count as the same stretch.
+ * @returns Whether both ends agree within the tolerance.
  */
 const overlaps = (left: Range, right: Range, toleranceSeconds: number): boolean =>
   Math.abs(left.startSeconds - right.startSeconds) <= toleranceSeconds &&
   Math.abs(left.endSeconds - right.endSeconds) <= toleranceSeconds;
 
 /**
- * Settles on the range the most comparisons agreed about.
+ * Settles on one range from many comparisons by taking the largest group that agree with each
+ * other, and averaging their ends. Comparing an episode against several others gives several
+ * answers, most of them the same intro and one or two of them noise; this is what picks the
+ * consensus rather than the first or the longest.
  *
- * One pair of episodes can agree on nonsense — a shared stretch of near
- * silence, or a sound effect both happen to use. A range several independent
- * pairs land on is the theme tune. The answer is the median of the agreeing
- * group rather than any single measurement, so one loose match cannot drag the
- * boundary.
+ * @param candidates - Every range the comparisons proposed.
+ * @param toleranceSeconds - How far two ranges may differ and still be counted as agreeing.
+ * @returns The agreed range, or null where nothing was proposed at all.
  */
 const agreeRange = (candidates: Range[], toleranceSeconds = 4): Range | null => {
   if (candidates.length === 0) {
@@ -302,15 +278,6 @@ const agreeRange = (candidates: Range[], toleranceSeconds = 4): Range | null => 
   };
 };
 
-export type { CompareOptions, Range, SharedAudio };
+export type { Range };
 
-export {
-  findSharedAudio,
-  proposeOffsets,
-  agreeRange,
-  bitsDiffering,
-  longestRunAt,
-  overlaps,
-  DEFAULT_MAX_BITS_DIFFERING,
-  DEFAULT_MIN_SECONDS,
-};
+export { findSharedAudio, agreeRange, bitsDiffering, overlaps };

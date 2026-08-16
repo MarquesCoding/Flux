@@ -1,12 +1,6 @@
 import { ESLintUtils, TSESTree } from '@typescript-eslint/utils';
 import type { TSESLint } from '@typescript-eslint/utils';
 
-/**
- * The comments that are instructions to a tool rather than prose for a reader.
- *
- * A tool reads these; deleting one changes what the build does. They are the
- * only single-line comments the codebase keeps.
- */
 const DIRECTIVES = [
   'eslint-disable',
   'eslint-enable',
@@ -29,43 +23,22 @@ const DIRECTIVES = [
   'webpackChunkName',
 ] as const;
 
-/**
- * The declarations TSDoc is allowed to describe.
- *
- * TSDoc says what a thing is, so it belongs on something named. A comment
- * floating inside a function body describes a moment rather than a thing, and
- * is prose however it is punctuated.
- */
 const DOCUMENTABLE = [
-  'VariableDeclaration',
   'FunctionDeclaration',
-  'ClassDeclaration',
-  'TSTypeAliasDeclaration',
-  'TSInterfaceDeclaration',
-  'TSEnumDeclaration',
-  'TSModuleDeclaration',
   'TSDeclareFunction',
-  'ExportNamedDeclaration',
-  'ExportDefaultDeclaration',
-  'ExportAllDeclaration',
-  'ImportDeclaration',
-  'TSPropertySignature',
-  'TSMethodSignature',
-  'PropertyDefinition',
   'MethodDefinition',
+  'TSMethodSignature',
 ] as const;
 
-/**
- * A triple-slash directive, which is the only thing a third slash may mean.
- *
- * `/// <reference ... />` is read by the compiler. `/// anything else` is Rust
- * doc syntax written in the wrong language, and is prose wearing a third
- * slash — which is exactly how nine of them survived the first sweep.
- */
 const TRIPLE_SLASH = /^\/\s*<(reference|amd-module|amd-dependency)\b/;
 
 /**
- * Whether a comment is addressed to a tool.
+ * Decides whether a comment is addressed to a tool rather than to a reader — a lint directive, a
+ * TypeScript instruction, a bundler hint, or a triple-slash reference. Deleting one of these changes
+ * what the build does, which is why they are the only single-line comments kept.
+ *
+ * @param text - The comment's text, without its slashes.
+ * @returns Whether it is an instruction rather than prose.
  */
 const isDirective = (text: string): boolean => {
   const trimmed = text.trim();
@@ -76,16 +49,22 @@ const isDirective = (text: string): boolean => {
 };
 
 /**
- * Whether a comment is TSDoc, which opens with a second asterisk.
+ * Decides whether a block comment is TSDoc, which is to say whether it opens with a second asterisk.
+ * That is the whole distinction the language draws, and the whole distinction this rule needs.
+ *
+ * @param comment - The comment as the parser found it.
+ * @returns Whether it is documentation rather than a plain block comment.
  */
 const isTsDoc = (comment: TSESTree.Comment): boolean =>
   comment.type === TSESTree.AST_TOKEN_TYPES.Block && comment.value.startsWith('*');
 
 /**
- * Whether a lint directive says why it is there.
+ * Decides whether a directive that silences a rule explains itself, which is required of anything
+ * turning a rule off — a suppression with no reason is one nobody can review or remove later.
+ * Directives that silence nothing, such as a formatter hint, need no reason.
  *
- * A silenced rule with no reason is indistinguishable from a mistake, and
- * nobody who finds one later can tell whether it is safe to remove.
+ * @param text - The directive's text, without its slashes.
+ * @returns Whether it either needs no reason or gives one.
  */
 const hasReason = (text: string): boolean => {
   const trimmed = text.trim();
@@ -98,14 +77,6 @@ const createRule = ESLintUtils.RuleCreator(
   () => 'https://github.com/MarquesCoding/StreamerApp/blob/main/docs/code-standards.md',
 );
 
-/**
- * Bans prose comments, keeping TSDoc on declarations and directives to tools.
- *
- * The rule exists because the standard was ignored: a codebase gathers
- * commentary faster than anyone removes it, and a comment beside code is a
- * second description of it that nothing keeps true. Code standards section 6
- * says what may stay; this says the same thing in a form that fails a build.
- */
 const noComments = createRule({
   name: 'no-comments',
   meta: {
@@ -119,7 +90,7 @@ const noComments = createRule({
       prose:
         'Comments are banned. Say it in a name, or in TSDoc on the declaration. See code standards section 6.',
       floatingDoc:
-        'TSDoc belongs on a declaration, not inside a body. See code standards section 6.',
+        'TSDoc belongs on a function, and nowhere else. A type, a constant or a property says what it is in its name and its type. See code standards section 6.',
       noReason: 'A lint directive must say why, after ` -- `. See code standards section 6.',
     },
   },
@@ -129,8 +100,12 @@ const noComments = createRule({
     const documented = new Set<TSESTree.Comment>();
 
     /**
-     * Removes the comment, and the JSX braces around it when they hold nothing
-     * else — `{}` on its own is not valid where a comment container was.
+     * Builds the fix that removes a comment, taking the JSX braces with it where they hold nothing
+     * else, since `{}` on its own is not valid where a comment container was. A comment occupying
+     * its whole line takes the line with it rather than leaving a blank one behind.
+     *
+     * @param comment - The comment to remove.
+     * @returns The fix ESLint applies under `--fix`.
      */
     const remove = (comment: TSESTree.Comment): TSESLint.ReportFixFunction => {
       return (fixer) => {
@@ -165,6 +140,25 @@ const noComments = createRule({
         }
       };
     }
+
+    visitor.VariableDeclaration = (node: TSESTree.VariableDeclaration) => {
+      const [first] = node.declarations;
+      const held = first.init?.type;
+
+      if (
+        held !== TSESTree.AST_NODE_TYPES.ArrowFunctionExpression &&
+        held !== TSESTree.AST_NODE_TYPES.FunctionExpression
+      ) {
+        return;
+      }
+
+      const owner =
+        node.parent.type === TSESTree.AST_NODE_TYPES.ExportNamedDeclaration ? node.parent : node;
+
+      for (const comment of sourceCode.getCommentsBefore(owner)) {
+        documented.add(comment);
+      }
+    };
 
     return {
       ...visitor,

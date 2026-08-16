@@ -25,28 +25,35 @@ import { CastGrid } from './components/CastGrid/CastGrid';
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types';
 
-/**
- * How many faces stand in for a cast that has not arrived.
- */
 const CAST_PLACEHOLDERS = 5;
 
 /**
- * Where an item's artwork is served from.
+ * Builds the address an item's artwork is served from, served by Flux rather than by the catalogue so
+ * that a library keeps working when the catalogue does not.
+ *
+ * @param mediaId - The item.
+ * @param kind - Which artwork.
+ * @returns The address to load.
  */
 const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
   `/api/media/${mediaId}/image/${kind}`;
 
 /**
- * Everything known about one item, before deciding to watch it.
+ * Everything known about one item, for deciding whether to watch it: what it is about, who is in it,
+ * how it was made, and where this viewer left it. Offers both carrying on and starting again, since
+ * those are different intentions and only one of them can be the default.
  *
- * Laid out like a page about a film rather than a form about a file: the
- * preview runs across the top with the title over it, and the detail reads
- * down the page in the order someone wants it — what it is, who is in it, what
- * else there is.
- *
- * While the details are arriving, the shapes they will occupy are drawn in
- * their place. A panel that fills in without moving can be read as it loads;
- * one that grows as each part lands cannot.
+ * @param media - The item, or null while none is open.
+ * @param onClose - Told when the dialog was dismissed.
+ * @param onPlay - Told to start it, and where from.
+ * @param resumeSeconds - Where this viewer left it.
+ * @param watchedFractionFor - How far through each sibling they are.
+ * @param siblings - The other episodes of the same season.
+ * @param onSelectSibling - Told which sibling was chosen.
+ * @param onBack - Told to go back to whatever opened this.
+ * @param backLabel - What going back is called.
+ * @param isKept - Whether it is kept.
+ * @param onToggleKept - Told to keep it, or stop.
  */
 const MediaDetailDialog = ({
   media,
@@ -62,19 +69,8 @@ const MediaDetailDialog = ({
   onToggleKept,
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
-  /**
-   * Whether the description is still being read.
-   *
-   * Cleared when the dialog closes as well as when a read finishes: closing
-   * part-way through abandons whatever was in flight, so nothing was left to
-   * turn this off, and the next thing opened inherited it — showing its
-   * skeletons over a description that had already arrived.
-   */
   const [isLoading, setIsLoading] = useState(false);
 
-  /**
-   * The item whose lettering would not load, so the title falls back to words.
-   */
   const [unlettered, setUnlettered] = useState<string | null>(null);
   const [lastShown, setLastShown] = useState<MediaSummary | null>(null);
   const heldRef = useRef<{ resume: number | undefined; siblings: MediaSummary[] }>({

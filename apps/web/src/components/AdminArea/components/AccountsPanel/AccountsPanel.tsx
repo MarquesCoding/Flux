@@ -44,33 +44,13 @@ import type { Account } from '@FluxWeb/admin/fetchAccounts';
 import type { AccountPermissions, Refusal } from '@FluxWeb/admin/fetchRoles';
 import type { Permission, Role } from '@FluxContracts/schemas/Permission';
 
-/**
- * What is being asked about, while a confirmation is open.
- */
 type Asked = { kind: 'ban' | 'remove'; account: Account };
 
 /**
- * Who is on this server, and what each of them may do.
- *
- * Separate from the roles panel on purpose: that one answers "what does this
- * role mean", this one answers "what can this person do". They are the two
- * halves people actually come looking for, and putting both in one screen
- * meant editing a role and editing a person shared a page for no reason.
- *
- * Everything here goes through Flux's own routes, behind the permissions that
- * mean something. better-auth's admin endpoints are closed — they authorised
- * against the column the permission model replaced, and reaching for them
- * from here would have bypassed the model this panel exists to express.
- *
- * Which is why the list reports whether somebody is an administrator by what
- * their permissions resolve to rather than by what a column says: the two can
- * disagree, and only one of them decides what actually happens.
- *
- * Every role an account holds is shown on its row, not only the one that
- * matters most. Giving somebody a role and seeing nothing change until the
- * account is opened again reads as a press that did nothing.
- *
- * Inviting and editing an account are not here yet.
+ * Who is on this server and what each of them may do: their roles, the permissions set against them
+ * directly, and the ways an administrator can ban, unban or remove them. Permissions set against one
+ * person are shown beside their roles rather than hidden behind them, since that is where a
+ * surprising answer usually comes from.
  */
 const AccountsPanel = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);

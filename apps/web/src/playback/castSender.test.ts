@@ -11,8 +11,8 @@ import type {
 } from './castSender.types';
 
 /**
- * The library as it presents itself once it has loaded: a global it installs,
- * and a callback it expects to find waiting.
+ * The library as it presents itself once it has loaded: a global it installs, and a callback it
+ * expects to find waiting.
  */
 const installed = (
   state: CastConnectionState = 'NOT_CONNECTED',

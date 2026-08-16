@@ -11,6 +11,15 @@ import type { QualityClamp } from './resolveQualityStep';
 import { selectAudioStream } from './describeTrack';
 const IMAGE_SUBTITLE_FORMATS: readonly SubtitleFormat[] = ['pgs', 'vobsub', 'dvbsub'];
 
+/**
+ * Decides what the file should be delivered in: the container it is already in where the device
+ * says it can play it, and the fallback the device asked for otherwise. Every decision carries the
+ * reason for it, so a session can afterwards say why it did what it did.
+ *
+ * @param media - The file, as the catalogue holds it.
+ * @param profile - What the device says it can play.
+ * @returns The container decision and its reason.
+ */
 const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDecision => {
   const supported = profile.directPlayProfiles.some((entry) => entry.container === media.container);
 
@@ -36,6 +45,17 @@ const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDec
   };
 };
 
+/**
+ * Decides what to do with the picture: pass it through untouched where the device can play it as it
+ * is and it is within any ceiling asked for, or transcode it down to what it can. The ceiling is the
+ * tighter of what the device says it can take and what the viewer pinned, since a viewer choosing a
+ * lower quality means it, and a device saying it cannot manage a higher one is not negotiable.
+ *
+ * @param media - The file, as the catalogue holds it.
+ * @param profile - What the device says it can play.
+ * @param qualityClamp - What the viewer pinned quality to, where they pinned it.
+ * @returns The video decision, its reason, and the ceiling being encoded to where one applies.
+ */
 const decideVideo = (
   media: MediaItem,
   profile: DeviceProfile,
@@ -143,6 +163,18 @@ const decideVideo = (
   };
 };
 
+/**
+ * Decides what to do with the sound, having first picked which track the viewer means. A track the
+ * device can play is passed through; anything else is transcoded to what it asked for. Sound is
+ * decided separately from picture because the common case is a file whose picture is fine and whose
+ * sound is not, and remuxing one is far cheaper than re-encoding both.
+ *
+ * @param media - The file, as the catalogue holds it.
+ * @param profile - What the device says it can play.
+ * @param qualityClamp - What the viewer pinned quality to, where they pinned it.
+ * @param preferredLanguage - The language they would rather hear, where they said.
+ * @returns The audio decision, its reason, and the bitrate being encoded to where one applies.
+ */
 const decideAudio = (
   media: MediaItem,
   profile: DeviceProfile,
@@ -219,6 +251,15 @@ const decideAudio = (
   };
 };
 
+/**
+ * Decides what to do with subtitles: none where the file carries none, passed through where the
+ * device can render the format itself, and otherwise converted or burned into the picture. Burning
+ * in is the last resort, since it cannot afterwards be turned off.
+ *
+ * @param media - The file, as the catalogue holds it.
+ * @param profile - What the device says it can render.
+ * @returns The subtitle decision and its reason.
+ */
 const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDecision => {
   const stream = media.subtitleStreams[0];
 
@@ -263,24 +304,16 @@ const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDeci
 };
 
 /**
- * Decides how a media item should be delivered to a client.
+ * Decides how one file should reach one client, one axis at a time: whether its container, picture,
+ * sound and subtitles can be sent as they are, or have to be re-encoded, and why. Every decision
+ * carries the reason for it, so a session can explain itself afterwards rather than being a verdict
+ * nobody can argue with.
  *
- * Each axis is decided independently, so a mismatch on one can never force a
- * re-encode on another. This is what prevents the class of bug where an
- * unsupported video range silently strips lossless or Atmos audio.
- *
- * `qualityClamp` layers a viewer-picked quality step on top of the device's
- * own capability: it can only tighten the effective limit, never loosen it
- * beyond what the device already declared, and a transcode it alone causes
- * is reported as `UserForcedTranscode` rather than a capability mismatch.
- *
- * Pure by design: it depends only on the item, the profile, the clamp, and
- * nothing else. That is what makes the dry-run explainer possible. See
- * ADR-0011.
- *
- * `preferredAudioLanguage` comes from the item's library, not the device: a
- * library operator forcing a language is a statement about the collection,
- * not about what any one client can play.
+ * @param media - The file being played, as the scanner probed it.
+ * @param profile - What this client says it can play.
+ * @param qualityClamp - A ceiling a viewer chose, or nothing to let the client's own limits decide.
+ * @param preferredAudioLanguage - The language to pick an audio track in where the file has one.
+ * @returns The plan for this file and this client, axis by axis.
  */
 const negotiatePlayback = (
   media: MediaItem,

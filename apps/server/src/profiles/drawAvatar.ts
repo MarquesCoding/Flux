@@ -1,16 +1,6 @@
 import { createAvatar } from '@dicebear/core';
 import { adventurer, bottts, funEmoji, lorelei, notionists, thumbs } from '@dicebear/collection';
 
-/**
- * The styles somebody may choose from, each as the call that draws it.
- *
- * A short list rather than the whole collection: forty styles is a decision
- * nobody wants to make about a picture beside their name, and six is a glance.
- *
- * One function per style rather than one function over a map of styles,
- * because every style declares its own options and a map of them collapses to
- * a type no call can satisfy.
- */
 const AVATAR_STYLES = {
   adventurer: (seed: string) => createAvatar(adventurer, { seed, radius: 50 }).toString(),
   lorelei: (seed: string) => createAvatar(lorelei, { seed, radius: 50 }).toString(),
@@ -23,22 +13,22 @@ const AVATAR_STYLES = {
 type AvatarStyle = keyof typeof AVATAR_STYLES;
 
 /**
- * Whether this is a style Flux draws.
+ * Decides whether a stored value names a style Flux actually draws, so a value written by a newer
+ * version falls back rather than rendering nothing.
+ *
+ * @param candidate - The style as stored.
+ * @returns Whether it is one Flux can draw.
  */
 const isAvatarStyle = (candidate: string): candidate is AvatarStyle =>
   Object.hasOwn(AVATAR_STYLES, candidate);
 
 /**
- * Draws an avatar as an SVG.
+ * Draws a profile's avatar as an SVG, built from the style and colours it was given. Drawn here
+ * rather than fetched, so a household's faces never leave the server and never depend on one.
  *
- * Rendered here rather than in the browser, and from a library rather than
- * from an address: a self-hosted server should not tell a third party who has
- * profiles on it, and a picture that stops existing when somebody else's
- * service goes down is not a picture worth storing a reference to.
- *
- * The style and seed are all that is kept, so the same face comes back every
- * time from a few bytes rather than from a stored image.
-
+ * @param style - The style to draw in.
+ * @param seed - What the drawing is derived from, so the same profile is always drawn the same.
+ * @returns The avatar, as SVG.
  */
 const drawAvatar = (style: AvatarStyle, seed: string): string => AVATAR_STYLES[style](seed);
 

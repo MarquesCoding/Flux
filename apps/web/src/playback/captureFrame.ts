@@ -8,12 +8,6 @@ type DrawingContext = {
   ) => void;
 };
 
-/**
- * What this needs from a canvas, and nothing more.
- *
- * Narrower than `HTMLCanvasElement` so the capture can be tested without a
- * rendering engine, which jsdom does not have.
- */
 type DrawingSurface = {
   width: number;
   height: number;
@@ -22,15 +16,13 @@ type DrawingSurface = {
 };
 
 /**
- * Takes a still of whatever the player is showing.
+ * Takes a still of whatever the player is showing, so the picture can be held on screen while a
+ * session is torn down and another started — without it, changing quality or track blanks the
+ * element and reads as the player breaking.
  *
- * Used to hold the last frame on screen while a seek restarts the stream.
- * Without it the media element goes black the moment the old session is torn
- * down, which reads as the video having broken rather than as a seek.
- *
- * Answers with nothing rather than throwing when there is no frame to take:
- * this is decoration, and a seek must not fail because a still could not be
- * made.
+ * @param element - The video element to capture.
+ * @param canvas - A canvas to draw into.
+ * @returns The still as a data address, or null where the frame could not be read.
  */
 const captureFrame = (element: HTMLVideoElement, canvas: DrawingSurface): string | null => {
   if (element.videoWidth === 0 || element.videoHeight === 0) {
@@ -55,6 +47,6 @@ const captureFrame = (element: HTMLVideoElement, canvas: DrawingSurface): string
   }
 };
 
-export type { DrawingContext, DrawingSurface };
+export type { DrawingSurface };
 
 export { captureFrame };

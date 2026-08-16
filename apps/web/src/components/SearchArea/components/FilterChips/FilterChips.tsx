@@ -2,15 +2,15 @@ import { Button } from '@FluxUI/Button';
 import type { FilterChipsProps } from './FilterChips.types';
 
 /**
- * One thing to narrow by, offered as a row of chips.
+ * One thing to narrow a search by, offered as a row of chips rather than a menu — every one of these
+ * lists is short and already filtered to what the libraries actually hold, and the whole point of the
+ * row is seeing what there is to ask for. Pressing the chosen chip clears it, since a filter somebody
+ * can only add is one they have to hunt for a way out of.
  *
- * Chips rather than a dropdown because every one of these lists is short and
- * already filtered to what the library actually holds: a menu hides five
- * options behind a press, and the whole point of the row is being able to see
- * what there is to ask for.
- *
- * Nothing is drawn at all when there are no options, so a library with no
- * ratings or one language does not carry a heading over an empty space.
+ * @param legend - What the row narrows.
+ * @param options - What there is to choose from.
+ * @param value - What is chosen, or nothing.
+ * @param onValueChange - Told the new choice, or nothing when the chosen one was pressed again.
  */
 const FilterChips = ({ legend, options, value, onValueChange }: FilterChipsProps) => {
   if (options.length === 0) {

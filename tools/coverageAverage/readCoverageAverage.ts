@@ -1,10 +1,3 @@
-/**
- * What one package's coverage summary says, as counts rather than shares.
- *
- * Counts, because the average that matters is over the whole codebase: a
- * package holding forty statements at 100% should not weigh the same as one
- * holding four thousand at 90%.
- */
 type CoverageCounts = {
   statements: { covered: number; total: number };
   branches: { covered: number; total: number };
@@ -17,24 +10,18 @@ type CoverageAverage = {
   branches: number;
   functions: number;
   lines: number;
-  /**
-   * The mean of the four, which is the figure the repository is held to.
-   */
   average: number;
 };
 
 const MEASURES = ['statements', 'branches', 'functions', 'lines'] as const;
 
 /**
- * Works out how well covered the whole repository is.
+ * Works out how well covered the repository is as a whole, weighting each package by how much code
+ * it actually holds rather than averaging the percentages — otherwise a tiny package with perfect
+ * coverage counts for as much as the application it supports.
  *
- * Every package is held to thresholds of its own, which stop any one of them
- * slipping from where it stands. This is the other half: what the codebase
- * comes to taken together, so that a package with little in it cannot flatter
- * the whole and a large one cannot hide behind the small ones.
- *
- * A measure nothing declares — a package with no branches at all — counts as
- * covered, since there is nothing in it left out.
+ * @param summaries - Each package's coverage summary, as its test run wrote it.
+ * @returns The overall percentages across every package.
  */
 const readCoverageAverage = (summaries: readonly CoverageCounts[]): CoverageAverage => {
   const shares = MEASURES.map((measure) => {

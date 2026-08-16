@@ -1,22 +1,12 @@
-/**
- * The longest a name is allowed to be once it is an address.
- *
- * Long enough for any title somebody would say out loud, short enough that a
- * link can be read over the phone.
- */
 const LONGEST = 80;
 
 /**
- * What a series is called, as an address.
+ * Turns a programme's title into something safe to put in an address: accents flattened, everything
+ * lowered, and each run of anything else replaced by a single hyphen. Trimmed to a length that
+ * keeps a URL readable, since the slug identifies nothing on its own — it sits beside an id.
  *
- * A show is not a row in a table — it is every file that names the same
- * series — so it has no identifier of its own to be named by. Its title is the
- * only thing it has, and this is that title made safe to put in a URL and
- * stable enough to bookmark.
- *
- * Case and punctuation are dropped rather than encoded, so `A Sign of
- * Affection` and `a sign of affection!` are one show, which is what somebody
- * looking at a shelf would say too.
+ * @param seriesTitle - The programme's title as a catalogue gave it.
+ * @returns The title as lowercase words joined by hyphens.
  */
 const showSlug = (seriesTitle: string): string =>
   seriesTitle

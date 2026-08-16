@@ -407,10 +407,6 @@ describe('giving a profile an account of its own', () => {
 describe('a server built without profiles at all', () => {
   /**
    * The application with no profile service behind it.
-   *
-   * Every profile route asks for one before doing anything, and answers as
-   * though nobody is signed in when there is none — which is what a viewer
-   * would see on a deployment that left profiles out.
    */
   const withoutProfiles = () => {
     const { auth, settings } = createMemoryAuth();

@@ -6,10 +6,6 @@ const FPS = 10;
 
 /**
  * A run of frames that no other run will match by accident.
- *
- * Deliberately decorrelated: hashes that merely count upwards differ from
- * their neighbours in the low bits alone, so any two stretches of them match
- * within a few bits and every comparison finds a run that is not there.
  */
 const distinct = (seed: number, count: number): number[] => {
   let state = (seed * 0x9e3779b9) >>> 0;

@@ -6,24 +6,19 @@ import { Switch } from '@FluxUI/Switch';
 import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import type { NotificationBellProps } from './NotificationBell.types';
 
-/**
- * How many unread the count shows before it gives up counting.
- *
- * Nobody reads "37" as a number of things to do; past a point it is simply
- * "a lot", and a two-character badge keeps the dock from reflowing.
- */
 const COUNTED_UP_TO = 9;
 
 /**
- * The bell, and what is behind it.
+ * The bell in the dock and the list behind it: what has happened, what has not been read, and the
+ * switch for having them pushed to this device even when the application is closed.
  *
- * Lives among the dock's tools rather than its places, which is where the
- * shell's own notes said notifications belong: searching, notifications and
- * the account are things you do rather than places to browse.
- *
- * Opening marks nothing read on its own. A glance at a list is not the same
- * as having read it, and a bell that empties because somebody looked is one
- * that loses the thing they opened it to find. Clearing is a press.
+ * @param notifications - What to show, newest first.
+ * @param unread - How many have not been read, for the count on the bell.
+ * @param push - Whether push is on for this device, and how to change it.
+ * @param onOpen - Told when the list was opened.
+ * @param onRead - Told which notification was read.
+ * @param onReadAll - Told to mark everything read.
+ * @param onFollow - Told where a notification leads, when one is pressed.
  */
 const NotificationBell = ({
   notifications,

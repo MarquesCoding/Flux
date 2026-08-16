@@ -8,15 +8,12 @@ const FONT_FAMILIES = {
 } as const;
 
 /**
- * The edge drawn behind the lettering, at a given strength.
+ * Builds the edge drawn behind caption lettering at a chosen strength — an outline, a shadow, a
+ * raised or depressed edge — which is what keeps white text readable over a white shirt.
  *
- * Faded along with the text it belongs to. An outline that stayed solid while
- * the letters were turned down would keep the caption exactly as heavy as it
- * was — which is why the opacity control looked like it did nothing.
- *
- * A drop shadow reads on a bright scene; an outline reads on a busy one. Both
- * are built from text-shadow, which is the only edge treatment WebVTT cues
- * honour across browsers.
+ * @param edge - Which edge to draw.
+ * @param opacity - How strongly to draw it.
+ * @returns The CSS that draws it.
  */
 const edgeStyle = (edge: CaptionStyle['edgeStyle'], opacity: number): string => {
   const ink = (strength: number): string => `rgba(0, 0, 0, ${(strength * opacity).toFixed(2)})`;
@@ -59,10 +56,12 @@ const STORAGE_KEY = 'flux.captionStyle';
 const DEFAULT_CAPTION_STYLE: CaptionStyle = CaptionStyleSchema.parse({});
 
 /**
- * Turns a hex colour and an opacity into something CSS accepts.
+ * Turns a hex colour and an opacity into a colour CSS accepts, since captions are configured as a
+ * colour and a separate opacity but drawn as one value.
  *
- * Kept separate from the colour itself so a viewer can change how solid a
- * caption background is without also choosing its colour again.
+ * @param color - The colour as configured.
+ * @param opacity - How opaque it should be, from nothing to one.
+ * @returns The colour, as CSS.
  */
 const withOpacity = (color: string, opacity: number): string => {
   const hex = color.replace('#', '');
@@ -94,10 +93,10 @@ type CueDeclarations = {
 };
 
 /**
- * A caption style as the properties that draw it.
+ * Turns a viewer's caption preferences into the properties that draw them.
  *
- * One source for both the rule applied to `::cue` and the preview shown while
- * choosing, so what a viewer sees in the settings is what appears on the film.
+ * @param style - The preferences as configured.
+ * @returns The declarations to apply to the cues.
  */
 const toCueDeclarations = (style: CaptionStyle): CueDeclarations => ({
   fontFamily: FONT_FAMILIES[style.fontFamily],
@@ -108,12 +107,11 @@ const toCueDeclarations = (style: CaptionStyle): CueDeclarations => ({
 });
 
 /**
- * Writes a caption style as the CSS that renders it.
+ * Writes a viewer's caption preferences as the CSS rule that renders them, which is applied to the
+ * cue pseudo-element since that is the only way a browser lets captions be styled.
  *
- * Targets `::cue`, which is the only handle a page has on the text a browser
- * draws for a native track. The rest of the caption box — its position and
- * width — belongs to the browser, which is why this sets appearance and not
- * layout.
+ * @param style - The preferences as configured.
+ * @returns The stylesheet text to install.
  */
 const toCueCss = (style: CaptionStyle): string => {
   const declarations = toCueDeclarations(style);
@@ -128,10 +126,8 @@ const toCueCss = (style: CaptionStyle): string => {
 };
 
 /**
- * Reads a viewer's caption preferences.
- *
- * Anything unreadable or out of date falls back to the defaults rather than
- * throwing: a stale setting must not stop captions from being drawn.
+ * Reads how this viewer likes captions drawn. Held on the device rather than on the profile, since
+ * legibility depends on the screen and the room it is in.
  */
 const readCaptionStyle = (): CaptionStyle => {
   try {
@@ -150,11 +146,10 @@ const readCaptionStyle = (): CaptionStyle => {
 };
 
 /**
- * Remembers a viewer's caption preferences.
+ * Remembers a viewer's caption preferences on this device, since how captions should look is a
+ * property of the room and the screen rather than of the account.
  *
- * Kept in the browser rather than on the server: captions are read at arm's
- * length on a television and up close on a laptop, and the right size differs
- * per screen rather than per account.
+ * @param style - The preferences to remember.
  */
 const saveCaptionStyle = (style: CaptionStyle): void => {
   try {
@@ -162,12 +157,10 @@ const saveCaptionStyle = (style: CaptionStyle): void => {
   } catch {}
 };
 
-export type { CaptionStyle, CueDeclarations };
+export type { CaptionStyle };
 
 export {
-  CaptionStyleSchema,
   DEFAULT_CAPTION_STYLE,
-  FONT_FAMILIES,
   edgeStyle,
   STORAGE_KEY,
   toCueCss,

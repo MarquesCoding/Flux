@@ -10,11 +10,6 @@ import type { RemixiconComponentType } from '@remixicon/react';
 
 type Match = { prefix: string; icon: RemixiconComponentType };
 
-/**
- * Checked in this order for the same reason `detectClientLabel` builds its
- * label in this order: Edge and Opera's own labels still start with a name
- * a laxer check would mistake for Chrome.
- */
 const MATCHES: Match[] = [
   { prefix: 'Edge', icon: RiEdgeNewLine },
   { prefix: 'Opera', icon: RiOperaFill },
@@ -24,12 +19,12 @@ const MATCHES: Match[] = [
 ];
 
 /**
- * The icon a device label starts with, or a plain device icon for one that
- * names nothing recognised.
+ * Picks the icon for a device from what its label starts with, so a list of sessions can be read by
+ * shape rather than by name. Matched in order, since a Chromium-based browser names itself after
+ * both itself and Chromium and the more specific of the two is the useful one.
  *
- * Reads a label rather than a user agent because presence only ever carries
- * the label `detectClientLabel` already built — asking twice would mean
- * agreeing with itself on two separate parses.
+ * @param deviceLabel - What the session calls the device.
+ * @returns The icon to draw, or a plain device icon where nothing is recognised.
  */
 const deviceIconFor = (deviceLabel: string): RemixiconComponentType =>
   MATCHES.find((candidate) => deviceLabel.startsWith(candidate.prefix))?.icon ?? RiTvFill;

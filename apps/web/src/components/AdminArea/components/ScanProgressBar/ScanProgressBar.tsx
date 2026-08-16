@@ -1,16 +1,6 @@
 import { cn } from '@FluxUI/cn';
 import type { ScanProgressBarProps } from './ScanProgressBar.types';
 
-/**
- * What the server calls a phase, in words an operator reads.
- *
- * "Scrub previews" rather than thumbnails, which to most people means the image
- * you click on — in Flux, the poster — and rather than trickplay, which is the
- * broadcast term for scrubbing and means nothing to anybody outside it.
- *
- * These are the server's phases. The media service's queue has its own
- * vocabulary and its own map, in `describeQueueKind`.
- */
 const PHASE_LABELS: Record<string, string> = {
   probing: 'Probing',
   previews: 'Generating previews',
@@ -19,12 +9,14 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 /**
- * How far through a scan actually is.
+ * How far through a scan something actually is: which stage it has reached, and how many files it has
+ * got through where it is counting them. A scan that reports no counts still shows movement rather
+ * than an empty bar, since the absence of a count is not the absence of progress.
  *
- * Filled by a real fraction once the current phase has counted its files,
- * rather than an animation standing in for one. Labelled with the phase
- * itself so a bar that reaches the end of probing and starts again at zero
- * reads as moving on to the next stage, not as stalled.
+ * @param label - What is being worked on.
+ * @param phase - The stage it has reached, where it reports one.
+ * @param processed - How many files it has got through, where it counts them.
+ * @param total - How many there are in all, where that is known.
  */
 const ScanProgressBar = ({ label, phase, processed, total }: ScanProgressBarProps) => {
   const isKnown = processed !== null && total !== null;

@@ -1,26 +1,36 @@
 import type { AudioDecision, VideoDecision } from '@FluxContracts/schemas/PlaybackPlan';
 
 /**
- * Reads any plan axis as the decision plus the reason behind it.
+ * Writes one axis of a playback plan as a line an operator can read: the decision taken, and the
+ * reason the negotiator gave for it. Used for the container, video, audio and subtitle axes alike,
+ * so a session's whole plan reads in one voice.
  *
- * The shared shape every axis line reads as, whether it is a simple
- * passthrough/remux/none or one of the two axes with numbers of their own.
+ * @param kind - What was decided on this axis, such as `passthrough` or `transcode`.
+ * @param detail - The negotiator's reason, in its own words.
+ * @returns The decision and its reason, joined for display.
  */
 const describeAxis = (kind: string, detail: string): string => `${kind} — ${detail}`;
 
 /**
- * Reads the video axis with the resolution/bitrate ceiling actually being
- * encoded to, when it is transcoding.
+ * Writes the video axis of a plan, adding the ceiling actually being encoded to when the picture is
+ * being transcoded — a decision to transcode says nothing on its own about how far the picture is
+ * being cut down, which is the thing anybody reading this wants to know.
  *
- * `plan.video` already carries these numbers whether the transcode came from
- * device capability or a chosen quality step, so this is the one place they
- * need to be shown.
+ * @param video - The video decision the negotiator reached, with its reason and any ceiling.
+ * @returns The decision, its reason, and the size and bitrate being encoded to where one applies.
  */
 const describeVideoAxis = (video: VideoDecision): string =>
   video.kind === 'passthrough'
     ? describeAxis(video.kind, video.reason.detail)
     : `${describeAxis(video.kind, video.reason.detail)} (${video.maxWidth.toString()}x${video.maxHeight.toString()} @ ${video.maxBitrateKbps.toString()}kbps)`;
 
+/**
+ * Writes the audio axis of a plan, adding the bitrate actually being encoded to where the sound is
+ * being transcoded, for the same reason the video axis carries its ceiling.
+ *
+ * @param audio - The audio decision the negotiator reached, with its reason and any ceiling.
+ * @returns The decision, its reason, and the bitrate being encoded to where one applies.
+ */
 const describeAudioAxis = (audio: AudioDecision): string =>
   audio.kind === 'passthrough'
     ? describeAxis(audio.kind, audio.reason.detail)

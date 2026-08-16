@@ -49,8 +49,7 @@ const providerThat = (
 });
 
 /**
- * A provider that reports each item as it finishes with it, the way
- * fingerprinting does.
+ * A provider that reports each item as it finishes with it, the way fingerprinting does.
  */
 const providerThatTicks = (name = 'fingerprint'): SegmentProvider => ({
   name,

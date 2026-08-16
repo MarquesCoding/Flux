@@ -13,12 +13,13 @@ import type { WebhookSubscription } from '@FluxContracts/schemas/Webhook';
 import type { WebhooksPanelProps } from './WebhooksPanel.types';
 
 /**
- * How the last delivery went, in a word and a colour.
+ * Says how a subscription's last delivery went, in a word and a colour: never used, when it last
+ * succeeded, or what went wrong. The failing case is coloured because a webhook that has quietly
+ * stopped working looks exactly like one nothing has happened for.
  *
- * This is the reason the listing exists. A webhook that has quietly stopped
- * working looks exactly like one that works, right up until somebody needed
- * it and it was not there — so the state of the last attempt is the thing the
- * row leads with rather than something to go digging for.
+ * @param webhook - The subscription.
+ * @param now - The moment to measure against.
+ * @returns How alarming it is, and what to say.
  */
 const describeLastAttempt = (
   webhook: WebhookSubscription,
@@ -36,8 +37,23 @@ const describeLastAttempt = (
 };
 
 /**
- * Where an operator says what they want to be told about, and sees whether
- * they are still being told.
+ * Where an operator says what they want to be told about and sees whether they are still being told:
+ * the subscriptions, what each last did, and a way to test, pause, remove or look through the
+ * deliveries of any of them. A new subscription's secret is shown once, on creation, and never
+ * again.
+ *
+ * @param webhooks - The subscriptions configured.
+ * @param created - A subscription just made, whose secret is still being shown.
+ * @param onCreate - Called with a subscription to make, answering with any refusal.
+ * @param onDismissCreated - Called once the secret has been taken down.
+ * @param onSetEnabled - Called with a subscription and whether it should be delivering.
+ * @param onDelete - Called with the subscription to remove.
+ * @param onTest - Called with the subscription to send a test to.
+ * @param deliveries - The deliveries of whichever subscription's history is open.
+ * @param openHistoryId - The subscription whose history is open, if any.
+ * @param isHistoryLoading - Whether that history is still being fetched.
+ * @param onOpenHistory - Called with the subscription whose history to open, or null to close it.
+ * @param onRedeliver - Called with a delivery to send again.
  */
 const WebhooksPanel = ({
   webhooks,

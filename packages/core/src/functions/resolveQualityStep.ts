@@ -14,13 +14,14 @@ type QualityClamp = {
 };
 
 /**
- * Resolves a requested quality step against a source into a clamp, or `null`
- * when no clamp should apply.
+ * Turns a viewer's chosen quality into the ceiling the negotiator should work under, given what the
+ * file actually is. Asking for the original, or for a step this file cannot honour, comes back as
+ * no ceiling at all rather than as an error — a request that cannot be met should leave playback
+ * exactly as it would have been.
  *
- * `null` covers two cases that both mean "treat this like Original": the
- * viewer picked Original itself, or the step would not actually reduce
- * anything below what the source already is — forcing a re-encode of an
- * already-modest file wastes a transcode slot for no visible benefit.
+ * @param media - The file being played.
+ * @param requested - The step a viewer chose, or `original` to accept the file as it is.
+ * @returns The ceiling to encode under, or null where the file should be left alone.
  */
 const resolveQualityStep = (
   media: MediaItem,

@@ -1,52 +1,22 @@
 import { ADMINISTRATOR } from '@FluxContracts/schemas/Permission';
 import type { Permission } from '@FluxContracts/schemas/Permission';
 
-/**
- * Why a change to a role was refused.
- *
- * `outranked` — the role sits at or above the highest the actor holds.
- * `escalation` — the change would grant something the actor does not have.
- */
 type RoleChangeRefusal = 'outranked' | 'escalation';
 
 type CheckRoleChangeOptions = {
-  /**
-   * The highest position among the roles the actor holds, or null when they
-   * hold none.
-   */
   actorHighestPosition: number | null;
   actorPermissions: ReadonlySet<Permission>;
-  /**
-   * Where the role being touched sits. For a change of position, the higher
-   * of the old and the new — moving a role you may manage up above yourself
-   * is the same escape as editing one already above you.
-   */
   targetPosition: number;
-  /**
-   * What the change would have the role grant. Empty when the change grants
-   * nothing new, such as a rename.
-   */
   granting?: readonly Permission[];
 };
 
 /**
- * Whether an account may make this change to a role, and why not.
+ * Decides whether an account may change a role, and says why not when it may not. Two rules, both
+ * about not exceeding your own reach: a role at or above your own highest is out of bounds, and you
+ * cannot grant a permission you do not hold yourself. An administrator is exempt from both.
  *
- * Two rules, and without both of them "may manage roles" quietly means "may
- * make myself an administrator":
- *
- * 1. **Rank.** A role at or above the actor's own highest is out of reach.
- *    At, not merely above — being able to edit your own rank is being able to
- *    edit everybody at it.
- * 2. **No granting what you do not hold.** Somebody with `jobs.run` cannot
- *    build a role that grants `server.settings`, hand it to themselves, and
- *    arrive somewhere they were never permitted.
- *
- * `administrator` bypasses both, because it already implies every permission
- * and there is nothing above it to be outranked by. Refusing it would leave
- * the operator unable to edit the Administrator role itself.
- *
- * Answers null when the change is allowed.
+ * @param options - How senior the actor is, what they may do, the role being changed, and any permissions being granted to it.
+ * @returns Why the change is refused, or null where it is allowed.
  */
 const checkRoleChange = ({
   actorHighestPosition,

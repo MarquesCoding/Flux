@@ -1,30 +1,17 @@
 import { formatBytes } from '@FluxCore/functions/formatBytes';
 import type { WebhookPayload, WebhookPreset } from '@FluxContracts/schemas/Webhook';
 
-/**
- * A request as a preset wants it written.
- *
- * The content type travels with the body because the presets disagree about
- * it: ntfy takes the message as plain text, and telling it `application/json`
- * gets the JSON printed into somebody's notification verbatim.
- */
 type WebhookRequestBody = {
   body: string;
   contentType: string;
 };
 
 /**
- * What happened, in a sentence somebody reads on a phone.
+ * Writes what happened as one sentence, for the chat services that show a line rather than render a
+ * payload — a delivery nobody can read on a phone is a delivery that may as well not have been sent.
  *
- * Written per event rather than assembled from the identifier, because
- * `job.failed` turned into prose mechanically reads "job failed", which is
- * the one thing the reader already knows from having been sent it at all.
- * What they need is which job, and why.
- *
- * A recovery says so plainly and says nothing needs doing, because it arrives
- * through the same channel, at the same hour, looking like the alert that
- * woke somebody. Delivered with the same weight as an outage it reads as a
- * second alarm, and the point of sending it is the opposite.
+ * @param payload - What happened.
+ * @returns The sentence to send.
  */
 const sentenceFor = (payload: WebhookPayload): string => {
   switch (payload.event) {
@@ -83,17 +70,9 @@ const sentenceFor = (payload: WebhookPayload): string => {
 };
 
 /**
- * Writes a delivery the way its subscriber reads.
- *
- * A preset is a body shape and nothing else. The same event, the same
- * retries, the same signature — only the encoding differs, so adding one
- * later means adding a case here rather than a second delivery path.
- *
- * `generic` sends Flux's own envelope, which is the one to build against:
- * it carries the version, the event name and typed data, and it is the only
- * form that keeps everything the server knew. The other two are lossy on
- * purpose, because neither Discord nor ntfy can be asked to understand an
- * envelope and both are read by a person rather than by a program.
+ * Writes a delivery in the shape its subscriber expects — the event itself for anything generic, and
+ * the message shapes Discord and Slack require for those. The same event, said in whichever way the
+ * receiver understands.
  *
  * @param preset The shape this subscriber expects.
  * @param payload The event being delivered.
@@ -118,5 +97,3 @@ const formatWebhookBody = (preset: WebhookPreset, payload: WebhookPayload): Webh
 };
 
 export { formatWebhookBody };
-
-export type { WebhookRequestBody };

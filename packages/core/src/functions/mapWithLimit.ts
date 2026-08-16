@@ -1,16 +1,12 @@
 /**
- * Runs work over a list, several at a time but never all at once.
+ * Works through a list with a fixed number of things happening at once, keeping the answers in the
+ * order the items were given rather than the order they finished. This is what stops a scan of ten
+ * thousand files from opening ten thousand of anything at once.
  *
- * Media work is measured in whole processes: one ffmpeg per file, each willing
- * to take every core and a gigabyte with it. Doing them one after another
- * leaves a machine idle; doing them all at once is how a transcoder dies
- * halfway through a library and takes the queue's memory of what it was doing
- * with it.
- *
- * Order is preserved in the results even though the work is not done in order,
- * so a caller can pair answers with what it asked about.
- *
- * A limit below one is treated as one. Nought would mean nothing ever runs.
+ * @param items - What to work through.
+ * @param limit - How many to have in flight at once, at least one.
+ * @param work - What to do with each, given the item and where it sits in the list.
+ * @returns The answers, in the order of the items.
  */
 const mapWithLimit = async <Item, Answer>(
   items: readonly Item[],

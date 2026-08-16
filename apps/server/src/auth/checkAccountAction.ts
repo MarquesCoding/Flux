@@ -1,50 +1,24 @@
 import { ADMINISTRATOR } from '@FluxContracts/schemas/Permission';
 import type { Permission } from '@FluxContracts/schemas/Permission';
 
-/**
- * Why acting on an account was refused.
- *
- * `outranked` — the account sits at or above the actor's own highest rank.
- * `self` — somebody tried it on themselves.
- */
 type AccountActionRefusal = 'outranked' | 'self';
 
 type CheckAccountActionOptions = {
   actorId: string;
   actorPermissions: ReadonlySet<Permission>;
-  /**
-   * The highest rank among the roles the actor holds, or null when none.
-   */
   actorHighestPosition: number | null;
   targetId: string;
-  /**
-   * The highest rank the target holds, or null when it holds no role.
-   */
   targetHighestPosition: number | null;
 };
 
 /**
- * Whether one account may ban or remove another.
+ * Decides whether one account may ban or remove another, and says why not when it may not. Rank
+ * decides it: nobody may act on somebody at or above their own highest role, which is what stops a
+ * moderator removing an administrator. An administrator is exempt, and nobody may act on themselves
+ * however senior they are.
  *
- * Two rules, and the second is the one people forget:
- *
- * 1. **Rank.** An account at or above the actor's own highest is out of
- *    reach — at, not merely above, because being able to act on your own rank
- *    is being able to act on everybody at it.
- * 2. **Not yourself.** Banning yourself locks you out of the server you were
- *    administering, and removing yourself destroys your own profiles and
- *    history. Neither is ever what somebody meant, and the last-administrator
- *    check does not catch either — a server with two administrators would let
- *    one delete themselves by accident.
- *
- * `administrator` bypasses the rank rule, having nothing above it, but **not**
- * the self rule. The operator is exactly the person whose accidental
- * self-removal would be worst.
- *
- * An account holding no role at all outranks nobody, which is why a null
- * target position is treated as below everything rather than above it.
- *
- * Answers null when the action is allowed.
+ * @param options - Who is acting, what they may do, how senior they are, and who they are acting on.
+ * @returns Why the action is refused, or null where it is allowed.
  */
 const checkAccountAction = ({
   actorId,

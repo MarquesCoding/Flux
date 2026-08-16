@@ -6,15 +6,14 @@ import type { QrCodeProps } from './QrCode.types';
 const DEFAULT_SIZE = 192;
 
 /**
- * Renders a value as a scannable QR code.
+ * Draws a value as a QR code, for handing something to a phone that would be miserable to type — a
+ * sign-in address, a pairing code. Rendered here rather than fetched, so nothing about it leaves
+ * the server.
  *
- * Produced as a data URL and shown in an `<img>` rather than drawn to a canvas
- * or inlined as SVG: it keeps the codebase free of raw SVG (code standards
- * section 10), and an image carries an accessible name where a canvas does not.
- *
- * A QR code is never the only way to read the value. Callers must also present
- * it as text, because a code that can only be scanned is unusable to anyone
- * setting up on the same device they are reading from.
+ * @param value - What the code should carry.
+ * @param label - What scanning it does, for anybody who cannot see the code.
+ * @param size - How large to draw it, in pixels.
+ * @param className - Extra classes for the caller's own layout.
  */
 const QrCode = ({ value, label, size = DEFAULT_SIZE, className }: QrCodeProps) => {
   const [dataUrl, setDataUrl] = useState<string | null>(null);

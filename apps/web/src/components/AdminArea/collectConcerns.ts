@@ -4,13 +4,6 @@ import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
 import { formatBytes } from '@FluxCore/functions/formatBytes';
 
-/**
- * How much somebody should care, which is what decides the order.
- *
- * `broken` — something is not working and playback may be affected.
- * `attention` — nothing is broken, but something needs a person.
- * `setup` — the instance works and is not finished being set up.
- */
 type ConcernTone = 'broken' | 'attention' | 'setup';
 
 type Concern = {
@@ -18,10 +11,6 @@ type Concern = {
   tone: ConcernTone;
   title: string;
   detail: string;
-  /**
-   * Which panel explains it, so the overview can be a way in rather than a
-   * place that tells you something is wrong and leaves you to find it.
-   */
   panel: string;
 };
 
@@ -29,103 +18,40 @@ type CollectConcernsOptions = {
   overview: AdminOverview | null;
   monitor: Monitor | null;
   libraries: Library[];
-  /**
-   * Who is watching, so a viewer whose stream keeps running dry is reported
-   * rather than merely visible on another panel.
-   */
   sessions?: ActiveSession[];
-  /**
-   * Processor readings, oldest first. Sustained load is worth mentioning and
-   * one high reading is not — a transcode pinning the box for a moment is the
-   * server working, not failing.
-   */
   history?: number[];
-  /**
-   * Encoder readings, oldest first, and only from a card that reports its
-   * encode block. A machine that cannot measure its encoder contributes no
-   * readings rather than zeroes, so nothing here can mistake an unreadable
-   * encoder for an idle one.
-   */
   encoderHistory?: number[];
 };
 
-/**
- * The share of memory in use past which it is worth mentioning.
- *
- * High enough that an ordinary server running warm says nothing — a media
- * server using most of its memory for page cache is working correctly, and a
- * warning that is usually on is one nobody reads.
- */
 const MEMORY_PRESSURE = 0.92;
 
-/**
- * The processor share, sustained, past which it is worth mentioning.
- *
- * Measured across a run of readings rather than the latest one, because a
- * transcode starting takes the box to a hundred percent for a few seconds and
- * that is the server doing its job.
- */
 const CPU_PRESSURE = 90;
 
-/**
- * How many readings have to agree before load counts as sustained.
- *
- * A reading a second, so this is the last quarter minute.
- */
 const CPU_READINGS = 15;
 
-/**
- * The encoder share, sustained, past which it is worth mentioning.
- *
- * The same reasoning as the processor: a stream starting takes the encode
- * block to full for a moment and that is the card doing its job. What is worth
- * saying is that it has stayed there, because the next stream to ask for
- * hardware will not get it.
- */
 const ENCODER_PRESSURE = 90;
 
-/**
- * The share of the library disk in use past which it is worth mentioning.
- *
- * Higher than the memory threshold because a media disk is meant to be full —
- * somebody who has filled eight terabytes has been collecting, not leaking.
- * What is worth saying is that the next scan may have nowhere to write.
- */
 const DISK_PRESSURE = 0.95;
 
-/**
- * The share of the machine Flux has to be using before the load is its doing.
- *
- * Half is enough to answer the question somebody asks when the box is hot:
- * whether to look at Flux or at whatever else the machine runs. Below it,
- * Flux is a passenger and the transcodes are the ones being starved.
- */
 const FLUX_BLAME = 50;
 
-/**
- * How little buffer a playing stream can hold before it is in trouble.
- *
- * Below this and the next stall is seconds away rather than hypothetical.
- */
 const STARVED_SECONDS = 2;
 
 const TONE_ORDER: Record<ConcernTone, number> = { broken: 0, attention: 1, setup: 2 };
 
 /**
- * What is wrong with this server right now, worst first.
+ * Gathers everything wrong with this server into one ordered list, worst first: a service that cannot
+ * be reached, jobs that failed, resources under pressure, streams about to stall, and libraries
+ * nobody has scanned yet. Each carries the panel it can be dealt with in, so the banner can send an
+ * administrator straight there rather than describing where to look.
  *
- * Everything here is already on screen somewhere — a failed job in the job
- * list, a library that has never scanned in the library list, the transcoder
- * badge in the header. The point is that answering "is everything all right"
- * currently means visiting four panels and assembling it yourself.
- *
- * Deliberately quiet. Anything reported here has to be worth interrupting
- * somebody for, or the overview becomes a page of warnings that are always
- * present and therefore never read. A server with nothing to say answers with
- * nothing.
- *
- * Nulls are treated as "not known yet" rather than as problems: a page that
- * has not finished loading is not a page full of faults.
+ * @param overview - What the server reports about itself, or null before it has answered.
+ * @param monitor - The live readings, or null before any have arrived.
+ * @param libraries - The libraries configured.
+ * @param sessions - What is being watched at the moment.
+ * @param history - Recent processor readings, used to tell a spike from sustained load.
+ * @param encoderHistory - The same for the graphics encoder.
+ * @returns The concerns, broken things before things merely wanting attention.
  */
 const collectConcerns = ({
   overview,
@@ -312,14 +238,5 @@ const collectConcerns = ({
   return [...concerns].sort((a, b) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone]);
 };
 
-export {
-  collectConcerns,
-  MEMORY_PRESSURE,
-  CPU_PRESSURE,
-  CPU_READINGS,
-  ENCODER_PRESSURE,
-  DISK_PRESSURE,
-  FLUX_BLAME,
-  STARVED_SECONDS,
-};
+export { collectConcerns };
 export type { Concern, ConcernTone };

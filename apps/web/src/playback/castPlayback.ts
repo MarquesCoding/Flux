@@ -1,21 +1,14 @@
 import type { CastState } from './castPlayback.types';
 
-/**
- * The names a machine calls itself.
- *
- * A page served from one of these is a page nothing else on the network can
- * follow: a television handed `http://localhost/...` would fetch from its own
- * software, which is not running Flux.
- */
 const OWN_NAMES = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
 
 /**
- * Whether a device on the network could fetch anything from here.
+ * Decides whether a device elsewhere on the network could actually fetch from this address — a
+ * television cannot reach `localhost`, and offering to cast from an address only this machine can
+ * resolve produces a device that sits there loading for ever.
  *
- * Asked of the address the viewer is reading the page at, because that is the
- * address a receiver will be given. Somebody browsing their own server by name
- * or by address can cast; somebody browsing it as `localhost` cannot, and is
- * told so rather than left with a picker that leads nowhere.
+ * @param origin - The address this page was served from.
+ * @returns Whether something else on the network could reach it.
  */
 const isReachableOrigin = (origin: string): boolean => {
   try {
@@ -26,10 +19,12 @@ const isReachableOrigin = (origin: string): boolean => {
 };
 
 /**
- * The address of a stream as somewhere else would have to ask for it.
+ * Rewrites a stream address as something else on the network would have to ask for it, since a
+ * relative address means nothing to a television.
  *
- * Streams are named relatively, which is right for a page fetching its own
- * server and useless to a device that has never heard of it.
+ * @param url - The stream's path on this server.
+ * @param origin - The address this server is reachable at.
+ * @returns The absolute address to hand the device.
  */
 const absoluteStreamUrl = (url: string, origin: string): string | null => {
   if (!isReachableOrigin(origin)) {
@@ -44,17 +39,13 @@ const absoluteStreamUrl = (url: string, origin: string): string | null => {
 };
 
 /**
- * Watches for somewhere to play, and for the playing having moved there.
+ * Watches for devices appearing and disappearing on the network, and for playback having moved to
+ * one, so the button that offers to cast knows whether there is anywhere to cast to.
  *
- * Two mechanisms because there are two: the standard remote playback interface,
- * which Chrome offers for devices it can reach, and Safari's own, which
- * predates it. A browser has one or the other, never both, and the caller
- * should not have to know which.
- *
- * Says nothing at all where the browser has neither, which is the only way a
- * caller learns there is nothing to offer.
- *
- * Answers with the function that stops watching.
+ * @param element - The video being played, which on Safari is what carries the availability of a
+ *   device to play it on.
+ * @param onChange - Told whenever the state changes.
+ * @returns The function that stops watching.
  */
 const watchCastState = (
   element: HTMLVideoElement,
@@ -131,25 +122,14 @@ const watchCastState = (
   };
 };
 
-/**
- * Why a picker did not open.
- *
- * `refused` is the one worth saying out loud: the standard interface is only
- * offered over a secure connection, so a server read over plain HTTP at its
- * address on the network — which is exactly how it has to be read for casting
- * to be any use — is refused by the browser rather than by anything here.
- */
 type PromptOutcome = 'shown' | 'dismissed' | 'refused' | 'unsupported';
 
 /**
- * Asks the browser to show its list of devices.
+ * Asks the browser to show its own list of devices, since choosing one is something only the browser
+ * may put on screen.
  *
- * The browser's own list rather than one drawn here: no page is allowed to
- * know what is on somebody's network, since a list of it is a fingerprint.
- *
- * Answers with what happened rather than with whether it worked, because the
- * difference between a viewer closing a picker and a browser refusing to open
- * one is the difference between saying nothing and saying what to do.
+ * @param element - The cast context to prompt through.
+ * @returns The device chosen, or null where nobody chose one.
  */
 const promptForDevice = async (element: HTMLVideoElement): Promise<PromptOutcome> => {
   if (typeof element.webkitShowPlaybackTargetPicker === 'function') {
@@ -180,6 +160,4 @@ const promptForDevice = async (element: HTMLVideoElement): Promise<PromptOutcome
   }
 };
 
-export type { PromptOutcome };
-
-export { isReachableOrigin, absoluteStreamUrl, watchCastState, promptForDevice, OWN_NAMES };
+export { isReachableOrigin, absoluteStreamUrl, watchCastState, promptForDevice };

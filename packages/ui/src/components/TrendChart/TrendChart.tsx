@@ -4,22 +4,25 @@ import { cn } from '@FluxUI/cn';
 import type { TrendChartProps } from './TrendChart.types';
 
 /**
- * What Recharts wants: a row per reading rather than a list of numbers.
+ * Turns a list of readings into the row-per-reading shape the charting library expects, since it
+ * takes objects rather than numbers.
+ *
+ * @param values - The readings, oldest first.
+ * @returns One row per reading.
  */
 const toRows = (values: number[]): { at: number; value: number }[] =>
   values.map((value, at) => ({ at, value }));
 
 /**
- * A reading over time, drawn as a filled line.
+ * Draws one reading over time as a filled line, for figures that only mean something in motion —
+ * throughput, sessions, cache size. The ceiling is given rather than taken from the data, so a
+ * chart does not rescale itself every time a reading arrives and make a flat line look dramatic.
  *
- * For the figures somebody watches rather than reads: whether the processor
- * has been at eighty for a minute or spiked once is a different fact from
- * "eighty per cent", and only the shape says which.
- *
- * No axes and no gridlines. This is the shape of a number that is already
- * printed in full somewhere above it, and a chart that has to be read twice is
- * not doing that job. Resting on it names the reading under the pointer, which
- * is the one question the shape alone cannot answer.
+ * @param values - The readings, oldest first.
+ * @param ceiling - The top of the scale.
+ * @param label - What is being measured, read out to anybody who cannot see the chart.
+ * @param caption - A line beneath it, such as the period covered.
+ * @param className - Extra classes for the caller's own layout.
  */
 const TrendChart = ({ values, ceiling, label, caption, className }: TrendChartProps) => {
   const fillId = useId();

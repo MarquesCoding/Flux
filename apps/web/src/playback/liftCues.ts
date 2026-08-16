@@ -1,17 +1,12 @@
 /**
- * Keeps a video's subtitles clear of whatever is drawn over its foot.
+ * Lifts subtitles clear of the control bar while it is showing, by moving each cue's line rather
+ * than by restyling the track — a browser draws cues itself, and there is no other way to reach
+ * them. Answers with a way to stop, and a way to apply the current line again after the bar appears
+ * or goes.
  *
- * A browser lifts cues above its own controls and knows nothing about ours, so
- * a bar laid over the bottom of a film covers the line somebody is reading.
- * The cues are moved instead, which is the only thing that works: `::cue`
- * cannot be positioned, and the cue box lives in a shadow tree the page cannot
- * reach any other way.
- *
- * Cues arrive after the track does, so setting a line once lifts nothing.
- * Every moment a cue changes is a moment there are cues to move, which makes
- * that the one event worth listening to.
- *
- * Answers with the function that stops watching.
+ * @param element - The video whose cues are being drawn.
+ * @param lineAt - Where the cues should sit at this moment.
+ * @returns How to apply the current line, and how to stop lifting at all.
  */
 const liftCues = (
   element: HTMLVideoElement,
@@ -67,17 +62,8 @@ const liftCues = (
   };
 };
 
-/**
- * How far down the picture a cue sits while nothing is over it.
- */
 const CUE_LINE_CLEAR = 92;
 
-/**
- * How far down it sits while the controls are up.
- *
- * High enough to clear a bar the depth of the player's, which is a scrub line
- * and a row of buttons.
- */
 const CUE_LINE_ABOVE_CONTROLS = 80;
 
 export { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS };

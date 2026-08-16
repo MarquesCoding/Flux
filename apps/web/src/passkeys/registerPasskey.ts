@@ -7,20 +7,22 @@ type RegisterOutcome =
 
 const CANCELLED_ERRORS = new Set(['NotAllowedError', 'AbortError']);
 
+/**
+ * Reads the enrollment challenge the server issued, through a schema — this is handed straight to
+ * the browser's credential machinery, which is not somewhere to pass an unchecked object.
+ *
+ * @param response - The server's answer.
+ * @returns The challenge to enrol against.
+ */
 const readChallenge = async (response: Response): Promise<PublicKeyCredentialCreationOptionsJSON> =>
   PasskeyRegistrationOptionsSchema.parse(await response.json());
 
 /**
- * Runs the WebAuthn registration ceremony and hands the result to the server.
+ * Runs the browser's registration ceremony and hands the result to the server, which is how a device
+ * becomes something somebody can sign in with instead of a password.
  *
- * better-auth returns options already in `@simplewebauthn` JSON form and
- * verifies with the matching major version of that library, so the browser
- * half is delegated rather than hand-rolled. Getting base64url encoding subtly
- * wrong here fails inside the authenticator with no useful error.
- *
- * A user dismissing the platform prompt is reported as `cancelled` rather than
- * as a failure: declining is an ordinary choice and must not be shown as an
- * error.
+ * @param name - What to call this device in the list of passkeys.
+ * @returns Whether it worked, and why not where it did not.
  */
 const registerPasskey = async (name: string): Promise<RegisterOutcome> => {
   try {
@@ -55,7 +57,5 @@ const registerPasskey = async (name: string): Promise<RegisterOutcome> => {
     return { kind: 'failed', reason: 'Your device could not create a passkey.' };
   }
 };
-
-export type { RegisterOutcome };
 
 export { registerPasskey };

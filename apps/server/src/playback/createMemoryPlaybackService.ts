@@ -11,7 +11,11 @@ type MemoryPlaybackState = {
 };
 
 /**
- * A one-chunk stream, standing in for a file arriving from the media service.
+ * Builds a stream of one chunk, standing in for a file arriving from the media service so the routes
+ * can be exercised without one.
+ *
+ * @param content - What the stream should carry.
+ * @returns The stream.
  */
 const streamOf = (content: string): ReadableStream<Uint8Array> =>
   new ReadableStream({
@@ -22,11 +26,11 @@ const streamOf = (content: string): ReadableStream<Uint8Array> =>
   });
 
 /**
- * Playback held in memory.
+ * Playback held in memory, so the routes can be exercised without a media service — sessions start,
+ * heartbeat and stop, and files arrive, without anything being encoded.
  *
- * Runs the real negotiator over the supplied items, so the routes are tested
- * against genuine plans rather than canned ones. Only the media service is
- * stood in for.
+ * @param state - Any sessions that should already exist.
+ * @returns The playback service.
  */
 const createMemoryPlaybackService = (
   state: MemoryPlaybackState = { media: {}, sessions: {} },
@@ -165,7 +169,5 @@ const createMemoryPlaybackService = (
 
   heartbeat: (sessionId) => Promise.resolve(state.sessions[sessionId] !== undefined),
 });
-
-export type { MemoryPlaybackState };
 
 export { createMemoryPlaybackService };

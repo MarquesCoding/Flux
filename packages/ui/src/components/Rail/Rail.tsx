@@ -7,24 +7,15 @@ import { PageDots } from '@FluxUI/PageDots';
 import type { RailProps } from './Rail.types';
 
 /**
- * A horizontally scrolling row of items.
+ * One titled row of a library, scrolling sideways rather than wrapping, which is how a shelf is
+ * read: along, not down. The title can lead somewhere when there is more than the row shows, and
+ * the caller can hang a control off the right of it.
  *
- * Rows rather than a grid because a library is browsed by mood, not by index:
- * a viewer skims along a theme until something catches them.
- *
- * Scrolling is a real overflow rather than a transform, so a trackpad, a touch
- * screen and a keyboard all work without being taught to. The markers exist
- * for a mouse, which has none of those, and they are told where they are by
- * whatever else did the scrolling.
- *
- * The cards arrive in order rather than all at once, which gives the eye the
- * left-hand end to start at — a row that appears complete has no beginning.
- * They are `RevealItem`s, handed in by whoever fills the row.
- *
- * The track's `-my-6 py-6` is load-bearing: a browser will not give one axis a
- * scrollbar and leave the other free, so scrolling sideways clips the top of a
- * card that lifts on hover. The padding is the room it lifts into and the
- * negative margin gives that space back to the page.
+ * @param title - What the row holds.
+ * @param children - The cards in it.
+ * @param action - A control for the right of the title bar, such as a way to see everything.
+ * @param onOpenTitle - Told when the title was pressed, where the row leads somewhere fuller.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Rail = ({ title, children, action, onOpenTitle, className }: RailProps) => {
   const { trackRef, pages, measure, scrollTo } = usePagedScroller<HTMLUListElement>([children]);

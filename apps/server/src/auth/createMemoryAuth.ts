@@ -8,23 +8,17 @@ import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
 
 const TEST_SECRET = 'flux-test-secret-value-at-least-32-chars';
 
-/**
- * A signed-up user, as the memory adapter stores it.
- *
- * Typed with `role` rather than left to inference, so a test can promote a
- * user to admin (`store.user[0].role = 'admin'`) without a cast.
- */
 type MemoryUserRow = { id: string; role?: string };
 
-/**
- * An open session, as the memory adapter stores it.
- *
- * Typed for the same reason the user row is: a test about what the devices
- * list shows has to be able to say a session came from an address, and the
- * adapter only records one when a request carried it.
- */
 type MemorySessionRow = { id: string; token: string; ipAddress?: string | null };
 
+/**
+ * Builds the empty tables the in-memory auth adapter works against, one per table the auth library
+ * expects to find, so that a fresh store is a fresh store rather than one carrying the last test's
+ * rows.
+ *
+ * @returns The tables, all empty.
+ */
 const emptyStore = (): {
   user: MemoryUserRow[];
   session: MemorySessionRow[];
@@ -48,11 +42,12 @@ const emptyStore = (): {
 });
 
 /**
- * Builds an in-memory authentication layer and its settings store.
+ * Builds an authentication layer and settings store held in memory, so the HTTP surface can be
+ * tested without Postgres. Models the behaviour the routes depend on — signing up, signing in,
+ * sessions, missing accounts — and nothing else.
  *
- * Used by tests so that the suite never requires a running Postgres. The
- * configuration is otherwise identical to production, so cookie and origin
- * behaviour is exercised rather than stubbed.
+ * @param overrides - Anything to start with, such as accounts that already exist.
+ * @returns The authentication layer, its settings store, and the state behind them.
  */
 const createMemoryAuth = (
   overrides: Partial<NodeJS.ProcessEnv> = {},
@@ -61,13 +56,6 @@ const createMemoryAuth = (
   settings: SettingsStore;
   profiles: string[];
   resetLinks: { email: string; url: string }[];
-  /**
-   * The raw in-memory rows behind `auth`.
-   *
-   * Exposed so a test can promote a signed-up user to admin directly
-   * (`store.user[0].role = 'admin'`) without a real database to run
-   * `promoteToAdmin` against.
-   */
   store: ReturnType<typeof emptyStore>;
 } => {
   const profiles: string[] = [];
@@ -115,4 +103,4 @@ const createMemoryAuth = (
   return { auth, settings, profiles, resetLinks, store };
 };
 
-export { createMemoryAuth, TEST_SECRET };
+export { createMemoryAuth };

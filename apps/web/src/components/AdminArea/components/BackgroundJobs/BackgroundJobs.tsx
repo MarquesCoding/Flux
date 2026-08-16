@@ -8,12 +8,11 @@ import type { Job } from '@FluxWeb/admin/fetchAdmin';
 import type { BackgroundJobsProps } from './BackgroundJobs.types';
 
 /**
- * What the queue is saying, as one string.
+ * Sums up what the queue is doing in one line, so the heading says whether anything is happening
+ * before anybody reads the table under it.
  *
- * The reading arrives over a stream a second, and its job list is parsed
- * afresh each time — so an untouched queue still hands the table a brand new
- * array every second, and the table rebuilds around whatever is open in it.
- * Comparing what the rows say lets an unchanged queue keep the array it had.
+ * @param jobs - The latest readings, or null before any have arrived.
+ * @returns The line to show.
  */
 const describeQueue = (jobs: Job[]): string =>
   jobs
@@ -23,13 +22,6 @@ const describeQueue = (jobs: Job[]): string =>
     )
     .join('|');
 
-/**
- * The empty list, held once.
- *
- * A fresh `[]` every render is a new set of rows to the table, which rebuilds
- * around anything open in it. The monitor pushes a reading a second, so this
- * matters more than it looks.
- */
 const NOTHING_QUEUED: Job[] = [];
 
 const JOB_TONES: Record<Job['state'], 'quiet' | 'accent' | 'solid'> = {
@@ -40,11 +32,13 @@ const JOB_TONES: Record<Job['state'], 'quiet' | 'accent' | 'solid'> = {
 };
 
 /**
- * What the queue has been doing, as one table.
+ * What the queue has been doing, as one paged table: what ran, how it ended, how long it took, and
+ * what went wrong where something did. This is the record rather than the controls — starting and
+ * stopping work lives with the jobs themselves.
  *
- * Shared by the jobs section and the overview rather than written twice: the
- * overview's version differed by a page size, which is not a reason for two
- * tables that then drift apart a column at a time.
+ * @param monitor - The latest readings, or null before any have arrived.
+ * @param isUnreachable - Whether the service is not answering, which is why the table is empty.
+ * @param pageSize - How many rows to show at once.
  */
 const BackgroundJobs = ({ monitor, isUnreachable = false, pageSize }: BackgroundJobsProps) => {
   const arrived = monitor?.queue.jobs ?? NOTHING_QUEUED;

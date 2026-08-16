@@ -1,10 +1,9 @@
 /**
- * Extracts the shared secret from an `otpauth://` URI.
+ * Reads the shared secret out of an authenticator URI, for anybody entering it by hand rather than
+ * scanning the code.
  *
- * The secret must always be offered as text alongside the QR code: someone
- * setting up an authenticator on the same device they are reading from cannot
- * scan the screen they are looking at, and a screen reader cannot read a QR
- * code at all.
+ * @param totpURI - The URI enrollment produced.
+ * @returns The secret, or an empty string where the URI carries none.
  */
 const readTotpSecret = (totpURI: string): string => {
   const parsed = URL.parse(totpURI);
@@ -13,8 +12,11 @@ const readTotpSecret = (totpURI: string): string => {
 };
 
 /**
- * Groups a secret into blocks of four so it can be read aloud and typed
- * without losing position.
+ * Groups a secret into blocks of four so it can be read aloud and typed without losing one's place in
+ * it.
+ *
+ * @param secret - The secret as enrollment gave it.
+ * @returns It, in blocks of four.
  */
 const formatTotpSecret = (secret: string): string => (secret.match(/.{1,4}/g) ?? []).join(' ');
 

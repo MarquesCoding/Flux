@@ -5,12 +5,19 @@ import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { PopoverPanelProps } from './PopoverPanel.types';
 
 /**
- * A panel of glass hung off a control.
+ * A panel of glass hung off the control that opened it, positioned to stay on screen wherever that
+ * control happens to be. For anything richer than a menu — a form, a chart, a list with its own
+ * controls — where a menu's row-per-item shape would be wrong.
  *
- * The plumbing every overlay on the player needs and none of them should own:
- * a trigger the size of the other buttons, a panel above it that stays inside
- * the window, and the same glass as the bar it belongs to. What goes inside is
- * the caller's business.
+ * @param label - What the panel holds, read out on opening.
+ * @param trigger - The control that opens it.
+ * @param children - What the panel holds.
+ * @param heading - A title across its top.
+ * @param isOpen - Whether it is open, for a caller holding that state itself.
+ * @param onOpenChange - Told when it opens or closes.
+ * @param side - Which side of the trigger to prefer.
+ * @param isDisabled - Whether it can be opened at all.
+ * @param className - Extra classes for the caller's own layout.
  */
 const PopoverPanel = ({
   label,

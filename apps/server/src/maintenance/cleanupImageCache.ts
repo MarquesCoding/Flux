@@ -1,12 +1,5 @@
 import { join } from 'node:path';
 
-/**
- * The cache directories as cleanup sees them.
- *
- * `list` answers with file names only, never subdirectories — a real
- * implementation excludes them, so a job walking the top-level cache
- * directory never has to know its `profiles` subdirectory lives inside it.
- */
 type CacheFileSystem = {
   list: (directory: string) => Promise<string[]>;
   remove: (path: string) => Promise<void>;
@@ -21,28 +14,34 @@ type CleanupImageCacheOptions = {
   imageCacheDir: string;
   profilesDir: string;
   files: CacheFileSystem;
-  /**
-   * The same hash a read builds a cache file's name from — reused rather
-   * than reimplemented, so a cleanup that disagrees with the cache about its
-   * own naming scheme is not possible.
-   */
   nameFor: (url: string) => string;
   listMediaImageUrls: () => Promise<MediaImageUrls[]>;
   listProfilePhotoPaths: () => Promise<(string | null)[]>;
   onProblem?: (path: string, reason: string) => void;
-  /**
-   * `phase` tells the two directories apart, the same way a scan's phases
-   * tell probing apart from previews — the cache is swept first, then
-   * profile photos, and each restarts its own count rather than continuing
-   * the other's total.
-   */
   onProgress?: (phase: 'cache' | 'profiles', processed: number, total: number) => void;
 };
 
+/**
+ * Takes the filename off a path, since what the database points at is a name and what the sweep
+ * walks is a directory of them.
+ *
+ * @param path - The path.
+ * @returns Its last segment.
+ */
 const baseName = (path: string): string => path.split('/').pop() ?? path;
 
 /**
- * Removes every file in a directory that nothing valid still points at.
+ * Removes every file in a directory that nothing in the database points at any more, which is what
+ * makes an artwork cache shrink when a library does. Reads what is referenced first and deletes
+ * second, so a fetch happening mid-sweep is never deleted out from under itself.
+ *
+ * @param directory - The cache directory to sweep.
+ * @param isValid - Whether a given filename is still pointed at.
+ * @param files - How to list and remove files.
+ * @param phase - Which sweep this is, for reporting progress.
+ * @param onProgress - Called as files are worked through.
+ * @param onProblem - Called with anything that could not be removed.
+ * @returns How many files were removed, and how much disk they held.
  */
 const sweep = async (
   directory: string,
@@ -76,15 +75,12 @@ const sweep = async (
 };
 
 /**
- * Deletes every cached artwork and profile photo file nothing in the
- * database references any more.
+ * Deletes cached artwork and profile photographs that nothing references any more — the posters of
+ * removed films, the faces of removed profiles. Artwork is fetched once and kept, so without this a
+ * cache only ever grows.
  *
- * A cache file survives the media item or profile it was fetched for by
- * design — deleting an item does not walk the filesystem — so this is the
- * only thing that ever reclaims that space. Orphaned rows are not swept
- * here on purpose: every table a cached image could belong to cascades on
- * delete already, so there is never a row this could find that Postgres
- * has not already removed.
+ * @param options - Where the cache is, and the database saying what is still referenced.
+ * @returns What was removed, counted and measured.
  */
 const cleanupImageCache = async ({
   imageCacheDir,

@@ -1,41 +1,19 @@
 import type { CastCarrier, CastConnectionState, CastContext, ScriptHost } from './castSender.types';
 
-/**
- * Where Google's sender library is fetched from.
- *
- * The one thing in Flux fetched from somebody else at runtime. Fonts are
- * self-hosted, the media engine is bundled, and this is the exception: casting
- * to a Chromecast is a conversation with Google's own protocol, and the
- * library that speaks it is not distributable. Loaded only when somebody asks
- * to cast, so a viewer who never does is never told about it. See ADR-0015.
- */
 const SENDER_URL = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
 
-/**
- * How long to wait for the library before giving up on it.
- *
- * A browser with no network, or one where the request is blocked, must not
- * leave a press with nothing to answer it.
- */
 const PATIENCE_MILLISECONDS = 8000;
 
-/**
- * The receiver that plays what it is sent.
- *
- * Google's default receiver, which plays a URL and needs no registration.
- * A receiver of our own would let the television carry Flux's own colours and
- * its own subtitle styling; it would also mean an application id, an account
- * and a review, which is a great deal of ceremony for a first version.
- */
 const RECEIVER = 'CC1AD845';
 
 /**
- * Loads the sender library and hands back what it provides.
+ * Loads the casting library on demand and hands back what it provides. Loaded only when somebody
+ * asks to cast, since most sessions never do and it is not a small thing to fetch.
  *
- * Once per page: the library installs itself globally and complains if it is
- * asked twice. Answers with nothing where it could not be had — no network,
- * a browser that blocked it, or a browser without the extension that backs it
- * — because casting is a thing a page offers, not a thing it depends on.
+ * @param host - Where the script tag is added, taken as an argument so tests need no document.
+ * @param carrier - What the loaded library attaches itself to, and where the promise is cached so a
+ *   second request does not fetch it again.
+ * @returns What the library provides, or null where it could not be loaded.
  */
 const loadCastSender = (
   host: ScriptHost = document,
@@ -94,16 +72,21 @@ const loadCastSender = (
 };
 
 /**
- * Whether anything can be cast to, in the library's own words.
+ * Reads whether there is anything to cast to, in the casting library's own vocabulary, so the button
+ * knows whether to appear at all.
+ *
+ * @param context - The cast context.
+ * @returns The state, as Flux describes it.
  */
 const castStateOf = (context: CastContext | null): CastConnectionState =>
   context === null ? 'NO_DEVICES_AVAILABLE' : context.getCastState();
 
 /**
- * Sends a stream to whichever device the viewer chose.
+ * Sends a stream to whichever device the viewer chose, along with what it is and where to start, so
+ * the device shows a title rather than an address.
  *
- * The receiver fetches the address itself, so what is sent is a URL and a
- * position rather than any pixels. Answers with whether it was accepted.
+ * @param context - The cast context.
+ * @param request - The stream, what it is called, and where to start.
  */
 const castStream = async (
   context: CastContext,

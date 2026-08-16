@@ -2,15 +2,12 @@ import { motion, useReducedMotion } from 'motion/react';
 import type { SplashScreenProps } from './SplashScreen.types';
 
 /**
- * The screen shown while the application works out what it is showing.
+ * Holds the screen with the platform's own mark while the application works out what it is showing
+ * — whether setup is done, who is signed in, and what was being watched. Its own mark rather than a
+ * spinner, since this is the first thing anybody sees.
  *
- * A cold load has to ask the server whether setup is needed and who is signed
- * in before it can draw anything true, and a blank page during that reads as a
- * broken one. A name and a moving bar say the same thing a spinner would, but
- * say it as an opening title rather than as an apology.
- *
- * The bar is indeterminate on purpose. Nothing here knows how long it will
- * take, and a progress bar that guesses is a progress bar that lies.
+ * @param name - What the platform is called, which may have been renamed by an operator.
+ * @param label - What is being waited for, read out to anybody who cannot see the screen.
  */
 const SplashScreen = ({ name = 'Flux', label = 'Loading' }: SplashScreenProps) => {
   const prefersReducedMotion = useReducedMotion();

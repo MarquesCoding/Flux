@@ -1,5 +1,6 @@
+import { readRefusal } from './readRefusal';
+import type { Refusal } from './readRefusal';
 import { z } from 'zod';
-import type { Refusal } from './fetchRoles';
 
 const AccountSchema = z.object({
   id: z.string(),
@@ -15,29 +16,9 @@ const AccountSchema = z.object({
 
 type Account = z.infer<typeof AccountSchema>;
 
-const readRefusal = async (response: Response): Promise<Refusal> => {
-  if (response.ok) {
-    return null;
-  }
-
-  const body = await response
-    .json()
-    .then((value) => z.object({ error: z.string() }).safeParse(value))
-    .catch(() => null);
-
-  return {
-    message:
-      body?.success === true ? body.data.error : 'That could not be done. Try again in a moment.',
-  };
-};
-
 /**
- * Everybody with an account, as the administration page needs them.
- *
- * Read from Flux's own route rather than from the overview, because this one
- * answers what each account resolves to — whether it is an administrator by
- * its permissions, and what rank it holds — which is what decides whether the
- * person looking may act on it.
+ * Everybody with an account on this server, with what each may do and whether they are banned. What
+ * the administration page needs to show them all in one table.
  */
 const fetchAccounts = async (): Promise<Account[]> => {
   const response = await fetch('/api/admin/accounts', { credentials: 'same-origin' }).catch(
@@ -51,6 +32,14 @@ const fetchAccounts = async (): Promise<Account[]> => {
   return z.object({ accounts: z.array(AccountSchema) }).parse(await response.json()).accounts;
 };
 
+/**
+ * Bans an account, with a reason the person is shown when they next try to sign in. Their sessions
+ * end; nothing they have watched or kept is touched.
+ *
+ * @param userId - The account to ban.
+ * @param reason - What they are told.
+ * @returns Any refusal from the server.
+ */
 const banAccount = async (userId: string, reason: string): Promise<Refusal> => {
   const response = await fetch(`/api/admin/accounts/${userId}/ban`, {
     method: 'POST',
@@ -64,6 +53,12 @@ const banAccount = async (userId: string, reason: string): Promise<Refusal> => {
     : readRefusal(response);
 };
 
+/**
+ * Lifts a ban, letting the account sign in again with everything it had before.
+ *
+ * @param userId - The account to unban.
+ * @returns Any refusal from the server.
+ */
 const unbanAccount = async (userId: string): Promise<Refusal> => {
   const response = await fetch(`/api/admin/accounts/${userId}/ban`, {
     method: 'DELETE',
@@ -75,6 +70,13 @@ const unbanAccount = async (userId: string): Promise<Refusal> => {
     : readRefusal(response);
 };
 
+/**
+ * Removes an account and everything hanging off it — its profiles, their history and their progress.
+ * A ban is the reversible version of this; removal is not.
+ *
+ * @param userId - The account to remove.
+ * @returns Any refusal from the server.
+ */
 const removeAccount = async (userId: string): Promise<Refusal> => {
   const response = await fetch(`/api/admin/accounts/${userId}`, {
     method: 'DELETE',
@@ -87,10 +89,10 @@ const removeAccount = async (userId: string): Promise<Refusal> => {
 };
 
 /**
- * Adds somebody to this server.
+ * Invites somebody to this server, creating their account and the means for them to set a password.
  *
- * The password is set here and handed over by whoever is inviting, because
- * Flux cannot send email — an invitation link would be one nobody receives.
+ * @param request - Who is being invited and what they may do.
+ * @returns The account, or why it was refused.
  */
 const inviteAccount = async (request: {
   name: string;

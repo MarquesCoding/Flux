@@ -6,9 +6,6 @@ import type { CoverageCounts } from './readCoverageAverage';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 
-/**
- * Every package that runs tests, in the order they are worth reading.
- */
 const PACKAGES = [
   'packages/contracts',
   'packages/core',
@@ -18,15 +15,6 @@ const PACKAGES = [
   'apps/web',
 ] as const;
 
-/**
- * What the codebase as a whole is held to.
- *
- * Each package has thresholds of its own, which stop it slipping from where it
- * stands. This is the figure for all of it together, and it is the one worth
- * stating: some code is far easier to cover than other code, and holding every
- * package to one number would be either lax for the pure ones or punishing for
- * the parts that talk to a browser.
- */
 const FLOOR = 90;
 
 const MeasureSchema = z.object({ covered: z.number(), total: z.number() });
@@ -40,6 +28,13 @@ const SummarySchema = z.object({
   }),
 });
 
+/**
+ * Reads one package's coverage summary, answering with nothing where it has not been written yet so
+ * that every missing package can be named at once rather than one per run.
+ *
+ * @param path - The package, relative to the repository root.
+ * @returns Its counts, or null where it has no summary.
+ */
 const read = (path: string): CoverageCounts | null => {
   const file = join(ROOT, path, 'coverage', 'coverage-summary.json');
 
@@ -50,6 +45,12 @@ const read = (path: string): CoverageCounts | null => {
   return SummarySchema.parse(JSON.parse(readFileSync(file, 'utf8'))).total;
 };
 
+/**
+ * Writes one row of the table, in columns wide enough that the figures line up down the page.
+ *
+ * @param name - What the row is for.
+ * @param of - Its measures and their average.
+ */
 const say = (name: string, of: ReturnType<typeof readCoverageAverage>) => {
   const measures = MEASURES.map((measure) => of[measure].toFixed(1).padStart(7)).join('');
 

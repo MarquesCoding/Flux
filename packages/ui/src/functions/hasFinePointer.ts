@@ -1,16 +1,10 @@
 /**
- * Whether this is a device where hovering means anything.
+ * Whether this device is being driven by something that can point precisely — a mouse or a trackpad
+ * rather than a finger. Asked before offering anything that depends on hovering, since on a touch
+ * screen a hover is either impossible or an accident. Answers no where there is no window at all,
+ * which is how it behaves under a server render.
  *
- * A touch screen reports a hover the moment a finger lands and keeps reporting
- * it after the finger has gone, so anything hung off hovering happens on every
- * tap and then stays happened. Asked of the browser rather than guessed from
- * the width of the window: a laptop with a touch screen is both, and a tablet
- * with a trackpad is neither.
- *
- * Answers false where there is no window, and where there is one that cannot
- * answer the question — a document being rendered on a server, or in a test.
- * That is the safe way round: nothing is drawn hovered before anything has
- * been drawn.
+ * @returns Whether hovering is something this device can do.
  */
 const hasFinePointer = (): boolean =>
   typeof window !== 'undefined' &&

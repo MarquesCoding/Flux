@@ -65,12 +65,6 @@ const AdminSettingsRequestSchema = z
   })
   .openapi('AdminSettingsRequest');
 
-/**
- * Everything an administrator needs to see at once.
- *
- * One request rather than five: an administration page that opens with a
- * cascade of spinners tells its operator less than one that arrives whole.
- */
 const CatalogueMatchSchema = z
   .object({
     externalId: z.string(),
@@ -123,13 +117,6 @@ const adminOverviewRoute = createRoute({
   },
 });
 
-/**
- * One open tab, as an admin sees it.
- *
- * Presence itself, not the transcoder — this is why a browsing viewer who
- * has started nothing still shows up, and why a direct play (which never
- * touches the transcoder at all) does too.
- */
 const AdminSessionSchema = z
   .object({
     clientId: z.string(),
@@ -162,10 +149,6 @@ const AdminSessionSchema = z
   })
   .openapi('AdminSession');
 
-/**
- * Every tab that has the app open, for an admin to see who is around and
- * what they are watching.
- */
 const adminSessionsRoute = createRoute({
   method: 'get',
   path: '/api/admin/sessions',
@@ -183,12 +166,6 @@ const adminSessionsRoute = createRoute({
   },
 });
 
-/**
- * Stops someone else's stream.
- *
- * Kicks the viewer out of the player immediately, with an explanation —
- * unlike closing their own tab, which they would never see a message for.
- */
 const adminStopSessionRoute = createRoute({
   method: 'delete',
   path: '/api/admin/sessions/{clientId}',
@@ -208,12 +185,6 @@ const adminStopSessionRoute = createRoute({
   },
 });
 
-/**
- * Pauses someone else's stream.
- *
- * Not a lock — the viewer can press play again themselves. A nudge, with an
- * explanation, not an enforced hold.
- */
 const adminPauseSessionRoute = createRoute({
   method: 'post',
   path: '/api/admin/sessions/{clientId}/pause',
@@ -237,9 +208,6 @@ const adminPauseSessionRoute = createRoute({
   },
 });
 
-/**
- * Resumes a stream an admin paused.
- */
 const adminResumeSessionRoute = createRoute({
   method: 'post',
   path: '/api/admin/sessions/{clientId}/resume',
@@ -259,9 +227,6 @@ const adminResumeSessionRoute = createRoute({
   },
 });
 
-/**
- * Changes a setting an operator owns.
- */
 const adminSettingsRoute = createRoute({
   method: 'patch',
   path: '/api/admin/settings',
@@ -282,9 +247,6 @@ const adminSettingsRoute = createRoute({
   },
 });
 
-/**
- * A job an admin can start on demand, as the picker sees it.
- */
 const AdminJobDefinitionSchema = z
   .object({
     kind: z.string(),
@@ -295,9 +257,6 @@ const AdminJobDefinitionSchema = z
   })
   .openapi('AdminJobDefinition');
 
-/**
- * Every job kind the Work tab's picker can offer.
- */
 const adminJobDefinitionsRoute = createRoute({
   method: 'get',
   path: '/api/admin/jobs/definitions',
@@ -321,14 +280,6 @@ const adminJobDefinitionsRoute = createRoute({
 
 const AdminJobRunRequestSchema = JobRunRequestSchema.openapi('AdminJobRunRequest');
 
-/**
- * Starts a job of the given kind against a library, from the Work tab.
- *
- * Additive to the per-library scan/reset/regenerate-previews routes rather
- * than a replacement for them — those stay exactly as they are for the
- * Libraries panel's own buttons. This is the admin-gated, kind-generic
- * entry point the job picker needs instead.
- */
 const adminRunJobRoute = createRoute({
   method: 'post',
   path: '/api/admin/jobs/{kind}/run',
@@ -354,13 +305,6 @@ const adminRunJobRoute = createRoute({
   },
 });
 
-/**
- * Stops a job that is queued or already running.
- *
- * Addressed by job id rather than by kind, because what is being stopped is
- * one run of the work and not the work itself — a nightly scan that is
- * cancelled tonight still runs tomorrow.
- */
 const adminCancelJobRoute = createRoute({
   method: 'post',
   path: '/api/admin/jobs/running/{jobId}/cancel',
@@ -392,9 +336,6 @@ const AdminJobTriggerSchema = z
   })
   .openapi('AdminJobTrigger');
 
-/**
- * What makes a job run on its own, as the picker sees it.
- */
 const AdminJobScheduleSchema = z
   .object({
     kind: z.string(),
@@ -402,12 +343,6 @@ const AdminJobScheduleSchema = z
   })
   .openapi('AdminJobSchedule');
 
-/**
- * Every job's current triggers, alongside `adminJobDefinitionsRoute`'s
- * catalogue of what each job is — kept as a separate request rather than
- * folded into the definitions themselves, since a schedule changes far more
- * often than what jobs exist.
- */
 const adminJobSchedulesRoute = createRoute({
   method: 'get',
   path: '/api/admin/jobs/schedules',
@@ -431,13 +366,6 @@ const AdminAddTriggerRequestSchema = z
   .object({ trigger: ScheduleTriggerSchema })
   .openapi('AdminAddTriggerRequest');
 
-/**
- * Adds one trigger to a job.
- *
- * Additive rather than a setting that replaces what is there, because a job
- * holds a list: "nightly, and again whenever the server comes up" is two
- * triggers, and adding the second must not silently drop the first.
- */
 const adminAddJobTriggerRoute = createRoute({
   method: 'post',
   path: '/api/admin/jobs/{kind}/triggers',
@@ -463,9 +391,6 @@ const adminAddJobTriggerRoute = createRoute({
   },
 });
 
-/**
- * Removes one trigger from a job.
- */
 const adminRemoveJobTriggerRoute = createRoute({
   method: 'delete',
   path: '/api/admin/jobs/{kind}/triggers/{triggerId}',
@@ -508,13 +433,6 @@ const AdminStorageSchema = z
   })
   .openapi('AdminStorage');
 
-/**
- * Counting the caches on demand.
- *
- * A `post` rather than a `get` because it is not a reading, it is asking two
- * services to go and walk their disks. Everything that merely draws the page
- * keeps reading the figures they took on their own timers.
- */
 const adminMeasureStorageRoute = createRoute({
   method: 'post',
   path: '/api/admin/storage/measure',

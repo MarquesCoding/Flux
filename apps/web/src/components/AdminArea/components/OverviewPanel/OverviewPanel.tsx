@@ -18,19 +18,16 @@ import type { StorageCount } from '@FluxWeb/admin/fetchAdmin';
 import type { OverviewPanelProps } from './OverviewPanel.types';
 
 /**
- * One region of the dashboard.
+ * One region of the dashboard: a heading, an optional action in its corner, and whatever the region
+ * shows. Exists so that every region is the same shape and spacing without each rebuilding it.
  *
- * Every region is the same shape — a heading, a way through to the panel that
- * owns it, and either content or a sentence saying why there is none. A region
- * that disappears when it has nothing to show leaves a hole in the grid and
- * makes a working server look broken.
- *
- * The surface itself comes from `Card`, which is where every panel in Flux
- * gets its rounding, hairline and shadow. This decides only what goes in one.
- *
- * The heading sits at the top and the contents at the foot, so regions of
- * different heights in one row still line their contents up along the bottom
- * rather than each floating wherever its own length puts it.
+ * @param title - What the region is called.
+ * @param action - What its corner control does, where it has one.
+ * @param onAction - Called when that control is pressed.
+ * @param actionIcon - The icon on that control.
+ * @param isActionBusy - Whether that control's work is in flight.
+ * @param children - What the region shows.
+ * @param className - Anything extra the layout needs of it.
  */
 const Region = ({
   title,
@@ -44,13 +41,6 @@ const Region = ({
   title: string;
   action?: string;
   onAction?: () => void;
-  /**
-   * What the action's button carries instead of the chevron.
-   *
-   * A chevron means "there is more of this through here". An action that does
-   * something to the thing already on screen is not that, and reusing the
-   * arrow for it teaches somebody the arrow means nothing in particular.
-   */
   actionIcon?: ReactNode;
   isActionBusy?: boolean;
   children: ReactNode;
@@ -83,17 +73,17 @@ const Region = ({
 Region.displayName = 'Region';
 
 /**
- * The state of the server at a glance.
+ * The state of the server at a glance: what needs a person, what is being watched, what the machine
+ * is doing, what the libraries hold, and what is on the disk. Everything here is a summary with a
+ * way through to the panel that can act on it, so the dashboard answers "is anything wrong" without
+ * trying to be the place anything is fixed.
  *
- * Answers the two questions somebody opens this page with: is anything wrong,
- * and what is it doing. The second matters as much as the first — a dashboard
- * that is blank when all is well tells an operator nothing, and a server with
- * four people watching and a scan running is not the same as an idle one even
- * though neither has a fault.
- *
- * Everything here is already fetched for some other panel. What is new is that
- * it is in one place, so answering "is everything all right" no longer means
- * visiting four sections and assembling it.
+ * @param overview - What the server reports about itself, or null before it has answered.
+ * @param monitor - The latest readings, or null before any have arrived.
+ * @param libraries - The libraries configured.
+ * @param sessions - What is being watched at the moment.
+ * @param history - Recent processor readings, for the graph and for telling a spike from load.
+ * @param onOpenPanel - Called with the panel to open.
  */
 const OverviewPanel = ({
   overview,

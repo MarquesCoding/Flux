@@ -1,16 +1,13 @@
 import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
 
 /**
- * Everything about an item, cut down to what a page needs to draw it.
+ * Cuts everything held about an item down to what a page needs to draw it. The library hands out
+ * summaries as it draws, but an address naming an item arrives before anything has been drawn — a
+ * link to a film, or a reload while one is playing — and the only way to answer that is to read the
+ * item in full and take the part that was wanted.
  *
- * The library hands out summaries as it draws, but an address naming an item
- * arrives before anything has been drawn — a link to a film, or a reload while
- * one is playing. The only way to answer that is to read the item in full and
- * take the part that was wanted, which is what this does.
- *
- * `seriesId` is null because the full record does not carry one; the series
- * title does the work of grouping until it does. Better a summary that says
- * nothing about the series than one that invents an identifier.
+ * @param detail - Everything the server holds about the item.
+ * @returns The summary a page draws from.
  */
 const summariseDetail = (detail: MediaDetail): MediaSummary => ({
   id: detail.id,

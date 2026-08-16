@@ -1,44 +1,21 @@
-/**
- * How many frames a second the composed picture is offered at.
- *
- * A floating window is small and nobody is studying it. Matching the film
- * exactly would mean drawing every frame of a fifty frame source into a canvas
- * for the sake of a thumbnail.
- */
 const FRAMES_PER_SECOND = 30;
 
-/**
- * How wide the composed picture is drawn, at most.
- *
- * A picture-in-picture window is a few hundred pixels across. Drawing a 4K
- * frame into a canvas thirty times a second to shrink it into that would cost
- * more than playing the film does.
- */
 const MAX_WIDTH = 1280;
 
-/**
- * How large the caption text is, as a fraction of the picture's height.
- */
 const TEXT_SCALE = 0.062;
 
-/**
- * How far above the bottom edge captions sit.
- */
 const BASELINE = 0.055;
 
-/**
- * What is running, so it can be stopped.
- */
 type PoppedOut = {
   stop: () => void;
 };
 
 /**
- * The cues showing on a video at this moment, as plain lines.
+ * Reads the cues showing on a video at this moment as plain lines, since a picture-in-picture window
+ * carries no text tracks of its own.
  *
- * Read from whichever track is on rather than from Flux's own state: the
- * browser is the thing that decides which cue is current, and asking it is
- * both simpler and always right.
+ * @param video - The video element being read.
+ * @returns The lines showing now.
  */
 const currentLines = (video: HTMLVideoElement): string[] => {
   const lines: string[] = [];
@@ -63,7 +40,13 @@ const currentLines = (video: HTMLVideoElement): string[] => {
 };
 
 /**
- * Draws one frame of the film with its captions burned into it.
+ * Draws one frame of the film with its captions painted into it, which is the only way captions can
+ * appear in a picture-in-picture window.
+ *
+ * @param context - The canvas to draw into.
+ * @param video - The video to read the frame and its captions from.
+ * @param width - How wide the canvas is.
+ * @param height - How tall it is.
  */
 const compose = (
   context: CanvasRenderingContext2D,
@@ -100,21 +83,12 @@ const compose = (
 };
 
 /**
- * Pops a film out with its subtitles still on it.
+ * Pops a film out into a floating window with its subtitles still on it, by drawing each frame with
+ * the captions painted in — a picture-in-picture window shows a video element and nothing else, so
+ * subtitles that live in a text track simply vanish.
  *
- * A floating window shows the video element and nothing layered over it, so
- * captions — which a browser draws as an overlay — simply vanish. The way
- * round it is to stop giving the window the original video at all: the frames
- * and the cues are drawn together into a canvas, and the canvas is what
- * floats.
- *
- * Sound stays with the original element, since a canvas has none. The floating
- * copy is silent and its controls are forwarded, so pausing the little window
- * pauses the film rather than freezing a picture of it while the audio
- * carries on.
- *
- * Returns null when the browser will not float anything, so a caller can fall
- * back to asking it directly.
+ * @param video - The video to pop out, and how its captions should look.
+ * @returns A handle on the window, for closing it and keeping it in step.
  */
 const popOutWithCaptions = async (video: HTMLVideoElement): Promise<PoppedOut | null> => {
   if (!document.pictureInPictureEnabled) {

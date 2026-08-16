@@ -4,20 +4,23 @@ import { formatDuration } from '@FluxCore/functions/formatDuration';
 import type { EpisodeRowProps } from './EpisodeRow.types';
 
 /**
- * Where the still for an episode comes from.
+ * Builds the address an episode's still is served from, so a row is chosen by what somebody remembers
+ * seeing rather than by its number.
+ *
+ * @param mediaId - The episode.
+ * @returns The address to load.
  */
 const stillUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
 /**
- * One episode, in a list of them.
+ * One episode in a list of them: its number, its name, how long it runs, what it is about, and how
+ * far through it this viewer is.
  *
- * A line rather than a card: a season is read down the page, and twelve cards
- * of the same programme is the thing this dialog exists to replace. The still
- * is small and the number is large, because in a list of episodes the number
- * is what somebody is looking for.
- *
- * The whole line plays it. Reading about it is a separate press, since that is
- * the rarer intention.
+ * @param episode - The episode to draw.
+ * @param onPlay - Told to start it, and where from.
+ * @param onInspect - Told to open the page about it.
+ * @param watchedFraction - How far through it this viewer is.
+ * @param resumeSeconds - Where they left it.
  */
 const EpisodeRow = ({
   episode,

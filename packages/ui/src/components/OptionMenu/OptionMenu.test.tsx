@@ -110,11 +110,6 @@ describe('OptionMenu', () => {
   describe('in fullscreen', () => {
     /**
      * Says an element is fullscreen the way a browser reports it.
-     *
-     * jsdom implements neither `requestFullscreen` nor `fullscreenElement`,
-     * so the property is set and the event dispatched by hand. That is what
-     * the component actually reads: it never asks for fullscreen, it only
-     * answers what the document says afterwards.
      */
     const goFullscreen = (element: Element | null) => {
       Object.defineProperty(document, 'fullscreenElement', {

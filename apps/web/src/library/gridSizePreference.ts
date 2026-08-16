@@ -8,10 +8,8 @@ const STORAGE_KEY = 'flux.gridSize';
 const DEFAULT_GRID_SIZE: MediaGridSize = 'medium';
 
 /**
- * Reads how large this viewer likes the cards.
- *
- * Anything unreadable falls back to the middle size rather than throwing: a
- * stale setting must not stop a page from drawing.
+ * Reads how large this viewer likes the cards. Held on the device rather than on the profile, since
+ * the right size depends on the screen being looked at rather than on who is looking.
  */
 const readGridSize = (): MediaGridSize => {
   try {
@@ -24,11 +22,10 @@ const readGridSize = (): MediaGridSize => {
 };
 
 /**
- * Remembers how large this viewer likes the cards.
+ * Remembers how large this viewer likes the cards, on this device — a phone and a television want
+ * different answers from the same account.
  *
- * Kept in the browser rather than on the account, for the same reason quality
- * is: the right answer depends on the screen it is being read on, and a phone
- * and a television are not one viewer's one preference.
+ * @param size - The size chosen.
  */
 const saveGridSize = (size: MediaGridSize): void => {
   try {
@@ -36,4 +33,4 @@ const saveGridSize = (size: MediaGridSize): void => {
   } catch {}
 };
 
-export { GridSizePreferenceSchema, DEFAULT_GRID_SIZE, STORAGE_KEY, readGridSize, saveGridSize };
+export { DEFAULT_GRID_SIZE, STORAGE_KEY, readGridSize, saveGridSize };

@@ -17,13 +17,6 @@ const MediaSummary = MediaSummarySchema.openapi('MediaSummary');
 const MediaDetail = MediaDetailSchema.openapi('MediaDetail');
 const LibraryFacets = LibraryFacetsSchema.openapi('LibraryFacets');
 const NotFound = z.object({ error: z.string() }).openapi('LibraryNotFound');
-/**
- * What every route that changes a library answers to somebody who may not.
- *
- * Adding, editing, scanning, resetting and regenerating all reshape what the
- * whole household sees, so they are administrator work rather than viewer
- * work — and reset deletes every row a library has.
- */
 const Forbidden = z.object({ error: z.string() }).openapi('LibraryForbidden');
 
 const ShowListSchema = ShowListContract.openapi('ShowList');
@@ -74,10 +67,6 @@ const createLibraryRoute = createRoute({
   },
 });
 
-/**
- * Changes a library's settings, such as which language its audio track
- * selection should prefer.
- */
 const updateLibraryRoute = createRoute({
   method: 'patch',
   path: '/api/libraries/{id}',
@@ -103,19 +92,6 @@ const updateLibraryRoute = createRoute({
   },
 });
 
-/**
- * What there is to narrow by, across every library.
- *
- * Its own route because the alternative was reading a couple of hundred items
- * per library into the browser and collecting the genres out of them — which
- * costs a page of requests to answer a question the database can answer with
- * one, and quietly misses any genre that only appears further down.
- *
- * One answer covering all of it rather than a route per kind of filter, since
- * nothing can draw half a filter bar.
- *
- * Not scoped to a library, because search is not either.
- */
 const listFacetsRoute = createRoute({
   method: 'get',
   path: '/api/library-facets',
@@ -133,21 +109,6 @@ const listFacetsRoute = createRoute({
   },
 });
 
-/**
- * Lists the items in a library.
- *
- * Returns summaries rather than full detail: a library of tens of thousands of
- * items should not ship every stream's details to draw a page of posters.
- *
- * `search` matches the title, the series title, the description and the cast,
- * so an actor's name finds their films and a programme's name finds its
- * episodes.
- *
- * The rest narrow rather than search: what a thing is, when it was made, and
- * how well it was received. Every one of them is optional and they combine,
- * because the question somebody actually has is usually more than one of them
- * at once — the well-reviewed science fiction of the nineties.
- */
 const listItemsRoute = createRoute({
   method: 'get',
   path: '/api/libraries/{id}/items',
@@ -204,14 +165,6 @@ const getMediaRoute = createRoute({
 
 const ScanAccepted = z.object({ jobId: z.string(), state: z.string() }).openapi('ScanAccepted');
 
-/**
- * How far a scan has got.
- *
- * `phase` names what it is doing right now — probing files, then generating
- * trickplay and previews — since a single number cannot mean both. Null
- * rather than zero until a phase has counted its files: a scan sitting at 0
- * of 0 reads as finished, not as not yet started.
- */
 const ScanState = z
   .object({
     jobId: z.string(),
@@ -222,18 +175,6 @@ const ScanState = z
   })
   .openapi('ScanState');
 
-/**
- * Queues a scan.
- *
- * Answers 202 rather than waiting: walking and probing a real library takes
- * minutes, and an HTTP request that long will be cut off by every proxy
- * between the browser and the server while the work carries on unseen.
- *
- * `force=true` probes every file again instead of only those whose size or
- * modification time changed. Nothing about a file says whether Flux still
- * reads it the same way, so after a probing fix or a new metadata provider
- * this is the only way to pick the change up.
- */
 const scanLibraryRoute = createRoute({
   method: 'post',
   path: '/api/libraries/{id}/scan',
@@ -259,10 +200,6 @@ const scanLibraryRoute = createRoute({
   },
 });
 
-/**
- * A correction as somebody sends it: an address or a bare id, and the kind when
- * the id alone cannot say.
- */
 const CorrectionRequest = z
   .object({
     reference: z.string().min(1),
@@ -302,13 +239,6 @@ const correctMatchRoute = createRoute({
   },
 });
 
-/**
- * What a rebuild found to throw away.
- *
- * Both false is not a failure. It means the item had nothing cached — which is
- * the same end state the operator asked for, and worth saying plainly rather
- * than reporting a success that sounds like work was done.
- */
 const RebuiltArtefacts = z
   .object({ preview: z.boolean(), trickplay: z.boolean() })
   .openapi('RebuiltArtefacts');
@@ -393,21 +323,6 @@ const scanStateRoute = createRoute({
   },
 });
 
-/**
- * Deletes every item in a library, then queues a scan to repopulate it from
- * nothing.
- *
- * A rebuild, not a rescan: an ordinary scan reconciles against what the
- * database already believes, and an operator reaching for this wants no part
- * of that history kept.
- */
-/**
- * Lists the series in a library.
- *
- * A show is every item naming the same series, so this is a reading of the
- * library rather than a table in it — and it is read here rather than in a
- * browser because a page holds the first sixty things it was sent.
- */
 const listShowsRoute = createRoute({
   method: 'get',
   path: '/api/libraries/{id}/shows',
@@ -426,9 +341,6 @@ const listShowsRoute = createRoute({
   },
 });
 
-/**
- * Everything the library holds about one series.
- */
 const getShowRoute = createRoute({
   method: 'get',
   path: '/api/libraries/{id}/shows/{showId}',
@@ -471,13 +383,6 @@ const resetLibraryRoute = createRoute({
   },
 });
 
-/**
- * Re-renders preview clips against the library's current forced audio
- * language, without probing files or touching metadata.
- *
- * A lighter alternative to a rescan, for the one thing changing the forced
- * language actually invalidates.
- */
 const regeneratePreviewsRoute = createRoute({
   method: 'post',
   path: '/api/libraries/{id}/regenerate-previews',

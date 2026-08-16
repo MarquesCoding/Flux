@@ -3,29 +3,11 @@ import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 
 import { profileHeaders } from '@FluxWeb/profiles/currentProfile';
 
-/**
- * How often a position is sent while something is playing.
- *
- * Often enough that a tab killed outright loses a moment rather than a scene,
- * rarely enough that a two hour film is a few hundred small requests instead
- * of tens of thousands.
- *
- * An orderly departure — a reload, a closed tab, a followed link — does not
- * rely on this at all: the position is sent as the page goes away, exactly, so
- * this interval only bounds what a crash can lose.
- */
 const REPORT_EVERY_MILLISECONDS = 10_000;
 
 /**
- * Reads where this viewer got to in everything.
- *
- * Null means the question could not be asked — refused, unreachable, or an
- * answer that did not parse — and is deliberately not the same as an empty
- * list. A caller drawing progress bars can treat both as nothing to draw, but
- * a caller deciding where to start a film must not: "you have watched none of
- * this" and "I could not find out" lead to the same screen and only one of
- * them is true, which is how a film that was half watched comes to open at the
- * beginning.
+ * Reads where this viewer got to in everything they have started, which is what fills the
+ * part-watched row and what a card's progress bar is drawn from.
  */
 const fetchWatchProgress = async (): Promise<WatchProgress[] | null> => {
   try {
@@ -44,16 +26,13 @@ const fetchWatchProgress = async (): Promise<WatchProgress[] | null> => {
 };
 
 /**
- * Records where this viewer has got to.
+ * Records where this viewer has got to. Best effort, and deliberately quiet about failure: somebody
+ * watching a film should never be interrupted to be told their bookmark did not save.
  *
- * Best effort, and deliberately quiet about failure: someone watching a film
- * should never be interrupted to be told their bookmark did not save.
- *
- * `isLeaving` is for the report sent as the page goes away — a reload, a
- * closed tab, a link followed. The browser is free to cancel ordinary requests
- * from a page it is tearing down, and that one request is the only thing
- * standing between a viewer and losing the last ten seconds they watched, so
- * it is sent as one the browser has promised to finish.
+ * @param mediaId - The item being watched.
+ * @param report - Where they are, how long it is, and whether it counts as finished.
+ * @param options - Whether the page is going away, which makes this a request the browser has
+ *   promised to finish rather than one it may cancel.
  */
 const reportWatchProgress = async (
   mediaId: string,
@@ -71,7 +50,11 @@ const reportWatchProgress = async (
 };
 
 /**
- * Turns a list into something a card can ask one question of.
+ * Turns the list of progress the server answers with into a map, so a card can ask about itself
+ * without searching the whole list.
+ *
+ * @param progress - Everything this viewer has watched.
+ * @returns The same, keyed by item.
  */
 const byMediaId = (progress: WatchProgress[]): Map<string, WatchProgress> =>
   new Map(progress.map((entry) => [entry.mediaId, entry]));

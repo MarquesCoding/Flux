@@ -6,23 +6,35 @@ import { formatDuration } from '@FluxCore/functions/formatDuration';
 import type { EpisodeMenuProps } from './EpisodeMenu.types';
 
 /**
- * Where an episode's picture comes from.
+ * Builds the address of an episode's still, which the menu shows beside each row so a viewer picks
+ * by what they remember seeing rather than by episode number.
+ *
+ * @param mediaId - The episode.
+ * @returns Where to fetch its picture.
  */
 const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
 /**
- * What a season is called at the top of the list.
+ * Names a season for the heading above its episodes, falling back to a neutral heading for anything
+ * the scanner could not place in one.
+ *
+ * @param seasonNumber - The season, where it is known.
+ * @returns What to call it.
  */
 const headingOf = (seasonNumber: number | null | undefined): string =>
   typeof seasonNumber === 'number' ? `Season ${seasonNumber.toString()}` : 'Episodes';
 
 /**
- * The rest of the season, without leaving the film.
+ * Offers the rest of the season without leaving the player, grouped by season and marked with how far
+ * the viewer got through each episode, so the next one is one press away rather than a trip back to
+ * the programme's page.
  *
- * Somebody four episodes into a series does not want to close the player, find
- * the page, and pick the next one; they want the list where they already are.
- * The same card the library draws episodes with, so an episode looks like an
- * episode wherever it is met — including how far through it this viewer is.
+ * @param episodes - The season's episodes.
+ * @param playingId - Which one is on now.
+ * @param onSelect - Called with the episode they chose.
+ * @param watchedFractionFor - How to ask how far through a given episode they are.
+ * @param onOpenChange - Called as the menu opens or closes, so the bar stays put while it is open.
+ * @param isDisabled - Whether the menu is inert, as it is while a session is starting.
  */
 const EpisodeMenu = ({
   episodes,

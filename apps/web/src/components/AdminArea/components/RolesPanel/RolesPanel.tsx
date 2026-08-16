@@ -32,25 +32,12 @@ import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { Refusal } from '@FluxWeb/admin/fetchRoles';
 import type { Permission, Role } from '@FluxContracts/schemas/Permission';
 
-/**
- * Where a new role sits until somebody moves it.
- *
- * Below Member, so a role made in a hurry cannot outrank the people already
- * using the server.
- */
 const NEW_ROLE_POSITION = 50;
 
 /**
- * Roles, what they grant, and who holds them.
- *
- * The catalogue is read from the server rather than listed here, so a
- * permission added to Flux appears on this screen without the web app being
- * changed — which is the whole reason `/api/admin/permissions` exists.
- *
- * Every refusal the server makes is shown as the sentence the server gave.
- * Being outranked, granting what you do not hold, and taking the last
- * administrator away are deliberate rules rather than failures, and reporting
- * them as "something went wrong" would make a careful system look broken.
+ * The roles on this server, what each grants and who holds them, with the making and changing of
+ * them. Permissions are offered grouped by what they are about rather than as one long list, since
+ * choosing from a hundred flat checkboxes is how a role ends up granting something nobody meant.
  */
 const RolesPanel = () => {
   const [catalogue, setCatalogue] = useState<Permission[]>([]);
@@ -104,12 +91,6 @@ const RolesPanel = () => {
     await act(() => updateRole(role.id, { permissions: next }));
   };
 
-  /**
-   * What a column needs, without being rebuilt when it changes.
-   *
-   * Columns are built once: a rebuilt column is a new `cell`, which React
-   * remounts, closing any menu open in a row.
-   */
   const live = useRef({
     onEdit: (id: string) => {
       setSelectedRoleId(id);

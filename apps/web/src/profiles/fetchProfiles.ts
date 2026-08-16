@@ -2,11 +2,7 @@ import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
 import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 /**
- * The people using this account.
- *
- * Answers with nothing rather than throwing, like every other read a page
- * makes: a picker that cannot load is a picker that shows nobody, not a page
- * that fails.
+ * The profiles on this account, each with their own history, favourites and watch progress.
  */
 const fetchProfiles = async (): Promise<ViewerProfile[]> => {
   try {
@@ -23,7 +19,12 @@ const fetchProfiles = async (): Promise<ViewerProfile[]> => {
 };
 
 /**
- * Adds somebody to this account.
+ * Adds somebody to this account, with their own history, favourites and watch progress.
+ *
+ * @param name - What to call them.
+ * @param colour - The colour their face is drawn in.
+ * @param avatar - What to draw them as, where they chose something other than a colour.
+ * @returns Whether they were added.
  */
 const createProfile = async (
   name: string,
@@ -40,7 +41,14 @@ const createProfile = async (
 };
 
 /**
- * Changes what a profile is called and what it looks like.
+ * Changes what a profile is called and what it is drawn as. Nothing it has watched, kept or got part
+ * way through is affected: those hang off the profile itself rather than off its name.
+ *
+ * @param profileId - The profile to change.
+ * @param name - What to call them.
+ * @param colour - The colour their face is drawn in.
+ * @param avatar - What to draw them as, where they chose something other than a colour.
+ * @returns Whether the change was written.
  */
 const saveProfile = async (
   profileId: string,
@@ -58,10 +66,11 @@ const saveProfile = async (
 };
 
 /**
- * Uploads somebody's own photograph for a profile.
+ * Uploads somebody's own photograph for a profile, which replaces whatever it was drawn as.
  *
- * Sent as the picture itself rather than as a form: there is one file and no
- * other fields, and multipart would be ceremony around a single body.
+ * @param profileId - The profile.
+ * @param file - The photograph.
+ * @returns The profile as it now stands, or why it was refused.
  */
 const uploadProfilePhoto = async (profileId: string, file: File): Promise<boolean> => {
   const response = await fetch(`/api/profiles/${profileId}/photo`, {
@@ -74,7 +83,10 @@ const uploadProfilePhoto = async (profileId: string, file: File): Promise<boolea
 };
 
 /**
- * Removes somebody from this account, and their viewing with them.
+ * Removes somebody from this account, and everything hanging off them — their history, their
+ * favourites, where they had got to.
+ *
+ * @param profileId - The profile to remove.
  */
 const removeProfile = async (profileId: string): Promise<boolean> => {
   const response = await fetch(`/api/profiles/${profileId}`, { method: 'DELETE' }).catch(

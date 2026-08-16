@@ -3,7 +3,7 @@ import {
   NotificationPreferenceSchema,
   NotificationSchema,
 } from '@FluxContracts/schemas/Notification';
-import type { Notification, NotificationPreference } from '@FluxContracts/schemas/Notification';
+import type { Notification } from '@FluxContracts/schemas/Notification';
 
 const InboxSchema = z.object({
   notifications: z.array(NotificationSchema),
@@ -15,24 +15,13 @@ const PreferencesSchema = z.object({
   pushPublicKey: z.string(),
 });
 
-/**
- * What somebody has been told, and how much of it is new.
- */
 type Inbox = z.infer<typeof InboxSchema>;
 
 type NotificationSettings = z.infer<typeof PreferencesSchema>;
 
 /**
- * What is on the bell.
- *
- * Answers an empty inbox rather than failing, whether the server could not be
- * reached, refused, or said something this version cannot read. A bell is
- * furniture on every page, and a page that will not draw because a count
- * could not be fetched is a worse outcome than a bell reading zero.
- *
- * That covers a real case rather than a theoretical one: a browser left open
- * across an upgrade talks to a server that has moved on, and every one of
- * these is a background read nothing was waiting for.
+ * What is on the bell: the notices this viewer has been sent, newest first, and how many they have
+ * not read.
  */
 const fetchNotifications = async (): Promise<Inbox> => {
   const empty = { notifications: [], unread: 0 };
@@ -50,7 +39,10 @@ const fetchNotifications = async (): Promise<Inbox> => {
 };
 
 /**
- * Marks one as read, or everything when given nothing.
+ * Marks one notification as read, or all of them when given nothing, which is what the "mark all
+ * read" control sends.
+ *
+ * @param id - The one to mark, or nothing to mark them all.
  */
 const markNotificationsRead = async (id?: string): Promise<number> => {
   const response = await fetch('/api/notifications/read', {
@@ -69,6 +61,12 @@ const markNotificationsRead = async (id?: string): Promise<number> => {
   return read.success ? read.data.unread : 0;
 };
 
+/**
+ * Reads what this viewer has asked to be told about, and the key a browser needs before it can be
+ * pushed to at all.
+ *
+ * @returns The preferences and the push key, or empty ones where the request failed.
+ */
 const fetchNotificationSettings = async (): Promise<NotificationSettings> => {
   const unknownYet = { preferences: [], pushPublicKey: '' };
   const response = await fetch('/api/notifications/preferences', {
@@ -84,20 +82,6 @@ const fetchNotificationSettings = async (): Promise<NotificationSettings> => {
   return read.success ? read.data : unknownYet;
 };
 
-const writeNotificationPreference = async (preference: NotificationPreference): Promise<void> => {
-  await fetch('/api/notifications/preferences', {
-    method: 'PUT',
-    credentials: 'same-origin',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(preference),
-  }).catch(() => null);
-};
+export { fetchNotificationSettings, fetchNotifications, markNotificationsRead };
 
-export {
-  fetchNotificationSettings,
-  fetchNotifications,
-  markNotificationsRead,
-  writeNotificationPreference,
-};
-
-export type { Inbox, Notification, NotificationSettings };
+export type { Inbox, Notification };

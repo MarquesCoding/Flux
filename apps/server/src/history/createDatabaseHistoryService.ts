@@ -16,6 +16,13 @@ type Row = {
   isFinished: boolean;
 };
 
+/**
+ * Turns a viewing row into what the contract carries, which is chiefly a matter of writing its
+ * timestamps as strings.
+ *
+ * @param row - The row as stored.
+ * @returns The viewing, as the API describes one.
+ */
 const shown = (row: Row): Viewing => ({
   id: row.id,
   mediaItemId: row.mediaItemId,
@@ -28,11 +35,11 @@ const shown = (row: Row): Viewing => ({
 });
 
 /**
- * A profile's viewing history, in the database.
+ * What each profile has actually watched and when, held in Postgres — one entry per viewing rather
+ * than per report, so an evening's watching reads as an evening rather than as hundreds of ticks.
  *
- * The rules about what counts as a viewing live in `decideViewing` rather than
- * here, so this and the in-memory one cannot drift apart — and so the
- * judgements can be read without a query in the way.
+ * @param db - The database to read and write.
+ * @returns The history service.
  */
 const createDatabaseHistoryService = (db: FluxDatabase): HistoryService => ({
   record: async (profileId, mediaItemId, seen) => {

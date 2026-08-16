@@ -1,23 +1,7 @@
 import { z } from 'zod';
 
-/**
- * Where the way somebody likes to watch is remembered.
- *
- * On the device rather than on the account, for the same reason the chosen
- * profile is: a television in a living room and a laptop in bed are two
- * different sets of ears. A volume that followed the account would mean
- * somebody turning a film down on headphones and finding the television
- * whispering the next evening.
- */
 const STORAGE_KEY = 'flux.playback';
 
-/**
- * The language of a chosen subtitle track, or that they were switched off.
- *
- * Language rather than track: a track is named from the file it lives in, so
- * the identifier that means "English" for one episode means nothing for the
- * next. What a viewer chose was a language, and that is what carries.
- */
 const SUBTITLES_OFF = 'off';
 
 const PreferencesSchema = z.object({
@@ -37,11 +21,9 @@ const DEFAULTS: PlaybackPreferences = {
 };
 
 /**
- * How this device likes to watch.
- *
- * Falls back to the defaults rather than failing: a browser refusing storage
- * is a browser in private mode, and stored settings that no longer parse are
- * settings from an older version. Neither is a reason to stop playing a film.
+ * How this device likes to watch: the volume, whether the clock counts down, and the rest of what
+ * survives between sessions. Held on the device rather than on the profile, since these follow the
+ * screen and the speakers rather than the person.
  */
 const readPlaybackPreferences = (): PlaybackPreferences => {
   try {
@@ -60,11 +42,10 @@ const readPlaybackPreferences = (): PlaybackPreferences => {
 };
 
 /**
- * Remembers a change to how this device likes to watch.
+ * Remembers a change to how this device likes to watch — volume, mute, subtitle language. Kept on
+ * the device rather than the account, since the right volume is a property of the room.
  *
- * Written as a whole rather than a field at a time, so what is stored is
- * always a complete set: a half-written record is one the reader has to guess
- * at, and it would guess wrong exactly once per browser.
+ * @param change - What changed.
  */
 const writePlaybackPreferences = (change: Partial<PlaybackPreferences>): void => {
   try {
@@ -74,7 +55,5 @@ const writePlaybackPreferences = (change: Partial<PlaybackPreferences>): void =>
     );
   } catch {}
 };
-
-export type { PlaybackPreferences };
 
 export { readPlaybackPreferences, writePlaybackPreferences, STORAGE_KEY, SUBTITLES_OFF, DEFAULTS };

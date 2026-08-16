@@ -6,16 +6,14 @@ import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import type { DeliveryHistoryProps } from './DeliveryHistory.types';
 
 /**
- * What was sent lately, and how it went each time.
+ * What a subscription has been sent lately and how each attempt went, with a way to send any of them
+ * again. Redelivery is offered only where the subscription is still delivering — sending again to
+ * somewhere paused would go nowhere.
  *
- * The count of attempts is shown wherever it is more than one, because that
- * is the number that separates a receiver which was briefly down from one
- * that is failing: `3 tries` against a delivered event is a blip, and the
- * same number against a failed one is a receiver that never answered.
- *
- * Resending is offered on failures only. A delivery that landed can be sent
- * again — the route allows it — but offering it invites somebody to duplicate
- * an event a receiver already acted on, for no reason anybody has.
+ * @param deliveries - The attempts, most recent first.
+ * @param isLoading - Whether they are still being fetched.
+ * @param canRedeliver - Whether the subscription is in a state to be sent to again.
+ * @param onRedeliver - Called with the delivery to send again.
  */
 const DeliveryHistory = ({
   deliveries,

@@ -10,18 +10,8 @@ import { readGridSize, saveGridSize } from '@FluxWeb/library/gridSizePreference'
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { BrowseAreaProps, BrowseKind } from './BrowseArea.types';
 
-/**
- * How many items a browse page holds at once.
- */
 const PAGE_SIZE = 120;
 
-/**
- * What each page is called, and what it says when it has nothing.
- *
- * The empty line is the useful half. A page that says nothing when it is empty
- * looks broken; one that says why it is empty and what would fill it is a page
- * doing its job on a bad day.
- */
 const PAGES: Record<BrowseKind, { title: string; standfirst: string; empty: string }> = {
   shows: {
     title: 'Shows',
@@ -48,16 +38,18 @@ const PAGES: Record<BrowseKind, { title: string; standfirst: string; empty: stri
 };
 
 /**
- * A page of the library, asked one question.
+ * A page of the library asked one question — the films, the programmes, what arrived recently, what
+ * has been kept — drawn as a grid across every library rather than one at a time.
  *
- * Four pages that are the same page: what comes in episodes, what does not,
- * what arrived most recently, and what this viewer kept. Each is one query
- * against the library rather than a shape of its own, which is why they are
- * one component — four near-identical pages is four places to fix a card.
- *
- * Asked of the server rather than sifted here, for the same reason searching
- * is: a library is longer than a page of it, and filtering whatever arrived
- * first answers with the first hundred items rather than with the answer.
+ * @param kind - Which question this page asks.
+ * @param onPlay - Told to start something, and where from.
+ * @param onInspect - Told to open the page about something.
+ * @param onItemsLoaded - Told what it drew, so an address naming an item can be resolved.
+ * @param watchedFractionFor - How far through each item this viewer is.
+ * @param resumeFor - Where they left each item.
+ * @param favourites - What they have kept, for the page that lists them.
+ * @param isKept - Whether each item is kept.
+ * @param onToggleKept - Told to keep something, or stop.
  */
 const BrowseArea = ({
   kind,

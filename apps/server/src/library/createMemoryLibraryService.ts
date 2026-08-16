@@ -4,10 +4,12 @@ import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/
 import type { LibraryService, ListItemsOptions } from './LibraryService';
 
 /**
- * What a browser is told about an item, from everything held about it.
+ * Cuts everything held about an item down to what a browser needs to draw it. Written once and used
+ * by both the listing and the grouping into shows, so a programme cannot come to different
+ * conclusions about an episode than a rail does.
  *
- * Written once and used by both the listing and the grouping into shows, so a
- * show cannot come to different conclusions about an episode than a rail does.
+ * @param item - Everything known about the item.
+ * @returns The summary a page is sent.
  */
 const toSummary = (item: MediaDetail): MediaSummary => ({
   id: item.id,
@@ -37,11 +39,13 @@ type MemoryState = {
 };
 
 /**
- * What a typed search matches, kept in step with the database version.
+ * Matches a typed search against an item, in step with what the database version searches: title,
+ * series title, description, tagline and cast. A memory service that searched differently would let
+ * every test of the HTTP surface pass while describing behaviour the real server does not have.
  *
- * The same places — title, series title, description, tagline, cast — because
- * a memory service that searched differently would let every test of the HTTP
- * surface pass while describing behaviour the real server does not have.
+ * @param item - The item being tested.
+ * @param search - What was typed, lowered.
+ * @returns Whether the item matches.
  */
 const matchesSearch = (item: MediaDetail, search: string): boolean =>
   [
@@ -53,12 +57,14 @@ const matchesSearch = (item: MediaDetail, search: string): boolean =>
   ].some((against) => against.toLowerCase().includes(search));
 
 /**
- * Whether an item survives the narrowing filters, kept in step with the
- * database version for the same reason the search is.
+ * Decides whether an item survives the narrowing filters, in step with the database version for the
+ * same reason the search is. An item with no year or no rating fails a filter asking about one
+ * rather than passing it: asking for at least seven is not asking to also be shown everything
+ * nobody has scored.
  *
- * An item with no year or no rating fails a filter that asks about one, rather
- * than passing it by default: somebody asking for "at least seven out of ten"
- * is not asking to also be shown everything nobody has scored.
+ * @param item - The item being tested.
+ * @param options - The filters asked for.
+ * @returns Whether the item survives them all.
  */
 const matchesFilters = (item: MediaDetail, options: ListItemsOptions): boolean => {
   const year = item.year ?? null;
@@ -72,11 +78,13 @@ const matchesFilters = (item: MediaDetail, options: ListItemsOptions): boolean =
 };
 
 /**
- * A library held in memory.
+ * A library held in memory, so the HTTP surface can be exercised without Postgres. Models the
+ * behaviour the routes depend on — searching, filtering, paging, missing identifiers — in step with
+ * the database version, since a test passing against different behaviour describes a server that
+ * does not exist.
  *
- * Lets the HTTP surface be tested without Postgres, in the same way the memory
- * auth adapter does. The behaviour it models — searching, paging, missing
- * identifiers — is the behaviour the routes depend on.
+ * @param state - Any libraries and items to start with.
+ * @returns The library service, and the state behind it.
  */
 const createMemoryLibraryService = (
   state: MemoryState = { libraries: [], media: [] },

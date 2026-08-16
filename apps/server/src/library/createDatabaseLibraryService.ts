@@ -64,43 +64,23 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 const GenresSchema = z.array(z.string());
 type CreateDatabaseLibraryServiceOptions = {
-  /**
-   * How many files to have the media service working on at once.
-   */
   atOnce?: number;
   db: FluxDatabase;
   files: MediaFileSystem;
   transcoder: Transcoder;
   jobs: JobQueue;
-  /**
-   * Asked in order for each file's metadata, first answer winning.
-   *
-   * Left out entirely means the filename reader alone, which is what an
-   * instance with no catalogue configured runs on.
-   */
   providers?: MetadataProvider[];
   onProblem?: (path: string, reason: string) => void;
 };
 
 /**
- * What a typed search matches against.
+ * Builds the condition a typed search matches on: the title, the series title, the description, the
+ * tagline and the cast. Somebody typing into a search box is naming whatever they can remember, and
+ * the title is only sometimes it — an actor's name and half a plot are both perfectly ordinary ways
+ * to look for a film.
  *
- * Everything written about a thing rather than its title alone, because
- * somebody typing into a search box is naming whatever they can remember, and
- * the title is only sometimes it. "Denzel" is a perfectly ordinary way to look
- * for a film, and a title-only search answers it with nothing while the server
- * holds the cast list that would have found it. The same goes for half a
- * remembered plot, which is in the description Flux already stores.
- *
- * The series title is in here for the same reason: searching "Ted" should
- * find the programme's episodes, which are each titled something else
- * entirely.
- *
- * Cast is matched by reading the stored array rather than by containment,
- * because somebody types a surname and containment wants the whole name
- * exactly. That costs a scan of the column — there is no index that serves a
- * substring — which is affordable at the size a household library reaches and
- * is the thing to revisit if this is ever pointed at twenty thousand items.
+ * @param search - What was typed.
+ * @returns The condition to add to the query.
  */
 const matchesSearch = (search: string) => {
   const like = `%${search.trim()}%`;
@@ -119,11 +99,12 @@ const matchesSearch = (search: string) => {
 };
 
 /**
- * The genres a stored row carries.
+ * Reads the genres off a stored row, through a schema rather than trusting the column: whatever a
+ * catalogue wrote there years ago is not something to hand a browser unchecked, and a row that no
+ * longer parses is an item with no genres rather than a failed page.
  *
- * Read through a schema because the column is JSON: whatever a catalogue put
- * there years ago is not something to hand to a browser unchecked, and a row
- * that no longer parses is an item with no genres rather than a failed page.
+ * @param stored - The column as the database returned it.
+ * @returns The genres, or null where the column held something else.
  */
 const readGenres = (stored: JsonValue): string[] | null => {
   const parsed = GenresSchema.safeParse(stored);
@@ -131,21 +112,8 @@ const readGenres = (stored: JsonValue): string[] | null => {
   return parsed.success ? parsed.data : null;
 };
 
-/**
- * The library as this file provides it: everything the application asks of a
- * library, and the work that only a real one can do.
- */
 type DatabaseLibraryService = LibraryService & {
-  /**
-   * Scans, and reports what it changed.
-   *
-   * Null where there is no such library, which is a different answer from a
-   * scan that ran and changed nothing.
-   */
   runScan: (libraryId: string, force?: boolean, jobId?: string) => Promise<ScanResult | null>;
-  /**
-   * Reads a few named files again, having been told what they are.
-   */
   runReadAgain: (libraryId: string, paths: string[], jobId?: string) => Promise<void>;
   runRegeneratePreviews: (
     libraryId: string,
@@ -156,20 +124,17 @@ type DatabaseLibraryService = LibraryService & {
   runFetchLogos: (libraryId: string, jobId?: string) => Promise<void>;
 };
 
-/**
- * How many episodes are read to build a series.
- *
- * A ceiling rather than a page: a show is only itself when all of it is there,
- * and no series anybody owns has this many episodes.
- */
 const EVERY_EPISODE = 2000;
 
 /**
- * The library backed by Postgres, plus the worker body the queue calls.
+ * The library as Postgres holds it, and the work the job queue runs against it — scanning, probing,
+ * fetching artwork, building previews. Item detail is validated on the way out with the shared
+ * contract schema, so a row written by an older version fails here rather than reaching a client
+ * half-populated.
  *
- * Item detail is validated on the way out with the shared contract schema, so
- * a row written by an older version that no longer matches the contract fails
- * here rather than reaching a client as a half-populated object.
+ * @param options - The database, the file system, the transcoder, the queue, and any metadata
+ *   providers to ask about files.
+ * @returns The library service, plus the worker bodies only a real library can run.
  */
 const createDatabaseLibraryService = ({
   db,
@@ -182,18 +147,6 @@ const createDatabaseLibraryService = ({
 }: CreateDatabaseLibraryServiceOptions): DatabaseLibraryService => {
   const store = createMediaStore(db);
 
-  /**
-   * What the catalogue says the series contains, or nothing when nobody can
-   * say.
-   *
-   * Asked by the id a provider already gave one of the episodes, which is why
-   * this needs no new column: every episode of a series was matched to the
-   * same series in the catalogue, so any one of them can name it.
-   *
-   * Held for the life of the process. A series gains an episode a week at
-   * most, and asking a catalogue again every time somebody opens a dialog is
-   * a request per press for an answer that does not move.
-   */
   const shapes = new Map<string, SeriesShape | null>();
 
   const shapeOf = async (detail: ShowDetail): Promise<SeriesShape | null> => {
@@ -225,11 +178,13 @@ const createDatabaseLibraryService = ({
   };
 
   /**
-   * Every file a correction should reach.
+   * Finds every file a correction should reach. Correcting one episode corrects the whole programme:
+   * an identifier names a show, and fixing episode one while two to ten still point at the wrong
+   * programme is worse than not offering the feature.
    *
-   * A film is itself. An episode is its whole series within that library,
-   * because the id being corrected names a programme rather than an episode,
-   * and half a corrected series is a worse state than an uncorrected one.
+   * @param db - The database to ask.
+   * @param mediaId - The item somebody corrected.
+   * @returns The paths of every file the correction applies to.
    */
   const pathsOfTheSameThing = async (
     mediaId: string,
@@ -263,11 +218,12 @@ const createDatabaseLibraryService = ({
   };
 
   /**
-   * Reads a handful of files again, now that something about them has changed.
+   * Reads a few named files again, now that a correction has said what they are, and writes what the
+   * catalogue answers back over what was stored.
    *
-   * A scan of the whole library would answer too, and would take as long as the
-   * library is large. The point of a correction is watching the page become
-   * right, so only what was corrected is read again.
+   * @param libraryId - The library the files are in.
+   * @param paths - The files to read again.
+   * @param onProgress - The job to report progress against, where one is watching.
    */
   const readAgain = async (
     libraryId: string,
@@ -298,12 +254,13 @@ const createDatabaseLibraryService = ({
   };
 
   /**
-   * Hands the re-read to the queue, so it is watchable rather than a request
-   * that hangs for as long as a series takes to fetch.
+   * Hands a re-read to the job queue rather than doing it in the request, so a correction that
+   * reaches ninety episodes is something to watch rather than a request that hangs for as long as a
+   * series takes to fetch.
    *
-   * Runs it here and now when the queue will not take it, which is how a
-   * server started without background jobs still applies a correction — the
-   * caller waits, but the correction lands either way.
+   * @param libraryId - The library the files are in.
+   * @param paths - The files to read again.
+   * @returns The job to watch, or null where the queue took nothing.
    */
   const queueReadAgain = async (libraryId: string, paths: string[]): Promise<string | null> => {
     const jobId = await jobs.enqueue(READ_AGAIN_JOB, { libraryId, paths }, libraryId);
@@ -324,23 +281,23 @@ const createDatabaseLibraryService = ({
   };
 
   /**
-   * How many of a library's files to render at the same time.
+   * Decides how many of a library's files to work on at once: what the library was configured with,
+   * or what the server thinks it can manage. A library on a network share wants one — the files arrive
+   * down one wire, and asking for four divides that wire four ways and adds seeking to it.
    *
-   * The library's own answer wins over the server's. A library on a local disk
-   * wants as many at once as there are cores to feed; a library on a network
-   * share wants one, because the files come down one wire and asking for four
-   * divides that wire four ways.
+   * @param libraryId - The library being worked on.
+   * @returns How many files to render at the same time.
    */
   const filesAtOnceFor = async (libraryId: string): Promise<number> =>
     (await findLibrary(libraryId))?.filesAtOnce ?? atOnce;
 
   /**
-   * What the last scan changed, or null where none has run since Flux began
-   * recording it.
+   * Reads what the last scan of a library actually changed. "Scanned an hour ago" and "scanned an hour
+   * ago and removed two hundred items" answer the same question, and only the second tells an operator
+   * their mount was missing.
    *
-   * All four columns are written together, so one being absent means the
-   * library was last scanned by a version that did not keep count rather than
-   * that the scan did nothing.
+   * @param row - The library row as stored.
+   * @returns The counts from the last scan, or null where none has run since Flux began recording.
    */
   const readLastScan = (row: {
     lastScanAdded: number | null;
@@ -869,12 +826,6 @@ const createDatabaseLibraryService = ({
     },
 
     runFetchLogos: async (libraryId, jobId) => {
-      /**
-       * The first provider that can supply lettering.
-       *
-       * Providers are tried in order everywhere else too; a filename reader
-       * has no artwork to give and simply does not offer this.
-       */
       const readLogoUrl = (providers ?? []).find(
         (provider) => provider.readLogoUrl !== undefined,
       )?.readLogoUrl;

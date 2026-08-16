@@ -13,19 +13,14 @@ const SubtitleListSchema = z.object({ tracks: z.array(SubtitleTrackSchema) });
 
 type SubtitleTrack = z.infer<typeof SubtitleTrackSchema>;
 
-/**
- * The value standing for showing no captions at all.
- *
- * A menu of tracks needs an entry for turning them off, and an empty string
- * would be indistinguishable from a track whose id failed to arrive.
- */
 const SUBTITLES_OFF = 'off';
 
 /**
- * Reads the subtitle tracks sitting beside an item.
+ * Reads the subtitle tracks available for an item, from inside the container and from the files
+ * beside it, presented as one list.
  *
- * Answers with nothing rather than throwing: captions are an addition to
- * playback and their absence must never stop a film from playing.
+ * @param mediaId - The item being played.
+ * @returns The tracks to offer, or none where the request failed.
  */
 const fetchSubtitleTracks = async (mediaId: string): Promise<SubtitleTrack[]> => {
   try {
@@ -44,32 +39,33 @@ const fetchSubtitleTracks = async (mediaId: string): Promise<SubtitleTrack[]> =>
 };
 
 /**
- * Where a track is served from.
+ * Builds the address a subtitle track is served from, converted to the one format a browser takes.
+ *
+ * @param mediaId - The item being played.
+ * @param trackId - Which track.
+ * @param fromSeconds - Where to begin the track, for a preview that starts part-way in.
+ * @returns The address to attach to the video element.
  */
 const subtitleTrackUrl = (mediaId: string, trackId: string, fromSeconds = 0): string =>
   `/api/media/${mediaId}/subtitles/${trackId}?from=${Math.max(0, Math.floor(fromSeconds)).toString()}`;
 
 /**
- * Picks the track to show before anyone has chosen one.
+ * Picks the track to show before anybody has chosen — a forced track where one exists, since forced
+ * subtitles carry the parts of a film nobody is meant to miss, and otherwise nothing.
  *
- * A forced track is what a viewer who does not want subtitles still wants:
- * it carries only the parts spoken in another language. Anything else stays
- * off until asked for.
+ * @param tracks - The tracks available.
+ * @returns The track to start with, or the identifier meaning none.
  */
 const defaultTrackId = (tracks: SubtitleTrack[]): string =>
   tracks.find((track) => track.isForced)?.id ?? SUBTITLES_OFF;
 
 /**
- * The track that continues what a viewer was already reading.
+ * Finds the track that continues what a viewer was already reading, when playback moves to the next
+ * episode — subtitles chosen once should not have to be chosen again per episode.
  *
- * A track is named from the file it lives in, so the identifier that means
- * "English" for one episode means nothing for the next. What somebody chose
- * was a language, and matching on that is what carries a choice from one
- * episode into the following one.
- *
- * Answers with nothing when the language was never chosen, or when this file
- * has nothing in it — a viewer who asked for English and got a Hungarian
- * track because it was the only one would rightly call that broken.
+ * @param tracks - The tracks available on the new item.
+ * @param language - The language they were reading.
+ * @returns The track to select, or null where this item has none in that language.
  */
 const trackForLanguage = (
   tracks: SubtitleTrack[],
@@ -85,12 +81,12 @@ const trackForLanguage = (
 };
 
 /**
- * The track a preview should carry.
+ * Picks the track a hover preview should carry, which is a forced one or none at all — a preview
+ * runs for a few seconds and full subtitles on it are noise.
  *
- * Different question from the player's default, which stays off until asked:
- * a preview is decoration, and decoration in a language somebody cannot read
- * is decoration wasted. The browser's own language wins where the file has
- * it, and the first track stands in where it does not.
+ * @param tracks - The tracks available.
+ * @param language - The language being spoken, so a forced track in it is preferred to one in another.
+ * @returns The track to burn into the preview, or null for none.
  */
 const previewTrack = (tracks: SubtitleTrack[], language: string): SubtitleTrack | null => {
   const spoken = language.split('-')[0]?.toLowerCase() ?? '';

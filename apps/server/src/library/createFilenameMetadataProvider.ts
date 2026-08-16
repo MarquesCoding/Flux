@@ -2,10 +2,9 @@ import { readTitleFromPath } from './readTitleFromPath';
 import type { MetadataProvider } from './MetadataProvider';
 
 /**
- * The provider Flux ships with.
- *
- * Reads a title and year from the filename. Always answers, so it belongs last
- * in the list: a plugin that knows better should be asked first.
+ * The provider Flux ships with, which reads what it can out of the filename alone — the title, the
+ * year, the season and episode. Always available and never wrong about anything it has not claimed,
+ * which is what makes it the layer everything else is chosen against.
  */
 const createFilenameMetadataProvider = (): MetadataProvider => ({
   name: 'filename',

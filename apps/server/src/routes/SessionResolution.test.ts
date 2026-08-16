@@ -13,10 +13,6 @@ import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryPro
 
 /**
  * A server that counts how often it works out who is calling.
- *
- * Counted because it is charged for: an API key is verified on every
- * resolution and spent against its own rate limit, so a request that asks
- * three times gives a key a third of the allowance its holder was promised.
  */
 const counting = async () => {
   const { auth, settings, store } = createMemoryAuth();

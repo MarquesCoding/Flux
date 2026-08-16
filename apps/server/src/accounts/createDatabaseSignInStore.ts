@@ -4,11 +4,11 @@ import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { SignInStore } from './recordSignIn';
 
 /**
- * Where an account's sign-ins are written down.
+ * Records when each account signs in, which is what the admin pages read to show who has been
+ * active and what an operator checks before removing an account nobody uses.
  *
- * One row per account, upserted. The count is incremented in the database
- * rather than read and written back, so two devices signing in at the same
- * moment cannot each read the same number and store it twice.
+ * @param db - The database to read and write.
+ * @returns The sign-in store.
  */
 const createDatabaseSignInStore = (
   db: FluxDatabase,

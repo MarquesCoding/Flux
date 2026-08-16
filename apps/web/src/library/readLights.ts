@@ -1,31 +1,9 @@
 import type { MoodLight } from '@FluxUI/MoodBackground.types';
 
-/**
- * How big a picture is read at.
- *
- * Tiny on purpose. What is wanted is the colour of each corner of a picture,
- * and that survives being shrunk to a thumbnail — where reading every pixel of
- * a 4K frame would cost more than drawing the page.
- */
 const READ_AT = 24;
 
-/**
- * How far a region's colour is pushed from grey before it is used.
- *
- * An average is duller than what it averages, and five dull averages light a
- * page in five browns. Pushing each channel away from its own mean gives back
- * roughly what somebody would say the corner of the picture was.
- */
 const SPREAD = 1.9;
 
-/**
- * Where a frame is read, and where the light from each part of it belongs.
- *
- * A picture is not one colour, and neither is the light coming off a screen
- * showing it: a red coat on the left throws red on the left. Each zone is read
- * on its own and lights the page from the place it came from, which is what
- * makes it read as spill rather than as a tint.
- */
 const ZONES = [
   { from: [0, 0, 0.5, 0.5], at: '12% 10%' },
   { from: [0.5, 0, 0.5, 0.5], at: '88% 12%' },
@@ -34,34 +12,17 @@ const ZONES = [
   { from: [0.25, 0.25, 0.5, 0.5], at: '50% 45%' },
 ] as const;
 
-/**
- * The light coming off a picture, part by part.
- *
- * Done here rather than on the server because it is a question about this
- * moment. A server deciding it at import decides it once, for every screen,
- * from a frame nobody was looking at yet.
- *
- *
- * Each corner and the middle are averaged on their own, so what is thrown onto
- * the page comes from the place it belongs to. Averaged rather than counted:
- * for light, the colour of a region is what it looks like from across a room,
- * and that is its average.
- */
-/**
- * How bright the strongest channel of a light must end up.
- *
- * A picture is read for its colour, not its exposure, and plenty of what a
- * library holds is dim on purpose — a night scene, an unlit room, anything
- * shot dark. Read literally, those give a wash of near black, which on a black
- * page is a wash of nothing: the effect appears broken exactly where the
- * artwork is most atmospheric.
- *
- * Every channel is scaled by the same factor rather than raised on its own, so
- * the hue and the relative saturation survive untouched. What changes is only
- * how much of it there is to see.
- */
 const MIN_PEAK = 110;
 
+/**
+ * Reads the handful of colours that stand for an image, by drawing it very small and looking at what
+ * is left. Shrinking averages the picture for us, which is both cheaper and steadier than sampling a
+ * full-size one. Answers with nothing where the image cannot be read at all, which a canvas tainted
+ * by another origin cannot.
+ *
+ * @param source - The image to read.
+ * @returns The colours to light a page with, or none where it could not be read.
+ */
 const readLights = (source: CanvasImageSource): MoodLight[] => {
   try {
     const canvas = document.createElement('canvas');
