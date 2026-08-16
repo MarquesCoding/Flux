@@ -200,6 +200,7 @@ fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
         .collect();
 
     MediaProbe {
+        can_copy_segments: None,
         container: Container::detect(
             format.map(|f| f.format_name.as_str()).unwrap_or_default(),
             path,

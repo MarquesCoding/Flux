@@ -63,11 +63,22 @@ const ProbeSubtitleSchema = z.object({
  * version mismatch between the two halves of the server should fail loudly at
  * the boundary instead of producing a half-populated library row.
  */
+/**
+ * What the media service knows about a file.
+ *
+ * `canCopySegments` is its judgement on whether the file can be delivered by
+ * copying it, which needs a read of the whole packet index and so is answered
+ * only where it is asked for. Absent from a probe of a file with no video, and
+ * from a media service that predates the question — and absent is not "no": a
+ * file nobody has asked about is stored as unknown so the scan probes it again
+ * rather than encoding it on a guess.
+ */
 const MediaProbeSchema = z.object({
   container: z.string(),
   durationSeconds: z.number(),
   bitrateKbps: z.number().int().nullable(),
   video: ProbeVideoSchema.nullable(),
+  canCopySegments: z.boolean().optional(),
   audioStreams: z.array(ProbeAudioSchema),
   chapters: z
     .array(

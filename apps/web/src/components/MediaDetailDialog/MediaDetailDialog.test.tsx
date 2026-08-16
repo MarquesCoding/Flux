@@ -55,6 +55,7 @@ const detail = (overrides: Partial<MediaDetail['metadata']> = {}): MediaDetail =
   videoCodec: 'hevc',
   videoRange: 'HDR10',
   videoBitDepth: 8,
+  canCopySegments: true,
   width: 1920,
   height: 1080,
   bitrateKbps: 12000,

@@ -15,7 +15,8 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::keyframes::{
-    cut_interval, longest_segment, read_keyframes, safe_segment_lengths, segment_lengths,
+    cut_interval, longest_segment, read_keyframes, safe_segment_lengths, segment_lengths, Cut,
+    Keyframes,
 };
 use crate::playlist::build_vod_playlist;
 use crate::probe::probe_media;
@@ -46,6 +47,26 @@ const LAYOUT: u32 = 4;
 /// which puts a keyframe on every boundary and yields segments of a few
 /// megabytes — is the only thing that plays. See FLUX-125.
 const LONGEST_COPYABLE_SEGMENT: f64 = 16.0;
+
+/// Whether a source's own keyframes can yield segments a player will take.
+///
+/// Two ways they cannot. Some are places a decoder cannot start, because the
+/// segment they open carries pictures shown before them that reference the GOP
+/// before that. Passing those over is correct but merges their GOPs into the
+/// segment before, and where they run consecutively that produces segments far
+/// longer than anything can be asked to fetch and append in one piece.
+///
+/// Asked by the media service before it starts a session, and by the library
+/// scan through the probe, so that both reach the same answer from the same
+/// rule. See FLUX-125.
+#[must_use]
+pub fn can_copy_segments(keyframes: &Keyframes, cut_seconds: f64) -> bool {
+    if keyframes.cuts.iter().copied().all(Cut::is_safe) {
+        return true;
+    }
+
+    longest_segment(&safe_segment_lengths(keyframes, cut_seconds)) <= LONGEST_COPYABLE_SEGMENT
+}
 
 /// Where a plan's segments fall, and what the muxer has to be asked for to
 /// make them fall there.
@@ -168,17 +189,16 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
                 };
             }
 
-            let avoided = safe_segment_lengths(&keyframes, cut_seconds);
-            let longest = longest_segment(&avoided);
-
-            if longest <= LONGEST_COPYABLE_SEGMENT {
+            if can_copy_segments(&keyframes, cut_seconds) {
                 return Boundaries {
                     layout: LAYOUT,
-                    lengths: avoided,
+                    lengths: safe_segment_lengths(&keyframes, cut_seconds),
                     cut_seconds,
                     can_copy: true,
                 };
             }
+
+            let longest = longest_segment(&safe_segment_lengths(&keyframes, cut_seconds));
 
             eprintln!(
                 "transcode: {} has {unsafe_cuts} keyframes a decoder cannot start at, and \

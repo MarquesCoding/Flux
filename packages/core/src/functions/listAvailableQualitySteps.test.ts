@@ -10,6 +10,7 @@ const media: MediaItem = {
   videoCodec: 'hevc',
   videoRange: 'SDR',
   videoBitDepth: 8,
+  canCopySegments: true,
   width: 1920,
   height: 1080,
   bitrateKbps: 8000,
