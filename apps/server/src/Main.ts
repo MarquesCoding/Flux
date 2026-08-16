@@ -20,6 +20,7 @@ import {
 import { readEnv } from '@FluxServer/env/Env';
 import { createDatabaseSettingsStore } from '@FluxServer/settings/createDatabaseSettingsStore';
 import { createDatabaseLibraryService } from '@FluxServer/library/createDatabaseLibraryService';
+import { runScanPhases } from '@FluxServer/library/runScanPhases';
 import { createCatalogueMetadataProvider } from '@FluxServer/library/createCatalogueMetadataProvider';
 import { createFilenameMetadataProvider } from '@FluxServer/library/createFilenameMetadataProvider';
 import { createMediaFileSystem } from '@FluxServer/library/createMediaFileSystem';
@@ -411,14 +412,17 @@ const jobs = await createJobQueue({
         const scanned = libraries.find((entry) => entry.id === libraryId);
         const language = scanned?.defaultAudioLanguage;
 
-        for (const phase of [
-          async () => {
-            const result = await libraryService.runScan(libraryId, force, jobId);
-
-            if (result === null) {
-              return;
-            }
-
+        await runScanPhases({
+          work: {
+            scan: () => libraryService.runScan(libraryId, force, jobId),
+            fetchLogos: () => libraryService.runFetchLogos(libraryId, jobId),
+            regeneratePreviews: () =>
+              libraryService.runRegeneratePreviews(libraryId, language ?? null, jobId),
+            regenerateTrickplay: () => libraryService.runRegenerateTrickplay(libraryId, jobId),
+            detectSegments: () => runDetectSegments(libraryId, jobId),
+          },
+          isCancelled: () => jobs.isCancelled(jobId),
+          onScanned: async (result) => {
             jobs.reportProgress(
               jobId,
               `added ${result.added.toString()}, updated ${result.updated.toString()}, removed ${result.removed.toString()}`,
@@ -431,16 +435,7 @@ const jobs = await createJobQueue({
               data: { libraryId, libraryName: scanned?.name ?? 'A library', ...result },
             });
           },
-          () => libraryService.runRegeneratePreviews(libraryId, language ?? null, jobId),
-          () => libraryService.runRegenerateTrickplay(libraryId, jobId),
-          () => runDetectSegments(libraryId, jobId),
-        ]) {
-          if (jobs.isCancelled(jobId)) {
-            return;
-          }
-
-          await phase();
-        }
+        });
       });
     },
     [READ_AGAIN_JOB]: async (jobId, payload) => {

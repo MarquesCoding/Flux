@@ -33,7 +33,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     kind: SCAN_LIBRARY_JOB,
     label: 'Scan for changes',
     description:
-      'Finds new, changed and removed files, then makes whatever they are still missing — previews, scrub previews and intros.',
+      'Finds new, changed and removed files, then makes whatever they are still missing.',
     needsLibrary: true,
     destructive: false,
   },
@@ -73,7 +73,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     kind: RESET_LIBRARY_JOB,
     label: 'Reset and rebuild',
     description:
-      'Deletes every item in every library and starts again from nothing: scanning, then previews, scrub previews and intro detection for the lot. Hours of work on a large library.',
+      'Deletes every item in every library and starts again from nothing: scanning, then everything each item needs made for it. Hours of work on a large library.',
     needsLibrary: true,
     destructive: true,
   },
