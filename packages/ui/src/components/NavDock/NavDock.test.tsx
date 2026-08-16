@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavDock } from './NavDock';
+import { ActionMenu } from '@FluxUI/ActionMenu';
 import type * as MotionReact from 'motion/react';
 
 const motion = vi.hoisted(() => ({ isReduced: false }));
@@ -268,5 +269,104 @@ describe('what a dock can carry besides places', () => {
     );
 
     expect(screen.getByTestId('count')).toBeInTheDocument();
+  });
+  it('holds an action still while its own panel is open', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <NavDock
+        {...props}
+        actions={[
+          {
+            id: 'notifications',
+            label: 'Notifications',
+            icon: <span data-testid="outline" aria-expanded="true" />,
+            activeIcon: <span data-testid="filled" />,
+            gesture: 'fill',
+            onSelect: vi.fn(),
+          },
+        ]}
+      />,
+    );
+
+    const covering = screen.getByTestId('filled').parentElement;
+
+    await user.hover(screen.getByRole('button', { name: 'Notifications' }));
+
+    await waitFor(() => {
+      expect(covering).toHaveStyle({ clipPath: 'inset(100% 0% 0% 0%)' });
+    });
+  });
+
+  it('still answers a pointer on an action whose panel is shut', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <NavDock
+        {...props}
+        actions={[
+          {
+            id: 'notifications',
+            label: 'Notifications',
+            icon: <span data-testid="outline" />,
+            activeIcon: <span data-testid="filled" />,
+            gesture: 'fill',
+            onSelect: vi.fn(),
+          },
+        ]}
+      />,
+    );
+
+    const covering = screen.getByTestId('filled').parentElement;
+
+    expect(covering).toHaveStyle({ clipPath: 'inset(100% 0% 0% 0%)' });
+
+    await user.hover(screen.getByRole('button', { name: 'Notifications' }));
+
+    await waitFor(() => {
+      expect(covering).not.toHaveStyle({ clipPath: 'inset(100% 0% 0% 0%)' });
+    });
+  });
+  it('holds a real menu\u2019s icon still once the menu is open', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <NavDock
+        {...props}
+        actions={[
+          {
+            id: 'surprise',
+            label: 'Surprise',
+            icon: <span />,
+            gesture: 'fill',
+            activeIcon: <span data-testid="filled" />,
+            control: (
+              <ActionMenu
+                label="Choose"
+                trigger={<span data-testid="dice" />}
+                groups={[{ items: [{ id: 'anything', label: 'Anything', onChoose: vi.fn() }] }]}
+              />
+            ),
+          },
+        ]}
+      />,
+    );
+
+    await user.hover(screen.getByRole('button', { name: 'Choose' }));
+    await user.click(screen.getByRole('button', { name: 'Choose' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('menuitem', { name: 'Anything' })).toBeInTheDocument();
+    });
+
+    const wrapper = screen.getByTestId('dice').closest('[data-highlight]');
+
+    expect(wrapper?.querySelector('[aria-expanded="true"]')).not.toBeNull();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('dice').parentElement?.parentElement).toHaveStyle({
+        transform: 'none',
+      });
+    });
   });
 });

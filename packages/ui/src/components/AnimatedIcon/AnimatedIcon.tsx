@@ -45,10 +45,20 @@ const WIPES: Partial<Record<IconGesture, Variants>> = {
  *
  * @param gesture - How it should move, defaulting to a small rise and nothing else.
  * @param isPlaying - Whether the gesture should be running, which the surrounding control decides.
+ * @param isStilled - Whether to put the icon back where it rests without animating it there. Merely
+ *   stopping a gesture animates it back, and that return journey moves the icon as much as the
+ *   gesture did — which is no use to anything anchored to it. The element itself is kept, since
+ *   replacing it would unmount whatever it wraps, and a popover whose trigger is unmounted shuts.
  * @param icon - The icon as it rests.
  * @param activeIcon - Its filled twin, which the filling gestures reveal over it.
  */
-const AnimatedIcon = ({ gesture = 'settle', isPlaying, icon, activeIcon }: AnimatedIconProps) => {
+const AnimatedIcon = ({
+  gesture = 'settle',
+  isPlaying,
+  isStilled = false,
+  icon,
+  activeIcon,
+}: AnimatedIconProps) => {
   const prefersReducedMotion = useReducedMotion();
   const wipe = WIPES[gesture];
 
@@ -56,11 +66,14 @@ const AnimatedIcon = ({ gesture = 'settle', isPlaying, icon, activeIcon }: Anima
     return <span className="flex shrink-0 items-center">{icon}</span>;
   }
 
+  const settling = isStilled ? { duration: 0 } : undefined;
+
   return (
     <motion.span
       initial="rest"
-      animate={isPlaying ? 'play' : 'rest'}
+      animate={isPlaying && !isStilled ? 'play' : 'rest'}
       variants={GESTURES[gesture]}
+      {...(settling === undefined ? {} : { transition: settling })}
       className={cn(
         'relative flex shrink-0 items-center',
         gesture === 'ring' ? 'origin-top' : 'origin-center',
@@ -71,6 +84,7 @@ const AnimatedIcon = ({ gesture = 'settle', isPlaying, icon, activeIcon }: Anima
       {wipe === undefined || activeIcon === undefined ? null : (
         <motion.span
           variants={wipe}
+          {...(settling === undefined ? {} : { transition: settling })}
           aria-hidden
           className="absolute inset-0 flex items-center justify-center"
         >

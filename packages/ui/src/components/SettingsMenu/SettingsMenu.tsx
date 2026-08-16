@@ -7,6 +7,7 @@ import { HoverHighlight } from '@FluxUI/HoverHighlight';
 import { Switch } from '@FluxUI/Switch';
 import { useSlidingHighlight } from '@FluxUI/useSlidingHighlight';
 import { cn } from '@FluxUI/cn';
+import { POPUP_MOTION } from '@FluxUI/animations/popup';
 import { Tooltip } from '@FluxUI/Tooltip';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type {
@@ -15,12 +16,6 @@ import type {
   SettingsPanelRow,
   SettingsRow,
 } from './SettingsMenu.types';
-
-const POPUP_MOTION = cn(
-  'origin-[var(--transform-origin)] transition-[transform,opacity] duration-[var(--duration-base)] ease-[var(--ease-soft)]',
-  'data-[starting-style]:scale-95 data-[starting-style]:opacity-0',
-  'data-[ending-style]:scale-95 data-[ending-style]:opacity-0',
-);
 
 const ROW =
   'relative z-10 flex w-full items-center gap-4 rounded-[1.375rem] px-3 py-2.5 text-left text-sm';
