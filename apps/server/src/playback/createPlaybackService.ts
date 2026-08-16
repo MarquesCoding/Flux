@@ -11,6 +11,7 @@ import {
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
 } from './PlaybackService';
+import { VideoRangeSchema } from '@FluxContracts/schemas/MediaItem';
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
 import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
 import type { PlaybackService } from './PlaybackService';
@@ -33,6 +34,29 @@ const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub']);
  * @param encodesVideo - Whether the picture is in fact being encoded.
  * @returns The plan as carried out.
  */
+/**
+ * Corrects the range a plan claims to the one the output will really carry.
+ *
+ * A transcode that cannot tone map does not produce SDR. It re-encodes the picture and leaves its
+ * colour metadata alone, so the stream stays HDR and a client that colour manages shows it
+ * correctly. Announcing SDR while emitting PQ is the one answer that is wrong either way: it tells
+ * a viewer their HDR was converted when it was not, and tells anything reading the plan to expect a
+ * range the bytes contradict.
+ *
+ * @param plan - The plan as negotiated.
+ * @param deliveredRange - The range the media service says the output will carry.
+ * @returns The plan, saying what will really arrive.
+ */
+const withDeliveredRange = (plan: PlaybackPlan, deliveredRange: string): PlaybackPlan => {
+  if (plan.video.kind !== 'transcode' || plan.video.range === deliveredRange) {
+    return plan;
+  }
+
+  const range = VideoRangeSchema.safeParse(deliveredRange);
+
+  return range.success ? { ...plan, video: { ...plan.video, range: range.data } } : plan;
+};
+
 const asDelivered = (plan: PlaybackPlan, item: MediaItem, encodesVideo: boolean): PlaybackPlan => {
   if (!encodesVideo || plan.video.kind !== 'passthrough') {
     return plan;
@@ -203,7 +227,10 @@ const createPlaybackService = ({
       try {
         const session = await transcoder.startSession(outcome.spec, deviceId);
 
-        const delivered = asDelivered(plan, found.item, session.encodesVideo);
+        const delivered = withDeliveredRange(
+          asDelivered(plan, found.item, session.encodesVideo),
+          outcome.deliveredRange,
+        );
 
         return {
           kind: 'started',
