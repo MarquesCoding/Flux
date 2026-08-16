@@ -10,7 +10,13 @@ const ownAddresses = (): string[] =>
     .map((entry) => entry.address);
 
 /**
- * The ports somebody is already known to read Flux at.
+ * Collects the ports Flux is already known to be read at, from the origins an operator configured,
+ * so that guessing an address for this machine guesses the right port. An origin that will not parse
+ * is skipped rather than failing the lot.
+ *
+ * @param origins - The origins an operator configured.
+ * @param fallback - The port to include regardless, being the one Flux is listening on.
+ * @returns Every port worth trying, without duplicates.
  */
 const portsIn = (origins: string[], fallback: number): number[] => {
   const found = origins.flatMap((origin) => {
@@ -27,7 +33,13 @@ const portsIn = (origins: string[], fallback: number): number[] => {
 };
 
 /**
- * The addresses this machine can be read at, trusted without being written down.
+ * Works out the addresses this machine can be read at — every network interface it has, at every
+ * port already in use — so that a household reaching the server by its local address is trusted
+ * without an operator having to write each one down. Configured origins are always included.
+ *
+ * @param configured - The origins an operator wrote down.
+ * @param fallbackPort - The port Flux is listening on.
+ * @returns Every origin to trust.
  */
 const ownOrigins = (configured: string[], fallbackPort: number): string[] => {
   const ports = portsIn(configured, fallbackPort);

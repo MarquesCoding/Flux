@@ -12,7 +12,13 @@ type CheckAccountActionOptions = {
 };
 
 /**
- * Whether one account may ban or remove another.
+ * Decides whether one account may ban or remove another, and says why not when it may not. Rank
+ * decides it: nobody may act on somebody at or above their own highest role, which is what stops a
+ * moderator removing an administrator. An administrator is exempt, and nobody may act on themselves
+ * however senior they are.
+ *
+ * @param options - Who is acting, what they may do, how senior they are, and who they are acting on.
+ * @returns Why the action is refused, or null where it is allowed.
  */
 const checkAccountAction = ({
   actorId,
