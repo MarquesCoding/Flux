@@ -1,9 +1,17 @@
 name: CI
 
+# Run by hand, from the Actions tab, and never on its own.
+#
+# This is a private repository, so every minute a runner spends is billed, and this workflow is not
+# cheap: a Debian container, a Rust build, and three minutes of encoding to generate the corpus. Run
+# automatically on every push it would cost real money to tell us what the pre-push hook already
+# said locally for nothing.
+#
+# The hooks stay the everyday gate. This is the deeper check — the whole corpus, against the FFmpeg
+# Flux ships — for when it is worth asking: before a release, after touching the media pipeline, or
+# when a rule's behaviour is in question.
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
