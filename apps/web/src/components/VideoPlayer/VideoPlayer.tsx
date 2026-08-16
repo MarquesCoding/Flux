@@ -22,6 +22,7 @@ import {
   sendPresenceHeartbeat,
 } from '@FluxWeb/playback/startPlaybackSession';
 import { attachShaka, CRITICAL } from '@FluxWeb/playback/attachShaka';
+import type { DeliveredFormat } from '@FluxWeb/playback/attachShaka';
 import {
   describePlaybackFailure,
   PlaybackEngineErrorSchema,
@@ -183,6 +184,7 @@ const VideoPlayer = ({
   const [isShowingStats, setIsShowingStats] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH);
+  const [delivered, setDelivered] = useState<DeliveredFormat | null>(null);
   const [isIdle, setIsIdle] = useState(false);
   const pointRef = useRef<{ x: number; y: number } | null>(null);
   const [activity, setActivity] = useState(0);
@@ -228,6 +230,7 @@ const VideoPlayer = ({
     };
   }, [castNote]);
   const releaseRef = useRef<(() => Promise<void>) | null>(null);
+  const deliveredRef = useRef<(() => DeliveredFormat | null) | null>(null);
   const castContextRef = useRef<CastContext | null>(null);
 
   const popOut = useCallback(() => {
@@ -417,8 +420,9 @@ const VideoPlayer = ({
 
     const at = element.currentTime;
 
-    void attachShaka({ element, manifestUrl: session.delivery.manifestUrl }).then((teardown) => {
-      releaseRef.current = teardown;
+    void attachShaka({ element, manifestUrl: session.delivery.manifestUrl }).then((attached) => {
+      releaseRef.current = attached.detach;
+      deliveredRef.current = attached.readDelivered;
       element.currentTime = at;
       start(element);
     });
@@ -652,7 +656,7 @@ const VideoPlayer = ({
         if (outcome.session.delivery.kind === 'direct') {
           element.src = outcome.session.delivery.url;
         } else {
-          teardown = await attachShaka({
+          const attached = await attachShaka({
             element,
             manifestUrl: outcome.session.delivery.manifestUrl,
             startSeconds: request.startSeconds,
@@ -666,7 +670,9 @@ const VideoPlayer = ({
             },
           });
 
-          releaseRef.current = teardown;
+          teardown = attached.detach;
+          releaseRef.current = attached.detach;
+          deliveredRef.current = attached.readDelivered;
         }
 
         if (request.startSeconds > 0 && outcome.session.delivery.kind === 'direct') {
@@ -844,6 +850,7 @@ const VideoPlayer = ({
 
       if (element !== null) {
         setHealth(readPlaybackHealth(element));
+        setDelivered(deliveredRef.current?.() ?? null);
       }
     };
 
@@ -1374,6 +1381,7 @@ const VideoPlayer = ({
               session={session}
               detail={detail}
               health={health}
+              delivered={delivered}
               sessionStartSeconds={request.startSeconds}
               onClose={() => {
                 setIsShowingStats(false);

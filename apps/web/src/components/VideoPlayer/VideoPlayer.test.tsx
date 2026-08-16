@@ -228,7 +228,7 @@ beforeEach(() => {
   detailMock.mockResolvedValue(null);
 
   startMock.mockResolvedValue({ kind: 'started', session: startedSession });
-  attachMock.mockResolvedValue(teardownMock);
+  attachMock.mockResolvedValue({ detach: teardownMock, readDelivered: () => null });
   stopMock.mockResolvedValue(undefined);
   stopWatchingMock.mockResolvedValue(undefined);
 
