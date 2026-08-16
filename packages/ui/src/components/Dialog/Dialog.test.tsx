@@ -141,4 +141,26 @@ describe('Dialog', () => {
       expect(document.body.contains(screen.getByText('Details'))).toBe(true);
     });
   });
+  it('stands a stage dialog at the same size whatever it holds', () => {
+    render(
+      <Dialog label="Arrival" isOpen onClose={vi.fn()} size="stage">
+        <span>Little</span>
+      </Dialog>,
+    );
+
+    const panel = screen.getByRole('dialog', { name: 'Arrival' });
+
+    expect(panel.className).toContain('sm:min-h-[68vh]');
+    expect(panel.className).toContain('sm:max-h-[92vh]');
+  });
+
+  it('leaves an ordinary dialog to be the size of its contents', () => {
+    render(
+      <Dialog label="Rename" isOpen onClose={vi.fn()}>
+        <span>Little</span>
+      </Dialog>,
+    );
+
+    expect(screen.getByRole('dialog', { name: 'Rename' }).className).not.toContain('sm:min-h-');
+  });
 });

@@ -140,12 +140,7 @@ const MediaDetailDialog = ({
   const cast = metadata?.cast ?? [];
 
   return (
-    <Dialog
-      label={shown.title}
-      isOpen={media !== null}
-      onClose={onClose}
-      className="h-full w-full max-w-none rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:w-[min(60rem,94vw)] sm:rounded-3xl"
-    >
+    <Dialog label={shown.title} isOpen={media !== null} onClose={onClose} size="stage">
       <DialogContent className="p-0">
         <motion.div
           key={shown.id}

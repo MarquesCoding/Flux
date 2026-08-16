@@ -108,7 +108,7 @@ const PersonDialog = ({
       label={person?.name ?? 'Somebody in the cast'}
       isOpen={personId !== null}
       onClose={onClose}
-      className="h-full w-full max-w-none rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:w-[min(60rem,94vw)] sm:rounded-3xl"
+      size="stage"
     >
       <DialogContent className="p-0">
         <div className="absolute right-4 top-4 z-10">
