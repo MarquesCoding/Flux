@@ -166,6 +166,14 @@ pub struct MediaProbe {
     pub subtitle_streams: Vec<SubtitleStream>,
     #[serde(default)]
     pub chapters: Vec<Chapter>,
+    /// Whether this source can be delivered by copying it.
+    ///
+    /// Absent unless somebody asked, because answering costs a read of the
+    /// whole packet index and most callers are probing for something else. The
+    /// library scan asks, so the decision to copy or encode is made once per
+    /// file rather than once per session. See FLUX-125.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub can_copy_segments: Option<bool>,
 }
 
 /// Maps an ffmpeg subtitle codec name onto the Flux subtitle format names

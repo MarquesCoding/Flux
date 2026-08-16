@@ -36,6 +36,7 @@ const createMediaStore = (
         modifiedAtMs: mediaItem.modifiedAtMs,
         externalId: mediaItem.externalId,
         videoBitDepth: mediaItem.videoBitDepth,
+        canCopySegments: mediaItem.canCopySegments,
       })
       .from(mediaItem)
       .where(eq(mediaItem.libraryId, libraryId));
@@ -105,6 +106,7 @@ const createMediaStore = (
       videoCodec: video.codec,
       videoRange: video.range,
       videoBitDepth: video.bitDepth ?? null,
+      canCopySegments: row.probe.canCopySegments ?? null,
       width: video.width,
       height: video.height,
       audioStreams: row.probe.audioStreams,

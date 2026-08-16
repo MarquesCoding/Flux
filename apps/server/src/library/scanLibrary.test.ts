@@ -47,6 +47,7 @@ const stored = (path: string, overrides: Partial<StoredItem> = {}): StoredItem =
   modifiedAtMs: 1000,
   externalId: null,
   videoBitDepth: 8,
+  canCopySegments: true,
   ...overrides,
 });
 
