@@ -36,6 +36,7 @@ const toSummary = (item: MediaDetail): MediaSummary => ({
 type MemoryState = {
   libraries: Library[];
   media: MediaDetail[];
+  series?: { id: string; title: string }[];
 };
 
 /**
@@ -183,6 +184,9 @@ const createMemoryLibraryService = (
   },
 
   getMedia: (id) => Promise.resolve(state.media.find((item) => item.id === id) ?? null),
+
+  getSeries: (seriesId) =>
+    Promise.resolve((state.series ?? []).find((entry) => entry.id === seriesId) ?? null),
 
   listShows: (libraryId) =>
     Promise.resolve(

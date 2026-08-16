@@ -4,6 +4,7 @@ import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
@@ -29,6 +30,7 @@ const buildApp = (initialUserCount = 0) => {
     segments: createMemorySegmentService(),
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
+    ratings: createMemoryRatingService(),
     playback: createMemoryPlaybackService(),
   });
 

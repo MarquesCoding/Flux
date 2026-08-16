@@ -7,6 +7,7 @@ import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPerm
 import { createMemoryLibraryService } from './createMemoryLibraryService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
@@ -93,6 +94,7 @@ const build = (media: MediaDetail[] = []) => {
     segments: createMemorySegmentService(),
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
+    ratings: createMemoryRatingService(),
     playback: createMemoryPlaybackService(),
   });
 
@@ -717,6 +719,7 @@ describe('library routes', () => {
         segments: createMemorySegmentService(),
         progress: createMemoryWatchProgressService(),
         favourites: createMemoryFavouriteService(),
+        ratings: createMemoryRatingService(),
         readImage: () => Promise.resolve({ body: new ArrayBuffer(8), contentType: 'image/jpeg' }),
       }),
       { store },
@@ -757,6 +760,7 @@ describe('library routes', () => {
         segments: createMemorySegmentService(),
         progress: createMemoryWatchProgressService(),
         favourites: createMemoryFavouriteService(),
+        ratings: createMemoryRatingService(),
         readImage: () => Promise.resolve({ body: new ArrayBuffer(8), contentType: 'image/png' }),
       }),
       { store },
@@ -1007,6 +1011,7 @@ describe('adding a library', () => {
         segments: createMemorySegmentService(),
         progress: createMemoryWatchProgressService(),
         favourites: createMemoryFavouriteService(),
+        ratings: createMemoryRatingService(),
         playback: createMemoryPlaybackService(),
       }),
       { store, permissions, isAdministrator: true },

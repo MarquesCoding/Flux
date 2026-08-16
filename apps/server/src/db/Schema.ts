@@ -1,6 +1,8 @@
+import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -241,6 +243,33 @@ const favourite = pgTable(
   (table) => [
     uniqueIndex('favourite_profile_idx').on(table.profileId, table.mediaItemId),
     index('favourite_recent_idx').on(table.profileId, table.keptAt),
+  ],
+);
+
+const rating = pgTable(
+  'rating',
+  {
+    id: text('id').primaryKey(),
+    profileId: text('profileId')
+      .notNull()
+      .references(() => viewerProfile.id, { onDelete: 'cascade' }),
+    mediaItemId: text('mediaItemId').references(() => mediaItem.id, { onDelete: 'cascade' }),
+    seriesId: text('seriesId').references(() => series.id, { onDelete: 'cascade' }),
+    stars: integer('stars').notNull(),
+    ratedAt: timestamp('ratedAt').notNull().defaultNow(),
+    updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('rating_profile_item_idx')
+      .on(table.profileId, table.mediaItemId)
+      .where(sql`${table.mediaItemId} is not null`),
+    uniqueIndex('rating_profile_series_idx')
+      .on(table.profileId, table.seriesId)
+      .where(sql`${table.seriesId} is not null`),
+    index('rating_item_idx').on(table.mediaItemId),
+    index('rating_series_idx').on(table.seriesId),
+    check('rating_one_subject', sql`(${table.mediaItemId} is null) <> (${table.seriesId} is null)`),
+    check('rating_stars_range', sql`${table.stars} between 1 and 5`),
   ],
 );
 
@@ -574,6 +603,7 @@ export {
   pushSubscription,
   watchProgress,
   favourite,
+  rating,
   user,
   session,
   account,

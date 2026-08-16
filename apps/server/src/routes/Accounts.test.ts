@@ -8,6 +8,7 @@ import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibr
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
 import type { Permission } from '@FluxContracts/schemas/Permission';
@@ -94,6 +95,7 @@ const build = () => {
     subtitles: createMemorySubtitleService({}),
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
+    ratings: createMemoryRatingService(),
   });
 
   return {
@@ -550,6 +552,7 @@ describe('a server with no way to act on accounts', () => {
       subtitles: createMemorySubtitleService(),
       progress: createMemoryWatchProgressService(),
       favourites: createMemoryFavouriteService(),
+      ratings: createMemoryRatingService(),
     });
 
     const cookie = await signUpForTest(app);

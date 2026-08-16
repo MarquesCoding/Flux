@@ -15,7 +15,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm';
-import { library, mediaItem } from '@FluxServer/db/Schema';
+import { library, mediaItem, series } from '@FluxServer/db/Schema';
 import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
@@ -605,6 +605,16 @@ const createDatabaseLibraryService = ({
         transcoder,
         ...(onProblem === undefined ? {} : { onProblem }),
       });
+    },
+
+    getSeries: async (seriesId) => {
+      const rows = await db
+        .select({ id: series.id, title: series.title })
+        .from(series)
+        .where(eq(series.id, seriesId))
+        .limit(1);
+
+      return rows[0] ?? null;
     },
 
     getMedia: async (id) => {
