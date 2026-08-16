@@ -350,23 +350,34 @@ pub fn segment_starts(lengths: &[f64]) -> Vec<f64> {
 
 /// Where to seek to for a run that is to begin at a segment.
 ///
-/// The middle of it, not its edge. A seek lands on the last keyframe decoded
-/// at or before the time asked for, and a keyframe is decoded before it is
-/// shown, so asking for the boundary itself lands on the one before it and the
-/// run writes every segment one place out. The middle cannot overshoot: the
-/// next keyframe is the segment's far edge.
+/// The middle of a segment, not its edge, because a seek lands on a keyframe
+/// either side of the time asked for and never exactly on it. Which side
+/// depends on the container, and the two disagree.
+///
+/// MP4 and Matroska land on the last keyframe at or before the time asked for,
+/// so aiming at the middle of the wanted segment finds it — asking for the
+/// boundary itself would find the keyframe before it and write every segment
+/// one place out.
+///
+/// MPEG-TS lands on the first keyframe at or *after* it. Aiming at the middle
+/// of the wanted segment therefore overshoots into the next one, and the run
+/// writes segment 2 where segment 1 was asked for. Aiming at the middle of the
+/// segment before it is what lands on the one wanted. Measured across H.264 and
+/// HEVC transport streams with keyframes two and five seconds apart, which agree
+/// on this. See FLUX-132.
 ///
 /// Nought for the first segment, which is where the film starts and needs no
 /// seek at all.
 #[must_use]
-pub fn seek_into(lengths: &[f64], index: usize) -> f64 {
+pub fn seek_into(lengths: &[f64], index: usize, seeks_forward: bool) -> f64 {
     if index == 0 {
         return 0.0;
     }
 
-    let start: f64 = lengths.iter().take(index).sum();
+    let aimed = if seeks_forward { index - 1 } else { index };
+    let start: f64 = lengths.iter().take(aimed).sum();
 
-    start + lengths.get(index).copied().unwrap_or(0.0) / 2.0
+    start + lengths.get(aimed).copied().unwrap_or(0.0) / 2.0
 }
 
 #[cfg(test)]
@@ -379,13 +390,33 @@ mod tests {
     /// starts it at 2394.100.
     #[test]
     fn seeks_into_a_segment_rather_than_at_it() {
-        assert!((seek_into(&[13.055, 10.427, 7.132], 1) - 18.2685).abs() < 1e-9);
+        assert!((seek_into(&[13.055, 10.427, 7.132], 1, false) - 18.2685).abs() < 1e-9);
+    }
+
+    /// A container that rounds the other way is aimed one segment earlier.
+    ///
+    /// MPEG-TS lands on the first keyframe at or after the time asked for, so
+    /// aiming at the middle of the wanted segment overshoots into the next one.
+    /// The middle of the segment before it is what lands on the one wanted.
+    /// See FLUX-132.
+    #[test]
+    fn aims_earlier_for_a_container_that_seeks_forward() {
+        let lengths = [4.0, 4.0, 4.0, 4.0];
+
+        assert!((seek_into(&lengths, 2, false) - 10.0).abs() < 1e-9);
+        assert!((seek_into(&lengths, 2, true) - 6.0).abs() < 1e-9);
+    }
+
+    /// Whichever way it rounds, the film's beginning needs no seek.
+    #[test]
+    fn does_not_seek_a_forward_seeking_source_that_starts_at_the_beginning() {
+        assert!((seek_into(&[4.0, 4.0], 0, true)).abs() < f64::EPSILON);
     }
 
     /// The film's beginning is not somewhere to seek to.
     #[test]
     fn does_not_seek_a_run_that_starts_at_the_beginning() {
-        assert!((seek_into(&[13.055, 10.427], 0)).abs() < f64::EPSILON);
+        assert!((seek_into(&[13.055, 10.427], 0, false)).abs() < f64::EPSILON);
     }
 
     use super::{

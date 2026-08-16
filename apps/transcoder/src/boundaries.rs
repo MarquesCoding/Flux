@@ -93,6 +93,13 @@ pub struct Boundaries {
     pub lengths: Vec<f64>,
     /// What to pass the muxer as its segment length.
     pub cut_seconds: f64,
+    /// Whether a seek in this source lands after the time asked for.
+    ///
+    /// True for transport streams, which round forward to the next keyframe
+    /// where MP4 and Matroska round back to the previous one. It decides which
+    /// segment a run has to be aimed at to begin at the one wanted.
+    #[serde(default)]
+    pub seeks_forward: bool,
     /// Whether this source can be delivered by copying it at all.
     ///
     /// False when its own keyframes cannot yield segments a player will take:
@@ -116,6 +123,7 @@ impl Boundaries {
             layout: LAYOUT,
             lengths: Vec::new(),
             cut_seconds: 0.0,
+            seeks_forward: false,
             can_copy: true,
         }
     }
@@ -159,6 +167,19 @@ async fn cached_boundaries(directory: &Path) -> Option<Boundaries> {
     (!found.is_empty() && found.layout == LAYOUT).then_some(found)
 }
 
+/// Whether a seek in this container lands after the time asked for.
+///
+/// Transport streams round forward to the next keyframe; MP4 and Matroska round
+/// back to the previous one. Measured across H.264 and HEVC transport streams
+/// with keyframes two and five seconds apart, which agree. See FLUX-132.
+#[must_use]
+fn seeks_forward(container: crate::media::Container) -> bool {
+    matches!(
+        container,
+        crate::media::Container::Ts | crate::media::Container::M2ts
+    )
+}
+
 /// Works out where every segment of a plan begins and ends.
 ///
 /// Encoded video cuts where Flux tells it to. Copied video cuts where the
@@ -173,10 +194,13 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
         return Boundaries::unknown();
     };
 
+    let seeks_forward = seeks_forward(probe.container);
+
     let equal = |can_copy: bool| Boundaries {
         layout: LAYOUT,
         lengths: equal_lengths(probe.duration_seconds, spec.segment_seconds),
         cut_seconds: wanted,
+        seeks_forward,
         can_copy,
     };
 
@@ -194,6 +218,7 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
                     layout: LAYOUT,
                     lengths: segment_lengths(&keyframes, cut_seconds),
                     cut_seconds,
+                    seeks_forward,
                     can_copy: true,
                 };
             }
@@ -203,6 +228,7 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
                     layout: LAYOUT,
                     lengths: safe_segment_lengths(&keyframes, cut_seconds),
                     cut_seconds,
+                    seeks_forward,
                     can_copy: true,
                 };
             }

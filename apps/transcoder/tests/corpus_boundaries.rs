@@ -438,14 +438,11 @@ fn allows_copying_where_the_segments_come_out_a_sensible_length() {
 /// It was measured on one film, at one segment. This asks it of every fixture
 /// that can be copied, at three places in each.
 ///
-/// Not asserted for transport stream sources, which seek the other way. `-ss` is
-/// measured from the file's own start in every container — a fixture whose clock
-/// begins ten minutes in seeks correctly — but MP4 and Matroska round back to the
-/// keyframe before the time asked for while MPEG-TS rounds forward to the one
-/// after. Aiming at the middle of a segment therefore finds that segment in the
-/// first two and the next one along in the third, so a run aimed at segment 1
-/// begins at segment 2. Skipped loudly here rather than quietly, because it is a
-/// real gap rather than a property of the test.
+/// Asserted for transport streams too, which seek the other way. `-ss` is measured
+/// from the file's own start in every container, but MP4 and Matroska round back
+/// to the keyframe before the time asked for while MPEG-TS rounds forward to the
+/// one after — so the segment a run must be aimed at differs by container, and
+/// `seek_into` is told which.
 #[test]
 fn starts_a_run_at_the_segment_it_was_aimed_at() {
     let fixtures = corpus();
@@ -458,7 +455,6 @@ fn starts_a_run_at_the_segment_it_was_aimed_at() {
 
     let scratch = std::env::temp_dir().join(format!("flux-seek-{}", std::process::id()));
     let mut wrong: Vec<String> = Vec::new();
-    let mut skipped: Vec<String> = Vec::new();
 
     for path in fixtures {
         let name = name_of(&path);
@@ -467,14 +463,9 @@ fn starts_a_run_at_the_segment_it_was_aimed_at() {
             continue;
         }
 
-        if path
+        let seeks_forward = path
             .extension()
-            .is_some_and(|value| value == "ts" || value == "m2ts")
-        {
-            skipped.push(name.clone());
-
-            continue;
-        }
+            .is_some_and(|value| value == "ts" || value == "m2ts");
 
         let keyframes = keyframes_of(&path);
         let cut = cut_interval(&keyframes, REQUESTED_SEGMENT_SECONDS);
@@ -490,7 +481,7 @@ fn starts_a_run_at_the_segment_it_was_aimed_at() {
                 continue;
             };
 
-            let seek = seek_into(&lengths, index);
+            let seek = seek_into(&lengths, index, seeks_forward);
             let Some(written) = first_written_start(&path, cut, seek, &scratch) else {
                 continue;
             };
@@ -506,13 +497,6 @@ fn starts_a_run_at_the_segment_it_was_aimed_at() {
     }
 
     let _ = std::fs::remove_dir_all(&scratch);
-
-    if !skipped.is_empty() {
-        eprintln!(
-            "not asserted for sources whose own clock does not start at nought: {}",
-            skipped.join(", ")
-        );
-    }
 
     assert!(
         wrong.is_empty(),
