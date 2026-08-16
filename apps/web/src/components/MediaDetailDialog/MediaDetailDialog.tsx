@@ -90,6 +90,8 @@ const MediaDetailDialog = ({
     }
 
     setLastShown(media);
+    setIsPreviewPlaying(false);
+    setUnlettered(null);
 
     const returning = requestAnimationFrame(() => {
       scrollToTopOf(topRef.current, prefersReducedMotion !== true);
