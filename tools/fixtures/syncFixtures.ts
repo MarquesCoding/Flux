@@ -7,6 +7,8 @@ import { fixtureArguments } from './fixtureArguments';
 import { fixtureFileName, fixturesUpTo } from './fixtureMatrix';
 import type { Fixture, FixtureTier } from './fixtureMatrix';
 import { fixturesDirectoryHere } from './fixturesDirectory';
+import { fetchedUpTo } from './fetchedFixtures';
+import type { FetchedFixture } from './fetchedFixtures';
 
 const ManifestEntrySchema = z.object({
   name: z.string().min(1),
@@ -15,6 +17,7 @@ const ManifestEntrySchema = z.object({
   licence: z.string().min(1),
   sha256: z.string().length(64),
   bytes: z.number().int().nonnegative(),
+  source: z.string().optional(),
 });
 
 const ManifestSchema = z.object({
@@ -133,7 +136,74 @@ const requestedTier = (argv: readonly string[]): FixtureTier => {
   return value === '1' ? 1 : value === '2' ? 2 : 0;
 };
 
-const main = (): void => {
+/**
+ * Fetches one fixture that cannot be generated, unless it is already on disk and intact.
+ *
+ * A checksum mismatch is a hard failure rather than a warning, as ADR-0012 requires, because the
+ * bytes are coming from somebody else's server and a silent substitution is the thing a checksum
+ * exists to catch.
+ *
+ * @param fixture - What to fetch.
+ * @param directory - Where the corpus lives.
+ * @param force - Whether to fetch again over a file already present.
+ * @param recorded - What the manifest says this fixture should be, where it says anything.
+ * @returns The manifest entry, or the reason it could not be fetched.
+ */
+const fetchFixture = async (
+  fixture: FetchedFixture,
+  directory: string,
+  force: boolean,
+  recorded: ManifestEntry | undefined,
+): Promise<
+  { kind: 'built' | 'kept'; entry: ManifestEntry } | { kind: 'failed'; reason: string }
+> => {
+  const path = join(directory, fixture.file);
+
+  const describe = (): ManifestEntry => ({
+    name: fixture.name,
+    file: fixture.file,
+    tier: fixture.tier,
+    licence: fixture.licence,
+    sha256: digestOf(path),
+    bytes: statSync(path).size,
+    source: fixture.url,
+  });
+
+  if (!force && existsSync(path) && statSync(path).size > 0) {
+    const entry = describe();
+
+    if (recorded !== undefined && recorded.sha256 !== entry.sha256) {
+      return {
+        kind: 'failed',
+        reason: `checksum does not match the manifest.\n  manifest ${recorded.sha256}\n  on disk  ${entry.sha256}`,
+      };
+    }
+
+    return { kind: 'kept', entry };
+  }
+
+  try {
+    const response = await fetch(fixture.url);
+
+    if (!response.ok) {
+      return { kind: 'failed', reason: `${fixture.url} answered ${response.status.toString()}` };
+    }
+
+    writeFileSync(path, Buffer.from(await response.arrayBuffer()));
+  } catch (error) {
+    return { kind: 'failed', reason: `${fixture.url} could not be reached: ${String(error)}` };
+  }
+
+  if (statSync(path).size === 0) {
+    rmSync(path);
+
+    return { kind: 'failed', reason: `${fixture.url} returned nothing` };
+  }
+
+  return { kind: 'built', entry: describe() };
+};
+
+const main = async (): Promise<void> => {
   const argv = process.argv.slice(2);
   const tier = requestedTier(argv);
   const force = argv.includes('--force');
@@ -170,6 +240,28 @@ const main = (): void => {
     );
   }
 
+  const fetched = fetchedUpTo(tier);
+
+  if (fetched.length > 0) {
+    process.stdout.write(`\nFetching ${fetched.length.toString()} fixtures nothing can generate\n`);
+
+    for (const fixture of fetched) {
+      const outcome = await fetchFixture(fixture, directory, force, recorded.get(fixture.name));
+
+      if (outcome.kind === 'failed') {
+        failures.push(`${fixture.name}: ${outcome.reason}`);
+        process.stdout.write(`  ✗ ${fixture.name}\n`);
+
+        continue;
+      }
+
+      entries.push(outcome.entry);
+      process.stdout.write(
+        `  ${outcome.kind === 'built' ? '↓' : '='} ${fixture.name} (${(outcome.entry.bytes / 1024).toFixed(0)}kb) — ${fixture.covers}\n`,
+      );
+    }
+  }
+
   const manifest: Manifest = { generatedBy: ffmpegVersion(), fixtures: entries };
 
   writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -184,6 +276,6 @@ const main = (): void => {
   }
 };
 
-main();
+void main();
 
 export type { Manifest, ManifestEntry };
