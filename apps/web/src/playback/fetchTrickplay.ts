@@ -27,7 +27,10 @@ type Trickplay = {
 const TIMESTAMP = /(\d+):(\d{2}):(\d{2})(?:\.(\d{1,3}))?/;
 
 /**
- * Reads a `WebVTT` timestamp as seconds.
+ * Reads a WebVTT timestamp as a number of seconds.
+ *
+ * @param stamp - The timestamp as the index wrote it.
+ * @returns The position in seconds.
  */
 const readTimestamp = (value: string): number | null => {
   const match = TIMESTAMP.exec(value.trim());
@@ -47,7 +50,11 @@ const readTimestamp = (value: string): number | null => {
 };
 
 /**
- * Reads the rectangle a cue points at.
+ * Reads the rectangle a cue points at inside its sheet, since a thumbnail index addresses one tile
+ * of a larger image rather than an image of its own.
+ *
+ * @param fragment - The cue's fragment, naming the tile.
+ * @returns Where the tile sits in the sheet.
  */
 const readRectangle = (
   payload: string,
@@ -70,7 +77,12 @@ const readRectangle = (
 };
 
 /**
- * Turns a `WebVTT` index into thumbnails.
+ * Turns the index the server writes into the thumbnails a scrubber draws, each knowing which sheet
+ * it is in and where.
+ *
+ * @param content - The index as WebVTT.
+ * @param baseUrl - Where the sheets are served from.
+ * @returns The thumbnails, in order.
  */
 const parseTrickplayIndex = (vtt: string, indexUrl: string): Thumbnail[] => {
   const thumbnails: Thumbnail[] = [];
@@ -105,7 +117,11 @@ const parseTrickplayIndex = (vtt: string, indexUrl: string): Thumbnail[] => {
 };
 
 /**
- * Finds the thumbnail covering a moment.
+ * Finds the thumbnail covering a moment in the film, for the preview shown above the scrubber.
+ *
+ * @param thumbnails - The thumbnails available.
+ * @param seconds - The moment being pointed at.
+ * @returns The thumbnail to draw, or null where none covers it.
  */
 const thumbnailAt = (thumbnails: Thumbnail[], seconds: number): Thumbnail | null => {
   let best: Thumbnail | null = null;
@@ -120,7 +136,12 @@ const thumbnailAt = (thumbnails: Thumbnail[], seconds: number): Thumbnail | null
 };
 
 /**
- * Asks the server for seek-bar previews.
+ * Asks the server for the thumbnails shown while scrubbing. Answers with nothing rather than
+ * throwing where an item has none: scrubbing without previews is scrubbing, and a player that
+ * refused to open over it would be worse.
+ *
+ * @param mediaId - The item being played.
+ * @returns The thumbnails, or null where there are none.
  */
 const fetchTrickplay = async (mediaId: string): Promise<Trickplay | null> => {
   try {

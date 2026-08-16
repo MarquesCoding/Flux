@@ -20,7 +20,12 @@ const MIN_SERIES_ITEMS = 2;
 const RECENT_DAYS = 30;
 
 /**
- * Sorts a library into the rows it is browsed by.
+ * Sorts a library into the rows it is browsed by — what was added recently, what is part-watched,
+ * what belongs to each genre — collapsing programmes so a series fills one card rather than a row.
+ *
+ * @param items - Everything the library holds.
+ * @param progress - How far through each item this viewer is, which decides what is part-watched.
+ * @returns The rows to draw, in the order they should appear.
  */
 const groupIntoRails = (
   items: MediaSummary[],

@@ -3,7 +3,12 @@ import type { CastState } from './castPlayback.types';
 const OWN_NAMES = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
 
 /**
- * Whether a device on the network could fetch anything from here.
+ * Decides whether a device elsewhere on the network could actually fetch from this address — a
+ * television cannot reach `localhost`, and offering to cast from an address only this machine can
+ * resolve produces a device that sits there loading for ever.
+ *
+ * @param origin - The address this page was served from.
+ * @returns Whether something else on the network could reach it.
  */
 const isReachableOrigin = (origin: string): boolean => {
   try {
@@ -14,7 +19,12 @@ const isReachableOrigin = (origin: string): boolean => {
 };
 
 /**
- * The address of a stream as somewhere else would have to ask for it.
+ * Rewrites a stream address as something else on the network would have to ask for it, since a
+ * relative address means nothing to a television.
+ *
+ * @param path - The stream's path on this server.
+ * @param origin - The address this server is reachable at.
+ * @returns The absolute address to hand the device.
  */
 const absoluteStreamUrl = (url: string, origin: string): string | null => {
   if (!isReachableOrigin(origin)) {
@@ -29,7 +39,11 @@ const absoluteStreamUrl = (url: string, origin: string): string | null => {
 };
 
 /**
- * Watches for somewhere to play, and for the playing having moved there.
+ * Watches for devices appearing and disappearing on the network, and for playback having moved to
+ * one, so the button that offers to cast knows whether there is anywhere to cast to.
+ *
+ * @param onChange - Told whenever the state changes.
+ * @returns The function that stops watching.
  */
 const watchCastState = (
   element: HTMLVideoElement,
@@ -109,7 +123,11 @@ const watchCastState = (
 type PromptOutcome = 'shown' | 'dismissed' | 'refused' | 'unsupported';
 
 /**
- * Asks the browser to show its list of devices.
+ * Asks the browser to show its own list of devices, since choosing one is something only the browser
+ * may put on screen.
+ *
+ * @param context - The cast context to prompt through.
+ * @returns The device chosen, or null where nobody chose one.
  */
 const promptForDevice = async (element: HTMLVideoElement): Promise<PromptOutcome> => {
   if (typeof element.webkitShowPlaybackTargetPicker === 'function') {

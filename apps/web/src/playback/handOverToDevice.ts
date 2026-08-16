@@ -8,7 +8,10 @@ type HandOverOptions = {
 };
 
 /**
- * Points the element at the stream, so a device can fetch it.
+ * Hands playback to another device by pointing it at the stream directly, so the device fetches from
+ * this server rather than having the picture relayed through the browser.
+ *
+ * @param options - The stream to hand over, where to start, and the device to hand it to.
  */
 const handOverToDevice = async ({
   element,

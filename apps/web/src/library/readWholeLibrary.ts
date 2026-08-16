@@ -5,7 +5,12 @@ const PAGE_SIZE = 200;
 const MOST_PAGES = 100;
 
 /**
- * Reads every item in a library, a page at a time.
+ * Reads every item in a library by asking for one page after another. For the few things that
+ * genuinely need all of it — the randomiser, the rails — where a single page would answer with
+ * whatever the first sixty happened to be.
+ *
+ * @param libraryId - The library to read.
+ * @returns Every item in it.
  */
 const readWholeLibrary = async (libraryId: string): Promise<MediaSummary[]> => {
   const gathered: MediaSummary[] = [];

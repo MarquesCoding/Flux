@@ -36,7 +36,12 @@ const AUDIO_PROBES = [
 const DEFAULT_MAX_BITRATE_KBPS = 20_000;
 
 /**
- * Builds a device profile from what the browser actually reports.
+ * Builds the profile the server negotiates against, from what this browser actually reports it can
+ * play rather than from what its name suggests — two browsers of the same name on different machines
+ * answer differently, and guessing produces a film that will not play.
+ *
+ * @param capabilities - What the browser reported it can decode.
+ * @returns The profile to send with a session request.
  */
 const detectDeviceProfile = ({
   isTypeSupported,
@@ -89,7 +94,10 @@ type MediaQuerySource = {
 };
 
 /**
- * Reads the browser's real capabilities.
+ * Asks the browser which containers, codecs and ranges it can actually play, by testing each rather
+ * than by reading its name.
+ *
+ * @returns What this browser can play.
  */
 const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
   const isTypeSupported: CodecProbe =

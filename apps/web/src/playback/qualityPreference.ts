@@ -29,7 +29,10 @@ const readQualityPreference = (): QualityPreference => {
 };
 
 /**
- * Remembers a viewer's quality preference.
+ * Remembers the quality a viewer chose, on this device — a phone on mobile data and a television on
+ * a wire want different answers from the same account.
+ *
+ * @param quality - The step chosen, or original.
  */
 const saveQualityPreference = (preference: QualityPreference): void => {
   try {

@@ -8,7 +8,12 @@ const FONT_FAMILIES = {
 } as const;
 
 /**
- * The edge drawn behind the lettering, at a given strength.
+ * Builds the edge drawn behind caption lettering at a chosen strength — an outline, a shadow, a
+ * raised or depressed edge — which is what keeps white text readable over a white shirt.
+ *
+ * @param kind - Which edge to draw.
+ * @param strength - How strongly to draw it.
+ * @returns The CSS that draws it.
  */
 const edgeStyle = (edge: CaptionStyle['edgeStyle'], opacity: number): string => {
   const ink = (strength: number): string => `rgba(0, 0, 0, ${(strength * opacity).toFixed(2)})`;
@@ -51,7 +56,12 @@ const STORAGE_KEY = 'flux.captionStyle';
 const DEFAULT_CAPTION_STYLE: CaptionStyle = CaptionStyleSchema.parse({});
 
 /**
- * Turns a hex colour and an opacity into something CSS accepts.
+ * Turns a hex colour and an opacity into a colour CSS accepts, since captions are configured as a
+ * colour and a separate opacity but drawn as one value.
+ *
+ * @param hex - The colour as configured.
+ * @param opacity - How opaque it should be, from nothing to one.
+ * @returns The colour, as CSS.
  */
 const withOpacity = (color: string, opacity: number): string => {
   const hex = color.replace('#', '');
@@ -83,7 +93,10 @@ type CueDeclarations = {
 };
 
 /**
- * A caption style as the properties that draw it.
+ * Turns a viewer's caption preferences into the properties that draw them.
+ *
+ * @param style - The preferences as configured.
+ * @returns The declarations to apply to the cues.
  */
 const toCueDeclarations = (style: CaptionStyle): CueDeclarations => ({
   fontFamily: FONT_FAMILIES[style.fontFamily],
@@ -94,7 +107,11 @@ const toCueDeclarations = (style: CaptionStyle): CueDeclarations => ({
 });
 
 /**
- * Writes a caption style as the CSS that renders it.
+ * Writes a viewer's caption preferences as the CSS rule that renders them, which is applied to the
+ * cue pseudo-element since that is the only way a browser lets captions be styled.
+ *
+ * @param style - The preferences as configured.
+ * @returns The stylesheet text to install.
  */
 const toCueCss = (style: CaptionStyle): string => {
   const declarations = toCueDeclarations(style);
@@ -128,7 +145,10 @@ const readCaptionStyle = (): CaptionStyle => {
 };
 
 /**
- * Remembers a viewer's caption preferences.
+ * Remembers a viewer's caption preferences on this device, since how captions should look is a
+ * property of the room and the screen rather than of the account.
+ *
+ * @param style - The preferences to remember.
  */
 const saveCaptionStyle = (style: CaptionStyle): void => {
   try {

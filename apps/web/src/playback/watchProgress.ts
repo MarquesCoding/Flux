@@ -43,7 +43,11 @@ const reportWatchProgress = async (
 };
 
 /**
- * Turns a list into something a card can ask one question of.
+ * Turns the list of progress the server answers with into a map, so a card can ask about itself
+ * without searching the whole list.
+ *
+ * @param progress - Everything this viewer has watched.
+ * @returns The same, keyed by item.
  */
 const byMediaId = (progress: WatchProgress[]): Map<string, WatchProgress> =>
   new Map(progress.map((entry) => [entry.mediaId, entry]));

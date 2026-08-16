@@ -11,7 +11,11 @@ type PoppedOut = {
 };
 
 /**
- * The cues showing on a video at this moment, as plain lines.
+ * Reads the cues showing on a video at this moment as plain lines, since a picture-in-picture window
+ * carries no text tracks of its own.
+ *
+ * @param element - The video element being read.
+ * @returns The lines showing now.
  */
 const currentLines = (video: HTMLVideoElement): string[] => {
   const lines: string[] = [];
@@ -36,7 +40,10 @@ const currentLines = (video: HTMLVideoElement): string[] => {
 };
 
 /**
- * Draws one frame of the film with its captions burned into it.
+ * Draws one frame of the film with its captions painted into it, which is the only way captions can
+ * appear in a picture-in-picture window.
+ *
+ * @param options - The video to read, the canvas to draw into, and how the captions should look.
  */
 const compose = (
   context: CanvasRenderingContext2D,
@@ -73,7 +80,12 @@ const compose = (
 };
 
 /**
- * Pops a film out with its subtitles still on it.
+ * Pops a film out into a floating window with its subtitles still on it, by drawing each frame with
+ * the captions painted in — a picture-in-picture window shows a video element and nothing else, so
+ * subtitles that live in a text track simply vanish.
+ *
+ * @param options - The video to pop out, and how its captions should look.
+ * @returns A handle on the window, for closing it and keeping it in step.
  */
 const popOutWithCaptions = async (video: HTMLVideoElement): Promise<PoppedOut | null> => {
   if (!document.pictureInPictureEnabled) {

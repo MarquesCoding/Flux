@@ -43,7 +43,12 @@ const loadShakaPlayer = async (): Promise<ShakaModule> => {
 };
 
 /**
- * Reads an engine error event, if that is what it is.
+ * Reads an error out of an event the media engine raised, checking rather than trusting it —
+ * everything about the event comes from the engine, and an event carrying no error is not a fault
+ * worth reporting.
+ *
+ * @param event - The event the engine raised.
+ * @returns The fault, or null where the event carried none.
  */
 const faultFrom = (event: Event): PlaybackFault | null => {
   const found = PlaybackFaultSchema.safeParse(event);
@@ -52,7 +57,15 @@ const faultFrom = (event: Event): PlaybackFault | null => {
 };
 
 /**
- * Attaches a player to a video element and loads a manifest.
+ * Attaches the media engine to a video element and loads a stream into it, starting at a given
+ * position where one was asked for. The position goes into the load rather than being set on the
+ * element afterwards: the engine decides where playback begins as it finishes loading, and will
+ * overwrite anything set before then — which looks exactly like a resume that worked for an instant
+ * and then went back to the beginning.
+ *
+ * @param options - The element to attach to, the manifest to load, where to start, and how to report
+ *   a fault the engine could not recover from.
+ * @returns The teardown to call; an orphaned engine keeps buffering and holds the element open.
  */
 const attachShaka = async ({
   element,

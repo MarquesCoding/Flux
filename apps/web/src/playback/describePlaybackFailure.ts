@@ -10,7 +10,12 @@ const PlaybackEngineErrorSchema = z.object({
 });
 
 /**
- * Says what went wrong in terms that are true.
+ * Says what went wrong in terms a viewer can act on — the network, the file, the server — without
+ * claiming more than the engine actually reported. A wrong explanation is worse than a vague one:
+ * somebody told their connection is at fault will go and restart a router that was working.
+ *
+ * @param category - The engine's own category for the failure.
+ * @returns What to tell the viewer.
  */
 const describePlaybackFailure = (category: number | null): string => {
   if (category === MEDIA) {

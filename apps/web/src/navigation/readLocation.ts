@@ -38,7 +38,12 @@ const HOME: Place = {
 };
 
 /**
- * Reads a place out of an address.
+ * Reads where the application should be out of an address. Anything unrecognised lands on the home
+ * page rather than failing: an address is something people edit, share and keep, and a bad one
+ * should arrive somewhere sensible.
+ *
+ * @param url - The address to read.
+ * @returns Where to be: the section, what is open, and what is playing.
  */
 const readLocation = (url: string): Place => {
   const parsed = URL.parse(url);
@@ -67,7 +72,14 @@ const readLocation = (url: string): Place => {
 };
 
 /**
- * Writes a place back as an address.
+ * Writes where the application is back as an address. Watching owns the path, since it is the thing
+ * worth sending somebody; everything else is a query, since it sits over whatever section it was
+ * opened from and should return there when it closes. No second is written beside what is playing —
+ * where something resumes from is a fact the server holds, and a copy in the address would be free
+ * to disagree with it.
+ *
+ * @param place - Where the application is.
+ * @returns The address to put in the bar.
  */
 const writeLocation = (place: Place): string => {
   if (place.playing !== null) {

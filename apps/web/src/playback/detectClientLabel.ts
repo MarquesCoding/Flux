@@ -17,8 +17,12 @@ const OPERATING_SYSTEMS: Match[] = [
 ];
 
 /**
- * Names what a viewer is watching from, the way Jellyfin's session list does — "Chrome on macOS"
- * rather than a generic "Browser".
+ * Names what a viewer is watching from — "Chrome on macOS" rather than a generic "Browser" — for the
+ * sessions an operator sees and the devices an account can review. Built from the user agent, in the
+ * shape other media servers use, so an operator reading it recognises what they are looking at.
+ *
+ * @param userAgent - What the browser says about itself.
+ * @returns The device as a person would describe it.
  */
 const detectClientLabel = (userAgent: string): string => {
   const browser =

@@ -25,7 +25,17 @@ type StartOutcome =
 const ErrorSchema = z.object({ error: z.string() });
 
 /**
- * Asks the server for a playback session.
+ * Asks the server for a session: what to play, from where, and on what this client can actually
+ * take. Answers with the failure rather than throwing, since a refusal is something the player has
+ * to explain rather than something that should break it.
+ *
+ * @param mediaId - What to play.
+ * @param profile - What this client can decode.
+ * @param clientId - Which device is asking, for presence.
+ * @param startSeconds - Where to begin.
+ * @param audioStreamIndex - A particular audio track, where one was chosen.
+ * @param requestedQuality - A ceiling a viewer chose.
+ * @returns The session, or why there is not one.
  */
 const startPlaybackSession = async (
   mediaId: string,
@@ -74,14 +84,22 @@ const startPlaybackSession = async (
 };
 
 /**
- * Tells the server a session is finished.
+ * Tells the server a session is finished, so the encoder stops rather than running on for a viewer
+ * who has gone.
+ *
+ * @param sessionId - The session to stop.
  */
 const stopPlaybackSession = async (sessionId: string): Promise<void> => {
   await fetch(`/api/playback/session/${sessionId}`, { method: 'DELETE' }).catch(() => undefined);
 };
 
 /**
- * Says a tab has genuinely stopped watching anything.
+ * Tells presence a tab has genuinely stopped watching, rather than merely paused, so an operator's
+ * session list empties when a viewer leaves.
+ *
+ * @param clientId - Which device.
+ * @param isLeaving - Whether the page is going away, which decides whether the request is one the
+ *   browser has promised to finish.
  */
 const stopWatching = async (clientId: string, keepalive = false): Promise<void> => {
   await fetch(`/api/presence/${clientId}/watching`, { method: 'DELETE', keepalive }).catch(
@@ -90,7 +108,11 @@ const stopWatching = async (clientId: string, keepalive = false): Promise<void> 
 };
 
 /**
- * Tells the server a session is still wanted, and whether it is playing.
+ * Tells the server a session is still wanted, so the idle reaper does not collect it, and whether it
+ * is currently playing.
+ *
+ * @param sessionId - The session.
+ * @param isPlaying - Whether the picture is moving.
  */
 const heartbeatPlaybackSession = async (sessionId: string, isPlaying: boolean): Promise<void> => {
   await fetch(`/api/playback/session/${sessionId}/heartbeat`, {
@@ -101,7 +123,12 @@ const heartbeatPlaybackSession = async (sessionId: string, isPlaying: boolean): 
 };
 
 /**
- * Tells presence whether this tab is actually playing right now.
+ * Tells presence whether this tab is playing right now, along with what it can measure of the
+ * stream — which is what fills the position and the health an operator watches on the sessions page.
+ *
+ * @param clientId - Which device.
+ * @param isPlaying - Whether the picture is moving.
+ * @param health - What the browser reports about the stream, where it reports anything.
  */
 const sendPresenceHeartbeat = async (
   clientId: string,
@@ -122,7 +149,11 @@ const sendPresenceHeartbeat = async (
 };
 
 /**
- * Summarises a plan as a sentence a viewer can act on.
+ * Summarises a negotiated plan as one sentence a viewer can act on — what is being changed and why —
+ * rather than as the four axes an operator would read.
+ *
+ * @param plan - The plan the server answered with.
+ * @returns The sentence to show.
  */
 const describeWhy = (plan: PlaybackPlan): string[] => {
   const reasons: string[] = [];

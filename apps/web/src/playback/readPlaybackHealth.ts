@@ -1,7 +1,11 @@
 import type { PlaybackHealth } from '@FluxWeb/components/VideoPlayer/components/StreamStats/StreamStats.types';
 
 /**
- * The last moment of the stream the element will let anyone seek to.
+ * Reads the last moment of the stream the element will let anybody seek to, which for a live
+ * transcode is how far the encoder has got rather than the end of the film.
+ *
+ * @param element - The video element.
+ * @returns The furthest seekable position, in seconds.
  */
 const encodedSeconds = (element: HTMLVideoElement): number => {
   try {
@@ -14,7 +18,11 @@ const encodedSeconds = (element: HTMLVideoElement): number => {
 };
 
 /**
- * How much is buffered past where the viewer is.
+ * Measures how much is buffered ahead of where the viewer is, which is the figure that says whether
+ * playback is about to stall.
+ *
+ * @param element - The video element.
+ * @returns The seconds buffered ahead.
  */
 const bufferedAhead = (element: HTMLVideoElement): number => {
   try {
@@ -37,7 +45,11 @@ type FrameCountSource = {
 };
 
 /**
- * Frame counts, where the browser keeps them.
+ * Reads the decoded and dropped frame counts where the browser keeps them, which not every browser
+ * does.
+ *
+ * @param element - The video element.
+ * @returns The counts, or nothing where this browser does not report them.
  */
 const frameCounts = (
   element: FrameCountSource,
@@ -52,7 +64,11 @@ const frameCounts = (
 };
 
 /**
- * Samples what the browser is actually doing with the stream.
+ * Samples what the browser is actually doing with the stream — buffer, dropped frames, how far the
+ * encoder has got — for the stats panel and for the presence heartbeat an operator watches.
+ *
+ * @param element - The video element.
+ * @returns What the browser reports right now.
  */
 const readPlaybackHealth = (element: HTMLVideoElement): PlaybackHealth => {
   const frames = frameCounts(element);

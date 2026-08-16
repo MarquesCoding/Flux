@@ -40,7 +40,10 @@ const readPlaybackPreferences = (): PlaybackPreferences => {
 };
 
 /**
- * Remembers a change to how this device likes to watch.
+ * Remembers a change to how this device likes to watch — volume, mute, subtitle language. Kept on
+ * the device rather than the account, since the right volume is a property of the room.
+ *
+ * @param change - What changed.
  */
 const writePlaybackPreferences = (change: Partial<PlaybackPreferences>): void => {
   try {

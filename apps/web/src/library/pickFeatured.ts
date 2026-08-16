@@ -1,7 +1,12 @@
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 /**
- * Which item stands for a show.
+ * Decides which of two episodes should stand for a whole programme, preferring the earliest — a
+ * shelf shows a series by its first episode rather than by whichever was scanned first.
+ *
+ * @param left - One episode.
+ * @param right - The episode to compare it against.
+ * @returns Whether the first should stand for the programme.
  */
 const isEarlier = (candidate: MediaSummary, against: MediaSummary): boolean => {
   const season = (candidate.seasonNumber ?? 0) - (against.seasonNumber ?? 0);
@@ -10,7 +15,11 @@ const isEarlier = (candidate: MediaSummary, against: MediaSummary): boolean => {
 };
 
 /**
- * One card per thing, rather than one per file.
+ * Collapses a list of files into one card per thing: a programme once rather than once per episode.
+ * A page holds sixty things, and without this a single series can fill it.
+ *
+ * @param items - The files as the server listed them.
+ * @returns One entry per film and per programme.
  */
 const collapseToShows = (items: MediaSummary[]): MediaSummary[] => {
   const shows = new Map<string, MediaSummary>();
@@ -49,13 +58,23 @@ const collapseToShows = (items: MediaSummary[]): MediaSummary[] => {
 };
 
 /**
- * The items worth putting on the front of a library.
+ * Picks the items worth putting at the front of a library, collapsed so a programme appears once
+ * however many episodes of it have been scanned.
+ *
+ * @param items - Everything the library holds.
+ * @param limit - How many to choose.
+ * @returns The items to feature.
  */
 const pickFeatured = (items: MediaSummary[], limit: number): MediaSummary[] =>
   collapseToShows(items).slice(0, limit);
 
 /**
- * The other episodes of the same season.
+ * Finds the other episodes of the same season as one episode, which is what the player's episode
+ * list is built from.
+ *
+ * @param items - Everything known about the library.
+ * @param episode - The episode being watched.
+ * @returns Its siblings, in the order they are watched.
  */
 const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] => {
   const series = of.seriesTitle ?? null;
@@ -75,7 +94,12 @@ const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] =
 };
 
 /**
- * What follows an episode.
+ * Finds the episode that follows one, for playing on at the end. Answers with nothing at the end of
+ * a season rather than wrapping to the beginning.
+ *
+ * @param items - Everything known about the library.
+ * @param episode - The episode that just finished.
+ * @returns The next episode, or null where there is none.
  */
 const nextEpisode = (items: MediaSummary[], after: MediaSummary): MediaSummary | null => {
   const at = after.episodeNumber ?? null;
