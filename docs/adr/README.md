@@ -25,23 +25,24 @@ more valuable than a tidy directory.
 
 ## Index
 
-| ADR                                                    | Title                                                     | Status   |
-| ------------------------------------------------------ | --------------------------------------------------------- | -------- |
-| [0001](0001-monorepo-and-module-boundaries.md)         | Monorepo layout and module boundaries                     | Accepted |
-| [0002](0002-api-contract-openapi-first.md)             | OpenAPI-first API contract, not tRPC-primary              | Accepted |
-| [0003](0003-documentation-scalar-and-starlight.md)     | Documentation: Scalar for reference, Starlight for guides | Accepted |
-| [0004](0004-authentication-better-auth.md)             | Authentication via better-auth                            | Accepted |
-| [0005](0005-data-layer-postgres-drizzle-pgboss.md)     | Postgres + Drizzle + pg-boss as the only datastore        | Accepted |
-| [0006](0006-deployment-topology-single-box.md)         | Single-box Docker deployment topology                     | Accepted |
-| [0007](0007-plugin-runtime-brokered.md)                | Brokered plugin runtime, process-per-plugin               | Accepted |
-| [0008](0008-plugin-ui-and-themes.md)                   | Plugin UI contributions and theming model                 | Accepted |
-| [0009](0009-media-pipeline-rust-ffmpeg.md)             | Rust media service supervising FFmpeg as a child process  | Accepted |
-| [0010](0010-codec-container-hdr-support.md)            | Codec, container, subtitle and HDR support targets        | Accepted |
-| [0011](0011-streaming-delivery-and-device-profiles.md) | Streaming delivery and device profile negotiation         | Accepted |
-| [0012](0012-media-test-corpus-external-fixtures.md)    | Media test corpus as external fixture download            | Accepted |
-| [0013](0013-fluxui-component-stack.md)                 | FluxUI built on Base UI + Tailwind, not shadcn            | Accepted |
-| [0014](0014-lint-and-commit-enforcement.md)            | Lint and commit enforcement with oxlint, ESLint and husky | Accepted |
-| [0015](0015-casting-to-devices.md)                     | Cast by handing devices an address, with Google's sender  | Accepted |
+| ADR                                                           | Title                                                     | Status   |
+| ------------------------------------------------------------- | --------------------------------------------------------- | -------- |
+| [0001](0001-monorepo-and-module-boundaries.md)                | Monorepo layout and module boundaries                     | Accepted |
+| [0002](0002-api-contract-openapi-first.md)                    | OpenAPI-first API contract, not tRPC-primary              | Accepted |
+| [0003](0003-documentation-scalar-and-starlight.md)            | Documentation: Scalar for reference, Starlight for guides | Accepted |
+| [0004](0004-authentication-better-auth.md)                    | Authentication via better-auth                            | Accepted |
+| [0005](0005-data-layer-postgres-drizzle-pgboss.md)            | Postgres + Drizzle + pg-boss as the only datastore        | Accepted |
+| [0006](0006-deployment-topology-single-box.md)                | Single-box Docker deployment topology                     | Accepted |
+| [0007](0007-plugin-runtime-brokered.md)                       | Brokered plugin runtime, process-per-plugin               | Accepted |
+| [0008](0008-plugin-ui-and-themes.md)                          | Plugin UI contributions and theming model                 | Accepted |
+| [0009](0009-media-pipeline-rust-ffmpeg.md)                    | Rust media service supervising FFmpeg as a child process  | Accepted |
+| [0010](0010-codec-container-hdr-support.md)                   | Codec, container, subtitle and HDR support targets        | Accepted |
+| [0011](0011-streaming-delivery-and-device-profiles.md)        | Streaming delivery and device profile negotiation         | Accepted |
+| [0012](0012-media-test-corpus-external-fixtures.md)           | Media test corpus as external fixture download            | Accepted |
+| [0013](0013-fluxui-component-stack.md)                        | FluxUI built on Base UI + Tailwind, not shadcn            | Accepted |
+| [0014](0014-lint-and-commit-enforcement.md)                   | Lint and commit enforcement with oxlint, ESLint and husky | Accepted |
+| [0015](0015-casting-to-devices.md)                            | Cast by handing devices an address, with Google's sender  | Accepted |
+| [0016](0016-fixture-provenance-decides-how-it-is-verified.md) | Where a fixture came from decides how it is checked       | Accepted |
 
 ## Format
 
