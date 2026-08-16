@@ -9,6 +9,7 @@ import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemoryS
 import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
 import { createMemoryWatchProgressService } from './createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import type { MediaDetail } from '@FluxContracts/schemas/Library';
 
 const BASE = 'http://localhost:8420';
@@ -78,6 +79,7 @@ const build = () => {
     profiles,
     progress,
     favourites: createMemoryFavouriteService(),
+    ratings: createMemoryRatingService(),
   });
 
   return { app, progress, profiles, store };

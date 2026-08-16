@@ -7,6 +7,7 @@ import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibr
 import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
 import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
@@ -31,6 +32,7 @@ const counting = async () => {
     subtitles: createMemorySubtitleService({}),
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
+    ratings: createMemoryRatingService(),
     profiles: createMemoryProfileService(),
   });
 

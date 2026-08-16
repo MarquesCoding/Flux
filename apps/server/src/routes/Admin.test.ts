@@ -12,6 +12,7 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
 const BASE = 'http://localhost:8420';
@@ -69,6 +70,7 @@ const build = (
     subtitles: createMemorySubtitleService({}),
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
+    ratings: createMemoryRatingService(),
     profiles: createMemoryProfileService(),
     presence,
   });
@@ -874,6 +876,7 @@ describe('what the media service says about itself', () => {
       subtitles: createMemorySubtitleService({}),
       progress: createMemoryWatchProgressService(),
       favourites: createMemoryFavouriteService(),
+      ratings: createMemoryRatingService(),
       ...(monitor === undefined ? {} : { monitor }),
       ...(monitorStream === undefined ? {} : { monitorStream }),
     });
@@ -976,6 +979,7 @@ describe('searching the catalogue from the admin page', () => {
       subtitles: createMemorySubtitleService({}),
       progress: createMemoryWatchProgressService(),
       favourites: createMemoryFavouriteService(),
+      ratings: createMemoryRatingService(),
       searchCatalogue: (query, kind) =>
         Promise.resolve([
           {
@@ -1043,6 +1047,7 @@ describe('what the caches are holding', () => {
       subtitles: createMemorySubtitleService({}),
       progress: createMemoryWatchProgressService(),
       favourites: createMemoryFavouriteService(),
+      ratings: createMemoryRatingService(),
       ...(measureStorage === undefined ? {} : { measureStorage }),
     });
 

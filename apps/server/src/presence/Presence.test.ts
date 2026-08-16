@@ -7,6 +7,7 @@ import { createMemorySegmentService } from '@FluxServer/segments/createMemorySeg
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import { createPresenceService } from './PresenceService';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 
@@ -44,6 +45,7 @@ const build = () => {
     subtitles: createMemorySubtitleService({}),
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
+    ratings: createMemoryRatingService(),
   });
 
   return { app, presence };

@@ -15,7 +15,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm';
-import { library, mediaItem } from '@FluxServer/db/Schema';
+import { library, mediaItem, rating, series } from '@FluxServer/db/Schema';
 import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
@@ -50,7 +50,7 @@ import type { MediaFileSystem, ScanPhase } from './scanLibrary';
 import type { MetadataProvider, SeriesShape } from './MetadataProvider';
 import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
-import type { LibraryService } from './LibraryService';
+import type { LibraryService, ListItemsOptions } from './LibraryService';
 import {
   SCAN_LIBRARY_JOB,
   READ_AGAIN_JOB,
@@ -125,6 +125,35 @@ type DatabaseLibraryService = LibraryService & {
 };
 
 const EVERY_EPISODE = 2000;
+
+/**
+ * What one profile gave an item, as a subquery rather than a join, so that filtering or sorting by a
+ * rating never changes how many rows a page comes back with. A profile that has not rated something
+ * reads as nothing, which sorts last rather than as a zero nobody gave it.
+ *
+ * @param profileId - Whose rating to read.
+ * @returns The rating, as a value the query can compare and order by.
+ */
+const yourStars = (profileId: string) =>
+  sql<
+    number | null
+  >`(select ${rating.stars} from ${rating} where ${rating.mediaItemId} = ${mediaItem.id} and ${rating.profileId} = ${profileId} limit 1)`;
+
+/**
+ * Decides how a page of items is ordered. Ordering by a viewer's own rating puts the highest first
+ * and anything unrated last, then falls back to the title so that everything they gave the same
+ * number of stars still comes back in a stable order rather than whatever the database felt like.
+ *
+ * @param options - What the caller asked for, including whose ratings to order by.
+ * @returns The ordering, as the clauses to apply in turn.
+ */
+const orderingFor = (options: ListItemsOptions) => {
+  if (options.order === 'yourRating' && options.profileId !== undefined) {
+    return [sql`${yourStars(options.profileId)} desc nulls last`, asc(mediaItem.title)];
+  }
+
+  return [options.order === 'newest' ? desc(mediaItem.addedAt) : asc(mediaItem.title)];
+};
 
 /**
  * The library as Postgres holds it, and the work the job queue runs against it — scanning, probing,
@@ -485,6 +514,9 @@ const createDatabaseLibraryService = ({
           : options.ids.length === 0
             ? [sql`false`]
             : [inArray(mediaItem.id, options.ids)]),
+        ...(options.minYourStars === undefined || options.profileId === undefined
+          ? []
+          : [gte(yourStars(options.profileId), options.minYourStars)]),
       ];
 
       const filters = and(...asked);
@@ -518,7 +550,7 @@ const createDatabaseLibraryService = ({
         })
         .from(mediaItem)
         .where(filters)
-        .orderBy(options.order === 'newest' ? desc(mediaItem.addedAt) : asc(mediaItem.title))
+        .orderBy(...orderingFor(options))
         .limit(options.limit)
         .offset(options.offset);
 
@@ -605,6 +637,16 @@ const createDatabaseLibraryService = ({
         transcoder,
         ...(onProblem === undefined ? {} : { onProblem }),
       });
+    },
+
+    getSeries: async (seriesId) => {
+      const rows = await db
+        .select({ id: series.id, title: series.title })
+        .from(series)
+        .where(eq(series.id, seriesId))
+        .limit(1);
+
+      return rows[0] ?? null;
     },
 
     getMedia: async (id) => {

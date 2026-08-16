@@ -13,6 +13,7 @@ import { fetchShows } from '@FluxWeb/library/fetchShows';
 import { fetchLibraries, fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import { useFavourites } from '@FluxWeb/library/useFavourites';
+import { useRatings } from '@FluxWeb/library/useRatings';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles';
 import { readCurrentProfile } from '@FluxWeb/profiles/currentProfile';
@@ -78,6 +79,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [, setFeatured] = useState<MediaSummary | null>(null);
   const [moodLights, setMoodLights] = useState<MoodLight[]>([]);
   const favourites = useFavourites();
+  const ratings = useRatings();
   const [openShow, setOpenShow] = useState<ShowSummary | null>(null);
   const [watcher, setWatcher] = useState<ViewerProfile | null>(null);
 
@@ -549,6 +551,16 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         }}
         resumeFor={(mediaId) => resumeFor(progress, mediaId)}
         isFinished={(mediaId) => progress.get(mediaId)?.isFinished === true}
+        stars={
+          (openShow?.seriesId ?? null) === null
+            ? null
+            : ratings.ratingFor({ seriesId: openShow?.seriesId ?? '' })
+        }
+        onRate={(show, stars) => {
+          if ((show.seriesId ?? null) !== null) {
+            ratings.rate({ seriesId: show.seriesId ?? '' }, stars);
+          }
+        }}
       />
 
       <MediaDetailDialog
@@ -576,6 +588,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         isKept={inspecting !== null && favourites.isKept(inspecting.id)}
         onToggleKept={(media) => {
           favourites.toggle(media.id);
+        }}
+        stars={inspecting === null ? null : ratings.ratingFor({ mediaId: inspecting.id })}
+        onRate={(media, stars) => {
+          ratings.rate({ mediaId: media.id }, stars);
         }}
         onClose={() => {
           go({ inspecting: null });

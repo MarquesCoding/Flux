@@ -45,6 +45,7 @@ const show = (id: string, episodeCount = 1): ShowSummary => ({
   episodeCount,
   latestAddedAt: '2026-08-10T00:00:00.000Z',
   coverMediaId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+  seriesId: null,
 });
 
 beforeEach(() => {
