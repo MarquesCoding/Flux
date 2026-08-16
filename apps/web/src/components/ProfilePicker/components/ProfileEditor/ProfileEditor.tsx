@@ -16,13 +16,24 @@ import type { ProfileEditorProps } from './ProfileEditor.types';
 const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/webm,video/mp4';
 
 /**
- * Where a drawn face is previewed from.
+ * Builds the address a drawn face is previewed from, so the editor can show what a style and seed
+ * produce before anybody commits to it.
+ *
+ * @param style - The drawing style.
+ * @param seed - What the drawing is derived from.
+ * @returns Where to fetch the preview.
  */
 const previewUrl = (style: AvatarStyle, seed: string): string =>
   `/api/profiles/avatars/${style}?seed=${encodeURIComponent(seed)}`;
 
 /**
- * Changing what somebody is called and what they look like.
+ * Creates or changes a profile: what somebody is called, and whether their face is a drawing derived
+ * from a seed, a colour, or a photograph they uploaded. The same form serves both, since editing an
+ * existing profile and making a new one differ only in what the fields start out holding.
+ *
+ * @param profile - The profile being changed, or null to make a new one.
+ * @param onSaved - Called once the profile has been written.
+ * @param onCancel - Called if they back out without saving.
  */
 const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
   const [name, setName] = useState(profile?.name ?? '');

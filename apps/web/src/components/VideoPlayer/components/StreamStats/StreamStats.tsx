@@ -9,7 +9,11 @@ import {
 import type { StreamStatsProps } from './StreamStats.types';
 
 /**
- * Rounds a number of seconds for display without pretending to precision.
+ * Rounds a number of seconds for the statistics panel, to one decimal place — buffer and encode
+ * figures move constantly, and more digits than that read as noise rather than as detail.
+ *
+ * @param value - The number of seconds.
+ * @returns It, rounded, with its unit.
  */
 const seconds = (value: number): string => `${value.toFixed(1)}s`;
 
@@ -28,7 +32,25 @@ const Row = ({ name, children }: RowProps) => (
 Row.displayName = 'Row';
 
 /**
- * Everything Flux knows about what is on screen.
+ * Everything Flux knows about what is on screen and how it got there: what the file is, what the
+ * session did to it, how the machine is coping, and how far ahead the buffer runs. For anybody
+ * working out why a stream looks or behaves as it does, which is a different question from anything
+ * the ordinary controls answer.
+ *
+ * @param positionSeconds - Where the viewer is.
+ * @param bufferedAheadSeconds - How much is ready beyond that.
+ * @param encodedSeconds - How far the transcoder has got, where one is running.
+ * @param droppedFrames - Frames the browser gave up on, where it reports them.
+ * @param decodedFrames - Frames it decoded, where it reports them.
+ * @param presentedWidth - How wide the picture is being drawn.
+ * @param presentedHeight - How tall it is being drawn.
+ * @param media - What is playing.
+ * @param session - The session serving it, where one was started.
+ * @param detail - What the catalogue holds about the item.
+ * @param health - How the stream is faring.
+ * @param sessionStartSeconds - Where the session itself began, which is not always where the viewer
+ *   is now.
+ * @param onClose - Called to close the panel.
  */
 const StreamStats = ({
   media,

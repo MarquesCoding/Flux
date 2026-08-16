@@ -11,7 +11,10 @@ const ENDPOINTS: Record<ChallengeMode, string> = {
 };
 
 /**
- * The second step of signing in to an account with two-factor enrolled.
+ * Asks for the second step of signing in to an account with two-factor turned on: either the code
+ * from an authenticator, or one of the backup codes for anybody who has lost the device holding it.
+ *
+ * @param onVerified - Called once the second step is accepted.
  */
 const TwoFactorChallenge = ({ onVerified }: TwoFactorChallengeProps) => {
   const [mode, setMode] = useState<ChallengeMode>('totp');

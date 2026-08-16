@@ -8,7 +8,15 @@ type PickedUp = {
 };
 
 /**
- * The episode a viewer means when they press one button.
+ * Works out which episode a viewer means when they press the one play button on a programme: the one
+ * they were part-way through, or the first they have not finished, or the very first if they have
+ * never watched any of it. One button rather than a choice, because the answer is nearly always
+ * obvious and being asked is worse than being wrong occasionally.
+ *
+ * @param show - The programme and its episodes.
+ * @param progress - How to ask where a given episode was left and whether it was finished.
+ * @returns The episode, where to start it and whether that counts as resuming, or null where the
+ *   programme has no episodes at all.
  */
 const pickUpFrom = (
   show: ShowDetail,

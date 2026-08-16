@@ -52,7 +52,11 @@ const FACE: Variants = {
 };
 
 /**
- * The face somebody picked, drawn at whatever size the moment calls for.
+ * Draws the face somebody picked, at either the size the picker uses or the larger size the gate
+ * shows once one is chosen.
+ *
+ * @param profile - Whose face to draw.
+ * @param isLarge - Whether to draw it at the larger of the two sizes.
  */
 const Portrait = ({ profile, isLarge = false }: { profile: ViewerProfile; isLarge?: boolean }) => (
   <ProfileFace
@@ -66,7 +70,12 @@ const Portrait = ({ profile, isLarge = false }: { profile: ViewerProfile; isLarg
 Portrait.displayName = 'Portrait';
 
 /**
- * The way in.
+ * The way in to Flux: who is watching, and then the password if the household asks for one. Kept
+ * apart from the sign-in form proper because choosing a profile is a household gesture rather than
+ * an authentication one, and most of the time it is the only step anybody takes.
+ *
+ * @param onSignedIn - Called once somebody is through.
+ * @param name - What this server calls itself, shown above the faces.
  */
 const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   const [everyone, setEveryone] = useState<ViewerProfile[] | null>(null);

@@ -7,7 +7,12 @@ import { readTotpSecret, formatTotpSecret } from './readTotpSecret';
 import type { Enrollment, SetupStage, TwoFactorSetupProps } from './TwoFactorSetup.types';
 
 /**
- * Two-factor enrollment and removal.
+ * Turns two-factor on and off for an account. Enrolling asks for the password again, shows the secret
+ * as both a code to scan and characters to type, and hands over the backup codes once — anyone who
+ * loses both their authenticator and those codes loses the account.
+ *
+ * @param isEnabled - Whether two-factor is on at the moment.
+ * @param onChanged - Called after it is turned on or off.
  */
 const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
   const [stage, setStage] = useState<SetupStage>('idle');

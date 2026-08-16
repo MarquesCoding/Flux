@@ -25,7 +25,13 @@ const fetchWatchProgress = async (): Promise<WatchProgress[] | null> => {
 };
 
 /**
- * Records where this viewer has got to.
+ * Records where this viewer has got to. Best effort, and deliberately quiet about failure: somebody
+ * watching a film should never be interrupted to be told their bookmark did not save.
+ *
+ * @param mediaId - The item being watched.
+ * @param report - Where they are, how long it is, and whether it counts as finished.
+ * @param options - Whether the page is going away, which makes this a request the browser has
+ *   promised to finish rather than one it may cancel.
  */
 const reportWatchProgress = async (
   mediaId: string,

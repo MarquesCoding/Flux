@@ -97,6 +97,7 @@ type MediaQuerySource = {
  * Asks the browser which containers, codecs and ranges it can actually play, by testing each rather
  * than by reading its name.
  *
+ * @param name - What to call this device in the session list.
  * @returns What this browser can play.
  */
 const detectFromBrowser = (name = 'Browser'): DeviceProfile => {

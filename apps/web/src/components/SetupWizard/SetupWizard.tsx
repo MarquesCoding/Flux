@@ -7,7 +7,12 @@ import { validateSetupForm, parseOrigins } from './validateSetupForm';
 import type { SetupFormErrors, SetupWizardProps } from './SetupWizard.types';
 
 /**
- * First-run setup.
+ * Walks whoever opened Flux first through making it theirs: the administrator account, what the
+ * server is called, and which origins may reach it. Shown in place of everything else until it is
+ * done, because a server with no account on it has nothing else worth showing.
+ *
+ * @param status - What setup has established so far.
+ * @param onComplete - Called once the server is set up and ready to be signed in to.
  */
 const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
   const [name, setName] = useState('');

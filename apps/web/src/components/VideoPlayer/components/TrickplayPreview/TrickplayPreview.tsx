@@ -3,7 +3,12 @@ import { thumbnailAt } from '@FluxWeb/playback/fetchTrickplay';
 import type { TrickplayPreviewProps } from './TrickplayPreview.types';
 
 /**
- * The frame under the pointer while scrubbing.
+ * Shows the frame under the pointer while somebody scrubs, taken from the sprite sheet built when
+ * the item was scanned. The sheet is one image holding every thumbnail, so the right frame is found
+ * by offsetting the background rather than by fetching anything.
+ *
+ * @param trickplay - The sheet, and how the frames are arranged within it.
+ * @param seconds - Where the pointer is.
  */
 const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
   const thumbnail = thumbnailAt(trickplay.thumbnails, seconds);

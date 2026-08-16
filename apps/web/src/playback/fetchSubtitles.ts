@@ -80,8 +80,11 @@ const trackForLanguage = (
 };
 
 /**
- * Picks the track a hover preview should carry, which is a forced one or none at all — a preview is
- * a few seconds long and full subtitles on it are noise.
+ * Picks the track a hover preview should carry, which is a forced one or none at all — a preview
+ * runs for a few seconds and full subtitles on it are noise.
+ *
+ * @param tracks - The tracks available.
+ * @returns The track to burn into the preview, or null for none.
  */
 const previewTrack = (tracks: SubtitleTrack[], language: string): SubtitleTrack | null => {
   const spoken = language.split('-')[0]?.toLowerCase() ?? '';

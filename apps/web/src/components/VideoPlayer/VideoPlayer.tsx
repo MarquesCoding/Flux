@@ -109,7 +109,11 @@ const START_RETRY_MILLISECONDS = 1500;
 const START_ATTEMPTS = 4;
 
 /**
- * Stops a session that nobody is waiting for any more.
+ * Stops a transcode session nobody is waiting for any more, which happens when a start was retried
+ * and an earlier attempt arrives late, or when the viewer left mid-start. Fire and forget: there is
+ * nothing useful to do about a failure to tidy up, and nobody left to tell.
+ *
+ * @param sessionId - The session to stop.
  */
 const abandonStartedSession = (sessionId: string) => {
   void stopPlaybackSession(sessionId);
@@ -126,7 +130,21 @@ const EMPTY_HEALTH: PlaybackHealth = {
 };
 
 /**
- * Plays a library item.
+ * Plays a library item: asks the server for a session, attaches the player to whatever the server
+ * decided to send — a direct file or an adaptive stream — and stays out of the way from then on.
+ * Owns everything about a viewing that outlives a single control: where the viewer has got to and
+ * reporting it back, which tracks are chosen, what the captions look like, whether an administrator
+ * has intervened, and what happens when an episode ends and the next one is waiting.
+ *
+ * @param media - What is being played, and how long it runs.
+ * @param isImmersive - Whether the player fills the screen or sits within the page.
+ * @param startSeconds - Where to begin, for somebody picking up where they left off.
+ * @param onClose - Called when the viewer leaves the player.
+ * @param onProgress - Called as the viewer moves through it, with where they are and how long it is.
+ * @param onEnded - Called when it reaches the end of its own accord.
+ * @param episodes - The rest of the season, where this is one episode of a programme.
+ * @param onSelectEpisode - Called with an episode the viewer chose instead of this one.
+ * @param watchedFractionFor - How to ask how far through a given episode the viewer already is.
  */
 const VideoPlayer = ({
   media,

@@ -7,7 +7,13 @@ const PATIENCE_MILLISECONDS = 8000;
 const RECEIVER = 'CC1AD845';
 
 /**
- * Loads the sender library and hands back what it provides.
+ * Loads the casting library on demand and hands back what it provides. Loaded only when somebody
+ * asks to cast, since most sessions never do and it is not a small thing to fetch.
+ *
+ * @param host - Where the script tag is added, taken as an argument so tests need no document.
+ * @param carrier - What the loaded library attaches itself to, and where the promise is cached so a
+ *   second request does not fetch it again.
+ * @returns What the library provides, or null where it could not be loaded.
  */
 const loadCastSender = (
   host: ScriptHost = document,
@@ -66,13 +72,21 @@ const loadCastSender = (
 };
 
 /**
- * Whether anything can be cast to, in the library's own words.
+ * Reads whether there is anything to cast to, in the casting library's own vocabulary, so the button
+ * knows whether to appear at all.
+ *
+ * @param context - The cast context.
+ * @returns The state, as Flux describes it.
  */
 const castStateOf = (context: CastContext | null): CastConnectionState =>
   context === null ? 'NO_DEVICES_AVAILABLE' : context.getCastState();
 
 /**
- * Sends a stream to whichever device the viewer chose.
+ * Sends a stream to whichever device the viewer chose, along with what it is and where to start, so
+ * the device shows a title rather than an address.
+ *
+ * @param context - The cast context.
+ * @param request - The stream, what it is called, and where to start.
  */
 const castStream = async (
   context: CastContext,

@@ -36,13 +36,20 @@ import { SKIP_SECONDS, PLAYBACK_RATES } from './PlayerControls.types';
 import type { PlayerControlsProps } from './PlayerControls.types';
 
 /**
- * Formats a rate the way a viewer reads it, not the way a float prints.
+ * Formats a playback rate the way a viewer reads it rather than the way a float prints, so the menu
+ * offers "1.5x" and not "1.5000000000000002x".
+ *
+ * @param rate - The rate.
+ * @returns What the menu shows.
  */
 const rateLabel = (rate: number): string => `${rate.toString()}x`;
 
 /**
- * Formats a step's bitrate for the menu, the way a viewer judges it rather than the way the ladder
- * stores it.
+ * Formats a quality step's bitrate for the menu in megabits, which is the unit a viewer judges a
+ * connection in, rather than the kilobits the ladder stores.
+ *
+ * @param maxVideoBitrateKbps - The step's ceiling, as the ladder holds it.
+ * @returns What the menu shows beside the step.
  */
 const bitrateDetail = (maxVideoBitrateKbps: number): string =>
   maxVideoBitrateKbps >= 1000
@@ -52,7 +59,56 @@ const bitrateDetail = (maxVideoBitrateKbps: number): string =>
 const SUBTITLE_STEP_SECONDS = 0.25;
 
 /**
- * The bar that sits over the bottom of the video.
+ * The bar over the bottom of the video, and everything reachable from it: the scrubber and its
+ * preview, play, skip and volume, and the menus for subtitles, audio, quality, speed, caption
+ * appearance and the rest of the season. Holds no state about the viewing itself — every control
+ * reports what was pressed and is told afterwards what happened, so that the player remains the one
+ * place that knows what is going on.
+ *
+ * @param title - What is playing.
+ * @param isPlaying - Whether it is playing at the moment.
+ * @param position - Where the viewer is.
+ * @param duration - How long it runs.
+ * @param volume - How loud it is.
+ * @param isMuted - Whether it is silenced.
+ * @param isFullscreen - Whether the player fills the screen.
+ * @param isShowingStats - Whether the statistics panel is open.
+ * @param playbackRate - How fast it is playing.
+ * @param subtitleTracks - The subtitle tracks available.
+ * @param selectedSubtitleId - The subtitle track in use, if any.
+ * @param audioTracks - The audio tracks available.
+ * @param selectedAudioIndex - The audio track in use, if the player has settled on one.
+ * @param availableQualitySteps - The rungs of the ladder this session offers.
+ * @param selectedQuality - Whether quality is being chosen automatically or pinned to a rung.
+ * @param isDisabled - Whether the controls are inert, as they are while a session is starting.
+ * @param onTogglePlay - Called to play or pause.
+ * @param onSeek - Called with where the viewer scrubbed to.
+ * @param onSkip - Called with how far to jump, forwards or back.
+ * @param onPlaybackRateChange - Called with the speed they chose.
+ * @param onSubtitleChange - Called with the subtitle track they chose.
+ * @param onAudioChange - Called with the audio track they chose.
+ * @param onQualityChange - Called with the quality they chose.
+ * @param episodes - The rest of the season, where there is one.
+ * @param playingId - Which of those episodes is on now.
+ * @param onSelectEpisode - Called with an episode they chose to play instead.
+ * @param watchedFractionFor - How to ask how far through a given episode they are.
+ * @param onMenuOpenChange - Called as a menu opens or closes, so the bar is not hidden beneath one.
+ * @param isShowingRemaining - Whether the clock counts down to the end or up from the start.
+ * @param onToggleTimeDisplay - Called to swap between those two.
+ * @param captionStyle - How captions are drawn.
+ * @param onCaptionStyleChange - Called with a change to that.
+ * @param onCaptionStyleReset - Called to put caption appearance back to its defaults.
+ * @param onVolumeChange - Called with the volume they set.
+ * @param onToggleMute - Called to silence or unsilence.
+ * @param onToggleFullscreen - Called to enter or leave fullscreen.
+ * @param onToggleStats - Called to open or close the statistics panel.
+ * @param subtitleOffsetSeconds - How far subtitles are nudged from where the file puts them.
+ * @param onSubtitleOffsetChange - Called with a nudge to that.
+ * @param castState - Whether there is anywhere to cast to, and whether it is in use.
+ * @param onCast - Called to cast to another device.
+ * @param onPopOut - Called to move the video into a floating window.
+ * @param isPoppedOut - Whether it is already in one.
+ * @param renderPreview - How to draw the frame under the pointer while scrubbing.
  */
 const PlayerControls = ({
   title,

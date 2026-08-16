@@ -28,7 +28,13 @@ const COLOURS = [
 ] as const;
 
 /**
- * How captions should look, decided by the person reading them.
+ * Lets the person reading the captions decide how they look — size, font, colour, background and
+ * edge — with every choice taking effect on the video behind the panel as it is made, and a way back
+ * to the defaults for anyone who has made it worse.
+ *
+ * @param style - How captions are drawn at the moment.
+ * @param onChange - Called with the whole style whenever any part of it changes.
+ * @param onReset - Called to put every choice back to its default.
  */
 const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => (
   <section aria-label="Caption settings" className="flex w-full flex-col gap-4 text-sm text-white">

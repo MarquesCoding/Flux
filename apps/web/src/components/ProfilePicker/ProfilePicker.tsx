@@ -11,7 +11,14 @@ import type { ProfilePickerProps } from './ProfilePicker.types';
 
 const PROFILE_LIMIT = 6;
 /**
- * Who is watching.
+ * Asks who is watching, as a row of faces. In editable mode it also carries the way to add, change
+ * and remove profiles, which is the same set of faces with a different gesture attached rather than
+ * a separate screen.
+ *
+ * @param profiles - The household's profiles.
+ * @param onChoose - Called with the profile somebody picked.
+ * @param onChanged - Called after a profile is created, edited or removed.
+ * @param isEditable - Whether the faces are here to be chosen or to be managed.
  */
 const ProfilePicker = ({
   profiles,
