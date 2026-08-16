@@ -119,7 +119,7 @@ describe('detectDeviceProfile', () => {
     const profile = build(() => false);
 
     expect(profile.transcodingProfiles[0]).toMatchObject({
-      container: 'ts',
+      container: 'mp4',
       videoCodec: 'h264',
       protocol: 'hls',
     });

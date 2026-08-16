@@ -2,6 +2,7 @@ import { negotiatePlayback } from '@FluxCore/functions/negotiatePlayback';
 import { resolveQualityStep } from '@FluxCore/functions/resolveQualityStep';
 import { describePlaybackMode } from '@FluxContracts/functions/describePlaybackMode';
 import { planToSessionSpec } from '@FluxCore/functions/planToSessionSpec';
+import { segmentContainerFor } from '@FluxCore/functions/segmentContainerFor';
 import { previewRequestFor } from '@FluxServer/library/previewRequestFor';
 import {
   SEGMENT_SECONDS,
@@ -187,6 +188,7 @@ const createPlaybackService = ({
         forcedAccel: await forcedAccel(),
         startSeconds,
         segmentSeconds: SEGMENT_SECONDS,
+        container: segmentContainerFor(profile),
         ...(audioStreamIndex !== undefined
           ? { audioStreamIndex }
           : plan.audio.streamIndex === null

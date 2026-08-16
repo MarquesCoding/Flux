@@ -12,6 +12,7 @@ use std::path::Path;
 use std::process::Command;
 
 use flux_transcoder::playlist::build_vod_playlist;
+use flux_transcoder::transcode_plan::SegmentContainer;
 
 fn ffmpeg() -> String {
     std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
@@ -66,9 +67,13 @@ fn segment_a_film(directory: &Path) -> Vec<f64> {
             "vod",
             "-hls_list_size",
             "0",
+            "-hls_segment_type",
+            "fmp4",
+            "-hls_fmp4_init_filename",
+            "init.mp4",
             "-hls_segment_filename",
         ])
-        .arg(directory.join("segment%05d.ts"))
+        .arg(directory.join("segment%05d.m4s"))
         .arg(directory.join("ffmpeg.m3u8"))
         .status()
         .expect("ran ffmpeg");
@@ -99,12 +104,15 @@ fn ffprobe_reads_a_generated_playlist_as_a_film() {
     assert!(!lengths.is_empty(), "ffmpeg wrote no segments");
 
     let path = directory.join("flux.m3u8");
-    std::fs::write(&path, build_vod_playlist(&lengths)).expect("wrote the playlist");
+    std::fs::write(&path, build_vod_playlist(&lengths, SegmentContainer::Fmp4))
+        .expect("wrote the playlist");
 
     let output = Command::new(ffprobe())
         .args([
             "-v",
             "error",
+            "-allowed_extensions",
+            "ALL",
             "-show_entries",
             "format=duration",
             "-of",

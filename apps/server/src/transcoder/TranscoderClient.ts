@@ -200,6 +200,7 @@ type SessionSpec = {
     | { kind: 'copy' }
     | { kind: 'encode'; encoder: string; channels: number; maxBitrateKbps: number };
   sourceSize?: [number, number];
+  container?: 'fmp4' | 'mpegts';
 };
 
 type Transcoder = {

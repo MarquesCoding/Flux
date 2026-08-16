@@ -9,6 +9,7 @@ import type {
 } from '@FluxContracts/schemas/PlaybackPlan';
 import type { QualityClamp } from './resolveQualityStep';
 import { selectAudioStream } from './describeTrack';
+import { encodeBitrateFor } from './encodeBitrateFor';
 const IMAGE_SUBTITLE_FORMATS: readonly SubtitleFormat[] = ['pgs', 'vobsub', 'dvbsub'];
 
 /**
@@ -87,7 +88,12 @@ const decideVideo = (
     kind: 'transcode',
     codec: targetCodec,
     range: profile.supportedVideoRanges.includes(media.videoRange) ? media.videoRange : 'SDR',
-    maxBitrateKbps,
+    maxBitrateKbps: encodeBitrateFor({
+      sourceBitrateKbps: media.bitrateKbps,
+      sourceCodec: media.videoCodec,
+      targetCodec,
+      ceilingKbps: maxBitrateKbps,
+    }),
     maxWidth,
     maxHeight,
     reason: { code, detail },
