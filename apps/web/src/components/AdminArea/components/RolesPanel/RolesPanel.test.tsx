@@ -24,9 +24,6 @@ const MEMBER = { id: 'role_2', name: 'Member', position: 100, permissions: ['sha
 
 /**
  * Opens a role's editor the way a person does: through its actions menu.
- *
- * Pressing the row itself used to open it. Editing is one of two things a row
- * can do now, so both live behind one control.
  */
 const edit = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
   await user.click(await screen.findByRole('button', { name: `Actions for ${name}` }));
@@ -34,8 +31,7 @@ const edit = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
 };
 
 /**
- * Deletes a role the way a person does: through the menu, then the
- * confirmation that guards it.
+ * Deletes a role the way a person does: through the menu, then the confirmation that guards it.
  */
 const remove = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
   await user.click(await screen.findByRole('button', { name: `Actions for ${name}` }));

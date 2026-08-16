@@ -187,12 +187,7 @@ describe('createTranscoderClient', () => {
 });
 
 /**
- * A media service that answers whatever the test says it does, and records
- * what it was asked.
- *
- * The client is mostly a set of one-line calls whose entire behaviour is
- * which address they use, what they send, and what they make of the answer.
- * A scripted service is the only way to see any of that.
+ * A media service that answers whatever the test says it does, and records what it was asked.
  */
 const scripted = (
   answer: Partial<{

@@ -1,13 +1,21 @@
 const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 3600;
 
+/**
+ * Pads a number to two digits, so a clock reads `1:04:09` rather than `1:4:9`.
+ *
+ * @param value - The number.
+ * @returns It, to two digits.
+ */
 const pad = (value: number): string => value.toString().padStart(2, '0');
 
 /**
- * Formats a duration in seconds as `h:mm:ss`, or `m:ss` when under an hour.
+ * Formats a length of time as a clock reads it — `h:mm:ss`, dropping the hours entirely when there
+ * are none, so a forty minute episode is `40:12` rather than `0:40:12`. A duration that is negative
+ * or not a number is treated as nothing having elapsed.
  *
- * Fractional seconds are truncated. Negative input is treated as zero, because
- * a negative duration is never meaningful to display.
+ * @param totalSeconds - The length of time, in seconds, and not necessarily whole.
+ * @returns The duration written as a clock, such as `1:04:09` or `40:12`.
  */
 const formatDuration = (totalSeconds: number): string => {
   const safeSeconds = Number.isFinite(totalSeconds) ? Math.max(0, Math.floor(totalSeconds)) : 0;

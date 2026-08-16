@@ -33,16 +33,12 @@ const PANELS = [
 type PanelId = (typeof PANELS)[number]['id'];
 
 /**
- * A person's own account.
+ * Somebody's own account: their name and password, the devices they are signed in on, their passkeys
+ * and second factor, their API keys, and their viewing history.
  *
- * Two things live here and they are genuinely different questions: how you
- * appear to everybody sharing this server, and how you get in. Putting them
- * in one column would mean scrolling past a password field to change a
- * picture.
- *
- * The face is the same one on the way-in wall, shown at the size it is
- * actually chosen at, because the whole point of picking a colour or a
- * portrait is what it looks like there.
+ * @param user - Whose account it is.
+ * @param onSignOut - Told to sign out.
+ * @param onChanged - Told when something changed, so the shell can read the account again.
  */
 const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
   const [profile, setProfile] = useState<ViewerProfile | null>(null);

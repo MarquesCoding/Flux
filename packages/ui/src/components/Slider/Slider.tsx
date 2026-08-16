@@ -15,15 +15,18 @@ const FILL_CLASSES: Record<SliderTone, string> = {
 };
 
 /**
- * A track with a handle on it.
+ * A track with a handle on it, for choosing one number from a range — a volume, a position in a
+ * film, an offset. A caller can draw something above the handle as it moves, which is how scrubbing
+ * a film shows the frame being scrubbed to.
  *
- * Built on the Base UI slider so dragging, arrow keys and the ARIA wiring come
- * from a primitive that already gets them right, rather than from a div with a
- * pointer handler that keyboard users cannot reach.
- *
- * Hovering reports the value under the pointer so a caller can draw a preview
- * there. That is measured from the track's own rectangle, because the pointer
- * event's offset is relative to whichever child element it landed on.
+ * @param label - What is being chosen, read out to anybody who cannot see the track.
+ * @param value - Where the handle sits now.
+ * @param max - The largest value the track reaches.
+ * @param step - How far each press of an arrow key moves it.
+ * @param onValueChange - Told the new value as the handle moves.
+ * @param renderPreview - Draws something above the handle for the value being pointed at.
+ * @param tone - Whether it sits on the page or over video.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Slider = ({
   label,

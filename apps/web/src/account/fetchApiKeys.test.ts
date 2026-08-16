@@ -24,9 +24,6 @@ const answers = (body: object, status = 200) =>
 
 /**
  * What was sent as the body of the one request made.
- *
- * Read back as text rather than trusted to stringify: `fetch` takes a body of
- * several shapes and only one of them says anything useful when coerced.
  */
 const bodySent = (sent: ReturnType<typeof answers>): string => {
   const body = sent.mock.calls[0]?.[1]?.body;

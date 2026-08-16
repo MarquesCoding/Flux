@@ -4,19 +4,14 @@ import type { ReactNode } from 'react';
 import type { MediaFactsProps } from './MediaFacts.types';
 
 /**
- * Everything that places an item, on one line.
+ * States the facts that place an item — its year, how long it runs, which episode it is, what it is
+ * rated — on one line beneath its name. Which of them appear is up to the caller, since a card in a
+ * grid and a page about one film want different amounts.
  *
- * Where it sits in its series, what it scored, and when it was made —
- * separated by dots rather than by space alone, so four facts read as a list
- * rather than as a row of unrelated numbers.
- *
- * One component because the hero and every card say the same things about the
- * same items, and two versions of this line is two chances to describe one
- * film two ways.
- *
- * Whatever is not known is left out rather than shown empty. A film has no
- * episode, plenty of things have no rating, and a line of placeholders is
- * worse than a shorter line.
+ * @param media - The item being described.
+ * @param hasRuntime - Whether to say how long it is.
+ * @param hasEpisode - Whether to say which episode it is.
+ * @param className - Extra classes for the caller's own layout.
  */
 const MediaFacts = ({
   media,

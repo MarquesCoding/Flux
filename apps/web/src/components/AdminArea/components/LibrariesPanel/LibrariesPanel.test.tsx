@@ -42,9 +42,6 @@ const props = {
 
 /**
  * Chooses something from a library's actions menu.
- *
- * Scanning used to be a button on the row. It is one of four things a library
- * can be told to do now, so they live behind one control.
  */
 const choose = async (user: ReturnType<typeof userEvent.setup>, name: string, action: RegExp) => {
   await user.click(await screen.findByRole('button', { name: `Actions for ${name}` }));

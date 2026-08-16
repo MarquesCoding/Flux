@@ -2,16 +2,14 @@ import { cn } from '@FluxUI/cn';
 import type { DialogTitleProps } from './DialogTitle.types';
 
 /**
- * The head of a dialog, which does not scroll.
+ * The head of a dialog: what it is, optionally a line explaining it, and anything the caller wants
+ * beside them. Pinned rather than scrolled, so what a dialog is about stays on screen while its
+ * content moves.
  *
- * Pinned above the content so that whatever is being read, the thing being
- * answered stays on screen. A dialog whose title scrolls away is a question
- * you have to scroll back up to remember.
- *
- * Set in the same small capitals as a card's header, because a dialog is a
- * card that arrived over the page and there is no reason for the two to name
- * themselves differently. The line under it is quieter still: it explains, and
- * an explanation competing with its own heading is neither.
+ * @param title - What the dialog is about.
+ * @param detail - A line explaining it, where the title alone leaves something unsaid.
+ * @param children - Anything to sit beside the title, such as a close button.
+ * @param className - Extra classes for the caller's own layout.
  */
 const DialogTitle = ({ title, detail, children, className }: DialogTitleProps) => (
   <header

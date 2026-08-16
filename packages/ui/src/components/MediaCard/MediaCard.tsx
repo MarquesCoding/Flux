@@ -13,19 +13,21 @@ const SHAPE_CLASSES: Record<MediaCardShape, string> = {
 };
 
 /**
- * One item in a library.
+ * One thing in a library, drawn as artwork with its name beneath. Carries how far through it
+ * somebody is as a bar across the foot, and takes its shape from what it holds — a poster stands
+ * upright, a still lies flat. The whole card is the press target rather than the title alone.
  *
- * A button rather than a card with a nested button: the whole tile is the
- * target, which is what a pointer expects and what keyboard and screen reader
- * users need. A clickable `div` would be reachable by neither.
- *
- * A lead card wears its title over the artwork, where a standard one carries
- * it underneath. That difference is what gives a row a shape — the eye lands
- * on the large one and reads outwards from it.
- *
- * With no artwork, the initial is set enormous and cropped rather than
- * centred politely. A library before its first metadata provider should look
- * deliberate, not unfinished.
+ * @param title - What the thing is called.
+ * @param eyebrow - A line above the title, such as which episode this is.
+ * @param subtitle - A line beneath it, such as the year or the length.
+ * @param badges - Short facts to show over the artwork, such as the format.
+ * @param imageUrl - The artwork, where any has been fetched.
+ * @param shape - Whether the artwork stands upright or lies flat.
+ * @param emphasis - How much the card should draw the eye.
+ * @param watchedFraction - How far through it this viewer is, drawn as a bar.
+ * @param onSelect - Told when the card was pressed.
+ * @param isStill - Whether to hold the card still rather than letting it lift under a pointer.
+ * @param className - Extra classes for the caller's own layout.
  */
 const MediaCard = ({
   title,

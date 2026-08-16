@@ -8,15 +8,9 @@ type Favourites = {
 };
 
 /**
- * What this viewer has kept, and the one gesture that changes it.
- *
- * Read once for the whole session rather than per card: a page of forty items
- * each asking whether it is kept is forty requests to draw forty hearts.
- *
- * The heart fills before the server has answered and puts itself back if the
- * server disagrees. Keeping something is not a transaction — nothing else
- * depends on it having happened — and a heart that waits for a round trip
- * feels broken on a connection that is merely slow.
+ * What this viewer has kept, and the one gesture that changes it. Keeps its own copy so a heart fills
+ * the moment it is pressed rather than when the server answers, and puts it back if the server
+ * refuses.
  */
 const useFavourites = (): Favourites => {
   const [kept, setKept] = useState<Set<string>>(new Set());

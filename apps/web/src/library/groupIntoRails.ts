@@ -1,91 +1,32 @@
+import { addedAtMs } from '@FluxCore/functions/addedAtMs';
+import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
 import { isWorthResuming } from '@FluxContracts/schemas/WatchProgress';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 
 type Rail = {
-  /**
-   * Stable across renders, so React keeps a row's scroll position when the
-   * library around it changes.
-   */
   id: string;
   title: string;
   items: MediaSummary[];
-  /**
-   * An episode of the series this row is of, for a row whose heading names a
-   * programme rather than a mood. A viewer who reads "A Sign of Affection" and
-   * presses it means the programme, so the heading has to know which one it is
-   * talking about. Absent on rows like `Continue watching`, which are about no
-   * one series.
-   */
   showOf?: MediaSummary;
 };
 
-/**
- * How many items a row shows before it is just a list again.
- */
 const RAIL_LIMIT = 24;
 
-/**
- * How many episodes a programme's own row shows.
- *
- * Higher than the rest, because this row is a whole programme across every
- * season it has rather than a handful of picks, and a long-running one cut off
- * two dozen in would stop partway through its second year. Still a limit: past
- * this the row is a chore to scroll and the programme's own page is the place
- * to be.
- */
 const SERIES_RAIL_LIMIT = 60;
 
-/**
- * The fewest episodes worth a row of their own.
- *
- * One episode of something is not a season, and a row containing a single card
- * looks like a mistake.
- */
 const MIN_SERIES_ITEMS = 2;
 
-/**
- * How recently something must have arrived to count as new.
- */
 const RECENT_DAYS = 30;
 
 /**
- * Reads a timestamp, treating anything unreadable as long ago.
- */
-const addedAtMs = (media: MediaSummary): number => {
-  const parsed = Date.parse(media.addedAt);
-
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
-
-/**
- * Orders episodes the way they are watched.
+ * Sorts a library into the rows it is browsed by — what was added recently, what is part-watched,
+ * what belongs to each genre — collapsing programmes so a series fills one card rather than a row.
  *
- * By season and then by episode, rather than by title: `Episode 10` sorts
- * before `Episode 2` alphabetically, which is no use to anyone.
- */
-const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
-  const season = (left.seasonNumber ?? 0) - (right.seasonNumber ?? 0);
-
-  if (season !== 0) {
-    return season;
-  }
-
-  const episode = (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0);
-
-  return episode === 0 ? left.title.localeCompare(right.title) : episode;
-};
-
-/**
- * Sorts a library into the rows it is browsed by.
- *
- * A library is not one list, it is several: what arrived recently, each season
- * of each series, and everything else. Rows rather than a grid because that is
- * how someone browses when they do not already know what they want.
- *
- * Nothing here invents a row it cannot fill. Continue watching appears only
- * once there is something to continue, because a row that is always empty
- * teaches people to ignore rows.
+ * @param items - Everything the library holds.
+ * @param now - What to treat as now, which decides what counts as recently added.
+ * @param progress - How far through each item this viewer is, which decides what is part-watched.
+ * @returns The rows to draw, in the order they should appear.
  */
 const groupIntoRails = (
   items: MediaSummary[],
@@ -120,8 +61,8 @@ const groupIntoRails = (
   const seenSeries = new Set<string>();
 
   const recent = [...items]
-    .filter((media) => addedAtMs(media) >= recentThreshold)
-    .sort((left, right) => addedAtMs(right) - addedAtMs(left))
+    .filter((media) => addedAtMs(media.addedAt) >= recentThreshold)
+    .sort((left, right) => addedAtMs(right.addedAt) - addedAtMs(left.addedAt))
     .filter((media) => {
       const series = media.seriesTitle ?? '';
 
@@ -195,4 +136,4 @@ const groupIntoRails = (
 
 export type { Rail };
 
-export { groupIntoRails, inBroadcastOrder, RAIL_LIMIT, MIN_SERIES_ITEMS, RECENT_DAYS };
+export { groupIntoRails, inBroadcastOrder };

@@ -3,20 +3,8 @@ import type { Job } from 'pg-boss';
 import type { JobProgress, JobQueue, JobState } from './JobQueue';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
-/**
- * What runs a job of a given kind once pg-boss hands it over.
- *
- * Registered per kind in `handlers` rather than as bespoke queue options, so
- * a new job kind is added by registering a handler here, not by changing
- * this file.
- */
 type JobHandler = (jobId: string, payload: { [key: string]: JsonValue }) => Promise<void>;
 
-/**
- * How a job ended, whatever kind it was.
- *
- * `reason` is null where it finished and the message where it threw.
- */
 type FinishedJob = {
   kind: string;
   jobId: string;
@@ -28,26 +16,9 @@ type CreateJobQueueOptions = {
   connectionString: string;
   handlers: Record<string, JobHandler>;
   onProblem?: (message: string) => void;
-  /**
-   * Told about every job that ends, so something else can announce it.
-   *
-   * Here rather than around each handler because this is the one place every
-   * job already passes through, and a per-handler version would be eleven
-   * copies of the same wrapper with one of them eventually forgotten.
-   *
-   * Deliberately knows nothing about what listens. A queue that imported the
-   * event bus would be a queue that could not be tested without one.
-   */
   onFinished?: (finished: FinishedJob) => void;
 };
 
-/**
- * How long a scan may run before it is presumed dead.
- *
- * Generous, because a first scan of a large library really does take a long
- * time: this is the point at which an unfinished scan stops blocking the next
- * one, not a target.
- */
 const SCAN_EXPIRES_AFTER_SECONDS = 2 * 60 * 60;
 
 const PG_BOSS_STATES: Record<string, JobState> = {
@@ -60,15 +31,12 @@ const PG_BOSS_STATES: Record<string, JobState> = {
 };
 
 /**
- * Starts the job queue.
+ * Starts the job queue and registers a worker for every kind of background work Flux does — scans,
+ * previews, thumbnails, artwork, webhook deliveries. Work outlives the request that asked for it and
+ * survives a restart, which is the whole reason a queue exists rather than a promise.
  *
- * Backed by the same Postgres as everything else, so a scan can be enqueued in
- * the same transaction as the rows it will act on, and one `pg_dump` captures
- * queued work along with the data. That transactional property is what
- * ADR-0005 gave up Redis throughput for.
- *
- * Scans are singleton per library: pressing scan twice must not run two walks
- * over the same directory competing to write the same rows.
+ * @param options - The database to keep the queue in, and the handlers for each kind of job.
+ * @returns The queue, ready to be enqueued against.
  */
 const createJobQueue = async ({
   connectionString,
@@ -82,32 +50,27 @@ const createJobQueue = async ({
   const progressByJobId = new Map<string, JobProgress>();
   const running = new Map<string, { kind: string; subject: string | null }>();
 
-  /**
-   * The jobs somebody has asked to stop.
-   *
-   * Held here rather than in the database because the only thing that can act
-   * on it is the loop in this process that is doing the work, and it is asked
-   * between items — a job that has already finished is removed with the rest
-   * of what was known about it.
-   */
   const cancelled = new Set<string>();
 
   /**
-   * What a job is about, read from its own payload.
+   * Reads what a job is about from its own payload — which library, which item — so that progress and
+   * failures can be reported against something an operator recognises rather than against an
+   * identifier.
    *
-   * Everything that runs against a library carries its id, which is what a
-   * page needs to match a running job to the library on screen.
+   * @param kind - The kind of job.
+   * @param payload - What it was enqueued with.
+   * @returns What the job is about, or null where its payload names nothing.
    */
   const subjectOf = (payload: { [key: string]: JsonValue }): string | null =>
     typeof payload['libraryId'] === 'string' ? payload['libraryId'] : null;
 
   /**
-   * Drops a job that has not started, holding the stop flag across the gap.
+   * Cancels a job that has not started yet, and remembers that it was cancelled for long enough that a
+   * worker picking it up in the same moment stops rather than running it — pg-boss has no way to
+   * withdraw a job that is already being fetched.
    *
-   * A worker can take the job in the moment between reading its state and
-   * dropping it, so the flag goes up first and comes back down once it is
-   * clear nothing took it — otherwise a job cancelled while queued would leave
-   * its id behind for as long as the server runs.
+   * @param kind - The queue it is on.
+   * @param jobId - The job to drop.
    */
   const dropQueued = async (kind: string, jobId: string): Promise<void> => {
     cancelled.add(jobId);
@@ -246,6 +209,6 @@ const createJobQueue = async ({
   };
 };
 
-export type { FinishedJob, JobHandler };
+export type { FinishedJob };
 
-export { createJobQueue, PG_BOSS_STATES };
+export { createJobQueue };

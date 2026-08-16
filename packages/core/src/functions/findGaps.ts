@@ -1,30 +1,18 @@
 import type { ShowDetail } from '@FluxContracts/schemas/Show';
 
 type Gaps = {
-  /**
-   * Season numbers the series has and the library holds nothing of.
-   */
   seasons: number[];
-  /**
-   * Episode numbers absent from a season that is otherwise there, by season.
-   */
   episodes: Map<number, number[]>;
-  /**
-   * Whether a catalogue told us what the series contains.
-   *
-   * False means the gaps below are only what the numbering betrays, and the
-   * end of a season cannot be seen. Anything reporting a series as complete
-   * has to say which of the two answers it is giving.
-   */
   isFromCatalogue: boolean;
 };
 
 /**
- * The whole numbers missing between the ends of a list.
+ * Finds the whole numbers absent from between the smallest and largest a list holds, so a shelf
+ * holding episodes one, two and five is missing three and four — and is not considered to be
+ * missing anything beyond five, since nothing here says how many there were.
  *
- * Only between: a list running 2, 3, 5 is missing 4, and says nothing about 1
- * or 6. Something outside the range on either side has left no evidence, and
- * guessing at it is how a complete season gets told it is incomplete.
+ * @param numbers - The numbers present, in any order.
+ * @returns The numbers absent from between the ends, ascending.
  */
 const between = (numbers: number[]): number[] => {
   const present = new Set(numbers);
@@ -40,7 +28,13 @@ const between = (numbers: number[]): number[] => {
 };
 
 /**
- * The whole numbers from one up to a count that a list does not have.
+ * Finds which of the numbers from one up to a known total a list does not hold. Used where a
+ * catalogue has said how many episodes a season has, so absence past the last one held is real
+ * absence rather than the end of the shelf.
+ *
+ * @param numbers - The numbers present, in any order.
+ * @param count - How many there should be in total.
+ * @returns The missing numbers, ascending.
  */
 const upTo = (numbers: number[], count: number): number[] => {
   const present = new Set(numbers);
@@ -56,7 +50,12 @@ const upTo = (numbers: number[], count: number): number[] => {
 };
 
 /**
- * The episode numbers a season holds.
+ * Reads the episode numbers one season of a programme actually holds, ignoring any episode the
+ * scanner could not number.
+ *
+ * @param show - The programme, with its seasons and their episodes.
+ * @param seasonNumber - The season being asked about.
+ * @returns The episode numbers held, in the order the season lists them.
  */
 const numbersIn = (show: ShowDetail, seasonNumber: number): number[] =>
   (show.seasons.find((season) => season.seasonNumber === seasonNumber)?.episodes ?? [])
@@ -64,24 +63,13 @@ const numbersIn = (show: ShowDetail, seasonNumber: number): number[] =>
     .filter((number): number is number => number !== null && number !== undefined);
 
 /**
- * What a series is missing.
+ * Works out what a programme is missing, preferring the catalogue's own shape where one is known —
+ * which is the only way to tell a season that ends at episode nine from one missing its tenth. With
+ * no catalogue to ask, absence is only reported between the episodes actually held, since nothing
+ * else can be known from the files alone.
  *
- * Answered two ways, and which one matters. Where a catalogue has said what the
- * series contains, this is the real answer: a season of twelve holding eight is
- * missing four, a season nobody holds is missing entirely, and specials count
- * like anything else. Where nothing has said — no catalogue configured, the
- * series never matched, the service down — it falls back to what the numbering
- * alone betrays: an episode 9 after an episode 7 proves episode 8 exists.
- *
- * The fallback deliberately cannot see past the end of a season. A season of
- * twelve holding eight looks exactly like a season of eight, and guessing would
- * put a warning on every series still going out weekly. `isFromCatalogue` says
- * which answer this is, so nothing downstream calls a series complete when it
- * only means "no holes I can prove".
- *
- * Specials are skipped in the fallback for the same reason: they are numbered
- * by no rule anybody agrees on, so a gap among them is not evidence. Given a
- * catalogue, they are counted like any other season.
+ * @param show - The programme as Flux holds it, with the catalogue's shape when one was fetched.
+ * @returns The missing seasons, the missing episodes by season, and whether a catalogue said so.
  */
 const findGaps = (show: ShowDetail): Gaps => {
   const shape = show.shape ?? null;
@@ -145,4 +133,3 @@ const findGaps = (show: ShowDetail): Gaps => {
 };
 
 export { findGaps };
-export type { Gaps };

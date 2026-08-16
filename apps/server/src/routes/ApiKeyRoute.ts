@@ -5,13 +5,6 @@ const ApiKeyError = z.object({ error: z.string() }).openapi('ApiKeyError');
 
 const Permission = z.enum(PERMISSIONS);
 
-/**
- * A key as it can safely be shown again.
- *
- * The key itself is absent by design. It is stored hashed and cannot be read
- * back, which is why `start` is here — enough to tell one row from another,
- * and no use to anybody who takes the list.
- */
 const ApiKey = z
   .object({
     id: z.string(),
@@ -29,9 +22,6 @@ const ApiKey = z
   })
   .openapi('ApiKey');
 
-/**
- * A key at the one moment it can be read.
- */
 const CreatedApiKey = ApiKey.extend({ key: z.string() }).openapi('CreatedApiKey');
 
 const CreateApiKeyRequest = z
@@ -51,13 +41,6 @@ const CreateApiKeyRequest = z
 
 const UpdateApiKeyRequest = z.object({ enabled: z.boolean() }).openapi('UpdateApiKeyRequest');
 
-/**
- * Lists the keys this account holds.
- *
- * This account's own, always. A key is a credential belonging to somebody, and
- * an endpoint that would list anybody's is a different feature with a
- * different permission.
- */
 const listApiKeysRoute = createRoute({
   method: 'get',
   path: '/api/keys',
@@ -79,13 +62,6 @@ const listApiKeysRoute = createRoute({
   },
 });
 
-/**
- * Mints a key and answers with it once.
- *
- * The only response that carries the key itself. It is hashed on the way in,
- * so nothing can show it again — which is a property worth stating in the
- * interface rather than discovering.
- */
 const createApiKeyRoute = createRoute({
   method: 'post',
   path: '/api/keys',
@@ -108,9 +84,6 @@ const createApiKeyRoute = createRoute({
   },
 });
 
-/**
- * Turns a key off, or back on, without destroying it.
- */
 const updateApiKeyRoute = createRoute({
   method: 'patch',
   path: '/api/keys/{id}',
@@ -137,12 +110,6 @@ const updateApiKeyRoute = createRoute({
   },
 });
 
-/**
- * Destroys a key.
- *
- * Immediate, including for a request already being served: the next check
- * against it fails because there is nothing left to check against.
- */
 const revokeApiKeyRoute = createRoute({
   method: 'delete',
   path: '/api/keys/{id}',

@@ -22,13 +22,6 @@ const ReportSchema = z
   })
   .openapi('ProgressReport');
 
-/**
- * Reads where this viewer got to in everything.
- *
- * One request for the whole library rather than one per item: a page of cards
- * showing progress would otherwise open a hundred connections to draw a
- * hundred thin bars.
- */
 const listProgressRoute = createRoute({
   method: 'get',
   path: '/api/progress',
@@ -46,9 +39,6 @@ const listProgressRoute = createRoute({
   },
 });
 
-/**
- * Records where this viewer has got to.
- */
 const recordProgressRoute = createRoute({
   method: 'put',
   path: '/api/media/{mediaId}/progress',
@@ -71,9 +61,6 @@ const recordProgressRoute = createRoute({
   },
 });
 
-/**
- * Forgets where this viewer got to, so something starts over.
- */
 const forgetProgressRoute = createRoute({
   method: 'delete',
   path: '/api/media/{mediaId}/progress',

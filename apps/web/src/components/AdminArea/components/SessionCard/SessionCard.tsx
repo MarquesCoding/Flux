@@ -9,17 +9,15 @@ import { SessionStatsDialog } from '@FluxWeb/components/AdminArea/components/Ses
 import type { SessionCardProps } from './SessionCard.types';
 
 /**
- * One open tab, across rather than down.
+ * One open session: who has it, on what device, what they are watching, how far through they are, and
+ * how the stream is faring. Carries the controls for intervening in it, and a way through to
+ * everything the server knows about the stream for anybody asking why it is struggling.
  *
- * It used to be a poster with the details written over it, which meant a tab
- * watching nothing — most of them, most of the time — was a large black
- * rectangle saying "not watching anything". Presence is the point of this
- * list, so the shape is the same whether or not there is a film in it: a
- * thumbnail, what it is, and the controls, in one row.
- *
- * The progress bar carries two figures. The pale one is how much has been
- * fetched and the bright one is where the viewer actually is; the gap between
- * them is the answer to "why is it stuttering".
+ * @param session - The session.
+ * @param isBusy - Whether an instruction for it is in flight.
+ * @param onStop - Called to stop it.
+ * @param onPause - Called to pause it.
+ * @param onResume - Called to let it carry on.
  */
 const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCardProps) => {
   const { playback } = session;

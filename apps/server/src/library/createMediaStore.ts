@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { mediaItem, mediaItemJob, mediaOverride, library, series } from '@FluxServer/db/Schema';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
 import type { FluxDatabase } from '@FluxServer/db/Database';
@@ -9,11 +9,12 @@ import { resolveSeriesKey } from './resolveSeriesKey';
 import type { MediaStore } from './scanLibrary';
 
 /**
- * The library tables, for the scanner.
+ * The library's tables as the scanner uses them: what is stored now, what to write, what to remove,
+ * and the corrections an operator has made. Everything the scanner needs of the database and nothing
+ * else, so the scan itself can be tested against a store held in memory.
  *
- * Upserts on (library, path) so that re-scanning a changed file replaces its
- * row rather than duplicating it, and so a scan interrupted halfway can simply
- * be run again.
+ * @param db - The database to read and write.
+ * @returns The store, plus the operations only a real library performs.
  */
 const createMediaStore = (
   db: FluxDatabase,
@@ -53,16 +54,6 @@ const createMediaStore = (
 
     const seriesTitle = row.metadata.seriesTitle ?? row.episode.seriesTitle;
 
-    /**
-     * The programme this file belongs to, made if it is new.
-     *
-     * Written every scan rather than only when the row is created, because the
-     * evidence improves: a file first read from its path alone gets a folder
-     * key, and once a catalogue names it the key it would resolve to changes.
-     * Upserting on the key means the programme is recognised again rather than
-     * duplicated, and its title is refreshed from whatever the catalogue last
-     * said without anything losing hold of the row.
-     */
     const seriesKey = resolveSeriesKey({
       externalId: row.metadata.externalId ?? null,
       seriesFolder: row.episode.seriesFolder,
@@ -218,29 +209,13 @@ const createMediaStore = (
 });
 
 /**
- * Counts the items in a library.
- */
-const countItems = async (db: FluxDatabase, libraryId: string): Promise<number> => {
-  const rows = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(mediaItem)
-    .where(eq(mediaItem.libraryId, libraryId));
-
-  return rows[0]?.total ?? 0;
-};
-
-/**
- * The items in a library that have not finished the given job.
+ * Finds the items in a library that a given job has not yet finished with, which is what lets
+ * previews, thumbnails and segment detection resume after a restart rather than beginning again.
  *
- * Nothing here touches the filesystem, re-runs metadata providers or
- * re-samples a colour: the derived work is redone from what a previous scan
- * already probed, which is the whole point of these being their own jobs
- * rather than a forced rescan.
- *
- * A left join rather than a "needs work" column: what counts as outstanding
- * is one row's absence, so an item is offered to a job exactly until that job
- * says it is done with it, and a job added later starts with every item
- * outstanding without a migration.
+ * @param db - The database to ask.
+ * @param libraryId - The library being worked through.
+ * @param kind - The job being asked about.
+ * @returns The items still outstanding, with what each needs to be worked on.
  */
 const listOutstandingFor = async (
   db: FluxDatabase,
@@ -264,7 +239,11 @@ const listOutstandingFor = async (
 };
 
 /**
- * Records that a job has finished with one item.
+ * Records that a job has finished with one item, so a restart does not do it again.
+ *
+ * @param db - The database to write to.
+ * @param mediaItemId - The item that was finished with.
+ * @param kind - The job that finished.
  */
 const markJobComplete = async (
   db: FluxDatabase,
@@ -275,12 +254,13 @@ const markJobComplete = async (
 };
 
 /**
- * Forgets a job's completions across a whole library, putting every item back
- * in front of it.
+ * Forgets a job's completions across a whole library, putting every item back in front of it. This
+ * is what a recipe change means — new preview settings, a different thumbnail interval — where the
+ * work was done correctly and is simply no longer what is wanted.
  *
- * For when what the job produces has been invalidated by something other than
- * the file changing — a library's forced audio language, which every preview
- * clip was rendered against.
+ * @param db - The database to write to.
+ * @param libraryId - The library to forget across.
+ * @param kind - The job whose completions to forget.
  */
 const clearJobCompletions = async (
   db: FluxDatabase,
@@ -307,4 +287,4 @@ const clearJobCompletions = async (
   );
 };
 
-export { createMediaStore, countItems, listOutstandingFor, markJobComplete, clearJobCompletions };
+export { createMediaStore, listOutstandingFor, markJobComplete, clearJobCompletions };

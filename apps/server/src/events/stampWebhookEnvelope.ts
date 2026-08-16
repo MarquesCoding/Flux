@@ -3,13 +3,9 @@ import { WEBHOOK_PAYLOAD_VERSION } from '@FluxContracts/schemas/Webhook';
 import type { WebhookOccurrence } from './EventBus';
 
 /**
- * Wraps something that happened in the envelope a subscriber reads.
- *
- * Answers a string rather than an object, and that is the whole reason this
- * exists as a step of its own: the signature is computed over exact bytes, so
- * the encoding has to happen once, here, and be carried unchanged through the
- * queue. Encoding at the point of delivery instead would mean the bytes that
- * were signed and the bytes that were sent are only equal by luck.
+ * Wraps something that happened in the envelope a subscriber reads: a version, an identifier and the
+ * moment, around the event itself. The version is first so that a subscriber can tell what shape the
+ * rest is in before trying to read it.
  *
  * @param occurrence What happened, as the thing that noticed it describes it.
  */

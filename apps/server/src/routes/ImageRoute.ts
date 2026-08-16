@@ -2,13 +2,6 @@ import { createRoute, z } from '@hono/zod-openapi';
 
 const ImageError = z.object({ error: z.string() }).openapi('ImageError');
 
-/**
- * Serves an item's artwork from Flux's own cache.
- *
- * Proxied rather than linked, so a browser drawing a library never tells a
- * catalogue what its viewer is looking at, and so covers do not vanish when a
- * third party reorganises its addresses.
- */
 const mediaImageRoute = createRoute({
   method: 'get',
   path: '/api/media/{mediaId}/image/{kind}',

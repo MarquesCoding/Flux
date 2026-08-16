@@ -9,24 +9,16 @@ import { ProfileEditor } from './components/ProfileEditor/ProfileEditor';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import type { ProfilePickerProps } from './ProfilePicker.types';
 
-/**
- * How many people may share one account.
- *
- * Matches what the server will accept, so the offer to add somebody
- * disappears rather than failing when it is taken up.
- */
 const PROFILE_LIMIT = 6;
 /**
- * Who is watching.
+ * Asks who is watching, as a row of faces. In editable mode it also carries the way to add, change
+ * and remove profiles, which is the same set of faces with a different gesture attached rather than
+ * a separate screen.
  *
- * The one screen between signing in and the library, and deliberately the
- * whole screen: choosing who you are is a decision, not a setting, and a
- * household that shares a login shares nothing else — what one person left
- * half watched is noise on somebody else's home page.
- *
- * Portraits are a letter on a colour rather than a picture. Nobody uploads an
- * avatar for a profile they made in four seconds, and a grid of grey silhouettes
- * says less than a grid of colours people recognise from across the room.
+ * @param profiles - The household's profiles.
+ * @param onChoose - Called with the profile somebody picked.
+ * @param onChanged - Called after a profile is created, edited or removed.
+ * @param isEditable - Whether the faces are here to be chosen or to be managed.
  */
 const ProfilePicker = ({
   profiles,

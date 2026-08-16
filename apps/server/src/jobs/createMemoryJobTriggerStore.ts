@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { JobTriggerStore, StoredTrigger } from './JobTriggerStore';
 
 /**
- * Job triggers held in memory, for testing the schedule service and the
- * admin routes without Postgres.
+ * Job triggers held in memory, for testing the schedule service and the admin routes without
+ * Postgres.
  */
 const createMemoryJobTriggerStore = (): JobTriggerStore => {
   const rows: StoredTrigger[] = [];

@@ -1,12 +1,6 @@
 import type { SegmentCandidate, SegmentProvider } from './SegmentProvider';
 import type { MediaSegment, SegmentKind } from '@FluxContracts/schemas/MediaSegment';
 
-/**
- * What a chapter has to be called for its meaning to be clear.
- *
- * Deliberately narrow. A chapter called "Part 1" might be anything, and
- * guessing wrong hands the viewer a button that skips the opening scene.
- */
 const CHAPTER_NAMES: { kind: SegmentKind; patterns: RegExp[] }[] = [
   {
     kind: 'intro',
@@ -21,18 +15,21 @@ const CHAPTER_NAMES: { kind: SegmentKind; patterns: RegExp[] }[] = [
 ];
 
 /**
- * Reads what a chapter's name says it is.
+ * Reads what a chapter's own name says it is — an intro, a recap, credits — from the words people
+ * put in chapter titles. Where a file carries chapters at all this is free and exact, which is why
+ * it is tried before listening to the audio.
+ *
+ * @param title - The chapter's title as the container gives it.
+ * @returns What kind of stretch it is, or null where the name says nothing.
  */
 const readChapterKind = (title: string | null): SegmentKind | null =>
   CHAPTER_NAMES.find((entry) => entry.patterns.some((pattern) => pattern.test(title ?? '')))
     ?.kind ?? null;
 
 /**
- * Segments a release already marked.
- *
- * Free and exact: someone sat down and named these, so where a chapter says
- * "Intro" there is nothing to detect. Asked before anything that measures,
- * which is why a season with proper chapters never needs its audio decoded.
+ * Reads intros, recaps and credits out of the chapter marks a release already carries, which costs
+ * nothing to read and is right whenever it is present. Tried before anything that compares audio,
+ * since a release that has been marked by hand has better marks than any detector will find.
  */
 const createChapterSegmentProvider = (): SegmentProvider => ({
   name: 'chapters',
@@ -65,4 +62,4 @@ const createChapterSegmentProvider = (): SegmentProvider => ({
   },
 });
 
-export { createChapterSegmentProvider, readChapterKind, CHAPTER_NAMES };
+export { createChapterSegmentProvider, readChapterKind };

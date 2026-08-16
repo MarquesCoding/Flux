@@ -7,25 +7,15 @@ import { cacheRows } from './cacheRows';
 import type { CacheBreakdownProps } from './CacheBreakdown.types';
 
 /**
- * What Flux itself is keeping on the disk.
+ * What Flux itself is keeping on the disk, a kind at a time: preview clips, scrub thumbnails,
+ * artwork, and what is being written for sessions running now. The library's own files are shown
+ * beside them for scale, since the useful question is usually how much Flux has added to what was
+ * already there.
  *
- * The strip at the top answers "will I run out of room". This answers the
- * other storage question, which is "what is Flux hoarding" — a composition
- * rather than a single reading, so it is a set of figures rather than one
- * percentage.
- *
- * Laid out across the row like the strip above it rather than as a list of
- * rows, because four figures side by side are read by glancing along them, and
- * a full-width list would leave each name stranded from its number.
- *
- * Spread rather than columned: even columns leave the last figure stranded in
- * the middle of the card with the right quarter empty, because a column is
- * sized by the grid and a figure is sized by its digits. Spacing the four
- * across the row puts the first at one edge and the last at the other.
- *
- * None of these are measured when this is drawn. Adding up an artefact cache
- * means walking thousands of directories, so both services count on their own
- * timers and this shows what they last found — which is why it says when.
+ * @param cache - What the monitor found on disk, or null while it is still counting.
+ * @param artwork - How much artwork has been fetched and kept.
+ * @param liveSessions - How many sessions are writing at the moment.
+ * @param library - How much the library itself holds, where that has been worked out.
  */
 const CacheBreakdown = ({ cache, artwork, liveSessions, library }: CacheBreakdownProps) => {
   const rows = cacheRows(cache, artwork, liveSessions, library);

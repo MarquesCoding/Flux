@@ -96,9 +96,6 @@ describe('Dialog', () => {
   describe('in fullscreen', () => {
     /**
      * Says an element is fullscreen the way a browser reports it.
-     *
-     * jsdom implements neither `requestFullscreen` nor `fullscreenElement`,
-     * so the property is set and the event dispatched by hand.
      */
     const goFullscreen = (element: Element | null) => {
       Object.defineProperty(document, 'fullscreenElement', {

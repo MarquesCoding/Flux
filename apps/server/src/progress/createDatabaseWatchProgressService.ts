@@ -4,18 +4,14 @@ import { watchProgress } from '@FluxServer/db/Schema';
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { WatchProgressService } from './WatchProgressService';
 
-/**
- * How many resumable items are worth carrying to a browser.
- *
- * A continue watching row is a handful of things, not a viewing history.
- */
 const LIMIT = 60;
 
 /**
- * Watch progress held in Postgres.
+ * Where each profile has got to in each item, held in Postgres. This is the record a resume reads
+ * and a reload depends on, so it is written on a timer while watching and once more on the way out.
  *
- * One row per person per item, replaced in place rather than appended to: this
- * records where someone is, not everywhere they have been.
+ * @param db - The database to read and write.
+ * @returns The watch progress service.
  */
 const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressService => ({
   read: async (profileId, mediaId) => {

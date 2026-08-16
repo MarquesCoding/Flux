@@ -10,8 +10,8 @@ const members = Array.from({ length: 14 }, (_, at) => ({
 }));
 
 /**
- * jsdom lays nothing out and scrolls nothing, so the row has to be told how
- * wide it is and how much of it runs off the edge.
+ * jsdom lays nothing out and scrolls nothing, so the row has to be told how wide it is and how much
+ * of it runs off the edge.
  */
 const rowOf = (visible: number, whole: number) => {
   Object.defineProperty(HTMLElement.prototype, 'clientWidth', {

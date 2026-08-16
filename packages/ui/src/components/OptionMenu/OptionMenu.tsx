@@ -4,13 +4,6 @@ import { cn } from '@FluxUI/cn';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { OptionMenuProps } from './OptionMenu.types';
 
-/**
- * How the popup arrives and leaves.
- *
- * The same fade-and-settle Dialog uses, scaled down for a menu rather than a
- * full panel: a menu that snaps open reads as broken next to everything else
- * on the platform that eases in.
- */
 const POPUP_MOTION = [
   'origin-[var(--transform-origin)] transition-[transform,opacity]',
   'duration-[var(--duration-base)] ease-[var(--ease-soft)]',
@@ -21,11 +14,14 @@ const POPUP_MOTION = [
 ].join(' ');
 
 /**
- * A menu of mutually exclusive choices, in one or more columns.
+ * A menu of choices where exactly one is in force — an audio track, a quality, a sort order. Shows
+ * which is chosen rather than only changing what is beneath it, and lays out in columns where there
+ * are more options than a single list would read well.
  *
- * Built on the Base UI menu so focus handling, escape, outside clicks and the
- * radio semantics come from a primitive that already gets them right. Every
- * column is a radio group, because these are settings rather than commands.
+ * @param label - What is being chosen, read out to anybody who cannot see the menu.
+ * @param trigger - The control that opens it.
+ * @param columns - The choices, in one or more named columns.
+ * @param className - Extra classes for the caller's own layout.
  */
 const OptionMenu = ({
   label,

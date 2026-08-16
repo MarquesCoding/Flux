@@ -12,13 +12,6 @@ type DetectDeviceProfileOptions = {
   maxBitrateKbps?: number;
 };
 
-/**
- * The probes Flux uses to decide what a browser can play.
- *
- * Each is a concrete codec string rather than a family name, because
- * `video/mp4` alone answers almost nothing: a browser that reports MP4 support
- * may still refuse HEVC or 10-bit AV1.
- */
 const VIDEO_PROBES = [
   { codec: 'h264', mimeType: 'video/mp4; codecs="avc1.640028"' },
   { codec: 'hevc', mimeType: 'video/mp4; codecs="hvc1.1.6.L120.B0"' },
@@ -26,20 +19,6 @@ const VIDEO_PROBES = [
   { codec: 'vp9', mimeType: 'video/webm; codecs="vp9"' },
 ] as const;
 
-/**
- * The same codecs asked again at ten bits.
- *
- * A browser answers these separately and often differently: Chrome on macOS
- * accepts HEVC Main and declines Main 10, and a film copied to it regardless
- * plays for twenty seconds and then stops with no error, a full buffer and a
- * frozen picture. Asking once about eight bit HEVC and treating the answer as
- * covering every HEVC file is what sent it there.
- *
- * Levels are the ones ordinary 1080p carries rather than the lowest that
- * exists, for the same reason: a client that can only manage level 3.1 should
- * not be handed a level 4 film on the strength of a question about smaller
- * pictures.
- */
 const TEN_BIT_VIDEO_PROBES = [
   { codec: 'hevc', mimeType: 'video/mp4; codecs="hvc1.2.4.L120.B0"' },
   { codec: 'av1', mimeType: 'video/mp4; codecs="av01.0.05M.10"' },
@@ -57,17 +36,12 @@ const AUDIO_PROBES = [
 const DEFAULT_MAX_BITRATE_KBPS = 20_000;
 
 /**
- * Builds a device profile from what the browser actually reports.
+ * Builds the profile the server negotiates against, from what this browser actually reports it can
+ * play rather than from what its name suggests — two browsers of the same name on different machines
+ * answer differently, and guessing produces a film that will not play.
  *
- * Every value here comes from a capability probe rather than a user agent
- * string. Identifying a client by user agent is guesswork that goes stale the
- * moment a browser changes, and is exactly the guesswork ADR-0011 set out to
- * avoid by letting clients declare their own profile.
- *
- * `h264` and `aac` are always claimed as fallbacks. Any browser capable of
- * Media Source Extensions plays them, and a profile with no direct play entry
- * would make the server transcode into a format the client just said it could
- * not accept.
+ * @param capabilities - What the browser reported it can decode.
+ * @returns The profile to send with a session request.
  */
 const detectDeviceProfile = ({
   isTypeSupported,
@@ -115,18 +89,16 @@ const detectDeviceProfile = ({
   });
 };
 
-/**
- * Somewhere media queries can be asked, if this browser has them.
- */
 type MediaQuerySource = {
   matchMedia?: (query: string) => { matches: boolean };
 };
 
 /**
- * Reads the browser's real capabilities.
+ * Asks the browser which containers, codecs and ranges it can actually play, by testing each rather
+ * than by reading its name.
  *
- * Kept apart from the pure builder so the decision logic can be tested against
- * any browser's answers without needing that browser.
+ * @param name - What to call this device in the session list.
+ * @returns What this browser can play.
  */
 const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
   const isTypeSupported: CodecProbe =
@@ -145,6 +117,4 @@ const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
   });
 };
 
-export type { CodecProbe, DetectDeviceProfileOptions };
-
-export { detectDeviceProfile, detectFromBrowser, VIDEO_PROBES, AUDIO_PROBES };
+export { detectDeviceProfile, detectFromBrowser };

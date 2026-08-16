@@ -1,14 +1,5 @@
 import type { ScanEntry } from '@FluxWeb/components/AdminArea/scanCoordinator';
 
-/**
- * The order a scan's stages run in.
- *
- * A job runs the same chain against every library at once, and they do not
- * keep step — one library can be finding intros while another is still
- * probing. Ranking the stages lets one bar report the stage the job as a
- * whole is still on, rather than whichever library happens to be furthest
- * ahead.
- */
 const PHASE_ORDER: readonly string[] = ['probing', 'previews', 'trickplay', 'segments'];
 
 type ProgressSummary = {
@@ -18,14 +9,12 @@ type ProgressSummary = {
 };
 
 /**
- * How far along a stage is, where a job reports one per library it is
- * working through.
+ * Ranks a stage by how early it comes in a job's run, so that several libraries at different stages
+ * can be compared. A stage nobody recognises ranks last rather than first, since an unknown stage is
+ * more likely to be a new one added at the end than the very beginning.
  *
- * A stage this module has never heard of sorts last, so a job kind added to
- * the server after this file was written still reports something sensible
- * rather than claiming to be at the beginning. A library that has not said
- * anything yet sorts first, because a job that has only just started is at
- * the start whatever the others are doing.
+ * @param phase - The stage, or null where a job reports none.
+ * @returns Its rank, lower being earlier.
  */
 const rankOf = (phase: string | null): number => {
   if (phase === null) {
@@ -38,14 +27,13 @@ const rankOf = (phase: string | null): number => {
 };
 
 /**
- * Folds every library's progress on one job into the single bar its row
- * shows.
+ * Folds every library's progress on one job into the single bar its row shows. Reports the earliest
+ * stage any library is still on rather than an average, because a job is only as far along as its
+ * furthest-behind part, and counts only the libraries on that stage — adding a count from one stage
+ * to a count from another produces a number that means nothing.
  *
- * Null when nothing is running, which is what puts the Run button back.
- *
- * Counts are summed only across the libraries on the same stage: each stage
- * counts its own files from zero, so adding one stage's total to another's
- * would produce a number that means nothing and a bar that goes backwards.
+ * @param entries - What each library working on this job reports.
+ * @returns The stage and the counts to show, or null where nothing is running.
  */
 const summariseProgress = (entries: ScanEntry[]): ProgressSummary | null => {
   if (entries.length === 0) {
@@ -68,6 +56,4 @@ const summariseProgress = (entries: ScanEntry[]): ProgressSummary | null => {
   };
 };
 
-export type { ProgressSummary };
-
-export { summariseProgress, PHASE_ORDER };
+export { summariseProgress };

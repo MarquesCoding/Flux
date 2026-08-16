@@ -121,8 +121,8 @@ const props = {
 };
 
 /**
- * The card a heading belongs to, so an assertion can be made against one
- * region rather than the whole dashboard — several cards say "Films".
+ * The card a heading belongs to, so an assertion can be made against one region rather than the
+ * whole dashboard — several cards say "Films".
  */
 const card = (title: string): HTMLElement => {
   const region = screen.getByRole('heading', { name: title }).closest('section');

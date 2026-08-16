@@ -1,17 +1,5 @@
 import { z } from 'zod';
 
-/**
- * What makes a job run on its own, without an admin pressing Run.
- *
- * A job holds a list of these rather than one cadence, matching how Jellyfin
- * models a scheduled task: "nightly, and again whenever the server comes up"
- * is two triggers, not a single setting that has to somehow mean both.
- *
- * Not free-form cron — an operator does not think in cron, and a picker
- * offering raw cron syntax is easy to misconfigure. Every timed variant maps
- * onto cron exactly; `startup` deliberately does not, and the server fires it
- * itself at boot instead.
- */
 const ScheduleTriggerSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('startup') }),
   z.object({
@@ -38,10 +26,11 @@ const ScheduleTriggerSchema = z.discriminatedUnion('kind', [
 type ScheduleTrigger = z.infer<typeof ScheduleTriggerSchema>;
 
 /**
- * Writes a trigger as the cron expression pg-boss schedules on.
+ * Writes a trigger as the cron expression the queue schedules on, from the shape an operator
+ * configured — every so many hours, daily at a time, weekly on a day.
  *
- * Null for `startup`: there is no time of day to schedule, because the server
- * runs it when it comes up — see `JobScheduleService.sync`.
+ * @param trigger - The schedule as an operator set it.
+ * @returns The cron expression, or null for a trigger that fires on an event rather than a clock.
  */
 const toCron = (trigger: ScheduleTrigger): string | null => {
   switch (trigger.kind) {

@@ -1,30 +1,21 @@
 import { selectAudioStream } from '@FluxCore/functions/describeTrack';
 import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
 
-/**
- * What a preview clip is made from.
- */
 type PreviewSubject = {
   path: string;
   audioStreams: AudioStream[];
 };
 
 /**
- * The request that addresses an item's preview clip.
+ * Builds the request that names an item's hover preview, which is also what identifies it in the
+ * cache — the same item asked for twice must produce the same request, or the second ask renders a
+ * second copy of a clip that already exists.
  *
- * Every field here is part of the clip's address, so two callers that build this
- * differently are asking about two different clips. That matters most to the
- * sweep: it works out what is still wanted and deletes the rest, so a request it
- * built even slightly differently from the one that made the clip would have it
- * delete previews still in use.
- *
- * `audioStreamIndex` is the field that makes this worth extracting. It appears
- * whenever the library forces an audio language, and which stream that lands on
- * is a real decision rather than a lookup: `selectAudioStream` falls back to the
- * default stream and then to the first, so a forced language the file does not
- * carry still names a stream rather than leaving the choice to ffmpeg. Two
- * callers reproducing that separately would eventually disagree, and the one
- * that disagrees while deleting is the sweep.
+ * @param subject - The item being previewed, with the streams a clip is cut from.
+ * @param generation - Which round of previews this is, so that a change of recipe produces a
+ *   different request rather than matching the clip already cached.
+ * @param defaultAudioLanguage - The language the library prefers, which decides the audio track.
+ * @returns The request to hand the media service.
  */
 const previewRequestFor = (
   subject: PreviewSubject,
@@ -42,7 +33,5 @@ const previewRequestFor = (
     ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
   };
 };
-
-export type { PreviewSubject };
 
 export { previewRequestFor };

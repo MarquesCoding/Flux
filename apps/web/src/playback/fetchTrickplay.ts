@@ -27,7 +27,11 @@ type Trickplay = {
 const TIMESTAMP = /(\d+):(\d{2}):(\d{2})(?:\.(\d{1,3}))?/;
 
 /**
- * Reads a `WebVTT` timestamp as seconds.
+ * Reads a WebVTT timestamp as a number of seconds, in either of the forms the format allows — with
+ * hours and without.
+ *
+ * @param value - The timestamp as the index wrote it.
+ * @returns The position in seconds.
  */
 const readTimestamp = (value: string): number | null => {
   const match = TIMESTAMP.exec(value.trim());
@@ -47,11 +51,11 @@ const readTimestamp = (value: string): number | null => {
 };
 
 /**
- * Reads the rectangle a cue points at.
+ * Reads the rectangle a cue points at inside its sheet, since a thumbnail index addresses one tile
+ * of a larger image rather than an image of its own.
  *
- * The `#xywh` fragment is what tells a player where in a sheet a thumbnail
- * sits. A cue without one names a whole image, which Flux never writes, so it
- * is skipped rather than guessed at.
+ * @param payload - The cue's fragment, naming the tile.
+ * @returns Where the tile sits in the sheet.
  */
 const readRectangle = (
   payload: string,
@@ -74,10 +78,12 @@ const readRectangle = (
 };
 
 /**
- * Turns a `WebVTT` index into thumbnails.
+ * Turns the index the server writes into the thumbnails a scrubber draws, each knowing which sheet
+ * it is in and where.
  *
- * Sheet names in the index are relative, so they are resolved against the
- * index's own URL exactly as a browser would resolve them.
+ * @param vtt - The index as WebVTT.
+ * @param indexUrl - Where the sheets are served from.
+ * @returns The thumbnails, in order.
  */
 const parseTrickplayIndex = (vtt: string, indexUrl: string): Thumbnail[] => {
   const thumbnails: Thumbnail[] = [];
@@ -112,11 +118,11 @@ const parseTrickplayIndex = (vtt: string, indexUrl: string): Thumbnail[] => {
 };
 
 /**
- * Finds the thumbnail covering a moment.
+ * Finds the thumbnail covering a moment in the film, for the preview shown above the scrubber.
  *
- * Answers with the nearest earlier thumbnail rather than nothing when a moment
- * falls past the last cue, so scrubbing to the very end of a film still shows
- * a picture.
+ * @param thumbnails - The thumbnails available.
+ * @param seconds - The moment being pointed at.
+ * @returns The thumbnail to draw, or null where none covers it.
  */
 const thumbnailAt = (thumbnails: Thumbnail[], seconds: number): Thumbnail | null => {
   let best: Thumbnail | null = null;
@@ -131,10 +137,12 @@ const thumbnailAt = (thumbnails: Thumbnail[], seconds: number): Thumbnail | null
 };
 
 /**
- * Asks the server for seek-bar previews.
+ * Asks the server for the thumbnails shown while scrubbing. Answers with nothing rather than
+ * throwing where an item has none: scrubbing without previews is scrubbing, and a player that
+ * refused to open over it would be worse.
  *
- * Answers with nothing rather than throwing when they cannot be made: previews
- * are a convenience, and a film that cannot have them must still play.
+ * @param mediaId - The item being played.
+ * @returns The thumbnails, or null where there are none.
  */
 const fetchTrickplay = async (mediaId: string): Promise<Trickplay | null> => {
   try {
@@ -163,6 +171,6 @@ const fetchTrickplay = async (mediaId: string): Promise<Trickplay | null> => {
   }
 };
 
-export type { Thumbnail, Trickplay };
+export type { Trickplay };
 
 export { fetchTrickplay, parseTrickplayIndex, thumbnailAt, readTimestamp };

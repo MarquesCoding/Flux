@@ -1,12 +1,9 @@
 const STORAGE_KEY = 'flux.clientId';
 
 /**
- * Which open tab this is.
- *
- * Kept in session storage rather than local storage, so a new tab is a new
- * one — the same distinction Jellyfin's own sessions make, and the reason an
- * admin can see every tab a viewer has open rather than one entry per
- * device.
+ * Which open tab this is, made once and then kept for as long as the tab lives. Presence is per tab
+ * rather than per account, since one person with the app open on a phone and a television is two
+ * things to show and two sessions to be able to stop.
  */
 const readClientId = (): string => {
   try {

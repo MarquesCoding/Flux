@@ -3,75 +3,30 @@ import { useReducedMotion } from 'motion/react';
 import { cn } from '@FluxUI/cn';
 import type { DotFieldProps } from './DotField.types';
 
-/**
- * How far apart dots sit by default.
- *
- * Fine, because the cost of a dot on a canvas is an addition and a fill: a
- * screen of ten thousand of them is a few hundredths of a millisecond, where
- * ten thousand elements would be unusable.
- */
 const SPACING = 16;
 
-/**
- * How long one ripple takes to cross the field.
- */
 const SECONDS = 7;
 
-/**
- * How many places ripples come from.
- */
 const SOURCES = 2;
 
-/**
- * How long the wave front takes to reach a dot, per pixel away from its
- * source.
- *
- * This is what makes a ripple a ripple rather than a flash: every dot follows
- * the same cycle and enters it late in proportion to how far it is from where
- * the ripple started.
- */
 const DELAY_PER_PIXEL = 0.0016;
 
-/**
- * How bright a dot is when nothing is happening to it.
- */
 const RESTING = 0.18;
 
-/**
- * How bright a dot is as the wave front passes.
- *
- * A rise rather than a flare. The wave should read as light moving over a
- * texture, not as the texture switching on.
- */
 const LIT = 0.42;
 
-/**
- * How much of a cycle a dot spends lit.
- *
- * A narrow window, because a dot lit for half of every pass reads as a
- * flashing grid rather than as a wave going by.
- */
 const WINDOW = 0.12;
 
-/**
- * How far down the field the dots have faded out entirely.
- */
 const FADE_BY = 0.92;
 
-/**
- * How many levels of brightness are drawn.
- *
- * Quantised so the whole field can be painted in a handful of passes rather
- * than one per dot: setting the alpha is far more expensive than filling a
- * two pixel square, so dots are grouped by how bright they are and each group
- * drawn in one go.
- */
 const LEVELS = 10;
 
 /**
- * How bright a dot is at a point in its cycle.
+ * Works out how bright one dot is at a point in a ripple's cycle, fading up and back down so a
+ * ripple has no hard edge.
  *
- * Rests dark, rises steeply as the front arrives, and falls away behind it.
+ * @param phase - How far through its cycle this dot is, from nothing to one.
+ * @returns The brightness to draw it at.
  */
 const brightnessAt = (phase: number): number => {
   if (phase > WINDOW) {
@@ -84,19 +39,14 @@ const brightnessAt = (phase: number): number => {
 };
 
 /**
- * A field of dots that ripples.
+ * Draws a field of dots with ripples running through it, as the backdrop for a screen with nothing
+ * else on it yet — sign-in, setup, an empty library. Movement rather than a static pattern, so a
+ * screen that is waiting looks alive rather than stalled.
  *
- * Drawn onto a canvas rather than as elements. The effect wants a fine grid —
- * several thousand dots on a large screen — and several thousand elements each
- * carrying their own animations is several thousand things for the browser to
- * lay out, composite and keep track of. One canvas is one element, and the
- * arithmetic behind it is a few thousand additions a frame, which costs
- * nothing.
- *
- * Every dot follows the same cycle and differs only in when it enters it,
- * which is decided by its distance from a ripple's source. Sources are picked
- * once and keep rippling, so the field reads as weather rather than as
- * something being triggered.
+ * @param spacing - How far apart the dots sit, in pixels.
+ * @param sources - How many ripples run at once.
+ * @param seconds - How long one ripple takes to cross.
+ * @param className - Extra classes for the caller's own layout.
  */
 const DotField = ({
   spacing = SPACING,
@@ -129,10 +79,8 @@ const DotField = ({
     let height = 0;
 
     /**
-     * Works out where every dot is and when each ripple reaches it.
-     *
-     * Done once per size change rather than per frame: the positions and the
-     * distances are fixed, and only the clock moves.
+     * Works out where every dot sits and when each ripple reaches it, once, so that the animation itself
+     * is a matter of reading a number per frame rather than measuring anything.
      */
     const lay = () => {
       const ratio = Math.min(window.devicePixelRatio, 2);
@@ -177,12 +125,6 @@ const DotField = ({
       }
     };
 
-    /**
-     * The colour the dots are drawn in.
-     *
-     * Read from the page rather than hard coded, so the field belongs to
-     * whatever theme is in force.
-     */
     const ink = getComputedStyle(canvas).color;
 
     const buckets: number[][] = Array.from({ length: LEVELS }, () => []);

@@ -12,17 +12,23 @@ import { JobSchedulePage } from '@FluxWeb/components/AdminArea/components/JobSch
 import type { JobsPanelProps } from './JobsPanel.types';
 
 /**
- * What can be started by hand, and what is running because something started
- * it earlier.
+ * The Work tab: what can be started by hand, what is running because something started it earlier,
+ * and what each job's schedule is. Holds no state of its own — which job's schedule is open is
+ * decided above it, so that opening one is a place the browser can return to.
  *
- * Two cards rather than one with a rule down the middle: what can be started
- * and what is already running are different questions, and a card apiece says
- * so without a heading having to.
- *
- * A job's schedule opens in a dialog over the list rather than replacing the
- * page. Setting a trigger is a small edit to one row, and going away to a page
- * to do it loses the list, the scroll position, and any sense of which of the
- * eight jobs is being changed.
+ * @param isUnreachable - Whether the service is not answering.
+ * @param definitions - The jobs the server offers.
+ * @param libraries - The libraries a job can be run against.
+ * @param progress - What is running now, by library.
+ * @param monitor - The latest readings, or null before any have arrived.
+ * @param viewingJobKind - The job whose schedule is open, if any.
+ * @param schedules - What makes each job run on its own.
+ * @param onRun - Called with the job to start.
+ * @param onStop - Called with the job to stop.
+ * @param onOpenSchedule - Called with the job whose schedule is to be opened.
+ * @param onCloseSchedule - Called on going back to the list.
+ * @param onAddTrigger - Called with a job and a trigger to add to it.
+ * @param onRemoveTrigger - Called with a job and the trigger to remove from it.
  */
 const JobsPanel = ({
   isUnreachable = false,

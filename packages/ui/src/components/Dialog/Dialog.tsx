@@ -4,18 +4,6 @@ import { cn } from '@FluxUI/cn';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { DialogProps } from './Dialog.types';
 
-/**
- * How the panel arrives and leaves.
- *
- * Driven by the state attributes Base UI sets rather than by a presence
- * wrapper, because Base UI already holds the element mounted until its
- * transition has finished. Anything animating this from the outside would be
- * racing it.
- *
- * A phone gets a sheet rising from the bottom edge, which is where a thumb
- * expects to have summoned it from. A desktop gets a panel settling into the
- * middle, since it has no edge the pointer came from.
- */
 const POPUP_MOTION = [
   'transition-[opacity,transform,translate,scale] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
   'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
@@ -34,22 +22,15 @@ const BACKDROP_MOTION = [
 ].join(' ');
 
 /**
- * A panel over the page.
+ * The one place a `<dialog>` is written. Holds the panel, the backdrop, the focus trap and the
+ * escape handling, so a caller supplies only what is inside. Every dialog in Flux is this or
+ * composes it; a raw dialog element elsewhere is lint-banned.
  *
- * Built on the Base UI dialog so focus is trapped and restored, escape closes,
- * the page behind is inert and the whole thing is announced properly — none of
- * which a positioned div gets right by accident.
- *
- * Bounded rather than as tall as its contents: a column with a head, a middle
- * that scrolls and a foot, so a dialog holding two lines and one holding two
- * hundred are the same shape and their buttons are in the same place. Only the
- * middle moves, which is what `DialogContent` is for.
- *
- * Focus lands on the panel itself rather than on the first control inside it.
- * Opening a film put focus on the favourite button, and a tooltip opens on
- * focus, so the dialog arrived with a tooltip already showing for a control
- * nobody had pointed at. The panel is still focused, so focus is still trapped
- * and tabbing still starts at the top — it just does not press anything.
+ * @param label - What the dialog is, read out on opening.
+ * @param isOpen - Whether it is showing.
+ * @param onClose - Told when it was dismissed, by the backdrop, the escape key or a close button.
+ * @param children - What the dialog holds, usually a title, some content and a footer.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Dialog = ({ label, isOpen, onClose, children, className }: DialogProps) => {
   const portalContainer = usePortalContainer();

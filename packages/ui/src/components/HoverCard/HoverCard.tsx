@@ -12,15 +12,15 @@ const POPUP_MOTION = [
 ].join(' ');
 
 /**
- * More about the thing under the pointer, without pressing anything.
+ * Shows more about whatever the pointer has stopped on, without anything being pressed — a
+ * description, a cast list, what a figure is measured over. Appears after a pause rather than at
+ * once, so crossing a row of things does not flash a card on each of them.
  *
- * For detail that would crowd the row it belongs to — which file a job is on,
- * what a figure is made of. A table can then say the short version in its
- * column and keep the long version a rest away, rather than choosing between
- * a cramped cell and a dialog nobody opens.
- *
- * Unlike a tooltip this can be pointed at and read from, so it may hold
- * several lines and its own structure.
+ * @param children - The thing being hovered.
+ * @param detail - What to show about it.
+ * @param side - Which side of the thing to appear on.
+ * @param align - Which edge of the thing the card lines up with.
+ * @param className - Extra classes for the caller's own layout.
  */
 const HoverCard = ({
   children,

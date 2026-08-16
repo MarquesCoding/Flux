@@ -3,26 +3,20 @@ import type { ShowDetail } from '@FluxContracts/schemas/Show';
 
 type PickedUp = {
   episode: MediaSummary;
-  /**
-   * Where to start it, and whether that is a continuation or a beginning.
-   */
   startSeconds: number;
   isResuming: boolean;
 };
 
 /**
- * The episode a viewer means when they press one button.
+ * Works out which episode a viewer means when they press the one play button on a programme: the one
+ * they were part-way through, or the first they have not finished, or the very first if they have
+ * never watched any of it. One button rather than a choice, because the answer is nearly always
+ * obvious and being asked is worse than being wrong occasionally.
  *
- * Somebody halfway through a series means the episode they stopped in the
- * middle of; somebody who finished that one means the next; somebody who has
- * never seen it means the first. All three are the same press, and asking them
- * to find their place in a list of ninety is asking them to do the library's
- * job.
- *
- * Anything part-watched wins over anything unwatched, because leaving a film
- * half-finished is a stronger signal than never having started one — and where
- * several are part-watched, the earliest in broadcast order is the one being
- * worked through.
+ * @param show - The programme and its episodes.
+ * @param progress - How to ask where a given episode was left and whether it was finished.
+ * @returns The episode, where to start it and whether that counts as resuming, or null where the
+ *   programme has no episodes at all.
  */
 const pickUpFrom = (
   show: ShowDetail,

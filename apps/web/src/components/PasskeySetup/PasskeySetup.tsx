@@ -12,12 +12,11 @@ import type { PasskeySetupProps } from './PasskeySetup.types';
 const DEFAULT_NAME = 'This device';
 
 /**
- * Passkey enrollment and removal.
+ * Lets somebody enrol a passkey on this device and remove ones they no longer have, so they can sign
+ * in with a fingerprint or a security key instead of a password. Lists what is already enrolled with
+ * when each was last used, since a passkey nobody recognises is one worth removing.
  *
- * Passkeys need a secure context, so an instance reached over plain HTTP on a
- * LAN address cannot use them. That is a common self-hosted setup, so the
- * unavailable case is explained rather than presented as a button that fails
- * when pressed.
+ * @param onChanged - Called after a passkey is added or removed, so the account page can refresh.
  */
 const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);

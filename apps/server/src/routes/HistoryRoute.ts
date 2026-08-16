@@ -2,12 +2,6 @@ import { createRoute, z } from '@hono/zod-openapi';
 
 const HistoryError = z.object({ error: z.string() }).openapi('HistoryError');
 
-/**
- * One thing somebody watched, once.
- *
- * `secondsWatched` is how long was actually spent, not how long the thing is:
- * a pause is not watching and a skipped intro is not watched.
- */
 const Viewing = z
   .object({
     id: z.string(),
@@ -21,13 +15,6 @@ const Viewing = z
   })
   .openapi('Viewing');
 
-/**
- * What this profile has watched, most recent first.
- *
- * This profile's own, always. History is more personal than progress, and an
- * endpoint that would list anybody's is a different feature with a different
- * permission behind it.
- */
 const listHistoryRoute = createRoute({
   method: 'get',
   path: '/api/history',
@@ -51,9 +38,6 @@ const listHistoryRoute = createRoute({
   },
 });
 
-/**
- * Forgets one viewing.
- */
 const forgetViewingRoute = createRoute({
   method: 'delete',
   path: '/api/history/{id}',
@@ -73,9 +57,6 @@ const forgetViewingRoute = createRoute({
   },
 });
 
-/**
- * Forgets everything this profile has watched.
- */
 const forgetHistoryRoute = createRoute({
   method: 'delete',
   path: '/api/history',

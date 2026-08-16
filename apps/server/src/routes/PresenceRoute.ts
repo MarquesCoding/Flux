@@ -17,14 +17,6 @@ const PresenceHeartbeatRequest = z
   })
   .openapi('PresenceHeartbeatRequest');
 
-/**
- * Reports whether a tab is actually playing right now.
- *
- * Separate from the transcoder's own session heartbeat (`PlaybackRoute`),
- * which only exists for HLS sessions and keeps the idle reaper off a
- * paused-but-open transcode. This one is presence's own — it fires for
- * direct play too, since that never touches the transcoder at all.
- */
 const presenceHeartbeatRoute = createRoute({
   method: 'post',
   path: '/api/presence/{clientId}/heartbeat',
@@ -43,16 +35,6 @@ const presenceHeartbeatRoute = createRoute({
   },
 });
 
-/**
- * Says a tab has genuinely stopped watching anything.
- *
- * Deliberately separate from stopping a playback session: a quality or
- * track change tears the old session down and starts a new one in the same
- * tab, and that swap must never be mistaken for the viewer leaving — it
- * would flash the admin's card to "not watching" and back for no reason.
- * This is only called once, when the player itself unmounts or the tab
- * actually closes.
- */
 const presenceStopWatchingRoute = createRoute({
   method: 'delete',
   path: '/api/presence/{clientId}/watching',

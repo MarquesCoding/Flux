@@ -9,15 +9,8 @@ const PresenceEventSchema = z.discriminatedUnion('kind', [
 ]);
 
 /**
- * Opens this tab's own presence connection.
- *
- * Meant to be opened once, at the app root, for as long as somebody is
- * signed in — not per player. The connection is what makes this tab "present"
- * in the admin's Active Sessions list at all, whether or not anything is
- * playing, and it is also the channel an admin's stop, pause and resume
- * arrive on.
- *
- * Returns the function that closes it.
+ * Opens this tab's presence connection, which is what puts it in the administrator's list of open
+ * sessions and what carries an instruction to stop or pause back to it.
  */
 const watchPresence = (): (() => void) => {
   const params = new URLSearchParams({

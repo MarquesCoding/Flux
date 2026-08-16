@@ -1,22 +1,9 @@
 import { describeLanguage, readLanguage } from '@FluxCore/functions/describeTrack';
 
-/**
- * Subtitle formats Flux can turn into something a browser renders.
- *
- * Deliberately text only. A picture-based track sitting beside a file is a
- * `.sup` or `.idx`/`.sub` pair, and turning those into text means character
- * recognition, which is not a thing to do inside a playback request.
- */
 const SUBTITLE_EXTENSIONS = new Set(['srt', 'vtt', 'ass', 'ssa']);
 
-/**
- * Directories a release commonly hides subtitles in.
- */
 const SUBTITLE_DIRECTORIES = new Set(['subs', 'subtitles']);
 
-/**
- * Markers that describe a track rather than name its language.
- */
 const FORCED_MARKERS = new Set(['forced']);
 
 const HEARING_IMPAIRED_MARKERS = new Set(['sdh', 'cc', 'hi']);
@@ -36,7 +23,11 @@ type SidecarSubtitle = {
 };
 
 /**
- * Splits a filename into its stem and extension.
+ * Splits a filename into the part before the final dot and the part after it, which is how a
+ * subtitle file beside a video is matched to it.
+ *
+ * @param name - The filename.
+ * @returns The stem and the extension, the extension lowered.
  */
 const splitName = (name: string): { stem: string; extension: string } => {
   const dot = name.lastIndexOf('.');
@@ -47,11 +38,12 @@ const splitName = (name: string): { stem: string; extension: string } => {
 };
 
 /**
- * Reads what a subtitle filename says about the track.
+ * Reads what a subtitle filename claims about its track — the language, whether it is forced,
+ * whether it transcribes more than the dialogue — from the tags people put between dots. There is no
+ * standard for this, so several spellings of each are accepted.
  *
- * The convention every tool has settled on is the video's name followed by
- * dot-separated tags: `Arrival (2016).en.forced.srt`. Tags may appear in any
- * order and a file may carry none at all.
+ * @param tags - The parts of the filename between dots, once the video's own name is stripped.
+ * @returns The language and flags the name claimed.
  */
 const describeTags = (
   tags: string[],
@@ -84,7 +76,14 @@ const describeTags = (
 };
 
 /**
- * Names a track the way it should appear in a menu.
+ * Names a subtitle track the way it should read in a menu: the language in its own words, then what
+ * makes it different from the other track in the same language — forced, or transcribing the sound
+ * as well as the dialogue.
+ *
+ * @param language - The language the filename claimed.
+ * @param isForced - Whether it claimed the track is forced.
+ * @param isHearingImpaired - Whether it claimed the track transcribes the sound as well.
+ * @returns The line to show in a menu.
  */
 const describeLabel = (
   language: string | null,
@@ -100,13 +99,14 @@ const describeLabel = (
 };
 
 /**
- * Picks the subtitle files that belong to one video.
+ * Picks the subtitle files belonging to one video from the files beside it, matching on the video's
+ * own name so that a folder holding a season does not offer every episode's subtitles for each.
  *
- * A file belongs if its name starts with the video's name, which is how every
- * naming convention in use expresses the relationship. Files in a `Subs`
- * directory are taken as belonging to the only video beside them, because
- * that layout usually carries names like `English.srt` with no video name at
- * all.
+ * @param videoName - The video being played.
+ * @param files - The files found beside it and in any subtitle directories.
+ * @param options - Whether these came from a subtitle directory, where a file need not repeat the
+ *   video's name to belong to it.
+ * @returns One track per file that belongs, named for a menu.
  */
 const findSidecarSubtitles = (
   videoName: string,
@@ -148,13 +148,6 @@ const findSidecarSubtitles = (
   return found;
 };
 
-export type { SidecarFile, SidecarSubtitle };
+export type { SidecarFile };
 
-export {
-  findSidecarSubtitles,
-  describeTags,
-  describeLabel,
-  splitName,
-  SUBTITLE_EXTENSIONS,
-  SUBTITLE_DIRECTORIES,
-};
+export { findSidecarSubtitles, describeTags, describeLabel, splitName, SUBTITLE_DIRECTORIES };

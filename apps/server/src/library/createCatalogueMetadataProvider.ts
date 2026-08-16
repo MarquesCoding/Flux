@@ -5,68 +5,45 @@ import { readTitleFromPath } from './readTitleFromPath';
 import { pickLogo } from './pickLogo';
 import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider';
 
-/**
- * Where the catalogue lives.
- *
- * Configurable so a deployment can point at a mirror, and so tests can point
- * at nothing at all.
- */
 const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3';
 
 /**
- * Whether a credential is the newer kind.
+ * Decides which kind of credential an operator pasted, since the catalogue takes both an older key
+ * and a newer token and they are sent in different places — one as a query parameter, one as a
+ * bearer header.
  *
- * The newer one is a signed token in three dot-separated parts; the older is a
- * plain string of hexadecimal. Telling them apart by shape means an operator
- * never has to know which they were given.
+ * @param key - What the operator configured.
+ * @returns Whether it is the newer kind.
  */
 const isAccessToken = (key: string): boolean => key.split('.').length === 3 && key.startsWith('ey');
 
 const DEFAULT_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
-/**
- * How many people are worth naming.
- *
- * A film credits hundreds. A viewer deciding whether to watch it reads the
- * first few.
- */
 const CAST_LIMIT = 12;
 
-/**
- * How many times a request is tried again before giving up.
- *
- * A catalogue rate-limits a scan long before a library is large, and one
- * refused request used to cost a file its title and its artwork until somebody
- * noticed and scanned again.
- */
 const RETRIES = 3;
 
-/**
- * The shortest wait between attempts, doubled each time.
- */
 const BACKOFF_MILLISECONDS = 500;
 
 /**
- * Whether answering again is worth anything.
+ * Decides whether asking the catalogue again could produce a different answer. A rate limit or a
+ * server fault will pass; a bad key or a film that does not exist will not, and retrying those only
+ * makes a scan slower.
  *
- * Too many requests and a service in trouble will both pass; a refusal or a
- * missing title will not, however many times it is asked.
+ * @param status - What the catalogue answered with.
+ * @returns Whether the request is worth repeating.
  */
 const isWorthRetrying = (status: number): boolean => status === 429 || status >= 500;
 
+/**
+ * Waits, for backing off between attempts at a catalogue that has asked to be left alone for a
+ * moment.
+ *
+ * @param milliseconds - How long to wait.
+ */
 const wait = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-/**
- * One answer from a catalogue's search.
- *
- * Both the localised name and the original are asked for, because a
- * self-hosted library is full of releases named the way they were made while a
- * catalogue answers in English: the file says
- * `Yamada kun to Lv999 no Koi wo Suru` and the catalogue says
- * `My Love Story with Yamada-kun at Lv999`, which share almost no letters at
- * all. Holding both means a release named either way can find itself.
- */
 const SearchResultSchema = z.object({
   id: z.number(),
   title: z.string().optional(),
@@ -94,13 +71,6 @@ const ImagesResponseSchema = z.object({ logos: z.array(LogoSchema).default([]) }
 
 type SearchResult = z.infer<typeof SearchResultSchema>;
 
-/**
- * What the catalogue says about one episode.
- *
- * Asked for separately, because a series entry names the series: without this
- * every episode of a show would be called the same thing, which is exactly
- * what a list of episodes must not be.
- */
 const EpisodeResponseSchema = z.object({
   name: z.string().optional(),
   overview: z.string().optional(),
@@ -108,9 +78,6 @@ const EpisodeResponseSchema = z.object({
   vote_average: z.number().optional(),
 });
 
-/**
- * The episodes of one season, as the catalogue lists them.
- */
 const SeasonResponseSchema = z.object({
   episodes: z
     .array(
@@ -165,10 +132,6 @@ type Fetcher = (
 ) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>;
 
 type CreateCatalogueMetadataProviderOptions = {
-  /**
-   * Read at call time rather than at construction, so an operator adding a key
-   * in settings does not have to restart the server.
-   */
   readApiKey: () => Promise<string | null>;
   baseUrl?: string;
   imageBaseUrl?: string;
@@ -177,7 +140,11 @@ type CreateCatalogueMetadataProviderOptions = {
 };
 
 /**
- * Reads a year out of a catalogue's date, which may be absent or empty.
+ * Reads the year out of a catalogue's release date, which is absent for anything unreleased and an
+ * empty string for plenty of entries that are.
+ *
+ * @param date - The date as the catalogue gave it.
+ * @returns The year, or null where there was none to read.
  */
 const readYear = (date: string | undefined): number | null => {
   const year = Number(date?.slice(0, 4));
@@ -186,24 +153,11 @@ const readYear = (date: string | undefined): number | null => {
 };
 
 /**
- * A title stripped to the letters and digits in it, in any script.
+ * Strips a title to the letters and digits in it, in any script, so that punctuation, spacing and
+ * case cannot make two spellings of the same title look different.
  *
- * Letters as Unicode understands them rather than as ASCII does. Stripping
- * everything outside `a-z0-9` does not tidy a Japanese, Korean, Chinese,
- * Russian or Greek title — it deletes it, leaving an empty string that
- * compares equal to every other title in the same position. Two unrelated
- * films then look identical, which is a worse answer than no answer.
- *
- * `NFKC` first, because the same string can be encoded more than one way — a
- * composed accent against a combining one, a full-width Latin letter against
- * its ordinary form — and two titles that look identical should not fail to
- * match over how somebody's tooling wrote them down.
- *
- * `toLowerCase` rather than `toLocaleLowerCase`, deliberately. The locale-aware
- * form folds `I` differently under a Turkish locale, which would make matching
- * depend on the locale of the machine the server happens to run on: two
- * installs would disagree about the same file. Unicode's locale-independent
- * mapping already handles every script here.
+ * @param value - The title as written.
+ * @returns The title as letters and digits alone.
  */
 const normalizeTitle = (value: string): string =>
   value
@@ -212,31 +166,19 @@ const normalizeTitle = (value: string): string =>
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 
-/**
- * Scripts that carry a word's worth of meaning in one or two characters.
- */
 const DENSE_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
-/**
- * How long a word must be before agreeing on it means anything.
- *
- * Four for a script that writes with spaces: "the", "of" and "war" agree by
- * accident far too often to count. Two where a couple of characters is a whole
- * word — 君の名は is four characters and three words — because a threshold
- * tuned for English discards everything meaningful in Japanese, Chinese and
- * Korean, and then nothing ever agrees at all.
- */
 const LEAST_MEANINGFUL = 4;
 const LEAST_MEANINGFUL_DENSE = 2;
 
 const SEGMENTER = new Intl.Segmenter(undefined, { granularity: 'word' });
 
 /**
- * The words of a title worth comparing.
+ * Picks the words of a title worth comparing, dropping the articles and prepositions that almost
+ * every title contains — two films sharing only the word "the" share nothing.
  *
- * Segmented rather than split on spaces, because plenty of scripts do not use
- * them: splitting 君の名は on spaces yields one long "word", and splitting
- * 기생충 yields one short one that the length rule then throws away.
+ * @param value - The title as written.
+ * @returns The words worth matching on.
  */
 const significantWords = (value: string): Set<string> => {
   const words = new Set<string>();
@@ -253,17 +195,12 @@ const significantWords = (value: string): Set<string> => {
 };
 
 /**
- * Whether two titles have a real word in common.
+ * Decides whether two titles share a word that means anything, which is the guard against a high
+ * similarity score between short titles that merely look alike.
  *
- * Wording between a release and a catalogue drifts — "Marvel's Daredevil"
- * against "Daredevil" — so exact equality would refuse matches that are
- * plainly right.
- *
- * A title this cannot read is let through rather than refused. The question
- * exists to throw out a match that is plainly wrong, and a test that answers
- * "no words in common" for every title in a script is not evidence about the
- * match — it is the test failing to apply. Refusing on it threw away every
- * episode of every foreign-language programme.
+ * @param left - One title.
+ * @param right - The title to compare it against.
+ * @returns Whether they share a word worth sharing.
  */
 const shareASignificantWord = (left: string, right: string): boolean => {
   const leftWords = significantWords(left);
@@ -277,19 +214,13 @@ const shareASignificantWord = (left: string, right: string): boolean => {
 };
 
 /**
- * How alike two titles are, from nought to one.
+ * Scores how alike two titles are, from nothing to one, on the letters they have in common once
+ * both have been stripped. Used to choose between what a catalogue answered a search with, where the
+ * filename is the only thing to judge by.
  *
- * Compared as overlapping letter pairs rather than as whole strings, which is
- * what makes it forgiving of the ways a release and a catalogue disagree:
- * punctuation, a dropped article, a transliteration one letter out, an
- * accented vowel spelled flat. "Yamada kun to Lv999 no Koi wo Suru" against
- * "My Love Story with Yamada-kun at Lv999" still shares enough to beat the
- * unrelated results around it.
- *
- * Pairs rather than words because the disagreements are usually inside the
- * words. Counting whole words matched "Marvel's Daredevil" to "Daredevil" and
- * nothing else, which is why the exact-match test needed a second guard beside
- * it in the first place.
+ * @param left - One title.
+ * @param right - The title to compare it against.
+ * @returns How alike they are.
  */
 const similarity = (left: string, right: string): number => {
   const pairsOf = (value: string): string[] => {
@@ -302,14 +233,6 @@ const similarity = (left: string, right: string): number => {
   const rightPairs = pairsOf(right);
 
   if (leftPairs.length === 0 || rightPairs.length === 0) {
-    /**
-     * Nothing to compare, so agreement has to be exact and to be of something.
-     *
-     * Two titles that normalise to nothing are not the same title — they are
-     * two titles this cannot read, which is the opposite of evidence. Answering
-     * one for that scored every foreign-language candidate a perfect match and
-     * handed the wrong film the top of the list with complete confidence.
-     */
     const cleanLeft = normalizeTitle(left);
 
     return cleanLeft !== '' && cleanLeft === normalizeTitle(right) ? 1 : 0;
@@ -332,25 +255,17 @@ const similarity = (left: string, right: string): number => {
   return (2 * shared) / (leftPairs.length + rightPairs.length);
 };
 
-/**
- * How much a candidate agreeing on the year is worth.
- *
- * Enough to separate two versions of the same title and not enough to promote
- * something that is not the title at all — remakes exist, and so do releases
- * whose filename year is the year somebody encoded it.
- */
 const YEAR_BONUS = 0.15;
 
 /**
- * The likeliest of what a catalogue answered with.
+ * Picks the likeliest of the entries a catalogue answered a search with, scoring each on its title
+ * and its year and refusing everything below a threshold. A wrong match is worse than no match: it
+ * fills a library with confident nonsense, where no match leaves the filename showing.
  *
- * A catalogue orders its results by how popular they are, not by how well they
- * answer the question, so taking the first was taking the most famous thing
- * that shared a word with the filename. That is exactly the wrong tie-break
- * for a self-hosted library, which is full of the obscure and the foreign.
- *
- * Falls back to the catalogue's own order when nothing scores at all, since a
- * poor answer that can be corrected beats no answer at all.
+ * @param candidates - What the catalogue offered.
+ * @param wanted - The title read from the file.
+ * @param year - The year read from the file, where it had one.
+ * @returns The entry to use, or null where none were likely enough.
  */
 const pickBestMatch = (
   candidates: readonly SearchResult[],
@@ -378,26 +293,25 @@ const pickBestMatch = (
 };
 
 /**
- * Builds an image address at a sensible width.
+ * Builds the address of a catalogue image at a width worth fetching — the catalogue offers sizes up
+ * to originals measured in megabytes, and a poster in a grid is a few hundred pixels wide.
  *
- * Catalogues serve originals at print resolution. A poster is drawn a few
- * hundred pixels wide, and fetching eight megabytes to draw it would be
- * absurd.
+ * @param base - Where the catalogue serves its images from.
+ * @param path - The image path the catalogue gave.
+ * @param size - Which of the catalogue's sizes to ask for.
+ * @returns The full address, or null where the catalogue gave no image.
  */
 const imageUrl = (base: string, path: string | null | undefined, size: string): string | null =>
   path === null || path === undefined || path === '' ? null : `${base}/${size}${path}`;
 
 /**
- * Metadata from an online catalogue.
+ * Reads metadata from an online catalogue — descriptions, cast, artwork, ratings — for files whose
+ * names alone say little. Everything it answers with is chosen against what the filename said, and a
+ * catalogue that is unreachable, throttled or simply ignorant of a file leaves the filename reader's
+ * answer standing rather than failing the scan.
  *
- * This is the plugin shape ADR-0007 describes, living in the server for now
- * because the plugin runtime is not yet carrying providers. Nothing about it
- * assumes it will stay here: it takes its key and its transport as arguments
- * and answers the same `MetadataProvider` contract the filename reader does.
- *
- * Answers with nothing when no key is configured, which is the common case for
- * a fresh install. Talking to a third party about what is in someone's library
- * is a decision the operator makes deliberately, not a default.
+ * @param options - The credential to use, which catalogue to ask, and how to report a problem.
+ * @returns The provider, ready to be asked about files.
  */
 const createCatalogueMetadataProvider = ({
   readApiKey,
@@ -462,19 +376,12 @@ const createCatalogueMetadataProvider = ({
         : fromFilename.title;
 
       /**
-       * Turns a catalogue entry into metadata.
+       * Turns a catalogue entry into the metadata Flux stores, taking only the fields it has a use for
+       * and building full addresses for the artwork.
        *
-       * `isTheRightSeries` says whether the series itself is beyond doubt —
-       * matched by name exactly, or reached by the id it was matched to
-       * before. When it is, an episode addressed by season and number needs no
-       * second opinion, and a title that disagrees with the filename means a
-       * translated release rather than a wrong match: `Affetto` and
-       * `To Affection` are the same episode, and refusing the whole entry over
-       * it loses the artwork, the overview and the id along with the name.
-       *
-       * When the series was only the best of several guesses, the episode
-       * title is the one piece of evidence available for whether the guess was
-       * right, and a disagreement is still grounds to refuse.
+       * @param detail - The catalogue's own record.
+       * @param isTheRightSeries - Whether it is a film or a programme, which decides where the title lives.
+       * @returns The metadata to store against the file.
        */
       const describeFrom = async (
         detail: z.infer<typeof DetailResponseSchema>,
@@ -587,14 +494,6 @@ const createCatalogueMetadataProvider = ({
       const results = SearchResponseSchema.safeParse(searched);
       const candidates = results.success ? results.data.results : [];
 
-      /**
-       * The candidate whose title is the one being looked for.
-       *
-       * Only when there is a title to look for. An empty one matches the first
-       * candidate that is also empty, which is not agreement — it is two
-       * strings this could not read, promoted over the catalogue's own ranking
-       * as though they were a certainty.
-       */
       const wanted = normalizeTitle(searchTitle);
       const exact =
         wanted === ''
@@ -636,15 +535,12 @@ const createCatalogueMetadataProvider = ({
       const path = `/${isSeries ? 'tv' : 'movie'}/${externalId}/images`;
 
       /**
-       * Asked twice rather than once, narrow before wide.
+       * Asks the catalogue for logos twice: first in the language the library prefers, then without a
+       * language at all. One request cannot express "this language, or failing that anything", and asking
+       * wide first means taking whichever logo the catalogue happens to list first.
        *
-       * A plain request answers with only the images matching the account's
-       * own language, so a programme whose lettering is catalogued in its
-       * original tongue looks as though it has none at all — which is what it
-       * looks like from outside, and the wrong conclusion. Asking with no
-       * filter first would work, but it would also spend the choice on every
-       * title that has a perfectly good English logo sitting there. So: ask
-       * for what is wanted, and only widen when the answer is nothing.
+       * @param query - Which languages to ask for, in the catalogue's own terms.
+       * @returns Every logo found, the preferred language first.
        */
       const readLogos = async (query: Record<string, string>) => {
         const images = ImagesResponseSchema.safeParse(await request(path, key, query));
@@ -737,7 +633,7 @@ const createCatalogueMetadataProvider = ({
   };
 };
 
-export type { CreateCatalogueMetadataProviderOptions, Fetcher };
+export type { Fetcher };
 
 export {
   createCatalogueMetadataProvider,
@@ -747,7 +643,5 @@ export {
   significantWords,
   shareASignificantWord,
   similarity,
-  pickBestMatch,
-  CAST_LIMIT,
   isAccessToken,
 };

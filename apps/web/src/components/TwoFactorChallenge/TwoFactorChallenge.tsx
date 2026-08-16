@@ -11,15 +11,10 @@ const ENDPOINTS: Record<ChallengeMode, string> = {
 };
 
 /**
- * The second step of signing in to an account with two-factor enrolled.
+ * Asks for the second step of signing in to an account with two-factor turned on: either the code
+ * from an authenticator, or one of the backup codes for anybody who has lost the device holding it.
  *
- * better-auth issues a short-lived two-factor cookie alongside the
- * `twoFactorRedirect` response, and this request completes the sign-in against
- * it. No session exists until a code is accepted.
- *
- * Carries no layout of its own: it appears under a portrait on the way in,
- * where the screen has already said who is being asked and offers its own way
- * back. A component that brings a page with it can only ever be a page.
+ * @param onVerified - Called once the second step is accepted.
  */
 const TwoFactorChallenge = ({ onVerified }: TwoFactorChallengeProps) => {
   const [mode, setMode] = useState<ChallengeMode>('totp');

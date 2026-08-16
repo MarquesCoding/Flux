@@ -5,12 +5,13 @@ import type { MediaFileSystem, ScannedFile } from './scanLibrary';
 const MAX_DEPTH = 12;
 
 /**
- * Walks a library root.
+ * Walks a library root and everything below it, gathering the files worth considering with their
+ * sizes and modification times — the two facts a scan uses to decide what has changed. Stops at a
+ * depth, since a symlink loop would otherwise walk for ever.
  *
- * Symlinks are not followed. A library mount is user-controlled and a symlink
- * loop, or a link pointing outside the mount, would either hang the scan or
- * pull files Flux was never given access to. Depth is capped for the same
- * reason.
+ * @param root - Where to start.
+ * @param depth - How far down this walk already is.
+ * @returns Every file found, with what the scan needs to know about it.
  */
 const walk = async (root: string, depth: number): Promise<ScannedFile[]> => {
   if (depth > MAX_DEPTH) {
@@ -54,10 +55,11 @@ const walk = async (root: string, depth: number): Promise<ScannedFile[]> => {
 };
 
 /**
- * The real filesystem, for the scanner.
+ * The real filesystem, as the scanner uses it. Kept behind an interface so a scan can be tested
+ * against a directory tree described in a test rather than one that has to exist on disk.
  */
 const createMediaFileSystem = (): MediaFileSystem => ({
   listFiles: (root) => walk(root, 0),
 });
 
-export { createMediaFileSystem, MAX_DEPTH };
+export { createMediaFileSystem };

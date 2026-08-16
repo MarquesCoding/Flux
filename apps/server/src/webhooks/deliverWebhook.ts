@@ -3,14 +3,6 @@ import { isSafeWebhookUrl } from './isSafeWebhookUrl';
 import { signWebhookPayload, WEBHOOK_SIGNATURE_HEADER } from './signWebhookPayload';
 import type { WebhookPayload, WebhookPreset } from '@FluxContracts/schemas/Webhook';
 
-/**
- * How long a receiver has to answer before Flux gives up on this attempt.
- *
- * Short on purpose. A delivery holds a queue worker while it waits, and a
- * receiver that hangs for ever would hold one for ever — a single misbehaving
- * endpoint could stop every other job on the server. Ten seconds is long
- * enough for anything that is actually going to answer.
- */
 const WEBHOOK_TIMEOUT_MILLISECONDS = 10_000;
 
 type WebhookFetcher = (
@@ -23,26 +15,12 @@ type WebhookFetcher = (
   },
 ) => Promise<{ ok: boolean; status: number }>;
 
-/**
- * Enough of a subscription to deliver to one.
- *
- * The secret is here and nowhere a route can reach, which is what keeps it
- * from being answered back to a browser.
- */
 type WebhookTarget = {
   url: string;
   preset: WebhookPreset;
   secret: string;
 };
 
-/**
- * How one attempt went.
- *
- * `status` is null where nothing answered — a refused connection, a name that
- * does not resolve, a timeout — which is a different thing from a receiver
- * that answered 500, and an operator reading this wants to be able to tell
- * them apart.
- */
 type WebhookAttempt = {
   ok: boolean;
   status: number | null;
@@ -50,17 +28,10 @@ type WebhookAttempt = {
 };
 
 /**
- * Sends one event to one subscriber, and reports how it went.
- *
- * Deliberately does not throw and does not retry. Whether a failed attempt is
- * worth trying again is the queue's decision, made from what this returns —
- * keeping that here would mean a retry policy hidden inside a function whose
- * name says it delivers once.
- *
- * The address is checked again here rather than trusted from when the
- * subscription was created. A row can be edited, restored from a backup taken
- * before the check existed, or written by hand; the guard costs a URL parse
- * and removes any argument about which of those paths was covered.
+ * Sends one event to one subscriber and reports how it went, without throwing — a subscriber being
+ * down is an ordinary thing that has to be recorded and retried rather than an error. Refuses
+ * outright to send anywhere the address checks reject, and gives up on anything too slow to answer,
+ * so that one unresponsive endpoint cannot hold a worker open.
  *
  * @param target Where to send it, and what to sign it with.
  * @param payload The event being delivered.
@@ -113,6 +84,6 @@ const deliverWebhook = async (
   }
 };
 
-export { deliverWebhook, WEBHOOK_TIMEOUT_MILLISECONDS };
+export { deliverWebhook };
 
 export type { WebhookAttempt, WebhookFetcher, WebhookTarget };

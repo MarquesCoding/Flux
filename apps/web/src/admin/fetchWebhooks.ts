@@ -1,3 +1,5 @@
+import { readRefusal } from './readRefusal';
+import type { Refusal } from './readRefusal';
 import { z } from 'zod';
 import { WebhookDeliverySchema, WebhookSubscriptionSchema } from '@FluxContracts/schemas/Webhook';
 import type {
@@ -7,16 +9,10 @@ import type {
   WebhookSubscription,
 } from '@FluxContracts/schemas/Webhook';
 
-/**
- * A subscription at the one moment its secret can be read.
- */
 const CreatedWebhookSchema = WebhookSubscriptionSchema.extend({ secret: z.string() });
 
 type CreatedWebhook = z.infer<typeof CreatedWebhookSchema>;
 
-/**
- * What somebody filled in to make one.
- */
 type NewWebhook = {
   name: string;
   url: string;
@@ -25,31 +21,10 @@ type NewWebhook = {
 };
 
 /**
- * Why the server refused, or null when it did not.
+ * Reads the webhook subscriptions on this server, with how each last fared.
  *
- * Carried back rather than swallowed. The refusal that matters here is the
- * address guard: "Flux will not send deliveries to that address" is a
- * deliberate rule, and a UI reporting it as "something went wrong" makes a
- * careful decision look like a fault.
+ * @returns The subscriptions, or none where the request failed.
  */
-type Refusal = { message: string } | null;
-
-const readRefusal = async (response: Response): Promise<Refusal> => {
-  if (response.ok) {
-    return null;
-  }
-
-  const body = await response
-    .json()
-    .then((value) => z.object({ error: z.string() }).safeParse(value))
-    .catch(() => null);
-
-  return {
-    message:
-      body?.success === true ? body.data.error : 'That could not be done. Try again in a moment.',
-  };
-};
-
 const fetchWebhooks = async (): Promise<WebhookSubscription[]> => {
   const response = await fetch('/api/webhooks', { credentials: 'same-origin' }).catch(() => null);
 
@@ -62,11 +37,11 @@ const fetchWebhooks = async (): Promise<WebhookSubscription[]> => {
 };
 
 /**
- * Creates a subscription, answering it with its secret or saying why not.
+ * Creates a webhook subscription and answers with its signing secret, which is shown once — the
+ * server keeps a hash, so an operator who loses it makes a new subscription.
  *
- * The secret comes back exactly once. Whatever calls this is the last thing
- * that can show it to anybody, which is why it is answered rather than left
- * to be read back from the listing.
+ * @param webhook - Where to deliver, which events, and what to call it.
+ * @returns The subscription and its secret, or why it was refused.
  */
 const createWebhook = async (
   webhook: NewWebhook,
@@ -89,6 +64,14 @@ const createWebhook = async (
     : { created: null, refusal };
 };
 
+/**
+ * Turns a subscription's deliveries on or off, which is the reversible answer to an endpoint that
+ * has started failing.
+ *
+ * @param id - The subscription.
+ * @param enabled - Whether it should be delivering.
+ * @returns Any refusal from the server.
+ */
 const setWebhookEnabled = async (id: string, enabled: boolean): Promise<Refusal> => {
   const response = await fetch(`/api/webhooks/${id}`, {
     method: 'PATCH',
@@ -102,6 +85,13 @@ const setWebhookEnabled = async (id: string, enabled: boolean): Promise<Refusal>
     : readRefusal(response);
 };
 
+/**
+ * Removes a subscription and the record of everything it was sent. Turning it off is the reversible
+ * answer to an endpoint that has started failing; this is not.
+ *
+ * @param id - The subscription to remove.
+ * @returns Any refusal from the server.
+ */
 const deleteWebhook = async (id: string): Promise<Refusal> => {
   const response = await fetch(`/api/webhooks/${id}`, {
     method: 'DELETE',
@@ -114,11 +104,10 @@ const deleteWebhook = async (id: string): Promise<Refusal> => {
 };
 
 /**
- * Asks for a test delivery.
+ * Asks for a test delivery, so an operator can see whether the address they typed actually receives
+ * anything before waiting for something real to happen.
  *
- * Answers as soon as it is queued rather than when it lands, which is what
- * the route does. Whether it landed shows up on the subscription itself, the
- * same as every other delivery.
+ * @param id - The subscription to test.
  */
 const testWebhook = async (id: string): Promise<Refusal> => {
   const response = await fetch(`/api/webhooks/${id}/test`, {
@@ -132,11 +121,11 @@ const testWebhook = async (id: string): Promise<Refusal> => {
 };
 
 /**
- * What has been sent to one subscriber lately, newest first.
+ * Reads what has lately been sent to one subscriber and what came back, newest first — the answer to
+ * "is this working", which is otherwise invisible.
  *
- * Answers nothing rather than failing where the subscription has gone: a
- * history that cannot be read is not worth breaking the page over, and the
- * listing beside it already says whether the subscription is there.
+ * @param id - The subscription.
+ * @returns Its recent deliveries.
  */
 const fetchWebhookDeliveries = async (id: string): Promise<WebhookDelivery[]> => {
   const response = await fetch(`/api/webhooks/${id}/deliveries`, {
@@ -152,10 +141,10 @@ const fetchWebhookDeliveries = async (id: string): Promise<WebhookDelivery[]> =>
 };
 
 /**
- * Asks for a delivery to be sent again.
+ * Asks for one delivery to be sent again, for a subscriber that was down when it first went out.
  *
- * Answers as soon as it is queued. The result appears on the delivery it
- * belongs to, as another attempt at it, rather than as a new row.
+ * @param id - The subscription it was sent to.
+ * @param deliveryId - The delivery to send again.
  */
 const redeliverWebhook = async (id: string, deliveryId: string): Promise<Refusal> => {
   const response = await fetch(`/api/webhooks/${id}/deliveries/${deliveryId}/redeliver`, {

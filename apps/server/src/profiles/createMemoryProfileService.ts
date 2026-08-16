@@ -4,23 +4,21 @@ import { drawAvatar, isAvatarStyle } from './drawAvatar';
 import type { ProfileService } from './ProfileService';
 import type { Avatar, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
-/**
- * A profile and the account it hangs on.
- */
 type Held = { profile: ViewerProfile; userId: string; email: string; photo: Uint8Array | null };
 
 type MemoryState = Held[];
 
 const DEFAULT_COLOUR = PROFILE_COLOURS[0];
 
-/**
- * When something last changed, as a stamp.
- *
- * Counted rather than clocked, so a profile changed twice in the same
- * millisecond still changes its picture's address both times.
- */
 let ticks = 0;
 
+/**
+ * Hands out timestamps that always differ and always increase, so that profiles made in the same
+ * millisecond still sort in the order they were made. Only the in-memory service needs this; the
+ * database has its own clock.
+ *
+ * @returns The next timestamp.
+ */
 const stamp = (): string => {
   ticks += 1;
 
@@ -28,12 +26,10 @@ const stamp = (): string => {
 };
 
 /**
- * Profiles held in memory, so the routes can be exercised without a database.
+ * Profiles held in memory, so the routes can be exercised without Postgres.
  *
- * Behaves as the real one does in the ways the routes depend on: a profile is
- * made on demand for an account that has none, one only belongs to the account
- * that holds it, and moving one to another account keeps the profile itself —
- * which is what keeps somebody's viewing when they leave a shared login.
+ * @param state - Any profiles that already exist.
+ * @returns The profile service.
  */
 const createMemoryProfileService = (
   state: MemoryState = [],
@@ -171,6 +167,6 @@ const createMemoryProfileService = (
   };
 };
 
-export type { Held, MemoryState };
+export type { MemoryState };
 
 export { createMemoryProfileService };

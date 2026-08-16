@@ -1,44 +1,16 @@
+import { addedAtMs } from '@FluxCore/functions/addedAtMs';
+import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
 
 /**
- * Reads a timestamp, treating anything unreadable as long ago.
- */
-const addedAtMs = (media: MediaSummary): number => {
-  const parsed = Date.parse(media.addedAt);
-
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
-
-/**
- * Orders episodes the way they are watched.
+ * Gathers every item belonging to the same programme, keyed by the series identifier where a
+ * catalogue gave one and by the title where it did not — two programmes share a title often enough
+ * that an identifier is used wherever there is one.
  *
- * By season and then by episode rather than by title: `Episode 10` sorts
- * before `Episode 2` alphabetically, which is no use to anyone.
- */
-const inBroadcastOrder = (left: MediaSummary, right: MediaSummary): number => {
-  const season = (left.seasonNumber ?? 0) - (right.seasonNumber ?? 0);
-
-  if (season !== 0) {
-    return season;
-  }
-
-  const episode = (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0);
-
-  return episode === 0 ? left.title.localeCompare(right.title) : episode;
-};
-
-/**
- * Everything belonging to the same series, gathered.
- *
- * By the programme's id rather than by its title. Two programmes share a title
- * and gathering on it put both of them under one cover — so hiding, rating or
- * opening "the series" reached the wrong one, and a corrected match silently
- * moved everything to a new heading.
- *
- * Items that belong to no series are not shows and are left where they were: a
- * film is not a series of one.
+ * @param items - Every item in a library.
+ * @returns The episodes of each programme, grouped.
  */
 const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
   const shows = new Map<string, MediaSummary[]>();
@@ -50,13 +22,6 @@ const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
       continue;
     }
 
-    /**
-     * The programme's own id, or a slug of its title where there is none.
-     *
-     * The id is what keeps two programmes of one name apart. The slug remains
-     * only for an item scanned before programmes were rows — it collides
-     * exactly where it always did, and the first scan after this replaces it.
-     */
     const id = media.seriesId ?? showSlug(series);
 
     shows.set(id, [...(shows.get(id) ?? []), media]);
@@ -66,15 +31,13 @@ const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
 };
 
 /**
- * What a series is, said from what its episodes agree on.
+ * Describes a programme from what its episodes agree on: its title, how many there are, when the
+ * most recent arrived, and which episode's artwork should stand for the whole thing. A programme is
+ * not stored anywhere, so everything about it is derived from the files that belong to it.
  *
- * The cover is the first episode in broadcast order rather than the newest:
- * the picture that stands for a series should be the one that opens it, and
- * anyone meeting a show for the first time is offered episode one.
- *
- * The year, the rating and the genres are taken from whichever episode carries
- * them. A catalogue describes a series once, and every episode of it repeats
- * that description, so the first that has one is as good as any.
+ * @param id - What identifies the programme, which is derived rather than stored.
+ * @param episodes - Every episode of the one programme.
+ * @returns What to show for the programme itself.
  */
 const describeShow = (id: string, episodes: MediaSummary[]): ShowSummary | null => {
   const inOrder = [...episodes].sort(inBroadcastOrder);
@@ -93,7 +56,7 @@ const describeShow = (id: string, episodes: MediaSummary[]): ShowSummary | null 
     seasonCount: seasons.size,
     episodeCount: inOrder.length,
     latestAddedAt: new Date(
-      Math.max(...inOrder.map((episode) => addedAtMs(episode))),
+      Math.max(...inOrder.map((episode) => addedAtMs(episode.addedAt))),
     ).toISOString(),
     coverMediaId: cover.id,
     year: inOrder.find((episode) => episode.year !== null)?.year ?? null,
@@ -103,10 +66,12 @@ const describeShow = (id: string, episodes: MediaSummary[]): ShowSummary | null 
 };
 
 /**
- * Every series in a set of items, newest arrival first.
+ * Groups a library's items into the programmes they belong to, newest arrival first. Done on the
+ * server rather than in a browser because a page holds the first sixty things it was sent, and a
+ * programme with ninety episodes would otherwise report itself as having thirty.
  *
- * Ordered by what arrived rather than by name, because a shelf of shows is
- * read for what is new on it.
+ * @param items - Every item in a library.
+ * @returns One entry per programme, most recently added first.
  */
 const groupIntoShows = (items: MediaSummary[]): ShowSummary[] =>
   [...gather(items)]
@@ -115,11 +80,12 @@ const groupIntoShows = (items: MediaSummary[]): ShowSummary[] =>
     .sort((left, right) => Date.parse(right.latestAddedAt) - Date.parse(left.latestAddedAt));
 
 /**
- * One series, with its episodes in the order they are watched.
+ * Builds one programme in full, with its episodes in the order they are watched rather than the
+ * order they were scanned.
  *
- * Seasons are whatever the episodes claim to be in, in numerical order, with
- * anything unnumbered last — a special nobody has labelled belongs after the
- * series rather than before it.
+ * @param items - Every item in the library, of which the programme's are picked out.
+ * @param showId - Which programme to build.
+ * @returns The programme and its episodes, or null where no item belongs to it.
  */
 const buildShowDetail = (items: MediaSummary[], showId: string): ShowDetail | null => {
   const episodes = gather(items).get(showId);
@@ -150,4 +116,4 @@ const buildShowDetail = (items: MediaSummary[], showId: string): ShowDetail | nu
   };
 };
 
-export { groupIntoShows, buildShowDetail, describeShow, inBroadcastOrder };
+export { groupIntoShows, buildShowDetail, inBroadcastOrder };

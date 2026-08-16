@@ -4,20 +4,13 @@ import { favourite } from '@FluxServer/db/Schema';
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { FavouriteService } from './FavouriteService';
 
-/**
- * How many kept items are worth carrying to a browser.
- *
- * A list somebody curates by hand rather than a history that accumulates on
- * its own, so this is a ceiling nobody should meet.
- */
 const LIMIT = 500;
 
 /**
- * Favourites held in Postgres.
+ * What each profile has kept, held in Postgres — the list a favourites page is built from.
  *
- * Keeping something twice is keeping it once: the insert defers to whatever is
- * already there rather than failing, because a viewer pressing a heart twice
- * has said the same thing twice and deserves the same answer.
+ * @param db - The database to read and write.
+ * @returns The favourite service.
  */
 const createDatabaseFavouriteService = (db: FluxDatabase): FavouriteService => ({
   list: async (profileId) => {

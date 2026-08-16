@@ -1,63 +1,23 @@
 import webPush from 'web-push';
 import type { PushEndpoint } from './NotificationStore';
 
-/**
- * `web-push` is CommonJS, so its exports come off the default.
- *
- * Named imports appear to work under a bundler and fail at runtime under
- * Node's ESM loader, which cannot always read named exports out of a CJS
- * module — the server would not boot at all. Destructuring here keeps that
- * one fact in one place rather than at every call site.
- */
 const { sendNotification, setVapidDetails } = webPush;
 
-/**
- * What a browser is handed when it is woken.
- *
- * Deliberately small. A push payload travels through a service the operator
- * does not run — Google's, Apple's, Mozilla's — and while it is encrypted end
- * to end, the less it carries the less there is to think about. Enough for
- * the notification the service worker will draw, and nothing else.
- */
 type PushPayload = {
   title: string;
   body: string;
   link: string | null;
 };
 
-/**
- * How one browser answered.
- *
- * `gone` is the case that matters: a push service answering 404 or 410 is
- * saying this subscription will never work again, which is a thing to act on
- * rather than retry. The browser has been uninstalled, or the permission
- * revoked, and unlike a webhook there is no operator to tell about it.
- */
 type PushOutcome = 'delivered' | 'gone' | 'failed';
 
-/**
- * The identity a push service checks Flux by.
- *
- * A keypair rather than a secret, and the public half is handed to every
- * browser that subscribes. Generated once and kept, because changing it
- * invalidates every subscription already taken out against it.
- */
 type VapidKeys = {
   publicKey: string;
   privateKey: string;
 };
 
-/**
- * Who a push service should complain to about this server.
- *
- * Required by the protocol and never contacted in practice. `mailto:` with a
- * value that says what it is beats inventing an address that does not exist.
- */
 const VAPID_CONTACT = 'mailto:flux@localhost';
 
-/**
- * The statuses that mean a subscription is finished rather than failing.
- */
 const GONE_STATUSES = new Set([404, 410]);
 
 type WebPushSender = (
@@ -67,11 +27,9 @@ type WebPushSender = (
 ) => Promise<{ statusCode: number }>;
 
 /**
- * Wakes one browser, and says whether it is worth keeping.
- *
- * Never throws. A push that fails is one person's phone not lighting up, and
- * it must not take down the digest that was being delivered to everybody
- * else — the same reasoning that keeps the webhook bus from throwing.
+ * Wakes one browser, and says whether its subscription is worth keeping. A browser that has cleared
+ * its data or a subscription that has expired answers in a way that will never work again, and
+ * saying so is what stops the list of endpoints growing forever.
  *
  * @param endpoint The browser, as the push service names it.
  * @param payload What the service worker will draw.
@@ -109,6 +67,6 @@ const sendWebPush = async (
   }
 };
 
-export { sendWebPush, GONE_STATUSES, VAPID_CONTACT };
+export { sendWebPush };
 
-export type { PushOutcome, PushPayload, VapidKeys, WebPushSender };
+export type { VapidKeys, WebPushSender };

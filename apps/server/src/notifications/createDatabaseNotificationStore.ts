@@ -16,12 +16,11 @@ import type { Notification } from '@FluxContracts/schemas/Notification';
 import type { NotificationStore } from './NotificationStore';
 
 /**
- * Notifications in Postgres.
+ * Notifications and their read state, held in Postgres, along with the preferences saying which
+ * kinds each account wants and where.
  *
- * A stored row whose event no longer parses is dropped from a listing rather
- * than failing it, the same as a job trigger or a webhook subscription: an
- * event removed in a later version should quietly stop being shown, not make
- * somebody's notification list unopenable.
+ * @param db - The database to read and write.
+ * @returns The notification store.
  */
 const createDatabaseNotificationStore = (db: FluxDatabase): NotificationStore => {
   const readRow = (row: typeof notification.$inferSelect): Notification[] => {

@@ -1,12 +1,3 @@
-/**
- * What each kind of work is called, in words an operator reads.
- *
- * Two vocabularies land here and both are real. A job this page started is
- * named by the coordinator ("scan", "rescan"); a job picked up after a reload
- * is named by the queue that is running it ("library.scan"), because that is
- * all the server knows to call it. Reading only the first meant a scan
- * rejoined after a refresh was labelled as something else entirely.
- */
 const WORDS: Record<string, string> = {
   scan: 'Scanning',
   rescan: 'Reading every file in',
@@ -20,11 +11,12 @@ const WORDS: Record<string, string> = {
 };
 
 /**
- * Names the work running against a library.
+ * Names the work running against a library as a phrase reading into the library's own name, so the
+ * progress bar says what is happening to what rather than pairing a code with a name.
  *
- * Falls back to "Working on", since a kind nobody has words for is still work
- * happening — better a vague label on a real progress bar than a confident
- * wrong one.
+ * @param kind - The work being done, as the server reports it.
+ * @param libraryName - The library it is being done to.
+ * @returns The phrase to show.
  */
 const describeScanKind = (kind: string, libraryName: string): string =>
   `${WORDS[kind] ?? 'Working on'} ${libraryName}`;

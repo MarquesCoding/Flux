@@ -11,17 +11,21 @@ const DAY_NAMES = [
 ] as const;
 
 /**
- * Writes an hour and minute as a 24-hour clock time.
+ * Writes an hour and minute as a clock time, padded, for a schedule an operator reads.
+ *
+ * @param hour - The hour, from zero.
+ * @param minute - The minute, from zero.
+ * @returns The time as `HH:MM`.
  */
 const toClock = (hour: number, minute: number): string =>
   `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 
 /**
- * Says what a trigger does, in the words an operator would use.
+ * Says what a trigger does in the words an operator set it in — every four hours, daily at 03:00,
+ * Sundays at midnight — rather than as the cron expression it becomes.
  *
- * The stored shape is not something to read — `{ kind: 'everyHours', hours: 6 }`
- * is a thing to schedule on, not a thing to put in a list — so a row shows
- * this instead.
+ * @param trigger - The trigger as configured.
+ * @returns The schedule as a sentence.
  */
 const describeTrigger = (trigger: ScheduleTrigger): string => {
   switch (trigger.kind) {

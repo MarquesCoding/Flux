@@ -21,8 +21,10 @@ reference, not a substitute for reading it.
 5. **`export { ComponentName }`** — named exports only, no default exports and
    no module objects. One member per file, filename matches the member. Set
    `displayName` on every component.
-6. **No comments.** TSDoc on functions only. Rust `///` and `// SAFETY:` on
-   `unsafe` blocks. Lint directives with a reason. Nothing else — no `TODO`, no
+6. **No comments.** TSDoc on functions only — one sentence saying what it does,
+   plus `@param`/`@returns` where the name and type do not already say it. Never
+   on a type, a constant or a property. Rust `///` and `// SAFETY:` on `unsafe`
+   blocks. Lint directives with a reason. Nothing else — no `TODO`, no
    commented-out code, no section banners.
 7. **No `any`, no `unknown`, no `as` assertions.** `as const` and `satisfies`
    are fine. Untrusted input enters through a Zod schema.

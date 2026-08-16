@@ -2,12 +2,13 @@ import { cn } from '@FluxUI/cn';
 import type { CardHeaderProps } from './CardHeader.types';
 
 /**
- * The bar across the top of a card.
+ * Draws the bar across the top of a card: the title on the left, and whatever the caller puts on
+ * the right — a count, a menu, a button. Kept as its own component so every card's head is spaced
+ * and weighted the same, rather than each one arranging its own.
  *
- * One height for all of them, held by a minimum rather than by padding, so a
- * card carrying a search field and a card carrying only a word still line up
- * across a page. Every table in Flux wears one, which is what stops one panel
- * announcing itself an inch taller than the one beside it.
+ * @param title - What the card is about.
+ * @param children - What sits at the right of the bar.
+ * @param className - Extra classes for the caller's own layout.
  */
 const CardHeader = ({ title, children, className }: CardHeaderProps) => (
   <header

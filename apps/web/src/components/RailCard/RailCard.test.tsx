@@ -41,10 +41,6 @@ const DETAIL = {
 
 /**
  * A pointer event that says what kind of pointer it came from.
- *
- * Built by hand because jsdom has no PointerEvent, so anything set through the
- * usual helpers arrives without the one field the card reads: a card that
- * cannot tell a mouse from a finger opens on every tap.
  */
 const pointerEvent = (kind: string, pointerType: string): Event => {
   const event = new MouseEvent(kind, { bubbles: true });
@@ -56,9 +52,6 @@ const pointerEvent = (kind: string, pointerType: string): Event => {
 
 /**
  * A mouse resting on the card, which is the only thing that opens it.
- *
- * React synthesises entering and leaving from the over and out events, so
- * those are what a test has to send.
  */
 const restOn = async (element: Element, pointerType = 'mouse') => {
   await act(async () => {

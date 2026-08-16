@@ -1,11 +1,10 @@
 /**
- * Flux's share of the processor, as the tile says it.
+ * Says how much of the machine Flux is using, in words that stay honest at the edges — a share too
+ * small to draw is said to be under a percent rather than rounded to nothing, and one that was never
+ * measured says so rather than reading as zero.
  *
- * Rounding is the whole point. A media service idling on a fifteen core
- * machine uses a fraction of one of them, which rounds to zero and then reads
- * as "not running" beside a system figure of sixteen percent. Anything above
- * nothing says so as `<1%`, which is the difference between a service that is
- * quiet and a service that is stopped.
+ * @param share - Flux's share of the machine, or null where it could not be worked out.
+ * @returns The phrase to show.
  */
 const describeCpuShare = (share: number | null): string => {
   if (share === null) {

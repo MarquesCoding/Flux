@@ -18,10 +18,12 @@ const KIND_LABELS: Record<LibraryKind, string> = {
 };
 
 /**
- * Adds a library root.
+ * Adds a library: what to call it, and the folder on the machine running Flux that holds it. Does not
+ * scan it — adding is quick and scanning is not, so the two are separate gestures.
  *
- * The path is a location on the machine running Flux, not the browser, which
- * is easy to forget on a desktop reaching a server elsewhere on the network.
+ * @param isOpen - Whether the dialog is showing.
+ * @param onClose - Called when it is dismissed.
+ * @param onCreated - Called with the library once the server has made it.
  */
 const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps) => {
   const [name, setName] = useState('');

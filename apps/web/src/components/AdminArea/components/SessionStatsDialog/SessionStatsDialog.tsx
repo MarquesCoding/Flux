@@ -15,6 +15,13 @@ type RowProps = {
   children: string;
 };
 
+/**
+ * One labelled fact in the statistics list, laid out so the labels line up down the column and long
+ * values wrap rather than pushing the layout wide.
+ *
+ * @param name - What the fact is.
+ * @param children - The fact itself.
+ */
 const Row = ({ name, children }: RowProps) => (
   <div className="flex gap-3 rounded-md px-1 py-1.5 text-sm">
     <dt className="w-32 shrink-0 text-text-muted">{name}</dt>
@@ -25,12 +32,13 @@ const Row = ({ name, children }: RowProps) => (
 Row.displayName = 'Row';
 
 /**
- * What an admin can see about one tab's stream.
+ * Everything the server knows about one session's stream, shown to an administrator rather than to
+ * the viewer: what the file is, what the session is doing to it, how the machine is coping with it,
+ * and how much the viewer has buffered. The answer to "why does this one look bad".
  *
- * Buffer and picture size come from the viewer's own player, carried here on
- * its heartbeat — the server has no way to measure either of those itself.
- * They lag behind by up to one heartbeat interval, and by however long the
- * admin page's own poll takes to catch up after that.
+ * @param session - The session being examined.
+ * @param isOpen - Whether the dialog is showing.
+ * @param onClose - Called when it is dismissed.
  */
 const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProps) => {
   const { playback } = session;

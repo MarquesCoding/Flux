@@ -11,10 +11,13 @@ const SIZE_PIXELS: Record<SpinnerSize, number> = {
 };
 
 /**
- * An indeterminate loading indicator.
+ * Shows that something is happening without claiming to know how far along it is. The label is
+ * required rather than optional: a spinner is invisible to anybody not looking at the screen, and
+ * this is the only thing that says what is being waited for.
  *
- * Honours `prefers-reduced-motion` by holding still rather than spinning, per
- * code standards section 11.
+ * @param size - How large to draw it, from a line of text to the middle of a page.
+ * @param label - What is being waited for, read out and shown to anybody hovering.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Spinner = ({ size = 'md', label, className }: SpinnerProps) => {
   const prefersReducedMotion = useReducedMotion();

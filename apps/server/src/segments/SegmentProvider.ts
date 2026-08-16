@@ -8,38 +8,14 @@ type SegmentCandidate = {
   durationSeconds: number;
 };
 
-/**
- * Where the marked stretches of an item come from.
- *
- * The extension point a plugin implements to bring its own detection. Flux
- * ships two: one that reads chapters a release already named, and one that
- * finds what the episodes of a season have in common.
- *
- * A provider is given a whole group at once rather than one item at a time,
- * because the interesting question — what do these files share — cannot be
- * answered from a single file.
- */
 type SegmentProvider = {
   name: string;
-  /**
-   * `onItemDone`, if a provider calls it, is told once for every item in the
-   * group it has finished with — not what it found, just that one more is
-   * behind it. Optional because a provider that answers instantly, like
-   * chapters, has nothing worth reporting mid-flight.
-   */
   detect: (
     group: SegmentCandidate[],
     onItemDone?: () => void,
   ) => Promise<Map<string, MediaSegment[]>>;
 };
 
-/**
- * The bounds a detected intro has to fall inside to be believed.
- *
- * A theme tune is not eight seconds and not eight minutes, and it does not
- * begin an hour into an episode. Anything outside this is a coincidence that
- * happened to survive the comparison.
- */
 const INTRO_BOUNDS = {
   minSeconds: 10,
   maxSeconds: 180,
@@ -53,12 +29,13 @@ const CREDITS_BOUNDS = {
 } as const;
 
 /**
- * Whether a range is plausible for the kind of thing it claims to be.
+ * Decides whether a marked stretch is plausible for what it claims to be — an intro that runs
+ * twenty minutes, or a recap at the very end, is a detection gone wrong rather than an unusual
+ * episode, and skipping it would lose real film.
  *
- * Detection produces measurements, and a measurement that says the intro is
- * forty minutes long is wrong however confidently it was arrived at. Refusing
- * it leaves the viewer with no button, which is far better than a button that
- * skips half the episode.
+ * @param segment - The stretch found, with what it claims to be.
+ * @param durationSeconds - How long the item is.
+ * @returns Whether it is worth recording.
  */
 const isPlausible = (
   segment: { kind: SegmentKind; startSeconds: number; endSeconds: number },
@@ -89,27 +66,23 @@ const isPlausible = (
   return true;
 };
 
-/**
- * Asks each provider in turn and keeps the first answer for each kind.
- *
- * Ordered rather than merged, so a chapter a human named beats a range a
- * machine measured. A provider that throws is skipped: detection is an
- * improvement to playback and must never stop it.
- */
-/**
- * What detection found, and whether anything was actually able to look.
- *
- * The two are not the same and the difference decides whether a file is done
- * with. A provider that ran and found no theme tune has finished with that
- * episode; a provider that could not be reached has not started. Recording the
- * second as the first marks a whole library complete while the media service is
- * down, and nothing ever asks about those files again.
- */
 type Detection = {
   segments: Map<string, MediaSegment[]>;
   wasAsked: boolean;
 };
 
+/**
+ * Finds the intros, recaps and credits in a group of items by asking each provider in turn and
+ * taking the first answer, so a cheap provider is tried before an expensive one and the expensive
+ * one is only reached for what the cheap one could not place. A provider that fails is reported and
+ * stepped over rather than ending the detection.
+ *
+ * @param providers - The providers to ask, cheapest first.
+ * @param group - The items to find segments in, which are compared against each other.
+ * @param onProblem - Called with a provider and what went wrong, where one fails.
+ * @param onItemDone - Called as each item is finished with, for reporting progress.
+ * @returns What was found, by item.
+ */
 const resolveSegments = async (
   providers: SegmentProvider[],
   group: SegmentCandidate[],
@@ -150,6 +123,6 @@ const resolveSegments = async (
   return { segments: resolved, wasAsked: answered };
 };
 
-export type { Detection, SegmentCandidate, SegmentProvider };
+export type { SegmentCandidate, SegmentProvider };
 
-export { resolveSegments, isPlausible, INTRO_BOUNDS, CREDITS_BOUNDS };
+export { resolveSegments, isPlausible, INTRO_BOUNDS };

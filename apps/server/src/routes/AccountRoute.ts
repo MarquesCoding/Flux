@@ -1,15 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi';
 
-/**
- * An account as the administration page sees it.
- *
- * `position` is the highest rank among the roles it holds, or null when it
- * holds none — what decides whether somebody else may act on it.
- * `isAdministrator` is resolved from its permissions rather than read from
- * the old `user.role` column, so it answers what the account can actually do.
- * `roles` names what it holds, so a list can show a change the moment it
- * lands rather than making somebody open the account to find out.
- */
 const Account = z
   .object({
     id: z.string(),
@@ -43,12 +33,6 @@ const listAccountsRoute = createRoute({
   },
 });
 
-/**
- * Stops an account signing in, without destroying anything it owns.
- *
- * Reversible on purpose, which is what separates it from removal — a
- * household argument should not cost somebody their watch history.
- */
 const banAccountRoute = createRoute({
   method: 'post',
   path: '/api/admin/accounts/{userId}/ban',
@@ -96,12 +80,6 @@ const unbanAccountRoute = createRoute({
   },
 });
 
-/**
- * Deletes an account and everything hanging off it.
- *
- * Every cascade in the schema fires: profiles, progress, favourites, roles
- * and overrides all go. There is no undo, which is why banning exists.
- */
 const removeAccountRoute = createRoute({
   method: 'delete',
   path: '/api/admin/accounts/{userId}',
@@ -125,15 +103,6 @@ const removeAccountRoute = createRoute({
   },
 });
 
-/**
- * Adds somebody to this server.
- *
- * The operator sets an initial password and hands it over themselves, because
- * Flux has no way to send an email — password reset already writes its link to
- * standard output rather than posting it. An invitation link needs a mailer
- * before it can exist, and pretending otherwise would produce an invite
- * nobody ever receives.
- */
 const inviteAccountRoute = createRoute({
   method: 'post',
   path: '/api/admin/accounts',

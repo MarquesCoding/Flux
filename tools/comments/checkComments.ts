@@ -7,20 +7,17 @@ const ROOT = join(import.meta.dirname, '..', '..');
 
 const SKIPPED = new Set(['node_modules', 'target', 'dist', '.git', '.turbo', '.astro', 'coverage']);
 
-/**
- * The languages ESLint cannot reach.
- *
- * TypeScript is covered by `flux/no-comments`. These are not, which is how
- * sixty-five comments in the transcoder and twenty-six in the stylesheets
- * outlived a sweep that claimed to have removed every comment in the codebase.
- */
 const LANGUAGES: Record<string, Language> = {
   '.rs': 'rust',
   '.css': 'css',
 };
 
 /**
- * Every file worth reading, below a directory.
+ * Walks a directory and every directory below it, gathering the files worth checking and stepping
+ * over the ones nothing is ever written in — dependencies, build output and version control.
+ *
+ * @param directory - Where to start walking.
+ * @returns Every file found, as paths.
  */
 const filesUnder = (directory: string): string[] => {
   const found: string[] = [];
@@ -44,6 +41,13 @@ const filesUnder = (directory: string): string[] => {
   return found;
 };
 
+/**
+ * Decides which language a file is in, by extension, and answers with nothing for the ones this
+ * check does not cover — TypeScript is ESLint's to police, not this tool's.
+ *
+ * @param path - The file.
+ * @returns Its language, or null where it is not one this checks.
+ */
 const languageOf = (path: string): Language | null => {
   const extension = Object.keys(LANGUAGES).find((candidate) => path.endsWith(candidate));
 
@@ -53,10 +57,13 @@ const languageOf = (path: string): Language | null => {
 const isFixing = process.argv.includes('--fix');
 
 /**
- * The file with its comments taken out.
+ * Rewrites a file with its prose comments removed. Cuts are made back to front so that the line
+ * numbers found earlier still mean what they said, and a line left holding nothing but the comment
+ * goes with it rather than being left blank.
  *
- * Removed back to front so that earlier line numbers still mean what they said,
- * and a line left holding nothing but whitespace goes with them.
+ * @param source - The file as it stands.
+ * @param comments - Where each prose comment starts and ends.
+ * @returns The file without them.
  */
 const withoutComments = (source: string, comments: ProseComment[]): string => {
   const lines = source.split('\n');

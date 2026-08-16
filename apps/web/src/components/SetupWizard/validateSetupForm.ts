@@ -11,6 +11,13 @@ type SetupFormValues = {
   trustedOrigins: string;
 };
 
+/**
+ * Reads a comma-separated list of origins out of the field they are typed into, dropping the spaces
+ * people put after commas and the empty entries left by a trailing one.
+ *
+ * @param raw - What the field holds.
+ * @returns The origins named.
+ */
 const parseOrigins = (raw: string): string[] =>
   raw
     .split(',')
@@ -18,10 +25,12 @@ const parseOrigins = (raw: string): string[] =>
     .filter((origin) => origin.length > 0);
 
 /**
- * Validates the first-run form before it reaches the server.
+ * Checks the first-run form before it reaches the server, so somebody filling it in is told about a
+ * short password or a malformed origin as they type rather than after a round trip. The server
+ * checks the same things again; this exists for the speed of the answer, not for the safety.
  *
- * The server validates the same rules; this exists so the operator is told
- * which field is wrong rather than being handed a generic failure.
+ * @param values - What has been filled in.
+ * @returns What is wrong, by field, or nothing where the form is good.
  */
 const validateSetupForm = (values: SetupFormValues): SetupFormErrors => {
   const errors: SetupFormErrors = {};
@@ -49,6 +58,4 @@ const validateSetupForm = (values: SetupFormValues): SetupFormErrors => {
   return errors;
 };
 
-export type { SetupFormValues };
-
-export { validateSetupForm, parseOrigins, MINIMUM_PASSWORD_LENGTH };
+export { validateSetupForm, parseOrigins };

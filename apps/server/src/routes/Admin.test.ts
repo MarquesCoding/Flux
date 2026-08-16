@@ -22,12 +22,6 @@ const CREDENTIALS = {
   password: 'a-long-enough-password',
 };
 
-/**
- * The server, with everybody who signs up made an administrator.
- *
- * The first account on a self-hosted instance runs it, which is what makes
- * these routes reachable at all.
- */
 const LIBRARY = {
   id: '11111111-1111-1111-1111-111111111111',
   name: 'Movies',
@@ -87,12 +81,6 @@ const signedIn = (app: ReturnType<typeof build>['app']): Promise<string> =>
 
 /**
  * Signs up and gives that account the Administrator role.
- *
- * `promoteToAdmin` in `build()` is a no-op stub — there is no real database
- * for it to write to — so this reaches into the memory stores directly, the
- * same way `Main.ts`'s real one reaches into Postgres. The old `user.role`
- * column is set as well as the role assigned, because seeding still reads it
- * and a test should leave an account in a shape a real one could be in.
  */
 const signedInAsAdmin = async (
   app: ReturnType<typeof build>['app'],

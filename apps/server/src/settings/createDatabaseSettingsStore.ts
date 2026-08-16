@@ -10,12 +10,11 @@ type CreateDatabaseSettingsStoreOptions = {
 };
 
 /**
- * Builds a settings store backed by the `server_setting` table.
+ * The server's own settings, held in one row of Postgres — everything an operator configures that is
+ * not an environment variable, from the catalogue key to what this instance calls itself.
  *
- * Values are validated on read, so a row hand-edited into an invalid shape
- * falls back to the configured defaults rather than crashing the server on a
- * request. A self-hosted instance that will not boot is worse than one running
- * on defaults with a warning.
+ * @param db - The database to read and write.
+ * @returns The settings store.
  */
 const createDatabaseSettingsStore = ({
   db,

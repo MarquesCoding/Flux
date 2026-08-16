@@ -1,32 +1,22 @@
 import { readSeasonDirectory, tidy } from './readEpisodeFromPath';
 
-/**
- * A name followed by a bare number.
- *
- * The number has to be cut off from the name by a separator, which is what
- * keeps `Lv999` and `2049` out of it: a title's own digits are welded to the
- * word beside them, and an episode number stands alone.
- */
 const BARE_NUMBER = /^(?<stem>.+?)[\s._-]+(?<number>\d{1,3})(?=[\s._-]|$)/;
 
-/**
- * The fewest files a run needs before it is a run.
- *
- * One file called `Something 01` is a film with a number in its name. Two that
- * agree on everything but the number are a programme, and nothing else looks
- * like that.
- */
 const MIN_RUN = 2;
 
-/**
- * Where a bare-numbered file sits in its programme.
- */
 type BareEpisode = {
   seriesTitle: string;
   seasonNumber: number;
   episodeNumber: number;
 };
 
+/**
+ * Drops a filename's extension, leaving a leading dot alone so that a hidden file does not become an
+ * empty name.
+ *
+ * @param name - The filename.
+ * @returns It without its extension.
+ */
 const stripExtension = (name: string): string => {
   const lastDot = name.lastIndexOf('.');
 
@@ -34,30 +24,14 @@ const stripExtension = (name: string): string => {
 };
 
 /**
- * Reads the episodes out of files numbered without saying so.
+ * Reads episode numbers out of files that are numbered without saying so — `01.mkv`, `02.mkv` — by
+ * treating a folder of consecutively numbered files as a season. Common in ripped collections, and
+ * without this every one of them is a separate film named after a number.
  *
- * Plenty of releases never write `S01E01`. A folder of
- * `Some Show 01 ITA.mkv`, `Some Show 02 ITA.mkv` is unmistakably a programme
- * to anybody looking at it, and was landing in Flux as a shelf of films with
- * numbers in their names — each one asking a catalogue about a film that does
- * not exist, each one coming back missing.
- *
- * A bare number cannot be read from one filename, which is why the parser
- * refuses to: `Blade Runner 2049` and `Ocean's 11` are films, and guessing
- * wrongly welds unrelated files into a programme. It can be read from a
- * folder. Several files agreeing on every word and differing only in a number
- * is not a coincidence that happens to films, so the evidence is the run
- * rather than the name, and a run needs at least two.
- *
- * The number is taken as the episode and the folder is asked for the season,
- * which it usually does not say — a release that never wrote `S01` is a
- * release with one season as far as anybody can tell, so that is what it gets.
- * A catalogue correcting this later is the point of the correction routes.
+ * @param paths - The files in one folder, with what was already read from their names.
+ * @returns Which episode each file is, where the folder read as a season.
  */
 const groupBareNumberedEpisodes = (paths: readonly string[]): Map<string, BareEpisode> => {
-  /**
-   * Every candidate, filed under the folder and stem it agrees with.
-   */
   const runs = new Map<string, { path: string; folder: string; stem: string; number: number }[]>();
 
   for (const path of paths) {
@@ -108,6 +82,4 @@ const groupBareNumberedEpisodes = (paths: readonly string[]): Map<string, BareEp
   return episodes;
 };
 
-export type { BareEpisode };
-
-export { groupBareNumberedEpisodes, BARE_NUMBER, MIN_RUN };
+export { groupBareNumberedEpisodes };

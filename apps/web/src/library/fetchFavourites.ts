@@ -1,11 +1,8 @@
 import { FavouriteListSchema } from '@FluxContracts/schemas/Favourite';
 
 /**
- * Everything this viewer has kept.
- *
- * Answers with nothing rather than throwing, like every other read a page
- * makes: a list of favourites is a decoration on a library, and its absence
- * must not take the library down with it.
+ * Everything this viewer has kept. Kept per profile rather than per account, since what one person in
+ * a household wants to come back to is not what another does.
  */
 const fetchFavourites = async (): Promise<string[]> => {
   try {
@@ -27,11 +24,11 @@ const fetchFavourites = async (): Promise<string[]> => {
 };
 
 /**
- * Keeps something, or stops keeping it.
+ * Keeps something for this profile, or stops keeping it. One call for both directions, since the
+ * gesture in the interface is one control that already knows which way it is going.
  *
- * One function rather than two, because there is one gesture: a heart that is
- * pressed. Answers with whether the server agreed, so a page that guessed can
- * put itself right.
+ * @param mediaId - The item.
+ * @param isKept - Whether it should be kept.
  */
 const setFavourite = async (mediaId: string, isKept: boolean): Promise<boolean> => {
   const response = await fetch(`/api/media/${mediaId}/favourite`, {

@@ -1,18 +1,6 @@
 import { cpus } from 'node:os';
 import { z } from 'zod';
 
-/**
- * How many files the media service is asked about at once.
- *
- * Each one is an ffmpeg process willing to take every core it is given, so the
- * useful number is well below the core count: half of them, and never more
- * than four, leaves the machine responsive while a library is being worked
- * through. One at a time — which is what this used to be, by omission — leaves
- * most of a machine idle for hours.
- *
- * The media service enforces its own limit as well. This is how many are
- * offered; that is how many are accepted.
- */
 const DEFAULT_MEDIA_JOBS = Math.max(1, Math.min(4, Math.floor(cpus().length / 2)));
 
 const EnvSchema = z.object({
@@ -49,14 +37,14 @@ const EnvSchema = z.object({
 type Env = z.infer<typeof EnvSchema>;
 
 /**
- * Parses process environment into a validated configuration object.
+ * Reads the process environment into a checked configuration, so a server that is misconfigured
+ * fails at startup with a message naming the variable rather than at midnight with a type error.
  *
- * `TRUSTED_ORIGINS` and `COOKIE_SECURE` are read at runtime rather than baked
- * at build time, because a self-hosted instance is reached over plain HTTP on
- * a LAN address as often as over TLS on a domain. See ADR-0004.
+ * @param source - The process environment.
+ * @returns The configuration, validated.
  */
 const readEnv = (source: NodeJS.ProcessEnv): Env => EnvSchema.parse(source);
 
 export type { Env };
 
-export { readEnv, EnvSchema };
+export { readEnv };

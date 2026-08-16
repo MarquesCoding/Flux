@@ -55,10 +55,6 @@ const MEMBER = { id: 'role_2', name: 'Member', position: 100, permissions: ['sha
 
 /**
  * Opens a row's action menu and chooses one of the things in it.
- *
- * Ban and delete used to be buttons on the row itself. They live behind one
- * control now, so a test that wants one has to open the menu first — the same
- * two presses a person makes.
  */
 const choose = async (user: ReturnType<typeof userEvent.setup>, name: string, action: RegExp) => {
   await user.click(await screen.findByRole('button', { name: `Actions for ${name}` }));
@@ -67,9 +63,6 @@ const choose = async (user: ReturnType<typeof userEvent.setup>, name: string, ac
 
 /**
  * Chooses something that has to be confirmed, and confirms it.
- *
- * Banning and deleting ask first now, so a test that wants the deed done has
- * to answer the question — the same two presses a person makes.
  */
 const confirm = async (
   user: ReturnType<typeof userEvent.setup>,
@@ -83,9 +76,6 @@ const confirm = async (
 
 /**
  * Opens the dialog that adds somebody.
- *
- * The form used to sit at the foot of the card. It is behind a button in the
- * header now, so a test that fills it in has to open it first.
  */
 const openInvite = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(await screen.findByRole('button', { name: /Add user/ }));

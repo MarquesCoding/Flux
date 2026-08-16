@@ -3,15 +3,13 @@ import type { ActiveSession } from '@FluxWeb/admin/fetchAdmin';
 type SessionGroup = { key: string; label: string; sessions: ActiveSession[] };
 
 /**
- * Separates every open tab out by who has it open, so an admin can see every
- * session a given viewer has running rather than one flat list.
+ * Separates every open tab out by who has it open, so an administrator sees each viewer once with
+ * everything they have running underneath, rather than one flat list in which somebody with four
+ * tabs open looks like four people. Sessions belonging to nobody recognisable are grouped together
+ * rather than dropped.
  *
- * Sessions with no profile gather under one heading rather than one each: an
- * unidentified tab is a thing that happens, and a column of "Unknown viewer"
- * rows says less than a single group holding all of them.
- *
- * Insertion order is kept, so the list does not reshuffle itself between
- * readings for somebody watching it.
+ * @param sessions - Every session open at the moment.
+ * @returns The sessions by viewer, in the order the viewers were first seen.
  */
 const groupSessionsByViewer = (sessions: ActiveSession[]): SessionGroup[] => {
   const groups = new Map<string, SessionGroup>();
@@ -31,4 +29,3 @@ const groupSessionsByViewer = (sessions: ActiveSession[]): SessionGroup[] => {
 };
 
 export { groupSessionsByViewer };
-export type { SessionGroup };

@@ -2,23 +2,12 @@ import type { Monitor } from '@FluxWeb/admin/fetchAdmin';
 import type { Stat } from '@FluxWeb/components/AdminArea/components/StatStrip/StatStrip.types';
 
 /**
- * What the graphics tile says, and what it refuses to say.
+ * Decides what the graphics tile says, and is careful about what it refuses to say. Cards report
+ * either encoder use or whole-device use and rarely both, and the two are not the same number, so
+ * whichever is available is labelled as what it is rather than passed off as the other.
  *
- * The figure an operator wants is encoder pressure, because that is what
- * decides whether another stream will keep up. Only NVIDIA reports it. Where
- * it cannot be had the tile falls back to what the whole card is doing and
- * says so in the same breath — that figure answers a different question, and
- * on Apple hardware it does not move when Flux encodes at all, because the
- * encoding happens on a media engine that is not the GPU.
- *
- * The one thing this must never do is show a zero. A card whose encoder cannot
- * be read is not a card sitting idle, and a pane that cannot tell the
- * difference would have an operator hunting a fault that is not there.
- *
- * Every detail here fits the one line a tile has for it. A second line pushes
- * the figure and its bar up out of step with the tiles beside it, and a strip
- * read by glancing along the numbers depends on them sitting level. The fuller
- * wording lives in the Server region, which has room for a sentence.
+ * @param graphics - What the monitor read from the card, or null where there is nothing readable.
+ * @returns The figure, how full the bar should be, and what the figure actually measures.
  */
 const describeGraphics = (graphics: Monitor['resources']['graphics']): Omit<Stat, 'label'> => {
   if (graphics === null) {

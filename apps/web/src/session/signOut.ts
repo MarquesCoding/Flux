@@ -1,9 +1,8 @@
 /**
- * Ends the current session.
+ * Ends this session on the server, so the cookie is cleared where it was issued rather than only
+ * being forgotten here.
  *
- * Resolves to whether the server confirmed the sign-out. Callers should
- * refresh session state from the server afterwards rather than assuming the
- * local state is now correct.
+ * @returns Whether the session was ended.
  */
 const signOut = async (): Promise<boolean> => {
   const response = await fetch('/api/auth/sign-out', {

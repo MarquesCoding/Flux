@@ -142,9 +142,6 @@ const ActiveSessionSchema = z.object({
     .nullable(),
 });
 
-/**
- * A job an admin can start on demand, as the Work tab's picker sees it.
- */
 const JobDefinitionSchema = z.object({
   kind: z.string(),
   label: z.string(),
@@ -153,10 +150,6 @@ const JobDefinitionSchema = z.object({
   destructive: z.boolean(),
 });
 
-/**
- * What makes a job run on its own, matching the server's own set of triggers
- * — see `apps/server/src/jobs/scheduleTrigger.ts`.
- */
 const ScheduleTriggerSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('startup') }),
   z.object({
@@ -215,10 +208,8 @@ const RunningScansSchema = z.object({
 type RunningScan = z.infer<typeof RunningScansSchema>['scans'][number];
 
 /**
- * What the server is working on right now.
- *
- * Asked when the page opens, because a scan started before a reload is still
- * running and the browser that started it no longer remembers its job id.
+ * What the server is working on right now, so a page arriving mid-scan shows its progress rather than
+ * an idle library that quietly finishes later.
  */
 const fetchRunningScans = async (): Promise<RunningScan[]> => {
   const response = await fetch('/api/libraries/scans', { credentials: 'same-origin' }).catch(
@@ -250,10 +241,12 @@ const CatalogueMatchesSchema = z.object({
 type CatalogueMatch = z.infer<typeof CatalogueMatchesSchema>['matches'][number];
 
 /**
- * Asks the catalogue what it holds under a name.
+ * Asks the catalogue what it holds under a name, for the dialog where an operator corrects what a
+ * file is.
  *
- * For the moment somebody knows the match is wrong and wants to say what it
- * should have been, in the words they would use rather than an id.
+ * @param query - What to search for.
+ * @param kind - Whether to look for films or programmes.
+ * @returns What the catalogue offered.
  */
 const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<CatalogueMatch[]> => {
   const parameters = new URLSearchParams({ query, kind });
@@ -271,12 +264,9 @@ const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<Cat
 };
 
 /**
- * Reads the state of the server.
- *
- * Throws with the reason rather than answering null, so that a page which
- * could not read this says so. Returning nothing is indistinguishable from a
- * server that holds nothing, and a page cannot tell an operator which it is
- * looking at unless the difference reaches it.
+ * Reads the state of the server as a whole: whether the media service answers, what the libraries
+ * hold, how much artwork has been kept, and what it is configured with. The single request the
+ * dashboard is built from.
  */
 const fetchAdminOverview = async (): Promise<AdminOverview> => {
   const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
@@ -295,10 +285,9 @@ const fetchAdminOverview = async (): Promise<AdminOverview> => {
 };
 
 /**
- * Reads one measurement of what the media service is doing.
- *
- * Used for the first paint, before the stream has had time to say anything.
- * A page that opens empty and fills in a second later reads as broken.
+ * Reads one measurement of what the machine and the media service are doing. Called repeatedly to
+ * build the graphs, which is why it is one reading rather than a history — the page keeps the
+ * history it wants and the server keeps none.
  */
 const fetchMonitor = async (): Promise<Monitor | null> => {
   const response = await fetch('/api/admin/monitor', { credentials: 'same-origin' }).catch(
@@ -313,12 +302,11 @@ const fetchMonitor = async (): Promise<Monitor | null> => {
 };
 
 /**
- * Watches the media service, calling back on every reading.
+ * Follows what the media service is doing — sessions, encoders, disk — calling back on every reading
+ * rather than being asked, since an operator watching a graph notices anything slower than a second.
  *
- * Returns the function that stops watching. Server-sent events rather than
- * polling: the service already knows when it has something new to say, and a
- * page asking every second whether anything happened is a page that costs
- * something even when nothing does.
+ * @param onReading - Told each reading as it arrives.
+ * @returns The function that stops watching.
  */
 const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
   const source = new EventSource('/api/admin/monitor/stream', { withCredentials: true });
@@ -337,13 +325,11 @@ const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
 };
 
 /**
- * Follows who has the app open, as it changes.
+ * Follows who has the application open and what they are watching, as it changes, for the sessions
+ * page an operator leaves open.
  *
- * Pushed rather than asked for: presence changes when somebody arrives,
- * leaves, presses play or is paused by an admin, and none of those happen on
- * a schedule a poll could match. The server sends the whole list each time —
- * it is a handful of rows, and a list that arrives whole cannot drift out of
- * step with itself the way a stream of edits can.
+ * @param onSessions - Told the sessions whenever they change.
+ * @returns The function that stops watching.
  */
 const watchActiveSessions = (onSessions: (sessions: ActiveSession[]) => void): (() => void) => {
   const source = new EventSource('/api/admin/sessions/stream', { withCredentials: true });
@@ -362,7 +348,8 @@ const watchActiveSessions = (onSessions: (sessions: ActiveSession[]) => void): (
 };
 
 /**
- * Reads every tab that has the app open right now.
+ * Reads every tab that has the app open right now, with who has it and what they are watching. This
+ * is presence rather than history: a session appears while it is open and is gone once it is not.
  */
 const fetchActiveSessions = async (): Promise<ActiveSession[]> => {
   const response = await fetch('/api/admin/sessions', { credentials: 'same-origin' }).catch(
@@ -377,7 +364,10 @@ const fetchActiveSessions = async (): Promise<ActiveSession[]> => {
 };
 
 /**
- * Stops someone else's stream, kicking them out of the player.
+ * Stops somebody else's stream, which closes their player rather than pausing it — for the case
+ * where a session has to end rather than wait.
+ *
+ * @param clientId - The session to stop.
  */
 const stopSession = async (clientId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/sessions/${clientId}`, {
@@ -389,7 +379,10 @@ const stopSession = async (clientId: string): Promise<boolean> => {
 };
 
 /**
- * Pauses someone else's stream. Not a lock — they can press play again.
+ * Pauses somebody else's stream. Not a lock: they can press play again, and it is meant as a way to
+ * get somebody's attention rather than to take the film away.
+ *
+ * @param clientId - The session to pause.
  */
 const pauseSession = async (clientId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/sessions/${clientId}/pause`, {
@@ -401,7 +394,9 @@ const pauseSession = async (clientId: string): Promise<boolean> => {
 };
 
 /**
- * Resumes a stream this admin paused.
+ * Lets a stream carry on after an operator paused it, clearing the message the viewer was shown.
+ *
+ * @param clientId - The session to resume.
  */
 const resumeSession = async (clientId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/sessions/${clientId}/resume`, {
@@ -413,7 +408,9 @@ const resumeSession = async (clientId: string): Promise<boolean> => {
 };
 
 /**
- * Reads every job an admin can start on demand from the Work tab.
+ * Reads every job an administrator can start by hand, with what each is for and whether it takes a
+ * library. The Work tab is built from what the server offers rather than from a list written into
+ * the page, so a job added to the server appears without the page being changed.
  */
 const fetchJobDefinitions = async (): Promise<JobDefinition[]> => {
   const response = await fetch('/api/admin/jobs/definitions', {
@@ -432,13 +429,13 @@ const fetchJobDefinitions = async (): Promise<JobDefinition[]> => {
 };
 
 /**
- * Starts a job of the given kind against a library, from the Work tab.
+ * Starts a job by hand — a scan, a sweep, a rebuild — against one library or against the server as a
+ * whole, and answers with the job so the page can watch it.
  *
- * Additive to the per-library `scanLibrary`/`resetLibrary`/
- * `regenerateLibraryPreviews` calls in `fetchLibrary.ts` rather than a
- * replacement for them — this is the admin-gated, kind-generic entry point
- * the job picker needs, working for any kind the server's job registry
- * returns without further changes here.
+ * @param kind - Which job.
+ * @param libraryId - Which library, for the kinds that take one.
+ * @param force - Whether to redo work already done.
+ * @returns The job to watch, or why it was refused.
  */
 const runJob = async (
   kind: string,
@@ -463,12 +460,10 @@ const runJob = async (
 };
 
 /**
- * Asks a job to stop.
+ * Asks a running job to stop. A job that has not started is dropped; one that is running is asked,
+ * and stops at the next point it can.
  *
- * True when there was something to stop. False covers both a job that had
- * already finished and one that was never there — from the page's side those
- * are the same answer: there is nothing running to act on, so read the list
- * again rather than reporting a failure.
+ * @param jobId - The job to stop.
  */
 const cancelJob = async (jobId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/jobs/running/${jobId}/cancel`, {
@@ -480,7 +475,8 @@ const cancelJob = async (jobId: string): Promise<boolean> => {
 };
 
 /**
- * Reads what makes each job run on its own.
+ * Reads what makes each job run on its own — the triggers set against it, which may be several per
+ * job or none at all.
  */
 const fetchJobSchedules = async (): Promise<JobSchedule[]> => {
   const response = await fetch('/api/admin/jobs/schedules', { credentials: 'same-origin' }).catch(
@@ -499,7 +495,12 @@ const fetchJobSchedules = async (): Promise<JobSchedule[]> => {
 };
 
 /**
- * Adds one trigger to a job, reporting it with the id that removes it again.
+ * Adds one trigger to a job's schedule, answering with the identifier that removes it again, so the
+ * page can offer that without reloading everything.
+ *
+ * @param kind - Which job.
+ * @param trigger - The schedule to add.
+ * @returns The trigger as stored.
  */
 const addJobTrigger = async (
   kind: string,
@@ -520,7 +521,11 @@ const addJobTrigger = async (
 };
 
 /**
- * Removes one trigger from a job.
+ * Removes one trigger from a job, leaving its other triggers alone. A job with no triggers left is
+ * not removed, it simply stops running on its own.
+ *
+ * @param kind - Which job.
+ * @param triggerId - The trigger to remove.
  */
 const removeJobTrigger = async (kind: string, triggerId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/jobs/${kind}/triggers/${triggerId}`, {
@@ -531,16 +536,6 @@ const removeJobTrigger = async (kind: string, triggerId: string): Promise<boolea
   return response !== null && response.ok;
 };
 
-/**
- * Saves a setting an operator owns.
- */
-/**
- * Tells the server which hardware backend to insist on.
- *
- * Empty means use whichever the media service proves it can do, which is right
- * almost always. Naming one is for the case where that proof is wrong — it has
- * been twice — and an operator can see their card working.
- */
 const StorageCountSchema = z.object({
   cache: z
     .object({
@@ -557,15 +552,9 @@ const StorageCountSchema = z.object({
 type StorageCount = z.infer<typeof StorageCountSchema>;
 
 /**
- * Asks both services to count their caches now.
- *
- * The figures on the page are taken on timers, because walking every artefact
- * directory is far too expensive to do when a page loads. This is the one way
- * an operator can insist — after running a sweep, say, when waiting five
- * minutes to see whether it worked is its own kind of answer.
- *
- * Null when the count could not be made, so a caller can leave the figures
- * where they were rather than blanking them.
+ * Asks the server and the media service to count what they are holding on disk. Counting walks whole
+ * directories, so it is asked for rather than measured continuously, and the answer arrives with the
+ * next reading rather than from this call.
  */
 const measureStorage = async (): Promise<StorageCount | null> => {
   const response = await fetch('/api/admin/storage/measure', { method: 'POST' }).catch(() => null);
@@ -579,6 +568,13 @@ const measureStorage = async (): Promise<StorageCount | null> => {
   return parsed.success ? parsed.data : null;
 };
 
+/**
+ * Sets which encoder transcodes should use, or leaves it to Flux. Takes effect on the next session
+ * rather than on the ones already running, which keep the encoder they started with.
+ *
+ * @param hardwareAccel - The encoder to force, or an empty string for automatic.
+ * @returns Whether the setting was written.
+ */
 const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
   const response = await fetch('/api/admin/settings', {
     method: 'PATCH',
@@ -589,6 +585,13 @@ const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
   return response !== null && response.ok;
 };
 
+/**
+ * Sets the key Flux reads metadata with. Without one, titles, artwork and years come from filenames
+ * alone.
+ *
+ * @param catalogueApiKey - The key to use.
+ * @returns Whether it was written.
+ */
 const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
   const response = await fetch('/api/admin/settings', {
     method: 'PATCH',
@@ -602,7 +605,6 @@ const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
 
 export type {
   CatalogueMatch,
-  RunningScan,
   ActiveSession,
   AdminOverview,
   Job,

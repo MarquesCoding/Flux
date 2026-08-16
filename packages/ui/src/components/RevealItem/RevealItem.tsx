@@ -3,19 +3,13 @@ import { revealItemVariants } from '@FluxUI/animations/reveal';
 import type { RevealItemProps } from './RevealItem.types';
 
 /**
- * One item of a list, arriving after the ones before it.
+ * Wraps one item of a row so it arrives after the ones before it, giving a row that assembles left
+ * to right rather than appearing at once. The index rather than the position on screen decides the
+ * wait, so a row that is scrolled still arrives in order.
  *
- * A page of cards that appears all at once reads as a screenshot: everything
- * is simply there, and the eye has nowhere to start. Arriving in order gives
- * it somewhere — the first card is the first thing seen, and the rest follow
- * the way they are meant to be read.
- *
- * The delay is short and it has a ceiling, so this is a lead rather than a
- * wait. Under a reduced-motion preference the cards fade in place instead of
- * lifting, which keeps the order without the movement.
- *
- * Belongs inside something animating between `hidden` and `shown` — a row or
- * a grid — which is where it is told to arrive.
+ * @param children - The item.
+ * @param index - Where it sits in the row, counting from zero.
+ * @param className - Extra classes for the caller's own layout.
  */
 const RevealItem = ({ children, index, className }: RevealItemProps) => {
   const prefersReducedMotion = useReducedMotion();

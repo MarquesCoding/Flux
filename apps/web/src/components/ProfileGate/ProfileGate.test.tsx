@@ -58,8 +58,7 @@ const serverWith = (
 };
 
 /**
- * Lets the wordmark finish holding the screen, which it does before anything
- * else is drawn.
+ * Lets the wordmark finish holding the screen, which it does before anything else is drawn.
  */
 const arrive = async () => {
   await act(async () => {

@@ -16,10 +16,11 @@ type CreateSidecarSubtitleServiceOptions = {
 };
 
 /**
- * Lists a directory, treating an unreadable one as empty.
+ * Lists a directory, treating one that cannot be read as empty. A subtitle folder that is missing or
+ * unreadable should cost a viewer the subtitles in it, not the film.
  *
- * A library on a network share disappears from time to time, and a viewer
- * pressing play should get their film without subtitles rather than an error.
+ * @param directory - The directory to list.
+ * @returns Its filenames, or none where it could not be read.
  */
 const listFiles = async (directory: string): Promise<SidecarFile[]> => {
   try {
@@ -34,7 +35,12 @@ const listFiles = async (directory: string): Promise<SidecarFile[]> => {
 };
 
 /**
- * Finds the subtitle directories sitting beside a video.
+ * Finds the directories people keep subtitles in beside a video — `Subs`, `Subtitles`, and the same
+ * named after the file itself — since plenty of collections separate them rather than leaving them
+ * alongside.
+ *
+ * @param directory - The video being played.
+ * @returns The directories worth looking in.
  */
 const findSubtitleDirectories = async (directory: string): Promise<string[]> => {
   try {
@@ -49,13 +55,12 @@ const findSubtitleDirectories = async (directory: string): Promise<string[]> => 
 };
 
 /**
- * Subtitles read from the files beside a video.
+ * Subtitles read from the files sitting beside a video, converted to the one format a browser will
+ * take. These are the tracks somebody downloaded themselves, and are usually better than what the
+ * container holds.
  *
- * This is what Jellyfin calls external subtitles, and it is the whole of
- * Flux's built-in support: a track that already exists as text is served as
- * text. Nothing is demuxed out of the container and nothing is fetched from
- * the internet — a plugin that downloads subtitles writes them here, and they
- * appear like any other.
+ * @param options - How to read the directory and the files in it.
+ * @returns The subtitle service.
  */
 const createSidecarSubtitleService = ({
   media,
@@ -123,6 +128,4 @@ const createSidecarSubtitleService = ({
   };
 };
 
-export type { CreateSidecarSubtitleServiceOptions, MediaPathLookup };
-
-export { createSidecarSubtitleService, listFiles, findSubtitleDirectories };
+export { createSidecarSubtitleService, listFiles };

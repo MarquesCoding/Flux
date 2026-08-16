@@ -13,73 +13,42 @@ import { liftCues } from '@FluxWeb/playback/liftCues';
 import { readPreviewState } from '@FluxWeb/playback/readPreviewState';
 import type { MediaPreviewProps, PreviewAbsence } from './MediaPreview.types';
 
-/**
- * How long the page waits before starting anything.
- *
- * Opening an item to read its runtime should not start it playing. Someone
- * still looking after a moment is someone who might watch it.
- *
- * Long enough to read a title and a line of the synopsis first. At half this
- * the picture changed under the words while they were still being read, which
- * makes the page feel like it is racing whoever opened it.
- */
 const SETTLE_MILLISECONDS = 2600;
 
 /**
- * Where an item's preview clip is served from.
+ * Builds the address an item's preview clip is served from — the short silent clip rendered when the
+ * library was scanned, which is what plays under a pointer resting on a card.
+ *
+ * @param mediaId - The item.
+ * @returns The address to load.
  */
 const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`;
 
-/**
- * How far down the picture a subtitle sits, as a percentage.
- *
- * Low enough to read as subtitles rather than as a caption across the middle,
- * and high enough to clear the fade along the bottom edge. A preview is
- * blended into the page there, so a cue on the last line is drawn underneath
- * the very gradient that hides it.
- */
 const CUE_LINE = 80;
 
-/**
- * Said over the still while the machine is making the clip.
- *
- * Worth saying rather than leaving the still to stand in silently: a preview
- * arriving in a minute and one that is never coming look identical otherwise,
- * and only one of them is worth hovering again for.
- */
 const PREVIEW_PENDING = 'Preview is being made — check back shortly';
 
-/**
- * Said over the still when there is no clip and none is on its way.
- */
 const PREVIEW_ABSENT = 'No preview available';
 
-/**
- * How often to look at what is showing.
- *
- * The cost is a draw of a twenty-four pixel square and a read of it, which is
- * small enough to do several times a second and still be nothing next to
- * painting the clip itself. Looking often is what lets the room follow a scene;
- * it is not what decides how fast the room changes.
- */
 const LOOK_EVERY_MILLISECONDS = 200;
 
 /**
- * A glimpse of what an item looks like.
+ * Plays a few seconds of an item where a poster would otherwise sit, once a pointer has rested long
+ * enough to mean it. Starts muted and silent by default, since a grid where every card can make a
+ * noise is a grid nobody can browse.
  *
- * The clip is a file made when the item was imported, not a stream produced on
- * demand. That is the whole difference between a page that can show several
- * previews at once and one that cannot: a transcode is a limited resource
- * belonging to whoever is actually watching something, while a file is just a
- * file.
- *
- * It opens on the frame the clip begins with, dissolves into the clip, and
- * dissolves back to that frame when the clip ends — so a hero that rotates
- * leaves on a still picture rather than cutting away mid-shot.
- *
- * Falls back to the frame, and then to the backdrop, and stays there if
- * anything goes wrong: a preview is decoration, and an item must remain
- * readable without one.
+ * @param mediaId - The item to preview.
+ * @param backdropUrl - What to show before the clip has loaded.
+ * @param durationSeconds - How long the item is, for choosing where to start.
+ * @param fills - Whether the clip fills its space or fits inside it.
+ * @param settleMilliseconds - How long a pointer must rest before it plays.
+ * @param startFraction - How far into the item to start.
+ * @param hasSound - Whether it plays with sound.
+ * @param hasSubtitles - Whether it carries forced subtitles.
+ * @param repeats - Whether it starts again at the end.
+ * @param onEnded - Told when the clip finishes.
+ * @param onPlayingChange - Told when it starts or stops.
+ * @param onPalette - Told the colours on screen, so the page can be lit by them.
  */
 const MediaPreview = ({
   mediaId,
@@ -106,14 +75,6 @@ const MediaPreview = ({
   const [absence, setAbsence] = useState<PreviewAbsence>(null);
   const [subtitles, setSubtitles] = useState<{ id: string; language: string } | null>(null);
 
-  /**
-   * Whether the frame is the thing being shown.
-   *
-   * Before the clip has produced anything, and again once it has run out.
-   * Deliberately not tied to whether it is playing at this instant: that flag
-   * flickers with every pause, stall and buffer, and each flicker used to
-   * throw the still back over a picture that was perfectly good.
-   */
   const loops = repeats ?? onEnded === undefined;
 
   const isShowingFrame = !hasStarted || hasEnded || absence !== null;

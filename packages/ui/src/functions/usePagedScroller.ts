@@ -1,44 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DependencyList, RefObject } from 'react';
 
-/**
- * How much of the visible width one page is.
- *
- * Not quite the whole of it: leaving something partly visible tells a reader
- * the row carried on, where a clean page turn loses their place in it.
- */
 const SCROLL_FRACTION = 0.85;
 
 type PagedScroller<Element extends HTMLElement> = {
   trackRef: RefObject<Element | null>;
-  /**
-   * How many screenfuls the row is, and which one is being looked at.
-   *
-   * Worked out from the scroller rather than from the number of items, because
-   * how many fit is a question about this window rather than about this row.
-   */
   pages: { count: number; at: number };
-  /**
-   * Re-reads the row. Give this to the scroller's own scroll handler so the
-   * markers follow a trackpad, a touch screen or a keyboard.
-   */
   measure: () => void;
   scrollTo: (page: number) => void;
 };
 
 /**
- * A horizontally scrolling row that can be paged through.
+ * Turns a horizontally scrolling row into one that can be paged through, measuring how many pages
+ * its contents come to and which is showing. Measured from the element rather than calculated from
+ * the item count, since what fits depends on the window rather than on the data.
  *
- * The scrolling is a real overflow rather than a transform or a swapped slice,
- * so a trackpad, a touch screen and a keyboard all work without being taught
- * to, and paging is the same row moving rather than different items appearing.
- * The markers exist for a mouse, which has none of those.
- *
- * Shared because a row of cards and a row of faces are the same problem, and
- * the second one written by hand is the one whose scrolling is not smooth.
- *
- * `watching` is what changes the row's contents, which only the caller knows:
- * the row is measured again whenever one of them moves.
+ * @param watching - What the contents depend on, so the measurement is taken again when they change.
+ * @returns A ref for the track, the pages found, a way to measure again, and a way to scroll to one.
  */
 const usePagedScroller = <Element extends HTMLElement>(
   watching: DependencyList = [],
@@ -91,5 +69,4 @@ const usePagedScroller = <Element extends HTMLElement>(
   return { trackRef, pages, measure, scrollTo };
 };
 
-export { usePagedScroller, SCROLL_FRACTION };
-export type { PagedScroller };
+export { usePagedScroller };

@@ -15,18 +15,6 @@ const MEDIA_EXTENSIONS = new Set([
   '3gp',
 ]);
 
-/**
- * Noise that appears in scene release names and is never part of a title.
- *
- * The language and subtitle tags matter as much as the codecs do: a file
- * called `Some Show 01 ITA JAP Sub Ita` was being handed to a catalogue whole,
- * and no catalogue holds a film of that name — so a perfectly ordinary
- * programme came back missing. Every word here is one a catalogue would have
- * to ignore anyway.
- *
- * Only ever removed as a whole word, so a title that happens to contain one of
- * them keeps it.
- */
 const NOISE = new Set([
   '1080p',
   '2160p',
@@ -102,11 +90,12 @@ const NOISE = new Set([
 ]);
 
 /**
- * Reports whether a file looks like something Flux can play.
+ * Decides whether a file is worth probing, from its extension alone. A library holds artwork,
+ * subtitles, sample clips and stray archives, and probing each of them costs a process launch for an
+ * answer already known from the name.
  *
- * An extension allowlist rather than a denylist: a library directory contains
- * artwork, subtitles, `.nfo` files and assorted junk, and probing every one of
- * them would make a first scan needlessly slow.
+ * @param fileName - The file's path.
+ * @returns Whether it looks like something to play.
  */
 const isMediaFile = (fileName: string): boolean => {
   const extension = fileName.split('.').pop()?.toLowerCase() ?? '';
@@ -114,6 +103,13 @@ const isMediaFile = (fileName: string): boolean => {
   return !fileName.startsWith('.') && MEDIA_EXTENSIONS.has(extension);
 };
 
+/**
+ * Drops a filename's extension before anything tries to read a title out of it, leaving a leading
+ * dot alone so that a hidden file does not become an empty name.
+ *
+ * @param fileName - The filename.
+ * @returns It without its extension.
+ */
 const stripExtension = (fileName: string): string => {
   const lastDot = fileName.lastIndexOf('.');
 
@@ -121,11 +117,11 @@ const stripExtension = (fileName: string): string => {
 };
 
 /**
- * Finds a release year in a piece of text, bracketed or bare.
+ * Finds a release year in a piece of text, bracketed or bare, ignoring numbers that cannot be one —
+ * a resolution, a track count, a year before films existed.
  *
- * Shared between reading a title out of a filename and reading one out of a
- * series' folder name — "Ted (2024)" says which "Ted" exactly the same way
- * whether it names a file or a directory.
+ * @param text - The filename or folder name to read.
+ * @returns The year, or null where the text names none.
  */
 const findYear = (text: string): { year: number; index: number } | null => {
   const matches = [...text.matchAll(/(?<open>[([])?\b(?<year>19\d{2}|20\d{2})\b\)?]?/g)];
@@ -139,11 +135,12 @@ const findYear = (text: string): { year: number; index: number } | null => {
 };
 
 /**
- * Reads a display title and year out of a filename.
+ * Reads a title and a year out of a filename, stripping the scene-release noise that surrounds them:
+ * resolutions, codecs, source tags, group names. This is the whole of the built-in metadata provider,
+ * and what a library falls back to when no catalogue is configured or none recognises a file.
  *
- * A best effort only. Filenames in real libraries are unreliable, which is why
- * nothing about playback is decided from them — this feeds the title shown in
- * the interface until a metadata provider plugin supplies something better.
+ * @param filePath - The file's path inside the library.
+ * @returns The title as it should be shown, and the year where the name gave one.
  */
 const readTitleFromPath = (filePath: string): { title: string; year: number | null } => {
   const fileName = filePath.split('/').pop() ?? filePath;
@@ -164,4 +161,4 @@ const readTitleFromPath = (filePath: string): { title: string; year: number | nu
   return { title: title.length > 0 ? title : stripExtension(fileName), year };
 };
 
-export { isMediaFile, readTitleFromPath, findYear, MEDIA_EXTENSIONS };
+export { isMediaFile, readTitleFromPath, findYear };

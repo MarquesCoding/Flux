@@ -6,12 +6,11 @@ import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { JobTriggerStore } from './JobTriggerStore';
 
 /**
- * Job triggers in Postgres.
+ * Keeps job triggers in Postgres, so what an operator scheduled survives a restart rather than
+ * living in the queue alone.
  *
- * A stored row that no longer parses is dropped from the listing rather than
- * failing the read: a trigger shape removed in a later version would
- * otherwise make the whole schedules page unopenable, when the right outcome
- * is that the trigger nobody can express any more quietly stops counting.
+ * @param db - The database to read and write.
+ * @returns The trigger store.
  */
 const createDatabaseJobTriggerStore = (db: FluxDatabase): JobTriggerStore => ({
   list: async () => {

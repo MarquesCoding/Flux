@@ -2,23 +2,11 @@ import { cn } from '@FluxUI/cn';
 import type { DialogFooterProps } from './DialogFooter.types';
 
 /**
- * What a dialog is answered with, always in view.
+ * The foot of a dialog, holding the buttons that answer it. Pinned rather than scrolled, so the way
+ * out of a dialog is always visible however long its content runs.
  *
- * Outside the scroll and ruled off from it, so the way out of a dialog is in
- * the same place whether its content is two lines or two hundred.
- *
- * Its actions share the width equally rather than huddling at one end: on a
- * bounded box the two answers are the whole point of the foot, and a pair of
- * small buttons in a corner makes somebody hunt for the one they want. The
- * affirmative one is last, which is where a pointer travelling down the
- * content arrives.
- *
- * A shade deeper than the content rather than lighter, so the parts that stay
- * put read as the frame around what moves.
- *
- * Padded evenly on all four sides. Buttons that fill the width leave no room
- * either side of themselves, so the gap above and below has to match the gap
- * beside them or the row sits in a letterbox.
+ * @param children - The buttons answering the dialog.
+ * @param className - Extra classes for the caller's own layout.
  */
 const DialogFooter = ({ children, className }: DialogFooterProps) => (
   <footer

@@ -27,9 +27,6 @@ const HistorySchema = z.object({ viewings: z.array(ViewingSchema) });
 const MEDIA_ID = '5f7c8a1e-2b4d-4c6e-9a3f-1d2e3b4c5d6e';
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 
-/**
- * One thing in the library, so there is something to have watched.
- */
 const inTheLibrary: MediaDetail = {
   id: MEDIA_ID,
   libraryId: LIBRARY_ID,

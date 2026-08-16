@@ -6,11 +6,11 @@ type AddLibraryFormValues = {
 };
 
 /**
- * Validates the add-library form before it reaches the server.
+ * Checks the add-library form before it reaches the server, so an empty name or path is caught as it
+ * is typed. The server checks the same things, and also whether the path exists, which this cannot.
  *
- * The server checks the path is a readable directory; this only catches the
- * empty-field case, so the operator is told which field is wrong rather than
- * waiting on a round trip for something checkable locally.
+ * @param values - What has been filled in.
+ * @returns What is wrong, by field, or nothing where the form is good.
  */
 const validateAddLibraryForm = (values: AddLibraryFormValues): AddLibraryFormErrors => {
   const errors: AddLibraryFormErrors = {};
@@ -25,7 +25,5 @@ const validateAddLibraryForm = (values: AddLibraryFormValues): AddLibraryFormErr
 
   return errors;
 };
-
-export type { AddLibraryFormValues };
 
 export { validateAddLibraryForm };

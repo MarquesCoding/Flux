@@ -2,11 +2,11 @@ import { ShowListSchema, ShowDetailSchema } from '@FluxContracts/schemas/Show';
 import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
 
 /**
- * The series in a library.
+ * Reads the programmes in a library, grouped by the server so that a page of sixty things is sixty
+ * programmes rather than sixty episodes of one.
  *
- * Answers with nothing rather than throwing, like every other read a page
- * makes: a shelf of shows is one row of a page, and its absence must not take
- * the page down with it.
+ * @param libraryId - The library to read.
+ * @returns Its programmes.
  */
 const fetchShows = async (libraryId: string): Promise<ShowSummary[]> => {
   try {
@@ -25,7 +25,12 @@ const fetchShows = async (libraryId: string): Promise<ShowSummary[]> => {
 };
 
 /**
- * One series and everything the library holds of it.
+ * Reads one programme and every episode the library holds of it, along with the catalogue's own shape
+ * where it knows one, which is what makes a missing episode visible.
+ *
+ * @param libraryId - The library it is in.
+ * @param showId - Which programme.
+ * @returns The programme, or null where the library holds no such thing.
  */
 const fetchShow = async (libraryId: string, showId: string): Promise<ShowDetail | null> => {
   try {

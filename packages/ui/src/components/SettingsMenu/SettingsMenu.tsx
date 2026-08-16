@@ -16,16 +16,6 @@ import type {
   SettingsRow,
 } from './SettingsMenu.types';
 
-/**
- * The class every row shares.
- *
- * One line, an icon, a name on the left and the answer on the right. A panel
- * where each row is laid out slightly differently is a panel that reads as a
- * list of unrelated things.
- */
-/**
- * How the panel arrives, matching every other menu in Flux.
- */
 const POPUP_MOTION = cn(
   'origin-[var(--transform-origin)] transition-[transform,opacity] duration-[var(--duration-base)] ease-[var(--ease-soft)]',
   'data-[starting-style]:scale-95 data-[starting-style]:opacity-0',
@@ -35,16 +25,15 @@ const POPUP_MOTION = cn(
 const ROW =
   'relative z-10 flex w-full items-center gap-4 rounded-[1.375rem] px-3 py-2.5 text-left text-sm';
 
-/**
- * How far a subsection slides in from.
- *
- * Enough to read as coming from the right, and not so far that the panel looks
- * like it is throwing its contents about.
- */
 const SLIDE = 28;
 
 /**
- * What a row is currently set to.
+ * Reads what a row is currently set to, for the answer shown at its right — the chosen label for a
+ * row of choices, the detail for a row that leads somewhere, and nothing at all for a toggle, whose
+ * switch already says it.
+ *
+ * @param row - The row being read.
+ * @returns The answer to show, or null where the row shows its own state.
  */
 const answerOf = (row: SettingsRow): string | null => {
   if (row.kind === 'choice') {
@@ -55,25 +44,27 @@ const answerOf = (row: SettingsRow): string | null => {
 };
 
 /**
- * Whether a row leads somewhere rather than doing something in place.
+ * Decides whether a row leads somewhere — to a list of choices or a panel — rather than doing
+ * something where it stands, which is what decides whether it gets an arrow.
+ *
+ * @param row - The row being asked about.
+ * @returns Whether pressing it opens something further.
  */
 const opensSomething = (row: SettingsRow): row is SettingsChoiceRow | SettingsPanelRow =>
   row.kind === 'choice' || row.kind === 'panel';
 
 /**
- * Everything about what is playing, behind one control.
+ * Everything about what is playing, behind one control: audio tracks, subtitles, quality, speed,
+ * captions. Rows lead to their own panels rather than expanding in place, so the menu stays one
+ * column wide over a picture rather than growing across it.
  *
- * A bar with nine buttons on it asks a viewer to learn nine icons. A bar with
- * one asks them to open it and read, and reading is what somebody changing a
- * setting is doing anyway. The panel says what each thing is set to without
- * being opened item by item, so the common case — checking, not changing — is
- * a glance.
- *
- * Subsections open in place rather than beside the panel: a menu that flies
- * out sideways has nowhere to go on a phone, and a panel that replaces its own
- * contents has the same shape at every width. It slides as it does, because a
- * panel whose contents change without moving reads as a different panel rather
- * than as a step further into the same one.
+ * @param label - What the menu is, read out to anybody who cannot see it.
+ * @param trigger - The control that opens it.
+ * @param triggerWhenOpen - What that control becomes while the menu is open.
+ * @param rows - The settings, each a choice, a toggle or a panel.
+ * @param onOpenChange - Told when the menu opens or closes.
+ * @param isDisabled - Whether it can be opened at all.
+ * @param className - Extra classes for the caller's own layout.
  */
 const SettingsMenu = ({
   label,

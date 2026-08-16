@@ -2,10 +2,6 @@ import { networkInterfaces } from 'node:os';
 
 /**
  * Every address this machine answers on, as far as the network is concerned.
- *
- * Loopback is left out: an address meaning "this machine" is already trusted
- * by name, and offering it as though it were a network address is how a
- * television ends up fetching from itself.
  */
 const ownAddresses = (): string[] =>
   Object.values(networkInterfaces())
@@ -14,12 +10,13 @@ const ownAddresses = (): string[] =>
     .map((entry) => entry.address);
 
 /**
- * The ports somebody is already known to read Flux at.
+ * Collects the ports Flux is already known to be read at, from the origins an operator configured,
+ * so that guessing an address for this machine guesses the right port. An origin that will not
+ * parse is skipped rather than failing the lot.
  *
- * Taken from the origins that have been configured rather than guessed: an
- * operator who trusts `localhost:5173` is running a development server there,
- * and the same server on the same machine is what a phone on the sofa will
- * reach at the address below.
+ * @param origins - The origins an operator configured.
+ * @param fallback - The port to include regardless, being the one Flux is listening on.
+ * @returns Every port worth trying, without duplicates.
  */
 const portsIn = (origins: string[], fallback: number): number[] => {
   const found = origins.flatMap((origin) => {
@@ -36,18 +33,13 @@ const portsIn = (origins: string[], fallback: number): number[] => {
 };
 
 /**
- * The addresses this machine can be read at, trusted without being written
- * down.
+ * Works out the addresses this machine can be read at — every network interface it has, at every
+ * port already in use — so that a household reaching the server by its local address is trusted
+ * without an operator having to write each one down. Configured origins are always included.
  *
- * A self-hosted server is reached from the sofa as often as from the machine
- * it runs on, and every one of those visits arrives from an address the
- * operator never configured — the one the router happened to hand out. Being
- * refused at that address, with no explanation beyond a failed sign-in, is the
- * single most tedious way for this software to appear broken.
- *
- * Only addresses this machine actually holds are trusted, which is a different
- * thing from trusting the network: somebody else's laptop cannot borrow this
- * by asking.
+ * @param configured - The origins an operator wrote down.
+ * @param fallbackPort - The port Flux is listening on.
+ * @returns Every origin to trust.
  */
 const ownOrigins = (configured: string[], fallbackPort: number): string[] => {
   const ports = portsIn(configured, fallbackPort);

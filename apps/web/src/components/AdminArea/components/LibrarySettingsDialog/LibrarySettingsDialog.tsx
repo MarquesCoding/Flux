@@ -11,26 +11,12 @@ import { updateLibrary } from '@FluxWeb/library/fetchLibrary';
 import type { Library } from '@FluxContracts/schemas/Library';
 import type { LibrarySettingsDialogProps } from './LibrarySettingsDialog.types';
 
-/**
- * Stands in for "no forced language" in the menu, which otherwise only deals
- * in language codes.
- */
 const NONE_ID = 'none';
 
-/**
- * Stands in for "however many the server thinks it can manage".
- */
 const SERVER_ID = 'server';
 
 type LanguageOption = { id: string; label: string; detail?: string };
 
-/**
- * How many files at once an operator can ask for.
- *
- * Small numbers only. This is not a throughput dial to be turned up until
- * something breaks — it is the answer to "does this library come off a disk or
- * down a wire", and past a handful the answer stops changing.
- */
 const AT_ONCE_OPTIONS = [
   { id: SERVER_ID, label: 'However many the server allows', detail: 'Right for a local disk' },
   { id: '1', label: 'One at a time', detail: 'Right for a network share' },
@@ -39,8 +25,8 @@ const AT_ONCE_OPTIONS = [
 ];
 
 /**
- * The language picker's options, with the browser's own language pinned to
- * the top when it is one Flux recognises.
+ * The language picker's options, with the browser's own language pinned to the top when it is one
+ * Flux recognises.
  */
 const buildLanguageOptions = (): LanguageOption[] => {
   const primarySubtag =
@@ -62,10 +48,15 @@ const buildLanguageOptions = (): LanguageOption[] => {
 };
 
 /**
- * A library's settings, opened from clicking its name.
+ * A library's own settings: what it is called, where it reads from, how many files it converts at
+ * once, and which language its previews are made in. Changing the preview language offers to remake
+ * the previews already there, since the setting alone would leave the library in two languages.
  *
- * Mount this with `key={library?.id}` from the caller: a fresh library
- * deserves fresh form state rather than whatever the last one left behind.
+ * @param library - The library being changed, or null when the dialog is closed.
+ * @param isOpen - Whether the dialog is showing.
+ * @param onClose - Called when it is dismissed.
+ * @param onUpdated - Called with the library once its settings have been written.
+ * @param onRegenerate - Called with the library whose previews are to be remade.
  */
 const LibrarySettingsDialog = ({
   library,

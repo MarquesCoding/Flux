@@ -1,9 +1,10 @@
 import type { ServerSettings, SettingsStore } from './ServerSettings';
 
 /**
- * Builds a settings store held in memory.
+ * The server's settings held in memory, so the routes can be exercised without Postgres.
  *
- * Used by tests, and by the server before a database is reachable.
+ * @param initial - Anything already configured.
+ * @returns The settings store.
  */
 const createMemorySettingsStore = (initial: ServerSettings): SettingsStore => {
   let current: ServerSettings = initial;

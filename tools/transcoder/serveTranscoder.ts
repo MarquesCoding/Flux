@@ -6,12 +6,8 @@ import { planTranscoderDev } from './planTranscoderDev';
 const ROOT = join(import.meta.dirname, '..', '..');
 
 /**
- * Loads the same file the server reads.
- *
- * Cargo has no notion of `.env`, so without this the media service would start
- * with none of the configuration the rest of the stack has and bind the
- * packaged socket path, which is the mismatch this whole script exists to
- * prevent.
+ * Loads the same environment file the server reads, so that the transcoder started for development
+ * agrees with it about ports and paths rather than being configured twice.
  */
 const loadEnvFile = (): void => {
   const path = join(ROOT, '.env');
@@ -21,6 +17,12 @@ const loadEnvFile = (): void => {
   }
 };
 
+/**
+ * Whether Rust is on this machine, asked by running cargo rather than by looking for a file, since
+ * that is the same question the build itself will ask.
+ *
+ * @returns Whether cargo answers.
+ */
 const isRustInstalled = (): boolean =>
   spawnSync('cargo', ['--version'], { stdio: 'ignore' }).status === 0;
 

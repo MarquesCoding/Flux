@@ -9,12 +9,6 @@ import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { ProfileService } from './ProfileService';
 import type { ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
-/**
- * The picture formats a profile photograph may arrive in.
- *
- * Raster formats only. An uploaded SVG is a document that can carry script,
- * and there is no reason a photograph of somebody needs to be one.
- */
 const PHOTO_TYPES: Record<string, string> = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
@@ -25,39 +19,16 @@ const PHOTO_TYPES: Record<string, string> = {
   'video/mp4': '.mp4',
 };
 
-/**
- * The formats that are video rather than picture.
- */
 const MOVING_FORMATS = new Set(['.webm', '.mp4']);
 
-/**
- * How large a profile picture may be.
- *
- * Generous for a photograph, and enough for a few seconds of something
- * moving at the size a portrait is drawn. Anything larger is a video somebody
- * meant to watch rather than a face.
- */
 const PHOTO_MAX_BYTES = 6 * 1024 * 1024;
 
-/**
- * The same mapping read the other way, for serving what was stored.
- */
 const PHOTO_CONTENT_TYPES: Record<string, string> = Object.fromEntries(
   Object.entries(PHOTO_TYPES).map(([contentType, extension]) => [extension, contentType]),
 );
 
-/**
- * The colour a profile nobody chose one for is drawn in.
- */
 const [DEFAULT_COLOUR] = PROFILE_COLOURS;
 
-/**
- * How many people may share one account.
- *
- * A household, not a tenancy. The limit exists so that a shared login cannot
- * quietly become a service somebody is running for a hundred people on a
- * machine sized for six.
- */
 const LIMIT = 6;
 
 type ProfileRow = {
@@ -72,10 +43,11 @@ type ProfileRow = {
 };
 
 /**
- * Reads a stored colour, falling back rather than failing.
+ * Reads a profile's colour from what is stored, falling back to the default rather than failing —
+ * a colour written by an older version should leave a profile plain, not unreadable.
  *
- * A row written before a colour was retired is still a person's profile, and
- * refusing to draw it would lose them their viewing over a shade.
+ * @param stored - The colour column as stored.
+ * @returns The colour to draw with.
  */
 const readColour = (stored: string): ProfileColour => {
   const parsed = ProfileColourSchema.safeParse(stored);
@@ -84,10 +56,11 @@ const readColour = (stored: string): ProfileColour => {
 };
 
 /**
- * What a stored row says the profile is drawn with.
+ * Reads what a profile is drawn with — an uploaded photograph, a drawn avatar, or its initial —
+ * from the columns that hold each, checked rather than trusted.
  *
- * A photograph wins over a drawn face, and a letter is what is left when
- * neither has been chosen.
+ * @param row - The profile row as stored.
+ * @returns What to draw.
  */
 const readAvatarChoice = (row: ProfileRow): ViewerProfile['avatar'] => {
   if (row.photoPath !== null) {
@@ -101,6 +74,13 @@ const readAvatarChoice = (row: ProfileRow): ViewerProfile['avatar'] => {
   return { kind: 'initial' };
 };
 
+/**
+ * Turns a profile row into what the contract carries, reading the avatar back out of the several
+ * columns that between them hold whichever kind was chosen.
+ *
+ * @param row - The row as stored.
+ * @returns The profile, as the API describes one.
+ */
 const toProfile = (row: ProfileRow): ViewerProfile => ({
   id: row.id,
   name: row.name,
@@ -111,10 +91,11 @@ const toProfile = (row: ProfileRow): ViewerProfile => ({
 });
 
 /**
- * How a chosen avatar is written to the columns that hold it.
+ * Turns a chosen avatar into the columns that hold it, so that choosing one kind clears whatever
+ * the other kind had left behind.
  *
- * Choosing one clears the others, so a profile is never both a photograph and
- * a drawn face with the answer depending on which field is read first.
+ * @param avatar - What the profile should be drawn with.
+ * @returns The columns to write.
  */
 const avatarColumns = (
   avatar: ViewerProfile['avatar'] | undefined,
@@ -134,12 +115,6 @@ const avatarColumns = (
   return null;
 };
 
-/**
- * Profiles held in Postgres.
- */
-/**
- * The columns a profile is read from, named once.
- */
 const COLUMNS = {
   id: viewerProfile.id,
   name: viewerProfile.name,
@@ -151,6 +126,15 @@ const COLUMNS = {
   updatedAt: viewerProfile.updatedAt,
 };
 
+/**
+ * The household's profiles, stored in Postgres, with their uploaded photographs on disk beside it.
+ * Photographs are files rather than columns because they are large and are served directly; the row
+ * holds only which file belongs to whom.
+ *
+ * @param db - The database to read and write.
+ * @param photoDirectory - Where uploaded photographs are kept.
+ * @returns The profile service.
+ */
 const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string): ProfileService => {
   const listFor = async (userId: string): Promise<ViewerProfile[]> => {
     const rows = await db
@@ -163,7 +147,13 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
   };
 
   /**
-   * The profile an account uses, made if it has none.
+   * Finds the profile an account watches under, creating one named after the account where it has
+   * none — every account has a profile, since watch progress and history hang off it rather than off
+   * the account.
+   *
+   * @param userId - The account being asked about.
+   * @param name - What to call the profile where one has to be made.
+   * @returns The profile to use.
    */
   const ensure = async (userId: string, name: string): Promise<ViewerProfile> => {
     const existing = await listFor(userId);

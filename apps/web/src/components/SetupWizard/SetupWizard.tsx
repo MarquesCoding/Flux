@@ -7,12 +7,12 @@ import { validateSetupForm, parseOrigins } from './validateSetupForm';
 import type { SetupFormErrors, SetupWizardProps } from './SetupWizard.types';
 
 /**
- * First-run setup.
+ * Walks whoever opened Flux first through making it theirs: the administrator account, what the
+ * server is called, and which origins may reach it. Shown in place of everything else until it is
+ * done, because a server with no account on it has nothing else worth showing.
  *
- * The origin fields are pre-filled from what the server observed on the
- * incoming request, because the operator reaching this page has by definition
- * just proved which URL works. Asking them to type it invites the mismatch
- * that makes login silently fail.
+ * @param status - What setup has established so far.
+ * @param onComplete - Called once the server is set up and ready to be signed in to.
  */
 const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
   const [name, setName] = useState('');

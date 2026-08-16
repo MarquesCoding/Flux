@@ -12,16 +12,15 @@ const POPUP_MOTION = cn(
 );
 
 /**
- * A menu of things to do, rather than a value to pick.
+ * A menu of things to do — rename, rescan, delete — rather than a value to pick, which is what an
+ * option menu is for. Items can be grouped, marked destructive so they read as dangerous before
+ * they are pressed, and disabled with the reason still visible.
  *
- * The highlight is one rectangle that travels between the rows, not a
- * background each row paints for itself — moving between two actions should
- * feel like carrying the highlight with the pointer rather than watching one
- * fade out as another fades in.
- *
- * It answers to focus as well as to the pointer, so arrowing down a menu moves
- * the same rectangle a mouse would drag. Anything else leaves somebody on a
- * keyboard with no idea which row they are on.
+ * @param label - What the menu is, read out to anybody who cannot see it.
+ * @param trigger - The control that opens it.
+ * @param groups - The items, in groups separated by a rule.
+ * @param align - Which edge of the trigger the menu lines up with.
+ * @param className - Extra classes for the caller's own layout.
  */
 const ActionMenu = ({
   label,

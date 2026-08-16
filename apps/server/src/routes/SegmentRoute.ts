@@ -14,13 +14,6 @@ const SegmentSchema = z
 
 const SegmentListSchema = z.object({ segments: z.array(SegmentSchema) }).openapi('SegmentList');
 
-/**
- * Lists the marked stretches of an item.
- *
- * Answers with an empty list rather than a 404 for an item nothing has been
- * detected on: having no intro is the normal state of a film, and a player
- * asking about one should not have to treat that as an error.
- */
 const listSegmentsRoute = createRoute({
   method: 'get',
   path: '/api/media/{mediaId}/segments',

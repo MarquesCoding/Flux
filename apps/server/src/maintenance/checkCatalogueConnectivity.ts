@@ -1,11 +1,4 @@
 import { isAccessToken } from '@FluxServer/library/createCatalogueMetadataProvider';
-/**
- * Where the catalogue lives.
- *
- * Kept in step with `createCatalogueMetadataProvider`'s own default rather
- * than imported from it, since that module does not export its constant —
- * both point at the same place regardless.
- */
 const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3';
 
 type Fetcher = (
@@ -14,25 +7,18 @@ type Fetcher = (
 ) => Promise<{ ok: boolean; status: number }>;
 
 type CheckCatalogueConnectivityOptions = {
-  /**
-   * Read at call time, the same reason `createCatalogueMetadataProvider`
-   * does: an operator changing the key in settings should not need to
-   * restart the server to have this check try the new one.
-   */
   readApiKey: () => Promise<string | null>;
   baseUrl?: string;
   fetchImpl?: Fetcher;
 };
 
 /**
- * Verifies the configured catalogue key can actually reach the catalogue,
- * rather than only checking that a key is stored.
+ * Checks that the configured catalogue credential actually reaches the catalogue, rather than only
+ * that a key is stored — so an operator finds out when they paste the wrong one, rather than when a
+ * scan quietly files a thousand films under their filenames.
  *
- * `hasCatalogueKey` on the admin overview answers the second question, and
- * always has — a key that is present but wrong, revoked or rate-limited
- * looks identical to one that works right up until a scan tries to use it.
- * This is the same question asked deliberately, on demand, against a
- * request cheap enough to run just to find out.
+ * @param options - The credential to try and how to reach the catalogue.
+ * @returns Whether it worked, and what went wrong when it did not.
  */
 const checkCatalogueConnectivity = async ({
   readApiKey,

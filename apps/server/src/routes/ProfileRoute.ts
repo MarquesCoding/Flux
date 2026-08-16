@@ -11,12 +11,6 @@ const ProfileSchema = ViewerProfileSchema.openapi('ViewerProfile');
 const ProfileListSchema = ViewerProfileListSchema.openapi('ViewerProfileList');
 const ProfileRequestSchema = ViewerProfileRequestSchema.openapi('ViewerProfileRequest');
 
-/**
- * Lists the people using this account.
- *
- * Always at least one: an account with nobody on it is asked for a default the
- * first time somebody looks, because viewing has to hang on a person.
- */
 const listProfilesRoute = createRoute({
   method: 'get',
   path: '/api/profiles',
@@ -78,12 +72,6 @@ const updateProfileRoute = createRoute({
   },
 });
 
-/**
- * Removes somebody from this account.
- *
- * Takes their viewing with them, which is why the last profile cannot go:
- * there would be nowhere left to record anything.
- */
 const deleteProfileRoute = createRoute({
   method: 'delete',
   path: '/api/profiles/{profileId}',
@@ -110,16 +98,6 @@ const PromoteRequestSchema = z
   })
   .openapi('PromoteProfileRequest');
 
-/**
- * Gives a profile an account of its own.
- *
- * The intended way out of a shared login: somebody who started as a name on a
- * housemate's account ends up with their own, and keeps everything they have
- * watched — progress hangs on the profile, so changing who owns the profile
- * moves the viewing with the person.
- *
- * Administrators only, because it makes an account.
- */
 const promoteProfileRoute = createRoute({
   method: 'post',
   path: '/api/admin/profiles/{profileId}/promote',

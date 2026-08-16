@@ -11,26 +11,34 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { MediaPanelProps } from './MediaPanel.types';
 
 /**
- * What a row is called, which is the programme rather than the episode
- * standing in for it.
+ * Names a row by its programme rather than by the episode standing in for it, so a series appears
+ * under its own name rather than under whichever episode happened to be first.
+ *
+ * @param item - The item the row is for.
+ * @returns What to call it.
  */
 const nameOf = (item: MediaSummary): string => item.seriesTitle ?? item.title;
 
+/**
+ * Whether an item is an episode of a programme rather than a film, which decides both what its row
+ * is called and which corrections make sense for it.
+ *
+ * @param item - The item.
+ * @returns Whether it belongs to a programme.
+ */
 const isSeries = (item: MediaSummary): boolean =>
   item.seriesTitle !== null && item.seriesTitle !== undefined;
 
 /**
- * Everything the libraries hold, and a way to say what one of them really is.
+ * Everything the libraries hold, searchable, with the two corrections an administrator can make to
+ * any of it: saying what a mismatched file really is, and rebuilding the previews and thumbnails
+ * made from it.
  *
- * One row per programme and per film rather than one per file: a correction
- * names a programme, so a list of ninety episodes would be ninety ways to do
- * the same thing.
- *
- * A table rather than a list, because the question asked of this page is
- * comparative — what came in last, what has no artwork, which of these two
- * films is the one that matched wrongly — and sorting is how that gets
- * answered. Kind and year are columns for the same reason: a wrong match is
- * usually obvious from the year alone.
+ * @param isUnreachable - Whether the service is not answering.
+ * @param media - Everything the libraries hold.
+ * @param onCorrect - Called with the item whose match is to be corrected.
+ * @param onRebuildArtefacts - Called with the item whose previews and thumbnails are to be remade,
+ *   answering whether the request was accepted.
  */
 const MediaPanel = ({
   isUnreachable = false,
@@ -42,14 +50,6 @@ const MediaPanel = ({
   const [rebuilding, setRebuilding] = useState<string | null>(null);
   const [rebuilt, setRebuilt] = useState<ReadonlySet<string>>(new Set());
 
-  /**
-   * Throws away an item's artefacts, and says so on the button that asked.
-   *
-   * The wording afterwards is "will rebuild" rather than "rebuilt", because
-   * nothing has been made yet — the clip is thrown away and the next page that
-   * wants it makes it again. Saying "rebuilt" would promise something that has
-   * not happened.
-   */
   const rebuild = useCallback(
     async (item: MediaSummary) => {
       setRebuilding(item.id);

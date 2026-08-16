@@ -1,18 +1,11 @@
-/**
- * Where the service worker that receives pushes is served from.
- *
- * At the root rather than under a directory, because a service worker may
- * only control pages at or below its own path — one served from `/assets/`
- * could not wake the app.
- */
 const SERVICE_WORKER_PATH = '/push-worker.js';
 
 /**
- * Turns the server's public key into the bytes the browser asks for.
+ * Turns the server's public key into the byte array the push API insists on, since the key travels
+ * as base64url and the browser will only take bytes.
  *
- * The key travels as base64url because it goes through JSON; `subscribe`
- * wants raw bytes. Padding has to be put back because base64url drops it and
- * `atob` will not.
+ * @param base64Url - The server's public key, as base64url.
+ * @returns The same key as bytes.
  */
 const toApplicationServerKey = (base64Url: string): ArrayBuffer => {
   const padded = base64Url.padEnd(base64Url.length + ((4 - (base64Url.length % 4)) % 4), '=');
@@ -27,7 +20,11 @@ const toApplicationServerKey = (base64Url: string): ArrayBuffer => {
 };
 
 /**
- * Reads a key the browser hands back as base64url, for sending as JSON.
+ * Reads a key the browser hands back and writes it as base64url, which is how it has to travel to
+ * the server as JSON.
+ *
+ * @param buffer - The key as the browser gave it.
+ * @returns The key as base64url.
  */
 const toBase64Url = (buffer: ArrayBuffer | null): string => {
   if (buffer === null) {
@@ -40,27 +37,20 @@ const toBase64Url = (buffer: ArrayBuffer | null): string => {
 };
 
 /**
- * Whether this browser can be woken at all.
- *
- * Three separate capabilities, and a browser may have some without others —
- * iOS Safari gained push years after service workers, and a page served over
- * plain HTTP has neither. Asked before anything is offered, so somebody is
- * not shown a switch that cannot work.
+ * Whether this browser can be woken at all, which needs a service worker, the push machinery and a
+ * secure context. Asked before offering push, since a switch that cannot do anything is worse than
+ * no switch.
  */
 const canReceivePush = (): boolean =>
   'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
 /**
- * Asks this browser to be woken, and tells the server where to knock.
+ * Asks this browser to accept push messages and tells the server where to knock, so a notification
+ * arrives when the application is closed. Answers with what went wrong rather than throwing: refusing
+ * permission is an ordinary outcome, not an error.
  *
- * The permission prompt belongs to the browser and cannot be moved or
- * styled — which is why this is only ever called from a press. A prompt that
- * appears unbidden on page load is the one people deny for ever, and a denied
- * permission cannot be asked for again.
- *
- * False where the browser cannot do it, where the server has no key, or where
- * somebody said no. All three are ordinary answers rather than failures, and
- * the caller shows the switch as off in every case.
+ * @param publicKey - The server's public key.
+ * @returns Whether it worked, and why not where it did not.
  */
 const subscribeToPush = async (publicKey: string): Promise<boolean> => {
   if (!canReceivePush() || publicKey === '') {
@@ -92,11 +82,8 @@ const subscribeToPush = async (publicKey: string): Promise<boolean> => {
 };
 
 /**
- * Stops this browser being woken, on both sides.
- *
- * The server is told first. A browser that unsubscribed locally but stayed in
- * the table would be pushed to until the push service said it was gone, which
- * is a delivery somebody switched off still being attempted.
+ * Stops this browser being woken, telling both the browser and the server. Either alone leaves a
+ * subscription that one side believes in and the other does not.
  */
 const unsubscribeFromPush = async (): Promise<void> => {
   if (!canReceivePush()) {
@@ -120,4 +107,4 @@ const unsubscribeFromPush = async (): Promise<void> => {
   await subscription.unsubscribe();
 };
 
-export { canReceivePush, subscribeToPush, unsubscribeFromPush, SERVICE_WORKER_PATH };
+export { canReceivePush, subscribeToPush, unsubscribeFromPush };

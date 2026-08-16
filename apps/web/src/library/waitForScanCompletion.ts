@@ -5,12 +5,13 @@ const TERMINAL_STATES: ReadonlySet<ScanState> = new Set(['completed', 'failed', 
 const POLL_INTERVAL_MS = 800;
 
 /**
- * Waits for a queued scan to actually finish.
+ * Waits for a queued scan to actually finish, polling its state rather than assuming that queuing it
+ * was the end of the matter — a first scan of a real library is minutes of work, and the page that
+ * asked for it needs to know when there is something to show.
  *
- * A scan is queued and answered for immediately, long before the walk it
- * describes is done. Polled rather than pushed: one more scan is not worth a
- * stream of its own, so this checks in occasionally until the state stops
- * changing, handing each reading to `onProgress` along the way.
+ * @param jobId - The scan to wait on.
+ * @param onProgress - How often to ask and when to give up.
+ * @returns How the scan ended.
  */
 const waitForScanCompletion = async (
   jobId: string,

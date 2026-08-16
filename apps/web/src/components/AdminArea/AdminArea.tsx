@@ -78,18 +78,8 @@ import type { WebhookDelivery, WebhookSubscription } from '@FluxContracts/schema
 import type { CreatedWebhook } from '@FluxWeb/admin/fetchWebhooks';
 import type { AdminAreaProps } from './AdminArea.types';
 
-/**
- * How many readings stay on screen.
- */
 const HISTORY_LENGTH = 60;
 
-/**
- * The sections, grouped as somebody looking for one would.
- *
- * Grouped rather than listed because this list is going to grow — logs, roles,
- * accounts, backups and webhooks all want a place — and a flat column of
- * fourteen is as hard to read as a row of fourteen was.
- */
 const SECTIONS = [
   { label: null, items: [{ id: 'overview', label: 'Overview' }] },
   {
@@ -129,20 +119,18 @@ const PANELS: readonly { id: PanelId; label: string }[] = SECTIONS.flatMap((sect
 ]);
 
 /**
- * Every job's triggers, keyed by kind.
- *
- * Read back from the server rather than reasoned about locally whenever a
- * write failed: after a failure the page has no idea what actually landed,
- * and guessing is how a schedule page starts lying about what is set.
+ * Reads every job's triggers at once and keys them by job, so that a list of jobs can show what makes
+ * each run without a request per row.
  */
 const readJobSchedules = async (): Promise<Map<string, JobTrigger[]>> =>
   new Map((await fetchJobSchedules()).map((entry) => [entry.kind, entry.triggers]));
 
 /**
- * Trims what ffmpeg calls itself down to a version.
+ * Trims what FFmpeg calls itself down to a version, since it reports a paragraph of build
+ * configuration after the number and only the number belongs in a tile.
  *
- * Its own answer is a sentence with a copyright notice in it, which is not how
- * a line reading "Media service up" should end.
+ * @param reported - What the transcoder said FFmpeg calls itself.
+ * @returns The version alone, or a dash where there is nothing to trim.
  */
 const shortVersion = (reported: string | null): string => {
   if (reported === null) {
@@ -153,16 +141,19 @@ const shortVersion = (reported: string | null): string => {
 };
 
 /**
- * The server, as the person running it sees it.
+ * The server as the person running it sees it: the dashboard, what is being watched, the libraries
+ * and what they hold, the jobs, the settings and the webhooks. Owns the polling that keeps all of it
+ * current and the state that outlives any one panel, so that moving between panels neither restarts
+ * a scan's tracking nor refetches everything.
  *
- * Laid out as an instrument rather than as a page of cards: the figures that
- * matter sit in one strip across the top and stay there, and what changes
- * underneath is a panel the strip is context for. Somebody watching a
- * conversion start should not have to choose between seeing the queue and
- * seeing what it costs.
+ * Which panel is open, and which job's schedule within it, are held above this component rather than
+ * inside it, so that both are places the browser's address can name and return to.
  *
- * Readings arrive over an event stream and a minute of them is kept, because
- * one number says nothing about whether it is climbing.
+ * @param historyLength - How many readings to keep for the graphs.
+ * @param initialPanel - The panel to open, where the address named one.
+ * @param onPanelChange - Called with the panel that was opened.
+ * @param initialJob - The job whose schedule to open, where the address named one.
+ * @param onJobChange - Called with the job whose schedule was opened, or null on going back.
  */
 const AdminArea = ({
   historyLength = HISTORY_LENGTH,
@@ -191,14 +182,6 @@ const AdminArea = ({
     isResettingAll,
   } = useSyncExternalStore(subscribeToScans, getScanSnapshot);
   const [webhooks, setWebhooks] = useState<WebhookSubscription[]>([]);
-  /**
-   * The subscription just made, still showing its secret.
-   *
-   * Held here rather than in the panel because it has to survive the reload
-   * of the listing that follows a creation. A secret that vanished when the
-   * list refreshed would be a secret nobody could write down, and there is no
-   * second chance to read it.
-   */
   const [createdWebhook, setCreatedWebhook] = useState<CreatedWebhook | null>(null);
   const [openHistoryId, setOpenHistoryId] = useState<string | null>(null);
   const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([]);
@@ -207,14 +190,6 @@ const AdminArea = ({
   const [busyClientId, setBusyClientId] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
-  /**
-   * Shows a section, wherever the ask came from.
-   *
-   * The bar at the top and the links buried in the panels both move somebody
-   * between sections, and moving means more than swapping a panel: whatever
-   * job was being read stops being read, and the address bar has to agree with
-   * what is on screen or a reload lands somewhere else.
-   */
   const showPanel = useCallback(
     (next: string) => {
       const found = PANELS.find((candidate) => candidate.id === next);
@@ -231,15 +206,6 @@ const AdminArea = ({
     [onPanelChange, onJobChange],
   );
 
-  /**
-   * Reads one thing, and remembers when it could not be read.
-   *
-   * Failure has to be told apart from emptiness, because the two look
-   * identical on screen and only one of them means "add a library". A fetch
-   * that rejects used to leave the panel showing its empty state, which is
-   * advice rather than a mistake — it invites somebody to add a library they
-   * already have.
-   */
   const loadInto = useCallback(
     async <T,>(key: string, read: () => Promise<T>, apply: (value: T) => void) => {
       try {
@@ -253,13 +219,6 @@ const AdminArea = ({
     [],
   );
 
-  /**
-   * Every programme and film across every library.
-   *
-   * Read library by library rather than in one call, since there is no route
-   * that spans them, and folded to one entry per programme: a correction names
-   * a programme, so ninety episodes would be ninety ways to do the same thing.
-   */
   const readMedia = useCallback(async () => {
     const found = await fetchLibraries();
     const shelves = await Promise.all(found.map((entry) => readWholeLibrary(entry.id)));
@@ -368,14 +327,6 @@ const AdminArea = ({
     onJobChange?.(null);
   }, [onJobChange]);
 
-  /**
-   * Starting a job, in a shape that keeps its identity between renders.
-   *
-   * The jobs table builds its columns from this, and a column definition
-   * rebuilt each pass remounts every cell — which closes any menu open in a
-   * row. This page redraws about once a second while the monitor streams, so
-   * an unstable handler here means a menu that cannot be used at all.
-   */
   const startJob = useCallback(
     (kind: string) => {
       void runJob(kind);
@@ -435,13 +386,6 @@ const AdminArea = ({
     }
   }, [panel, reloadWebhooks]);
 
-  /**
-   * Reads the open subscription's history, and nobody else's.
-   *
-   * Per subscription rather than with the listing, because a server with
-   * twenty subscriptions should not read twenty histories to draw a page on
-   * which nineteen of them are closed.
-   */
   const reloadDeliveries = useCallback(async (id: string) => {
     setIsHistoryLoading(true);
 

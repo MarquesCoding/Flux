@@ -4,10 +4,13 @@ import { GlassPanel } from '@FluxUI/GlassPanel';
 import type { AdminMessageOverlayProps } from './AdminMessageOverlay.types';
 
 /**
- * What an admin's stop or pause looks like to the viewer it happened to.
+ * Tells a viewer, over the top of what they were watching, that an administrator has stopped or
+ * paused their session and why. Deliberately unavoidable rather than a passing notice: somebody
+ * whose film has just halted deserves to be told the reason rather than left to guess at a fault.
  *
- * A stream that just stalls, or a player that just sits there paused with no
- * explanation, reads as broken. Whichever this is, it says so.
+ * @param kind - Whether the session was stopped outright or only paused.
+ * @param reason - What the administrator gave as their reason.
+ * @param onDismiss - Called when the viewer acknowledges it.
  */
 const AdminMessageOverlay = ({ kind, reason, onDismiss }: AdminMessageOverlayProps) => {
   if (kind === 'stopped') {

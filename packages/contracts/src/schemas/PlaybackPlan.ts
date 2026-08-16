@@ -75,13 +75,6 @@ const SubtitleDecisionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('burnIn'), streamIndex: z.number().int(), reason: ReasonSchema }),
 ]);
 
-/**
- * The output of playback negotiation. Each axis is decided independently so
- * that a mismatch on one can never force a re-encode on another, and every
- * axis carries a mandatory reason so the decision is always explainable.
- *
- * See ADR-0011.
- */
 const PlaybackPlanSchema = z.object({
   mediaId: z.string().uuid(),
   container: ContainerDecisionSchema,

@@ -29,16 +29,22 @@ import type { Library } from '@FluxContracts/schemas/Library';
 import type { LibrariesPanelProps } from './LibrariesPanel.types';
 
 /**
- * The folders Flux reads, and what it is doing to them.
+ * The folders Flux reads and what it is doing to them: adding one, scanning one or all of them,
+ * rebuilding from nothing, regenerating previews, and each library's own settings. Progress is shown
+ * against the library it belongs to rather than in one list, since which library is being worked on
+ * is usually the thing worth knowing.
  *
- * Which dialog is open is held here rather than by the admin area: adding a
- * library, confirming a rebuild and editing one are all this panel's business
- * and nothing else ever asks.
- *
- * Scanning everything and rebuilding everything are both disabled while any
- * one library is already scanning. Two scans over the same files is not twice
- * the work, it is the same work twice — and a rebuild starting underneath a
- * running scan is worse than that.
+ * @param isUnreachable - Whether the service is not answering.
+ * @param libraries - The libraries configured.
+ * @param progress - What is running now, by library.
+ * @param isScanningAll - Whether a scan of every library is under way.
+ * @param isResettingAll - Whether a rebuild of every library is under way.
+ * @param onScan - Called with the library to scan, and whether to re-probe every file.
+ * @param onScanAll - Called to scan every library.
+ * @param onResetAll - Called to rebuild every library from nothing.
+ * @param onRegeneratePreviews - Called with the library whose previews are to be remade.
+ * @param onLibraryCreated - Called with a library that has just been added.
+ * @param onLibraryUpdated - Called with a library whose settings have changed.
  */
 const LibrariesPanel = ({
   isUnreachable = false,
@@ -59,13 +65,6 @@ const LibrariesPanel = ({
 
   const isBusy = libraries.length === 0 || progress.size > 0;
 
-  /**
-   * What a column needs, without being rebuilt when it changes.
-   *
-   * Scanning pushes progress several times a second; a column rebuilt on each
-   * push is a new `cell`, which React remounts — closing any menu or hover
-   * card open in that row.
-   */
   const live = useRef({ progress, onScan, onRegeneratePreviews, setSettingsLibraryId });
 
   live.current = { progress, onScan, onRegeneratePreviews, setSettingsLibraryId };

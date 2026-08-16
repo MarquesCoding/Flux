@@ -2,16 +2,14 @@ import { Button } from '@FluxUI/Button';
 import type { CaptionChoiceProps } from './CaptionChoice.types';
 
 /**
- * One decision about how captions look, laid out flat.
+ * Lays out one decision about caption appearance as a labelled row of choices, all visible at once
+ * rather than folded into a menu — with a handful of options each, seeing them side by side is
+ * faster than opening a list per setting.
  *
- * A row of the choices rather than a menu holding them. This is already a page
- * inside a panel, and opening a second panel out of it to pick between four
- * words puts a viewer two layers deep to change a font — where the four words
- * would have fitted on the line they were reading.
- *
- * Flat also means the answer is visible without asking: somebody comparing
- * "Outline" against "Drop shadow" can see both, and the preview above changes
- * as they press.
+ * @param label - What is being decided.
+ * @param options - The choices, each with what to call it.
+ * @param selectedId - The choice in force.
+ * @param onSelect - Called with the choice the reader picked.
  */
 const CaptionChoice = ({ label, options, selectedId, onSelect }: CaptionChoiceProps) => (
   <fieldset className="flex flex-col gap-2">

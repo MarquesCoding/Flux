@@ -3,16 +3,13 @@ import { cn } from '@FluxUI/cn';
 import type { TabPanelProps } from './TabPanel.types';
 
 /**
- * What one tab shows.
+ * What one tab shows. Renders only when its tab is the one chosen, so a panel that fetches
+ * something does not fetch it until somebody looks.
  *
- * Named by its tab rather than shown by a condition, which is the point: a
- * panel gated behind `showing === 'devices' ? ... : null` is invisible to
- * everything that has to know a tab controls something — the tab's own
- * `aria-controls`, and where focus goes when somebody presses it.
- *
- * Only the showing panel is in the document. A hidden one is not rendered at
- * all rather than rendered and hidden, so nothing in it is fetching, playing or
- * counting while nobody is looking at it.
+ * @param value - Which tab this panel belongs to.
+ * @param children - What the panel holds.
+ * @param render - An element to render as, where a plain division is not the right thing.
+ * @param className - Extra classes for the caller's own layout.
  */
 const TabPanel = ({ value, children, render, className }: TabPanelProps) => (
   <Tabs.Panel value={value} className={cn(className)} {...(render === undefined ? {} : { render })}>

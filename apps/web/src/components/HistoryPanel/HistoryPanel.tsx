@@ -11,20 +11,19 @@ import type { Viewing } from '@FluxContracts/schemas/Viewing';
 import type { HistoryPanelProps } from './HistoryPanel.types';
 
 /**
- * What to call something that has since left the library.
+ * Names something in the history that has since left the library, since a viewing outlives the file
+ * it was of — the alternative is a row saying nothing at all.
+ *
+ * @param viewing - The viewing as recorded.
+ * @returns What to call it.
  */
 const nameOf = (viewing: Viewing): string => viewing.title ?? 'No longer in the library';
 
 /**
- * What this profile has watched.
+ * What this profile has watched, grouped by when — today, yesterday, the days of this week — with
+ * each viewing removable, since a history somebody cannot edit is a history they will not want.
  *
- * Yours, and only yours — which for a shared house is the whole point of it
- * being per profile. Somebody who would rather a thing were not listed can
- * remove it here without asking anybody, and that is why the forget controls
- * sit beside each row rather than behind a settings page.
- *
- * A page at a time, oldest never loaded until asked for: this grows every
- * evening somebody watches anything, and a year of it is not a first render.
+ * @param now - What to treat as now, so the grouping can be tested.
  */
 const HistoryPanel = ({ now }: HistoryPanelProps) => {
   const [viewings, setViewings] = useState<Viewing[]>([]);

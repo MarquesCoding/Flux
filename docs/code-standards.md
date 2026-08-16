@@ -184,9 +184,21 @@ that file is no longer an exception — it is simply the rule applied.
 
 **No comments in the codebase, with these exceptions:**
 
-1. **TSDoc on functions and components.** Encouraged, and required on anything
-   exported from `packages/plugin-sdk` or `packages/contracts`, because those
-   generate public documentation (ADR-0003).
+1. **TSDoc on functions and components — and on nothing else.** Required on
+   anything exported from `packages/plugin-sdk` or `packages/contracts`, because
+   those generate public documentation (ADR-0003).
+
+   **One sentence saying what the function does.** Not why it was written that
+   way, not what was tried before, not what the alternative would have cost. A
+   summary, and then `@param` and `@returns` where the name and the type do not
+   already say it — a `@param mediaId` on `(mediaId: string)` is the signature
+   read aloud, and adds nothing.
+
+   **Types, constants, properties and interfaces carry no TSDoc at all.** A
+   type says what it is by being a type with a name; a constant says it by
+   being named. If either needs a paragraph to be understood, the name is
+   wrong, and renaming it fixes every place it is read rather than one.
+
 2. **Rust doc comments** (`///`, `//!`) on public items, for the same reason.
 3. **`// SAFETY:` on every `unsafe` block in Rust.** This is required by
    `clippy::undocumented_unsafe_blocks`, which is enabled. A rule that fights the
@@ -206,8 +218,10 @@ Two checks, because no one linter reads every language here.
 
 `flux/no-comments` in `tools/eslint/noComments.ts` covers TypeScript. It fails
 on any comment that is not one of the exceptions above, and removes it under
-`--fix`. TSDoc counts only when it sits on a declaration: a `/** */` block
-floating inside a function body is prose in a costume, and is rejected as prose.
+`--fix`. TSDoc counts only when it sits on a function — a declaration, a method,
+or a `const` holding an arrow function. On a type, a constant or a property it is
+rejected, and a `/** */` block floating inside a function body is prose in a
+costume and rejected as prose.
 A third slash means `/// <reference>` and nothing else: `/// prose` is Rust
 syntax in the wrong language, and is rejected too.
 
