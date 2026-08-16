@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MediaDetailDialog } from './MediaDetailDialog';
@@ -19,13 +19,31 @@ vi.mock('@FluxWeb/library/fetchLibrary', () => ({
   fetchMediaDetail: detailMock,
 }));
 
+const preview = vi.hoisted(() => ({
+  report: (isPlaying: boolean) => {
+    void isPlaying;
+  },
+}));
+
 vi.mock('@FluxWeb/components/MediaPreview/MediaPreview', () => ({
-  MediaPreview: ({ actions }: { actions?: ReactNode }) => (
-    <div>
-      preview
-      {actions}
-    </div>
-  ),
+  MediaPreview: ({
+    actions,
+    onPlayingChange,
+  }: {
+    actions?: ReactNode;
+    onPlayingChange?: (isPlaying: boolean) => void;
+  }) => {
+    preview.report = (isPlaying) => {
+      onPlayingChange?.(isPlaying);
+    };
+
+    return (
+      <div>
+        preview
+        {actions}
+      </div>
+    );
+  },
 }));
 
 const summary: MediaSummary = {
@@ -368,5 +386,67 @@ describe('keeping something, and getting back to where you were', () => {
     );
 
     expect(await screen.findByText('Spice must flow.')).toBeInTheDocument();
+  });
+});
+
+describe('opening one item after another', () => {
+  const header = () => document.querySelector('.transition-opacity.duration-700');
+
+  const logo = () => document.querySelector('img[src*="/image/logo"]');
+
+  it('shows the next item’s title rather than opening it already faded out', async () => {
+    detailMock.mockResolvedValue(detail());
+
+    const view = render(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(header()?.className).toContain('opacity-100');
+
+    act(() => {
+      preview.report(true);
+    });
+
+    await waitFor(() => {
+      expect(header()?.className).toContain('opacity-0');
+    });
+
+    view.rerender(<MediaDetailDialog media={null} onClose={vi.fn()} onPlay={vi.fn()} />);
+    view.rerender(
+      <MediaDetailDialog
+        media={{ ...summary, id: 'media-2', title: 'Dune' }}
+        onClose={vi.fn()}
+        onPlay={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(header()?.className).toContain('opacity-100');
+    });
+    expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
+  });
+
+  it('tries an item’s lettering again the next time it is opened', async () => {
+    detailMock.mockResolvedValue(detail());
+
+    const lettered = { ...summary, hasLogo: true };
+    const view = render(<MediaDetailDialog media={lettered} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    const shown = logo();
+
+    if (shown === null) {
+      throw new Error('The dialog drew no lettering to fail.');
+    }
+
+    fireEvent.error(shown);
+
+    await waitFor(() => {
+      expect(logo()).toBeNull();
+    });
+
+    view.rerender(<MediaDetailDialog media={null} onClose={vi.fn()} onPlay={vi.fn()} />);
+    view.rerender(<MediaDetailDialog media={lettered} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(logo()).not.toBeNull();
+    });
   });
 });
