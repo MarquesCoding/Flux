@@ -53,7 +53,17 @@ describe('the corpus matches what the matrix claims', () => {
 
       const probe = spawnSync(
         process.env['FLUX_FFPROBE'] ?? 'ffprobe',
-        ['-v', 'error', '-show_streams', '-of', 'json', path],
+        [
+          '-v',
+          'error',
+          '-show_streams',
+          '-show_frames',
+          '-read_intervals',
+          '%+#1',
+          '-of',
+          'json',
+          path,
+        ],
         { encoding: 'utf8' },
       );
 
@@ -73,6 +83,10 @@ describe('the corpus matches what the matrix claims', () => {
 
       it('carries the scan it claims', () => {
         expect(facts.scan).toBe(fixture.video.scan);
+      });
+
+      it('carries the mastering metadata real HDR10 carries', () => {
+        expect(facts.hasMasteringDisplay).toBe(fixture.video.range === 'HDR10');
       });
 
       it('carries the audio codec it claims', () => {

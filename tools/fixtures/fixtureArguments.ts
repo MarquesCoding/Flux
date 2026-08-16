@@ -50,9 +50,19 @@ const pixelFormat = (video: VideoSpec): string =>
 const keyframeInterval = (video: VideoSpec): number =>
   Math.max(1, Math.round(video.keyframeSeconds * FRAME_RATE));
 
+const MASTERING_DISPLAY =
+  'master-display=G(13250,34500)B(7500,3000)R(34000,16000)WP(15635,16450)L(10000000,1)';
+
 const COLOUR_PARAMS: Record<VideoSpec['range'], readonly string[]> = {
   SDR: [],
-  HDR10: ['colorprim=bt2020', 'transfer=smpte2084', 'colormatrix=bt2020nc'],
+  HDR10: [
+    'colorprim=bt2020',
+    'transfer=smpte2084',
+    'colormatrix=bt2020nc',
+    MASTERING_DISPLAY,
+    'max-cll=1000,400',
+    'hdr10=1',
+  ],
   HLG: ['colorprim=bt2020', 'transfer=arib-std-b67', 'colormatrix=bt2020nc'],
 };
 

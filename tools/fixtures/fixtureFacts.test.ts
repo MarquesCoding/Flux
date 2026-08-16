@@ -37,6 +37,18 @@ describe('fixtureFacts', () => {
     expect(fixtureFacts(probe({ field_order: 'tt' }, {})).scan).toBe('interlaced');
   });
 
+  it('finds mastering metadata carried in the frames rather than the streams', () => {
+    const withSei = JSON.stringify({
+      streams: [{ codec_type: 'video', color_transfer: 'smpte2084' }],
+      frames: [{ side_data_list: [{ side_data_type: 'Mastering display metadata' }] }],
+    });
+
+    expect(fixtureFacts(withSei).hasMasteringDisplay).toBe(true);
+    expect(fixtureFacts(probe({ color_transfer: 'smpte2084' }, {})).hasMasteringDisplay).toBe(
+      false,
+    );
+  });
+
   it('describes a file with no streams rather than throwing', () => {
     const facts = fixtureFacts(JSON.stringify({ streams: [] }));
 

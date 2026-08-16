@@ -110,8 +110,8 @@
       "file": "hevc-10bit-hdr10.mp4",
       "tier": 0,
       "licence": "Generated from FFmpeg synthetic sources; no licence required",
-      "sha256": "b76728adf816e21ed82d2297b05b8c91018cc3a5610309856f219edbbaf3f800",
-      "bytes": 2490887
+      "sha256": "61cebda1bdbfa52ca1dbf3dae4b4d014d159fca93366e06267d7d207a192bf25",
+      "bytes": 2529173
     },
     {
       "name": "hevc-10bit-hlg",
