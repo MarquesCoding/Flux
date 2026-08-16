@@ -240,7 +240,12 @@ const CatalogueMatchesSchema = z.object({
 type CatalogueMatch = z.infer<typeof CatalogueMatchesSchema>['matches'][number];
 
 /**
- * Asks the catalogue what it holds under a name.
+ * Asks the catalogue what it holds under a name, for the dialog where an operator corrects what a
+ * file is.
+ *
+ * @param query - What to search for.
+ * @param kind - Whether to look for films or programmes.
+ * @returns What the catalogue offered.
  */
 const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<CatalogueMatch[]> => {
   const parameters = new URLSearchParams({ query, kind });
@@ -292,7 +297,11 @@ const fetchMonitor = async (): Promise<Monitor | null> => {
 };
 
 /**
- * Watches the media service, calling back on every reading.
+ * Follows what the media service is doing — sessions, encoders, disk — calling back on every reading
+ * rather than being asked, since an operator watching a graph notices anything slower than a second.
+ *
+ * @param onReading - Told each reading as it arrives.
+ * @returns The function that stops watching.
  */
 const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
   const source = new EventSource('/api/admin/monitor/stream', { withCredentials: true });
@@ -311,7 +320,11 @@ const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
 };
 
 /**
- * Follows who has the app open, as it changes.
+ * Follows who has the application open and what they are watching, as it changes, for the sessions
+ * page an operator leaves open.
+ *
+ * @param onSessions - Told the sessions whenever they change.
+ * @returns The function that stops watching.
  */
 const watchActiveSessions = (onSessions: (sessions: ActiveSession[]) => void): (() => void) => {
   const source = new EventSource('/api/admin/sessions/stream', { withCredentials: true });
@@ -345,7 +358,10 @@ const fetchActiveSessions = async (): Promise<ActiveSession[]> => {
 };
 
 /**
- * Stops someone else's stream, kicking them out of the player.
+ * Stops somebody else's stream, which closes their player rather than pausing it — for the case
+ * where a session has to end rather than wait.
+ *
+ * @param sessionId - The session to stop.
  */
 const stopSession = async (clientId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/sessions/${clientId}`, {
@@ -357,7 +373,10 @@ const stopSession = async (clientId: string): Promise<boolean> => {
 };
 
 /**
- * Pauses someone else's stream. Not a lock — they can press play again.
+ * Pauses somebody else's stream. Not a lock: they can press play again, and it is meant as a way to
+ * get somebody's attention rather than to take the film away.
+ *
+ * @param sessionId - The session to pause.
  */
 const pauseSession = async (clientId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/sessions/${clientId}/pause`, {
@@ -369,7 +388,9 @@ const pauseSession = async (clientId: string): Promise<boolean> => {
 };
 
 /**
- * Resumes a stream this admin paused.
+ * Resumes a stream an operator paused.
+ *
+ * @param sessionId - The session to resume.
  */
 const resumeSession = async (clientId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/sessions/${clientId}/resume`, {
@@ -400,7 +421,12 @@ const fetchJobDefinitions = async (): Promise<JobDefinition[]> => {
 };
 
 /**
- * Starts a job of the given kind against a library, from the Work tab.
+ * Starts a job by hand — a scan, a sweep, a rebuild — against one library or against the server as a
+ * whole, and answers with the job so the page can watch it.
+ *
+ * @param kind - Which job.
+ * @param libraryId - Which library, for the kinds that take one.
+ * @returns The job to watch, or why it was refused.
  */
 const runJob = async (
   kind: string,
@@ -425,7 +451,10 @@ const runJob = async (
 };
 
 /**
- * Asks a job to stop.
+ * Asks a running job to stop. A job that has not started is dropped; one that is running is asked,
+ * and stops at the next point it can.
+ *
+ * @param jobId - The job to stop.
  */
 const cancelJob = async (jobId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/jobs/running/${jobId}/cancel`, {
@@ -456,7 +485,12 @@ const fetchJobSchedules = async (): Promise<JobSchedule[]> => {
 };
 
 /**
- * Adds one trigger to a job, reporting it with the id that removes it again.
+ * Adds one trigger to a job's schedule, answering with the identifier that removes it again, so the
+ * page can offer that without reloading everything.
+ *
+ * @param kind - Which job.
+ * @param trigger - The schedule to add.
+ * @returns The trigger as stored.
  */
 const addJobTrigger = async (
   kind: string,
@@ -477,7 +511,10 @@ const addJobTrigger = async (
 };
 
 /**
- * Removes one trigger from a job.
+ * Removes one trigger from a job's schedule.
+ *
+ * @param kind - Which job.
+ * @param triggerId - The trigger to remove.
  */
 const removeJobTrigger = async (kind: string, triggerId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/jobs/${kind}/triggers/${triggerId}`, {

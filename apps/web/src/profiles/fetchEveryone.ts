@@ -24,7 +24,12 @@ const fetchEveryone = async (): Promise<ViewerProfile[]> => {
 };
 
 /**
- * Signs somebody in by the face they picked.
+ * Signs somebody in by the face they picked, for a household where the television is already signed
+ * in to the account and choosing a profile is the whole of the ceremony.
+ *
+ * @param profileId - Who picked.
+ * @param pin - Their PIN, where the profile has one.
+ * @returns Whether it worked, and why not where it did not.
  */
 const signInAsProfile = async (
   profileId: string,

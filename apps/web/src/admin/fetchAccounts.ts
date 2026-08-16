@@ -67,7 +67,10 @@ const removeAccount = async (userId: string): Promise<Refusal> => {
 };
 
 /**
- * Adds somebody to this server.
+ * Invites somebody to this server, creating their account and the means for them to set a password.
+ *
+ * @param request - Who is being invited and what they may do.
+ * @returns The account, or why it was refused.
  */
 const inviteAccount = async (request: {
   name: string;

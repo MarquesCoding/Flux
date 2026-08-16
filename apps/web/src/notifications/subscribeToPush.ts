@@ -1,7 +1,11 @@
 const SERVICE_WORKER_PATH = '/push-worker.js';
 
 /**
- * Turns the server's public key into the bytes the browser asks for.
+ * Turns the server's public key into the byte array the push API insists on, since the key travels
+ * as base64url and the browser will only take bytes.
+ *
+ * @param key - The server's public key, as base64url.
+ * @returns The same key as bytes.
  */
 const toApplicationServerKey = (base64Url: string): ArrayBuffer => {
   const padded = base64Url.padEnd(base64Url.length + ((4 - (base64Url.length % 4)) % 4), '=');
@@ -16,7 +20,11 @@ const toApplicationServerKey = (base64Url: string): ArrayBuffer => {
 };
 
 /**
- * Reads a key the browser hands back as base64url, for sending as JSON.
+ * Reads a key the browser hands back and writes it as base64url, which is how it has to travel to
+ * the server as JSON.
+ *
+ * @param buffer - The key as the browser gave it.
+ * @returns The key as base64url.
  */
 const toBase64Url = (buffer: ArrayBuffer | null): string => {
   if (buffer === null) {
@@ -35,7 +43,12 @@ const canReceivePush = (): boolean =>
   'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
 /**
- * Asks this browser to be woken, and tells the server where to knock.
+ * Asks this browser to accept push messages and tells the server where to knock, so a notification
+ * arrives when the application is closed. Answers with what went wrong rather than throwing: refusing
+ * permission is an ordinary outcome, not an error.
+ *
+ * @param publicKey - The server's public key.
+ * @returns Whether it worked, and why not where it did not.
  */
 const subscribeToPush = async (publicKey: string): Promise<boolean> => {
   if (!canReceivePush() || publicKey === '') {

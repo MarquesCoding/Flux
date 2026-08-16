@@ -4,7 +4,9 @@ import type { Viewing } from '@FluxContracts/schemas/Viewing';
 const A_PAGE = 30;
 
 /**
- * What this profile has watched, most recent first.
+ * Reads what this profile has watched, most recent first.
+ *
+ * @returns The viewings, or none where the request failed.
  */
 const fetchHistory = async (offset = 0): Promise<Viewing[]> => {
   try {
@@ -26,7 +28,9 @@ const fetchHistory = async (offset = 0): Promise<Viewing[]> => {
 };
 
 /**
- * Forgets one viewing.
+ * Forgets one viewing, for somebody removing something from their own history.
+ *
+ * @param viewingId - The viewing to forget.
  */
 const forgetViewing = async (viewingId: string): Promise<boolean> => {
   const response = await fetch(`/api/history/${viewingId}`, { method: 'DELETE' }).catch(() => null);

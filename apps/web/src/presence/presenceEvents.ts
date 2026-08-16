@@ -6,8 +6,10 @@ type PresenceEventListener = (event: PresenceEvent) => void;
 const listeners = new Set<PresenceEventListener>();
 
 /**
- * Passes an admin action from this tab's presence connection to whichever player is currently
- * mounted.
+ * Passes an action an operator took — a stream stopped, a message sent — from this tab's presence
+ * connection to whichever player is currently mounted.
+ *
+ * @param event - What the operator did.
  */
 const emitPresenceEvent = (event: PresenceEvent): void => {
   for (const listener of listeners) {
@@ -16,7 +18,11 @@ const emitPresenceEvent = (event: PresenceEvent): void => {
 };
 
 /**
- * Listens for admin actions pushed down this tab's presence connection.
+ * Listens for actions an operator takes against this tab, which arrive down the presence connection
+ * rather than being asked for.
+ *
+ * @param listener - Told each action as it arrives.
+ * @returns The function that stops listening.
  */
 const onPresenceEvent = (listener: PresenceEventListener): (() => void) => {
   listeners.add(listener);

@@ -19,7 +19,10 @@ const fetchProfiles = async (): Promise<ViewerProfile[]> => {
 };
 
 /**
- * Adds somebody to this account.
+ * Adds somebody to this account, with their own history, favourites and watch progress.
+ *
+ * @param input - What to call them and what to draw them as.
+ * @returns The profile, or why it was refused.
  */
 const createProfile = async (
   name: string,
@@ -36,7 +39,11 @@ const createProfile = async (
 };
 
 /**
- * Changes what a profile is called and what it looks like.
+ * Changes what a profile is called and what it is drawn as.
+ *
+ * @param profileId - The profile to change.
+ * @param input - The name and the avatar to apply.
+ * @returns The profile as it now stands, or why it was refused.
  */
 const saveProfile = async (
   profileId: string,
@@ -54,7 +61,11 @@ const saveProfile = async (
 };
 
 /**
- * Uploads somebody's own photograph for a profile.
+ * Uploads somebody's own photograph for a profile, which replaces whatever it was drawn as.
+ *
+ * @param profileId - The profile.
+ * @param file - The photograph.
+ * @returns The profile as it now stands, or why it was refused.
  */
 const uploadProfilePhoto = async (profileId: string, file: File): Promise<boolean> => {
   const response = await fetch(`/api/profiles/${profileId}/photo`, {
@@ -67,7 +78,10 @@ const uploadProfilePhoto = async (profileId: string, file: File): Promise<boolea
 };
 
 /**
- * Removes somebody from this account, and their viewing with them.
+ * Removes somebody from this account, and everything hanging off them — their history, their
+ * favourites, where they had got to.
+ *
+ * @param profileId - The profile to remove.
  */
 const removeProfile = async (profileId: string): Promise<boolean> => {
   const response = await fetch(`/api/profiles/${profileId}`, { method: 'DELETE' }).catch(

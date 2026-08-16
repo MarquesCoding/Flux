@@ -11,7 +11,11 @@ const readChallenge = async (response: Response): Promise<PublicKeyCredentialCre
   PasskeyRegistrationOptionsSchema.parse(await response.json());
 
 /**
- * Runs the WebAuthn registration ceremony and hands the result to the server.
+ * Runs the browser's registration ceremony and hands the result to the server, which is how a device
+ * becomes something somebody can sign in with instead of a password.
+ *
+ * @param name - What to call this device in the list of passkeys.
+ * @returns Whether it worked, and why not where it did not.
  */
 const registerPasskey = async (name: string): Promise<RegisterOutcome> => {
   try {

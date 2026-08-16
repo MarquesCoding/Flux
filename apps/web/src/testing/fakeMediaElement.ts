@@ -12,7 +12,10 @@ type FakeMediaControls = {
 };
 
 /**
- * Fills in the parts of a video element jsdom does not have.
+ * Fills in the parts of a video element jsdom does not have — playing, pausing, seeking, buffering —
+ * so a player can be tested without a real browser.
+ *
+ * @param element - The element to fill in.
  */
 const fakeMediaElement = (element: HTMLElement): FakeMediaControls => {
   const tracks: {
@@ -28,7 +31,12 @@ const fakeMediaElement = (element: HTMLElement): FakeMediaControls => {
   const frameCallbacks: ((now: number, metadata: { mediaTime: number }) => void)[] = [];
 
   /**
-   * Installs one of the things jsdom leaves off a media element.
+   * Installs one of the properties jsdom leaves off a media element, configurable so a test can
+   * override it again.
+   *
+   * @param element - The element to install on.
+   * @param name - Which property.
+   * @param value - What it should be.
    */
   const define = (name: string, value: object | number | boolean | null) => {
     Object.defineProperty(element, name, { configurable: true, writable: true, value });

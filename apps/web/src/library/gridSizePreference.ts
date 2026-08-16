@@ -21,7 +21,10 @@ const readGridSize = (): MediaGridSize => {
 };
 
 /**
- * Remembers how large this viewer likes the cards.
+ * Remembers how large this viewer likes the cards, on this device — a phone and a television want
+ * different answers from the same account.
+ *
+ * @param size - The size chosen.
  */
 const saveGridSize = (size: MediaGridSize): void => {
   try {

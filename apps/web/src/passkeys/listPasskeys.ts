@@ -17,7 +17,9 @@ const listPasskeys = async (): Promise<Passkey[]> => {
 };
 
 /**
- * Removes a registered passkey.
+ * Removes a registered passkey, for somebody who has lost the device it lived on.
+ *
+ * @param id - The passkey to remove.
  */
 const deletePasskey = async (id: string): Promise<boolean> => {
   const response = await fetch('/api/auth/passkey/delete-passkey', {
@@ -30,7 +32,10 @@ const deletePasskey = async (id: string): Promise<boolean> => {
 };
 
 /**
- * Renames a registered passkey.
+ * Renames a registered passkey, since a list of them is unusable when each is called the same thing.
+ *
+ * @param id - The passkey to rename.
+ * @param name - What to call it.
  */
 const renamePasskey = async (id: string, name: string): Promise<boolean> => {
   const response = await fetch('/api/auth/passkey/update-passkey', {

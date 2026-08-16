@@ -31,7 +31,11 @@ const fetchApiKeys = async (): Promise<ApiKey[] | null> => {
 };
 
 /**
- * Mints a key, which is the only moment it can be read.
+ * Creates an API key and answers with the key itself, which is the only moment it can be read — the
+ * server stores a hash, so somebody who loses it makes another rather than looking it up.
+ *
+ * @param request - What the key is called and what it may do.
+ * @returns The key, once.
  */
 const createApiKey = async (input: {
   name: string;
@@ -58,7 +62,11 @@ const createApiKey = async (input: {
 };
 
 /**
- * Turns a key off, or back on.
+ * Turns a key off without deleting it, or back on, so a key suspected of leaking can be stopped
+ * while somebody works out what was using it.
+ *
+ * @param keyId - The key.
+ * @param isEnabled - Whether it should work.
  */
 const setApiKeyEnabled = async (id: string, enabled: boolean): Promise<boolean> => {
   try {

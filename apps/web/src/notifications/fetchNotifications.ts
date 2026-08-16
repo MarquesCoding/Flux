@@ -38,7 +38,10 @@ const fetchNotifications = async (): Promise<Inbox> => {
 };
 
 /**
- * Marks one as read, or everything when given nothing.
+ * Marks one notification as read, or all of them when given nothing, which is what the "mark all
+ * read" control sends.
+ *
+ * @param notificationId - The one to mark, or nothing to mark them all.
  */
 const markNotificationsRead = async (id?: string): Promise<number> => {
   const response = await fetch('/api/notifications/read', {

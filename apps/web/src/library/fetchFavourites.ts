@@ -23,7 +23,10 @@ const fetchFavourites = async (): Promise<string[]> => {
 };
 
 /**
- * Keeps something, or stops keeping it.
+ * Keeps something for this profile, or stops keeping it.
+ *
+ * @param mediaId - The item.
+ * @param isKept - Whether it should be kept.
  */
 const setFavourite = async (mediaId: string, isKept: boolean): Promise<boolean> => {
   const response = await fetch(`/api/media/${mediaId}/favourite`, {

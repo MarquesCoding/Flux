@@ -7,7 +7,11 @@ const LOCAL = 'local.dev';
 const UNRELEASED = new Set(['0.0.0', 'dev', '']);
 
 /**
- * Says a version the way it should be read.
+ * Says a version the way it should be read — the release where there is one, and the commit where
+ * this is a development build, so a bug report names something that can be found.
+ *
+ * @param version - What the server reported.
+ * @returns The version as it should be shown.
  */
 const describeVersion = (reported: string): string =>
   UNRELEASED.has(reported.trim()) ? LOCAL : reported;
