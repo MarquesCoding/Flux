@@ -27,7 +27,8 @@ type ListItemsOptions = {
   yearTo?: number;
   minRating?: number;
   ids?: string[];
-  order?: 'title' | 'newest';
+  order?: 'title' | 'newest' | 'yourRating';
+  minYourStars?: number;
   limit?: number;
   offset?: number;
 };
@@ -130,6 +131,7 @@ const fetchLibraryItems = async (
     minRating,
     ids,
     order,
+    minYourStars,
     limit = 60,
     offset = 0,
   }: ListItemsOptions = {},
@@ -166,6 +168,10 @@ const fetchLibraryItems = async (
 
   if (order !== undefined) {
     query.set('order', order);
+  }
+
+  if (minYourStars !== undefined) {
+    query.set('minYourStars', String(minYourStars));
   }
 
   const response = await fetch(`/api/libraries/${libraryId}/items?${query.toString()}`, {

@@ -517,6 +517,9 @@ const createApp = ({
     const { search, kind, genre, yearFrom, yearTo, minRating, ids, order, limit, offset } =
       context.req.valid('query');
 
+    const { minYourStars } = context.req.valid('query');
+    const askedBy = await readProfileId(context.req.raw.headers);
+
     const page = await library.listItems(id, {
       ...(search === undefined ? {} : { search }),
       ...(kind === undefined ? {} : { kind }),
@@ -526,6 +529,8 @@ const createApp = ({
       ...(minRating === undefined ? {} : { minRating }),
       ...(ids === undefined ? {} : { ids: ids.split(',').filter((named) => named.trim() !== '') }),
       ...(order === undefined ? {} : { order }),
+      ...(askedBy === null ? {} : { profileId: askedBy }),
+      ...(minYourStars === undefined ? {} : { minYourStars }),
       limit: limit ?? DEFAULT_LIMIT,
       offset: offset ?? 0,
     });

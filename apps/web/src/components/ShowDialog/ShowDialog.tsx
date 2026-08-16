@@ -11,6 +11,7 @@ import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { fetchShow } from '@FluxWeb/library/fetchShows';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
+import { RatingPanel } from '@FluxWeb/components/RatingPanel/RatingPanel';
 import { pickUpFrom } from './pickUpFrom';
 import { EpisodeRow } from './components/EpisodeRow/EpisodeRow';
 import { MissingRow } from './components/MissingRow/MissingRow';
@@ -53,6 +54,9 @@ const nameSeason = (seasonNumber: number | null): string =>
  * @param watchedFractionFor - How far through each episode this viewer is.
  * @param resumeFor - Where they left each episode.
  * @param isFinished - Whether they have finished each episode.
+ * @param stars - What this viewer gave the programme, or null where they have not rated it.
+ * @param onRate - Told what they gave it, or null to take the rating back. Offered only for a
+ *   programme the scanner resolved to a series of its own, since a rating is keyed on that.
  */
 const ShowDialog = ({
   show,
@@ -62,6 +66,8 @@ const ShowDialog = ({
   watchedFractionFor,
   resumeFor,
   isFinished,
+  stars = null,
+  onRate,
 }: ShowDialogProps) => {
   const [detail, setDetail] = useState<ShowDetail | null>(null);
 
@@ -270,6 +276,17 @@ const ShowDialog = ({
               </Button>
             )}
           </div>
+
+          {onRate === undefined || (shown.seriesId ?? null) === null ? null : (
+            <RatingPanel
+              subject={{ seriesId: shown.seriesId ?? '' }}
+              title={shown.title}
+              stars={stars}
+              onRate={(given) => {
+                onRate(shown, given);
+              }}
+            />
+          )}
 
           <section className="flex flex-col gap-4">
             <header className="flex flex-wrap items-center justify-between gap-3">

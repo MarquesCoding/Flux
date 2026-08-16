@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import { createApp } from '@FluxServer/App';
 import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
@@ -38,6 +39,8 @@ const FILM: MediaDetail = {
   metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false },
 };
 
+const ItemPageSchema = z.object({ total: z.number() });
+
 const CREDENTIALS = {
   name: 'Marques',
   email: 'marques@flux.local',
@@ -67,6 +70,10 @@ const build = () => {
       ],
       media: [FILM],
       series: [{ id: SERIES_ID, title: 'The Bear' }],
+      starsFor: (mediaId) =>
+        Object.values(ratings.state)
+          .flat()
+          .find((entry) => entry.mediaId === mediaId)?.stars ?? null,
     }),
     playback: createMemoryPlaybackService(),
     segments: createMemorySegmentService(),
@@ -266,5 +273,64 @@ describe('ratings over HTTP', () => {
     const response = await app.request(`${BASE}/api/media/${MEDIA_ID}/rating/household`);
 
     expect(response.status).toBe(401);
+  });
+});
+
+describe('sorting and filtering a library by what you gave it', () => {
+  it('orders by this viewer’s rating, highest first', async () => {
+    const { app } = build();
+    const cookie = await signedIn(app);
+
+    await rate(app, cookie, `/api/media/${MEDIA_ID}`, 5);
+
+    const response = await app.request(
+      `${BASE}/api/libraries/${LIBRARY_ID}/items?order=yourRating`,
+      { headers: { cookie, origin: BASE } },
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it('narrows to what this viewer rated at least so highly', async () => {
+    const { app } = build();
+    const cookie = await signedIn(app);
+
+    const before = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?minYourStars=4`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(ItemPageSchema.parse(await before.json()).total).toBe(0);
+
+    await rate(app, cookie, `/api/media/${MEDIA_ID}`, 4);
+
+    const after = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?minYourStars=4`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(ItemPageSchema.parse(await after.json()).total).toBe(1);
+  });
+
+  it('leaves out something rated below what was asked for', async () => {
+    const { app } = build();
+    const cookie = await signedIn(app);
+
+    await rate(app, cookie, `/api/media/${MEDIA_ID}`, 2);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?minYourStars=4`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(ItemPageSchema.parse(await response.json()).total).toBe(0);
+  });
+
+  it('refuses a floor off the end of the scale', async () => {
+    const { app } = build();
+    const cookie = await signedIn(app);
+
+    const response = await app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items?minYourStars=9`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(400);
   });
 });
