@@ -3,6 +3,7 @@ import { AnimatedIcon } from '@FluxUI/AnimatedIcon';
 import { Button } from '@FluxUI/Button';
 import { SlidingMark } from '@FluxUI/SlidingMark';
 import { cn } from '@FluxUI/cn';
+import { useOpenAction } from './useOpenAction';
 import type { NavDockProps } from './NavDock.types';
 
 /**
@@ -11,6 +12,11 @@ import type { NavDockProps } from './NavDock.types';
  * rather than two. A single mark rests on where you are, follows the pointer to whatever it passes
  * over, and returns when the pointer leaves. At the foot rather than the head because the top of a
  * page is where the thing being looked at introduces itself.
+ *
+ * An action whose control has a panel open holds still while it is open. The gesture is a hover
+ * affordance saying what pressing an icon would do, and a popover is anchored to the icon that
+ * opened it — so an icon that kept moving would drag the open panel around at exactly the moment
+ * somebody is reaching for it.
  *
  * @param brand - The mark at the head of the dock.
  * @param items - The places, in the order they are shown.
@@ -21,6 +27,7 @@ import type { NavDockProps } from './NavDock.types';
  */
 const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }: NavDockProps) => {
   const [pointedAt, setPointedAt] = useState<string | null>(null);
+  const { actionsRef, openAction } = useOpenAction();
 
   const lit = pointedAt ?? selectedId;
 
@@ -101,7 +108,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
             />
           )}
 
-          <div className="relative z-10 flex shrink-0 items-center gap-0.5">
+          <div ref={actionsRef} className="relative z-10 flex shrink-0 items-center gap-0.5">
             {actions.map((action) =>
               action.control === undefined ? (
                 <Button
@@ -130,7 +137,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                   {lit === action.id ? mark : null}
 
                   <AnimatedIcon
-                    isPlaying={pointedAt === action.id}
+                    isPlaying={pointedAt === action.id && openAction !== action.id}
                     icon={
                       action.isCurrent === true ? (action.activeIcon ?? action.icon) : action.icon
                     }
@@ -163,7 +170,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                   {lit === action.id ? mark : null}
 
                   <AnimatedIcon
-                    isPlaying={pointedAt === action.id}
+                    isPlaying={pointedAt === action.id && openAction !== action.id}
                     icon={action.control}
                     {...(action.gesture === undefined ? {} : { gesture: action.gesture })}
                   />
