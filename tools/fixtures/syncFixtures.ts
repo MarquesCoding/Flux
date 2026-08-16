@@ -75,6 +75,12 @@ const entryFor = (fixture: Fixture, file: string, path: string): ManifestEntry =
  * previous run report two broken fixtures as present and zero bytes long, which is exactly the
  * "skipped mistaken for passed" that ADR-0012 forbids.
  *
+ * A checksum that does not match is a signal rather than a failure here, unlike a fetched fixture
+ * where it means somebody else's bytes changed underneath us. These bytes are ours: they differ
+ * legitimately between an arm64 laptop and an amd64 runner, and between one FFmpeg build and the
+ * next. What must hold is that a fixture is what the matrix claims, and that is asserted by probing
+ * it rather than by hashing it. So a mismatch rebuilds and says so.
+ *
  * @param fixture - What to build.
  * @param directory - Where the corpus lives.
  * @param force - Whether to rebuild a fixture that is already present.
@@ -94,19 +100,13 @@ const buildFixture = (
   if (!force && present) {
     const entry = entryFor(fixture, file, path);
 
-    if (recorded !== undefined && recorded.sha256 !== entry.sha256) {
-      return {
-        kind: 'failed',
-        reason: [
-          'checksum does not match the manifest.',
-          `  manifest ${recorded.sha256}`,
-          `  on disk  ${entry.sha256}`,
-          '  Rebuild it with --force if the FFmpeg build changed, or delete it if it was tampered with.',
-        ].join('\n'),
-      };
+    if (recorded === undefined || recorded.sha256 === entry.sha256) {
+      return { kind: 'kept', entry };
     }
 
-    return { kind: 'kept', entry };
+    process.stdout.write(
+      `  ~ ${fixture.name} differs from the manifest, rebuilding (a different FFmpeg build or architecture will do this)\n`,
+    );
   }
 
   const result = spawnSync(ffmpeg(), fixtureArguments(fixture, path), { encoding: 'utf8' });
