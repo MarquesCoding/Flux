@@ -28,7 +28,10 @@ const INTERVAL_UNITS = [
 type IntervalUnit = (typeof INTERVAL_UNITS)[number]['id'];
 
 /**
- * Reads an `HH:MM` field back into the numbers a trigger is stored with.
+ * Reads an `HH:MM` field back into the hours and minutes a trigger is stored as.
+ *
+ * @param value - What the time field holds.
+ * @returns The hour and minute.
  */
 const readClock = (value: string): { hour: number; minute: number } | null => {
   const match = /^(\d{1,2}):(\d{2})$/.exec(value);
@@ -43,8 +46,14 @@ const readClock = (value: string): { hour: number; minute: number } | null => {
 };
 
 /**
- * Adds one trigger to a job, Jellyfin's Add Trigger dialog style: pick what kind of trigger it is,
- * then answer only what that kind needs.
+ * Adds one trigger to a job: pick what kind it is — daily, weekly, on an interval, or when the server
+ * starts — and then answer only what that kind needs, rather than being shown every field a trigger
+ * of any kind could have.
+ *
+ * @param isOpen - Whether the dialog is showing.
+ * @param onAdd - Called with the trigger that was described.
+ * @param onClose - Called when it is dismissed.
+ * @param isSaving - Whether a trigger is being written, which holds the dialog open and inert.
  */
 const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTriggerDialogProps) => {
   const [type, setType] = useState<TriggerType>('daily');

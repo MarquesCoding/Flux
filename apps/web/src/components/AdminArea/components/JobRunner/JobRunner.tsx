@@ -32,8 +32,17 @@ const QUEUED_AS: Record<string, string[]> = {
 };
 
 /**
- * Lets an admin start any job on demand, or press into it to see how often it runs on its own —
- * Jellyfin's scheduled-tasks page style.
+ * Every job the server knows how to do, each with what it is for, whether it is running now and how
+ * far along, and a way to start or stop it by hand. Pressing into a job opens what makes it run on
+ * its own, so the list stays a list rather than becoming a page of settings.
+ *
+ * @param definitions - The jobs the server offers.
+ * @param libraries - The libraries a job can be run against.
+ * @param progress - What is running now, by library.
+ * @param working - What the queue is working on.
+ * @param onRun - Called with the job to start.
+ * @param onStop - Called with the job to stop.
+ * @param onOpenSchedule - Called with the job whose schedule is to be opened.
  */
 const JobRunner = ({
   definitions,

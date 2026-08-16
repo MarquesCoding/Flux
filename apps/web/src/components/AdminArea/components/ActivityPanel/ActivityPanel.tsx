@@ -5,7 +5,16 @@ import { CardHeader } from '@FluxUI/CardHeader';
 import type { ActivityPanelProps } from './ActivityPanel.types';
 
 /**
- * Who has the app open, and what they are watching.
+ * Who has the app open, what they are watching, and how well it is going for them — grouped by viewer
+ * rather than listed flat, since one person with several tabs open is one person. Carries the
+ * controls for intervening: stopping a session outright, or pausing it with a reason the viewer will
+ * be shown.
+ *
+ * @param sessions - Every session open at the moment.
+ * @param busyClientId - The session an instruction is in flight for, if any.
+ * @param onStop - Called with the session to stop.
+ * @param onPause - Called with the session to pause.
+ * @param onResume - Called with the session to let carry on.
  */
 const ActivityPanel = ({
   sessions,

@@ -25,7 +25,13 @@ const Row = ({ name, children }: RowProps) => (
 Row.displayName = 'Row';
 
 /**
- * What an admin can see about one tab's stream.
+ * Everything the server knows about one session's stream, shown to an administrator rather than to
+ * the viewer: what the file is, what the session is doing to it, how the machine is coping with it,
+ * and how much the viewer has buffered. The answer to "why does this one look bad".
+ *
+ * @param session - The session being examined.
+ * @param isOpen - Whether the dialog is showing.
+ * @param onClose - Called when it is dismissed.
  */
 const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProps) => {
   const { playback } = session;

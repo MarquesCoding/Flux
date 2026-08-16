@@ -11,7 +11,11 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { MediaPanelProps } from './MediaPanel.types';
 
 /**
- * What a row is called, which is the programme rather than the episode standing in for it.
+ * Names a row by its programme rather than by the episode standing in for it, so a series appears
+ * under its own name rather than under whichever episode happened to be first.
+ *
+ * @param item - The item the row is for.
+ * @returns What to call it.
  */
 const nameOf = (item: MediaSummary): string => item.seriesTitle ?? item.title;
 
@@ -19,7 +23,15 @@ const isSeries = (item: MediaSummary): boolean =>
   item.seriesTitle !== null && item.seriesTitle !== undefined;
 
 /**
- * Everything the libraries hold, and a way to say what one of them really is.
+ * Everything the libraries hold, searchable, with the two corrections an administrator can make to
+ * any of it: saying what a mismatched file really is, and rebuilding the previews and thumbnails
+ * made from it.
+ *
+ * @param isUnreachable - Whether the service is not answering.
+ * @param media - Everything the libraries hold.
+ * @param onCorrect - Called with the item whose match is to be corrected.
+ * @param onRebuildArtefacts - Called with the item whose previews and thumbnails are to be remade,
+ *   answering whether the request was accepted.
  */
 const MediaPanel = ({
   isUnreachable = false,

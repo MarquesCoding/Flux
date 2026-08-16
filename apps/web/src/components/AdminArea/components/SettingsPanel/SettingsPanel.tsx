@@ -10,7 +10,14 @@ import { accelerationOptions } from '@FluxWeb/components/AdminArea/accelerationO
 import type { SettingsPanelProps } from './SettingsPanel.types';
 
 /**
- * What the instance is configured with, and who can sign into it.
+ * What this server is configured with and who may sign into it: the metadata catalogue key, which
+ * encoder transcodes use, and the accounts on the server. Each setting says what it means in
+ * practice rather than only what it is set to, since most of them are invisible until something is
+ * slow or a title comes out wrong.
+ *
+ * @param overview - What the server reports about itself, or null before it has answered.
+ * @param onCatalogueKeySaved - Called once a catalogue key has been written.
+ * @param onHardwareAccelSaved - Called once the encoder choice has been written.
  */
 const SettingsPanel = ({
   overview,

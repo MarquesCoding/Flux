@@ -6,7 +6,13 @@ import { DialogTitle } from '@FluxUI/DialogTitle';
 import type { ResetLibrariesDialogProps } from './ResetLibrariesDialog.types';
 
 /**
- * Asks before a rebuild, because a rebuild cannot be asked to stop.
+ * Asks before rebuilding every library from nothing, because a rebuild cannot be asked to stop once
+ * started and everything the catalogue knew is discarded before anything is read back.
+ *
+ * @param isOpen - Whether the dialog is showing.
+ * @param isResetting - Whether the rebuild is already under way.
+ * @param onClose - Called when it is dismissed.
+ * @param onConfirm - Called when the rebuild is agreed to.
  */
 const ResetLibrariesDialog = ({
   isOpen,

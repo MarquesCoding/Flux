@@ -6,7 +6,14 @@ import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import type { DeliveryHistoryProps } from './DeliveryHistory.types';
 
 /**
- * What was sent lately, and how it went each time.
+ * What a subscription has been sent lately and how each attempt went, with a way to send any of them
+ * again. Redelivery is offered only where the subscription is still delivering — sending again to
+ * somewhere paused would go nowhere.
+ *
+ * @param deliveries - The attempts, most recent first.
+ * @param isLoading - Whether they are still being fetched.
+ * @param canRedeliver - Whether the subscription is in a state to be sent to again.
+ * @param onRedeliver - Called with the delivery to send again.
  */
 const DeliveryHistory = ({
   deliveries,

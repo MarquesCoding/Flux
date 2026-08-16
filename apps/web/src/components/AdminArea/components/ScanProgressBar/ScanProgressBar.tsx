@@ -9,7 +9,14 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 /**
- * How far through a scan actually is.
+ * How far through a scan something actually is: which stage it has reached, and how many files it has
+ * got through where it is counting them. A scan that reports no counts still shows movement rather
+ * than an empty bar, since the absence of a count is not the absence of progress.
+ *
+ * @param label - What is being worked on.
+ * @param phase - The stage it has reached, where it reports one.
+ * @param processed - How many files it has got through, where it counts them.
+ * @param total - How many there are in all, where that is known.
  */
 const ScanProgressBar = ({ label, phase, processed, total }: ScanProgressBarProps) => {
   const isKnown = processed !== null && total !== null;

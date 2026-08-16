@@ -7,7 +7,15 @@ import { cacheRows } from './cacheRows';
 import type { CacheBreakdownProps } from './CacheBreakdown.types';
 
 /**
- * What Flux itself is keeping on the disk.
+ * What Flux itself is keeping on the disk, a kind at a time: preview clips, scrub thumbnails,
+ * artwork, and what is being written for sessions running now. The library's own files are shown
+ * beside them for scale, since the useful question is usually how much Flux has added to what was
+ * already there.
+ *
+ * @param cache - What the monitor found on disk, or null while it is still counting.
+ * @param artwork - How much artwork has been fetched and kept.
+ * @param liveSessions - How many sessions are writing at the moment.
+ * @param library - How much the library itself holds, where that has been worked out.
  */
 const CacheBreakdown = ({ cache, artwork, liveSessions, library }: CacheBreakdownProps) => {
   const rows = cacheRows(cache, artwork, liveSessions, library);

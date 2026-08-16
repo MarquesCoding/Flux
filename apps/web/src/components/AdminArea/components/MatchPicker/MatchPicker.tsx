@@ -13,7 +13,13 @@ import type { CatalogueMatch } from '@FluxWeb/admin/fetchAdmin';
 import type { MatchPickerProps } from './MatchPicker.types';
 
 /**
- * Finds what a file should have been matched to, and says so.
+ * Corrects what the catalogue made of a file. Shows what it was matched to, offers a search of the
+ * catalogue to find what it should have been, and records the correction so that later scans keep it
+ * rather than guessing again from the filename.
+ *
+ * @param media - The item being corrected, or null when the picker is closed.
+ * @param onClose - Called when it is dismissed.
+ * @param onCorrected - Called once a correction is recorded, with the job refetching its details.
  */
 const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
   const isEpisode = media?.seriesTitle !== null && media?.seriesTitle !== undefined;

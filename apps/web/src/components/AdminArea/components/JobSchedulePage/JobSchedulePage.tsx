@@ -7,8 +7,13 @@ import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin';
 import type { JobSchedulePageProps } from './JobSchedulePage.types';
 
 /**
- * What makes one job run on its own, Jellyfin's scheduled-tasks page style — its own screen reached
- * by pressing into a job, rather than a control squeezed into its row in the list.
+ * What makes one job run on its own: the triggers set against it, a way to add another, and a way to
+ * remove one. Its own screen reached by pressing into a job rather than a control squeezed into that
+ * job's row, since a job may have any number of triggers and a row has space for none of them.
+ *
+ * @param triggers - What currently makes this job run.
+ * @param onAdd - Called with a trigger to add.
+ * @param onRemove - Called with the trigger to remove.
  */
 const JobSchedulePage = ({ triggers, onAdd, onRemove }: JobSchedulePageProps) => {
   const [isAdding, setIsAdding] = useState(false);

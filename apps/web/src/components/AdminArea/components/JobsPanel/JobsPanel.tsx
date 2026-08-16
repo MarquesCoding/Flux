@@ -12,7 +12,23 @@ import { JobSchedulePage } from '@FluxWeb/components/AdminArea/components/JobSch
 import type { JobsPanelProps } from './JobsPanel.types';
 
 /**
- * What can be started by hand, and what is running because something started it earlier.
+ * The Work tab: what can be started by hand, what is running because something started it earlier,
+ * and what each job's schedule is. Holds no state of its own — which job's schedule is open is
+ * decided above it, so that opening one is a place the browser can return to.
+ *
+ * @param isUnreachable - Whether the service is not answering.
+ * @param definitions - The jobs the server offers.
+ * @param libraries - The libraries a job can be run against.
+ * @param progress - What is running now, by library.
+ * @param monitor - The latest readings, or null before any have arrived.
+ * @param viewingJobKind - The job whose schedule is open, if any.
+ * @param schedules - What makes each job run on its own.
+ * @param onRun - Called with the job to start.
+ * @param onStop - Called with the job to stop.
+ * @param onOpenSchedule - Called with the job whose schedule is to be opened.
+ * @param onCloseSchedule - Called on going back to the list.
+ * @param onAddTrigger - Called with a job and a trigger to add to it.
+ * @param onRemoveTrigger - Called with a job and the trigger to remove from it.
  */
 const JobsPanel = ({
   isUnreachable = false,

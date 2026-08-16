@@ -23,7 +23,13 @@ const PRESET_LABELS: Record<WebhookPreset, string> = {
 const DEFAULT_EVENTS: WebhookEvent[] = ['job.failed'];
 
 /**
- * Everything needed to point the server at somewhere new.
+ * Everything needed to point the server at somewhere new: where to deliver, which events to deliver,
+ * and what to call it. Any refusal from the server is shown against the form rather than replacing
+ * it, so nothing already typed is lost to a rejected address.
+ *
+ * @param isOpen - Whether the dialog is showing.
+ * @param onClose - Called when it is dismissed.
+ * @param onCreate - Called with the subscription to make, answering with any refusal.
  */
 const AddWebhookDialog = ({ isOpen, onClose, onCreate }: AddWebhookDialogProps) => {
   const [name, setName] = useState('');

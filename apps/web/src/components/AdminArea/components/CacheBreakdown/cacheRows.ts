@@ -9,13 +9,27 @@ type CacheRow = {
 };
 
 /**
- * Says how many of something there are without saying "1 items".
+ * Counts something in words that read properly at one as well as at many, so a row says "1 clip"
+ * rather than "1 clips".
+ *
+ * @param count - How many there are.
+ * @param one - What one is called.
+ * @param many - What several are called.
+ * @returns The count and its noun.
  */
 const counted = (count: number, one: string, many: string): string =>
   count === 1 ? `1 ${one}` : `${count.toString()} ${many}`;
 
 /**
- * What is on the disk, a kind at a time.
+ * Builds the rows of the disk breakdown, one per kind of thing Flux keeps, each with its size and how
+ * many of it there are. Anything not yet counted is shown as still counting rather than as zero —
+ * zero is a claim, and the wrong one while a count is in progress.
+ *
+ * @param cache - What the monitor found on disk, or null while it is still counting.
+ * @param artwork - How much artwork has been fetched and kept.
+ * @param liveSessions - How many sessions are writing at the moment.
+ * @param library - How much the library itself holds, where that has been worked out.
+ * @returns The rows to show.
  */
 const cacheRows = (
   cache: Monitor['cache'],

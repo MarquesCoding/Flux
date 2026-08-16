@@ -7,7 +7,14 @@ type Acceleration = {
 };
 
 /**
- * What the next transcode will actually use.
+ * Says what the next transcode will actually use, and how much to worry about it. The interesting
+ * case is an encoder forced by hand that the machine never proved it has: every transcode silently
+ * falls back to software, which is the sort of thing that shows up as unexplained load rather than
+ * as an error.
+ *
+ * @param forced - The encoder chosen by hand, or an empty string for automatic.
+ * @param probed - The encoders this machine proved it can use.
+ * @returns What to call it, how alarming it is, and what it means in practice.
  */
 const describeAcceleration = (forced: string, probed: string[]): Acceleration => {
   if (forced === 'none') {

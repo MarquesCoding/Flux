@@ -125,7 +125,11 @@ const readJobSchedules = async (): Promise<Map<string, JobTrigger[]>> =>
   new Map((await fetchJobSchedules()).map((entry) => [entry.kind, entry.triggers]));
 
 /**
- * Trims what ffmpeg calls itself down to a version.
+ * Trims what FFmpeg calls itself down to a version, since it reports a paragraph of build
+ * configuration after the number and only the number belongs in a tile.
+ *
+ * @param reported - What the transcoder said FFmpeg calls itself.
+ * @returns The version alone, or a dash where there is nothing to trim.
  */
 const shortVersion = (reported: string | null): string => {
   if (reported === null) {
@@ -136,7 +140,19 @@ const shortVersion = (reported: string | null): string => {
 };
 
 /**
- * The server, as the person running it sees it.
+ * The server as the person running it sees it: the dashboard, what is being watched, the libraries
+ * and what they hold, the jobs, the settings and the webhooks. Owns the polling that keeps all of it
+ * current and the state that outlives any one panel, so that moving between panels neither restarts
+ * a scan's tracking nor refetches everything.
+ *
+ * Which panel is open, and which job's schedule within it, are held above this component rather than
+ * inside it, so that both are places the browser's address can name and return to.
+ *
+ * @param historyLength - How many readings to keep for the graphs.
+ * @param initialPanel - The panel to open, where the address named one.
+ * @param onPanelChange - Called with the panel that was opened.
+ * @param initialJob - The job whose schedule to open, where the address named one.
+ * @param onJobChange - Called with the job whose schedule was opened, or null on going back.
  */
 const AdminArea = ({
   historyLength = HISTORY_LENGTH,

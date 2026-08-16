@@ -40,7 +40,18 @@ const STARVED_SECONDS = 2;
 const TONE_ORDER: Record<ConcernTone, number> = { broken: 0, attention: 1, setup: 2 };
 
 /**
- * What is wrong with this server right now, worst first.
+ * Gathers everything wrong with this server into one ordered list, worst first: a service that cannot
+ * be reached, jobs that failed, resources under pressure, streams about to stall, and libraries
+ * nobody has scanned yet. Each carries the panel it can be dealt with in, so the banner can send an
+ * administrator straight there rather than describing where to look.
+ *
+ * @param overview - What the server reports about itself, or null before it has answered.
+ * @param monitor - The live readings, or null before any have arrived.
+ * @param libraries - The libraries configured.
+ * @param sessions - What is being watched at the moment.
+ * @param history - Recent processor readings, used to tell a spike from sustained load.
+ * @param encoderHistory - The same for the graphics encoder.
+ * @returns The concerns, broken things before things merely wanting attention.
  */
 const collectConcerns = ({
   overview,

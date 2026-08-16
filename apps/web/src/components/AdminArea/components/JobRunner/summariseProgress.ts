@@ -9,7 +9,12 @@ type ProgressSummary = {
 };
 
 /**
- * How far along a stage is, where a job reports one per library it is working through.
+ * Ranks a stage by how early it comes in a job's run, so that several libraries at different stages
+ * can be compared. A stage nobody recognises ranks last rather than first, since an unknown stage is
+ * more likely to be a new one added at the end than the very beginning.
+ *
+ * @param phase - The stage, or null where a job reports none.
+ * @returns Its rank, lower being earlier.
  */
 const rankOf = (phase: string | null): number => {
   if (phase === null) {
@@ -22,7 +27,13 @@ const rankOf = (phase: string | null): number => {
 };
 
 /**
- * Folds every library's progress on one job into the single bar its row shows.
+ * Folds every library's progress on one job into the single bar its row shows. Reports the earliest
+ * stage any library is still on rather than an average, because a job is only as far along as its
+ * furthest-behind part, and counts only the libraries on that stage — adding a count from one stage
+ * to a count from another produces a number that means nothing.
+ *
+ * @param entries - What each library working on this job reports.
+ * @returns The stage and the counts to show, or null where nothing is running.
  */
 const summariseProgress = (entries: ScanEntry[]): ProgressSummary | null => {
   if (entries.length === 0) {

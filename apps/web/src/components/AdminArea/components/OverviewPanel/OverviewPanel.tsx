@@ -18,7 +18,16 @@ import type { StorageCount } from '@FluxWeb/admin/fetchAdmin';
 import type { OverviewPanelProps } from './OverviewPanel.types';
 
 /**
- * One region of the dashboard.
+ * One region of the dashboard: a heading, an optional action in its corner, and whatever the region
+ * shows. Exists so that every region is the same shape and spacing without each rebuilding it.
+ *
+ * @param title - What the region is called.
+ * @param action - What its corner control does, where it has one.
+ * @param onAction - Called when that control is pressed.
+ * @param actionIcon - The icon on that control.
+ * @param isActionBusy - Whether that control's work is in flight.
+ * @param children - What the region shows.
+ * @param className - Anything extra the layout needs of it.
  */
 const Region = ({
   title,
@@ -64,7 +73,17 @@ const Region = ({
 Region.displayName = 'Region';
 
 /**
- * The state of the server at a glance.
+ * The state of the server at a glance: what needs a person, what is being watched, what the machine
+ * is doing, what the libraries hold, and what is on the disk. Everything here is a summary with a
+ * way through to the panel that can act on it, so the dashboard answers "is anything wrong" without
+ * trying to be the place anything is fixed.
+ *
+ * @param overview - What the server reports about itself, or null before it has answered.
+ * @param monitor - The latest readings, or null before any have arrived.
+ * @param libraries - The libraries configured.
+ * @param sessions - What is being watched at the moment.
+ * @param history - Recent processor readings, for the graph and for telling a spike from load.
+ * @param onOpenPanel - Called with the panel to open.
  */
 const OverviewPanel = ({
   overview,

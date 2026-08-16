@@ -9,7 +9,15 @@ import { SessionStatsDialog } from '@FluxWeb/components/AdminArea/components/Ses
 import type { SessionCardProps } from './SessionCard.types';
 
 /**
- * One open tab, across rather than down.
+ * One open session: who has it, on what device, what they are watching, how far through they are, and
+ * how the stream is faring. Carries the controls for intervening in it, and a way through to
+ * everything the server knows about the stream for anybody asking why it is struggling.
+ *
+ * @param session - The session.
+ * @param isBusy - Whether an instruction for it is in flight.
+ * @param onStop - Called to stop it.
+ * @param onPause - Called to pause it.
+ * @param onResume - Called to let it carry on.
  */
 const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCardProps) => {
   const { playback } = session;

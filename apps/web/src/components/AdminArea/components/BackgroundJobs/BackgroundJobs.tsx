@@ -8,7 +8,11 @@ import type { Job } from '@FluxWeb/admin/fetchAdmin';
 import type { BackgroundJobsProps } from './BackgroundJobs.types';
 
 /**
- * What the queue is saying, as one string.
+ * Sums up what the queue is doing in one line, so the heading says whether anything is happening
+ * before anybody reads the table under it.
+ *
+ * @param monitor - The latest readings, or null before any have arrived.
+ * @returns The line to show.
  */
 const describeQueue = (jobs: Job[]): string =>
   jobs
@@ -28,7 +32,13 @@ const JOB_TONES: Record<Job['state'], 'quiet' | 'accent' | 'solid'> = {
 };
 
 /**
- * What the queue has been doing, as one table.
+ * What the queue has been doing, as one paged table: what ran, how it ended, how long it took, and
+ * what went wrong where something did. This is the record rather than the controls — starting and
+ * stopping work lives with the jobs themselves.
+ *
+ * @param monitor - The latest readings, or null before any have arrived.
+ * @param isUnreachable - Whether the service is not answering, which is why the table is empty.
+ * @param pageSize - How many rows to show at once.
  */
 const BackgroundJobs = ({ monitor, isUnreachable = false, pageSize }: BackgroundJobsProps) => {
   const arrived = monitor?.queue.jobs ?? NOTHING_QUEUED;

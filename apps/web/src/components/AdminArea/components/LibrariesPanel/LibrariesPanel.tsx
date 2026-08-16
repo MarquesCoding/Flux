@@ -29,7 +29,22 @@ import type { Library } from '@FluxContracts/schemas/Library';
 import type { LibrariesPanelProps } from './LibrariesPanel.types';
 
 /**
- * The folders Flux reads, and what it is doing to them.
+ * The folders Flux reads and what it is doing to them: adding one, scanning one or all of them,
+ * rebuilding from nothing, regenerating previews, and each library's own settings. Progress is shown
+ * against the library it belongs to rather than in one list, since which library is being worked on
+ * is usually the thing worth knowing.
+ *
+ * @param isUnreachable - Whether the service is not answering.
+ * @param libraries - The libraries configured.
+ * @param progress - What is running now, by library.
+ * @param isScanningAll - Whether a scan of every library is under way.
+ * @param isResettingAll - Whether a rebuild of every library is under way.
+ * @param onScan - Called with the library to scan, and whether to re-probe every file.
+ * @param onScanAll - Called to scan every library.
+ * @param onResetAll - Called to rebuild every library from nothing.
+ * @param onRegeneratePreviews - Called with the library whose previews are to be remade.
+ * @param onLibraryCreated - Called with a library that has just been added.
+ * @param onLibraryUpdated - Called with a library whose settings have changed.
  */
 const LibrariesPanel = ({
   isUnreachable = false,

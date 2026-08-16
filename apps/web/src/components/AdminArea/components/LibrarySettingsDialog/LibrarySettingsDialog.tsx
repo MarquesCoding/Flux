@@ -48,7 +48,15 @@ const buildLanguageOptions = (): LanguageOption[] => {
 };
 
 /**
- * A library's settings, opened from clicking its name.
+ * A library's own settings: what it is called, where it reads from, how many files it converts at
+ * once, and which language its previews are made in. Changing the preview language offers to remake
+ * the previews already there, since the setting alone would leave the library in two languages.
+ *
+ * @param library - The library being changed, or null when the dialog is closed.
+ * @param isOpen - Whether the dialog is showing.
+ * @param onClose - Called when it is dismissed.
+ * @param onUpdated - Called with the library once its settings have been written.
+ * @param onRegenerate - Called with the library whose previews are to be remade.
  */
 const LibrarySettingsDialog = ({
   library,

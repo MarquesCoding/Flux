@@ -11,7 +11,12 @@ const TONE_CLASSES: Record<ConcernTone, string> = {
 };
 
 /**
- * What needs a person, above everything else.
+ * What needs a person, above everything else on the admin page. Each concern is pressable and opens
+ * the panel it can be dealt with in, so being told about a problem and getting to it are one gesture
+ * rather than two.
+ *
+ * @param concerns - What is wrong, worst first.
+ * @param onOpenPanel - Called with the panel a concern is dealt with in.
  */
 const ConcernsBanner = ({ concerns, onOpenPanel }: ConcernsBannerProps) => {
   if (concerns.length === 0) {
