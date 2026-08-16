@@ -87,7 +87,14 @@ const MediaItemSchema = z.object({
     ),
   videoFrameRate: z.number().positive().nullish(),
   videoIsInterlaced: z.boolean().default(false),
-  videoRefFrames: z.number().int().positive().nullish(),
+  videoRefFrames: z
+    .number()
+    .int()
+    .positive()
+    .nullish()
+    .describe(
+      'How many frames the decoder must keep. Only meaningful for H.264: ffprobe reports a flat 1 for HEVC whatever the stream holds, so a ceiling never refuses an HEVC source.',
+    ),
   videoPixelAspect: z
     .string()
     .nullish()

@@ -127,6 +127,13 @@ pub struct VideoStream {
     ///
     /// Only known once a frame has been read, because it comes from the
     /// decoder rather than the container.
+    ///
+    /// Meaningful for H.264 and not for HEVC: ffprobe reports the real count
+    /// for the first and a flat 1 for the second, whatever the stream holds.
+    /// Measured on a 4K HEVC remux that reports 1 beside an H.264 fixture
+    /// encoded with nine that reports nine. A ceiling therefore never refuses
+    /// an HEVC source, which fails open rather than shut and is the right way
+    /// round for a fact we cannot read.
     pub ref_frames: Option<u32>,
     /// The shape of a pixel, where it is not square.
     ///
