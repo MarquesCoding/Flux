@@ -118,6 +118,24 @@ describe('negotiatePlayback', () => {
     expect(plan.video.reason.code).toBe('VideoBitrateAboveLimit');
   });
 
+  it('encodes near what the source spends rather than at what the client would allow', () => {
+    const modest = { ...media, bitrateKbps: 8900, videoCodec: 'hevc' as const };
+    const roomy: DeviceProfile = { ...profile, maxBitrateKbps: 20000, tenBitVideoCodecs: [] };
+
+    const plan = negotiatePlayback(modest, { ...roomy, supportedVideoRanges: ['SDR'] });
+
+    expect(plan.video).toMatchObject({ kind: 'transcode', codec: 'h264', maxBitrateKbps: 14833 });
+  });
+
+  it('never asks for more than the client said it can carry', () => {
+    const heavy = { ...media, bitrateKbps: 18000, videoCodec: 'hevc' as const };
+    const capped: DeviceProfile = { ...profile, maxBitrateKbps: 20000 };
+
+    const plan = negotiatePlayback(heavy, { ...capped, supportedVideoRanges: ['SDR'] });
+
+    expect(plan.video).toMatchObject({ kind: 'transcode', maxBitrateKbps: 20000 });
+  });
+
   it('tone maps to SDR only when the client cannot render the source range', () => {
     const sdrOnly: DeviceProfile = { ...profile, supportedVideoRanges: ['SDR'] };
 
