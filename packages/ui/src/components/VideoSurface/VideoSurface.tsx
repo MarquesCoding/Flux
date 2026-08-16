@@ -3,7 +3,21 @@ import { cn } from '@FluxUI/cn';
 import type { VideoSurfaceProps } from './VideoSurface.types';
 
 /**
- * The video element itself, and nothing else.
+ * The one place a `<video>` element is written. Owns the element and its events and nothing else —
+ * no controls, no chrome, no session handling — so the player above it can be rebuilt without the
+ * picture ever being torn down and remounted.
+ *
+ * @param src - What to play.
+ * @param label - What is playing, read out to anybody who cannot see it.
+ * @param videoRef - A handle on the element, for the player that drives it.
+ * @param poster - A frame to show before playback starts.
+ * @param textTrack - The subtitle track to attach, where one is selected.
+ * @param onTimeUpdate - Told the position as it moves.
+ * @param onDurationChange - Told the length once the file says what it is.
+ * @param onPlayingChange - Told when playback starts or stops.
+ * @param onEnded - Told when the file reaches its end.
+ * @param loops - Whether to start again at the end, for a preview rather than a film.
+ * @param className - Extra classes for the caller's own layout.
  */
 const VideoSurface = ({
   label,

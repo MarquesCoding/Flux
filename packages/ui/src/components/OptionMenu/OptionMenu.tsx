@@ -14,7 +14,14 @@ const POPUP_MOTION = [
 ].join(' ');
 
 /**
- * A menu of mutually exclusive choices, in one or more columns.
+ * A menu of choices where exactly one is in force — an audio track, a quality, a sort order. Shows
+ * which is chosen rather than only changing what is beneath it, and lays out in columns where there
+ * are more options than a single list would read well.
+ *
+ * @param label - What is being chosen, read out to anybody who cannot see the menu.
+ * @param trigger - The control that opens it.
+ * @param columns - The choices, in one or more named columns.
+ * @param className - Extra classes for the caller's own layout.
  */
 const OptionMenu = ({
   label,

@@ -6,7 +6,18 @@ import { cn } from '@FluxUI/cn';
 import type { NavDockProps } from './NavDock.types';
 
 /**
- * The one bar, floating.
+ * The platform's one navigation bar, floating at the foot of the window: the places in the middle,
+ * the tools at the right, divided by a hairline rather than by empty space so it reads as one bar
+ * rather than two. A single mark rests on where you are, follows the pointer to whatever it passes
+ * over, and returns when the pointer leaves. At the foot rather than the head because the top of a
+ * page is where the thing being looked at introduces itself.
+ *
+ * @param brand - The mark at the head of the dock.
+ * @param items - The places, in the order they are shown.
+ * @param selectedId - Which place is being stood on.
+ * @param onSelect - Told which place was chosen.
+ * @param actions - The tools at the right, which do something rather than going somewhere.
+ * @param className - Extra classes for the caller's own layout.
  */
 const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }: NavDockProps) => {
   const [pointedAt, setPointedAt] = useState<string | null>(null);

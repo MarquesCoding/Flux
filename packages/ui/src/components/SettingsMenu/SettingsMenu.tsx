@@ -28,7 +28,12 @@ const ROW =
 const SLIDE = 28;
 
 /**
- * What a row is currently set to.
+ * Reads what a row is currently set to, for the answer shown at its right — the chosen label for a
+ * row of choices, the detail for a row that leads somewhere, and nothing at all for a toggle, whose
+ * switch already says it.
+ *
+ * @param row - The row being read.
+ * @returns The answer to show, or null where the row shows its own state.
  */
 const answerOf = (row: SettingsRow): string | null => {
   if (row.kind === 'choice') {
@@ -39,13 +44,27 @@ const answerOf = (row: SettingsRow): string | null => {
 };
 
 /**
- * Whether a row leads somewhere rather than doing something in place.
+ * Decides whether a row leads somewhere — to a list of choices or a panel — rather than doing
+ * something where it stands, which is what decides whether it gets an arrow.
+ *
+ * @param row - The row being asked about.
+ * @returns Whether pressing it opens something further.
  */
 const opensSomething = (row: SettingsRow): row is SettingsChoiceRow | SettingsPanelRow =>
   row.kind === 'choice' || row.kind === 'panel';
 
 /**
- * Everything about what is playing, behind one control.
+ * Everything about what is playing, behind one control: audio tracks, subtitles, quality, speed,
+ * captions. Rows lead to their own panels rather than expanding in place, so the menu stays one
+ * column wide over a picture rather than growing across it.
+ *
+ * @param label - What the menu is, read out to anybody who cannot see it.
+ * @param trigger - The control that opens it.
+ * @param triggerWhenOpen - What that control becomes while the menu is open.
+ * @param rows - The settings, each a choice, a toggle or a panel.
+ * @param onOpenChange - Told when the menu opens or closes.
+ * @param isDisabled - Whether it can be opened at all.
+ * @param className - Extra classes for the caller's own layout.
  */
 const SettingsMenu = ({
   label,

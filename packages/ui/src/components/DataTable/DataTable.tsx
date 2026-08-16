@@ -15,7 +15,19 @@ const ROWS_A_PAGE = 25;
 const NEAR_THE_END = 200;
 
 /**
- * A table of things, sortable, with the highlight that follows the pointer.
+ * A table of things that can be sorted by any column and paged through, with the single highlight
+ * that follows the pointer down the rows. Rows can lead somewhere; where they do, the whole row is
+ * the press target rather than a link inside it.
+ *
+ * @param label - What the table lists, read out to anybody who cannot see it.
+ * @param columns - The columns, each saying how to read a row and whether it can be sorted by.
+ * @param rows - The things to list.
+ * @param emptyMessage - What to say when there are none, rather than showing an empty grid.
+ * @param onChooseRow - Told which row was pressed, where rows lead somewhere.
+ * @param toolbar - Controls to sit above the table, such as a search box.
+ * @param pageSize - How many rows to show at once.
+ * @param growsOnScroll - Whether reaching the bottom loads more rather than paging.
+ * @param className - Extra classes for the caller's own layout.
  */
 const DataTable = <Row extends RowData>({
   label,

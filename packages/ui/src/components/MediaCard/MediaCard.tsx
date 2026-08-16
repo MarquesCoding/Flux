@@ -13,7 +13,21 @@ const SHAPE_CLASSES: Record<MediaCardShape, string> = {
 };
 
 /**
- * One item in a library.
+ * One thing in a library, drawn as artwork with its name beneath. Carries how far through it
+ * somebody is as a bar across the foot, and takes its shape from what it holds — a poster stands
+ * upright, a still lies flat. The whole card is the press target rather than the title alone.
+ *
+ * @param title - What the thing is called.
+ * @param eyebrow - A line above the title, such as which episode this is.
+ * @param subtitle - A line beneath it, such as the year or the length.
+ * @param badges - Short facts to show over the artwork, such as the format.
+ * @param imageUrl - The artwork, where any has been fetched.
+ * @param shape - Whether the artwork stands upright or lies flat.
+ * @param emphasis - How much the card should draw the eye.
+ * @param watchedFraction - How far through it this viewer is, drawn as a bar.
+ * @param onSelect - Told when the card was pressed.
+ * @param isStill - Whether to hold the card still rather than letting it lift under a pointer.
+ * @param className - Extra classes for the caller's own layout.
  */
 const MediaCard = ({
   title,

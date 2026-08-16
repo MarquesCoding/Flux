@@ -7,7 +7,15 @@ import { PageDots } from '@FluxUI/PageDots';
 import type { RailProps } from './Rail.types';
 
 /**
- * A horizontally scrolling row of items.
+ * One titled row of a library, scrolling sideways rather than wrapping, which is how a shelf is
+ * read: along, not down. The title can lead somewhere when there is more than the row shows, and the
+ * caller can hang a control off the right of it.
+ *
+ * @param title - What the row holds.
+ * @param children - The cards in it.
+ * @param action - A control for the right of the title bar, such as a way to see everything.
+ * @param onOpenTitle - Told when the title was pressed, where the row leads somewhere fuller.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Rail = ({ title, children, action, onOpenTitle, className }: RailProps) => {
   const { trackRef, pages, measure, scrollTo } = usePagedScroller<HTMLUListElement>([children]);

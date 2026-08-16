@@ -32,7 +32,12 @@ const isSamePlace = (left: HighlightRect | null, right: HighlightRect): boolean 
   left.height === right.height;
 
 /**
- * Where an item sits inside its container, in the container's own coordinates.
+ * Measures where an item sits inside its container, in the container's own coordinates rather than
+ * the page's, so the highlight can be positioned without knowing where the container is.
+ *
+ * @param item - The item being measured.
+ * @param container - What it sits inside.
+ * @returns The position and size to draw the highlight at.
  */
 const measure = (item: Element, container: Element): HighlightRect => {
   const bounds = item.getBoundingClientRect();

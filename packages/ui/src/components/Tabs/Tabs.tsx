@@ -3,7 +3,14 @@ import { cn } from '@FluxUI/cn';
 import type { TabsProps } from './Tabs.types';
 
 /**
- * A set of panels, one of which is showing, and the bar that chooses between them.
+ * Holds which of a set of panels is showing, and hands that down to the bar and the panels so
+ * neither has to know about the other. Controlled rather than holding its own state, since which tab
+ * is open usually belongs in the address.
+ *
+ * @param value - Which tab is showing.
+ * @param onValueChange - Told which tab was chosen.
+ * @param children - The bar and the panels.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Tabs = ({ value, onValueChange, children, className }: TabsProps) => (
   <BaseTabs.Root

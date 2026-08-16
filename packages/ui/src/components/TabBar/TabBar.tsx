@@ -3,7 +3,13 @@ import { cn } from '@FluxUI/cn';
 import type { TabBarProps } from './TabBar.types';
 
 /**
- * Words across the top that choose what is beneath them.
+ * The words across the top of a set of panels that choose which one is beneath them. Pairs with
+ * `Tabs`, which holds which is chosen, so the bar can sit anywhere in the layout rather than
+ * immediately above the panel it controls.
+ *
+ * @param tabs - The tabs, each with what it is called.
+ * @param label - What the set of tabs is for, read out to anybody who cannot see it.
+ * @param className - Extra classes for the caller's own layout.
  */
 const TabBar = ({ tabs, label, className }: TabBarProps) => (
   <Tabs.List

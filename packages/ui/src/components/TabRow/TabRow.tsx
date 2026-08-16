@@ -3,7 +3,13 @@ import { cn } from '@FluxUI/cn';
 import type { TabRowProps } from './TabRow.types';
 
 /**
- * A row of places, as pills.
+ * A row of places drawn as pills, for a set of destinations rather than a set of panels — the
+ * distinction being that these change where you are, not what is under a bar. Items can be grouped,
+ * with a hairline between the groups.
+ *
+ * @param groups - The places, in groups.
+ * @param label - What the row is for, read out to anybody who cannot see it.
+ * @param className - Extra classes for the caller's own layout.
  */
 const TabRow = ({ label, groups, className }: TabRowProps) => (
   <Tabs.List

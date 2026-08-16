@@ -1,7 +1,10 @@
 import { useSyncExternalStore } from 'react';
 
 /**
- * Watches for the page entering or leaving fullscreen.
+ * Subscribes to the page entering or leaving fullscreen, so anything portalled can be told to move.
+ *
+ * @param onChange - Told whenever the fullscreen element changes.
+ * @returns The function that stops watching.
  */
 const subscribe = (onChange: () => void): (() => void) => {
   document.addEventListener('fullscreenchange', onChange);

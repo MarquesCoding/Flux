@@ -29,7 +29,10 @@ const EASE = 0.03;
 const PARALLAX = 0.34;
 
 /**
- * How the light for one bloom is written.
+ * Writes one light as the CSS gradient that paints it, at the position and colour it was given.
+ *
+ * @param light - The colour and where it sits.
+ * @returns The gradient, as CSS.
  */
 const paint = (light: MoodLight, at: number): string => {
   const bloom = BLOOMS[at] ?? BLOOMS[0];
@@ -38,7 +41,13 @@ const paint = (light: MoodLight, at: number): string => {
 };
 
 /**
- * The light a page is under.
+ * Lights the page from behind with colours taken from whatever is on screen, so a library of a film
+ * is lit by that film. The lights drift slowly rather than holding still, and can carry a grid over
+ * them for the pages that want structure behind the artwork.
+ *
+ * @param lights - The colours and where they sit.
+ * @param hasGrid - Whether to lay a grid over them.
+ * @param isDrifting - Whether the lights move, or hold where they are.
  */
 const MoodBackground = ({
   lights = [],

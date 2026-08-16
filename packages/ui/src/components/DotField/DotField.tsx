@@ -22,7 +22,11 @@ const FADE_BY = 0.92;
 const LEVELS = 10;
 
 /**
- * How bright a dot is at a point in its cycle.
+ * Works out how bright one dot is at a point in a ripple's cycle, fading up and back down so a
+ * ripple has no hard edge.
+ *
+ * @param phase - How far through its cycle this dot is, from nothing to one.
+ * @returns The brightness to draw it at.
  */
 const brightnessAt = (phase: number): number => {
   if (phase > WINDOW) {
@@ -35,7 +39,14 @@ const brightnessAt = (phase: number): number => {
 };
 
 /**
- * A field of dots that ripples.
+ * Draws a field of dots with ripples running through it, as the backdrop for a screen with nothing
+ * else on it yet — sign-in, setup, an empty library. Movement rather than a static pattern, so a
+ * screen that is waiting looks alive rather than stalled.
+ *
+ * @param spacing - How far apart the dots sit, in pixels.
+ * @param sources - How many ripples run at once.
+ * @param seconds - How long one ripple takes to cross.
+ * @param className - Extra classes for the caller's own layout.
  */
 const DotField = ({
   spacing = SPACING,

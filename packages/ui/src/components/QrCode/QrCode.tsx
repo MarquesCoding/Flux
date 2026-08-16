@@ -6,7 +6,14 @@ import type { QrCodeProps } from './QrCode.types';
 const DEFAULT_SIZE = 192;
 
 /**
- * Renders a value as a scannable QR code.
+ * Draws a value as a QR code, for handing something to a phone that would be miserable to type —
+ * a sign-in address, a pairing code. Rendered here rather than fetched, so nothing about it leaves
+ * the server.
+ *
+ * @param value - What the code should carry.
+ * @param label - What scanning it does, for anybody who cannot see the code.
+ * @param size - How large to draw it, in pixels.
+ * @param className - Extra classes for the caller's own layout.
  */
 const QrCode = ({ value, label, size = DEFAULT_SIZE, className }: QrCodeProps) => {
   const [dataUrl, setDataUrl] = useState<string | null>(null);

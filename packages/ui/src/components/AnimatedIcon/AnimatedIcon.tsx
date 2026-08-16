@@ -38,7 +38,15 @@ const WIPES: Partial<Record<IconGesture, Variants>> = {
 };
 
 /**
- * An icon that answers a pointer.
+ * An icon that answers a pointer with a movement saying what pressing it would do — the cog turns,
+ * the bell rings, the heart fills. A row of icons is a row of nouns until one of them moves, and the
+ * movement is what turns the mark into the verb it stands for. Nothing moves at all for somebody who
+ * has asked their system for less movement.
+ *
+ * @param gesture - How it should move, defaulting to a small rise and nothing else.
+ * @param isPlaying - Whether the gesture should be running, which the surrounding control decides.
+ * @param icon - The icon as it rests.
+ * @param activeIcon - Its filled twin, which the filling gestures reveal over it.
  */
 const AnimatedIcon = ({ gesture = 'settle', isPlaying, icon, activeIcon }: AnimatedIconProps) => {
   const prefersReducedMotion = useReducedMotion();

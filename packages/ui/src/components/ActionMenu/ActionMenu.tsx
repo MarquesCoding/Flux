@@ -12,7 +12,15 @@ const POPUP_MOTION = cn(
 );
 
 /**
- * A menu of things to do, rather than a value to pick.
+ * A menu of things to do — rename, rescan, delete — rather than a value to pick, which is what an
+ * option menu is for. Items can be grouped, marked destructive so they read as dangerous before they
+ * are pressed, and disabled with the reason still visible.
+ *
+ * @param label - What the menu is, read out to anybody who cannot see it.
+ * @param trigger - The control that opens it.
+ * @param groups - The items, in groups separated by a rule.
+ * @param align - Which edge of the trigger the menu lines up with.
+ * @param className - Extra classes for the caller's own layout.
  */
 const ActionMenu = ({
   label,

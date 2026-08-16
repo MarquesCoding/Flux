@@ -13,7 +13,13 @@ const RADIUS_CLASSES = {
 } as const;
 
 /**
- * The background that follows the pointer.
+ * The single background that follows a pointer down a menu or a table, moving between rows rather
+ * than appearing on each in turn. Takes the position measured by whatever owns the rows, since only
+ * that knows where they are.
+ *
+ * @param rect - Where the highlight should sit, or null to show none at all.
+ * @param radius - How round its corners are, which should match the rows it moves between.
+ * @param className - Extra classes for the caller's own layout.
  */
 const HoverHighlight = ({ rect, radius = 'md', className }: HoverHighlightProps) => {
   const prefersReducedMotion = useReducedMotion();

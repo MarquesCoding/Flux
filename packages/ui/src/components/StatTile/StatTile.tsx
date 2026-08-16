@@ -3,7 +3,17 @@ import { cn } from '@FluxUI/cn';
 import type { StatTileProps } from './StatTile.types';
 
 /**
- * One figure about the server, said plainly.
+ * One figure about the server, said plainly and large: the number first, then what it means. Can
+ * carry a fraction as a bar and a history as a line, for figures that only mean something against a
+ * limit or against themselves an hour ago.
+ *
+ * @param label - What the figure is.
+ * @param value - The figure itself, formatted for reading.
+ * @param detail - A line qualifying it, such as what it is out of.
+ * @param icon - Something to draw beside it.
+ * @param fraction - How full, where the figure is part of a fixed whole.
+ * @param history - A chart of the same figure over time.
+ * @param className - Extra classes for the caller's own layout.
  */
 const StatTile = ({ label, value, detail, icon, fraction, history, className }: StatTileProps) => (
   <Card padding="none" className={cn('h-full overflow-hidden', className)}>

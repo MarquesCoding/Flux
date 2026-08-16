@@ -28,7 +28,15 @@ const OPEN_DELAY_MILLISECONDS = 70;
 const CLOSE_DELAY_MILLISECONDS = 180;
 
 /**
- * The bar of sections at the top of an area, where a family opens as one.
+ * The bar across the top of an area — the admin pages, an account — where related sections are
+ * grouped so a family of pages opens as one thing rather than as five siblings. Carries the same
+ * travelling mark the dock uses.
+ *
+ * @param groups - The sections, in groups.
+ * @param value - Which section is showing.
+ * @param onValueChange - Told which section was chosen.
+ * @param label - What the bar is for, read out to anybody who cannot see it.
+ * @param className - Extra classes for the caller's own layout.
  */
 const SectionBar = ({ label, groups, value, onValueChange, className }: SectionBarProps) => {
   const portalContainer = usePortalContainer();
@@ -39,7 +47,13 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
   const [opened, setOpened] = useState<string | null>(null);
 
   /**
-   * What each pill is called for the purposes of the mark.
+   * Names the group a pill belongs to, which is what the travelling mark moves between — a family of
+   * sections is one destination as far as the mark is concerned, so moving within a family does not
+   * send it sliding.
+   *
+   * @param groupIndex - Which group the pill sits in.
+   * @param itemId - The pill itself, used where its group has no name.
+   * @returns The name to treat the pill as, for the purposes of the mark.
    */
   const nameOf = (groupIndex: number, itemId: string): string =>
     groups[groupIndex]?.label ?? itemId;
