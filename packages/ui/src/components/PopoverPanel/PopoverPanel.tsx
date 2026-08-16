@@ -1,5 +1,6 @@
 import { Popover } from '@base-ui/react/popover';
 import { cn } from '@FluxUI/cn';
+import { POPUP_MOTION } from '@FluxUI/animations/popup';
 import { Tooltip } from '@FluxUI/Tooltip';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { PopoverPanelProps } from './PopoverPanel.types';
@@ -63,6 +64,7 @@ const PopoverPanel = ({
             aria-label={label}
             className={cn(
               'flux-glass flex max-h-[70vh] flex-col overflow-hidden rounded-2xl p-3 text-white',
+              POPUP_MOTION,
               className,
             )}
           >

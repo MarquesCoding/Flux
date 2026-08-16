@@ -5,6 +5,7 @@ type IconGesture = 'spin' | 'ring' | 'tumble' | 'fill' | 'settle';
 type AnimatedIconProps = {
   gesture?: IconGesture;
   isPlaying: boolean;
+  isStilled?: boolean;
   icon: ReactNode;
   activeIcon?: ReactNode;
 };

@@ -83,4 +83,20 @@ describe('PopoverPanel', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(PopoverPanel.displayName).toBe('PopoverPanel');
   });
+  it('arrives the way every other anchored panel does', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PopoverPanel label="Notifications" side="bottom" trigger={<span data-testid="bell" />}>
+        <span>Inside the panel</span>
+      </PopoverPanel>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+
+    const panel = await screen.findByRole('dialog', { name: 'Notifications' });
+
+    expect(panel.className).toContain('data-[starting-style]:scale-95');
+    expect(panel.className).toContain('origin-[var(--transform-origin)]');
+  });
 });
