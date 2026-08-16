@@ -13,10 +13,11 @@ import type { NavDockProps } from './NavDock.types';
  * over, and returns when the pointer leaves. At the foot rather than the head because the top of a
  * page is where the thing being looked at introduces itself.
  *
- * An action whose control has a panel open holds still while it is open. The gesture is a hover
- * affordance saying what pressing an icon would do, and a popover is anchored to the icon that
- * opened it — so an icon that kept moving would drag the open panel around at exactly the moment
- * somebody is reaching for it.
+ * An action whose control has a panel open is held still while it is open — not merely stopped.
+ * The gesture is a hover affordance saying what pressing an icon would do, and a popover is anchored
+ * to the icon that opened it. Stopping a gesture half-played animates it back to rest, and that
+ * return journey shoves the panel exactly as the gesture would have; opening a panel part-way
+ * through a hover is the common case, not the rare one.
  *
  * @param brand - The mark at the head of the dock.
  * @param items - The places, in the order they are shown.
@@ -137,7 +138,8 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                   {lit === action.id ? mark : null}
 
                   <AnimatedIcon
-                    isPlaying={pointedAt === action.id && openAction !== action.id}
+                    isPlaying={pointedAt === action.id}
+                    isStilled={openAction === action.id}
                     icon={
                       action.isCurrent === true ? (action.activeIcon ?? action.icon) : action.icon
                     }
@@ -170,7 +172,8 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                   {lit === action.id ? mark : null}
 
                   <AnimatedIcon
-                    isPlaying={pointedAt === action.id && openAction !== action.id}
+                    isPlaying={pointedAt === action.id}
+                    isStilled={openAction === action.id}
                     icon={action.control}
                     {...(action.gesture === undefined ? {} : { gesture: action.gesture })}
                   />

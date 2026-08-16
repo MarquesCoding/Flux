@@ -1,15 +1,10 @@
 import { Menu } from '@base-ui/react/menu';
 import { cn } from '@FluxUI/cn';
+import { POPUP_MOTION } from '@FluxUI/animations/popup';
 import { HoverHighlight } from '@FluxUI/HoverHighlight';
 import { useSlidingHighlight } from '@FluxUI/useSlidingHighlight';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { ActionMenuProps } from './ActionMenu.types';
-
-const POPUP_MOTION = cn(
-  'origin-[var(--transform-origin)] transition-[transform,opacity] duration-[var(--duration-base)] ease-[var(--ease-soft)]',
-  'data-[starting-style]:scale-95 data-[starting-style]:opacity-0',
-  'data-[ending-style]:scale-95 data-[ending-style]:opacity-0',
-);
 
 /**
  * A menu of things to do — rename, rescan, delete — rather than a value to pick, which is what an

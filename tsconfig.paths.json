@@ -91,6 +91,7 @@
       "@FluxUI/TextField": ["./packages/ui/src/components/TextField/TextField.tsx"],
       "@FluxUI/Tooltip": ["./packages/ui/src/components/Tooltip/Tooltip.tsx"],
       "@FluxUI/VideoSurface": ["./packages/ui/src/components/VideoSurface/VideoSurface.tsx"],
+      "@FluxUI/animations/popup": ["./packages/ui/src/animations/popup.ts"],
       "@FluxUI/animations/reveal": ["./packages/ui/src/animations/reveal.ts"],
       "@FluxUI/animations/spin": ["./packages/ui/src/animations/spin.ts"],
       "@FluxUI/blendLights": ["./packages/ui/src/functions/blendLights.ts"],
