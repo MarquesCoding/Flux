@@ -16,7 +16,7 @@ type AvatarStyle = keyof typeof AVATAR_STYLES;
  * Decides whether a stored value names a style Flux actually draws, so a value written by a newer
  * version falls back rather than rendering nothing.
  *
- * @param style - The style as stored.
+ * @param candidate - The style as stored.
  * @returns Whether it is one Flux can draw.
  */
 const isAvatarStyle = (candidate: string): candidate is AvatarStyle =>
@@ -26,7 +26,8 @@ const isAvatarStyle = (candidate: string): candidate is AvatarStyle =>
  * Draws a profile's avatar as an SVG, built from the style and colours it was given. Drawn here
  * rather than fetched, so a household's faces never leave the server and never depend on one.
  *
- * @param choice - The style and colours to draw.
+ * @param style - The style to draw in.
+ * @param seed - What the drawing is derived from, so the same profile is always drawn the same.
  * @returns The avatar, as SVG.
  */
 const drawAvatar = (style: AvatarStyle, seed: string): string => AVATAR_STYLES[style](seed);

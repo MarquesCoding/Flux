@@ -4,8 +4,8 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library';
  * Decides which of two episodes should stand for a whole programme, preferring the earliest — a
  * shelf shows a series by its first episode rather than by whichever was scanned first.
  *
- * @param left - One episode.
- * @param right - The episode to compare it against.
+ * @param candidate - One episode.
+ * @param against - The episode to compare it against.
  * @returns Whether the first should stand for the programme.
  */
 const isEarlier = (candidate: MediaSummary, against: MediaSummary): boolean => {
@@ -73,7 +73,7 @@ const pickFeatured = (items: MediaSummary[], limit: number): MediaSummary[] =>
  * list is built from.
  *
  * @param items - Everything known about the library.
- * @param episode - The episode being watched.
+ * @param of - The episode being watched.
  * @returns Its siblings, in the order they are watched.
  */
 const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] => {
@@ -98,7 +98,7 @@ const findSiblings = (items: MediaSummary[], of: MediaSummary): MediaSummary[] =
  * a season rather than wrapping to the beginning.
  *
  * @param items - Everything known about the library.
- * @param episode - The episode that just finished.
+ * @param after - The episode that just finished.
  * @returns The next episode, or null where there is none.
  */
 const nextEpisode = (items: MediaSummary[], after: MediaSummary): MediaSummary | null => {

@@ -1,3 +1,9 @@
+/**
+ * Whether this browser can use passkeys at all, which needs both the credential machinery and a
+ * secure context — the machinery exists over plain HTTP but refuses to do anything.
+ *
+ * @returns Whether passkeys can be offered.
+ */
 const isPasskeySupported = (): boolean =>
   typeof window !== 'undefined' &&
   window.isSecureContext &&

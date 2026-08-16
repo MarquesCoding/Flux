@@ -31,6 +31,14 @@ const fetchAccounts = async (): Promise<Account[]> => {
   return z.object({ accounts: z.array(AccountSchema) }).parse(await response.json()).accounts;
 };
 
+/**
+ * Bans an account, with a reason the person is shown when they next try to sign in. Their sessions
+ * end; nothing they have watched or kept is touched.
+ *
+ * @param userId - The account to ban.
+ * @param reason - What they are told.
+ * @returns Any refusal from the server.
+ */
 const banAccount = async (userId: string, reason: string): Promise<Refusal> => {
   const response = await fetch(`/api/admin/accounts/${userId}/ban`, {
     method: 'POST',
@@ -44,6 +52,12 @@ const banAccount = async (userId: string, reason: string): Promise<Refusal> => {
     : readRefusal(response);
 };
 
+/**
+ * Lifts a ban, letting the account sign in again with everything it had before.
+ *
+ * @param userId - The account to unban.
+ * @returns Any refusal from the server.
+ */
 const unbanAccount = async (userId: string): Promise<Refusal> => {
   const response = await fetch(`/api/admin/accounts/${userId}/ban`, {
     method: 'DELETE',
@@ -55,6 +69,13 @@ const unbanAccount = async (userId: string): Promise<Refusal> => {
     : readRefusal(response);
 };
 
+/**
+ * Removes an account and everything hanging off it — its profiles, their history and their progress.
+ * A ban is the reversible version of this; removal is not.
+ *
+ * @param userId - The account to remove.
+ * @returns Any refusal from the server.
+ */
 const removeAccount = async (userId: string): Promise<Refusal> => {
   const response = await fetch(`/api/admin/accounts/${userId}`, {
     method: 'DELETE',

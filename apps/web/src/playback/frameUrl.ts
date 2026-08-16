@@ -6,6 +6,7 @@ const FRAME_WIDTH = 1280;
  *
  * @param mediaId - The item.
  * @param seconds - Which moment to render.
+ * @param width - How wide to render it.
  * @returns The address to load.
  */
 const frameUrl = (mediaId: string, seconds: number, width = FRAME_WIDTH): string =>

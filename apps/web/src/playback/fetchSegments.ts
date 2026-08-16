@@ -35,7 +35,7 @@ const fetchSegments = async (mediaId: string): Promise<MediaSegment[]> => {
  * inside — an offer that appears before the thing it skips is an offer nobody understands.
  *
  * @param segments - The item's marked stretches.
- * @param seconds - Where the viewer is now.
+ * @param positionSeconds - Where the viewer is now.
  * @returns The stretch to offer skipping, or null.
  */
 const skippableAt = (segments: MediaSegment[], positionSeconds: number): MediaSegment | null =>

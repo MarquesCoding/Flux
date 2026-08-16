@@ -11,6 +11,8 @@ type LogoCandidate = {
  * reads.
  *
  * @param language - The language a catalogue tagged the logo with.
+ * @param wanted - The language the house reads.
+ * @param original - The language the title was made in.
  * @returns How much it is preferred, lower being better.
  */
 const rankLanguage = (language: string | null, wanted: string, original: string | null): number => {
@@ -31,6 +33,7 @@ const rankLanguage = (language: string | null, wanted: string, original: string 
  * language wrong is worse than showing plain text.
  *
  * @param candidates - The logos the catalogue offered, each with its language.
+ * @param options - The language the house reads, and the one the title was made in.
  * @returns The logo to use, or null where none were offered.
  */
 const pickLogo = (

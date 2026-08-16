@@ -32,6 +32,13 @@ type SweepArtefactCacheOptions = {
 
 const nothing: SweepReport = { removed: 0, freedBytes: 0, kept: 0, tooNew: 0 };
 
+/**
+ * Adds two sweep reports together, so that sweeping several directories reports as one figure.
+ *
+ * @param left - One report.
+ * @param right - The other.
+ * @returns The two summed.
+ */
 const add = (left: SweepReport, right: SweepReport): SweepReport => ({
   removed: left.removed + right.removed,
   freedBytes: left.freedBytes + right.freedBytes,

@@ -20,6 +20,11 @@ type NewWebhook = {
   events: WebhookEvent[];
 };
 
+/**
+ * Reads the webhook subscriptions on this server, with how each last fared.
+ *
+ * @returns The subscriptions, or none where the request failed.
+ */
 const fetchWebhooks = async (): Promise<WebhookSubscription[]> => {
   const response = await fetch('/api/webhooks', { credentials: 'same-origin' }).catch(() => null);
 
@@ -35,7 +40,7 @@ const fetchWebhooks = async (): Promise<WebhookSubscription[]> => {
  * Creates a webhook subscription and answers with its signing secret, which is shown once — the
  * server keeps a hash, so an operator who loses it makes a new subscription.
  *
- * @param request - Where to deliver, which events, and what to call it.
+ * @param webhook - Where to deliver, which events, and what to call it.
  * @returns The subscription and its secret, or why it was refused.
  */
 const createWebhook = async (
@@ -59,6 +64,14 @@ const createWebhook = async (
     : { created: null, refusal };
 };
 
+/**
+ * Turns a subscription's deliveries on or off, which is the reversible answer to an endpoint that
+ * has started failing.
+ *
+ * @param id - The subscription.
+ * @param enabled - Whether it should be delivering.
+ * @returns Any refusal from the server.
+ */
 const setWebhookEnabled = async (id: string, enabled: boolean): Promise<Refusal> => {
   const response = await fetch(`/api/webhooks/${id}`, {
     method: 'PATCH',
@@ -72,6 +85,12 @@ const setWebhookEnabled = async (id: string, enabled: boolean): Promise<Refusal>
     : readRefusal(response);
 };
 
+/**
+ * Removes a subscription and its delivery history.
+ *
+ * @param id - The subscription to remove.
+ * @returns Any refusal from the server.
+ */
 const deleteWebhook = async (id: string): Promise<Refusal> => {
   const response = await fetch(`/api/webhooks/${id}`, {
     method: 'DELETE',
@@ -87,7 +106,7 @@ const deleteWebhook = async (id: string): Promise<Refusal> => {
  * Asks for a test delivery, so an operator can see whether the address they typed actually receives
  * anything before waiting for something real to happen.
  *
- * @param subscriptionId - The subscription to test.
+ * @param id - The subscription to test.
  */
 const testWebhook = async (id: string): Promise<Refusal> => {
   const response = await fetch(`/api/webhooks/${id}/test`, {
@@ -104,7 +123,7 @@ const testWebhook = async (id: string): Promise<Refusal> => {
  * Reads what has lately been sent to one subscriber and what came back, newest first — the answer to
  * "is this working", which is otherwise invisible.
  *
- * @param subscriptionId - The subscription.
+ * @param id - The subscription.
  * @returns Its recent deliveries.
  */
 const fetchWebhookDeliveries = async (id: string): Promise<WebhookDelivery[]> => {
@@ -123,6 +142,7 @@ const fetchWebhookDeliveries = async (id: string): Promise<WebhookDelivery[]> =>
 /**
  * Asks for one delivery to be sent again, for a subscriber that was down when it first went out.
  *
+ * @param id - The subscription it was sent to.
  * @param deliveryId - The delivery to send again.
  */
 const redeliverWebhook = async (id: string, deliveryId: string): Promise<Refusal> => {

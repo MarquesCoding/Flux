@@ -14,6 +14,15 @@ const ZONES = [
 
 const MIN_PEAK = 110;
 
+/**
+ * Reads the handful of colours that stand for an image, by drawing it very small and looking at what
+ * is left. Shrinking averages the picture for us, which is both cheaper and steadier than sampling a
+ * full-size one. Answers with nothing where the image cannot be read at all, which a canvas tainted
+ * by another origin cannot.
+ *
+ * @param source - The image to read.
+ * @returns The colours to light a page with, or none where it could not be read.
+ */
 const readLights = (source: CanvasImageSource): MoodLight[] => {
   try {
     const canvas = document.createElement('canvas');

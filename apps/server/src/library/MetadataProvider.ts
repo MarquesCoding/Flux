@@ -107,7 +107,7 @@ const resolveSeriesShape = async (
  * unreadable.
  *
  * @param providers - The providers to ask, in order of preference.
- * @param request - What is known about the file from its path.
+ * @param facts - What is known about the file from its path.
  * @param onProblem - Told when a provider fails.
  * @returns The metadata found, or an empty answer where nobody recognised the file.
  */

@@ -12,6 +12,13 @@ const DEFAULT_COLOUR = PROFILE_COLOURS[0];
 
 let ticks = 0;
 
+/**
+ * Hands out timestamps that always differ and always increase, so that profiles made in the same
+ * millisecond still sort in the order they were made. Only the in-memory service needs this; the
+ * database has its own clock.
+ *
+ * @returns The next timestamp.
+ */
 const stamp = (): string => {
   ticks += 1;
 

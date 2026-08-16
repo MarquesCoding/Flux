@@ -9,7 +9,7 @@ const MAX_DEPTH = 12;
  * sizes and modification times — the two facts a scan uses to decide what has changed. Stops at a
  * depth, since a symlink loop would otherwise walk for ever.
  *
- * @param directory - Where to start.
+ * @param root - Where to start.
  * @param depth - How far down this walk already is.
  * @returns Every file found, with what the scan needs to know about it.
  */

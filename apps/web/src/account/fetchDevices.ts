@@ -37,7 +37,7 @@ const fetchDevices = async (): Promise<Device[]> => {
  * Signs one device out, ending its session, for the account page where somebody reviews where they
  * are signed in.
  *
- * @param sessionId - The session to end.
+ * @param deviceId - The session to end.
  */
 const endDevice = async (deviceId: string): Promise<boolean> => {
   const response = await fetch(`/api/account/devices/${deviceId}`, {

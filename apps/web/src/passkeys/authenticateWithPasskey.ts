@@ -7,6 +7,13 @@ type AuthenticateOutcome =
 
 const CANCELLED_ERRORS = new Set(['NotAllowedError', 'AbortError']);
 
+/**
+ * Reads the challenge the server issued, through a schema — this is handed straight to the browser's
+ * credential machinery, which is not somewhere to pass an unchecked object.
+ *
+ * @param response - The server's answer.
+ * @returns The challenge to sign.
+ */
 const readChallenge = async (response: Response): Promise<PublicKeyCredentialRequestOptionsJSON> =>
   PasskeyAuthenticationOptionsSchema.parse(await response.json());
 

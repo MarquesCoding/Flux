@@ -15,6 +15,13 @@ type RowProps = {
   children: string;
 };
 
+/**
+ * One labelled fact in the statistics list, laid out so the labels line up down the column and long
+ * values wrap rather than pushing the layout wide.
+ *
+ * @param name - What the fact is.
+ * @param children - The fact itself.
+ */
 const Row = ({ name, children }: RowProps) => (
   <div className="flex gap-3 rounded-md px-1 py-1.5 text-sm">
     <dt className="w-32 shrink-0 text-text-muted">{name}</dt>

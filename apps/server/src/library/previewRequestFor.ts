@@ -11,7 +11,9 @@ type PreviewSubject = {
  * cache — the same item asked for twice must produce the same request, or the second ask renders a
  * second copy of a clip that already exists.
  *
- * @param item - The item being previewed, with the streams a clip is cut from.
+ * @param subject - The item being previewed, with the streams a clip is cut from.
+ * @param generation - Which round of previews this is, so that a change of recipe produces a
+ *   different request rather than matching the clip already cached.
  * @param defaultAudioLanguage - The language the library prefers, which decides the audio track.
  * @returns The request to hand the media service.
  */

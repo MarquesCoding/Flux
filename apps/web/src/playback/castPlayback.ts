@@ -22,7 +22,7 @@ const isReachableOrigin = (origin: string): boolean => {
  * Rewrites a stream address as something else on the network would have to ask for it, since a
  * relative address means nothing to a television.
  *
- * @param path - The stream's path on this server.
+ * @param url - The stream's path on this server.
  * @param origin - The address this server is reachable at.
  * @returns The absolute address to hand the device.
  */
@@ -42,6 +42,8 @@ const absoluteStreamUrl = (url: string, origin: string): string | null => {
  * Watches for devices appearing and disappearing on the network, and for playback having moved to
  * one, so the button that offers to cast knows whether there is anywhere to cast to.
  *
+ * @param element - The video being played, which on Safari is what carries the availability of a
+ *   device to play it on.
  * @param onChange - Told whenever the state changes.
  * @returns The function that stops watching.
  */
@@ -126,7 +128,7 @@ type PromptOutcome = 'shown' | 'dismissed' | 'refused' | 'unsupported';
  * Asks the browser to show its own list of devices, since choosing one is something only the browser
  * may put on screen.
  *
- * @param context - The cast context to prompt through.
+ * @param element - The cast context to prompt through.
  * @returns The device chosen, or null where nobody chose one.
  */
 const promptForDevice = async (element: HTMLVideoElement): Promise<PromptOutcome> => {

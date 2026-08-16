@@ -16,6 +16,13 @@ type Row = {
   isFinished: boolean;
 };
 
+/**
+ * Turns a viewing row into what the contract carries, which is chiefly a matter of writing its
+ * timestamps as strings.
+ *
+ * @param row - The row as stored.
+ * @returns The viewing, as the API describes one.
+ */
 const shown = (row: Row): Viewing => ({
   id: row.id,
   mediaItemId: row.mediaItemId,

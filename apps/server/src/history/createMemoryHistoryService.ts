@@ -23,7 +23,8 @@ const createMemoryHistoryService = (
    * Strips the profile off a viewing before it is answered with, since a caller asking for one
    * profile's history already knows whose it is.
    *
-   * @param viewing - The viewing as stored.
+   * @param one - The viewing as stored.
+   * @param named - Whether to fill in the item's title, which only the listing needs.
    * @returns The viewing as a caller reads it.
    */
   const shown = (one: MemoryViewing, named = false): Viewing => ({

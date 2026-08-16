@@ -34,7 +34,7 @@ type Anchor = { left: number; top: number; width: number };
  * Places an opened card over the one it grew from, so it expands from where the pointer already is
  * rather than appearing somewhere else.
  *
- * @param card - Where the resting card sits.
+ * @param rect - Where the resting card sits.
  * @returns Where to put the opened one.
  */
 const placeOver = (rect: DOMRect): Anchor => {
@@ -53,8 +53,8 @@ const placeOver = (rect: DOMRect): Anchor => {
  * Moves an opened card back inside the window when expanding it would take it off an edge — the
  * cards at the ends of a row are exactly the ones a pointer reaches first.
  *
- * @param placement - Where the card would go.
- * @param viewport - How much room there is.
+ * @param top - Where the card would go.
+ * @param height - How much room there is.
  * @returns Where it should actually go.
  */
 const fitInside = (top: number, height: number): number => {

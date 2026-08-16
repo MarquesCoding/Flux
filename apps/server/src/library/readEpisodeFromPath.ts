@@ -57,7 +57,7 @@ const readSeasonDirectory = (name: string): number | null => {
  * well as its own name — a file called `s02e04.mkv` says nothing about which programme it belongs to,
  * and the folder holding it usually does.
  *
- * @param path - The file's full path inside the library.
+ * @param filePath - The file's full path inside the library.
  * @returns What could be read: the series, the season and the episode, each absent where the path
  *   did not say.
  */

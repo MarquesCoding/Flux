@@ -1,3 +1,13 @@
+/**
+ * Lifts subtitles clear of the control bar while it is showing, by moving each cue's line rather
+ * than by restyling the track — a browser draws cues itself, and there is no other way to reach
+ * them. Answers with a way to stop, and a way to apply the current line again after the bar appears
+ * or goes.
+ *
+ * @param element - The video whose cues are being drawn.
+ * @param lineAt - Where the cues should sit at this moment.
+ * @returns How to apply the current line, and how to stop lifting at all.
+ */
 const liftCues = (
   element: HTMLVideoElement,
   lineAt: () => number,

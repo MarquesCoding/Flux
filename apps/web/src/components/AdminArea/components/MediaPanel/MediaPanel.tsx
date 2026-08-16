@@ -19,6 +19,13 @@ import type { MediaPanelProps } from './MediaPanel.types';
  */
 const nameOf = (item: MediaSummary): string => item.seriesTitle ?? item.title;
 
+/**
+ * Whether an item is an episode of a programme rather than a film, which decides both what its row
+ * is called and which corrections make sense for it.
+ *
+ * @param item - The item.
+ * @returns Whether it belongs to a programme.
+ */
 const isSeries = (item: MediaSummary): boolean =>
   item.seriesTitle !== null && item.seriesTitle !== undefined;
 

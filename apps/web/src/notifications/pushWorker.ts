@@ -47,6 +47,14 @@ const PushContentSchema = z.object({
   link: z.string().nullish(),
 });
 
+/**
+ * Reads what a push message says, through a schema and with a fallback at every step. A worker that
+ * throws on a malformed push shows nothing at all, so anything unreadable becomes a plain notice
+ * rather than an error.
+ *
+ * @param event - The push as it arrived.
+ * @returns What to show.
+ */
 const readContent = (event: PushMessage) => {
   if (event.data === null) {
     return PushContentSchema.parse({});

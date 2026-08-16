@@ -39,7 +39,7 @@ const listFiles = async (directory: string): Promise<SidecarFile[]> => {
  * named after the file itself — since plenty of collections separate them rather than leaving them
  * alongside.
  *
- * @param videoPath - The video being played.
+ * @param directory - The video being played.
  * @returns The directories worth looking in.
  */
 const findSubtitleDirectories = async (directory: string): Promise<string[]> => {

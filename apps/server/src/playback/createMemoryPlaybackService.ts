@@ -14,7 +14,7 @@ type MemoryPlaybackState = {
  * Builds a stream of one chunk, standing in for a file arriving from the media service so the routes
  * can be exercised without one.
  *
- * @param body - What the stream should carry.
+ * @param content - What the stream should carry.
  * @returns The stream.
  */
 const streamOf = (content: string): ReadableStream<Uint8Array> =>

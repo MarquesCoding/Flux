@@ -16,6 +16,12 @@ const loadEnvFile = (): void => {
   }
 };
 
+/**
+ * Whether Rust is on this machine, asked by running cargo rather than by looking for a file, since
+ * that is the same question the build itself will ask.
+ *
+ * @returns Whether cargo answers.
+ */
 const isRustInstalled = (): boolean =>
   spawnSync('cargo', ['--version'], { stdio: 'ignore' }).status === 0;
 

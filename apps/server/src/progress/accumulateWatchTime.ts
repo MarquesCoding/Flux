@@ -11,8 +11,8 @@ const MOST_PER_GAP_SECONDS = 60;
  * moved means somebody paused or walked away, and counting the wall clock would credit them with
  * watching a film they were not in the room for.
  *
- * @param earlier - The earlier report.
- * @param later - The report after it.
+ * @param before - The earlier report.
+ * @param after - The report after it.
  * @returns The seconds actually watched between them.
  */
 const watchedBetween = (before: Beat, after: Beat): number => {
@@ -34,7 +34,7 @@ const watchedBetween = (before: Beat, after: Beat): number => {
  * Adds up how much of a run of reports was actually watched, pair by pair, which is what the usage
  * figures on the admin pages are built from.
  *
- * @param reports - The reports, oldest first.
+ * @param beats - The reports, oldest first.
  * @returns The total seconds watched.
  */
 const accumulateWatchTime = (beats: readonly Beat[]): number =>

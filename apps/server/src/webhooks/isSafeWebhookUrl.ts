@@ -11,7 +11,7 @@ const IPV4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
  * metadata service lives — the one address a webhook must never be pointed at, since anything that
  * can read it can read the machine's credentials.
  *
- * @param address - The address as four numbers.
+ * @param hostname - The address as four numbers.
  * @returns Whether it is link-local.
  */
 const isLinkLocalIpv4 = (hostname: string): boolean => {
@@ -33,7 +33,7 @@ const LINK_LOCAL_IPV6_GROUP = 'a9fe';
  * suffix and the hexadecimal spelling of the same — all of which reach the same metadata service by
  * a different-looking route.
  *
- * @param address - The literal as written in the address.
+ * @param hostname - The literal as written in the address.
  * @returns Whether it is link-local.
  */
 const isLinkLocalIpv6 = (hostname: string): boolean => {

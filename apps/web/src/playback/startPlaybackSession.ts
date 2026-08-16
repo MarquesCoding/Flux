@@ -30,7 +30,7 @@ const ErrorSchema = z.object({ error: z.string() });
  * to explain rather than something that should break it.
  *
  * @param mediaId - What to play.
- * @param profile - What this client can decode.
+ * @param deviceProfile - What this client can decode.
  * @param clientId - Which device is asking, for presence.
  * @param startSeconds - Where to begin.
  * @param audioStreamIndex - A particular audio track, where one was chosen.
@@ -98,7 +98,7 @@ const stopPlaybackSession = async (sessionId: string): Promise<void> => {
  * session list empties when a viewer leaves.
  *
  * @param clientId - Which device.
- * @param isLeaving - Whether the page is going away, which decides whether the request is one the
+ * @param keepalive - Whether the page is going away, which decides whether the request is one the
  *   browser has promised to finish.
  */
 const stopWatching = async (clientId: string, keepalive = false): Promise<void> => {

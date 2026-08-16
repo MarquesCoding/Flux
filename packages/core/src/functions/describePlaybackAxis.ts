@@ -24,6 +24,13 @@ const describeVideoAxis = (video: VideoDecision): string =>
     ? describeAxis(video.kind, video.reason.detail)
     : `${describeAxis(video.kind, video.reason.detail)} (${video.maxWidth.toString()}x${video.maxHeight.toString()} @ ${video.maxBitrateKbps.toString()}kbps)`;
 
+/**
+ * Writes the audio axis of a plan, adding the bitrate actually being encoded to where the sound is
+ * being transcoded, for the same reason the video axis carries its ceiling.
+ *
+ * @param audio - The audio decision the negotiator reached, with its reason and any ceiling.
+ * @returns The decision, its reason, and the bitrate being encoded to where one applies.
+ */
 const describeAudioAxis = (audio: AudioDecision): string =>
   audio.kind === 'passthrough'
     ? describeAxis(audio.kind, audio.reason.detail)

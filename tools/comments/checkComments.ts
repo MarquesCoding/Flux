@@ -41,6 +41,13 @@ const filesUnder = (directory: string): string[] => {
   return found;
 };
 
+/**
+ * Decides which language a file is in, by extension, and answers with nothing for the ones this
+ * check does not cover — TypeScript is ESLint's to police, not this tool's.
+ *
+ * @param path - The file.
+ * @returns Its language, or null where it is not one this checks.
+ */
 const languageOf = (path: string): Language | null => {
   const extension = Object.keys(LANGUAGES).find((candidate) => path.endsWith(candidate));
 

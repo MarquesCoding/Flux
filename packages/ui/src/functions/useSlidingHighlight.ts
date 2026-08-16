@@ -21,9 +21,24 @@ type SlidingHighlight = {
 
 const ITEM = '[data-highlight]';
 
+/**
+ * Narrows what an event was aimed at to an element, since an event target may be anything that can
+ * receive one and only elements can be measured.
+ *
+ * @param target - What the event was aimed at.
+ * @returns It as an element, or null where it is not one.
+ */
 const elementOf = (target: EventTarget | null): Element | null =>
   target instanceof Element ? target : null;
 
+/**
+ * Whether two measurements describe the same place, so that a measurement taken again on every
+ * pointer move only causes a render when the highlight actually needs to move.
+ *
+ * @param left - The place last measured, or null where nothing has been.
+ * @param right - The place just measured.
+ * @returns Whether they are the same.
+ */
 const isSamePlace = (left: HighlightRect | null, right: HighlightRect): boolean =>
   left !== null &&
   left.left === right.left &&

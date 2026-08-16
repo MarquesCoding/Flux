@@ -164,6 +164,12 @@ const auth = createAuth({
   },
 });
 
+/**
+ * Counts the accounts on this server, which is what first-run setup asks to decide whether the
+ * server belongs to anybody yet.
+ *
+ * @returns How many accounts there are.
+ */
 const countUsers = async (): Promise<number> => {
   const rows = await db.select({ total: count() }).from(user);
 
@@ -181,6 +187,12 @@ const readLibraryBytes = async (): Promise<number> => {
   return Number(rows[0]?.total ?? 0);
 };
 
+/**
+ * Makes an account an administrator, used by first-run setup for the account that claims a server
+ * nobody owns yet.
+ *
+ * @param email - The account to promote.
+ */
 const promoteToAdmin = async (email: string): Promise<void> => {
   await db.update(user).set({ role: 'admin' }).where(eq(user.email, email));
 };
@@ -775,6 +787,13 @@ const libraryService = createDatabaseLibraryService({
   },
 });
 
+/**
+ * Finds where an item's file is on disk, which is what the subtitle services need before they can
+ * look beside it or inside it.
+ *
+ * @param mediaId - The item.
+ * @returns Its path, or null where the catalogue has no such item.
+ */
 const findMediaPath = async (mediaId: string): Promise<string | null> => {
   const rows = await db
     .select({ path: mediaItem.path })
@@ -785,6 +804,13 @@ const findMediaPath = async (mediaId: string): Promise<string | null> => {
   return rows[0]?.path ?? null;
 };
 
+/**
+ * Reports a subtitle that could not be read, without failing the request that found it. A file with
+ * a broken subtitle track should still play; the operator is told, and the viewer is not.
+ *
+ * @param path - The file the problem was in.
+ * @param reason - What went wrong.
+ */
 const reportSubtitleProblem = (path: string, reason: string): void => {
   process.stderr.write(`subtitles: ${path}: ${reason}\n`);
 };

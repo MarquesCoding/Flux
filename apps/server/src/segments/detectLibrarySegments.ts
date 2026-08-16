@@ -24,7 +24,7 @@ type DetectLibrarySegmentsOptions = {
  * programme, which is where a shared intro would be. Comparing across programmes would be work spent
  * to find nothing.
  *
- * @param items - The library's items.
+ * @param candidates - The library's items.
  * @returns The files grouped, one group per season.
  */
 const groupBySeason = (candidates: GroupedCandidate[]): Map<string, GroupedCandidate[]> => {

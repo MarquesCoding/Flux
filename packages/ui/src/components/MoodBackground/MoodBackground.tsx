@@ -32,6 +32,7 @@ const PARALLAX = 0.34;
  * Writes one light as the CSS gradient that paints it, at the position and colour it was given.
  *
  * @param light - The colour and where it sits.
+ * @param at - Which of the lights this is, which decides how large and strong its bloom is.
  * @returns The gradient, as CSS.
  */
 const paint = (light: MoodLight, at: number): string => {

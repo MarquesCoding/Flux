@@ -6,7 +6,7 @@ const A_PAGE = 30;
 /**
  * Reads what this profile has watched, most recent first.
  *
- * @param limit - How many viewings to read.
+ * @param offset - How many viewings to read.
  * @returns The viewings, or none where the request failed.
  */
 const fetchHistory = async (offset = 0): Promise<Viewing[]> => {

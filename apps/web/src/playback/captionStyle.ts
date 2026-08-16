@@ -11,8 +11,8 @@ const FONT_FAMILIES = {
  * Builds the edge drawn behind caption lettering at a chosen strength — an outline, a shadow, a
  * raised or depressed edge — which is what keeps white text readable over a white shirt.
  *
- * @param kind - Which edge to draw.
- * @param strength - How strongly to draw it.
+ * @param edge - Which edge to draw.
+ * @param opacity - How strongly to draw it.
  * @returns The CSS that draws it.
  */
 const edgeStyle = (edge: CaptionStyle['edgeStyle'], opacity: number): string => {
@@ -59,7 +59,7 @@ const DEFAULT_CAPTION_STYLE: CaptionStyle = CaptionStyleSchema.parse({});
  * Turns a hex colour and an opacity into a colour CSS accepts, since captions are configured as a
  * colour and a separate opacity but drawn as one value.
  *
- * @param hex - The colour as configured.
+ * @param color - The colour as configured.
  * @param opacity - How opaque it should be, from nothing to one.
  * @returns The colour, as CSS.
  */

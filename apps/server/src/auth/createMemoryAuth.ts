@@ -12,6 +12,13 @@ type MemoryUserRow = { id: string; role?: string };
 
 type MemorySessionRow = { id: string; token: string; ipAddress?: string | null };
 
+/**
+ * Builds the empty tables the in-memory auth adapter works against, one per table the auth library
+ * expects to find, so that a fresh store is a fresh store rather than one carrying the last test's
+ * rows.
+ *
+ * @returns The tables, all empty.
+ */
 const emptyStore = (): {
   user: MemoryUserRow[];
   session: MemorySessionRow[];

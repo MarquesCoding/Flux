@@ -71,6 +71,18 @@ type Detection = {
   wasAsked: boolean;
 };
 
+/**
+ * Finds the intros, recaps and credits in a group of items by asking each provider in turn and
+ * taking the first answer, so a cheap provider is tried before an expensive one and the expensive
+ * one is only reached for what the cheap one could not place. A provider that fails is reported and
+ * stepped over rather than ending the detection.
+ *
+ * @param providers - The providers to ask, cheapest first.
+ * @param group - The items to find segments in, which are compared against each other.
+ * @param onProblem - Called with a provider and what went wrong, where one fails.
+ * @param onItemDone - Called as each item is finished with, for reporting progress.
+ * @returns What was found, by item.
+ */
 const resolveSegments = async (
   providers: SegmentProvider[],
   group: SegmentCandidate[],

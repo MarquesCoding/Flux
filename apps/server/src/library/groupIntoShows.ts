@@ -35,6 +35,7 @@ const gather = (items: MediaSummary[]): Map<string, MediaSummary[]> => {
  * most recent arrived, and which episode's artwork should stand for the whole thing. A programme is
  * not stored anywhere, so everything about it is derived from the files that belong to it.
  *
+ * @param id - What identifies the programme, which is derived rather than stored.
  * @param episodes - Every episode of the one programme.
  * @returns What to show for the programme itself.
  */

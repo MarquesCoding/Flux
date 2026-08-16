@@ -22,17 +22,15 @@ const PREVIEW_NAME = 'preview.mp4';
 const IMAGE_SUBTITLE_FORMATS = new Set(['pgs', 'vobsub', 'dvbsub']);
 
 /**
- * Decides whether a plan leaves the file untouched on every axis, which is what says a session can
- * be served as the file lies rather than through the media service at all.
+ * Rewrites a plan to say what was actually done rather than what was decided, for the cases where
+ * the media service does more than the negotiator asked — a session that was to pass the picture
+ * through but is being encoded should report itself as encoding, or the statistics panel describes a
+ * session nobody is watching.
  *
- * @param plan - The negotiated plan.
- * @returns Whether nothing about the file needs changing.
- */
-/**
- * The audio stream a raw file serve would carry, with no say from Flux.
- */
-/**
- * The plan as it was actually carried out.
+ * @param plan - What the negotiator decided.
+ * @param item - The file it decided about.
+ * @param encodesVideo - Whether the picture is in fact being encoded.
+ * @returns The plan as carried out.
  */
 const asDelivered = (plan: PlaybackPlan, item: MediaItem, encodesVideo: boolean): PlaybackPlan => {
   if (!encodesVideo || plan.video.kind !== 'passthrough') {
@@ -57,9 +55,27 @@ const asDelivered = (plan: PlaybackPlan, item: MediaItem, encodesVideo: boolean)
   };
 };
 
+/**
+ * The audio track a player would pick on its own if nothing were negotiated: the one the file marks
+ * as default, or the first. Knowing this is what makes it possible to tell a session that happens to
+ * be playing the natural track from one that had to be steered onto it.
+ *
+ * @param item - The file, as the catalogue holds it.
+ * @returns That track's index, or null where the file has no audio at all.
+ */
 const naturalAudioStreamIndex = (item: Parameters<typeof negotiatePlayback>[0]): number | null =>
   (item.audioStreams.find((stream) => stream.isDefault) ?? item.audioStreams[0])?.index ?? null;
 
+/**
+ * Whether a plan amounts to handing over the file untouched — nothing remuxed, nothing re-encoded,
+ * the track the player would have chosen anyway, and no subtitles burned in. Anything less counts as
+ * the server doing work, and is worth saying so, because direct play is the only mode that costs
+ * nothing to serve.
+ *
+ * @param plan - What the negotiator decided.
+ * @param item - The file it decided about.
+ * @returns Whether the file is being handed over as it is.
+ */
 const isDirectPlay = (
   plan: Parameters<typeof describePlaybackMode>[0],
   item: Parameters<typeof negotiatePlayback>[0],

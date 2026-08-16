@@ -24,6 +24,7 @@ const RECENT_DAYS = 30;
  * what belongs to each genre — collapsing programmes so a series fills one card rather than a row.
  *
  * @param items - Everything the library holds.
+ * @param now - What to treat as now, which decides what counts as recently added.
  * @param progress - How far through each item this viewer is, which decides what is part-watched.
  * @returns The rows to draw, in the order they should appear.
  */

@@ -269,7 +269,7 @@ const UNIX_PREFIX = 'unix:';
  * Splits a socket address into the socket to connect to and the URL to ask for over it, since a
  * request over a Unix socket still needs a host and a path that mean nothing to anybody.
  *
- * @param url - The configured address.
+ * @param baseUrl - The configured address.
  * @returns The socket path and the URL to request, or null where it is an ordinary address.
  */
 const readSocketPath = (baseUrl: string): string | null =>

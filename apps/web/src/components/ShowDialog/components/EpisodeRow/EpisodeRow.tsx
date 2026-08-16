@@ -6,7 +6,7 @@ import type { EpisodeRowProps } from './EpisodeRow.types';
 /**
  * Builds the address an episode's still is served from.
  *
- * @param episode - The episode.
+ * @param mediaId - The episode.
  * @returns The address to load.
  */
 const stillUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;

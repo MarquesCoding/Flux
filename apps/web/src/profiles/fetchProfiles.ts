@@ -21,8 +21,10 @@ const fetchProfiles = async (): Promise<ViewerProfile[]> => {
 /**
  * Adds somebody to this account, with their own history, favourites and watch progress.
  *
- * @param input - What to call them and what to draw them as.
- * @returns The profile, or why it was refused.
+ * @param name - What to call them.
+ * @param colour - The colour their face is drawn in.
+ * @param avatar - What to draw them as, where they chose something other than a colour.
+ * @returns Whether they were added.
  */
 const createProfile = async (
   name: string,
@@ -42,8 +44,10 @@ const createProfile = async (
  * Changes what a profile is called and what it is drawn as.
  *
  * @param profileId - The profile to change.
- * @param input - The name and the avatar to apply.
- * @returns The profile as it now stands, or why it was refused.
+ * @param name - What to call them.
+ * @param colour - The colour their face is drawn in.
+ * @param avatar - What to draw them as, where they chose something other than a colour.
+ * @returns Whether the change was written.
  */
 const saveProfile = async (
   profileId: string,

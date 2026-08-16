@@ -92,6 +92,7 @@ const createEmbeddedSubtitleService = ({
    * Builds the identifier for one embedded stream, so listing the tracks and later fetching one agree
    * on what each is called.
    *
+   * @param path - The file the stream is in.
    * @param index - The stream's index inside the container.
    * @returns The track identifier.
    */

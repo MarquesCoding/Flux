@@ -14,7 +14,7 @@ const withYear = new Intl.DateTimeFormat(undefined, {
  * Says when something was watched the way a person would — today, yesterday, a weekday name within
  * the week, and a date beyond that. A history full of timestamps is a history nobody reads.
  *
- * @param when - When it was watched.
+ * @param at - When it was watched.
  * @param now - What to treat as now, so the phrasing can be tested.
  * @returns The phrase to show.
  */

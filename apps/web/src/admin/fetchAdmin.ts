@@ -361,7 +361,7 @@ const fetchActiveSessions = async (): Promise<ActiveSession[]> => {
  * Stops somebody else's stream, which closes their player rather than pausing it — for the case
  * where a session has to end rather than wait.
  *
- * @param sessionId - The session to stop.
+ * @param clientId - The session to stop.
  */
 const stopSession = async (clientId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/sessions/${clientId}`, {
@@ -376,7 +376,7 @@ const stopSession = async (clientId: string): Promise<boolean> => {
  * Pauses somebody else's stream. Not a lock: they can press play again, and it is meant as a way to
  * get somebody's attention rather than to take the film away.
  *
- * @param sessionId - The session to pause.
+ * @param clientId - The session to pause.
  */
 const pauseSession = async (clientId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/sessions/${clientId}/pause`, {
@@ -390,7 +390,7 @@ const pauseSession = async (clientId: string): Promise<boolean> => {
 /**
  * Resumes a stream an operator paused.
  *
- * @param sessionId - The session to resume.
+ * @param clientId - The session to resume.
  */
 const resumeSession = async (clientId: string): Promise<boolean> => {
   const response = await fetch(`/api/admin/sessions/${clientId}/resume`, {
@@ -426,6 +426,7 @@ const fetchJobDefinitions = async (): Promise<JobDefinition[]> => {
  *
  * @param kind - Which job.
  * @param libraryId - Which library, for the kinds that take one.
+ * @param force - Whether to redo work already done.
  * @returns The job to watch, or why it was refused.
  */
 const runJob = async (
@@ -555,6 +556,13 @@ const measureStorage = async (): Promise<StorageCount | null> => {
   return parsed.success ? parsed.data : null;
 };
 
+/**
+ * Sets which encoder transcodes should use, or leaves it to Flux. Takes effect on the next session
+ * rather than on the ones already running, which keep the encoder they started with.
+ *
+ * @param hardwareAccel - The encoder to force, or an empty string for automatic.
+ * @returns Whether the setting was written.
+ */
 const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
   const response = await fetch('/api/admin/settings', {
     method: 'PATCH',
@@ -565,6 +573,13 @@ const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
   return response !== null && response.ok;
 };
 
+/**
+ * Sets the key Flux reads metadata with. Without one, titles, artwork and years come from filenames
+ * alone.
+ *
+ * @param catalogueApiKey - The key to use.
+ * @returns Whether it was written.
+ */
 const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
   const response = await fetch('/api/admin/settings', {
     method: 'PATCH',

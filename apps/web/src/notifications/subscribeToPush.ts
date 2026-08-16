@@ -4,7 +4,7 @@ const SERVICE_WORKER_PATH = '/push-worker.js';
  * Turns the server's public key into the byte array the push API insists on, since the key travels
  * as base64url and the browser will only take bytes.
  *
- * @param key - The server's public key, as base64url.
+ * @param base64Url - The server's public key, as base64url.
  * @returns The same key as bytes.
  */
 const toApplicationServerKey = (base64Url: string): ArrayBuffer => {

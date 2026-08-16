@@ -12,7 +12,7 @@ const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3';
  * and a newer token and they are sent in different places — one as a query parameter, one as a
  * bearer header.
  *
- * @param credential - What the operator configured.
+ * @param key - What the operator configured.
  * @returns Whether it is the newer kind.
  */
 const isAccessToken = (key: string): boolean => key.split('.').length === 3 && key.startsWith('ey');
@@ -35,6 +35,12 @@ const BACKOFF_MILLISECONDS = 500;
  */
 const isWorthRetrying = (status: number): boolean => status === 429 || status >= 500;
 
+/**
+ * Waits, for backing off between attempts at a catalogue that has asked to be left alone for a
+ * moment.
+ *
+ * @param milliseconds - How long to wait.
+ */
 const wait = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -150,7 +156,7 @@ const readYear = (date: string | undefined): number | null => {
  * Strips a title to the letters and digits in it, in any script, so that punctuation, spacing and
  * case cannot make two spellings of the same title look different.
  *
- * @param title - The title as written.
+ * @param value - The title as written.
  * @returns The title as letters and digits alone.
  */
 const normalizeTitle = (value: string): string =>
@@ -171,7 +177,7 @@ const SEGMENTER = new Intl.Segmenter(undefined, { granularity: 'word' });
  * Picks the words of a title worth comparing, dropping the articles and prepositions that almost
  * every title contains — two films sharing only the word "the" share nothing.
  *
- * @param title - The title as written.
+ * @param value - The title as written.
  * @returns The words worth matching on.
  */
 const significantWords = (value: string): Set<string> => {
@@ -257,7 +263,7 @@ const YEAR_BONUS = 0.15;
  * fills a library with confident nonsense, where no match leaves the filename showing.
  *
  * @param candidates - What the catalogue offered.
- * @param title - The title read from the file.
+ * @param wanted - The title read from the file.
  * @param year - The year read from the file, where it had one.
  * @returns The entry to use, or null where none were likely enough.
  */
@@ -290,8 +296,9 @@ const pickBestMatch = (
  * Builds the address of a catalogue image at a width worth fetching — the catalogue offers sizes up
  * to originals measured in megabytes, and a poster in a grid is a few hundred pixels wide.
  *
+ * @param base - Where the catalogue serves its images from.
  * @param path - The image path the catalogue gave.
- * @param width - Which of the catalogue's sizes to ask for.
+ * @param size - Which of the catalogue's sizes to ask for.
  * @returns The full address, or null where the catalogue gave no image.
  */
 const imageUrl = (base: string, path: string | null | undefined, size: string): string | null =>
@@ -372,8 +379,8 @@ const createCatalogueMetadataProvider = ({
        * Turns a catalogue entry into the metadata Flux stores, taking only the fields it has a use for
        * and building full addresses for the artwork.
        *
-       * @param entry - The catalogue's own record.
-       * @param kind - Whether it is a film or a programme, which decides where the title lives.
+       * @param detail - The catalogue's own record.
+       * @param isTheRightSeries - Whether it is a film or a programme, which decides where the title lives.
        * @returns The metadata to store against the file.
        */
       const describeFrom = async (
@@ -532,9 +539,7 @@ const createCatalogueMetadataProvider = ({
        * language at all. One request cannot express "this language, or failing that anything", and asking
        * wide first means taking whichever logo the catalogue happens to list first.
        *
-       * @param id - The catalogue's identifier for the title.
-       * @param kind - Whether it is a film or a programme.
-       * @param language - The language to prefer.
+       * @param query - Which languages to ask for, in the catalogue's own terms.
        * @returns Every logo found, the preferred language first.
        */
       const readLogos = async (query: Record<string, string>) => {

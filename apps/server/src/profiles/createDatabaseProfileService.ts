@@ -74,6 +74,13 @@ const readAvatarChoice = (row: ProfileRow): ViewerProfile['avatar'] => {
   return { kind: 'initial' };
 };
 
+/**
+ * Turns a profile row into what the contract carries, reading the avatar back out of the several
+ * columns that between them hold whichever kind was chosen.
+ *
+ * @param row - The row as stored.
+ * @returns The profile, as the API describes one.
+ */
 const toProfile = (row: ProfileRow): ViewerProfile => ({
   id: row.id,
   name: row.name,
@@ -87,7 +94,7 @@ const toProfile = (row: ProfileRow): ViewerProfile => ({
  * Turns a chosen avatar into the columns that hold it, so that choosing one kind clears whatever
  * the other kind had left behind.
  *
- * @param choice - What the profile should be drawn with.
+ * @param avatar - What the profile should be drawn with.
  * @returns The columns to write.
  */
 const avatarColumns = (
@@ -119,6 +126,15 @@ const COLUMNS = {
   updatedAt: viewerProfile.updatedAt,
 };
 
+/**
+ * The household's profiles, stored in Postgres, with their uploaded photographs on disk beside it.
+ * Photographs are files rather than columns because they are large and are served directly; the row
+ * holds only which file belongs to whom.
+ *
+ * @param db - The database to read and write.
+ * @param photoDirectory - Where uploaded photographs are kept.
+ * @returns The profile service.
+ */
 const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string): ProfileService => {
   const listFor = async (userId: string): Promise<ViewerProfile[]> => {
     const rows = await db
@@ -136,6 +152,7 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
    * the account.
    *
    * @param userId - The account being asked about.
+   * @param name - What to call the profile where one has to be made.
    * @returns The profile to use.
    */
   const ensure = async (userId: string, name: string): Promise<ViewerProfile> => {

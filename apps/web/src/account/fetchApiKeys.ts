@@ -34,7 +34,7 @@ const fetchApiKeys = async (): Promise<ApiKey[] | null> => {
  * Creates an API key and answers with the key itself, which is the only moment it can be read — the
  * server stores a hash, so somebody who loses it makes another rather than looking it up.
  *
- * @param request - What the key is called and what it may do.
+ * @param input - What the key is called and what it may do.
  * @returns The key, once.
  */
 const createApiKey = async (input: {
@@ -65,8 +65,8 @@ const createApiKey = async (input: {
  * Turns a key off without deleting it, or back on, so a key suspected of leaking can be stopped
  * while somebody works out what was using it.
  *
- * @param keyId - The key.
- * @param isEnabled - Whether it should work.
+ * @param id - The key.
+ * @param enabled - Whether it should work.
  */
 const setApiKeyEnabled = async (id: string, enabled: boolean): Promise<boolean> => {
   try {
@@ -82,6 +82,13 @@ const setApiKeyEnabled = async (id: string, enabled: boolean): Promise<boolean> 
   }
 };
 
+/**
+ * Revokes an API key, which cannot be undone — a revoked key is gone rather than disabled, and
+ * anything using it stops at once.
+ *
+ * @param id - The key to revoke.
+ * @returns Whether it was revoked.
+ */
 const revokeApiKey = async (id: string): Promise<boolean> => {
   try {
     const response = await fetch(`/api/keys/${id}`, {

@@ -22,7 +22,7 @@ import type { ShowDialogProps } from './ShowDialog.types';
  * Builds the address a programme's artwork is served from, which is one of its episodes' — a
  * programme is not stored anywhere and so has no artwork of its own.
  *
- * @param show - The programme being drawn.
+ * @param mediaId - The programme being drawn.
  * @returns The address to load.
  */
 const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;

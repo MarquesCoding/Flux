@@ -16,6 +16,7 @@ type CreateDatabaseMaintenanceServiceOptions = {
  * joins the run already queued rather than starting a second sweep beside it. Different kinds stay
  * independent: a cache cleanup and a session cleanup may run at once.
  *
+ * @param jobs - The queue to put it on.
  * @param kind - The job being asked for.
  * @returns The job to watch.
  */
@@ -25,6 +26,14 @@ const enqueueSingleton = async (jobs: JobQueue, kind: string): Promise<QueuedJob
   return { jobId: jobId ?? `pending-${kind}`, state: 'queued' };
 };
 
+/**
+ * The housekeeping an operator can ask for: sweeping the caches, clearing out stale sessions, and
+ * checking the metadata catalogue answers. Every one of them is queued rather than run here, since
+ * each walks the whole library and none should hold a request open while it does.
+ *
+ * @param jobs - The queue the work is put on.
+ * @returns The maintenance service.
+ */
 const createDatabaseMaintenanceService = ({
   jobs,
 }: CreateDatabaseMaintenanceServiceOptions): MaintenanceService => ({

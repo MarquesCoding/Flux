@@ -10,7 +10,7 @@ type WebhookRequestBody = {
  * Writes what happened as one sentence, for the chat services that show a line rather than render a
  * payload — a delivery nobody can read on a phone is a delivery that may as well not have been sent.
  *
- * @param event - What happened.
+ * @param payload - What happened.
  * @returns The sentence to send.
  */
 const sentenceFor = (payload: WebhookPayload): string => {

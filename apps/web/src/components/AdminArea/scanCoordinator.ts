@@ -28,6 +28,10 @@ let isResettingAll = false;
 let snapshot: ScanSnapshot = { progress, isScanningAll, isResettingAll };
 const listeners = new Set<() => void>();
 
+/**
+ * Publishes a fresh snapshot and tells every listener about it. The snapshot is rebuilt rather than
+ * mutated, since `useSyncExternalStore` decides whether to render by comparing the two.
+ */
 const notify = () => {
   snapshot = { progress, isScanningAll, isResettingAll };
 
@@ -52,13 +56,30 @@ const subscribe = (listener: () => void): (() => void) => {
   };
 };
 
+/**
+ * The current state of what is running, for `useSyncExternalStore` to read.
+ *
+ * @returns What is running now.
+ */
 const getSnapshot = (): ScanSnapshot => snapshot;
 
+/**
+ * Records what one library's job is doing now, replacing whatever was recorded before.
+ *
+ * @param libraryId - The library being worked on.
+ * @param entry - What its job is doing.
+ */
 const track = (libraryId: string, entry: ScanEntry) => {
   progress = new Map(progress).set(libraryId, entry);
   notify();
 };
 
+/**
+ * Forgets a library's job, once it has ended however it ended. Does nothing where there was nothing
+ * recorded, so that tidying up twice is harmless.
+ *
+ * @param libraryId - The library to forget.
+ */
 const untrack = (libraryId: string) => {
   if (!progress.has(libraryId)) {
     return;
@@ -262,6 +283,10 @@ const stopJobs = async (kind: string): Promise<void> => {
   await Promise.all(ids.map((jobId) => cancelJob(jobId)));
 };
 
+/**
+ * Empties everything this module holds, so that one test's running scans are not still running in
+ * the next. Nothing but a test has any business calling this.
+ */
 const resetForTests = () => {
   progress = new Map();
   isScanningAll = false;

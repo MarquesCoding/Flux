@@ -10,6 +10,13 @@ type BareEpisode = {
   episodeNumber: number;
 };
 
+/**
+ * Drops a filename's extension, leaving a leading dot alone so that a hidden file does not become an
+ * empty name.
+ *
+ * @param name - The filename.
+ * @returns It without its extension.
+ */
 const stripExtension = (name: string): string => {
   const lastDot = name.lastIndexOf('.');
 
@@ -21,7 +28,7 @@ const stripExtension = (name: string): string => {
  * treating a folder of consecutively numbered files as a season. Common in ripped collections, and
  * without this every one of them is a separate film named after a number.
  *
- * @param files - The files in one folder, with what was already read from their names.
+ * @param paths - The files in one folder, with what was already read from their names.
  * @returns Which episode each file is, where the folder read as a season.
  */
 const groupBareNumberedEpisodes = (paths: readonly string[]): Map<string, BareEpisode> => {

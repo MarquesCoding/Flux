@@ -21,6 +21,13 @@ type CleanupImageCacheOptions = {
   onProgress?: (phase: 'cache' | 'profiles', processed: number, total: number) => void;
 };
 
+/**
+ * Takes the filename off a path, since what the database points at is a name and what the sweep
+ * walks is a directory of them.
+ *
+ * @param path - The path.
+ * @returns Its last segment.
+ */
 const baseName = (path: string): string => path.split('/').pop() ?? path;
 
 /**
@@ -29,7 +36,11 @@ const baseName = (path: string): string => path.split('/').pop() ?? path;
  * second, so a fetch happening mid-sweep is never deleted out from under itself.
  *
  * @param directory - The cache directory to sweep.
- * @param referenced - The filenames still pointed at.
+ * @param isValid - Whether a given filename is still pointed at.
+ * @param files - How to list and remove files.
+ * @param phase - Which sweep this is, for reporting progress.
+ * @param onProgress - Called as files are worked through.
+ * @param onProblem - Called with anything that could not be removed.
  * @returns How many files were removed, and how much disk they held.
  */
 const sweep = async (

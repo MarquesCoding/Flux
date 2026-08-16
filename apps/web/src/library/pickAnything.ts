@@ -12,7 +12,7 @@ type Shelf = {
  * Builds what a programmes library offers the randomiser: whole series rather than episodes, since
  * being handed episode four of something unseen is not a suggestion.
  *
- * @param items - The library's items.
+ * @param libraryId - The library's items.
  * @returns The programmes worth offering.
  */
 const shelfOfShows = async (libraryId: string): Promise<Shelf> => {
@@ -32,7 +32,7 @@ const shelfOfShows = async (libraryId: string): Promise<Shelf> => {
  * Builds what any other library offers the randomiser, where each item is its own thing and needs no
  * collapsing.
  *
- * @param items - The library's items.
+ * @param libraryId - The library's items.
  * @returns The items worth offering.
  */
 const shelfOfItems = async (libraryId: string): Promise<Shelf> => {
@@ -56,7 +56,7 @@ const shelfOfItems = async (libraryId: string): Promise<Shelf> => {
  * offered as programmes and everything else as itself, so the answer is always something somebody
  * could start now.
  *
- * @param options - The libraries to choose from, and which kind to narrow to where one was asked
+ * @param only - The libraries to choose from, and which kind to narrow to where one was asked
  *   for.
  * @returns Something to watch, or null where there is nothing to choose from.
  */

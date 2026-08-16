@@ -27,6 +27,13 @@ const PREVIEW_SETTLE_MILLISECONDS = 2500;
  */
 const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
+/**
+ * Builds the address a title's logo is served from — the title as its designer set it, which the
+ * hero prefers to text where the catalogue has one.
+ *
+ * @param mediaId - The item.
+ * @returns The address to load.
+ */
 const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
 
 const SYNOPSIS_MILLISECONDS = 8000;

@@ -94,12 +94,8 @@
           "name": "account_userId_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -410,12 +406,8 @@
           "name": "favourite_profileId_viewer_profile_id_fk",
           "tableFrom": "favourite",
           "tableTo": "viewer_profile",
-          "columnsFrom": [
-            "profileId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profileId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -423,12 +415,8 @@
           "name": "favourite_mediaItemId_media_item_id_fk",
           "tableFrom": "favourite",
           "tableTo": "media_item",
-          "columnsFrom": [
-            "mediaItemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mediaItemId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -604,9 +592,7 @@
         "library_path_unique": {
           "name": "library_path_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "path"
-          ]
+          "columns": ["path"]
         }
       },
       "policies": {},
@@ -885,12 +871,8 @@
           "name": "media_item_libraryId_library_id_fk",
           "tableFrom": "media_item",
           "tableTo": "library",
-          "columnsFrom": [
-            "libraryId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["libraryId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -947,12 +929,8 @@
           "name": "media_item_job_mediaItemId_media_item_id_fk",
           "tableFrom": "media_item_job",
           "tableTo": "media_item",
-          "columnsFrom": [
-            "mediaItemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mediaItemId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -960,10 +938,7 @@
       "compositePrimaryKeys": {
         "media_item_job_mediaItemId_kind_pk": {
           "name": "media_item_job_mediaItemId_kind_pk",
-          "columns": [
-            "mediaItemId",
-            "kind"
-          ]
+          "columns": ["mediaItemId", "kind"]
         }
       },
       "uniqueConstraints": {},
@@ -1062,12 +1037,8 @@
           "name": "media_override_libraryId_library_id_fk",
           "tableFrom": "media_override",
           "tableTo": "library",
-          "columnsFrom": [
-            "libraryId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["libraryId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1169,12 +1140,8 @@
           "name": "media_segment_mediaItemId_media_item_id_fk",
           "tableFrom": "media_segment",
           "tableTo": "media_item",
-          "columnsFrom": [
-            "mediaItemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mediaItemId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1262,12 +1229,8 @@
           "name": "passkey_userId_user_id_fk",
           "tableFrom": "passkey",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1363,12 +1326,8 @@
           "name": "role_permission_roleId_role_id_fk",
           "tableFrom": "role_permission",
           "tableTo": "role",
-          "columnsFrom": [
-            "roleId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["roleId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1376,10 +1335,7 @@
       "compositePrimaryKeys": {
         "role_permission_roleId_permission_pk": {
           "name": "role_permission_roleId_permission_pk",
-          "columns": [
-            "roleId",
-            "permission"
-          ]
+          "columns": ["roleId", "permission"]
         }
       },
       "uniqueConstraints": {},
@@ -1485,12 +1441,8 @@
           "name": "session_userId_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1500,9 +1452,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -1564,12 +1514,8 @@
           "name": "twoFactor_userId_user_id_fk",
           "tableFrom": "twoFactor",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1669,9 +1615,7 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -1714,12 +1658,8 @@
           "name": "user_permission_override_userId_user_id_fk",
           "tableFrom": "user_permission_override",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1727,10 +1667,7 @@
       "compositePrimaryKeys": {
         "user_permission_override_userId_permission_pk": {
           "name": "user_permission_override_userId_permission_pk",
-          "columns": [
-            "userId",
-            "permission"
-          ]
+          "columns": ["userId", "permission"]
         }
       },
       "uniqueConstraints": {},
@@ -1794,12 +1731,8 @@
           "name": "user_profile_userId_user_id_fk",
           "tableFrom": "user_profile",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1856,12 +1789,8 @@
           "name": "user_role_userId_user_id_fk",
           "tableFrom": "user_role",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1869,12 +1798,8 @@
           "name": "user_role_roleId_role_id_fk",
           "tableFrom": "user_role",
           "tableTo": "role",
-          "columnsFrom": [
-            "roleId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["roleId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1882,10 +1807,7 @@
       "compositePrimaryKeys": {
         "user_role_userId_roleId_pk": {
           "name": "user_role_userId_roleId_pk",
-          "columns": [
-            "userId",
-            "roleId"
-          ]
+          "columns": ["userId", "roleId"]
         }
       },
       "uniqueConstraints": {},
@@ -2027,12 +1949,8 @@
           "name": "viewer_profile_userId_user_id_fk",
           "tableFrom": "viewer_profile",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2141,12 +2059,8 @@
           "name": "watch_progress_profileId_viewer_profile_id_fk",
           "tableFrom": "watch_progress",
           "tableTo": "viewer_profile",
-          "columnsFrom": [
-            "profileId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profileId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2154,12 +2068,8 @@
           "name": "watch_progress_mediaItemId_media_item_id_fk",
           "tableFrom": "watch_progress",
           "tableTo": "media_item",
-          "columnsFrom": [
-            "mediaItemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mediaItemId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

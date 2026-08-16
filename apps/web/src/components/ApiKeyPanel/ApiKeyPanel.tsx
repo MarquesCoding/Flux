@@ -18,7 +18,7 @@ import type { ApiKeyPanelProps } from './ApiKeyPanel.types';
  * Says when a key was last used in words rather than as a timestamp, and says plainly when it never
  * has been — which is the thing worth noticing in a list of keys.
  *
- * @param when - When it was last used, or nothing where it never has been.
+ * @param at - When it was last used, or nothing where it never has been.
  * @returns The phrase to show.
  */
 const lastUsed = (at: string | null): string => {

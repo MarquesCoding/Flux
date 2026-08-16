@@ -11,7 +11,7 @@ import type { BackgroundJobsProps } from './BackgroundJobs.types';
  * Sums up what the queue is doing in one line, so the heading says whether anything is happening
  * before anybody reads the table under it.
  *
- * @param monitor - The latest readings, or null before any have arrived.
+ * @param jobs - The latest readings, or null before any have arrived.
  * @returns The line to show.
  */
 const describeQueue = (jobs: Job[]): string =>

@@ -22,6 +22,13 @@ type RowProps = {
   children: string;
 };
 
+/**
+ * One labelled fact in the statistics panel, with figures set in tabular numerals so they do not
+ * shift about as they change.
+ *
+ * @param name - What the fact is.
+ * @param children - The fact itself.
+ */
 const Row = ({ name, children }: RowProps) => (
   <div className="flex gap-3 rounded-md px-1 py-1 transition-colors hover:bg-white/5">
     <dt className="w-40 shrink-0 text-white/50">{name}</dt>

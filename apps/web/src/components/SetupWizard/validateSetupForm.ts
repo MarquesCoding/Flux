@@ -11,6 +11,13 @@ type SetupFormValues = {
   trustedOrigins: string;
 };
 
+/**
+ * Reads a comma-separated list of origins out of the field they are typed into, dropping the spaces
+ * people put after commas and the empty entries left by a trailing one.
+ *
+ * @param raw - What the field holds.
+ * @returns The origins named.
+ */
 const parseOrigins = (raw: string): string[] =>
   raw
     .split(',')

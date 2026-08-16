@@ -94,7 +94,7 @@ const NOISE = new Set([
  * subtitles, sample clips and stray archives, and probing each of them costs a process launch for an
  * answer already known from the name.
  *
- * @param path - The file's path.
+ * @param fileName - The file's path.
  * @returns Whether it looks like something to play.
  */
 const isMediaFile = (fileName: string): boolean => {
@@ -103,6 +103,13 @@ const isMediaFile = (fileName: string): boolean => {
   return !fileName.startsWith('.') && MEDIA_EXTENSIONS.has(extension);
 };
 
+/**
+ * Drops a filename's extension before anything tries to read a title out of it, leaving a leading
+ * dot alone so that a hidden file does not become an empty name.
+ *
+ * @param fileName - The filename.
+ * @returns It without its extension.
+ */
 const stripExtension = (fileName: string): string => {
   const lastDot = fileName.lastIndexOf('.');
 
@@ -132,7 +139,7 @@ const findYear = (text: string): { year: number; index: number } | null => {
  * resolutions, codecs, source tags, group names. This is the whole of the built-in metadata provider,
  * and what a library falls back to when no catalogue is configured or none recognises a file.
  *
- * @param path - The file's path inside the library.
+ * @param filePath - The file's path inside the library.
  * @returns The title as it should be shown, and the year where the name gave one.
  */
 const readTitleFromPath = (filePath: string): { title: string; year: number | null } => {

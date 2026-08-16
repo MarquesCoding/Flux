@@ -1,6 +1,12 @@
 const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 3600;
 
+/**
+ * Pads a number to two digits, so a clock reads `1:04:09` rather than `1:4:9`.
+ *
+ * @param value - The number.
+ * @returns It, to two digits.
+ */
 const pad = (value: number): string => value.toString().padStart(2, '0');
 
 /**

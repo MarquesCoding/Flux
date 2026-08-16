@@ -28,6 +28,13 @@ const SummarySchema = z.object({
   }),
 });
 
+/**
+ * Reads one package's coverage summary, answering with nothing where it has not been written yet so
+ * that every missing package can be named at once rather than one per run.
+ *
+ * @param path - The package, relative to the repository root.
+ * @returns Its counts, or null where it has no summary.
+ */
 const read = (path: string): CoverageCounts | null => {
   const file = join(ROOT, path, 'coverage', 'coverage-summary.json');
 
@@ -38,6 +45,12 @@ const read = (path: string): CoverageCounts | null => {
   return SummarySchema.parse(JSON.parse(readFileSync(file, 'utf8'))).total;
 };
 
+/**
+ * Writes one row of the table, in columns wide enough that the figures line up down the page.
+ *
+ * @param name - What the row is for.
+ * @param of - Its measures and their average.
+ */
 const say = (name: string, of: ReturnType<typeof readCoverageAverage>) => {
   const measures = MEASURES.map((measure) => of[measure].toFixed(1).padStart(7)).join('');
 

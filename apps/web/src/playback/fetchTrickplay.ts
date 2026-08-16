@@ -29,7 +29,7 @@ const TIMESTAMP = /(\d+):(\d{2}):(\d{2})(?:\.(\d{1,3}))?/;
 /**
  * Reads a WebVTT timestamp as a number of seconds.
  *
- * @param stamp - The timestamp as the index wrote it.
+ * @param value - The timestamp as the index wrote it.
  * @returns The position in seconds.
  */
 const readTimestamp = (value: string): number | null => {
@@ -53,7 +53,7 @@ const readTimestamp = (value: string): number | null => {
  * Reads the rectangle a cue points at inside its sheet, since a thumbnail index addresses one tile
  * of a larger image rather than an image of its own.
  *
- * @param fragment - The cue's fragment, naming the tile.
+ * @param payload - The cue's fragment, naming the tile.
  * @returns Where the tile sits in the sheet.
  */
 const readRectangle = (
@@ -80,8 +80,8 @@ const readRectangle = (
  * Turns the index the server writes into the thumbnails a scrubber draws, each knowing which sheet
  * it is in and where.
  *
- * @param content - The index as WebVTT.
- * @param baseUrl - Where the sheets are served from.
+ * @param vtt - The index as WebVTT.
+ * @param indexUrl - Where the sheets are served from.
  * @returns The thumbnails, in order.
  */
 const parseTrickplayIndex = (vtt: string, indexUrl: string): Thumbnail[] => {

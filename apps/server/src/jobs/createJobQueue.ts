@@ -69,8 +69,8 @@ const createJobQueue = async ({
    * worker picking it up in the same moment stops rather than running it — pg-boss has no way to
    * withdraw a job that is already being fetched.
    *
+   * @param kind - The queue it is on.
    * @param jobId - The job to drop.
-   * @returns Whether it was still droppable.
    */
   const dropQueued = async (kind: string, jobId: string): Promise<void> => {
     cancelled.add(jobId);

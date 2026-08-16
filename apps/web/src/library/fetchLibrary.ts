@@ -298,6 +298,15 @@ const rebuildArtefacts = async (mediaId: string): Promise<RebuiltArtefacts | nul
   return body.success ? body.data : null;
 };
 
+/**
+ * Asks for a library to be scanned, answering with the job so the page can follow it. Scans by
+ * default only what has changed since last time; forcing re-probes every file, which is what to do
+ * when the catalogue is wrong rather than merely out of date.
+ *
+ * @param libraryId - The library to scan.
+ * @param force - Whether to re-probe every file.
+ * @returns The job to follow, or null where the request failed.
+ */
 const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | null> => {
   const query = force ? '?force=true' : '';
   const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, { method: 'POST' });

@@ -7,6 +7,13 @@ type RegisterOutcome =
 
 const CANCELLED_ERRORS = new Set(['NotAllowedError', 'AbortError']);
 
+/**
+ * Reads the enrollment challenge the server issued, through a schema — this is handed straight to
+ * the browser's credential machinery, which is not somewhere to pass an unchecked object.
+ *
+ * @param response - The server's answer.
+ * @returns The challenge to enrol against.
+ */
 const readChallenge = async (response: Response): Promise<PublicKeyCredentialCreationOptionsJSON> =>
   PasskeyRegistrationOptionsSchema.parse(await response.json());
 

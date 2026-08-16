@@ -42,8 +42,7 @@ const splitName = (name: string): { stem: string; extension: string } => {
  * whether it transcribes more than the dialogue — from the tags people put between dots. There is no
  * standard for this, so several spellings of each are accepted.
  *
- * @param stem - The filename without its extension.
- * @param videoStem - The video's own stem, which is stripped before the tags are read.
+ * @param tags - The parts of the filename between dots, once the video's own name is stripped.
  * @returns The language and flags the name claimed.
  */
 const describeTags = (
@@ -81,7 +80,9 @@ const describeTags = (
  * makes it different from the other track in the same language — forced, or transcribing the sound
  * as well as the dialogue.
  *
- * @param tags - What the filename claimed about the track.
+ * @param language - The language the filename claimed.
+ * @param isForced - Whether it claimed the track is forced.
+ * @param isHearingImpaired - Whether it claimed the track transcribes the sound as well.
  * @returns The line to show in a menu.
  */
 const describeLabel = (
@@ -101,8 +102,10 @@ const describeLabel = (
  * Picks the subtitle files belonging to one video from the files beside it, matching on the video's
  * own name so that a folder holding a season does not offer every episode's subtitles for each.
  *
- * @param videoPath - The video being played.
- * @param candidates - The files found beside it and in any subtitle directories.
+ * @param videoName - The video being played.
+ * @param files - The files found beside it and in any subtitle directories.
+ * @param options - Whether these came from a subtitle directory, where a file need not repeat the
+ *   video's name to belong to it.
  * @returns One track per file that belongs, named for a menu.
  */
 const findSidecarSubtitles = (

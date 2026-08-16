@@ -28,7 +28,7 @@ const fetchEveryone = async (): Promise<ViewerProfile[]> => {
  * in to the account and choosing a profile is the whole of the ceremony.
  *
  * @param profileId - Who picked.
- * @param pin - Their PIN, where the profile has one.
+ * @param password - Their PIN, where the profile has one.
  * @returns Whether it worked, and why not where it did not.
  */
 const signInAsProfile = async (

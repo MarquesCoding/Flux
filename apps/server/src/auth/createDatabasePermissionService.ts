@@ -8,6 +8,14 @@ import type { FluxDatabase } from '@FluxServer/db/Database';
 import { readPermission } from './readPermission';
 import type { PermissionService } from './PermissionService';
 
+/**
+ * Reads permission rows into grants, dropping any naming a permission or an effect this version of
+ * Flux does not recognise. Rows outlive the code that wrote them, and an unreadable grant is safer
+ * discarded than guessed at.
+ *
+ * @param rows - The rows as stored.
+ * @returns The grants that could be read.
+ */
 const readGrants = (rows: readonly { permission: string; effect: string }[]): PermissionGrant[] =>
   rows.flatMap((row) => {
     const permission = readPermission(row.permission);

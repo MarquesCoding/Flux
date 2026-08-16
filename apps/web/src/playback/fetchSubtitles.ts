@@ -43,6 +43,7 @@ const fetchSubtitleTracks = async (mediaId: string): Promise<SubtitleTrack[]> =>
  *
  * @param mediaId - The item being played.
  * @param trackId - Which track.
+ * @param fromSeconds - Where to begin the track, for a preview that starts part-way in.
  * @returns The address to attach to the video element.
  */
 const subtitleTrackUrl = (mediaId: string, trackId: string, fromSeconds = 0): string =>
@@ -84,6 +85,7 @@ const trackForLanguage = (
  * runs for a few seconds and full subtitles on it are noise.
  *
  * @param tracks - The tracks available.
+ * @param language - The language being spoken, so a forced track in it is preferred to one in another.
  * @returns The track to burn into the preview, or null for none.
  */
 const previewTrack = (tracks: SubtitleTrack[], language: string): SubtitleTrack | null => {

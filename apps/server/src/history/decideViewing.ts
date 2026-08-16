@@ -25,8 +25,8 @@ type Decision =
  * progress, or be ignored. Somebody who pauses for ten minutes and carries on has watched one thing,
  * not two, and somebody who opens a film and closes it has not watched it at all.
  *
- * @param observation - What was reported: which item, where in it, and when.
- * @param current - The viewing already in progress, where there is one.
+ * @param open - What was reported: which item, where in it, and when.
+ * @param seen - The viewing already in progress, where there is one.
  * @returns What to do with it.
  */
 const decideViewing = (open: OpenViewing | null, seen: Observation): Decision => {

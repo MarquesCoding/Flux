@@ -10,7 +10,7 @@ const POLL_INTERVAL_MS = 800;
  * asked for it needs to know when there is something to show.
  *
  * @param jobId - The scan to wait on.
- * @param options - How often to ask and when to give up.
+ * @param onProgress - How often to ask and when to give up.
  * @returns How the scan ended.
  */
 const waitForScanCompletion = async (

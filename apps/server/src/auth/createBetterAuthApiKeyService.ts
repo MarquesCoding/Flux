@@ -36,6 +36,13 @@ const RowSchema = z.object({
   createdAt: z.union([z.date(), z.string()]),
 });
 
+/**
+ * Writes a timestamp as the contract carries it, whatever the auth library handed over — it returns
+ * dates as `Date` in some places and as strings in others, and both reach here.
+ *
+ * @param value - The timestamp, in whichever form it arrived.
+ * @returns It in ISO form, or an empty string where there was none.
+ */
 const asIsoString = (value: Date | string | null | undefined): string =>
   value instanceof Date ? value.toISOString() : (value ?? '');
 

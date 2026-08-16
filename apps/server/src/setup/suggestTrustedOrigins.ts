@@ -5,7 +5,7 @@ const WEB_DEV_PORT = '5173';
  * reached the server on — so setting up on a home network is a matter of confirming an address
  * rather than knowing what one is.
  *
- * @param origin - The address the setup page was reached at.
+ * @param detectedOrigin - The address the setup page was reached at.
  * @returns The origins worth offering, most likely first.
  */
 const suggestTrustedOrigins = (detectedOrigin: string): string[] => {

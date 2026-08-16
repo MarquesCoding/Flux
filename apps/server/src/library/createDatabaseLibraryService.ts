@@ -223,7 +223,7 @@ const createDatabaseLibraryService = ({
    *
    * @param libraryId - The library the files are in.
    * @param paths - The files to read again.
-   * @param jobId - The job to report progress against, where one is watching.
+   * @param onProgress - The job to report progress against, where one is watching.
    */
   const readAgain = async (
     libraryId: string,
@@ -285,8 +285,7 @@ const createDatabaseLibraryService = ({
    * or what the server thinks it can manage. A library on a network share wants one — the files arrive
    * down one wire, and asking for four divides that wire four ways and adds seeking to it.
    *
-   * @param library - The library being worked on.
-   * @param serverDefault - What the server would choose on its own.
+   * @param libraryId - The library being worked on.
    * @returns How many files to render at the same time.
    */
   const filesAtOnceFor = async (libraryId: string): Promise<number> =>

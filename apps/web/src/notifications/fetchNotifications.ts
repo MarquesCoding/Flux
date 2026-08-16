@@ -41,7 +41,7 @@ const fetchNotifications = async (): Promise<Inbox> => {
  * Marks one notification as read, or all of them when given nothing, which is what the "mark all
  * read" control sends.
  *
- * @param notificationId - The one to mark, or nothing to mark them all.
+ * @param id - The one to mark, or nothing to mark them all.
  */
 const markNotificationsRead = async (id?: string): Promise<number> => {
   const response = await fetch('/api/notifications/read', {
@@ -60,6 +60,12 @@ const markNotificationsRead = async (id?: string): Promise<number> => {
   return read.success ? read.data.unread : 0;
 };
 
+/**
+ * Reads what this viewer has asked to be told about, and the key a browser needs before it can be
+ * pushed to at all.
+ *
+ * @returns The preferences and the push key, or empty ones where the request failed.
+ */
 const fetchNotificationSettings = async (): Promise<NotificationSettings> => {
   const unknownYet = { preferences: [], pushPublicKey: '' };
   const response = await fetch('/api/notifications/preferences', {
