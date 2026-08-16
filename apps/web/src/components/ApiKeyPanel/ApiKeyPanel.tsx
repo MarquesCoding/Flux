@@ -15,7 +15,11 @@ import type { ApiKey } from '@FluxContracts/schemas/ApiKey';
 import type { ApiKeyPanelProps } from './ApiKeyPanel.types';
 
 /**
- * Says when a key was last used, in words rather than as a timestamp.
+ * Says when a key was last used in words rather than as a timestamp, and says plainly when it never
+ * has been — which is the thing worth noticing in a list of keys.
+ *
+ * @param when - When it was last used, or nothing where it never has been.
+ * @returns The phrase to show.
  */
 const lastUsed = (at: string | null): string => {
   if (at === null) {
@@ -32,7 +36,10 @@ const lastUsed = (at: string | null): string => {
 };
 
 /**
- * The keys on this account, and the making of new ones.
+ * The API keys on this account: what each may do, when it was last used, and the making of new ones.
+ * A new key is shown once and never again, since the server keeps only a hash of it.
+ *
+ * @param onChanged - Told when a key was made, disabled or removed.
  */
 const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
   const [keys, setKeys] = useState<ApiKey[] | null>(null);

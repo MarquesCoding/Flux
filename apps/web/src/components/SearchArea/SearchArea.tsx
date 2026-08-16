@@ -31,13 +31,32 @@ const NO_FACETS: LibraryFacets = { genres: [], decades: [], maxRating: 0 };
 const DECADE = 10;
 
 /**
- * Reads a chip's value back as a number, or nothing.
+ * Reads a chip's value back as a number, since chips deal in strings and everything downstream of
+ * them is arithmetic.
+ *
+ * @param value - The chip's value, or nothing where none is chosen.
+ * @returns The number, or nothing.
  */
 const asNumber = (value: string | null): number | undefined =>
   value === null ? undefined : Number(value);
 
 /**
- * Searching the library, and narrowing it.
+ * Searching the libraries, and narrowing them. A field on its own answers "what is this called", and
+ * most of the time somebody is asking something looser — a kind of thing, a decade, an evening's
+ * worth of something. Both are asked of the server rather than of the page, since a library is
+ * longer than one page of it.
+ *
+ * @param search - What is in the search box.
+ * @param onSearchChange - Told what was typed.
+ * @param genre - The genre chosen, or nothing.
+ * @param onGenreChange - Told which genre was chosen.
+ * @param onPlay - Told to start something, and where from.
+ * @param onInspect - Told to open the page about something.
+ * @param onItemsLoaded - Told what it found, so an address naming an item can be resolved.
+ * @param watchedFractionFor - How far through each item this viewer is.
+ * @param resumeFor - Where they left each item.
+ * @param isKept - Whether each item is kept.
+ * @param onToggleKept - Told to keep something, or stop.
  */
 const SearchArea = ({
   search,

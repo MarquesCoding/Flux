@@ -82,7 +82,20 @@ const SECTION_LABELS: Record<ShellSection, string> = {
 };
 
 /**
- * The frame everything is drawn inside.
+ * The frame every page is drawn inside: the dock at the foot, the light behind, and the footer at
+ * the end of the scroll. Sections arrive rather than appear, and each remembers how far down it was
+ * scrolled so moving between them and back lands where it was left.
+ *
+ * @param section - Which section is showing.
+ * @param onSectionChange - Told which section was chosen.
+ * @param children - The page itself.
+ * @param moodLights - The colours to light the page with.
+ * @param isAdministrator - Whether to offer the admin section at all.
+ * @param avatar - The face to draw on the account control.
+ * @param onSurprise - Told to choose something at random, optionally from one kind of library.
+ * @param surpriseKinds - Which kinds of library there are, which decides whether the dice offer a
+ *   menu or simply act.
+ * @param notifications - The bell and what is behind it.
  */
 const AppShell = ({
   section,

@@ -11,12 +11,19 @@ import type { Viewing } from '@FluxContracts/schemas/Viewing';
 import type { HistoryPanelProps } from './HistoryPanel.types';
 
 /**
- * What to call something that has since left the library.
+ * Names something in the history that has since left the library, since a viewing outlives the file
+ * it was of — the alternative is a row saying nothing at all.
+ *
+ * @param viewing - The viewing as recorded.
+ * @returns What to call it.
  */
 const nameOf = (viewing: Viewing): string => viewing.title ?? 'No longer in the library';
 
 /**
- * What this profile has watched.
+ * What this profile has watched, grouped by when — today, yesterday, the days of this week — with
+ * each viewing removable, since a history somebody cannot edit is a history they will not want.
+ *
+ * @param now - What to treat as now, so the grouping can be tested.
  */
 const HistoryPanel = ({ now }: HistoryPanelProps) => {
   const [viewings, setViewings] = useState<Viewing[]>([]);

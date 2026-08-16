@@ -20,7 +20,10 @@ const ROTATE_AFTER_MILLISECONDS = 14_000;
 const PREVIEW_SETTLE_MILLISECONDS = 2500;
 
 /**
- * Where an item's artwork is served from.
+ * Builds the address an item's backdrop is served from.
+ *
+ * @param mediaId - The item.
+ * @returns The address to load.
  */
 const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
@@ -36,7 +39,17 @@ const LOGO_BOX = [
 ].join(' ');
 
 /**
- * The screen the library opens with.
+ * The screen a library opens with: one thing filling the window, its own artwork behind it, playing
+ * a preview once it has settled. Rotates through a handful of items rather than showing one, and
+ * hands out the colours it is showing so the whole page can be lit by them.
+ *
+ * @param items - What it may feature.
+ * @param onPlay - Told to start something, and where from.
+ * @param onInspect - Told to open the page about something.
+ * @param onPalette - Told the colours on screen, so the page can be lit by them.
+ * @param onFeatureChange - Told which item is showing now.
+ * @param resumeFor - Where this viewer left each item, for the button that offers to carry on.
+ * @param rotateAfterMilliseconds - How long each item holds the screen.
  */
 const Hero = ({
   items,

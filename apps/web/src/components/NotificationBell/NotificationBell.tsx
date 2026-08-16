@@ -9,7 +9,16 @@ import type { NotificationBellProps } from './NotificationBell.types';
 const COUNTED_UP_TO = 9;
 
 /**
- * The bell, and what is behind it.
+ * The bell in the dock and the list behind it: what has happened, what has not been read, and the
+ * switch for having them pushed to this device even when the application is closed.
+ *
+ * @param notifications - What to show, newest first.
+ * @param unread - How many have not been read, for the count on the bell.
+ * @param push - Whether push is on for this device, and how to change it.
+ * @param onOpen - Told when the list was opened.
+ * @param onRead - Told which notification was read.
+ * @param onReadAll - Told to mark everything read.
+ * @param onFollow - Told where a notification leads, when one is pressed.
  */
 const NotificationBell = ({
   notifications,

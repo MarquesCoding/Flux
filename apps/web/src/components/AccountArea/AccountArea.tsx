@@ -33,7 +33,12 @@ const PANELS = [
 type PanelId = (typeof PANELS)[number]['id'];
 
 /**
- * A person's own account.
+ * Somebody's own account: their name and password, the devices they are signed in on, their passkeys
+ * and second factor, their API keys, and their viewing history.
+ *
+ * @param user - Whose account it is.
+ * @param onSignOut - Told to sign out.
+ * @param onChanged - Told when something changed, so the shell can read the account again.
  */
 const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
   const [profile, setProfile] = useState<ViewerProfile | null>(null);

@@ -18,7 +18,14 @@ const SIZES: readonly {
 ];
 
 /**
- * How large the cards on a page of results are.
+ * Chooses how large the cards on a page are, as three presses rather than a menu — this is a setting
+ * somebody adjusts by looking, and a menu makes that two presses each way while covering the thing
+ * being judged. Carries the dock's travelling mark, since the three sit close enough that a
+ * highlight which jumps reads as a flicker.
+ *
+ * @param value - The size in force.
+ * @param onValueChange - Told which size was chosen.
+ * @param className - Extra classes for the caller's own layout.
  */
 const GridSizeChooser = ({ value, onValueChange, className }: GridSizeChooserProps) => {
   const [pointedAt, setPointedAt] = useState<MediaGridSize | null>(null);

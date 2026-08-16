@@ -28,13 +28,31 @@ import type { MediaDetailDialogProps } from './MediaDetailDialog.types';
 const CAST_PLACEHOLDERS = 5;
 
 /**
- * Where an item's artwork is served from.
+ * Builds the address an item's artwork is served from.
+ *
+ * @param mediaId - The item.
+ * @param kind - Which artwork.
+ * @returns The address to load.
  */
 const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
   `/api/media/${mediaId}/image/${kind}`;
 
 /**
- * Everything known about one item, before deciding to watch it.
+ * Everything known about one item, for deciding whether to watch it: what it is about, who is in it,
+ * how it was made, and where this viewer left it. Offers both carrying on and starting again, since
+ * those are different intentions and only one of them can be the default.
+ *
+ * @param media - The item, or null while none is open.
+ * @param onClose - Told when the dialog was dismissed.
+ * @param onPlay - Told to start it, and where from.
+ * @param resumeSeconds - Where this viewer left it.
+ * @param watchedFractionFor - How far through each sibling they are.
+ * @param siblings - The other episodes of the same season.
+ * @param onSelectSibling - Told which sibling was chosen.
+ * @param onBack - Told to go back to whatever opened this.
+ * @param backLabel - What going back is called.
+ * @param isKept - Whether it is kept.
+ * @param onToggleKept - Told to keep it, or stop.
  */
 const MediaDetailDialog = ({
   media,

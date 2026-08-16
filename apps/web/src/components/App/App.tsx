@@ -58,7 +58,11 @@ type LoadState = 'loading' | 'ready' | 'unreachable';
 const PROGRESS_EVERY_SECONDS = 5;
 
 /**
- * Application shell and routing.
+ * The application itself: what is on screen, who is signed in, and what is playing. Setup, sign-in
+ * and the library are decided from what the server reports rather than from anything held here, so a
+ * second browser cannot skip setup and a stale tab cannot behave as though it is still signed in.
+ *
+ * @param initialTitle - What the platform is called, which an operator may have changed.
  */
 const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [status, setStatus] = useState<SetupStatus | null>(null);
@@ -182,7 +186,13 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const playing = place.playing === null ? null : (known.get(place.playing) ?? null);
 
   /**
-   * Where something actually got to, for picking it up again.
+   * Reads where something actually got to, for picking it up again — a different question from whether
+   * to offer a resume. Whether to offer is a judgement about whether somebody meant to start
+   * something; where to start once they are already watching is a fact, and a page reloading forty
+   * seconds in should carry on at forty seconds rather than be told that does not count as started.
+   *
+   * @param mediaId - The item being opened.
+   * @returns Where to start it, or the beginning where it was finished or never begun.
    */
   const positionFor = (mediaId: string): number => {
     const found = progress.get(mediaId);

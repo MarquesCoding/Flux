@@ -25,7 +25,24 @@ const SEARCH_DEBOUNCE_MS = 250;
 const HERO_SAMPLE = 24;
 
 /**
- * Browses a library.
+ * Browses one library: the hero at the top, the rows beneath it, and the names of the other
+ * libraries across the middle. The hero draws from every library rather than the chosen one, since
+ * the front of the server should show what is on it rather than what is in one folder of it.
+ *
+ * @param search - What is in the search box.
+ * @param libraryId - Which library to show, where the address names one.
+ * @param onLibraryChange - Told which library is being shown, including the one opened on.
+ * @param onPlay - Told to open the page about something.
+ * @param onWatch - Told to start something, and where from.
+ * @param onShow - Told to open a programme rather than an episode.
+ * @param onOpenShow - Told to open the programme an episode belongs to.
+ * @param onItemsLoaded - Told what it drew, so an address naming an item can be resolved.
+ * @param onFeatureChange - Told which item the hero is showing.
+ * @param onPalette - Told the colours on screen, so the page can be lit by them.
+ * @param onSearchChange - Told what was typed.
+ * @param hasHero - Whether to open with a hero at all.
+ * @param isKept - Whether each item is kept.
+ * @param onToggleKept - Told to keep something, or stop.
  */
 const LibraryBrowser = ({
   search = '',

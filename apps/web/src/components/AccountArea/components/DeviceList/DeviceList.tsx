@@ -13,7 +13,12 @@ import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { Device } from '@FluxWeb/account/fetchDevices';
 
 /**
- * Says when something happened, the way somebody would.
+ * Says when something happened the way somebody would — just now, an hour ago, a date beyond that —
+ * for a list of devices where the exact second means nothing.
+ *
+ * @param when - When it happened.
+ * @param now - What to treat as now, so the phrasing can be tested.
+ * @returns The phrase to show.
  */
 const said = (when: string): string => {
   const at = new Date(when);

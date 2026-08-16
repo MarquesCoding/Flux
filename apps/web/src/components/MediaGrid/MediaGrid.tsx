@@ -11,7 +11,18 @@ const COLUMNS: Record<MediaGridSize, string> = {
 };
 
 /**
- * A page of items, laid out as a grid.
+ * Lays a page of items out as a grid of cards, at whichever size a viewer chose. Each card carries
+ * how far through it they are and whether they have kept it, both asked of the caller rather than
+ * fetched here.
+ *
+ * @param items - What to draw.
+ * @param onPlay - Told to start something, and where from.
+ * @param onInspect - Told to open the page about something.
+ * @param watchedFractionFor - How far through each item this viewer is.
+ * @param resumeFor - Where they left each item.
+ * @param isKept - Whether each item is kept.
+ * @param onToggleKept - Told to keep something, or stop.
+ * @param size - How large the cards are.
  */
 const MediaGrid = ({
   items,

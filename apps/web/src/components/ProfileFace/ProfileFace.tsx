@@ -4,7 +4,12 @@ import { profileInitial, profileAvatarUrl } from '@FluxContracts/schemas/ViewerP
 import type { ProfileFaceProps } from './ProfileFace.types';
 
 /**
- * What a profile looks like.
+ * Draws what a profile looks like — their photograph, their drawn avatar, or their initial — and
+ * shows a photograph being uploaded before the server has taken it, so choosing one feels immediate.
+ *
+ * @param profile - Whose face to draw.
+ * @param pending - A photograph being uploaded, drawn in place of the stored one.
+ * @param className - Extra classes for the caller's own layout.
  */
 const ProfileFace = ({ profile, pending = null, className }: ProfileFaceProps) => {
   const [chosen, setChosen] = useState<string | null>(null);

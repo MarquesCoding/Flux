@@ -16,7 +16,10 @@ import type { MediaPreviewProps, PreviewAbsence } from './MediaPreview.types';
 const SETTLE_MILLISECONDS = 2600;
 
 /**
- * Where an item's preview clip is served from.
+ * Builds the address an item's preview clip is served from.
+ *
+ * @param mediaId - The item.
+ * @returns The address to load.
  */
 const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`;
 
@@ -29,7 +32,22 @@ const PREVIEW_ABSENT = 'No preview available';
 const LOOK_EVERY_MILLISECONDS = 200;
 
 /**
- * A glimpse of what an item looks like.
+ * Plays a few seconds of an item where a poster would otherwise sit, once a pointer has rested long
+ * enough to mean it. Starts muted and silent by default, since a grid where every card can make a
+ * noise is a grid nobody can browse.
+ *
+ * @param mediaId - The item to preview.
+ * @param backdropUrl - What to show before the clip has loaded.
+ * @param durationSeconds - How long the item is, for choosing where to start.
+ * @param fills - Whether the clip fills its space or fits inside it.
+ * @param settleMilliseconds - How long a pointer must rest before it plays.
+ * @param startFraction - How far into the item to start.
+ * @param hasSound - Whether it plays with sound.
+ * @param hasSubtitles - Whether it carries forced subtitles.
+ * @param repeats - Whether it starts again at the end.
+ * @param onEnded - Told when the clip finishes.
+ * @param onPlayingChange - Told when it starts or stops.
+ * @param onPalette - Told the colours on screen, so the page can be lit by them.
  */
 const MediaPreview = ({
   mediaId,

@@ -2,7 +2,13 @@ import { RiFolderOpenLine, RiSearchLine } from '@remixicon/react';
 import type { EmptyLibraryProps } from './EmptyLibrary.types';
 
 /**
- * What to say when a library has nothing to show.
+ * Says why there is nothing on screen, which is three different situations and three different
+ * answers: a search that matched nothing, one library that is empty while others are not, and a
+ * server with nothing scanned anywhere. Only the last is a reason to talk about scanning.
+ *
+ * @param search - What was searched for, where anything was.
+ * @param libraryName - The library being looked at, where one is chosen.
+ * @param hasContentElsewhere - Whether any other library has anything in it.
  */
 const EmptyLibrary = ({ search, libraryName, hasContentElsewhere }: EmptyLibraryProps) => {
   if (search !== '') {

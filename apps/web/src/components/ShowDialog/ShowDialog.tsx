@@ -19,12 +19,20 @@ import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { ShowDialogProps } from './ShowDialog.types';
 
 /**
- * Where the artwork of a show comes from.
+ * Builds the address a programme's artwork is served from, which is one of its episodes' — a
+ * programme is not stored anywhere and so has no artwork of its own.
+ *
+ * @param show - The programme being drawn.
+ * @returns The address to load.
  */
 const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
 /**
- * Names a season the way somebody would say it.
+ * Names a season the way somebody would say it, giving specials their own name rather than calling
+ * them season zero.
+ *
+ * @param seasonNumber - The season.
+ * @returns What to call it.
  */
 const nameSeason = (seasonNumber: number | null): string =>
   seasonNumber === null
@@ -34,7 +42,17 @@ const nameSeason = (seasonNumber: number | null): string =>
       : `Season ${seasonNumber.toString()}`;
 
 /**
- * A series, and everywhere you could go in it.
+ * A programme in full: its seasons, its episodes, where a viewer got to in each, and the episodes
+ * the catalogue says exist that this library does not have. Opening it is how somebody decides what
+ * to watch next rather than only what to watch now.
+ *
+ * @param show - The programme, or null while none is open.
+ * @param onClose - Told when the dialog was dismissed.
+ * @param onPlay - Told to start an episode, and where from.
+ * @param onInspect - Told to open the page about an episode.
+ * @param watchedFractionFor - How far through each episode this viewer is.
+ * @param resumeFor - Where they left each episode.
+ * @param isFinished - Whether they have finished each episode.
  */
 const ShowDialog = ({
   show,

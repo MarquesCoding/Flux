@@ -38,7 +38,18 @@ const PAGES: Record<BrowseKind, { title: string; standfirst: string; empty: stri
 };
 
 /**
- * A page of the library, asked one question.
+ * A page of the library asked one question — the films, the programmes, what arrived recently, what
+ * has been kept — drawn as a grid across every library rather than one at a time.
+ *
+ * @param kind - Which question this page asks.
+ * @param onPlay - Told to start something, and where from.
+ * @param onInspect - Told to open the page about something.
+ * @param onItemsLoaded - Told what it drew, so an address naming an item can be resolved.
+ * @param watchedFractionFor - How far through each item this viewer is.
+ * @param resumeFor - Where they left each item.
+ * @param favourites - What they have kept, for the page that lists them.
+ * @param isKept - Whether each item is kept.
+ * @param onToggleKept - Told to keep something, or stop.
  */
 const BrowseArea = ({
   kind,

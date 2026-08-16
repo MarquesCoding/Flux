@@ -4,7 +4,14 @@ import type { ReactNode } from 'react';
 import type { MediaFactsProps } from './MediaFacts.types';
 
 /**
- * Everything that places an item, on one line.
+ * States the facts that place an item — its year, how long it runs, which episode it is, what it is
+ * rated — on one line beneath its name. Which of them appear is up to the caller, since a card in a
+ * grid and a page about one film want different amounts.
+ *
+ * @param media - The item being described.
+ * @param hasRuntime - Whether to say how long it is.
+ * @param hasEpisode - Whether to say which episode it is.
+ * @param className - Extra classes for the caller's own layout.
  */
 const MediaFacts = ({
   media,
