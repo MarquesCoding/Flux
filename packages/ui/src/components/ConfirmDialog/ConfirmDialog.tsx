@@ -6,7 +6,18 @@ import { DialogTitle } from '@FluxUI/DialogTitle';
 import type { ConfirmDialogProps } from './ConfirmDialog.types';
 
 /**
- * Asks before something that cannot be taken back.
+ * Asks before something that cannot be undone, and says plainly what will happen rather than asking
+ * whether somebody is sure. A destructive answer is painted as destructive, and the dialog stays
+ * open and busy while the work runs, so nothing is confirmed twice.
+ *
+ * @param title - What is about to happen.
+ * @param detail - What it will do, in words somebody can weigh.
+ * @param confirmLabel - What the confirming button says, which should name the action.
+ * @param isDestructive - Whether the answer destroys something, which changes how it is painted.
+ * @param isBusy - Whether the work is already running.
+ * @param isOpen - Whether the dialog is showing.
+ * @param onClose - Told when it was dismissed without confirming.
+ * @param onConfirm - Told when it was confirmed.
  */
 const ConfirmDialog = ({
   title,

@@ -2,7 +2,13 @@ import { cn } from '@FluxUI/cn';
 import type { CardHeaderProps } from './CardHeader.types';
 
 /**
- * The bar across the top of a card.
+ * Draws the bar across the top of a card: the title on the left, and whatever the caller puts on
+ * the right — a count, a menu, a button. Kept as its own component so every card's head is spaced
+ * and weighted the same, rather than each one arranging its own.
+ *
+ * @param title - What the card is about.
+ * @param children - What sits at the right of the bar.
+ * @param className - Extra classes for the caller's own layout.
  */
 const CardHeader = ({ title, children, className }: CardHeaderProps) => (
   <header

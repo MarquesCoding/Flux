@@ -5,8 +5,17 @@ import { cn } from '@FluxUI/cn';
 import type { CheckboxProps } from './Checkbox.types';
 
 /**
- * A labelled checkbox built on the Base UI primitive, which supplies the keyboard interaction and
- * ARIA wiring.
+ * A labelled checkbox, for a choice that is part of a form rather than one that takes effect at
+ * once — a switch is the control for that. Built on the Base UI primitive, which supplies the
+ * keyboard interaction and the ARIA wiring that are expensive to get right and dangerous to get
+ * wrong.
+ *
+ * @param label - What ticking it means.
+ * @param checked - Whether it is ticked, for a caller holding the state.
+ * @param defaultChecked - Whether it starts ticked, for a caller that would rather not.
+ * @param disabled - Whether it can be changed at all.
+ * @param onCheckedChange - Told the new state when it changes.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Checkbox = ({
   label,

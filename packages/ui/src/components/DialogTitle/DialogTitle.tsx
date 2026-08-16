@@ -2,7 +2,14 @@ import { cn } from '@FluxUI/cn';
 import type { DialogTitleProps } from './DialogTitle.types';
 
 /**
- * The head of a dialog, which does not scroll.
+ * The head of a dialog: what it is, optionally a line explaining it, and anything the caller wants
+ * beside them. Pinned rather than scrolled, so what a dialog is about stays on screen while its
+ * content moves.
+ *
+ * @param title - What the dialog is about.
+ * @param detail - A line explaining it, where the title alone leaves something unsaid.
+ * @param children - Anything to sit beside the title, such as a close button.
+ * @param className - Extra classes for the caller's own layout.
  */
 const DialogTitle = ({ title, detail, children, className }: DialogTitleProps) => (
   <header

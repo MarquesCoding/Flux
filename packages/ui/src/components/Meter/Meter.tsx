@@ -3,7 +3,14 @@ import { cn } from '@FluxUI/cn';
 import type { MeterProps } from './Meter.types';
 
 /**
- * How much of something is being used.
+ * Shows how much of a fixed thing is in use — disk, cache, quota — as a bar with the figure written
+ * beside it. The fraction draws the bar and the value is what a reader actually takes away, so both
+ * are given rather than one being derived from the other and rounded twice.
+ *
+ * @param label - What is being measured.
+ * @param fraction - How full it is, from nothing to one.
+ * @param value - The amount as it should be read, such as `1.4 GB of 2 GB`.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Meter = ({ label, fraction, value, className }: MeterProps) => {
   const filled = Math.min(Math.max(fraction, 0), 1);

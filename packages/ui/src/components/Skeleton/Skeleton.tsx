@@ -2,7 +2,12 @@ import { cn } from '@FluxUI/cn';
 import type { SkeletonProps } from './Skeleton.types';
 
 /**
- * The shape of something that has not arrived yet.
+ * Holds the space something will occupy while it is still being fetched, so a page settles into
+ * place rather than jumping as each part lands. Shaped by the caller, since only the caller knows
+ * what is coming.
+ *
+ * @param label - What is being waited for, for anybody who cannot see the shape.
+ * @param className - The size and shape to hold, as classes.
  */
 const Skeleton = ({ label, className }: SkeletonProps) => (
   <span

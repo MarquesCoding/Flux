@@ -20,7 +20,15 @@ const POPUP_MOTION = [
 ].join(' ');
 
 /**
- * The name of a control, for the pointer that has stopped on it.
+ * Names a control for the pointer that has stopped on it, which is how a bar of icons stays
+ * learnable. Wraps the control rather than sitting beside it, so the name is attached to the thing
+ * it names for anybody reading the page rather than looking at it.
+ *
+ * @param label - What the control does.
+ * @param children - The control being named.
+ * @param side - Which side of the control to appear on.
+ * @param isDisabled - Whether to say nothing at all, for a control whose name is already written.
+ * @param delayMilliseconds - How long the pointer rests before the name appears.
  */
 const Tooltip = ({
   label,

@@ -22,7 +22,15 @@ const BACKDROP_MOTION = [
 ].join(' ');
 
 /**
- * A panel over the page.
+ * The one place a `<dialog>` is written. Holds the panel, the backdrop, the focus trap and the
+ * escape handling, so a caller supplies only what is inside. Every dialog in Flux is this or
+ * composes it; a raw dialog element elsewhere is lint-banned.
+ *
+ * @param label - What the dialog is, read out on opening.
+ * @param isOpen - Whether it is showing.
+ * @param onClose - Told when it was dismissed, by the backdrop, the escape key or a close button.
+ * @param children - What the dialog holds, usually a title, some content and a footer.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Dialog = ({ label, isOpen, onClose, children, className }: DialogProps) => {
   const portalContainer = usePortalContainer();

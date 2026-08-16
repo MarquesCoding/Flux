@@ -1,7 +1,12 @@
 import type { MoodLight } from '@FluxUI/MoodBackground.types';
 
 /**
- * A colour as three numbers, which is the only form it can be averaged in.
+ * Reads an `rgb()` colour as its three channels, which is the only form it can be averaged in.
+ * Anything else — a hex code, a named colour, a gradient — comes back as nothing rather than as a
+ * guess, and leaves the light it came from alone.
+ *
+ * @param colour - The colour as CSS wrote it.
+ * @returns The red, green and blue channels, or null where the colour was not in that form.
  */
 const readColour = (colour: string): [number, number, number] | null => {
   const found = /rgb\(\s*(\d+)\s+(\d+)\s+(\d+)\s*\)/.exec(colour);
@@ -14,7 +19,14 @@ const readColour = (colour: string): [number, number, number] | null => {
 };
 
 /**
- * Moves the light the page is under part of the way towards what is on screen now.
+ * Moves the light the page is lit by part of the way towards the light of whatever is on screen now,
+ * so that changing what is featured warms the room rather than switching it. A light that cannot be
+ * read is passed through untouched rather than being blended into grey.
+ *
+ * @param from - The lights currently in force.
+ * @param to - The lights being moved towards.
+ * @param amount - How far to move, from nothing to all the way.
+ * @returns The lights to paint this frame.
  */
 const blendLights = (from: MoodLight[], to: MoodLight[], amount: number): MoodLight[] =>
   to.map((light, at) => {

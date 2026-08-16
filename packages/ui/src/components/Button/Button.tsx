@@ -33,7 +33,22 @@ const ICON_SIZE_CLASSES: Record<ButtonSize, string> = {
 };
 
 /**
- * The button.
+ * The one place a `<button>` is written. Everything pressable in Flux is this or composes it, which
+ * is what keeps focus rings, disabled states, loading behaviour and tooltips the same everywhere
+ * rather than reinvented per screen. A raw button elsewhere is lint-banned, and there is deliberately
+ * no separate icon button — an icon button is this with an icon and a label.
+ *
+ * @param children - What the button shows; optional, since a control can be its own content.
+ * @param variant - How it is painted, from the headline glossy down to bare, which paints nothing.
+ * @param size - How large it is, or none to leave height and padding to the caller.
+ * @param isLoading - Whether the thing it does is under way, which also stops it being pressed twice.
+ * @param isPill - Whether to round it fully, which is how the platform's bars and docks are drawn.
+ * @param label - What it does in words, required of anything wearing only an icon.
+ * @param isIconOnly - Whether it is a glyph and nothing else, which makes it square and round.
+ * @param isActive - Whether what it does is currently in force, said as well as shown.
+ * @param hasTooltip - Whether resting a pointer on it shows the label.
+ * @param tooltipDelayMilliseconds - How long a pointer rests before the label appears.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Button = ({
   children,

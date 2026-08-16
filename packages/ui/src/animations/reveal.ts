@@ -53,13 +53,24 @@ const staggerVariants: Variants = {
 };
 
 /**
- * Picks the variants to animate with.
+ * Picks how something should arrive: rising into place, or simply fading, for somebody who has asked
+ * their system for less movement. The two are kept as separate variant sets rather than one set with
+ * the distance zeroed, so a reduced-motion arrival is a deliberate design rather than a broken one.
+ *
+ * @param prefersReducedMotion - What the system reports, which is null until it has been read.
+ * @returns The variants to hand a Motion component.
  */
 const revealVariants = (prefersReducedMotion: boolean | null): Variants =>
   prefersReducedMotion === true ? fadeVariants : riseVariants;
 
 /**
- * Picks the transition to move on.
+ * Picks the curve something moves on. Reduced motion gets no duration at all, so the end state
+ * simply is. The heavier spring is for the large things — a page, a hero — which look wrong arriving
+ * as fast as a card does.
+ *
+ * @param prefersReducedMotion - What the system reports, which is null until it has been read.
+ * @param weight - Whether this is a large thing arriving or an ordinary one.
+ * @returns The transition to hand a Motion component.
  */
 const revealTransition = (
   prefersReducedMotion: boolean | null,
@@ -77,14 +88,24 @@ const STAGGER_STEP = 0.045;
 const STAGGER_CEILING = 0.42;
 
 /**
- * How long the card at a given place waits before it arrives.
+ * Works out how long the card at a given place in a row waits before arriving, so a row assembles
+ * left to right rather than appearing at once. The wait stops growing past a ceiling: a row of forty
+ * would otherwise still be arriving long after somebody had started reading it.
+ *
+ * @param index - Where the card sits in the row, counting from zero.
+ * @returns How long to wait, in seconds.
  */
 const staggerDelay = (index: number): number => Math.min(index * STAGGER_STEP, STAGGER_CEILING);
 
 const groupVariants: Variants = { hidden: {}, shown: {}, gone: {} };
 
 /**
- * One card of a list, arriving after the ones before it.
+ * Builds the variants for one card of a row, each arriving after the one before it and leaving in
+ * the same order at twice the speed. Leaving faster than arriving is deliberate: an exit that takes
+ * as long as an entrance reads as the interface hesitating.
+ *
+ * @param prefersReducedMotion - What the system reports, which is null until it has been read.
+ * @returns The variants to hand a Motion component, which take the card's index.
  */
 const revealItemVariants = (prefersReducedMotion: boolean | null): Variants => ({
   hidden: prefersReducedMotion === true ? { opacity: 0 } : { opacity: 0, y: RISE },

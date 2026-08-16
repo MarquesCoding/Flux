@@ -15,7 +15,14 @@ const SIZE_CLASSES: Record<BadgeSize, string> = {
 };
 
 /**
- * A small fact about something.
+ * States one small fact beside the thing it is about — a count, a status, a format. Sized to sit
+ * inline without disturbing the line it is on, and toned so that the ordinary case is quiet and
+ * only a warning or a failure asks for attention.
+ *
+ * @param children - The fact, in as few words as it can be said.
+ * @param tone - How much attention it should draw, defaulting to none.
+ * @param size - Whether it sits inline with text or stands slightly apart.
+ * @param className - Extra classes for the caller's own layout.
  */
 const Badge = ({ children, tone = 'quiet', size = 'sm', className }: BadgeProps) => (
   <span

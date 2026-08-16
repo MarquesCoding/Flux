@@ -21,7 +21,16 @@ const RADIUS_CLASSES: Record<CardRadius, string> = {
 };
 
 /**
- * A surface that holds something.
+ * Draws the surface that everything else sits on: a raised rectangle with the padding, corner and
+ * tone the platform uses everywhere. Renders as whatever element the caller needs, so a card that is
+ * one big press target is still a button underneath.
+ *
+ * @param children - What the card holds.
+ * @param tone - How the surface is painted, from quiet to raised.
+ * @param padding - How much room to leave inside it.
+ * @param radius - How round the corners are.
+ * @param isInteractive - Whether it lifts and lights under a pointer, for a card that is pressable.
+ * @param as - The element to render as, where a plain division is not the right thing.
  */
 const Card = ({
   children,

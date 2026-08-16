@@ -3,7 +3,28 @@ import { cn } from '@FluxUI/cn';
 import type { TextFieldProps } from './TextField.types';
 
 /**
- * A labelled single-line text input.
+ * The one place a single line of text is typed. Owns the label, the description and the error
+ * together, so a field is always announced with whatever explains it rather than leaving a caller to
+ * remember the wiring. Every text input in Flux is this or composes it — a bare input elsewhere is
+ * lint-banned.
+ *
+ * @param label - What is being asked for, shown unless the caller hides it.
+ * @param value - What the field holds now.
+ * @param onValueChange - Told the new text on every keystroke.
+ * @param type - Which kind of input, such as a search box or a password.
+ * @param description - A line under the field explaining what is wanted.
+ * @param error - What is wrong with what was typed, which replaces the description.
+ * @param placeholder - What to show while the field is empty.
+ * @param required - Whether the form refuses to submit without it.
+ * @param disabled - Whether it can be typed in at all.
+ * @param min - The smallest acceptable value, for a numeric field.
+ * @param max - The largest acceptable value, for a numeric field.
+ * @param isPill - Whether to round it fully, for a field sitting in a bar rather than a form.
+ * @param size - How large to draw it.
+ * @param isBare - Whether to paint no box at all, for a field that supplies its own surface.
+ * @param icon - Something to draw inside the field, such as a magnifying glass.
+ * @param hasFocusOnMount - Whether to put the cursor here as soon as it appears.
+ * @param className - Extra classes for the caller's own layout.
  */
 const TextField = ({
   label,

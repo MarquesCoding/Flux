@@ -4,7 +4,18 @@ import { cn } from '@FluxUI/cn';
 import type { PageDotsProps } from './PageDots.types';
 
 /**
- * Which of several things is showing, and a way to any of the others.
+ * Shows which of several pages is on screen and offers a way to each of the others. Where the pages
+ * advance on their own, a dot can fill over the time each one is shown, so the row says how long is
+ * left as well as where you are — and stops filling while something is paused.
+ *
+ * @param count - How many pages there are.
+ * @param selectedIndex - Which page is showing, counting from zero.
+ * @param onSelect - Told which page was asked for.
+ * @param labels - What each page is, where they have names worth reading out.
+ * @param label - What the row of dots is for, as a whole.
+ * @param fillMilliseconds - How long each page is shown, where they advance on their own.
+ * @param isFillPaused - Whether to hold the fill where it is.
+ * @param className - Extra classes for the caller's own layout.
  */
 const PageDots = ({
   count,
