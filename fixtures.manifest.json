@@ -1,0 +1,197 @@
+{
+  "generatedBy": "ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers",
+  "fixtures": [
+    {
+      "name": "h264-8bit-closed",
+      "file": "h264-8bit-closed.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "25c3c1c5606a8208318bc4f06b96fd73a951ea279a4358c541c64a15f3e04673",
+      "bytes": 3302173
+    },
+    {
+      "name": "hevc-8bit-closed",
+      "file": "hevc-8bit-closed.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "456175da258a03d97fca0efd2d087958ff74b3e3d321a4afee13f590e1e18efd",
+      "bytes": 2462344
+    },
+    {
+      "name": "hevc-10bit-closed",
+      "file": "hevc-10bit-closed.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "cffde8954a1e1b09d6be9cb1c43adfaa6958ac74c21cd4ec2c4b5c8aa1d94bac",
+      "bytes": 2472532
+    },
+    {
+      "name": "av1-8bit-closed",
+      "file": "av1-8bit-closed.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "73a95d64055628b1998272d061ef0087e5e1850078e5e059e0958f403ce421d4",
+      "bytes": 3050741
+    },
+    {
+      "name": "vp9-8bit-closed",
+      "file": "vp9-8bit-closed.webm",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "ec7409e35fe36313740b2be7bbfe522c928e6a555294fa05e5fcbcca0887fdc5",
+      "bytes": 3184311
+    },
+    {
+      "name": "h264-8bit-open",
+      "file": "h264-8bit-open.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "98b2ea0c64a8a5a258561ea46a24415862af7de328e9c73ea193b4ebcedbab9d",
+      "bytes": 3302081
+    },
+    {
+      "name": "hevc-8bit-open",
+      "file": "hevc-8bit-open.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "49105496bc9dae7136dff0d8de2ffc8dd7772b24789fa6cf6277945860e21100",
+      "bytes": 2460970
+    },
+    {
+      "name": "hevc-10bit-open",
+      "file": "hevc-10bit-open.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "21886b660c1b8d5a7f8b517becc6545f28c14e0d37a867517edef776c4e454f4",
+      "bytes": 2468349
+    },
+    {
+      "name": "h264-keyframes-far",
+      "file": "h264-keyframes-far.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "0e315f519e2fd7e63033dd10e3f839b16b7957cd2b4498da9ca5f8e1fd857e53",
+      "bytes": 6438997
+    },
+    {
+      "name": "hevc-keyframes-far",
+      "file": "hevc-keyframes-far.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "f5689ce0d1b484588ec29a197598e7e59631c83d9b77cb6331894d74e43f5e5e",
+      "bytes": 4816830
+    },
+    {
+      "name": "hevc-10bit-open-keyframes-far",
+      "file": "hevc-10bit-open-keyframes-far.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "1bedeb50a8935beb2dc7937361e67bb8d337f94c20784dd4fe72d1fd028ddbe0",
+      "bytes": 4854087
+    },
+    {
+      "name": "h264-interlaced",
+      "file": "h264-interlaced.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "583dceab9be880969d8384e34b2aa01dab90c6cccc92187ce8dad0a19bf890cd",
+      "bytes": 2908209
+    },
+    {
+      "name": "h264-variable-frame-rate",
+      "file": "h264-variable-frame-rate.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "41a160093a49c230e77676f8b59b7547cb4e23610a93806c8235ae27fa20a89c",
+      "bytes": 3113730
+    },
+    {
+      "name": "hevc-10bit-hdr10",
+      "file": "hevc-10bit-hdr10.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "b76728adf816e21ed82d2297b05b8c91018cc3a5610309856f219edbbaf3f800",
+      "bytes": 2490887
+    },
+    {
+      "name": "hevc-10bit-hlg",
+      "file": "hevc-10bit-hlg.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "8cdfbdb34ff364ca51c842c6a7de645d5caf383b5796bd899f288a8438516c8b",
+      "bytes": 2490887
+    },
+    {
+      "name": "audio-ac3-51",
+      "file": "audio-ac3-51.mkv",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "573c23cef1e3344fde1344174bd40a0913c4d3711d025df5537684a51461afd1",
+      "bytes": 4491695
+    },
+    {
+      "name": "audio-eac3-51",
+      "file": "audio-eac3-51.mkv",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "b6b58cb2d791c88950897dcf06abbce81bfa65f9b96fb1351c81a69f52468a6a",
+      "bytes": 4491683
+    },
+    {
+      "name": "audio-truehd-51",
+      "file": "audio-truehd-51.mkv",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "613cf3c9d042d8dcb1371dd5d467e77d103c03d66eacb52194e118bab72019bd",
+      "bytes": 4466355
+    },
+    {
+      "name": "audio-dts-51",
+      "file": "audio-dts-51.mkv",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "660b68daa28c38b4299209e1ec790be601b821472915fd33bcdf404d24209b96",
+      "bytes": 8123596
+    },
+    {
+      "name": "audio-flac-stereo",
+      "file": "audio-flac-stereo.mkv",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "d9cf9ac8960bf2a167bc0b06dbc6bc218cc3d6d3bf9ceaee599c6b5c907c0097",
+      "bytes": 3210486
+    },
+    {
+      "name": "audio-opus-stereo",
+      "file": "audio-opus-stereo.mkv",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "ee522d344c360f192a3aca4e3198ca58e66da5dc37390edd67fc59250703e3ae",
+      "bytes": 3258172
+    },
+    {
+      "name": "audio-aac-51",
+      "file": "audio-aac-51.mp4",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "e66f0d417ba05135d09b3d447917a7e4afea898cfcd0963ea29a41c9f2b9faa2",
+      "bytes": 3470089
+    },
+    {
+      "name": "container-mkv",
+      "file": "container-mkv.mkv",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "51a1084ac4c5d9827523b25b16dd69b2b9eacb57b0f18bcd7c57306bce5fd01d",
+      "bytes": 3294513
+    },
+    {
+      "name": "container-ts",
+      "file": "container-ts.ts",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "4eb836c8e715760c53a63afb2e13c22b0d605b5f53f2b0f4bbfe8b7ca0e37e37",
+      "bytes": 3586664
+    }
+  ]
+}
