@@ -49,6 +49,7 @@ const arrivalInFull = {
   videoCodec: 'hevc',
   videoRange: 'HDR10',
   videoBitDepth: 10,
+  canCopySegments: true,
   width: 1920,
   height: 1080,
   bitrateKbps: 12000,

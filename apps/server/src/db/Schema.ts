@@ -410,6 +410,7 @@ const mediaItem = pgTable(
     videoCodec: text('videoCodec').notNull(),
     videoRange: text('videoRange').notNull(),
     videoBitDepth: integer('videoBitDepth'),
+    canCopySegments: boolean('canCopySegments'),
     width: integer('width').notNull(),
     height: integer('height').notNull(),
     audioStreams: jsonb('audioStreams').notNull(),

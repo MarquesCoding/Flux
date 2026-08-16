@@ -36,6 +36,14 @@ type StoredItem = {
    * otherwise carry that decision until every file in it happened to change.
    */
   videoBitDepth: number | null;
+  /**
+   * Whether the stored probe recorded that this source can be copied.
+   *
+   * Nothing, for a row written before Flux asked. Such a row is probed again:
+   * a source whose keyframes cannot be cut into segments a player can start at
+   * was copied regardless, and playback stopped at the first of them.
+   */
+  canCopySegments: boolean | null;
 };
 
 type MediaRow = {
@@ -168,7 +176,8 @@ const selectChanged = (
       existing === undefined ||
       existing.sizeBytes !== file.sizeBytes ||
       existing.modifiedAtMs !== file.modifiedAtMs ||
-      existing.videoBitDepth === null
+      existing.videoBitDepth === null ||
+      existing.canCopySegments === null
     );
   });
 
