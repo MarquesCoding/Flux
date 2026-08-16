@@ -6,6 +6,7 @@ import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPerm
 import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
@@ -119,6 +120,7 @@ const build = (options: { unsupported?: boolean } = {}) => {
     segments: createMemorySegmentService(),
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
+    ratings: createMemoryRatingService(),
     playback,
   });
 
@@ -725,6 +727,7 @@ describe('telling presence what is being watched', () => {
         segments: createMemorySegmentService(),
         progress: createMemoryWatchProgressService(),
         favourites: createMemoryFavouriteService(),
+        ratings: createMemoryRatingService(),
         playback: createMemoryPlaybackService({
           media: { [MEDIA_ID]: hdrMedia },
           sessions: {},
@@ -798,6 +801,7 @@ describe('telling presence what is being watched', () => {
         segments: createMemorySegmentService(),
         progress: createMemoryWatchProgressService(),
         favourites: createMemoryFavouriteService(),
+        ratings: createMemoryRatingService(),
         playback: createMemoryPlaybackService({
           media: { [MEDIA_ID]: hdrMedia },
           sessions: {},
@@ -840,6 +844,7 @@ describe('telling presence what is being watched', () => {
         segments: createMemorySegmentService(),
         progress: createMemoryWatchProgressService(),
         favourites: createMemoryFavouriteService(),
+        ratings: createMemoryRatingService(),
         playback: createMemoryPlaybackService({
           media: { [MEDIA_ID]: hdrMedia },
           sessions: {},
@@ -882,6 +887,7 @@ describe('telling presence what is being watched', () => {
         segments: createMemorySegmentService(),
         progress: createMemoryWatchProgressService(),
         favourites: createMemoryFavouriteService(),
+        ratings: createMemoryRatingService(),
         playback: {
           ...playback,
           start: () => Promise.resolve({ kind: 'failed', reason: 'ffmpeg would not start' }),

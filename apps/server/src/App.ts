@@ -13,6 +13,7 @@ import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService';
 import type { SegmentService } from '@FluxServer/segments/SegmentService';
 import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService';
 import type { FavouriteService } from '@FluxServer/favourites/FavouriteService';
+import type { RatingService } from '@FluxServer/ratings/RatingService';
 import type { PlaybackService, PreviewRead } from '@FluxServer/playback/PlaybackService';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import type { PresenceService } from '@FluxServer/presence/PresenceService';
@@ -63,6 +64,15 @@ import {
   keepFavouriteRoute,
   dropFavouriteRoute,
 } from '@FluxServer/routes/FavouriteRoute';
+import {
+  listRatingsRoute,
+  rateMediaRoute,
+  clearMediaRatingRoute,
+  readMediaHouseholdRatingRoute,
+  rateSeriesRoute,
+  clearSeriesRatingRoute,
+  readSeriesHouseholdRatingRoute,
+} from '@FluxServer/routes/RatingRoute';
 import {
   adminOverviewRoute,
   adminMeasureStorageRoute,
@@ -306,6 +316,7 @@ type CreateAppOptions = {
   segments: SegmentService;
   progress: WatchProgressService;
   favourites: FavouriteService;
+  ratings: RatingService;
   profiles?: ProfileService;
   promoteProfile?: (request: {
     profileId: string;
@@ -353,6 +364,7 @@ const createApp = ({
   segments,
   progress,
   favourites,
+  ratings,
   profiles,
   promoteProfile,
   listUsers,
@@ -507,6 +519,9 @@ const createApp = ({
     const { search, kind, genre, yearFrom, yearTo, minRating, ids, order, limit, offset } =
       context.req.valid('query');
 
+    const { minYourStars } = context.req.valid('query');
+    const askedBy = await readProfileId(context.req.raw.headers);
+
     const page = await library.listItems(id, {
       ...(search === undefined ? {} : { search }),
       ...(kind === undefined ? {} : { kind }),
@@ -516,6 +531,8 @@ const createApp = ({
       ...(minRating === undefined ? {} : { minRating }),
       ...(ids === undefined ? {} : { ids: ids.split(',').filter((named) => named.trim() !== '') }),
       ...(order === undefined ? {} : { order }),
+      ...(askedBy === null ? {} : { profileId: askedBy }),
+      ...(minYourStars === undefined ? {} : { minYourStars }),
       limit: limit ?? DEFAULT_LIMIT,
       offset: offset ?? 0,
     });
@@ -2452,6 +2469,104 @@ const createApp = ({
     await favourites.drop(profileId, context.req.valid('param').mediaId);
 
     return context.body(null, 204);
+  });
+
+  app.openapi(listRatingsRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers);
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    return context.json({ ratings: await ratings.list(profileId) }, 200);
+  });
+
+  app.openapi(rateMediaRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers);
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const { mediaId } = context.req.valid('param');
+
+    if ((await library.getMedia(mediaId)) === null) {
+      return context.json({ error: 'No such media item.' }, 404);
+    }
+
+    await ratings.set(profileId, { mediaId }, context.req.valid('json').stars);
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(clearMediaRatingRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers);
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    await ratings.clear(profileId, { mediaId: context.req.valid('param').mediaId });
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(readMediaHouseholdRatingRoute, async (context) => {
+    if ((await readProfileId(context.req.raw.headers)) === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const { mediaId } = context.req.valid('param');
+
+    if ((await library.getMedia(mediaId)) === null) {
+      return context.json({ error: 'No such media item.' }, 404);
+    }
+
+    return context.json(await ratings.household({ mediaId }), 200);
+  });
+
+  app.openapi(rateSeriesRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers);
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const { seriesId } = context.req.valid('param');
+
+    if ((await library.getSeries(seriesId)) === null) {
+      return context.json({ error: 'No such programme.' }, 404);
+    }
+
+    await ratings.set(profileId, { seriesId }, context.req.valid('json').stars);
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(clearSeriesRatingRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers);
+
+    if (profileId === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    await ratings.clear(profileId, { seriesId: context.req.valid('param').seriesId });
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(readSeriesHouseholdRatingRoute, async (context) => {
+    if ((await readProfileId(context.req.raw.headers)) === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const { seriesId } = context.req.valid('param');
+
+    if ((await library.getSeries(seriesId)) === null) {
+      return context.json({ error: 'No such programme.' }, 404);
+    }
+
+    return context.json(await ratings.household({ seriesId }), 200);
   });
 
   app.openapi(listSegmentsRoute, async (context) => {

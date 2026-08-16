@@ -37,6 +37,8 @@ const toSummary = (item: MediaDetail): MediaSummary => ({
 type MemoryState = {
   libraries: Library[];
   media: MediaDetail[];
+  series?: { id: string; title: string }[];
+  starsFor?: (mediaId: string) => number | null;
   people?: Record<number, Person>;
 };
 
@@ -173,11 +175,22 @@ const createMemoryLibraryService = (
       )
       .filter((item) => matchesFilters(item, options))
       .filter((item) => options.ids === undefined || options.ids.includes(item.id))
-      .sort((left, right) =>
-        options.order === 'newest'
+      .filter(
+        (item) =>
+          options.minYourStars === undefined ||
+          (state.starsFor?.(item.id) ?? 0) >= options.minYourStars,
+      )
+      .sort((left, right) => {
+        if (options.order === 'yourRating') {
+          const given = (state.starsFor?.(right.id) ?? 0) - (state.starsFor?.(left.id) ?? 0);
+
+          return given === 0 ? left.title.localeCompare(right.title) : given;
+        }
+
+        return options.order === 'newest'
           ? right.addedAt.localeCompare(left.addedAt)
-          : left.title.localeCompare(right.title),
-      );
+          : left.title.localeCompare(right.title);
+      });
 
     const items = matching.slice(options.offset, options.offset + options.limit).map(toSummary);
 
@@ -185,6 +198,9 @@ const createMemoryLibraryService = (
   },
 
   getMedia: (id) => Promise.resolve(state.media.find((item) => item.id === id) ?? null),
+
+  getSeries: (seriesId) =>
+    Promise.resolve((state.series ?? []).find((entry) => entry.id === seriesId) ?? null),
 
   findByPerson: (personId) =>
     Promise.resolve(

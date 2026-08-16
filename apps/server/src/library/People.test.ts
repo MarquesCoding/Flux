@@ -8,6 +8,7 @@ import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemoryS
 import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
 import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
 import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import { PersonCreditsSchema, PersonSchema } from '@FluxContracts/schemas/Person';
 import type { MediaDetail } from '@FluxContracts/schemas/Library';
 
@@ -85,6 +86,7 @@ const build = (media: MediaDetail[] = []) => {
     profiles: createMemoryProfileService(),
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
+    ratings: createMemoryRatingService(),
   });
 };
 

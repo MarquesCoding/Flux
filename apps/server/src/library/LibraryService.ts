@@ -15,7 +15,9 @@ type ListItemsOptions = {
   yearTo?: number;
   minRating?: number;
   ids?: string[];
-  order?: 'title' | 'newest';
+  order?: 'title' | 'newest' | 'yourRating';
+  profileId?: string;
+  minYourStars?: number;
   limit: number;
   offset: number;
 };
@@ -51,6 +53,7 @@ type LibraryService = ShowService & {
   ) => Promise<{ items: MediaSummary[]; total: number } | null>;
   listFacets: () => Promise<LibraryFacets>;
   getMedia: (id: string) => Promise<MediaDetail | null>;
+  getSeries: (seriesId: string) => Promise<{ id: string; title: string } | null>;
   findByPerson: (personId: number) => Promise<MediaSummary[]>;
   readPerson: (personId: number) => Promise<Person | null>;
   scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>;

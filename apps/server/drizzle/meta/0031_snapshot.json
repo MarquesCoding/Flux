@@ -1,5 +1,5 @@
 {
-  "id": "1830c557-e765-4112-9c7c-768cadca77a7",
+  "id": "ed3e2bfc-1a4d-4619-add7-252b9417ff1d",
   "prevId": "eee1ff5c-0bec-4fd8-bcd1-30315e822254",
   "version": "7",
   "dialect": "postgresql",
@@ -944,21 +944,6 @@
           "method": "gin",
           "with": {}
         },
-        "media_item_cast_idx": {
-          "name": "media_item_cast_idx",
-          "columns": [
-            {
-              "expression": "castMembers",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "gin",
-          "with": {}
-        },
         "media_item_series_idx": {
           "name": "media_item_series_idx",
           "columns": [
@@ -1644,6 +1629,175 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rating": {
+      "name": "rating",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "profileId": {
+          "name": "profileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mediaItemId": {
+          "name": "mediaItemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seriesId": {
+          "name": "seriesId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stars": {
+          "name": "stars",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ratedAt": {
+          "name": "ratedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "rating_profile_item_idx": {
+          "name": "rating_profile_item_idx",
+          "columns": [
+            {
+              "expression": "profileId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mediaItemId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"rating\".\"mediaItemId\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "rating_profile_series_idx": {
+          "name": "rating_profile_series_idx",
+          "columns": [
+            {
+              "expression": "profileId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "seriesId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"rating\".\"seriesId\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "rating_item_idx": {
+          "name": "rating_item_idx",
+          "columns": [
+            {
+              "expression": "mediaItemId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "rating_series_idx": {
+          "name": "rating_series_idx",
+          "columns": [
+            {
+              "expression": "seriesId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "rating_profileId_viewer_profile_id_fk": {
+          "name": "rating_profileId_viewer_profile_id_fk",
+          "tableFrom": "rating",
+          "tableTo": "viewer_profile",
+          "columnsFrom": ["profileId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "rating_mediaItemId_media_item_id_fk": {
+          "name": "rating_mediaItemId_media_item_id_fk",
+          "tableFrom": "rating",
+          "tableTo": "media_item",
+          "columnsFrom": ["mediaItemId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "rating_seriesId_series_id_fk": {
+          "name": "rating_seriesId_series_id_fk",
+          "tableFrom": "rating",
+          "tableTo": "series",
+          "columnsFrom": ["seriesId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "rating_one_subject": {
+          "name": "rating_one_subject",
+          "value": "(\"rating\".\"mediaItemId\" is null) <> (\"rating\".\"seriesId\" is null)"
+        },
+        "rating_stars_range": {
+          "name": "rating_stars_range",
+          "value": "\"rating\".\"stars\" between 1 and 5"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.role": {

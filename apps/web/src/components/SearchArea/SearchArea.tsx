@@ -77,6 +77,7 @@ const SearchArea = ({
   const [facets, setFacets] = useState<LibraryFacets>(NO_FACETS);
   const [decade, setDecade] = useState<string | null>(null);
   const [minRating, setMinRating] = useState<string | null>(null);
+  const [minYourStars, setMinYourStars] = useState<string | null>(null);
   const [isShowingFilters, setIsShowingFilters] = useState(false);
   const [isReading, setIsReading] = useState(false);
   const [size, setSize] = useState(readGridSize);
@@ -111,6 +112,7 @@ const SearchArea = ({
           ...(genre === null ? {} : { genre }),
           ...(startsAt === undefined ? {} : { yearFrom: startsAt, yearTo: startsAt + DECADE - 1 }),
           ...(minRating === null ? {} : { minRating: Number(minRating) }),
+          ...(minYourStars === null ? {} : { minYourStars: Number(minYourStars) }),
           limit: PAGE_SIZE,
         }).catch(() => ({ items: [], total: 0 })),
       ),
@@ -121,7 +123,7 @@ const SearchArea = ({
     setItems(found);
     setIsReading(false);
     reportItems.current?.(found);
-  }, [libraryIds, search, kind, genre, decade, minRating]);
+  }, [libraryIds, search, kind, genre, decade, minRating, minYourStars]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -137,7 +139,7 @@ const SearchArea = ({
     void fetchFacets().then(setFacets);
   }, []);
 
-  const narrowed = [decade, minRating].filter((chosen) => chosen !== null).length;
+  const narrowed = [decade, minRating, minYourStars].filter((chosen) => chosen !== null).length;
 
   const isNarrowed =
     kind !== 'everything' || genre !== null || search.trim() !== '' || narrowed > 0;
@@ -257,6 +259,12 @@ const SearchArea = ({
                   value={minRating}
                   onValueChange={setMinRating}
                 />
+                <FilterChips
+                  legend="Your rating"
+                  options={options.yourStars}
+                  value={minYourStars}
+                  onValueChange={setMinYourStars}
+                />
               </div>
             </motion.div>
           )}
@@ -295,7 +303,7 @@ const SearchArea = ({
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={[kind, genre, decade, minRating].join(':')}
+            key={[kind, genre, decade, minRating, minYourStars].join(':')}
             variants={staggerVariants}
             initial="hidden"
             animate="shown"

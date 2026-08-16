@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AnimatedIcon } from './AnimatedIcon';
 import type * as MotionReact from 'motion/react';
@@ -75,6 +75,62 @@ describe('AnimatedIcon', () => {
 
     expect(screen.getByTestId('line')).toBeInTheDocument();
     expect(screen.queryByTestId('filled')).not.toBeInTheDocument();
+  });
+
+  it('puts a half-played gesture back where it rests', async () => {
+    const view = render(
+      <AnimatedIcon
+        gesture="fill"
+        isPlaying={false}
+        icon={<span data-testid="line" />}
+        activeIcon={<span data-testid="filled" />}
+      />,
+    );
+
+    view.rerender(
+      <AnimatedIcon
+        gesture="fill"
+        isPlaying
+        icon={<span data-testid="line" />}
+        activeIcon={<span data-testid="filled" />}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('filled').parentElement).toHaveStyle({
+        clipPath: 'inset(0% 0% 0% 0%)',
+      });
+    });
+
+    view.rerender(
+      <AnimatedIcon
+        gesture="fill"
+        isPlaying
+        isStilled
+        icon={<span data-testid="line" />}
+        activeIcon={<span data-testid="filled" />}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('filled').parentElement).toHaveStyle({
+        clipPath: 'inset(100% 0% 0% 0%)',
+      });
+    });
+  });
+
+  it('keeps what it wraps mounted while it is stilled', () => {
+    const view = render(
+      <AnimatedIcon gesture="ring" isPlaying icon={<span data-testid="trigger" />} />,
+    );
+
+    const before = screen.getByTestId('trigger');
+
+    view.rerender(
+      <AnimatedIcon gesture="ring" isPlaying isStilled icon={<span data-testid="trigger" />} />,
+    );
+
+    expect(screen.getByTestId('trigger')).toBe(before);
   });
 
   it('sets a display name so devtools can identify it', () => {
