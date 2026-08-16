@@ -182,6 +182,7 @@ const VideoPlayer = ({
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isShowingStats, setIsShowingStats] = useState(false);
+  const [dismissedWarnings, setDismissedWarnings] = useState<readonly string[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH);
   const [delivered, setDelivered] = useState<DeliveredFormat | null>(null);
@@ -193,6 +194,16 @@ const VideoPlayer = ({
   const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF);
   const [captionStyle, setCaptionStyle] = useState(readCaptionStyle);
   const [subtitleOffset, setSubtitleOffset] = useState(0);
+
+  const sessionId = session?.sessionId ?? null;
+
+  const visibleWarnings = (session?.warnings ?? []).filter(
+    (warning) => !dismissedWarnings.includes(warning),
+  );
+
+  useEffect(() => {
+    setDismissedWarnings([]);
+  }, [sessionId]);
   const appliedOffsetRef = useRef(0);
   const [segments, setSegments] = useState<MediaSegment[]>([]);
   const [selectedAudioIndex, setSelectedAudioIndex] = useState<number | null>(null);
@@ -1520,12 +1531,24 @@ const VideoPlayer = ({
         </div>
       </div>
 
-      {session === null || session.warnings.length === 0 ? null : (
+      {visibleWarnings.length === 0 ? null : (
         <ul className="flex flex-col gap-1 rounded-md border border-border p-3 text-sm text-text-muted">
-          {session.warnings.map((warning) => (
+          {visibleWarnings.map((warning) => (
             <li key={warning} className="flex items-start gap-2">
               <RiAlertLine size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
-              {warning}
+              <span className="min-w-0 flex-1">{warning}</span>
+
+              <Button
+                isIconOnly
+                variant="ghost"
+                size="sm"
+                label="Dismiss this warning"
+                onClick={() => {
+                  setDismissedWarnings((dismissed) => [...dismissed, warning]);
+                }}
+              >
+                <RiCloseLine size={14} aria-hidden />
+              </Button>
             </li>
           ))}
         </ul>
