@@ -23,6 +23,25 @@ use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
 use flux_transcoder::trickplay::TrickplayRegistry;
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
+/// Gives each half-written fixture a name nothing else will pick up.
+static BUILDING: AtomicU64 = AtomicU64::new(0);
+
+/// A name to write a fixture under before it is moved into place.
+///
+/// The tests in a file run in parallel and `exists` becomes true the moment ffmpeg creates a file
+/// rather than when it has finished writing it, so one test probed a fixture another was still
+/// writing. A rename is atomic, so the real name only ever appears on a finished file. Only ever
+/// seen against a cold fixture directory, which CI has and a developer never does.
+fn building_name(name: &str) -> String {
+    format!(
+        ".building-{}-{}-{name}",
+        std::process::id(),
+        BUILDING.fetch_add(1, Ordering::Relaxed)
+    )
+}
+
 fn ffmpeg() -> String {
     std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
 }
@@ -48,6 +67,7 @@ fn fixture_dir() -> PathBuf {
 /// change to measure, so the hash of it is noise in both files.
 fn episode(name: &str, filler_seed: u32, bitrate: &str) -> PathBuf {
     let path = fixture_dir().join(name);
+    let building = fixture_dir().join(building_name(name));
 
     if path.exists() {
         return path;
@@ -70,11 +90,13 @@ fn episode(name: &str, filler_seed: u32, bitrate: &str) -> PathBuf {
         .args(["-filter_complex", "[0:a][1:a]concat=n=2:v=0:a=1[out]"])
         .args(["-map", "[out]", "-b:a", bitrate])
         .arg("-y")
-        .arg(&path)
+        .arg(&building)
         .status()
         .expect("runs ffmpeg");
 
     assert!(status.success(), "could not generate {name}");
+
+    std::fs::rename(&building, &path).expect("moves the finished fixture into place");
 
     path
 }

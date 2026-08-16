@@ -28,6 +28,25 @@ use flux_transcoder::transcode_plan::{
     AudioAction, HardwareAccel, SegmentContainer, SessionSpec, SubtitleAction, VideoAction,
 };
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
+/// Gives each half-written fixture a name nothing else will pick up.
+static BUILDING: AtomicU64 = AtomicU64::new(0);
+
+/// A name to write a fixture under before it is moved into place.
+///
+/// The tests in a file run in parallel and `exists` becomes true the moment ffmpeg creates a file
+/// rather than when it has finished writing it, so one test probed a fixture another was still
+/// writing. A rename is atomic, so the real name only ever appears on a finished file. Only ever
+/// seen against a cold fixture directory, which CI has and a developer never does.
+fn building_name(name: &str) -> String {
+    format!(
+        ".building-{}-{}-{name}",
+        std::process::id(),
+        BUILDING.fetch_add(1, Ordering::Relaxed)
+    )
+}
+
 fn ffmpeg() -> String {
     std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
 }
@@ -52,6 +71,7 @@ fn fixture_dir() -> PathBuf {
 /// lands at the end never lands at all.
 fn long_source_file() -> PathBuf {
     let path = fixture_dir().join("session-source-long.mp4");
+    let building = fixture_dir().join(building_name("session-source-long.mp4"));
 
     if path.exists() {
         return path;
@@ -76,7 +96,7 @@ fn long_source_file() -> PathBuf {
             "50",
         ])
         .arg("-y")
-        .arg(&path)
+        .arg(&building)
         .status()
         .expect("runs ffmpeg");
 
@@ -85,12 +105,15 @@ fn long_source_file() -> PathBuf {
         "ffmpeg could not generate the long source fixture"
     );
 
+    std::fs::rename(&building, &path).expect("moves the finished fixture into place");
+
     path
 }
 
 /// A short real file with video and audio.
 fn source_file() -> PathBuf {
     let path = fixture_dir().join("session-source.mp4");
+    let building = fixture_dir().join(building_name("session-source.mp4"));
 
     if path.exists() {
         return path;
@@ -125,7 +148,7 @@ fn source_file() -> PathBuf {
             "2",
         ])
         .arg("-y")
-        .arg(&path)
+        .arg(&building)
         .status()
         .expect("runs ffmpeg");
 
@@ -133,6 +156,8 @@ fn source_file() -> PathBuf {
         status.success(),
         "ffmpeg could not generate the source fixture"
     );
+
+    std::fs::rename(&building, &path).expect("moves the finished fixture into place");
 
     path
 }
