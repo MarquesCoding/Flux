@@ -67,11 +67,74 @@ struct FfprobeStream {
     bits_per_raw_sample: Option<String>,
     pix_fmt: Option<String>,
     color_transfer: Option<String>,
+    level: Option<i64>,
+    r_frame_rate: Option<String>,
+    field_order: Option<String>,
+    refs: Option<u32>,
+    sample_aspect_ratio: Option<String>,
+    sample_rate: Option<String>,
     #[serde(default)]
     tags: std::collections::HashMap<String, String>,
     disposition: Option<std::collections::HashMap<String, i32>>,
     #[serde(default)]
     side_data_list: Vec<std::collections::HashMap<String, serde_json::Value>>,
+}
+
+/// Reads a rational like `25/1` as a number.
+///
+/// ffprobe reports frame rates as a ratio because that is what containers
+/// store, and `0/0` for a stream whose rate it could not work out — a still
+/// image, or audio. Both are absent rather than zero.
+fn parse_rational(value: Option<&String>) -> Option<f64> {
+    let text = value?;
+    let (numerator, denominator) = text.split_once('/')?;
+    let numerator: f64 = numerator.parse().ok()?;
+    let denominator: f64 = denominator.parse().ok()?;
+
+    (denominator != 0.0 && numerator != 0.0).then_some(numerator / denominator)
+}
+
+/// Whether a field order means the picture is stored as fields.
+///
+/// ffprobe says `progressive` for whole frames and names the field order
+/// otherwise — `tt`, `bb`, `tb`, `bt`. An absent or unknown value is treated as
+/// progressive, because that is what almost everything is and guessing the
+/// other way would deinterlace material that does not need it.
+fn is_interlaced(field_order: Option<&String>) -> bool {
+    matches!(
+        field_order.map(String::as_str),
+        Some("tt" | "bb" | "tb" | "bt")
+    )
+}
+
+/// The pixel shape, where it is not square.
+///
+/// ffprobe writes `1:1` for square pixels, and for a stream that never declared
+/// one it writes nothing at all. Both mean the picture can be shown at its
+/// stored size, so both are absent here.
+fn parse_pixel_aspect(value: Option<&String>) -> Option<String> {
+    let text = value?.trim();
+
+    (!text.is_empty() && text != "1:1" && text != "0:1").then(|| text.replace(':', "/"))
+}
+
+/// How far the picture is rotated for display.
+fn rotation_of(stream: &FfprobeStream) -> Option<i32> {
+    for side_data in &stream.side_data_list {
+        if let Some(rotation) = side_data
+            .get("rotation")
+            .and_then(serde_json::Value::as_i64)
+        {
+            return i32::try_from(rotation.abs()).ok();
+        }
+    }
+
+    stream
+        .tags
+        .iter()
+        .find(|(key, _)| key.eq_ignore_ascii_case("rotate"))
+        .and_then(|(_, value)| value.parse::<i32>().ok())
+        .map(i32::abs)
 }
 
 fn parse_kbps(value: Option<&String>) -> Option<u32> {
@@ -187,6 +250,15 @@ fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
             height: stream.height.unwrap_or_default(),
             range: detect_range(stream, &output.frames),
             bitrate_kbps: parse_kbps(stream.bit_rate.as_ref()),
+            level: stream
+                .level
+                .filter(|level| *level > 0)
+                .and_then(|level| u32::try_from(level).ok()),
+            frame_rate: parse_rational(stream.r_frame_rate.as_ref()),
+            is_interlaced: is_interlaced(stream.field_order.as_ref()),
+            ref_frames: stream.refs.filter(|refs| *refs > 0),
+            pixel_aspect: parse_pixel_aspect(stream.sample_aspect_ratio.as_ref()),
+            rotation_degrees: rotation_of(stream),
             bit_depth: stream
                 .bits_per_raw_sample
                 .as_ref()
@@ -202,6 +274,15 @@ fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
             index: stream.index,
             codec: audio_codec(stream.codec_name.as_deref().unwrap_or_default()),
             channels: stream.channels.unwrap_or(2),
+            sample_rate: stream
+                .sample_rate
+                .as_ref()
+                .and_then(|value| value.parse::<u32>().ok()),
+            profile: stream
+                .profile
+                .as_ref()
+                .filter(|profile| profile.as_str() != "unknown")
+                .cloned(),
             language: language_of(stream),
             title: title_of(stream),
             is_default: is_default(stream),

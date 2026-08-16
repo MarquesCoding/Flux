@@ -56,16 +56,25 @@ const LONGEST_COPYABLE_SEGMENT: f64 = 16.0;
 /// segment before, and where they run consecutively that produces segments far
 /// longer than anything can be asked to fetch and append in one piece.
 ///
+/// The other way is simply keyframes that are far apart to begin with. This
+/// used to answer yes to any source whose cuts were all safe, without looking
+/// at what they produced — so a closed GOP with keyframes a minute apart was
+/// copied into minute-long segments, which is the size the limit exists to
+/// prevent whatever put it there. The length is now checked on both paths.
+/// Found by a fixture whose container declared a duration of ninety-nine days.
+///
 /// Asked by the media service before it starts a session, and by the library
 /// scan through the probe, so that both reach the same answer from the same
 /// rule. See FLUX-125.
 #[must_use]
 pub fn can_copy_segments(keyframes: &Keyframes, cut_seconds: f64) -> bool {
-    if keyframes.cuts.iter().copied().all(Cut::is_safe) {
-        return true;
-    }
+    let lengths = if keyframes.cuts.iter().copied().all(Cut::is_safe) {
+        segment_lengths(keyframes, cut_seconds)
+    } else {
+        safe_segment_lengths(keyframes, cut_seconds)
+    };
 
-    longest_segment(&safe_segment_lengths(keyframes, cut_seconds)) <= LONGEST_COPYABLE_SEGMENT
+    longest_segment(&lengths) <= LONGEST_COPYABLE_SEGMENT
 }
 
 /// Where a plan's segments fall, and what the muxer has to be asked for to
@@ -284,7 +293,48 @@ pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSp
 
 #[cfg(test)]
 mod tests {
-    use super::equal_lengths;
+    use super::{can_copy_segments, equal_lengths};
+    use crate::keyframes::{Cut, Keyframes};
+
+    fn every(seconds: f64, count: u32, duration: f64) -> Keyframes {
+        Keyframes {
+            cuts: (0..count)
+                .map(|index| {
+                    let at = f64::from(index) * seconds;
+
+                    Cut {
+                        at_seconds: at,
+                        starts_at_seconds: at,
+                    }
+                })
+                .collect(),
+            starts_at_seconds: 0.0,
+            duration_seconds: duration,
+        }
+    }
+
+    /// Keyframes close enough together to fetch one segment at a time.
+    #[test]
+    fn copies_a_source_whose_keyframes_are_close_together() {
+        assert!(can_copy_segments(&every(4.0, 15, 60.0), 4.0));
+    }
+
+    /// Safe cuts are not on their own enough.
+    ///
+    /// This answered yes to any source whose cuts were all safe, without
+    /// looking at what they produced, so a closed GOP with keyframes a minute
+    /// apart was copied into minute-long segments — the size the limit exists
+    /// to prevent, whatever put it there. See FLUX-132.
+    #[test]
+    fn refuses_a_source_whose_safe_keyframes_are_still_too_far_apart() {
+        assert!(!can_copy_segments(&every(60.0, 5, 300.0), 4.0));
+    }
+
+    /// A container that declares nonsense is refused rather than believed.
+    #[test]
+    fn refuses_a_source_whose_duration_is_not_credible() {
+        assert!(!can_copy_segments(&every(0.0, 1, 8_589_935.0), 4.0));
+    }
 
     /// An encode cuts where it is told to, so the segments are what was asked.
     #[test]

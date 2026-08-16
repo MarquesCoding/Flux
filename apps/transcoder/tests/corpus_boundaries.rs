@@ -57,6 +57,29 @@ fn corpus_directory() -> PathBuf {
     PathBuf::from(home).join(".cache").join("flux-fixtures")
 }
 
+/// Whether a file has a video stream at all.
+///
+/// The corpus carries audio-only fixtures, for the codec profiles that only
+/// audio has. A file with no picture has no segments, so it has nothing to say
+/// about where they fall.
+fn has_video(path: &Path) -> bool {
+    let output = Command::new(ffprobe())
+        .args([
+            "-v",
+            "error",
+            "-select_streams",
+            "v",
+            "-show_entries",
+            "stream=index",
+            "-of",
+            "csv=p=0",
+        ])
+        .arg(path)
+        .output();
+
+    output.is_ok_and(|output| !String::from_utf8_lossy(&output.stdout).trim().is_empty())
+}
+
 /// Every fixture on disk, in a stable order.
 fn corpus() -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(corpus_directory()) else {
@@ -71,6 +94,7 @@ fn corpus() -> Vec<PathBuf> {
                 Some("mp4" | "mkv" | "ts" | "webm")
             )
         })
+        .filter(|path| has_video(path))
         .collect();
 
     found.sort();
