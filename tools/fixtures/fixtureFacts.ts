@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const SideDataSchema = z.object({
   side_data_type: z.string().optional(),
+  rotation: z.number().optional(),
 });
 
 const StreamSchema = z.object({
@@ -12,15 +13,27 @@ const StreamSchema = z.object({
   field_order: z.string().optional(),
   color_transfer: z.string().optional(),
   channels: z.number().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  level: z.number().optional(),
+  r_frame_rate: z.string().optional(),
+  sample_aspect_ratio: z.string().optional(),
+  sample_rate: z.string().optional(),
+  tags: z.record(z.string(), z.string()).optional(),
 });
 
 const FrameSchema = z.object({
   side_data_list: z.array(SideDataSchema).optional(),
 });
 
+const FormatSchema = z.object({
+  start_time: z.string().optional(),
+});
+
 const ProbeSchema = z.object({
   streams: z.array(StreamSchema).default([]),
   frames: z.array(FrameSchema).default([]),
+  format: FormatSchema.default({}),
 });
 
 type FixtureFacts = {
@@ -31,6 +44,15 @@ type FixtureFacts = {
   scan: 'progressive' | 'interlaced';
   audioCodec: string;
   audioChannels: number;
+  audioSampleRate: number;
+  audioTrackCount: number;
+  width: number;
+  height: number;
+  frameRate: number;
+  level: number;
+  pixelAspect: string;
+  rotationDegrees: number;
+  startSeconds: number;
 };
 
 const TRANSFER_RANGES: Record<string, FixtureFacts['range']> = {
@@ -56,7 +78,16 @@ const fixtureFacts = (json: string): FixtureFacts => {
   const probe = ProbeSchema.parse(JSON.parse(json));
 
   const video = probe.streams.find((stream) => stream.codec_type === 'video');
-  const audio = probe.streams.find((stream) => stream.codec_type === 'audio');
+  const audioStreams = probe.streams.filter((stream) => stream.codec_type === 'audio');
+  const audio = audioStreams[0];
+
+  const [numerator = '0', denominator = '1'] = (video?.r_frame_rate ?? '0/1').split('/');
+  const rotationSide = (video?.side_data_list ?? []).find(
+    (entry) => entry.rotation !== undefined,
+  )?.rotation;
+  const tags = video?.tags ?? {};
+  const rotationKey = Object.keys(tags).find((key) => key.toLowerCase() === 'rotate');
+  const rotationTag = Number(rotationKey === undefined ? '0' : (tags[rotationKey] ?? '0'));
 
   const pixelFormat = video?.pix_fmt ?? '';
   const fieldOrder = video?.field_order ?? 'progressive';
@@ -74,6 +105,15 @@ const fixtureFacts = (json: string): FixtureFacts => {
     scan: fieldOrder === 'progressive' || fieldOrder === '' ? 'progressive' : 'interlaced',
     audioCodec: audio?.codec_name ?? '',
     audioChannels: audio?.channels ?? 0,
+    audioSampleRate: Number(audio?.sample_rate ?? '0'),
+    audioTrackCount: audioStreams.length,
+    width: video?.width ?? 0,
+    height: video?.height ?? 0,
+    frameRate: Math.round(Number(numerator) / Math.max(1, Number(denominator))),
+    level: video?.level ?? 0,
+    pixelAspect: (video?.sample_aspect_ratio ?? '1:1').replace(':', '/'),
+    rotationDegrees: Math.abs(rotationSide ?? rotationTag),
+    startSeconds: Math.round(Number(probe.format.start_time ?? '0')),
   };
 };
 

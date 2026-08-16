@@ -57,6 +57,7 @@ describe('the corpus matches what the matrix claims', () => {
           '-v',
           'error',
           '-show_streams',
+          '-show_format',
           '-show_frames',
           '-read_intervals',
           '%+#1',
@@ -82,11 +83,49 @@ describe('the corpus matches what the matrix claims', () => {
       });
 
       it('carries the scan it claims', () => {
-        expect(facts.scan).toBe(fixture.video.scan);
+        expect(facts.scan).toBe(fixture.video.scan === 'interlaced' ? 'interlaced' : 'progressive');
       });
 
       it('carries the mastering metadata real HDR10 carries', () => {
         expect(facts.hasMasteringDisplay).toBe(fixture.video.range === 'HDR10');
+      });
+
+      it('is the size it claims', () => {
+        expect([facts.width, facts.height]).toEqual([fixture.video.width, fixture.video.height]);
+      });
+
+      it('runs at the frame rate it claims', () => {
+        const declared = fixture.video.frameRate;
+        const expected =
+          fixture.video.scan === 'telecined'
+            ? 30
+            : fixture.video.scan === 'interlaced'
+              ? Math.round(declared / 2)
+              : Math.round(declared);
+
+        expect(facts.frameRate).toBe(expected);
+      });
+
+      it('carries the pixel shape it claims', () => {
+        expect(facts.pixelAspect).toBe(fixture.video.pixelAspect);
+      });
+
+      it('carries the rotation it claims', () => {
+        expect(facts.rotationDegrees).toBe(fixture.video.rotationDegrees);
+      });
+
+      it('starts where it claims to start', () => {
+        const muxerClock = fixture.container === 'ts' ? 1 : 0;
+
+        expect(facts.startSeconds).toBe(fixture.startOffsetSeconds + muxerClock);
+      });
+
+      it('carries the audio sample rate it claims', () => {
+        expect(facts.audioSampleRate).toBe(fixture.audio.sampleRate);
+      });
+
+      it('carries the number of audio tracks it claims', () => {
+        expect(facts.audioTrackCount).toBe(fixture.audio.tracks);
       });
 
       it('carries the audio codec it claims', () => {
@@ -96,6 +135,40 @@ describe('the corpus matches what the matrix claims', () => {
       it('carries the channel count it claims', () => {
         expect(facts.audioChannels).toBe(fixture.audio.channels);
       });
+
+      if (fixture.video.level !== '') {
+        it('declares the codec level it claims', () => {
+          expect(facts.level).toBe(Number(fixture.video.level.replace('.', '')));
+        });
+      }
+
+      if (fixture.video.refFrames > 0) {
+        it('encodes with the reference frame count it claims', () => {
+          const trace = spawnSync(
+            process.env['FLUX_FFMPEG'] ?? 'ffmpeg',
+            [
+              '-v',
+              'trace',
+              '-i',
+              path,
+              '-c',
+              'copy',
+              '-bsf:v',
+              'trace_headers',
+              '-t',
+              '1',
+              '-f',
+              'null',
+              '-',
+            ],
+            { encoding: 'utf8' },
+          );
+
+          const found = /max_num_ref_frames\s+[01]+ = (\d+)/.exec(trace.stderr);
+
+          expect(Number(found?.[1] ?? 0)).toBe(fixture.video.refFrames);
+        });
+      }
     },
   );
 });

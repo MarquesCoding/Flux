@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fixtureArguments, keyframeInterval, pixelFormat, FRAME_RATE } from './fixtureArguments';
+import { fixtureArguments, keyframeInterval, pixelFormat } from './fixtureArguments';
 import { FIXTURES } from './fixtureMatrix';
 import type { Fixture } from './fixtureMatrix';
 
@@ -26,8 +26,8 @@ describe('pixelFormat', () => {
 
 describe('keyframeInterval', () => {
   it('turns seconds into frames at the corpus frame rate', () => {
-    expect(keyframeInterval({ ...named('h264-8bit-closed').video })).toBe(2 * FRAME_RATE);
-    expect(keyframeInterval({ ...named('h264-keyframes-far').video })).toBe(10 * FRAME_RATE);
+    expect(keyframeInterval({ ...named('h264-8bit-closed').video })).toBe(50);
+    expect(keyframeInterval({ ...named('h264-keyframes-far').video })).toBe(250);
   });
 
   it('never asks for an interval of no frames', () => {

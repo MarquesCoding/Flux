@@ -6,7 +6,7 @@ type GopStructure = 'open' | 'closed';
 
 type VideoRange = 'SDR' | 'HDR10' | 'HLG';
 
-type Scan = 'progressive' | 'interlaced';
+type Scan = 'progressive' | 'interlaced' | 'telecined';
 
 type FrameTiming = 'constant' | 'variable';
 
@@ -22,11 +22,20 @@ type VideoSpec = {
   range: VideoRange;
   scan: Scan;
   timing: FrameTiming;
+  width: number;
+  height: number;
+  frameRate: number;
+  level: string;
+  refFrames: number;
+  pixelAspect: string;
+  rotationDegrees: number;
 };
 
 type AudioSpec = {
   codec: AudioCodec;
   channels: 2 | 6;
+  sampleRate: number;
+  tracks: number;
 };
 
 type Fixture = {
@@ -35,6 +44,8 @@ type Fixture = {
   licence: string;
   container: Container;
   durationSeconds: number;
+  startOffsetSeconds: number;
+  negativeCtsOffsets: boolean;
   video: VideoSpec;
   audio: AudioSpec;
 };
@@ -49,9 +60,16 @@ const BASELINE_VIDEO: VideoSpec = {
   range: 'SDR',
   scan: 'progressive',
   timing: 'constant',
+  width: 640,
+  height: 360,
+  frameRate: 25,
+  level: '',
+  refFrames: 0,
+  pixelAspect: '1/1',
+  rotationDegrees: 0,
 };
 
-const BASELINE_AUDIO: AudioSpec = { codec: 'aac', channels: 2 };
+const BASELINE_AUDIO: AudioSpec = { codec: 'aac', channels: 2, sampleRate: 48_000, tracks: 1 };
 
 const DEFAULT_DURATION_SECONDS = 30;
 
@@ -61,7 +79,11 @@ const DEFAULT_DURATION_SECONDS = 30;
  * The corpus is a spanning set rather than a full cross product: varying one axis at a time is what
  * makes a failure attributable. A fixture that differs from the baseline in three ways tells you
  * something broke without telling you which of the three did it, which is the position every rule
- * in the transcoder is currently in.
+ * in the transcoder was in before this existed.
+ *
+ * The full cross product of these axes is over two thousand files and would test almost nothing
+ * extra, because the axes are largely independent. Where two genuinely interact — a codec and the
+ * container that must carry it — the pair is named explicitly instead.
  *
  * @param name - What this fixture is called, which is also its filename stem.
  * @param overrides - The axes that differ from the baseline.
@@ -73,6 +95,8 @@ const varying = (
     tier?: FixtureTier;
     container?: Container;
     durationSeconds?: number;
+    startOffsetSeconds?: number;
+    negativeCtsOffsets?: boolean;
     video?: Partial<VideoSpec>;
     audio?: Partial<AudioSpec>;
   },
@@ -82,6 +106,8 @@ const varying = (
   licence: GENERATED_LICENCE,
   container: overrides.container ?? 'mp4',
   durationSeconds: overrides.durationSeconds ?? DEFAULT_DURATION_SECONDS,
+  startOffsetSeconds: overrides.startOffsetSeconds ?? 0,
+  negativeCtsOffsets: overrides.negativeCtsOffsets ?? false,
   video: { ...BASELINE_VIDEO, ...overrides.video },
   audio: { ...BASELINE_AUDIO, ...overrides.audio },
 });
@@ -118,12 +144,31 @@ const KEYFRAME_FIXTURES: Fixture[] = [
 
 const STRUCTURE_FIXTURES: Fixture[] = [
   varying('h264-interlaced', { video: { scan: 'interlaced' } }),
+  varying('h264-telecined', { video: { scan: 'telecined', frameRate: 24 } }),
   varying('h264-variable-frame-rate', { video: { timing: 'variable' } }),
 ];
 
 const RANGE_FIXTURES: Fixture[] = [
   varying('hevc-10bit-hdr10', { video: { codec: 'hevc', bitDepth: 10, range: 'HDR10' } }),
   varying('hevc-10bit-hlg', { video: { codec: 'hevc', bitDepth: 10, range: 'HLG' } }),
+];
+
+const NEGOTIATION_FIXTURES: Fixture[] = [
+  varying('h264-level-51', { video: { level: '5.1' } }),
+  varying('h264-ref-frames-9', { video: { refFrames: 9 } }),
+  varying('h264-60fps', { video: { frameRate: 60 } }),
+  varying('h264-anamorphic', { video: { pixelAspect: '4/3' } }),
+  varying('h264-rotated-90', { container: 'mkv', video: { rotationDegrees: 90 } }),
+  varying('h264-4k', {
+    durationSeconds: 10,
+    video: { width: 3840, height: 2160, keyframeSeconds: 2 },
+  }),
+  varying('audio-96khz-flac', { container: 'mkv', audio: { codec: 'flac', sampleRate: 96_000 } }),
+];
+
+const TIMESTAMP_FIXTURES: Fixture[] = [
+  varying('h264-start-offset', { startOffsetSeconds: 600 }),
+  varying('h264-negative-cts', { negativeCtsOffsets: true }),
 ];
 
 const AUDIO_FIXTURES: Fixture[] = [
@@ -134,11 +179,21 @@ const AUDIO_FIXTURES: Fixture[] = [
   varying('audio-flac-stereo', { container: 'mkv', audio: { codec: 'flac' } }),
   varying('audio-opus-stereo', { container: 'mkv', audio: { codec: 'opus' } }),
   varying('audio-aac-51', { audio: { channels: 6 } }),
+  varying('audio-two-tracks', { container: 'mkv', audio: { tracks: 2 } }),
 ];
 
 const CONTAINER_FIXTURES: Fixture[] = [
-  varying('container-mkv', { container: 'mkv' }),
-  varying('container-ts', { container: 'ts' }),
+  varying('container-mkv-h264', { container: 'mkv' }),
+  varying('container-ts-h264', { container: 'ts' }),
+  varying('container-mkv-hevc', { container: 'mkv', video: { codec: 'hevc' } }),
+  varying('container-ts-hevc', { container: 'ts', video: { codec: 'hevc' } }),
+  varying('container-mp4-av1', { video: { codec: 'av1' } }),
+  varying('container-mkv-av1', { container: 'mkv', video: { codec: 'av1' } }),
+  varying('container-mkv-vp9', {
+    container: 'mkv',
+    video: { codec: 'vp9' },
+    audio: { codec: 'opus' },
+  }),
 ];
 
 const FIXTURES: readonly Fixture[] = [
@@ -147,6 +202,8 @@ const FIXTURES: readonly Fixture[] = [
   ...KEYFRAME_FIXTURES,
   ...STRUCTURE_FIXTURES,
   ...RANGE_FIXTURES,
+  ...NEGOTIATION_FIXTURES,
+  ...TIMESTAMP_FIXTURES,
   ...AUDIO_FIXTURES,
   ...CONTAINER_FIXTURES,
 ];

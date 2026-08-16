@@ -210,6 +210,12 @@ pub fn parse_cuts(csv: &str, duration_seconds: f64) -> Keyframes {
 /// them are is measured on the boundaries those cuts produce, because that is
 /// what the player will find in the media. Keeping the two apart is what lets
 /// the lengths be corrected without moving a single cut.
+///
+/// The target begins at the film's own first presentation time rather than at
+/// nought. A stream whose clock starts elsewhere — 600 seconds in, which is
+/// ordinary in broadcast and camera output — otherwise satisfies the first
+/// target with its first keyframe and gains a segment that ffmpeg never
+/// writes.
 #[must_use]
 pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> {
     if desired_seconds <= 0.0 {
@@ -218,7 +224,7 @@ pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> 
 
     let mut lengths = Vec::new();
     let mut last_start = keyframes.starts_at_seconds;
-    let mut next_cut = desired_seconds;
+    let mut next_cut = keyframes.starts_at_seconds + desired_seconds;
 
     for cut in &keyframes.cuts {
         if cut.at_seconds < next_cut {
@@ -293,7 +299,7 @@ pub fn safe_segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<
 
     let mut lengths = Vec::new();
     let mut last_start = keyframes.starts_at_seconds;
-    let mut next_cut = desired_seconds;
+    let mut next_cut = keyframes.starts_at_seconds + desired_seconds;
 
     for cut in keyframes.cuts.iter().filter(|cut| cut.is_safe()) {
         if cut.at_seconds < next_cut {
@@ -348,6 +354,56 @@ mod tests {
         cut_interval, longest_segment, parse_cuts, safe_segment_lengths, segment_lengths,
         segment_starts, Cut, Keyframes,
     };
+
+    /// A stream whose clock does not start at nought.
+    ///
+    /// Ordinary in broadcast and camera output, and legal everywhere. The
+    /// muxer measures its first target from the film's own start, so a reader
+    /// that measures from zero finds every keyframe already past the target and
+    /// declares a segment ffmpeg never writes. Found by the corpus on a fixture
+    /// whose timestamps begin ten minutes in. See FLUX-132.
+    #[test]
+    fn counts_the_segments_of_a_stream_that_starts_late() {
+        let late = Keyframes {
+            cuts: (0..8)
+                .map(|index| {
+                    let at = 600.0 + f64::from(index) * 2.0;
+
+                    Cut {
+                        at_seconds: at,
+                        starts_at_seconds: at,
+                    }
+                })
+                .collect(),
+            starts_at_seconds: 600.0,
+            duration_seconds: 16.0,
+        };
+
+        let early = Keyframes {
+            cuts: (0..8)
+                .map(|index| {
+                    let at = f64::from(index) * 2.0;
+
+                    Cut {
+                        at_seconds: at,
+                        starts_at_seconds: at,
+                    }
+                })
+                .collect(),
+            starts_at_seconds: 0.0,
+            duration_seconds: 16.0,
+        };
+
+        assert_eq!(
+            segment_lengths(&late, 4.0).len(),
+            segment_lengths(&early, 4.0).len(),
+            "where the clock starts must not change how many segments there are"
+        );
+        assert_eq!(
+            safe_segment_lengths(&late, 4.0).len(),
+            safe_segment_lengths(&early, 4.0).len()
+        );
+    }
 
     /// A source whose segments begin exactly at their keyframes.
     ///
