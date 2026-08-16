@@ -25,7 +25,7 @@ use flux_transcoder::queue::WorkQueue;
 use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
 use flux_transcoder::transcode_plan::{
-    AudioAction, HardwareAccel, SessionSpec, SubtitleAction, VideoAction,
+    AudioAction, HardwareAccel, SegmentContainer, SessionSpec, SubtitleAction, VideoAction,
 };
 
 fn ffmpeg() -> String {
@@ -180,6 +180,7 @@ fn spec(video: VideoAction, audio: AudioAction) -> SessionSpec {
         audio_stream_index: None,
         subtitles: SubtitleAction::None,
         source_size: None,
+        container: SegmentContainer::Fmp4,
     }
 }
 
@@ -281,8 +282,22 @@ async fn remuxes_to_hls_without_re_encoding() {
     assert_eq!(manifest_status, StatusCode::OK);
     assert!(playlist.starts_with("#EXTM3U"), "playlist was {playlist}");
     assert!(
-        !playlist.contains("#EXT-X-MAP"),
-        "a transport stream needs nothing before it: {playlist}"
+        playlist.contains("#EXT-X-MAP:URI=\"init.mp4\""),
+        "a fragmented playlist has to name its initialisation segment: {playlist}"
+    );
+
+    let id = body["id"].as_str().expect("has an id");
+    let (init_status, init_bytes) = call(&app, get(&format!("/sessions/{id}/init.mp4"))).await;
+
+    assert_eq!(
+        init_status,
+        StatusCode::OK,
+        "the segment the playlist points at has to be servable"
+    );
+    assert!(
+        init_bytes.len() > 512,
+        "initialisation segment was {} bytes",
+        init_bytes.len()
     );
 }
 
@@ -297,7 +312,7 @@ async fn serves_the_segments_the_playlist_names() {
 
     let segment = playlist
         .lines()
-        .find(|line| line.ends_with(".ts"))
+        .find(|line| line.ends_with(".m4s"))
         .expect("playlist names a segment");
 
     let (status, bytes) = call(&app, get(&format!("/sessions/{id}/{segment}"))).await;
@@ -513,8 +528,8 @@ async fn answers_the_newest_request_when_a_viewer_scrubs_past_an_older_one() {
 
     let id = body["id"].as_str().expect("names the session").to_owned();
 
-    let far = call(&app, get(&format!("/sessions/{id}/segment00028.ts")));
-    let near = call(&app, get(&format!("/sessions/{id}/segment00004.ts")));
+    let far = call(&app, get(&format!("/sessions/{id}/segment00028.m4s")));
+    let near = call(&app, get(&format!("/sessions/{id}/segment00004.m4s")));
 
     let (far, near) = tokio::join!(far, near);
 
@@ -529,7 +544,7 @@ async fn answers_the_newest_request_when_a_viewer_scrubs_past_an_older_one() {
         .unwrap_or_default();
 
     assert!(
-        started.contains("segment00004.ts"),
+        started.contains("segment00004.m4s"),
         "the run should be where the newest request is, not where the older one was: {started}"
     );
 
@@ -574,7 +589,7 @@ async fn serves_a_segment_beyond_a_transcode_that_has_run_ahead() {
         let ahead = std::fs::read_dir(&directory).map_or(0, |entries| {
             entries
                 .filter_map(Result::ok)
-                .filter(|entry| entry.file_name().to_string_lossy().ends_with(".ts"))
+                .filter(|entry| entry.file_name().to_string_lossy().ends_with(".m4s"))
                 .count()
         });
 
@@ -585,7 +600,7 @@ async fn serves_a_segment_beyond_a_transcode_that_has_run_ahead() {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
-    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00025.ts"))).await;
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00025.m4s"))).await;
 
     assert_eq!(
         status,
@@ -619,13 +634,13 @@ async fn produces_a_segment_again_after_the_run_that_wrote_it_has_ended() {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
-    let segment = directory.join("segment00001.ts");
+    let segment = directory.join("segment00001.m4s");
 
     assert!(segment.exists(), "the run wrote the segment first");
 
     std::fs::remove_file(&segment).expect("takes the segment away");
 
-    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00001.ts"))).await;
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00001.m4s"))).await;
 
     assert_eq!(
         status,
@@ -823,11 +838,11 @@ async fn describes_the_whole_film_before_transcoding_it() {
     assert!(manifest.contains("#EXTM3U"), "{manifest}");
     assert!(manifest.contains("#EXT-X-PLAYLIST-TYPE:VOD"), "{manifest}");
 
-    let named = manifest.matches(".ts\n").count();
+    let named = manifest.matches(".m4s\n").count();
     let written = std::fs::read_dir(cache_root("growing").join(id))
         .expect("reads the session directory")
         .filter_map(Result::ok)
-        .filter(|entry| entry.file_name().to_string_lossy().ends_with(".ts"))
+        .filter(|entry| entry.file_name().to_string_lossy().ends_with(".m4s"))
         .count();
 
     assert_eq!(named, 30, "a two minute film in four second segments");
@@ -880,7 +895,7 @@ async fn starts_a_run_where_a_viewer_seeked_to() {
     assert_eq!(status, StatusCode::OK, "{body}");
 
     let id = body["id"].as_str().expect("names the session").to_owned();
-    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00025.ts"))).await;
+    let (status, bytes) = call(&app, get(&format!("/sessions/{id}/segment00025.m4s"))).await;
 
     assert_eq!(status, StatusCode::OK, "a seek to 100 seconds in");
     assert!(bytes.len() > 512, "segment was {} bytes", bytes.len());
@@ -889,11 +904,11 @@ async fn starts_a_run_where_a_viewer_seeked_to() {
         .expect("reads the session directory")
         .filter_map(Result::ok)
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
-        .filter(|name| name.ends_with(".ts"))
+        .filter(|name| name.ends_with(".m4s"))
         .collect();
 
     assert!(
-        !written.contains(&"segment00012.ts".to_owned()),
+        !written.contains(&"segment00012.m4s".to_owned()),
         "nothing should have transcoded the film in between: {written:?}"
     );
 }

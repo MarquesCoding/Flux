@@ -1,4 +1,5 @@
 import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
+import type { SegmentContainer } from './segmentContainerFor';
 
 type VerifiedEncoder = {
   codec: string;
@@ -43,6 +44,7 @@ type SessionSpec = {
         isImageBased: boolean;
       };
   sourceSize?: [number, number];
+  container: SegmentContainer;
 };
 
 type PlanToSessionSpecOptions = {
@@ -57,6 +59,7 @@ type PlanToSessionSpecOptions = {
   startSeconds: number;
   segmentSeconds: number;
   audioStreamIndex?: number;
+  container: SegmentContainer;
 };
 
 type SpecOutcome =
@@ -158,6 +161,7 @@ const planToSessionSpec = ({
   audioStreamIndex,
   imageSubtitleIndexes = [],
   subtitleIndexes = [],
+  container,
 }: PlanToSessionSpecOptions): SpecOutcome => {
   const isImageBased =
     plan.subtitles.kind === 'burnIn' && imageSubtitleIndexes.includes(plan.subtitles.streamIndex);
@@ -194,6 +198,7 @@ const planToSessionSpec = ({
         startSeconds,
         segmentSeconds,
         hardwareAccel: 'none',
+        container,
         subtitles,
         ...(sourceSize === undefined ? {} : { sourceSize }),
         ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
@@ -247,6 +252,7 @@ const planToSessionSpec = ({
       startSeconds,
       segmentSeconds,
       hardwareAccel: chosen.accel,
+      container,
       subtitles,
       ...(sourceSize === undefined ? {} : { sourceSize }),
       ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),

@@ -11,8 +11,8 @@ use tokio::sync::{oneshot, Mutex, Notify};
 use crate::boundaries::ensure_boundaries;
 use crate::playlist::segment_at;
 use crate::transcode_plan::{
-    DeviceFilters, HardwareAccel, SegmentStart, SessionSpec, TranscodePlan, VideoAction,
-    MANIFEST_NAME, RUN_PLAYLIST_NAME,
+    DeviceFilters, HardwareAccel, SegmentContainer, SegmentStart, SessionSpec, TranscodePlan,
+    VideoAction, MANIFEST_NAME, RUN_PLAYLIST_NAME,
 };
 
 /// Written only when ffmpeg exits cleanly.
@@ -481,10 +481,13 @@ async fn is_segment_ready(
     wanted: u64,
     is_complete: bool,
     run: Option<RunPosition>,
+    container: SegmentContainer,
 ) -> bool {
-    if !tokio::fs::try_exists(directory.join(crate::playlist::segment_name(index_of(wanted))))
-        .await
-        .unwrap_or(false)
+    if !tokio::fs::try_exists(
+        directory.join(crate::playlist::segment_name(index_of(wanted), container)),
+    )
+    .await
+    .unwrap_or(false)
     {
         return false;
     }
@@ -493,9 +496,10 @@ async fn is_segment_ready(
         return true;
     }
 
-    tokio::fs::try_exists(directory.join(crate::playlist::segment_name(index_of(
-        wanted.saturating_add(1),
-    ))))
+    tokio::fs::try_exists(directory.join(crate::playlist::segment_name(
+        index_of(wanted.saturating_add(1)),
+        container,
+    )))
     .await
     .unwrap_or(false)
 }
@@ -818,6 +822,7 @@ impl SessionRegistry {
         Some(SegmentView {
             directory: session.directory.clone(),
             segment_seconds: session.spec.segment_seconds,
+            container: session.spec.container,
             lengths: Arc::clone(&session.lengths),
             running_from: session.running_from,
         })
@@ -946,7 +951,8 @@ impl SessionRegistry {
 
             let is_complete = is_already_complete(&view.directory).await;
             let run = view.run().await;
-            let is_ready = is_segment_ready(&view.directory, wanted, is_complete, run).await;
+            let is_ready =
+                is_segment_ready(&view.directory, wanted, is_complete, run, view.container).await;
 
             match resolve_segment(is_ready, run, wanted, view.segment_seconds) {
                 SegmentPlan::Serve => return true,
@@ -1028,6 +1034,7 @@ impl SessionRegistry {
 pub struct SegmentView {
     directory: PathBuf,
     segment_seconds: u32,
+    container: SegmentContainer,
     lengths: Arc<Vec<f64>>,
     running_from: Option<u64>,
 }

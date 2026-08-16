@@ -32,6 +32,61 @@ impl HardwareAccel {
     }
 }
 
+/// What a segment is wrapped in.
+///
+/// A property of the treatment rather than of Flux. Transport streams were the
+/// one global answer for a while because a copied open-GOP HEVC film stopped
+/// twenty-three seconds in as fragmented MP4 — but the container was never the
+/// fault. Measured against that same film: HEVC Main 10 in fragmented MP4 plays
+/// every frame when its segments open on an IDR, and stops when they open on a
+/// CRA carrying pictures that reference the GOP before it. See
+/// [`crate::keyframes::Cut::is_safe`], which is where those cuts are refused,
+/// and FLUX-124.
+///
+/// So fragmented MP4 is the default, and the reasons to want it are the ones
+/// transport streams cannot give: AV1 has no practical mapping into TS at all,
+/// nor do Opus and FLAC, and Apple's HLS authoring rules require fMP4 for HEVC,
+/// which is the whole native path on iOS and tvOS.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SegmentContainer {
+    /// Fragmented MP4, described by an `EXT-X-MAP` and an initialisation
+    /// segment every run rewrites.
+    #[default]
+    Fmp4,
+    /// MPEG-TS, for a client that cannot take fragmented MP4.
+    ///
+    /// Kept reachable rather than kept as the default: a segment carries its
+    /// own timing, so there is no initialisation segment to fetch first, and
+    /// some devices accept nothing else. See FLUX-115.
+    MpegTs,
+}
+
+impl SegmentContainer {
+    /// What a segment of this container is called on disk.
+    #[must_use]
+    pub fn extension(self) -> &'static str {
+        match self {
+            Self::Fmp4 => "m4s",
+            Self::MpegTs => "ts",
+        }
+    }
+
+    /// Whether the player has to fetch an initialisation segment first.
+    #[must_use]
+    pub fn needs_init_segment(self) -> bool {
+        matches!(self, Self::Fmp4)
+    }
+}
+
+/// The initialisation segment a fragmented MP4 playlist points at.
+///
+/// One per plan rather than one per run: every run of a plan encodes the same
+/// treatment, so the parameter sets it describes are the same, and a player
+/// that has fetched it once should not have to fetch it again when a seek
+/// starts a new run.
+pub const INIT_SEGMENT_NAME: &str = "init.mp4";
+
 /// How HDR is converted to SDR.
 ///
 /// Tone mapping needs a filter that can linearise a PQ or HLG transfer curve.
@@ -150,6 +205,14 @@ pub struct SessionSpec {
     /// stays on the software filter rather than guessing.
     #[serde(default)]
     pub source_size: Option<(u32, u32)>,
+    /// What to wrap the segments in.
+    ///
+    /// Negotiated rather than fixed, because it is a fact about the client:
+    /// what it will accept is the only thing that decides it. Absent means
+    /// fragmented MP4, so a caller written before this existed keeps working
+    /// and gets the container that carries the most.
+    #[serde(default)]
+    pub container: SegmentContainer,
 }
 
 impl SessionSpec {
@@ -177,8 +240,8 @@ impl SessionSpec {
         };
 
         format!(
-            "{video} {audio} {subtitles} accel={:?} from={}s",
-            self.hardware_accel, self.start_seconds
+            "{video} {audio} {subtitles} accel={:?} container={:?} from={}s",
+            self.hardware_accel, self.container, self.start_seconds
         )
     }
 }
@@ -225,6 +288,7 @@ impl SessionSpec {
         hasher.update(format!("{:?}", self.audio_stream_index).as_bytes());
         hasher.update(format!("{:?}", self.subtitles).as_bytes());
         hasher.update(format!("{:?}", self.source_size).as_bytes());
+        hasher.update(format!("{:?}", self.container).as_bytes());
 
         let digest = hasher.finalize();
         let mut id = String::with_capacity(32);
@@ -259,6 +323,7 @@ impl SessionSpec {
         hasher.update(format!("{:?}", self.audio_stream_index).as_bytes());
         hasher.update(format!("{:?}", self.subtitles).as_bytes());
         hasher.update(format!("{:?}", self.source_size).as_bytes());
+        hasher.update(format!("{:?}", self.container).as_bytes());
 
         let digest = hasher.finalize();
         let mut id = String::with_capacity(32);
@@ -1219,8 +1284,20 @@ impl TranscodePlan {
         args.push("0".into());
         args.push("-start_number".into());
         args.push(self.start_at.index.to_string());
+
+        if self.spec.container.needs_init_segment() {
+            args.push("-hls_segment_type".into());
+            args.push("fmp4".into());
+            args.push("-hls_fmp4_init_filename".into());
+            args.push(INIT_SEGMENT_NAME.into());
+        }
+
         args.push("-hls_segment_filename".into());
-        args.push(format!("{}/segment%05d.ts", self.output_directory));
+        args.push(format!(
+            "{}/segment%05d.{}",
+            self.output_directory,
+            self.spec.container.extension()
+        ));
         args.push(format!("{}/{RUN_PLAYLIST_NAME}", self.output_directory));
 
         args
@@ -1232,8 +1309,8 @@ mod tests {
     use super::{
         composited_graph, filter_name, fitted_size, force_key_frames_argument, frame_route,
         keeps_frames_on_the_gpu, software_equivalent, AudioAction, DeviceFilters, FrameRoute,
-        HardwareAccel, SegmentStart, SessionSpec, SubtitleAction, ToneMapping, TranscodePlan,
-        VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
+        HardwareAccel, SegmentContainer, SegmentStart, SessionSpec, SubtitleAction, ToneMapping,
+        TranscodePlan, VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
     };
 
     /// A build with a scaler and no compositor, as the existing routes assume.
@@ -1261,6 +1338,7 @@ mod tests {
             audio_stream_index: None,
             subtitles: SubtitleAction::None,
             source_size: None,
+            container: SegmentContainer::Fmp4,
         }
     }
 
@@ -2316,17 +2394,38 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
     }
 
     #[test]
-    /// Transport streams rather than fragmented MP4.
+    /// Fragmented MP4 rather than transport streams.
     ///
-    /// Measured against Chrome: a copied HEVC film delivered as fMP4 decoded
-    /// four frames and stopped, whoever wrote the playlist and however the
-    /// segments were cut. The same video as a transport stream played
-    /// through. See FLUX-114.
-    fn writes_transport_stream_segments_into_the_session_directory() {
+    /// Transport streams were the one global answer while a copied HEVC film
+    /// was stopping twenty-three seconds in as fMP4, but the container was not
+    /// the fault: the segments were opening on cuts a decoder cannot start at,
+    /// and those are refused before a copy is agreed to. Measured against the
+    /// same film, HEVC Main 10 in fMP4 plays every one of its frames.
+    /// See FLUX-114 and FLUX-124.
+    fn writes_fragmented_mp4_segments_into_the_session_directory() {
         let args = plan(spec()).to_ffmpeg_args();
 
-        assert!(args.contains(&"/transcodes/abc/segment%05d.ts".to_owned()));
+        assert!(args.contains(&"/transcodes/abc/segment%05d.m4s".to_owned()));
         assert!(args.contains(&"/transcodes/abc/run.m3u8".to_owned()));
+        assert!(args.contains(&"fmp4".to_owned()));
+        assert!(args.contains(&"init.mp4".to_owned()));
+    }
+
+    /// A client that cannot take fragmented MP4 still gets a film.
+    ///
+    /// The container is a property of the treatment, so asking for transport
+    /// streams has to produce them and nothing of fMP4's shape alongside: an
+    /// `EXT-X-MAP` pointing at an initialisation segment no run will write is
+    /// a playlist that cannot play. See FLUX-115.
+    #[test]
+    fn writes_transport_streams_for_a_client_that_needs_them() {
+        let args = plan(SessionSpec {
+            container: SegmentContainer::MpegTs,
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        assert!(args.contains(&"/transcodes/abc/segment%05d.ts".to_owned()));
         assert!(!args.iter().any(|argument| argument == "-hls_segment_type"));
         assert!(!args
             .iter()
