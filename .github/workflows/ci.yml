@@ -25,6 +25,10 @@ env:
   FLUX_FFMPEG_SUITE: bookworm
   FLUX_FFMPEG: /usr/lib/flux-ffmpeg/ffmpeg
   FLUX_FFPROBE: /usr/lib/flux-ffmpeg/ffprobe
+  # Named rather than left to `~`, which the cache action expands on the runner and Node expands
+  # inside the container. In a container job those are not the same directory, and a cache that
+  # saves one while the corpus is written to the other silently caches nothing.
+  FLUX_FIXTURES_DIR: /tmp/flux-fixtures
 
 jobs:
   checks:
@@ -101,7 +105,7 @@ jobs:
       - name: Cache the generated corpus
         uses: actions/cache@v4
         with:
-          path: ~/.cache/flux-fixtures
+          path: /tmp/flux-fixtures
           key: >-
             fixtures-${{ env.FLUX_FFMPEG_VERSION }}-${{ hashFiles('tools/fixtures/fixtureMatrix.ts',
             'tools/fixtures/fixtureArguments.ts', 'tools/fixtures/fetchedFixtures.ts',
