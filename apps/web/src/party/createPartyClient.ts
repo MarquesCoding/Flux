@@ -29,6 +29,7 @@ type PartyClient = {
   loosen: (how: { everyoneMaySeek?: boolean; everyoneMayPlayPause?: boolean }) => void;
   offsetMs: () => number;
   jitterMs: () => number;
+  watchClock: () => () => void;
   stop: () => void;
 };
 
@@ -39,9 +40,10 @@ type PartyClient = {
  * everything it shows is what the server last said the party is — a client that believed its own
  * commands would show a party that had diverged from everybody else's.
  *
- * Also keeps the clock exchange running, because positions from different machines cannot be
- * compared without it: wall clocks drift and are user-settable, so the offset is measured rather
- * than assumed.
+ * The clock exchange runs only while there is a party to synchronise with, because positions from
+ * different machines cannot be compared without it — and there is nothing to compare for a tab
+ * watching alone. Wall clocks drift and are user-settable, so the offset is measured rather than
+ * assumed.
  *
  * @param client - The shared socket.
  * @param watcher - Told when the party changes and when a command arrives.
@@ -94,8 +96,6 @@ const createPartyClient = ({
     cancel = schedule(askTheClock, everyMs);
   };
 
-  askTheClock();
-
   return {
     open: (mediaId) => {
       client.sendParty({ kind: 'partyOpen', mediaId });
@@ -123,6 +123,15 @@ const createPartyClient = ({
 
     loosen: (how) => {
       client.sendParty({ kind: 'partyLoosen', ...how });
+    },
+
+    watchClock: () => {
+      askTheClock();
+
+      return () => {
+        cancel?.();
+        cancel = null;
+      };
     },
 
     offsetMs: () => estimateClockOffset(readings),

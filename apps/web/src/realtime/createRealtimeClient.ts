@@ -40,6 +40,7 @@ type RealtimeClient = {
   identify: (who: Identity) => void;
   onResumed: (run: () => void) => () => void;
   isLive: () => boolean;
+  connectionId: () => string | null;
   sendParty: (message: PartyMessage) => void;
   askClock: (sentAtMs: number) => void;
   onClockTell: (heard: ClockHeard) => () => void;
@@ -88,6 +89,7 @@ const createRealtimeClient = ({
   let wanted = false;
   let hasConnectedBefore = false;
   let actingAs: Identity | null = null;
+  let myConnectionId: string | null = null;
 
   const identifyMessage = (who: Identity): FromClient => ({
     kind: 'identify',
@@ -118,6 +120,12 @@ const createRealtimeClient = ({
     const read = readMessage(raw);
 
     if (!read.success) {
+      return;
+    }
+
+    if (read.data.kind === 'welcome') {
+      myConnectionId = read.data.connectionId;
+
       return;
     }
 
@@ -259,6 +267,8 @@ const createRealtimeClient = ({
     },
 
     isLive: () => live,
+
+    connectionId: () => myConnectionId,
 
     sendParty: (message) => {
       send(message);

@@ -37,6 +37,8 @@ import { PersonDialog } from '@FluxWeb/components/PersonDialog/PersonDialog';
 import { ShareArea } from '@FluxWeb/components/ShareArea/ShareArea';
 import { ShareDialog } from '@FluxWeb/components/ShareDialog/ShareDialog';
 import { StillWatchingDialog } from '@FluxWeb/components/StillWatchingDialog/StillWatchingDialog';
+import { PartyPanel } from '@FluxWeb/components/PartyPanel/PartyPanel';
+import { useWatchParty } from '@FluxWeb/party/useWatchParty';
 import { countCarriedOn } from '@FluxWeb/playback/countCarriedOn';
 import { decideWhatFollows } from '@FluxWeb/playback/decideWhatFollows';
 import {
@@ -98,6 +100,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [guestReached, setGuestReached] = useState<Map<string, number>>(new Map());
   const [watcher, setWatcher] = useState<ViewerProfile | null>(null);
   const [askingAbout, setAskingAbout] = useState<MediaSummary | null>(null);
+
+  const watchParty = useWatchParty();
 
   const carriedOnRef = useRef(0);
   const carriedOnToRef = useRef<string | null>(null);
@@ -471,6 +475,19 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           media={playing}
           startSeconds={startAt}
           isImmersive
+          {...(watchParty.party === null
+            ? {}
+            : {
+                party: {
+                  command: watchParty.command,
+                  referenceSeconds: watchParty.referenceSeconds,
+                  jitterMs: watchParty.jitterMs,
+                  onReport: watchParty.report,
+                  onCommand: (asked) => {
+                    watchParty.send(asked);
+                  },
+                },
+              })}
           episodes={
             playing.seriesTitle === null || playing.seriesTitle === undefined
               ? []
@@ -687,6 +704,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         onShare={(media) => {
           setSharing(media);
         }}
+        onStartParty={(media) => {
+          watchParty.open(media.id);
+          go({ inspecting: null, playing: media.id });
+        }}
         onClose={() => {
           go({ inspecting: null });
         }}
@@ -695,6 +716,18 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           go({ inspecting: null, playing: media.id });
         }}
       />
+
+      {watchParty.party !== null && (
+        <div className="pointer-events-auto fixed bottom-24 right-4 z-50 w-80 max-w-[calc(100vw-2rem)]">
+          <PartyPanel
+            party={watchParty.party}
+            meConnectionId={watchParty.meConnectionId}
+            onSetRole={watchParty.setRole}
+            onLoosen={watchParty.loosen}
+            onLeave={watchParty.leave}
+          />
+        </div>
+      )}
 
       <ShareDialog
         media={sharing}

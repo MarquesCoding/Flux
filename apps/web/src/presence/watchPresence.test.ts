@@ -24,6 +24,7 @@ const createFakeClient = () => {
     },
     onResumed: () => () => {},
     isLive: () => true,
+    connectionId: () => null,
     sendParty: () => {},
     askClock: () => {},
     onClockTell: () => () => {},

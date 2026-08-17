@@ -469,6 +469,7 @@ describe('watchMonitor', () => {
       identify: () => {},
       onResumed: () => () => {},
       isLive: () => true,
+      connectionId: () => null,
       sendParty: () => {},
       askClock: () => {},
       onClockTell: () => () => {},
