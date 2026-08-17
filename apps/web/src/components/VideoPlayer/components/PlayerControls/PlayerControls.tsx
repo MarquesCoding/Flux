@@ -158,7 +158,7 @@ const PlayerControls = ({
   renderPreview,
   partyMenu,
 }: PlayerControlsProps) => (
-  <div className="flux-glass flex flex-col gap-1 rounded-xl px-3 py-2 text-white sm:px-4">
+  <div className="flux-glass flex flex-col gap-1 rounded-lg px-3 py-2 text-white sm:px-4">
     <div className="flex items-center gap-3">
       <Slider
         label={`Seek through ${title}`}

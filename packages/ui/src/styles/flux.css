@@ -1,6 +1,9 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 @source '../';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @font-face {
   font-family: 'Gilroy';
@@ -92,21 +95,46 @@
 
   --glass-brightness: 1.35;
 
-  --radius-xs: 0.5rem;
-  --radius-sm: 0.625rem;
-  --radius-md: 0.875rem;
-  --radius-lg: 1.25rem;
-  --radius-xl: 1.75rem;
-  --radius-2xl: 2.25rem;
-  --radius-3xl: 2.75rem;
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-text);
+  --color-card: var(--color-surface-raised);
+  --color-card-foreground: var(--color-text);
+  --color-popover: var(--color-surface-raised);
+  --color-popover-foreground: var(--color-text);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-accent-contrast);
+  --color-secondary: var(--color-surface-raised);
+  --color-secondary-foreground: var(--color-text);
+  --color-muted: var(--color-surface-raised);
+  --color-muted-foreground: var(--color-text-muted);
+  --color-subtle: color-mix(in oklab, var(--color-text) 6%, transparent);
+  --color-destructive: var(--color-danger);
+  --color-destructive-foreground: oklch(0.99 0 0);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-accent);
+
+  --radius: 0.5rem;
+  --radius-xs: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 10px);
+  --radius-3xl: calc(var(--radius) + 16px);
   --radius-pill: 999px;
 
-  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-soft: var(--ease-out);
 
-  --duration-fast: 120ms;
-  --duration-base: 220ms;
-  --duration-slow: 380ms;
+  --duration-instant: 100ms;
+  --duration-fast: 140ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  --animate-duration: var(--duration-base);
+  --animate-easing: var(--ease-out);
 
   --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px -16px rgb(0 0 0 / 0.35);
   --shadow-lifted: 0 2px 4px rgb(0 0 0 / 0.08), 0 18px 40px -20px rgb(0 0 0 / 0.45);

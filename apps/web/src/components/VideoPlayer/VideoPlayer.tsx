@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   RiCastLine,
   RiCloseLine,
@@ -66,6 +65,7 @@ import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
 import { AdminMessageOverlay } from './components/AdminMessageOverlay/AdminMessageOverlay';
+import { PlayerNote } from './components/PlayerNote/PlayerNote';
 import { correctDrift } from '@FluxCore/functions/correctDrift';
 import { whatToReport } from '@FluxCore/functions/whatToReport';
 import { describeCommand } from '@FluxWeb/party/describeCommand';
@@ -91,9 +91,7 @@ type FullscreenOwner = {
 
 const IDLE_MILLISECONDS = 2500;
 
-const PARTY_NOTE_MILLISECONDS = 4000;
-
-const CAST_NOTE_MILLISECONDS = 6000;
+const NOTE_MILLISECONDS = 5000;
 
 const JUMP_SECONDS = 30;
 
@@ -255,40 +253,25 @@ const VideoPlayer = ({
   const poppedRef = useRef<PoppedOut | null>(null);
   const [isPoppedOut, setIsPoppedOut] = useState(false);
   const [castState, setCastState] = useState<CastState>('unavailable');
-  const [castNote, setCastNote] = useState<string | null>(null);
+
   const [isBuffering, setIsBuffering] = useState(false);
-  const [partyNote, setPartyNote] = useState<string | null>(null);
-  const prefersReducedMotion = useReducedMotion();
+  const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
-    if (castNote === null) {
+    if (note === null) {
       return;
     }
 
     const goes = setTimeout(() => {
-      setCastNote(null);
-    }, CAST_NOTE_MILLISECONDS);
+      setNote(null);
+    }, NOTE_MILLISECONDS);
 
     return () => {
       clearTimeout(goes);
     };
-  }, [castNote]);
+  }, [note]);
 
-  useEffect(() => {
-    if (partyNote === null) {
-      return;
-    }
-
-    const goes = setTimeout(() => {
-      setPartyNote(null);
-    }, PARTY_NOTE_MILLISECONDS);
-
-    return () => {
-      clearTimeout(goes);
-    };
-  }, [partyNote]);
-
-  const appliedSequenceRef = useRef(-1);
+    const appliedSequenceRef = useRef(-1);
   const hasCaughtUpRef = useRef(false);
   const partyRef = useRef(party);
   const stateRef = useRef<PlayerState>('starting');
@@ -327,7 +310,7 @@ const VideoPlayer = ({
     }
 
     appliedSequenceRef.current = command.sequence;
-    setPartyNote(describeCommand(command, party?.meConnectionId ?? null));
+    setNote(describeCommand(command, party?.meConnectionId ?? null));
 
     if (command.command.kind !== 'changeWhatIsPlaying') {
       element.currentTime = command.command.atSeconds;
@@ -345,7 +328,7 @@ const VideoPlayer = ({
 
     if (shouldRun && element.paused) {
       element.play().catch(() => {
-        setPartyNote('Your browser will not start this on its own — press play to join in.');
+        setNote('Your browser will not start this on its own — press play to join in.');
       });
 
       return;
@@ -445,7 +428,7 @@ const VideoPlayer = ({
 
   useEffect(() => {
     if (partyNotice !== null) {
-      setPartyNote(partyNotice);
+      setNote(partyNotice);
     }
   }, [partyNotice]);
   const releaseRef = useRef<(() => Promise<void>) | null>(null);
@@ -595,7 +578,7 @@ const VideoPlayer = ({
             return;
           }
 
-          setCastNote('That device would not take this stream.');
+          setNote('That device would not take this stream.');
         });
       }
 
@@ -1610,40 +1593,7 @@ const VideoPlayer = ({
           />
         )}
 
-        <AnimatePresence>
-          {partyNote === null ? null : (
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-              transition={{ duration: prefersReducedMotion === true ? 0 : 0.22, ease: 'easeOut' }}
-              className="pointer-events-none absolute inset-x-0 top-6 z-30 flex justify-center px-4"
-            >
-              <p
-                role="status"
-                className="flux-glass max-w-md rounded-2xl px-4 py-2 text-center text-sm text-white"
-              >
-                {partyNote}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {castNote === null ? null : (
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-              transition={{ duration: prefersReducedMotion === true ? 0 : 0.22, ease: 'easeOut' }}
-              className="pointer-events-none absolute inset-x-0 bottom-24 z-30 flex justify-center px-4"
-            >
-              <p className="flux-glass max-w-md rounded-2xl px-4 py-2 text-center text-sm text-white">
-                {castNote}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <PlayerNote note={note} />
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
@@ -1826,14 +1776,14 @@ const VideoPlayer = ({
               }
 
               if (!isReachableOrigin(window.location.origin)) {
-                setCastNote(
+                setNote(
                   'Open Flux at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
                 );
 
                 return;
               }
 
-              setCastNote(null);
+              setNote(null);
 
               const context = castContextRef.current;
 
@@ -1848,7 +1798,7 @@ const VideoPlayer = ({
                   return;
                 }
 
-                setCastNote(
+                setNote(
                   window.location.protocol === 'https:'
                     ? 'This browser offered no device. Safari casts to AirPlay receivers; Chrome needs the extension that backs casting.'
                     : 'This browser only casts over a secure connection. Serve Flux over HTTPS, or use Safari, which will cast from here as it is.',

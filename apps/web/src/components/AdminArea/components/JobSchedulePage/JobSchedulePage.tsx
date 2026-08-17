@@ -43,11 +43,11 @@ const JobSchedulePage = ({ triggers, onAdd, onRemove }: JobSchedulePageProps) =>
         </div>
 
         {triggers.length === 0 ? (
-          <p className="rounded-xl border border-[var(--surface-line)] px-4 py-3 text-sm text-text-muted">
+          <p className="rounded-lg border border-[var(--surface-line)] px-4 py-3 text-sm text-text-muted">
             No triggers. This only runs when you press Run.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-[var(--surface-line)] overflow-hidden rounded-xl border border-[var(--surface-line)]">
+          <ul className="flex flex-col divide-y divide-[var(--surface-line)] overflow-hidden rounded-lg border border-[var(--surface-line)]">
             {triggers.map((entry) => (
               <li key={entry.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <span className="text-sm text-text">{describeTrigger(entry.trigger)}</span>

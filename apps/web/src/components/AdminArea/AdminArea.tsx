@@ -601,7 +601,7 @@ const AdminArea = ({
             role="alert"
             variants={revealVariants(prefersReducedMotion)}
             transition={revealTransition(prefersReducedMotion)}
-            className="flex flex-wrap items-center gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
+            className="flex flex-wrap items-center gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
           >
             <RiAlertLine size={18} className="shrink-0 text-danger" aria-hidden />
             Some of this could not be read from the server, so parts of the page may be missing

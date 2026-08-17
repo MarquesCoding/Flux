@@ -96,7 +96,7 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
       </p>
 
       {made === null ? null : (
-        <div className="flex flex-col gap-2 rounded-xl border border-accent/40 bg-accent/10 p-3">
+        <div className="flex flex-col gap-2 rounded-lg border border-accent/40 bg-accent/10 p-3">
           <span className="flex items-center gap-2 text-sm font-medium text-text">
             <RiAlertLine size={16} aria-hidden />
             Copy {made.name} now — it will not be shown again.
@@ -175,7 +175,7 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
           {keys.map((key) => (
             <li
               key={key.id}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--surface-line)] p-3"
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--surface-line)] p-3"
             >
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-sm font-medium text-text">{key.name}</span>

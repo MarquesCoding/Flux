@@ -1,4 +1,4 @@
-import { Tabs } from '@base-ui/react/tabs';
+import * as RadixTabs from '@radix-ui/react-tabs';
 import { cn } from '@FluxUI/cn';
 import type { TabPanelProps } from './TabPanel.types';
 
@@ -12,9 +12,17 @@ import type { TabPanelProps } from './TabPanel.types';
  * @param className - Extra classes for the caller's own layout.
  */
 const TabPanel = ({ value, children, render, className }: TabPanelProps) => (
-  <Tabs.Panel value={value} className={cn(className)} {...(render === undefined ? {} : { render })}>
-    {children}
-  </Tabs.Panel>
+  <RadixTabs.Content
+    value={value}
+    className={cn(
+      'outline-none data-[state=active]:animate-in data-[state=active]:fade-in-0',
+      'duration-[var(--duration-fast)] ease-[var(--ease-out)] motion-reduce:animate-none',
+      className,
+    )}
+    {...(render === undefined ? {} : { asChild: true })}
+  >
+    {render === undefined ? children : render}
+  </RadixTabs.Content>
 );
 
 TabPanel.displayName = 'TabPanel';

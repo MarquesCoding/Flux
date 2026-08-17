@@ -1,4 +1,4 @@
-import { Tabs as BaseTabs } from '@base-ui/react/tabs';
+import * as RadixTabs from '@radix-ui/react-tabs';
 import { cn } from '@FluxUI/cn';
 import type { TabsProps } from './Tabs.types';
 
@@ -13,7 +13,7 @@ import type { TabsProps } from './Tabs.types';
  * @param className - Extra classes for the caller's own layout.
  */
 const Tabs = ({ value, onValueChange, children, className }: TabsProps) => (
-  <BaseTabs.Root
+  <RadixTabs.Root
     value={value}
     onValueChange={(next) => {
       onValueChange(String(next));
@@ -21,7 +21,7 @@ const Tabs = ({ value, onValueChange, children, className }: TabsProps) => (
     className={cn('contents', className)}
   >
     {children}
-  </BaseTabs.Root>
+  </RadixTabs.Root>
 );
 
 Tabs.displayName = 'Tabs';

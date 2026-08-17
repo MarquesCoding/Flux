@@ -119,7 +119,7 @@ const PersonDialog = ({
 
         <div className="flex flex-col gap-8 p-5 pb-10 sm:p-8">
           <header className="flex flex-wrap items-start gap-5">
-            <span className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface-raised ring-1 ring-white/10">
+            <span className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-raised ring-1 ring-white/10">
               {person?.portraitUrl === null || person?.portraitUrl === undefined ? (
                 <RiUser3Line size={36} aria-hidden className="text-text-muted" />
               ) : (

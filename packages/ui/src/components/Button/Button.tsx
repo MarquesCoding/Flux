@@ -1,42 +1,20 @@
 import { cn } from '@FluxUI/cn';
+import { buttonStyles } from './buttonStyles';
 import { Spinner } from '@FluxUI/Spinner';
 import { Tooltip } from '@FluxUI/Tooltip';
-import type { ButtonProps, ButtonSize, ButtonVariant } from './Button.types';
-
-const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-accent-contrast hover:opacity-90',
-  glossy:
-    'flux-gloss bg-white text-black hover:brightness-105 hover:shadow-[0_10px_30px_-6px_rgba(255,255,255,0.35)]',
-  secondary:
-    'border border-[var(--surface-line)] bg-surface-raised text-text hover:bg-[var(--surface-hover)]',
-  ghost: 'bg-transparent text-text hover:bg-[var(--surface-hover)]',
-  danger: 'bg-danger text-white hover:opacity-90',
-  overlay: 'bg-scrim text-on-scrim backdrop-blur-md hover:brightness-125',
-  link: 'bg-transparent text-text underline-offset-4 hover:underline',
-  bare: '',
-};
-
-const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: 'h-7 px-2.5 text-xs gap-1.5',
-  md: 'h-9 px-3.5 text-sm gap-2',
-  lg: 'h-10 px-5 text-sm gap-2',
-  xl: 'h-12 px-6 text-base gap-2.5 font-semibold',
-  none: '',
-};
-
-const ICON_SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: 'size-7',
-  md: 'size-9',
-  lg: 'size-10',
-  xl: 'size-12',
-  none: '',
-};
+import type { ButtonProps } from './Button.types';
 
 /**
  * The one place a `<button>` is written. Everything pressable in Flux is this or composes it, which
  * is what keeps focus rings, disabled states, loading behaviour and tooltips the same everywhere
  * rather than reinvented per screen. A raw button elsewhere is lint-banned, and there is
  * deliberately no separate icon button — an icon button is this with an icon and a label.
+ *
+ * How it is painted is declared as variants rather than assembled per caller, so that the
+ * combinations — a small icon-only ghost, a large primary — resolve by one set of rules instead of
+ * drifting apart. A round shape survives only where round means a circle: an icon on its own reads
+ * as a target, where a lozenge of text reads as soft, and the corner is the loudest thing about a
+ * button after its colour.
  *
  * @param children - What the button shows; optional, since a control can be its own content.
  * @param variant - How it is painted, from the headline glossy down to bare, which paints nothing.
@@ -76,20 +54,14 @@ const Button = ({
       aria-busy={isLoading}
       {...(label === undefined ? {} : { 'aria-label': label })}
       {...(isActive ? { 'aria-pressed': true } : {})}
+      data-slot="button"
       className={cn(
-        'inline-flex font-medium',
-        isBare ? '' : 'shrink-0 items-center justify-center',
-        'transition-[filter,box-shadow,transform,translate,scale,opacity,background-color,color]',
-        'duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
-        'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100',
-        isBare ? '' : 'active:scale-[0.98]',
-        isBare && !isPill && !isIconOnly
-          ? ''
-          : isPill || isIconOnly
-            ? 'rounded-full'
-            : 'rounded-md',
-        VARIANT_CLASSES[variant],
-        isIconOnly ? ICON_SIZE_CLASSES[size] : SIZE_CLASSES[size],
+        buttonStyles({
+          variant,
+          size,
+          isIconOnly,
+          shape: isBare && !isPill && !isIconOnly ? 'bare' : isPill ? 'pill' : 'square',
+        }),
         isActive && !isBare ? 'bg-white/20' : '',
         className,
       )}

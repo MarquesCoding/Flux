@@ -64,7 +64,7 @@ const ProfilePicker = ({
             >
               <ProfileFace
                 profile={profile}
-                className="aspect-square w-full rounded-3xl text-4xl shadow-lg sm:text-5xl"
+                className="aspect-square w-full rounded-lg text-4xl shadow-lg sm:text-5xl"
               />
 
               <span className="w-full truncate text-center text-sm text-text-muted">
@@ -114,7 +114,7 @@ const ProfilePicker = ({
               }}
               className="flex w-24 flex-col items-center gap-3 sm:w-32"
             >
-              <span className="flex aspect-square w-full items-center justify-center rounded-3xl border border-dashed border-white/20 text-text-muted">
+              <span className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-white/20 text-text-muted">
                 <RiAddLine size={28} aria-hidden />
               </span>
 

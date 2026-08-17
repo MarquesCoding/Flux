@@ -6,6 +6,7 @@ type Tab = {
 type TabBarProps = {
   tabs: Tab[];
   label: string;
+  value?: string;
   className?: string;
 };
 

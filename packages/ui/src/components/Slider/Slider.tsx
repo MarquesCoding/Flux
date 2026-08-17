@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { Slider as BaseSlider } from '@base-ui/react/slider';
+import * as RadixSlider from '@radix-ui/react-slider';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { cn } from '@FluxUI/cn';
 import type { SliderProps, SliderTone } from './Slider.types';
@@ -98,40 +98,49 @@ const Slider = ({
         )}
       </AnimatePresence>
 
-      <BaseSlider.Root
-        value={value}
+      <RadixSlider.Root
+        value={[value]}
         min={0}
         max={max <= 0 ? 1 : max}
         step={step}
         disabled={max <= 0}
+        data-slot="slider"
+        className="flex w-full touch-none items-center py-2 select-none"
         onValueChange={(next) => {
-          onValueChange(next);
+          onValueChange(next[0] ?? 0);
+        }}
+        onPointerEnter={(event) => {
+          track(event.clientX);
+        }}
+        onPointerMove={(event) => {
+          track(event.clientX);
+        }}
+        onPointerLeave={() => {
+          setHover(null);
         }}
       >
-        <BaseSlider.Control
-          className="flex w-full touch-none items-center py-2"
-          onPointerEnter={(event) => {
-            track(event.clientX);
-          }}
-          onPointerMove={(event) => {
-            track(event.clientX);
-          }}
-          onPointerLeave={() => {
-            setHover(null);
-          }}
+        <RadixSlider.Track
+          ref={trackRef}
+          className={cn(
+            'relative h-1.5 w-full grow overflow-hidden rounded-full select-none',
+            TRACK_CLASSES[tone],
+          )}
         >
-          <BaseSlider.Track
-            ref={trackRef}
-            className={cn('h-1.5 w-full rounded-full select-none', TRACK_CLASSES[tone])}
-          >
-            <BaseSlider.Indicator className={cn('rounded-full select-none', FILL_CLASSES[tone])} />
-            <BaseSlider.Thumb
-              aria-label={label}
-              className={cn('size-3.5 rounded-full shadow select-none', FILL_CLASSES[tone])}
-            />
-          </BaseSlider.Track>
-        </BaseSlider.Control>
-      </BaseSlider.Root>
+          <RadixSlider.Range
+            className={cn('absolute h-full rounded-full select-none', FILL_CLASSES[tone])}
+          />
+        </RadixSlider.Track>
+
+        <RadixSlider.Thumb
+          aria-label={label}
+          className={cn(
+            'block size-3.5 rounded-full shadow outline-none select-none',
+            'transition-transform duration-[var(--duration-instant)] ease-[var(--ease-out)]',
+            'motion-reduce:transition-none hover:scale-110 focus-visible:ring-[3px] focus-visible:ring-ring/40',
+            FILL_CLASSES[tone],
+          )}
+        />
+      </RadixSlider.Root>
     </div>
   );
 };

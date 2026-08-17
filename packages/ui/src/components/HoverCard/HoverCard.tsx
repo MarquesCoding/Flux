@@ -1,15 +1,8 @@
-import { PreviewCard } from '@base-ui/react/preview-card';
+import * as RadixHoverCard from '@radix-ui/react-hover-card';
 import { cn } from '@FluxUI/cn';
+import { POPUP_MOTION } from '@FluxUI/animations/motion';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { HoverCardProps } from './HoverCard.types';
-
-const POPUP_MOTION = [
-  'origin-[var(--transform-origin)] transition-[transform,opacity]',
-  'duration-[var(--duration-base)] ease-[var(--ease-soft)]',
-  'data-[starting-style]:scale-95 data-[starting-style]:opacity-0',
-  'data-[ending-style]:scale-95 data-[ending-style]:opacity-0',
-  'motion-reduce:transition-opacity',
-].join(' ');
 
 /**
  * Shows more about whatever the pointer has stopped on, without anything being pressed — a
@@ -32,27 +25,29 @@ const HoverCard = ({
   const portalContainer = usePortalContainer();
 
   return (
-    <PreviewCard.Root>
-      <PreviewCard.Trigger
-        render={<span className="inline-flex cursor-default items-center gap-2" />}
-      >
-        {children}
-      </PreviewCard.Trigger>
+    <RadixHoverCard.Root>
+      <RadixHoverCard.Trigger asChild>
+        <span className="inline-flex cursor-default items-center gap-2">{children}</span>
+      </RadixHoverCard.Trigger>
 
-      <PreviewCard.Portal container={portalContainer}>
-        <PreviewCard.Positioner side={side} align={align} sideOffset={8} className="z-50">
-          <PreviewCard.Popup
-            className={cn(
-              'flux-glass w-72 rounded-xl p-4 text-sm text-text',
-              POPUP_MOTION,
-              className,
-            )}
-          >
-            {detail}
-          </PreviewCard.Popup>
-        </PreviewCard.Positioner>
-      </PreviewCard.Portal>
-    </PreviewCard.Root>
+      <RadixHoverCard.Portal
+        {...(portalContainer === undefined ? {} : { container: portalContainer })}
+      >
+        <RadixHoverCard.Content
+          side={side}
+          align={align}
+          sideOffset={8}
+          data-slot="hover-card-content"
+          className={cn(
+            'z-50 flux-glass w-72 rounded-lg p-4 text-sm text-text outline-none',
+            POPUP_MOTION,
+            className,
+          )}
+        >
+          {detail}
+        </RadixHoverCard.Content>
+      </RadixHoverCard.Portal>
+    </RadixHoverCard.Root>
   );
 };
 

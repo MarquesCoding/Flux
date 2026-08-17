@@ -1,5 +1,6 @@
-import { Tabs } from '@base-ui/react/tabs';
+import * as RadixTabs from '@radix-ui/react-tabs';
 import { cn } from '@FluxUI/cn';
+import { SlidingMark } from '@FluxUI/SlidingMark';
 import type { TabRowProps } from './TabRow.types';
 
 /**
@@ -8,26 +9,18 @@ import type { TabRowProps } from './TabRow.types';
  * with a hairline between the groups.
  *
  * @param groups - The places, in groups.
+ * @param value - Which place is current, so the highlight can travel to it.
  * @param label - What the row is for, read out to anybody who cannot see it.
  * @param className - Extra classes for the caller's own layout.
  */
-const TabRow = ({ label, groups, className }: TabRowProps) => (
-  <Tabs.List
+const TabRow = ({ label, groups, value, className }: TabRowProps) => (
+  <RadixTabs.List
     aria-label={label}
     className={cn(
-      'flux-rail flux-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-full p-1.5',
+      'flux-rail flux-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
       className,
     )}
   >
-    <Tabs.Indicator
-      className={cn(
-        'absolute bottom-1.5 left-[var(--active-tab-left)] top-1.5 w-[var(--active-tab-width)]',
-        'rounded-full bg-[var(--surface-active)]',
-        'transition-[left,width] duration-[var(--duration-base)] ease-[var(--ease-soft)]',
-        'motion-reduce:transition-none',
-      )}
-    />
-
     {groups.map((group, index) => (
       <div key={group.label ?? `group-${index.toString()}`} className="flex items-center gap-1">
         {index === 0 ? null : (
@@ -35,22 +28,25 @@ const TabRow = ({ label, groups, className }: TabRowProps) => (
         )}
 
         {group.items.map((item) => (
-          <Tabs.Tab
+          <RadixTabs.Trigger
             key={item.id}
             value={item.id}
             className={cn(
-              'relative flex h-9 shrink-0 cursor-pointer items-center rounded-full px-3.5 text-sm',
-              'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
+              'relative flex h-9 shrink-0 cursor-pointer items-center rounded-md px-3.5 text-sm outline-none',
+              'transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
+              'motion-reduce:transition-none',
               'text-text-muted hover:text-text focus-visible:text-text',
-              'data-[selected]:font-medium data-[selected]:text-text',
+              'focus-visible:ring-[3px] focus-visible:ring-ring/40',
+              'data-[state=active]:font-medium data-[state=active]:text-text',
             )}
           >
+            {value === item.id ? <SlidingMark group={`tab-row-${label}`} /> : null}
             {item.label}
-          </Tabs.Tab>
+          </RadixTabs.Trigger>
         ))}
       </div>
     ))}
-  </Tabs.List>
+  </RadixTabs.List>
 );
 
 TabRow.displayName = 'TabRow';

@@ -77,7 +77,7 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
           transition={revealTransition(prefersReducedMotion)}
           className="flex justify-center"
         >
-          <TabRow groups={[{ items: PANELS }]} label="What to change" />
+          <TabRow groups={[{ items: PANELS }]} value={panel} label="What to change" />
         </motion.div>
 
         <motion.header
@@ -87,11 +87,11 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
         >
           <div className="flex items-center gap-5">
             {profile === null ? (
-              <span className="size-20 shrink-0 rounded-3xl bg-white/5 sm:size-24" />
+              <span className="size-20 shrink-0 rounded-lg bg-white/5 sm:size-24" />
             ) : (
               <ProfileFace
                 profile={profile}
-                className="size-20 shrink-0 rounded-3xl text-3xl shadow-xl sm:size-24"
+                className="size-20 shrink-0 rounded-lg text-3xl shadow-xl sm:size-24"
               />
             )}
 
