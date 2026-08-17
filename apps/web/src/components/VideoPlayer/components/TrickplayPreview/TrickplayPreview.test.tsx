@@ -43,9 +43,17 @@ describe('TrickplayPreview', () => {
     });
   });
 
-  it('draws nothing when there are no thumbnails', () => {
+  it('still says where the pointer is when there is no frame for it', () => {
     render(<TrickplayPreview trickplay={{ ...trickplay, thumbnails: [] }} seconds={12} />);
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByText('0:12')).toBeInTheDocument();
+  });
+
+  it('still says where the pointer is before any sheet has been built', () => {
+    render(<TrickplayPreview trickplay={null} seconds={12} />);
+
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByText('0:12')).toBeInTheDocument();
   });
 });

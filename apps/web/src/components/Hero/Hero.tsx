@@ -57,6 +57,10 @@ const LOGO_BOX = [
  * @param onFeatureChange - Told which item is showing now.
  * @param resumeFor - Where this viewer left each item, for the button that offers to carry on.
  * @param rotateAfterMilliseconds - How long each item holds the screen.
+ * @param fills - Whether it fills what it is put in rather than standing in a runway of its own.
+ *   A library's front page scrolls beneath it, which is what the runway and the card drawing in are
+ *   for; a page holding nothing but this has nothing to scroll, and the card would be drawing in
+ *   against a scroll that never comes.
  */
 const Hero = ({
   items,
@@ -66,6 +70,7 @@ const Hero = ({
   onFeatureChange,
   resumeFor,
   rotateAfterMilliseconds = ROTATE_AFTER_MILLISECONDS,
+  fills = false,
 }: HeroProps) => {
   const [index, setIndex] = useState(0);
 
@@ -169,15 +174,19 @@ const Hero = ({
     <div
       ref={runwayRef}
       className="pointer-events-none relative"
-      style={{
-        height:
-          prefersReducedMotion === true
-            ? '100svh'
-            : `calc(100svh + ${DRAWS_IN_BY_PIXELS.toString()}px)`,
-        marginBottom: `-${FOOT_OF_THE_CARD}`,
-      }}
+      style={
+        fills
+          ? { height: '100svh' }
+          : {
+              height:
+                prefersReducedMotion === true
+                  ? '100svh'
+                  : `calc(100svh + ${DRAWS_IN_BY_PIXELS.toString()}px)`,
+              marginBottom: `-${FOOT_OF_THE_CARD}`,
+            }
+      }
     >
-      <div className="sticky top-0 h-svh">
+      <div className={cn('h-svh', fills ? '' : 'sticky top-0')}>
         <motion.section
           aria-label="Featured"
           onPointerEnter={hold}
@@ -191,15 +200,17 @@ const Hero = ({
             }
           }}
           style={
-            prefersReducedMotion === true
-              ? {
-                  top: '72px',
-                  left: '40px',
-                  right: '40px',
-                  bottom: FOOT_OF_THE_CARD,
-                  borderRadius: '28px',
-                }
-              : { top: lift, left: inset, right: inset, bottom: foot, borderRadius: corner }
+            fills
+              ? { top: 0, left: 0, right: 0, bottom: 0, borderRadius: 0 }
+              : prefersReducedMotion === true
+                ? {
+                    top: '72px',
+                    left: '40px',
+                    right: '40px',
+                    bottom: FOOT_OF_THE_CARD,
+                    borderRadius: '28px',
+                  }
+                : { top: lift, left: inset, right: inset, bottom: foot, borderRadius: corner }
           }
           className={cn(
             'pointer-events-auto absolute flex flex-col justify-end overflow-hidden',

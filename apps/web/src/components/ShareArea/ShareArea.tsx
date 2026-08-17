@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { RiLinkUnlinkM, RiPlayFill } from '@remixicon/react';
-import { Button } from '@FluxUI/Button';
+import { RiLinkUnlinkM } from '@remixicon/react';
 import { Spinner } from '@FluxUI/Spinner';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { openShare } from '@FluxWeb/sharing/fetchShares';
-import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
+import { Hero } from '@FluxWeb/components/Hero/Hero';
+import { EpisodeRow } from '@FluxWeb/components/ShowDialog/components/EpisodeRow/EpisodeRow';
 import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { OpenedShare } from '@FluxWeb/sharing/fetchShares';
 import type { ShareAreaProps } from './ShareArea.types';
 
@@ -59,10 +57,6 @@ const ShareArea = ({ token, onPlay, resumeFor, name = 'Flux' }: ShareAreaProps) 
     };
   }, [token]);
 
-  const start = (media: MediaSummary) => {
-    onPlay(media, resumeFor?.(media.id) ?? 0);
-  };
-
   if (standing.kind === 'reading') {
     return (
       <main className="flex min-h-svh items-center justify-center">
@@ -88,74 +82,47 @@ const ShareArea = ({ token, onPlay, resumeFor, name = 'Flux' }: ShareAreaProps) 
   const { share } = standing;
   const [first] = [...share.items].sort(inBroadcastOrder);
 
-  return (
-    <main className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-10 px-5 py-10 sm:px-8">
-      <header className="flex flex-col gap-3">
-        <span className="text-xs uppercase tracking-[0.2em] text-text-muted">
-          Shared with you on {name}
-        </span>
+  if (first === undefined) {
+    return (
+      <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-6 text-center">
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text">{share.title}</h1>
 
-        <h1 className="text-[clamp(2rem,6vw,3.25rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-text">
-          {share.title}
-        </h1>
-
-        {first === undefined ? null : (
-          <MediaFacts
-            media={first}
-            hasRuntime
-            hasEpisode={share.kind === 'series'}
-            className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-text-muted"
-          />
-        )}
-      </header>
-
-      {first === undefined ? (
         <p className="font-body text-sm text-text-muted">There is nothing here to watch.</p>
-      ) : (
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            variant="glossy"
-            size="lg"
-            isPill
-            onClick={() => {
-              start(first);
-            }}
-          >
-            <RiPlayFill size={18} aria-hidden />
-            {share.kind === 'series' ? 'Play the first episode' : 'Play'}
-          </Button>
-        </div>
-      )}
+      </main>
+    );
+  }
+
+  return (
+    <main className="relative min-h-svh">
+      <span className="pointer-events-none absolute left-5 top-6 z-20 text-xs uppercase tracking-[0.2em] text-text-muted sm:left-10">
+        Shared with you on {name}
+      </span>
+
+      <Hero
+        fills
+        items={[first]}
+        onPlay={(media, startSeconds) => {
+          onPlay(media, startSeconds);
+        }}
+        resumeFor={(mediaId) => resumeFor?.(mediaId) ?? null}
+      />
 
       {share.kind === 'series' && share.items.length > 1 ? (
-        <section className="flex flex-col gap-3">
+        <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-5 pb-16 sm:px-8">
           <h2 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
             Episodes
           </h2>
 
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-2">
             {[...share.items].sort(inBroadcastOrder).map((episode) => (
               <li key={episode.id}>
-                <Button
-                  variant="ghost"
-                  size="none"
-                  className="flex w-full items-center justify-between gap-4 rounded-xl px-3 py-3 text-left"
-                  onClick={() => {
-                    start(episode);
+                <EpisodeRow
+                  episode={episode}
+                  onPlay={(media, startSeconds) => {
+                    onPlay(media, startSeconds);
                   }}
-                >
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-medium text-text">{episode.title}</span>
-                    <span className="font-body text-xs text-text-muted">
-                      {typeof episode.seasonNumber === 'number' &&
-                      typeof episode.episodeNumber === 'number'
-                        ? `S${episode.seasonNumber.toString()} · EP${episode.episodeNumber.toString()} · ${formatDuration(episode.durationSeconds)}`
-                        : formatDuration(episode.durationSeconds)}
-                    </span>
-                  </span>
-
-                  <RiPlayFill size={18} aria-hidden className="shrink-0 text-text-muted" />
-                </Button>
+                  {...(resumeFor === undefined ? {} : { resumeSeconds: resumeFor(episode.id) })}
+                />
               </li>
             ))}
           </ul>

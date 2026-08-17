@@ -72,7 +72,7 @@ describe('what a guest is shown', () => {
 
     opened({ onPlay, resumeFor: () => 640 });
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Play' }));
+    await userEvent.click(await screen.findByRole('button', { name: /Resume from/ }));
 
     expect(onPlay).toHaveBeenCalledWith(expect.anything(), 640);
   });
@@ -127,7 +127,7 @@ describe('a series that was shared', () => {
 
     opened({ onPlay });
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Play the first episode' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Play' }));
 
     expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ title: 'System' }), 0);
   });

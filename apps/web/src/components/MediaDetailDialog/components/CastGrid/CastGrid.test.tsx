@@ -84,6 +84,35 @@ describe('CastGrid', () => {
     expect(screen.queryByRole('button', { name: /Show page/ })).not.toBeInTheDocument();
   });
 
+  it('draws a figure for a performer the catalogue has no photograph of', () => {
+    const { container } = render(
+      <CastGrid
+        members={[{ personId: 1245, name: 'Amy Adams', role: 'Louise', imageUrl: null }]}
+      />,
+    );
+
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('svg')).not.toBeNull();
+  });
+
+  it('draws the photograph where there is one, rather than the figure', () => {
+    const { container } = render(
+      <CastGrid
+        members={[
+          {
+            personId: 1245,
+            name: 'Amy Adams',
+            role: 'Louise',
+            imageUrl: 'http://localhost/amy.jpg',
+          },
+        ]}
+      />,
+    );
+
+    expect(container.querySelector('img')).toHaveAttribute('src', 'http://localhost/amy.jpg');
+    expect(container.querySelector('svg')).toBeNull();
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(CastGrid.displayName).toBe('CastGrid');
   });

@@ -54,6 +54,17 @@ beforeEach(() => {
 });
 
 describe('handing out a link', () => {
+  it('offers a way out that does not depend on knowing about the escape key', async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+
+    render(<ShareDialog media={film} isOpen onClose={onClose} origin="http://localhost" />);
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('names what is being shared', () => {
     draw();
 

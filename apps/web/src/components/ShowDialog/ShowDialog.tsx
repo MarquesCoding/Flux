@@ -4,6 +4,7 @@ import { RiCloseLine, RiInformationLine, RiPlayFill } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
+import { BackdropScrim } from '@FluxUI/BackdropScrim';
 import { Badge } from '@FluxUI/Badge';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
@@ -172,7 +173,7 @@ const ShowDialog = ({
             />
           </div>
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-surface via-surface/80 to-transparent" />
+          <BackdropScrim />
 
           <div className="absolute right-4 top-4">
             <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>

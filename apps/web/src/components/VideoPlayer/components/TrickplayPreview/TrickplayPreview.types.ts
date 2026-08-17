@@ -1,7 +1,7 @@
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay';
 
 type TrickplayPreviewProps = {
-  trickplay: Trickplay;
+  trickplay: Trickplay | null;
   seconds: number;
 };
 

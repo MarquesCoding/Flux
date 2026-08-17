@@ -13,7 +13,11 @@ const GAP_CLASSES: Record<StarRatingSize, string> = { sm: 'gap-0.5', md: 'gap-1'
 /**
  * Shows a rating out of five as a row of stars, and takes one where it is given a way to report it.
  * Read-only it fills fractionally, so a household average of 4.2 is drawn as four stars and a fifth
- * mostly filled rather than rounded to something nobody gave it. Interactive it fills in whole steps
+ * mostly filled rather than rounded to something nobody gave it. That is done by drawing all five
+ * filled stars at full size and clipping them, which is why the filled row is sized to its content
+ * and its glyphs refuse to shrink: left to flex them, they fit themselves to the clip instead of
+ * being cut by it, and a three out of five came out as five squashed stars. Interactive it fills in
+ * whole steps
  * only, previews under a pointer, and treats pressing the star already given as taking the rating
  * back — which is the one gesture a row of stars otherwise has no room for.
  *
@@ -59,9 +63,9 @@ const StarRating = ({
           style={{ width: `${(filled * 100).toString()}%` }}
           aria-hidden
         >
-          <span className={cn('flex text-amber-400', GAP_CLASSES[size])}>
+          <span className={cn('flex w-max text-amber-400', GAP_CLASSES[size])}>
             {STEPS.map((step) => (
-              <RiStarFill key={step} size={glyph} />
+              <RiStarFill key={step} size={glyph} className="shrink-0" />
             ))}
           </span>
         </span>

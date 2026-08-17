@@ -1862,13 +1862,9 @@ const VideoPlayer = ({
             }}
             subtitleOffsetSeconds={subtitleOffset}
             onSubtitleOffsetChange={setSubtitleOffset}
-            {...(trickplay === null
-              ? {}
-              : {
-                  renderPreview: (seconds: number) => (
-                    <TrickplayPreview trickplay={trickplay} seconds={seconds} />
-                  ),
-                })}
+            renderPreview={(seconds: number) => (
+              <TrickplayPreview trickplay={trickplay} seconds={seconds} />
+            )}
           />
         </div>
       </div>

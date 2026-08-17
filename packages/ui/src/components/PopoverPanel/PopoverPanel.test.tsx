@@ -83,6 +83,43 @@ describe('PopoverPanel', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(PopoverPanel.displayName).toBe('PopoverPanel');
   });
+  it('lines up with the end of its control unless told otherwise', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PopoverPanel label="Notifications" side="bottom" trigger={<span data-testid="bell" />}>
+        <span>Inside the panel</span>
+      </PopoverPanel>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+
+    const panel = await screen.findByRole('dialog', { name: 'Notifications' });
+
+    expect(panel.parentElement).toHaveAttribute('data-align', 'end');
+  });
+
+  it('can be centred over the control that opened it', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PopoverPanel
+        label="Notifications"
+        side="bottom"
+        align="center"
+        trigger={<span data-testid="bell" />}
+      >
+        <span>Inside the panel</span>
+      </PopoverPanel>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+
+    const panel = await screen.findByRole('dialog', { name: 'Notifications' });
+
+    expect(panel.parentElement).toHaveAttribute('data-align', 'center');
+  });
+
   it('arrives the way every other anchored panel does', async () => {
     const user = userEvent.setup();
 
