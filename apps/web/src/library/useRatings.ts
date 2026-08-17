@@ -22,13 +22,26 @@ const keyFor = (subject: RatingSubject): string =>
  * fills the moment it is pressed rather than when the server answers, and puts it back if the server
  * refuses — the same bargain `useFavourites` makes, for the same reason.
  *
+ * Read again whenever the person watching changes, and the local copy dropped with it. Held once for
+ * the life of the application it outlived the person it belonged to: signing in as somebody else
+ * left their stars filled in against everything the last person had rated, since the application is
+ * not remounted between the two.
+ *
+ * @param watcherId - Who is watching, so that their ratings are the ones held.
  * @returns What they gave each thing, and how to change it.
  */
-const useRatings = (): Ratings => {
+const useRatings = (watcherId: string | null): Ratings => {
   const [given, setGiven] = useState<Map<string, number>>(new Map());
   const changedRef = useRef(new Map<string, number | null>());
 
   useEffect(() => {
+    changedRef.current = new Map();
+    setGiven(new Map());
+
+    if (watcherId === null) {
+      return;
+    }
+
     void fetchRatings().then((arrived) => {
       const held = new Map(
         arrived.map((entry) => [
@@ -49,7 +62,7 @@ const useRatings = (): Ratings => {
 
       setGiven(held);
     });
-  }, []);
+  }, [watcherId]);
 
   const rate = useCallback(
     (subject: RatingSubject, stars: number | null) => {

@@ -29,7 +29,7 @@ describe('useRatings', () => {
   it('reads the whole list once rather than asking per item', async () => {
     fetchRatings.mockResolvedValue([RATED()]);
 
-    const { result } = renderHook(() => useRatings());
+    const { result } = renderHook(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'media-1' })).toBe(4);
@@ -37,8 +37,50 @@ describe('useRatings', () => {
     expect(fetchRatings).toHaveBeenCalledTimes(1);
   });
 
+  it('does not show one person their stars against somebody else', async () => {
+    fetchRatings.mockResolvedValue([RATED({ stars: 3 })]);
+
+    const { result, rerender } = renderHook(({ who }: { who: string }) => useRatings(who), {
+      initialProps: { who: 'dan' },
+    });
+
+    await waitFor(() => {
+      expect(result.current.ratingFor({ mediaId: 'media-1' })).toBe(3);
+    });
+
+    fetchRatings.mockResolvedValue([]);
+    rerender({ who: 'jeff' });
+
+    await waitFor(() => {
+      expect(result.current.ratingFor({ mediaId: 'media-1' })).toBeNull();
+    });
+    expect(fetchRatings).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not carry an unsent change across to the next person', async () => {
+    fetchRatings.mockResolvedValue([]);
+
+    const { result, rerender } = renderHook(({ who }: { who: string }) => useRatings(who), {
+      initialProps: { who: 'dan' },
+    });
+
+    await waitFor(() => {
+      expect(fetchRatings).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.rate({ mediaId: 'media-1' }, 5);
+    });
+
+    rerender({ who: 'jeff' });
+
+    await waitFor(() => {
+      expect(result.current.ratingFor({ mediaId: 'media-1' })).toBeNull();
+    });
+  });
+
   it('has nothing for something nobody rated', async () => {
-    const { result } = renderHook(() => useRatings());
+    const { result } = renderHook(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'media-1' })).toBeNull();
@@ -51,7 +93,7 @@ describe('useRatings', () => {
       RATED({ mediaId: null, seriesId: 'same', stars: 2 }),
     ]);
 
-    const { result } = renderHook(() => useRatings());
+    const { result } = renderHook(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'same' })).toBe(4);
@@ -71,7 +113,7 @@ describe('useRatings', () => {
         }),
     );
 
-    const { result } = renderHook(() => useRatings());
+    const { result } = renderHook(() => useRatings('watcher-1'));
 
     await act(async () => {
       result.current.rate({ mediaId: 'media-1' }, 5);
@@ -94,7 +136,7 @@ describe('useRatings', () => {
     fetchRatings.mockResolvedValue([RATED({ stars: 3 })]);
     setRating.mockResolvedValue(false);
 
-    const { result } = renderHook(() => useRatings());
+    const { result } = renderHook(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'media-1' })).toBe(3);
@@ -113,7 +155,7 @@ describe('useRatings', () => {
   it('takes a rating back', async () => {
     fetchRatings.mockResolvedValue([RATED()]);
 
-    const { result } = renderHook(() => useRatings());
+    const { result } = renderHook(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'media-1' })).toBe(4);
@@ -132,7 +174,7 @@ describe('useRatings', () => {
     fetchRatings.mockResolvedValue([RATED()]);
     setRating.mockResolvedValue(false);
 
-    const { result } = renderHook(() => useRatings());
+    const { result } = renderHook(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'media-1' })).toBe(4);
@@ -149,7 +191,7 @@ describe('useRatings', () => {
   });
 
   it('rates a programme at its own key', async () => {
-    const { result } = renderHook(() => useRatings());
+    const { result } = renderHook(() => useRatings('watcher-1'));
 
     await act(async () => {
       result.current.rate({ seriesId: 'show-1' }, 5);
