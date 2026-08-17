@@ -71,6 +71,8 @@
         "./packages/ui/src/components/ProgressBar/ProgressBar.types.ts"
       ],
       "@FluxUI/QrCode": ["./packages/ui/src/components/QrCode/QrCode.tsx"],
+      "@FluxUI/ReadMore": ["./packages/ui/src/components/ReadMore/ReadMore.tsx"],
+      "@FluxUI/ReadMore.types": ["./packages/ui/src/components/ReadMore/ReadMore.types.ts"],
       "@FluxUI/Rail": ["./packages/ui/src/components/Rail/Rail.tsx"],
       "@FluxUI/RevealItem": ["./packages/ui/src/components/RevealItem/RevealItem.tsx"],
       "@FluxUI/SectionBar": ["./packages/ui/src/components/SectionBar/SectionBar.tsx"],

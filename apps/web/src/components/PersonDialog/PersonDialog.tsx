@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { RiCloseLine, RiUser3Line } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
+import { ReadMore } from '@FluxUI/ReadMore';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { Rail } from '@FluxUI/Rail';
@@ -156,9 +157,7 @@ const PersonDialog = ({
           ) : null}
 
           {person?.biography === null || person?.biography === undefined ? null : (
-            <p className="max-w-[70ch] text-[0.95rem] leading-relaxed text-text">
-              {person.biography}
-            </p>
+            <ReadMore lines={6}>{person.biography}</ReadMore>
           )}
 
           {isEmpty ? (
