@@ -21,6 +21,7 @@ const member = (over?: Partial<PartyMember>): PartyMember => ({
   joinedAtMs: 1000,
   isWatching: true,
   positionSeconds: 0,
+  reportedAtMs: 1000,
   bufferedAheadSeconds: 0,
   ...over,
 });

@@ -64,6 +64,8 @@ const asPayload = (event: PresenceControl): JsonValue => {
   return { kind: event.kind, reason: event.reason };
 };
 
+const UNNAMED = 'Someone';
+
 const readMessage = (raw: string) => {
   try {
     return FromClientSchema.safeParse(JsonValueSchema.parse(JSON.parse(raw)));
@@ -102,7 +104,18 @@ const createRealtimeHandler = ({
   open: (who, socket) => {
     const id = newId();
     let claimed: string | null = null;
-    let myName = 'Someone';
+    let myName: string | null = null;
+    let chosenProfileId = who.profileId;
+
+    const nameFor = async (): Promise<string> => {
+      if (myName !== null) {
+        return myName;
+      }
+
+      myName = (await presence?.nameOf(who.accountId, chosenProfileId)) ?? null;
+
+      return myName ?? UNNAMED;
+    };
 
     const write = (message: FromServer) => {
       socket.send(JSON.stringify(message));
@@ -152,8 +165,8 @@ const createRealtimeHandler = ({
               {
                 connectionId: id,
                 accountId: who.accountId,
-                profileId: who.profileId,
-                name: myName,
+                profileId: chosenProfileId,
+                name: await nameFor(),
               },
               write,
               party,
@@ -171,6 +184,11 @@ const createRealtimeHandler = ({
         registry.identify(id, read.data.profileId);
 
         const { clientId, deviceLabel, profileId } = read.data;
+
+        if (profileId !== chosenProfileId) {
+          chosenProfileId = profileId;
+          myName = null;
+        }
 
         if (presence === undefined || clientId === undefined || claimed === clientId) {
           return;

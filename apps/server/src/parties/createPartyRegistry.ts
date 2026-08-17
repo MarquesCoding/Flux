@@ -13,14 +13,22 @@ type Joining = {
   accountId: string;
   profileId: string | null;
   name: string;
+  password?: string;
 };
 
+type Joined =
+  | { kind: 'joined'; party: WatchParty }
+  | { kind: 'needsPassword'; wasWrong: boolean }
+  | { kind: 'notWelcome' }
+  | { kind: 'unknown' };
+
 type Issued =
-  { kind: 'sent'; party: WatchParty; command: SequencedCommand } | { kind: 'refused'; why: string };
+  | { kind: 'sent'; party: WatchParty; command?: SequencedCommand }
+  | { kind: 'refused'; why: string };
 
 type PartyRegistry = {
   open: (options: { mediaId: string; host: Omit<Joining, 'partyId'> }) => WatchParty;
-  join: (joining: Joining) => WatchParty | null;
+  join: (joining: Joining) => Joined;
   leave: (connectionId: string) => WatchParty | null;
   issue: (partyId: string, connectionId: string, command: PartyCommand, atMs: number) => Issued;
   report: (
@@ -33,6 +41,8 @@ type PartyRegistry = {
     ofConnectionId: string,
     role: PartyRole,
   ) => Issued;
+  remove: (partyId: string, byConnectionId: string, ofConnectionId: string) => Removed;
+  setPassword: (partyId: string, byConnectionId: string, password: string | null) => Issued;
   loosen: (
     partyId: string,
     byConnectionId: string,
@@ -43,9 +53,15 @@ type PartyRegistry = {
   count: () => number;
 };
 
+type Removed =
+  | { kind: 'removed'; party: WatchParty | null; connectionId: string; byName: string }
+  | { kind: 'refused'; why: string };
+
 type Held = {
   party: WatchParty;
   sequence: number;
+  password: string | null;
+  notWelcome: Set<string>;
 };
 
 const REFUSED_UNKNOWN = 'That party is not running.';
@@ -53,6 +69,8 @@ const REFUSED_UNKNOWN = 'That party is not running.';
 const REFUSED_NOT_IN = 'You are not in that party.';
 
 const REFUSED_NOT_ALLOWED = 'The host has not given you that.';
+
+const REFUSED_ONESELF = 'You cannot remove yourself from a party you can simply leave.';
 
 /**
  * Every watch party running, who is in each, and what each of them may do.
@@ -66,6 +84,10 @@ const REFUSED_NOT_ALLOWED = 'The host has not given you that.';
  *
  * What a party permits is decided here and nowhere else. A client hiding a button is presentation;
  * this refusing the command is the permission.
+ *
+ * A party's password is held here and never put in the party that goes out over the socket — what
+ * everybody is told is only that there is one. Somebody the host has removed is remembered by
+ * account rather than by connection, since a connection is discarded by opening the link again.
  *
  * @param newId - How a party identifier is minted.
  * @returns The registry.
@@ -87,6 +109,7 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
     joinedAtMs: atMs,
     isWatching: false,
     positionSeconds: 0,
+    reportedAtMs: atMs,
     bufferedAheadSeconds: 0,
   });
 
@@ -100,10 +123,15 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
   const memberIn = (party: WatchParty, connectionId: string): PartyMember | undefined =>
     party.members.find((one) => one.connectionId === connectionId);
 
-  const save = (party: WatchParty, sequence: number): WatchParty => {
+  const save = (party: WatchParty, sequence: number, was?: Held): WatchParty => {
     const settled = settleTimekeeper(party);
 
-    parties.set(settled.id, { party: settled, sequence });
+    parties.set(settled.id, {
+      party: settled,
+      sequence,
+      password: was?.password ?? null,
+      notWelcome: was?.notWelcome ?? new Set<string>(),
+    });
 
     return settled;
   };
@@ -118,6 +146,7 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
         createdAtMs: atMs,
         everyoneMaySeek: true,
         everyoneMayPlayPause: true,
+        hasPassword: false,
         members: [asMember(host, 'host', atMs)],
         timekeeperId: null,
       };
@@ -131,22 +160,36 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
       const holding = held(joining.partyId);
 
       if (holding === undefined) {
-        return null;
+        return { kind: 'unknown' };
       }
 
       if (memberIn(holding.party, joining.connectionId) !== undefined) {
-        return holding.party;
+        return { kind: 'joined', party: holding.party };
+      }
+
+      if (holding.notWelcome.has(joining.accountId)) {
+        return { kind: 'notWelcome' };
+      }
+
+      const alreadyIn = holding.party.members.some((one) => one.accountId === joining.accountId);
+
+      if (holding.password !== null && !alreadyIn && joining.password !== holding.password) {
+        return { kind: 'needsPassword', wasWrong: joining.password !== undefined };
       }
 
       whereEveryoneIs.set(joining.connectionId, joining.partyId);
 
-      return save(
-        {
-          ...holding.party,
-          members: [...holding.party.members, asMember(joining, 'guest', Date.now())],
-        },
-        holding.sequence,
-      );
+      return {
+        kind: 'joined',
+        party: save(
+          {
+            ...holding.party,
+            members: [...holding.party.members, asMember(joining, 'guest', Date.now())],
+          },
+          holding.sequence,
+          holding,
+        ),
+      };
     },
 
     leave: (connectionId) => {
@@ -177,6 +220,7 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
             : left.map((one, index) => (index === 0 ? { ...one, role: 'host' } : one)),
         },
         holding.sequence,
+        holding,
       );
     },
 
@@ -201,8 +245,8 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
 
       const party =
         command.kind === 'changeWhatIsPlaying'
-          ? save({ ...holding.party, mediaId: command.mediaId }, sequence)
-          : save(holding.party, sequence);
+          ? save({ ...holding.party, mediaId: command.mediaId }, sequence, holding)
+          : save(holding.party, sequence, holding);
 
       return {
         kind: 'sent',
@@ -229,10 +273,13 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
         {
           ...holding.party,
           members: holding.party.members.map((one) =>
-            one.connectionId === connectionId ? { ...one, ...where } : one,
+            one.connectionId === connectionId
+              ? { ...one, ...where, reportedAtMs: Date.now() }
+              : one,
           ),
         },
         holding.sequence,
+        holding,
       );
     },
 
@@ -261,18 +308,84 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
           ),
         },
         holding.sequence,
+        holding,
       );
+
+      return { kind: 'sent', party };
+    },
+
+    remove: (partyId, byConnectionId, ofConnectionId) => {
+      const holding = held(partyId);
+
+      if (holding === undefined) {
+        return { kind: 'refused', why: REFUSED_UNKNOWN };
+      }
+
+      const actor = memberIn(holding.party, byConnectionId);
+
+      if (actor === undefined) {
+        return { kind: 'refused', why: REFUSED_NOT_IN };
+      }
+
+      if (actor.role !== 'host') {
+        return { kind: 'refused', why: REFUSED_NOT_ALLOWED };
+      }
+
+      if (byConnectionId === ofConnectionId) {
+        return { kind: 'refused', why: REFUSED_ONESELF };
+      }
+
+      const going = memberIn(holding.party, ofConnectionId);
+
+      if (going === undefined) {
+        return { kind: 'refused', why: REFUSED_NOT_IN };
+      }
+
+      holding.notWelcome.add(going.accountId);
+      whereEveryoneIs.delete(ofConnectionId);
+
+      const left = holding.party.members.filter((one) => one.connectionId !== ofConnectionId);
+
+      if (left.length === 0) {
+        parties.delete(partyId);
+
+        return { kind: 'removed', party: null, connectionId: ofConnectionId, byName: actor.name };
+      }
+
+      return {
+        kind: 'removed',
+        party: save({ ...holding.party, members: left }, holding.sequence, holding),
+        connectionId: ofConnectionId,
+        byName: actor.name,
+      };
+    },
+
+    setPassword: (partyId, byConnectionId, password) => {
+      const holding = held(partyId);
+
+      if (holding === undefined) {
+        return { kind: 'refused', why: REFUSED_UNKNOWN };
+      }
+
+      const actor = memberIn(holding.party, byConnectionId);
+
+      if (actor === undefined) {
+        return { kind: 'refused', why: REFUSED_NOT_IN };
+      }
+
+      if (actor.role !== 'host') {
+        return { kind: 'refused', why: REFUSED_NOT_ALLOWED };
+      }
+
+      holding.password = password;
 
       return {
         kind: 'sent',
-        party,
-        command: {
-          sequence: holding.sequence,
-          atMs: Date.now(),
-          byName: actor.name,
-          byConnectionId,
-          command: { kind: 'pause', atSeconds: 0 },
-        },
+        party: save(
+          { ...holding.party, hasPassword: password !== null },
+          holding.sequence,
+          holding,
+        ),
       };
     },
 
@@ -300,19 +413,10 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
           everyoneMayPlayPause: how.everyoneMayPlayPause ?? holding.party.everyoneMayPlayPause,
         },
         holding.sequence,
+        holding,
       );
 
-      return {
-        kind: 'sent',
-        party,
-        command: {
-          sequence: holding.sequence,
-          atMs: Date.now(),
-          byName: actor.name,
-          byConnectionId,
-          command: { kind: 'pause', atSeconds: 0 },
-        },
-      };
+      return { kind: 'sent', party };
     },
 
     find: (partyId) => held(partyId)?.party ?? null,
@@ -327,6 +431,12 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
   };
 };
 
-export type { PartyRegistry, Joining, Issued };
+export type { PartyRegistry, Joining, Issued, Joined, Removed };
 
-export { createPartyRegistry, REFUSED_NOT_ALLOWED, REFUSED_NOT_IN, REFUSED_UNKNOWN };
+export {
+  createPartyRegistry,
+  REFUSED_NOT_ALLOWED,
+  REFUSED_NOT_IN,
+  REFUSED_ONESELF,
+  REFUSED_UNKNOWN,
+};

@@ -68,6 +68,7 @@ import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
 import { AdminMessageOverlay } from './components/AdminMessageOverlay/AdminMessageOverlay';
 import { correctDrift } from '@FluxCore/functions/correctDrift';
+import { describeCommand } from '@FluxWeb/party/describeCommand';
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay';
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions';
 import type { CastState } from '@FluxWeb/playback/castPlayback.types';
@@ -89,6 +90,8 @@ type FullscreenOwner = {
 };
 
 const IDLE_MILLISECONDS = 2500;
+
+const PARTY_NOTE_MILLISECONDS = 4000;
 
 const CAST_NOTE_MILLISECONDS = 6000;
 
@@ -153,6 +156,9 @@ const EMPTY_HEALTH: PlaybackHealth = {
  * @param episodes - The rest of the season, where this is one episode of a programme.
  * @param onSelectEpisode - Called with an episode the viewer chose instead of this one.
  * @param watchedFractionFor - How to ask how far through a given episode the viewer already is.
+ * @param party - The watch party this viewing is part of, where it is part of one.
+ * @param partyNotice - Something the party has to say, which may outlive the party itself.
+ * @param renderPartyMenu - How to draw the watch party control in the bar, told when the bar has gone.
  */
 const VideoPlayer = ({
   media,
@@ -165,6 +171,8 @@ const VideoPlayer = ({
   onSelectEpisode,
   watchedFractionFor,
   party,
+  partyNotice = null,
+  renderPartyMenu,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -205,6 +213,8 @@ const VideoPlayer = ({
     }
 
     appliedSequenceRef.current = command.sequence;
+    setPartyNote(describeCommand(command, party?.meConnectionId ?? null));
+
     if (command.command.kind === 'seek') {
       element.currentTime = command.command.atSeconds;
     }
@@ -341,6 +351,7 @@ const VideoPlayer = ({
   const [isPoppedOut, setIsPoppedOut] = useState(false);
   const [castState, setCastState] = useState<CastState>('unavailable');
   const [castNote, setCastNote] = useState<string | null>(null);
+  const [partyNote, setPartyNote] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -356,6 +367,26 @@ const VideoPlayer = ({
       clearTimeout(goes);
     };
   }, [castNote]);
+
+  useEffect(() => {
+    if (partyNote === null) {
+      return;
+    }
+
+    const goes = setTimeout(() => {
+      setPartyNote(null);
+    }, PARTY_NOTE_MILLISECONDS);
+
+    return () => {
+      clearTimeout(goes);
+    };
+  }, [partyNote]);
+
+  useEffect(() => {
+    if (partyNotice !== null) {
+      setPartyNote(partyNotice);
+    }
+  }, [partyNotice]);
   const releaseRef = useRef<(() => Promise<void>) | null>(null);
   const deliveredRef = useRef<(() => DeliveredFormat | null) | null>(null);
   const castContextRef = useRef<CastContext | null>(null);
@@ -1469,6 +1500,25 @@ const VideoPlayer = ({
         )}
 
         <AnimatePresence>
+          {partyNote === null ? null : (
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+              transition={{ duration: prefersReducedMotion === true ? 0 : 0.22, ease: 'easeOut' }}
+              className="pointer-events-none absolute inset-x-0 top-6 z-30 flex justify-center px-4"
+            >
+              <p
+                role="status"
+                className="flux-glass max-w-md rounded-2xl px-4 py-2 text-center text-sm text-white"
+              >
+                {partyNote}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
           {castNote === null ? null : (
             <motion.div
               initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
@@ -1566,6 +1616,14 @@ const VideoPlayer = ({
           }`}
         >
           <PlayerControls
+            {...(renderPartyMenu === undefined
+              ? {}
+              : {
+                  partyMenu: renderPartyMenu({
+                    isHidden: !isBarUp,
+                    onOpenChange: setIsMenuOpen,
+                  }),
+                })}
             title={media.title}
             playingId={media.id}
             episodes={episodes}

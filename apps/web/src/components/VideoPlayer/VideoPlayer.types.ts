@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { SequencedCommand } from '@FluxContracts/schemas/WatchParty';
 
 type PartyPlayback = {
   command: SequencedCommand | null;
+  meConnectionId: string | null;
   referenceSeconds: number | null;
   jitterMs: number;
   onReport: (where: {
@@ -24,6 +26,11 @@ type VideoPlayerProps = {
   onSelectEpisode?: (episode: MediaSummary) => void;
   watchedFractionFor?: (mediaId: string) => number | undefined;
   party?: PartyPlayback;
+  partyNotice?: string | null;
+  renderPartyMenu?: (options: {
+    isHidden: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+  }) => ReactNode;
 };
 
 type PlayerState = 'starting' | 'playing' | 'failed';

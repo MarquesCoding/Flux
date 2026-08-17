@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { JsonValueSchema, type JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { RealtimeEvent } from '@FluxContracts/schemas/Realtime';
 
 type FetchLike = (
   input: string,
@@ -10,6 +11,66 @@ type FetchLike = (
 ) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>;
 
 const fetchMock = vi.fn<FetchLike>();
+
+const socket = vi.hoisted(() => ({
+  listeners: new Map<string, (event: RealtimeEvent) => void>(),
+  sent: new Array<{ kind: string }>(),
+}));
+
+vi.mock('@FluxWeb/realtime/getRealtimeClient', () => ({
+  getRealtimeClient: () => ({
+    start: () => {},
+    stop: () => {},
+    subscribe: (topic: string, listen: (event: RealtimeEvent) => void) => {
+      socket.listeners.set(topic, listen);
+
+      return () => {
+        socket.listeners.delete(topic);
+      };
+    },
+    identify: () => {},
+    onResumed: () => () => {},
+    isLive: () => true,
+    connectionId: () => 'me',
+    sendParty: (message: { kind: string }) => socket.sent.push(message),
+    askClock: () => {},
+    onClockTell: () => () => {},
+    onRefused: () => () => {},
+    onNeedsPassword: () => () => {},
+  }),
+}));
+
+const aPartyAt = (positionSeconds: number): RealtimeEvent => ({
+  kind: 'event',
+  topic: 'party',
+  atMs: 1,
+  folded: 0,
+  payload: {
+    party: {
+      id: 'party-1',
+      mediaId: arrivalId,
+      createdAtMs: 1,
+      everyoneMaySeek: true,
+      everyoneMayPlayPause: true,
+      hasPassword: false,
+      timekeeperId: 'dan',
+      members: [
+        {
+          connectionId: 'dan',
+          accountId: 'account-dan',
+          profileId: null,
+          name: 'Dan',
+          role: 'host',
+          joinedAtMs: 1,
+          isWatching: true,
+          positionSeconds,
+          reportedAtMs: Date.now(),
+          bufferedAheadSeconds: 10,
+        },
+      ],
+    },
+  },
+});
 
 const setupComplete = {
   isComplete: true,
@@ -166,6 +227,8 @@ class FakeEventSource {
 }
 
 beforeEach(() => {
+  socket.listeners.clear();
+  socket.sent.length = 0;
   window.history.replaceState(null, '', '/');
   vi.useFakeTimers({ shouldAdvanceTime: true });
   fetchMock.mockReset();
@@ -430,6 +493,57 @@ describe('App routing', () => {
     await arrive();
 
     expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument();
+  });
+
+  it('starts a joiner where the room already is, not where they left off', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}?party=party-1`);
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+      watched: [
+        {
+          mediaId: arrivalId,
+          positionSeconds: 40,
+          durationSeconds: 7200,
+          isFinished: false,
+          updatedAt: '2026-08-15T00:00:00.000Z',
+        },
+      ],
+    });
+    render(<App />);
+
+    act(() => {
+      socket.listeners.get('party')?.(aPartyAt(1800));
+    });
+
+    await arrive();
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.find(([input]) =>
+        input.includes(`/api/playback/${arrivalId}/session`),
+      );
+
+      expect(bodyOf(asked?.[1])).toMatchObject({ startSeconds: 1800 });
+    });
+  });
+
+  it('asks to join the party named in the address', async () => {
+    window.history.replaceState(null, '', `/watch/${arrivalId}?party=party-1`);
+
+    serverState({
+      setup: setupComplete,
+      session: { user },
+      ...aLibraryWithArrival,
+      detail: arrivalInFull,
+    });
+    render(<App />);
+
+    await arrive();
+
+    expect(socket.sent).toContainEqual({ kind: 'partyJoin', partyId: 'party-1' });
   });
 
   it('ignores a second left in an address, the server holding the only position', async () => {

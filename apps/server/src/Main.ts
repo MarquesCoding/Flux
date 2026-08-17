@@ -1254,11 +1254,25 @@ const realtimeHandler = createRealtimeHandler({
     disconnect: (clientId) => {
       presence.disconnect(clientId);
     },
-    nameOf: async (accountId, profileId) =>
-      profileId === null
-        ? null
-        : ((await profileService.list(accountId)).find((profile) => profile.id === profileId)
-            ?.name ?? null),
+    nameOf: async (accountId, profileId) => {
+      const named =
+        profileId === null
+          ? null
+          : ((await profileService.list(accountId)).find((profile) => profile.id === profileId)
+              ?.name ?? null);
+
+      if (named !== null) {
+        return named;
+      }
+
+      const [account] = await db
+        .select({ name: user.name })
+        .from(user)
+        .where(eq(user.id, accountId))
+        .limit(1);
+
+      return account?.name ?? null;
+    },
   },
 });
 

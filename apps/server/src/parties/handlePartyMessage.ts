@@ -1,6 +1,6 @@
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { FromClient, FromServer } from '@FluxContracts/schemas/Realtime';
-import type { SequencedCommand, WatchParty } from '@FluxContracts/schemas/WatchParty';
+import type { PartyNotice, SequencedCommand, WatchParty } from '@FluxContracts/schemas/WatchParty';
 import type { PartyRegistry } from './createPartyRegistry';
 
 type PartySpeaker = {
@@ -34,15 +34,21 @@ const asCommandJson = (command: SequencedCommand): JsonValue => ({
  *
  * @param party - The party being sent.
  * @param command - What just happened, where something did.
+ * @param notice - Something worth telling this one person, where there is something.
  * @returns The party as JSON.
  */
-const asPartyJson = (party: WatchParty, command?: SequencedCommand): JsonValue => ({
+const asPartyJson = (
+  party: WatchParty,
+  command?: SequencedCommand,
+  notice?: PartyNotice,
+): JsonValue => ({
   party: {
     id: party.id,
     mediaId: party.mediaId,
     createdAtMs: party.createdAtMs,
     everyoneMaySeek: party.everyoneMaySeek,
     everyoneMayPlayPause: party.everyoneMayPlayPause,
+    hasPassword: party.hasPassword,
     timekeeperId: party.timekeeperId,
     members: party.members.map((member) => ({
       connectionId: member.connectionId,
@@ -53,10 +59,12 @@ const asPartyJson = (party: WatchParty, command?: SequencedCommand): JsonValue =
       joinedAtMs: member.joinedAtMs,
       isWatching: member.isWatching,
       positionSeconds: member.positionSeconds,
+      reportedAtMs: member.reportedAtMs,
       bufferedAheadSeconds: member.bufferedAheadSeconds,
     })),
   },
   ...(command === undefined ? {} : { command: asCommandJson(command) }),
+  ...(notice === undefined ? {} : { notice: { kind: notice.kind, byName: notice.byName } }),
 });
 
 const tellEveryone = (
@@ -104,15 +112,35 @@ const handlePartyMessage = (
   }
 
   if (message.kind === 'partyJoin') {
-    const joined = registry.join({ partyId: message.partyId, ...who });
+    const joined = registry.join({
+      partyId: message.partyId,
+      ...who,
+      ...(message.password === undefined ? {} : { password: message.password }),
+    });
 
-    if (joined === null) {
+    if (joined.kind === 'unknown') {
       write({ kind: 'refused', why: 'That party is not running.' });
 
       return;
     }
 
-    tellEveryone(binding, joined);
+    if (joined.kind === 'notWelcome') {
+      write({ kind: 'refused', why: 'The host has removed you from that party.' });
+
+      return;
+    }
+
+    if (joined.kind === 'needsPassword') {
+      write({
+        kind: 'partyNeedsPassword',
+        partyId: message.partyId,
+        wasWrong: joined.wasWrong,
+      });
+
+      return;
+    }
+
+    tellEveryone(binding, joined.party);
 
     return;
   }
@@ -147,21 +175,44 @@ const handlePartyMessage = (
     return;
   }
 
+  if (message.kind === 'partyRemove') {
+    const gone = registry.remove(mine.id, who.connectionId, message.connectionId);
+
+    if (gone.kind === 'refused') {
+      write({ kind: 'refused', why: gone.why });
+
+      return;
+    }
+
+    binding.tell(
+      [gone.connectionId],
+      asPartyJson({ ...mine, members: [] }, undefined, {
+        kind: 'removed',
+        byName: gone.byName,
+      }),
+    );
+    tellEveryone(binding, gone.party);
+
+    return;
+  }
+
   const done =
     message.kind === 'partyCommand'
       ? registry.issue(mine.id, who.connectionId, message.command, now())
       : message.kind === 'partySetRole'
         ? registry.setRole(mine.id, who.connectionId, message.connectionId, message.role)
-        : message.kind === 'partyLoosen'
-          ? registry.loosen(mine.id, who.connectionId, {
-              ...(message.everyoneMaySeek === undefined
-                ? {}
-                : { everyoneMaySeek: message.everyoneMaySeek }),
-              ...(message.everyoneMayPlayPause === undefined
-                ? {}
-                : { everyoneMayPlayPause: message.everyoneMayPlayPause }),
-            })
-          : null;
+        : message.kind === 'partySetPassword'
+          ? registry.setPassword(mine.id, who.connectionId, message.password)
+          : message.kind === 'partyLoosen'
+            ? registry.loosen(mine.id, who.connectionId, {
+                ...(message.everyoneMaySeek === undefined
+                  ? {}
+                  : { everyoneMaySeek: message.everyoneMaySeek }),
+                ...(message.everyoneMayPlayPause === undefined
+                  ? {}
+                  : { everyoneMayPlayPause: message.everyoneMayPlayPause }),
+              })
+            : null;
 
   if (done === null) {
     return;

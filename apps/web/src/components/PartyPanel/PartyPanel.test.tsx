@@ -13,6 +13,7 @@ const member = (over?: Partial<PartyMember>): PartyMember => ({
   joinedAtMs: 1000,
   isWatching: true,
   positionSeconds: 100,
+  reportedAtMs: 1000,
   bufferedAheadSeconds: 10,
   ...over,
 });
@@ -23,6 +24,7 @@ const party = (over?: Partial<WatchParty>): WatchParty => ({
   createdAtMs: 1000,
   everyoneMaySeek: true,
   everyoneMayPlayPause: true,
+  hasPassword: false,
   timekeeperId: 'dan',
   members: [member(), member({ connectionId: 'sam', name: 'Sam', role: 'guest' })],
   ...over,
@@ -186,6 +188,85 @@ describe('PartyPanel', () => {
     render(<PartyPanel party={party()} meConnectionId="dan" />);
 
     expect(screen.queryByRole('button', { name: 'Copy' })).not.toBeInTheDocument();
+  });
+
+  it('lets the host put somebody out', async () => {
+    const actor = userEvent.setup();
+    const onRemove = vi.fn();
+
+    render(<PartyPanel party={party()} meConnectionId="dan" onRemove={onRemove} />);
+    await actor.click(screen.getByRole('button', { name: 'Remove Sam from the party' }));
+
+    expect(onRemove).toHaveBeenCalledWith('sam');
+  });
+
+  it('does not offer to put anybody out to somebody who is not the host', () => {
+    render(<PartyPanel party={party()} meConnectionId="sam" onRemove={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: /Remove/ })).not.toBeInTheDocument();
+  });
+
+  it('does not offer the host a way to remove themselves', () => {
+    render(<PartyPanel party={party()} meConnectionId="dan" onRemove={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: /Remove Dan/ })).not.toBeInTheDocument();
+  });
+
+  it('lets the host put a password on it', async () => {
+    const actor = userEvent.setup();
+    const onSetPassword = vi.fn();
+
+    render(<PartyPanel party={party()} meConnectionId="dan" onSetPassword={onSetPassword} />);
+    await actor.type(screen.getByLabelText('Party password'), 'letmein');
+    await actor.click(screen.getByRole('button', { name: 'Set' }));
+
+    expect(onSetPassword).toHaveBeenCalledWith('letmein');
+  });
+
+  it('will not set an empty password, which is not a password', () => {
+    render(<PartyPanel party={party()} meConnectionId="dan" onSetPassword={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Set' })).toBeDisabled();
+  });
+
+  it('offers to take an existing password off again', async () => {
+    const actor = userEvent.setup();
+    const onSetPassword = vi.fn();
+
+    render(
+      <PartyPanel
+        party={party({ hasPassword: true })}
+        meConnectionId="dan"
+        onSetPassword={onSetPassword}
+      />,
+    );
+    await actor.click(screen.getByRole('button', { name: 'Clear' }));
+
+    expect(onSetPassword).toHaveBeenCalledWith(null);
+  });
+
+  it('offers nothing to clear where there is no password', () => {
+    render(<PartyPanel party={party()} meConnectionId="dan" onSetPassword={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
+  });
+
+  it('does not offer the password control to a guest', () => {
+    render(<PartyPanel party={party()} meConnectionId="sam" onSetPassword={vi.fn()} />);
+
+    expect(screen.queryByLabelText('Party password')).not.toBeInTheDocument();
+  });
+
+  it('says a party is protected, which is what the host needs to know it worked', () => {
+    render(
+      <PartyPanel
+        party={party({ hasPassword: true })}
+        meConnectionId="dan"
+        onSetPassword={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/This party has a password/)).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

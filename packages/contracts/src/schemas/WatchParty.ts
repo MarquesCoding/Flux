@@ -26,6 +26,7 @@ const PartyMemberSchema = z.object({
   joinedAtMs: z.number().int().nonnegative(),
   isWatching: z.boolean(),
   positionSeconds: z.number().nonnegative(),
+  reportedAtMs: z.number().int().nonnegative(),
   bufferedAheadSeconds: z.number().nonnegative(),
 });
 
@@ -35,6 +36,7 @@ const WatchPartySchema = z.object({
   createdAtMs: z.number().int().nonnegative(),
   everyoneMaySeek: z.boolean(),
   everyoneMayPlayPause: z.boolean(),
+  hasPassword: z.boolean(),
   members: z.array(PartyMemberSchema),
   timekeeperId: z.string().nullable(),
 });
@@ -45,6 +47,11 @@ const PartyCommandSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('seek'), atSeconds: z.number().nonnegative() }),
   z.object({ kind: z.literal('changeWhatIsPlaying'), mediaId: z.string().min(1) }),
 ]);
+
+const PartyNoticeSchema = z.object({
+  kind: z.literal('removed'),
+  byName: z.string().min(1),
+});
 
 const SequencedCommandSchema = z.object({
   sequence: z.number().int().nonnegative(),
@@ -58,6 +65,7 @@ type PartyMember = z.infer<typeof PartyMemberSchema>;
 type WatchParty = z.infer<typeof WatchPartySchema>;
 type PartyCommand = z.infer<typeof PartyCommandSchema>;
 type SequencedCommand = z.infer<typeof SequencedCommandSchema>;
+type PartyNotice = z.infer<typeof PartyNoticeSchema>;
 
 const POWER_BY_COMMAND: Readonly<Record<PartyCommand['kind'], PartyPower>> = {
   play: 'playPause',
@@ -135,7 +143,15 @@ const whoKeepsTime = (members: readonly PartyMember[]): string | null =>
       : one.joinedAtMs - other.joinedAtMs,
   )[0]?.connectionId ?? null;
 
-export type { PartyRole, PartyPower, PartyMember, WatchParty, PartyCommand, SequencedCommand };
+export type {
+  PartyRole,
+  PartyPower,
+  PartyMember,
+  WatchParty,
+  PartyCommand,
+  SequencedCommand,
+  PartyNotice,
+};
 
 export {
   PARTY_ROLES,
@@ -146,6 +162,7 @@ export {
   WatchPartySchema,
   PartyCommandSchema,
   SequencedCommandSchema,
+  PartyNoticeSchema,
   powersOf,
   powerForCommand,
   partyAllows,

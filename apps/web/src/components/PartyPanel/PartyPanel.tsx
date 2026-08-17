@@ -2,25 +2,32 @@ import { useState } from 'react';
 import { RiEyeLine, RiPauseCircleLine, RiTimeLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
 import { Switch } from '@FluxUI/Switch';
+import { TextField } from '@FluxUI/TextField';
+import { whereTheRoomIs } from '@FluxCore/functions/whereTheRoomIs';
 import type { PartyMember } from '@FluxContracts/schemas/WatchParty';
 import type { PartyPanelProps } from './PartyPanel.types';
 
 const ROLE_LABELS = { host: 'Host', coHost: 'Co-host', guest: 'Guest' } as const;
 
+const WORTH_SAYING_SECONDS = 1;
+
 /**
  * How far behind the party's reference somebody is, said in a way worth reading.
  *
+ * Both positions are carried forward to the same instant before they are compared, because they were
+ * measured at different moments — comparing them as they stand would report the gap between two
+ * readings taken a second apart as though it were drift between two players.
+ *
  * @param member - The member being described.
- * @param reference - Where the party's timekeeper is.
+ * @param reference - Whoever is keeping time.
  * @returns A short phrase, or null where they are close enough for it not to be worth saying.
  */
-const describeDrift = (member: PartyMember, reference: number): string | null => {
-  const behind = reference - member.positionSeconds;
+const describeDrift = (member: PartyMember, reference: PartyMember): string | null => {
+  const atMs = Math.max(member.reportedAtMs, reference.reportedAtMs);
+  const behind = whereTheRoomIs(reference, atMs) - whereTheRoomIs(member, atMs);
 
-  return Math.abs(behind) < 1
+  return Math.abs(behind) < WORTH_SAYING_SECONDS
     ? null
     : `${Math.abs(behind).toFixed(1)}s ${behind > 0 ? 'behind' : 'ahead'}`;
 };
@@ -41,6 +48,8 @@ const describeDrift = (member: PartyMember, reference: number): string | null =>
  * @param onSetRole - Called to change somebody's role.
  * @param onLoosen - Called to change what everybody may do.
  * @param onLeave - Called to leave.
+ * @param onRemove - Called to put somebody out of the party.
+ * @param onSetPassword - Called to put a password on the party, or to take it off.
  * @param invitation - The address that puts somebody else in this party, where there is one to give.
  * @param onCopyInvitation - Called to put that address on the clipboard.
  * @returns The panel.
@@ -51,33 +60,39 @@ const PartyPanel = ({
   onSetRole,
   onLoosen,
   onLeave,
+  onRemove,
+  onSetPassword,
   invitation,
   onCopyInvitation,
 }: PartyPanelProps) => {
   const [hasCopied, setHasCopied] = useState(false);
+  const [password, setPassword] = useState('');
   const me = party.members.find((member) => member.connectionId === meConnectionId);
   const timekeeper = party.members.find((member) => member.connectionId === party.timekeeperId);
-  const reference = timekeeper?.positionSeconds ?? 0;
   const watching = party.members.filter((member) => member.isWatching).length;
 
   return (
-    <Card as="section" padding="none" className="flex flex-col">
-      <CardHeader title={`Watch party · ${watching.toString()} watching`}>
+    <section className="flex w-80 max-w-full flex-col text-white">
+      <div className="flex items-center justify-between gap-2 px-1 pb-2">
+        <p className="text-xs uppercase tracking-wide text-white/60">
+          {watching.toString()} watching
+        </p>
+
         {onLeave === undefined ? null : (
           <Button variant="ghost" size="sm" isPill onClick={onLeave}>
             Leave
           </Button>
         )}
-      </CardHeader>
+      </div>
 
       {invitation === undefined ? null : (
-        <div className="flex flex-col gap-2 border-b border-[var(--surface-line)] px-4 py-3">
-          <p className="text-xs leading-relaxed text-text-muted">
+        <div className="flex flex-col gap-2 rounded-xl bg-white/5 p-3">
+          <p className="text-xs leading-relaxed text-white/70">
             Send this to anybody with an account here. It puts them in this party, watching this.
           </p>
 
           <div className="flex items-center gap-2">
-            <code className="min-w-0 flex-1 select-all truncate rounded-lg bg-[var(--surface-hover)] px-3 py-2 font-mono text-xs text-text">
+            <code className="min-w-0 flex-1 select-all truncate rounded-lg bg-black/30 px-3 py-2 font-mono text-xs">
               {invitation}
             </code>
 
@@ -98,13 +113,13 @@ const PartyPanel = ({
         </div>
       )}
 
-      <ul className="flex flex-col divide-y divide-[var(--surface-line)]">
+      <ul className="flex flex-col divide-y divide-white/10">
         {party.members.map((member) => {
-          const drift = describeDrift(member, reference);
+          const drift = timekeeper === undefined ? null : describeDrift(member, timekeeper);
 
           return (
-            <li key={member.connectionId} className="flex flex-wrap items-center gap-2 px-4 py-3">
-              <span className="text-sm font-medium text-text">
+            <li key={member.connectionId} className="flex flex-wrap items-center gap-2 px-1 py-3">
+              <span className="text-sm font-medium">
                 {member.name}
                 {member.connectionId === meConnectionId ? ' (you)' : ''}
               </span>
@@ -121,18 +136,18 @@ const PartyPanel = ({
               )}
 
               {member.isWatching ? (
-                <span className="flex items-center gap-1 text-xs text-text-muted">
+                <span className="flex items-center gap-1 text-xs text-white/70">
                   <RiEyeLine size={13} aria-hidden />
                   Watching
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-xs text-text-muted">
+                <span className="flex items-center gap-1 text-xs text-white/70">
                   <RiPauseCircleLine size={13} aria-hidden />
                   Not watching
                 </span>
               )}
 
-              {drift !== null && <span className="text-xs text-text-muted">{drift}</span>}
+              {drift !== null && <span className="text-xs text-white/70">{drift}</span>}
 
               {me?.role === 'host' && member.connectionId !== meConnectionId && (
                 <span className="ml-auto flex gap-1">
@@ -149,6 +164,20 @@ const PartyPanel = ({
                   >
                     {member.role === 'coHost' ? 'Make a guest' : 'Make a co-host'}
                   </Button>
+
+                  {onRemove === undefined ? null : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      isPill
+                      label={`Remove ${member.name} from the party`}
+                      onClick={() => {
+                        onRemove(member.connectionId);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </span>
               )}
             </li>
@@ -157,7 +186,7 @@ const PartyPanel = ({
       </ul>
 
       {me?.role === 'host' && (
-        <div className="flex flex-col gap-3 border-t border-[var(--surface-line)] px-4 py-3">
+        <div className="flex flex-col gap-3 border-t border-white/10 px-1 pt-3">
           <Switch
             label="Everyone can play and pause"
             isOn={party.everyoneMayPlayPause}
@@ -174,13 +203,63 @@ const PartyPanel = ({
             }}
           />
 
-          <p className="text-xs leading-relaxed text-text-muted">
+          <p className="text-xs leading-relaxed text-white/70">
             Skipping is the disruptive one — a stray scrub throws everybody across the film, which
             is why it can be withheld while pausing stays shared.
           </p>
+
+          {onSetPassword === undefined ? null : (
+            <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
+              <p className="text-xs leading-relaxed text-white/70">
+                {party.hasPassword
+                  ? 'This party has a password. Anybody opening the link is asked for it.'
+                  : 'A password asks anybody opening the link for it, for a link that may travel further than you meant.'}
+              </p>
+
+              <div className="flex items-end gap-2">
+                <TextField
+                  label="Party password"
+                  type="password"
+                  size="sm"
+                  value={password}
+                  placeholder={party.hasPassword ? 'Set a new one' : 'No password'}
+                  autoComplete="off"
+                  className="min-w-0 flex-1"
+                  onValueChange={setPassword}
+                />
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  isPill
+                  disabled={password.length === 0}
+                  onClick={() => {
+                    onSetPassword(password);
+                    setPassword('');
+                  }}
+                >
+                  Set
+                </Button>
+
+                {party.hasPassword && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    isPill
+                    onClick={() => {
+                      onSetPassword(null);
+                      setPassword('');
+                    }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
-    </Card>
+    </section>
   );
 };
 

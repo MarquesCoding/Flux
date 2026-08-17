@@ -51,7 +51,11 @@ const ClockAskSchema = z.object({ kind: z.literal('clockAsk'), sentAtMs: z.numbe
 
 const PartyOpenSchema = z.object({ kind: z.literal('partyOpen'), mediaId: z.string().min(1) });
 
-const PartyJoinSchema = z.object({ kind: z.literal('partyJoin'), partyId: z.string().min(1) });
+const PartyJoinSchema = z.object({
+  kind: z.literal('partyJoin'),
+  partyId: z.string().min(1),
+  password: z.string().min(1).max(200).optional(),
+});
 
 const PartyLeaveSchema = z.object({ kind: z.literal('partyLeave') });
 
@@ -73,6 +77,16 @@ const PartySetRoleSchema = z.object({
   role: PartyRoleSchema,
 });
 
+const PartyRemoveSchema = z.object({
+  kind: z.literal('partyRemove'),
+  connectionId: z.string().min(1),
+});
+
+const PartySetPasswordSchema = z.object({
+  kind: z.literal('partySetPassword'),
+  password: z.string().min(1).max(200).nullable(),
+});
+
 const PartyLoosenSchema = z.object({
   kind: z.literal('partyLoosen'),
   everyoneMaySeek: z.boolean().optional(),
@@ -91,6 +105,8 @@ const FromClientSchema = z.discriminatedUnion('kind', [
   PartyCommandMessageSchema,
   PartyReportSchema,
   PartySetRoleSchema,
+  PartyRemoveSchema,
+  PartySetPasswordSchema,
   PartyLoosenSchema,
 ]);
 
@@ -129,6 +145,12 @@ const ClockTellSchema = z.object({
 
 const RefusedSchema = z.object({ kind: z.literal('refused'), why: z.string().min(1) });
 
+const PartyNeedsPasswordSchema = z.object({
+  kind: z.literal('partyNeedsPassword'),
+  partyId: z.string().min(1),
+  wasWrong: z.boolean(),
+});
+
 const FromServerSchema = z.discriminatedUnion('kind', [
   WelcomeSchema,
   SubscribedSchema,
@@ -137,6 +159,7 @@ const FromServerSchema = z.discriminatedUnion('kind', [
   PingSchema,
   ClockTellSchema,
   RefusedSchema,
+  PartyNeedsPasswordSchema,
 ]);
 
 type FromClient = z.infer<typeof FromClientSchema>;

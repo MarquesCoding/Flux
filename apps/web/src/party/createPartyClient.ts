@@ -1,23 +1,34 @@
-import { WatchPartySchema, SequencedCommandSchema } from '@FluxContracts/schemas/WatchParty';
+import {
+  WatchPartySchema,
+  SequencedCommandSchema,
+  PartyNoticeSchema,
+} from '@FluxContracts/schemas/WatchParty';
 import { estimateClockOffset, measurementJitter } from '@FluxCore/functions/estimateClockOffset';
 import { z } from 'zod';
 import type { Reading } from '@FluxCore/functions/estimateClockOffset';
-import type { PartyCommand, SequencedCommand, WatchParty } from '@FluxContracts/schemas/WatchParty';
+import type {
+  PartyCommand,
+  PartyNotice,
+  SequencedCommand,
+  WatchParty,
+} from '@FluxContracts/schemas/WatchParty';
 import type { RealtimeClient } from '@FluxWeb/realtime/createRealtimeClient';
 
 const PartyEventSchema = z.object({
   party: WatchPartySchema,
   command: SequencedCommandSchema.optional(),
+  notice: PartyNoticeSchema.optional(),
 });
 
 type PartyWatcher = {
   onParty: (party: WatchParty) => void;
   onCommand: (command: SequencedCommand) => void;
+  onNotice: (notice: PartyNotice) => void;
 };
 
 type PartyClient = {
   open: (mediaId: string) => void;
-  join: (partyId: string) => void;
+  join: (partyId: string, password?: string) => void;
   leave: () => void;
   send: (command: PartyCommand) => void;
   report: (where: {
@@ -26,6 +37,8 @@ type PartyClient = {
     isWatching: boolean;
   }) => void;
   setRole: (connectionId: string, role: 'host' | 'coHost' | 'guest') => void;
+  remove: (connectionId: string) => void;
+  setPassword: (password: string | null) => void;
   loosen: (how: { everyoneMaySeek?: boolean; everyoneMayPlayPause?: boolean }) => void;
   offsetMs: () => number;
   jitterMs: () => number;
@@ -81,6 +94,10 @@ const createPartyClient = ({
     if (read.data.command !== undefined) {
       watcher.onCommand(read.data.command);
     }
+
+    if (read.data.notice !== undefined) {
+      watcher.onNotice(read.data.notice);
+    }
   });
 
   const stopClock = client.onClockTell((sentAtMs, serverAtMs) => {
@@ -101,8 +118,12 @@ const createPartyClient = ({
       client.sendParty({ kind: 'partyOpen', mediaId });
     },
 
-    join: (partyId) => {
-      client.sendParty({ kind: 'partyJoin', partyId });
+    join: (partyId, password) => {
+      client.sendParty({
+        kind: 'partyJoin',
+        partyId,
+        ...(password === undefined ? {} : { password }),
+      });
     },
 
     leave: () => {
@@ -119,6 +140,14 @@ const createPartyClient = ({
 
     setRole: (connectionId, role) => {
       client.sendParty({ kind: 'partySetRole', connectionId, role });
+    },
+
+    remove: (connectionId) => {
+      client.sendParty({ kind: 'partyRemove', connectionId });
+    },
+
+    setPassword: (password) => {
+      client.sendParty({ kind: 'partySetPassword', password });
     },
 
     loosen: (how) => {

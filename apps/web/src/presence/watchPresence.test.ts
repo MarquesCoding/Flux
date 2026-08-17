@@ -29,6 +29,7 @@ const createFakeClient = () => {
     askClock: () => {},
     onClockTell: () => () => {},
     onRefused: () => () => {},
+    onNeedsPassword: () => () => {},
   };
 
   return {

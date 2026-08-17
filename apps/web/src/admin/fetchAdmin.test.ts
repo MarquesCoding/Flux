@@ -474,6 +474,7 @@ describe('watchMonitor', () => {
       askClock: () => {},
       onClockTell: () => () => {},
       onRefused: () => () => {},
+      onNeedsPassword: () => () => {},
     };
 
     return {

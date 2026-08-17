@@ -405,6 +405,70 @@ describe('createRealtimeClient', () => {
     expect(world.client.isLive()).toBe(false);
   });
 
+  it('holds a party message sent before the socket is open, rather than dropping it', () => {
+    const world = createWorld();
+
+    world.client.start();
+    world.client.sendParty({ kind: 'partyJoin', partyId: 'party-1' });
+
+    expect(world.sent()).toEqual([]);
+
+    world.openIt();
+
+    expect(world.sent()).toContainEqual({ kind: 'partyJoin', partyId: 'party-1' });
+  });
+
+  it('holds party messages in the order they were sent', () => {
+    const world = createWorld();
+
+    world.client.start();
+    world.client.sendParty({ kind: 'partyJoin', partyId: 'party-1' });
+    world.client.sendParty({
+      kind: 'partyReport',
+      positionSeconds: 4,
+      bufferedAheadSeconds: 1,
+      isWatching: true,
+    });
+    world.openIt();
+
+    const held = world.sent().filter((message) => message.kind.startsWith('party'));
+
+    expect(held.map((message) => message.kind)).toEqual(['partyJoin', 'partyReport']);
+  });
+
+  it('does not hold a clock reading, which would be a lie by the time it was sent', () => {
+    const world = createWorld();
+
+    world.client.start();
+    world.client.askClock(1000);
+    world.openIt();
+
+    expect(world.sent().some((message) => message.kind === 'clockAsk')).toBe(false);
+  });
+
+  it('sends a party message straight out once there is a socket', () => {
+    const world = createWorld();
+
+    world.client.start();
+    world.openIt();
+    world.client.sendParty({ kind: 'partyLeave' });
+
+    expect(world.sent()).toContainEqual({ kind: 'partyLeave' });
+  });
+
+  it('gets somebody back into a party message after a reconnection, not into the old socket', () => {
+    const world = createWorld();
+
+    world.client.start();
+    world.openIt();
+    world.dropIt();
+    world.client.sendParty({ kind: 'partyJoin', partyId: 'party-1' });
+    world.runWaits();
+    world.openIt();
+
+    expect(world.sent()).toContainEqual({ kind: 'partyJoin', partyId: 'party-1' });
+  });
+
   it('opens only one connection however many times it is started', () => {
     const world = createWorld();
 

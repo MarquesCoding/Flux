@@ -47,27 +47,27 @@ describe('joining', () => {
     const registry = createWorld();
     const opened = openWith(registry);
 
-    const party = registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    const joined = registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
 
-    expect(party?.members).toHaveLength(2);
+    expect(joined.kind === 'joined' ? joined.party.members : []).toHaveLength(2);
   });
 
   it('brings somebody in as a guest rather than in charge', () => {
     const registry = createWorld();
     const opened = openWith(registry);
 
-    const party = registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    const joined = registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
 
-    expect(party?.members[1]?.role).toBe('guest');
+    expect(joined.kind === 'joined' ? joined.party.members[1]?.role : null).toBe('guest');
   });
 
   it('leaves the first arrival keeping time', () => {
     const registry = createWorld();
     const opened = openWith(registry);
 
-    const party = registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    const joined = registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
 
-    expect(party?.timekeeperId).toBe('host');
+    expect(joined.kind === 'joined' ? joined.party.timekeeperId : null).toBe('host');
   });
 
   it('does not let somebody join twice', () => {
@@ -75,13 +75,15 @@ describe('joining', () => {
     const opened = openWith(registry);
 
     registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
-    const party = registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    const joined = registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
 
-    expect(party?.members).toHaveLength(2);
+    expect(joined.kind === 'joined' ? joined.party.members : []).toHaveLength(2);
   });
 
   it('says nothing for a party that is not running', () => {
-    expect(createWorld().join({ partyId: 'nowhere', ...someone('sam', 'Sam') })).toBeNull();
+    expect(createWorld().join({ partyId: 'nowhere', ...someone('sam', 'Sam') }).kind).toBe(
+      'unknown',
+    );
   });
 });
 
@@ -153,7 +155,7 @@ describe('issuing a command', () => {
     registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
     const issued = registry.issue(opened.id, 'sam', { kind: 'pause', atSeconds: 12 }, 1);
 
-    expect(issued.kind === 'sent' ? issued.command.byName : '').toBe('Sam');
+    expect(issued.kind === 'sent' ? issued.command?.byName : '').toBe('Sam');
   });
 
   it('stamps commands in an order everybody will agree on', () => {
@@ -165,8 +167,8 @@ describe('issuing a command', () => {
     const first = registry.issue(opened.id, 'sam', { kind: 'pause', atSeconds: 1 }, 1);
     const second = registry.issue(opened.id, 'host', { kind: 'play', atSeconds: 1 }, 2);
 
-    const one = first.kind === 'sent' ? first.command.sequence : 0;
-    const other = second.kind === 'sent' ? second.command.sequence : 0;
+    const one = first.kind === 'sent' ? (first.command?.sequence ?? 0) : 0;
+    const other = second.kind === 'sent' ? (second.command?.sequence ?? 0) : 0;
 
     expect(other).toBeGreaterThan(one);
   });
@@ -326,5 +328,183 @@ describe('finding a party', () => {
     registry.leave('sam');
 
     expect(registry.partyOf('sam')).toBeNull();
+  });
+});
+
+describe('removing somebody', () => {
+  it('takes them out of the party', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    const gone = registry.remove(opened.id, 'host', 'sam');
+
+    expect(gone.kind === 'removed' ? gone.party?.members : []).toHaveLength(1);
+  });
+
+  it('is the host\u2019s to do and nobody else\u2019s', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    registry.join({ partyId: opened.id, ...someone('kit', 'Kit') });
+
+    expect(registry.remove(opened.id, 'sam', 'kit').kind).toBe('refused');
+  });
+
+  it('refuses a co-host, since removing people is not part of running the film', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    registry.join({ partyId: opened.id, ...someone('kit', 'Kit') });
+    registry.setRole(opened.id, 'host', 'sam', 'coHost');
+
+    expect(registry.remove(opened.id, 'sam', 'kit').kind).toBe('refused');
+  });
+
+  it('will not have the host remove themselves, since leaving is the door for that', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    expect(registry.remove(opened.id, 'host', 'host').kind).toBe('refused');
+  });
+
+  it('keeps them out afterwards, an invitation being no harder to open twice', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    registry.remove(opened.id, 'host', 'sam');
+
+    expect(registry.join({ partyId: opened.id, ...someone('sam', 'Sam') }).kind).toBe('notWelcome');
+  });
+
+  it('keeps out the account rather than the connection, which they can simply open again', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    registry.remove(opened.id, 'host', 'sam');
+
+    const again = registry.join({
+      partyId: opened.id,
+      connectionId: 'sam-again',
+      accountId: 'account-sam',
+      profileId: null,
+      name: 'Sam',
+    });
+
+    expect(again.kind).toBe('notWelcome');
+  });
+
+  it('says who did it, so the person removed is not left guessing', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    const gone = registry.remove(opened.id, 'host', 'sam');
+
+    expect(gone.kind === 'removed' ? gone.byName : '').toBe('Dan');
+  });
+});
+
+describe('a password on the party', () => {
+  const withPassword = () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.setPassword(opened.id, 'host', 'letmein');
+
+    return { registry, opened };
+  };
+
+  it('is the host\u2019s to set and nobody else\u2019s', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+
+    expect(registry.setPassword(opened.id, 'sam', 'letmein').kind).toBe('refused');
+  });
+
+  it('turns away somebody who does not offer it', () => {
+    const { registry, opened } = withPassword();
+
+    expect(registry.join({ partyId: opened.id, ...someone('sam', 'Sam') }).kind).toBe(
+      'needsPassword',
+    );
+  });
+
+  it('turns away somebody who offers the wrong one', () => {
+    const { registry, opened } = withPassword();
+    const turned = registry.join({
+      partyId: opened.id,
+      ...someone('sam', 'Sam'),
+      password: 'guess',
+    });
+
+    expect(turned).toEqual({ kind: 'needsPassword', wasWrong: true });
+  });
+
+  it('does not claim a first attempt was wrong, since none was made', () => {
+    const { registry, opened } = withPassword();
+    const turned = registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+
+    expect(turned).toEqual({ kind: 'needsPassword', wasWrong: false });
+  });
+
+  it('lets somebody in who offers it', () => {
+    const { registry, opened } = withPassword();
+    const joined = registry.join({
+      partyId: opened.id,
+      ...someone('sam', 'Sam'),
+      password: 'letmein',
+    });
+
+    expect(joined.kind).toBe('joined');
+  });
+
+  it('does not ask again of somebody already in it on another tab', () => {
+    const { registry, opened } = withPassword();
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam'), password: 'letmein' });
+
+    const second = registry.join({
+      partyId: opened.id,
+      connectionId: 'sam-phone',
+      accountId: 'account-sam',
+      profileId: null,
+      name: 'Sam',
+    });
+
+    expect(second.kind).toBe('joined');
+  });
+
+  it('says there is one without saying what it is', () => {
+    const { registry, opened } = withPassword();
+    const party = registry.find(opened.id);
+
+    expect(party?.hasPassword).toBe(true);
+    expect(JSON.stringify(party)).not.toContain('letmein');
+  });
+
+  it('survives the party changing in every other way', () => {
+    const { registry, opened } = withPassword();
+
+    registry.loosen(opened.id, 'host', { everyoneMaySeek: false });
+    registry.issue(opened.id, 'host', { kind: 'pause', atSeconds: 4 }, 1);
+
+    expect(registry.join({ partyId: opened.id, ...someone('sam', 'Sam') }).kind).toBe(
+      'needsPassword',
+    );
+  });
+
+  it('can be taken off again', () => {
+    const { registry, opened } = withPassword();
+
+    registry.setPassword(opened.id, 'host', null);
+
+    expect(registry.join({ partyId: opened.id, ...someone('sam', 'Sam') }).kind).toBe('joined');
   });
 });

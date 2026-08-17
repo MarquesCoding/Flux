@@ -1919,6 +1919,7 @@ describe('when the player is in a watch party', () => {
 
     const full = {
       command: null,
+      meConnectionId: 'me',
       referenceSeconds: null,
       jitterMs: 0,
       onReport,
@@ -1954,6 +1955,70 @@ describe('when the player is in a watch party', () => {
     await actor.keyboard(' ');
 
     expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(before);
+  });
+
+  it('says who paused, so a picture stopping for no visible reason is not read as a fault', async () => {
+    const { view, full } = await inParty();
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={{
+          ...full,
+          command: {
+            sequence: 1,
+            atMs: 1000,
+            byName: 'Dan',
+            byConnectionId: 'dan',
+            command: { kind: 'pause', atSeconds: 12 },
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByText('Dan paused')).toBeInTheDocument();
+  });
+
+  it('says nothing about what this viewer did themselves', async () => {
+    const { view, full } = await inParty();
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={{
+          ...full,
+          command: {
+            sequence: 1,
+            atMs: 1000,
+            byName: 'Me',
+            byConnectionId: 'me',
+            command: { kind: 'pause', atSeconds: 12 },
+          },
+        }}
+      />,
+    );
+
+    expect(screen.queryByText(/paused/)).not.toBeInTheDocument();
+  });
+
+  it('shows what the party had to say, such as being put out of it', async () => {
+    const { view, full } = await inParty();
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={full}
+        partyNotice="Dan removed you from the watch party."
+      />,
+    );
+
+    expect(await screen.findByText('Dan removed you from the watch party.')).toBeInTheDocument();
   });
 
   it('catches up to where the room already is, rather than starting from the beginning', async () => {
