@@ -7,6 +7,11 @@ const supporting =
   (mimeType: string) =>
     supported.some((fragment) => mimeType.includes(fragment));
 
+const supportingCodecs =
+  (...supported: string[]) =>
+  (mimeType: string) =>
+    supported.includes(/codecs="([^"]+)"/.exec(mimeType)?.[1] ?? mimeType);
+
 const build = (
   isTypeSupported: (mimeType: string) => boolean,
   overrides: Partial<Parameters<typeof detectDeviceProfile>[0]> = {},
@@ -138,5 +143,53 @@ describe('detectDeviceProfile', () => {
 
     expect(() => detectFromBrowser()).not.toThrow();
     expect(detectFromBrowser().supportedVideoRanges).toEqual(['SDR']);
+  });
+
+  describe('the limits a browser can actually be asked about', () => {
+    it('reports the highest H.264 level the browser accepts', () => {
+      const profile = build(supporting('avc1.640028', 'avc1.64001f', 'avc1.64001e', 'mp4a'));
+
+      expect(profile.maxVideoLevels.h264).toBe(40);
+    });
+
+    it('reports the highest HEVC level separately from H.264', () => {
+      const profile = build(supporting('avc1.640033', 'hvc1.1.6.L120', 'mp4a'));
+
+      expect(profile.maxVideoLevels).toMatchObject({ h264: 51, hevc: 120 });
+    });
+
+    it('claims no level ceiling where the browser accepts none of the probes', () => {
+      expect(build(supporting('vp09', 'opus')).maxVideoLevels).toEqual({});
+    });
+
+    it('refuses HE-AAC when the browser takes AAC-LC and nothing more', () => {
+      const profile = build(supportingCodecs('avc1.640028', 'mp4a.40.2'));
+
+      expect(profile.unsupportedAudioProfiles).toEqual(['HE-AAC']);
+    });
+
+    it('says nothing about HE-AAC when the browser decodes it', () => {
+      const profile = build(supportingCodecs('avc1.640028', 'mp4a.40.2', 'mp4a.40.5'));
+
+      expect(profile.unsupportedAudioProfiles).toEqual([]);
+    });
+
+    it('says nothing about HE-AAC when the browser has no AAC at all', () => {
+      const profile = build(supportingCodecs('avc1.640028', 'ec-3'));
+
+      expect(profile.unsupportedAudioProfiles).toEqual([]);
+    });
+
+    it('declares interlaced video unplayable, because Media Source has no deinterlacer', () => {
+      expect(build(supporting('avc1', 'mp4a')).canPlayInterlaced).toBe(false);
+    });
+
+    it('leaves unaskable limits unstated rather than guessing a ceiling', () => {
+      const profile = build(supporting('avc1', 'mp4a'));
+
+      expect(profile.maxFrameRate ?? null).toBeNull();
+      expect(profile.maxRefFrames ?? null).toBeNull();
+      expect(profile.maxAudioSampleRate ?? null).toBeNull();
+    });
   });
 });
