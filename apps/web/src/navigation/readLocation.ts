@@ -21,6 +21,7 @@ type Place = {
   person: number | null;
   shareToken: string | null;
   playing: string | null;
+  party: string | null;
   genre: string | null;
   library: string | null;
   adminPanel: string | null;
@@ -35,6 +36,7 @@ const HOME: Place = {
   person: null,
   shareToken: null,
   playing: null,
+  party: null,
   genre: null,
   library: null,
   adminPanel: null,
@@ -88,6 +90,7 @@ const readLocation = (url: string): Place => {
     person: readPersonId(query.get('person')),
     shareToken: first === 'share' && second !== '' ? decodeURIComponent(second) : null,
     playing: watching,
+    party: query.get('party'),
     genre: query.get('genre'),
     library: query.get('library'),
     adminPanel: query.get('panel'),
@@ -97,7 +100,8 @@ const readLocation = (url: string): Place => {
 
 /**
  * Writes where the application is back as an address. Watching owns the path, since it is the thing
- * worth sending somebody; everything else is a query, since it sits over whatever section it was
+ * worth sending somebody — and a watch party rides beside it, because the party is the thing worth
+ * sending when there is one; everything else is a query, since it sits over whatever section it was
  * opened from and should return there when it closes. No second is written beside what is playing —
  * where something resumes from is a fact the server holds, and a copy in the address would be free
  * to disagree with it.
@@ -111,7 +115,9 @@ const writeLocation = (place: Place): string => {
   }
 
   if (place.playing !== null) {
-    return `/watch/${place.playing}`;
+    return place.party === null
+      ? `/watch/${place.playing}`
+      : `/watch/${place.playing}?party=${encodeURIComponent(place.party)}`;
   }
 
   const query = new URLSearchParams();

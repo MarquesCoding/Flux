@@ -1,8 +1,16 @@
 import { z } from 'zod';
 import { JsonValueSchema } from './JsonValue';
+import { PartyCommandSchema, PartyRoleSchema } from './WatchParty';
 import type { Permission } from './Permission';
 
-const VIEWER_TOPICS = ['media', 'notifications', 'profile', 'presence', 'playback'] as const;
+const VIEWER_TOPICS = [
+  'media',
+  'notifications',
+  'profile',
+  'presence',
+  'playback',
+  'party',
+] as const;
 
 const ADMIN_TOPICS = ['monitor', 'sessions', 'logs'] as const;
 
@@ -14,6 +22,7 @@ type RealtimeTopic = (typeof REALTIME_TOPICS)[number];
 
 const PERMISSION_BY_TOPIC: Readonly<Record<RealtimeTopic, Permission | null>> = {
   media: null,
+  party: null,
   notifications: null,
   profile: null,
   presence: null,
@@ -38,11 +47,74 @@ const IdentifySchema = z.object({
 
 const PongSchema = z.object({ kind: z.literal('pong') });
 
+const ClockAskSchema = z.object({ kind: z.literal('clockAsk'), sentAtMs: z.number().int() });
+
+const PartyOpenSchema = z.object({ kind: z.literal('partyOpen'), mediaId: z.string().min(1) });
+
+const PartyJoinSchema = z.object({
+  kind: z.literal('partyJoin'),
+  partyId: z.string().min(1),
+  password: z.string().min(1).max(200).optional(),
+});
+
+const PartyLeaveSchema = z.object({ kind: z.literal('partyLeave') });
+
+const PartyCommandMessageSchema = z.object({
+  kind: z.literal('partyCommand'),
+  command: PartyCommandSchema,
+});
+
+const PartyReportSchema = z.object({
+  kind: z.literal('partyReport'),
+  positionSeconds: z.number().nonnegative(),
+  bufferedAheadSeconds: z.number().nonnegative(),
+  isWatching: z.boolean(),
+  isReady: z.boolean(),
+});
+
+const PartySetRoleSchema = z.object({
+  kind: z.literal('partySetRole'),
+  connectionId: z.string().min(1),
+  role: PartyRoleSchema,
+});
+
+const PartyInviteSchema = z.object({
+  kind: z.literal('partyInvite'),
+  profileId: z.string().min(1),
+});
+
+const PartyRemoveSchema = z.object({
+  kind: z.literal('partyRemove'),
+  connectionId: z.string().min(1),
+});
+
+const PartySetPasswordSchema = z.object({
+  kind: z.literal('partySetPassword'),
+  password: z.string().min(1).max(200).nullable(),
+});
+
+const PartyLoosenSchema = z.object({
+  kind: z.literal('partyLoosen'),
+  everyoneMaySeek: z.boolean().optional(),
+  everyoneMayPlayPause: z.boolean().optional(),
+});
+
 const FromClientSchema = z.discriminatedUnion('kind', [
   SubscribeSchema,
   UnsubscribeSchema,
   IdentifySchema,
   PongSchema,
+  ClockAskSchema,
+  PartyOpenSchema,
+  PartyJoinSchema,
+  PartyLeaveSchema,
+  PartyCommandMessageSchema,
+  PartyReportSchema,
+  PartySetRoleSchema,
+  PartyInviteSchema,
+  PartyRemoveSchema,
+  PartySetPasswordSchema,
+  PartyLoosenSchema,
 ]);
 
 const WelcomeSchema = z.object({
@@ -72,12 +144,29 @@ const DroppedSchema = z.object({
 
 const PingSchema = z.object({ kind: z.literal('ping') });
 
+const ClockTellSchema = z.object({
+  kind: z.literal('clockTell'),
+  sentAtMs: z.number().int(),
+  serverAtMs: z.number().int(),
+});
+
+const RefusedSchema = z.object({ kind: z.literal('refused'), why: z.string().min(1) });
+
+const PartyNeedsPasswordSchema = z.object({
+  kind: z.literal('partyNeedsPassword'),
+  partyId: z.string().min(1),
+  wasWrong: z.boolean(),
+});
+
 const FromServerSchema = z.discriminatedUnion('kind', [
   WelcomeSchema,
   SubscribedSchema,
   EventSchema,
   DroppedSchema,
   PingSchema,
+  ClockTellSchema,
+  RefusedSchema,
+  PartyNeedsPasswordSchema,
 ]);
 
 type FromClient = z.infer<typeof FromClientSchema>;

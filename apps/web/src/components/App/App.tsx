@@ -1,7 +1,7 @@
 import type { MoodLight } from '@FluxUI/MoodBackground.types';
 import type { ShowSummary } from '@FluxContracts/schemas/Show';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { groupVariants } from '@FluxUI/animations/reveal';
 import { SetupWizard } from '@FluxWeb/components/SetupWizard/SetupWizard';
@@ -37,6 +37,12 @@ import { PersonDialog } from '@FluxWeb/components/PersonDialog/PersonDialog';
 import { ShareArea } from '@FluxWeb/components/ShareArea/ShareArea';
 import { ShareDialog } from '@FluxWeb/components/ShareDialog/ShareDialog';
 import { StillWatchingDialog } from '@FluxWeb/components/StillWatchingDialog/StillWatchingDialog';
+import { PartyMenu } from '@FluxWeb/components/PartyMenu/PartyMenu';
+import { fetchEveryone } from '@FluxWeb/profiles/fetchEveryone';
+import { PartyPasswordDialog } from '@FluxWeb/components/PartyPasswordDialog/PartyPasswordDialog';
+import { whereToBegin, WAIT_FOR_THE_ROOM_MS } from '@FluxWeb/party/whereToBegin';
+import { invitationTo } from '@FluxWeb/party/invitationTo';
+import { useWatchParty } from '@FluxWeb/party/useWatchParty';
 import { countCarriedOn } from '@FluxWeb/playback/countCarriedOn';
 import { decideWhatFollows } from '@FluxWeb/playback/decideWhatFollows';
 import {
@@ -69,6 +75,8 @@ type LoadState = 'loading' | 'ready' | 'unreachable';
 
 const PROGRESS_EVERY_SECONDS = 5;
 
+const PARTY_NOTICE_LINGERS_MS = 6000;
+
 /**
  * The application itself: what is on screen, who is signed in, and what is playing. Setup, sign-in
  * and the library are decided from what the server reports rather than from anything held here, so a
@@ -97,10 +105,55 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [guestPlaying, setGuestPlaying] = useState<MediaSummary | null>(null);
   const [guestReached, setGuestReached] = useState<Map<string, number>>(new Map());
   const [watcher, setWatcher] = useState<ViewerProfile | null>(null);
+  const [household, setHousehold] = useState<readonly { id: string; name: string }[]>([]);
   const [askingAbout, setAskingAbout] = useState<MediaSummary | null>(null);
+
+  const watchParty = useWatchParty();
+
+  const partyPlayback = useMemo(
+    () =>
+      watchParty.party === null
+        ? null
+        : {
+            command: watchParty.command,
+            meConnectionId: watchParty.meConnectionId,
+            referenceSeconds: watchParty.referenceSeconds,
+            jitterMs: watchParty.jitterMs,
+            isPlaying: watchParty.party.isPlaying,
+            isHeld: watchParty.party.isHeld,
+            waitingFor: watchParty.waitingFor,
+            members: watchParty.party.members.length,
+            onReport: watchParty.report,
+            onCommand: watchParty.send,
+          },
+    [
+      watchParty.party,
+      watchParty.command,
+      watchParty.meConnectionId,
+      watchParty.referenceSeconds,
+      watchParty.jitterMs,
+      watchParty.waitingFor,
+      watchParty.report,
+      watchParty.send,
+    ],
+  );
+
+  const joinedRef = useRef<string | null>(null);
+  const begunRef = useRef<{ mediaId: string; atSeconds: number } | null>(null);
+  const [hasWaitedForTheRoom, setHasWaitedForTheRoom] = useState(false);
 
   const carriedOnRef = useRef(0);
   const carriedOnToRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (watchParty.party === null || household.length > 0) {
+      return;
+    }
+
+    void fetchEveryone().then((everyone) => {
+      setHousehold(everyone.map((person) => ({ id: person.id, name: person.name })));
+    });
+  }, [watchParty.party, household.length]);
 
   useEffect(() => {
     const chosen = readCurrentProfile();
@@ -117,6 +170,55 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   }, [user]);
   const [known, setKnown] = useState(new Map<string, MediaSummary>());
   const { place, go, replace } = usePlace();
+
+  useEffect(() => {
+    if (place.party === null || joinedRef.current === place.party) {
+      return;
+    }
+
+    joinedRef.current = place.party;
+    watchParty.join(place.party);
+  }, [place.party, watchParty]);
+
+  useEffect(() => {
+    if (place.party === null) {
+      setHasWaitedForTheRoom(false);
+
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setHasWaitedForTheRoom(true);
+    }, WAIT_FOR_THE_ROOM_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [place.party]);
+
+  useEffect(() => {
+    if (watchParty.party !== null && place.party !== watchParty.party.id) {
+      replace({ playing: watchParty.party.mediaId, party: watchParty.party.id });
+    }
+  }, [watchParty.party, place.party, replace]);
+
+  useEffect(() => {
+    if (watchParty.notice === null) {
+      return;
+    }
+
+    if (place.party !== null) {
+      replace({ party: null });
+    }
+
+    const goes = setTimeout(() => {
+      watchParty.forgetNotice();
+    }, PARTY_NOTICE_LINGERS_MS);
+
+    return () => {
+      clearTimeout(goes);
+    };
+  }, [watchParty.notice, watchParty.forgetNotice, place.party, replace]);
 
   useEffect(() => {
     carriedOnRef.current = countCarriedOn({
@@ -459,6 +561,28 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         ? startOverride.seconds
         : positionFor(playing.id);
 
+  const beginning =
+    begunRef.current?.mediaId === playing?.id && begunRef.current !== null
+      ? { kind: 'begin' as const, atSeconds: begunRef.current.atSeconds }
+      : whereToBegin({
+          invitedTo: place.party,
+          joined: watchParty.party?.id ?? null,
+          roomSeconds: watchParty.referenceSeconds,
+          resumeSeconds: startAt,
+          isBeingAsked: watchParty.passwordWanted !== null,
+          hasWaitedLongEnough: hasWaitedForTheRoom,
+        });
+
+  if (playing !== null && beginning.kind === 'wait') {
+    return <SplashScreen name={initialTitle} label="Joining the watch party" />;
+  }
+
+  if (playing !== null && beginning.kind === 'begin') {
+    begunRef.current = { mediaId: playing.id, atSeconds: beginning.atSeconds };
+  }
+
+  const begunAt = beginning.kind === 'begin' ? beginning.atSeconds : startAt;
+
   if (playing !== null) {
     return (
       <motion.main
@@ -469,8 +593,38 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
       >
         <VideoPlayer
           media={playing}
-          startSeconds={startAt}
+          startSeconds={begunAt}
+          partyNotice={watchParty.notice}
           isImmersive
+          renderPartyMenu={({ isHidden, onOpenChange }) => (
+            <PartyMenu
+              party={watchParty.party}
+              meConnectionId={watchParty.meConnectionId}
+              waitingFor={watchParty.waitingFor}
+              isHidden={isHidden}
+              onOpenChange={onOpenChange}
+              onOpen={() => {
+                watchParty.open(playing.id);
+              }}
+              onSetRole={watchParty.setRole}
+              onLoosen={watchParty.loosen}
+              onRemove={watchParty.remove}
+              onSetPassword={watchParty.setPassword}
+              people={household}
+              onAsk={watchParty.ask}
+              onLeave={() => {
+                watchParty.leave();
+                go({ party: null });
+              }}
+              {...(watchParty.party === null
+                ? {}
+                : { invitation: invitationTo(watchParty.party.id, watchParty.party.mediaId) })}
+              onCopyInvitation={async (invitation) => {
+                await navigator.clipboard.writeText(invitation);
+              }}
+            />
+          )}
+          {...(partyPlayback === null ? {} : { party: partyPlayback })}
           episodes={
             playing.seriesTitle === null || playing.seriesTitle === undefined
               ? []
@@ -537,8 +691,24 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             go({ playing: decided.episode.id, inspecting: null });
           }}
           onClose={() => {
-            go({ playing: null, inspecting: playing.id });
+            if (watchParty.party !== null) {
+              watchParty.leave();
+            }
+
+            go({ playing: null, party: null, inspecting: playing.id });
             void readProgress();
+          }}
+        />
+
+        <PartyPasswordDialog
+          isOpen={watchParty.passwordWanted !== null}
+          wasWrong={watchParty.passwordWanted?.wasWrong ?? false}
+          onJoin={(password) => {
+            watchParty.join(watchParty.passwordWanted?.partyId ?? '', password);
+          }}
+          onClose={() => {
+            watchParty.stopAsking();
+            go({ party: null });
           }}
         />
       </motion.main>
@@ -686,6 +856,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         }}
         onShare={(media) => {
           setSharing(media);
+        }}
+        onStartParty={(media) => {
+          watchParty.open(media.id);
+          go({ inspecting: null, playing: media.id });
         }}
         onClose={() => {
           go({ inspecting: null });

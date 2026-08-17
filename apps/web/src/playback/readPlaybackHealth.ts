@@ -24,6 +24,24 @@ const encodedSeconds = (element: HTMLVideoElement): number => {
  * @param element - The video element.
  * @returns The seconds buffered ahead.
  */
+/**
+ * Where this stream's own timeline begins, which is not always where the film does.
+ *
+ * A session cut from the middle of a file can present its content on the film's timeline or on one
+ * of its own starting at nothing, depending on how it was built — and two players disagreeing about
+ * that show different frames while agreeing on the clock.
+ *
+ * @param element - The element playing it.
+ * @returns The first second the stream can be at.
+ */
+const streamStart = (element: HTMLVideoElement): number => {
+  try {
+    return element.seekable.length === 0 ? 0 : element.seekable.start(0);
+  } catch {
+    return 0;
+  }
+};
+
 const bufferedAhead = (element: HTMLVideoElement): number => {
   try {
     const ranges = element.buffered;
@@ -68,14 +86,17 @@ const frameCounts = (
  * encoder has got — for the stats panel and for the presence heartbeat an operator watches.
  *
  * @param element - The video element.
+ * @param frameSkewSeconds - How far the frame on screen sits from the playback clock.
  * @returns What the browser reports right now.
  */
-const readPlaybackHealth = (element: HTMLVideoElement): PlaybackHealth => {
+const readPlaybackHealth = (element: HTMLVideoElement, frameSkewSeconds = 0): PlaybackHealth => {
   const frames = frameCounts(element);
 
   return {
     positionSeconds: element.currentTime,
     bufferedAheadSeconds: bufferedAhead(element),
+    frameSeconds: element.currentTime + frameSkewSeconds,
+    streamFromSeconds: streamStart(element),
     encodedSeconds: encodedSeconds(element),
     droppedFrames: frames.dropped,
     decodedFrames: frames.decoded,
@@ -84,4 +105,4 @@ const readPlaybackHealth = (element: HTMLVideoElement): PlaybackHealth => {
   };
 };
 
-export { readPlaybackHealth, encodedSeconds, bufferedAhead };
+export { readPlaybackHealth, encodedSeconds, bufferedAhead, streamStart };

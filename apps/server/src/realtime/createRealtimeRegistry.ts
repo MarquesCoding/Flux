@@ -15,7 +15,8 @@ type RealtimeConnection = {
 type Reach =
   | { kind: 'everyone' }
   | { kind: 'accounts'; accountIds: readonly string[] }
-  | { kind: 'profiles'; profileIds: readonly string[] };
+  | { kind: 'profiles'; profileIds: readonly string[] }
+  | { kind: 'connections'; connectionIds: readonly string[] };
 
 type RegistryOptions = {
   entitlements: Entitlements;
@@ -47,7 +48,12 @@ const keyFor = (topic: RealtimeTopic, reach: Reach): string => {
     return `${topic}|everyone`;
   }
 
-  const ids = reach.kind === 'accounts' ? reach.accountIds : reach.profileIds;
+  const ids =
+    reach.kind === 'accounts'
+      ? reach.accountIds
+      : reach.kind === 'profiles'
+        ? reach.profileIds
+        : reach.connectionIds;
 
   return `${topic}|${reach.kind}|${[...ids].sort().join(',')}`;
 };
@@ -59,6 +65,10 @@ const withinReach = (connection: RealtimeConnection, reach: Reach): boolean => {
 
   if (reach.kind === 'accounts') {
     return reach.accountIds.includes(connection.accountId);
+  }
+
+  if (reach.kind === 'connections') {
+    return reach.connectionIds.includes(connection.id);
   }
 
   return connection.profileId !== null && reach.profileIds.includes(connection.profileId);

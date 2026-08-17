@@ -13,6 +13,7 @@ import { createRealtimeClock } from '@FluxServer/realtime/createRealtimeClock';
 import { createEntitlements } from '@FluxServer/realtime/createEntitlements';
 import { watchPermissionChanges } from '@FluxServer/realtime/watchPermissionChanges';
 import { relayMonitor } from '@FluxServer/realtime/relayMonitor';
+import { createPartyRegistry } from '@FluxServer/parties/createPartyRegistry';
 import { createLogger } from '@FluxServer/logging/createLogger';
 import { createDatabaseLogStore } from '@FluxServer/logging/createDatabaseLogStore';
 import { asJsonLog } from '@FluxServer/logging/asJsonLog';
@@ -55,7 +56,6 @@ import { createChapterSegmentProvider } from '@FluxServer/segments/createChapter
 import { createFingerprintSegmentProvider } from '@FluxServer/segments/createFingerprintSegmentProvider';
 import { createSidecarSubtitleService } from '@FluxServer/subtitles/createSidecarSubtitleService';
 import { createDatabaseProfileService } from '@FluxServer/profiles/createDatabaseProfileService';
-import { nameForViewer } from '@FluxServer/presence/nameForViewer';
 import { ViewerProfileSchema } from '@FluxContracts/schemas/ViewerProfile';
 import { createEmbeddedSubtitleService } from '@FluxServer/subtitles/createEmbeddedSubtitleService';
 import { createLayeredSubtitleService } from '@FluxServer/subtitles/createLayeredSubtitleService';
@@ -1232,10 +1232,24 @@ for (const kind of await schedules.sync()) {
   log.info('server', `schedule: running ${kind} on startup`);
 }
 
+const parties = createPartyRegistry(() => randomUUID());
+
 const realtimeHandler = createRealtimeHandler({
   registry: realtime,
   newId: () => randomUUID(),
   now: () => Date.now(),
+  party: {
+    registry: parties,
+    tell: (connectionIds, payload) => {
+      realtime.publish('party', payload, {
+        kind: 'connections',
+        connectionIds: [...connectionIds],
+      });
+    },
+    ask: ({ party, byName, profileId }) => {
+      void askSomebodyToTheParty(party, byName, profileId);
+    },
+  },
   presence: {
     connect: (clientId, profileId, profileName, deviceLabel, send) => {
       presence.connect(clientId, profileId, profileName, deviceLabel, send);
@@ -1243,10 +1257,79 @@ const realtimeHandler = createRealtimeHandler({
     disconnect: (clientId) => {
       presence.disconnect(clientId);
     },
-    nameOf: async (accountId, profileId) =>
-      nameForViewer(await profileService.list(accountId), profileId),
+    nameOf: async (accountId, profileId) => {
+      const named =
+        profileId === null
+          ? null
+          : ((await profileService.list(accountId)).find((profile) => profile.id === profileId)
+              ?.name ?? null);
+
+      if (named !== null) {
+        return named;
+      }
+
+      const [account] = await db
+        .select({ name: user.name })
+        .from(user)
+        .where(eq(user.id, accountId))
+        .limit(1);
+
+      return account?.name ?? null;
+    },
   },
 });
+
+/**
+ * Asks somebody to a watch party, in whatever way they asked to be told things.
+ *
+ * The notification carries the same address the party's own invitation does, which holds no
+ * credential of its own: being asked is not being let in, and whoever opens it still has to be
+ * allowed to watch the thing.
+ *
+ * @param party - The party they are being asked to.
+ * @param byName - Who is asking.
+ * @param profileId - Which face they picked, since that is what a viewer chooses between.
+ */
+const askSomebodyToTheParty = async (
+  party: { id: string; mediaId: string },
+  byName: string,
+  profileId: string,
+): Promise<void> => {
+  const accountId = await profileService.accountOf(profileId);
+
+  if (accountId === null) {
+    return;
+  }
+
+  const [found] = await db
+    .select({ title: mediaItem.title })
+    .from(mediaItem)
+    .where(eq(mediaItem.id, party.mediaId))
+    .limit(1);
+
+  await notifyHousehold({
+    store: notifications,
+    event: 'party.invited',
+    title: `${byName} wants to watch with you`,
+    body:
+      found === undefined
+        ? 'They have a watch party running.'
+        : `They are watching ${found.title}.`,
+    link: `/watch/${party.mediaId}?party=${party.id}`,
+    vapid: await readPushKeys(),
+    only: [accountId],
+    onProblem: (reason) => {
+      log.error('server', `party invite: ${reason}`);
+    },
+    announce: (userIds) => {
+      realtime.publish(
+        'notifications',
+        { event: 'party.invited' },
+        { kind: 'accounts', accountIds: [...userIds] },
+      );
+    },
+  });
+};
 
 const transcoderIntake = createTranscoderIntake(log);
 

@@ -237,6 +237,43 @@ describe('createRealtimeRegistry', () => {
     expect(tab.events()).toHaveLength(1);
   });
 
+  it('reaches exactly the connections named, which is what a party is', async () => {
+    const world = createWorld(new Map());
+    const inParty = createTab('in', 'me');
+    const elsewhere = createTab('out', 'me');
+
+    world.registry.open(inParty.connection);
+    world.registry.open(elsewhere.connection);
+    await world.registry.subscribe('in', ['party']);
+    await world.registry.subscribe('out', ['party']);
+    world.registry.publish('party', { members: 1 }, { kind: 'connections', connectionIds: ['in'] });
+    world.clock.tick();
+    await world.registry.drain();
+
+    expect(inParty.events()).toHaveLength(1);
+    expect(elsewhere.events()).toStrictEqual([]);
+  });
+
+  it('does not reach another tab of the same person who is not in the party', async () => {
+    const world = createWorld(new Map());
+    const telly = createTab('telly', 'me');
+    const phone = createTab('phone', 'me');
+
+    world.registry.open(telly.connection);
+    world.registry.open(phone.connection);
+    await world.registry.subscribe('telly', ['party']);
+    await world.registry.subscribe('phone', ['party']);
+    world.registry.publish(
+      'party',
+      { members: 1 },
+      { kind: 'connections', connectionIds: ['telly'] },
+    );
+    world.clock.tick();
+    await world.registry.drain();
+
+    expect(phone.events()).toStrictEqual([]);
+  });
+
   it('delivers to every tab a person has open, not just one', async () => {
     const world = createWorld(new Map());
     const first = createTab('first', 'me');

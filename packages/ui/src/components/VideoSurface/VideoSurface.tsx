@@ -15,6 +15,7 @@ import type { VideoSurfaceProps } from './VideoSurface.types';
  * @param onTimeUpdate - Told the position as it moves.
  * @param onDurationChange - Told the length once the file says what it is.
  * @param onPlayingChange - Told when playback starts or stops.
+ * @param onBufferingChange - Told when the picture is waiting for data and when it has some again.
  * @param onEnded - Told when the file reaches its end.
  * @param loops - Whether to start again at the end, for a preview rather than a film.
  * @param className - Extra classes for the caller's own layout.
@@ -28,6 +29,7 @@ const VideoSurface = ({
   onTimeUpdate,
   onDurationChange,
   onPlayingChange,
+  onBufferingChange,
   onEnded,
   loops = false,
 }: VideoSurfaceProps) => {
@@ -85,6 +87,24 @@ const VideoSurface = ({
       }}
       onPause={() => {
         onPlayingChange?.(false);
+      }}
+      onWaiting={() => {
+        onBufferingChange?.(true);
+      }}
+      onSeeking={() => {
+        onBufferingChange?.(true);
+      }}
+      onStalled={() => {
+        onBufferingChange?.(true);
+      }}
+      onPlaying={() => {
+        onBufferingChange?.(false);
+      }}
+      onCanPlay={() => {
+        onBufferingChange?.(false);
+      }}
+      onSeeked={() => {
+        onBufferingChange?.(false);
       }}
     >
       {textTrack === undefined ? null : (

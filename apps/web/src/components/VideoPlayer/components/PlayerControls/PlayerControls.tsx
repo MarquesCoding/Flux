@@ -108,6 +108,7 @@ const SUBTITLE_STEP_SECONDS = 0.25;
  * @param onCast - Called to cast to another device.
  * @param onPopOut - Called to move the video into a floating window.
  * @param isPoppedOut - Whether it is already in one.
+ * @param partyMenu - The watch party control, where this viewing can be one.
  * @param renderPreview - How to draw the frame under the pointer while scrubbing.
  */
 const PlayerControls = ({
@@ -155,6 +156,7 @@ const PlayerControls = ({
   subtitleOffsetSeconds = 0,
   onSubtitleOffsetChange,
   renderPreview,
+  partyMenu,
 }: PlayerControlsProps) => (
   <div className="flux-glass flex flex-col gap-1 rounded-xl px-3 py-2 text-white sm:px-4">
     <div className="flex items-center gap-3">
@@ -248,6 +250,8 @@ const PlayerControls = ({
           className="w-0 overflow-hidden px-0 transition-all group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
         />
       </div>
+
+      {partyMenu}
 
       {onSelectEpisode === undefined ? null : (
         <EpisodeMenu
