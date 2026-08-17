@@ -784,30 +784,38 @@ mod tests {
         assert!(chain.contains("color_primaries=bt2020"), "{chain}");
     }
 
-    /// `VideoToolbox` needs no device to transcode and one to be probed.
+    /// The backends that find their own device still need one to be probed.
     ///
     /// A session gets its device from the decoder. A probe has no decoder, so
-    /// `hwupload` has nothing to derive from and the chain will not configure.
+    /// `hwupload` has nothing to derive from and the chain will not configure —
+    /// measured on Apple silicon and again on an RTX 5080, where `tonemap_cuda`
+    /// failed with the same "hardware device reference is required" as
+    /// `tonemap_videotoolbox`. That is why `tonemap_cuda` had never verified.
+    ///
+    /// The second assertion is the one that matters most: a transcode must keep
+    /// taking its device from the decoder, because naming a second one risks
+    /// `hwupload` filling a pool the decoder does not share.
     #[test]
-    fn gives_the_videotoolbox_probe_a_device_it_would_not_need_to_transcode() {
-        let arguments = tone_map_probe_arguments(
-            HardwareAccel::VideoToolbox,
-            "tonemap_videotoolbox",
-            DEFAULT_DEVICE,
-        );
+    fn gives_the_probe_a_device_the_transcode_would_not_need() {
+        for (accel, filter, expected) in [
+            (
+                HardwareAccel::VideoToolbox,
+                "tonemap_videotoolbox",
+                "videotoolbox=vt",
+            ),
+            (HardwareAccel::Nvenc, "tonemap_cuda", "cuda=cu"),
+        ] {
+            let arguments = tone_map_probe_arguments(accel, filter, DEFAULT_DEVICE);
 
-        assert!(
-            arguments
-                .iter()
-                .any(|argument| argument == "videotoolbox=vt"),
-            "{arguments:?}"
-        );
-        assert!(
-            HardwareAccel::VideoToolbox
-                .device_arguments(DEFAULT_DEVICE)
-                .is_empty(),
-            "a transcode must not name a second device"
-        );
+            assert!(
+                arguments.iter().any(|argument| argument == expected),
+                "{accel:?} probe needs a device: {arguments:?}"
+            );
+            assert!(
+                accel.device_arguments(DEFAULT_DEVICE).is_empty(),
+                "{accel:?} must not name a second device to transcode"
+            );
+        }
     }
 
     /// A tone mapper works on device surfaces, so the probe needs a device.

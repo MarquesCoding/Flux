@@ -921,16 +921,22 @@ impl HardwareAccel {
     /// The device arguments a filter graph needs when its frames start in
     /// software.
     ///
-    /// Not the same question as [`Self::device_arguments`], and `VideoToolbox`
-    /// is where the two part company. It finds its own device when there is a
-    /// decoder to find one from, which is every real session — so a transcode
-    /// needs nothing, and naming a second device there would risk `hwupload`
-    /// filling a pool the decoder does not share.
+    /// Not the same question as [`Self::device_arguments`], and the two backends
+    /// that find their own device are where they part company. `NVENC` and
+    /// `VideoToolbox` both take theirs from the decoder, which every real
+    /// session has — so a transcode needs nothing, and naming a second device
+    /// there would risk `hwupload` filling a pool the decoder does not share.
     ///
     /// A probe has no decoder. Its frames come from `lavfi`, and `hwupload`
     /// with nothing to derive from fails with "a hardware device reference is
-    /// required to upload frames to" — measured, not predicted. So the probe
-    /// asks for a device that a transcode must not.
+    /// required to upload frames to". So the probe asks for a device that a
+    /// transcode must not.
+    ///
+    /// Measured on both, rather than reasoned from one. `VideoToolbox` on Apple
+    /// silicon and `tonemap_cuda` on an RTX 5080 fail identically without this,
+    /// which means `tonemap_cuda` had never once verified: FLUX-111 shipped the
+    /// filter and every HDR session on `NVENC` converted in software anyway,
+    /// looking exactly like a card that could not do it.
     #[must_use]
     pub fn filter_device_arguments(self, device: &str) -> Vec<String> {
         match self {
@@ -939,6 +945,12 @@ impl HardwareAccel {
                 "videotoolbox=vt".to_owned(),
                 "-filter_hw_device".to_owned(),
                 "vt".to_owned(),
+            ],
+            Self::Nvenc => vec![
+                "-init_hw_device".to_owned(),
+                "cuda=cu".to_owned(),
+                "-filter_hw_device".to_owned(),
+                "cu".to_owned(),
             ],
             _ => self.device_arguments(device),
         }
