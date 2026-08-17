@@ -77,6 +77,9 @@ const fitInside = (top: number, height: number): number => {
  * @param onOpenShow - Told to open the programme an episode belongs to.
  * @param isKept - Whether it is kept.
  * @param onToggleKept - Told to keep it, or stop.
+ * @param isSeries - Whether this card stands for a whole programme rather than for the episode that
+ *   happens to represent it, in which case the episode's own name and number are not what a reader
+ *   is looking at.
  */
 const RailCard = ({
   media,
@@ -88,6 +91,7 @@ const RailCard = ({
   onOpenShow,
   isKept = false,
   onToggleKept,
+  isSeries = false,
 }: RailCardProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const holderRef = useRef<HTMLDivElement>(null);
@@ -199,11 +203,17 @@ const RailCard = ({
       }}
     >
       <MediaCard
-        {...(media.seriesTitle === null || media.seriesTitle === undefined
+        {...(isSeries || media.seriesTitle === null || media.seriesTitle === undefined
           ? {}
           : { eyebrow: media.title })}
         title={media.seriesTitle ?? media.title}
-        subtitle={<MediaFacts media={media} className="flex flex-wrap items-center gap-2" />}
+        subtitle={
+          <MediaFacts
+            media={media}
+            hasEpisode={!isSeries}
+            className="flex flex-wrap items-center gap-2"
+          />
+        }
         shape="wide"
         {...(watchedFraction === undefined ? {} : { watchedFraction })}
         {...(artworkUrl === undefined ? {} : { imageUrl: artworkUrl })}
@@ -231,7 +241,17 @@ const RailCard = ({
               }}
               className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-lg bg-surface-raised p-1.5 shadow-[0_2px_10px_rgb(0_0_0/0.4),0_40px_90px_-24px_rgb(0_0_0/0.85)] ring-1 ring-[var(--surface-line)]"
             >
-              <div className="aspect-video max-h-[42svh] w-full shrink-0 overflow-hidden rounded-md">
+              <Button
+                variant="bare"
+                size="none"
+                aria-label={`More about ${media.title}`}
+                onClick={() => {
+                  onInspect(media);
+                }}
+                className="absolute inset-0 z-0 rounded-lg"
+              />
+
+              <div className="pointer-events-none aspect-video max-h-[42svh] w-full shrink-0 overflow-hidden rounded-md">
                 <MediaPreview
                   mediaId={media.id}
                   backdropUrl={artworkUrl ?? null}
@@ -265,21 +285,13 @@ const RailCard = ({
                       event.stopPropagation();
                       onOpenShow(media);
                     }}
-                    className="text-left text-xl font-semibold leading-tight tracking-[-0.02em] text-text underline-offset-4 hover:underline"
+                    className="relative z-10 self-start text-left text-xl font-semibold leading-tight tracking-[-0.02em] text-text underline-offset-4 hover:underline"
                   >
                     {media.seriesTitle}
                   </Button>
                 )}
 
-                <Button
-                  variant="bare"
-                  size="none"
-                  aria-label={`About ${media.title}`}
-                  onClick={() => {
-                    onInspect(media);
-                  }}
-                  className="flex min-h-0 shrink flex-col gap-3 text-left"
-                >
+                <span className="pointer-events-none flex min-h-0 shrink flex-col gap-3 text-left">
                   <MediaFacts
                     media={media}
                     className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-[0.1em] text-text-muted"
@@ -302,9 +314,9 @@ const RailCard = ({
                       ))}
                     </span>
                   )}
-                </Button>
+                </span>
 
-                <span className="flex shrink-0 items-center gap-2 pt-1">
+                <span className="relative z-10 flex shrink-0 items-center gap-2 pt-1">
                   <Button
                     variant="glossy"
                     size="md"

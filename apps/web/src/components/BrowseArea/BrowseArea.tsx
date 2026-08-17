@@ -178,6 +178,7 @@ const BrowseArea = ({
           <MediaGrid
             items={items}
             size={size}
+            isSeries={kind === 'shows'}
             onPlay={onPlay}
             onInspect={onInspect}
             {...(watchedFractionFor === undefined ? {} : { watchedFractionFor })}

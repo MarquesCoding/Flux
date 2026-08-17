@@ -190,23 +190,13 @@ const ShowDialog = ({
             <motion.div
               variants={revealVariants(prefersReducedMotion)}
               transition={revealTransition(prefersReducedMotion)}
-              className="flex flex-wrap items-center justify-between gap-3"
+              className="flex flex-wrap items-center gap-3"
             >
               <span className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted">
                 {shown.seasonCount === 1
                   ? `${shown.episodeCount.toString()} episodes`
                   : `${shown.seasonCount.toString()} seasons · ${shown.episodeCount.toString()} episodes`}
               </span>
-
-              {(shown.genres ?? []).length === 0 ? null : (
-                <span className="flex flex-wrap gap-1.5">
-                  {(shown.genres ?? []).slice(0, 3).map((genre) => (
-                    <Badge key={genre} size="sm" className="bg-surface/70 backdrop-blur">
-                      {genre}
-                    </Badge>
-                  ))}
-                </span>
-              )}
             </motion.div>
 
             <motion.h2
@@ -231,6 +221,20 @@ const ShowDialog = ({
                 />
               )}
             </motion.h2>
+
+            {(shown.genres ?? []).length === 0 ? null : (
+              <motion.span
+                variants={revealVariants(prefersReducedMotion)}
+                transition={revealTransition(prefersReducedMotion)}
+                className="flex flex-wrap gap-1.5"
+              >
+                {(shown.genres ?? []).slice(0, 3).map((genre) => (
+                  <Badge key={genre} size="sm" className="bg-surface/70 backdrop-blur">
+                    {genre}
+                  </Badge>
+                ))}
+              </motion.span>
+            )}
           </motion.div>
         </div>
 

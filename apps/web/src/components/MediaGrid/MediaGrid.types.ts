@@ -11,6 +11,7 @@ type MediaGridProps = {
   isKept?: (mediaId: string) => boolean;
   onToggleKept?: (media: MediaSummary) => void;
   size?: MediaGridSize;
+  isSeries?: boolean;
 };
 
 export type { MediaGridProps, MediaGridSize };
