@@ -334,7 +334,7 @@ const AccountsPanel = () => {
       {refusal === null || picked !== null ? null : (
         <p
           role="alert"
-          className="flex items-start gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
+          className="flex items-start gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
         >
           <RiAlertLine size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
           {refusal.message}
@@ -482,7 +482,7 @@ const AccountsPanel = () => {
                     matchTriggerWidth
                     className="min-w-56 flex-1"
                     trigger={
-                      <span className="flex w-full items-center justify-between gap-2 rounded-xl border border-[var(--surface-line)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-text">
+                      <span className="flex w-full items-center justify-between gap-2 rounded-lg border border-[var(--surface-line)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-text">
                         <span className="min-w-0 truncate">
                           {addingPermission === null
                             ? 'Pick a permission'

@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import {
-  RiClockwiseLine,
-  RiHeartFill,
-  RiHeartLine,
-  RiInformationLine,
-  RiPlayFill,
-} from '@remixicon/react';
+import { RiClockwiseLine, RiHeartFill, RiHeartLine, RiPlayFill } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { MediaCard } from '@FluxUI/MediaCard';
 import { Badge } from '@FluxUI/Badge';
@@ -15,9 +9,12 @@ import { liquidSpring } from '@FluxUI/animations/reveal';
 import { hasFinePointer } from '@FluxUI/hasFinePointer';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
+import { fetchShow } from '@FluxWeb/library/fetchShows';
+import { showSlug } from '@FluxCore/functions/showSlug';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { RailCardProps } from './RailCard.types';
 
 const HOVER_DELAY_MILLISECONDS = 600;
@@ -77,6 +74,9 @@ const fitInside = (top: number, height: number): number => {
  * @param onOpenShow - Told to open the programme an episode belongs to.
  * @param isKept - Whether it is kept.
  * @param onToggleKept - Told to keep it, or stop.
+ * @param isSeries - Whether this card stands for a whole programme rather than for the episode that
+ *   happens to represent it, in which case the episode's own name and number are not what a reader
+ *   is looking at — and pressing it opens the programme rather than that one episode.
  */
 const RailCard = ({
   media,
@@ -88,8 +88,20 @@ const RailCard = ({
   onOpenShow,
   isKept = false,
   onToggleKept,
+  isSeries = false,
 }: RailCardProps) => {
+  const inspect = () => {
+    if (isSeries && onOpenShow !== undefined) {
+      onOpenShow(media);
+
+      return;
+    }
+
+    onInspect(media);
+  };
+
   const [detail, setDetail] = useState<MediaDetail | null>(null);
+  const [show, setShow] = useState<ShowDetail | null>(null);
   const holderRef = useRef<HTMLDivElement>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -111,7 +123,7 @@ const RailCard = ({
   }, [anchor, close]);
 
   useEffect(() => {
-    if (anchor === null || detail !== null) {
+    if (anchor === null || detail !== null || isSeries) {
       return;
     }
 
@@ -126,7 +138,31 @@ const RailCard = ({
     return () => {
       abandoned = true;
     };
-  }, [anchor, detail, media.id]);
+  }, [anchor, detail, isSeries, media.id]);
+
+  useEffect(() => {
+    const named = media.seriesId ?? showSlug(media.seriesTitle ?? '');
+
+    if (anchor === null || show !== null || !isSeries || named === '') {
+      return;
+    }
+
+    let abandoned = false;
+
+    void fetchShow(media.libraryId, named).then((found) => {
+      if (!abandoned) {
+        setShow(found);
+      }
+    });
+
+    return () => {
+      abandoned = true;
+    };
+  }, [anchor, show, isSeries, media.libraryId, media.seriesId, media.seriesTitle]);
+
+  const told = isSeries ? null : (detail?.metadata.overview ?? null);
+
+  const genres = isSeries ? (show?.genres ?? []) : (detail?.metadata.genres ?? []);
 
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -199,17 +235,21 @@ const RailCard = ({
       }}
     >
       <MediaCard
-        {...(media.seriesTitle === null || media.seriesTitle === undefined
+        {...(isSeries || media.seriesTitle === null || media.seriesTitle === undefined
           ? {}
           : { eyebrow: media.title })}
         title={media.seriesTitle ?? media.title}
-        subtitle={<MediaFacts media={media} className="flex flex-wrap items-center gap-2" />}
+        subtitle={
+          <MediaFacts
+            media={media}
+            hasEpisode={!isSeries}
+            className="flex flex-wrap items-center gap-2"
+          />
+        }
         shape="wide"
         {...(watchedFraction === undefined ? {} : { watchedFraction })}
         {...(artworkUrl === undefined ? {} : { imageUrl: artworkUrl })}
-        onSelect={() => {
-          onInspect(media);
-        }}
+        onSelect={inspect}
         className="w-full"
       />
 
@@ -229,9 +269,17 @@ const RailCard = ({
                 top: anchor.top,
                 width: anchor.width,
               }}
-              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-[1.75rem] bg-surface-raised p-1.5 shadow-[0_2px_10px_rgb(0_0_0/0.4),0_40px_90px_-24px_rgb(0_0_0/0.85)] ring-1 ring-[var(--surface-line)]"
+              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-lg bg-surface-raised p-1.5 shadow-[0_2px_10px_rgb(0_0_0/0.4),0_40px_90px_-24px_rgb(0_0_0/0.85)] ring-1 ring-[var(--surface-line)]"
             >
-              <div className="aspect-video max-h-[42svh] w-full shrink-0 overflow-hidden rounded-[1.375rem]">
+              <Button
+                variant="bare"
+                size="none"
+                aria-label={`More about ${media.seriesTitle ?? media.title}`}
+                onClick={inspect}
+                className="absolute inset-0 z-0 rounded-lg"
+              />
+
+              <div className="pointer-events-none aspect-video max-h-[42svh] w-full shrink-0 overflow-hidden rounded-md">
                 <MediaPreview
                   mediaId={media.id}
                   backdropUrl={artworkUrl ?? null}
@@ -244,9 +292,15 @@ const RailCard = ({
               <div className="flex min-h-0 w-full flex-1 flex-col gap-3 px-4 pb-4 pt-4 text-left">
                 <span className="flex items-start justify-between gap-3">
                   <span className="min-w-0 text-xs uppercase tracking-[0.16em] text-text-muted">
-                    {media.seriesTitle === null || media.seriesTitle === undefined
-                      ? null
-                      : media.title}
+                    {isSeries
+                      ? show === null
+                        ? null
+                        : show.seasonCount === 1
+                          ? `${show.episodeCount.toString()} episodes`
+                          : `${show.seasonCount.toString()} seasons · ${show.episodeCount.toString()} episodes`
+                      : media.seriesTitle === null || media.seriesTitle === undefined
+                        ? null
+                        : media.title}
                   </span>
                 </span>
 
@@ -265,46 +319,41 @@ const RailCard = ({
                       event.stopPropagation();
                       onOpenShow(media);
                     }}
-                    className="text-left text-xl font-semibold leading-tight tracking-[-0.02em] text-text underline-offset-4 hover:underline"
+                    className="relative z-10 self-start text-left text-xl font-semibold leading-tight tracking-[-0.02em] text-text underline-offset-4 hover:underline"
                   >
                     {media.seriesTitle}
                   </Button>
                 )}
 
-                <Button
-                  variant="bare"
-                  size="none"
-                  aria-label={`About ${media.title}`}
-                  onClick={() => {
-                    onInspect(media);
-                  }}
-                  className="flex min-h-0 shrink flex-col gap-3 text-left"
-                >
+                <span className="pointer-events-none flex min-h-0 shrink flex-col gap-3 text-left">
                   <MediaFacts
-                    media={media}
+                    media={
+                      isSeries && show !== null
+                        ? { ...media, rating: show.rating ?? null, year: show.year ?? null }
+                        : media
+                    }
+                    hasEpisode={!isSeries}
                     className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-[0.1em] text-text-muted"
                   />
 
-                  {detail?.metadata.overview === undefined ||
-                  detail.metadata.overview === null ||
-                  detail.metadata.overview === '' ? null : (
+                  {told === null || told === '' ? null : (
                     <span className="line-clamp-3 min-h-0 shrink overflow-hidden text-xs leading-relaxed text-text-muted">
-                      {detail.metadata.overview}
+                      {told}
                     </span>
                   )}
 
-                  {(detail?.metadata.genres ?? []).length === 0 ? null : (
+                  {genres.length === 0 ? null : (
                     <span className="flex shrink-0 flex-wrap gap-1.5">
-                      {(detail?.metadata.genres ?? []).slice(0, GENRE_LIMIT).map((genre) => (
+                      {genres.slice(0, GENRE_LIMIT).map((genre) => (
                         <Badge key={genre} size="sm">
                           {genre}
                         </Badge>
                       ))}
                     </span>
                   )}
-                </Button>
+                </span>
 
-                <span className="flex shrink-0 items-center gap-2 pt-1">
+                <span className="relative z-10 flex shrink-0 items-center gap-2 pt-1">
                   <Button
                     variant="glossy"
                     size="md"
@@ -335,19 +384,6 @@ const RailCard = ({
                       <RiClockwiseLine size={17} aria-hidden />
                     </Button>
                   )}
-
-                  <Button
-                    isIconOnly
-                    variant="secondary"
-                    size="md"
-                    label={`More about ${media.title}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onInspect(media);
-                    }}
-                  >
-                    <RiInformationLine size={17} aria-hidden />
-                  </Button>
 
                   {onToggleKept === undefined ? null : (
                     <Button

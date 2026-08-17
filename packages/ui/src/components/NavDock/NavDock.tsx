@@ -49,7 +49,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
           onBlur={() => {
             setPointedAt(null);
           }}
-          className="flux-glass pointer-events-auto relative flex items-center gap-1 rounded-full p-1.5"
+          className="flux-glass pointer-events-auto relative flex items-center gap-1 rounded-lg p-1.5"
         >
           {brand === undefined ? null : (
             <span className="relative z-10 flex shrink-0 items-center pl-2 pr-1">{brand}</span>
@@ -79,7 +79,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                       onSelect(item.id);
                     }}
                     className={cn(
-                      'relative flex h-9 items-center gap-1.5 rounded-full px-3 text-sm',
+                      'relative flex h-9 items-center gap-1.5 rounded-md px-3 text-sm',
                       'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
                       isNamed || isCurrent
                         ? 'font-medium text-text'
@@ -128,7 +128,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                   }}
                   onClick={action.onSelect}
                   className={cn(
-                    'relative flex h-9 items-center justify-center gap-1.5 rounded-full px-2.5 text-sm',
+                    'relative flex h-9 items-center justify-center gap-1.5 rounded-md px-2.5 text-sm',
                     'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
                     lit === action.id || action.isCurrent === true
                       ? 'font-medium text-text'

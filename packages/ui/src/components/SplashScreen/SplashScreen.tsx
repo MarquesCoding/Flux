@@ -33,8 +33,8 @@ const SplashScreen = ({ name = 'Flux', label = 'Loading' }: SplashScreenProps) =
           <span className="block h-full w-1/3 rounded-full bg-text/70" />
         ) : (
           <motion.span
-            initial={{ x: '-100%' }}
-            animate={{ x: '300%' }}
+            initial={{ transform: 'translateX(-100%)' }}
+            animate={{ transform: 'translateX(300%)' }}
             transition={{ duration: 1.4, ease: 'easeInOut', repeat: Infinity }}
             className="block h-full w-1/3 rounded-full bg-text/70"
           />

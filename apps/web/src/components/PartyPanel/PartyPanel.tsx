@@ -101,7 +101,7 @@ const PartyPanel = ({
       </div>
 
       {!party.isHeld || waitingFor.length === 0 ? null : (
-        <p className="flex items-center gap-2 rounded-xl bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-200">
+        <p className="flex items-center gap-2 rounded-lg bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-200">
           <RiTimeLine size={14} aria-hidden />
           {waitingFor.length === 1
             ? `Waiting for ${waitingFor[0] ?? ''} to catch up`
@@ -110,7 +110,7 @@ const PartyPanel = ({
       )}
 
       {invitation === undefined ? null : (
-        <div className="flex flex-col gap-2 rounded-xl bg-white/5 p-3">
+        <div className="flex flex-col gap-2 rounded-lg bg-white/5 p-3">
           <p className="text-xs leading-relaxed text-white/70">
             Send this to anybody with an account here. It puts them in this party, watching this.
           </p>
@@ -138,7 +138,7 @@ const PartyPanel = ({
       )}
 
       {!mayAsk || onAsk === undefined || elsewhere.length === 0 ? null : (
-        <div className="mt-2 flex flex-col gap-2 rounded-xl bg-white/5 p-3">
+        <div className="mt-2 flex flex-col gap-2 rounded-lg bg-white/5 p-3">
           <p className="text-xs leading-relaxed text-white/70">
             Ask somebody along. They are told wherever they asked to be told things, and the message
             carries this same link.

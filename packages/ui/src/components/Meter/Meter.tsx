@@ -1,4 +1,3 @@
-import { Meter as BaseMeter } from '@base-ui/react/meter';
 import { cn } from '@FluxUI/cn';
 import type { MeterProps } from './Meter.types';
 
@@ -14,30 +13,36 @@ import type { MeterProps } from './Meter.types';
  */
 const Meter = ({ label, fraction, value, className }: MeterProps) => {
   const filled = Math.min(Math.max(fraction, 0), 1);
-  const tone = filled > 0.9 ? 'bg-danger' : filled > 0.7 ? 'bg-amber-400' : 'bg-accent';
+  const tone = filled > 0.9 ? 'bg-destructive' : filled > 0.7 ? 'bg-amber-400' : 'bg-primary';
 
   return (
-    <BaseMeter.Root
-      value={filled * 100}
-      getAriaValueText={() => value}
+    <div
+      role="meter"
+      aria-label={label}
+      aria-valuenow={Math.round(filled * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuetext={value}
+      data-slot="meter"
       className={cn('flex flex-col gap-2', className)}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <BaseMeter.Label className="text-xs uppercase tracking-[0.16em] text-text-muted">
-          {label}
-        </BaseMeter.Label>
-        <BaseMeter.Value className="text-sm tabular-nums text-text">{() => value}</BaseMeter.Value>
+        <span className="text-xs uppercase tracking-[0.16em] text-text-muted">{label}</span>
+        <span className="text-sm tabular-nums text-text">{value}</span>
       </div>
 
-      <BaseMeter.Track className="block h-1.5 overflow-hidden rounded-full bg-white/10">
-        <BaseMeter.Indicator
+      <span className="block h-1.5 overflow-hidden rounded-full bg-white/10">
+        <span
+          style={{ width: `${(filled * 100).toString()}%` }}
           className={cn(
-            'block h-full rounded-full transition-[width,background-color] duration-500',
+            'block h-full rounded-full',
+            'transition-[width,background-color] duration-[var(--duration-slow)] ease-[var(--ease-out)]',
+            'motion-reduce:transition-none',
             tone,
           )}
         />
-      </BaseMeter.Track>
-    </BaseMeter.Root>
+      </span>
+    </div>
   );
 };
 

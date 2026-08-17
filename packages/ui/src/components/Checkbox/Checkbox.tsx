@@ -1,12 +1,12 @@
 import { useId } from 'react';
-import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
+import * as RadixCheckbox from '@radix-ui/react-checkbox';
 import { RiCheckLine } from '@remixicon/react';
 import { cn } from '@FluxUI/cn';
 import type { CheckboxProps } from './Checkbox.types';
 
 /**
  * A labelled checkbox, for a choice that is part of a form rather than one that takes effect at
- * once — a switch is the control for that. Built on the Base UI primitive, which supplies the
+ * once — a switch is the control for that. Built on the headless primitive, which supplies the
  * keyboard interaction and the ARIA wiring that are expensive to get right and dangerous to get
  * wrong.
  *
@@ -29,23 +29,27 @@ const Checkbox = ({
 
   return (
     <span className={cn('inline-flex items-center gap-2 text-text', className)}>
-      <BaseCheckbox.Root
+      <RadixCheckbox.Root
         {...(checked === undefined ? {} : { checked })}
         {...(defaultChecked === undefined ? {} : { defaultChecked })}
         {...(onCheckedChange === undefined ? {} : { onCheckedChange })}
         disabled={disabled}
         aria-labelledby={labelId}
+        data-slot="checkbox"
         className={cn(
-          'flex size-5 items-center justify-center rounded-sm border border-border',
-          'bg-surface-raised transition-colors',
-          'data-[checked]:border-accent data-[checked]:bg-accent',
-          'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
+          'flex size-5 shrink-0 items-center justify-center rounded-sm border border-input',
+          'bg-secondary outline-none',
+          'transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
+          'motion-reduce:transition-none',
+          'focus-visible:ring-[3px] focus-visible:ring-ring/40',
+          'data-[state=checked]:border-primary data-[state=checked]:bg-primary',
+          'disabled:cursor-not-allowed disabled:opacity-50',
         )}
       >
-        <BaseCheckbox.Indicator className="flex text-accent-contrast">
+        <RadixCheckbox.Indicator className="flex text-primary-foreground animate-in zoom-in-75 duration-[var(--duration-instant)] motion-reduce:animate-none">
           <RiCheckLine size={14} aria-hidden />
-        </BaseCheckbox.Indicator>
-      </BaseCheckbox.Root>
+        </RadixCheckbox.Indicator>
+      </RadixCheckbox.Root>
       <span id={labelId}>{label}</span>
     </span>
   );

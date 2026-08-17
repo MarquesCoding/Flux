@@ -4,6 +4,7 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library';
 type LibraryBrowserProps = {
   search?: string;
   hasHero?: boolean;
+  name?: string;
   onSearchChange?: (search: string) => void;
   libraryId?: string | null;
   onLibraryChange?: (libraryId: string) => void;

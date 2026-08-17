@@ -96,7 +96,7 @@ describe('PopoverPanel', () => {
 
     const panel = await screen.findByRole('dialog', { name: 'Notifications' });
 
-    expect(panel.parentElement).toHaveAttribute('data-align', 'end');
+    expect(panel).toHaveAttribute('data-align', 'end');
   });
 
   it('can be centred over the control that opened it', async () => {
@@ -117,7 +117,7 @@ describe('PopoverPanel', () => {
 
     const panel = await screen.findByRole('dialog', { name: 'Notifications' });
 
-    expect(panel.parentElement).toHaveAttribute('data-align', 'center');
+    expect(panel).toHaveAttribute('data-align', 'center');
   });
 
   it('arrives the way every other anchored panel does', async () => {
@@ -133,7 +133,7 @@ describe('PopoverPanel', () => {
 
     const panel = await screen.findByRole('dialog', { name: 'Notifications' });
 
-    expect(panel.className).toContain('data-[starting-style]:scale-95');
-    expect(panel.className).toContain('origin-[var(--transform-origin)]');
+    expect(panel.className).toContain('data-[state=open]:zoom-in-95');
+    expect(panel.className).toContain('origin-[var(--radix-popper-transform-origin');
   });
 });

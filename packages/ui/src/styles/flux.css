@@ -1,6 +1,11 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 @source '../';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@custom-variant hover-hover (@media (hover: hover) and (pointer: fine));
 
 @font-face {
   font-family: 'Gilroy';
@@ -92,21 +97,49 @@
 
   --glass-brightness: 1.35;
 
-  --radius-xs: 0.5rem;
-  --radius-sm: 0.625rem;
-  --radius-md: 0.875rem;
-  --radius-lg: 1.25rem;
-  --radius-xl: 1.75rem;
-  --radius-2xl: 2.25rem;
-  --radius-3xl: 2.75rem;
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-text);
+  --color-card: var(--color-surface-raised);
+  --color-card-foreground: var(--color-text);
+  --color-popover: var(--color-surface-raised);
+  --color-popover-foreground: var(--color-text);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-accent-contrast);
+  --color-secondary: var(--color-surface-raised);
+  --color-secondary-foreground: var(--color-text);
+  --color-muted: var(--color-surface-raised);
+  --color-muted-foreground: var(--color-text-muted);
+  --color-subtle: color-mix(in oklab, var(--color-text) 6%, transparent);
+  --color-destructive: var(--color-danger);
+  --color-destructive-foreground: oklch(0.99 0 0);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-accent);
+
+  --radius: 0.5rem;
+  --radius-xs: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 10px);
+  --radius-3xl: calc(var(--radius) + 16px);
   --radius-pill: 999px;
 
-  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-soft: var(--ease-out);
 
-  --duration-fast: 120ms;
-  --duration-base: 220ms;
-  --duration-slow: 380ms;
+  --duration-instant: 100ms;
+  --duration-fast: 140ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  --duration-leaving: 140ms;
+
+  --animate-duration: var(--duration-base);
+  --animate-easing: var(--ease-out);
 
   --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px -16px rgb(0 0 0 / 0.35);
   --shadow-lifted: 0 2px 4px rgb(0 0 0 / 0.08), 0 18px 40px -20px rgb(0 0 0 / 0.45);
@@ -291,7 +324,12 @@ body {
 
 .flux-lift:hover {
   box-shadow: var(--shadow-lifted);
-  transform: translateY(-2px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .flux-lift:hover {
+    transform: translateY(-2px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -299,6 +337,22 @@ body {
   .flux-lift:hover {
     transform: none;
     transition-duration: 1ms;
+  }
+
+  [data-slot='dialog-content'],
+  [data-slot='dialog-overlay'],
+  [data-slot='tooltip-content'],
+  [data-slot='popover-content'],
+  [data-slot='hover-card-content'],
+  [data-slot='menu-content'],
+  [data-slot='settings-menu'] {
+    animation-name: flux-fade;
+  }
+}
+
+@keyframes flux-fade {
+  from {
+    opacity: 0;
   }
 }
 

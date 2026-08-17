@@ -370,7 +370,7 @@ const MediaDetailDialog = ({
                   <ul aria-hidden className="flex gap-4">
                     {Array.from({ length: CAST_PLACEHOLDERS }, (_, index) => index).map((index) => (
                       <li key={index} className="flex min-w-0 flex-1 flex-col items-center gap-3">
-                        <Skeleton className="aspect-[2/3] w-full rounded-xl" />
+                        <Skeleton className="aspect-[2/3] w-full rounded-lg" />
                         <Skeleton className="h-3 w-16" />
                         <Skeleton className="h-3 w-12" />
                       </li>

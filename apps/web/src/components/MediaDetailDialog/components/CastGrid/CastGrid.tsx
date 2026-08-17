@@ -64,7 +64,7 @@ const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
                 hasTooltip={false}
                 disabled={!canOpenPerson(member.personId) || onOpenPerson === undefined}
                 className={cn(
-                  'group flex flex-col gap-3 rounded-xl text-left',
+                  'group flex flex-col gap-3 rounded-lg text-left',
                   canOpenPerson(member.personId) && onOpenPerson !== undefined
                     ? ''
                     : 'disabled:cursor-default disabled:opacity-100',
@@ -73,7 +73,7 @@ const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
                   onOpenPerson?.(member);
                 }}
               >
-                <span className="aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface-raised ring-1 ring-white/10">
+                <span className="aspect-[2/3] w-full overflow-hidden rounded-lg bg-surface-raised ring-1 ring-white/10">
                   {member.imageUrl === null ? (
                     <span className="flex h-full w-full items-center justify-center">
                       <RiUser3Line size={48} aria-hidden className="text-text-muted" />
@@ -83,7 +83,7 @@ const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
                       src={member.imageUrl}
                       alt=""
                       loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none hover-hover:group-hover:scale-105"
                     />
                   )}
                 </span>

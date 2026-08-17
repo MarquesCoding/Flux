@@ -745,7 +745,10 @@ describe('VideoPlayer', () => {
     fireEvent.timeUpdate(element, { target: { currentTime: 600 } });
 
     await waitFor(() => {
-      expect(screen.getByRole('slider', { name: 'Seek through Arrival' })).toHaveValue('600');
+      expect(screen.getByRole('slider', { name: 'Seek through Arrival' })).toHaveAttribute(
+        'aria-valuenow',
+        '600',
+      );
     });
 
     fireEvent.keyDown(window, { key: 'l' });
@@ -764,7 +767,10 @@ describe('VideoPlayer', () => {
     fireEvent.timeUpdate(element, { target: { currentTime: 600 } });
 
     await waitFor(() => {
-      expect(screen.getByRole('slider', { name: 'Seek through Arrival' })).toHaveValue('600');
+      expect(screen.getByRole('slider', { name: 'Seek through Arrival' })).toHaveAttribute(
+        'aria-valuenow',
+        '600',
+      );
     });
 
     fireEvent.keyDown(window, { key: 'j' });
@@ -796,12 +802,13 @@ describe('VideoPlayer', () => {
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 30);
 
-    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
-      target: { value: '3600' },
-    });
+    const actor = userEvent.setup();
+
+    await actor.click(screen.getByRole('slider', { name: 'Seek through Arrival' }));
+    await actor.keyboard('{End}');
 
     await waitFor(() => {
-      expect(element).toHaveProperty('currentTime', 3600);
+      expect(element).toHaveProperty('currentTime', 7200);
     });
 
     expect(startMock).toHaveBeenCalledTimes(1);
@@ -813,12 +820,13 @@ describe('VideoPlayer', () => {
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 30);
 
-    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
-      target: { value: '3600' },
-    });
+    const actor = userEvent.setup();
+
+    await actor.click(screen.getByRole('slider', { name: 'Seek through Arrival' }));
+    await actor.keyboard('{End}');
 
     await waitFor(() => {
-      expect(element).toHaveProperty('currentTime', 3600);
+      expect(element).toHaveProperty('currentTime', 7200);
     });
 
     expect(stopMock).not.toHaveBeenCalled();
@@ -850,12 +858,13 @@ describe('VideoPlayer', () => {
     await settled();
 
     const element = screen.getByLabelText('Arrival');
-    fireEvent.change(screen.getByRole('slider', { name: 'Seek through Arrival' }), {
-      target: { value: '3600' },
-    });
+    const actor = userEvent.setup();
+
+    await actor.click(screen.getByRole('slider', { name: 'Seek through Arrival' }));
+    await actor.keyboard('{End}');
 
     await waitFor(() => {
-      expect(element).toHaveProperty('currentTime', 3600);
+      expect(element).toHaveProperty('currentTime', 7200);
     });
 
     expect(startMock).toHaveBeenCalledTimes(1);
@@ -1875,7 +1884,7 @@ describe('when an administrator reaches into the stream', () => {
     });
   });
 
-  it('will not let a message push a stop off the screen', async () => {
+  it('keeps a stop on screen when a message arrives beside it', async () => {
     await watching();
 
     act(() => {
@@ -1888,8 +1897,8 @@ describe('when an administrator reaches into the stream', () => {
       emitPresenceEvent({ kind: 'message', text: 'Tea is ready' });
     });
 
+    expect(await screen.findByText(/Tea is ready/)).toBeInTheDocument();
     expect(screen.getByText(/An administrator stopped this stream./)).toBeInTheDocument();
-    expect(screen.queryByText(/Tea is ready/)).not.toBeInTheDocument();
   });
 
   it('takes the note away again when the stream is let go', async () => {

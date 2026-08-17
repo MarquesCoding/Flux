@@ -62,7 +62,7 @@ const FACE: Variants = {
 const Portrait = ({ profile, isLarge = false }: { profile: ViewerProfile; isLarge?: boolean }) => (
   <ProfileFace
     profile={profile}
-    className={`rounded-3xl shadow-xl ${
+    className={`rounded-lg shadow-xl ${
       isLarge ? 'size-32 text-5xl sm:size-36' : 'aspect-square w-full text-4xl sm:text-5xl'
     }`}
   />
@@ -340,7 +340,10 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                         }}
                         {...(prefersReducedMotion === true
                           ? {}
-                          : { whileHover: { y: -8 }, whileTap: { scale: 0.97 } })}
+                          : {
+                              whileHover: { transform: 'translateY(-8px)' },
+                              whileTap: { transform: 'scale(0.97)' },
+                            })}
                         className="flex w-24 flex-col items-center gap-3 sm:w-32"
                       >
                         <Portrait profile={profile} />

@@ -175,7 +175,7 @@ const RolesPanel = () => {
       {refusal === null || selected !== null ? null : (
         <p
           role="alert"
-          className="flex items-start gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
+          className="flex items-start gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
         >
           <RiAlertLine size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
           {refusal.message}

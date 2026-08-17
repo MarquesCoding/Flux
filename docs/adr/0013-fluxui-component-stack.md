@@ -1,6 +1,6 @@
 # ADR-0013: FluxUI built on Base UI + Tailwind, not shadcn
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0018](0018-fluxui-on-radix-and-shadcn-conventions.md)
 - **Date:** 2026-08-09
 
 ## Context

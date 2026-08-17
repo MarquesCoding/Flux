@@ -10,6 +10,7 @@ type RailCardProps = {
   onOpenShow?: (media: MediaSummary) => void;
   isKept?: boolean;
   onToggleKept?: (media: MediaSummary) => void;
+  isSeries?: boolean;
 };
 
 export type { RailCardProps };
