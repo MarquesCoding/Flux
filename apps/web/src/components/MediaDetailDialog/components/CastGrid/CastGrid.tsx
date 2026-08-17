@@ -72,7 +72,7 @@ const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
                       src={member.imageUrl}
                       alt=""
                       loading="lazy"
-                      className="h-full w-full object-cover"
+                      className="h-full w-full rounded-xl object-cover"
                     />
                   )}
                 </span>
