@@ -68,6 +68,7 @@ import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
 import { AdminMessageOverlay } from './components/AdminMessageOverlay/AdminMessageOverlay';
 import { correctDrift } from '@FluxCore/functions/correctDrift';
+import { whatToReport } from '@FluxCore/functions/whatToReport';
 import { describeCommand } from '@FluxWeb/party/describeCommand';
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay';
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions';
@@ -102,8 +103,6 @@ const FINISHED_WITHIN_SECONDS = 90;
 const HEALTH_INTERVAL_MILLISECONDS = 500;
 
 const PARTY_REPORT_EVERY_MS = 1000;
-
-const ENOUGH_TO_START_SECONDS = 1.5;
 
 const CATCH_UP_BEYOND_SECONDS = 2;
 
@@ -299,6 +298,7 @@ const VideoPlayer = ({
   const hasCaughtUpRef = useRef(false);
   const partyRef = useRef(party);
   const stateRef = useRef<PlayerState>('starting');
+  const lastGoodPositionRef = useRef(0);
 
   useEffect(() => {
     const reference = party?.referenceSeconds ?? null;
@@ -381,12 +381,18 @@ const VideoPlayer = ({
 
       const ahead = bufferedAhead(element);
 
-      held.onReport({
-        positionSeconds: element.currentTime,
+      const said = whatToReport({
+        isSessionPlaying: stateRef.current === 'playing',
+        readyState: element.readyState,
+        currentSeconds: element.currentTime,
+        lastGoodSeconds: lastGoodPositionRef.current,
         bufferedAheadSeconds: ahead,
-        isWatching: !element.paused,
-        isReady: stateRef.current === 'playing' && ahead >= ENOUGH_TO_START_SECONDS,
+        isPaused: element.paused,
       });
+
+      lastGoodPositionRef.current = said.positionSeconds;
+
+      held.onReport({ ...said, bufferedAheadSeconds: ahead });
     }, PARTY_REPORT_EVERY_MS);
 
     return () => {
@@ -777,6 +783,7 @@ const VideoPlayer = ({
     setIsPlaying(false);
     setPosition(request.startSeconds);
     setReportedDuration(0);
+    lastGoodPositionRef.current = request.startSeconds;
 
     const controller = new AbortController();
     const isAbandoned = () => controller.signal.aborted;

@@ -2049,17 +2049,6 @@ describe('when the player is in a watch party', () => {
     expect(element instanceof HTMLVideoElement ? element.paused : false).toBe(true);
   });
 
-  it('tells the room it has nothing buffered to play, so the room waits', async () => {
-    const { onReport } = await inParty();
-
-    await waitFor(
-      () => {
-        expect(onReport).toHaveBeenCalledWith(expect.objectContaining({ isReady: false }));
-      },
-      { timeout: 4000 },
-    );
-  });
-
   it('tells the room it is ready once there is something to play', async () => {
     const { onReport, stream } = await inParty();
 

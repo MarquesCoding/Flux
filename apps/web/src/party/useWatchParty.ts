@@ -129,6 +129,10 @@ const useWatchParty = (client: RealtimeClient = getRealtimeClient()): WatchParty
       return null;
     }
 
+    if (!timekeeper.isReady) {
+      return null;
+    }
+
     if (command !== null && timekeeper.reportedAtMs < command.atMs) {
       return null;
     }

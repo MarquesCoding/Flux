@@ -31,6 +31,10 @@ type Watcher = {
  * because nothing they last said is worth believing: a position measured before a skip describes a
  * different film. They are waited for rather than guessed at, and they answer within a second.
  *
+ * Where the timekeeper is the one who cannot play, nobody is judged against their position at all.
+ * A player whose stream is being rebuilt does not know where it is, and measuring the room against
+ * somebody who has lost their place would send everybody to the wrong one.
+ *
  * @param members - Everybody in the party.
  * @param timekeeperId - Whoever keeps time, whose position the rest are measured against.
  * @param atMs - Now, on the clock the reports were stamped with.
@@ -53,7 +57,7 @@ const whoIsHoldingUp = (
     movedAtMs !== null && member.reportedAtMs < movedAtMs;
 
   const reference = whereTheRoomIs(timekeeper, atMs);
-  const isReferenceWorthComparing = !isStale(timekeeper);
+  const isReferenceWorthComparing = !isStale(timekeeper) && timekeeper.isReady;
 
   return members.filter(
     (member) =>
