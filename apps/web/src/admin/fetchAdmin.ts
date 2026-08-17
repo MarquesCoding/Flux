@@ -185,6 +185,11 @@ const JobScheduleSchema = z.object({
   triggers: z.array(JobTriggerSchema),
 });
 
+const JobSchedulesSchema = z.object({
+  schedules: z.array(JobScheduleSchema),
+  timezone: z.string().min(1).nullable().default(null),
+});
+
 type AdminOverview = z.infer<typeof AdminOverviewSchema>;
 type Monitor = z.infer<typeof MonitorSchema>;
 type Job = z.infer<typeof JobSchema>;
@@ -193,6 +198,7 @@ type JobDefinition = z.infer<typeof JobDefinitionSchema>;
 type ScheduleTrigger = z.infer<typeof ScheduleTriggerSchema>;
 type JobTrigger = z.infer<typeof JobTriggerSchema>;
 type JobSchedule = z.infer<typeof JobScheduleSchema>;
+type JobSchedules = z.infer<typeof JobSchedulesSchema>;
 
 const RunningScansSchema = z.object({
   scans: z.array(
@@ -509,20 +515,18 @@ const cancelJob = async (jobId: string): Promise<boolean> => {
  * Reads what makes each job run on its own — the triggers set against it, which may be several per
  * job or none at all.
  */
-const fetchJobSchedules = async (): Promise<JobSchedule[]> => {
+const fetchJobSchedules = async (): Promise<JobSchedules> => {
   const response = await fetch('/api/admin/jobs/schedules', { credentials: 'same-origin' }).catch(
     () => null,
   );
 
   if (response === null || !response.ok) {
-    return [];
+    return { schedules: [], timezone: null };
   }
 
-  const { schedules } = z
-    .object({ schedules: z.array(JobScheduleSchema) })
-    .parse(await response.json());
+  const parsed = JobSchedulesSchema.safeParse(await response.json());
 
-  return schedules;
+  return parsed.success ? parsed.data : { schedules: [], timezone: null };
 };
 
 /**
@@ -641,6 +645,7 @@ export type {
   Job,
   JobDefinition,
   JobSchedule,
+  JobSchedules,
   JobTrigger,
   Monitor,
   ScheduleTrigger,

@@ -376,7 +376,16 @@ const adminJobSchedulesRoute = createRoute({
     200: {
       description: 'Every job and its triggers',
       content: {
-        'application/json': { schema: z.object({ schedules: z.array(AdminJobScheduleSchema) }) },
+        'application/json': {
+          schema: z.object({
+            schedules: z.array(AdminJobScheduleSchema),
+            timezone: z.string().openapi({
+              description:
+                'The IANA zone a clock trigger is read in. A time without its zone is ambiguous, and reading it as UTC is what this reports so an operator need not guess.',
+              example: 'Europe/London',
+            }),
+          }),
+        },
       },
     },
     403: {

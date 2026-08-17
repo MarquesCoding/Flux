@@ -31,6 +31,9 @@ services:
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8420}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       AUTH_RATE_LIMIT_ENABLED: ${AUTH_RATE_LIMIT_ENABLED:-true}
+      # The clock scheduled jobs keep. A container has no other way to know where it is, and
+      # defaults to UTC — so without this, "daily at 03:00" is 03:00 UTC rather than 3am here.
+      TZ: ${TZ:-UTC}
     ports:
       - '8420:8420'
     devices:
