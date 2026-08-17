@@ -33,6 +33,8 @@ import type { Inbox } from '@FluxWeb/notifications/fetchNotifications';
 import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer';
 import { MediaDetailDialog } from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog';
 import { PersonDialog } from '@FluxWeb/components/PersonDialog/PersonDialog';
+import { ShareArea } from '@FluxWeb/components/ShareArea/ShareArea';
+import { ShareDialog } from '@FluxWeb/components/ShareDialog/ShareDialog';
 import { AppShell } from '@FluxWeb/components/AppShell/AppShell';
 import { SplashScreen } from '@FluxUI/SplashScreen';
 import { AdminArea } from '@FluxWeb/components/AdminArea/AdminArea';
@@ -83,6 +85,9 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const ratings = useRatings();
   const [openShow, setOpenShow] = useState<ShowSummary | null>(null);
   const [openRole, setOpenRole] = useState<string | null>(null);
+  const [sharing, setSharing] = useState<MediaSummary | null>(null);
+  const [guestPlaying, setGuestPlaying] = useState<MediaSummary | null>(null);
+  const [guestReached, setGuestReached] = useState<Map<string, number>>(new Map());
   const [watcher, setWatcher] = useState<ViewerProfile | null>(null);
 
   useEffect(() => {
@@ -363,6 +368,37 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     );
   }
 
+  if (place.shareToken !== null) {
+    if (guestPlaying !== null) {
+      return (
+        <main className="fixed inset-0 z-40 flex flex-col bg-black">
+          <VideoPlayer
+            media={guestPlaying}
+            startSeconds={guestReached.get(guestPlaying.id) ?? 0}
+            isImmersive
+            onProgress={(positionSeconds) => {
+              setGuestReached((held) => new Map(held).set(guestPlaying.id, positionSeconds));
+            }}
+            onClose={() => {
+              setGuestPlaying(null);
+            }}
+          />
+        </main>
+      );
+    }
+
+    return (
+      <ShareArea
+        token={place.shareToken}
+        name={initialTitle}
+        resumeFor={(mediaId) => guestReached.get(mediaId) ?? 0}
+        onPlay={(media) => {
+          setGuestPlaying(media);
+        }}
+      />
+    );
+  }
+
   if (user === null) {
     return (
       <ProfileGate
@@ -599,12 +635,23 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           setOpenRole(member.role);
           go({ person: member.personId ?? null });
         }}
+        onShare={(media) => {
+          setSharing(media);
+        }}
         onClose={() => {
           go({ inspecting: null });
         }}
         onPlay={(media, startSeconds) => {
           setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
           go({ inspecting: null, playing: media.id });
+        }}
+      />
+
+      <ShareDialog
+        media={sharing}
+        isOpen={sharing !== null}
+        onClose={() => {
+          setSharing(null);
         }}
       />
 

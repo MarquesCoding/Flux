@@ -121,6 +121,7 @@ describe('writeLocation', () => {
       inspecting: 'abc',
       show: null,
       person: null,
+      shareToken: null,
       playing: null,
       genre: null,
       library: null,
@@ -202,5 +203,35 @@ describe('a person in the address', () => {
 
     expect(written).toContain('item=abc');
     expect(written).toContain('person=1245');
+  });
+});
+
+describe('a shared link in the address', () => {
+  it('reads the token a link carries', () => {
+    expect(readLocation('https://flux.local/share/abc123').shareToken).toBe('abc123');
+  });
+
+  it('reads a token that had to be escaped', () => {
+    expect(readLocation('https://flux.local/share/a%2Fb').shareToken).toBe('a/b');
+  });
+
+  it('carries no token anywhere else', () => {
+    expect(readLocation('https://flux.local/films').shareToken).toBeNull();
+    expect(readLocation('https://flux.local/share').shareToken).toBeNull();
+  });
+
+  it('writes a link back, so it can be copied and sent', () => {
+    expect(writeLocation({ ...HOME, shareToken: 'abc123' })).toBe('/share/abc123');
+  });
+
+  it('shows nothing else while a link is open, whatever else the place holds', () => {
+    const written = writeLocation({
+      ...HOME,
+      section: 'films',
+      inspecting: 'abc',
+      shareToken: 'abc123',
+    });
+
+    expect(written).toBe('/share/abc123');
   });
 });

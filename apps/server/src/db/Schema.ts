@@ -273,6 +273,48 @@ const rating = pgTable(
   ],
 );
 
+const share = pgTable(
+  'share',
+  {
+    id: text('id').primaryKey(),
+    tokenHash: text('tokenHash').notNull(),
+    kind: text('kind').notNull(),
+    mediaItemId: text('mediaItemId').references(() => mediaItem.id, { onDelete: 'cascade' }),
+    seriesId: text('seriesId').references(() => series.id, { onDelete: 'cascade' }),
+    createdBy: text('createdBy')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+    expiresAt: timestamp('expiresAt'),
+    viewCap: integer('viewCap'),
+    revokedAt: timestamp('revokedAt'),
+  },
+  (table) => [
+    uniqueIndex('share_token_idx').on(table.tokenHash),
+    index('share_creator_idx').on(table.createdBy),
+    check('share_one_subject', sql`(${table.mediaItemId} is null) <> (${table.seriesId} is null)`),
+    check('share_kind', sql`${table.kind} in ('item', 'series')`),
+    check('share_view_cap', sql`${table.viewCap} is null or ${table.viewCap} > 0`),
+  ],
+);
+
+const shareVisit = pgTable(
+  'share_visit',
+  {
+    id: text('id').primaryKey(),
+    shareId: text('shareId')
+      .notNull()
+      .references(() => share.id, { onDelete: 'cascade' }),
+    joiner: text('joiner').notNull(),
+    firstSeenAt: timestamp('firstSeenAt').notNull().defaultNow(),
+    lastSeenAt: timestamp('lastSeenAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('share_visit_joiner_idx').on(table.shareId, table.joiner),
+    index('share_visit_share_idx').on(table.shareId),
+  ],
+);
+
 const mediaSegment = pgTable(
   'media_segment',
   {
@@ -610,6 +652,8 @@ export {
   pushSubscription,
   watchProgress,
   favourite,
+  share,
+  shareVisit,
   rating,
   user,
   session,

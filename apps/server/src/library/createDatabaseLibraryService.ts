@@ -651,6 +651,67 @@ const createDatabaseLibraryService = ({
       return rows[0] ?? null;
     },
 
+    seriesOf: async (mediaId) => {
+      const rows = await db
+        .select({ seriesId: mediaItem.seriesId })
+        .from(mediaItem)
+        .where(eq(mediaItem.id, mediaId))
+        .limit(1);
+
+      return rows[0]?.seriesId ?? null;
+    },
+
+    itemsForShare: async (scope) => {
+      const where =
+        scope.kind === 'item'
+          ? scope.mediaId === null
+            ? null
+            : eq(mediaItem.id, scope.mediaId)
+          : scope.seriesId === null
+            ? null
+            : eq(mediaItem.seriesId, scope.seriesId);
+
+      if (where === null) {
+        return [];
+      }
+
+      const rows = await db
+        .select({
+          id: mediaItem.id,
+          libraryId: mediaItem.libraryId,
+          title: mediaItem.title,
+          year: mediaItem.year,
+          durationSeconds: mediaItem.durationSeconds,
+          width: mediaItem.width,
+          height: mediaItem.height,
+          videoCodec: mediaItem.videoCodec,
+          videoRange: mediaItem.videoRange,
+          addedAt: mediaItem.addedAt,
+          posterUrl: mediaItem.posterUrl,
+          backdropUrl: mediaItem.backdropUrl,
+          logoUrl: mediaItem.logoUrl,
+          seriesId: mediaItem.seriesId,
+          seriesTitle: mediaItem.seriesTitle,
+          seasonNumber: mediaItem.seasonNumber,
+          episodeNumber: mediaItem.episodeNumber,
+          rating: mediaItem.rating,
+          genres: mediaItem.genres,
+        })
+        .from(mediaItem)
+        .where(where)
+        .orderBy(asc(mediaItem.seasonNumber), asc(mediaItem.episodeNumber), asc(mediaItem.title))
+        .limit(EVERY_EPISODE);
+
+      return rows.map(({ posterUrl, backdropUrl, logoUrl, genres, ...row }) => ({
+        ...row,
+        addedAt: row.addedAt.toISOString(),
+        hasPoster: posterUrl !== null,
+        hasBackdrop: backdropUrl !== null,
+        hasLogo: logoUrl !== null,
+        genres: readGenres(JsonValueSchema.parse(genres ?? null)),
+      })) satisfies MediaSummary[];
+    },
+
     findByPerson: async (personId) => {
       const rows = await db
         .select({

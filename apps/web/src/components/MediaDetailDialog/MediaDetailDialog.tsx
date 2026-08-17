@@ -8,6 +8,7 @@ import {
   RiHeartLine,
   RiInformationLine,
   RiPlayFill,
+  RiShareLine,
 } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
@@ -58,6 +59,7 @@ const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
  * @param stars - What this viewer gave it, or null where they have not rated it.
  * @param onRate - Told what they gave it, or null to take the rating back.
  * @param onOpenPerson - Told which performer to open from the cast, where opening one is offered.
+ * @param onShare - Told to hand out a link to it, where this account may share at all.
  */
 const MediaDetailDialog = ({
   media,
@@ -74,6 +76,7 @@ const MediaDetailDialog = ({
   stars = null,
   onRate,
   onOpenPerson,
+  onShare,
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -279,6 +282,20 @@ const MediaDetailDialog = ({
                 >
                   <RiClockwiseLine size={18} aria-hidden />
                   Start again
+                </Button>
+              )}
+
+              {onShare === undefined ? null : (
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  isPill
+                  onClick={() => {
+                    onShare(shown);
+                  }}
+                >
+                  <RiShareLine size={18} aria-hidden />
+                  Share
                 </Button>
               )}
             </div>

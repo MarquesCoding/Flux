@@ -54,7 +54,13 @@ type LibraryService = ShowService & {
   listFacets: () => Promise<LibraryFacets>;
   getMedia: (id: string) => Promise<MediaDetail | null>;
   getSeries: (seriesId: string) => Promise<{ id: string; title: string } | null>;
+  seriesOf: (mediaId: string) => Promise<string | null>;
   findByPerson: (personId: number) => Promise<MediaSummary[]>;
+  itemsForShare: (scope: {
+    kind: 'item' | 'series';
+    mediaId: string | null;
+    seriesId: string | null;
+  }) => Promise<MediaSummary[]>;
   readPerson: (personId: number) => Promise<Person | null>;
   scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>;
   reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;

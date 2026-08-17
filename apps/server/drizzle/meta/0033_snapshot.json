@@ -1,5 +1,5 @@
 {
-  "id": "33c90aaa-9c03-4cd5-a0d1-0ea40a3c215c",
+  "id": "467e6571-5e22-479f-be8c-a89068971dc1",
   "prevId": "c3d1cf93-fbc4-40d7-b070-19fdfe8037dc",
   "version": "7",
   "dialect": "postgresql",
@@ -751,42 +751,6 @@
         "canCopySegments": {
           "name": "canCopySegments",
           "type": "boolean",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "videoLevel": {
-          "name": "videoLevel",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "videoFrameRate": {
-          "name": "videoFrameRate",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "videoIsInterlaced": {
-          "name": "videoIsInterlaced",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "videoRefFrames": {
-          "name": "videoRefFrames",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "videoPixelAspect": {
-          "name": "videoPixelAspect",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "videoRotationDegrees": {
-          "name": "videoRotationDegrees",
-          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -2169,6 +2133,244 @@
           "columns": ["token"]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.share": {
+      "name": "share",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tokenHash": {
+          "name": "tokenHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mediaItemId": {
+          "name": "mediaItemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seriesId": {
+          "name": "seriesId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdBy": {
+          "name": "createdBy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expiresAt": {
+          "name": "expiresAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "viewCap": {
+          "name": "viewCap",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revokedAt": {
+          "name": "revokedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "share_token_idx": {
+          "name": "share_token_idx",
+          "columns": [
+            {
+              "expression": "tokenHash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "share_creator_idx": {
+          "name": "share_creator_idx",
+          "columns": [
+            {
+              "expression": "createdBy",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "share_mediaItemId_media_item_id_fk": {
+          "name": "share_mediaItemId_media_item_id_fk",
+          "tableFrom": "share",
+          "tableTo": "media_item",
+          "columnsFrom": ["mediaItemId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "share_seriesId_series_id_fk": {
+          "name": "share_seriesId_series_id_fk",
+          "tableFrom": "share",
+          "tableTo": "series",
+          "columnsFrom": ["seriesId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "share_createdBy_user_id_fk": {
+          "name": "share_createdBy_user_id_fk",
+          "tableFrom": "share",
+          "tableTo": "user",
+          "columnsFrom": ["createdBy"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "share_one_subject": {
+          "name": "share_one_subject",
+          "value": "(\"share\".\"mediaItemId\" is null) <> (\"share\".\"seriesId\" is null)"
+        },
+        "share_kind": {
+          "name": "share_kind",
+          "value": "\"share\".\"kind\" in ('item', 'series')"
+        },
+        "share_view_cap": {
+          "name": "share_view_cap",
+          "value": "\"share\".\"viewCap\" is null or \"share\".\"viewCap\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.share_visit": {
+      "name": "share_visit",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "shareId": {
+          "name": "shareId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "joiner": {
+          "name": "joiner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "firstSeenAt": {
+          "name": "firstSeenAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "lastSeenAt": {
+          "name": "lastSeenAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "share_visit_joiner_idx": {
+          "name": "share_visit_joiner_idx",
+          "columns": [
+            {
+              "expression": "shareId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "joiner",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "share_visit_share_idx": {
+          "name": "share_visit_share_idx",
+          "columns": [
+            {
+              "expression": "shareId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "share_visit_shareId_share_id_fk": {
+          "name": "share_visit_shareId_share_id_fk",
+          "tableFrom": "share_visit",
+          "tableTo": "share",
+          "columnsFrom": ["shareId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
