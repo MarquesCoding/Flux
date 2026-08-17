@@ -1,9 +1,10 @@
-import { queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 import { fetchWatchProgress } from '@FluxWeb/playback/watchProgress';
 import { fetchFavourites } from '@FluxWeb/library/fetchFavourites';
 import { fetchRatings, fetchHouseholdRating } from '@FluxWeb/library/fetchRatings';
 import type { RatingSubject } from '@FluxWeb/library/fetchRatings';
-import { fetchHistory } from '@FluxWeb/history/fetchHistory';
+import { fetchHistory, A_PAGE } from '@FluxWeb/history/fetchHistory';
+import type { Viewing } from '@FluxContracts/schemas/Viewing';
 
 const VIEWING = ['viewing'] as const;
 
@@ -63,15 +64,21 @@ const household = (subject: RatingSubject | null) =>
   });
 
 /**
- * What has been watched here lately.
+ * What has been watched here lately, a page at a time.
  *
- * @param offset - How far back to start.
+ * The pages already read are kept, so somebody who asked for more, opened something and came back
+ * does not have to ask for more again — which is the whole point of the list living in the cache
+ * rather than in the panel drawing it.
+ *
  * @returns The query.
  */
-const history = (offset = 0) =>
-  queryOptions({
-    queryKey: [...VIEWING, 'history', offset],
-    queryFn: () => fetchHistory(offset),
+const history = () =>
+  infiniteQueryOptions({
+    queryKey: [...VIEWING, 'history'],
+    queryFn: ({ pageParam }) => fetchHistory(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last: Viewing[], all: Viewing[][]) =>
+      last.length < A_PAGE ? undefined : all.reduce((count, page) => count + page.length, 0),
   });
 
 const viewingQueries = { progress, favourites, ratings, household, history, key: VIEWING };

@@ -1,4 +1,5 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
+import { renderInACache } from '@FluxWeb/testing/renderInACache';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileGate } from './ProfileGate';
@@ -62,11 +63,13 @@ const serverWith = (
  * Lets the wordmark finish holding the screen, which it does before anything else is drawn.
  */
 const arrive = async () => {
-  await act(async () => {
-    vi.advanceTimersByTime(1500);
-    await Promise.resolve();
-    await Promise.resolve();
-  });
+  for (let pass = 0; pass < 4; pass += 1) {
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
 };
 
 beforeEach(() => {
@@ -83,13 +86,13 @@ afterEach(() => {
 
 describe('ProfileGate', () => {
   it('opens on the wordmark before it asks anything', () => {
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     expect(screen.queryByText('Who is watching?')).not.toBeInTheDocument();
   });
 
   it('asks who is watching once the wordmark has moved aside', async () => {
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
 
@@ -97,7 +100,7 @@ describe('ProfileGate', () => {
   });
 
   it('shows everybody who could sign in', async () => {
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
 
@@ -108,7 +111,7 @@ describe('ProfileGate', () => {
   it('asks only for a password once a face is picked, never for an address', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -121,7 +124,7 @@ describe('ProfileGate', () => {
     const onSignedIn = vi.fn();
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={onSignedIn} />);
+    renderInACache(<ProfileGate onSignedIn={onSignedIn} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -139,7 +142,7 @@ describe('ProfileGate', () => {
     const onSignedIn = vi.fn();
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={onSignedIn} />);
+    renderInACache(<ProfileGate onSignedIn={onSignedIn} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -158,7 +161,7 @@ describe('ProfileGate', () => {
 
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -175,7 +178,7 @@ describe('ProfileGate', () => {
 
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -188,7 +191,7 @@ describe('ProfileGate', () => {
   it('will not send an empty password', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -199,7 +202,7 @@ describe('ProfileGate', () => {
   it('goes back to the wall when somebody picked the wrong person', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -211,7 +214,7 @@ describe('ProfileGate', () => {
   it('goes back on escape, which is what everybody tries', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -223,7 +226,7 @@ describe('ProfileGate', () => {
   it('pages a household too large to show at once', async () => {
     serverWith(many(15));
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
 
@@ -236,7 +239,7 @@ describe('ProfileGate', () => {
 
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: 'Next' }));
@@ -245,7 +248,7 @@ describe('ProfileGate', () => {
   });
 
   it('does not offer paging to a household that fits', async () => {
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
 
@@ -255,7 +258,7 @@ describe('ProfileGate', () => {
   it('moves through the faces from the keyboard, for somebody holding a remote', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
     await actor.keyboard('{ArrowRight}');
@@ -270,7 +273,7 @@ describe('ProfileGate', () => {
 
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
 
@@ -284,7 +287,7 @@ describe('ProfileGate', () => {
   });
 
   it('says which version is running, since somebody self-hosting wants to know', async () => {
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
 
@@ -294,7 +297,7 @@ describe('ProfileGate', () => {
   });
 
   it('calls the instance whatever it is called', async () => {
-    render(<ProfileGate onSignedIn={vi.fn()} name="The Cinema" />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} name="The Cinema" />);
 
     await arrive();
 
@@ -309,7 +312,7 @@ describe('signing in with a passkey instead of a password', () => {
     passkeySupportedMock.mockReturnValue(true);
     serverWith(HOUSEHOLD);
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -331,7 +334,7 @@ describe('signing in with a passkey instead of a password', () => {
     passkeySupportedMock.mockReturnValue(false);
     serverWith(HOUSEHOLD);
 
-    render(<ProfileGate onSignedIn={vi.fn()} />);
+    renderInACache(<ProfileGate onSignedIn={vi.fn()} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -347,7 +350,7 @@ describe('signing in with a passkey instead of a password', () => {
     passkeyMock.mockResolvedValue({ kind: 'signedIn' });
     serverWith(HOUSEHOLD);
 
-    render(<ProfileGate onSignedIn={onSignedIn} />);
+    renderInACache(<ProfileGate onSignedIn={onSignedIn} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));
@@ -376,7 +379,7 @@ describe('signing in with a passkey instead of a password', () => {
     passkeyMock.mockResolvedValue({ kind: 'cancelled' });
     serverWith(HOUSEHOLD);
 
-    render(<ProfileGate onSignedIn={onSignedIn} />);
+    renderInACache(<ProfileGate onSignedIn={onSignedIn} />);
 
     await arrive();
     await actor.click(screen.getByRole('button', { name: /Marques/ }));

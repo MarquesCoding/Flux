@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { getRealtimeClient } from '@FluxWeb/realtime/getRealtimeClient';
 import { motion, useReducedMotion } from 'motion/react';
 import type { Variants } from 'motion/react';
 import {
@@ -22,9 +21,10 @@ import {
   liquidSpring,
   stillTransition,
 } from '@FluxUI/animations/reveal';
-import { fetchEveryone, signInAsProfile } from '@FluxWeb/profiles/fetchEveryone';
+import { signInAsProfile } from '@FluxWeb/profiles/fetchEveryone';
+import { useQuery } from '@tanstack/react-query';
+import { sessionQueries } from '@FluxWeb/query/sessionQueries';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
-import { readVersion } from '@FluxWeb/session/readVersion';
 import { TwoFactorChallenge } from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge';
 import { isPasskeySupported } from '@FluxWeb/passkeys/isPasskeySupported';
 import { authenticateWithPasskey } from '@FluxWeb/passkeys/authenticateWithPasskey';
@@ -79,13 +79,15 @@ Portrait.displayName = 'Portrait';
  * @param name - What this server calls itself, shown above the faces.
  */
 const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
-  const [everyone, setEveryone] = useState<ViewerProfile[] | null>(null);
+  const asking = useQuery(sessionQueries.everyone());
+  const everyone = asking.data ?? null;
   const [chosen, setChosen] = useState<ViewerProfile | null>(null);
   const [password, setPassword] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUsingPasskey, setIsUsingPasskey] = useState(false);
-  const [version, setVersion] = useState<string | null>(null);
+  const build = useQuery(sessionQueries.version());
+  const version = build.data ?? null;
   const [hasLeftWall, setHasLeftWall] = useState(false);
   const [page, setPage] = useState(0);
   const [at, setAt] = useState(0);
@@ -102,31 +104,12 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   const shown = (everyone ?? []).slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
 
   useEffect(() => {
-    void fetchEveryone().then(setEveryone);
-    void readVersion().then(setVersion);
-
     const timer = setTimeout(() => {
       setIsTitleOver(true);
     }, TITLE_MILLISECONDS);
 
     return () => {
       clearTimeout(timer);
-    };
-  }, []);
-
-  useEffect(() => {
-    const client = getRealtimeClient();
-
-    const reread = () => {
-      void fetchEveryone().then(setEveryone);
-    };
-
-    const release = client.subscribe('profile', reread);
-    const stopResuming = client.onResumed(reread);
-
-    return () => {
-      release();
-      stopResuming();
     };
   }, []);
 
