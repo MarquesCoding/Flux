@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { AdminArea } from './AdminArea';
@@ -295,30 +296,55 @@ const respondWith =
     return Promise.resolve({ ok: true, json: () => Promise.resolve(overview) });
   };
 
-class FakeEventSource {
-  static last: FakeEventSource | null = null;
+class FakeSocket {
+  static last: FakeSocket | null = null;
+
+  static readonly OPEN = 1;
+
+  readyState = 1;
+
+  onopen: (() => void) | null = null;
 
   onmessage: ((event: MessageEvent<string>) => void) | null = null;
+
+  onclose: (() => void) | null = null;
+
+  onerror: (() => void) | null = null;
 
   isClosed = false;
 
   constructor(readonly url: string) {
-    FakeEventSource.last = this;
+    FakeSocket.last = this;
   }
+
+  send() {}
 
   close() {
     this.isClosed = true;
   }
 }
 
+const monitorArrives = (reading: JsonValue) => {
+  FakeSocket.last?.onmessage?.(
+    new MessageEvent('message', {
+      data: JSON.stringify({
+        kind: 'event',
+        topic: 'monitor',
+        atMs: 1,
+        folded: 0,
+        payload: reading,
+      }),
+    }),
+  );
+};
+
 beforeEach(() => {
-  FakeEventSource.last = null;
   fetchMock.mockReset();
   fetchMock.mockImplementation(respondWith());
   resetScanCoordinator();
 
   vi.stubGlobal('fetch', fetchMock);
-  vi.stubGlobal('EventSource', FakeEventSource);
+  vi.stubGlobal('WebSocket', FakeSocket);
 });
 
 afterEach(() => {
@@ -434,10 +460,10 @@ describe('AdminArea', () => {
     expect(await screen.findByText('of 8.0 TB · /media')).toBeInTheDocument();
   });
 
-  it('watches rather than asking every second whether anything happened', () => {
+  it('watches over the one socket rather than a stream of its own', () => {
     render(<AdminArea />);
 
-    expect(FakeEventSource.last?.url).toBe('/api/admin/monitor/stream');
+    expect(FakeSocket.last?.url).toContain('/api/realtime');
   });
 
   it('follows the machine as it changes', async () => {
@@ -447,24 +473,25 @@ describe('AdminArea', () => {
       expect(screen.getByText('42%')).toBeInTheDocument();
     });
 
-    FakeEventSource.last?.onmessage?.(
-      new MessageEvent('message', {
-        data: JSON.stringify({
-          ...MONITOR,
-          resources: { ...MONITOR.resources, systemCpuPercent: 91 },
-        }),
-      }),
-    );
+    monitorArrives({
+      ...MONITOR,
+      resources: { ...MONITOR.resources, systemCpuPercent: 91 },
+    });
 
     expect(await screen.findByText('91%')).toBeInTheDocument();
   });
 
-  it('stops watching once the page is left', () => {
+  it('stops watching once the page is left', async () => {
     const { unmount } = render(<AdminArea />);
 
-    unmount();
+    await waitFor(() => {
+      expect(screen.getByText('42%')).toBeInTheDocument();
+    });
 
-    expect(FakeEventSource.last?.isClosed).toBe(true);
+    unmount();
+    monitorArrives({ ...MONITOR, resources: { ...MONITOR.resources, systemCpuPercent: 91 } });
+
+    expect(screen.queryByText('91%')).not.toBeInTheDocument();
   });
 
   it('shows what the media service is working on', async () => {

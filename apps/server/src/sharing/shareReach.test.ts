@@ -64,6 +64,10 @@ describe('what a guest may never ask for', () => {
     );
   });
 
+  it('refuses the realtime socket, so a link is never a live feed of the household', () => {
+    expect(asking('/api/realtime').kind).toBe('refused');
+  });
+
   it('refuses search', () => {
     expect(asking('/api/libraries/2b6f0cc9-04f0-4f26-9f1a-1d5b2ea92d9f/items?search=x').kind).toBe(
       'refused',
