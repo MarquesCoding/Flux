@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import type { RealtimeEvent, RealtimeTopic } from '@FluxContracts/schemas/Realtime';
+import type { RealtimeClient } from '@FluxWeb/realtime/createRealtimeClient';
 import {
   fetchAdminOverview,
   fetchMonitor,
   watchMonitor,
+  messageSession,
   saveCatalogueKey,
   fetchActiveSessions,
   stopSession,
@@ -450,59 +453,75 @@ describe('removeJobTrigger', () => {
 });
 
 describe('watchMonitor', () => {
-  class FakeEventSource {
-    static last: FakeEventSource | null = null;
+  const createFakeClient = () => {
+    const listeners = new Map<RealtimeTopic, (event: RealtimeEvent) => void>();
 
-    onmessage: ((event: MessageEvent<string>) => void) | null = null;
+    const client: RealtimeClient = {
+      start: () => {},
+      stop: () => {},
+      subscribe: (topic, listen) => {
+        listeners.set(topic, listen);
 
-    isClosed = false;
+        return () => {
+          listeners.delete(topic);
+        };
+      },
+      identify: () => {},
+      onResumed: () => () => {},
+      isLive: () => true,
+    };
 
-    constructor(readonly url: string) {
-      FakeEventSource.last = this;
-    }
+    return {
+      client,
+      watching: () => [...listeners.keys()],
+      arrive: (payload: JsonValue) => {
+        listeners.get('monitor')?.({
+          kind: 'event',
+          topic: 'monitor',
+          atMs: 1,
+          folded: 0,
+          payload,
+        });
+      },
+    };
+  };
 
-    close() {
-      this.isClosed = true;
-    }
-  }
+  it('listens on the one connection rather than opening a stream of its own', () => {
+    const fake = createFakeClient();
 
-  beforeEach(() => {
-    FakeEventSource.last = null;
-    vi.stubGlobal('EventSource', FakeEventSource);
-  });
+    watchMonitor(vi.fn(), fake.client);
 
-  it('listens rather than asking every second whether anything happened', () => {
-    watchMonitor(vi.fn());
-
-    expect(FakeEventSource.last?.url).toBe('/api/admin/monitor/stream');
+    expect(fake.watching()).toStrictEqual(['monitor']);
   });
 
   it('reports every reading', () => {
+    const fake = createFakeClient();
     const onReading = vi.fn();
 
-    watchMonitor(onReading);
-    FakeEventSource.last?.onmessage?.(
-      new MessageEvent('message', { data: JSON.stringify(MONITOR) }),
-    );
+    watchMonitor(onReading, fake.client);
+    fake.arrive(JsonValueSchema.parse(JSON.parse(JSON.stringify(MONITOR))));
 
     expect(onReading).toHaveBeenCalledWith(MONITOR);
   });
 
-  it('ignores a reading it cannot read, rather than throwing on a stream', () => {
+  it('ignores a reading it cannot read, rather than throwing', () => {
+    const fake = createFakeClient();
     const onReading = vi.fn();
 
-    watchMonitor(onReading);
-    FakeEventSource.last?.onmessage?.(new MessageEvent('message', { data: '{"queue":"busy"}' }));
+    watchMonitor(onReading, fake.client);
+    fake.arrive({ queue: 'busy' });
 
     expect(onReading).not.toHaveBeenCalled();
   });
 
   it('stops watching when it is told to', () => {
-    const stop = watchMonitor(vi.fn());
+    const fake = createFakeClient();
+
+    const stop = watchMonitor(vi.fn(), fake.client);
 
     stop();
 
-    expect(FakeEventSource.last?.isClosed).toBe(true);
+    expect(fake.watching()).toStrictEqual([]);
   });
 });
 
@@ -630,5 +649,43 @@ describe('stopping a job and choosing a backend', () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
     await expect(saveHardwareAccel('nvenc')).resolves.toBe(false);
+  });
+});
+
+describe('messageSession', () => {
+  it('tells one tab something', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 204, json: () => Promise.resolve(null) });
+
+    expect(await messageSession('tab-1', 'Tea is ready')).toBe(true);
+  });
+
+  it('sends the message to that tab s own address', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 204, json: () => Promise.resolve(null) });
+
+    await messageSession('tab-1', 'Tea is ready');
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/admin/sessions/tab-1/message');
+  });
+
+  it('carries what is to be said', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 204, json: () => Promise.resolve(null) });
+
+    await messageSession('tab-1', 'Tea is ready');
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      body: JSON.stringify({ text: 'Tea is ready' }),
+    });
+  });
+
+  it('answers false rather than throwing when the tab has gone', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) });
+
+    expect(await messageSession('gone', 'Tea is ready')).toBe(false);
+  });
+
+  it('answers false rather than throwing when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    expect(await messageSession('tab-1', 'Tea is ready')).toBe(false);
   });
 });

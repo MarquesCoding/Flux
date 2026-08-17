@@ -1,50 +1,74 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { watchPresence } from './watchPresence';
 import { onPresenceEvent } from './presenceEvents';
-class FakeEventSource {
-  static last: FakeEventSource | null = null;
+import type { RealtimeClient, Identity } from '@FluxWeb/realtime/createRealtimeClient';
+import type { RealtimeEvent, RealtimeTopic } from '@FluxContracts/schemas/Realtime';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
-  onmessage: ((event: MessageEvent<string>) => void) | null = null;
+const createFakeClient = () => {
+  const listeners = new Map<RealtimeTopic, (event: RealtimeEvent) => void>();
+  const identities: Identity[] = [];
 
-  isClosed = false;
+  const client: RealtimeClient = {
+    start: () => {},
+    stop: () => {},
+    subscribe: (topic, listen) => {
+      listeners.set(topic, listen);
 
-  constructor(readonly url: string) {
-    FakeEventSource.last = this;
-  }
+      return () => {
+        listeners.delete(topic);
+      };
+    },
+    identify: (who) => {
+      identities.push(who);
+    },
+    onResumed: () => () => {},
+    isLive: () => true,
+  };
 
-  close() {
-    this.isClosed = true;
-  }
-}
+  return {
+    client,
+    identities,
+    arrive: (payload: JsonValue) => {
+      listeners.get('presence')?.({
+        kind: 'event',
+        topic: 'presence',
+        atMs: 1,
+        folded: 0,
+        payload,
+      });
+    },
+  };
+};
 
 beforeEach(() => {
   window.sessionStorage.clear();
-  FakeEventSource.last = null;
-  vi.stubGlobal('EventSource', FakeEventSource);
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
 });
 
 describe('watchPresence', () => {
-  it('opens this tab’s own presence connection', () => {
-    watchPresence();
+  it('tells the server which tab this is, so it appears in the sessions list', () => {
+    const fake = createFakeClient();
 
-    expect(FakeEventSource.last?.url).toContain('/api/presence/stream?');
-    expect(FakeEventSource.last?.url).toContain('clientId=');
+    watchPresence(fake.client);
+
+    expect(fake.identities[0]?.clientId).toBeDefined();
+  });
+
+  it('says what sort of device this is, for the list an operator reads', () => {
+    const fake = createFakeClient();
+
+    watchPresence(fake.client);
+
+    expect(fake.identities[0]?.deviceLabel).toBeDefined();
   });
 
   it('passes a stopped event on to anyone listening', () => {
+    const fake = createFakeClient();
     const listener = vi.fn();
 
     onPresenceEvent(listener);
-    watchPresence();
-    FakeEventSource.last?.onmessage?.(
-      new MessageEvent('message', {
-        data: JSON.stringify({ kind: 'stopped', reason: 'This stream was stopped by an admin.' }),
-      }),
-    );
+    watchPresence(fake.client);
+    fake.arrive({ kind: 'stopped', reason: 'This stream was stopped by an admin.' });
 
     expect(listener).toHaveBeenCalledWith({
       kind: 'stopped',
@@ -52,23 +76,38 @@ describe('watchPresence', () => {
     });
   });
 
-  it('ignores a message it cannot read, rather than throwing on the stream', () => {
+  it('passes a resume on, which carries no reason', () => {
+    const fake = createFakeClient();
     const listener = vi.fn();
 
     onPresenceEvent(listener);
-    watchPresence();
-    FakeEventSource.last?.onmessage?.(
-      new MessageEvent('message', { data: JSON.stringify({ kind: 'unknown' }) }),
-    );
+    watchPresence(fake.client);
+    fake.arrive({ kind: 'resumed' });
+
+    expect(listener).toHaveBeenCalledWith({ kind: 'resumed' });
+  });
+
+  it('ignores an event it cannot read, rather than throwing on the connection', () => {
+    const fake = createFakeClient();
+    const listener = vi.fn();
+
+    onPresenceEvent(listener);
+    watchPresence(fake.client);
+    fake.arrive({ kind: 'unknown' });
 
     expect(listener).not.toHaveBeenCalled();
   });
 
-  it('stops watching when it is told to', () => {
-    const stop = watchPresence();
+  it('stops listening when told to, leaving the socket for everything else', () => {
+    const fake = createFakeClient();
+    const listener = vi.fn();
+
+    onPresenceEvent(listener);
+    const stop = watchPresence(fake.client);
 
     stop();
+    fake.arrive({ kind: 'stopped', reason: 'This stream was stopped by an admin.' });
 
-    expect(FakeEventSource.last?.isClosed).toBe(true);
+    expect(listener).not.toHaveBeenCalled();
   });
 });

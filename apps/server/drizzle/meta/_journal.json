@@ -246,6 +246,20 @@
       "when": 1786931244468,
       "tag": "0034_grey_gauntlet",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1786933418420,
+      "tag": "0035_petite_puma",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1786939007399,
+      "tag": "0036_furry_red_skull",
+      "breakpoints": true
     }
   ]
 }

@@ -18,6 +18,7 @@ use crate::keyframes::{
     cut_interval, longest_segment, read_keyframes, safe_segment_lengths, segment_lengths, Cut,
     Keyframes,
 };
+use crate::monitor::{record, LogLevel};
 use crate::playlist::build_vod_playlist;
 use crate::probe::probe_media;
 use crate::transcode_plan::{SessionSpec, VideoAction, MANIFEST_NAME};
@@ -235,18 +236,26 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
 
             let longest = longest_segment(&safe_segment_lengths(&keyframes, cut_seconds));
 
-            eprintln!(
-                "transcode: {} has {unsafe_cuts} keyframes a decoder cannot start at, and \
-avoiding them makes segments up to {longest:.1}s, so it will be encoded rather than copied",
-                spec.input_path
+            record(
+                LogLevel::Info,
+                "transcode",
+                &format!(
+                    "{} has {unsafe_cuts} keyframes a decoder cannot start at, and avoiding \
+them makes segments up to {longest:.1}s, so it will be encoded rather than copied",
+                    spec.input_path
+                ),
             );
 
             equal(false)
         }
         Err(failure) => {
-            eprintln!(
-                "transcode: could not read the keyframes of {}: {failure}",
-                spec.input_path
+            record(
+                LogLevel::Warn,
+                "transcode",
+                &format!(
+                    "could not read the keyframes of {}: {failure}",
+                    spec.input_path
+                ),
             );
 
             equal(true)

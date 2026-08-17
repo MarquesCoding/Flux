@@ -364,6 +364,7 @@ describe('giving a profile an account of its own', () => {
       name: 'Dan',
       colour: '#e8a33a',
       avatar: { kind: 'initial' },
+      askStillWatchingAfter: 4,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };

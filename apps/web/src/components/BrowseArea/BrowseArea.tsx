@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
+import { getRealtimeClient } from '@FluxWeb/realtime/getRealtimeClient';
 import { collapseToShows } from '@FluxWeb/library/pickFeatured';
 import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
 import { GridSizeChooser } from '@FluxWeb/components/GridSizeChooser/GridSizeChooser';
@@ -115,6 +116,22 @@ const BrowseArea = ({
 
   useEffect(() => {
     void read();
+  }, [read]);
+
+  useEffect(() => {
+    const client = getRealtimeClient();
+
+    const reread = () => {
+      void read();
+    };
+
+    const release = client.subscribe('media', reread);
+    const stopResuming = client.onResumed(reread);
+
+    return () => {
+      release();
+      stopResuming();
+    };
   }, [read]);
 
   return (

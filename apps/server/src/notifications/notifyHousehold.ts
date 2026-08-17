@@ -12,6 +12,7 @@ type NotifyHouseholdOptions = {
   vapid: VapidKeys | null;
   send?: WebPushSender;
   onProblem?: (reason: string) => void;
+  announce?: (userIds: readonly string[]) => void;
 };
 
 /**
@@ -27,6 +28,7 @@ type NotifyHouseholdOptions = {
  * @param vapid The push identity, or null where the server has none.
  * @param send How to reach a push service, so a test need not.
  * @param onProblem Told when something could not be delivered.
+ * @param announce Told who now has something waiting, so open tabs can hear about it at once.
  */
 const notifyHousehold = async ({
   store,
@@ -37,11 +39,16 @@ const notifyHousehold = async ({
   vapid,
   send,
   onProblem,
+  announce,
 }: NotifyHouseholdOptions): Promise<void> => {
   try {
     const wantInApp = await store.listWanting(event, 'inApp');
 
     await store.notify(wantInApp, { event, title, body, link });
+
+    if (wantInApp.length > 0) {
+      announce?.(wantInApp);
+    }
 
     if (vapid === null) {
       return;

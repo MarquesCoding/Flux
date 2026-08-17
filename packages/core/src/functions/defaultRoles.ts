@@ -30,6 +30,7 @@ const DEFAULT_ROLES: readonly DefaultRole[] = [
       'streaming.view',
       'streaming.stop',
       'streaming.pause',
+      'streaming.message',
       'sharing.link',
       'sharing.party',
       'download.media',

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { PROFILE_COLOURS } from '@FluxContracts/schemas/ViewerProfile';
+import { STILL_WATCHING_DEFAULT } from '@FluxContracts/schemas/StillWatching';
 import { drawAvatar, isAvatarStyle } from './drawAvatar';
 import type { ProfileService } from './ProfileService';
 import type { Avatar, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
@@ -46,6 +47,7 @@ const createMemoryProfileService = (
       name,
       colour: PROFILE_COLOURS.find((known) => known === colour) ?? DEFAULT_COLOUR,
       avatar,
+      askStillWatchingAfter: STILL_WATCHING_DEFAULT,
       createdAt: stamp(),
       updatedAt: stamp(),
     };

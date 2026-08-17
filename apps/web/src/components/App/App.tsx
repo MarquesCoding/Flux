@@ -30,11 +30,19 @@ import {
   unsubscribeFromPush,
 } from '@FluxWeb/notifications/subscribeToPush';
 import type { Inbox } from '@FluxWeb/notifications/fetchNotifications';
+import { getRealtimeClient } from '@FluxWeb/realtime/getRealtimeClient';
 import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer';
 import { MediaDetailDialog } from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog';
 import { PersonDialog } from '@FluxWeb/components/PersonDialog/PersonDialog';
 import { ShareArea } from '@FluxWeb/components/ShareArea/ShareArea';
 import { ShareDialog } from '@FluxWeb/components/ShareDialog/ShareDialog';
+import { StillWatchingDialog } from '@FluxWeb/components/StillWatchingDialog/StillWatchingDialog';
+import { countCarriedOn } from '@FluxWeb/playback/countCarriedOn';
+import { decideWhatFollows } from '@FluxWeb/playback/decideWhatFollows';
+import {
+  STILL_WATCHING_ANSWER_SECONDS,
+  STILL_WATCHING_OFF,
+} from '@FluxContracts/schemas/StillWatching';
 import { AppShell } from '@FluxWeb/components/AppShell/AppShell';
 import { SplashScreen } from '@FluxUI/SplashScreen';
 import { AdminArea } from '@FluxWeb/components/AdminArea/AdminArea';
@@ -89,6 +97,10 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [guestPlaying, setGuestPlaying] = useState<MediaSummary | null>(null);
   const [guestReached, setGuestReached] = useState<Map<string, number>>(new Map());
   const [watcher, setWatcher] = useState<ViewerProfile | null>(null);
+  const [askingAbout, setAskingAbout] = useState<MediaSummary | null>(null);
+
+  const carriedOnRef = useRef(0);
+  const carriedOnToRef = useRef<string | null>(null);
 
   useEffect(() => {
     const chosen = readCurrentProfile();
@@ -105,6 +117,15 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   }, [user]);
   const [known, setKnown] = useState(new Map<string, MediaSummary>());
   const { place, go, replace } = usePlace();
+
+  useEffect(() => {
+    carriedOnRef.current = countCarriedOn({
+      nowPlaying: place.playing,
+      carriedOnTo: carriedOnToRef.current,
+      carriedOn: carriedOnRef.current,
+    });
+  }, [place.playing]);
+
   const prefersReducedMotion = useReducedMotion();
 
   const [surpriseKinds, setSurpriseKinds] = useState<LibraryKind[]>([]);
@@ -132,6 +153,22 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
     return () => {
       abandoned = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const client = getRealtimeClient();
+
+    const reread = () => {
+      void fetchNotifications().then(setInbox);
+    };
+
+    const release = client.subscribe('notifications', reread);
+    const stopResuming = client.onResumed(reread);
+
+    return () => {
+      release();
+      stopResuming();
     };
   }, []);
 
@@ -477,15 +514,27 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             });
           }}
           onEnded={() => {
-            const following = nextEpisode([...known.values()], playing);
+            const decided = decideWhatFollows({
+              following: nextEpisode([...known.values()], playing),
+              carriedOn: carriedOnRef.current,
+              askAfter: watcher?.askStillWatchingAfter ?? STILL_WATCHING_OFF,
+            });
 
-            if (following === null) {
+            if (decided.kind === 'nothing') {
               go({ playing: null, inspecting: playing.id });
 
               return;
             }
 
-            go({ playing: following.id, inspecting: null });
+            if (decided.kind === 'ask') {
+              setAskingAbout(decided.episode);
+
+              return;
+            }
+
+            carriedOnRef.current += 1;
+            carriedOnToRef.current = decided.episode.id;
+            go({ playing: decided.episode.id, inspecting: null });
           }}
           onClose={() => {
             go({ playing: null, inspecting: playing.id });
@@ -652,6 +701,31 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
         isOpen={sharing !== null}
         onClose={() => {
           setSharing(null);
+        }}
+      />
+
+      <StillWatchingDialog
+        isOpen={askingAbout !== null}
+        title={askingAbout?.title ?? ''}
+        secondsToAnswer={STILL_WATCHING_ANSWER_SECONDS}
+        onCarryOn={() => {
+          const following = askingAbout;
+
+          setAskingAbout(null);
+
+          if (following !== null) {
+            carriedOnRef.current = 0;
+            carriedOnToRef.current = null;
+            go({ playing: following.id, inspecting: null });
+          }
+        }}
+        onGiveUp={() => {
+          const wasPlaying = place.playing;
+
+          setAskingAbout(null);
+          carriedOnRef.current = 0;
+          carriedOnToRef.current = null;
+          go({ playing: null, inspecting: wasPlaying });
         }}
       />
 

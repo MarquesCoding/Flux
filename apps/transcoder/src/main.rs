@@ -2,6 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use flux_transcoder::monitor::{record, LogLevel};
 use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
 use flux_transcoder::{capability, probe};
@@ -103,7 +104,11 @@ fn spawn_reaper(registry: SessionRegistry) {
             let collected = registry.collect_idle().await;
 
             if collected > 0 {
-                println!("reaped {collected} idle session(s)");
+                record(
+                    LogLevel::Info,
+                    "sessions",
+                    &format!("reaped {collected} idle session(s)"),
+                );
             }
         }
     });
@@ -134,9 +139,13 @@ fn spawn_sweeper(registry: SessionRegistry) {
             let report = flux_transcoder::session_sweep::evict(&root, &live, &budget).await;
 
             if report.removed > 0 {
-                println!(
-                    "reclaimed {} spent transcode(s), {} bytes",
-                    report.removed, report.freed_bytes
+                record(
+                    LogLevel::Info,
+                    "cache",
+                    &format!(
+                        "reclaimed {} spent transcode(s), {} bytes",
+                        report.removed, report.freed_bytes
+                    ),
                 );
             }
 
@@ -146,21 +155,26 @@ fn spawn_sweeper(registry: SessionRegistry) {
 }
 
 async fn serve(registry: SessionRegistry, ffprobe: String) {
+    let journal = flux_transcoder::monitor::Journal::new();
+
+    flux_transcoder::monitor::install_journal(journal.clone());
+
     let state = AppState {
         registry: registry.clone(),
         ffprobe,
         trickplay: flux_transcoder::trickplay::TrickplayRegistry::new(),
         previews: flux_transcoder::preview::PreviewRegistry::new(),
-        monitor: flux_transcoder::monitor::Monitor::new(flux_transcoder::monitor::Journal::new()),
+        monitor: flux_transcoder::monitor::Monitor::new(journal),
         queue: flux_transcoder::queue::WorkQueue::new(background_jobs()),
         media_roots: env::var("FLUX_MEDIA_ROOTS")
             .map(|value| value.split(':').map(PathBuf::from).collect())
             .unwrap_or_default(),
     };
 
-    eprintln!(
-        "flux-transcoder running {} background jobs at once",
-        background_jobs()
+    record(
+        LogLevel::Info,
+        "service",
+        &format!("running {} background jobs at once", background_jobs()),
     );
 
     state.monitor.watch_graphics();
@@ -175,7 +189,11 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
 
     let result = match listen_target(&from_env) {
         ListenTarget::Address(address) => {
-            println!("flux-transcoder listening on {address}");
+            record(
+                LogLevel::Info,
+                "service",
+                &format!("listening on {address}"),
+            );
 
             match tokio::net::TcpListener::bind(&address).await {
                 Ok(listener) => axum::serve(listener, router).await,
@@ -189,7 +207,7 @@ async fn serve(registry: SessionRegistry, ffprobe: String) {
         ListenTarget::Socket(socket) => {
             let _ = tokio::fs::remove_file(&socket).await;
 
-            println!("flux-transcoder listening on {socket}");
+            record(LogLevel::Info, "service", &format!("listening on {socket}"));
 
             match tokio::net::UnixListener::bind(&socket) {
                 Ok(listener) => axum::serve(listener, router).await,

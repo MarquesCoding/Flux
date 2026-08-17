@@ -21,6 +21,7 @@ use tokio::process::Command;
 use tokio::sync::Mutex;
 
 use crate::integrity::decodes;
+use crate::monitor::{record, LogLevel};
 
 /// Written only when every sheet is on disk.
 ///
@@ -524,9 +525,13 @@ pub async fn generate(
             return Err(failure);
         }
 
-        eprintln!(
-            "trickplay: accelerated sheets for {} failed, retrying in software: {failure}",
-            request.input_path
+        record(
+            LogLevel::Warn,
+            "trickplay",
+            &format!(
+                "accelerated sheets for {} failed, retrying in software: {failure}",
+                request.input_path
+            ),
         );
 
         attempt = None;

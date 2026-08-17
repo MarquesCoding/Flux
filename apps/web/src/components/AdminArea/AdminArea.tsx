@@ -9,6 +9,7 @@ import { TabPanel } from '@FluxUI/TabPanel';
 import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { JobsPanel } from './components/JobsPanel/JobsPanel';
 import { ActivityPanel } from './components/ActivityPanel/ActivityPanel';
+import { LogsPanel } from './components/LogsPanel/LogsPanel';
 import { LibrariesPanel } from './components/LibrariesPanel/LibrariesPanel';
 import { MediaPanel } from './components/MediaPanel/MediaPanel';
 import { MatchPicker } from './components/MatchPicker/MatchPicker';
@@ -35,6 +36,7 @@ import {
   watchActiveSessions,
   stopSession,
   pauseSession,
+  messageSession,
   resumeSession,
   fetchJobDefinitions,
   fetchJobSchedules,
@@ -108,6 +110,7 @@ const SECTIONS = [
     items: [
       { id: 'settings', label: 'Settings' },
       { id: 'webhooks', label: 'Webhooks' },
+      { id: 'logs', label: 'Logs' },
     ],
   },
 ] as const;
@@ -355,6 +358,16 @@ const AdminArea = ({
     try {
       await pauseSession(clientId);
       setSessions(await fetchActiveSessions());
+    } finally {
+      setBusyClientId(null);
+    }
+  };
+
+  const tellViewer = async (clientId: string, text: string) => {
+    setBusyClientId(clientId);
+
+    try {
+      await messageSession(clientId, text);
     } finally {
       setBusyClientId(null);
     }
@@ -654,6 +667,7 @@ const AdminArea = ({
                 onResume={(clientId) => {
                   void resumeStream(clientId);
                 }}
+                onMessage={tellViewer}
               />
             </TabPanel>
 
@@ -829,6 +843,19 @@ const AdminArea = ({
                   );
                 }}
               />
+            </TabPanel>
+
+            <TabPanel
+              value="logs"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <LogsPanel />
             </TabPanel>
           </section>
         </motion.div>

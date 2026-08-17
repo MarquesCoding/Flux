@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getRealtimeClient } from '@FluxWeb/realtime/getRealtimeClient';
 import { motion, useReducedMotion } from 'motion/react';
 import type { Variants } from 'motion/react';
 import {
@@ -110,6 +111,22 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
 
     return () => {
       clearTimeout(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    const client = getRealtimeClient();
+
+    const reread = () => {
+      void fetchEveryone().then(setEveryone);
+    };
+
+    const release = client.subscribe('profile', reread);
+    const stopResuming = client.onResumed(reread);
+
+    return () => {
+      release();
+      stopResuming();
     };
   }, []);
 

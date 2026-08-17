@@ -12,6 +12,7 @@ import { createProfile, saveProfile, uploadProfilePhoto } from '@FluxWeb/profile
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import type { Avatar, AvatarStyle, ProfileColour } from '@FluxContracts/schemas/ViewerProfile';
 import type { ProfileEditorProps } from './ProfileEditor.types';
+import { STILL_WATCHING_DEFAULT, STILL_WATCHING_OFF } from '@FluxContracts/schemas/StillWatching';
 
 const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/webm,video/mp4';
 
@@ -25,6 +26,8 @@ const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/
  */
 const previewUrl = (style: AvatarStyle, seed: string): string =>
   `/api/profiles/avatars/${style}?seed=${encodeURIComponent(seed)}`;
+
+const ASK_AFTER_CHOICES = [STILL_WATCHING_OFF, 2, 3, 4, 6, 8] as const;
 
 /**
  * Creates or changes a profile: what somebody is called, and whether their face is a drawing derived
@@ -43,6 +46,9 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
     profile?.avatar.kind === 'drawn' ? profile.avatar.seed : (profile?.id ?? 'flux'),
   );
   const [photo, setPhoto] = useState<File | null>(null);
+  const [askAfter, setAskAfter] = useState(
+    profile?.askStillWatchingAfter ?? STILL_WATCHING_DEFAULT,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   const trimmed = name.trim();
@@ -56,7 +62,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
     const saved =
       profile === null
         ? await createProfile(trimmed, colour, chosen)
-        : await saveProfile(profile.id, trimmed, colour, chosen);
+        : await saveProfile(profile.id, trimmed, colour, chosen, askAfter);
 
     if (saved && photo !== null && profile !== null) {
       await uploadProfilePhoto(profile.id, photo);
@@ -90,6 +96,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               name: trimmed === '' ? '?' : trimmed,
               colour,
               avatar,
+              askStillWatchingAfter: askAfter,
               createdAt: profile?.createdAt ?? '',
               updatedAt: profile?.updatedAt ?? '',
             }}
@@ -224,6 +231,35 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
             A photograph can be added once this profile exists.
           </p>
         )}
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className="pb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
+          Are you still watching?
+        </legend>
+
+        <p className="text-xs leading-relaxed text-text-muted">
+          After this many episodes carry on by themselves, Flux asks before playing another — so a
+          night asleep in front of the telly does not mark half a series as watched.
+        </p>
+
+        <ul className="flex flex-wrap gap-2">
+          {ASK_AFTER_CHOICES.map((choice) => (
+            <li key={choice}>
+              <Button
+                size="sm"
+                isPill
+                variant={askAfter === choice ? 'glossy' : 'ghost'}
+                isActive={askAfter === choice}
+                onClick={() => {
+                  setAskAfter(choice);
+                }}
+              >
+                {choice === STILL_WATCHING_OFF ? 'Never ask' : choice.toString()}
+              </Button>
+            </li>
+          ))}
+        </ul>
       </fieldset>
 
       <div className="flex items-center gap-2">

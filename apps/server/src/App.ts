@@ -89,12 +89,14 @@ import {
 } from '@FluxServer/routes/RatingRoute';
 import {
   adminOverviewRoute,
+  adminLogsRoute,
   adminMeasureStorageRoute,
   searchCatalogueRoute,
   adminSettingsRoute,
   adminSessionsRoute,
   adminStopSessionRoute,
   adminPauseSessionRoute,
+  adminMessageSessionRoute,
   adminResumeSessionRoute,
   adminJobDefinitionsRoute,
   adminRunJobRoute,
@@ -210,6 +212,8 @@ import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
 import type { PermissionService } from '@FluxServer/auth/PermissionService';
 import type { ApiKeyService } from '@FluxServer/auth/ApiKeyService';
 import type { WebhookStore } from '@FluxServer/webhooks/WebhookStore';
+import type { RealtimePublisher } from '@FluxServer/realtime/RealtimePublisher';
+import type { LogStore } from '@FluxServer/logging/Logger';
 import {
   listHistoryRoute,
   forgetViewingRoute,
@@ -354,13 +358,14 @@ type CreateAppOptions = {
   artworkUsage?: () => { count: number; bytes: number; atMs: number } | null;
   libraryBytes?: () => Promise<number>;
   measureStorage?: () => Promise<StorageCount>;
-  monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>;
   readImage?: (url: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>;
   isTranscoderReachable?: () => Promise<boolean>;
   transcoderAddress?: string;
   listRunningJobs?: () => RunningJob[];
   cancelJob?: (jobId: string) => Promise<boolean>;
   searchCatalogue?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
+  realtime?: RealtimePublisher;
+  logs?: LogStore;
 };
 
 /**
@@ -391,7 +396,6 @@ const createApp = ({
   libraryBytes,
   measureStorage,
   monitor,
-  monitorStream,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
   transcoderAddress = '',
@@ -413,6 +417,8 @@ const createApp = ({
   readBanReason,
   inviteAccount,
   editAccount,
+  realtime,
+  logs,
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
@@ -940,6 +946,16 @@ const createApp = ({
   };
 
   /**
+   * Tells every tab on an account that its profiles have changed, so a rename or a new picture shows
+   * on the other devices that person is signed in on rather than waiting for a reload.
+   *
+   * @param accountId - Whose profiles changed.
+   */
+  const announceProfiles = (accountId: string): void => {
+    realtime?.publish('profile', { changed: true }, { kind: 'accounts', accountIds: [accountId] });
+  };
+
+  /**
    * Who is signed in, for the routes that act on their own account.
    */
   const readAccount = async (headers: Headers) =>
@@ -1298,6 +1314,8 @@ const createApp = ({
         ...(avatar === undefined ? {} : { avatar }),
       });
 
+      announceProfiles(account.id);
+
       return context.json(created, 201);
     } catch (error) {
       return context.json(
@@ -1314,13 +1332,18 @@ const createApp = ({
       return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    const { name, colour, avatar } = context.req.valid('json');
+    const { name, colour, avatar, askStillWatchingAfter } = context.req.valid('json');
 
     const changed = await profiles.rename(account.id, context.req.valid('param').profileId, {
       name,
       colour,
       ...(avatar === undefined ? {} : { avatar }),
+      ...(askStillWatchingAfter === undefined ? {} : { askStillWatchingAfter }),
     });
+
+    if (changed) {
+      announceProfiles(account.id);
+    }
 
     return changed
       ? context.body(null, 204)
@@ -1335,6 +1358,10 @@ const createApp = ({
     }
 
     const removed = await profiles.remove(account.id, context.req.valid('param').profileId);
+
+    if (removed) {
+      announceProfiles(account.id);
+    }
 
     return removed
       ? context.body(null, 204)
@@ -1438,9 +1465,25 @@ const createApp = ({
       contentType: context.req.header('content-type') ?? '',
     });
 
+    if (saved) {
+      announceProfiles(account.id);
+    }
+
     return saved
       ? context.body(null, 204)
       : context.json({ error: 'That picture could not be used.' }, 400);
+  });
+
+  app.openapi(adminLogsRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'server.logs'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    if (logs === undefined) {
+      return context.json({ records: [], total: 0 }, 200);
+    }
+
+    return context.json(await logs.read(context.req.valid('json')), 200);
   });
 
   app.openapi(adminMeasureStorageRoute, async (context) => {
@@ -1532,39 +1575,6 @@ const createApp = ({
     return context.json(presence.list(), 200);
   });
 
-  app.get('/api/admin/sessions/stream', async (context) => {
-    if (!(await requires(context.req.raw.headers, 'streaming.view'))) {
-      return context.json({ error: 'That is for administrators.' }, 403);
-    }
-
-    const encoder = new TextEncoder();
-
-    const stream = new ReadableStream<Uint8Array>({
-      start: (controller) => {
-        const push = () => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(presence.list())}\n\n`));
-        };
-
-        push();
-
-        const stopWatching = presence.watch(push);
-
-        context.req.raw.signal.addEventListener('abort', () => {
-          stopWatching();
-          controller.close();
-        });
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        'content-type': 'text/event-stream',
-        'cache-control': 'no-cache',
-        connection: 'keep-alive',
-      },
-    });
-  });
-
   app.openapi(adminStopSessionRoute, async (context) => {
     if (!(await requires(context.req.raw.headers, 'streaming.stop'))) {
       return context.json({ error: 'That is for administrators.' }, 403);
@@ -1599,6 +1609,20 @@ const createApp = ({
 
     if (!presence.pause(clientId, 'This stream was paused by an admin.')) {
       return context.json({ error: 'That tab is not watching anything.' }, 409);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(adminMessageSessionRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'streaming.message'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { clientId } = context.req.valid('param');
+
+    if (!presence.message(clientId, context.req.valid('json').text)) {
+      return context.json({ error: 'That tab is not open.' }, 404);
     }
 
     return context.body(null, 204);
@@ -2324,26 +2348,6 @@ const createApp = ({
     });
   });
 
-  app.get('/api/admin/monitor/stream', async (context) => {
-    if (!(await requires(context.req.raw.headers, 'server.monitor'))) {
-      return context.json({ error: 'That is for administrators.' }, 403);
-    }
-
-    const stream = await monitorStream?.().catch(() => null);
-
-    if (stream === null || stream === undefined) {
-      return context.json({ error: 'The media service did not answer.' }, 503);
-    }
-
-    return new Response(stream, {
-      headers: {
-        'content-type': 'text/event-stream',
-        'cache-control': 'no-cache',
-        connection: 'keep-alive',
-      },
-    });
-  });
-
   app.openapi(listProgressRoute, async (context) => {
     const profileId = await readProfileId(context.req.raw.headers);
 
@@ -2801,68 +2805,6 @@ const createApp = ({
     presence.stopPlayback(context.req.valid('param').clientId);
 
     return context.body(null, 204);
-  });
-
-  app.get('/api/presence/stream', async (context) => {
-    const account = await readAccount(context.req.raw.headers);
-
-    if (account === null) {
-      return context.json({ error: 'Nobody is signed in.' }, 401);
-    }
-
-    const clientId = context.req.query('clientId');
-    const deviceLabel = context.req.query('deviceLabel') ?? 'Unknown device';
-
-    if (clientId === undefined) {
-      return context.json({ error: 'A clientId is required.' }, 400);
-    }
-
-    const profileId = await readProfileId(context.req.raw.headers);
-    const ownProfiles = profileId === null ? [] : await (profiles?.list(account.id) ?? []);
-    const profileName = ownProfiles.find((profile) => profile.id === profileId)?.name ?? null;
-
-    let close = () => {};
-
-    let isClosed = false;
-
-    const stream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        const encoder = new TextEncoder();
-        const ping = setInterval(() => {
-          controller.enqueue(encoder.encode(': ping\n\n'));
-        }, 20000);
-
-        presence.connect(clientId, profileId, profileName, deviceLabel, (event) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        });
-
-        close = () => {
-          if (isClosed) {
-            return;
-          }
-
-          isClosed = true;
-          clearInterval(ping);
-          presence.disconnect(clientId);
-          controller.close();
-        };
-      },
-      cancel() {
-        close();
-      },
-    });
-
-    context.req.raw.signal.addEventListener('abort', () => {
-      close();
-    });
-
-    return new Response(stream, {
-      headers: {
-        'content-type': 'text/event-stream',
-        'cache-control': 'no-cache',
-        connection: 'keep-alive',
-      },
-    });
   });
 
   app.doc('/api/openapi.json', {

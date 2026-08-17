@@ -4,6 +4,7 @@ import { extname, join } from 'node:path';
 import { and, asc, eq } from 'drizzle-orm';
 import { drawAvatar, isAvatarStyle } from './drawAvatar';
 import { viewerProfile, user } from '@FluxServer/db/Schema';
+import { STILL_WATCHING_DEFAULT, StillWatchingSchema } from '@FluxContracts/schemas/StillWatching';
 import { ProfileColourSchema, PROFILE_COLOURS } from '@FluxContracts/schemas/ViewerProfile';
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { ProfileService } from './ProfileService';
@@ -38,6 +39,7 @@ type ProfileRow = {
   avatarStyle: string | null;
   avatarSeed: string | null;
   photoPath: string | null;
+  askStillWatchingAfter: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -86,6 +88,9 @@ const toProfile = (row: ProfileRow): ViewerProfile => ({
   name: row.name,
   colour: readColour(row.colour),
   avatar: readAvatarChoice(row),
+  askStillWatchingAfter: StillWatchingSchema.catch(STILL_WATCHING_DEFAULT).parse(
+    row.askStillWatchingAfter,
+  ),
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
 });
@@ -122,6 +127,7 @@ const COLUMNS = {
   avatarStyle: viewerProfile.avatarStyle,
   avatarSeed: viewerProfile.avatarSeed,
   photoPath: viewerProfile.photoPath,
+  askStillWatchingAfter: viewerProfile.askStillWatchingAfter,
   createdAt: viewerProfile.createdAt,
   updatedAt: viewerProfile.updatedAt,
 };
@@ -177,6 +183,7 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
       name: created.name,
       colour: readColour(created.colour),
       avatar: { kind: 'initial' },
+      askStillWatchingAfter: STILL_WATCHING_DEFAULT,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -208,6 +215,7 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
         name: created.name,
         colour: created.colour,
         avatar: { kind: 'initial' },
+        askStillWatchingAfter: STILL_WATCHING_DEFAULT,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -219,6 +227,9 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
       const changed = await db
         .update(viewerProfile)
         .set({
+          ...(request.askStillWatchingAfter === undefined
+            ? {}
+            : { askStillWatchingAfter: request.askStillWatchingAfter }),
           name: request.name,
           colour: request.colour,
           updatedAt: new Date(),
@@ -289,6 +300,7 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
                 avatarStyle: found.avatarStyle,
                 avatarSeed: found.avatarSeed,
                 photoPath: found.photoPath,
+                askStillWatchingAfter: found.askStillWatchingAfter,
                 createdAt: found.createdAt,
                 updatedAt: found.updatedAt,
               }),
