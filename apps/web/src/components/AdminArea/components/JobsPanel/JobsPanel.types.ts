@@ -15,6 +15,7 @@ type JobsPanelProps = {
   monitor: Monitor | null;
   viewingJobKind: string | null;
   schedules: Map<string, JobTrigger[]>;
+  schedulesTimezone?: string | null;
   onRun: (kind: string) => void;
   onStop: (kind: string) => void;
   onOpenSchedule: (kind: string) => void;
