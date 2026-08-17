@@ -2,7 +2,9 @@ import { FromClientSchema } from '@FluxContracts/schemas/Realtime';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import type { FromServer } from '@FluxContracts/schemas/Realtime';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { handlePartyMessage, tellEveryone } from '@FluxServer/parties/handlePartyMessage';
 import type { RealtimeRegistry } from './createRealtimeRegistry';
+import type { PartyBinding } from '@FluxServer/parties/handlePartyMessage';
 
 type RealtimeSocket = {
   send: (raw: string) => void;
@@ -43,6 +45,7 @@ type HandlerOptions = {
   newId: () => string;
   now: () => number;
   presence?: PresenceBinding;
+  party?: PartyBinding;
 };
 
 type RealtimeHandler = {
@@ -94,10 +97,12 @@ const createRealtimeHandler = ({
   newId,
   now,
   presence,
+  party,
 }: HandlerOptions): RealtimeHandler => ({
   open: (who, socket) => {
     const id = newId();
     let claimed: string | null = null;
+    let myName = 'Someone';
 
     const write = (message: FromServer) => {
       socket.send(JSON.stringify(message));
@@ -134,6 +139,31 @@ const createRealtimeHandler = ({
           return;
         }
 
+        if (read.data.kind === 'clockAsk') {
+          write({ kind: 'clockTell', sentAtMs: read.data.sentAtMs, serverAtMs: now() });
+
+          return;
+        }
+
+        if (read.data.kind.startsWith('party')) {
+          if (party !== undefined) {
+            handlePartyMessage(
+              read.data,
+              {
+                connectionId: id,
+                accountId: who.accountId,
+                profileId: who.profileId,
+                name: myName,
+              },
+              write,
+              party,
+              now,
+            );
+          }
+
+          return;
+        }
+
         if (read.data.kind !== 'identify') {
           return;
         }
@@ -148,21 +178,19 @@ const createRealtimeHandler = ({
 
         claimed = clientId;
 
-        presence.connect(
-          clientId,
-          profileId,
-          await presence.nameOf(who.accountId, profileId),
-          deviceLabel ?? 'Unknown device',
-          (event) => {
-            write({
-              kind: 'event',
-              topic: 'presence',
-              atMs: now(),
-              folded: 0,
-              payload: asPayload(event),
-            });
-          },
-        );
+        const named = await presence.nameOf(who.accountId, profileId);
+
+        myName = named ?? myName;
+
+        presence.connect(clientId, profileId, named, deviceLabel ?? 'Unknown device', (event) => {
+          write({
+            kind: 'event',
+            topic: 'presence',
+            atMs: now(),
+            folded: 0,
+            payload: asPayload(event),
+          });
+        });
       },
 
       ping: () => {
@@ -172,6 +200,10 @@ const createRealtimeHandler = ({
       close: () => {
         if (claimed !== null) {
           presence?.disconnect(claimed);
+        }
+
+        if (party !== undefined) {
+          tellEveryone(party, party.registry.leave(id));
         }
 
         registry.close(id);

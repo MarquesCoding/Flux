@@ -13,6 +13,7 @@ import { createRealtimeClock } from '@FluxServer/realtime/createRealtimeClock';
 import { createEntitlements } from '@FluxServer/realtime/createEntitlements';
 import { watchPermissionChanges } from '@FluxServer/realtime/watchPermissionChanges';
 import { relayMonitor } from '@FluxServer/realtime/relayMonitor';
+import { createPartyRegistry } from '@FluxServer/parties/createPartyRegistry';
 import { createLogger } from '@FluxServer/logging/createLogger';
 import { createDatabaseLogStore } from '@FluxServer/logging/createDatabaseLogStore';
 import { asJsonLog } from '@FluxServer/logging/asJsonLog';
@@ -1231,10 +1232,21 @@ for (const kind of await schedules.sync()) {
   log.info('server', `schedule: running ${kind} on startup`);
 }
 
+const parties = createPartyRegistry(() => randomUUID());
+
 const realtimeHandler = createRealtimeHandler({
   registry: realtime,
   newId: () => randomUUID(),
   now: () => Date.now(),
+  party: {
+    registry: parties,
+    tell: (connectionIds, payload) => {
+      realtime.publish('party', payload, {
+        kind: 'connections',
+        connectionIds: [...connectionIds],
+      });
+    },
+  },
   presence: {
     connect: (clientId, profileId, profileName, deviceLabel, send) => {
       presence.connect(clientId, profileId, profileName, deviceLabel, send);
