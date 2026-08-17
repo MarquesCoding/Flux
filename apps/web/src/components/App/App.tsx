@@ -1,6 +1,5 @@
 import type { MoodLight } from '@FluxUI/MoodBackground.types';
 import type { ShowSummary } from '@FluxContracts/schemas/Show';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { groupVariants } from '@FluxUI/animations/reveal';
@@ -15,22 +14,16 @@ import { showSlug } from '@FluxCore/functions/showSlug';
 import { useFavourites } from '@FluxWeb/library/useFavourites';
 import { useRatings } from '@FluxWeb/library/useRatings';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
-import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles';
 import { readCurrentProfile } from '@FluxWeb/profiles/currentProfile';
 import { pickAnything } from '@FluxWeb/library/pickAnything';
 import { NotificationBell } from '@FluxWeb/components/NotificationBell/NotificationBell';
-import {
-  fetchNotificationSettings,
-  fetchNotifications,
-  markNotificationsRead,
-} from '@FluxWeb/notifications/fetchNotifications';
+import { markNotificationsRead } from '@FluxWeb/notifications/fetchNotifications';
+import type { Inbox } from '@FluxWeb/notifications/fetchNotifications';
 import {
   canReceivePush,
   subscribeToPush,
   unsubscribeFromPush,
 } from '@FluxWeb/notifications/subscribeToPush';
-import type { Inbox } from '@FluxWeb/notifications/fetchNotifications';
-import { getRealtimeClient } from '@FluxWeb/realtime/getRealtimeClient';
 import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer';
 import { MediaDetailDialog } from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog';
 import { PersonDialog } from '@FluxWeb/components/PersonDialog/PersonDialog';
@@ -38,7 +31,6 @@ import { ShareArea } from '@FluxWeb/components/ShareArea/ShareArea';
 import { ShareDialog } from '@FluxWeb/components/ShareDialog/ShareDialog';
 import { StillWatchingDialog } from '@FluxWeb/components/StillWatchingDialog/StillWatchingDialog';
 import { PartyMenu } from '@FluxWeb/components/PartyMenu/PartyMenu';
-import { fetchEveryone } from '@FluxWeb/profiles/fetchEveryone';
 import { PartyPasswordDialog } from '@FluxWeb/components/PartyPasswordDialog/PartyPasswordDialog';
 import { whereToBegin, WAIT_FOR_THE_ROOM_MS } from '@FluxWeb/party/whereToBegin';
 import { invitationTo } from '@FluxWeb/party/invitationTo';
@@ -62,16 +54,17 @@ import { watchPresence } from '@FluxWeb/presence/watchPresence';
 import { watchedFraction, FINISHED_WITHIN_SECONDS } from '@FluxContracts/schemas/WatchProgress';
 import { resumeFor } from '@FluxWeb/playback/resumeFor';
 import type { ShellSection } from '@FluxWeb/components/AppShell/AppShell.types';
-import { fetchSession } from '@FluxWeb/session/fetchSession';
 import { signOut } from '@FluxWeb/session/signOut';
-import { SetupStatusSchema } from '@FluxContracts/schemas/Setup';
-import type { SetupStatus } from '@FluxContracts/schemas/Setup';
-import type { SessionUser } from '@FluxContracts/schemas/Session';
-import type { LibraryKind, MediaSummary } from '@FluxContracts/schemas/Library';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { sessionQueries } from '@FluxWeb/query/sessionQueries';
+import { notificationQueries } from '@FluxWeb/query/notificationQueries';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { useFreshFromTheSocket } from '@FluxWeb/query/useFreshFromTheSocket';
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
 import type { AppProps } from './App.types';
 
-type LoadState = 'loading' | 'ready' | 'unreachable';
+const NOTHING_WAITING: Inbox = { notifications: [], unread: 0 };
 
 const PROGRESS_EVERY_SECONDS = 5;
 
@@ -85,9 +78,17 @@ const PARTY_NOTICE_LINGERS_MS = 6000;
  * @param initialTitle - What the platform is called, which an operator may have changed.
  */
 const App = ({ initialTitle = 'Flux' }: AppProps) => {
-  const [status, setStatus] = useState<SetupStatus | null>(null);
-  const [user, setUser] = useState<SessionUser | null>(null);
-  const [loadState, setLoadState] = useState<LoadState>('loading');
+  const cache = useQueryClient();
+
+  useFreshFromTheSocket();
+
+  const server = useQuery(sessionQueries.setup());
+  const status = server.data ?? null;
+
+  const isSetUp = status?.isComplete === true;
+
+  const session = useQuery({ ...sessionQueries.who(), enabled: isSetUp });
+  const user = isSetUp ? (session.data ?? null) : null;
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
   const reportedRef = useRef(new Map<string, WatchProgress>());
   const markedAtRef = useRef(0);
@@ -104,8 +105,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [sharing, setSharing] = useState<MediaSummary | null>(null);
   const [guestPlaying, setGuestPlaying] = useState<MediaSummary | null>(null);
   const [guestReached, setGuestReached] = useState<Map<string, number>>(new Map());
-  const [watcher, setWatcher] = useState<ViewerProfile | null>(null);
-  const [household, setHousehold] = useState<readonly { id: string; name: string }[]>([]);
   const [askingAbout, setAskingAbout] = useState<MediaSummary | null>(null);
 
   const watchParty = useWatchParty();
@@ -145,29 +144,24 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const carriedOnRef = useRef(0);
   const carriedOnToRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (watchParty.party === null || household.length > 0) {
-      return;
-    }
+  const everyone = useQuery({
+    ...sessionQueries.everyone(),
+    enabled: watchParty.party !== null,
+  });
 
-    void fetchEveryone().then((everyone) => {
-      setHousehold(everyone.map((person) => ({ id: person.id, name: person.name })));
-    });
-  }, [watchParty.party, household.length]);
+  const household = useMemo(
+    () => (everyone.data ?? []).map((person) => ({ id: person.id, name: person.name })),
+    [everyone.data],
+  );
 
-  useEffect(() => {
-    const chosen = readCurrentProfile();
+  const people = useQuery({ ...sessionQueries.profiles(), enabled: user !== null });
 
-    if (chosen === null) {
-      setWatcher(null);
+  const watching = readCurrentProfile();
 
-      return;
-    }
-
-    void fetchProfiles().then((people) => {
-      setWatcher(people.find((person) => person.id === chosen) ?? null);
-    });
-  }, [user]);
+  const watcher =
+    watching === null
+      ? null
+      : ((people.data ?? []).find((person) => person.id === watching) ?? null);
   const [known, setKnown] = useState(new Map<string, MediaSummary>());
   const { place, go, replace } = usePlace();
 
@@ -230,67 +224,22 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
   const prefersReducedMotion = useReducedMotion();
 
-  const [surpriseKinds, setSurpriseKinds] = useState<LibraryKind[]>([]);
-  const [inbox, setInbox] = useState<Inbox>({ notifications: [], unread: 0 });
-  const [pushKey, setPushKey] = useState('');
-  const [isPushOn, setIsPushOn] = useState(false);
+  const held = useQuery(notificationQueries.inbox());
+  const inbox = held.data ?? NOTHING_WAITING;
 
-  useEffect(() => {
-    let abandoned = false;
+  const howToPush = useQuery(notificationQueries.settings());
+  const pushKey = howToPush.data?.pushPublicKey ?? '';
 
-    void fetchNotifications().then((read) => {
-      if (!abandoned) {
-        setInbox(read);
-      }
-    });
+  const [pushChoice, setPushChoice] = useState<boolean | null>(null);
 
-    void fetchNotificationSettings().then((settings) => {
-      if (abandoned) {
-        return;
-      }
+  const isPushOn = pushChoice ?? howToPush.data?.preferences.some((one) => one.push) ?? false;
 
-      setPushKey(settings.pushPublicKey);
-      setIsPushOn(settings.preferences.some((one) => one.push));
-    });
+  const libraries = useQuery(libraryQueries.all());
 
-    return () => {
-      abandoned = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    const client = getRealtimeClient();
-
-    const reread = () => {
-      void fetchNotifications().then(setInbox);
-    };
-
-    const release = client.subscribe('notifications', reread);
-    const stopResuming = client.onResumed(reread);
-
-    return () => {
-      release();
-      stopResuming();
-    };
-  }, []);
-
-  useEffect(() => {
-    let abandoned = false;
-
-    void fetchLibraries()
-      .then((libraries) => {
-        if (!abandoned) {
-          setSurpriseKinds([...new Set(libraries.map((one) => one.kind))]);
-        }
-      })
-      .catch(() => {
-        setSurpriseKinds([]);
-      });
-
-    return () => {
-      abandoned = true;
-    };
-  }, []);
+  const surpriseKinds = useMemo(
+    () => [...new Set((libraries.data ?? []).map((one) => one.kind))],
+    [libraries.data],
+  );
 
   useEffect(() => {
     if (place.show === null) {
@@ -444,28 +393,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   }, [place.playing, readProgress]);
 
   const refresh = useCallback(async () => {
-    try {
-      const response = await fetch('/api/setup/status');
-
-      if (!response.ok) {
-        setLoadState('unreachable');
-
-        return;
-      }
-
-      const nextStatus = SetupStatusSchema.parse(await response.json());
-
-      setStatus(nextStatus);
-      setUser(nextStatus.isComplete ? await fetchSession() : null);
-      setLoadState('ready');
-    } catch {
-      setLoadState('unreachable');
-    }
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    await cache.invalidateQueries({ queryKey: sessionQueries.key });
+  }, [cache]);
 
   useEffect(() => {
     if (user !== null) {
@@ -481,11 +410,11 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     return watchPresence();
   }, [user]);
 
-  if (loadState === 'loading') {
+  if (server.isPending || (isSetUp && session.isPending)) {
     return <SplashScreen name={initialTitle} label={`Loading ${initialTitle}`} />;
   }
 
-  if (loadState === 'unreachable' || status === null) {
+  if (server.isError || session.isError || status === null) {
     return (
       <main className="mx-auto flex max-w-lg flex-col gap-2 p-8">
         <h1 className="text-2xl font-semibold text-text">Flux is not reachable</h1>
@@ -740,29 +669,33 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
                   onToggle: () => {
                     void (
                       isPushOn ? unsubscribeFromPush().then(() => false) : subscribeToPush(pushKey)
-                    ).then(setIsPushOn);
+                    ).then(setPushChoice);
                   },
                 },
               })}
           onOpen={() => {
-            void fetchNotifications().then(setInbox);
+            void cache.invalidateQueries({ queryKey: notificationQueries.key });
           }}
           onRead={(id) => {
             void markNotificationsRead(id).then((unread) => {
-              setInbox((held) => ({
-                unread,
-                notifications: held.notifications.map((one) =>
-                  one.id === id && one.readAt === null
-                    ? { ...one, readAt: new Date().toISOString() }
-                    : one,
-                ),
-              }));
+              cache.setQueryData(notificationQueries.inbox().queryKey, (waiting) =>
+                waiting === undefined
+                  ? waiting
+                  : {
+                      unread,
+                      notifications: waiting.notifications.map((one) =>
+                        one.id === id && one.readAt === null
+                          ? { ...one, readAt: new Date().toISOString() }
+                          : one,
+                      ),
+                    },
+              );
             });
           }}
           onReadAll={() => {
-            void markNotificationsRead().then(() => {
-              void fetchNotifications().then(setInbox);
-            });
+            void markNotificationsRead().then(() =>
+              cache.invalidateQueries({ queryKey: notificationQueries.key }),
+            );
           }}
           onFollow={(link) => {
             window.location.assign(link);

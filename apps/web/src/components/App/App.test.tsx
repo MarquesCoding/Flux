@@ -249,7 +249,7 @@ afterEach(() => {
  * Lets the opening wordmark finish holding the screen.
  */
 const arrive = async () => {
-  for (let pass = 0; pass < 2; pass += 1) {
+  for (let pass = 0; pass < 4; pass += 1) {
     await act(async () => {
       vi.advanceTimersByTime(10_000);
       await Promise.resolve();
