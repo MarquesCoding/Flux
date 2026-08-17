@@ -5,7 +5,29 @@ type EncodeBitrateOptions = {
   sourceCodec: VideoCodec;
   targetCodec: VideoCodec;
   ceilingKbps: number;
+  sourceWidth?: number | null;
+  sourceHeight?: number | null;
+  maxWidth?: number | null;
+  maxHeight?: number | null;
 };
+
+type PictureSize = {
+  sourceWidth: number | null | undefined;
+  sourceHeight: number | null | undefined;
+  maxWidth: number | null | undefined;
+  maxHeight: number | null | undefined;
+};
+
+const PIXEL_EXPONENT = 0.75;
+
+/**
+ * A dimension worth doing arithmetic with, or nothing.
+ *
+ * @param value - The dimension as it arrived, which may be absent for a file that predates knowing.
+ * @returns The dimension, or null where it cannot be used.
+ */
+const usableSize = (value: number | null | undefined): number | null =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
 
 const EFFICIENCY: Partial<Record<VideoCodec, number>> = {
   hevc: 0.6,
@@ -40,6 +62,41 @@ const STARVED_SOURCE_BOOSTS = [
 const efficiencyOf = (codec: VideoCodec): number => EFFICIENCY[codec] ?? 1;
 
 /**
+ * What share of the source's bitrate a smaller picture is worth.
+ *
+ * Downscaling is not neutral and not linear either. Half the width and height is a quarter of the
+ * pixels, but nothing like a quarter of the bits: shrinking averages out grain and sensor noise,
+ * so the picture that arrives is easier to compress than the one that left. Bits track pixels
+ * raised to about three quarters, which puts a 4K source delivered at 1080p near a third of what
+ * it spent — close to where published ladders sit for the same pair.
+ *
+ * Anything that is not a reduction returns one. Upscaling earns no extra bits, because the detail
+ * to spend them on is not there.
+ *
+ * @param options - The source's size, and the box the output has to fit inside.
+ * @returns The multiplier to apply to the source's bitrate, at most one.
+ */
+const downscaleShare = ({
+  sourceWidth,
+  sourceHeight,
+  maxWidth,
+  maxHeight,
+}: PictureSize): number => {
+  const width = usableSize(sourceWidth);
+  const height = usableSize(sourceHeight);
+  const boxWidth = usableSize(maxWidth);
+  const boxHeight = usableSize(maxHeight);
+
+  if (width === null || height === null || boxWidth === null || boxHeight === null) {
+    return 1;
+  }
+
+  const scale = Math.min(1, boxWidth / width, boxHeight / height);
+
+  return (scale * scale) ** PIXEL_EXPONENT;
+};
+
+/**
  * What bitrate to encode at, given what the source spends and what the client will take.
  *
  * Two decisions, in order, and the order is what makes it right.
@@ -57,9 +114,18 @@ const efficiencyOf = (codec: VideoCodec): number => EFFICIENCY[codec] ?? 1;
  * is, and above thirty megabits nothing is scaled at all — the gain stops being visible and the
  * cost starts overwhelming decoders.
  *
+ * Only then is the answer **scaled for the size being delivered**, and the order matters as much
+ * here as anywhere. Whether a source is starved, and whether it is too poor to encode at its own
+ * bitrate, are questions about the file rather than about the output: a well made 4K file at four
+ * and a half megabits is not starved, and treating the smaller picture's share as though it were
+ * would boost it straight back to where it started, which is the exact fault this is here to fix.
+ * So the size discount is taken last, on a figure that already reflects what the source is worth.
+ *
  * Finally the result is held to the client's ceiling, which is where this departs from the model
  * it follows: a ceiling exists because a device or a network cannot take more, so it is not
- * something an efficiency calculation gets to overrule.
+ * something an efficiency calculation gets to overrule. It is applied once, at the end, and only
+ * there — a ceiling is already a figure for the size being delivered, so discounting against it a
+ * second time charges the same reduction twice and lands somewhere nobody would choose.
  *
  * @param options - What the source spends, what is being encoded to, and what the client allows.
  * @returns The bitrate to encode at, in kbps.
@@ -69,6 +135,10 @@ const encodeBitrateFor = ({
   sourceCodec,
   targetCodec,
   ceilingKbps,
+  sourceWidth,
+  sourceHeight,
+  maxWidth,
+  maxHeight,
 }: EncodeBitrateOptions): number => {
   if (!Number.isFinite(sourceBitrateKbps) || sourceBitrateKbps <= 0) {
     return ceilingKbps;
@@ -77,7 +147,7 @@ const encodeBitrateFor = ({
   const boost =
     STARVED_SOURCE_BOOSTS.find((step) => sourceBitrateKbps <= step.atOrBelowKbps)?.factor ?? 1;
 
-  const anchored = Math.min(sourceBitrateKbps * boost, ceilingKbps);
+  const anchored = sourceBitrateKbps * boost;
 
   const byCodec = Math.max(efficiencyOf(targetCodec) / efficiencyOf(sourceCodec), 1);
 
@@ -85,9 +155,14 @@ const encodeBitrateFor = ({
 
   const scale = anchored >= NO_SCALING_ABOVE_KBPS ? 1 : Math.max(byCodec, floor);
 
-  return Math.min(Math.round(anchored * scale), ceilingKbps);
+  const forSource = anchored * scale;
+
+  return Math.min(
+    Math.round(forSource * downscaleShare({ sourceWidth, sourceHeight, maxWidth, maxHeight })),
+    ceilingKbps,
+  );
 };
 
 export type { EncodeBitrateOptions };
 
-export { encodeBitrateFor, efficiencyOf };
+export { encodeBitrateFor, efficiencyOf, downscaleShare };

@@ -13,6 +13,35 @@ type QualityClamp = {
   maxAudioBitrateKbps: number | null;
 };
 
+const LADDER_FRAME_RATE = 30;
+
+const HIGH_FRAME_RATE_ALLOWANCES = [
+  { aboveFps: 48, factor: 1.4 },
+  { aboveFps: LADDER_FRAME_RATE, factor: 1.2 },
+] as const;
+
+/**
+ * How much of the ladder's ceiling high frame rate content is allowed on top.
+ *
+ * The ladder's numbers are standard frame rate, as its own doc comment says, and sixty frames a
+ * second needs meaningfully more bits than twenty-four for the same picture. Held to the ladder's
+ * figure regardless, that content is not clamped so much as starved — and it is starved by an
+ * assumption nobody stated at the point of choosing.
+ *
+ * Not proportional. Doubling the frames does not double what they cost, because consecutive frames
+ * at high rates are more alike and so cheaper to predict from each other.
+ *
+ * @param frameRate - The source's frame rate, where it is known.
+ * @returns The multiplier for the ceiling, one where the rate is standard or unknown.
+ */
+const frameRateAllowance = (frameRate: number | null | undefined): number => {
+  if (typeof frameRate !== 'number' || !Number.isFinite(frameRate)) {
+    return 1;
+  }
+
+  return HIGH_FRAME_RATE_ALLOWANCES.find((step) => frameRate > step.aboveFps)?.factor ?? 1;
+};
+
 /**
  * Turns a viewer's chosen quality into the ceiling the negotiator should work under, given what the
  * file actually is. Asking for the original, or for a step this file cannot honour, comes back as
@@ -37,14 +66,18 @@ const resolveQualityStep = (
     return null;
   }
 
-  if (media.height <= step.maxHeight && media.bitrateKbps <= step.maxVideoBitrateKbps) {
+  const maxVideoBitrateKbps = Math.round(
+    step.maxVideoBitrateKbps * frameRateAllowance(media.videoFrameRate),
+  );
+
+  if (media.height <= step.maxHeight && media.bitrateKbps <= maxVideoBitrateKbps) {
     return null;
   }
 
   return {
     maxWidth: step.maxWidth,
     maxHeight: step.maxHeight,
-    maxVideoBitrateKbps: step.maxVideoBitrateKbps,
+    maxVideoBitrateKbps,
     maxAudioBitrateKbps:
       step.maxHeight < COMPRESSED_AUDIO_THRESHOLD_HEIGHT ? COMPRESSED_AUDIO_MAX_BITRATE_KBPS : null,
   };
@@ -52,4 +85,4 @@ const resolveQualityStep = (
 
 export type { QualityClamp };
 
-export { resolveQualityStep };
+export { resolveQualityStep, frameRateAllowance };
