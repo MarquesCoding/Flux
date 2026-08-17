@@ -1,6 +1,6 @@
 type FixtureTier = 0 | 1 | 2;
 
-type VideoCodec = 'h264' | 'hevc' | 'av1' | 'vp9';
+type VideoCodec = 'h264' | 'hevc' | 'av1' | 'vp9' | 'mpeg4' | 'mpeg1video';
 
 type GopStructure = 'open' | 'closed';
 
@@ -10,9 +10,9 @@ type Scan = 'progressive' | 'interlaced' | 'telecined';
 
 type FrameTiming = 'constant' | 'variable';
 
-type AudioCodec = 'aac' | 'ac3' | 'eac3' | 'truehd' | 'dts' | 'opus' | 'flac';
+type AudioCodec = 'aac' | 'ac3' | 'eac3' | 'truehd' | 'dts' | 'opus' | 'flac' | 'mp2';
 
-type Container = 'mkv' | 'mp4' | 'ts' | 'webm';
+type Container = 'mkv' | 'mp4' | 'ts' | 'webm' | 'avi' | 'mpg';
 
 type VideoSpec = {
   codec: VideoCodec;
@@ -196,8 +196,23 @@ const CONTAINER_FIXTURES: Fixture[] = [
   }),
 ];
 
+const LEGACY_FIXTURES: Fixture[] = [
+  varying('mpeg4-asp-avi', {
+    container: 'avi',
+    video: { codec: 'mpeg4' },
+    audio: { codec: 'mp2' },
+  }),
+  varying('mpeg1-program-stream', {
+    container: 'mpg',
+    video: { codec: 'mpeg1video' },
+    audio: { codec: 'mp2' },
+  }),
+  varying('mpeg4-asp-mkv', { container: 'mkv', video: { codec: 'mpeg4' } }),
+];
+
 const FIXTURES: readonly Fixture[] = [
   ...CODEC_FIXTURES,
+  ...LEGACY_FIXTURES,
   ...GOP_FIXTURES,
   ...KEYFRAME_FIXTURES,
   ...STRUCTURE_FIXTURES,
