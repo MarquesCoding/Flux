@@ -1786,6 +1786,48 @@ describe('when an administrator reaches into the stream', () => {
     expect(await screen.findByText(/Dinner./)).toBeInTheDocument();
   });
 
+  it('shows a message as the lighter banner rather than taking the stage', async () => {
+    await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'message', text: 'Restarting in five minutes' });
+    });
+
+    expect(await screen.findByText(/Restarting in five minutes/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
+  });
+
+  it('lets a message be dismissed', async () => {
+    const { actor } = await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'message', text: 'Tea is ready' });
+    });
+
+    await actor.click(await screen.findByRole('button', { name: 'Dismiss' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Tea is ready/)).not.toBeInTheDocument();
+    });
+  });
+
+  it('will not let a message push a stop off the screen', async () => {
+    await watching();
+
+    act(() => {
+      emitPresenceEvent({ kind: 'stopped', reason: 'An administrator stopped this stream.' });
+    });
+
+    await screen.findByText(/An administrator stopped this stream./);
+
+    act(() => {
+      emitPresenceEvent({ kind: 'message', text: 'Tea is ready' });
+    });
+
+    expect(screen.getByText(/An administrator stopped this stream./)).toBeInTheDocument();
+    expect(screen.queryByText(/Tea is ready/)).not.toBeInTheDocument();
+  });
+
   it('takes the note away again when the stream is let go', async () => {
     await watching();
 

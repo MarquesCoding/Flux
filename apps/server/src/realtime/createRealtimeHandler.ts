@@ -1,6 +1,7 @@
 import { FromClientSchema } from '@FluxContracts/schemas/Realtime';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import type { FromServer } from '@FluxContracts/schemas/Realtime';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { RealtimeRegistry } from './createRealtimeRegistry';
 
 type RealtimeSocket = {
@@ -20,7 +21,10 @@ type RealtimeSession = {
 };
 
 type PresenceControl =
-  { kind: 'stopped'; reason: string } | { kind: 'paused'; reason: string } | { kind: 'resumed' };
+  | { kind: 'stopped'; reason: string }
+  | { kind: 'paused'; reason: string }
+  | { kind: 'resumed' }
+  | { kind: 'message'; text: string };
 
 type PresenceBinding = {
   connect: (
@@ -43,6 +47,18 @@ type HandlerOptions = {
 
 type RealtimeHandler = {
   open: (who: Who, socket: RealtimeSocket) => RealtimeSession;
+};
+
+const asPayload = (event: PresenceControl): JsonValue => {
+  if (event.kind === 'resumed') {
+    return { kind: 'resumed' };
+  }
+
+  if (event.kind === 'message') {
+    return { kind: 'message', text: event.text };
+  }
+
+  return { kind: event.kind, reason: event.reason };
 };
 
 const readMessage = (raw: string) => {
@@ -143,10 +159,7 @@ const createRealtimeHandler = ({
               topic: 'presence',
               atMs: now(),
               folded: 0,
-              payload:
-                event.kind === 'resumed'
-                  ? { kind: 'resumed' }
-                  : { kind: event.kind, reason: event.reason },
+              payload: asPayload(event),
             });
           },
         );

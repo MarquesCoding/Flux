@@ -116,6 +116,47 @@ describe('createPresenceService', () => {
     ]);
   });
 
+  it('tells a tab something without touching what it is watching', () => {
+    const presence = createPresenceService();
+    const send = vi.fn();
+
+    presence.connect('tab-1', null, null, 'Chrome on Mac', send);
+    presence.startPlayback('tab-1', PLAYBACK);
+
+    expect(presence.message('tab-1', 'Restarting in five minutes')).toBe(true);
+    expect(send).toHaveBeenCalledWith({ kind: 'message', text: 'Restarting in five minutes' });
+    expect(presence.list()).toMatchObject([
+      { playback: { isPlaying: true, pausedByAdmin: false } },
+    ]);
+  });
+
+  it('does not tell anybody watching the session list that a message changed it', () => {
+    const presence = createPresenceService();
+    const watcher = vi.fn();
+
+    presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    presence.startPlayback('tab-1', PLAYBACK);
+    presence.watch(watcher);
+    presence.message('tab-1', 'Tea is ready');
+
+    expect(watcher).not.toHaveBeenCalled();
+  });
+
+  it('messages a tab that is watching nothing, since a banner is not a playback change', () => {
+    const presence = createPresenceService();
+    const send = vi.fn();
+
+    presence.connect('tab-1', null, null, 'Chrome on Mac', send);
+
+    expect(presence.message('tab-1', 'Tea is ready')).toBe(true);
+  });
+
+  it('fails quietly for a tab that has just closed', () => {
+    const presence = createPresenceService();
+
+    expect(presence.message('gone', 'Tea is ready')).toBe(false);
+  });
+
   it('pauses a tab that is watching something, and tells it why', () => {
     const presence = createPresenceService();
     const send = vi.fn();

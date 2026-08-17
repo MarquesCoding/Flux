@@ -7,7 +7,7 @@ describe('AdminMessageOverlay', () => {
     render(
       <AdminMessageOverlay
         kind="stopped"
-        reason="This stream was stopped by an admin."
+        text="This stream was stopped by an admin."
         onDismiss={vi.fn()}
       />,
     );
@@ -18,7 +18,7 @@ describe('AdminMessageOverlay', () => {
   it('calls onDismiss when closed after a stop', async () => {
     const onDismiss = vi.fn();
 
-    render(<AdminMessageOverlay kind="stopped" reason="Stopped." onDismiss={onDismiss} />);
+    render(<AdminMessageOverlay kind="stopped" text="Stopped." onDismiss={onDismiss} />);
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
     expect(onDismiss).toHaveBeenCalled();
@@ -28,7 +28,7 @@ describe('AdminMessageOverlay', () => {
     render(
       <AdminMessageOverlay
         kind="paused"
-        reason="This stream was paused by an admin."
+        text="This stream was paused by an admin."
         onDismiss={vi.fn()}
       />,
     );
@@ -39,7 +39,36 @@ describe('AdminMessageOverlay', () => {
   it('calls onDismiss when the pause banner is dismissed', async () => {
     const onDismiss = vi.fn();
 
-    render(<AdminMessageOverlay kind="paused" reason="Paused." onDismiss={onDismiss} />);
+    render(<AdminMessageOverlay kind="paused" text="Paused." onDismiss={onDismiss} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+
+    expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it('shows a message as the lighter banner, since the picture is still there', () => {
+    render(<AdminMessageOverlay kind="message" text="Tea is ready" onDismiss={vi.fn()} />);
+
+    expect(screen.getByText('Tea is ready')).toBeInTheDocument();
+  });
+
+  it('wraps a message with nothing to break on rather than running off the screen', () => {
+    const unbroken = 'Hey'.repeat(46);
+
+    render(<AdminMessageOverlay kind="message" text={unbroken} onDismiss={vi.fn()} />);
+
+    expect(screen.getByText(unbroken)).toHaveClass('break-words');
+  });
+
+  it('holds the banner to a readable width rather than letting it grow', () => {
+    render(<AdminMessageOverlay kind="message" text={'Hey'.repeat(46)} onDismiss={vi.fn()} />);
+
+    expect(screen.getByText('Hey'.repeat(46)).closest('div')).toHaveClass('max-w-lg');
+  });
+
+  it('lets a message be dismissed, since it took nothing away', async () => {
+    const onDismiss = vi.fn();
+
+    render(<AdminMessageOverlay kind="message" text="Tea is ready" onDismiss={onDismiss} />);
     await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
 
     expect(onDismiss).toHaveBeenCalled();

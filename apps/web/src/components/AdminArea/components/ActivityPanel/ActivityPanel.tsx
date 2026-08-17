@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { SessionCard } from '@FluxWeb/components/AdminArea/components/SessionCard/SessionCard';
+import { SessionMessageDialog } from '@FluxWeb/components/AdminArea/components/SessionMessageDialog/SessionMessageDialog';
 import { groupSessionsByViewer } from '@FluxWeb/components/AdminArea/groupSessionsByViewer';
 import { Card } from '@FluxUI/Card';
 import { CardHeader } from '@FluxUI/CardHeader';
@@ -15,6 +17,8 @@ import type { ActivityPanelProps } from './ActivityPanel.types';
  * @param onStop - Called with the session to stop.
  * @param onPause - Called with the session to pause.
  * @param onResume - Called with the session to let carry on.
+ * @param onMessage - Called with the session to tell something, and what to tell it.
+ * @returns The panel.
  */
 const ActivityPanel = ({
   sessions,
@@ -22,7 +26,12 @@ const ActivityPanel = ({
   onStop,
   onPause,
   onResume,
+  onMessage,
 }: ActivityPanelProps) => {
+  const [messaging, setMessaging] = useState<string | null>(null);
+
+  const watcher = sessions.find((session) => session.clientId === messaging);
+
   return (
     <Card as="section" padding="none" className="flex flex-col">
       <CardHeader title="Active sessions">
@@ -55,6 +64,9 @@ const ActivityPanel = ({
                     onResume={() => {
                       onResume(session.clientId);
                     }}
+                    onMessage={() => {
+                      setMessaging(session.clientId);
+                    }}
                   />
                 ))}
               </div>
@@ -62,6 +74,18 @@ const ActivityPanel = ({
           ))
         )}
       </div>
+      <SessionMessageDialog
+        watcher={watcher?.profileName ?? watcher?.deviceLabel ?? 'this screen'}
+        isOpen={watcher !== undefined}
+        onSend={async (text) => {
+          if (watcher !== undefined) {
+            await onMessage(watcher.clientId, text);
+          }
+        }}
+        onClose={() => {
+          setMessaging(null);
+        }}
+      />
     </Card>
   );
 };
