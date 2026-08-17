@@ -24,13 +24,9 @@ use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
 use flux_transcoder::trickplay::TrickplayRegistry;
 
-fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
-}
+mod common;
 
-fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
-}
+use common::{ffmpeg, ffprobe};
 
 /// What the fixture clip contains, so a slice of it is recognisable.
 const CONTENT: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";

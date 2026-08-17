@@ -28,13 +28,9 @@ use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
 use flux_transcoder::trickplay::{TrickplayRegistry, TrickplayRequest};
 
-fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
-}
+mod common;
 
-fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
-}
+use common::{ffmpeg, ffprobe};
 
 fn cache_root(name: &str) -> std::path::PathBuf {
     let path = std::env::temp_dir().join(format!("flux-test-sweep-{name}"));

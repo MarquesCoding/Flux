@@ -14,9 +14,9 @@ use std::process::Command;
 
 use flux_transcoder::integrity::decodes;
 
-fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
-}
+mod common;
+
+use common::ffmpeg;
 
 fn has_ffmpeg() -> bool {
     Command::new(ffmpeg())

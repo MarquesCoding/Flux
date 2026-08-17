@@ -16,9 +16,9 @@ use std::path::PathBuf;
 use flux_transcoder::media::VideoRange;
 use flux_transcoder::probe::probe_media;
 
-fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
-}
+mod common;
+
+use common::ffprobe;
 
 fn library() -> Vec<PathBuf> {
     let root = std::env::var("FLUX_LOCAL_MEDIA").map_or_else(

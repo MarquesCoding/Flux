@@ -26,6 +26,10 @@ use flux_transcoder::keyframes::{
     segment_starts, Cut, Keyframes,
 };
 
+mod common;
+
+use common::{ffmpeg, ffprobe, first_pts};
+
 /// What Flux asks for, and what the rules are tuned around.
 const REQUESTED_SEGMENT_SECONDS: f64 = 4.0;
 
@@ -35,14 +39,6 @@ const REQUESTED_SEGMENT_SECONDS: f64 = 4.0;
 /// that a real disagreement shows and loose enough that rounding in the
 /// container's timebase does not.
 const TOLERANCE_SECONDS: f64 = 0.02;
-
-fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
-}
-
-fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
-}
 
 /// Where the corpus lives, matching `fixturesDirectory` on the TypeScript side.
 fn corpus_directory() -> PathBuf {
@@ -201,31 +197,6 @@ fn actual_starts(path: &Path, cut_seconds: f64, directory: &Path) -> Vec<f64> {
     };
 
     firsts.iter().map(|pts| pts - origin).collect()
-}
-
-/// The earliest presentation time in a segment.
-fn first_pts(path: &Path) -> Option<f64> {
-    let output = Command::new(ffprobe())
-        .args([
-            "-v",
-            "error",
-            "-select_streams",
-            "v:0",
-            "-show_entries",
-            "packet=pts_time",
-            "-of",
-            "csv=p=0",
-        ])
-        .arg(path)
-        .output()
-        .ok()?;
-
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .filter_map(|line| line.trim().trim_end_matches(',').parse::<f64>().ok())
-        .fold(None, |earliest: Option<f64>, time| {
-            Some(earliest.map_or(time, |value| value.min(time)))
-        })
 }
 
 fn name_of(path: &Path) -> String {

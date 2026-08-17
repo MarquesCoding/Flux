@@ -22,32 +22,9 @@ use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
 use flux_transcoder::trickplay::TrickplayRegistry;
 
-use std::sync::atomic::{AtomicU64, Ordering};
+mod common;
 
-/// Gives each half-written fixture a name nothing else will pick up.
-static BUILDING: AtomicU64 = AtomicU64::new(0);
-
-/// A name to write a fixture under before it is moved into place.
-///
-/// The tests in a file run in parallel and `exists` becomes true the moment ffmpeg creates a file
-/// rather than when it has finished writing it, so one test probed a fixture another was still
-/// writing. A rename is atomic, so the real name only ever appears on a finished file. Only ever
-/// seen against a cold fixture directory, which CI has and a developer never does.
-fn building_name(name: &str) -> String {
-    format!(
-        ".building-{}-{}-{name}",
-        std::process::id(),
-        BUILDING.fetch_add(1, Ordering::Relaxed)
-    )
-}
-
-fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
-}
-
-fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
-}
+use common::{building_name, ffmpeg, ffprobe};
 
 /// A file long enough for a clip to be cut out of the middle of it.
 fn source_file() -> PathBuf {

@@ -14,20 +14,9 @@ use std::process::Command;
 use flux_transcoder::playlist::build_vod_playlist;
 use flux_transcoder::transcode_plan::SegmentContainer;
 
-fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
-}
+mod common;
 
-fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
-}
-
-fn available() -> bool {
-    Command::new(ffprobe())
-        .arg("-version")
-        .output()
-        .is_ok_and(|output| output.status.success())
-}
+use common::{ffmpeg, ffprobe};
 
 /// Cuts a short film into real fMP4 segments and returns their lengths.
 fn segment_a_film(directory: &Path) -> Vec<f64> {
@@ -90,7 +79,7 @@ fn segment_a_film(directory: &Path) -> Vec<f64> {
 
 #[test]
 fn ffprobe_reads_a_generated_playlist_as_a_film() {
-    if !available() {
+    if !common::is_available() {
         eprintln!("skipping: no ffprobe on this machine");
 
         return;
