@@ -15,9 +15,12 @@ import { liquidSpring } from '@FluxUI/animations/reveal';
 import { hasFinePointer } from '@FluxUI/hasFinePointer';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
+import { fetchShow } from '@FluxWeb/library/fetchShows';
+import { showSlug } from '@FluxCore/functions/showSlug';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { RailCardProps } from './RailCard.types';
 
 const HOVER_DELAY_MILLISECONDS = 600;
@@ -104,6 +107,7 @@ const RailCard = ({
   };
 
   const [detail, setDetail] = useState<MediaDetail | null>(null);
+  const [show, setShow] = useState<ShowDetail | null>(null);
   const holderRef = useRef<HTMLDivElement>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -125,7 +129,7 @@ const RailCard = ({
   }, [anchor, close]);
 
   useEffect(() => {
-    if (anchor === null || detail !== null) {
+    if (anchor === null || detail !== null || isSeries) {
       return;
     }
 
@@ -140,7 +144,31 @@ const RailCard = ({
     return () => {
       abandoned = true;
     };
-  }, [anchor, detail, media.id]);
+  }, [anchor, detail, isSeries, media.id]);
+
+  useEffect(() => {
+    const named = media.seriesId ?? showSlug(media.seriesTitle ?? '');
+
+    if (anchor === null || show !== null || !isSeries || named === '') {
+      return;
+    }
+
+    let abandoned = false;
+
+    void fetchShow(media.libraryId, named).then((found) => {
+      if (!abandoned) {
+        setShow(found);
+      }
+    });
+
+    return () => {
+      abandoned = true;
+    };
+  }, [anchor, show, isSeries, media.libraryId, media.seriesId, media.seriesTitle]);
+
+  const told = isSeries ? null : (detail?.metadata.overview ?? null);
+
+  const genres = isSeries ? (show?.genres ?? []) : (detail?.metadata.genres ?? []);
 
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -270,9 +298,15 @@ const RailCard = ({
               <div className="flex min-h-0 w-full flex-1 flex-col gap-3 px-4 pb-4 pt-4 text-left">
                 <span className="flex items-start justify-between gap-3">
                   <span className="min-w-0 text-xs uppercase tracking-[0.16em] text-text-muted">
-                    {media.seriesTitle === null || media.seriesTitle === undefined
-                      ? null
-                      : media.title}
+                    {isSeries
+                      ? show === null
+                        ? null
+                        : show.seasonCount === 1
+                          ? `${show.episodeCount.toString()} episodes`
+                          : `${show.seasonCount.toString()} seasons · ${show.episodeCount.toString()} episodes`
+                      : media.seriesTitle === null || media.seriesTitle === undefined
+                        ? null
+                        : media.title}
                   </span>
                 </span>
 
@@ -299,21 +333,24 @@ const RailCard = ({
 
                 <span className="pointer-events-none flex min-h-0 shrink flex-col gap-3 text-left">
                   <MediaFacts
-                    media={media}
+                    media={
+                      isSeries && show !== null
+                        ? { ...media, rating: show.rating ?? null, year: show.year ?? null }
+                        : media
+                    }
+                    hasEpisode={!isSeries}
                     className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-[0.1em] text-text-muted"
                   />
 
-                  {detail?.metadata.overview === undefined ||
-                  detail.metadata.overview === null ||
-                  detail.metadata.overview === '' ? null : (
+                  {told === null || told === '' ? null : (
                     <span className="line-clamp-3 min-h-0 shrink overflow-hidden text-xs leading-relaxed text-text-muted">
-                      {detail.metadata.overview}
+                      {told}
                     </span>
                   )}
 
-                  {(detail?.metadata.genres ?? []).length === 0 ? null : (
+                  {genres.length === 0 ? null : (
                     <span className="flex shrink-0 flex-wrap gap-1.5">
-                      {(detail?.metadata.genres ?? []).slice(0, GENRE_LIMIT).map((genre) => (
+                      {genres.slice(0, GENRE_LIMIT).map((genre) => (
                         <Badge key={genre} size="sm">
                           {genre}
                         </Badge>
