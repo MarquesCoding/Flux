@@ -9,6 +9,7 @@ type HeroProps = {
   resumeFor?: (mediaId: string) => number | null;
   onFeatureChange?: (media: MediaSummary) => void;
   rotateAfterMilliseconds?: number;
+  fills?: boolean;
 };
 
 export type { HeroProps };

@@ -19,12 +19,32 @@ describe('useFavourites', () => {
   it('reads the whole list once rather than asking per item', async () => {
     fetchFavourites.mockResolvedValue(['media-1']);
 
-    const { result } = renderHook(() => useFavourites());
+    const { result } = renderHook(() => useFavourites('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.isKept('media-1')).toBe(true);
     });
     expect(fetchFavourites).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not show one person what somebody else kept', async () => {
+    fetchFavourites.mockResolvedValue(['media-1']);
+
+    const { result, rerender } = renderHook(({ who }: { who: string }) => useFavourites(who), {
+      initialProps: { who: 'dan' },
+    });
+
+    await waitFor(() => {
+      expect(result.current.isKept('media-1')).toBe(true);
+    });
+
+    fetchFavourites.mockResolvedValue([]);
+    rerender({ who: 'jeff' });
+
+    await waitFor(() => {
+      expect(result.current.isKept('media-1')).toBe(false);
+    });
+    expect(fetchFavourites).toHaveBeenCalledTimes(2);
   });
 
   it('fills the heart before the server has answered', async () => {
@@ -39,7 +59,7 @@ describe('useFavourites', () => {
         }),
     );
 
-    const { result } = renderHook(() => useFavourites());
+    const { result } = renderHook(() => useFavourites('watcher-1'));
 
     await act(async () => {
       result.current.toggle('media-1');
@@ -61,7 +81,7 @@ describe('useFavourites', () => {
   it('puts the heart back when the server disagrees', async () => {
     setFavourite.mockResolvedValue(false);
 
-    const { result } = renderHook(() => useFavourites());
+    const { result } = renderHook(() => useFavourites('watcher-1'));
 
     await act(async () => {
       result.current.toggle('media-1');
@@ -76,7 +96,7 @@ describe('useFavourites', () => {
   it('stops keeping something that was kept', async () => {
     fetchFavourites.mockResolvedValue(['media-1']);
 
-    const { result } = renderHook(() => useFavourites());
+    const { result } = renderHook(() => useFavourites('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.isKept('media-1')).toBe(true);

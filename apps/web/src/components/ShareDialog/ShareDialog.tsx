@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RiFileCopyLine } from '@remixicon/react';
+import { RiCloseLine, RiFileCopyLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
@@ -109,7 +109,11 @@ const ShareDialog = ({ media, isOpen, onClose, origin }: ShareDialogProps) => {
   return (
     <Dialog label="Share" isOpen={isOpen} onClose={onClose}>
       <DialogContent>
-        <DialogTitle title={`Share ${media?.seriesTitle ?? media?.title ?? 'this'}`} />
+        <DialogTitle title={`Share ${media?.seriesTitle ?? media?.title ?? 'this'}`}>
+          <Button isIconOnly variant="ghost" label="Close" onClick={onClose}>
+            <RiCloseLine size={20} aria-hidden />
+          </Button>
+        </DialogTitle>
 
         {link === null ? (
           <div className="flex flex-col gap-5 pt-2">

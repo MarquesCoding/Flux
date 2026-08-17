@@ -42,6 +42,23 @@ afterEach(() => {
 });
 
 describe('Hero', () => {
+  it('stands in a runway by default, so the page can scroll beneath it', () => {
+    const { container } = render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+    const runway = container.firstElementChild;
+
+    expect(runway).toHaveStyle({ marginBottom: '-24svh' });
+    expect(container.querySelector('.sticky')).not.toBeNull();
+  });
+
+  it('fills what it is put in where there is nothing to scroll', () => {
+    const { container } = render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} fills />);
+    const runway = container.firstElementChild;
+
+    expect(runway).toHaveStyle({ height: '100svh' });
+    expect(runway).not.toHaveStyle({ marginBottom: '-24svh' });
+    expect(container.querySelector('.sticky')).toBeNull();
+  });
+
   it('shows nothing at all when there is nothing to feature', () => {
     const { container } = render(<Hero items={[]} onPlay={vi.fn()} />);
 

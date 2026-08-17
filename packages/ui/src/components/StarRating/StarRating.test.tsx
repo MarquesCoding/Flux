@@ -68,6 +68,20 @@ describe('StarRating', () => {
     expect(screen.getByRole('img', { name: 'Household: 4.2 out of 5' })).toBeInTheDocument();
   });
 
+  it('clips the filled stars rather than squashing them into the fill', () => {
+    const { container } = render(<StarRating stars={3} label="Household" />);
+
+    const clip = container.querySelector('[style*="width"]');
+    const filled = clip?.firstElementChild;
+
+    expect(clip).toHaveStyle({ width: '60%' });
+    expect(filled?.className).toContain('w-max');
+
+    for (const glyph of filled?.children ?? []) {
+      expect(glyph.getAttribute('class') ?? '').toContain('shrink-0');
+    }
+  });
+
   it('reads an unrated row as nothing rather than as an absence', () => {
     render(<StarRating stars={null} label="Household" />);
 

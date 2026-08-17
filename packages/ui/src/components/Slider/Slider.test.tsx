@@ -110,14 +110,22 @@ describe('the preview that follows the pointer', () => {
     vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(offsetWidth);
   };
 
-  const move = (at: number) => {
+  const controlOf = (): HTMLElement => {
     const control = slider().closest('[class*="touch-none"]');
 
     if (!(control instanceof HTMLElement)) {
       throw new Error('The slider has no control to move a pointer across.');
     }
 
-    fireEvent.pointerMove(control, { clientX: at });
+    return control;
+  };
+
+  const move = (at: number) => {
+    fireEvent.pointerMove(controlOf(), { clientX: at });
+  };
+
+  const enter = (at: number) => {
+    fireEvent.pointerEnter(controlOf(), { clientX: at });
   };
 
   afterEach(() => {
@@ -134,6 +142,14 @@ describe('the preview that follows the pointer', () => {
         renderPreview={(value) => <span>preview at {Math.round(value).toString()}</span>}
       />,
     );
+
+  it('draws for a pointer that arrives without moving', () => {
+    withTrackWidth(200);
+    draw();
+    enter(100);
+
+    expect(screen.getByText(/preview at 60/)).toBeInTheDocument();
+  });
 
   it('names the time under the pointer, not the time being played', () => {
     withTrackWidth(200);

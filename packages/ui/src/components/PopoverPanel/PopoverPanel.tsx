@@ -17,6 +17,7 @@ import type { PopoverPanelProps } from './PopoverPanel.types';
  * @param isOpen - Whether it is open, for a caller holding that state itself.
  * @param onOpenChange - Told when it opens or closes.
  * @param side - Which side of the trigger to prefer.
+ * @param align - Which part of the trigger the panel lines up with, matching `ActionMenu`.
  * @param isDisabled - Whether it can be opened at all.
  * @param className - Extra classes for the caller's own layout.
  */
@@ -28,6 +29,7 @@ const PopoverPanel = ({
   isOpen,
   onOpenChange,
   side = 'top',
+  align = 'end',
   isDisabled = false,
   className,
 }: PopoverPanelProps) => {
@@ -56,7 +58,7 @@ const PopoverPanel = ({
         <Popover.Positioner
           side={side}
           sideOffset={12}
-          align="end"
+          align={align}
           collisionPadding={12}
           className="z-50"
         >

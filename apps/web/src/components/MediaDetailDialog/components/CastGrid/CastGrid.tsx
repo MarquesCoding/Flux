@@ -1,3 +1,4 @@
+import { RiUser3Line } from '@remixicon/react';
 import { PageDots } from '@FluxUI/PageDots';
 import { Button } from '@FluxUI/Button';
 import { cn } from '@FluxUI/cn';
@@ -9,7 +10,13 @@ import type { CastGridProps } from './CastGrid.types';
  * Shows the cast of a film or programme as a horizontal rail of faces, each with the performer's
  * name and the part they played. The rail pages rather than scrolls freely, and carries a row of
  * dots and a count once there is more than one page of it. A performer the catalogue has no
- * photograph for is drawn as an empty frame rather than being left out.
+ * photograph for keeps their place in the rail, drawn with the same figure the person dialog uses,
+ * so a face nobody has a picture of still reads as somebody rather than as a hole in the row.
+ *
+ * The photograph grows a little under the pointer, and the frame around it does not. Growing the
+ * whole card instead pushed the picture past the rounded corners it was being clipped by, and the
+ * corners came back square for as long as the pointer was on it — the same arrangement `MediaCard`
+ * settled on, for the same reason.
  *
  * A performer the catalogue gave an identifier can be opened to see what else of theirs is here.
  * One the catalogue never matched is drawn the same but cannot be pressed — there is nothing behind
@@ -57,9 +64,9 @@ const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
                 hasTooltip={false}
                 disabled={!canOpenPerson(member.personId) || onOpenPerson === undefined}
                 className={cn(
-                  'flex flex-col gap-3 rounded-xl text-left',
+                  'group flex flex-col gap-3 rounded-xl text-left',
                   canOpenPerson(member.personId) && onOpenPerson !== undefined
-                    ? 'transition-transform hover:scale-[1.03]'
+                    ? ''
                     : 'disabled:cursor-default disabled:opacity-100',
                 )}
                 onClick={() => {
@@ -67,12 +74,16 @@ const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
                 }}
               >
                 <span className="aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface-raised ring-1 ring-white/10">
-                  {member.imageUrl === null ? null : (
+                  {member.imageUrl === null ? (
+                    <span className="flex h-full w-full items-center justify-center">
+                      <RiUser3Line size={48} aria-hidden className="text-text-muted" />
+                    </span>
+                  ) : (
                     <img
                       src={member.imageUrl}
                       alt=""
                       loading="lazy"
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   )}
                 </span>

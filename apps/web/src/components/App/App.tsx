@@ -97,8 +97,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [hasReadProgress, setHasReadProgress] = useState(false);
   const [, setFeatured] = useState<MediaSummary | null>(null);
   const [moodLights, setMoodLights] = useState<MoodLight[]>([]);
-  const favourites = useFavourites();
-  const ratings = useRatings();
+  const favourites = useFavourites(user?.id ?? null);
+  const ratings = useRatings(user?.id ?? null);
   const [openShow, setOpenShow] = useState<ShowSummary | null>(null);
   const [openRole, setOpenRole] = useState<string | null>(null);
   const [sharing, setSharing] = useState<MediaSummary | null>(null);
