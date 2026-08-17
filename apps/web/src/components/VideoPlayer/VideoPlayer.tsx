@@ -64,6 +64,7 @@ import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
 import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview';
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
+import { cn } from '@FluxUI/cn';
 import { Toaster } from '@FluxUI/Toaster';
 import { notify } from '@FluxUI/notify';
 import { correctDrift } from '@FluxCore/functions/correctDrift';
@@ -90,6 +91,8 @@ type FullscreenOwner = {
 };
 
 const IDLE_MILLISECONDS = 2500;
+
+const STALL_BEFORE_SAYING_SO_MS = 400;
 
 const PLAYER_TOASTS = 'player';
 
@@ -257,6 +260,7 @@ const VideoPlayer = ({
   const [castState, setCastState] = useState<CastState>('unavailable');
 
   const [isBuffering, setIsBuffering] = useState(false);
+  const [isSayingSo, setIsSayingSo] = useState(false);
 
     const appliedSequenceRef = useRef(-1);
   const hasCaughtUpRef = useRef(false);
@@ -332,6 +336,24 @@ const VideoPlayer = ({
       element.pause();
     }
   }, [party, party?.isPlaying, party?.isHeld, state]);
+
+  const hasStalled = state === 'playing' && (isBuffering || party?.isHeld === true);
+
+  useEffect(() => {
+    if (!hasStalled) {
+      setIsSayingSo(false);
+
+      return;
+    }
+
+    const says = setTimeout(() => {
+      setIsSayingSo(true);
+    }, STALL_BEFORE_SAYING_SO_MS);
+
+    return () => {
+      clearTimeout(says);
+    };
+  }, [hasStalled]);
 
   const isInAParty = party !== undefined;
 
@@ -1602,8 +1624,14 @@ const VideoPlayer = ({
           />
         )}
 
-        {state !== 'playing' || (!isBuffering && party?.isHeld !== true) ? null : (
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3">
+        {!isSayingSo ? null : (
+          <div
+            className={cn(
+              'pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3',
+              'animate-in fade-in-0 duration-[var(--duration-base)] ease-[var(--ease-out)]',
+              'motion-reduce:duration-[var(--duration-instant)]',
+            )}
+          >
             <Spinner
               label={
                 party?.isHeld === true
@@ -1613,7 +1641,7 @@ const VideoPlayer = ({
               size="lg"
             />
 
-            <p className="flux-glass rounded-full px-4 py-1.5 text-sm text-white">
+            <p className="flux-glass rounded-md px-4 py-1.5 text-sm text-white">
               {party?.isHeld === true
                 ? waitingWord(party.waitingFor)
                 : 'Waiting for more of the film'}

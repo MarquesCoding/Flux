@@ -99,6 +99,7 @@
       "@FluxUI/Toaster": ["./packages/ui/src/components/Toaster/Toaster.tsx"],
       "@FluxUI/Toaster.types": ["./packages/ui/src/components/Toaster/Toaster.types.ts"],
       "@FluxUI/notify": ["./packages/ui/src/functions/notify.ts"],
+      "@FluxUI/tooltipScopeContext": ["./packages/ui/src/functions/tooltipScopeContext.ts"],
       "@FluxUI/TooltipScope": ["./packages/ui/src/components/TooltipScope/TooltipScope.tsx"],
       "@FluxUI/TooltipScope.types": ["./packages/ui/src/components/TooltipScope/TooltipScope.types.ts"],
       "@FluxUI/Tooltip": ["./packages/ui/src/components/Tooltip/Tooltip.tsx"],

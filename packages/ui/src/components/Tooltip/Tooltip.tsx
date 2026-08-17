@@ -1,4 +1,6 @@
+import { useContext } from 'react';
 import * as RadixTooltip from '@radix-ui/react-tooltip';
+import { tooltipScopeContext } from '@FluxUI/tooltipScopeContext';
 import { cn } from '@FluxUI/cn';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { TooltipProps } from './Tooltip.types';
@@ -26,8 +28,12 @@ const POPUP_MOTION = [
  * The pause before it appears is there so that crossing a row of icons does not flash a name on each
  * one. But once any name is showing, the next is instant: the pause exists to establish that the
  * pointer has stopped, and that has already been established. Skipping it is what makes a bar of
- * icons feel fast rather than reluctant, and it needs the provider at the root — a provider per
- * tooltip means each one is the first one, and none of them ever skips.
+ * icons feel fast rather than reluctant, and it needs the scope at the root — a scope per tooltip
+ * means each one is the first one, and none of them ever skips.
+ *
+ * Where there is no scope it makes its own, so a tooltip works wherever it is put and merely loses
+ * the shared pause. A component that throws depending on what is above it is not one anybody can
+ * use with confidence.
  *
  * @param label - What the control does.
  * @param children - The control being named.
@@ -43,12 +49,13 @@ const Tooltip = ({
   delayMilliseconds = DELAY_MILLISECONDS,
 }: TooltipProps) => {
   const portalContainer = usePortalContainer();
+  const isScoped = useContext(tooltipScopeContext);
 
   if (isDisabled) {
     return children;
   }
 
-  return (
+  const named = (
     <RadixTooltip.Root delayDuration={delayMilliseconds}>
       <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
 
@@ -70,6 +77,12 @@ const Tooltip = ({
         </RadixTooltip.Content>
       </RadixTooltip.Portal>
     </RadixTooltip.Root>
+  );
+
+  return isScoped ? (
+    named
+  ) : (
+    <RadixTooltip.Provider delayDuration={delayMilliseconds}>{named}</RadixTooltip.Provider>
   );
 };
 

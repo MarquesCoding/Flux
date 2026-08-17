@@ -1,4 +1,5 @@
 import * as RadixTooltip from '@radix-ui/react-tooltip';
+import { tooltipScopeContext } from '@FluxUI/tooltipScopeContext';
 import type { TooltipScopeProps } from './TooltipScope.types';
 
 const SKIP_DELAY_MILLISECONDS = 300;
@@ -16,9 +17,11 @@ const SKIP_DELAY_MILLISECONDS = 300;
  * @returns The application, with its tooltips able to agree about the pause.
  */
 const TooltipScope = ({ children }: TooltipScopeProps) => (
-  <RadixTooltip.Provider skipDelayDuration={SKIP_DELAY_MILLISECONDS}>
-    {children}
-  </RadixTooltip.Provider>
+  <tooltipScopeContext.Provider value>
+    <RadixTooltip.Provider skipDelayDuration={SKIP_DELAY_MILLISECONDS}>
+      {children}
+    </RadixTooltip.Provider>
+  </tooltipScopeContext.Provider>
 );
 
 TooltipScope.displayName = 'TooltipScope';
