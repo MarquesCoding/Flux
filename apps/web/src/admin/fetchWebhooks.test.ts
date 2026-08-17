@@ -185,3 +185,22 @@ describe('testWebhook', () => {
     expect((await testWebhook(aSubscription.id))?.message).toContain('turned off');
   });
 });
+
+describe('when the server cannot be reached at all', () => {
+  it('says so plainly rather than leaving the operator guessing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+    const said = await Promise.all([
+      setWebhookEnabled(aSubscription.id, false),
+      deleteWebhook(aSubscription.id),
+      testWebhook(aSubscription.id),
+      redeliverWebhook(aSubscription.id, 'delivery-1'),
+    ]);
+
+    for (const refusal of said) {
+      expect(refusal?.message).toContain('could not be reached');
+    }
+
+    await expect(fetchWebhookDeliveries(aSubscription.id)).resolves.toEqual([]);
+  });
+});
