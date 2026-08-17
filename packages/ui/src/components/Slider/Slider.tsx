@@ -19,6 +19,11 @@ const FILL_CLASSES: Record<SliderTone, string> = {
  * film, an offset. A caller can draw something above the handle as it moves, which is how scrubbing
  * a film shows the frame being scrubbed to.
  *
+ * The pointer is followed on entering as well as on moving. Tracked on movement alone, a pointer
+ * already over the track when it appears has entered without moving — which is what happens every
+ * time a player's controls fade out and come back under a still hand — so nothing was drawn until
+ * the pointer moved again, and the preview read as appearing at random.
+ *
  * @param label - What is being chosen, read out to anybody who cannot see the track.
  * @param value - Where the handle sits now.
  * @param max - The largest value the track reaches.
@@ -105,6 +110,9 @@ const Slider = ({
       >
         <BaseSlider.Control
           className="flex w-full touch-none items-center py-2"
+          onPointerEnter={(event) => {
+            track(event.clientX);
+          }}
           onPointerMove={(event) => {
             track(event.clientX);
           }}
