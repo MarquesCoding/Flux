@@ -35,6 +35,7 @@ const NotificationBell = ({
     <PopoverPanel
       label="Notifications"
       side="bottom"
+      align="center"
       onOpenChange={(isOpen) => {
         if (isOpen) {
           onOpen();
