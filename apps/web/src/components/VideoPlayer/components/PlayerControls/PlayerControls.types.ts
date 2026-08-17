@@ -30,6 +30,7 @@ type PlayerControlsProps = {
   audioTracks: AudioTrack[];
   selectedAudioIndex: number | null;
   availableQualitySteps: QualityStepId[];
+  qualityStepCosts?: Partial<Record<QualityStepId, string>>;
   selectedQuality: QualityPreference;
   isDisabled?: boolean;
   onTogglePlay: () => void;

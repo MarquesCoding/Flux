@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   RiCastLine,
@@ -11,6 +11,7 @@ import { Spinner } from '@FluxUI/Spinner';
 import { VideoSurface } from '@FluxUI/VideoSurface';
 import { detectFromBrowser } from '@FluxWeb/playback/detectDeviceProfile';
 import { detectFromNavigator } from '@FluxWeb/playback/detectClientLabel';
+import { qualityStepCostsFor } from '@FluxWeb/playback/qualityStepCostsFor';
 import { readClientId } from '@FluxWeb/presence/clientIdentity';
 import { onPresenceEvent } from '@FluxWeb/presence/presenceEvents';
 import {
@@ -215,6 +216,7 @@ const VideoPlayer = ({
   const [reportedDuration, setReportedDuration] = useState(0);
   const [trickplay, setTrickplay] = useState<Trickplay | null>(null);
   const [detail, setDetail] = useState<MediaDetail | null>(null);
+  const deviceProfile = useMemo(() => detectFromBrowser(detectFromNavigator()), []);
   const [volume, setVolume] = useState(() => readPlaybackPreferences().volume);
   const [isMuted, setIsMuted] = useState(() => readPlaybackPreferences().isMuted);
   const [isShowingRemaining, setIsShowingRemaining] = useState(
@@ -826,7 +828,7 @@ const VideoPlayer = ({
     const run = async () => {
       const outcome = await startPlaybackSession(
         request.mediaId,
-        detectFromBrowser(detectFromNavigator()),
+        deviceProfile,
         clientId,
         request.startSeconds,
         request.audioStreamIndex,
@@ -1219,6 +1221,12 @@ const VideoPlayer = ({
   );
 
   const availableQualitySteps = detail === null ? [] : listAvailableQualitySteps(detail);
+
+  const qualityStepCosts = useMemo(
+    () => (detail === null ? {} : qualityStepCostsFor({ media: detail, profile: deviceProfile })),
+    [detail, deviceProfile],
+  );
+
   const skippable = state === 'playing' ? skippableAt(segments, position) : null;
 
   const audioTracks = (detail?.audioStreams ?? []).map((stream, position) => ({
@@ -1784,6 +1792,7 @@ const VideoPlayer = ({
             audioTracks={audioTracks}
             selectedAudioIndex={selectedAudioIndex}
             availableQualitySteps={availableQualitySteps}
+            qualityStepCosts={qualityStepCosts}
             selectedQuality={request.requestedQuality}
             isDisabled={state !== 'playing'}
             onTogglePlay={togglePlay}
