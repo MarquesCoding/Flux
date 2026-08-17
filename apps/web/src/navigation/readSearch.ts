@@ -1,28 +1,18 @@
 import { z } from 'zod';
 
 type PlaceSearch = {
-  q: string;
-  show: string | null;
-  person: number | null;
-  item: string | null;
-  party: string | null;
-  genre: string | null;
-  library: string | null;
-  panel: string | null;
-  job: string | null;
+  q?: string;
+  show?: string;
+  person?: number;
+  item?: string;
+  party?: string;
+  genre?: string;
+  library?: string;
+  panel?: string;
+  job?: string;
 };
 
-const NOTHING: PlaceSearch = {
-  q: '',
-  show: null,
-  person: null,
-  item: null,
-  party: null,
-  genre: null,
-  library: null,
-  panel: null,
-  job: null,
-};
+const NOTHING: PlaceSearch = {};
 
 const said = z.string().min(1).nullish().catch(null);
 
@@ -46,6 +36,9 @@ const SearchSchema = z.object({
  * edit, truncate and paste: `?person=banana` should open no dialog, not fail to load the page. This
  * is where the router validates a search, so it is also the only place that decides what one means.
  *
+ * What was not said is left out rather than answered with nothing, because the router writes this
+ * back to the address bar: an answer of `null` becomes `?party=null` in somebody's address.
+ *
  * @param raw - What the address carried.
  * @returns What it means, with nothing where it said nothing.
  */
@@ -58,17 +51,15 @@ const readSearch = (raw: Record<string, string>): PlaceSearch => {
 
   const found = read.data;
 
-  return {
-    q: found.q ?? '',
-    show: found.show ?? null,
-    person: found.person ?? null,
-    item: found.item ?? null,
-    party: found.party ?? null,
-    genre: found.genre ?? null,
-    library: found.library ?? null,
-    panel: found.panel ?? null,
-    job: found.job ?? null,
-  };
+  const said: PlaceSearch = {};
+
+  for (const [name, value] of Object.entries(found)) {
+    if (value !== null && value !== undefined) {
+      Object.assign(said, { [name]: value });
+    }
+  }
+
+  return said;
 };
 
 export type { PlaceSearch };

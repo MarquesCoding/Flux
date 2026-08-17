@@ -6,7 +6,6 @@ import { Toaster } from '@FluxUI/Toaster';
 import { TooltipScope } from '@FluxUI/TooltipScope';
 import { buildQueryClient } from '@FluxWeb/query/queryClient';
 import { buildRouter } from '@FluxWeb/routes/buildRouter';
-import { App } from './components/App/App';
 import './styles/main.css';
 
 const container = document.querySelector('#root');
@@ -17,17 +16,15 @@ if (container === null) {
 
 const answers = buildQueryClient();
 
-const router = buildRouter(() => (
-  <TooltipScope>
-    <App />
-    <Toaster />
-  </TooltipScope>
-));
+const router = buildRouter();
 
 createRoot(container).render(
   <StrictMode>
     <QueryClientProvider client={answers}>
-      <RouterProvider router={router} />
+      <TooltipScope>
+        <RouterProvider router={router} />
+        <Toaster />
+      </TooltipScope>
     </QueryClientProvider>
   </StrictMode>,
 );

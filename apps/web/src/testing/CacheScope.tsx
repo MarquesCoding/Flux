@@ -30,7 +30,7 @@ const CacheScope = ({ children }: CacheScopeProps) => {
       }),
   );
 
-  const [router] = useState(() => buildRouter(() => null));
+  const [router] = useState(() => buildRouter());
 
   return (
     <QueryClientProvider client={answers}>

@@ -8,7 +8,10 @@ import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
  * @param mediaId - The item being asked about.
  * @returns The position to offer, or null when carrying on is not worth suggesting.
  */
-const resumeFor = (progress: Map<string, WatchProgress>, mediaId: string): number | null => {
+const resumeFor = (
+  progress: ReadonlyMap<string, WatchProgress>,
+  mediaId: string,
+): number | null => {
   const found = progress.get(mediaId);
 
   return found !== undefined && isWorthResuming(found) ? found.positionSeconds : null;

@@ -61,17 +61,17 @@ const placeIn = (pathname: string, query: Record<string, string>): Place => {
 
   return {
     section: section.success ? section.data : 'home',
-    search: said.q,
-    inspecting: first === 'media' && second !== '' ? second : said.item,
-    show: said.show,
-    person: said.person,
+    search: said.q ?? '',
+    inspecting: first === 'media' && second !== '' ? second : (said.item ?? null),
+    show: said.show ?? null,
+    person: said.person ?? null,
     shareToken: first === 'share' && second !== '' ? decodeURIComponent(second) : null,
     playing: first === 'watch' && second !== '' ? second : null,
-    party: said.party,
-    genre: said.genre,
-    library: said.library,
-    adminPanel: said.panel,
-    adminJob: said.job,
+    party: said.party ?? null,
+    genre: said.genre ?? null,
+    library: said.library ?? null,
+    adminPanel: said.panel ?? null,
+    adminJob: said.job ?? null,
   };
 };
 

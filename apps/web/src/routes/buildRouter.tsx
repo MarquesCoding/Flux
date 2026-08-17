@@ -1,50 +1,124 @@
-import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  lazyRouteComponent,
+} from '@tanstack/react-router';
 import { readSearch } from '@FluxWeb/navigation/readSearch';
-import type { ReactNode } from 'react';
+import { App } from '@FluxWeb/components/App/App';
+import { SignedIn } from '@FluxWeb/components/SignedIn/SignedIn';
+import { FluxShell } from '@FluxWeb/components/FluxShell/FluxShell';
+import { HomePage } from '@FluxWeb/components/HomePage/HomePage';
+import { PageProblem } from '@FluxWeb/components/PageProblem/PageProblem';
+
+const SharePage = lazyRouteComponent(
+  async () => import('@FluxWeb/components/SharePage/SharePage'),
+  'SharePage',
+);
+
+const WatchPage = lazyRouteComponent(
+  async () => import('@FluxWeb/components/WatchPage/WatchPage'),
+  'WatchPage',
+);
+
+const BrowsePage = lazyRouteComponent(
+  async () => import('@FluxWeb/components/BrowsePage/BrowsePage'),
+  'BrowsePage',
+);
+
+const SearchPage = lazyRouteComponent(
+  async () => import('@FluxWeb/components/SearchPage/SearchPage'),
+  'SearchPage',
+);
+
+const AccountPage = lazyRouteComponent(
+  async () => import('@FluxWeb/components/AccountPage/AccountPage'),
+  'AccountPage',
+);
+
+const AdminPage = lazyRouteComponent(
+  async () => import('@FluxWeb/components/AdminPage/AdminPage'),
+  'AdminPage',
+);
+
+const BROWSABLE = ['/shows', '/films', '/new', '/favourites'] as const;
 
 /**
- * Builds the router: the addresses Flux serves, what each of them carries, and what to draw at all
- * of them.
+ * Builds the router: every address Flux serves, what it carries, and what is drawn there.
  *
- * Every address draws the same thing, because Flux is one screen with a player and a stack of
- * dialogs over it rather than a set of pages — moving between the films page and something playing
- * must not tear the player down and build it again. So the routes exist to say which addresses are
- * real and to read what they carry, and the shell reads where it is from the router rather than
- * from `window.location`.
+ * Three layers, because three things have different lifetimes. The root decides whether this server
+ * has been set up at all. Inside it, everything but a share link is behind the way in, and that
+ * layer holds what the pages share — who is watching, what has been seen, the watch party. Inside
+ * that again, the sections sit in the chrome, so moving between them changes the page and leaves the
+ * dock, the dialogs and the player alone.
  *
- * @param shell - What to draw, which is the whole application.
+ * Everything but the home page is loaded when it is first asked for, so an account that never opens
+ * the admin page never downloads it. A page that throws draws its own apology rather than taking the
+ * application with it, and the browser is left to put the scroll back where it was.
+ *
+ * @param title - What this instance is called.
  * @returns The router, ready to hand to a provider.
  */
-const buildRouter = (shell: () => ReactNode) => {
-  const root = createRootRoute({ component: shell });
+const buildRouter = (title = 'Flux') => {
+  const root = createRootRoute({ component: () => <App initialTitle={title} /> });
 
-  const nothing = () => null;
   const carries = { validateSearch: readSearch };
 
-  const routes = [
-    createRoute({ getParentRoute: () => root, path: '/', component: nothing, ...carries }),
+  const share = createRoute({
+    getParentRoute: () => root,
+    path: '/share/$token',
+    component: () => <SharePage name={title} />,
+    ...carries,
+  });
+
+  const signedIn = createRoute({
+    getParentRoute: () => root,
+    id: 'signed-in',
+    component: () => <SignedIn title={title} />,
+  });
+
+  const watch = createRoute({
+    getParentRoute: () => signedIn,
+    path: '/watch/$mediaId',
+    component: WatchPage,
+    ...carries,
+  });
+
+  const shell = createRoute({
+    getParentRoute: () => signedIn,
+    id: 'shell',
+    component: FluxShell,
+  });
+
+  const sections = [
+    createRoute({ getParentRoute: () => shell, path: '/', component: HomePage, ...carries }),
     createRoute({
-      getParentRoute: () => root,
-      path: '/watch/$mediaId',
-      component: nothing,
+      getParentRoute: () => shell,
+      path: '/search',
+      component: SearchPage,
       ...carries,
     }),
     createRoute({
-      getParentRoute: () => root,
-      path: '/share/$token',
-      component: nothing,
+      getParentRoute: () => shell,
+      path: '/account',
+      component: AccountPage,
       ...carries,
     }),
-    createRoute({
-      getParentRoute: () => root,
-      path: '/media/$mediaId',
-      component: nothing,
-      ...carries,
-    }),
-    createRoute({ getParentRoute: () => root, path: '/$', component: nothing, ...carries }),
+    createRoute({ getParentRoute: () => shell, path: '/admin', component: AdminPage, ...carries }),
+    ...BROWSABLE.map((path) =>
+      createRoute({ getParentRoute: () => shell, path, component: BrowsePage, ...carries }),
+    ),
+    createRoute({ getParentRoute: () => shell, path: '/$', component: HomePage, ...carries }),
   ];
 
-  return createRouter({ routeTree: root.addChildren(routes) });
+  return createRouter({
+    routeTree: root.addChildren([
+      share,
+      signedIn.addChildren([watch, shell.addChildren(sections)]),
+    ]),
+    defaultErrorComponent: PageProblem,
+    scrollRestoration: true,
+  });
 };
 
 declare module '@tanstack/react-router' {

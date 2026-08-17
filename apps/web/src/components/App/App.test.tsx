@@ -1,8 +1,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderTheApp } from '@FluxWeb/testing/renderTheApp';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { App } from './App';
 import { JsonValueSchema, type JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { RealtimeEvent } from '@FluxContracts/schemas/Realtime';
 
@@ -249,7 +248,7 @@ afterEach(() => {
  * Lets the opening wordmark finish holding the screen.
  */
 const arrive = async () => {
-  for (let pass = 0; pass < 4; pass += 1) {
+  for (let pass = 0; pass < 8; pass += 1) {
     await act(async () => {
       vi.advanceTimersByTime(10_000);
       await Promise.resolve();
@@ -259,23 +258,23 @@ const arrive = async () => {
 };
 
 describe('App routing', () => {
-  it('shows a spinner while loading', () => {
+  it('shows a spinner while loading', async () => {
     fetchMock.mockReturnValue(new Promise(() => undefined));
-    renderInACache(<App />);
+    renderTheApp();
 
-    expect(screen.getByRole('status', { name: 'Loading Flux' })).toBeInTheDocument();
+    expect(await screen.findByRole('status', { name: 'Loading Flux' })).toBeInTheDocument();
   });
 
   it('shows the setup wizard when setup is incomplete', async () => {
     serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
-    renderInACache(<App />);
+    renderTheApp();
 
     expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument();
   });
 
   it('does not ask for a session before setup is complete', async () => {
     serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
-    renderInACache(<App />);
+    renderTheApp();
 
     await screen.findByRole('heading', { name: 'Set up Flux' });
 
@@ -284,7 +283,7 @@ describe('App routing', () => {
 
   it('asks who is watching when setup is complete but nobody is signed in', async () => {
     serverState({ setup: setupComplete, session: null });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -293,7 +292,7 @@ describe('App routing', () => {
 
   it('shows the library shell when signed in', async () => {
     serverState({ setup: setupComplete, session: { user } });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -307,7 +306,7 @@ describe('App routing', () => {
 
   it('calls the instance whatever it is configured to be called', async () => {
     serverState({ setup: setupComplete, session: null });
-    renderInACache(<App initialTitle="Living Room" />);
+    renderTheApp('Living Room');
 
     await arrive();
 
@@ -317,7 +316,7 @@ describe('App routing', () => {
   it('puts a person\u2019s own name at the top of their account page', async () => {
     serverState({ setup: setupComplete, session: { user } });
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    renderInACache(<App initialTitle="Living Room" />);
+    renderTheApp('Living Room');
 
     await arrive();
     await actor.click(await screen.findByRole('button', { name: 'Account' }));
@@ -327,7 +326,7 @@ describe('App routing', () => {
 
   it('reports an unreachable server rather than assuming setup is needed', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
-    renderInACache(<App />);
+    renderTheApp();
 
     expect(
       await screen.findByRole('heading', { name: 'Flux is not reachable' }),
@@ -340,7 +339,7 @@ describe('App routing', () => {
         ? Promise.resolve(ok(setupComplete))
         : Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve(null) }),
     );
-    renderInACache(<App />);
+    renderTheApp();
 
     await screen.findByRole('heading', { name: 'Flux is not reachable' });
 
@@ -350,7 +349,7 @@ describe('App routing', () => {
   it('signs out and returns to the wall of faces', async () => {
     serverState({ setup: setupComplete, session: { user } });
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
     await actor.click(await screen.findByRole('button', { name: 'Account' }));
@@ -366,7 +365,7 @@ describe('App routing', () => {
   it('opens an item for a look rather than playing it straight away', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -381,7 +380,7 @@ describe('App routing', () => {
   it('fills the page with the player once someone presses play', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -400,7 +399,7 @@ describe('App routing', () => {
     const arrival = aLibraryWithArrival.items.items[0];
 
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -431,7 +430,7 @@ describe('App routing', () => {
     window.history.replaceState(null, '', '/search?q=arrival');
 
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -442,7 +441,7 @@ describe('App routing', () => {
     window.history.replaceState(null, '', '/?show=ted');
 
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -451,7 +450,7 @@ describe('App routing', () => {
 
   it('shows what is waiting on the bell', async () => {
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -461,7 +460,7 @@ describe('App routing', () => {
   it('moves to the section chosen from the dock', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -469,13 +468,15 @@ describe('App routing', () => {
 
     await actor.click(within(dock).getByRole('button', { name: 'Films' }));
 
-    expect(await screen.findByRole('heading', { name: 'Films' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Films' })).toBeInTheDocument();
+    });
   });
 
   it('opens something chosen at random', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -486,7 +487,7 @@ describe('App routing', () => {
 
   it('goes back to the library once setup is finished', async () => {
     serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
-    renderInACache(<App />);
+    renderTheApp();
 
     await screen.findByRole('heading', { name: 'Set up Flux' });
 
@@ -498,7 +499,7 @@ describe('App routing', () => {
   it('closes an item that was opened for a look', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -523,7 +524,7 @@ describe('App routing', () => {
       ...aLibraryWithArrival,
       detail: arrivalInFull,
     });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -548,7 +549,11 @@ describe('App routing', () => {
         },
       ],
     });
-    renderInACache(<App />);
+    renderTheApp();
+
+    await waitFor(() => {
+      expect(socket.listeners.get('party')).toBeDefined();
+    });
 
     act(() => {
       socket.listeners.get('party')?.(aPartyAt(1800));
@@ -574,7 +579,7 @@ describe('App routing', () => {
       ...aLibraryWithArrival,
       detail: arrivalInFull,
     });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -599,7 +604,7 @@ describe('App routing', () => {
         },
       ],
     });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -632,7 +637,7 @@ describe('App routing', () => {
         },
       ],
     });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -660,7 +665,7 @@ describe('App routing', () => {
         },
       ],
     });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -695,7 +700,7 @@ describe('App routing', () => {
         },
       ],
     });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -714,7 +719,7 @@ describe('App routing', () => {
     window.history.replaceState(null, '', `/watch/${arrivalId}`);
 
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -739,7 +744,7 @@ describe('App routing', () => {
         },
       ],
     });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -772,7 +777,7 @@ describe('App routing', () => {
         },
       ],
     });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
@@ -790,7 +795,7 @@ describe('App routing', () => {
   it('remembers where somebody got to when the player is closed', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
-    renderInACache(<App />);
+    renderTheApp();
 
     await arrive();
 
