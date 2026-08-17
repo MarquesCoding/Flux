@@ -121,4 +121,34 @@ describe('notifyHousehold', () => {
     expect(await store.countUnread('alice')).toBe(0);
     expect(await store.countUnread('bob')).toBe(1);
   });
+
+  it('tells only the person it was meant for', async () => {
+    await notifyHousehold({ store, ...news, vapid: null, only: ['bob'] });
+
+    expect(await store.countUnread('bob')).toBe(1);
+    expect(await store.countUnread('alice')).toBe(0);
+  });
+
+  it('still lets somebody decide they do not want to hear it', async () => {
+    await store.writePreference('bob', { event: 'media.added', inApp: false, push: false });
+    await notifyHousehold({ store, ...news, vapid: null, only: ['bob'] });
+
+    expect(await store.countUnread('bob')).toBe(0);
+  });
+
+  it('announces only the people it actually reached', async () => {
+    const announced: string[][] = [];
+
+    await notifyHousehold({
+      store,
+      ...news,
+      vapid: null,
+      only: ['bob'],
+      announce: (userIds) => {
+        announced.push([...userIds]);
+      },
+    });
+
+    expect(announced).toEqual([['bob']]);
+  });
 });

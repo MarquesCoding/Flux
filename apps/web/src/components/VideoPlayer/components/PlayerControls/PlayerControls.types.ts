@@ -60,6 +60,7 @@ type PlayerControlsProps = {
   onPopOut?: () => void;
   isPoppedOut?: boolean;
   renderPreview?: (seconds: number) => ReactNode;
+  partyMenu?: ReactNode;
 };
 
 export type { PlayerControlsProps };

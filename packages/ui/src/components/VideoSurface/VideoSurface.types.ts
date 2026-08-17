@@ -16,6 +16,7 @@ type VideoSurfaceProps = {
   onTimeUpdate?: (currentSeconds: number) => void;
   onDurationChange?: (durationSeconds: number) => void;
   onPlayingChange?: (isPlaying: boolean) => void;
+  onBufferingChange?: (isBuffering: boolean) => void;
   onEnded?: () => void;
   loops?: boolean;
 };
