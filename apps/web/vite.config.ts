@@ -83,7 +83,7 @@ export default defineConfig({
     host: true,
     ...(cert === null || key === null ? {} : { https: { cert, key } }),
     proxy: {
-      '/api': 'http://localhost:8420',
+      '/api': { target: 'http://localhost:8420', ws: true },
     },
   },
 });

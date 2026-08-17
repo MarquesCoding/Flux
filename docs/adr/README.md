@@ -42,6 +42,7 @@ more valuable than a tidy directory.
 | [0013](0013-fluxui-component-stack.md)                 | FluxUI built on Base UI + Tailwind, not shadcn            | Accepted |
 | [0014](0014-lint-and-commit-enforcement.md)            | Lint and commit enforcement with oxlint, ESLint and husky | Accepted |
 | [0015](0015-casting-to-devices.md)                     | Cast by handing devices an address, with Google's sender  | Accepted |
+| [0016](0016-realtime-one-socket-two-feeds.md)          | One realtime socket, with a viewer feed and an admin feed | Accepted |
 
 ## Format
 

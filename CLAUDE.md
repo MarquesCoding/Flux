@@ -65,6 +65,7 @@ standalone functions. snake_case for Rust modules.
 | Media        | Rust + FFmpeg child process          | [0009](docs/adr/0009-media-pipeline-rust-ffmpeg.md)         |
 | UI           | Base UI + Tailwind + Tabler + Motion | [0013](docs/adr/0013-fluxui-component-stack.md)             |
 | Lint         | oxlint + ESLint + husky              | [0014](docs/adr/0014-lint-and-commit-enforcement.md)        |
+| Realtime     | One WebSocket, viewer + admin feeds  | [0016](docs/adr/0016-realtime-one-socket-two-feeds.md)      |
 
 **Not used:** shadcn/ui, Redis, SQLite, tRPC as a primary API, barrel files.
 
