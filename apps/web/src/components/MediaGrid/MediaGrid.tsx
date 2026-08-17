@@ -34,6 +34,7 @@ const MediaGrid = ({
   onToggleKept,
   size = 'medium',
   isSeries = false,
+  onOpenShow,
 }: MediaGridProps) => (
   <motion.ul
     variants={groupVariants}
@@ -54,6 +55,7 @@ const MediaGrid = ({
           onPlay={onPlay}
           onInspect={onInspect}
           isSeries={isSeries}
+          {...(onOpenShow === undefined ? {} : { onOpenShow })}
           {...(isKept === undefined ? {} : { isKept: isKept(media.id) })}
           {...(onToggleKept === undefined ? {} : { onToggleKept })}
         />

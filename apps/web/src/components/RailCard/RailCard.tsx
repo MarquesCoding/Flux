@@ -79,7 +79,7 @@ const fitInside = (top: number, height: number): number => {
  * @param onToggleKept - Told to keep it, or stop.
  * @param isSeries - Whether this card stands for a whole programme rather than for the episode that
  *   happens to represent it, in which case the episode's own name and number are not what a reader
- *   is looking at.
+ *   is looking at — and pressing it opens the programme rather than that one episode.
  */
 const RailCard = ({
   media,
@@ -93,6 +93,16 @@ const RailCard = ({
   onToggleKept,
   isSeries = false,
 }: RailCardProps) => {
+  const inspect = () => {
+    if (isSeries && onOpenShow !== undefined) {
+      onOpenShow(media);
+
+      return;
+    }
+
+    onInspect(media);
+  };
+
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const holderRef = useRef<HTMLDivElement>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
@@ -217,9 +227,7 @@ const RailCard = ({
         shape="wide"
         {...(watchedFraction === undefined ? {} : { watchedFraction })}
         {...(artworkUrl === undefined ? {} : { imageUrl: artworkUrl })}
-        onSelect={() => {
-          onInspect(media);
-        }}
+        onSelect={inspect}
         className="w-full"
       />
 
@@ -244,10 +252,8 @@ const RailCard = ({
               <Button
                 variant="bare"
                 size="none"
-                aria-label={`More about ${media.title}`}
-                onClick={() => {
-                  onInspect(media);
-                }}
+                aria-label={`More about ${media.seriesTitle ?? media.title}`}
+                onClick={inspect}
                 className="absolute inset-0 z-0 rounded-lg"
               />
 
@@ -352,10 +358,10 @@ const RailCard = ({
                     isIconOnly
                     variant="secondary"
                     size="md"
-                    label={`More about ${media.title}`}
+                    label={`More about ${media.seriesTitle ?? media.title}`}
                     onClick={(event) => {
                       event.stopPropagation();
-                      onInspect(media);
+                      inspect();
                     }}
                   >
                     <RiInformationLine size={17} aria-hidden />

@@ -978,6 +978,13 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               onInspect={(media) => {
                 go({ inspecting: media.id });
               }}
+              onOpenShow={(media) => {
+                const series = media.seriesId ?? showSlug(media.seriesTitle ?? '');
+
+                if (series !== '') {
+                  go({ show: series });
+                }
+              }}
               onItemsLoaded={rememberItems}
               watchedFractionFor={(mediaId) => {
                 const found = progress.get(mediaId);

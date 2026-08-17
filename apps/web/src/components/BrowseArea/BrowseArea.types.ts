@@ -6,6 +6,7 @@ type BrowseAreaProps = {
   kind: BrowseKind;
   onPlay: (media: MediaSummary, startSeconds: number) => void;
   onInspect: (media: MediaSummary) => void;
+  onOpenShow?: (media: MediaSummary) => void;
   onItemsLoaded?: (items: MediaSummary[]) => void;
   watchedFractionFor?: (mediaId: string) => number | undefined;
   resumeFor?: (mediaId: string) => number | null;
