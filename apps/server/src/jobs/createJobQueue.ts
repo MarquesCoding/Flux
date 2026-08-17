@@ -185,8 +185,8 @@ const createJobQueue = async ({
       progressByJobId.set(jobId, { phase, processed, total });
     },
 
-    setSchedule: async (queueName, key, cron) => {
-      await boss.schedule(queueName, cron, null, { key });
+    setSchedule: async (queueName, key, cron, timezone) => {
+      await boss.schedule(queueName, cron, null, { key, tz: timezone });
     },
 
     clearSchedule: async (queueName, key) => {
@@ -200,6 +200,7 @@ const createJobQueue = async ({
         queueName: schedule.name,
         key: schedule.key,
         cron: schedule.cron,
+        timezone: schedule.timezone,
       }));
     },
 

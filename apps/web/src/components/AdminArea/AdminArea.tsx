@@ -51,6 +51,7 @@ import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
 import { describeGraphics } from './describeGraphics';
 import { describeCpuShare } from './describeCpuShare';
+import { describeFfmpeg } from './describeFfmpeg';
 import { describeAcceleration } from './describeAcceleration';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
@@ -125,22 +126,13 @@ const PANELS: readonly { id: PanelId; label: string }[] = SECTIONS.flatMap((sect
  * Reads every job's triggers at once and keys them by job, so that a list of jobs can show what makes
  * each run without a request per row.
  */
-const readJobSchedules = async (): Promise<Map<string, JobTrigger[]>> =>
-  new Map((await fetchJobSchedules()).map((entry) => [entry.kind, entry.triggers]));
+const readJobSchedules = async (): Promise<{
+  byKind: Map<string, JobTrigger[]>;
+  timezone: string | null;
+}> => {
+  const { schedules, timezone } = await fetchJobSchedules();
 
-/**
- * Trims what FFmpeg calls itself down to a version, since it reports a paragraph of build
- * configuration after the number and only the number belongs in a tile.
- *
- * @param reported - What the transcoder said FFmpeg calls itself.
- * @returns The version alone, or a dash where there is nothing to trim.
- */
-const shortVersion = (reported: string | null): string => {
-  if (reported === null) {
-    return 'unknown';
-  }
-
-  return /ffmpeg version (\S+)/.exec(reported)?.[1] ?? reported.slice(0, 24);
+  return { byKind: new Map(schedules.map((entry) => [entry.kind, entry.triggers])), timezone };
 };
 
 /**
@@ -179,6 +171,7 @@ const AdminArea = ({
   const [unreachable, setUnreachable] = useState<ReadonlySet<string>>(new Set());
   const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
   const [jobSchedules, setJobSchedules] = useState<Map<string, JobTrigger[]>>(new Map());
+  const [jobsTimezone, setJobsTimezone] = useState<string | null>(null);
   const {
     progress: scanProgress,
     isScanningAll,
@@ -246,7 +239,10 @@ const AdminArea = ({
       loadInto('libraries', fetchLibraries, setLibraries),
       loadInto('sessions', fetchActiveSessions, setSessions),
       loadInto('jobs', fetchJobDefinitions, setJobDefinitions),
-      loadInto('schedules', readJobSchedules, setJobSchedules),
+      loadInto('schedules', readJobSchedules, ({ byKind, timezone }) => {
+        setJobSchedules(byKind);
+        setJobsTimezone(timezone);
+      }),
     ]);
   }, [loadInto, readMedia]);
 
@@ -296,7 +292,7 @@ const AdminArea = ({
     const added = await addJobTrigger(kind, trigger);
 
     if (added === null) {
-      setJobSchedules(await readJobSchedules());
+      setJobSchedules((await readJobSchedules()).byKind);
 
       return;
     }
@@ -313,7 +309,7 @@ const AdminArea = ({
     );
 
     if (!(await removeJobTrigger(kind, triggerId))) {
-      setJobSchedules(await readJobSchedules());
+      setJobSchedules((await readJobSchedules()).byKind);
     }
   };
 
@@ -497,7 +493,7 @@ const AdminArea = ({
                 {overview === null
                   ? 'Reading the server…'
                   : overview.transcoder.isReachable
-                    ? `Media service up · ffmpeg ${shortVersion(overview.transcoder.ffmpegVersion)}`
+                    ? `Media service up · ${describeFfmpeg(overview.transcoder.ffmpegVersion)}`
                     : 'Media service unreachable'}
               </span>
 
@@ -688,6 +684,7 @@ const AdminArea = ({
                 monitor={monitor}
                 viewingJobKind={viewingJobKind}
                 schedules={jobSchedules}
+                schedulesTimezone={jobsTimezone}
                 onRun={startJob}
                 onStop={stopJob}
                 onOpenSchedule={openJobSchedule}

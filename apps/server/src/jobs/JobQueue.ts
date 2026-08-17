@@ -103,9 +103,11 @@ type JobQueue = {
   listRunning: () => RunningJob[];
   cancel: (jobId: string) => Promise<boolean>;
   isCancelled: (jobId: string) => boolean;
-  setSchedule: (queueName: string, key: string, cron: string) => Promise<void>;
+  setSchedule: (queueName: string, key: string, cron: string, timezone: string) => Promise<void>;
   clearSchedule: (queueName: string, key: string) => Promise<void>;
-  listSchedules: () => Promise<{ queueName: string; key: string; cron: string }[]>;
+  listSchedules: () => Promise<
+    { queueName: string; key: string; cron: string; timezone: string }[]
+  >;
   stop: () => Promise<void>;
 };
 
