@@ -105,6 +105,7 @@ const ShareArea = ({ token, onPlay, resumeFor, name = 'Flux' }: ShareAreaProps) 
       </span>
 
       <Hero
+        fills
         items={[first]}
         onPlay={(media, startSeconds) => {
           onPlay(media, startSeconds);
