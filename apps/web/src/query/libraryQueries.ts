@@ -119,23 +119,24 @@ const credits = (personId: number | null) =>
   });
 
 /**
- * A sample from every library at once, which is what the hero picks what to feature from.
+ * The same question asked of every library at once, which is what a page showing the whole server
+ * rather than one folder of it wants — the films page, the newest page, and the hero.
  *
- * One query rather than one per library, because the hero wants a single answer and a screen that
- * renders when three of five libraries have replied is a screen that changes what it is featuring
- * while somebody is looking at it.
+ * One query rather than one per library, because these pages want a single answer: a grid that
+ * renders when three of five libraries have replied is a grid that reorders itself while somebody
+ * is reading it. A library that fails answers with nothing rather than failing the whole page.
  *
- * @param libraryIds - The libraries to sample.
- * @param each - How much to take from each.
+ * @param libraryIds - The libraries to ask.
+ * @param options - What is being asked of each.
  * @returns The query.
  */
-const sample = (libraryIds: readonly string[], each: number) =>
+const across = (libraryIds: readonly string[], options: ListItemsOptions = {}) =>
   queryOptions({
-    queryKey: [...LIBRARY, 'sample', [...libraryIds].sort(), each],
+    queryKey: [...LIBRARY, 'across', [...libraryIds].sort(), options],
     queryFn: async () => {
       const pages = await Promise.all(
         libraryIds.map((libraryId) =>
-          fetchLibraryItems(libraryId, { search: '', limit: each })
+          fetchLibraryItems(libraryId, options)
             .then((page) => page.items)
             .catch(() => []),
         ),
@@ -155,7 +156,7 @@ const libraryQueries = {
   facets,
   person,
   credits,
-  sample,
+  across,
   key: LIBRARY,
 };
 

@@ -81,9 +81,9 @@ const LibraryBrowser = ({
   const loadedFor = page.data?.libraryId ?? null;
 
   const sample = useQuery(
-    libraryQueries.sample(
+    libraryQueries.across(
       libraries.map((entry) => entry.id),
-      HERO_SAMPLE,
+      { search: '', limit: HERO_SAMPLE },
     ),
   );
 

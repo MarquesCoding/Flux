@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
-import { getRealtimeClient } from '@FluxWeb/realtime/getRealtimeClient';
+import { useQuery } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { collapseToShows } from '@FluxWeb/library/pickFeatured';
 import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
 import { GridSizeChooser } from '@FluxWeb/components/GridSizeChooser/GridSizeChooser';
 import { readGridSize, saveGridSize } from '@FluxWeb/library/gridSizePreference';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { BrowseAreaProps, BrowseKind } from './BrowseArea.types';
 
 const PAGE_SIZE = 120;
@@ -65,9 +64,6 @@ const BrowseArea = ({
   isKept,
   onToggleKept,
 }: BrowseAreaProps) => {
-  const [libraryIds, setLibraryIds] = useState<string[]>([]);
-  const [items, setItems] = useState<MediaSummary[]>([]);
-  const [isReading, setIsReading] = useState(true);
   const [size, setSize] = useState(readGridSize);
   const prefersReducedMotion = useReducedMotion();
   const page = PAGES[kind];
@@ -76,65 +72,33 @@ const BrowseArea = ({
 
   reportItems.current = onItemsLoaded;
 
-  useEffect(() => {
-    void fetchLibraries()
-      .then((found) => {
-        setLibraryIds(found.map((entry) => entry.id));
-      })
-      .catch(() => {
-        setLibraryIds([]);
-        setIsReading(false);
-      });
-  }, []);
+  const libraries = useQuery(libraryQueries.all());
+
+  const libraryIds = useMemo(
+    () => (libraries.data ?? []).map((entry) => entry.id),
+    [libraries.data],
+  );
 
   const kept = favourites.join(',');
 
-  const read = useCallback(async () => {
-    if (libraryIds.length === 0) {
-      return;
+  const asked =
+    kind === 'favourites'
+      ? { ids: kept === '' ? [] : kept.split(','), limit: PAGE_SIZE }
+      : kind === 'new'
+        ? { order: 'newest' as const, limit: PAGE_SIZE }
+        : { kind, limit: PAGE_SIZE };
+
+  const found = useQuery(libraryQueries.across(libraryIds, asked));
+
+  const items = useMemo(() => collapseToShows(found.data ?? []), [found.data]);
+
+  const isReading = libraries.isPending || (libraryIds.length > 0 && found.isPending);
+
+  useEffect(() => {
+    if (!isReading) {
+      reportItems.current?.(items);
     }
-
-    setIsReading(true);
-
-    const asked =
-      kind === 'favourites'
-        ? { ids: kept === '' ? [] : kept.split(','), limit: PAGE_SIZE }
-        : kind === 'new'
-          ? { order: 'newest' as const, limit: PAGE_SIZE }
-          : { kind, limit: PAGE_SIZE };
-
-    const pages = await Promise.all(
-      libraryIds.map(async (libraryId) =>
-        fetchLibraryItems(libraryId, asked).catch(() => ({ items: [], total: 0 })),
-      ),
-    );
-
-    const found = collapseToShows(pages.flatMap((entry) => entry.items));
-
-    setItems(found);
-    setIsReading(false);
-    reportItems.current?.(found);
-  }, [libraryIds, kind, kept]);
-
-  useEffect(() => {
-    void read();
-  }, [read]);
-
-  useEffect(() => {
-    const client = getRealtimeClient();
-
-    const reread = () => {
-      void read();
-    };
-
-    const release = client.subscribe('media', reread);
-    const stopResuming = client.onResumed(reread);
-
-    return () => {
-      release();
-      stopResuming();
-    };
-  }, [read]);
+  }, [items, isReading]);
 
   return (
     <motion.div
