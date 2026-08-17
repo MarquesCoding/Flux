@@ -64,6 +64,7 @@ const LibraryBrowser = ({
   const [items, setItems] = useState<MediaSummary[]>([]);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [heroItems, setHeroItems] = useState<MediaSummary[]>([]);
+  const [hasReadHero, setHasReadHero] = useState(false);
   const [appliedSearch, setAppliedSearch] = useState('');
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
 
@@ -173,6 +174,7 @@ const LibraryBrowser = ({
   useEffect(() => {
     if (libraries.length === 0) {
       setHeroItems([]);
+      setHasReadHero(true);
 
       return;
     }
@@ -188,6 +190,7 @@ const LibraryBrowser = ({
     ).then((pages) => {
       if (!abandoned) {
         setHeroItems(pages.flat());
+        setHasReadHero(true);
       }
     });
 
@@ -196,19 +199,22 @@ const LibraryBrowser = ({
     };
   }, [libraries]);
 
-  if (state === 'loading') {
-    return (
-      <div className="flex justify-center p-12">
-        <Spinner label="Reading your library" size="lg" />
-      </div>
-    );
-  }
+  const isSettled =
+    state === 'ready' && (selectedId === null || loadedFor !== null) && (!hasHero || hasReadHero);
 
   if (state === 'unreachable') {
     return (
       <p role="alert" className="text-sm text-danger">
         Your library could not be loaded. Check that the server is running and reload.
       </p>
+    );
+  }
+
+  if (!isSettled) {
+    return (
+      <div className="flex justify-center p-12">
+        <Spinner label="Reading your library" size="lg" />
+      </div>
     );
   }
 
