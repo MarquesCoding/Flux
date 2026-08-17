@@ -38,7 +38,7 @@ import { loadCastSender, castStateOf, castStream } from '@FluxWeb/playback/castS
 import { fetchTrickplay } from '@FluxWeb/playback/fetchTrickplay';
 import { popOutWithCaptions } from '@FluxWeb/playback/popOutWithCaptions';
 import { captureFrame } from '@FluxWeb/playback/captureFrame';
-import { readPlaybackHealth } from '@FluxWeb/playback/readPlaybackHealth';
+import { readPlaybackHealth, bufferedAhead } from '@FluxWeb/playback/readPlaybackHealth';
 import {
   fetchSubtitleTracks,
   subtitleTrackUrl,
@@ -67,6 +67,7 @@ import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
 import { AdminMessageOverlay } from './components/AdminMessageOverlay/AdminMessageOverlay';
+import { correctDrift } from '@FluxCore/functions/correctDrift';
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay';
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions';
 import type { CastState } from '@FluxWeb/playback/castPlayback.types';
@@ -96,6 +97,8 @@ const JUMP_SECONDS = 30;
 const FINISHED_WITHIN_SECONDS = 90;
 
 const HEALTH_INTERVAL_MILLISECONDS = 500;
+
+const PARTY_REPORT_EVERY_MS = 1000;
 
 const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000;
 
@@ -157,8 +160,91 @@ const VideoPlayer = ({
   episodes = [],
   onSelectEpisode,
   watchedFractionFor,
+  party,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const appliedSequenceRef = useRef(-1);
+
+  useEffect(() => {
+    const command = party?.command ?? null;
+    const element = videoRef.current;
+
+    if (command === null || element === null || command.sequence <= appliedSequenceRef.current) {
+      return;
+    }
+
+    appliedSequenceRef.current = command.sequence;
+    if (command.command.kind === 'seek') {
+      element.currentTime = command.command.atSeconds;
+    }
+
+    if (command.command.kind === 'pause') {
+      element.currentTime = command.command.atSeconds;
+      element.pause();
+    }
+
+    if (command.command.kind === 'play') {
+      element.currentTime = command.command.atSeconds;
+      void element.play();
+    }
+  }, [party?.command]);
+
+  useEffect(() => {
+    if (party === undefined) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const element = videoRef.current;
+
+      if (element === null) {
+        return;
+      }
+
+      party.onReport({
+        positionSeconds: element.currentTime,
+        bufferedAheadSeconds: bufferedAhead(element),
+        isWatching: !element.paused,
+      });
+    }, PARTY_REPORT_EVERY_MS);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [party]);
+
+  useEffect(() => {
+    const reference = party?.referenceSeconds ?? null;
+
+    if (party === undefined || reference === null) {
+      return;
+    }
+
+    const element = videoRef.current;
+
+    if (element === null || element.paused) {
+      return;
+    }
+
+    const corrected = correctDrift({
+      behindByMs: (reference - element.currentTime) * 1000,
+      jitterMs: party.jitterMs,
+      isSeeking: element.seeking,
+      isStalled: bufferedAhead(element) <= 0,
+    });
+
+    if (corrected.kind === 'snap') {
+      element.currentTime = reference;
+      element.playbackRate = 1;
+
+      return;
+    }
+
+    element.preservesPitch = true;
+    element.playbackRate = corrected.kind === 'rate' ? corrected.rate : 1;
+  }, [party, party?.referenceSeconds]);
+
   const stageRef = useRef<HTMLDivElement>(null);
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isSilencedByPolicyRef = useRef(false);
@@ -907,6 +993,15 @@ const VideoPlayer = ({
       return;
     }
 
+    if (party !== undefined) {
+      party.onCommand({
+        kind: element.paused ? 'play' : 'pause',
+        atSeconds: element.currentTime,
+      });
+
+      return;
+    }
+
     if (element.paused) {
       void element.play();
 
@@ -914,19 +1009,28 @@ const VideoPlayer = ({
     }
 
     element.pause();
-  }, []);
+  }, [party]);
 
-  const seek = useCallback((seconds: number) => {
-    const element = videoRef.current;
+  const seek = useCallback(
+    (seconds: number) => {
+      const element = videoRef.current;
 
-    if (element === null) {
-      return;
-    }
+      if (element === null) {
+        return;
+      }
 
-    setPosition(seconds);
+      if (party !== undefined) {
+        party.onCommand({ kind: 'seek', atSeconds: seconds });
 
-    element.currentTime = seconds;
-  }, []);
+        return;
+      }
+
+      setPosition(seconds);
+
+      element.currentTime = seconds;
+    },
+    [party],
+  );
 
   useEffect(() => {
     saveCaptionStyle(captionStyle);
