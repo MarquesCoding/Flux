@@ -156,12 +156,17 @@ fn truncated(csv: &str, seconds: f64) -> String {
         .join("\n")
 }
 
-fn add(totals: &mut Totals, record: &serde_json::Value, directory: &Path, truncate: Option<f64>) {
+fn add(
+    totals: &mut Totals,
+    record: &serde_json::Value,
+    directory: &Path,
+    truncate: Option<f64>,
+) -> Option<Verdict> {
     totals.total += 1;
 
     if record.get("ok").and_then(serde_json::Value::as_bool) != Some(true) {
         totals.failed += 1;
-        return;
+        return None;
     }
 
     let rows_file = field(record, "rowsFile").unwrap_or_default();
@@ -172,7 +177,7 @@ fn add(totals: &mut Totals, record: &serde_json::Value, directory: &Path, trunca
 
     let Ok(csv) = std::fs::read_to_string(directory.join("rows").join(rows_file)) else {
         totals.failed += 1;
-        return;
+        return None;
     };
 
     let csv = match truncate {
@@ -184,7 +189,7 @@ fn add(totals: &mut Totals, record: &serde_json::Value, directory: &Path, trunca
 
     if verdict.cuts == 0 {
         totals.no_cuts += 1;
-        return;
+        return None;
     }
 
     if verdict.unsafe_cuts > 0 {
@@ -208,6 +213,8 @@ fn add(totals: &mut Totals, record: &serde_json::Value, directory: &Path, trunca
         .longest_buckets
         .entry(bucket_of(verdict.longest))
         .or_default() += 1;
+
+    Some(verdict)
 }
 
 fn report(totals: &Totals) {
@@ -261,6 +268,7 @@ fn report(totals: &Totals) {
 }
 
 fn main() {
+    let per_file = std::env::args().any(|arg| arg == "--per-file");
     let directory = std::env::args()
         .nth(1)
         .expect("a survey directory to replay");
@@ -279,7 +287,23 @@ fn main() {
             continue;
         };
 
-        add(&mut totals, &record, directory, truncate);
+        let verdict = add(&mut totals, &record, directory, truncate);
+
+        if per_file {
+            if let Some(verdict) = verdict {
+                println!(
+                    "{}\t{}\t{:.2}\t{}",
+                    verdict.unsafe_cuts > 0,
+                    verdict.scan_can_copy,
+                    verdict.longest,
+                    field(&record, "path").unwrap_or_default()
+                );
+            }
+        }
+    }
+
+    if per_file {
+        return;
     }
 
     if let Some(seconds) = truncate {
