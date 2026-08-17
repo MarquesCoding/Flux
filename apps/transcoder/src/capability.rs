@@ -548,6 +548,36 @@ const fn assume_supported() -> bool {
 /// to tell that from a slow computer.
 pub const MINIMUM_FFMPEG: (u32, u32) = (7, 0);
 
+/// What `--extra-version` stamps into a banner built by Flux.
+const FLUX_BUILD: &str = "-Flux";
+
+/// Says which `FFmpeg` the service resolved, and whether it is the one Flux ships.
+///
+/// Worth a line at startup because the alternative is silence. Falling back to
+/// whatever is on `PATH` keeps working and loses the filters that hold frames on
+/// the device, so the cost is real, invisible, and looks exactly like a slow
+/// machine. An operator reading one line can tell the two apart.
+///
+/// @param ffmpeg - The path the service resolved.
+/// @param banner - The first line of `ffmpeg -version`.
+#[must_use]
+pub fn describe_build(ffmpeg: &str, banner: &str) -> String {
+    let version = banner
+        .split_whitespace()
+        .nth(2)
+        .filter(|_| banner.starts_with("ffmpeg version"))
+        .unwrap_or("an unreadable version");
+
+    if banner.contains(FLUX_BUILD) {
+        return format!("using Flux's own ffmpeg at {ffmpeg}, which reports {version}");
+    }
+
+    format!(
+        "using {ffmpeg}, which reports {version} and is not the build Flux ships — \
+         the filters that keep subtitles and HDR on the device are likely missing"
+    )
+}
+
 /// The major and minor version out of an ffmpeg banner.
 ///
 /// Builds label themselves freely — Debian appends `-0+deb12u1`, Jellyfin
@@ -583,7 +613,8 @@ pub fn meets_minimum(banner: &str) -> bool {
     version_numbers(banner).is_none_or(|found| found >= MINIMUM_FFMPEG)
 }
 
-async fn read_version(ffmpeg: &str) -> String {
+/// The first line of what `FFmpeg` says about itself, or "unknown".
+pub async fn read_version(ffmpeg: &str) -> String {
     let Ok(output) = Command::new(ffmpeg).arg("-version").output().await else {
         return "unknown".to_owned();
     };
@@ -699,9 +730,9 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
 #[cfg(test)]
 mod tests {
     use super::{
-        parse_listed_encoders, parse_listed_filters, probe_arguments, select_tone_mapping,
-        tone_map_probe_arguments, Capabilities, EncoderCandidate, VerifiedEncoder,
-        ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
+        describe_build, parse_listed_encoders, parse_listed_filters, probe_arguments,
+        select_tone_mapping, tone_map_probe_arguments, Capabilities, EncoderCandidate,
+        VerifiedEncoder, ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
     };
     use crate::transcode_plan::HardwareAccel;
     use crate::transcode_plan::DEFAULT_DEVICE;
@@ -957,6 +988,52 @@ mod tests {
         let names = parse_listed_encoders(ENCODERS_OUTPUT);
 
         assert!(!names.iter().any(|name| name == "="));
+    }
+
+    /// The startup line has to distinguish the two builds, or it is decoration.
+    ///
+    /// Falling back to `PATH` is silent and costs the device paths, so a line
+    /// that says the same thing either way would leave the fault exactly as
+    /// hidden as it was. See FLUX-110.
+    #[test]
+    fn says_when_the_build_is_flux_own() {
+        let notice = describe_build(
+            "/repo/.ffmpeg/ffmpeg",
+            "ffmpeg version 8.1.2-Flux Copyright (c) 2000-2026 the FFmpeg developers",
+        );
+
+        assert!(notice.contains("Flux's own ffmpeg"), "{notice}");
+        assert!(notice.contains("/repo/.ffmpeg/ffmpeg"), "{notice}");
+        assert!(notice.contains("8.1.2-Flux"), "{notice}");
+    }
+
+    #[test]
+    fn warns_when_the_build_is_not_flux_own() {
+        let notice = describe_build(
+            "/opt/homebrew/bin/ffmpeg",
+            "ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers",
+        );
+
+        assert!(notice.contains("not the build Flux ships"), "{notice}");
+        assert!(notice.contains("/opt/homebrew/bin/ffmpeg"), "{notice}");
+    }
+
+    #[test]
+    fn does_not_mistake_another_fork_for_flux() {
+        let notice = describe_build(
+            "/usr/lib/jellyfin-ffmpeg/ffmpeg",
+            "ffmpeg version 8.1.2-Jellyfin Copyright (c) 2000-2026",
+        );
+
+        assert!(notice.contains("not the build Flux ships"), "{notice}");
+    }
+
+    #[test]
+    fn still_names_the_path_when_ffmpeg_said_nothing_readable() {
+        let notice = describe_build("/nowhere/ffmpeg", "unknown");
+
+        assert!(notice.contains("/nowhere/ffmpeg"), "{notice}");
+        assert!(notice.contains("an unreadable version"), "{notice}");
     }
 
     #[test]
