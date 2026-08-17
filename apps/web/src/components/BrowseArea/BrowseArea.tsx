@@ -43,6 +43,7 @@ const PAGES: Record<BrowseKind, { title: string; standfirst: string; empty: stri
  * has been kept — drawn as a grid across every library rather than one at a time.
  *
  * @param kind - Which question this page asks.
+ * @param onOpenShow - Told to open a programme, for a page whose cards stand for programmes.
  * @param onPlay - Told to start something, and where from.
  * @param onInspect - Told to open the page about something.
  * @param onItemsLoaded - Told what it drew, so an address naming an item can be resolved.
@@ -54,6 +55,7 @@ const PAGES: Record<BrowseKind, { title: string; standfirst: string; empty: stri
  */
 const BrowseArea = ({
   kind,
+  onOpenShow,
   onPlay,
   onInspect,
   onItemsLoaded,
@@ -178,6 +180,8 @@ const BrowseArea = ({
           <MediaGrid
             items={items}
             size={size}
+            isSeries={kind === 'shows'}
+            {...(onOpenShow === undefined ? {} : { onOpenShow })}
             onPlay={onPlay}
             onInspect={onInspect}
             {...(watchedFractionFor === undefined ? {} : { watchedFractionFor })}

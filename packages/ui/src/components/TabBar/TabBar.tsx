@@ -1,5 +1,6 @@
-import { Tabs } from '@base-ui/react/tabs';
+import * as RadixTabs from '@radix-ui/react-tabs';
 import { cn } from '@FluxUI/cn';
+import { SlidingMark } from '@FluxUI/SlidingMark';
 import type { TabBarProps } from './TabBar.types';
 
 /**
@@ -8,11 +9,12 @@ import type { TabBarProps } from './TabBar.types';
  * immediately above the panel it controls.
  *
  * @param tabs - The tabs, each with what it is called.
+ * @param value - Which tab is showing, so the rule beneath it can travel there.
  * @param label - What the set of tabs is for, read out to anybody who cannot see it.
  * @param className - Extra classes for the caller's own layout.
  */
-const TabBar = ({ tabs, label, className }: TabBarProps) => (
-  <Tabs.List
+const TabBar = ({ tabs, label, value, className }: TabBarProps) => (
+  <RadixTabs.List
     aria-label={label}
     className={cn(
       'flux-rail relative flex items-center gap-6 overflow-x-auto px-5 sm:px-10',
@@ -20,27 +22,28 @@ const TabBar = ({ tabs, label, className }: TabBarProps) => (
     )}
   >
     {tabs.map((tab) => (
-      <Tabs.Tab
+      <RadixTabs.Trigger
         key={tab.id}
         value={tab.id}
         className={cn(
-          'shrink-0 cursor-pointer py-3 text-xl font-semibold tracking-tight sm:text-2xl',
-          'text-text-muted/60 transition-colors hover:text-text-muted',
-          'data-[selected]:text-text',
+          'relative shrink-0 cursor-pointer py-3 text-xl font-semibold tracking-tight sm:text-2xl',
+          'text-text-muted/60 outline-none hover:text-text-muted',
+          'transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
+          'motion-reduce:transition-none focus-visible:text-text',
+          'data-[state=active]:text-text',
         )}
       >
         {tab.label}
-      </Tabs.Tab>
-    ))}
 
-    <Tabs.Indicator
-      className={cn(
-        'absolute bottom-0 left-[var(--active-tab-left)] h-0.5 w-[var(--active-tab-width)]',
-        'rounded-full bg-text transition-[left,width] duration-300 ease-out',
-        'motion-reduce:transition-none',
-      )}
-    />
-  </Tabs.List>
+        {value === tab.id ? (
+          <SlidingMark
+            group={`tab-bar-${label}`}
+            className="inset-x-0 inset-y-auto bottom-0 h-0.5 rounded-full bg-text"
+          />
+        ) : null}
+      </RadixTabs.Trigger>
+    ))}
+  </RadixTabs.List>
 );
 
 TabBar.displayName = 'TabBar';

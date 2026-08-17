@@ -16,8 +16,8 @@ const PADDING_CLASSES: Record<CardPadding, string> = {
 
 const RADIUS_CLASSES: Record<CardRadius, string> = {
   md: 'rounded-lg',
-  lg: 'rounded-xl',
-  xl: 'rounded-2xl',
+  lg: 'rounded-lg',
+  xl: 'rounded-lg',
 };
 
 /**

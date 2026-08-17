@@ -1,6 +1,6 @@
-import { Popover } from '@base-ui/react/popover';
+import * as RadixPopover from '@radix-ui/react-popover';
 import { cn } from '@FluxUI/cn';
-import { POPUP_MOTION } from '@FluxUI/animations/popup';
+import { POPUP_MOTION } from '@FluxUI/animations/motion';
 import { Tooltip } from '@FluxUI/Tooltip';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { PopoverPanelProps } from './PopoverPanel.types';
@@ -36,49 +36,53 @@ const PopoverPanel = ({
   const portalContainer = usePortalContainer();
 
   return (
-    <Popover.Root
+    <RadixPopover.Root
       {...(isOpen === undefined ? {} : { open: isOpen })}
       {...(onOpenChange === undefined ? {} : { onOpenChange })}
     >
       <Tooltip label={label} side={side === 'top' ? 'top' : 'bottom'}>
-        <Popover.Trigger
+        <RadixPopover.Trigger
           aria-label={label}
           disabled={isDisabled}
+          data-slot="popover-trigger"
           className={cn(
-            'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
-            'text-current transition-colors hover:bg-white/15',
-            'data-[popup-open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-md',
+            'text-current outline-none hover:bg-white/15',
+            'transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
+            'motion-reduce:transition-none',
+            'focus-visible:ring-[3px] focus-visible:ring-ring/40',
+            'data-[state=open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
           {trigger}
-        </Popover.Trigger>
+        </RadixPopover.Trigger>
       </Tooltip>
 
-      <Popover.Portal container={portalContainer}>
-        <Popover.Positioner
+      <RadixPopover.Portal
+        {...(portalContainer === undefined ? {} : { container: portalContainer })}
+      >
+        <RadixPopover.Content
+          aria-label={label}
           side={side}
           sideOffset={12}
           align={align}
           collisionPadding={12}
-          className="z-50"
+          data-slot="popover-content"
+          className={cn(
+            'z-50 flux-glass flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-white',
+            'outline-none',
+            POPUP_MOTION,
+            className,
+          )}
         >
-          <Popover.Popup
-            aria-label={label}
-            className={cn(
-              'flux-glass flex max-h-[70vh] flex-col overflow-hidden rounded-2xl p-3 text-white',
-              POPUP_MOTION,
-              className,
-            )}
-          >
-            {heading === undefined ? null : (
-              <h3 className="shrink-0 px-1 pb-3 text-base font-medium tracking-tight">{heading}</h3>
-            )}
+          {heading === undefined ? null : (
+            <h3 className="shrink-0 px-1 pb-3 text-base font-medium tracking-tight">{heading}</h3>
+          )}
 
-            <div className="flux-rail min-h-0 flex-1 overflow-y-auto">{children}</div>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+          <div className="flux-rail min-h-0 flex-1 overflow-y-auto">{children}</div>
+        </RadixPopover.Content>
+      </RadixPopover.Portal>
+    </RadixPopover.Root>
   );
 };
 

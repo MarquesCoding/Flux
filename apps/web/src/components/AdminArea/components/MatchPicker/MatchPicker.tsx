@@ -6,6 +6,7 @@ import { DialogContent } from '@FluxUI/DialogContent';
 import { DialogFooter } from '@FluxUI/DialogFooter';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { Spinner } from '@FluxUI/Spinner';
+import { notify } from '@FluxUI/notify';
 import { TextField } from '@FluxUI/TextField';
 import { searchCatalogue } from '@FluxWeb/admin/fetchAdmin';
 import { correctMatch, forgetCorrection } from '@FluxWeb/library/fetchLibrary';
@@ -30,7 +31,6 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
   const [isSearching, setIsSearching] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [isForgetting, setIsForgetting] = useState(false);
-  const [problem, setProblem] = useState<string | null>(null);
 
   useEffect(() => {
     if (media === null) {
@@ -39,12 +39,10 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
 
     setQuery(media.seriesTitle ?? media.title);
     setMatches(null);
-    setProblem(null);
   }, [media]);
 
   const look = async (asked: string) => {
     setIsSearching(true);
-    setProblem(null);
 
     const found = await searchCatalogue(asked, kind);
 
@@ -58,14 +56,13 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
     }
 
     setSaving(match.externalId);
-    setProblem(null);
 
     const outcome = await correctMatch(media.id, match.externalId, match.kind);
 
     setSaving(null);
 
     if ('problem' in outcome) {
-      setProblem(outcome.problem);
+      notify.failed(outcome.problem);
 
       return;
     }
@@ -80,14 +77,13 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
     }
 
     setIsForgetting(true);
-    setProblem(null);
 
     const outcome = await forgetCorrection(media.id);
 
     setIsForgetting(false);
 
     if (outcome === null) {
-      setProblem('That could not be put back.');
+      notify.failed('That could not be put back.');
 
       return;
     }
@@ -134,12 +130,6 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
           </Button>
         </div>
 
-        {problem === null ? null : (
-          <p role="alert" className="text-sm text-danger">
-            {problem}
-          </p>
-        )}
-
         {isSearching ? <Spinner label="Asking the catalogue" size="sm" /> : null}
 
         {matches === null || isSearching ? null : matches.length === 0 ? (
@@ -151,7 +141,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
                 <Button
                   variant="bare"
                   size="none"
-                  className="flex w-full items-start gap-4 rounded-xl p-2 text-left hover:bg-[var(--surface-hover)]"
+                  className="flex w-full items-start gap-4 rounded-lg p-2 text-left hover:bg-[var(--surface-hover)]"
                   isLoading={saving === match.externalId}
                   onClick={() => {
                     void choose(match);

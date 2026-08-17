@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Popover } from '@base-ui/react/popover';
+import * as RadixPopover from '@radix-ui/react-popover';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { RiArrowLeftSLine, RiArrowRightSLine, RiCheckLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
@@ -7,7 +7,7 @@ import { HoverHighlight } from '@FluxUI/HoverHighlight';
 import { Switch } from '@FluxUI/Switch';
 import { useSlidingHighlight } from '@FluxUI/useSlidingHighlight';
 import { cn } from '@FluxUI/cn';
-import { POPUP_MOTION } from '@FluxUI/animations/popup';
+import { POPUP_MOTION } from '@FluxUI/animations/motion';
 import { Tooltip } from '@FluxUI/Tooltip';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type {
@@ -18,7 +18,7 @@ import type {
 } from './SettingsMenu.types';
 
 const ROW =
-  'relative z-10 flex w-full items-center gap-4 rounded-[1.375rem] px-3 py-2.5 text-left text-sm';
+  'relative z-10 flex w-full items-center gap-4 rounded-sm px-3 py-2.5 text-left text-sm';
 
 const SLIDE = 28;
 
@@ -90,7 +90,7 @@ const SettingsMenu = ({
   };
 
   return (
-    <Popover.Root
+    <RadixPopover.Root
       onOpenChange={(open) => {
         if (!open) {
           close();
@@ -101,178 +101,179 @@ const SettingsMenu = ({
       }}
     >
       <Tooltip label={label}>
-        <Popover.Trigger
+        <RadixPopover.Trigger
           aria-label={label}
           disabled={isDisabled}
           className={cn(
-            'inline-flex size-10 shrink-0 items-center justify-center rounded-full',
-            'text-current transition-colors hover:bg-[var(--surface-hover)]',
-            'data-[popup-open]:bg-[var(--surface-active)] disabled:cursor-not-allowed disabled:opacity-50',
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-md outline-none',
+            'text-current hover:bg-[var(--surface-hover)]',
+            'transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
+            'motion-reduce:transition-none focus-visible:ring-[3px] focus-visible:ring-ring/40',
+            'data-[state=open]:bg-[var(--surface-active)] disabled:cursor-not-allowed disabled:opacity-50',
             className,
           )}
         >
           {isOpen ? (triggerWhenOpen ?? trigger) : trigger}
-        </Popover.Trigger>
+        </RadixPopover.Trigger>
       </Tooltip>
 
-      <Popover.Portal container={portalContainer}>
-        <Popover.Positioner
+      <RadixPopover.Portal
+        {...(portalContainer === undefined ? {} : { container: portalContainer })}
+      >
+        <RadixPopover.Content
+          aria-label={label}
           side="top"
           sideOffset={12}
           align="end"
           collisionPadding={12}
-          className="z-50"
+          data-slot="settings-menu"
+          className={cn(
+            'z-50 flux-glass flex w-80 flex-col overflow-hidden rounded-lg p-1.5 text-text outline-none',
+            POPUP_MOTION,
+          )}
         >
-          <Popover.Popup
-            aria-label={label}
-            className={cn(
-              'flux-glass flex w-80 flex-col overflow-hidden rounded-xl p-1.5 text-text',
-              POPUP_MOTION,
-            )}
-          >
-            <AnimatePresence initial={false} mode="wait">
-              <motion.div
-                key={opened?.id ?? 'root'}
-                initial={{ opacity: 0, x: opened === null ? -travel : travel }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: opened === null ? travel : -travel }}
-                transition={{ duration: prefersReducedMotion === true ? 0 : 0.18, ease: 'easeOut' }}
-                ref={containerRef}
-                onPointerMove={follow}
-                onPointerLeave={clear}
-                onFocusCapture={follow}
-                onBlurCapture={clear}
-                className="relative flex max-h-[66vh] flex-col overflow-y-auto"
-              >
-                <HoverHighlight rect={rect} radius="nested" className="bg-[var(--surface-hover)]" />
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              key={opened?.id ?? 'root'}
+              initial={{ opacity: 0, x: opened === null ? -travel : travel }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: opened === null ? travel : -travel }}
+              transition={{ duration: prefersReducedMotion === true ? 0 : 0.18, ease: 'easeOut' }}
+              ref={containerRef}
+              onPointerMove={follow}
+              onPointerLeave={clear}
+              onFocusCapture={follow}
+              onBlurCapture={clear}
+              className="relative flex max-h-[66vh] flex-col overflow-y-auto"
+            >
+              <HoverHighlight rect={rect} radius="nested" className="bg-[var(--surface-hover)]" />
 
-                {opened === null
-                  ? rows.map((row) => {
-                      const answer = answerOf(row);
+              {opened === null
+                ? rows.map((row) => {
+                    const answer = answerOf(row);
 
-                      if (row.kind === 'toggle') {
-                        return (
-                          <Switch
-                            key={row.id}
-                            data-highlight={row.id}
-                            label={row.label}
-                            isOn={row.isOn}
-                            onToggle={row.onToggle}
-                            icon={row.icon}
-                            tone="overlay"
-                            className={cn(ROW, 'shrink-0 ')}
-                          />
-                        );
-                      }
-
-                      if (row.kind === 'custom') {
-                        return (
-                          <div
-                            key={row.id}
-                            data-highlight={row.id}
-                            className={cn(ROW, 'shrink-0 cursor-default')}
-                          >
-                            <span className="shrink-0 text-text-muted">{row.icon}</span>
-
-                            <span className="flex min-w-0 flex-1 flex-col">
-                              <span className="truncate">{row.label}</span>
-                              {answer === null ? null : (
-                                <span className="truncate text-xs text-text-muted">{answer}</span>
-                              )}
-                            </span>
-
-                            {row.control}
-                          </div>
-                        );
-                      }
-
+                    if (row.kind === 'toggle') {
                       return (
-                        <Button
+                        <Switch
                           key={row.id}
                           data-highlight={row.id}
-                          variant="bare"
-                          size="none"
-                          onClick={() => {
-                            if (row.kind === 'action') {
-                              row.onSelect();
-
-                              return;
-                            }
-
-                            setOpenId(row.id);
-                          }}
+                          label={row.label}
+                          isOn={row.isOn}
+                          onToggle={row.onToggle}
+                          icon={row.icon}
+                          tone="overlay"
                           className={cn(ROW, 'shrink-0 ')}
+                        />
+                      );
+                    }
+
+                    if (row.kind === 'custom') {
+                      return (
+                        <div
+                          key={row.id}
+                          data-highlight={row.id}
+                          className={cn(ROW, 'shrink-0 cursor-default')}
                         >
                           <span className="shrink-0 text-text-muted">{row.icon}</span>
-                          <span className="shrink-0">{row.label}</span>
 
-                          <span className="flex min-w-0 flex-1 items-center justify-end gap-1 text-text-muted">
-                            <span className="truncate" title={answer ?? undefined}>
-                              {answer}
-                            </span>
-                            <RiArrowRightSLine size={16} className="shrink-0" aria-hidden />
+                          <span className="flex min-w-0 flex-1 flex-col">
+                            <span className="truncate">{row.label}</span>
+                            {answer === null ? null : (
+                              <span className="truncate text-xs text-text-muted">{answer}</span>
+                            )}
                           </span>
-                        </Button>
+
+                          {row.control}
+                        </div>
                       );
-                    })
-                  : [
+                    }
+
+                    return (
                       <Button
-                        key="back"
+                        key={row.id}
+                        data-highlight={row.id}
                         variant="bare"
                         size="none"
-                        onClick={close}
-                        className={cn(
-                          ROW,
-                          'shrink-0 border-b border-[var(--surface-line)] font-medium ',
-                        )}
+                        onClick={() => {
+                          if (row.kind === 'action') {
+                            row.onSelect();
+
+                            return;
+                          }
+
+                          setOpenId(row.id);
+                        }}
+                        className={cn(ROW, 'shrink-0 ')}
                       >
-                        <RiArrowLeftSLine size={18} aria-hidden />
-                        {opened.label}
-                      </Button>,
+                        <span className="shrink-0 text-text-muted">{row.icon}</span>
+                        <span className="shrink-0">{row.label}</span>
 
-                      ...(opened.kind === 'panel'
-                        ? [
-                            <div key="content" className="px-1 py-2">
-                              {opened.content}
-                            </div>,
-                          ]
-                        : opened.choices.map((choice) => (
-                            <Button
-                              key={choice.id}
-                              data-highlight={choice.id}
-                              variant="bare"
-                              size="none"
-                              role="menuitemradio"
-                              aria-checked={choice.id === opened.selectedId}
-                              onClick={() => {
-                                opened.onSelect(choice.id);
-                                close();
-                              }}
-                              className={cn(ROW, 'shrink-0 ')}
-                            >
-                              <span className="flex size-4 shrink-0 items-center justify-center">
-                                {choice.id === opened.selectedId ? (
-                                  <RiCheckLine size={16} aria-hidden />
-                                ) : null}
-                              </span>
+                        <span className="flex min-w-0 flex-1 items-center justify-end gap-1 text-text-muted">
+                          <span className="truncate" title={answer ?? undefined}>
+                            {answer}
+                          </span>
+                          <RiArrowRightSLine size={16} className="shrink-0" aria-hidden />
+                        </span>
+                      </Button>
+                    );
+                  })
+                : [
+                    <Button
+                      key="back"
+                      variant="bare"
+                      size="none"
+                      onClick={close}
+                      className={cn(
+                        ROW,
+                        'shrink-0 border-b border-[var(--surface-line)] font-medium ',
+                      )}
+                    >
+                      <RiArrowLeftSLine size={18} aria-hidden />
+                      {opened.label}
+                    </Button>,
 
-                              <span className="flex min-w-0 flex-1 flex-col">
-                                <span className="truncate">{choice.label}</span>
-                                {choice.detail === undefined ? null : (
-                                  <span className="truncate text-xs text-text-muted">
-                                    {choice.detail}
-                                  </span>
-                                )}
-                              </span>
-                            </Button>
-                          ))),
-                    ]}
-              </motion.div>
-            </AnimatePresence>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+                    ...(opened.kind === 'panel'
+                      ? [
+                          <div key="content" className="px-1 py-2">
+                            {opened.content}
+                          </div>,
+                        ]
+                      : opened.choices.map((choice) => (
+                          <Button
+                            key={choice.id}
+                            data-highlight={choice.id}
+                            variant="bare"
+                            size="none"
+                            role="menuitemradio"
+                            aria-checked={choice.id === opened.selectedId}
+                            onClick={() => {
+                              opened.onSelect(choice.id);
+                              close();
+                            }}
+                            className={cn(ROW, 'shrink-0 ')}
+                          >
+                            <span className="flex size-4 shrink-0 items-center justify-center">
+                              {choice.id === opened.selectedId ? (
+                                <RiCheckLine size={16} aria-hidden />
+                              ) : null}
+                            </span>
+
+                            <span className="flex min-w-0 flex-1 flex-col">
+                              <span className="truncate">{choice.label}</span>
+                              {choice.detail === undefined ? null : (
+                                <span className="truncate text-xs text-text-muted">
+                                  {choice.detail}
+                                </span>
+                              )}
+                            </span>
+                          </Button>
+                        ))),
+                  ]}
+            </motion.div>
+          </AnimatePresence>
+        </RadixPopover.Content>
+      </RadixPopover.Portal>
+    </RadixPopover.Root>
   );
 };
 

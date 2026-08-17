@@ -81,7 +81,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
         {avatar.kind === 'drawn' && photo === null ? (
           <span
             style={{ backgroundColor: colour }}
-            className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-3xl"
+            className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg"
           >
             <img
               src={previewUrl(avatar.style, seed)}
@@ -101,7 +101,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               updatedAt: profile?.updatedAt ?? '',
             }}
             pending={photo}
-            className="size-20 shrink-0 rounded-3xl text-3xl"
+            className="size-20 shrink-0 rounded-lg text-3xl"
           />
         )}
 
@@ -132,7 +132,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               }}
               style={{ backgroundColor: option }}
               className={`size-9 rounded-full transition-transform ${
-                option === colour ? 'scale-110 ring-2 ring-text' : 'hover:scale-105'
+                option === colour ? 'scale-110 ring-2 ring-text' : 'hover-hover:hover:scale-105'
               }`}
             />
           ))}
@@ -154,10 +154,10 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               setAvatar({ kind: 'initial' });
             }}
             style={{ backgroundColor: colour }}
-            className={`flex size-14 items-center justify-center rounded-2xl text-xl font-semibold text-black/80 transition-transform ${
+            className={`flex size-14 items-center justify-center rounded-lg text-xl font-semibold text-black/80 transition-transform ${
               avatar.kind === 'initial' && photo === null
                 ? 'scale-105 ring-2 ring-text'
-                : 'hover:scale-105'
+                : 'hover-hover:hover:scale-105'
             }`}
           >
             {profileInitial(trimmed === '' ? '?' : trimmed)}
@@ -174,10 +174,10 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
                 setPhoto(null);
                 setAvatar({ kind: 'drawn', style, seed });
               }}
-              className={`size-14 overflow-hidden rounded-2xl bg-white/5 transition-transform ${
+              className={`size-14 overflow-hidden rounded-lg bg-white/5 transition-transform ${
                 avatar.kind === 'drawn' && avatar.style === style && photo === null
                   ? 'scale-105 ring-2 ring-text'
-                  : 'hover:scale-105'
+                  : 'hover-hover:hover:scale-105'
               }`}
             >
               <img

@@ -23,7 +23,7 @@ describe('Checkbox', () => {
 
     await user.click(screen.getByRole('checkbox', { name: 'Burn in subtitles' }));
 
-    expect(onCheckedChange).toHaveBeenCalledWith(true, expect.anything());
+    expect(onCheckedChange).toHaveBeenCalledWith(true);
   });
 
   it('does not report a change when disabled', async () => {

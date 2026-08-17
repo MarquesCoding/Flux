@@ -1,4 +1,4 @@
-import { Switch as BaseSwitch } from '@base-ui/react/switch';
+import * as RadixSwitch from '@radix-ui/react-switch';
 import { cn } from '@FluxUI/cn';
 import type { SwitchProps } from './Switch.types';
 
@@ -27,12 +27,14 @@ const Switch = ({
   const isOverlay = tone === 'overlay';
 
   return (
-    <BaseSwitch.Root
+    <RadixSwitch.Root
       checked={isOn}
       disabled={disabled}
       onCheckedChange={onToggle}
+      data-slot="switch"
       className={cn(
-        'flex w-full items-center gap-3 text-left',
+        'flex w-full items-center gap-3 text-left outline-none',
+        'focus-visible:ring-[3px] focus-visible:ring-ring/40 rounded-md',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
@@ -47,7 +49,9 @@ const Switch = ({
 
       <span
         className={cn(
-          'flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors',
+          'flex h-5 w-9 shrink-0 items-center rounded-full p-0.5',
+          'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)]',
+          'motion-reduce:transition-none',
           isOn
             ? isOverlay
               ? 'bg-white'
@@ -57,15 +61,17 @@ const Switch = ({
               : 'bg-text-muted/30',
         )}
       >
-        <BaseSwitch.Thumb
+        <RadixSwitch.Thumb
           className={cn(
-            'size-4 rounded-full transition-transform',
+            'size-4 rounded-full',
+            'transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)]',
+            'motion-reduce:transition-none',
             isOn ? 'translate-x-4' : 'translate-x-0',
             isOn && isOverlay ? 'bg-black' : isOn ? 'bg-accent-contrast' : 'bg-white',
           )}
         />
       </span>
-    </BaseSwitch.Root>
+    </RadixSwitch.Root>
   );
 };
 

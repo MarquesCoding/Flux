@@ -3,13 +3,14 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
 import { staggerVariants } from '@FluxUI/animations/reveal';
 import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
-import { Spinner } from '@FluxUI/Spinner';
 import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
 import { Rail } from '@FluxUI/Rail';
 import { RevealItem } from '@FluxUI/RevealItem';
+import { SplashScreen } from '@FluxUI/SplashScreen';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { groupIntoRails } from '@FluxWeb/library/groupIntoRails';
 import { pickFeatured } from '@FluxWeb/library/pickFeatured';
+import { rememberedLibrary } from '@FluxWeb/library/rememberedLibrary';
 import { EmptyLibrary } from '@FluxWeb/components/LibraryBrowser/components/EmptyLibrary/EmptyLibrary';
 import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
 import { watchedFraction } from '@FluxContracts/schemas/WatchProgress';
@@ -41,12 +42,14 @@ const HERO_SAMPLE = 24;
  * @param onPalette - Told the colours on screen, so the page can be lit by them.
  * @param onSearchChange - Told what was typed.
  * @param hasHero - Whether to open with a hero at all.
+ * @param name - What this instance is called, for the wordmark held up while it reads.
  * @param isKept - Whether each item is kept.
  * @param onToggleKept - Told to keep something, or stop.
  */
 const LibraryBrowser = ({
   search = '',
   hasHero = false,
+  name,
   onFeatureChange,
   onPalette,
   onItemsLoaded,
@@ -59,15 +62,29 @@ const LibraryBrowser = ({
   libraryId,
   onLibraryChange,
 }: LibraryBrowserProps) => {
-  const [libraries, setLibraries] = useState<Library[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [items, setItems] = useState<MediaSummary[]>([]);
-  const [loadedFor, setLoadedFor] = useState<string | null>(null);
-  const [heroItems, setHeroItems] = useState<MediaSummary[]>([]);
+  const remembered = rememberedLibrary.libraries();
+
+  const opening =
+    remembered.find((entry) => entry.id === libraryId)?.id ?? remembered[0]?.id ?? null;
+
+  const [libraries, setLibraries] = useState<Library[]>(() => remembered);
+  const [selectedId, setSelectedId] = useState<string | null>(() => opening);
+
+  const [items, setItems] = useState<MediaSummary[]>(
+    () => (opening === null ? undefined : rememberedLibrary.items(opening, '')) ?? [],
+  );
+
+  const [loadedFor, setLoadedFor] = useState<string | null>(() =>
+    opening !== null && rememberedLibrary.items(opening, '') !== undefined ? opening : null,
+  );
+  const [heroItems, setHeroItems] = useState<MediaSummary[]>(() => rememberedLibrary.heroItems());
+  const [hasReadHero, setHasReadHero] = useState(() => rememberedLibrary.heroItems().length > 0);
   const [appliedSearch, setAppliedSearch] = useState('');
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
 
-  const [state, setState] = useState<BrowserState>('loading');
+  const [state, setState] = useState<BrowserState>(() =>
+    rememberedLibrary.libraries().length > 0 ? 'ready' : 'loading',
+  );
 
   const reportItems = useRef(onItemsLoaded);
 
@@ -95,6 +112,7 @@ const LibraryBrowser = ({
         const asked = found.find((entry) => entry.id === libraryId)?.id;
         const opening = asked ?? found[0]?.id ?? null;
 
+        rememberedLibrary.rememberLibraries(found);
         setLibraries(found);
         setSelectedId(opening);
         setState('ready');
@@ -159,6 +177,7 @@ const LibraryBrowser = ({
         limit: PAGE_SIZE,
       });
 
+      rememberedLibrary.rememberItems(selectedId, appliedSearch, page.items);
       setItems(page.items);
       setLoadedFor(selectedId);
     } catch {
@@ -173,6 +192,7 @@ const LibraryBrowser = ({
   useEffect(() => {
     if (libraries.length === 0) {
       setHeroItems([]);
+      setHasReadHero(true);
 
       return;
     }
@@ -187,7 +207,9 @@ const LibraryBrowser = ({
       ),
     ).then((pages) => {
       if (!abandoned) {
+        rememberedLibrary.rememberHeroItems(pages.flat());
         setHeroItems(pages.flat());
+        setHasReadHero(true);
       }
     });
 
@@ -196,13 +218,8 @@ const LibraryBrowser = ({
     };
   }, [libraries]);
 
-  if (state === 'loading') {
-    return (
-      <div className="flex justify-center p-12">
-        <Spinner label="Reading your library" size="lg" />
-      </div>
-    );
-  }
+  const isSettled =
+    state === 'ready' && (selectedId === null || loadedFor !== null) && (!hasHero || hasReadHero);
 
   if (state === 'unreachable') {
     return (
@@ -210,6 +227,10 @@ const LibraryBrowser = ({
         Your library could not be loaded. Check that the server is running and reload.
       </p>
     );
+  }
+
+  if (!isSettled) {
+    return <SplashScreen {...(name === undefined ? {} : { name })} label="Reading your library" />;
   }
 
   if (libraries.length === 0) {

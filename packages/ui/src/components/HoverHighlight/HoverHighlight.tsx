@@ -7,8 +7,8 @@ const RADIUS_CLASSES = {
   xs: 'rounded-xs',
   sm: 'rounded-sm',
   md: 'rounded-md',
-  card: 'rounded-xl',
-  nested: 'rounded-[1.375rem]',
+  card: 'rounded-lg',
+  nested: 'rounded-sm',
   pill: 'rounded-full',
 } as const;
 

@@ -77,10 +77,10 @@ describe('Button', () => {
     expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('flux-gloss');
   });
 
-  it('rounds fully when asked for a pill', () => {
+  it('squares off a pill of text, since a lozenge reads as soft where this reads as precise', () => {
     render(<Button isPill>Play</Button>);
 
-    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('rounded-full');
+    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('rounded-md');
   });
 
   it('is a rounded box otherwise', () => {
@@ -123,7 +123,7 @@ describe('Button', () => {
       expect(button).not.toHaveClass('px-3.5');
     });
 
-    it('rounds fully without being asked, because a square icon reads as a disc', () => {
+    it('rounds an icon on its own fully, since there round means a circle', () => {
       render(
         <Button isIconOnly label="Mute">
           <span aria-hidden>x</span>

@@ -23,7 +23,7 @@ const GlassPanel = ({
   className,
   ...rest
 }: GlassPanelProps) => (
-  <Element className={cn('rounded-xl', ELEVATION_CLASSES[elevation], className)} {...rest}>
+  <Element className={cn('rounded-lg', ELEVATION_CLASSES[elevation], className)} {...rest}>
     {children}
   </Element>
 );

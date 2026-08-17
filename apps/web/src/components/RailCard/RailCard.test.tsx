@@ -144,7 +144,7 @@ describe('RailCard', () => {
       cardHolder(container).dispatchEvent(pointerEvent('pointerover', 'mouse'));
     });
 
-    expect(screen.queryByRole('button', { name: 'About Parasite' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More about Parasite' })).not.toBeInTheDocument();
   });
 
   it('opens once a pointer has rested on it', async () => {
@@ -152,7 +152,7 @@ describe('RailCard', () => {
 
     await restOn(cardHolder(container));
 
-    expect(screen.getByRole('button', { name: 'About Parasite' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'More about Parasite' })).toBeInTheDocument();
   });
 
   it('does not open for a finger, which has nowhere to rest', async () => {
@@ -160,7 +160,7 @@ describe('RailCard', () => {
 
     await restOn(cardHolder(container), 'touch');
 
-    expect(screen.queryByRole('button', { name: 'About Parasite' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More about Parasite' })).not.toBeInTheDocument();
   });
 
   it('reads the rest of what is known about the item once it is open', async () => {
@@ -187,7 +187,7 @@ describe('RailCard', () => {
     const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={onInspect} />);
 
     await restOn(cardHolder(container));
-    await actor.click(screen.getByRole('button', { name: 'About Parasite' }));
+    await actor.click(screen.getByRole('button', { name: 'More about Parasite' }));
 
     expect(onInspect).toHaveBeenCalledWith(MEDIA);
   });
@@ -231,13 +231,13 @@ describe('RailCard', () => {
 
     await act(async () => {
       screen
-        .getByRole('button', { name: 'About Parasite' })
+        .getByRole('button', { name: 'More about Parasite' })
         .parentElement?.dispatchEvent(pointerEvent('pointerout', 'mouse'));
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'About Parasite' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'More about Parasite' })).not.toBeInTheDocument();
     });
   });
 });

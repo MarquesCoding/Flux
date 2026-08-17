@@ -1,17 +1,9 @@
-import { Menu } from '@base-ui/react/menu';
+import * as RadixMenu from '@radix-ui/react-dropdown-menu';
 import { RiCheckLine } from '@remixicon/react';
 import { cn } from '@FluxUI/cn';
+import { POPUP_MOTION } from '@FluxUI/animations/motion';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { OptionMenuProps } from './OptionMenu.types';
-
-const POPUP_MOTION = [
-  'origin-[var(--transform-origin)] transition-[transform,opacity]',
-  'duration-[var(--duration-base)] ease-[var(--ease-soft)]',
-  'data-[starting-style]:scale-95 data-[starting-style]:opacity-0',
-  'data-[ending-style]:scale-95 data-[ending-style]:opacity-0',
-  'motion-reduce:transition-opacity',
-  'motion-reduce:data-[starting-style]:scale-100 motion-reduce:data-[ending-style]:scale-100',
-].join(' ');
 
 /**
  * A menu of choices where exactly one is in force — an audio track, a quality, a sort order. Shows
@@ -37,8 +29,8 @@ const OptionMenu = ({
   const portalContainer = usePortalContainer();
 
   return (
-    <Menu.Root>
-      <Menu.Trigger
+    <RadixMenu.Root>
+      <RadixMenu.Trigger
         aria-label={label}
         title={label}
         disabled={isDisabled}
@@ -53,78 +45,77 @@ const OptionMenu = ({
                 'hover:border-[var(--surface-divider)]',
               )
             : cn(
-                'size-9 justify-center rounded-full',
-                'hover:bg-[var(--surface-hover)] data-[popup-open]:bg-[var(--surface-active)]',
+                'size-9 justify-center rounded-md',
+                'hover:bg-[var(--surface-hover)] data-[state=open]:bg-[var(--surface-active)]',
               ),
           className,
         )}
       >
         {trigger}
-      </Menu.Trigger>
+      </RadixMenu.Trigger>
 
-      <Menu.Portal container={portalContainer}>
-        <Menu.Positioner sideOffset={8} align={align} className="z-50">
-          <Menu.Popup
-            aria-label={label}
-            {...(matchTriggerWidth ? { style: { minWidth: 'var(--anchor-width)' } } : {})}
-            className={cn(
-              'flux-glass flex max-h-80 flex-col overflow-hidden rounded-xl p-1.5 text-sm text-text',
-              POPUP_MOTION,
-            )}
-          >
-            <div className="flex overflow-hidden">
-              {groups.map((group) => (
-                <Menu.Group
-                  key={group.name}
-                  className="flex min-w-44 flex-1 flex-col overflow-y-auto border-l border-[var(--surface-line)] pl-1.5 first:border-l-0 first:pl-0"
+      <RadixMenu.Portal {...(portalContainer === undefined ? {} : { container: portalContainer })}>
+        <RadixMenu.Content
+          sideOffset={8}
+          align={align}
+          aria-label={label}
+          {...(matchTriggerWidth ? { style: { minWidth: 'var(--anchor-width)' } } : {})}
+          className={cn(
+            'flux-glass flex max-h-80 flex-col overflow-hidden rounded-lg p-1.5 text-sm text-text',
+            POPUP_MOTION,
+          )}
+        >
+          <div className="flex overflow-hidden">
+            {groups.map((group) => (
+              <RadixMenu.Group
+                key={group.name}
+                className="flex min-w-44 flex-1 flex-col overflow-y-auto border-l border-[var(--surface-line)] pl-1.5 first:border-l-0 first:pl-0"
+              >
+                <RadixMenu.Label className="px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-text-muted">
+                  {group.name}
+                </RadixMenu.Label>
+
+                <RadixMenu.RadioGroup
+                  value={group.selectedId}
+                  onValueChange={(next) => {
+                    group.onSelect(String(next));
+                  }}
+                  className="flex flex-col"
                 >
-                  <Menu.GroupLabel className="px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-text-muted">
-                    {group.name}
-                  </Menu.GroupLabel>
-
-                  <Menu.RadioGroup
-                    value={group.selectedId}
-                    onValueChange={(next) => {
-                      group.onSelect(String(next));
-                    }}
-                    className="flex flex-col"
-                  >
-                    {group.options.map((option) => (
-                      <Menu.RadioItem
-                        key={option.id}
-                        value={option.id}
-                        closeOnClick
-                        className={cn(
-                          'flex cursor-default items-center justify-between gap-4 rounded-[1.375rem] px-3 py-2.5',
-                          'outline-none transition-colors duration-[var(--duration-fast)]',
-                          'data-[highlighted]:bg-[var(--surface-hover)]',
-                          'data-[checked]:text-text',
+                  {group.options.map((option) => (
+                    <RadixMenu.RadioItem
+                      key={option.id}
+                      value={option.id}
+                      className={cn(
+                        'flex cursor-default items-center justify-between gap-4 rounded-sm px-3 py-2.5',
+                        'outline-none transition-colors duration-[var(--duration-fast)]',
+                        'data-[highlighted]:bg-[var(--surface-hover)]',
+                        'data-[checked]:text-text',
+                      )}
+                    >
+                      <span className="flex flex-col">
+                        {option.label}
+                        {option.detail === undefined ? null : (
+                          <span className="text-xs text-text-muted">{option.detail}</span>
                         )}
-                      >
-                        <span className="flex flex-col">
-                          {option.label}
-                          {option.detail === undefined ? null : (
-                            <span className="text-xs text-text-muted">{option.detail}</span>
-                          )}
-                        </span>
+                      </span>
 
-                        <Menu.RadioItemIndicator className="flex size-4 shrink-0 items-center justify-center text-accent">
-                          <RiCheckLine size={15} aria-hidden />
-                        </Menu.RadioItemIndicator>
-                      </Menu.RadioItem>
-                    ))}
-                  </Menu.RadioGroup>
-                </Menu.Group>
-              ))}
-            </div>
+                      <RadixMenu.ItemIndicator className="flex size-4 shrink-0 items-center justify-center text-accent">
+                        <RiCheckLine size={15} aria-hidden />
+                      </RadixMenu.ItemIndicator>
+                    </RadixMenu.RadioItem>
+                  ))}
+                </RadixMenu.RadioGroup>
+              </RadixMenu.Group>
+            ))}
+          </div>
 
-            {footer === undefined ? null : (
-              <div className="border-t border-[var(--surface-line)] px-3 py-2.5">{footer}</div>
-            )}
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.Root>
+          {footer === undefined ? null : (
+            <div className="border-t border-[var(--surface-line)] px-3 py-2.5">{footer}</div>
+          )}
+        </RadixMenu.Content>
+      </RadixMenu.Portal>
+    </RadixMenu.Root>
   );
 };
 

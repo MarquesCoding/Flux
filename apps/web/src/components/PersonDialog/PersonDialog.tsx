@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { RiCloseLine, RiUser3Line } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
+import { ReadMore } from '@FluxUI/ReadMore';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { Rail } from '@FluxUI/Rail';
@@ -119,7 +120,7 @@ const PersonDialog = ({
 
         <div className="flex flex-col gap-8 p-5 pb-10 sm:p-8">
           <header className="flex flex-wrap items-start gap-5">
-            <span className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface-raised ring-1 ring-white/10">
+            <span className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-raised ring-1 ring-white/10">
               {person?.portraitUrl === null || person?.portraitUrl === undefined ? (
                 <RiUser3Line size={36} aria-hidden className="text-text-muted" />
               ) : (
@@ -156,9 +157,7 @@ const PersonDialog = ({
           ) : null}
 
           {person?.biography === null || person?.biography === undefined ? null : (
-            <p className="max-w-[70ch] text-[0.95rem] leading-relaxed text-text">
-              {person.biography}
-            </p>
+            <ReadMore lines={6}>{person.biography}</ReadMore>
           )}
 
           {isEmpty ? (
