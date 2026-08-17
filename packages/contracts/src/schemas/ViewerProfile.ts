@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { StillWatchingSchema } from './StillWatching';
 
 const PROFILE_COLOURS = ['#e8503a', '#e8a33a', '#3ac47d', '#3a8ee8', '#8b5ce8', '#e83a90'] as const;
 
@@ -31,6 +32,7 @@ const ViewerProfileSchema = z.object({
   name: z.string().min(1).max(NAME_MAX),
   colour: ProfileColourSchema,
   avatar: AvatarSchema,
+  askStillWatchingAfter: StillWatchingSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -39,6 +41,7 @@ const ViewerProfileRequestSchema = z.object({
   name: z.string().trim().min(1).max(NAME_MAX),
   colour: ProfileColourSchema,
   avatar: AvatarSchema.optional(),
+  askStillWatchingAfter: StillWatchingSchema.optional(),
 });
 
 const ViewerProfileListSchema = z.object({ profiles: z.array(ViewerProfileSchema) });

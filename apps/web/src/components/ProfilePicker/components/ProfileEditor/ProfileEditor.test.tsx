@@ -9,6 +9,7 @@ const PROFILE: ViewerProfile = {
   name: 'Marques',
   colour: '#3a8ee8',
   avatar: { kind: 'initial' },
+  askStillWatchingAfter: 4,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
@@ -186,5 +187,32 @@ describe('ProfileEditor', () => {
     await actor.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it('offers a way to say how many episodes may carry on before asking', () => {
+    render(<ProfileEditor profile={PROFILE} onSaved={vi.fn()} onCancel={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Never ask' })).toBeInTheDocument();
+  });
+
+  it('starts on what the profile is already set to', () => {
+    render(
+      <ProfileEditor
+        profile={{ ...PROFILE, askStillWatchingAfter: 0 }}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Never ask' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('explains what the setting is for, since the name alone does not', () => {
+    render(<ProfileEditor profile={PROFILE} onSaved={vi.fn()} onCancel={vi.fn()} />);
+
+    expect(screen.getByText(/does not mark half a series as watched/)).toBeInTheDocument();
   });
 });
