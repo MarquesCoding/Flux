@@ -26,6 +26,13 @@ describe('BackdropScrim', () => {
     expect(scrimIn(container).className).toContain('-bottom-px');
   });
 
+  it('reaches its weight low down, where the title sits, rather than halfway up', () => {
+    const { container } = render(<BackdropScrim />);
+
+    expect(scrimIn(container).className).toContain('via-35%');
+    expect(scrimIn(container).className).toContain('via-surface-raised/60');
+  });
+
   it('is scenery rather than something to read or press', () => {
     const { container } = render(<BackdropScrim />);
 

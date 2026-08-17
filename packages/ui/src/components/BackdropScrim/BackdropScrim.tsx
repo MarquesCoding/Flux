@@ -15,6 +15,12 @@ import type { BackdropScrimProps } from './BackdropScrim.types';
  * a sliver of undarkened artwork showed through as a bright line the width of the dialog. The extra
  * pixel is covered by the gradient's own opaque end, so overlapping the panel costs nothing.
  *
+ * The ramp is weighted to the bottom. Left at its midpoint the gradient was still four fifths
+ * opaque halfway up, which is well above anything it needs to hide and is where a preview's
+ * subtitles sit — those are painted by the browser inside the video, so nothing can be stacked
+ * beneath them and a heavy scrim simply greys them out. Reaching that opacity lower down darkens
+ * what the title stands on and leaves the picture above it alone.
+ *
  * @param className - Extra classes for the caller's own layout.
  */
 const BackdropScrim = ({ className }: BackdropScrimProps) => (
@@ -22,7 +28,7 @@ const BackdropScrim = ({ className }: BackdropScrimProps) => (
     aria-hidden
     className={cn(
       'pointer-events-none absolute inset-x-0 -bottom-px h-2/3',
-      'bg-gradient-to-t from-surface-raised via-surface-raised/80 to-transparent',
+      'bg-gradient-to-t from-surface-raised via-surface-raised/60 via-35% to-transparent',
       className,
     )}
   />
