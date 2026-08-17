@@ -1,5 +1,5 @@
 import { AccountArea } from '@FluxWeb/components/AccountArea/AccountArea';
-import { signOut } from '@FluxWeb/session/signOut';
+import { signOut } from '@FluxWeb/session/auth';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
 import { useShell } from '@FluxWeb/shell/useShell';
 

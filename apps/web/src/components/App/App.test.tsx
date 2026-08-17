@@ -89,7 +89,11 @@ const user = {
   emailVerified: false,
 };
 
-const ok = (body: JsonValue) => ({ ok: true, status: 200, json: () => Promise.resolve(body) });
+const ok = (body: JsonValue) =>
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
 
 /**
  * What a request carried, read back as data rather than as a string.
@@ -170,7 +174,9 @@ const serverState = (options: {
   detail?: JsonValue;
   watched?: JsonValue;
 }) => {
-  fetchMock.mockImplementation((input) => {
+  fetchMock.mockImplementation((asked) => {
+    const input = new URL(asked, 'http://localhost:3000').pathname;
+
     if (input === '/api/setup/status') {
       return Promise.resolve(ok(options.setup));
     }

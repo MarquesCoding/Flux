@@ -8,7 +8,7 @@ const fetchProfiles = vi.hoisted(() => vi.fn());
 const fetchEveryone = vi.hoisted(() => vi.fn());
 const fetchSetupStatus = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/session/fetchSession', () => ({ fetchSession }));
+vi.mock('@FluxWeb/session/auth', () => ({ fetchSession }));
 vi.mock('@FluxWeb/session/readVersion', () => ({ readVersion }));
 vi.mock('@FluxWeb/profiles/fetchProfiles', () => ({ fetchProfiles }));
 vi.mock('@FluxWeb/profiles/fetchEveryone', () => ({ fetchEveryone }));
