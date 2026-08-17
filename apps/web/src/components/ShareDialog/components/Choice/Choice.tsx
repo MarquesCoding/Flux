@@ -6,11 +6,14 @@ import type { ChoiceProps } from './Choice.types';
  * One decision in the form, as the platform's own menu. Written once here because the dialog asks
  * three questions of exactly the same shape, and three hand-built menus would drift apart.
  *
- * The answer is given the room and the question keeps its own, so a long answer runs out of space
- * against the right edge of the panel rather than through it. Allowed to wrap it folded onto three
- * lines; stopped from wrapping it ran off the card and took the arrow with it, leaving a menu with
- * nothing to say it was one. Truncating is the only one of the three that stays inside the panel and
- * still looks like a choice — and the whole answer is a press away regardless.
+ * The answer takes whatever room the question leaves and sits against the right edge of it, which
+ * on any normal panel is room enough to read it whole. Shortening only happens where it genuinely
+ * will not fit.
+ *
+ * It is claimed rather than merely allowed. `OptionMenu` holds its trigger against shrinking, which
+ * suits the icons it was built around; overriding that to let it shrink let it collapse to a letter
+ * and an ellipsis while most of the row stood empty, since a flex item told it may shrink and given
+ * no reason to grow takes the smallest width its content permits.
  *
  * @param label - What is being decided.
  * @param options - The choices.
@@ -24,7 +27,7 @@ const Choice = ({ label, options, value, onSelect }: ChoiceProps) => (
 
     <OptionMenu
       label={label}
-      className="min-w-0 shrink"
+      className="min-w-0 flex-1 justify-end"
       groups={[{ name: label, options: [...options], selectedId: value, onSelect }]}
       trigger={
         <span className="flex min-w-0 items-center justify-end gap-1.5 text-sm font-medium text-text">
