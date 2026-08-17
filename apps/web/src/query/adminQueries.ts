@@ -15,6 +15,8 @@ import {
 } from '@FluxWeb/admin/fetchRoles';
 import { fetchWebhooks, fetchWebhookDeliveries } from '@FluxWeb/admin/fetchWebhooks';
 import { fetchShares } from '@FluxWeb/sharing/fetchShares';
+import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 const ADMIN = ['admin'] as const;
 
@@ -158,6 +160,33 @@ const deliveries = (webhookId: string | null) =>
   });
 
 /**
+ * Everything on the server, one entry per thing rather than per file, which is what the media panel
+ * lists and what a correction is started from.
+ *
+ * @param libraryIds - The libraries to read, which is all of them.
+ * @returns The query.
+ */
+const everything = (libraryIds: readonly string[]) =>
+  queryOptions({
+    queryKey: [...ADMIN, 'everything', [...libraryIds].sort()],
+    queryFn: async () => {
+      const shelves = await Promise.all(libraryIds.map((id) => readWholeLibrary(id)));
+      const byThing = new Map<string, MediaSummary>();
+
+      for (const item of shelves.flat()) {
+        const key = item.seriesTitle ?? item.id;
+
+        if (!byThing.has(key)) {
+          byThing.set(key, item);
+        }
+      }
+
+      return [...byThing.values()];
+    },
+    enabled: libraryIds.length > 0,
+  });
+
+/**
  * The share links that have been handed out.
  *
  * @returns The query.
@@ -181,6 +210,7 @@ const adminQueries = {
   accountPermissions,
   webhooks,
   deliveries,
+  everything,
   shares,
   key: ADMIN,
 };
