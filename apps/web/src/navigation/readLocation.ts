@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { readSearch } from '@FluxWeb/navigation/readSearch';
 
 const SECTIONS = [
   'home',
@@ -44,31 +45,43 @@ const HOME: Place = {
 };
 
 /**
- * Reads where the application should be out of an address. Anything unrecognised lands on the home
- * page rather than failing: an address is something people edit, share and keep, and a bad one
- * should arrive somewhere sensible.
+ * Reads where the application should be out of a path and whatever sat after the question mark.
  *
- * @param url - The address to read.
+ * Anything unrecognised lands on the home page rather than failing: an address is something people
+ * edit, share and keep, and a bad one should arrive somewhere sensible.
+ *
+ * @param pathname - The path, which decides the section and what is playing.
+ * @param query - What sat after the question mark, however the router handed it over.
  * @returns Where to be: the section, what is open, and what is playing.
  */
-/**
- * Reads a person out of the address, where somebody is named by the catalogue's own identifier
- * rather than by name. Anything that is not a positive whole number is nobody, so a hand-edited or
- * truncated address opens no dialog rather than one about somebody who does not exist.
- *
- * @param said - What the address carried, if anything.
- * @returns The person, or null where the address named nobody.
- */
-const readPersonId = (said: string | null): number | null => {
-  if (said === null) {
-    return null;
-  }
+const placeIn = (pathname: string, query: Record<string, string>): Place => {
+  const [, first = '', second = ''] = pathname.split('/');
+  const section = SectionSchema.safeParse(first);
+  const said = readSearch(query);
 
-  const read = Number(said);
-
-  return Number.isInteger(read) && read > 0 ? read : null;
+  return {
+    section: section.success ? section.data : 'home',
+    search: said.q ?? '',
+    inspecting: first === 'media' && second !== '' ? second : (said.item ?? null),
+    show: said.show ?? null,
+    person: said.person ?? null,
+    shareToken: first === 'share' && second !== '' ? decodeURIComponent(second) : null,
+    playing: first === 'watch' && second !== '' ? second : null,
+    party: said.party ?? null,
+    genre: said.genre ?? null,
+    library: said.library ?? null,
+    adminPanel: said.panel ?? null,
+    adminJob: said.job ?? null,
+  };
 };
 
+/**
+ * Reads where the application should be out of a whole address, for anything holding one rather than
+ * a router location.
+ *
+ * @param url - The address to read.
+ * @returns Where to be.
+ */
 const readLocation = (url: string): Place => {
   const parsed = URL.parse(url);
 
@@ -76,26 +89,7 @@ const readLocation = (url: string): Place => {
     return HOME;
   }
 
-  const [, first = '', second = ''] = parsed.pathname.split('/');
-  const query = parsed.searchParams;
-
-  const section = SectionSchema.safeParse(first);
-  const watching = first === 'watch' && second !== '' ? second : null;
-
-  return {
-    section: section.success ? section.data : 'home',
-    search: query.get('q') ?? '',
-    inspecting: first === 'media' && second !== '' ? second : query.get('item'),
-    show: query.get('show'),
-    person: readPersonId(query.get('person')),
-    shareToken: first === 'share' && second !== '' ? decodeURIComponent(second) : null,
-    playing: watching,
-    party: query.get('party'),
-    genre: query.get('genre'),
-    library: query.get('library'),
-    adminPanel: query.get('panel'),
-    adminJob: query.get('job'),
-  };
+  return placeIn(parsed.pathname, Object.fromEntries(parsed.searchParams));
 };
 
 /**
@@ -161,4 +155,4 @@ const writeLocation = (place: Place): string => {
 
 export type { Place };
 
-export { readLocation, writeLocation, SECTIONS, HOME };
+export { readLocation, placeIn, writeLocation, SECTIONS, HOME };

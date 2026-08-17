@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchFavourites, setFavourite } from '@FluxWeb/library/fetchFavourites';
+import { useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { setFavourite } from '@FluxWeb/library/fetchFavourites';
+import { viewingQueries } from '@FluxWeb/query/viewingQueries';
 
 type Favourites = {
   kept: Set<string>;
@@ -8,83 +10,45 @@ type Favourites = {
 };
 
 /**
- * What this viewer has kept, and the one gesture that changes it. Keeps its own copy so a heart fills
- * the moment it is pressed rather than when the server answers, and puts it back if the server
- * refuses.
+ * What this viewer has kept, and the one gesture that changes it. The list lives in the shared cache
+ * rather than in this hook, so a heart filled on the home page is filled in the dialog and on the
+ * favourites page without any of them being told.
  *
- * Read again whenever the person watching changes, and the local copy dropped with it, for the same
- * reason `useRatings` does it: the application is not remounted when somebody else signs in, so a
- * list held once for its lifetime belongs to whoever was there first.
+ * The change is written to the cache before the server is asked, so a heart fills the moment it is
+ * pressed, and put back the same way if the server refuses. Only that one item is put back rather
+ * than the whole list, since somebody keeping two things quickly should not have the first undone
+ * by the second being refused. Any read still in flight is called off first, so a list that arrives
+ * a moment later does not report the heart as empty again.
  *
- * @param watcherId - Who is watching, so that their list is the one held.
+ * @param watcherId - Who is watching, so that their list is the one asked for.
+ * @returns What they have kept, and how to change it.
  */
 const useFavourites = (watcherId: string | null): Favourites => {
-  const [kept, setKept] = useState<Set<string>>(new Set());
-  const changedRef = useRef(new Map<string, boolean>());
+  const cache = useQueryClient();
+  const asked = viewingQueries.favourites(watcherId);
+  const held = useQuery(asked);
 
-  useEffect(() => {
-    changedRef.current = new Map();
-    setKept(new Set());
+  const kept = useMemo(() => new Set(held.data ?? []), [held.data]);
 
-    if (watcherId === null) {
-      return;
-    }
+  const write = (mediaId: string, wants: boolean): void => {
+    cache.setQueryData(asked.queryKey, (ids = []) =>
+      wants ? [...ids.filter((id) => id !== mediaId), mediaId] : ids.filter((id) => id !== mediaId),
+    );
+  };
 
-    void fetchFavourites().then((ids) => {
-      const arrived = new Set(ids);
+  const toggle = (mediaId: string): void => {
+    const wants = !kept.has(mediaId);
 
-      for (const [mediaId, wants] of changedRef.current) {
-        if (wants) {
-          arrived.add(mediaId);
-        } else {
-          arrived.delete(mediaId);
-        }
+    write(mediaId, wants);
+
+    void cache.cancelQueries({ queryKey: asked.queryKey }, { revert: false });
+
+    void setFavourite(mediaId, wants).then((agreed) => {
+      if (!agreed) {
+        write(mediaId, !wants);
       }
-
-      setKept(arrived);
     });
-  }, [watcherId]);
-
-  const toggle = useCallback(
-    (mediaId: string) => {
-      const wants = !kept.has(mediaId);
-
-      changedRef.current.set(mediaId, wants);
-
-      setKept((held) => {
-        const next = new Set(held);
-
-        if (wants) {
-          next.add(mediaId);
-        } else {
-          next.delete(mediaId);
-        }
-
-        return next;
-      });
-
-      void setFavourite(mediaId, wants).then((agreed) => {
-        if (agreed) {
-          return;
-        }
-
-        changedRef.current.set(mediaId, !wants);
-
-        setKept((held) => {
-          const next = new Set(held);
-
-          if (wants) {
-            next.delete(mediaId);
-          } else {
-            next.add(mediaId);
-          }
-
-          return next;
-        });
-      });
-    },
-    [kept],
-  );
+  };
 
   return {
     kept,

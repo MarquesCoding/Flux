@@ -2,7 +2,6 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
 import { toast } from 'sonner';
-import { rememberedLibrary } from './src/library/rememberedLibrary';
 import { MotionGlobalConfig } from 'motion/react';
 import { JSDOM } from 'jsdom';
 
@@ -183,14 +182,10 @@ afterEach(() => {
  * Takes back everything that outlives the component that made it.
  *
  * Sonner keeps its toasts in a module rather than in a component, so one raised by a test is still
- * on screen for the next — which fails a later test for something an earlier one did. The library's
- * remembered answers go the same way and for the same reason: they are held in a module so that
- * leaving a page and coming back does not refetch everything, which means they survive a test too
- * and hand the next one a library it never asked for.
+ * on screen for the next — which fails a later test for something an earlier one did.
  */
 const forgetWhatOutlivesATest = (): void => {
   toast.dismiss();
-  rememberedLibrary.forget();
 };
 
 afterEach(forgetWhatOutlivesATest);

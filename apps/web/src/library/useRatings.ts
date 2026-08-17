@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchRatings, setRating } from '@FluxWeb/library/fetchRatings';
+import { useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { setRating } from '@FluxWeb/library/fetchRatings';
+import { viewingQueries } from '@FluxWeb/query/viewingQueries';
 import type { RatingSubject } from '@FluxWeb/library/fetchRatings';
 
 type Ratings = {
@@ -18,93 +20,79 @@ const keyFor = (subject: RatingSubject): string =>
   'mediaId' in subject ? `media:${subject.mediaId}` : `series:${subject.seriesId}`;
 
 /**
- * What this viewer has rated, and the one gesture that changes it. Keeps its own copy so a star
- * fills the moment it is pressed rather than when the server answers, and puts it back if the server
- * refuses — the same bargain `useFavourites` makes, for the same reason.
+ * Says which subject a rating the server sent back is about, which is the same key read the other
+ * way round.
  *
- * Read again whenever the person watching changes, and the local copy dropped with it. Held once for
- * the life of the application it outlived the person it belonged to: signing in as somebody else
- * left their stars filled in against everything the last person had rated, since the application is
- * not remounted between the two.
+ * @param rating - What the server sent.
+ * @returns The key it is held under.
+ */
+const keyOf = (rating: { mediaId: string | null; seriesId: string | null }): string =>
+  rating.mediaId === null ? `series:${rating.seriesId ?? ''}` : `media:${rating.mediaId}`;
+
+/**
+ * What this viewer has rated, and the one gesture that changes it. The stars live in the shared
+ * cache rather than in this hook — the same bargain `useFavourites` makes, for the same reason: a
+ * star given in a dialog is given everywhere else it is shown.
  *
- * @param watcherId - Who is watching, so that their ratings are the ones held.
+ * The change is written to the cache before the server is asked so a star fills on the press, and
+ * only that one subject is put back if the server refuses. Any read still in flight is called off
+ * first, so a list that arrives a moment later does not empty the star again.
+ *
+ * A rating the server took changes what the household gave the thing, so that figure is thrown away
+ * and asked for again — the panel showing it does not have to know a rating was given.
+ *
+ * @param watcherId - Who is watching, so that their ratings are the ones asked for.
  * @returns What they gave each thing, and how to change it.
  */
 const useRatings = (watcherId: string | null): Ratings => {
-  const [given, setGiven] = useState<Map<string, number>>(new Map());
-  const changedRef = useRef(new Map<string, number | null>());
+  const cache = useQueryClient();
+  const asked = viewingQueries.ratings(watcherId);
+  const held = useQuery(asked);
 
-  useEffect(() => {
-    changedRef.current = new Map();
-    setGiven(new Map());
+  const given = useMemo(
+    () => new Map((held.data ?? []).map((rating) => [keyOf(rating), rating.stars])),
+    [held.data],
+  );
 
-    if (watcherId === null) {
-      return;
-    }
+  const write = (subject: RatingSubject, stars: number | null): void => {
+    const key = keyFor(subject);
 
-    void fetchRatings().then((arrived) => {
-      const held = new Map(
-        arrived.map((entry) => [
-          entry.mediaId === null
-            ? keyFor({ seriesId: entry.seriesId ?? '' })
-            : keyFor({ mediaId: entry.mediaId }),
-          entry.stars,
-        ]),
-      );
+    cache.setQueryData(asked.queryKey, (ratings = []) => {
+      const without = ratings.filter((rating) => keyOf(rating) !== key);
 
-      for (const [key, stars] of changedRef.current) {
-        if (stars === null) {
-          held.delete(key);
-        } else {
-          held.set(key, stars);
-        }
+      if (stars === null) {
+        return without;
       }
 
-      setGiven(held);
+      return [
+        ...without,
+        {
+          mediaId: 'mediaId' in subject ? subject.mediaId : null,
+          seriesId: 'seriesId' in subject ? subject.seriesId : null,
+          stars,
+          ratedAt: new Date().toISOString(),
+        },
+      ];
     });
-  }, [watcherId]);
+  };
 
-  const rate = useCallback(
-    (subject: RatingSubject, stars: number | null) => {
-      const key = keyFor(subject);
-      const before = given.get(key) ?? null;
+  const rate = (subject: RatingSubject, stars: number | null): void => {
+    const before = given.get(keyFor(subject)) ?? null;
 
-      changedRef.current.set(key, stars);
+    write(subject, stars);
 
-      setGiven((held) => {
-        const next = new Map(held);
+    void cache.cancelQueries({ queryKey: asked.queryKey }, { revert: false });
 
-        if (stars === null) {
-          next.delete(key);
-        } else {
-          next.set(key, stars);
-        }
+    void setRating(subject, stars).then((agreed) => {
+      if (!agreed) {
+        write(subject, before);
 
-        return next;
-      });
+        return;
+      }
 
-      void setRating(subject, stars).then((agreed) => {
-        if (agreed) {
-          return;
-        }
-
-        changedRef.current.set(key, before);
-
-        setGiven((held) => {
-          const next = new Map(held);
-
-          if (before === null) {
-            next.delete(key);
-          } else {
-            next.set(key, before);
-          }
-
-          return next;
-        });
-      });
-    },
-    [given],
-  );
+      void cache.invalidateQueries({ queryKey: viewingQueries.household(subject).queryKey });
+    });
+  };
 
   return {
     ratingFor: (subject) => given.get(keyFor(subject)) ?? null,

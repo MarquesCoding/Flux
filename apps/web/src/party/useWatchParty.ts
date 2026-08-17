@@ -56,6 +56,7 @@ const useWatchParty = (client: RealtimeClient = getRealtimeClient()): WatchParty
   const [passwordWanted, setPasswordWanted] = useState<PasswordWanted | null>(null);
   const partyRef = useRef<PartyClient | null>(null);
   const inPartyRef = useRef<string | null>(null);
+  const waitingToJoinRef = useRef<{ partyId: string; password?: string } | null>(null);
 
   useEffect(() => {
     const held = createPartyClient({
@@ -81,6 +82,13 @@ const useWatchParty = (client: RealtimeClient = getRealtimeClient()): WatchParty
     });
 
     partyRef.current = held;
+
+    const waiting = waitingToJoinRef.current;
+
+    if (waiting !== null) {
+      waitingToJoinRef.current = null;
+      held.join(waiting.partyId, waiting.password);
+    }
 
     const stopRefusals = client.onRefused(setRefusal);
 
@@ -159,7 +167,14 @@ const useWatchParty = (client: RealtimeClient = getRealtimeClient()): WatchParty
 
   const join = useCallback((partyId: string, password?: string) => {
     setPasswordWanted(null);
-    partyRef.current?.join(partyId, password);
+
+    if (partyRef.current === null) {
+      waitingToJoinRef.current = { partyId, ...(password === undefined ? {} : { password }) };
+
+      return;
+    }
+
+    partyRef.current.join(partyId, password);
   }, []);
 
   const leave = useCallback(() => {
