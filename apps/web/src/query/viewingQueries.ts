@@ -15,12 +15,15 @@ const VIEWING = ['viewing'] as const;
  * a progress line. A screen that reports progress invalidates this key and every one of them
  * catches up, which is what it was doing by hand with a callback passed down five levels.
  *
- * @param profileId - Whose viewing, since two people in a household do not share a place in a film.
+ * Not keyed by who is watching, because the server answers for whoever the session belongs to and a
+ * rail drawing a progress line has no business knowing whose it is. Signing in as somebody else
+ * throws the whole of this away rather than holding two answers at once.
+ *
  * @returns The query.
  */
-const progress = (profileId: string | null) =>
+const progress = () =>
   queryOptions({
-    queryKey: [...VIEWING, 'progress', profileId],
+    queryKey: [...VIEWING, 'progress'],
     queryFn: () => fetchWatchProgress(),
   });
 

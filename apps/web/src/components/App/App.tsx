@@ -48,7 +48,8 @@ import { AccountArea } from '@FluxWeb/components/AccountArea/AccountArea';
 import { ProfileGate } from '@FluxWeb/components/ProfileGate/ProfileGate';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
 import { findSiblings, nextEpisode } from '@FluxWeb/library/pickFeatured';
-import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
+import { byMediaId } from '@FluxWeb/playback/watchProgress';
+import { viewingQueries } from '@FluxWeb/query/viewingQueries';
 import { summariseDetail } from '@FluxWeb/library/summariseDetail';
 import { watchPresence } from '@FluxWeb/presence/watchPresence';
 import { watchedFraction, FINISHED_WITHIN_SECONDS } from '@FluxContracts/schemas/WatchProgress';
@@ -89,13 +90,11 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
   const session = useQuery({ ...sessionQueries.who(), enabled: isSetUp });
   const user = isSetUp ? (session.data ?? null) : null;
-  const [progress, setProgress] = useState(new Map<string, WatchProgress>());
-  const reportedRef = useRef(new Map<string, WatchProgress>());
+  const [reported, setReported] = useState(new Map<string, WatchProgress>());
   const markedAtRef = useRef(0);
   const [startOverride, setStartOverride] = useState<{ mediaId: string; seconds: number } | null>(
     null,
   );
-  const [hasReadProgress, setHasReadProgress] = useState(false);
   const [, setFeatured] = useState<MediaSummary | null>(null);
   const [moodLights, setMoodLights] = useState<MoodLight[]>([]);
   const favourites = useFavourites(user?.id ?? null);
@@ -309,31 +308,45 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     });
   }, []);
 
-  const readProgress = useCallback(async () => {
-    const answer = await fetchWatchProgress();
+  const watched = useQuery(viewingQueries.progress());
+  const hasReadProgress = !watched.isPending;
 
-    if (answer === null) {
-      return;
+  const progress = useMemo(() => {
+    const held = byMediaId(watched.data ?? []);
+
+    for (const [mediaId, mine] of reported) {
+      const theirs = held.get(mediaId);
+
+      if (theirs === undefined || Math.abs(theirs.positionSeconds - mine.positionSeconds) > 1) {
+        held.set(mediaId, mine);
+      }
     }
 
-    const fromServer = byMediaId(answer);
-    const merged = new Map(fromServer);
+    return held;
+  }, [watched.data, reported]);
 
-    for (const [mediaId, mine] of reportedRef.current) {
-      const theirs = fromServer.get(mediaId);
+  useEffect(() => {
+    const held = byMediaId(watched.data ?? []);
 
-      if (theirs !== undefined && Math.abs(theirs.positionSeconds - mine.positionSeconds) <= 1) {
-        reportedRef.current.delete(mediaId);
+    setReported((current) => {
+      const next = new Map(current);
 
-        continue;
+      for (const [mediaId, mine] of current) {
+        const theirs = held.get(mediaId);
+
+        if (theirs !== undefined && Math.abs(theirs.positionSeconds - mine.positionSeconds) <= 1) {
+          next.delete(mediaId);
+        }
       }
 
-      merged.set(mediaId, mine);
-    }
+      return next.size === current.size ? current : next;
+    });
+  }, [watched.data]);
 
-    setProgress(merged);
-    setHasReadProgress(true);
-  }, []);
+  const readProgress = useCallback(
+    async () => cache.invalidateQueries({ queryKey: viewingQueries.progress().queryKey }),
+    [cache],
+  );
 
   useEffect(() => {
     const wanted = [place.playing, place.inspecting]
@@ -578,8 +591,6 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
               updatedAt: new Date().toISOString(),
             };
 
-            reportedRef.current.set(playing.id, entry);
-
             const whole = Math.floor(positionSeconds);
 
             if (Math.abs(whole - markedAtRef.current) < PROGRESS_EVERY_SECONDS) {
@@ -588,13 +599,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
             markedAtRef.current = whole;
 
-            setProgress((current) => {
-              const next = new Map(current);
-
-              next.set(playing.id, entry);
-
-              return next;
-            });
+            setReported((current) => new Map(current).set(playing.id, entry));
           }}
           onEnded={() => {
             const decided = decideWhatFollows({

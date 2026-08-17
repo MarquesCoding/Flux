@@ -89,7 +89,7 @@ const LibraryBrowser = ({
 
   const heroItems = sample.data ?? [];
 
-  const watched = useQuery(viewingQueries.progress(null));
+  const watched = useQuery(viewingQueries.progress());
   const progress = byMediaId(watched.data ?? []);
 
   const reportItems = useRef(onItemsLoaded);
