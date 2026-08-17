@@ -51,10 +51,20 @@ const rateLabel = (rate: number): string => `${rate.toString()}x`;
  * @param maxVideoBitrateKbps - The step's ceiling, as the ladder holds it.
  * @returns What the menu shows beside the step.
  */
+/**
+ * Says what a rung costs, as a ceiling rather than a figure it will hit.
+ *
+ * A rung caps the bitrate; it does not aim at it. What actually goes out is derived from the
+ * source, so a well compressed film delivered at this rung comes in under the number and a viewer
+ * told the number flat would be owed an explanation. "Up to" is true either way.
+ *
+ * @param maxVideoBitrateKbps - The rung's ceiling.
+ * @returns The ceiling in the largest unit that keeps it readable.
+ */
 const bitrateDetail = (maxVideoBitrateKbps: number): string =>
   maxVideoBitrateKbps >= 1000
-    ? `${(maxVideoBitrateKbps / 1000).toFixed(1)} Mbps`
-    : `${maxVideoBitrateKbps.toString()} kbps`;
+    ? `up to ${(maxVideoBitrateKbps / 1000).toFixed(1)} Mbps`
+    : `up to ${maxVideoBitrateKbps.toString()} kbps`;
 
 const SUBTITLE_STEP_SECONDS = 0.25;
 

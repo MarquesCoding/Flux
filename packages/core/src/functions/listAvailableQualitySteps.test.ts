@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
+import { QUALITY_STEPS } from '@FluxContracts/schemas/QualityStep';
+import { resolveQualityStep } from './resolveQualityStep';
 import { listAvailableQualitySteps } from './listAvailableQualitySteps';
 
 const media: MediaItem = {
@@ -20,19 +22,55 @@ const media: MediaItem = {
 };
 
 describe('listAvailableQualitySteps', () => {
-  it('offers every step below the source height', () => {
-    expect(listAvailableQualitySteps(media)).toEqual(['720p', '480p', '360p', '240p', '144p']);
+  it('offers the source own height where that would still cut the bitrate', () => {
+    expect(listAvailableQualitySteps(media)).toEqual([
+      '1080p',
+      '720p',
+      '480p',
+      '360p',
+      '240p',
+      '144p',
+    ]);
   });
 
-  it('never offers a step at or above the source height', () => {
-    const sd: MediaItem = { ...media, width: 720, height: 480 };
+  it('offers a remux its own resolution, which is the whole point of a rung for a poor line', () => {
+    const remux: MediaItem = { ...media, videoCodec: 'h264', bitrateKbps: 30_000 };
 
-    expect(listAvailableQualitySteps(sd)).toEqual(['360p', '240p', '144p']);
+    expect(listAvailableQualitySteps(remux)).toContain('1080p');
   });
 
-  it('offers nothing below the smallest step', () => {
-    const tiny: MediaItem = { ...media, width: 256, height: 144 };
+  it('withholds the source own height once there is nothing left to save', () => {
+    const modest: MediaItem = { ...media, bitrateKbps: 3_000 };
+
+    expect(listAvailableQualitySteps(modest)).not.toContain('1080p');
+    expect(listAvailableQualitySteps(modest)).toEqual(['720p', '480p', '360p', '240p', '144p']);
+  });
+
+  it('never offers a step taller than the source, which would deliver nothing', () => {
+    const sd: MediaItem = { ...media, width: 720, height: 480, bitrateKbps: 3_000 };
+
+    expect(listAvailableQualitySteps(sd)).not.toContain('1080p');
+    expect(listAvailableQualitySteps(sd)).not.toContain('720p');
+  });
+
+  it('offers nothing at all where the file is already inside the smallest rung', () => {
+    const tiny: MediaItem = { ...media, width: 256, height: 144, bitrateKbps: 100 };
 
     expect(listAvailableQualitySteps(tiny)).toEqual([]);
+  });
+
+  it('offers a rung only where the server would act on it, and every one where it would', () => {
+    const items = [media, { ...media, bitrateKbps: 30_000 }, { ...media, bitrateKbps: 3_000 }];
+
+    for (const item of items) {
+      const offered = listAvailableQualitySteps(item);
+
+      for (const step of QUALITY_STEPS) {
+        const wouldAct =
+          step.maxHeight <= item.height && resolveQualityStep(item, step.id) !== null;
+
+        expect(offered.includes(step.id)).toBe(wouldAct);
+      }
+    }
   });
 });
