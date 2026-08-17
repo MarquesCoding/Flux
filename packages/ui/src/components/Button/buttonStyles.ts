@@ -3,7 +3,7 @@ import { PRESS_MOTION } from '@FluxUI/animations/motion';
 
 const buttonStyles = cva(
   [
-    'inline-flex shrink-0 select-none items-center justify-center font-medium whitespace-nowrap',
+    'inline-flex select-none font-medium',
     'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:ring-offset-0',
     'disabled:pointer-events-none disabled:opacity-50',
     "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-[1.15em]",
@@ -41,6 +41,10 @@ const buttonStyles = cva(
       },
     },
     compoundVariants: [
+      {
+        variant: ['primary', 'glossy', 'secondary', 'ghost', 'danger', 'overlay', 'link'],
+        class: 'shrink-0 items-center justify-center whitespace-nowrap',
+      },
       { isIconOnly: true, size: 'sm', class: 'size-7' },
       { isIconOnly: true, size: 'md', class: 'size-9' },
       { isIconOnly: true, size: 'lg', class: 'size-10' },

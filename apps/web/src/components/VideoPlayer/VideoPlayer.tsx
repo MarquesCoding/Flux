@@ -64,8 +64,9 @@ import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
 import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview';
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
-import { AdminMessageOverlay } from './components/AdminMessageOverlay/AdminMessageOverlay';
 import { PlayerNote } from './components/PlayerNote/PlayerNote';
+import { Toaster } from '@FluxUI/Toaster';
+import { notify } from '@FluxUI/notify';
 import { correctDrift } from '@FluxCore/functions/correctDrift';
 import { whatToReport } from '@FluxCore/functions/whatToReport';
 import { describeCommand } from '@FluxWeb/party/describeCommand';
@@ -92,6 +93,10 @@ type FullscreenOwner = {
 const IDLE_MILLISECONDS = 2500;
 
 const NOTE_MILLISECONDS = 5000;
+
+const PLAYER_TOASTS = 'player';
+
+const ADMIN_NOTICE = 'admin-notice';
 
 const JUMP_SECONDS = 30;
 
@@ -204,10 +209,6 @@ const VideoPlayer = ({
   const [session, setSession] = useState<StartedSession | null>(null);
   const [state, setState] = useState<PlayerState>('starting');
   const [problem, setProblem] = useState<string | null>(null);
-  const [adminMessage, setAdminMessage] = useState<{
-    kind: 'stopped' | 'paused' | 'message';
-    text: string;
-  } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [reportedDuration, setReportedDuration] = useState(0);
@@ -929,30 +930,39 @@ const VideoPlayer = ({
 
         if (event.kind === 'stopped') {
           element?.pause();
-          setAdminMessage({ kind: 'stopped', text: event.reason });
+
+          notify.failed(event.reason, {
+            id: ADMIN_NOTICE,
+            where: PLAYER_TOASTS,
+            staysUntilDismissed: true,
+            action: { label: 'Close', onPress: onClose },
+          });
 
           return;
         }
 
         if (event.kind === 'paused') {
           element?.pause();
-          setAdminMessage({ kind: 'paused', text: event.reason });
+
+          notify.say(event.reason, {
+            id: ADMIN_NOTICE,
+            where: PLAYER_TOASTS,
+            staysUntilDismissed: true,
+          });
 
           return;
         }
 
         if (event.kind === 'message') {
-          setAdminMessage((current) =>
-            current?.kind === 'stopped' ? current : { kind: 'message', text: event.text },
-          );
+          notify.say(event.text, { where: PLAYER_TOASTS, staysUntilDismissed: true });
 
           return;
         }
 
-        setAdminMessage((current) => (current?.kind === 'paused' ? null : current));
+        notify.forget(ADMIN_NOTICE);
         void element?.play();
       }),
-    [],
+    [onClose],
   );
 
   useEffect(() => {
@@ -1577,23 +1587,9 @@ const VideoPlayer = ({
           </div>
         )}
 
-        {adminMessage === null ? null : (
-          <AdminMessageOverlay
-            kind={adminMessage.kind}
-            text={adminMessage.text}
-            onDismiss={() => {
-              const wasStopped = adminMessage.kind === 'stopped';
-
-              setAdminMessage(null);
-
-              if (wasStopped) {
-                onClose();
-              }
-            }}
-          />
-        )}
-
         <PlayerNote note={note} />
+
+        <Toaster id={PLAYER_TOASTS} />
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">

@@ -10,11 +10,17 @@ import type { ToasterProps } from './Toaster.types';
  * each inventing their own banner. It carries the product's own surface, border and radius rather
  * than the library's defaults.
  *
+ * There is normally one, at the root. The exception is the player: it goes fullscreen, and a toast
+ * portalled to the document is drawn behind a fullscreen video, which is to say not drawn. A named
+ * toaster inside the player takes the messages addressed to it and nothing else.
+ *
  * @param theme - Which way round to paint, following whatever the page is set to.
- * @returns The one place toasts are drawn.
+ * @param id - Which toaster this is, for messages addressed somewhere other than the page.
+ * @returns Where toasts are drawn.
  */
-const Toaster = ({ theme = 'system' }: ToasterProps) => (
+const Toaster = ({ theme = 'system', id }: ToasterProps) => (
   <SonnerToaster
+    {...(id === undefined ? {} : { id })}
     theme={theme}
     position="bottom-right"
     offset={24}

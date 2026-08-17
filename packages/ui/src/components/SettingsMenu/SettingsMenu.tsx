@@ -18,7 +18,7 @@ import type {
 } from './SettingsMenu.types';
 
 const ROW =
-  'relative z-10 flex w-full items-center gap-4 rounded-[1.375rem] px-3 py-2.5 text-left text-sm';
+  'relative z-10 flex w-full items-center gap-4 rounded-sm px-3 py-2.5 text-left text-sm';
 
 const SLIDE = 28;
 

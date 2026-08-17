@@ -104,7 +104,7 @@ const Hero = ({
   const inset = useTransform(scrollYProgress, [0, 1], ['0px', '40px']);
   const lift = useTransform(scrollYProgress, [0, 1], ['0px', '72px']);
   const foot = useTransform(scrollYProgress, [0, 1], ['0px', FOOT_OF_THE_CARD]);
-  const corner = useTransform(scrollYProgress, [0, 1], ['0px', '28px']);
+  const corner = useTransform(scrollYProgress, [0, 1], ['0px', '10px']);
 
   const showNext = useCallback(() => {
     if (items.length > 1 && !isHeld) {
@@ -208,7 +208,7 @@ const Hero = ({
                     left: '40px',
                     right: '40px',
                     bottom: FOOT_OF_THE_CARD,
-                    borderRadius: '28px',
+                    borderRadius: '10px',
                   }
                 : { top: lift, left: inset, right: inset, bottom: foot, borderRadius: corner }
           }

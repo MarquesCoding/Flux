@@ -4,6 +4,8 @@ type Notice = {
   description?: string;
   action?: { label: string; onPress: () => void };
   id?: string;
+  where?: string;
+  staysUntilDismissed?: boolean;
 };
 
 /**
@@ -17,6 +19,8 @@ type Notice = {
 const asOptions = (notice: Notice | undefined) => ({
   ...(notice?.description === undefined ? {} : { description: notice.description }),
   ...(notice?.id === undefined ? {} : { id: notice.id }),
+  ...(notice?.where === undefined ? {} : { toasterId: notice.where }),
+  ...(notice?.staysUntilDismissed === true ? { duration: Number.POSITIVE_INFINITY } : {}),
   ...(notice?.action === undefined
     ? {}
     : { action: { label: notice.action.label, onClick: notice.action.onPress } }),

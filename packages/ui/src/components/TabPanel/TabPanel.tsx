@@ -1,3 +1,4 @@
+import { cloneElement } from 'react';
 import * as RadixTabs from '@radix-ui/react-tabs';
 import { cn } from '@FluxUI/cn';
 import type { TabPanelProps } from './TabPanel.types';
@@ -5,6 +6,9 @@ import type { TabPanelProps } from './TabPanel.types';
 /**
  * What one tab shows. Renders only when its tab is the one chosen, so a panel that fetches
  * something does not fetch it until somebody looks.
+ *
+ * Where a caller supplies an element to render as, the panel's own content goes inside it rather
+ * than replacing it — the element is the wrapper, not the contents.
  *
  * @param value - Which tab this panel belongs to.
  * @param children - What the panel holds.
@@ -14,14 +18,15 @@ import type { TabPanelProps } from './TabPanel.types';
 const TabPanel = ({ value, children, render, className }: TabPanelProps) => (
   <RadixTabs.Content
     value={value}
+    asChild={render !== undefined}
     className={cn(
       'outline-none data-[state=active]:animate-in data-[state=active]:fade-in-0',
-      'duration-[var(--duration-fast)] ease-[var(--ease-out)] motion-reduce:animate-none',
+      'duration-[var(--duration-fast)] ease-[var(--ease-out)]',
+      'motion-reduce:duration-[var(--duration-instant)]',
       className,
     )}
-    {...(render === undefined ? {} : { asChild: true })}
   >
-    {render === undefined ? children : render}
+    {render === undefined ? children : cloneElement(render, undefined, children)}
   </RadixTabs.Content>
 );
 

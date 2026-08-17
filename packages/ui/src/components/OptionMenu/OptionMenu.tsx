@@ -45,7 +45,7 @@ const OptionMenu = ({
                 'hover:border-[var(--surface-divider)]',
               )
             : cn(
-                'size-9 justify-center rounded-full',
+                'size-9 justify-center rounded-md',
                 'hover:bg-[var(--surface-hover)] data-[state=open]:bg-[var(--surface-active)]',
               ),
           className,
@@ -87,7 +87,7 @@ const OptionMenu = ({
                       key={option.id}
                       value={option.id}
                       className={cn(
-                        'flex cursor-default items-center justify-between gap-4 rounded-[1.375rem] px-3 py-2.5',
+                        'flex cursor-default items-center justify-between gap-4 rounded-sm px-3 py-2.5',
                         'outline-none transition-colors duration-[var(--duration-fast)]',
                         'data-[highlighted]:bg-[var(--surface-hover)]',
                         'data-[checked]:text-text',

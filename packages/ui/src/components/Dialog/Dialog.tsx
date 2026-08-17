@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { cn } from '@FluxUI/cn';
 import { OVERLAY_MOTION } from '@FluxUI/animations/motion';
@@ -31,6 +32,11 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  * is what a small screen expects and a panel is what a large one does. Both leave the way they
  * arrived, so dismissing reads as the reverse of opening rather than as a second, unrelated event.
  *
+ * Opening puts focus on the panel rather than on the first control inside it. Landing on a control
+ * draws a focus ring around whatever happens to be first — the favourite button, an icon — which
+ * reads as though the dialog has already chosen something on the viewer's behalf. The panel takes
+ * the focus instead, so the keyboard still works and nothing appears pre-selected.
+ *
  * @param label - What the dialog is, read out on opening.
  * @param isOpen - Whether it is showing.
  * @param onClose - Told when it was dismissed, by the overlay, the escape key or a close button.
@@ -42,6 +48,7 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  */
 const Dialog = ({ label, isOpen, onClose, children, size = 'default', className }: DialogProps) => {
   const portalContainer = usePortalContainer();
+  const panelRef = useRef<HTMLDivElement>(null);
 
   return (
     <RadixDialog.Root
@@ -59,8 +66,14 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
         />
 
         <RadixDialog.Content
+          ref={panelRef}
           aria-label={label}
+          tabIndex={-1}
           data-slot="dialog-content"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            panelRef.current?.focus({ preventScroll: true });
+          }}
           className={cn(
             'fixed inset-x-0 bottom-0 top-0 z-50 flex flex-col overflow-hidden bg-card text-card-foreground',
             'sm:inset-x-auto sm:inset-y-auto sm:left-1/2 sm:top-1/2 sm:max-h-[85vh]',

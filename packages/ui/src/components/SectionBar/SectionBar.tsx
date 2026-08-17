@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
 import { RiArrowDownSLine, RiCheckLine } from '@remixicon/react';
@@ -9,20 +9,21 @@ import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { SectionBarProps } from './SectionBar.types';
 
 const PILL = [
-  'relative flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-sm',
+  'relative flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-3.5 text-sm',
   'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
 ].join(' ');
 
 const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;
 
-const OPEN_DELAY_MILLISECONDS = 70;
-
-const CLOSE_DELAY_MILLISECONDS = 180;
-
 /**
  * The bar across the top of an area — the admin pages, an account — where related sections are
  * grouped so a family of pages opens as one thing rather than as five siblings. Carries the same
  * travelling mark the dock uses.
+ *
+ * A family opens on a press rather than on a pointer resting over it. Opening on hover reads well
+ * until it meets a click: the pointer opens the menu, the click that follows toggles it, and the
+ * menu shuts on the very press meant to open it. Every other menu in Flux opens on a press, and one
+ * that behaves like the rest is worth more than one that anticipates.
  *
  * @param groups - The sections, in groups.
  * @param value - Which section is showing.
@@ -37,15 +38,6 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
   const [pointedAt, setPointedAt] = useState<string | null>(null);
 
   const [opened, setOpened] = useState<string | null>(null);
-
-  const hoverRef = useRef(0);
-
-  useEffect(
-    () => () => {
-      window.clearTimeout(hoverRef.current);
-    },
-    [],
-  );
 
   /**
    * Names the group a pill belongs to, which is what the travelling mark moves between — a family
@@ -67,27 +59,11 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
 
   const lit = pointedAt ?? opened ?? here;
 
-  const openAfterAPause = (named: string, afterMs: number) => {
-    window.clearTimeout(hoverRef.current);
-
-    hoverRef.current = window.setTimeout(() => {
-      setOpened(named);
-    }, afterMs);
-  };
-
-  const closeAfterAPause = () => {
-    window.clearTimeout(hoverRef.current);
-
-    hoverRef.current = window.setTimeout(() => {
-      setOpened(null);
-    }, CLOSE_DELAY_MILLISECONDS);
-  };
-
   const mark = (
     <motion.span
       layoutId="section-bar-mark"
       transition={prefersReducedMotion === true ? { duration: 0 } : MARK_MOTION}
-      className="absolute inset-0 -z-10 rounded-full bg-[var(--surface-active)]"
+      className="absolute inset-0 -z-10 rounded-md bg-[var(--surface-active)]"
     />
   );
 
@@ -101,7 +77,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
         setPointedAt(null);
       }}
       className={cn(
-        'flux-rail flux-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-full p-1.5',
+        'flux-rail flux-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
         className,
       )}
     >
@@ -121,6 +97,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
 
             {opens && group.label !== undefined ? (
               <RadixMenu.Root
+                modal={false}
                 open={opened === named}
                 onOpenChange={(isOpen) => {
                   setOpened((was) => (isOpen ? named : was === named ? null : was));
@@ -129,9 +106,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
                 <RadixMenu.Trigger
                   onPointerEnter={() => {
                     setPointedAt(named);
-                    openAfterAPause(named, opened === null ? OPEN_DELAY_MILLISECONDS : 0);
                   }}
-                  onPointerLeave={closeAfterAPause}
                   onFocus={() => {
                     setPointedAt(named);
                   }}
@@ -178,7 +153,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
                             key={item.id}
                             value={item.id}
                             className={cn(
-                              'flex cursor-default items-center justify-between gap-4 rounded-[1.375rem] px-3 py-2.5',
+                              'flex cursor-default items-center justify-between gap-4 rounded-sm px-3 py-2.5',
                               'outline-none transition-colors duration-[var(--duration-fast)]',
                               'data-[highlighted]:bg-[var(--surface-hover)]',
                             )}
