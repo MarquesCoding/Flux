@@ -1246,6 +1246,9 @@ const realtimeHandler = createRealtimeHandler({
         connectionIds: [...connectionIds],
       });
     },
+    ask: ({ party, byName, profileId }) => {
+      void askSomebodyToTheParty(party, byName, profileId);
+    },
   },
   presence: {
     connect: (clientId, profileId, profileName, deviceLabel, send) => {
@@ -1275,6 +1278,58 @@ const realtimeHandler = createRealtimeHandler({
     },
   },
 });
+
+/**
+ * Asks somebody to a watch party, in whatever way they asked to be told things.
+ *
+ * The notification carries the same address the party's own invitation does, which holds no
+ * credential of its own: being asked is not being let in, and whoever opens it still has to be
+ * allowed to watch the thing.
+ *
+ * @param party - The party they are being asked to.
+ * @param byName - Who is asking.
+ * @param profileId - Which face they picked, since that is what a viewer chooses between.
+ */
+const askSomebodyToTheParty = async (
+  party: { id: string; mediaId: string },
+  byName: string,
+  profileId: string,
+): Promise<void> => {
+  const accountId = await profileService.accountOf(profileId);
+
+  if (accountId === null) {
+    return;
+  }
+
+  const [found] = await db
+    .select({ title: mediaItem.title })
+    .from(mediaItem)
+    .where(eq(mediaItem.id, party.mediaId))
+    .limit(1);
+
+  await notifyHousehold({
+    store: notifications,
+    event: 'party.invited',
+    title: `${byName} wants to watch with you`,
+    body:
+      found === undefined
+        ? 'They have a watch party running.'
+        : `They are watching ${found.title}.`,
+    link: `/watch/${party.mediaId}?party=${party.id}`,
+    vapid: await readPushKeys(),
+    only: [accountId],
+    onProblem: (reason) => {
+      log.error('server', `party invite: ${reason}`);
+    },
+    announce: (userIds) => {
+      realtime.publish(
+        'notifications',
+        { event: 'party.invited' },
+        { kind: 'accounts', accountIds: [...userIds] },
+      );
+    },
+  });
+};
 
 const transcoderIntake = createTranscoderIntake(log);
 

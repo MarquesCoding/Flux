@@ -24,10 +24,19 @@ const createWorld = () => {
     return `party-${minted.toString()}`;
   });
 
+  const asked: { byName: string; profileId: string; partyId: string }[] = [];
+
   const binding = {
     registry,
     tell: (connectionIds: readonly string[], payload: JsonValue) => {
       told.push({ to: connectionIds, payload });
+    },
+    ask: (asking: { party: { id: string }; byName: string; profileId: string }) => {
+      asked.push({
+        byName: asking.byName,
+        profileId: asking.profileId,
+        partyId: asking.party.id,
+      });
     },
   };
 
@@ -46,6 +55,7 @@ const createWorld = () => {
   return {
     registry,
     told,
+    asked,
     answers,
     say,
     lastTold: () => told[told.length - 1],
@@ -132,7 +142,13 @@ describe('handlePartyMessage', () => {
 
     world.say({ kind: 'partyOpen', mediaId: 'a-film' }, someone('dan', 'Dan'));
     world.say(
-      { kind: 'partyReport', positionSeconds: 42, bufferedAheadSeconds: 5, isWatching: true },
+      {
+        kind: 'partyReport',
+        positionSeconds: 42,
+        bufferedAheadSeconds: 5,
+        isWatching: true,
+        isReady: true,
+      },
       someone('dan', 'Dan'),
     );
 
@@ -146,7 +162,13 @@ describe('handlePartyMessage', () => {
 
     world.say({ kind: 'partyOpen', mediaId: 'a-film' }, someone('dan', 'Dan'));
     world.say(
-      { kind: 'partyReport', positionSeconds: 42, bufferedAheadSeconds: 5, isWatching: true },
+      {
+        kind: 'partyReport',
+        positionSeconds: 42,
+        bufferedAheadSeconds: 5,
+        isWatching: true,
+        isReady: true,
+      },
       someone('dan', 'Dan'),
     );
 
@@ -270,5 +292,44 @@ describe('handlePartyMessage', () => {
       kind: 'refused',
       why: 'The host has removed you from that party.',
     });
+  });
+
+  it('asks somebody along on behalf of whoever asked for them', () => {
+    const world = createWorld();
+
+    world.say({ kind: 'partyOpen', mediaId: 'a-film' }, someone('dan', 'Dan'));
+    world.say({ kind: 'partyInvite', profileId: 'profile-sam' }, someone('dan', 'Dan'));
+
+    expect(world.asked).toEqual([{ byName: 'Dan', profileId: 'profile-sam', partyId: 'party-1' }]);
+  });
+
+  it('refuses a guest asking somebody along, and tells them why', () => {
+    const world = createWorld();
+
+    world.say({ kind: 'partyOpen', mediaId: 'a-film' }, someone('dan', 'Dan'));
+    world.say({ kind: 'partyJoin', partyId: 'party-1' }, someone('sam', 'Sam'));
+    world.say({ kind: 'partyInvite', profileId: 'profile-kit' }, someone('sam', 'Sam'));
+
+    expect(world.asked).toEqual([]);
+    expect(world.answers.at(-1)?.kind).toBe('refused');
+  });
+
+  it('says the room is waiting until everybody has something to play', () => {
+    const world = createWorld();
+
+    world.say({ kind: 'partyOpen', mediaId: 'a-film' }, someone('dan', 'Dan'));
+    world.say({ kind: 'partyJoin', partyId: 'party-1' }, someone('sam', 'Sam'));
+    world.say(
+      {
+        kind: 'partyReport',
+        positionSeconds: 10,
+        bufferedAheadSeconds: 9,
+        isWatching: true,
+        isReady: true,
+      },
+      someone('dan', 'Dan'),
+    );
+
+    expect(partyIn(world.lastTold()?.payload)).toMatchObject({ isHeld: true });
   });
 });

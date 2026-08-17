@@ -20,6 +20,7 @@ const member = (over?: Partial<PartyMember>): PartyMember => ({
   role: 'guest',
   joinedAtMs: 1000,
   isWatching: true,
+  isReady: true,
   positionSeconds: 0,
   reportedAtMs: 1000,
   bufferedAheadSeconds: 0,

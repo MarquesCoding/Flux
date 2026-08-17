@@ -310,6 +310,16 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
       return everyone;
     },
 
+    accountOf: async (profileId) => {
+      const rows = await db
+        .select({ userId: viewerProfile.userId })
+        .from(viewerProfile)
+        .where(eq(viewerProfile.id, profileId))
+        .limit(1);
+
+      return rows[0]?.userId ?? null;
+    },
+
     findSignInEmail: async (profileId) => {
       const rows = await db
         .select({ email: user.email })

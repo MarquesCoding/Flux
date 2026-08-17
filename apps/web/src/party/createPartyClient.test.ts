@@ -13,6 +13,8 @@ const party: WatchParty = {
   everyoneMaySeek: true,
   everyoneMayPlayPause: true,
   hasPassword: false,
+  isPlaying: true,
+  isHeld: false,
   timekeeperId: 'dan',
   members: [
     {
@@ -23,6 +25,7 @@ const party: WatchParty = {
       role: 'host',
       joinedAtMs: NOW_MS,
       isWatching: true,
+      isReady: true,
       positionSeconds: 100,
       reportedAtMs: NOW_MS,
       bufferedAheadSeconds: 10,

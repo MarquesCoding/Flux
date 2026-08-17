@@ -69,12 +69,18 @@ const PartyReportSchema = z.object({
   positionSeconds: z.number().nonnegative(),
   bufferedAheadSeconds: z.number().nonnegative(),
   isWatching: z.boolean(),
+  isReady: z.boolean(),
 });
 
 const PartySetRoleSchema = z.object({
   kind: z.literal('partySetRole'),
   connectionId: z.string().min(1),
   role: PartyRoleSchema,
+});
+
+const PartyInviteSchema = z.object({
+  kind: z.literal('partyInvite'),
+  profileId: z.string().min(1),
 });
 
 const PartyRemoveSchema = z.object({
@@ -105,6 +111,7 @@ const FromClientSchema = z.discriminatedUnion('kind', [
   PartyCommandMessageSchema,
   PartyReportSchema,
   PartySetRoleSchema,
+  PartyInviteSchema,
   PartyRemoveSchema,
   PartySetPasswordSchema,
   PartyLoosenSchema,

@@ -428,6 +428,7 @@ describe('createRealtimeClient', () => {
       positionSeconds: 4,
       bufferedAheadSeconds: 1,
       isWatching: true,
+      isReady: true,
     });
     world.openIt();
 

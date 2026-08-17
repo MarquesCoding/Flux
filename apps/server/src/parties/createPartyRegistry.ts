@@ -1,4 +1,5 @@
-import { partyAllows, whoKeepsTime } from '@FluxContracts/schemas/WatchParty';
+import { partyAllows, powersOf, whoKeepsTime } from '@FluxContracts/schemas/WatchParty';
+import { whoIsHoldingUp } from '@FluxCore/functions/whoIsHoldingUp';
 import type {
   PartyCommand,
   PartyMember,
@@ -33,7 +34,12 @@ type PartyRegistry = {
   issue: (partyId: string, connectionId: string, command: PartyCommand, atMs: number) => Issued;
   report: (
     connectionId: string,
-    where: { positionSeconds: number; bufferedAheadSeconds: number; isWatching: boolean },
+    where: {
+      positionSeconds: number;
+      bufferedAheadSeconds: number;
+      isWatching: boolean;
+      isReady: boolean;
+    },
   ) => WatchParty | null;
   setRole: (
     partyId: string,
@@ -42,6 +48,7 @@ type PartyRegistry = {
     role: PartyRole,
   ) => Issued;
   remove: (partyId: string, byConnectionId: string, ofConnectionId: string) => Removed;
+  askToJoin: (partyId: string, byConnectionId: string) => Asking;
   setPassword: (partyId: string, byConnectionId: string, password: string | null) => Issued;
   loosen: (
     partyId: string,
@@ -53,6 +60,8 @@ type PartyRegistry = {
   count: () => number;
 };
 
+type Asking = { kind: 'may'; party: WatchParty; byName: string } | { kind: 'refused'; why: string };
+
 type Removed =
   | { kind: 'removed'; party: WatchParty | null; connectionId: string; byName: string }
   | { kind: 'refused'; why: string };
@@ -62,7 +71,10 @@ type Held = {
   sequence: number;
   password: string | null;
   notWelcome: Set<string>;
+  heldSinceMs: number | null;
 };
+
+const WAIT_MOST_MS = 20_000;
 
 const REFUSED_UNKNOWN = 'That party is not running.';
 
@@ -108,6 +120,7 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
     role,
     joinedAtMs: atMs,
     isWatching: false,
+    isReady: false,
     positionSeconds: 0,
     reportedAtMs: atMs,
     bufferedAheadSeconds: 0,
@@ -124,16 +137,26 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
     party.members.find((one) => one.connectionId === connectionId);
 
   const save = (party: WatchParty, sequence: number, was?: Held): WatchParty => {
+    const atMs = Date.now();
     const settled = settleTimekeeper(party);
+    const waitingFor = whoIsHoldingUp(settled.members, settled.timekeeperId, atMs);
 
-    parties.set(settled.id, {
-      party: settled,
+    const heldSinceMs = waitingFor.length === 0 ? null : (was?.heldSinceMs ?? atMs);
+
+    const isHeld =
+      waitingFor.length > 0 && heldSinceMs !== null && atMs - heldSinceMs < WAIT_MOST_MS;
+
+    const held = { ...settled, isHeld };
+
+    parties.set(held.id, {
+      party: held,
       sequence,
       password: was?.password ?? null,
       notWelcome: was?.notWelcome ?? new Set<string>(),
+      heldSinceMs,
     });
 
-    return settled;
+    return held;
   };
 
   return {
@@ -147,6 +170,8 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
         everyoneMaySeek: true,
         everyoneMayPlayPause: true,
         hasPassword: false,
+        isPlaying: true,
+        isHeld: false,
         members: [asMember(host, 'host', atMs)],
         timekeeperId: null,
       };
@@ -243,10 +268,15 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
 
       const sequence = holding.sequence + 1;
 
+      const intended =
+        command.kind === 'play' || command.kind === 'pause'
+          ? { ...holding.party, isPlaying: command.kind === 'play' }
+          : holding.party;
+
       const party =
         command.kind === 'changeWhatIsPlaying'
-          ? save({ ...holding.party, mediaId: command.mediaId }, sequence, holding)
-          : save(holding.party, sequence, holding);
+          ? save({ ...intended, mediaId: command.mediaId }, sequence, holding)
+          : save(intended, sequence, holding);
 
       return {
         kind: 'sent',
@@ -360,6 +390,26 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
       };
     },
 
+    askToJoin: (partyId, byConnectionId) => {
+      const holding = held(partyId);
+
+      if (holding === undefined) {
+        return { kind: 'refused', why: REFUSED_UNKNOWN };
+      }
+
+      const actor = memberIn(holding.party, byConnectionId);
+
+      if (actor === undefined) {
+        return { kind: 'refused', why: REFUSED_NOT_IN };
+      }
+
+      if (!powersOf(actor.role).includes('invite')) {
+        return { kind: 'refused', why: REFUSED_NOT_ALLOWED };
+      }
+
+      return { kind: 'may', party: holding.party, byName: actor.name };
+    },
+
     setPassword: (partyId, byConnectionId, password) => {
       const holding = held(partyId);
 
@@ -431,7 +481,7 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
   };
 };
 
-export type { PartyRegistry, Joining, Issued, Joined, Removed };
+export type { PartyRegistry, Joining, Issued, Joined, Removed, Asking };
 
 export {
   createPartyRegistry,

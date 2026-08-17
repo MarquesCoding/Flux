@@ -7,10 +7,14 @@ type PartyPlayback = {
   meConnectionId: string | null;
   referenceSeconds: number | null;
   jitterMs: number;
+  isPlaying: boolean;
+  isHeld: boolean;
+  waitingFor: readonly string[];
   onReport: (where: {
     positionSeconds: number;
     bufferedAheadSeconds: number;
     isWatching: boolean;
+    isReady: boolean;
   }) => void;
   onCommand: (command: { kind: 'play' | 'pause' | 'seek'; atSeconds: number }) => void;
 };

@@ -133,7 +133,10 @@ describe('the notification routes', () => {
       await (await request('/api/notifications/preferences')).json(),
     );
 
-    expect(read.preferences).toStrictEqual([{ event: 'media.added', inApp: true, push: false }]);
+    expect(read.preferences).toStrictEqual([
+      { event: 'media.added', inApp: true, push: false },
+      { event: 'party.invited', inApp: true, push: false },
+    ]);
   });
 
   it('hands a browser the key it needs to subscribe', async () => {

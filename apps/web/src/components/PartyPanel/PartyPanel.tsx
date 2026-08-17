@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RiEyeLine, RiPauseCircleLine, RiTimeLine } from '@remixicon/react';
+import { RiEyeLine, RiPauseCircleLine, RiTimeLine, RiUserAddLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Switch } from '@FluxUI/Switch';
@@ -45,11 +45,14 @@ const describeDrift = (member: PartyMember, reference: PartyMember): string | nu
  *
  * @param party - The party as the server last described it.
  * @param meConnectionId - Which member this tab is, so it can be marked.
+ * @param waitingFor - Whoever the room is waiting for before it can play.
  * @param onSetRole - Called to change somebody's role.
  * @param onLoosen - Called to change what everybody may do.
  * @param onLeave - Called to leave.
  * @param onRemove - Called to put somebody out of the party.
  * @param onSetPassword - Called to put a password on the party, or to take it off.
+ * @param people - Everybody with an account here, to be asked along.
+ * @param onAsk - Called to ask one of them, which reaches them wherever they asked to be told things.
  * @param invitation - The address that puts somebody else in this party, where there is one to give.
  * @param onCopyInvitation - Called to put that address on the clipboard.
  * @returns The panel.
@@ -57,19 +60,31 @@ const describeDrift = (member: PartyMember, reference: PartyMember): string | nu
 const PartyPanel = ({
   party,
   meConnectionId,
+  waitingFor = [],
   onSetRole,
   onLoosen,
   onLeave,
   onRemove,
   onSetPassword,
+  people = [],
+  onAsk,
   invitation,
   onCopyInvitation,
 }: PartyPanelProps) => {
   const [hasCopied, setHasCopied] = useState(false);
   const [password, setPassword] = useState('');
+  const [asked, setAsked] = useState<readonly string[]>([]);
   const me = party.members.find((member) => member.connectionId === meConnectionId);
   const timekeeper = party.members.find((member) => member.connectionId === party.timekeeperId);
   const watching = party.members.filter((member) => member.isWatching).length;
+  const mayAsk = me?.role === 'host' || me?.role === 'coHost';
+
+  const elsewhere = people.filter(
+    (person) =>
+      !party.members.some(
+        (member) => member.profileId === person.id || member.accountId === person.accountId,
+      ),
+  );
 
   return (
     <section className="flex w-80 max-w-full flex-col text-white">
@@ -84,6 +99,15 @@ const PartyPanel = ({
           </Button>
         )}
       </div>
+
+      {!party.isHeld || waitingFor.length === 0 ? null : (
+        <p className="flex items-center gap-2 rounded-xl bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-200">
+          <RiTimeLine size={14} aria-hidden />
+          {waitingFor.length === 1
+            ? `Waiting for ${waitingFor[0] ?? ''} to catch up`
+            : `Waiting for ${waitingFor.length.toString()} people to catch up`}
+        </p>
+      )}
 
       {invitation === undefined ? null : (
         <div className="flex flex-col gap-2 rounded-xl bg-white/5 p-3">
@@ -110,6 +134,38 @@ const PartyPanel = ({
               {hasCopied ? 'Copied' : 'Copy'}
             </Button>
           </div>
+        </div>
+      )}
+
+      {!mayAsk || onAsk === undefined || elsewhere.length === 0 ? null : (
+        <div className="mt-2 flex flex-col gap-2 rounded-xl bg-white/5 p-3">
+          <p className="text-xs leading-relaxed text-white/70">
+            Ask somebody along. They are told wherever they asked to be told things, and the message
+            carries this same link.
+          </p>
+
+          <ul className="flex flex-col gap-1">
+            {elsewhere.map((person) => (
+              <li key={person.id} className="flex items-center justify-between gap-2">
+                <span className="min-w-0 truncate text-sm">{person.name}</span>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  isPill
+                  disabled={asked.includes(person.id)}
+                  label={`Ask ${person.name} along`}
+                  onClick={() => {
+                    setAsked((already) => [...already, person.id]);
+                    onAsk(person.id);
+                  }}
+                >
+                  <RiUserAddLine size={14} aria-hidden />
+                  {asked.includes(person.id) ? 'Asked' : 'Ask'}
+                </Button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

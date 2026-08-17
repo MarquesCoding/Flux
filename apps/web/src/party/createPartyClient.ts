@@ -35,9 +35,11 @@ type PartyClient = {
     positionSeconds: number;
     bufferedAheadSeconds: number;
     isWatching: boolean;
+    isReady: boolean;
   }) => void;
   setRole: (connectionId: string, role: 'host' | 'coHost' | 'guest') => void;
   remove: (connectionId: string) => void;
+  ask: (profileId: string) => void;
   setPassword: (password: string | null) => void;
   loosen: (how: { everyoneMaySeek?: boolean; everyoneMayPlayPause?: boolean }) => void;
   offsetMs: () => number;
@@ -144,6 +146,10 @@ const createPartyClient = ({
 
     remove: (connectionId) => {
       client.sendParty({ kind: 'partyRemove', connectionId });
+    },
+
+    ask: (profileId) => {
+      client.sendParty({ kind: 'partyInvite', profileId });
     },
 
     setPassword: (password) => {

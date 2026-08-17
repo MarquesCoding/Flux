@@ -13,6 +13,7 @@ type PartySpeaker = {
 type PartyBinding = {
   registry: PartyRegistry;
   tell: (connectionIds: readonly string[], payload: JsonValue) => void;
+  ask?: (asking: { party: WatchParty; byName: string; profileId: string }) => void;
 };
 
 const asCommandJson = (command: SequencedCommand): JsonValue => ({
@@ -49,6 +50,8 @@ const asPartyJson = (
     everyoneMaySeek: party.everyoneMaySeek,
     everyoneMayPlayPause: party.everyoneMayPlayPause,
     hasPassword: party.hasPassword,
+    isPlaying: party.isPlaying,
+    isHeld: party.isHeld,
     timekeeperId: party.timekeeperId,
     members: party.members.map((member) => ({
       connectionId: member.connectionId,
@@ -58,6 +61,7 @@ const asPartyJson = (
       role: member.role,
       joinedAtMs: member.joinedAtMs,
       isWatching: member.isWatching,
+      isReady: member.isReady,
       positionSeconds: member.positionSeconds,
       reportedAtMs: member.reportedAtMs,
       bufferedAheadSeconds: member.bufferedAheadSeconds,
@@ -93,7 +97,7 @@ const tellEveryone = (
  * @param message - What the client sent.
  * @param who - Who is speaking, as the server knows them rather than as they claim.
  * @param write - How to answer this one client.
- * @param binding - The party registry and how to reach everybody in a party.
+ * @param binding - The party registry, how to reach everybody in a party, and how to ask somebody outside it to come.
  * @param now - The clock.
  */
 const handlePartyMessage = (
@@ -169,8 +173,27 @@ const handlePartyMessage = (
         positionSeconds: message.positionSeconds,
         bufferedAheadSeconds: message.bufferedAheadSeconds,
         isWatching: message.isWatching,
+        isReady: message.isReady,
       }),
     );
+
+    return;
+  }
+
+  if (message.kind === 'partyInvite') {
+    const asking = registry.askToJoin(mine.id, who.connectionId);
+
+    if (asking.kind === 'refused') {
+      write({ kind: 'refused', why: asking.why });
+
+      return;
+    }
+
+    binding.ask?.({
+      party: asking.party,
+      byName: asking.byName,
+      profileId: message.profileId,
+    });
 
     return;
   }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPartyClient } from './createPartyClient';
 import { whereTheRoomIs } from '@FluxCore/functions/whereTheRoomIs';
+import { whoIsHoldingUp } from '@FluxCore/functions/whoIsHoldingUp';
 import { getRealtimeClient } from '@FluxWeb/realtime/getRealtimeClient';
 import type { PartyClient } from './createPartyClient';
 import type { PartyRole, SequencedCommand, WatchParty } from '@FluxContracts/schemas/WatchParty';
@@ -21,6 +22,7 @@ type WatchPartyState = {
   passwordWanted: PasswordWanted | null;
   meConnectionId: string | null;
   referenceSeconds: number | null;
+  waitingFor: readonly string[];
   jitterMs: number;
   open: (mediaId: string) => void;
   join: (partyId: string, password?: string) => void;
@@ -29,6 +31,7 @@ type WatchPartyState = {
   report: PartyClient['report'];
   setRole: (connectionId: string, role: PartyRole) => void;
   remove: (connectionId: string) => void;
+  ask: (profileId: string) => void;
   setPassword: (password: string | null) => void;
   forgetNotice: () => void;
   stopAsking: () => void;
@@ -127,6 +130,18 @@ const useWatchParty = (client: RealtimeClient = getRealtimeClient()): WatchParty
       : whereTheRoomIs(timekeeper, Date.now() + (partyRef.current?.offsetMs() ?? 0));
   }, [party, meConnectionId]);
 
+  const waitingFor = useMemo(
+    () =>
+      party === null
+        ? []
+        : whoIsHoldingUp(
+            party.members,
+            party.timekeeperId,
+            Date.now() + (partyRef.current?.offsetMs() ?? 0),
+          ).map((member) => member.name),
+    [party],
+  );
+
   const open = useCallback((mediaId: string) => {
     partyRef.current?.open(mediaId);
   }, []);
@@ -159,6 +174,10 @@ const useWatchParty = (client: RealtimeClient = getRealtimeClient()): WatchParty
     partyRef.current?.remove(connectionId);
   }, []);
 
+  const ask = useCallback((profileId: string) => {
+    partyRef.current?.ask(profileId);
+  }, []);
+
   const setPassword = useCallback((password: string | null) => {
     partyRef.current?.setPassword(password);
   }, []);
@@ -186,6 +205,7 @@ const useWatchParty = (client: RealtimeClient = getRealtimeClient()): WatchParty
     passwordWanted,
     meConnectionId,
     referenceSeconds,
+    waitingFor,
     jitterMs: partyRef.current?.jitterMs() ?? 0,
     open,
     join,
@@ -194,6 +214,7 @@ const useWatchParty = (client: RealtimeClient = getRealtimeClient()): WatchParty
     report,
     setRole,
     remove,
+    ask,
     setPassword,
     forgetNotice,
     stopAsking,

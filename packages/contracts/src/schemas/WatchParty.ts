@@ -25,6 +25,7 @@ const PartyMemberSchema = z.object({
   role: PartyRoleSchema,
   joinedAtMs: z.number().int().nonnegative(),
   isWatching: z.boolean(),
+  isReady: z.boolean(),
   positionSeconds: z.number().nonnegative(),
   reportedAtMs: z.number().int().nonnegative(),
   bufferedAheadSeconds: z.number().nonnegative(),
@@ -37,6 +38,8 @@ const WatchPartySchema = z.object({
   everyoneMaySeek: z.boolean(),
   everyoneMayPlayPause: z.boolean(),
   hasPassword: z.boolean(),
+  isPlaying: z.boolean(),
+  isHeld: z.boolean(),
   members: z.array(PartyMemberSchema),
   timekeeperId: z.string().nullable(),
 });

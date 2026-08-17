@@ -150,6 +150,8 @@ const createMemoryProfileService = (
 
     findSignInEmail: (profileId) => Promise.resolve(find(profileId)?.email ?? null),
 
+    accountOf: (profileId) => Promise.resolve(find(profileId)?.userId ?? null),
+
     savePhoto: (userId, profileId, photo) => {
       const held = find(profileId);
 

@@ -12,6 +12,7 @@ const member = (over?: Partial<PartyMember>): PartyMember => ({
   role: 'host',
   joinedAtMs: 1000,
   isWatching: true,
+  isReady: true,
   positionSeconds: 100,
   reportedAtMs: 1000,
   bufferedAheadSeconds: 10,
@@ -25,6 +26,8 @@ const party = (over?: Partial<WatchParty>): WatchParty => ({
   everyoneMaySeek: true,
   everyoneMayPlayPause: true,
   hasPassword: false,
+  isPlaying: true,
+  isHeld: false,
   timekeeperId: 'dan',
   members: [member(), member({ connectionId: 'sam', name: 'Sam', role: 'guest' })],
   ...over,
@@ -267,6 +270,96 @@ describe('PartyPanel', () => {
     );
 
     expect(screen.getByText(/This party has a password/)).toBeInTheDocument();
+  });
+
+  it('says who the room is waiting for, so a stopped picture is explained', () => {
+    render(
+      <PartyPanel party={party({ isHeld: true })} meConnectionId="dan" waitingFor={['Sam']} />,
+    );
+
+    expect(screen.getByText('Waiting for Sam to catch up')).toBeInTheDocument();
+  });
+
+  it('counts them rather than listing everybody when several are behind', () => {
+    render(
+      <PartyPanel
+        party={party({ isHeld: true })}
+        meConnectionId="dan"
+        waitingFor={['Sam', 'Kit']}
+      />,
+    );
+
+    expect(screen.getByText('Waiting for 2 people to catch up')).toBeInTheDocument();
+  });
+
+  it('says nothing about waiting once the room is running', () => {
+    render(<PartyPanel party={party()} meConnectionId="dan" waitingFor={['Sam']} />);
+
+    expect(screen.queryByText(/Waiting for/)).not.toBeInTheDocument();
+  });
+
+  it('offers to ask along somebody who is not here', async () => {
+    const actor = userEvent.setup();
+    const onAsk = vi.fn();
+
+    render(
+      <PartyPanel
+        party={party()}
+        meConnectionId="dan"
+        people={[{ id: 'profile-kit', name: 'Kit' }]}
+        onAsk={onAsk}
+      />,
+    );
+    await actor.click(screen.getByRole('button', { name: 'Ask Kit along' }));
+
+    expect(onAsk).toHaveBeenCalledWith('profile-kit');
+  });
+
+  it('does not offer to ask along somebody already in the party', () => {
+    render(
+      <PartyPanel
+        party={party({
+          members: [
+            member(),
+            member({ connectionId: 'sam', name: 'Sam', profileId: 'profile-sam' }),
+          ],
+        })}
+        meConnectionId="dan"
+        people={[{ id: 'profile-sam', name: 'Sam' }]}
+        onAsk={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /Ask Sam/ })).not.toBeInTheDocument();
+  });
+
+  it('says somebody has been asked, so they are not asked five times over', async () => {
+    const actor = userEvent.setup();
+
+    render(
+      <PartyPanel
+        party={party()}
+        meConnectionId="dan"
+        people={[{ id: 'profile-kit', name: 'Kit' }]}
+        onAsk={vi.fn()}
+      />,
+    );
+    await actor.click(screen.getByRole('button', { name: 'Ask Kit along' }));
+
+    expect(screen.getByRole('button', { name: 'Ask Kit along' })).toBeDisabled();
+  });
+
+  it('does not offer a guest the asking, a notification being done to somebody', () => {
+    render(
+      <PartyPanel
+        party={party()}
+        meConnectionId="sam"
+        people={[{ id: 'profile-kit', name: 'Kit' }]}
+        onAsk={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /Ask Kit/ })).not.toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

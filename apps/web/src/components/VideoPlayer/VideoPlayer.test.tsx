@@ -1922,6 +1922,9 @@ describe('when the player is in a watch party', () => {
       meConnectionId: 'me',
       referenceSeconds: null,
       jitterMs: 0,
+      isPlaying: true,
+      isHeld: false,
+      waitingFor: [],
       onReport,
       onCommand,
       ...party,
@@ -1955,6 +1958,99 @@ describe('when the player is in a watch party', () => {
     await actor.keyboard(' ');
 
     expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(before);
+  });
+
+  it('does not start the picture while the room is still waiting for somebody', async () => {
+    const { element } = await inParty({ isHeld: true, waitingFor: ['Sam'] });
+
+    expect(element instanceof HTMLVideoElement ? element.paused : false).toBe(true);
+  });
+
+  it('starts it once the room has stopped waiting', async () => {
+    const { element, view, full } = await inParty({ isHeld: true, waitingFor: ['Sam'] });
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={{ ...full, isHeld: false, waitingFor: [] }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(element instanceof HTMLVideoElement ? element.paused : true).toBe(false);
+    });
+  });
+
+  it('holds a picture that was already running when somebody falls behind', async () => {
+    const { element, view, full } = await inParty();
+
+    view.rerender(<VideoPlayer media={media} onClose={vi.fn()} isImmersive party={{ ...full }} />);
+
+    await waitFor(() => {
+      expect(element instanceof HTMLVideoElement ? element.paused : true).toBe(false);
+    });
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={{ ...full, isHeld: true, waitingFor: ['Sam'] }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(element instanceof HTMLVideoElement ? element.paused : false).toBe(true);
+    });
+  });
+
+  it('follows the room rather than itself when the room is paused', async () => {
+    const { element } = await inParty({ isPlaying: false });
+
+    expect(element instanceof HTMLVideoElement ? element.paused : false).toBe(true);
+  });
+
+  it('tells the room it has nothing buffered to play, so the room waits', async () => {
+    const { onReport } = await inParty();
+
+    await waitFor(
+      () => {
+        expect(onReport).toHaveBeenCalledWith(expect.objectContaining({ isReady: false }));
+      },
+      { timeout: 4000 },
+    );
+  });
+
+  it('tells the room it is ready once there is something to play', async () => {
+    const { onReport, stream } = await inParty();
+
+    stream.loaded({ bufferedTo: 30 });
+
+    await waitFor(
+      () => {
+        expect(onReport).toHaveBeenCalledWith(expect.objectContaining({ isReady: true }));
+      },
+      { timeout: 4000 },
+    );
+  });
+
+  it('gets into position while the room waits, rather than sitting where it stopped', async () => {
+    const { element, view, full } = await inParty({ isHeld: true, waitingFor: ['Me'] });
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={{ ...full, isHeld: true, waitingFor: ['Me'], referenceSeconds: 900 }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(900);
+    });
   });
 
   it('says who paused, so a picture stopping for no visible reason is not read as a fault', async () => {

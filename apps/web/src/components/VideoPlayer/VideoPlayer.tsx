@@ -103,6 +103,8 @@ const HEALTH_INTERVAL_MILLISECONDS = 500;
 
 const PARTY_REPORT_EVERY_MS = 1000;
 
+const ENOUGH_TO_START_SECONDS = 1.5;
+
 const CATCH_UP_BEYOND_SECONDS = 2;
 
 const HAVE_METADATA = 1;
@@ -175,115 +177,6 @@ const VideoPlayer = ({
   renderPartyMenu,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  const appliedSequenceRef = useRef(-1);
-  const hasCaughtUpRef = useRef(false);
-
-  useEffect(() => {
-    const reference = party?.referenceSeconds ?? null;
-    const element = videoRef.current;
-
-    if (
-      party === undefined ||
-      reference === null ||
-      element === null ||
-      hasCaughtUpRef.current ||
-      element.readyState < HAVE_METADATA
-    ) {
-      return;
-    }
-
-    hasCaughtUpRef.current = true;
-
-    if (Math.abs(reference - element.currentTime) > CATCH_UP_BEYOND_SECONDS) {
-      element.currentTime = reference;
-    }
-
-    element.play().catch(() => {
-      hasCaughtUpRef.current = false;
-    });
-  }, [party, party?.referenceSeconds]);
-
-  useEffect(() => {
-    const command = party?.command ?? null;
-    const element = videoRef.current;
-
-    if (command === null || element === null || command.sequence <= appliedSequenceRef.current) {
-      return;
-    }
-
-    appliedSequenceRef.current = command.sequence;
-    setPartyNote(describeCommand(command, party?.meConnectionId ?? null));
-
-    if (command.command.kind === 'seek') {
-      element.currentTime = command.command.atSeconds;
-    }
-
-    if (command.command.kind === 'pause') {
-      element.currentTime = command.command.atSeconds;
-      element.pause();
-    }
-
-    if (command.command.kind === 'play') {
-      element.currentTime = command.command.atSeconds;
-      void element.play();
-    }
-  }, [party?.command]);
-
-  useEffect(() => {
-    if (party === undefined) {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      const element = videoRef.current;
-
-      if (element === null) {
-        return;
-      }
-
-      party.onReport({
-        positionSeconds: element.currentTime,
-        bufferedAheadSeconds: bufferedAhead(element),
-        isWatching: !element.paused,
-      });
-    }, PARTY_REPORT_EVERY_MS);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [party]);
-
-  useEffect(() => {
-    const reference = party?.referenceSeconds ?? null;
-
-    if (party === undefined || reference === null) {
-      return;
-    }
-
-    const element = videoRef.current;
-
-    if (element === null || element.paused) {
-      return;
-    }
-
-    const corrected = correctDrift({
-      behindByMs: (reference - element.currentTime) * 1000,
-      jitterMs: party.jitterMs,
-      isSeeking: element.seeking,
-      isStalled: bufferedAhead(element) <= 0,
-    });
-
-    if (corrected.kind === 'snap') {
-      element.currentTime = reference;
-      element.playbackRate = 1;
-
-      return;
-    }
-
-    element.preservesPitch = true;
-    element.playbackRate = corrected.kind === 'rate' ? corrected.rate : 1;
-  }, [party, party?.referenceSeconds]);
 
   const stageRef = useRef<HTMLDivElement>(null);
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -381,6 +274,130 @@ const VideoPlayer = ({
       clearTimeout(goes);
     };
   }, [partyNote]);
+
+  const appliedSequenceRef = useRef(-1);
+  const hasCaughtUpRef = useRef(false);
+
+  useEffect(() => {
+    const reference = party?.referenceSeconds ?? null;
+    const element = videoRef.current;
+
+    if (
+      party === undefined ||
+      reference === null ||
+      element === null ||
+      hasCaughtUpRef.current ||
+      element.readyState < HAVE_METADATA
+    ) {
+      return;
+    }
+
+    hasCaughtUpRef.current = true;
+
+    if (Math.abs(reference - element.currentTime) > CATCH_UP_BEYOND_SECONDS) {
+      element.currentTime = reference;
+    }
+  }, [party, party?.referenceSeconds]);
+
+  useEffect(() => {
+    const command = party?.command ?? null;
+    const element = videoRef.current;
+
+    if (command === null || element === null || command.sequence <= appliedSequenceRef.current) {
+      return;
+    }
+
+    appliedSequenceRef.current = command.sequence;
+    setPartyNote(describeCommand(command, party?.meConnectionId ?? null));
+
+    if (command.command.kind !== 'changeWhatIsPlaying') {
+      element.currentTime = command.command.atSeconds;
+    }
+  }, [party?.command]);
+
+  useEffect(() => {
+    const element = videoRef.current;
+
+    if (party === undefined || element === null || state !== 'playing') {
+      return;
+    }
+
+    const shouldRun = party.isPlaying && !party.isHeld;
+
+    if (shouldRun && element.paused) {
+      element.play().catch(() => {
+        setPartyNote('Your browser will not start this on its own — press play to join in.');
+      });
+
+      return;
+    }
+
+    if (!shouldRun && !element.paused) {
+      element.pause();
+    }
+  }, [party, party?.isPlaying, party?.isHeld, state]);
+
+  useEffect(() => {
+    if (party === undefined) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const element = videoRef.current;
+
+      if (element === null) {
+        return;
+      }
+
+      const ahead = bufferedAhead(element);
+
+      party.onReport({
+        positionSeconds: element.currentTime,
+        bufferedAheadSeconds: ahead,
+        isWatching: !element.paused,
+        isReady: state === 'playing' && ahead >= ENOUGH_TO_START_SECONDS,
+      });
+    }, PARTY_REPORT_EVERY_MS);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [party, state]);
+
+  useEffect(() => {
+    const reference = party?.referenceSeconds ?? null;
+
+    if (party === undefined || reference === null) {
+      return;
+    }
+
+    const element = videoRef.current;
+
+    if (element === null || (element.paused && !party.isHeld)) {
+      return;
+    }
+
+    const corrected = correctDrift({
+      behindByMs: (reference - element.currentTime) * 1000,
+      jitterMs: party.jitterMs,
+      isSeeking: element.seeking,
+      isStalled: bufferedAhead(element) <= 0,
+    });
+
+    if (corrected.kind === 'snap') {
+      element.currentTime = reference;
+      element.playbackRate = 1;
+
+      return;
+    }
+
+    if (element.paused) {
+      return;
+    }
+
+    element.preservesPitch = true;
+    element.playbackRate = corrected.kind === 'rate' ? corrected.rate : 1;
+  }, [party, party?.referenceSeconds]);
 
   useEffect(() => {
     if (partyNotice !== null) {
@@ -1056,7 +1073,7 @@ const VideoPlayer = ({
 
     if (party !== undefined) {
       party.onCommand({
-        kind: element.paused ? 'play' : 'pause',
+        kind: party.isPlaying ? 'pause' : 'play',
         atSeconds: element.currentTime,
       });
 

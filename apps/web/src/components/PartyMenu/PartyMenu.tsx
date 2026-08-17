@@ -14,12 +14,15 @@ import type { PartyMenuProps } from './PartyMenu.types';
  *
  * @param party - The party as the server last described it, or null while there is none.
  * @param meConnectionId - Which member this tab is.
+ * @param waitingFor - Whoever the room is waiting for before it can play.
  * @param invitation - The address that puts somebody else in this party.
  * @param isDisabled - Whether the control is inert, as it is while a session is starting.
  * @param onOpen - Called to start a party around what is playing.
  * @param onLeave - Called to leave the party.
  * @param onRemove - Called to put somebody out of the party.
  * @param onSetPassword - Called to put a password on the party, or to take it off.
+ * @param people - Everybody with an account here, to be asked along.
+ * @param onAsk - Called to ask one of them along.
  * @param isHidden - Whether the bar this sits in has gone, which takes the panel with it.
  * @param onSetRole - Called to change somebody's role.
  * @param onLoosen - Called to change what everybody in the party may do.
@@ -29,12 +32,15 @@ import type { PartyMenuProps } from './PartyMenu.types';
 const PartyMenu = ({
   party,
   meConnectionId,
+  waitingFor = [],
   invitation,
   isDisabled = false,
   onOpen,
   onLeave,
   onRemove,
   onSetPassword,
+  people,
+  onAsk,
   onSetRole,
   onLoosen,
   onCopyInvitation,
@@ -95,12 +101,15 @@ const PartyMenu = ({
         <PartyPanel
           party={party}
           meConnectionId={meConnectionId}
+          waitingFor={waitingFor}
           {...(invitation === undefined ? {} : { invitation })}
           {...(onLeave === undefined ? {} : { onLeave })}
           {...(onSetRole === undefined ? {} : { onSetRole })}
           {...(onLoosen === undefined ? {} : { onLoosen })}
           {...(onRemove === undefined ? {} : { onRemove })}
           {...(onSetPassword === undefined ? {} : { onSetPassword })}
+          {...(people === undefined ? {} : { people })}
+          {...(onAsk === undefined ? {} : { onAsk })}
           {...(onCopyInvitation === undefined ? {} : { onCopyInvitation })}
         />
       )}

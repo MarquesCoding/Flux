@@ -53,6 +53,8 @@ const aPartyAt = (positionSeconds: number): RealtimeEvent => ({
       everyoneMaySeek: true,
       everyoneMayPlayPause: true,
       hasPassword: false,
+      isPlaying: true,
+      isHeld: false,
       timekeeperId: 'dan',
       members: [
         {
@@ -63,6 +65,7 @@ const aPartyAt = (positionSeconds: number): RealtimeEvent => ({
           role: 'host',
           joinedAtMs: 1,
           isWatching: true,
+          isReady: true,
           positionSeconds,
           reportedAtMs: Date.now(),
           bufferedAheadSeconds: 10,

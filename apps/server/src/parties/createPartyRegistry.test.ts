@@ -292,6 +292,7 @@ describe('reporting where somebody is', () => {
       positionSeconds: 42,
       bufferedAheadSeconds: 8,
       isWatching: true,
+      isReady: true,
     });
 
     expect(party?.members[0]).toMatchObject({ positionSeconds: 42, isWatching: true });
@@ -303,6 +304,7 @@ describe('reporting where somebody is', () => {
         positionSeconds: 1,
         bufferedAheadSeconds: 1,
         isWatching: true,
+        isReady: true,
       }),
     ).toBeNull();
   });
@@ -506,5 +508,118 @@ describe('a password on the party', () => {
     registry.setPassword(opened.id, 'host', null);
 
     expect(registry.join({ partyId: opened.id, ...someone('sam', 'Sam') }).kind).toBe('joined');
+  });
+});
+
+describe('holding the room until everybody can play', () => {
+  const ready = { positionSeconds: 100, bufferedAheadSeconds: 8, isWatching: true, isReady: true };
+
+  it('holds a room where somebody has nothing to play', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    registry.report('host', ready);
+    const party = registry.report('sam', { ...ready, isReady: false });
+
+    expect(party?.isHeld).toBe(true);
+  });
+
+  it('lets it run once everybody can', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    registry.report('host', ready);
+    const party = registry.report('sam', ready);
+
+    expect(party?.isHeld).toBe(false);
+  });
+
+  it('holds a room where somebody is nowhere near the rest', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    registry.report('host', ready);
+    const party = registry.report('sam', { ...ready, positionSeconds: 20 });
+
+    expect(party?.isHeld).toBe(true);
+  });
+
+  it('starts a party ready to play rather than waiting to be told', () => {
+    expect(openWith(createWorld()).isPlaying).toBe(true);
+  });
+
+  it('remembers that the room was asked to pause', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    const done = registry.issue(opened.id, 'host', { kind: 'pause', atSeconds: 12 }, 1);
+
+    expect(done.kind === 'sent' ? done.party.isPlaying : true).toBe(false);
+  });
+
+  it('remembers that it was asked to play again', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.issue(opened.id, 'host', { kind: 'pause', atSeconds: 12 }, 1);
+    const done = registry.issue(opened.id, 'host', { kind: 'play', atSeconds: 12 }, 2);
+
+    expect(done.kind === 'sent' ? done.party.isPlaying : false).toBe(true);
+  });
+
+  it('does not read a skip as a decision about whether to play', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.issue(opened.id, 'host', { kind: 'pause', atSeconds: 12 }, 1);
+    const done = registry.issue(opened.id, 'host', { kind: 'seek', atSeconds: 90 }, 2);
+
+    expect(done.kind === 'sent' ? done.party.isPlaying : true).toBe(false);
+  });
+});
+
+describe('asking somebody along', () => {
+  it('lets the host ask', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    expect(registry.askToJoin(opened.id, 'host').kind).toBe('may');
+  });
+
+  it('lets a co-host ask, inviting being part of running it', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+    registry.setRole(opened.id, 'host', 'sam', 'coHost');
+
+    expect(registry.askToJoin(opened.id, 'sam').kind).toBe('may');
+  });
+
+  it('refuses a guest, a notification being something done to somebody', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    registry.join({ partyId: opened.id, ...someone('sam', 'Sam') });
+
+    expect(registry.askToJoin(opened.id, 'sam').kind).toBe('refused');
+  });
+
+  it('refuses somebody who is not in the party at all', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+
+    expect(registry.askToJoin(opened.id, 'stranger').kind).toBe('refused');
+  });
+
+  it('says who is asking, since a notification from nobody is no use', () => {
+    const registry = createWorld();
+    const opened = openWith(registry);
+    const asking = registry.askToJoin(opened.id, 'host');
+
+    expect(asking.kind === 'may' ? asking.byName : '').toBe('Dan');
   });
 });
