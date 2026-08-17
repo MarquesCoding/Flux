@@ -101,7 +101,7 @@ const StarRating = ({
             className={cn(
               'rounded-sm p-0.5 transition-transform',
               isLit ? 'text-amber-400' : 'text-text-muted',
-              isDisabled ? '' : 'hover:scale-110',
+              isDisabled ? '' : 'hover-hover:hover:scale-110',
             )}
             onPointerEnter={() => {
               setHovered(step);

@@ -340,7 +340,10 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                         }}
                         {...(prefersReducedMotion === true
                           ? {}
-                          : { whileHover: { y: -8 }, whileTap: { scale: 0.97 } })}
+                          : {
+                              whileHover: { transform: 'translateY(-8px)' },
+                              whileTap: { transform: 'scale(0.97)' },
+                            })}
                         className="flex w-24 flex-col items-center gap-3 sm:w-32"
                       >
                         <Portrait profile={profile} />

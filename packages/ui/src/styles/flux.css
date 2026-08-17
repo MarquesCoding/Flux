@@ -5,6 +5,8 @@
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+@custom-variant hover-hover (@media (hover: hover) and (pointer: fine));
+
 @font-face {
   font-family: 'Gilroy';
   src: url('/fonts/Gilroy-Light.woff') format('woff');
@@ -123,8 +125,9 @@
   --radius-3xl: calc(var(--radius) + 16px);
   --radius-pill: 999px;
 
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --ease-soft: var(--ease-out);
 
@@ -132,6 +135,8 @@
   --duration-fast: 140ms;
   --duration-base: 200ms;
   --duration-slow: 320ms;
+
+  --duration-leaving: 140ms;
 
   --animate-duration: var(--duration-base);
   --animate-easing: var(--ease-out);
@@ -319,7 +324,12 @@ body {
 
 .flux-lift:hover {
   box-shadow: var(--shadow-lifted);
-  transform: translateY(-2px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .flux-lift:hover {
+    transform: translateY(-2px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -327,6 +337,22 @@ body {
   .flux-lift:hover {
     transform: none;
     transition-duration: 1ms;
+  }
+
+  [data-slot='dialog-content'],
+  [data-slot='dialog-overlay'],
+  [data-slot='tooltip-content'],
+  [data-slot='popover-content'],
+  [data-slot='hover-card-content'],
+  [data-slot='menu-content'],
+  [data-slot='settings-menu'] {
+    animation-name: flux-fade;
+  }
+}
+
+@keyframes flux-fade {
+  from {
+    opacity: 0;
   }
 }
 

@@ -49,7 +49,9 @@ const PageDots = ({
           >
             <span
               className={cn(
-                'block h-1.5 overflow-hidden rounded-full transition-all duration-300',
+                'block h-1.5 overflow-hidden rounded-full',
+                'transition-[width,background-color] duration-[var(--duration-base)] ease-[var(--ease-out)]',
+                'motion-reduce:transition-none',
                 selectedIndex === index
                   ? fillMilliseconds === undefined
                     ? 'w-6 bg-text'

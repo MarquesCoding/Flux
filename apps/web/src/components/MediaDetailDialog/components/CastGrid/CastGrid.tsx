@@ -83,7 +83,7 @@ const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
                       src={member.imageUrl}
                       alt=""
                       loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none hover-hover:group-hover:scale-105"
                     />
                   )}
                 </span>

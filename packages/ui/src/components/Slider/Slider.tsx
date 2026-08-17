@@ -136,7 +136,7 @@ const Slider = ({
           className={cn(
             'block size-3.5 rounded-full shadow outline-none select-none',
             'transition-transform duration-[var(--duration-instant)] ease-[var(--ease-out)]',
-            'motion-reduce:transition-none hover:scale-110 focus-visible:ring-[3px] focus-visible:ring-ring/40',
+            'motion-reduce:transition-none hover-hover:hover:scale-110 focus-visible:ring-[3px] focus-visible:ring-ring/40',
             FILL_CLASSES[tone],
           )}
         />

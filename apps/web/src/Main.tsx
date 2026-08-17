@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Toaster } from '@FluxUI/Toaster';
+import { TooltipScope } from '@FluxUI/TooltipScope';
 import { App } from './components/App/App';
 import './styles/main.css';
 
@@ -12,7 +13,9 @@ if (container === null) {
 
 createRoot(container).render(
   <StrictMode>
-    <App />
-    <Toaster />
+    <TooltipScope>
+      <App />
+      <Toaster />
+    </TooltipScope>
   </StrictMode>,
 );

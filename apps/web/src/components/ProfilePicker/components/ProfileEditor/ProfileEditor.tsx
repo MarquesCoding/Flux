@@ -132,7 +132,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               }}
               style={{ backgroundColor: option }}
               className={`size-9 rounded-full transition-transform ${
-                option === colour ? 'scale-110 ring-2 ring-text' : 'hover:scale-105'
+                option === colour ? 'scale-110 ring-2 ring-text' : 'hover-hover:hover:scale-105'
               }`}
             />
           ))}
@@ -157,7 +157,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
             className={`flex size-14 items-center justify-center rounded-lg text-xl font-semibold text-black/80 transition-transform ${
               avatar.kind === 'initial' && photo === null
                 ? 'scale-105 ring-2 ring-text'
-                : 'hover:scale-105'
+                : 'hover-hover:hover:scale-105'
             }`}
           >
             {profileInitial(trimmed === '' ? '?' : trimmed)}
@@ -177,7 +177,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               className={`size-14 overflow-hidden rounded-lg bg-white/5 transition-transform ${
                 avatar.kind === 'drawn' && avatar.style === style && photo === null
                   ? 'scale-105 ring-2 ring-text'
-                  : 'hover:scale-105'
+                  : 'hover-hover:hover:scale-105'
               }`}
             >
               <img

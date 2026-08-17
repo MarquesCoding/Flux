@@ -56,7 +56,10 @@ const MediaCard = ({
       onClick={onSelect}
       {...(prefersReducedMotion === true || isStill || !canHover
         ? {}
-        : { whileHover: { y: -6 }, whileTap: { scale: 0.985 } })}
+        : {
+            whileHover: { transform: 'translateY(-6px)' },
+            whileTap: { transform: 'scale(0.985)' },
+          })}
       transition={revealTransition(prefersReducedMotion)}
       className={cn(
         'group flex w-full flex-col gap-3 rounded-md text-left outline-none',
@@ -69,7 +72,7 @@ const MediaCard = ({
           'relative block overflow-hidden rounded-md bg-card',
           'shadow-[0_18px_40px_-24px_rgba(0,0,0,0.9)] ring-1 ring-white/10',
           'transition-shadow duration-[var(--duration-base)] ease-[var(--ease-out)]',
-          'motion-reduce:transition-none group-hover:shadow-[0_28px_60px_-28px_rgba(0,0,0,0.95)]',
+          'motion-reduce:transition-none hover-hover:group-hover:shadow-[0_28px_60px_-28px_rgba(0,0,0,0.95)]',
           SHAPE_CLASSES[shape],
         )}
       >
@@ -85,14 +88,14 @@ const MediaCard = ({
             src={imageUrl}
             alt=""
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-[var(--duration-slow)] ease-[var(--ease-out)] motion-reduce:transition-none group-hover:scale-[1.04]"
+            className="h-full w-full object-cover transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none hover-hover:group-hover:scale-[1.04]"
           />
         )}
 
-        <span className="absolute inset-0 bg-linear-to-t from-black/80 via-black/10 to-transparent opacity-70 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none group-hover:opacity-90" />
+        <span className="absolute inset-0 bg-linear-to-t from-black/80 via-black/10 to-transparent opacity-70 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none hover-hover:group-hover:opacity-90" />
 
-        <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none group-hover:opacity-100">
-          <span className="flux-glass flex size-14 items-center justify-center rounded-full transition-transform duration-[var(--duration-base)] ease-[var(--ease-spring)] motion-reduce:transition-none group-hover:scale-100 scale-90">
+        <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none hover-hover:group-hover:opacity-100">
+          <span className="flux-glass flex size-14 items-center justify-center rounded-full transition-transform duration-[var(--duration-base)] ease-[var(--ease-spring)] motion-reduce:transition-none hover-hover:group-hover:scale-100 scale-90">
             <RiPlayFill size={22} className="text-white" aria-hidden />
           </span>
         </span>

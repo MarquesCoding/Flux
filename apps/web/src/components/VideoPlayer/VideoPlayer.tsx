@@ -1511,7 +1511,7 @@ const VideoPlayer = ({
       <header
         className={
           isImmersive
-            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-transform duration-500 ease-out ${
+            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
                 isBarUp ? 'translate-y-0' : '-translate-y-full'
               }`
             : 'flex items-center justify-between gap-4'
@@ -1703,7 +1703,7 @@ const VideoPlayer = ({
         )}
 
         <div
-          className={`absolute inset-x-3 bottom-3 transition-transform duration-500 ease-out ${
+          className={`absolute inset-x-3 bottom-3 transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
             isBarUp ? 'translate-y-0' : 'translate-y-[calc(100%_+_1.5rem)]'
           }`}
         >

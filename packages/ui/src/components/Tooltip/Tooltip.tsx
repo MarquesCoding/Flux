@@ -11,7 +11,8 @@ const POPUP_MOTION = [
   'data-[state=delayed-open]:fade-in-0 data-[state=closed]:fade-out-0',
   'data-[state=delayed-open]:zoom-in-95 data-[state=closed]:zoom-out-95',
   'duration-[var(--duration-fast)] ease-[var(--ease-out)]',
-  'motion-reduce:animate-none',
+  'data-[state=closed]:duration-[var(--duration-leaving)]',
+  'motion-reduce:duration-[var(--duration-instant)]',
 ].join(' ');
 
 /**
@@ -21,6 +22,12 @@ const POPUP_MOTION = [
  *
  * It grows from the edge nearest the control rather than from its own middle, which is what makes it
  * read as belonging to that control rather than as a card that happened to appear.
+ *
+ * The pause before it appears is there so that crossing a row of icons does not flash a name on each
+ * one. But once any name is showing, the next is instant: the pause exists to establish that the
+ * pointer has stopped, and that has already been established. Skipping it is what makes a bar of
+ * icons feel fast rather than reluctant, and it needs the provider at the root — a provider per
+ * tooltip means each one is the first one, and none of them ever skips.
  *
  * @param label - What the control does.
  * @param children - The control being named.
@@ -42,27 +49,27 @@ const Tooltip = ({
   }
 
   return (
-    <RadixTooltip.Provider delayDuration={delayMilliseconds}>
-      <RadixTooltip.Root>
-        <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
+    <RadixTooltip.Root delayDuration={delayMilliseconds}>
+      <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
 
-        <RadixTooltip.Portal {...(portalContainer === undefined ? {} : { container: portalContainer })}>
-          <RadixTooltip.Content
-            aria-hidden
-            side={side}
-            sideOffset={8}
-            collisionPadding={8}
-            data-slot="tooltip-content"
-            className={cn(
-              'z-50 flux-glass rounded-md px-2 py-1 text-xs font-medium text-white shadow-[var(--shadow-lifted)]',
-              POPUP_MOTION,
-            )}
-          >
-            {label}
-          </RadixTooltip.Content>
-        </RadixTooltip.Portal>
-      </RadixTooltip.Root>
-    </RadixTooltip.Provider>
+      <RadixTooltip.Portal
+        {...(portalContainer === undefined ? {} : { container: portalContainer })}
+      >
+        <RadixTooltip.Content
+          aria-hidden
+          side={side}
+          sideOffset={8}
+          collisionPadding={8}
+          data-slot="tooltip-content"
+          className={cn(
+            'z-50 flux-glass rounded-md px-2 py-1 text-xs font-medium text-white shadow-[var(--shadow-lifted)]',
+            POPUP_MOTION,
+          )}
+        >
+          {label}
+        </RadixTooltip.Content>
+      </RadixTooltip.Portal>
+    </RadixTooltip.Root>
   );
 };
 

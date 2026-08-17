@@ -10,7 +10,8 @@ const PANEL_MOTION = [
   'max-sm:data-[state=open]:slide-in-from-bottom-8 max-sm:data-[state=closed]:slide-out-to-bottom-8',
   'sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:zoom-out-95',
   'duration-[var(--duration-base)] ease-[var(--ease-out)]',
-  'motion-reduce:animate-none',
+  'data-[state=closed]:duration-[var(--duration-leaving)]',
+  'motion-reduce:duration-[var(--duration-instant)]',
 ].join(' ');
 
 const SIZE_CLASSES: Record<DialogSize, string> = {

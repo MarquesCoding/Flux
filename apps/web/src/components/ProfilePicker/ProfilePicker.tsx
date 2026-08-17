@@ -58,7 +58,10 @@ const ProfilePicker = ({
               }}
               {...(prefersReducedMotion === true
                 ? {}
-                : { whileHover: { y: -6 }, whileTap: { scale: 0.97 } })}
+                : {
+                    whileHover: { transform: 'translateY(-6px)' },
+                    whileTap: { transform: 'scale(0.97)' },
+                  })}
               transition={revealTransition(prefersReducedMotion)}
               className="flex w-24 flex-col items-center gap-3 sm:w-32"
             >
