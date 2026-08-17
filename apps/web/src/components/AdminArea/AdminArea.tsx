@@ -47,6 +47,7 @@ import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
 import { describeGraphics } from './describeGraphics';
 import { describeCpuShare } from './describeCpuShare';
+import { describeFfmpeg } from './describeFfmpeg';
 import { describeAcceleration } from './describeAcceleration';
 import {
   resumeRunning,
@@ -109,21 +110,6 @@ const PANELS: readonly { id: PanelId; label: string }[] = SECTIONS.flatMap((sect
 ]);
 
 /**
- * Trims what FFmpeg calls itself down to a version, since it reports a paragraph of build
- * configuration after the number and only the number belongs in a tile.
- *
- * @param reported - What the transcoder said FFmpeg calls itself.
- * @returns The version alone, or a dash where there is nothing to trim.
- */
-const shortVersion = (reported: string | null): string => {
-  if (reported === null) {
-    return 'unknown';
-  }
-
-  return /ffmpeg version (\S+)/.exec(reported)?.[1] ?? reported.slice(0, 24);
-};
-
-/**
  * The server as the person running it sees it: the dashboard, what is being watched, the libraries
  * and what they hold, the jobs, the settings and the webhooks. Owns the polling that keeps all of it
  * current and the state that outlives any one panel, so that moving between panels neither restarts
@@ -183,9 +169,12 @@ const AdminArea = ({
   const jobDefinitions = useMemo(() => askedJobs.data ?? [], [askedJobs.data]);
 
   const jobSchedules = useMemo(
-    () => new Map((askedSchedules.data ?? []).map((entry) => [entry.kind, entry.triggers])),
+    () =>
+      new Map((askedSchedules.data?.schedules ?? []).map((entry) => [entry.kind, entry.triggers])),
     [askedSchedules.data],
   );
+
+  const jobsTimezone = askedSchedules.data?.timezone ?? null;
 
   const askedWebhooks = useQuery({
     ...adminQueries.webhooks(),
@@ -314,22 +303,32 @@ const AdminArea = ({
       return;
     }
 
-    cache.setQueryData(adminQueries.schedules().queryKey, (current = []) =>
-      current.some((entry) => entry.kind === kind)
-        ? current.map((entry) =>
-            entry.kind === kind ? { ...entry, triggers: [...entry.triggers, added] } : entry,
-          )
-        : [...current, { kind, triggers: [added] }],
+    cache.setQueryData(adminQueries.schedules().queryKey, (current) =>
+      current === undefined
+        ? current
+        : {
+            ...current,
+            schedules: current.schedules.some((entry) => entry.kind === kind)
+              ? current.schedules.map((entry) =>
+                  entry.kind === kind ? { ...entry, triggers: [...entry.triggers, added] } : entry,
+                )
+              : [...current.schedules, { kind, triggers: [added] }],
+          },
     );
   };
 
   const removeTrigger = async (kind: string, triggerId: string) => {
-    cache.setQueryData(adminQueries.schedules().queryKey, (current = []) =>
-      current.map((entry) =>
-        entry.kind === kind
-          ? { ...entry, triggers: entry.triggers.filter((one) => one.id !== triggerId) }
-          : entry,
-      ),
+    cache.setQueryData(adminQueries.schedules().queryKey, (current) =>
+      current === undefined
+        ? current
+        : {
+            ...current,
+            schedules: current.schedules.map((entry) =>
+              entry.kind === kind
+                ? { ...entry, triggers: entry.triggers.filter((one) => one.id !== triggerId) }
+                : entry,
+            ),
+          },
     );
 
     if (!(await removeJobTrigger(kind, triggerId))) {
@@ -503,7 +502,7 @@ const AdminArea = ({
                 {overview === null
                   ? 'Reading the server…'
                   : overview.transcoder.isReachable
-                    ? `Media service up · ffmpeg ${shortVersion(overview.transcoder.ffmpegVersion)}`
+                    ? `Media service up · ${describeFfmpeg(overview.transcoder.ffmpegVersion)}`
                     : 'Media service unreachable'}
               </span>
 
@@ -694,6 +693,7 @@ const AdminArea = ({
                 monitor={monitor}
                 viewingJobKind={viewingJobKind}
                 schedules={jobSchedules}
+                schedulesTimezone={jobsTimezone}
                 onRun={startJob}
                 onStop={stopJob}
                 onOpenSchedule={openJobSchedule}

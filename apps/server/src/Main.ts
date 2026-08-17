@@ -119,6 +119,7 @@ import { cleanupSessions } from '@FluxServer/maintenance/cleanupSessions';
 import { checkCatalogueConnectivity } from '@FluxServer/maintenance/checkCatalogueConnectivity';
 import { RESET_LIBRARY_JOB, scheduleQueueNameFor } from '@FluxServer/jobs/jobDefinitions';
 import { createJobScheduleService } from '@FluxServer/jobs/createJobScheduleService';
+import { resolveJobsTimezone } from '@FluxServer/jobs/resolveJobsTimezone';
 import { createDatabaseJobTriggerStore } from '@FluxServer/jobs/createDatabaseJobTriggerStore';
 import { markJobComplete } from '@FluxServer/library/createMediaStore';
 import { createWorkLock } from '@FluxServer/jobs/createWorkLock';
@@ -152,6 +153,7 @@ const settings = createDatabaseSettingsStore({
     pushPublicKey: '',
     pushPrivateKey: '',
     mediaDigestReadTo: null,
+    jobsTimezone: '',
   },
 });
 
@@ -878,7 +880,16 @@ const events = createWebhookEventBus({
 });
 
 const maintenance = createDatabaseMaintenanceService({ jobs });
-const schedules = createJobScheduleService({ store: createDatabaseJobTriggerStore(db), jobs });
+const schedules = createJobScheduleService({
+  store: createDatabaseJobTriggerStore(db),
+  jobs,
+  readTimezone: async () =>
+    resolveJobsTimezone({
+      configured: (await settings.read()).jobsTimezone,
+      environment: process.env['TZ'],
+      host: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }),
+});
 
 const catalogueProvider = createCatalogueMetadataProvider({
   readApiKey: async () => (await settings.read()).catalogueApiKey,

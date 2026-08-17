@@ -15,6 +15,7 @@ type JobScheduleService = {
   add: (kind: string, trigger: ScheduleTrigger) => Promise<JobTrigger | null>;
   remove: (kind: string, triggerId: string) => Promise<boolean>;
   sync: () => Promise<string[]>;
+  timezone: () => Promise<string>;
 };
 
 export type { JobSchedule, JobScheduleService, JobTrigger };

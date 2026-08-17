@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { planFfmpegNotice } from './planFfmpegNotice';
 import { planTranscoderDev } from './planTranscoderDev';
 
 const ROOT = join(import.meta.dirname, '..', '..');
@@ -41,6 +42,16 @@ if (plan.kind === 'stop') {
 if (plan.kind === 'skip') {
   process.stdout.write(`${plan.message}\n`);
   process.exit(0);
+}
+
+const notice = planFfmpegNotice({
+  ffmpeg: process.env['FLUX_FFMPEG'],
+  ffprobe: process.env['FLUX_FFPROBE'],
+  exists: existsSync,
+});
+
+if (notice !== undefined) {
+  process.stderr.write(`${notice}\n`);
 }
 
 const child = spawn('cargo', ['run', '--quiet', '--bin', 'flux-transcoder', '--', 'serve'], {

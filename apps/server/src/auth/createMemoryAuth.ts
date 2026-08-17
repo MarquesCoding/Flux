@@ -81,6 +81,7 @@ const createMemoryAuth = (
     pushPublicKey: '',
     pushPrivateKey: '',
     mediaDigestReadTo: null,
+    jobsTimezone: '',
   });
 
   const auth = createAuth({

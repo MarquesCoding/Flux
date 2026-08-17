@@ -1714,7 +1714,10 @@ const createApp = ({
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
-    return context.json({ schedules: await schedules.list() }, 200);
+    return context.json(
+      { schedules: await schedules.list(), timezone: await schedules.timezone() },
+      200,
+    );
   });
 
   app.openapi(adminAddJobTriggerRoute, async (context) => {

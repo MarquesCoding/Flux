@@ -11,6 +11,7 @@ const ServerSettingsSchema = z.object({
   pushPublicKey: z.string().default(''),
   pushPrivateKey: z.string().default(''),
   mediaDigestReadTo: z.string().datetime().nullable().default(null),
+  jobsTimezone: z.string().default(''),
 });
 
 type ServerSettings = z.infer<typeof ServerSettingsSchema>;

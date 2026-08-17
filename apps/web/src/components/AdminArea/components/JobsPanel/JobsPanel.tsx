@@ -38,6 +38,7 @@ const JobsPanel = ({
   monitor,
   viewingJobKind,
   schedules,
+  schedulesTimezone = null,
   onRun,
   onStop,
   onOpenSchedule,
@@ -72,6 +73,7 @@ const JobsPanel = ({
                 onRemove={(triggerId) => {
                   onRemoveTrigger(viewing.kind, triggerId);
                 }}
+                timezone={schedulesTimezone}
               />
             </DialogContent>
 

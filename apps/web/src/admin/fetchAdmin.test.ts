@@ -380,22 +380,34 @@ describe('fetchJobSchedules', () => {
     { kind: 'library.reset', triggers: [] },
   ];
 
-  it('reads what makes each job run on its own', async () => {
+  it('reads what makes each job run on its own, and which clock it keeps', async () => {
+    answerWith({ schedules: SCHEDULES, timezone: 'Europe/London' });
+
+    await expect(fetchJobSchedules()).resolves.toEqual({
+      schedules: SCHEDULES,
+      timezone: 'Europe/London',
+    });
+  });
+
+  it('reports no zone rather than a guessed one, where a server does not say', async () => {
     answerWith({ schedules: SCHEDULES });
 
-    await expect(fetchJobSchedules()).resolves.toEqual(SCHEDULES);
+    await expect(fetchJobSchedules()).resolves.toEqual({
+      schedules: SCHEDULES,
+      timezone: null,
+    });
   });
 
   it('reports nothing when the server refuses', async () => {
     answerWith({}, false);
 
-    await expect(fetchJobSchedules()).resolves.toEqual([]);
+    await expect(fetchJobSchedules()).resolves.toEqual({ schedules: [], timezone: null });
   });
 
   it('reports nothing when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchJobSchedules()).resolves.toEqual([]);
+    await expect(fetchJobSchedules()).resolves.toEqual({ schedules: [], timezone: null });
   });
 });
 

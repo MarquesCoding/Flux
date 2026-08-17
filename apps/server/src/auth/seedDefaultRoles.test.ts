@@ -16,6 +16,7 @@ const emptySettings = () =>
     pushPublicKey: '',
     pushPrivateKey: '',
     mediaDigestReadTo: null,
+    jobsTimezone: '',
   });
 
 /**
