@@ -2,6 +2,7 @@ import { createRoute, z } from '@hono/zod-openapi';
 import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
 import { JobRunRequestSchema } from '@FluxServer/jobs/jobDefinitions';
 import { ScheduleTriggerSchema } from '@FluxServer/jobs/scheduleTrigger';
+import { LogPageSchema, LogQuerySchema } from '@FluxContracts/schemas/Log';
 import { ScanAccepted } from './LibraryRoute';
 
 const AdminError = z.object({ error: z.string() }).openapi('AdminError');
@@ -450,7 +451,30 @@ const adminMeasureStorageRoute = createRoute({
   },
 });
 
+const adminLogsRoute = createRoute({
+  method: 'post',
+  path: '/api/admin/logs',
+  tags: ['Admin'],
+  summary: 'Read the log, filtered',
+  request: {
+    body: {
+      content: { 'application/json': { schema: LogQuerySchema } },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The records that matched, newest first',
+      content: { 'application/json': { schema: LogPageSchema } },
+    },
+    403: {
+      description: 'Not allowed to read the logs',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+});
+
 export {
+  adminLogsRoute,
   searchCatalogueRoute,
   adminOverviewRoute,
   adminMeasureStorageRoute,

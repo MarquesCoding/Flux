@@ -13,6 +13,11 @@ import { createRealtimeClock } from '@FluxServer/realtime/createRealtimeClock';
 import { createEntitlements } from '@FluxServer/realtime/createEntitlements';
 import { watchPermissionChanges } from '@FluxServer/realtime/watchPermissionChanges';
 import { relayMonitor } from '@FluxServer/realtime/relayMonitor';
+import { createLogger } from '@FluxServer/logging/createLogger';
+import { createDatabaseLogStore } from '@FluxServer/logging/createDatabaseLogStore';
+import { asJsonLog } from '@FluxServer/logging/asJsonLog';
+import { createLogScope } from '@FluxServer/logging/createLogScope';
+import { traceJobs } from '@FluxServer/logging/traceJobs';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
 import { createAuth } from '@FluxServer/auth/Auth';
@@ -78,6 +83,7 @@ import {
   SEND_MEDIA_DIGEST_JOB,
   DELIVER_WEBHOOK_JOB,
   PRUNE_WEBHOOK_DELIVERIES_JOB,
+  PRUNE_LOGS_JOB,
   DeliverWebhookJobSchema,
   scheduleTriggerKind,
 } from '@FluxServer/jobs/JobQueue';
@@ -155,6 +161,12 @@ const REALTIME_HEARTBEAT_MS = 20000;
 
 const MONITOR_RETRY_MS = 5000;
 
+const LOG_WINDOW_MS = 250;
+
+const LOG_BATCH_SIZE = 200;
+
+const LOG_DEDUPE_WINDOW_MS = 60_000;
+
 const HISTORY_KEPT_FOR_DAYS = 365;
 
 const WEBHOOK_DELIVERIES_KEPT_FOR_DAYS = 7;
@@ -181,7 +193,7 @@ const auth = createAuth({
     });
   },
   onPasswordResetRequested: (email, url) => {
-    process.stdout.write(`password reset for ${email}: ${url}\n`);
+    log.info('auth', `password reset for ${email}: ${url}`);
 
     return Promise.resolve();
   },
@@ -232,6 +244,33 @@ const realtime = createRealtimeRegistry({
   now: () => Date.now(),
   schedule: createRealtimeClock(),
   windowMs: REALTIME_WINDOW_MS,
+});
+
+const logScope = createLogScope();
+
+const logStore = createDatabaseLogStore(db);
+
+const log = createLogger({
+  store: logStore,
+  now: () => Date.now(),
+  newId: () => randomUUID(),
+  schedule: createRealtimeClock(),
+  writeLine: (line, level) => {
+    if (level === 'error' || level === 'warn') {
+      process.stderr.write(line);
+
+      return;
+    }
+
+    process.stdout.write(line);
+  },
+  windowMs: LOG_WINDOW_MS,
+  batchSize: LOG_BATCH_SIZE,
+  dedupeWindowMs: LOG_DEDUPE_WINDOW_MS,
+  ambient: () => logScope.current(),
+  onRecord: (record) => {
+    realtime.publish('logs', asJsonLog(record), { kind: 'everyone' });
+  },
 });
 
 const presence = createPresenceService();
@@ -323,7 +362,7 @@ const runDetectSegments = async (libraryId: string, jobId: string): Promise<void
     },
     markComplete: (mediaId) => markJobComplete(db, mediaId, DETECT_SEGMENTS_JOB),
     onProblem: (provider, reason) => {
-      process.stderr.write(`segments: ${provider}: ${reason}\n`);
+      log.warn('scanner', `segments: ${provider}: ${reason}`);
     },
     onProgress: (processed, total) => {
       jobs.reportProgress(jobId, 'segments', processed, total);
@@ -332,7 +371,7 @@ const runDetectSegments = async (libraryId: string, jobId: string): Promise<void
   });
 
   if (marked > 0) {
-    process.stdout.write(`marked segments on ${marked.toString()} item(s)\n`);
+    log.info('scanner', `marked segments on ${marked.toString()} item(s)`);
   }
 };
 
@@ -378,7 +417,7 @@ const readPushKeys = async (): Promise<VapidKeys> => {
 
 const transcoderWatch = createReachabilityWatch({
   onLost: () => {
-    process.stderr.write('transcoder: stopped answering\n');
+    log.warn('transcoder', 'transcoder: stopped answering');
 
     void events.publish({
       event: 'transcoder.unreachable',
@@ -386,7 +425,7 @@ const transcoderWatch = createReachabilityWatch({
     });
   },
   onRegained: () => {
-    process.stdout.write('transcoder: answering again\n');
+    log.info('transcoder', 'transcoder: answering again');
 
     void events.publish({ event: 'transcoder.reachable', data: {} });
   },
@@ -394,12 +433,12 @@ const transcoderWatch = createReachabilityWatch({
 
 const diskWatch = createDiskPressureWatch({
   onLow: (disk) => {
-    process.stderr.write(`disk: ${disk.mountPoint} is running out of room\n`);
+    log.warn('server', `disk: ${disk.mountPoint} is running out of room`);
 
     void events.publish({ event: 'disk.low', data: disk });
   },
   onRecovered: (disk) => {
-    process.stdout.write(`disk: ${disk.mountPoint} has room again\n`);
+    log.info('server', `disk: ${disk.mountPoint} has room again`);
 
     void events.publish({ event: 'disk.recovered', data: disk });
   },
@@ -443,361 +482,376 @@ const announceFinishedJob = ({ kind, jobId, subject, reason }: FinishedJob): voi
 
 const jobs = await createJobQueue({
   connectionString: env.DATABASE_URL,
-  handlers: {
-    [SCAN_LIBRARY_JOB]: async (jobId, payload) => {
-      const parsed = ScanLibraryJobSchema.safeParse(payload);
+  handlers: traceJobs(
+    {
+      [SCAN_LIBRARY_JOB]: async (jobId, payload) => {
+        const parsed = ScanLibraryJobSchema.safeParse(payload);
 
-      if (!parsed.success) {
-        process.stderr.write('job queue: a scan job carried data Flux could not read.\n');
+        if (!parsed.success) {
+          log.error('jobs', 'job queue: a scan job carried data Flux could not read.');
 
-        return;
-      }
+          return;
+        }
 
-      const { libraryId, force } = parsed.data;
+        const { libraryId, force } = parsed.data;
 
-      await libraryWork.run(libraryId, async () => {
-        const libraries = await libraryService.list();
-        const scanned = libraries.find((entry) => entry.id === libraryId);
-        const language = scanned?.defaultAudioLanguage;
+        await libraryWork.run(libraryId, async () => {
+          const libraries = await libraryService.list();
+          const scanned = libraries.find((entry) => entry.id === libraryId);
+          const language = scanned?.defaultAudioLanguage;
 
-        await runScanPhases({
-          work: {
-            scan: () => libraryService.runScan(libraryId, force, jobId),
-            fetchLogos: () => libraryService.runFetchLogos(libraryId, jobId),
-            regeneratePreviews: () =>
-              libraryService.runRegeneratePreviews(libraryId, language ?? null, jobId),
-            regenerateTrickplay: () => libraryService.runRegenerateTrickplay(libraryId, jobId),
-            detectSegments: () => runDetectSegments(libraryId, jobId),
+          await runScanPhases({
+            work: {
+              scan: () => libraryService.runScan(libraryId, force, jobId),
+              fetchLogos: () => libraryService.runFetchLogos(libraryId, jobId),
+              regeneratePreviews: () =>
+                libraryService.runRegeneratePreviews(libraryId, language ?? null, jobId),
+              regenerateTrickplay: () => libraryService.runRegenerateTrickplay(libraryId, jobId),
+              detectSegments: () => runDetectSegments(libraryId, jobId),
+            },
+            isCancelled: () => jobs.isCancelled(jobId),
+            onScanned: async (result) => {
+              jobs.reportProgress(
+                jobId,
+                `added ${result.added.toString()}, updated ${result.updated.toString()}, removed ${result.removed.toString()}`,
+                1,
+                1,
+              );
+
+              await events.publish({
+                event: 'library.scanned',
+                data: { libraryId, libraryName: scanned?.name ?? 'A library', ...result },
+              });
+            },
+          });
+        });
+      },
+      [READ_AGAIN_JOB]: async (jobId, payload) => {
+        const parsed = ReadAgainJobSchema.safeParse(payload);
+
+        if (!parsed.success) {
+          log.error('jobs', 'job queue: a re-read job carried data Flux could not read.');
+
+          return;
+        }
+
+        const { libraryId, paths } = parsed.data;
+
+        await libraryWork.run(libraryId, async () => {
+          await libraryService.runReadAgain(libraryId, paths, jobId);
+        });
+      },
+      [REGENERATE_PREVIEWS_JOB]: async (jobId, payload) => {
+        const parsed = RegeneratePreviewsJobSchema.safeParse(payload);
+
+        if (!parsed.success) {
+          log.error(
+            'jobs',
+            'job queue: a preview regeneration job carried data Flux could not read.',
+          );
+
+          return;
+        }
+
+        await libraryWork.run(parsed.data.libraryId, () =>
+          libraryService.runRegeneratePreviews(
+            parsed.data.libraryId,
+            parsed.data.defaultAudioLanguage,
+            jobId,
+          ),
+        );
+      },
+      [REGENERATE_TRICKPLAY_JOB]: async (jobId, payload) => {
+        const parsed = RegenerateTrickplayJobSchema.safeParse(payload);
+
+        if (!parsed.success) {
+          log.error('jobs', 'job queue: a trickplay job carried data Flux could not read.');
+
+          return;
+        }
+
+        await libraryWork.run(parsed.data.libraryId, () =>
+          libraryService.runRegenerateTrickplay(parsed.data.libraryId, jobId),
+        );
+      },
+      [FETCH_LOGOS_JOB]: async (jobId, payload) => {
+        const parsed = FetchLogosJobSchema.safeParse(payload);
+
+        if (!parsed.success) {
+          log.error('jobs', 'job queue: a logo job carried data Flux could not read.');
+
+          return;
+        }
+
+        await libraryWork.run(parsed.data.libraryId, () =>
+          libraryService.runFetchLogos(parsed.data.libraryId, jobId),
+        );
+      },
+      [DETECT_SEGMENTS_JOB]: async (jobId, payload) => {
+        const parsed = DetectSegmentsJobSchema.safeParse(payload);
+
+        if (!parsed.success) {
+          log.error('jobs', 'job queue: a segment detection job carried data Flux could not read.');
+
+          return;
+        }
+
+        await libraryWork.run(parsed.data.libraryId, () =>
+          runDetectSegments(parsed.data.libraryId, jobId),
+        );
+      },
+      [CLEANUP_IMAGE_CACHE_JOB]: async (jobId) => {
+        const removed = await cleanupImageCache({
+          imageCacheDir: env.IMAGE_CACHE_DIR,
+          profilesDir: join(env.IMAGE_CACHE_DIR, 'profiles'),
+          files: {
+            list: async (directory) => {
+              const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
+
+              return entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
+            },
+            remove: (path) => unlink(path),
           },
-          isCancelled: () => jobs.isCancelled(jobId),
-          onScanned: async (result) => {
-            jobs.reportProgress(
-              jobId,
-              `added ${result.added.toString()}, updated ${result.updated.toString()}, removed ${result.removed.toString()}`,
-              1,
-              1,
-            );
+          nameFor: images.nameFor,
+          listMediaImageUrls: () =>
+            db
+              .select({ posterUrl: mediaItem.posterUrl, backdropUrl: mediaItem.backdropUrl })
+              .from(mediaItem),
+          listProfilePhotoPaths: async () => {
+            const rows = await db
+              .select({ photoPath: viewerProfile.photoPath })
+              .from(viewerProfile);
 
-            await events.publish({
-              event: 'library.scanned',
-              data: { libraryId, libraryName: scanned?.name ?? 'A library', ...result },
-            });
+            return rows.map((row) => row.photoPath);
+          },
+          onProblem: (path, reason) => {
+            log.error('server', `image cache: ${path}: ${reason}`);
+          },
+          onProgress: (phase, processed, total) => {
+            jobs.reportProgress(jobId, phase, processed, total);
           },
         });
-      });
-    },
-    [READ_AGAIN_JOB]: async (jobId, payload) => {
-      const parsed = ReadAgainJobSchema.safeParse(payload);
 
-      if (!parsed.success) {
-        process.stderr.write('job queue: a re-read job carried data Flux could not read.\n');
+        log.info('server', `image cache cleanup: removed ${removed.toString()} file(s)`);
+      },
+      [CLEANUP_ARTEFACT_CACHE_JOB]: async () => {
+        const swept = await sweepArtefactCache({
+          listLiveItems: async () => {
+            const rows = await db
+              .select({
+                path: mediaItem.path,
+                audioStreams: mediaItem.audioStreams,
+                generation: library.generation,
+                defaultAudioLanguage: library.defaultAudioLanguage,
+              })
+              .from(mediaItem)
+              .innerJoin(library, eq(library.id, mediaItem.libraryId));
 
-        return;
-      }
-
-      const { libraryId, paths } = parsed.data;
-
-      await libraryWork.run(libraryId, async () => {
-        await libraryService.runReadAgain(libraryId, paths, jobId);
-      });
-    },
-    [REGENERATE_PREVIEWS_JOB]: async (jobId, payload) => {
-      const parsed = RegeneratePreviewsJobSchema.safeParse(payload);
-
-      if (!parsed.success) {
-        process.stderr.write(
-          'job queue: a preview regeneration job carried data Flux could not read.\n',
-        );
-
-        return;
-      }
-
-      await libraryWork.run(parsed.data.libraryId, () =>
-        libraryService.runRegeneratePreviews(
-          parsed.data.libraryId,
-          parsed.data.defaultAudioLanguage,
-          jobId,
-        ),
-      );
-    },
-    [REGENERATE_TRICKPLAY_JOB]: async (jobId, payload) => {
-      const parsed = RegenerateTrickplayJobSchema.safeParse(payload);
-
-      if (!parsed.success) {
-        process.stderr.write('job queue: a trickplay job carried data Flux could not read.\n');
-
-        return;
-      }
-
-      await libraryWork.run(parsed.data.libraryId, () =>
-        libraryService.runRegenerateTrickplay(parsed.data.libraryId, jobId),
-      );
-    },
-    [FETCH_LOGOS_JOB]: async (jobId, payload) => {
-      const parsed = FetchLogosJobSchema.safeParse(payload);
-
-      if (!parsed.success) {
-        process.stderr.write('job queue: a logo job carried data Flux could not read.\n');
-
-        return;
-      }
-
-      await libraryWork.run(parsed.data.libraryId, () =>
-        libraryService.runFetchLogos(parsed.data.libraryId, jobId),
-      );
-    },
-    [DETECT_SEGMENTS_JOB]: async (jobId, payload) => {
-      const parsed = DetectSegmentsJobSchema.safeParse(payload);
-
-      if (!parsed.success) {
-        process.stderr.write(
-          'job queue: a segment detection job carried data Flux could not read.\n',
-        );
-
-        return;
-      }
-
-      await libraryWork.run(parsed.data.libraryId, () =>
-        runDetectSegments(parsed.data.libraryId, jobId),
-      );
-    },
-    [CLEANUP_IMAGE_CACHE_JOB]: async (jobId) => {
-      const removed = await cleanupImageCache({
-        imageCacheDir: env.IMAGE_CACHE_DIR,
-        profilesDir: join(env.IMAGE_CACHE_DIR, 'profiles'),
-        files: {
-          list: async (directory) => {
-            const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
-
-            return entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
+            return rows.map((row) => ({
+              path: row.path,
+              audioStreams: z.array(AudioStreamSchema).parse(row.audioStreams),
+              generation: row.generation,
+              defaultAudioLanguage: row.defaultAudioLanguage,
+            }));
           },
-          remove: (path) => unlink(path),
-        },
-        nameFor: images.nameFor,
-        listMediaImageUrls: () =>
-          db
-            .select({ posterUrl: mediaItem.posterUrl, backdropUrl: mediaItem.backdropUrl })
-            .from(mediaItem),
-        listProfilePhotoPaths: async () => {
-          const rows = await db.select({ photoPath: viewerProfile.photoPath }).from(viewerProfile);
+          trickplay: {
+            intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
+            tileWidth: TRICKPLAY_TILE_WIDTH,
+            columns: TRICKPLAY_COLUMNS,
+            rows: TRICKPLAY_ROWS,
+          },
+          transcoder,
+          onProblem: (what, reason) => {
+            log.error('server', `artefact cache: ${what}: ${reason}`);
+          },
+        });
 
-          return rows.map((row) => row.photoPath);
-        },
-        onProblem: (path, reason) => {
-          process.stderr.write(`image cache: ${path}: ${reason}\n`);
-        },
-        onProgress: (phase, processed, total) => {
-          jobs.reportProgress(jobId, phase, processed, total);
-        },
-      });
+        log.info(
+          'server',
+          `artefact cache cleanup: removed ${swept.removed.toString()} directory(ies), freed ${swept.freedBytes.toString()} byte(s), kept ${swept.kept.toString()}, skipped ${swept.tooNew.toString()} as too new`,
+        );
+      },
+      [PRUNE_HISTORY_JOB]: async () => {
+        const forgotten = await historyService.prune(
+          new Date(Date.now() - HISTORY_KEPT_FOR_DAYS * 86_400_000),
+        );
 
-      process.stdout.write(`image cache cleanup: removed ${removed.toString()} file(s)\n`);
+        log.info('server', `history: forgot ${forgotten.toString()} old viewings`);
+      },
+      [CLEANUP_SESSIONS_JOB]: async (jobId) => {
+        const removed = await cleanupSessions({
+          deleteExpiredSessions: async () => {
+            const rows = await db
+              .delete(session)
+              .where(lt(session.expiresAt, new Date()))
+              .returning({ id: session.id });
+
+            return rows.length;
+          },
+          deleteExpiredDeviceCodes: async () => {
+            const rows = await db
+              .delete(deviceCode)
+              .where(lt(deviceCode.expiresAt, new Date()))
+              .returning({ id: deviceCode.id });
+
+            return rows.length;
+          },
+          onProgress: (phase, processed, total) => {
+            jobs.reportProgress(jobId, phase, processed, total);
+          },
+        });
+
+        log.info('server', `session cleanup: removed ${removed.toString()} row(s)`);
+      },
+      [CHECK_CATALOGUE_CONNECTIVITY_JOB]: async (jobId) => {
+        jobs.reportProgress(jobId, 'checking', 0, 1);
+
+        const reachable = await checkCatalogueConnectivity({
+          readApiKey: async () => (await settings.read()).catalogueApiKey,
+        });
+
+        jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
+        log.info('catalogue', `catalogue connectivity: ${reachable ? 'reachable' : 'unreachable'}`);
+
+        catalogueWatch.record(reachable);
+      },
+      [CHECK_TRANSCODER_JOB]: async (jobId) => {
+        jobs.reportProgress(jobId, 'checking', 0, 1);
+
+        const reachable = await transcoder.isReachable();
+
+        jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
+
+        transcoderWatch.record(reachable);
+      },
+      [CHECK_DISK_SPACE_JOB]: async (jobId) => {
+        jobs.reportProgress(jobId, 'reading', 0, 1);
+
+        const reading = MonitorDisksSchema.safeParse(await transcoder.readMonitor());
+
+        if (!reading.success) {
+          log.warn('server', 'disk: the monitor did not say what the filesystems hold');
+
+          return;
+        }
+
+        const { disks } = reading.data.resources;
+        const paths = await pathsFluxWritesTo();
+        const mounts = [...new Set(paths.flatMap((path) => findMountFor(path, disks) ?? []))];
+
+        diskWatch.record(mounts, findDisksUnderPressure(paths, disks));
+
+        jobs.reportProgress(jobId, `${mounts.length.toString()} checked`, 1, 1);
+      },
+      [SEND_MEDIA_DIGEST_JOB]: async (jobId) => {
+        jobs.reportProgress(jobId, 'reading', 0, 1);
+
+        const now = new Date();
+        const { since, announce } = readDigestWindow(
+          (await settings.read()).mediaDigestReadTo,
+          now,
+        );
+
+        await settings.write({ mediaDigestReadTo: now.toISOString() });
+
+        if (!announce) {
+          log.info('server', 'digest: first run, noting where to read from next time');
+
+          return;
+        }
+
+        const arrived = await db
+          .select({
+            id: mediaItem.id,
+            title: mediaItem.title,
+            seriesId: mediaItem.seriesId,
+            seriesTitle: mediaItem.seriesTitle,
+          })
+          .from(mediaItem)
+          .where(and(gt(mediaItem.addedAt, since), lte(mediaItem.addedAt, now)));
+
+        const summary = summariseNewMedia(arrived);
+
+        jobs.reportProgress(jobId, `${arrived.length.toString()} arrived`, 1, 1);
+
+        if (summary === null) {
+          return;
+        }
+
+        await notifyHousehold({
+          store: notifications,
+          event: 'media.added',
+          title: summary.title,
+          body: summary.body,
+          link: summary.link,
+          vapid: await readPushKeys(),
+          onProblem: (reason) => {
+            log.error('server', `digest: ${reason}`);
+          },
+          announce: (userIds) => {
+            realtime.publish(
+              'notifications',
+              { event: 'media.added' },
+              { kind: 'accounts', accountIds: [...userIds] },
+            );
+          },
+        });
+
+        realtime.publish('media', { added: arrived.length }, { kind: 'everyone' });
+      },
+      [PRUNE_WEBHOOK_DELIVERIES_JOB]: async () => {
+        const forgotten = await webhookSubscriptions.pruneDeliveries(
+          new Date(Date.now() - WEBHOOK_DELIVERIES_KEPT_FOR_DAYS * 86_400_000),
+        );
+
+        log.info('server', `webhooks: forgot ${forgotten.toString()} old deliveries`);
+      },
+      [PRUNE_LOGS_JOB]: async () => {
+        await log.flush();
+
+        const forgotten = await logStore.forgetExpired(Date.now());
+
+        log.info('server', `logs: forgot ${forgotten.toString()} old records`);
+      },
+      [DELIVER_WEBHOOK_JOB]: async (_jobId, payload) => {
+        const parsed = DeliverWebhookJobSchema.safeParse(payload);
+
+        if (!parsed.success) {
+          log.error('jobs', 'job queue: a delivery job carried data Flux could not read.');
+
+          return;
+        }
+
+        const delivered = await runWebhookDelivery({
+          subscriptions: webhookSubscriptions,
+          subscriptionId: parsed.data.subscriptionId,
+          payload: parsed.data.payload,
+        });
+
+        if (!delivered) {
+          throw new Error(`The delivery to ${parsed.data.subscriptionId} did not land.`);
+        }
+      },
+      [scheduleTriggerKind(SCAN_LIBRARY_JOB)]: scheduleAcrossLibraries((id) =>
+        libraryService.scan(id, false),
+      ),
+      [scheduleTriggerKind(REGENERATE_PREVIEWS_JOB)]: scheduleAcrossLibraries((id) =>
+        libraryService.regeneratePreviews(id),
+      ),
+      [scheduleTriggerKind(REGENERATE_TRICKPLAY_JOB)]: scheduleAcrossLibraries((id) =>
+        libraryService.regenerateTrickplay(id),
+      ),
+      [scheduleTriggerKind(DETECT_SEGMENTS_JOB)]: scheduleAcrossLibraries((id) =>
+        libraryService.detectSegments(id),
+      ),
+      [scheduleTriggerKind(RESET_LIBRARY_JOB)]: scheduleAcrossLibraries((id) =>
+        libraryService.reset(id),
+      ),
     },
-    [CLEANUP_ARTEFACT_CACHE_JOB]: async () => {
-      const swept = await sweepArtefactCache({
-        listLiveItems: async () => {
-          const rows = await db
-            .select({
-              path: mediaItem.path,
-              audioStreams: mediaItem.audioStreams,
-              generation: library.generation,
-              defaultAudioLanguage: library.defaultAudioLanguage,
-            })
-            .from(mediaItem)
-            .innerJoin(library, eq(library.id, mediaItem.libraryId));
-
-          return rows.map((row) => ({
-            path: row.path,
-            audioStreams: z.array(AudioStreamSchema).parse(row.audioStreams),
-            generation: row.generation,
-            defaultAudioLanguage: row.defaultAudioLanguage,
-          }));
-        },
-        trickplay: {
-          intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
-          tileWidth: TRICKPLAY_TILE_WIDTH,
-          columns: TRICKPLAY_COLUMNS,
-          rows: TRICKPLAY_ROWS,
-        },
-        transcoder,
-        onProblem: (what, reason) => {
-          process.stderr.write(`artefact cache: ${what}: ${reason}\n`);
-        },
-      });
-
-      process.stdout.write(
-        `artefact cache cleanup: removed ${swept.removed.toString()} directory(ies), freed ${swept.freedBytes.toString()} byte(s), kept ${swept.kept.toString()}, skipped ${swept.tooNew.toString()} as too new\n`,
-      );
-    },
-    [PRUNE_HISTORY_JOB]: async () => {
-      const forgotten = await historyService.prune(
-        new Date(Date.now() - HISTORY_KEPT_FOR_DAYS * 86_400_000),
-      );
-
-      process.stdout.write(`history: forgot ${forgotten.toString()} old viewings\n`);
-    },
-    [CLEANUP_SESSIONS_JOB]: async (jobId) => {
-      const removed = await cleanupSessions({
-        deleteExpiredSessions: async () => {
-          const rows = await db
-            .delete(session)
-            .where(lt(session.expiresAt, new Date()))
-            .returning({ id: session.id });
-
-          return rows.length;
-        },
-        deleteExpiredDeviceCodes: async () => {
-          const rows = await db
-            .delete(deviceCode)
-            .where(lt(deviceCode.expiresAt, new Date()))
-            .returning({ id: deviceCode.id });
-
-          return rows.length;
-        },
-        onProgress: (phase, processed, total) => {
-          jobs.reportProgress(jobId, phase, processed, total);
-        },
-      });
-
-      process.stdout.write(`session cleanup: removed ${removed.toString()} row(s)\n`);
-    },
-    [CHECK_CATALOGUE_CONNECTIVITY_JOB]: async (jobId) => {
-      jobs.reportProgress(jobId, 'checking', 0, 1);
-
-      const reachable = await checkCatalogueConnectivity({
-        readApiKey: async () => (await settings.read()).catalogueApiKey,
-      });
-
-      jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
-      process.stdout.write(`catalogue connectivity: ${reachable ? 'reachable' : 'unreachable'}\n`);
-
-      catalogueWatch.record(reachable);
-    },
-    [CHECK_TRANSCODER_JOB]: async (jobId) => {
-      jobs.reportProgress(jobId, 'checking', 0, 1);
-
-      const reachable = await transcoder.isReachable();
-
-      jobs.reportProgress(jobId, reachable ? 'reachable' : 'unreachable', 1, 1);
-
-      transcoderWatch.record(reachable);
-    },
-    [CHECK_DISK_SPACE_JOB]: async (jobId) => {
-      jobs.reportProgress(jobId, 'reading', 0, 1);
-
-      const reading = MonitorDisksSchema.safeParse(await transcoder.readMonitor());
-
-      if (!reading.success) {
-        process.stderr.write('disk: the monitor did not say what the filesystems hold\n');
-
-        return;
-      }
-
-      const { disks } = reading.data.resources;
-      const paths = await pathsFluxWritesTo();
-      const mounts = [...new Set(paths.flatMap((path) => findMountFor(path, disks) ?? []))];
-
-      diskWatch.record(mounts, findDisksUnderPressure(paths, disks));
-
-      jobs.reportProgress(jobId, `${mounts.length.toString()} checked`, 1, 1);
-    },
-    [SEND_MEDIA_DIGEST_JOB]: async (jobId) => {
-      jobs.reportProgress(jobId, 'reading', 0, 1);
-
-      const now = new Date();
-      const { since, announce } = readDigestWindow((await settings.read()).mediaDigestReadTo, now);
-
-      await settings.write({ mediaDigestReadTo: now.toISOString() });
-
-      if (!announce) {
-        process.stdout.write('digest: first run, noting where to read from next time\n');
-
-        return;
-      }
-
-      const arrived = await db
-        .select({
-          id: mediaItem.id,
-          title: mediaItem.title,
-          seriesId: mediaItem.seriesId,
-          seriesTitle: mediaItem.seriesTitle,
-        })
-        .from(mediaItem)
-        .where(and(gt(mediaItem.addedAt, since), lte(mediaItem.addedAt, now)));
-
-      const summary = summariseNewMedia(arrived);
-
-      jobs.reportProgress(jobId, `${arrived.length.toString()} arrived`, 1, 1);
-
-      if (summary === null) {
-        return;
-      }
-
-      await notifyHousehold({
-        store: notifications,
-        event: 'media.added',
-        title: summary.title,
-        body: summary.body,
-        link: summary.link,
-        vapid: await readPushKeys(),
-        onProblem: (reason) => {
-          process.stderr.write(`digest: ${reason}\n`);
-        },
-        announce: (userIds) => {
-          realtime.publish(
-            'notifications',
-            { event: 'media.added' },
-            { kind: 'accounts', accountIds: [...userIds] },
-          );
-        },
-      });
-
-      realtime.publish('media', { added: arrived.length }, { kind: 'everyone' });
-    },
-    [PRUNE_WEBHOOK_DELIVERIES_JOB]: async () => {
-      const forgotten = await webhookSubscriptions.pruneDeliveries(
-        new Date(Date.now() - WEBHOOK_DELIVERIES_KEPT_FOR_DAYS * 86_400_000),
-      );
-
-      process.stdout.write(`webhooks: forgot ${forgotten.toString()} old deliveries\n`);
-    },
-    [DELIVER_WEBHOOK_JOB]: async (_jobId, payload) => {
-      const parsed = DeliverWebhookJobSchema.safeParse(payload);
-
-      if (!parsed.success) {
-        process.stderr.write('job queue: a delivery job carried data Flux could not read.\n');
-
-        return;
-      }
-
-      const delivered = await runWebhookDelivery({
-        subscriptions: webhookSubscriptions,
-        subscriptionId: parsed.data.subscriptionId,
-        payload: parsed.data.payload,
-      });
-
-      if (!delivered) {
-        throw new Error(`The delivery to ${parsed.data.subscriptionId} did not land.`);
-      }
-    },
-    [scheduleTriggerKind(SCAN_LIBRARY_JOB)]: scheduleAcrossLibraries((id) =>
-      libraryService.scan(id, false),
-    ),
-    [scheduleTriggerKind(REGENERATE_PREVIEWS_JOB)]: scheduleAcrossLibraries((id) =>
-      libraryService.regeneratePreviews(id),
-    ),
-    [scheduleTriggerKind(REGENERATE_TRICKPLAY_JOB)]: scheduleAcrossLibraries((id) =>
-      libraryService.regenerateTrickplay(id),
-    ),
-    [scheduleTriggerKind(DETECT_SEGMENTS_JOB)]: scheduleAcrossLibraries((id) =>
-      libraryService.detectSegments(id),
-    ),
-    [scheduleTriggerKind(RESET_LIBRARY_JOB)]: scheduleAcrossLibraries((id) =>
-      libraryService.reset(id),
-    ),
-  },
+    logScope,
+  ),
   onProblem: (message) => {
-    process.stderr.write(`job queue: ${message}\n`);
+    log.error('jobs', `job queue: ${message}`);
   },
   onFinished: announceFinishedJob,
 });
@@ -817,7 +871,7 @@ const events = createWebhookEventBus({
   subscriptions: webhookSubscriptions,
   enqueue: queueWebhookDelivery,
   onProblem: (reason) => {
-    process.stderr.write(`events: ${reason}\n`);
+    log.error('server', `events: ${reason}`);
   },
 });
 
@@ -827,7 +881,7 @@ const schedules = createJobScheduleService({ store: createDatabaseJobTriggerStor
 const catalogueProvider = createCatalogueMetadataProvider({
   readApiKey: async () => (await settings.read()).catalogueApiKey,
   onProblem: (reason) => {
-    process.stderr.write(`catalogue: ${reason}\n`);
+    log.error('catalogue', `catalogue: ${reason}`);
   },
 });
 
@@ -839,7 +893,7 @@ const libraryService = createDatabaseLibraryService({
   providers: [catalogueProvider, createFilenameMetadataProvider()],
   atOnce: env.MEDIA_JOBS,
   onProblem: (path, reason) => {
-    process.stderr.write(`skipped ${path}: ${reason}\n`);
+    log.warn('scanner', `skipped ${path}: ${reason}`);
   },
 });
 
@@ -868,7 +922,7 @@ const findMediaPath = async (mediaId: string): Promise<string | null> => {
  * @param reason - What went wrong.
  */
 const reportSubtitleProblem = (path: string, reason: string): void => {
-  process.stderr.write(`subtitles: ${path}: ${reason}\n`);
+  log.warn('scanner', `subtitles: ${path}: ${reason}`);
 };
 
 const subtitleService = createLayeredSubtitleService([
@@ -898,7 +952,7 @@ const segmentProviders = [
     transcoder,
     atOnce: env.MEDIA_JOBS,
     onProblem: (path, reason) => {
-      process.stderr.write(`segments ${path}: ${reason}\n`);
+      log.warn('scanner', `segments ${path}: ${reason}`);
     },
   }),
 ];
@@ -906,7 +960,7 @@ const segmentProviders = [
 const images = createImageCache({
   directory: env.IMAGE_CACHE_DIR,
   onProblem: (url, reason) => {
-    process.stderr.write(`artwork ${url}: ${reason}\n`);
+    log.warn('scanner', `artwork ${url}: ${reason}`);
   },
 });
 
@@ -958,6 +1012,7 @@ const app = createApp({
   auth,
   settings,
   realtime,
+  logs: logStore,
   presence,
   countUsers,
   promoteToAdmin,
@@ -1154,24 +1209,25 @@ const seededRoles = await seedDefaultRoles({
 });
 
 if (seededRoles.rolesCreated.length > 0) {
-  process.stdout.write(`roles: created ${seededRoles.rolesCreated.join(', ')}\n`);
+  log.info('server', `roles: created ${seededRoles.rolesCreated.join(', ')}`);
 }
 
 if (seededRoles.administratorsCarried > 0 || seededRoles.membersAssigned > 0) {
-  process.stdout.write(
-    `roles: carried ${seededRoles.administratorsCarried.toString()} administrator(s) and gave ${seededRoles.membersAssigned.toString()} account(s) the default role\n`,
+  log.info(
+    'server',
+    `roles: carried ${seededRoles.administratorsCarried.toString()} administrator(s) and gave ${seededRoles.membersAssigned.toString()} account(s) the default role`,
   );
 }
 
 const seededKinds = await seedDefaultJobTriggers({ schedules, settings });
 
 if (seededKinds.length > 0) {
-  process.stdout.write(`schedule: default triggers set for ${seededKinds.join(', ')}\n`);
+  log.info('server', `schedule: default triggers set for ${seededKinds.join(', ')}`);
 }
 
 for (const kind of await schedules.sync()) {
   await jobs.enqueue(scheduleQueueNameFor(kind), {});
-  process.stdout.write(`schedule: running ${kind} on startup\n`);
+  log.info('server', `schedule: running ${kind} on startup`);
 }
 
 const realtimeHandler = createRealtimeHandler({
@@ -1254,14 +1310,14 @@ app.get(
 const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   const origin = `http://localhost:${info.port.toString()}`;
 
-  process.stdout.write(`Flux listening on ${origin}\n`);
+  log.info('server', `Flux listening on ${origin}`);
 
   if (persisted.setupCompletedAt === null) {
-    process.stdout.write(`First-run setup at ${origin}\n`);
+    log.info('server', `First-run setup at ${origin}`);
   }
 
-  process.stdout.write(`API reference at ${origin}/api/reference\n`);
-  process.stdout.write(`Media service dialled at ${env.TRANSCODER_URL}\n`);
+  log.info('server', `API reference at ${origin}/api/reference`);
+  log.info('server', `Media service dialled at ${env.TRANSCODER_URL}`);
 });
 
 nodeWebSocket.injectWebSocket(server);

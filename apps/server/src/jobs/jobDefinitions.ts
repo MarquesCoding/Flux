@@ -14,6 +14,7 @@ import {
   CHECK_DISK_SPACE_JOB,
   SEND_MEDIA_DIGEST_JOB,
   PRUNE_WEBHOOK_DELIVERIES_JOB,
+  PRUNE_LOGS_JOB,
   scheduleTriggerKind,
 } from './JobQueue';
 import type { ScheduleTrigger } from './scheduleTrigger';
@@ -139,6 +140,14 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     destructive: false,
   },
   {
+    kind: PRUNE_LOGS_JOB,
+    label: 'Prune old log records',
+    description:
+      'Forgets log records past the age their level is kept for, so errors outlive the ordinary chatter. A retention policy nobody enforces is a table that grows until the disk fills.',
+    needsLibrary: false,
+    destructive: false,
+  },
+  {
     kind: PRUNE_WEBHOOK_DELIVERIES_JOB,
     label: 'Prune old webhook deliveries',
     description:
@@ -159,6 +168,7 @@ const DEFAULT_JOB_TRIGGERS: Record<string, ScheduleTrigger[]> = {
   [SEND_MEDIA_DIGEST_JOB]: [{ kind: 'everyHours', hours: 1 }],
   [CLEANUP_SESSIONS_JOB]: [{ kind: 'daily', hour: 5, minute: 30 }],
   [PRUNE_WEBHOOK_DELIVERIES_JOB]: [{ kind: 'daily', hour: 5, minute: 45 }],
+  [PRUNE_LOGS_JOB]: [{ kind: 'daily', hour: 5, minute: 55 }],
   [CLEANUP_IMAGE_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 0 }],
   [CLEANUP_ARTEFACT_CACHE_JOB]: [{ kind: 'weekly', dayOfWeek: 0, hour: 6, minute: 30 }],
 };
