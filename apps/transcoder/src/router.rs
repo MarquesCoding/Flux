@@ -14,7 +14,7 @@ use crate::cache_sweep;
 use crate::capability::{detect_capabilities, Capabilities};
 use crate::fingerprint::{fingerprint, FingerprintRequest};
 use crate::frame::{take_frame, FrameRequest};
-use crate::monitor::{Monitor, Report};
+use crate::monitor::{record, LogLevel, Monitor, Report};
 use crate::preview::{
     directory_for as preview_directory, is_complete as preview_ready, PreviewClip, PreviewRegistry,
     PreviewRequest,
@@ -451,13 +451,21 @@ async fn start_session(
 ) -> Response {
     let StartSessionRequest { spec, device_id } = request;
 
-    eprintln!("session: {} {}", spec.summary(), spec.input_path);
+    record(
+        LogLevel::Info,
+        "session",
+        &format!("{} {}", spec.summary(), spec.input_path),
+    );
 
     if !tokio::fs::try_exists(&spec.input_path)
         .await
         .unwrap_or(false)
     {
-        eprintln!("session refused: no such input file: {}", spec.input_path);
+        record(
+            LogLevel::Warn,
+            "session",
+            &format!("refused: no such input file: {}", spec.input_path),
+        );
 
         return error(StatusCode::NOT_FOUND, "No such input file.");
     }
@@ -465,7 +473,7 @@ async fn start_session(
     let started = match state.registry.start(spec, device_id.as_deref()).await {
         Ok(started) => started,
         Err(failure) => {
-            eprintln!("session refused: {failure}");
+            record(LogLevel::Error, "session", &format!("refused: {failure}"));
 
             return error(StatusCode::INTERNAL_SERVER_ERROR, &failure.to_string());
         }
@@ -481,9 +489,13 @@ async fn start_session(
     };
 
     if !await_run(&directory, MANIFEST_TIMEOUT).await {
-        eprintln!(
-            "session {id} produced no manifest within {}s; see the ffmpeg output above",
-            MANIFEST_TIMEOUT.as_secs()
+        record(
+            LogLevel::Error,
+            "session",
+            &format!(
+                "{id} produced no manifest within {}s; see the ffmpeg output above",
+                MANIFEST_TIMEOUT.as_secs()
+            ),
         );
 
         state.registry.stop(&id).await;
@@ -533,9 +545,13 @@ async fn session_file(
         let waited = asked.elapsed();
 
         if waited > SLOW_SEGMENT {
-            eprintln!(
-                "segment {wanted}: {} after {waited:?}",
-                if is_ready { "served" } else { "gave up" }
+            record(
+                LogLevel::Info,
+                "session",
+                &format!(
+                    "segment {wanted}: {} after {waited:?}",
+                    if is_ready { "served" } else { "gave up" }
+                ),
             );
         }
 
@@ -981,7 +997,7 @@ async fn monitor(State(state): State<AppState>) -> Response {
         resources: state.monitor.measure().await,
         queue: state.queue.snapshot().await,
         sessions: state.registry.len().await,
-        logs: state.monitor.journal().read().await,
+        logs: state.monitor.journal().read(),
         cache: state.monitor.cache().await,
     };
 
@@ -1003,7 +1019,7 @@ async fn monitor_stream(State(state): State<AppState>) -> Response {
                 resources: state.monitor.measure().await,
                 queue: state.queue.snapshot().await,
                 sessions: state.registry.len().await,
-                logs: state.monitor.journal().read().await,
+                logs: state.monitor.journal().read(),
                 cache: state.monitor.cache().await,
             };
 

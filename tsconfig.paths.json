@@ -8,6 +8,7 @@
       "@FluxUI/Badge": ["./packages/ui/src/components/Badge/Badge.tsx"],
       "@FluxUI/Button": ["./packages/ui/src/components/Button/Button.tsx"],
       "@FluxUI/DataTable": ["./packages/ui/src/components/DataTable/DataTable.tsx"],
+      "@FluxUI/Badge.types": ["./packages/ui/src/components/Badge/Badge.types.ts"],
       "@FluxUI/DataTable.types": ["./packages/ui/src/components/DataTable/DataTable.types.ts"],
       "@FluxUI/StatTile": ["./packages/ui/src/components/StatTile/StatTile.tsx"],
       "@FluxUI/TrendChart": ["./packages/ui/src/components/TrendChart/TrendChart.tsx"],

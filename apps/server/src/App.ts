@@ -89,6 +89,7 @@ import {
 } from '@FluxServer/routes/RatingRoute';
 import {
   adminOverviewRoute,
+  adminLogsRoute,
   adminMeasureStorageRoute,
   searchCatalogueRoute,
   adminSettingsRoute,
@@ -211,6 +212,7 @@ import type { PermissionService } from '@FluxServer/auth/PermissionService';
 import type { ApiKeyService } from '@FluxServer/auth/ApiKeyService';
 import type { WebhookStore } from '@FluxServer/webhooks/WebhookStore';
 import type { RealtimePublisher } from '@FluxServer/realtime/RealtimePublisher';
+import type { LogStore } from '@FluxServer/logging/Logger';
 import {
   listHistoryRoute,
   forgetViewingRoute,
@@ -362,6 +364,7 @@ type CreateAppOptions = {
   cancelJob?: (jobId: string) => Promise<boolean>;
   searchCatalogue?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
   realtime?: RealtimePublisher;
+  logs?: LogStore;
 };
 
 /**
@@ -414,6 +417,7 @@ const createApp = ({
   inviteAccount,
   editAccount,
   realtime,
+  logs,
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
@@ -1466,6 +1470,18 @@ const createApp = ({
     return saved
       ? context.body(null, 204)
       : context.json({ error: 'That picture could not be used.' }, 400);
+  });
+
+  app.openapi(adminLogsRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'server.logs'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    if (logs === undefined) {
+      return context.json({ records: [], total: 0 }, 200);
+    }
+
+    return context.json(await logs.read(context.req.valid('json')), 200);
   });
 
   app.openapi(adminMeasureStorageRoute, async (context) => {

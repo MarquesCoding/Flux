@@ -298,6 +298,36 @@ const share = pgTable(
   ],
 );
 
+const logRecord = pgTable(
+  'log_record',
+  {
+    id: text('id').primaryKey(),
+    at: timestamp('at').notNull().defaultNow(),
+    level: text('level').notNull(),
+    source: text('source').notNull(),
+    message: text('message').notNull(),
+    detail: text('detail'),
+    count: integer('count').notNull().default(1),
+    sameEventKey: text('sameEventKey').notNull(),
+    jobId: text('jobId'),
+    jobKind: text('jobKind'),
+    libraryId: text('libraryId'),
+    mediaId: text('mediaId'),
+    sessionId: text('sessionId'),
+    requestId: text('requestId'),
+    forgetAfter: timestamp('forgetAfter').notNull(),
+  },
+  (table) => [
+    index('log_record_at_idx').on(table.at),
+    index('log_record_level_idx').on(table.level, table.at),
+    index('log_record_source_idx').on(table.source, table.at),
+    index('log_record_job_idx').on(table.jobId),
+    index('log_record_forget_idx').on(table.forgetAfter),
+    index('log_record_same_event_idx').on(table.sameEventKey, table.at),
+    check('log_record_count_positive', sql`${table.count} > 0`),
+  ],
+);
+
 const shareVisit = pgTable(
   'share_visit',
   {
@@ -654,6 +684,7 @@ export {
   favourite,
   share,
   shareVisit,
+  logRecord,
   rating,
   user,
   session,
