@@ -29,6 +29,10 @@ type Identity = {
   deviceLabel?: string;
 };
 
+type PartyMessage = Extract<FromClient, { kind: `party${string}` }>;
+
+type ClockHeard = (sentAtMs: number, serverAtMs: number) => void;
+
 type RealtimeClient = {
   start: () => void;
   stop: () => void;
@@ -36,6 +40,10 @@ type RealtimeClient = {
   identify: (who: Identity) => void;
   onResumed: (run: () => void) => () => void;
   isLive: () => boolean;
+  sendParty: (message: PartyMessage) => void;
+  askClock: (sentAtMs: number) => void;
+  onClockTell: (heard: ClockHeard) => () => void;
+  onRefused: (heard: (why: string) => void) => () => void;
 };
 
 const readMessage = (raw: string) => {
@@ -70,6 +78,8 @@ const createRealtimeClient = ({
 }: RealtimeClientOptions): RealtimeClient => {
   const listeners = new Map<RealtimeTopic, Set<Listener>>();
   const resumed = new Set<() => void>();
+  const clockHeard = new Set<ClockHeard>();
+  const refusals = new Set<(why: string) => void>();
 
   let link: RealtimeLink | null = null;
   let cancelRetry: (() => void) | null = null;
@@ -119,6 +129,22 @@ const createRealtimeClient = ({
 
     if (read.data.kind === 'ping') {
       send({ kind: 'pong' });
+
+      return;
+    }
+
+    if (read.data.kind === 'clockTell') {
+      for (const heard of clockHeard) {
+        heard(read.data.sentAtMs, read.data.serverAtMs);
+      }
+
+      return;
+    }
+
+    if (read.data.kind === 'refused') {
+      for (const heard of refusals) {
+        heard(read.data.why);
+      }
 
       return;
     }
@@ -233,6 +259,30 @@ const createRealtimeClient = ({
     },
 
     isLive: () => live,
+
+    sendParty: (message) => {
+      send(message);
+    },
+
+    askClock: (sentAtMs) => {
+      send({ kind: 'clockAsk', sentAtMs });
+    },
+
+    onClockTell: (heard) => {
+      clockHeard.add(heard);
+
+      return () => {
+        clockHeard.delete(heard);
+      };
+    },
+
+    onRefused: (heard) => {
+      refusals.add(heard);
+
+      return () => {
+        refusals.delete(heard);
+      };
+    },
   };
 };
 

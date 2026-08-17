@@ -24,6 +24,10 @@ const createFakeClient = () => {
     },
     onResumed: () => () => {},
     isLive: () => true,
+    sendParty: () => {},
+    askClock: () => {},
+    onClockTell: () => () => {},
+    onRefused: () => () => {},
   };
 
   return {

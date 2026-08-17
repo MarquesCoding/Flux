@@ -1,0 +1,143 @@
+import { WatchPartySchema, SequencedCommandSchema } from '@FluxContracts/schemas/WatchParty';
+import { estimateClockOffset, measurementJitter } from '@FluxCore/functions/estimateClockOffset';
+import { z } from 'zod';
+import type { Reading } from '@FluxCore/functions/estimateClockOffset';
+import type { PartyCommand, SequencedCommand, WatchParty } from '@FluxContracts/schemas/WatchParty';
+import type { RealtimeClient } from '@FluxWeb/realtime/createRealtimeClient';
+
+const PartyEventSchema = z.object({
+  party: WatchPartySchema,
+  command: SequencedCommandSchema.optional(),
+});
+
+type PartyWatcher = {
+  onParty: (party: WatchParty) => void;
+  onCommand: (command: SequencedCommand) => void;
+};
+
+type PartyClient = {
+  open: (mediaId: string) => void;
+  join: (partyId: string) => void;
+  leave: () => void;
+  send: (command: PartyCommand) => void;
+  report: (where: {
+    positionSeconds: number;
+    bufferedAheadSeconds: number;
+    isWatching: boolean;
+  }) => void;
+  setRole: (connectionId: string, role: 'host' | 'coHost' | 'guest') => void;
+  loosen: (how: { everyoneMaySeek?: boolean; everyoneMayPlayPause?: boolean }) => void;
+  offsetMs: () => number;
+  jitterMs: () => number;
+  stop: () => void;
+};
+
+/**
+ * This tab's side of a watch party, over the connection the rest of the app already has.
+ *
+ * Holds no authority of its own. Everything it sends is a request the server decides on, and
+ * everything it shows is what the server last said the party is — a client that believed its own
+ * commands would show a party that had diverged from everybody else's.
+ *
+ * Also keeps the clock exchange running, because positions from different machines cannot be
+ * compared without it: wall clocks drift and are user-settable, so the offset is measured rather
+ * than assumed.
+ *
+ * @param client - The shared socket.
+ * @param watcher - Told when the party changes and when a command arrives.
+ * @param schedule - How the clock exchange is repeated.
+ * @param everyMs - How often to measure the clock.
+ * @param now - This machine's clock.
+ * @returns The party client.
+ */
+const createPartyClient = ({
+  client,
+  watcher,
+  schedule,
+  everyMs,
+  now,
+}: {
+  client: RealtimeClient;
+  watcher: PartyWatcher;
+  schedule: (run: () => void, afterMs: number) => () => void;
+  everyMs: number;
+  now: () => number;
+}): PartyClient => {
+  const readings: Reading[] = [];
+  let asked: number | null = null;
+  let cancel: (() => void) | null = null;
+
+  const release = client.subscribe('party', (event) => {
+    const read = PartyEventSchema.safeParse(event.payload);
+
+    if (!read.success) {
+      return;
+    }
+
+    watcher.onParty(read.data.party);
+
+    if (read.data.command !== undefined) {
+      watcher.onCommand(read.data.command);
+    }
+  });
+
+  const stopClock = client.onClockTell((sentAtMs, serverAtMs) => {
+    if (asked !== null && sentAtMs === asked) {
+      readings.push({ sentAtMs, serverAtMs, backAtMs: now() });
+      asked = null;
+    }
+  });
+
+  const askTheClock = () => {
+    asked = now();
+    client.askClock(asked);
+    cancel = schedule(askTheClock, everyMs);
+  };
+
+  askTheClock();
+
+  return {
+    open: (mediaId) => {
+      client.sendParty({ kind: 'partyOpen', mediaId });
+    },
+
+    join: (partyId) => {
+      client.sendParty({ kind: 'partyJoin', partyId });
+    },
+
+    leave: () => {
+      client.sendParty({ kind: 'partyLeave' });
+    },
+
+    send: (command) => {
+      client.sendParty({ kind: 'partyCommand', command });
+    },
+
+    report: (where) => {
+      client.sendParty({ kind: 'partyReport', ...where });
+    },
+
+    setRole: (connectionId, role) => {
+      client.sendParty({ kind: 'partySetRole', connectionId, role });
+    },
+
+    loosen: (how) => {
+      client.sendParty({ kind: 'partyLoosen', ...how });
+    },
+
+    offsetMs: () => estimateClockOffset(readings),
+
+    jitterMs: () => measurementJitter(readings),
+
+    stop: () => {
+      cancel?.();
+      cancel = null;
+      release();
+      stopClock();
+    },
+  };
+};
+
+export type { PartyClient, PartyWatcher };
+
+export { createPartyClient };
