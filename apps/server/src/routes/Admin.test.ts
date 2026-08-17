@@ -822,45 +822,10 @@ describe('watching and steering what is being watched', () => {
 
     expect(response.status).toBe(404);
   });
-
-  describe('the session list an admin page keeps open', () => {
-    it('turns away somebody who may not watch streams', async () => {
-      const { app } = build();
-      const cookie = await signedIn(app);
-
-      const response = await app.request(`${BASE}/api/admin/sessions/stream`, {
-        headers: { cookie, origin: BASE },
-      });
-
-      expect(response.status).toBe(403);
-    });
-
-    it('sends the list as an event stream, and again whenever it changes', async () => {
-      const { app, store, permissions, presence } = build();
-      const cookie = await signedInAsAdmin(app, store, permissions);
-      const controller = new AbortController();
-
-      const response = await app.request(`${BASE}/api/admin/sessions/stream`, {
-        headers: { cookie, origin: BASE },
-        signal: controller.signal,
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('content-type')).toContain('text/event-stream');
-
-      watching(presence);
-
-      controller.abort();
-      await response.body?.cancel();
-    });
-  });
 });
 
 describe('what the media service says about itself', () => {
-  const withMonitor = (
-    monitor?: () => Promise<JsonValue>,
-    monitorStream?: () => Promise<ReadableStream<Uint8Array> | null>,
-  ) => {
+  const withMonitor = (monitor?: () => Promise<JsonValue>) => {
     const { auth, settings, store } = createMemoryAuth();
     const permissions = createMemoryPermissionService();
 
@@ -878,7 +843,6 @@ describe('what the media service says about itself', () => {
       favourites: createMemoryFavouriteService(),
       ratings: createMemoryRatingService(),
       ...(monitor === undefined ? {} : { monitor }),
-      ...(monitorStream === undefined ? {} : { monitorStream }),
     });
 
     return { app, store, permissions };
@@ -916,49 +880,6 @@ describe('what the media service says about itself', () => {
     });
 
     expect(response.status).toBe(503);
-  });
-
-  it('holds a reading stream open for a page that is watching', async () => {
-    const context = withMonitor(undefined, () =>
-      Promise.resolve(
-        new ReadableStream<Uint8Array>({
-          start: (controller) => {
-            controller.enqueue(new TextEncoder().encode('data: {}\n\n'));
-            controller.close();
-          },
-        }),
-      ),
-    );
-    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
-
-    const response = await context.app.request(`${BASE}/api/admin/monitor/stream`, {
-      headers: { cookie, origin: BASE },
-    });
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get('content-type')).toContain('text/event-stream');
-  });
-
-  it('says the media service did not answer when there is no stream to hold', async () => {
-    const context = withMonitor(undefined, () => Promise.resolve(null));
-    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
-
-    const response = await context.app.request(`${BASE}/api/admin/monitor/stream`, {
-      headers: { cookie, origin: BASE },
-    });
-
-    expect(response.status).toBe(503);
-  });
-
-  it('will not let an ordinary account watch the readings', async () => {
-    const context = withMonitor(() => Promise.resolve({ sessions: 0 }));
-    const cookie = await signedIn(context.app);
-
-    const response = await context.app.request(`${BASE}/api/admin/monitor/stream`, {
-      headers: { cookie, origin: BASE },
-    });
-
-    expect(response.status).toBe(403);
   });
 });
 

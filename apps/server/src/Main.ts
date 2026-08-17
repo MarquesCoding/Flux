@@ -1,11 +1,22 @@
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { readdir, unlink } from 'node:fs/promises';
 import { z } from 'zod';
 import { serve } from '@hono/node-server';
+import { createNodeWebSocket } from '@hono/node-ws';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { and, count, eq, gt, lt, lte, sql } from 'drizzle-orm';
 import { createApp } from './App';
+import { createRealtimeRegistry } from '@FluxServer/realtime/createRealtimeRegistry';
+import { createRealtimeHandler } from '@FluxServer/realtime/createRealtimeHandler';
+import { createRealtimeClock } from '@FluxServer/realtime/createRealtimeClock';
+import { createEntitlements } from '@FluxServer/realtime/createEntitlements';
+import { watchPermissionChanges } from '@FluxServer/realtime/watchPermissionChanges';
+import { relayMonitor } from '@FluxServer/realtime/relayMonitor';
+import { createPresenceService } from '@FluxServer/presence/PresenceService';
+import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
 import { createAuth } from '@FluxServer/auth/Auth';
+import type { RealtimeSession } from '@FluxServer/realtime/createRealtimeHandler';
 import { createDatabase } from '@FluxServer/db/Database';
 import {
   user,
@@ -136,6 +147,14 @@ const settings = createDatabaseSettingsStore({
   },
 });
 
+const REALTIME_WINDOW_MS = 200;
+
+const REALTIME_ENTITLEMENT_TTL_MS = 5000;
+
+const REALTIME_HEARTBEAT_MS = 20000;
+
+const MONITOR_RETRY_MS = 5000;
+
 const HISTORY_KEPT_FOR_DAYS = 365;
 
 const WEBHOOK_DELIVERIES_KEPT_FOR_DAYS = 7;
@@ -202,7 +221,33 @@ const promoteToAdmin = async (email: string): Promise<void> => {
   await db.update(user).set({ role: 'admin' }).where(eq(user.email, email));
 };
 
-const permissions = createDatabasePermissionService(db);
+const storedPermissions = createDatabasePermissionService(db);
+
+const realtime = createRealtimeRegistry({
+  entitlements: createEntitlements({
+    resolve: (accountId) => storedPermissions.resolve(accountId),
+    now: () => Date.now(),
+    ttlMs: REALTIME_ENTITLEMENT_TTL_MS,
+  }),
+  now: () => Date.now(),
+  schedule: createRealtimeClock(),
+  windowMs: REALTIME_WINDOW_MS,
+});
+
+const presence = createPresenceService();
+
+presence.watch(() => {
+  realtime.publish('sessions', { changed: true }, { kind: 'everyone' });
+});
+
+const permissions = watchPermissionChanges(storedPermissions, {
+  accountChanged: (userId) => {
+    void realtime.recheck(userId);
+  },
+  everyoneChanged: () => {
+    void realtime.recheckAll();
+  },
+});
 
 /**
  * Gives a freshly created account the role new accounts are meant to have, so somebody who has just
@@ -698,7 +743,16 @@ const jobs = await createJobQueue({
         onProblem: (reason) => {
           process.stderr.write(`digest: ${reason}\n`);
         },
+        announce: (userIds) => {
+          realtime.publish(
+            'notifications',
+            { event: 'media.added' },
+            { kind: 'accounts', accountIds: [...userIds] },
+          );
+        },
       });
+
+      realtime.publish('media', { added: arrived.length }, { kind: 'everyone' });
     },
     [PRUNE_WEBHOOK_DELIVERIES_JOB]: async () => {
       const forgotten = await webhookSubscriptions.pruneDeliveries(
@@ -903,6 +957,8 @@ const playbackService = createPlaybackService({
 const app = createApp({
   auth,
   settings,
+  realtime,
+  presence,
   countUsers,
   promoteToAdmin,
   library: libraryService,
@@ -1079,7 +1135,6 @@ const app = createApp({
     return { cache, artwork, libraryBytes: bytes };
   },
   monitor: () => transcoder.readMonitor(),
-  monitorStream: () => transcoder.openMonitorStream(),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
   transcoderAddress: env.TRANSCODER_URL,
@@ -1119,7 +1174,84 @@ for (const kind of await schedules.sync()) {
   process.stdout.write(`schedule: running ${kind} on startup\n`);
 }
 
-serve({ fetch: app.fetch, port: env.PORT }, (info) => {
+const realtimeHandler = createRealtimeHandler({
+  registry: realtime,
+  newId: () => randomUUID(),
+  now: () => Date.now(),
+  presence: {
+    connect: (clientId, profileId, profileName, deviceLabel, send) => {
+      presence.connect(clientId, profileId, profileName, deviceLabel, send);
+    },
+    disconnect: (clientId) => {
+      presence.disconnect(clientId);
+    },
+    nameOf: async (accountId, profileId) =>
+      profileId === null
+        ? null
+        : ((await profileService.list(accountId)).find((profile) => profile.id === profileId)
+            ?.name ?? null),
+  },
+});
+
+void relayMonitor({
+  open: () => transcoder.openMonitorStream(),
+  publish: (report) => {
+    realtime.publish('monitor', report, { kind: 'everyone' });
+  },
+  wait: (afterMs) => new Promise((resolve) => setTimeout(resolve, afterMs)),
+  retryMs: MONITOR_RETRY_MS,
+  keepGoing: () => true,
+});
+
+const nodeWebSocket = createNodeWebSocket({ app });
+
+app.get(
+  '/api/realtime',
+  nodeWebSocket.upgradeWebSocket(async (context) => {
+    const account = (await readSessionOnce(auth, context.req.raw.headers))?.user ?? null;
+
+    if (account === null) {
+      return {};
+    }
+
+    const accountId = account.id;
+    let session: RealtimeSession | null = null;
+    let heartbeat: ReturnType<typeof setInterval> | null = null;
+
+    return {
+      onOpen: (_event, socket) => {
+        session = realtimeHandler.open(
+          { accountId, profileId: null },
+          {
+            send: (raw) => {
+              socket.send(raw);
+            },
+          },
+        );
+
+        heartbeat = setInterval(() => {
+          session?.ping();
+        }, REALTIME_HEARTBEAT_MS);
+      },
+
+      onMessage: (event: { data: string | ArrayBuffer | Uint8Array }) => {
+        if (typeof event.data === 'string') {
+          void session?.receive(event.data);
+        }
+      },
+
+      onClose: () => {
+        if (heartbeat !== null) {
+          clearInterval(heartbeat);
+        }
+
+        session?.close();
+      },
+    };
+  }),
+);
+
+const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   const origin = `http://localhost:${info.port.toString()}`;
 
   process.stdout.write(`Flux listening on ${origin}\n`);
@@ -1131,3 +1263,5 @@ serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   process.stdout.write(`API reference at ${origin}/api/reference\n`);
   process.stdout.write(`Media service dialled at ${env.TRANSCODER_URL}\n`);
 });
+
+nodeWebSocket.injectWebSocket(server);

@@ -43,6 +43,7 @@ more valuable than a tidy directory.
 | [0014](0014-lint-and-commit-enforcement.md)                   | Lint and commit enforcement with oxlint, ESLint and husky | Accepted |
 | [0015](0015-casting-to-devices.md)                            | Cast by handing devices an address, with Google's sender  | Accepted |
 | [0016](0016-fixture-provenance-decides-how-it-is-verified.md) | Where a fixture came from decides how it is checked       | Accepted |
+| [0017](0017-realtime-one-socket-two-feeds.md)                 | One realtime socket, with a viewer feed and an admin feed | Accepted |
 
 ## Format
 

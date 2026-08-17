@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
 import { ScanJobSchema } from '@FluxWeb/library/fetchLibrary';
+import { getRealtimeClient } from '@FluxWeb/realtime/getRealtimeClient';
+import type { RealtimeClient } from '@FluxWeb/realtime/createRealtimeClient';
 import type { ScanJob } from '@FluxWeb/library/fetchLibrary';
 
 const AdminUserSchema = z.object({
@@ -306,44 +308,52 @@ const fetchMonitor = async (): Promise<Monitor | null> => {
  * rather than being asked, since an operator watching a graph notices anything slower than a second.
  *
  * @param onReading - Told each reading as it arrives.
+ * @param client - The connection to watch over, which is the shared one unless a test says otherwise.
  * @returns The function that stops watching.
  */
-const watchMonitor = (onReading: (reading: Monitor) => void): (() => void) => {
-  const source = new EventSource('/api/admin/monitor/stream', { withCredentials: true });
-
-  source.onmessage = (event: MessageEvent<string>) => {
-    const parsed = MonitorSchema.safeParse(JSON.parse(event.data));
+const watchMonitor = (
+  onReading: (reading: Monitor) => void,
+  client: RealtimeClient = getRealtimeClient(),
+): (() => void) =>
+  client.subscribe('monitor', (event) => {
+    const parsed = MonitorSchema.safeParse(event.payload);
 
     if (parsed.success) {
       onReading(parsed.data);
     }
-  };
-
-  return () => {
-    source.close();
-  };
-};
+  });
 
 /**
  * Follows who has the application open and what they are watching, as it changes, for the sessions
  * page an operator leaves open.
  *
  * @param onSessions - Told the sessions whenever they change.
+ * @param client - The connection to watch over, which is the shared one unless a test says otherwise.
  * @returns The function that stops watching.
  */
-const watchActiveSessions = (onSessions: (sessions: ActiveSession[]) => void): (() => void) => {
-  const source = new EventSource('/api/admin/sessions/stream', { withCredentials: true });
+const watchActiveSessions = (
+  onSessions: (sessions: ActiveSession[]) => void,
+  client: RealtimeClient = getRealtimeClient(),
+): (() => void) => {
+  let watching = true;
 
-  source.onmessage = (event: MessageEvent<string>) => {
-    const parsed = z.array(ActiveSessionSchema).safeParse(JSON.parse(event.data));
-
-    if (parsed.success) {
-      onSessions(parsed.data);
-    }
+  const read = () => {
+    void fetchActiveSessions().then((sessions) => {
+      if (watching) {
+        onSessions(sessions);
+      }
+    });
   };
 
+  const release = client.subscribe('sessions', read);
+  const stopResuming = client.onResumed(read);
+
+  read();
+
   return () => {
-    source.close();
+    watching = false;
+    release();
+    stopResuming();
   };
 };
 

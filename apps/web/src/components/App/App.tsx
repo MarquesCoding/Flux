@@ -30,6 +30,7 @@ import {
   unsubscribeFromPush,
 } from '@FluxWeb/notifications/subscribeToPush';
 import type { Inbox } from '@FluxWeb/notifications/fetchNotifications';
+import { getRealtimeClient } from '@FluxWeb/realtime/getRealtimeClient';
 import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer';
 import { MediaDetailDialog } from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog';
 import { PersonDialog } from '@FluxWeb/components/PersonDialog/PersonDialog';
@@ -132,6 +133,22 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
     return () => {
       abandoned = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const client = getRealtimeClient();
+
+    const reread = () => {
+      void fetchNotifications().then(setInbox);
+    };
+
+    const release = client.subscribe('notifications', reread);
+    const stopResuming = client.onResumed(reread);
+
+    return () => {
+      release();
+      stopResuming();
     };
   }, []);
 
