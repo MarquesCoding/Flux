@@ -4,7 +4,7 @@ import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { openShare } from '@FluxWeb/sharing/fetchShares';
-import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
+import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { OpenedShare } from '@FluxWeb/sharing/fetchShares';
@@ -88,47 +88,32 @@ const ShareArea = ({ token, onPlay, resumeFor, name = 'Flux' }: ShareAreaProps) 
   const { share } = standing;
   const [first] = [...share.items].sort(inBroadcastOrder);
 
-  return (
-    <main className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-10 px-5 py-10 sm:px-8">
-      <header className="flex flex-col gap-3">
-        <span className="text-xs uppercase tracking-[0.2em] text-text-muted">
-          Shared with you on {name}
-        </span>
+  if (first === undefined) {
+    return (
+      <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-6 text-center">
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text">{share.title}</h1>
 
-        <h1 className="text-[clamp(2rem,6vw,3.25rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-text">
-          {share.title}
-        </h1>
-
-        {first === undefined ? null : (
-          <MediaFacts
-            media={first}
-            hasRuntime
-            hasEpisode={share.kind === 'series'}
-            className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-text-muted"
-          />
-        )}
-      </header>
-
-      {first === undefined ? (
         <p className="font-body text-sm text-text-muted">There is nothing here to watch.</p>
-      ) : (
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            variant="glossy"
-            size="lg"
-            isPill
-            onClick={() => {
-              start(first);
-            }}
-          >
-            <RiPlayFill size={18} aria-hidden />
-            {share.kind === 'series' ? 'Play the first episode' : 'Play'}
-          </Button>
-        </div>
-      )}
+      </main>
+    );
+  }
+
+  return (
+    <main className="relative min-h-svh">
+      <span className="pointer-events-none absolute left-5 top-6 z-20 text-xs uppercase tracking-[0.2em] text-text-muted sm:left-10">
+        Shared with you on {name}
+      </span>
+
+      <Hero
+        items={[first]}
+        onPlay={(media, startSeconds) => {
+          onPlay(media, startSeconds);
+        }}
+        resumeFor={(mediaId) => resumeFor?.(mediaId) ?? null}
+      />
 
       {share.kind === 'series' && share.items.length > 1 ? (
-        <section className="flex flex-col gap-3">
+        <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-5 pb-16 sm:px-8">
           <h2 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
             Episodes
           </h2>
