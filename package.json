@@ -21,7 +21,8 @@
     "rust:check": "cargo clippy --all-targets -- -D warnings && cargo fmt --check",
     "rust:test": "cargo test",
     "prepare": "husky",
-    "fixtures:sync": "tsx tools/fixtures/syncFixtures.ts"
+    "fixtures:sync": "tsx tools/fixtures/syncFixtures.ts",
+    "ffmpeg:sync": "tsx tools/ffmpeg/syncFfmpeg.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",

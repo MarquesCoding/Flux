@@ -51,6 +51,7 @@ import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
 import { describeGraphics } from './describeGraphics';
 import { describeCpuShare } from './describeCpuShare';
+import { describeFfmpeg } from './describeFfmpeg';
 import { describeAcceleration } from './describeAcceleration';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
@@ -127,21 +128,6 @@ const PANELS: readonly { id: PanelId; label: string }[] = SECTIONS.flatMap((sect
  */
 const readJobSchedules = async (): Promise<Map<string, JobTrigger[]>> =>
   new Map((await fetchJobSchedules()).map((entry) => [entry.kind, entry.triggers]));
-
-/**
- * Trims what FFmpeg calls itself down to a version, since it reports a paragraph of build
- * configuration after the number and only the number belongs in a tile.
- *
- * @param reported - What the transcoder said FFmpeg calls itself.
- * @returns The version alone, or a dash where there is nothing to trim.
- */
-const shortVersion = (reported: string | null): string => {
-  if (reported === null) {
-    return 'unknown';
-  }
-
-  return /ffmpeg version (\S+)/.exec(reported)?.[1] ?? reported.slice(0, 24);
-};
 
 /**
  * The server as the person running it sees it: the dashboard, what is being watched, the libraries
@@ -497,7 +483,7 @@ const AdminArea = ({
                 {overview === null
                   ? 'Reading the server…'
                   : overview.transcoder.isReachable
-                    ? `Media service up · ffmpeg ${shortVersion(overview.transcoder.ffmpegVersion)}`
+                    ? `Media service up · ${describeFfmpeg(overview.transcoder.ffmpegVersion)}`
                     : 'Media service unreachable'}
               </span>
 
