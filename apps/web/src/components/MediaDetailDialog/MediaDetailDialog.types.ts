@@ -16,6 +16,7 @@ type MediaDetailDialogProps = {
   stars?: number | null;
   onRate?: (media: MediaSummary, stars: number | null) => void;
   onOpenPerson?: (member: CastMember) => void;
+  onShare?: (media: MediaSummary) => void;
 };
 
 export type { MediaDetailDialogProps };
