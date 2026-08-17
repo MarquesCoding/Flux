@@ -1028,6 +1028,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             />
           ) : (
             <LibraryBrowser
+              name={initialTitle}
               search={place.search}
               libraryId={place.library}
               onLibraryChange={(libraryId) => {

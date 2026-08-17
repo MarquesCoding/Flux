@@ -3,10 +3,10 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
 import { staggerVariants } from '@FluxUI/animations/reveal';
 import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
-import { Spinner } from '@FluxUI/Spinner';
 import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
 import { Rail } from '@FluxUI/Rail';
 import { RevealItem } from '@FluxUI/RevealItem';
+import { SplashScreen } from '@FluxUI/SplashScreen';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { groupIntoRails } from '@FluxWeb/library/groupIntoRails';
 import { pickFeatured } from '@FluxWeb/library/pickFeatured';
@@ -23,6 +23,8 @@ const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
 
 const HERO_SAMPLE = 24;
+
+const HERO_ARTWORK_WAIT_MS = 2500;
 
 /**
  * Browses one library: the hero at the top, the rows beneath it, and the names of the other
@@ -41,12 +43,14 @@ const HERO_SAMPLE = 24;
  * @param onPalette - Told the colours on screen, so the page can be lit by them.
  * @param onSearchChange - Told what was typed.
  * @param hasHero - Whether to open with a hero at all.
+ * @param name - What this instance is called, for the wordmark held up while it reads.
  * @param isKept - Whether each item is kept.
  * @param onToggleKept - Told to keep something, or stop.
  */
 const LibraryBrowser = ({
   search = '',
   hasHero = false,
+  name,
   onFeatureChange,
   onPalette,
   onItemsLoaded,
@@ -65,6 +69,7 @@ const LibraryBrowser = ({
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [heroItems, setHeroItems] = useState<MediaSummary[]>([]);
   const [hasReadHero, setHasReadHero] = useState(false);
+  const [hasDrawnHero, setHasDrawnHero] = useState(false);
   const [appliedSearch, setAppliedSearch] = useState('');
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
 
@@ -200,7 +205,46 @@ const LibraryBrowser = ({
   }, [libraries]);
 
   const isSettled =
-    state === 'ready' && (selectedId === null || loadedFor !== null) && (!hasHero || hasReadHero);
+    state === 'ready' &&
+    (selectedId === null || loadedFor !== null) &&
+    (!hasHero || (hasReadHero && hasDrawnHero));
+
+  useEffect(() => {
+    const featured = pickFeatured(heroItems, HERO_COUNT)[0];
+
+    if (!hasHero || !hasReadHero || hasDrawnHero) {
+      return;
+    }
+
+    if (featured === undefined || !featured.hasBackdrop) {
+      setHasDrawnHero(true);
+
+      return;
+    }
+
+    let abandoned = false;
+
+    const drawn = () => {
+      if (!abandoned) {
+        setHasDrawnHero(true);
+      }
+    };
+
+    const artwork = new Image();
+
+    artwork.addEventListener('load', drawn);
+    artwork.addEventListener('error', drawn);
+    artwork.src = `/api/media/${featured.id}/image/backdrop`;
+
+    const gaveUp = setTimeout(drawn, HERO_ARTWORK_WAIT_MS);
+
+    return () => {
+      abandoned = true;
+      clearTimeout(gaveUp);
+      artwork.removeEventListener('load', drawn);
+      artwork.removeEventListener('error', drawn);
+    };
+  }, [hasHero, hasReadHero, hasDrawnHero, heroItems]);
 
   if (state === 'unreachable') {
     return (
@@ -211,11 +255,7 @@ const LibraryBrowser = ({
   }
 
   if (!isSettled) {
-    return (
-      <div className="flex justify-center p-12">
-        <Spinner label="Reading your library" size="lg" />
-      </div>
-    );
+    return <SplashScreen {...(name === undefined ? {} : { name })} label="Reading your library" />;
   }
 
   if (libraries.length === 0) {
