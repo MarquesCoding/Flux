@@ -1,4 +1,4 @@
-import { Field } from '@base-ui/react/field';
+import { useId } from 'react';
 import { cn } from '@FluxUI/cn';
 import type { TextFieldProps } from './TextField.types';
 
@@ -46,72 +46,84 @@ const TextField = ({
   icon,
   hasFocusOnMount = false,
   className,
-}: TextFieldProps) => (
-  <Field.Root
-    disabled={disabled}
-    invalid={error !== undefined}
-    className={cn('flex flex-col gap-1.5', className)}
-  >
-    <Field.Label className={cn('text-sm font-medium text-text', isLabelHidden ? 'sr-only' : '')}>
-      {label}
-    </Field.Label>
+}: TextFieldProps) => {
+  const fieldId = useId();
+  const describedBy = `${fieldId}-said`;
 
-    {description === undefined ? null : (
-      <Field.Description className="text-sm text-text-muted">{description}</Field.Description>
-    )}
+  return (
+    <div data-slot="field" className={cn('flex flex-col gap-1.5', className)}>
+      <label
+        htmlFor={fieldId}
+        className={cn('text-sm font-medium text-text', isLabelHidden ? 'sr-only' : '')}
+      >
+        {label}
+      </label>
 
-    <span
-      className={cn(
-        'flex w-full items-center gap-3',
-        isBare ? 'border-b border-[var(--surface-line)] pb-3' : '',
+      {description === undefined ? null : (
+        <p id={describedBy} className="text-sm text-text-muted">
+          {description}
+        </p>
       )}
-    >
-      {icon === undefined ? null : <span className="shrink-0 text-text-muted">{icon}</span>}
 
-      <Field.Control
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        required={required}
-        {...(autoComplete === undefined ? {} : { autoComplete })}
-        {...(min === undefined ? {} : { min })}
-        {...(max === undefined ? {} : { max })}
-        onValueChange={(next) => {
-          onValueChange(next);
-        }}
-        autoFocus={hasFocusOnMount}
+      <span
         className={cn(
-          'flux-field text-text',
-          'transition-colors placeholder:text-text-muted',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'w-full',
-          isBare
-            ? 'bg-transparent outline-none'
-            : 'border border-[var(--surface-line)] bg-[var(--surface-hover)] backdrop-blur-xl hover:border-[var(--surface-divider)]',
-          isBare
-            ? ''
-            : size === 'sm'
-              ? 'h-7 px-2.5 text-xs'
-              : size === 'lg'
-                ? 'h-10 px-5 text-sm'
-                : size === 'xl'
-                  ? 'h-12 px-6 text-base'
-                  : 'h-9 px-3.5 text-sm',
-          isBare && size === 'xl' ? 'text-2xl tracking-tight sm:text-3xl' : '',
-          type === 'time' ? '[color-scheme:dark]' : '',
-          isBare ? '' : isPill ? 'rounded-full' : 'rounded-xl',
-          error === undefined ? '' : 'border-danger',
+          'flex w-full items-center gap-3',
+          isBare ? 'border-b border-[var(--surface-line)] pb-3' : '',
         )}
-      />
-    </span>
+      >
+        {icon === undefined ? null : <span className="shrink-0 text-text-muted">{icon}</span>}
 
-    {error === undefined ? null : (
-      <Field.Error match role="alert" className="text-sm text-danger">
-        {error}
-      </Field.Error>
-    )}
-  </Field.Root>
-);
+        <input
+          id={fieldId}
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          required={required}
+          disabled={disabled}
+          {...(error === undefined ? {} : { 'aria-invalid': true })}
+          {...(description === undefined ? {} : { 'aria-describedby': describedBy })}
+          {...(autoComplete === undefined ? {} : { autoComplete })}
+          {...(min === undefined ? {} : { min })}
+          {...(max === undefined ? {} : { max })}
+          onChange={(event) => {
+            onValueChange(event.currentTarget.value);
+          }}
+          autoFocus={hasFocusOnMount}
+          className={cn(
+            'flux-field text-text outline-none',
+            'transition-[color,border-color,box-shadow] duration-[var(--duration-instant)] ease-[var(--ease-out)]',
+            'motion-reduce:transition-none placeholder:text-text-muted',
+            'focus-visible:ring-[3px] focus-visible:ring-ring/40',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            'w-full',
+            isBare
+              ? 'bg-transparent outline-none'
+              : 'border border-[var(--surface-line)] bg-[var(--surface-hover)] backdrop-blur-xl hover:border-[var(--surface-divider)]',
+            isBare
+              ? ''
+              : size === 'sm'
+                ? 'h-7 px-2.5 text-xs'
+                : size === 'lg'
+                  ? 'h-10 px-5 text-sm'
+                  : size === 'xl'
+                    ? 'h-12 px-6 text-base'
+                    : 'h-9 px-3.5 text-sm',
+            isBare && size === 'xl' ? 'text-2xl tracking-tight sm:text-3xl' : '',
+            type === 'time' ? '[color-scheme:dark]' : '',
+            isBare ? '' : isPill ? 'rounded-full' : 'rounded-md',
+            error === undefined ? '' : 'border-destructive',
+          )}
+        />
+      </span>
+
+      {error === undefined ? null : (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+};
 
 TextField.displayName = 'TextField';
 

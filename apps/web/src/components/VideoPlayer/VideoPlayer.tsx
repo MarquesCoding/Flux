@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   RiCastLine,
   RiCloseLine,
@@ -62,11 +61,14 @@ import {
 import { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } from '@FluxWeb/playback/liftCues';
 import { describeAudioTrack } from '@FluxCore/functions/describeTrack';
 import { listAvailableQualitySteps } from '@FluxCore/functions/listAvailableQualitySteps';
-import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
+import { useQueryClient } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview';
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
-import { AdminMessageOverlay } from './components/AdminMessageOverlay/AdminMessageOverlay';
+import { cn } from '@FluxUI/cn';
+import { Toaster } from '@FluxUI/Toaster';
+import { notify } from '@FluxUI/notify';
 import { correctDrift } from '@FluxCore/functions/correctDrift';
 import { whatToReport } from '@FluxCore/functions/whatToReport';
 import { describeCommand } from '@FluxWeb/party/describeCommand';
@@ -92,9 +94,15 @@ type FullscreenOwner = {
 
 const IDLE_MILLISECONDS = 2500;
 
-const PARTY_NOTE_MILLISECONDS = 4000;
+const STALL_BEFORE_SAYING_SO_MS = 400;
 
-const CAST_NOTE_MILLISECONDS = 6000;
+const PLAYER_TOASTS = 'player';
+
+const ADMIN_NOTICE = 'admin-notice';
+
+const PARTY_NOTICE = 'party-notice';
+
+const CAST_NOTICE = 'cast-notice';
 
 const JUMP_SECONDS = 30;
 
@@ -204,13 +212,10 @@ const VideoPlayer = ({
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isSilencedByPolicyRef = useRef(false);
   const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS);
+  const cache = useQueryClient();
   const [session, setSession] = useState<StartedSession | null>(null);
   const [state, setState] = useState<PlayerState>('starting');
   const [problem, setProblem] = useState<string | null>(null);
-  const [adminMessage, setAdminMessage] = useState<{
-    kind: 'stopped' | 'paused' | 'message';
-    text: string;
-  } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [reportedDuration, setReportedDuration] = useState(0);
@@ -257,38 +262,9 @@ const VideoPlayer = ({
   const poppedRef = useRef<PoppedOut | null>(null);
   const [isPoppedOut, setIsPoppedOut] = useState(false);
   const [castState, setCastState] = useState<CastState>('unavailable');
-  const [castNote, setCastNote] = useState<string | null>(null);
+
   const [isBuffering, setIsBuffering] = useState(false);
-  const [partyNote, setPartyNote] = useState<string | null>(null);
-  const prefersReducedMotion = useReducedMotion();
-
-  useEffect(() => {
-    if (castNote === null) {
-      return;
-    }
-
-    const goes = setTimeout(() => {
-      setCastNote(null);
-    }, CAST_NOTE_MILLISECONDS);
-
-    return () => {
-      clearTimeout(goes);
-    };
-  }, [castNote]);
-
-  useEffect(() => {
-    if (partyNote === null) {
-      return;
-    }
-
-    const goes = setTimeout(() => {
-      setPartyNote(null);
-    }, PARTY_NOTE_MILLISECONDS);
-
-    return () => {
-      clearTimeout(goes);
-    };
-  }, [partyNote]);
+  const [isSayingSo, setIsSayingSo] = useState(false);
 
   const appliedSequenceRef = useRef(-1);
   const hasCaughtUpRef = useRef(false);
@@ -329,7 +305,11 @@ const VideoPlayer = ({
     }
 
     appliedSequenceRef.current = command.sequence;
-    setPartyNote(describeCommand(command, party?.meConnectionId ?? null));
+    const said = describeCommand(command, party?.meConnectionId ?? null);
+
+    if (said !== null) {
+      notify.say(said, { where: PLAYER_TOASTS, id: PARTY_NOTICE });
+    }
 
     if (command.command.kind !== 'changeWhatIsPlaying') {
       element.currentTime = command.command.atSeconds;
@@ -347,7 +327,10 @@ const VideoPlayer = ({
 
     if (shouldRun && element.paused) {
       element.play().catch(() => {
-        setPartyNote('Your browser will not start this on its own — press play to join in.');
+        notify.say('Your browser will not start this on its own — press play to join in.', {
+          where: PLAYER_TOASTS,
+          id: PARTY_NOTICE,
+        });
       });
 
       return;
@@ -357,6 +340,24 @@ const VideoPlayer = ({
       element.pause();
     }
   }, [party, party?.isPlaying, party?.isHeld, state]);
+
+  const hasStalled = state === 'playing' && (isBuffering || party?.isHeld === true);
+
+  useEffect(() => {
+    if (!hasStalled) {
+      setIsSayingSo(false);
+
+      return;
+    }
+
+    const says = setTimeout(() => {
+      setIsSayingSo(true);
+    }, STALL_BEFORE_SAYING_SO_MS);
+
+    return () => {
+      clearTimeout(says);
+    };
+  }, [hasStalled]);
 
   const isInAParty = party !== undefined;
 
@@ -447,7 +448,7 @@ const VideoPlayer = ({
 
   useEffect(() => {
     if (partyNotice !== null) {
-      setPartyNote(partyNotice);
+      notify.say(partyNotice, { where: PLAYER_TOASTS });
     }
   }, [partyNotice]);
   const releaseRef = useRef<(() => Promise<void>) | null>(null);
@@ -597,7 +598,7 @@ const VideoPlayer = ({
             return;
           }
 
-          setCastNote('That device would not take this stream.');
+          notify.failed('That device would not take this stream.', { where: PLAYER_TOASTS });
         });
       }
 
@@ -948,30 +949,48 @@ const VideoPlayer = ({
 
         if (event.kind === 'stopped') {
           element?.pause();
-          setAdminMessage({ kind: 'stopped', text: event.reason });
+
+          notify.failed(event.reason, {
+            id: ADMIN_NOTICE,
+            where: PLAYER_TOASTS,
+            staysUntilDismissed: true,
+            action: { label: 'Close', onPress: onClose },
+          });
 
           return;
         }
 
         if (event.kind === 'paused') {
           element?.pause();
-          setAdminMessage({ kind: 'paused', text: event.reason });
+
+          notify.say(event.reason, {
+            id: ADMIN_NOTICE,
+            where: PLAYER_TOASTS,
+            staysUntilDismissed: true,
+          });
 
           return;
         }
 
         if (event.kind === 'message') {
-          setAdminMessage((current) =>
-            current?.kind === 'stopped' ? current : { kind: 'message', text: event.text },
-          );
+          const said = notify.say(event.text, {
+            where: PLAYER_TOASTS,
+            staysUntilDismissed: true,
+            action: {
+              label: 'Dismiss',
+              onPress: () => {
+                notify.forget(said);
+              },
+            },
+          });
 
           return;
         }
 
-        setAdminMessage((current) => (current?.kind === 'paused' ? null : current));
+        notify.forget(ADMIN_NOTICE);
         void element?.play();
       }),
-    [],
+    [onClose],
   );
 
   useEffect(() => {
@@ -1005,7 +1024,7 @@ const VideoPlayer = ({
       }
     });
 
-    void fetchMediaDetail(media.id).then((found) => {
+    void cache.ensureQueryData(libraryQueries.detail(media.id)).then((found) => {
       if (!abandoned) {
         setDetail(found);
       }
@@ -1536,7 +1555,7 @@ const VideoPlayer = ({
       <header
         className={
           isImmersive
-            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-transform duration-500 ease-out ${
+            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
                 isBarUp ? 'translate-y-0' : '-translate-y-full'
               }`
             : 'flex items-center justify-between gap-4'
@@ -1602,56 +1621,7 @@ const VideoPlayer = ({
           </div>
         )}
 
-        {adminMessage === null ? null : (
-          <AdminMessageOverlay
-            kind={adminMessage.kind}
-            text={adminMessage.text}
-            onDismiss={() => {
-              const wasStopped = adminMessage.kind === 'stopped';
-
-              setAdminMessage(null);
-
-              if (wasStopped) {
-                onClose();
-              }
-            }}
-          />
-        )}
-
-        <AnimatePresence>
-          {partyNote === null ? null : (
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-              transition={{ duration: prefersReducedMotion === true ? 0 : 0.22, ease: 'easeOut' }}
-              className="pointer-events-none absolute inset-x-0 top-6 z-30 flex justify-center px-4"
-            >
-              <p
-                role="status"
-                className="flux-glass max-w-md rounded-2xl px-4 py-2 text-center text-sm text-white"
-              >
-                {partyNote}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {castNote === null ? null : (
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-              transition={{ duration: prefersReducedMotion === true ? 0 : 0.22, ease: 'easeOut' }}
-              className="pointer-events-none absolute inset-x-0 bottom-24 z-30 flex justify-center px-4"
-            >
-              <p className="flux-glass max-w-md rounded-2xl px-4 py-2 text-center text-sm text-white">
-                {castNote}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <Toaster id={PLAYER_TOASTS} position="top-center" />
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
@@ -1673,8 +1643,14 @@ const VideoPlayer = ({
           />
         )}
 
-        {state !== 'playing' || (!isBuffering && party?.isHeld !== true) ? null : (
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3">
+        {!isSayingSo ? null : (
+          <div
+            className={cn(
+              'pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3',
+              'animate-in fade-in-0 duration-[var(--duration-base)] ease-[var(--ease-out)]',
+              'motion-reduce:duration-[var(--duration-instant)]',
+            )}
+          >
             <Spinner
               label={
                 party?.isHeld === true
@@ -1684,7 +1660,7 @@ const VideoPlayer = ({
               size="lg"
             />
 
-            <p className="flux-glass rounded-full px-4 py-1.5 text-sm text-white">
+            <p className="flux-glass rounded-md px-4 py-1.5 text-sm text-white">
               {party?.isHeld === true
                 ? waitingWord(party.waitingFor)
                 : 'Waiting for more of the film'}
@@ -1761,7 +1737,7 @@ const VideoPlayer = ({
         )}
 
         <div
-          className={`absolute inset-x-3 bottom-3 transition-transform duration-500 ease-out ${
+          className={`absolute inset-x-3 bottom-3 transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
             isBarUp ? 'translate-y-0' : 'translate-y-[calc(100%_+_1.5rem)]'
           }`}
         >
@@ -1835,14 +1811,15 @@ const VideoPlayer = ({
               }
 
               if (!isReachableOrigin(window.location.origin)) {
-                setCastNote(
+                notify.failed(
                   'Open Flux at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
+                  { where: PLAYER_TOASTS, id: CAST_NOTICE },
                 );
 
                 return;
               }
 
-              setCastNote(null);
+              notify.forget(CAST_NOTICE);
 
               const context = castContextRef.current;
 
@@ -1857,10 +1834,11 @@ const VideoPlayer = ({
                   return;
                 }
 
-                setCastNote(
+                notify.failed(
                   window.location.protocol === 'https:'
                     ? 'This browser offered no device. Safari casts to AirPlay receivers; Chrome needs the extension that backs casting.'
                     : 'This browser only casts over a secure connection. Serve Flux over HTTPS, or use Safari, which will cast from here as it is.',
+                  { where: PLAYER_TOASTS, id: CAST_NOTICE },
                 );
               });
             }}

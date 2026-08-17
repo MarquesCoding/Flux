@@ -1,14 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
+import { verifyBackupCode, verifyTotp } from '@FluxWeb/session/auth';
 import type { ChallengeMode, TwoFactorChallengeProps } from './TwoFactorChallenge.types';
 
 const TOTP_LENGTH = 6;
-
-const ENDPOINTS: Record<ChallengeMode, string> = {
-  totp: '/api/auth/two-factor/verify-totp',
-  backup: '/api/auth/two-factor/verify-backup-code',
-};
 
 /**
  * Asks for the second step of signing in to an account with two-factor turned on: either the code
@@ -43,13 +39,9 @@ const TwoFactorChallenge = ({ onVerified }: TwoFactorChallengeProps) => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(ENDPOINTS[mode], {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ code: trimmed }),
-      });
+      const accepted = isTotp ? await verifyTotp(trimmed) : await verifyBackupCode(trimmed);
 
-      if (!response.ok) {
+      if (!accepted) {
         setError(
           isTotp ? 'That code is not valid. Try the next one.' : 'That backup code is not valid.',
         );

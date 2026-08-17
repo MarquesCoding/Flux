@@ -21,13 +21,9 @@ import { Checkbox } from '@FluxUI/Checkbox';
 import { TextField } from '@FluxUI/TextField';
 import { describePermission } from '@FluxWeb/admin/describePermission';
 import { groupPermissions } from '@FluxWeb/admin/groupPermissions';
-import {
-  createRole,
-  deleteRole,
-  fetchPermissionCatalogue,
-  fetchRoles,
-  updateRole,
-} from '@FluxWeb/admin/fetchRoles';
+import { createRole, deleteRole, updateRole } from '@FluxWeb/admin/fetchRoles';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { adminQueries } from '@FluxWeb/query/adminQueries';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { Refusal } from '@FluxWeb/admin/fetchRoles';
 import type { Permission, Role } from '@FluxContracts/schemas/Permission';
@@ -40,8 +36,6 @@ const NEW_ROLE_POSITION = 50;
  * choosing from a hundred flat checkboxes is how a role ends up granting something nobody meant.
  */
 const RolesPanel = () => {
-  const [catalogue, setCatalogue] = useState<Permission[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Role | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -52,14 +46,15 @@ const RolesPanel = () => {
   const [draftName, setDraftName] = useState('');
   const [draftPosition, setDraftPosition] = useState('');
 
-  const reload = useCallback(async () => {
-    setRoles(await fetchRoles());
-  }, []);
+  const cache = useQueryClient();
 
-  useEffect(() => {
-    void fetchPermissionCatalogue().then(setCatalogue);
-    void reload();
-  }, [reload]);
+  const roles = useQuery(adminQueries.roles()).data ?? [];
+  const catalogue = useQuery(adminQueries.permissions()).data ?? [];
+
+  const reload = useCallback(
+    async () => cache.invalidateQueries({ queryKey: adminQueries.roles().queryKey }),
+    [cache],
+  );
 
   useEffect(() => {
     const picked = roles.find((candidate) => candidate.id === selectedRoleId) ?? null;
@@ -175,7 +170,7 @@ const RolesPanel = () => {
       {refusal === null || selected !== null ? null : (
         <p
           role="alert"
-          className="flex items-start gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
+          className="flex items-start gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
         >
           <RiAlertLine size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
           {refusal.message}

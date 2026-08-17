@@ -11,7 +11,8 @@ type TabRowGroup = {
 type TabRowProps = {
   label: string;
   groups: readonly TabRowGroup[];
+  value?: string;
   className?: string;
 };
 
-export type { TabRowProps };
+export type { TabRowProps, TabRowGroup, TabRowItem };

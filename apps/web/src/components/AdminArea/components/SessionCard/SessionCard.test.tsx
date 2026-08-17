@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SessionCard } from './SessionCard';
@@ -277,5 +277,30 @@ describe('SessionCard', () => {
     );
 
     expect(screen.queryByRole('button', { name: 'Message' })).not.toBeInTheDocument();
+  });
+
+  it('opens the stats for a stream, and closes them again', async () => {
+    const actor = userEvent.setup();
+
+    render(
+      <SessionCard
+        session={WATCHING_SESSION}
+        isBusy={false}
+        onStop={vi.fn()}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onMessage={vi.fn()}
+      />,
+    );
+
+    await actor.click(screen.getByRole('button', { name: 'Stream stats' }));
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    await actor.click(screen.getByRole('button', { name: /^Close$/ }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 });

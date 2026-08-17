@@ -1,6 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './components/App/App';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider } from '@tanstack/react-router';
+import { Toaster } from '@FluxUI/Toaster';
+import { TooltipScope } from '@FluxUI/TooltipScope';
+import { buildQueryClient } from '@FluxWeb/query/queryClient';
+import { buildRouter } from '@FluxWeb/routes/buildRouter';
 import './styles/main.css';
 
 const container = document.querySelector('#root');
@@ -9,8 +14,17 @@ if (container === null) {
   throw new Error('Root container #root is missing from index.html');
 }
 
+const answers = buildQueryClient();
+
+const router = buildRouter();
+
 createRoot(container).render(
   <StrictMode>
-    <App />
+    <QueryClientProvider client={answers}>
+      <TooltipScope>
+        <RouterProvider router={router} />
+        <Toaster />
+      </TooltipScope>
+    </QueryClientProvider>
   </StrictMode>,
 );

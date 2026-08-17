@@ -2,23 +2,21 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TwoFactorChallenge } from './TwoFactorChallenge';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
-type FetchLike = (
-  input: string,
-  init?: RequestInit,
-) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>;
+const verifyTotp = vi.hoisted(() => vi.fn());
+const verifyBackupCode = vi.hoisted(() => vi.fn());
 
-const fetchMock = vi.fn<FetchLike>();
+vi.mock('@FluxWeb/session/auth', () => ({ verifyTotp, verifyBackupCode }));
 
-const respondWith = (ok: boolean, status = ok ? 200 : 401) => {
-  fetchMock.mockResolvedValue({ ok, status, json: () => Promise.resolve({}) });
+const respondWith = (accepted: boolean) => {
+  verifyTotp.mockResolvedValue(accepted);
+  verifyBackupCode.mockResolvedValue(accepted);
 };
 
 beforeEach(() => {
-  fetchMock.mockReset();
+  verifyTotp.mockReset();
+  verifyBackupCode.mockReset();
   respondWith(true);
-  vi.stubGlobal('fetch', fetchMock);
 });
 
 afterEach(() => {
@@ -39,11 +37,11 @@ describe('TwoFactorChallenge', () => {
     await actor.type(screen.getByLabelText('Authenticator code'), '123');
     await actor.click(screen.getByRole('button', { name: 'Verify' }));
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(verifyTotp).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent('6 digits');
   });
 
-  it('posts a valid code to the totp endpoint', async () => {
+  it('checks a valid code against the authenticator', async () => {
     const actor = userEvent.setup();
     render(<TwoFactorChallenge onVerified={vi.fn()} />);
 
@@ -51,7 +49,7 @@ describe('TwoFactorChallenge', () => {
     await actor.click(screen.getByRole('button', { name: 'Verify' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/auth/two-factor/verify-totp', expect.anything());
+      expect(verifyTotp).toHaveBeenCalledWith('123456');
     });
   });
 
@@ -90,7 +88,7 @@ describe('TwoFactorChallenge', () => {
     expect(screen.getByLabelText('Backup code')).toBeInTheDocument();
   });
 
-  it('posts a backup code to the backup endpoint', async () => {
+  it('checks a backup code as a backup code', async () => {
     const actor = userEvent.setup();
     render(<TwoFactorChallenge onVerified={vi.fn()} />);
 
@@ -99,10 +97,8 @@ describe('TwoFactorChallenge', () => {
     await actor.click(screen.getByRole('button', { name: 'Verify' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/auth/two-factor/verify-backup-code',
-        expect.anything(),
-      );
+      expect(verifyBackupCode).toHaveBeenCalledWith('abcd-efgh');
+      expect(verifyTotp).not.toHaveBeenCalled();
     });
   });
 
@@ -115,7 +111,7 @@ describe('TwoFactorChallenge', () => {
     await actor.click(screen.getByRole('button', { name: 'Verify' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(verifyBackupCode).toHaveBeenCalledOnce();
     });
   });
 
@@ -136,7 +132,7 @@ describe('TwoFactorChallenge', () => {
   });
 
   it('reports an unreachable server rather than failing silently', async () => {
-    fetchMock.mockRejectedValue(new Error('offline'));
+    verifyTotp.mockRejectedValue(new Error('offline'));
     const actor = userEvent.setup();
     render(<TwoFactorChallenge onVerified={vi.fn()} />);
 

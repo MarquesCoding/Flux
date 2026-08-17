@@ -3,6 +3,8 @@ import { getRealtimeClient } from '@FluxWeb/realtime/getRealtimeClient';
 import type { LogQuery, LogRecord } from '@FluxContracts/schemas/Log';
 import type { RealtimeClient } from '@FluxWeb/realtime/createRealtimeClient';
 
+type Subscribes = Pick<RealtimeClient, 'subscribe'>;
+
 type LogPage = { records: LogRecord[]; total: number };
 
 const NOTHING: LogPage = { records: [], total: 0 };
@@ -43,7 +45,7 @@ const fetchLogs = async (query: Partial<LogQuery>): Promise<LogPage> => {
  */
 const watchLogs = (
   onRecord: (record: LogRecord) => void,
-  client: RealtimeClient = getRealtimeClient(),
+  client: Subscribes = getRealtimeClient(),
 ): (() => void) =>
   client.subscribe('logs', (event) => {
     const read = LogRecordSchema.safeParse(event.payload);

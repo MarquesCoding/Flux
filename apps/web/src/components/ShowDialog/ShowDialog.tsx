@@ -9,7 +9,8 @@ import { Badge } from '@FluxUI/Badge';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { fetchShow } from '@FluxWeb/library/fetchShows';
+import { useQuery } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
 import { RatingPanel } from '@FluxWeb/components/RatingPanel/RatingPanel';
@@ -17,7 +18,6 @@ import { pickUpFrom } from './pickUpFrom';
 import { EpisodeRow } from './components/EpisodeRow/EpisodeRow';
 import { MissingRow } from './components/MissingRow/MissingRow';
 import { findGaps } from '@FluxCore/functions/findGaps';
-import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { ShowDialogProps } from './ShowDialog.types';
 
 /**
@@ -70,14 +70,19 @@ const ShowDialog = ({
   stars = null,
   onRate,
 }: ShowDialogProps) => {
-  const [detail, setDetail] = useState<ShowDetail | null>(null);
-
   const [unlettered, setUnlettered] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [lastShown, setLastShown] = useState(show);
   const [chosenSeason, setChosenSeason] = useState<number | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  const asked = useQuery(libraryQueries.show(show?.libraryId ?? null, show?.id ?? null));
+  const detail = show === null ? null : (asked.data ?? null);
+  const isLoading = show !== null && asked.isPending;
+
+  const carryOnRef = useRef({ resumeFor, isFinished });
+
+  carryOnRef.current = { resumeFor, isFinished };
 
   useEffect(() => {
     if (show === null) {
@@ -85,33 +90,23 @@ const ShowDialog = ({
     }
 
     setLastShown(show);
-    setDetail(null);
-    setIsLoading(true);
-
-    let abandoned = false;
-
-    void fetchShow(show.libraryId, show.id).then((found) => {
-      if (abandoned) {
-        return;
-      }
-
-      setDetail(found);
-      setIsLoading(false);
-
-      const carryingOn = found === null ? null : pickUpFrom(found, { resumeFor, isFinished });
-
-      setChosenSeason(carryingOn?.episode.seasonNumber ?? null);
-    });
 
     const returning = requestAnimationFrame(() => {
       scrollToTopOf(topRef.current, prefersReducedMotion !== true);
     });
 
     return () => {
-      abandoned = true;
       cancelAnimationFrame(returning);
     };
   }, [show, prefersReducedMotion]);
+
+  useEffect(() => {
+    if (detail === null) {
+      return;
+    }
+
+    setChosenSeason(pickUpFrom(detail, carryOnRef.current)?.episode.seasonNumber ?? null);
+  }, [detail]);
 
   const shown = show ?? lastShown;
 
@@ -190,23 +185,13 @@ const ShowDialog = ({
             <motion.div
               variants={revealVariants(prefersReducedMotion)}
               transition={revealTransition(prefersReducedMotion)}
-              className="flex flex-wrap items-center justify-between gap-3"
+              className="flex flex-wrap items-center gap-3"
             >
               <span className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted">
                 {shown.seasonCount === 1
                   ? `${shown.episodeCount.toString()} episodes`
                   : `${shown.seasonCount.toString()} seasons · ${shown.episodeCount.toString()} episodes`}
               </span>
-
-              {(shown.genres ?? []).length === 0 ? null : (
-                <span className="flex flex-wrap gap-1.5">
-                  {(shown.genres ?? []).slice(0, 3).map((genre) => (
-                    <Badge key={genre} size="sm" className="bg-surface/70 backdrop-blur">
-                      {genre}
-                    </Badge>
-                  ))}
-                </span>
-              )}
             </motion.div>
 
             <motion.h2
@@ -231,6 +216,20 @@ const ShowDialog = ({
                 />
               )}
             </motion.h2>
+
+            {(shown.genres ?? []).length === 0 ? null : (
+              <motion.span
+                variants={revealVariants(prefersReducedMotion)}
+                transition={revealTransition(prefersReducedMotion)}
+                className="flex flex-wrap gap-1.5"
+              >
+                {(shown.genres ?? []).slice(0, 3).map((genre) => (
+                  <Badge key={genre} size="sm" className="bg-surface/70 backdrop-blur">
+                    {genre}
+                  </Badge>
+                ))}
+              </motion.span>
+            )}
           </motion.div>
         </div>
 

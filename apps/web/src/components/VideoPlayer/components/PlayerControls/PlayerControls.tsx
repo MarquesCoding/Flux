@@ -166,7 +166,7 @@ const PlayerControls = ({
   renderPreview,
   partyMenu,
 }: PlayerControlsProps) => (
-  <div className="flux-glass flex flex-col gap-1 rounded-xl px-3 py-2 text-white sm:px-4">
+  <div className="flux-glass flex flex-col gap-1 rounded-lg px-3 py-2 text-white sm:px-4">
     <div className="flex items-center gap-3">
       <Slider
         label={`Seek through ${title}`}
@@ -255,7 +255,7 @@ const PlayerControls = ({
           onValueChange={(next) => {
             onVolumeChange(next / 100);
           }}
-          className="w-0 overflow-hidden px-0 transition-all group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
+          className="w-0 overflow-hidden px-0 transition-[width,padding] duration-[var(--duration-fast)] ease-[var(--ease-out)] motion-reduce:transition-none group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
         />
       </div>
 

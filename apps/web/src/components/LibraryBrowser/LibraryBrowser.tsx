@@ -1,22 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
 import { staggerVariants } from '@FluxUI/animations/reveal';
 import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
-import { Spinner } from '@FluxUI/Spinner';
-import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
 import { Rail } from '@FluxUI/Rail';
 import { RevealItem } from '@FluxUI/RevealItem';
+import { SplashScreen } from '@FluxUI/SplashScreen';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { groupIntoRails } from '@FluxWeb/library/groupIntoRails';
+import { useQuery } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { viewingQueries } from '@FluxWeb/query/viewingQueries';
 import { pickFeatured } from '@FluxWeb/library/pickFeatured';
 import { EmptyLibrary } from '@FluxWeb/components/LibraryBrowser/components/EmptyLibrary/EmptyLibrary';
-import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
+import { byMediaId } from '@FluxWeb/playback/watchProgress';
 import { watchedFraction } from '@FluxContracts/schemas/WatchProgress';
 import { resumeFor } from '@FluxWeb/playback/resumeFor';
-import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
-import type { BrowserState, LibraryBrowserProps } from './LibraryBrowser.types';
+import type { LibraryBrowserProps } from './LibraryBrowser.types';
 
 const HERO_COUNT = 5;
 const PAGE_SIZE = 60;
@@ -41,12 +41,14 @@ const HERO_SAMPLE = 24;
  * @param onPalette - Told the colours on screen, so the page can be lit by them.
  * @param onSearchChange - Told what was typed.
  * @param hasHero - Whether to open with a hero at all.
+ * @param name - What this instance is called, for the wordmark held up while it reads.
  * @param isKept - Whether each item is kept.
  * @param onToggleKept - Told to keep something, or stop.
  */
 const LibraryBrowser = ({
   search = '',
   hasHero = false,
+  name,
   onFeatureChange,
   onPalette,
   onItemsLoaded,
@@ -59,15 +61,36 @@ const LibraryBrowser = ({
   libraryId,
   onLibraryChange,
 }: LibraryBrowserProps) => {
-  const [libraries, setLibraries] = useState<Library[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [items, setItems] = useState<MediaSummary[]>([]);
-  const [loadedFor, setLoadedFor] = useState<string | null>(null);
-  const [heroItems, setHeroItems] = useState<MediaSummary[]>([]);
   const [appliedSearch, setAppliedSearch] = useState('');
-  const [progress, setProgress] = useState(new Map<string, WatchProgress>());
+  const [chosen, setChosen] = useState<string | null>(null);
 
-  const [state, setState] = useState<BrowserState>('loading');
+  const askedFor = useQuery(libraryQueries.all());
+  const libraries = askedFor.data ?? [];
+
+  const selectedId =
+    libraries.find((entry) => entry.id === libraryId)?.id ??
+    libraries.find((entry) => entry.id === chosen)?.id ??
+    libraries[0]?.id ??
+    null;
+
+  const page = useQuery(
+    libraryQueries.items(selectedId, { search: appliedSearch, limit: PAGE_SIZE }),
+  );
+
+  const items = page.data?.items ?? [];
+  const loadedFor = page.data?.libraryId ?? null;
+
+  const sample = useQuery(
+    libraryQueries.across(
+      libraries.map((entry) => entry.id),
+      { search: '', limit: HERO_SAMPLE },
+    ),
+  );
+
+  const heroItems = sample.data ?? [];
+
+  const watched = useQuery(viewingQueries.progress());
+  const progress = byMediaId(watched.data ?? []);
 
   const reportItems = useRef(onItemsLoaded);
 
@@ -84,59 +107,10 @@ const LibraryBrowser = ({
   }, [items]);
 
   useEffect(() => {
-    let abandoned = false;
-
-    fetchLibraries()
-      .then((found) => {
-        if (abandoned) {
-          return;
-        }
-
-        const asked = found.find((entry) => entry.id === libraryId)?.id;
-        const opening = asked ?? found[0]?.id ?? null;
-
-        setLibraries(found);
-        setSelectedId(opening);
-        setState('ready');
-
-        if (opening !== null) {
-          reportLibrary.current?.(opening);
-        }
-      })
-      .catch(() => {
-        if (!abandoned) {
-          setState('unreachable');
-        }
-      });
-
-    return () => {
-      abandoned = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (libraryId === undefined || libraryId === null) {
-      return;
+    if (selectedId !== null) {
+      reportLibrary.current?.(selectedId);
     }
-
-    if (libraries.some((entry) => entry.id === libraryId)) {
-      setSelectedId(libraryId);
-    }
-  }, [libraryId, libraries]);
-
-  useEffect(() => {
-    let abandoned = false;
-
-    void fetchWatchProgress().then((found) => {
-      if (!abandoned && found !== null) {
-        setProgress(byMediaId(found));
-      }
-    });
-
-    return () => {
-      abandoned = true;
-    };
-  }, []);
+  }, [selectedId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -148,68 +122,21 @@ const LibraryBrowser = ({
     };
   }, [search]);
 
-  const loadItems = useCallback(async () => {
-    if (selectedId === null) {
-      return;
-    }
+  const isReading =
+    askedFor.isPending ||
+    (selectedId !== null && page.isPending) ||
+    (hasHero && libraries.length > 0 && sample.isPending);
 
-    try {
-      const page = await fetchLibraryItems(selectedId, {
-        search: appliedSearch,
-        limit: PAGE_SIZE,
-      });
-
-      setItems(page.items);
-      setLoadedFor(selectedId);
-    } catch {
-      setState('unreachable');
-    }
-  }, [selectedId, appliedSearch]);
-
-  useEffect(() => {
-    void loadItems();
-  }, [loadItems]);
-
-  useEffect(() => {
-    if (libraries.length === 0) {
-      setHeroItems([]);
-
-      return;
-    }
-
-    let abandoned = false;
-
-    void Promise.all(
-      libraries.map((entry) =>
-        fetchLibraryItems(entry.id, { search: '', limit: HERO_SAMPLE })
-          .then((page) => page.items)
-          .catch(() => []),
-      ),
-    ).then((pages) => {
-      if (!abandoned) {
-        setHeroItems(pages.flat());
-      }
-    });
-
-    return () => {
-      abandoned = true;
-    };
-  }, [libraries]);
-
-  if (state === 'loading') {
-    return (
-      <div className="flex justify-center p-12">
-        <Spinner label="Reading your library" size="lg" />
-      </div>
-    );
-  }
-
-  if (state === 'unreachable') {
+  if (askedFor.isError || page.isError) {
     return (
       <p role="alert" className="text-sm text-danger">
         Your library could not be loaded. Check that the server is running and reload.
       </p>
     );
+  }
+
+  if (isReading) {
+    return <SplashScreen {...(name === undefined ? {} : { name })} label="Reading your library" />;
   }
 
   if (libraries.length === 0) {
@@ -266,7 +193,7 @@ const LibraryBrowser = ({
                 isPill
                 variant={entry.id === selectedId ? 'glossy' : 'secondary'}
                 onClick={() => {
-                  setSelectedId(entry.id);
+                  setChosen(entry.id);
                   onLibraryChange?.(entry.id);
                 }}
               >

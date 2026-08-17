@@ -365,7 +365,7 @@ describe('what a dock can carry besides places', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('dice').parentElement?.parentElement).toHaveStyle({
-        transform: 'none',
+        transform: 'scale(1)',
       });
     });
   });

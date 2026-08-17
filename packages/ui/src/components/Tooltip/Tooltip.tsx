@@ -1,28 +1,39 @@
-import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
+import { useContext } from 'react';
+import * as RadixTooltip from '@radix-ui/react-tooltip';
+import { tooltipScopeContext } from '@FluxUI/tooltipScopeContext';
+import { cn } from '@FluxUI/cn';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { TooltipProps } from './Tooltip.types';
 
 const DELAY_MILLISECONDS = 450;
 
 const POPUP_MOTION = [
-  'transition-[opacity,transform,translate,scale] duration-150 ease-out',
-  'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
-  'data-[starting-style]:scale-95 data-[ending-style]:scale-95',
-  'data-[side=top]:origin-bottom data-[side=bottom]:origin-top',
-  'data-[side=left]:origin-right data-[side=right]:origin-left',
-  'data-[side=top]:data-[starting-style]:translate-y-1',
-  'data-[side=bottom]:data-[starting-style]:-translate-y-1',
-  'data-[side=left]:data-[starting-style]:translate-x-1',
-  'data-[side=right]:data-[starting-style]:-translate-x-1',
-  'motion-reduce:transition-opacity',
-  'motion-reduce:data-[starting-style]:scale-100 motion-reduce:data-[ending-style]:scale-100',
-  'motion-reduce:data-[starting-style]:translate-x-0 motion-reduce:data-[starting-style]:translate-y-0',
+  'origin-[var(--radix-tooltip-content-transform-origin)]',
+  'data-[state=delayed-open]:animate-in data-[state=closed]:animate-out',
+  'data-[state=delayed-open]:fade-in-0 data-[state=closed]:fade-out-0',
+  'data-[state=delayed-open]:zoom-in-95 data-[state=closed]:zoom-out-95',
+  'duration-[var(--duration-fast)] ease-[var(--ease-out)]',
+  'data-[state=closed]:duration-[var(--duration-leaving)]',
+  'motion-reduce:duration-[var(--duration-instant)]',
 ].join(' ');
 
 /**
  * Names a control for the pointer that has stopped on it, which is how a bar of icons stays
  * learnable. Wraps the control rather than sitting beside it, so the name is attached to the thing
  * it names for anybody reading the page rather than looking at it.
+ *
+ * It grows from the edge nearest the control rather than from its own middle, which is what makes it
+ * read as belonging to that control rather than as a card that happened to appear.
+ *
+ * The pause before it appears is there so that crossing a row of icons does not flash a name on each
+ * one. But once any name is showing, the next is instant: the pause exists to establish that the
+ * pointer has stopped, and that has already been established. Skipping it is what makes a bar of
+ * icons feel fast rather than reluctant, and it needs the scope at the root — a scope per tooltip
+ * means each one is the first one, and none of them ever skips.
+ *
+ * Where there is no scope it makes its own, so a tooltip works wherever it is put and merely loses
+ * the shared pause. A component that throws depending on what is above it is not one anybody can
+ * use with confidence.
  *
  * @param label - What the control does.
  * @param children - The control being named.
@@ -38,28 +49,40 @@ const Tooltip = ({
   delayMilliseconds = DELAY_MILLISECONDS,
 }: TooltipProps) => {
   const portalContainer = usePortalContainer();
+  const isScoped = useContext(tooltipScopeContext);
 
   if (isDisabled) {
     return children;
   }
 
-  return (
-    <BaseTooltip.Provider delay={delayMilliseconds}>
-      <BaseTooltip.Root>
-        <BaseTooltip.Trigger render={children} />
+  const named = (
+    <RadixTooltip.Root delayDuration={delayMilliseconds}>
+      <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
 
-        <BaseTooltip.Portal container={portalContainer}>
-          <BaseTooltip.Positioner side={side} sideOffset={8} collisionPadding={8} className="z-50">
-            <BaseTooltip.Popup
-              aria-hidden
-              className={`flux-glass rounded-lg px-2 py-1 text-xs font-medium text-white shadow-lg ${POPUP_MOTION}`}
-            >
-              {label}
-            </BaseTooltip.Popup>
-          </BaseTooltip.Positioner>
-        </BaseTooltip.Portal>
-      </BaseTooltip.Root>
-    </BaseTooltip.Provider>
+      <RadixTooltip.Portal
+        {...(portalContainer === undefined ? {} : { container: portalContainer })}
+      >
+        <RadixTooltip.Content
+          aria-hidden
+          side={side}
+          sideOffset={8}
+          collisionPadding={8}
+          data-slot="tooltip-content"
+          className={cn(
+            'z-50 flux-glass rounded-md px-2 py-1 text-xs font-medium text-white shadow-[var(--shadow-lifted)]',
+            POPUP_MOTION,
+          )}
+        >
+          {label}
+        </RadixTooltip.Content>
+      </RadixTooltip.Portal>
+    </RadixTooltip.Root>
+  );
+
+  return isScoped ? (
+    named
+  ) : (
+    <RadixTooltip.Provider delayDuration={delayMilliseconds}>{named}</RadixTooltip.Provider>
   );
 };
 

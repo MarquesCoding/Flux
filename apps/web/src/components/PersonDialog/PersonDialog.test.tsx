@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { renderInACache } from '@FluxWeb/testing/renderInACache';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PersonDialog } from './PersonDialog';
@@ -52,7 +53,7 @@ const item = (over: Partial<MediaSummary> = {}): MediaSummary => ({
 });
 
 const draw = (over: Partial<Parameters<typeof PersonDialog>[0]> = {}) =>
-  render(
+  renderInACache(
     <PersonDialog
       personId={1245}
       onClose={vi.fn()}

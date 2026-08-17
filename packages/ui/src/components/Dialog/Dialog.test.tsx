@@ -51,8 +51,9 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
-    expect(panel.className).toContain('data-[starting-style]:opacity-0');
-    expect(panel.className).toContain('data-[ending-style]:opacity-0');
+    expect(panel.className).toContain('data-[state=open]:fade-in-0');
+    expect(panel.className).toContain('data-[state=closed]:fade-out-0');
+    expect(panel.className).toContain('data-[state=closed]:fade-out-0');
   });
 
   it('rises from the edge a thumb summoned it from, and settles in place on a desktop', () => {
@@ -64,8 +65,8 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
-    expect(panel.className).toContain('max-sm:data-[starting-style]:translate-y-10');
-    expect(panel.className).toContain('sm:data-[starting-style]:scale-[0.92]');
+    expect(panel.className).toContain('max-sm:data-[state=open]:slide-in-from-bottom-8');
+    expect(panel.className).toContain('sm:data-[state=open]:zoom-in-95');
   });
 
   it('drops the movement, but not the fade, when movement is unwelcome', () => {
@@ -76,7 +77,7 @@ describe('Dialog', () => {
     );
 
     expect(screen.getByRole('dialog', { name: 'Arrival' }).className).toContain(
-      'motion-reduce:transition-opacity',
+      'motion-reduce:duration-[var(--duration-instant)]',
     );
   });
   it('leaves the way it arrived, rather than being snatched away', () => {
@@ -88,9 +89,9 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
-    expect(panel.className).toContain('duration-[280ms]');
+    expect(panel.className).toContain('data-[state=closed]:duration-[var(--duration-leaving)]');
     expect(panel.className).not.toContain('data-[ending-style]:duration-150');
-    expect(panel.className).toContain('sm:data-[ending-style]:scale-[0.92]');
+    expect(panel.className).toContain('sm:data-[state=closed]:zoom-out-95');
   });
 
   describe('in fullscreen', () => {
@@ -150,8 +151,8 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
-    expect(panel.className).toContain('sm:min-h-[68vh]');
-    expect(panel.className).toContain('sm:max-h-[92vh]');
+    expect(panel.className).toContain('sm:h-[88vh]');
+    expect(panel.className).toContain('sm:max-h-[88vh]');
   });
 
   it('leaves an ordinary dialog to be the size of its contents', () => {

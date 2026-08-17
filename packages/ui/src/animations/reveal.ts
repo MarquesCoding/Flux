@@ -31,9 +31,9 @@ const stillTransition: Transition = { duration: 0.18, ease: 'easeOut' };
 const RISE = 18;
 
 const riseVariants: Variants = {
-  hidden: { opacity: 0, y: RISE },
-  shown: { opacity: 1, y: 0 },
-  gone: { opacity: 0, y: -RISE },
+  hidden: { opacity: 0, transform: `translateY(${RISE.toString()}px)` },
+  shown: { opacity: 1, transform: 'translateY(0px)' },
+  gone: { opacity: 0, transform: `translateY(-${RISE.toString()}px)` },
 };
 
 const fadeVariants: Variants = {
@@ -109,15 +109,19 @@ const groupVariants: Variants = { hidden: {}, shown: {}, gone: {} };
  * @returns The variants to hand a Motion component, which take the card's index.
  */
 const revealItemVariants = (prefersReducedMotion: boolean | null): Variants => ({
-  hidden: prefersReducedMotion === true ? { opacity: 0 } : { opacity: 0, y: RISE },
+  hidden:
+    prefersReducedMotion === true
+      ? { opacity: 0 }
+      : { opacity: 0, transform: `translateY(${RISE.toString()}px)` },
   shown: (index: number) => ({
     opacity: 1,
-    y: 0,
+    transform: 'translateY(0px)',
     transition: { ...revealTransition(prefersReducedMotion), delay: staggerDelay(index) },
   }),
   gone: (index: number) => ({
     opacity: 0,
-    y: prefersReducedMotion === true ? 0 : -RISE,
+    transform:
+      prefersReducedMotion === true ? 'translateY(0px)' : `translateY(-${RISE.toString()}px)`,
     transition: { ...stillTransition, delay: staggerDelay(index) / 2 },
   }),
 });

@@ -1,4 +1,4 @@
-import { Tabs as BaseTabs } from '@base-ui/react/tabs';
+import * as RadixTabs from '@radix-ui/react-tabs';
 import { cn } from '@FluxUI/cn';
 import type { TabsProps } from './Tabs.types';
 
@@ -7,13 +7,17 @@ import type { TabsProps } from './Tabs.types';
  * neither has to know about the other. Controlled rather than holding its own state, since which
  * tab is open usually belongs in the address.
  *
+ * A tab is chosen when it is pressed rather than when it is arrowed onto, so moving across a bar
+ * with the keyboard does not open — and fetch — every panel on the way past.
+ *
  * @param value - Which tab is showing.
  * @param onValueChange - Told which tab was chosen.
  * @param children - The bar and the panels.
  * @param className - Extra classes for the caller's own layout.
  */
 const Tabs = ({ value, onValueChange, children, className }: TabsProps) => (
-  <BaseTabs.Root
+  <RadixTabs.Root
+    activationMode="manual"
     value={value}
     onValueChange={(next) => {
       onValueChange(String(next));
@@ -21,7 +25,7 @@ const Tabs = ({ value, onValueChange, children, className }: TabsProps) => (
     className={cn('contents', className)}
   >
     {children}
-  </BaseTabs.Root>
+  </RadixTabs.Root>
 );
 
 Tabs.displayName = 'Tabs';

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   RiAddLine,
   RiAlertLine,
@@ -23,26 +23,19 @@ import { OptionMenu } from '@FluxUI/OptionMenu';
 import { TextField } from '@FluxUI/TextField';
 import { describePermission } from '@FluxWeb/admin/describePermission';
 import { groupPermissions } from '@FluxWeb/admin/groupPermissions';
-import {
-  assignRole,
-  clearOverride,
-  fetchAccountPermissions,
-  fetchPermissionCatalogue,
-  fetchRoles,
-  removeRole,
-  setOverride,
-} from '@FluxWeb/admin/fetchRoles';
+import { assignRole, clearOverride, removeRole, setOverride } from '@FluxWeb/admin/fetchRoles';
 import {
   banAccount,
-  fetchAccounts,
   inviteAccount,
   removeAccount,
   unbanAccount,
 } from '@FluxWeb/admin/fetchAccounts';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { adminQueries } from '@FluxWeb/query/adminQueries';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { Account } from '@FluxWeb/admin/fetchAccounts';
-import type { AccountPermissions, Refusal } from '@FluxWeb/admin/fetchRoles';
-import type { Permission, Role } from '@FluxContracts/schemas/Permission';
+import type { Refusal } from '@FluxWeb/admin/fetchRoles';
+import type { Permission } from '@FluxContracts/schemas/Permission';
 
 type Asked = { kind: 'ban' | 'remove'; account: Account };
 
@@ -53,11 +46,7 @@ type Asked = { kind: 'ban' | 'remove'; account: Account };
  * surprising answer usually comes from.
  */
 const AccountsPanel = () => {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [catalogue, setCatalogue] = useState<Permission[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
   const [accountId, setAccountId] = useState<string | null>(null);
-  const [held, setHeld] = useState<AccountPermissions | null>(null);
   const [refusal, setRefusal] = useState<Refusal>(null);
   const [addingPermission, setAddingPermission] = useState<Permission | null>(null);
   const [inviteName, setInviteName] = useState('');
@@ -67,26 +56,19 @@ const AccountsPanel = () => {
   const [search, setSearch] = useState('');
   const [asking, setAsking] = useState<Asked | null>(null);
 
+  const cache = useQueryClient();
+
+  const accounts = useQuery(adminQueries.accounts()).data ?? [];
+  const catalogue = useQuery(adminQueries.permissions()).data ?? [];
+  const roles = useQuery(adminQueries.roles()).data ?? [];
+  const held = useQuery(adminQueries.accountPermissions(accountId)).data ?? null;
+
   const reload = useCallback(async () => {
-    setAccounts(await fetchAccounts());
-
-    if (accountId === null) {
-      setHeld(null);
-
-      return;
-    }
-
-    setHeld(await fetchAccountPermissions(accountId));
-  }, [accountId]);
-
-  useEffect(() => {
-    void fetchPermissionCatalogue().then(setCatalogue);
-    void fetchRoles().then(setRoles);
-  }, []);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+    await Promise.all([
+      cache.invalidateQueries({ queryKey: adminQueries.accounts().queryKey }),
+      cache.invalidateQueries({ queryKey: adminQueries.accountPermissions(accountId).queryKey }),
+    ]);
+  }, [cache, accountId]);
 
   const act = useCallback(
     async (run: () => Promise<Refusal>) => {
@@ -334,7 +316,7 @@ const AccountsPanel = () => {
       {refusal === null || picked !== null ? null : (
         <p
           role="alert"
-          className="flex items-start gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
+          className="flex items-start gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
         >
           <RiAlertLine size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
           {refusal.message}
@@ -482,7 +464,7 @@ const AccountsPanel = () => {
                     matchTriggerWidth
                     className="min-w-56 flex-1"
                     trigger={
-                      <span className="flex w-full items-center justify-between gap-2 rounded-xl border border-[var(--surface-line)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-text">
+                      <span className="flex w-full items-center justify-between gap-2 rounded-lg border border-[var(--surface-line)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-text">
                         <span className="min-w-0 truncate">
                           {addingPermission === null
                             ? 'Pick a permission'

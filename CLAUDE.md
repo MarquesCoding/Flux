@@ -55,19 +55,22 @@ standalone functions. snake_case for Rust modules.
 
 ## Stack
 
-| Layer        | Choice                               | ADR                                                         |
-| ------------ | ------------------------------------ | ----------------------------------------------------------- |
-| API contract | Hono + `@hono/zod-openapi`           | [0002](docs/adr/0002-api-contract-openapi-first.md)         |
-| Docs         | Scalar + Starlight                   | [0003](docs/adr/0003-documentation-scalar-and-starlight.md) |
-| Auth         | better-auth                          | [0004](docs/adr/0004-authentication-better-auth.md)         |
-| Data         | Postgres + Drizzle + pg-boss         | [0005](docs/adr/0005-data-layer-postgres-drizzle-pgboss.md) |
-| Plugins      | Process-per-plugin, brokered         | [0007](docs/adr/0007-plugin-runtime-brokered.md)            |
-| Media        | Rust + FFmpeg child process          | [0009](docs/adr/0009-media-pipeline-rust-ffmpeg.md)         |
-| UI           | Base UI + Tailwind + Tabler + Motion | [0013](docs/adr/0013-fluxui-component-stack.md)             |
-| Lint         | oxlint + ESLint + husky              | [0014](docs/adr/0014-lint-and-commit-enforcement.md)        |
-| Realtime     | One WebSocket, viewer + admin feeds  | [0017](docs/adr/0017-realtime-one-socket-two-feeds.md)      |
+| Layer        | Choice                              | ADR                                                                                  |
+| ------------ | ----------------------------------- | ------------------------------------------------------------------------------------ |
+| API contract | Hono + `@hono/zod-openapi`          | [0002](docs/adr/0002-api-contract-openapi-first.md)                                  |
+| Docs         | Scalar + Starlight                  | [0003](docs/adr/0003-documentation-scalar-and-starlight.md)                          |
+| Auth         | better-auth                         | [0004](docs/adr/0004-authentication-better-auth.md)                                  |
+| Data         | Postgres + Drizzle + pg-boss        | [0005](docs/adr/0005-data-layer-postgres-drizzle-pgboss.md)                          |
+| Plugins      | Process-per-plugin, brokered        | [0007](docs/adr/0007-plugin-runtime-brokered.md)                                     |
+| Media        | Rust + FFmpeg child process         | [0009](docs/adr/0009-media-pipeline-rust-ffmpeg.md)                                  |
+| UI           | Radix + Tailwind + CVA + Motion     | [0018](docs/adr/0018-fluxui-on-radix-and-shadcn-conventions.md)                      |
+| Lint         | oxlint + ESLint + husky             | [0014](docs/adr/0014-lint-and-commit-enforcement.md)                                 |
+| Realtime     | One WebSocket, viewer + admin feeds | [0017](docs/adr/0017-realtime-one-socket-two-feeds.md)                               |
+| Web state    | TanStack Query + TanStack Router    | [0019](docs/adr/0019-server-state-in-tanstack-query-addresses-in-tanstack-router.md) |
 
-**Not used:** shadcn/ui, Redis, SQLite, tRPC as a primary API, barrel files.
+**Not used:** the shadcn registry (its conventions are adopted, its generated code
+is not — see [0018](docs/adr/0018-fluxui-on-radix-and-shadcn-conventions.md)),
+Redis, SQLite, tRPC as a primary API, barrel files.
 
 ## Working expectations
 

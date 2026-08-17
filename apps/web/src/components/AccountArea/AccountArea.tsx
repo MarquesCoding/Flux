@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { RiLogoutBoxRLine, RiPencilLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
@@ -14,13 +14,13 @@ import { TabRow } from '@FluxUI/TabRow';
 import { TabPanel } from '@FluxUI/TabPanel';
 import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { sessionQueries } from '@FluxWeb/query/sessionQueries';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import { ProfileEditor } from '@FluxWeb/components/ProfilePicker/components/ProfileEditor/ProfileEditor';
 import { TwoFactorSetup } from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup';
 import { PasskeySetup } from '@FluxWeb/components/PasskeySetup/PasskeySetup';
 import { DeviceList } from '@FluxWeb/components/AccountArea/components/DeviceList/DeviceList';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import type { AccountAreaProps } from './AccountArea.types';
 
 const PANELS = [
@@ -41,18 +41,17 @@ type PanelId = (typeof PANELS)[number]['id'];
  * @param onChanged - Told when something changed, so the shell can read the account again.
  */
 const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
-  const [profile, setProfile] = useState<ViewerProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [panel, setPanel] = useState<PanelId>('profile');
   const prefersReducedMotion = useReducedMotion();
+  const cache = useQueryClient();
+
+  const asked = useQuery(sessionQueries.profiles());
+  const profile = asked.data?.[0] ?? null;
 
   const read = () => {
-    void fetchProfiles().then((profiles) => {
-      setProfile(profiles[0] ?? null);
-    });
+    void cache.invalidateQueries({ queryKey: sessionQueries.key });
   };
-
-  useEffect(read, []);
 
   return (
     <motion.div
@@ -77,7 +76,7 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
           transition={revealTransition(prefersReducedMotion)}
           className="flex justify-center"
         >
-          <TabRow groups={[{ items: PANELS }]} label="What to change" />
+          <TabRow groups={[{ items: PANELS }]} value={panel} label="What to change" />
         </motion.div>
 
         <motion.header
@@ -87,11 +86,11 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
         >
           <div className="flex items-center gap-5">
             {profile === null ? (
-              <span className="size-20 shrink-0 rounded-3xl bg-white/5 sm:size-24" />
+              <span className="size-20 shrink-0 rounded-lg bg-white/5 sm:size-24" />
             ) : (
               <ProfileFace
                 profile={profile}
-                className="size-20 shrink-0 rounded-3xl text-3xl shadow-xl sm:size-24"
+                className="size-20 shrink-0 rounded-lg text-3xl shadow-xl sm:size-24"
               />
             )}
 

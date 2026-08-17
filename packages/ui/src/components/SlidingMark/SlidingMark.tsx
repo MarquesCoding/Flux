@@ -21,7 +21,7 @@ const SlidingMark = ({ group, className }: SlidingMarkProps) => {
       layoutId={group}
       data-mark={group}
       transition={prefersReducedMotion === true ? { duration: 0 } : MARK_MOTION}
-      className={cn('absolute inset-0 -z-10 rounded-full bg-[var(--surface-active)]', className)}
+      className={cn('absolute inset-0 -z-10 rounded-md bg-[var(--surface-active)]', className)}
     />
   );
 };

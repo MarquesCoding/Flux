@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { RiAlertLine, RiCheckboxCircleLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
@@ -19,8 +19,6 @@ import { WebhooksPanel } from './components/WebhooksPanel/WebhooksPanel';
 import {
   createWebhook,
   deleteWebhook,
-  fetchWebhookDeliveries,
-  fetchWebhooks,
   redeliverWebhook,
   setWebhookEnabled,
   testWebhook,
@@ -29,21 +27,19 @@ import { AccountsPanel } from './components/AccountsPanel/AccountsPanel';
 import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import {
-  fetchAdminOverview,
-  fetchMonitor,
   watchMonitor,
-  fetchActiveSessions,
   watchActiveSessions,
   stopSession,
   pauseSession,
   messageSession,
   resumeSession,
-  fetchJobDefinitions,
-  fetchJobSchedules,
   addJobTrigger,
   removeJobTrigger,
 } from '@FluxWeb/admin/fetchAdmin';
-import { fetchLibraries, rebuildArtefacts } from '@FluxWeb/library/fetchLibrary';
+import { rebuildArtefacts } from '@FluxWeb/library/fetchLibrary';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { adminQueries } from '@FluxWeb/query/adminQueries';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
@@ -53,7 +49,6 @@ import { describeGraphics } from './describeGraphics';
 import { describeCpuShare } from './describeCpuShare';
 import { describeFfmpeg } from './describeFfmpeg';
 import { describeAcceleration } from './describeAcceleration';
-import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import {
   resumeRunning,
   watchJob,
@@ -69,15 +64,7 @@ import {
 } from './scanCoordinator';
 import { formatBytes } from '@FluxCore/functions/formatBytes';
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
-import type {
-  ActiveSession,
-  AdminOverview,
-  JobDefinition,
-  JobTrigger,
-  Monitor,
-  ScheduleTrigger,
-} from '@FluxWeb/admin/fetchAdmin';
-import type { WebhookDelivery, WebhookSubscription } from '@FluxContracts/schemas/Webhook';
+import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin';
 import type { CreatedWebhook } from '@FluxWeb/admin/fetchWebhooks';
 import type { AdminAreaProps } from './AdminArea.types';
 
@@ -123,19 +110,6 @@ const PANELS: readonly { id: PanelId; label: string }[] = SECTIONS.flatMap((sect
 ]);
 
 /**
- * Reads every job's triggers at once and keys them by job, so that a list of jobs can show what makes
- * each run without a request per row.
- */
-const readJobSchedules = async (): Promise<{
-  byKind: Map<string, JobTrigger[]>;
-  timezone: string | null;
-}> => {
-  const { schedules, timezone } = await fetchJobSchedules();
-
-  return { byKind: new Map(schedules.map((entry) => [entry.kind, entry.triggers])), timezone };
-};
-
-/**
  * The server as the person running it sees it: the dashboard, what is being watched, the libraries
  * and what they hold, the jobs, the settings and the webhooks. Owns the polling that keeps all of it
  * current and the state that outlives any one panel, so that moving between panels neither restarts
@@ -157,34 +131,88 @@ const AdminArea = ({
   initialJob,
   onJobChange,
 }: AdminAreaProps) => {
-  const [overview, setOverview] = useState<AdminOverview | null>(null);
-  const [monitor, setMonitor] = useState<Monitor | null>(null);
+  const cache = useQueryClient();
   const [history, setHistory] = useState<number[]>([]);
   const [encoderHistory, setEncoderHistory] = useState<number[]>([]);
   const [panel, setPanel] = useState<PanelId>(
     () => PANELS.find((candidate) => candidate.id === initialPanel)?.id ?? 'overview',
   );
   const [viewingJobKind, setViewingJobKind] = useState<string | null>(initialJob ?? null);
-  const [libraries, setLibraries] = useState<Library[]>([]);
-  const [media, setMedia] = useState<MediaSummary[]>([]);
   const [correcting, setCorrecting] = useState<MediaSummary | null>(null);
-  const [unreachable, setUnreachable] = useState<ReadonlySet<string>>(new Set());
-  const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
-  const [jobSchedules, setJobSchedules] = useState<Map<string, JobTrigger[]>>(new Map());
-  const [jobsTimezone, setJobsTimezone] = useState<string | null>(null);
   const {
     progress: scanProgress,
     isScanningAll,
     isResettingAll,
   } = useSyncExternalStore(subscribeToScans, getScanSnapshot);
-  const [webhooks, setWebhooks] = useState<WebhookSubscription[]>([]);
   const [createdWebhook, setCreatedWebhook] = useState<CreatedWebhook | null>(null);
   const [openHistoryId, setOpenHistoryId] = useState<string | null>(null);
-  const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [sessions, setSessions] = useState<ActiveSession[]>([]);
+
   const [busyClientId, setBusyClientId] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  const askedOverview = useQuery(adminQueries.overview());
+  const askedLibraries = useQuery(libraryQueries.all());
+  const askedSessions = useQuery(adminQueries.sessions());
+  const askedJobs = useQuery(adminQueries.jobs());
+  const askedSchedules = useQuery(adminQueries.schedules());
+  const askedMonitor = useQuery(adminQueries.monitor());
+
+  const overview = askedOverview.data ?? null;
+  const monitor = askedMonitor.data ?? null;
+
+  const libraries = useMemo(() => askedLibraries.data ?? [], [askedLibraries.data]);
+
+  const askedMedia = useQuery(adminQueries.everything(libraries.map((library) => library.id)));
+
+  const media = askedMedia.data ?? [];
+  const sessions = askedSessions.data ?? [];
+  const jobDefinitions = useMemo(() => askedJobs.data ?? [], [askedJobs.data]);
+
+  const jobSchedules = useMemo(
+    () =>
+      new Map((askedSchedules.data?.schedules ?? []).map((entry) => [entry.kind, entry.triggers])),
+    [askedSchedules.data],
+  );
+
+  const jobsTimezone = askedSchedules.data?.timezone ?? null;
+
+  const askedWebhooks = useQuery({
+    ...adminQueries.webhooks(),
+    enabled: panel === 'webhooks',
+  });
+
+  const webhooks = askedWebhooks.data ?? [];
+
+  const askedDeliveries = useQuery(adminQueries.deliveries(openHistoryId));
+
+  const deliveries = openHistoryId === null ? [] : (askedDeliveries.data ?? []);
+  const isHistoryLoading = openHistoryId !== null && askedDeliveries.isPending;
+
+  const unreachable = useMemo(() => {
+    const readings = {
+      overview: askedOverview.isError,
+      media: askedMedia.isError,
+      monitor: askedMonitor.isError,
+      libraries: askedLibraries.isError,
+      sessions: askedSessions.isError,
+      jobs: askedJobs.isError,
+      schedules: askedSchedules.isError,
+    };
+
+    return new Set(
+      Object.entries(readings)
+        .filter(([, failed]) => failed)
+        .map(([name]) => name),
+    );
+  }, [
+    askedOverview.isError,
+    askedMedia.isError,
+    askedMonitor.isError,
+    askedLibraries.isError,
+    askedSessions.isError,
+    askedJobs.isError,
+    askedSchedules.isError,
+  ]);
 
   const showPanel = useCallback(
     (next: string) => {
@@ -202,71 +230,46 @@ const AdminArea = ({
     [onPanelChange, onJobChange],
   );
 
-  const loadInto = useCallback(
-    async <T,>(key: string, read: () => Promise<T>, apply: (value: T) => void) => {
-      try {
-        apply(await read());
-
-        setUnreachable((current) => new Set([...current].filter((name) => name !== key)));
-      } catch {
-        setUnreachable((current) => new Set([...current, key]));
-      }
-    },
-    [],
-  );
-
-  const readMedia = useCallback(async () => {
-    const found = await fetchLibraries();
-    const shelves = await Promise.all(found.map((entry) => readWholeLibrary(entry.id)));
-    const byThing = new Map<string, MediaSummary>();
-
-    for (const item of shelves.flat()) {
-      const key = item.seriesTitle ?? item.id;
-
-      if (!byThing.has(key)) {
-        byThing.set(key, item);
-      }
-    }
-
-    return [...byThing.values()];
-  }, []);
-
   const loadAll = useCallback(async () => {
     await Promise.all([
-      loadInto('overview', fetchAdminOverview, setOverview),
-      loadInto('media', readMedia, setMedia),
-      loadInto('monitor', fetchMonitor, setMonitor),
-      loadInto('libraries', fetchLibraries, setLibraries),
-      loadInto('sessions', fetchActiveSessions, setSessions),
-      loadInto('jobs', fetchJobDefinitions, setJobDefinitions),
-      loadInto('schedules', readJobSchedules, ({ byKind, timezone }) => {
-        setJobSchedules(byKind);
-        setJobsTimezone(timezone);
-      }),
+      cache.invalidateQueries({ queryKey: adminQueries.key }),
+      cache.invalidateQueries({ queryKey: libraryQueries.key }),
     ]);
-  }, [loadInto, readMedia]);
+  }, [cache]);
+
+  const reloadLibraries = useCallback(
+    async () => cache.invalidateQueries({ queryKey: libraryQueries.all().queryKey }),
+    [cache],
+  );
+
+  const reloadSessions = useCallback(
+    async () => cache.invalidateQueries({ queryKey: adminQueries.sessions().queryKey }),
+    [cache],
+  );
 
   const onLibraryUpdated = (updated: Library) => {
-    setLibraries((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)));
+    cache.setQueryData(libraryQueries.all().queryKey, (current = []) =>
+      current.map((entry) => (entry.id === updated.id ? updated : entry)),
+    );
   };
 
   const onLibraryCreated = (library: Library) => {
-    setLibraries((current) => [...current, library]);
+    cache.setQueryData(libraryQueries.all().queryKey, (current = []) => [...current, library]);
   };
 
   const rescan = async (libraryId: string, force = false) => {
     await startScan(libraryId, force);
-    setLibraries(await fetchLibraries());
+    await reloadLibraries();
   };
 
   const rescanAll = async () => {
     await startScanAll(libraries);
-    setLibraries(await fetchLibraries());
+    await reloadLibraries();
   };
 
   const resetAll = async () => {
     await startResetAll(libraries);
-    setLibraries(await fetchLibraries());
+    await reloadLibraries();
   };
 
   const regeneratePreviews = async (libraryId: string) => {
@@ -283,33 +286,53 @@ const AdminArea = ({
         await runDefinedJob(kind);
       }
 
-      setLibraries(await fetchLibraries());
+      await reloadLibraries();
     },
     [jobDefinitions, libraries],
   );
+
+  const reloadSchedules = async () =>
+    cache.invalidateQueries({ queryKey: adminQueries.schedules().queryKey });
 
   const addTrigger = async (kind: string, trigger: ScheduleTrigger) => {
     const added = await addJobTrigger(kind, trigger);
 
     if (added === null) {
-      setJobSchedules((await readJobSchedules()).byKind);
+      await reloadSchedules();
 
       return;
     }
 
-    setJobSchedules((current) => new Map(current).set(kind, [...(current.get(kind) ?? []), added]));
+    cache.setQueryData(adminQueries.schedules().queryKey, (current) =>
+      current === undefined
+        ? current
+        : {
+            ...current,
+            schedules: current.schedules.some((entry) => entry.kind === kind)
+              ? current.schedules.map((entry) =>
+                  entry.kind === kind ? { ...entry, triggers: [...entry.triggers, added] } : entry,
+                )
+              : [...current.schedules, { kind, triggers: [added] }],
+          },
+    );
   };
 
   const removeTrigger = async (kind: string, triggerId: string) => {
-    setJobSchedules((current) =>
-      new Map(current).set(
-        kind,
-        (current.get(kind) ?? []).filter((entry) => entry.id !== triggerId),
-      ),
+    cache.setQueryData(adminQueries.schedules().queryKey, (current) =>
+      current === undefined
+        ? current
+        : {
+            ...current,
+            schedules: current.schedules.map((entry) =>
+              entry.kind === kind
+                ? { ...entry, triggers: entry.triggers.filter((one) => one.id !== triggerId) }
+                : entry,
+            ),
+          },
     );
 
     if (!(await removeJobTrigger(kind, triggerId))) {
-      setJobSchedules((await readJobSchedules()).byKind);
+      await reloadSchedules();
     }
   };
 
@@ -342,7 +365,7 @@ const AdminArea = ({
 
     try {
       await stopSession(clientId);
-      setSessions(await fetchActiveSessions());
+      await reloadSessions();
     } finally {
       setBusyClientId(null);
     }
@@ -353,7 +376,7 @@ const AdminArea = ({
 
     try {
       await pauseSession(clientId);
-      setSessions(await fetchActiveSessions());
+      await reloadSessions();
     } finally {
       setBusyClientId(null);
     }
@@ -374,52 +397,38 @@ const AdminArea = ({
 
     try {
       await resumeSession(clientId);
-      setSessions(await fetchActiveSessions());
+      await reloadSessions();
     } finally {
       setBusyClientId(null);
     }
   };
 
   useEffect(() => {
-    void loadAll();
     void resumeRunning();
-  }, [loadAll]);
-
-  const reloadWebhooks = useCallback(async () => {
-    setWebhooks(await fetchWebhooks());
   }, []);
 
-  useEffect(() => {
-    if (panel === 'webhooks') {
-      void reloadWebhooks();
-    }
-  }, [panel, reloadWebhooks]);
+  const reloadWebhooks = useCallback(
+    async () => cache.invalidateQueries({ queryKey: adminQueries.webhooks().queryKey }),
+    [cache],
+  );
 
-  const reloadDeliveries = useCallback(async (id: string) => {
-    setIsHistoryLoading(true);
+  const reloadDeliveries = useCallback(
+    async (id: string) =>
+      cache.invalidateQueries({ queryKey: adminQueries.deliveries(id).queryKey }),
+    [cache],
+  );
 
-    try {
-      setDeliveries(await fetchWebhookDeliveries(id));
-    } finally {
-      setIsHistoryLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (openHistoryId === null) {
-      setDeliveries([]);
-
-      return;
-    }
-
-    void reloadDeliveries(openHistoryId);
-  }, [openHistoryId, reloadDeliveries]);
-
-  useEffect(() => watchActiveSessions(setSessions), []);
+  useEffect(
+    () =>
+      watchActiveSessions((found) => {
+        cache.setQueryData(adminQueries.sessions().queryKey, found);
+      }),
+    [cache],
+  );
 
   useEffect(() => {
     const stop = watchMonitor((reading) => {
-      setMonitor(reading);
+      cache.setQueryData(adminQueries.monitor().queryKey, reading);
       setHistory((current) =>
         [...current, reading.resources.systemCpuPercent].slice(-historyLength),
       );
@@ -431,7 +440,7 @@ const AdminArea = ({
     });
 
     return stop;
-  }, [historyLength]);
+  }, [historyLength, cache]);
 
   const resources = monitor?.resources ?? null;
   const memoryFraction =
@@ -597,7 +606,7 @@ const AdminArea = ({
             role="alert"
             variants={revealVariants(prefersReducedMotion)}
             transition={revealTransition(prefersReducedMotion)}
-            className="flex flex-wrap items-center gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-text"
+            className="flex flex-wrap items-center gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
           >
             <RiAlertLine size={18} className="shrink-0 text-danger" aria-hidden />
             Some of this could not be read from the server, so parts of the page may be missing
@@ -787,10 +796,10 @@ const AdminArea = ({
               <SettingsPanel
                 overview={overview}
                 onCatalogueKeySaved={() => {
-                  void fetchAdminOverview().then(setOverview);
+                  void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
                 }}
                 onHardwareAccelSaved={() => {
-                  void fetchAdminOverview().then(setOverview);
+                  void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
                 }}
               />
             </TabPanel>
@@ -871,7 +880,9 @@ const AdminArea = ({
               ? Promise.resolve()
               : watchJob(libraryId, 'library.readAgain', jobId)
           ).then(async () => {
-            setMedia(await readMedia());
+            await cache.invalidateQueries({
+              queryKey: adminQueries.everything(libraries.map((library) => library.id)).queryKey,
+            });
           });
         }}
       />

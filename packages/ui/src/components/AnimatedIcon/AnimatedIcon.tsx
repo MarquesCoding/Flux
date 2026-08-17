@@ -3,45 +3,53 @@ import { cn } from '@FluxUI/cn';
 import type { Variants } from 'motion/react';
 import type { AnimatedIconProps, IconGesture } from './AnimatedIcon.types';
 
+const ANSWER = { type: 'spring', bounce: 0, duration: 0.25 } as const;
+
 const GESTURES: Record<IconGesture, Variants> = {
   spin: {
-    rest: { rotate: 0 },
-    play: { rotate: 180, transition: { duration: 0.55, ease: 'easeInOut' } },
+    rest: { transform: 'rotate(0deg)', transition: ANSWER },
+    play: { transform: 'rotate(180deg)', transition: ANSWER },
   },
   ring: {
-    rest: { rotate: 0 },
-    play: { rotate: [0, -16, 13, -9, 5, 0], transition: { duration: 0.7, ease: 'easeInOut' } },
+    rest: { transform: 'rotate(0deg)', transition: ANSWER },
+    play: { transform: 'rotate(-14deg)', transition: ANSWER },
   },
   tumble: {
-    rest: { rotate: 0, y: 0 },
-    play: {
-      rotate: [0, -14, 14, -8, 0],
-      y: [0, -2, 0, -1, 0],
-      transition: { duration: 0.6, ease: 'easeInOut' },
-    },
+    rest: { transform: 'translateY(0px) rotate(0deg)', transition: ANSWER },
+    play: { transform: 'translateY(-2px) rotate(-10deg)', transition: ANSWER },
   },
   fill: {
-    rest: { scale: 1 },
-    play: { scale: [1, 1.18, 1], transition: { duration: 0.4, delay: 0.3, ease: 'easeOut' } },
+    rest: { transform: 'scale(1)', transition: ANSWER },
+    play: { transform: 'scale(1.12)', transition: ANSWER },
   },
   settle: {
-    rest: { y: 0 },
-    play: { y: [0, -2, 0], transition: { duration: 0.45, ease: 'easeOut' } },
+    rest: { transform: 'translateY(0px)', transition: ANSWER },
+    play: { transform: 'translateY(-2px)', transition: ANSWER },
   },
 };
 
 const WIPES: Partial<Record<IconGesture, Variants>> = {
   fill: {
-    rest: { clipPath: 'inset(100% 0% 0% 0%)' },
-    play: { clipPath: 'inset(0% 0% 0% 0%)', transition: { duration: 0.45, ease: 'easeOut' } },
+    rest: { clipPath: 'inset(100% 0% 0% 0%)', transition: ANSWER },
+    play: { clipPath: 'inset(0% 0% 0% 0%)', transition: ANSWER },
   },
 };
 
 /**
  * An icon that answers a pointer with a movement saying what pressing it would do — the cog turns,
- * the bell rings, the heart fills. A row of icons is a row of nouns until one of them moves, and
- * the movement is what turns the mark into the verb it stands for. Nothing moves at all for
- * somebody who has asked their system for less movement.
+ * the bell tilts, the heart fills. A row of icons is a row of nouns until one of them moves, and the
+ * movement is what turns the mark into the verb it stands for. Nothing moves at all for somebody who
+ * has asked their system for less movement.
+ *
+ * Each answer is one move rather than a performance. These sit in the dock, which somebody crosses
+ * dozens of times a day, and at that frequency the rule runs the other way from the usual one: the
+ * more often a movement is seen, the shorter and smaller it has to be. A bell that rang for
+ * seven hundred milliseconds every time a pointer passed it was a half-second of the interface
+ * being busy on its own behalf.
+ *
+ * They are springs rather than sequences of frames for the same reason. A row of icons is crossed in
+ * one sweep, and a spring asked to go somewhere else mid-flight carries its speed into the new
+ * answer, where a sequence starts again from the beginning and the row stutters.
  *
  * @param gesture - How it should move, defaulting to a small rise and nothing else.
  * @param isPlaying - Whether the gesture should be running, which the surrounding control decides.

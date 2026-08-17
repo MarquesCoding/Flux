@@ -54,7 +54,7 @@ describe('Meter', () => {
   it('looks calm while something is idling', () => {
     const { container } = render(<Meter label="CPU" fraction={0.2} value="20%" />);
 
-    expect(barOf(container)?.className).toContain('bg-accent');
+    expect(barOf(container)?.className).toContain('bg-primary');
   });
 
   it('warns as something approaches its limit', () => {
@@ -66,6 +66,6 @@ describe('Meter', () => {
   it('looks different at a glance when something is at its limit', () => {
     const { container } = render(<Meter label="CPU" fraction={0.95} value="95%" />);
 
-    expect(barOf(container)?.className).toContain('bg-danger');
+    expect(barOf(container)?.className).toContain('bg-destructive');
   });
 });

@@ -2,29 +2,21 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TwoFactorSetup } from './TwoFactorSetup';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
-type FetchLike = (
-  input: string,
-  init?: RequestInit,
-) => Promise<{ ok: boolean; status: number; json: () => Promise<JsonValue> }>;
+const enableTwoFactor = vi.hoisted(() => vi.fn());
+const verifyTotp = vi.hoisted(() => vi.fn());
+const disableTwoFactor = vi.hoisted(() => vi.fn());
 
-const fetchMock = vi.fn<FetchLike>();
+vi.mock('@FluxWeb/session/auth', () => ({ enableTwoFactor, verifyTotp, disableTwoFactor }));
 
 const OTP_URI = 'otpauth://totp/Flux:admin@flux.test?secret=JBSWY3DPEHPK3PXP&issuer=Flux';
 
 const BACKUP_CODES = ['aaaa-1111', 'bbbb-2222'];
 
-const enrollmentResponse = {
-  ok: true,
-  status: 200,
-  json: () => Promise.resolve({ totpURI: OTP_URI, backupCodes: BACKUP_CODES }),
-};
-
 beforeEach(() => {
-  fetchMock.mockReset();
-  fetchMock.mockResolvedValue(enrollmentResponse);
-  vi.stubGlobal('fetch', fetchMock);
+  enableTwoFactor.mockReset().mockResolvedValue({ totpURI: OTP_URI, backupCodes: BACKUP_CODES });
+  verifyTotp.mockReset().mockResolvedValue(true);
+  disableTwoFactor.mockReset().mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -51,7 +43,7 @@ describe('TwoFactorSetup when disabled', () => {
     await actor.click(screen.getByRole('button', { name: 'Set up two-factor' }));
 
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(disableTwoFactor).not.toHaveBeenCalled();
   });
 
   it('shows the qr code, the key as text, and the backup codes', async () => {
@@ -69,7 +61,7 @@ describe('TwoFactorSetup when disabled', () => {
   });
 
   it('reports a wrong password without revealing a secret', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve({}) });
+    enableTwoFactor.mockResolvedValue(null);
     const actor = userEvent.setup();
     render(<TwoFactorSetup isEnabled={false} onChanged={vi.fn()} />);
 
@@ -97,11 +89,10 @@ describe('TwoFactorSetup when disabled', () => {
     await startEnrollment(actor);
     await screen.findByRole('img', { name: 'Two-factor setup QR code' });
 
-    fetchMock.mockClear();
     await actor.type(screen.getByLabelText('Authenticator code'), '12');
     await actor.click(screen.getByRole('button', { name: 'Turn on two-factor' }));
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(verifyTotp).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent('6 digits');
   });
 
@@ -117,7 +108,7 @@ describe('TwoFactorSetup when disabled', () => {
     await actor.click(screen.getByRole('button', { name: 'Turn on two-factor' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/auth/two-factor/verify-totp', expect.anything());
+      expect(verifyTotp).toHaveBeenCalledWith('123456');
     });
     expect(onChanged).toHaveBeenCalledOnce();
   });
@@ -130,7 +121,7 @@ describe('TwoFactorSetup when disabled', () => {
     await startEnrollment(actor);
     await screen.findByRole('img', { name: 'Two-factor setup QR code' });
 
-    fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve({}) });
+    verifyTotp.mockResolvedValue(false);
     await actor.type(screen.getByLabelText('Authenticator code'), '123456');
     await actor.click(screen.getByRole('button', { name: 'Turn on two-factor' }));
 
@@ -153,10 +144,10 @@ describe('TwoFactorSetup when enabled', () => {
     await actor.click(screen.getByRole('button', { name: 'Turn off two-factor' }));
 
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(disableTwoFactor).not.toHaveBeenCalled();
   });
 
-  it('posts to the disable endpoint', async () => {
+  it('asks for it to be turned off', async () => {
     const onChanged = vi.fn();
     const actor = userEvent.setup();
     render(<TwoFactorSetup isEnabled onChanged={onChanged} />);
@@ -166,13 +157,13 @@ describe('TwoFactorSetup when enabled', () => {
     await actor.click(screen.getByRole('button', { name: 'Continue' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/auth/two-factor/disable', expect.anything());
+      expect(disableTwoFactor).toHaveBeenCalledWith('a-long-enough-password');
     });
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
   it('does not turn it off when the password is wrong', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve({}) });
+    disableTwoFactor.mockResolvedValue(false);
     const onChanged = vi.fn();
     const actor = userEvent.setup();
     render(<TwoFactorSetup isEnabled onChanged={onChanged} />);

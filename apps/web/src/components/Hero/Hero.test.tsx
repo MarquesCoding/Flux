@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { renderInACache } from '@FluxWeb/testing/renderInACache';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hero } from './Hero';
@@ -43,7 +44,7 @@ afterEach(() => {
 
 describe('Hero', () => {
   it('stands in a runway by default, so the page can scroll beneath it', () => {
-    const { container } = render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+    const { container } = renderInACache(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
     const runway = container.firstElementChild;
 
     expect(runway).toHaveStyle({ marginBottom: '-24svh' });
@@ -51,7 +52,9 @@ describe('Hero', () => {
   });
 
   it('fills what it is put in where there is nothing to scroll', () => {
-    const { container } = render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} fills />);
+    const { container } = renderInACache(
+      <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} fills />,
+    );
     const runway = container.firstElementChild;
 
     expect(runway).toHaveStyle({ height: '100svh' });
@@ -60,19 +63,19 @@ describe('Hero', () => {
   });
 
   it('shows nothing at all when there is nothing to feature', () => {
-    const { container } = render(<Hero items={[]} onPlay={vi.fn()} />);
+    const { container } = renderInACache(<Hero items={[]} onPlay={vi.fn()} />);
 
     expect(container).toBeEmptyDOMElement();
   });
 
   it('features the first item', () => {
-    render(<Hero items={items} onPlay={vi.fn()} />);
+    renderInACache(<Hero items={items} onPlay={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
   });
 
   it('names itself so the section can be found', () => {
-    render(<Hero items={items} onPlay={vi.fn()} />);
+    renderInACache(<Hero items={items} onPlay={vi.fn()} />);
 
     expect(screen.getByRole('region', { name: 'Featured' })).toBeInTheDocument();
   });
@@ -80,7 +83,7 @@ describe('Hero', () => {
   it('plays what is featured', async () => {
     const onPlay = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<Hero items={items} onPlay={onPlay} />);
+    renderInACache(<Hero items={items} onPlay={onPlay} />);
 
     await user.click(screen.getByRole('button', { name: /Play/ }));
 
@@ -91,7 +94,7 @@ describe('Hero', () => {
     const onPlay = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<Hero items={items} onPlay={onPlay} resumeFor={() => 620} />);
+    renderInACache(<Hero items={items} onPlay={onPlay} resumeFor={() => 620} />);
 
     await user.click(screen.getByRole('button', { name: /Resume/ }));
 
@@ -100,13 +103,13 @@ describe('Hero', () => {
 
   it('says which item is on screen, so the page can be lit by it', () => {
     const onFeatureChange = vi.fn();
-    render(<Hero items={items} onPlay={vi.fn()} onFeatureChange={onFeatureChange} />);
+    renderInACache(<Hero items={items} onPlay={vi.fn()} onFeatureChange={onFeatureChange} />);
 
     expect(onFeatureChange).toHaveBeenCalledWith(items[0]);
   });
 
   it('moves on after a while', () => {
-    render(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
+    renderInACache(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
     act(() => {
       vi.advanceTimersByTime(150);
@@ -116,7 +119,7 @@ describe('Hero', () => {
   });
 
   it('comes back round to the beginning', async () => {
-    render(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
+    renderInACache(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
     for (let turn = 0; turn < items.length; turn += 1) {
       act(() => {
@@ -129,7 +132,7 @@ describe('Hero', () => {
 
   it('holds still while someone is reading it', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
+    renderInACache(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
     await user.hover(screen.getByRole('region', { name: 'Featured' }));
 
@@ -141,7 +144,7 @@ describe('Hero', () => {
   });
 
   it('holds still while someone is tabbing through it', () => {
-    render(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
+    renderInACache(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
     act(() => {
       screen.getByRole('button', { name: /Play/ }).focus();
@@ -155,7 +158,7 @@ describe('Hero', () => {
   });
 
   it('never rotates when there is only one thing to show', () => {
-    render(
+    renderInACache(
       <Hero
         items={[items[0] ?? item('a', 'Arrival')]}
         onPlay={vi.fn()}
@@ -174,7 +177,7 @@ describe('Hero', () => {
 
   it('jumps straight to an item on request', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<Hero items={items} onPlay={vi.fn()} />);
+    renderInACache(<Hero items={items} onPlay={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: 'Show Sicario' }));
 
@@ -186,7 +189,7 @@ describe('Hero', () => {
   });
 
   it('lets a programme’s own lettering stand as the title', () => {
-    render(<Hero items={[{ ...item('a', 'Arrival'), hasLogo: true }]} onPlay={vi.fn()} />);
+    renderInACache(<Hero items={[{ ...item('a', 'Arrival'), hasLogo: true }]} onPlay={vi.fn()} />);
 
     const heading = screen.getByRole('heading', { name: 'Arrival' });
 
@@ -197,13 +200,13 @@ describe('Hero', () => {
   });
 
   it('sets the name in words for a programme that has no lettering', () => {
-    render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+    renderInACache(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toHaveTextContent('Arrival');
   });
 
   it('falls back to words when the lettering will not load', async () => {
-    render(<Hero items={[{ ...item('a', 'Arrival'), hasLogo: true }]} onPlay={vi.fn()} />);
+    renderInACache(<Hero items={[{ ...item('a', 'Arrival'), hasLogo: true }]} onPlay={vi.fn()} />);
 
     fireEvent.error(screen.getByRole('img', { name: 'Arrival' }));
 
@@ -211,7 +214,7 @@ describe('Hero', () => {
   });
 
   it('introduces the programme rather than tonight’s episode', () => {
-    render(
+    renderInACache(
       <Hero
         items={[{ ...item('a', 'Episode Four'), seriesTitle: 'Some Show', episodeNumber: 4 }]}
         onPlay={vi.fn()}
@@ -228,7 +231,7 @@ describe('Hero', () => {
       Promise.resolve({ metadata: { overview: 'A linguist meets the arrival.' } }),
     );
 
-    render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+    renderInACache(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
 
     expect(await screen.findByText('A linguist meets the arrival.')).toBeInTheDocument();
   });
@@ -238,7 +241,7 @@ describe('Hero', () => {
       Promise.resolve({ metadata: { overview: 'A linguist meets the arrival.' } }),
     );
 
-    render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+    renderInACache(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
 
     await screen.findByText('A linguist meets the arrival.');
 
@@ -254,7 +257,7 @@ describe('Hero', () => {
   it('says nothing at all about something the catalogue has no words for', async () => {
     detailMock.mockReturnValue(Promise.resolve({ metadata: { overview: null } }));
 
-    render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+    renderInACache(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
 
     await act(async () => {
       await Promise.resolve();
@@ -263,7 +266,7 @@ describe('Hero', () => {
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
   });
   it('does not take the pointer for the page it is pulled up over', () => {
-    render(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInACache(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     const card = screen.getByLabelText('Featured');
     const runway = card.parentElement?.parentElement;

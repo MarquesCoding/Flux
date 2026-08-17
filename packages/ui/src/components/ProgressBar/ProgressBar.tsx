@@ -1,4 +1,4 @@
-import { Progress } from '@base-ui/react/progress';
+import * as RadixProgress from '@radix-ui/react-progress';
 import { cn } from '@FluxUI/cn';
 import type { ProgressBarProps } from './ProgressBar.types';
 
@@ -22,26 +22,29 @@ const ProgressBar = ({
   readout,
   className,
 }: ProgressBarProps) => (
-  <Progress.Root
-    value={value}
-    max={max}
-    className={cn('flex shrink-0 items-center gap-2', className)}
-  >
-    <Progress.Label className="sr-only">{label}</Progress.Label>
-
+  <div className={cn('flex shrink-0 items-center gap-2', className)}>
     {children}
 
-    <Progress.Track className="block h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-white/10">
-      <Progress.Indicator
+    <RadixProgress.Root
+      value={value}
+      max={max}
+      aria-label={label}
+      data-slot="progress"
+      className="block h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-white/10"
+    >
+      <RadixProgress.Indicator
+        style={value === null ? undefined : { width: `${((value / max) * 100).toString()}%` }}
         className={cn(
-          'block h-full rounded-full bg-accent',
-          value === null ? 'w-full animate-pulse' : 'transition-[width] duration-300',
+          'block h-full rounded-full bg-primary',
+          value === null
+            ? 'w-full animate-pulse motion-reduce:animate-none'
+            : 'transition-[width] duration-[var(--duration-slow)] ease-[var(--ease-out)] motion-reduce:transition-none',
         )}
       />
-    </Progress.Track>
+    </RadixProgress.Root>
 
     {readout}
-  </Progress.Root>
+  </div>
 );
 
 ProgressBar.displayName = 'ProgressBar';

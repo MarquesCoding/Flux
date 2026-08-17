@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { RiCheckLine, RiDeleteBinLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Badge } from '@FluxUI/Badge';
 import { Spinner } from '@FluxUI/Spinner';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { fetchHistory, forgetViewing, forgetHistory, A_PAGE } from '@FluxWeb/history/fetchHistory';
+import { forgetViewing, forgetHistory } from '@FluxWeb/history/fetchHistory';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { viewingQueries } from '@FluxWeb/query/viewingQueries';
 import { describeWhen } from '@FluxWeb/history/describeWhen';
 import type { Viewing } from '@FluxContracts/schemas/Viewing';
 import type { HistoryPanelProps } from './HistoryPanel.types';
@@ -26,44 +28,39 @@ const nameOf = (viewing: Viewing): string => viewing.title ?? 'No longer in the 
  * @param now - What to treat as now, so the grouping can be tested.
  */
 const HistoryPanel = ({ now }: HistoryPanelProps) => {
-  const [viewings, setViewings] = useState<Viewing[]>([]);
-  const [isReading, setIsReading] = useState(true);
-  const [hasMore, setHasMore] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const prefersReducedMotion = useReducedMotion();
+  const cache = useQueryClient();
 
-  const read = useCallback(async () => {
-    const first = await fetchHistory(0);
+  const asked = useInfiniteQuery(viewingQueries.history());
 
-    setViewings(first);
-    setHasMore(first.length === A_PAGE);
-    setIsReading(false);
-  }, []);
-
-  useEffect(() => {
-    void read();
-  }, [read]);
+  const viewings = useMemo(() => (asked.data?.pages ?? []).flat(), [asked.data]);
+  const isReading = asked.isPending;
+  const hasMore = asked.hasNextPage;
 
   const readMore = async () => {
-    const next = await fetchHistory(viewings.length);
-
-    setViewings((held) => [...held, ...next]);
-    setHasMore(next.length === A_PAGE);
+    await asked.fetchNextPage();
   };
 
   const forgetOne = async (viewingId: string) => {
-    setViewings((held) => held.filter((one) => one.id !== viewingId));
+    cache.setQueryData(viewingQueries.history().queryKey, (held) =>
+      held === undefined
+        ? held
+        : {
+            ...held,
+            pages: held.pages.map((page) => page.filter((one) => one.id !== viewingId)),
+          },
+    );
 
     if (!(await forgetViewing(viewingId))) {
-      await read();
+      await cache.invalidateQueries({ queryKey: viewingQueries.history().queryKey });
     }
   };
 
   const forgetTheLot = async () => {
     setIsClearing(true);
     await forgetHistory();
-    setViewings([]);
-    setHasMore(false);
+    await cache.invalidateQueries({ queryKey: viewingQueries.history().queryKey });
     setIsClearing(false);
   };
 

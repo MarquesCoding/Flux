@@ -55,11 +55,11 @@ const JobSchedulePage = ({ triggers, onAdd, onRemove, timezone = null }: JobSche
         )}
 
         {triggers.length === 0 ? (
-          <p className="rounded-xl border border-[var(--surface-line)] px-4 py-3 text-sm text-text-muted">
+          <p className="rounded-lg border border-[var(--surface-line)] px-4 py-3 text-sm text-text-muted">
             No triggers. This only runs when you press Run.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-[var(--surface-line)] overflow-hidden rounded-xl border border-[var(--surface-line)]">
+          <ul className="flex flex-col divide-y divide-[var(--surface-line)] overflow-hidden rounded-lg border border-[var(--surface-line)]">
             {triggers.map((entry) => {
               const elsewhere =
                 timezone === null

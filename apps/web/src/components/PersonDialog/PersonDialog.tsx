@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { RiCloseLine, RiUser3Line } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
+import { ReadMore } from '@FluxUI/ReadMore';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { Rail } from '@FluxUI/Rail';
 import { RevealItem } from '@FluxUI/RevealItem';
 import { Skeleton } from '@FluxUI/Skeleton';
 import { hasAnythingToShow } from '@FluxContracts/schemas/Person';
-import { fetchPerson, fetchPersonCredits } from '@FluxWeb/library/fetchPerson';
+import { useQuery } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
-import type { Person, PersonCredits } from '@FluxContracts/schemas/Person';
+import type { PersonCredits } from '@FluxContracts/schemas/Person';
 import type { PersonDialogProps } from './PersonDialog.types';
 
 const NOTHING: PersonCredits = { films: [], shows: [], episodes: [] };
@@ -61,36 +63,19 @@ const PersonDialog = ({
   onInspect,
   onOpenShow,
 }: PersonDialogProps) => {
-  const [person, setPerson] = useState<Person | null>(null);
-  const [credits, setCredits] = useState<PersonCredits>(NOTHING);
-  const [isLoading, setIsLoading] = useState(false);
   const [lastOpened, setLastOpened] = useState<number | null>(null);
 
+  const asked = useQuery(libraryQueries.person(personId));
+  const theirs = useQuery(libraryQueries.credits(personId));
+
+  const person = personId === null ? null : (asked.data ?? null);
+  const credits = personId === null ? NOTHING : (theirs.data ?? NOTHING);
+  const isLoading = personId !== null && (asked.isPending || theirs.isPending);
+
   useEffect(() => {
-    if (personId === null) {
-      return;
+    if (personId !== null) {
+      setLastOpened(personId);
     }
-
-    setLastOpened(personId);
-    setPerson(null);
-    setCredits(NOTHING);
-    setIsLoading(true);
-
-    let abandoned = false;
-
-    void Promise.all([fetchPerson(personId), fetchPersonCredits(personId)]).then(([who, held]) => {
-      if (abandoned) {
-        return;
-      }
-
-      setPerson(who);
-      setCredits(held);
-      setIsLoading(false);
-    });
-
-    return () => {
-      abandoned = true;
-    };
   }, [personId]);
 
   const shown = personId ?? lastOpened;
@@ -119,7 +104,7 @@ const PersonDialog = ({
 
         <div className="flex flex-col gap-8 p-5 pb-10 sm:p-8">
           <header className="flex flex-wrap items-start gap-5">
-            <span className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface-raised ring-1 ring-white/10">
+            <span className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-raised ring-1 ring-white/10">
               {person?.portraitUrl === null || person?.portraitUrl === undefined ? (
                 <RiUser3Line size={36} aria-hidden className="text-text-muted" />
               ) : (
@@ -156,9 +141,7 @@ const PersonDialog = ({
           ) : null}
 
           {person?.biography === null || person?.biography === undefined ? null : (
-            <p className="max-w-[70ch] text-[0.95rem] leading-relaxed text-text">
-              {person.biography}
-            </p>
+            <ReadMore lines={6}>{person.biography}</ReadMore>
           )}
 
           {isEmpty ? (
