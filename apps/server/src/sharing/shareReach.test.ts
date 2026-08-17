@@ -78,7 +78,7 @@ describe('what a guest may never ask for', () => {
 
   it('refuses anything about an account or a profile', () => {
     expect(asking('/api/profiles').kind).toBe('refused');
-    expect(asking('/api/session').kind).toBe('refused');
+    expect(asking('/api/shares').kind).toBe('refused');
     expect(asking('/api/keys').kind).toBe('refused');
   });
 

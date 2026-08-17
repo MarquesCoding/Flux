@@ -202,6 +202,23 @@ const createMemoryLibraryService = (
   getSeries: (seriesId) =>
     Promise.resolve((state.series ?? []).find((entry) => entry.id === seriesId) ?? null),
 
+  seriesOf: (mediaId) => {
+    const item = state.media.find((one) => one.id === mediaId);
+
+    return Promise.resolve(item === undefined ? null : toSummary(item).seriesId);
+  },
+
+  itemsForShare: (scope) =>
+    Promise.resolve(
+      state.media
+        .filter((item) =>
+          scope.kind === 'item'
+            ? scope.mediaId !== null && item.id === scope.mediaId
+            : scope.seriesId !== null && toSummary(item).seriesId === scope.seriesId,
+        )
+        .map(toSummary),
+    ),
+
   findByPerson: (personId) =>
     Promise.resolve(
       state.media
