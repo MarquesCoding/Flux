@@ -32,7 +32,10 @@ type PresenceEntry = {
 };
 
 type PresenceControlEvent =
-  { kind: 'stopped'; reason: string } | { kind: 'paused'; reason: string } | { kind: 'resumed' };
+  | { kind: 'stopped'; reason: string }
+  | { kind: 'paused'; reason: string }
+  | { kind: 'resumed' }
+  | { kind: 'message'; text: string };
 
 type PresenceStartPlaybackInput = Omit<
   PresencePlayback,
@@ -58,6 +61,7 @@ type PresenceService = {
   list: () => PresenceEntry[];
   watch: (listener: () => void) => () => void;
   pause: (clientId: string, reason: string) => boolean;
+  message: (clientId: string, text: string) => boolean;
   resume: (clientId: string) => boolean;
   stop: (clientId: string, reason: string) => boolean;
 };
@@ -159,6 +163,18 @@ const createPresenceService = (): PresenceService => {
       return () => {
         listeners.delete(listener);
       };
+    },
+
+    message: (clientId, text) => {
+      const connection = connections.get(clientId);
+
+      if (connection === undefined) {
+        return false;
+      }
+
+      connection.send({ kind: 'message', text });
+
+      return true;
     },
 
     pause: (clientId, reason) => {

@@ -19,6 +19,7 @@ const props = {
   onStop: vi.fn(),
   onPause: vi.fn(),
   onResume: vi.fn(),
+  onMessage: () => Promise.resolve(),
 };
 
 describe('ActivityPanel', () => {
