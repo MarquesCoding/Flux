@@ -37,7 +37,7 @@ import { loadCastSender, castStateOf, castStream } from '@FluxWeb/playback/castS
 import { fetchTrickplay } from '@FluxWeb/playback/fetchTrickplay';
 import { popOutWithCaptions } from '@FluxWeb/playback/popOutWithCaptions';
 import { captureFrame } from '@FluxWeb/playback/captureFrame';
-import { readPlaybackHealth } from '@FluxWeb/playback/readPlaybackHealth';
+import { readPlaybackHealth, bufferedAhead } from '@FluxWeb/playback/readPlaybackHealth';
 import {
   fetchSubtitleTracks,
   subtitleTrackUrl,
@@ -66,6 +66,9 @@ import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
 import { AdminMessageOverlay } from './components/AdminMessageOverlay/AdminMessageOverlay';
+import { correctDrift } from '@FluxCore/functions/correctDrift';
+import { whatToReport } from '@FluxCore/functions/whatToReport';
+import { describeCommand } from '@FluxWeb/party/describeCommand';
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay';
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions';
 import type { CastState } from '@FluxWeb/playback/castPlayback.types';
@@ -88,6 +91,8 @@ type FullscreenOwner = {
 
 const IDLE_MILLISECONDS = 2500;
 
+const PARTY_NOTE_MILLISECONDS = 4000;
+
 const CAST_NOTE_MILLISECONDS = 6000;
 
 const JUMP_SECONDS = 30;
@@ -95,6 +100,33 @@ const JUMP_SECONDS = 30;
 const FINISHED_WITHIN_SECONDS = 90;
 
 const HEALTH_INTERVAL_MILLISECONDS = 500;
+
+const PARTY_REPORT_EVERY_MS = 1000;
+
+const CATCH_UP_BEYOND_SECONDS = 2;
+
+const HAVE_METADATA = 1;
+
+const LINE_UP_BEYOND_SECONDS = 0.05;
+
+const MOST_FRAME_SKEW_SECONDS = 30;
+
+/**
+ * What to say while the room is waiting, which is the difference between a picture that has stopped
+ * and a picture that is broken.
+ *
+ * @param names - Whoever the room is waiting for.
+ * @returns The line to show.
+ */
+const waitingWord = (names: readonly string[]): string => {
+  if (names.length === 0) {
+    return 'Getting the room in step';
+  }
+
+  return names.length === 1
+    ? `Waiting for ${names[0] ?? ''}`
+    : `Waiting for ${names.length.toString()} people`;
+};
 
 const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000;
 
@@ -122,6 +154,8 @@ const abandonStartedSession = (sessionId: string) => {
 const EMPTY_HEALTH: PlaybackHealth = {
   positionSeconds: 0,
   bufferedAheadSeconds: 0,
+  frameSeconds: 0,
+  streamFromSeconds: 0,
   encodedSeconds: 0,
   droppedFrames: null,
   decodedFrames: null,
@@ -145,6 +179,9 @@ const EMPTY_HEALTH: PlaybackHealth = {
  * @param episodes - The rest of the season, where this is one episode of a programme.
  * @param onSelectEpisode - Called with an episode the viewer chose instead of this one.
  * @param watchedFractionFor - How to ask how far through a given episode the viewer already is.
+ * @param party - The watch party this viewing is part of, where it is part of one.
+ * @param partyNotice - Something the party has to say, which may outlive the party itself.
+ * @param renderPartyMenu - How to draw the watch party control in the bar, told when the bar has gone.
  */
 const VideoPlayer = ({
   media,
@@ -156,8 +193,12 @@ const VideoPlayer = ({
   episodes = [],
   onSelectEpisode,
   watchedFractionFor,
+  party,
+  partyNotice = null,
+  renderPartyMenu,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+
   const stageRef = useRef<HTMLDivElement>(null);
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isSilencedByPolicyRef = useRef(false);
@@ -215,6 +256,8 @@ const VideoPlayer = ({
   const [isPoppedOut, setIsPoppedOut] = useState(false);
   const [castState, setCastState] = useState<CastState>('unavailable');
   const [castNote, setCastNote] = useState<string | null>(null);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [partyNote, setPartyNote] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -230,6 +273,181 @@ const VideoPlayer = ({
       clearTimeout(goes);
     };
   }, [castNote]);
+
+  useEffect(() => {
+    if (partyNote === null) {
+      return;
+    }
+
+    const goes = setTimeout(() => {
+      setPartyNote(null);
+    }, PARTY_NOTE_MILLISECONDS);
+
+    return () => {
+      clearTimeout(goes);
+    };
+  }, [partyNote]);
+
+  const appliedSequenceRef = useRef(-1);
+  const hasCaughtUpRef = useRef(false);
+  const partyRef = useRef(party);
+  const stateRef = useRef<PlayerState>('starting');
+  const lastGoodPositionRef = useRef(0);
+  const frameSkewRef = useRef(0);
+
+  useEffect(() => {
+    const reference = party?.referenceSeconds ?? null;
+    const element = videoRef.current;
+
+    if (
+      party === undefined ||
+      reference === null ||
+      element === null ||
+      hasCaughtUpRef.current ||
+      element.readyState < HAVE_METADATA
+    ) {
+      return;
+    }
+
+    hasCaughtUpRef.current = true;
+
+    if (
+      Math.abs(reference - element.currentTime - frameSkewRef.current) > CATCH_UP_BEYOND_SECONDS
+    ) {
+      element.currentTime = reference - frameSkewRef.current;
+    }
+  }, [party, party?.referenceSeconds]);
+
+  useEffect(() => {
+    const command = party?.command ?? null;
+    const element = videoRef.current;
+
+    if (command === null || element === null || command.sequence <= appliedSequenceRef.current) {
+      return;
+    }
+
+    appliedSequenceRef.current = command.sequence;
+    setPartyNote(describeCommand(command, party?.meConnectionId ?? null));
+
+    if (command.command.kind !== 'changeWhatIsPlaying') {
+      element.currentTime = command.command.atSeconds;
+    }
+  }, [party?.command]);
+
+  useEffect(() => {
+    const element = videoRef.current;
+
+    if (party === undefined || element === null || state !== 'playing') {
+      return;
+    }
+
+    const shouldRun = party.isPlaying && !party.isHeld;
+
+    if (shouldRun && element.paused) {
+      element.play().catch(() => {
+        setPartyNote('Your browser will not start this on its own — press play to join in.');
+      });
+
+      return;
+    }
+
+    if (!shouldRun && !element.paused) {
+      element.pause();
+    }
+  }, [party, party?.isPlaying, party?.isHeld, state]);
+
+  const isInAParty = party !== undefined;
+
+  useEffect(() => {
+    partyRef.current = party;
+    stateRef.current = state;
+  });
+
+  useEffect(() => {
+    if (!isInAParty) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const element = videoRef.current;
+      const held = partyRef.current;
+
+      if (element === null || held === undefined) {
+        return;
+      }
+
+      const ahead = bufferedAhead(element);
+
+      const said = whatToReport({
+        isSessionPlaying: stateRef.current === 'playing',
+        frameSkewSeconds: frameSkewRef.current,
+        readyState: element.readyState,
+        currentSeconds: element.currentTime,
+        lastGoodSeconds: lastGoodPositionRef.current,
+        bufferedAheadSeconds: ahead,
+        isPaused: element.paused,
+      });
+
+      lastGoodPositionRef.current = said.positionSeconds;
+
+      held.onReport({ ...said, bufferedAheadSeconds: ahead });
+    }, PARTY_REPORT_EVERY_MS);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isInAParty]);
+
+  useEffect(() => {
+    const reference = party?.referenceSeconds ?? null;
+
+    if (party === undefined || reference === null) {
+      return;
+    }
+
+    const element = videoRef.current;
+
+    if (element === null || (element.paused && !party.isHeld)) {
+      return;
+    }
+
+    const showing = element.currentTime + frameSkewRef.current;
+
+    if (party.isHeld && element.paused) {
+      if (Math.abs(reference - showing) > LINE_UP_BEYOND_SECONDS) {
+        element.currentTime = reference - frameSkewRef.current;
+      }
+
+      return;
+    }
+
+    const corrected = correctDrift({
+      behindByMs: (reference - showing) * 1000,
+      jitterMs: party.jitterMs,
+      isSeeking: element.seeking,
+      isStalled: bufferedAhead(element) <= 0,
+    });
+
+    if (corrected.kind === 'snap') {
+      element.currentTime = reference - frameSkewRef.current;
+      element.playbackRate = 1;
+
+      return;
+    }
+
+    if (element.paused) {
+      return;
+    }
+
+    element.preservesPitch = true;
+    element.playbackRate = corrected.kind === 'rate' ? corrected.rate : 1;
+  }, [party, party?.referenceSeconds]);
+
+  useEffect(() => {
+    if (partyNotice !== null) {
+      setPartyNote(partyNotice);
+    }
+  }, [partyNotice]);
   const releaseRef = useRef<(() => Promise<void>) | null>(null);
   const deliveredRef = useRef<(() => DeliveredFormat | null) | null>(null);
   const settledRef = useRef<Promise<void>>(Promise.resolve());
@@ -566,6 +784,7 @@ const VideoPlayer = ({
     setIsPlaying(false);
     setPosition(request.startSeconds);
     setReportedDuration(0);
+    lastGoodPositionRef.current = request.startSeconds;
 
     const controller = new AbortController();
     const isAbandoned = () => controller.signal.aborted;
@@ -902,7 +1121,7 @@ const VideoPlayer = ({
       const element = videoRef.current;
 
       if (element !== null) {
-        setHealth(readPlaybackHealth(element));
+        setHealth(readPlaybackHealth(element, frameSkewRef.current));
         setDelivered(deliveredRef.current?.() ?? null);
       }
     };
@@ -941,6 +1160,15 @@ const VideoPlayer = ({
       return;
     }
 
+    if (party !== undefined) {
+      party.onCommand({
+        kind: party.isPlaying ? 'pause' : 'play',
+        atSeconds: element.currentTime,
+      });
+
+      return;
+    }
+
     if (element.paused) {
       void element.play();
 
@@ -948,19 +1176,28 @@ const VideoPlayer = ({
     }
 
     element.pause();
-  }, []);
+  }, [party]);
 
-  const seek = useCallback((seconds: number) => {
-    const element = videoRef.current;
+  const seek = useCallback(
+    (seconds: number) => {
+      const element = videoRef.current;
 
-    if (element === null) {
-      return;
-    }
+      if (element === null) {
+        return;
+      }
 
-    setPosition(seconds);
+      if (party !== undefined) {
+        party.onCommand({ kind: 'seek', atSeconds: seconds });
 
-    element.currentTime = seconds;
-  }, []);
+        return;
+      }
+
+      setPosition(seconds);
+
+      element.currentTime = seconds;
+    },
+    [party],
+  );
 
   useEffect(() => {
     saveCaptionStyle(captionStyle);
@@ -1161,9 +1398,13 @@ const VideoPlayer = ({
 
         if (gap > 0 && gap < 1) {
           frameSecondsRef.current = gap;
-
-          return;
         }
+      }
+
+      const skew = metadata.mediaTime - element.currentTime;
+
+      if (Math.abs(skew) < MOST_FRAME_SKEW_SECONDS) {
+        frameSkewRef.current = skew;
       }
 
       previous = metadata.mediaTime;
@@ -1334,6 +1575,7 @@ const VideoPlayer = ({
           }}
           onDurationChange={setReportedDuration}
           onPlayingChange={setIsPlaying}
+          onBufferingChange={setIsBuffering}
           onEnded={() => {
             onProgress?.(duration, duration);
             onEnded?.();
@@ -1367,6 +1609,25 @@ const VideoPlayer = ({
             }}
           />
         )}
+
+        <AnimatePresence>
+          {partyNote === null ? null : (
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+              transition={{ duration: prefersReducedMotion === true ? 0 : 0.22, ease: 'easeOut' }}
+              className="pointer-events-none absolute inset-x-0 top-6 z-30 flex justify-center px-4"
+            >
+              <p
+                role="status"
+                className="flux-glass max-w-md rounded-2xl px-4 py-2 text-center text-sm text-white"
+              >
+                {partyNote}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {castNote === null ? null : (
@@ -1404,6 +1665,25 @@ const VideoPlayer = ({
           />
         )}
 
+        {state !== 'playing' || (!isBuffering && party?.isHeld !== true) ? null : (
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <Spinner
+              label={
+                party?.isHeld === true
+                  ? waitingWord(party.waitingFor)
+                  : 'Waiting for more of the film'
+              }
+              size="lg"
+            />
+
+            <p className="flux-glass rounded-full px-4 py-1.5 text-sm text-white">
+              {party?.isHeld === true
+                ? waitingWord(party.waitingFor)
+                : 'Waiting for more of the film'}
+            </p>
+          </div>
+        )}
+
         {state === 'starting' ? (
           <div
             className={
@@ -1436,6 +1716,18 @@ const VideoPlayer = ({
               health={health}
               delivered={delivered}
               sessionStartSeconds={request.startSeconds}
+              {...(party === undefined
+                ? {}
+                : {
+                    party: {
+                      isPlaying: party.isPlaying,
+                      isHeld: party.isHeld,
+                      waitingFor: party.waitingFor,
+                      referenceSeconds: party.referenceSeconds,
+                      jitterMs: party.jitterMs,
+                      members: party.members,
+                    },
+                  })}
               onClose={() => {
                 setIsShowingStats(false);
               }}
@@ -1466,6 +1758,14 @@ const VideoPlayer = ({
           }`}
         >
           <PlayerControls
+            {...(renderPartyMenu === undefined
+              ? {}
+              : {
+                  partyMenu: renderPartyMenu({
+                    isHidden: !isBarUp,
+                    onOpenChange: setIsMenuOpen,
+                  }),
+                })}
             title={media.title}
             playingId={media.id}
             episodes={episodes}

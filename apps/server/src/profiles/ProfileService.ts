@@ -18,6 +18,7 @@ type ProfileService = {
   readAvatar: (profileId: string) => Promise<{ body: Uint8Array; contentType: string } | null>;
   listEveryone: () => Promise<ViewerProfile[]>;
   findSignInEmail: (profileId: string) => Promise<string | null>;
+  accountOf: (profileId: string) => Promise<string | null>;
   savePhoto: (
     userId: string,
     profileId: string,

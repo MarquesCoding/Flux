@@ -4,12 +4,23 @@ import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
 
 type PlaybackHealth = {
   positionSeconds: number;
+  frameSeconds: number;
+  streamFromSeconds: number;
   bufferedAheadSeconds: number;
   encodedSeconds: number;
   droppedFrames: number | null;
   decodedFrames: number | null;
   presentedWidth: number;
   presentedHeight: number;
+};
+
+type PartyHealth = {
+  isPlaying: boolean;
+  isHeld: boolean;
+  waitingFor: readonly string[];
+  referenceSeconds: number | null;
+  jitterMs: number;
+  members: number;
 };
 
 type StreamStatsProps = {
@@ -19,7 +30,8 @@ type StreamStatsProps = {
   health: PlaybackHealth;
   delivered: DeliveredFormat | null;
   sessionStartSeconds: number;
+  party?: PartyHealth;
   onClose: () => void;
 };
 
-export type { PlaybackHealth, StreamStatsProps };
+export type { PlaybackHealth, PartyHealth, StreamStatsProps };

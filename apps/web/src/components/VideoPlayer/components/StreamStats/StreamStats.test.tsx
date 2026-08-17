@@ -59,6 +59,8 @@ const detail: MediaDetail = {
 
 const health: PlaybackHealth = {
   positionSeconds: 65,
+  frameSeconds: 0,
+  streamFromSeconds: 0,
   bufferedAheadSeconds: 12.25,
   encodedSeconds: 240,
   droppedFrames: 4,

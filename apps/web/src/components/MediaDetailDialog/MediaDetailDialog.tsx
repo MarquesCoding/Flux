@@ -8,6 +8,7 @@ import {
   RiHeartLine,
   RiInformationLine,
   RiPlayFill,
+  RiGroupLine,
   RiShareLine,
 } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
@@ -60,6 +61,7 @@ const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
  * @param onRate - Told what they gave it, or null to take the rating back.
  * @param onOpenPerson - Told which performer to open from the cast, where opening one is offered.
  * @param onShare - Told to hand out a link to it, where this account may share at all.
+ * @param onStartParty - Told to open a watch party on it, where this account may hold one.
  */
 const MediaDetailDialog = ({
   media,
@@ -77,6 +79,7 @@ const MediaDetailDialog = ({
   onRate,
   onOpenPerson,
   onShare,
+  onStartParty,
 }: MediaDetailDialogProps) => {
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -296,6 +299,20 @@ const MediaDetailDialog = ({
                 >
                   <RiShareLine size={18} aria-hidden />
                   Share
+                </Button>
+              )}
+
+              {onStartParty === undefined ? null : (
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  isPill
+                  onClick={() => {
+                    onStartParty(shown);
+                  }}
+                >
+                  <RiGroupLine size={18} aria-hidden />
+                  Watch together
                 </Button>
               )}
             </div>

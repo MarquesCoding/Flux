@@ -29,6 +29,10 @@ type Identity = {
   deviceLabel?: string;
 };
 
+type PartyMessage = Extract<FromClient, { kind: `party${string}` }>;
+
+type ClockHeard = (sentAtMs: number, serverAtMs: number) => void;
+
 type RealtimeClient = {
   start: () => void;
   stop: () => void;
@@ -36,7 +40,15 @@ type RealtimeClient = {
   identify: (who: Identity) => void;
   onResumed: (run: () => void) => () => void;
   isLive: () => boolean;
+  connectionId: () => string | null;
+  sendParty: (message: PartyMessage) => void;
+  askClock: (sentAtMs: number) => void;
+  onClockTell: (heard: ClockHeard) => () => void;
+  onRefused: (heard: (why: string) => void) => () => void;
+  onNeedsPassword: (heard: (partyId: string, wasWrong: boolean) => void) => () => void;
 };
+
+const MOST_WAITING = 16;
 
 const readMessage = (raw: string) => {
   try {
@@ -70,6 +82,10 @@ const createRealtimeClient = ({
 }: RealtimeClientOptions): RealtimeClient => {
   const listeners = new Map<RealtimeTopic, Set<Listener>>();
   const resumed = new Set<() => void>();
+  const clockHeard = new Set<ClockHeard>();
+  const refusals = new Set<(why: string) => void>();
+  const challenges = new Set<(partyId: string, wasWrong: boolean) => void>();
+  const waiting: PartyMessage[] = [];
 
   let link: RealtimeLink | null = null;
   let cancelRetry: (() => void) | null = null;
@@ -78,6 +94,7 @@ const createRealtimeClient = ({
   let wanted = false;
   let hasConnectedBefore = false;
   let actingAs: Identity | null = null;
+  let myConnectionId: string | null = null;
 
   const identifyMessage = (who: Identity): FromClient => ({
     kind: 'identify',
@@ -87,7 +104,39 @@ const createRealtimeClient = ({
   });
 
   const send = (message: FromClient) => {
+    if (!live) {
+      return;
+    }
+
     link?.send(JSON.stringify(message));
+  };
+
+  /**
+   * Sends a party message, or holds it until there is a socket to send it on.
+   *
+   * Nothing else here needs holding: subscriptions and identity are asked for again on the way back
+   * up, and a clock reading taken across an outage would be a lie rather than a measurement. Party
+   * messages are the ones with no second chance — a tab opening an invitation asks to join before
+   * the socket has finished connecting, and a join that is dropped leaves somebody looking at a
+   * party they believe they are in and nobody else can see.
+   *
+   * @param message - What to send.
+   */
+  const sendParty = (message: PartyMessage) => {
+    if (!live) {
+      waiting.push(message);
+      waiting.splice(0, Math.max(0, waiting.length - MOST_WAITING));
+
+      return;
+    }
+
+    send(message);
+  };
+
+  const sendWhatWaited = () => {
+    for (const message of waiting.splice(0, waiting.length)) {
+      sendParty(message);
+    }
   };
 
   const askForEverything = () => {
@@ -111,6 +160,12 @@ const createRealtimeClient = ({
       return;
     }
 
+    if (read.data.kind === 'welcome') {
+      myConnectionId = read.data.connectionId;
+
+      return;
+    }
+
     if (read.data.kind === 'event') {
       deliver(read.data);
 
@@ -119,6 +174,30 @@ const createRealtimeClient = ({
 
     if (read.data.kind === 'ping') {
       send({ kind: 'pong' });
+
+      return;
+    }
+
+    if (read.data.kind === 'clockTell') {
+      for (const heard of clockHeard) {
+        heard(read.data.sentAtMs, read.data.serverAtMs);
+      }
+
+      return;
+    }
+
+    if (read.data.kind === 'refused') {
+      for (const heard of refusals) {
+        heard(read.data.why);
+      }
+
+      return;
+    }
+
+    if (read.data.kind === 'partyNeedsPassword') {
+      for (const heard of challenges) {
+        heard(read.data.partyId, read.data.wasWrong);
+      }
 
       return;
     }
@@ -141,6 +220,7 @@ const createRealtimeClient = ({
         }
 
         askForEverything();
+        sendWhatWaited();
 
         if (hasConnectedBefore) {
           for (const run of resumed) {
@@ -184,6 +264,7 @@ const createRealtimeClient = ({
     stop: () => {
       wanted = false;
       live = false;
+      waiting.length = 0;
       cancelRetry?.();
       cancelRetry = null;
       link?.close();
@@ -233,6 +314,38 @@ const createRealtimeClient = ({
     },
 
     isLive: () => live,
+
+    connectionId: () => myConnectionId,
+
+    sendParty,
+
+    askClock: (sentAtMs) => {
+      send({ kind: 'clockAsk', sentAtMs });
+    },
+
+    onClockTell: (heard) => {
+      clockHeard.add(heard);
+
+      return () => {
+        clockHeard.delete(heard);
+      };
+    },
+
+    onRefused: (heard) => {
+      refusals.add(heard);
+
+      return () => {
+        refusals.delete(heard);
+      };
+    },
+
+    onNeedsPassword: (heard) => {
+      challenges.add(heard);
+
+      return () => {
+        challenges.delete(heard);
+      };
+    },
   };
 };
 
