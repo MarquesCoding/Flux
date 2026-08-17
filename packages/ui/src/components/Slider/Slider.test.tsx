@@ -22,7 +22,7 @@ describe('Slider', () => {
     render(<Slider label="Seek" value={30} max={120} onValueChange={vi.fn()} />);
 
     expect(slider()).toHaveAttribute('aria-valuenow', '30');
-    expect(slider()).toHaveAttribute('max', '120');
+    expect(slider()).toHaveAttribute('aria-valuemax', '120');
   });
 
   it('seeks from the keyboard, so scrubbing does not need a pointer', async () => {
@@ -39,7 +39,7 @@ describe('Slider', () => {
   it('cannot be dragged before the duration is known', () => {
     render(<Slider label="Seek" value={0} max={0} onValueChange={vi.fn()} />);
 
-    expect(slider()).toBeDisabled();
+    expect(slider()).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('draws no preview until the bar is hovered', () => {

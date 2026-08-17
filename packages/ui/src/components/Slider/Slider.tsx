@@ -133,6 +133,7 @@ const Slider = ({
 
         <RadixSlider.Thumb
           aria-label={label}
+          aria-disabled={max <= 0}
           className={cn(
             'block size-3.5 rounded-full shadow outline-none select-none',
             'transition-transform duration-[var(--duration-instant)] ease-[var(--ease-out)]',

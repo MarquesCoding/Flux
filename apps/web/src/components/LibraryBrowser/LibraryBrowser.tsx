@@ -10,6 +10,7 @@ import { SplashScreen } from '@FluxUI/SplashScreen';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { groupIntoRails } from '@FluxWeb/library/groupIntoRails';
 import { pickFeatured } from '@FluxWeb/library/pickFeatured';
+import { rememberedLibrary } from '@FluxWeb/library/rememberedLibrary';
 import { EmptyLibrary } from '@FluxWeb/components/LibraryBrowser/components/EmptyLibrary/EmptyLibrary';
 import { fetchWatchProgress, byMediaId } from '@FluxWeb/playback/watchProgress';
 import { watchedFraction } from '@FluxContracts/schemas/WatchProgress';
@@ -23,8 +24,6 @@ const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
 
 const HERO_SAMPLE = 24;
-
-const HERO_ARTWORK_WAIT_MS = 2500;
 
 /**
  * Browses one library: the hero at the top, the rows beneath it, and the names of the other
@@ -63,17 +62,29 @@ const LibraryBrowser = ({
   libraryId,
   onLibraryChange,
 }: LibraryBrowserProps) => {
-  const [libraries, setLibraries] = useState<Library[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [items, setItems] = useState<MediaSummary[]>([]);
-  const [loadedFor, setLoadedFor] = useState<string | null>(null);
-  const [heroItems, setHeroItems] = useState<MediaSummary[]>([]);
-  const [hasReadHero, setHasReadHero] = useState(false);
-  const [hasDrawnHero, setHasDrawnHero] = useState(false);
+  const remembered = rememberedLibrary.libraries();
+
+  const opening =
+    remembered.find((entry) => entry.id === libraryId)?.id ?? remembered[0]?.id ?? null;
+
+  const [libraries, setLibraries] = useState<Library[]>(() => remembered);
+  const [selectedId, setSelectedId] = useState<string | null>(() => opening);
+
+  const [items, setItems] = useState<MediaSummary[]>(
+    () => (opening === null ? undefined : rememberedLibrary.items(opening, '')) ?? [],
+  );
+
+  const [loadedFor, setLoadedFor] = useState<string | null>(() =>
+    opening !== null && rememberedLibrary.items(opening, '') !== undefined ? opening : null,
+  );
+  const [heroItems, setHeroItems] = useState<MediaSummary[]>(() => rememberedLibrary.heroItems());
+  const [hasReadHero, setHasReadHero] = useState(() => rememberedLibrary.heroItems().length > 0);
   const [appliedSearch, setAppliedSearch] = useState('');
   const [progress, setProgress] = useState(new Map<string, WatchProgress>());
 
-  const [state, setState] = useState<BrowserState>('loading');
+  const [state, setState] = useState<BrowserState>(() =>
+    rememberedLibrary.libraries().length > 0 ? 'ready' : 'loading',
+  );
 
   const reportItems = useRef(onItemsLoaded);
 
@@ -101,6 +112,7 @@ const LibraryBrowser = ({
         const asked = found.find((entry) => entry.id === libraryId)?.id;
         const opening = asked ?? found[0]?.id ?? null;
 
+        rememberedLibrary.rememberLibraries(found);
         setLibraries(found);
         setSelectedId(opening);
         setState('ready');
@@ -165,6 +177,7 @@ const LibraryBrowser = ({
         limit: PAGE_SIZE,
       });
 
+      rememberedLibrary.rememberItems(selectedId, appliedSearch, page.items);
       setItems(page.items);
       setLoadedFor(selectedId);
     } catch {
@@ -194,6 +207,7 @@ const LibraryBrowser = ({
       ),
     ).then((pages) => {
       if (!abandoned) {
+        rememberedLibrary.rememberHeroItems(pages.flat());
         setHeroItems(pages.flat());
         setHasReadHero(true);
       }
@@ -205,46 +219,7 @@ const LibraryBrowser = ({
   }, [libraries]);
 
   const isSettled =
-    state === 'ready' &&
-    (selectedId === null || loadedFor !== null) &&
-    (!hasHero || (hasReadHero && hasDrawnHero));
-
-  useEffect(() => {
-    const featured = pickFeatured(heroItems, HERO_COUNT)[0];
-
-    if (!hasHero || !hasReadHero || hasDrawnHero) {
-      return;
-    }
-
-    if (featured === undefined || !featured.hasBackdrop) {
-      setHasDrawnHero(true);
-
-      return;
-    }
-
-    let abandoned = false;
-
-    const drawn = () => {
-      if (!abandoned) {
-        setHasDrawnHero(true);
-      }
-    };
-
-    const artwork = new Image();
-
-    artwork.addEventListener('load', drawn);
-    artwork.addEventListener('error', drawn);
-    artwork.src = `/api/media/${featured.id}/image/backdrop`;
-
-    const gaveUp = setTimeout(drawn, HERO_ARTWORK_WAIT_MS);
-
-    return () => {
-      abandoned = true;
-      clearTimeout(gaveUp);
-      artwork.removeEventListener('load', drawn);
-      artwork.removeEventListener('error', drawn);
-    };
-  }, [hasHero, hasReadHero, hasDrawnHero, heroItems]);
+    state === 'ready' && (selectedId === null || loadedFor !== null) && (!hasHero || hasReadHero);
 
   if (state === 'unreachable') {
     return (

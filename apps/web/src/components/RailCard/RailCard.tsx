@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import {
-  RiClockwiseLine,
-  RiHeartFill,
-  RiHeartLine,
-  RiInformationLine,
-  RiPlayFill,
-} from '@remixicon/react';
+import { RiClockwiseLine, RiHeartFill, RiHeartLine, RiPlayFill } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { MediaCard } from '@FluxUI/MediaCard';
 import { Badge } from '@FluxUI/Badge';
@@ -390,19 +384,6 @@ const RailCard = ({
                       <RiClockwiseLine size={17} aria-hidden />
                     </Button>
                   )}
-
-                  <Button
-                    isIconOnly
-                    variant="secondary"
-                    size="md"
-                    label={`More about ${media.seriesTitle ?? media.title}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      inspect();
-                    }}
-                  >
-                    <RiInformationLine size={17} aria-hidden />
-                  </Button>
 
                   {onToggleKept === undefined ? null : (
                     <Button

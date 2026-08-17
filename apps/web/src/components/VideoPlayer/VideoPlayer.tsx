@@ -262,7 +262,7 @@ const VideoPlayer = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [isSayingSo, setIsSayingSo] = useState(false);
 
-    const appliedSequenceRef = useRef(-1);
+  const appliedSequenceRef = useRef(-1);
   const hasCaughtUpRef = useRef(false);
   const partyRef = useRef(party);
   const stateRef = useRef<PlayerState>('starting');
@@ -969,7 +969,16 @@ const VideoPlayer = ({
         }
 
         if (event.kind === 'message') {
-          notify.say(event.text, { where: PLAYER_TOASTS, staysUntilDismissed: true });
+          const said = notify.say(event.text, {
+            where: PLAYER_TOASTS,
+            staysUntilDismissed: true,
+            action: {
+              label: 'Dismiss',
+              onPress: () => {
+                notify.forget(said);
+              },
+            },
+          });
 
           return;
         }

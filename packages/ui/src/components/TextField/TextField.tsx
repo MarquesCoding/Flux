@@ -80,7 +80,7 @@ const TextField = ({
           placeholder={placeholder}
           required={required}
           disabled={disabled}
-          aria-invalid={error !== undefined}
+          {...(error === undefined ? {} : { 'aria-invalid': true })}
           {...(description === undefined ? {} : { 'aria-describedby': describedBy })}
           {...(autoComplete === undefined ? {} : { autoComplete })}
           {...(min === undefined ? {} : { min })}

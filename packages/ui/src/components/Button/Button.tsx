@@ -60,7 +60,8 @@ const Button = ({
           variant,
           size,
           isIconOnly,
-          shape: isBare && !isPill && !isIconOnly ? 'bare' : isPill ? 'pill' : 'square',
+          shape:
+            isBare && !isPill && !isIconOnly ? 'bare' : isPill || isIconOnly ? 'pill' : 'square',
         }),
         isActive && !isBare ? 'bg-white/20' : '',
         className,

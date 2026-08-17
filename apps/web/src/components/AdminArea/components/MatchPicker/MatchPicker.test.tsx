@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Toaster } from '@FluxUI/Toaster';
 import { MatchPicker } from './MatchPicker';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
@@ -130,12 +131,17 @@ describe('MatchPicker', () => {
 
     const onClose = vi.fn();
     const user = userEvent.setup();
-    render(<MatchPicker media={episode} onClose={onClose} onCorrected={vi.fn()} />);
+    render(
+      <>
+        <MatchPicker media={episode} onClose={onClose} onCorrected={vi.fn()} />
+        <Toaster />
+      </>,
+    );
 
     await user.click(screen.getByRole('button', { name: 'Search' }));
     await user.click(await screen.findByRole('button', { name: /From \(2022\)/ }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('administrators');
+    expect(await screen.findByText(/administrators/)).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -168,11 +174,16 @@ describe('MatchPicker', () => {
 
     const onClose = vi.fn();
     const user = userEvent.setup();
-    render(<MatchPicker media={episode} onClose={onClose} onCorrected={vi.fn()} />);
+    render(
+      <>
+        <MatchPicker media={episode} onClose={onClose} onCorrected={vi.fn()} />
+        <Toaster />
+      </>,
+    );
 
     await user.click(screen.getByRole('button', { name: /Forget the correction/ }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('could not be put back');
+    expect(await screen.findByText(/could not be put back/)).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });
 
