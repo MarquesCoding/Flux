@@ -80,3 +80,29 @@ describe('qualityStepCostsFor', () => {
 
 const costs1080pOf = (media: MediaItem): string | undefined =>
   qualityStepCostsFor({ media, profile })['1080p'];
+
+describe('qualityStepCostsFor, the original', () => {
+  it('describes the original, so the rungs have something to be read against', () => {
+    const costs = qualityStepCostsFor({ media: remux, profile });
+
+    expect(costs.original).toBe('80.7 Mbps · ~85.9 GB');
+  });
+
+  it('states the original plainly, where a rung is a ceiling', () => {
+    const costs = qualityStepCostsFor({ media: remux, profile });
+
+    expect(costs.original?.startsWith('up to')).toBe(false);
+    expect(costs['720p']?.startsWith('up to')).toBe(true);
+  });
+
+  it('leaves the original out rather than guessing when nothing can be read', () => {
+    const hostile: DeviceProfile = {
+      ...profile,
+      get directPlayProfiles(): DeviceProfile['directPlayProfiles'] {
+        throw new Error('the profile arrived half formed');
+      },
+    };
+
+    expect(qualityStepCostsFor({ media: remux, profile: hostile }).original).toBeUndefined();
+  });
+});

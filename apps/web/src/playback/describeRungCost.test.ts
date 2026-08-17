@@ -45,3 +45,30 @@ describe('describeRungCost', () => {
     expect(long).toContain('GB');
   });
 });
+
+describe('describeRungCost, the original', () => {
+  it('states the file own bitrate plainly, rather than hedging against nothing', () => {
+    const shown = describeRungCost({
+      maxBitrateKbps: 80_657,
+      durationSeconds: AZKABAN_SECONDS,
+      isCeiling: false,
+    });
+
+    expect(shown.startsWith('up to')).toBe(false);
+    expect(shown).toBe('80.7 Mbps · ~85.9 GB');
+  });
+
+  it('still hedges the size, which is derived rather than read off the file', () => {
+    expect(
+      describeRungCost({
+        maxBitrateKbps: 80_657,
+        durationSeconds: AZKABAN_SECONDS,
+        isCeiling: false,
+      }),
+    ).toContain('~');
+  });
+
+  it('treats a rung as a ceiling unless told otherwise', () => {
+    expect(describeRungCost({ maxBitrateKbps: 2500, durationSeconds: 100 })).toContain('up to');
+  });
+});

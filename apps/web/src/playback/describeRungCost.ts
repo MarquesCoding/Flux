@@ -7,6 +7,7 @@ const BYTES_IN_MB = 1e6;
 type DescribeRungCostOptions = {
   maxBitrateKbps: number;
   durationSeconds: number;
+  isCeiling?: boolean;
 };
 
 /**
@@ -16,17 +17,29 @@ type DescribeRungCostOptions = {
  * the size is what decides whether it is worth pulling at all. Most people have an intuition for
  * one of those and not the other, so both are offered rather than picking a favourite.
  *
- * Both are ceilings and are written as such. A rung caps the bitrate rather than aiming at it, so
- * a well compressed film comes in under the number, and the size follows from the same figure.
+ * A rung caps the bitrate rather than aiming at it, so it is written as a ceiling and a well
+ * compressed film comes in under the number. The original is not a ceiling — it is simply what the
+ * file is — so `isCeiling` turns that off and the figure is given plainly. Saying "up to" of a file
+ * that already exists would be a hedge against nothing.
  *
- * @param options - The rung's ceiling and how long the film runs.
+ * The size is approximate either way. Nothing here records how large a file is on disk, so it is
+ * derived from the bitrate and the runtime, which lands close but is not the number a directory
+ * listing would give.
+ *
+ * @param options - The bitrate, how long the film runs, and whether the bitrate is a cap.
  * @returns The cost as a phrase, or the bitrate alone where the runtime is not known.
  */
-const describeRungCost = ({ maxBitrateKbps, durationSeconds }: DescribeRungCostOptions): string => {
+const describeRungCost = ({
+  maxBitrateKbps,
+  durationSeconds,
+  isCeiling = true,
+}: DescribeRungCostOptions): string => {
+  const prefix = isCeiling ? 'up to ' : '';
+
   const rate =
     maxBitrateKbps >= KBPS_IN_MBPS
-      ? `up to ${(maxBitrateKbps / KBPS_IN_MBPS).toFixed(1)} Mbps`
-      : `up to ${maxBitrateKbps.toString()} kbps`;
+      ? `${prefix}${(maxBitrateKbps / KBPS_IN_MBPS).toFixed(1)} Mbps`
+      : `${prefix}${maxBitrateKbps.toString()} kbps`;
 
   if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
     return rate;

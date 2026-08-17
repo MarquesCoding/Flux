@@ -6,7 +6,7 @@ import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
 /**
  * Lists the quality steps worth offering for a particular file.
  *
- * A rung is worth offering when it is not taller than the source and would actually change what
+ * A rung is worth offering when it is within reach of the source and would actually change what
  * gets sent. Those are two questions, and this used to ask only the first — strictly below the
  * source's height — on the reasoning that a step at the source's own size delivers nothing.
  *
@@ -15,6 +15,13 @@ import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
  * a seventh of the bandwidth, which is the difference between playing and buffering on a poor
  * connection. Withholding it left a viewer whose line could not carry the remux choosing between
  * the original and 720p, when the thing they wanted existed and worked.
+ *
+ * Within reach means either dimension, not height alone. A rung is a box, and a film shot in scope
+ * fills the width of its class while falling well short of the height: Charlie's Angels is
+ * 1920x800, which is a 1080p file by any reading a viewer would give it, and 1080 is not under 800.
+ * Judged on height it lost the rung matching its own resolution and was offered 720p as the best it
+ * could do. Judged on either, it keeps 1080p and still cannot reach for 1440p, which it has neither
+ * the width nor the height for.
  *
  * Whether a rung changes anything is asked of [`resolveQualityStep`] rather than worked out again
  * here, so the picker offers exactly what the server will act on. A rung that would be refused as a
@@ -25,7 +32,9 @@ import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
  */
 const listAvailableQualitySteps = (media: MediaItem): QualityStepId[] =>
   QUALITY_STEPS.filter(
-    (step) => step.maxHeight <= media.height && resolveQualityStep(media, step.id) !== null,
+    (step) =>
+      (step.maxWidth <= media.width || step.maxHeight <= media.height) &&
+      resolveQualityStep(media, step.id) !== null,
   ).map((step) => step.id);
 
 export { listAvailableQualitySteps };

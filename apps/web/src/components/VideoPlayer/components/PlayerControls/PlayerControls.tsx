@@ -432,7 +432,13 @@ const PlayerControls = ({
                     );
                   },
                   choices: [
-                    { id: 'original', label: 'Original' },
+                    {
+                      id: 'original',
+                      label: 'Original',
+                      ...(qualityStepCosts.original === undefined
+                        ? {}
+                        : { detail: qualityStepCosts.original }),
+                    },
                     ...availableQualitySteps.map((id) => {
                       const step = QUALITY_STEPS.find((entry) => entry.id === id);
 

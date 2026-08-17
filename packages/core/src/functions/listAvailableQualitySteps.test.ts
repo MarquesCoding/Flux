@@ -74,3 +74,29 @@ describe('listAvailableQualitySteps', () => {
     }
   });
 });
+
+describe('listAvailableQualitySteps, films shot in scope', () => {
+  const scope: MediaItem = { ...media, width: 1920, height: 800, bitrateKbps: 12_000 };
+
+  it('keeps the rung matching a scope film own resolution', () => {
+    expect(listAvailableQualitySteps(scope)).toContain('1080p');
+  });
+
+  it('does not let it reach for a rung it has neither the width nor the height for', () => {
+    expect(listAvailableQualitySteps(scope)).not.toContain('1440p');
+  });
+
+  it('offers a 4K scope film both the rungs beneath it', () => {
+    const wide: MediaItem = { ...media, width: 3840, height: 1600, bitrateKbps: 40_000 };
+
+    expect(listAvailableQualitySteps(wide)).toContain('1440p');
+    expect(listAvailableQualitySteps(wide)).toContain('1080p');
+  });
+
+  it('offers a tall picture the rung its height reaches', () => {
+    const tall: MediaItem = { ...media, width: 800, height: 1080, bitrateKbps: 12_000 };
+
+    expect(listAvailableQualitySteps(tall)).toContain('1080p');
+    expect(listAvailableQualitySteps(tall)).not.toContain('1440p');
+  });
+});
