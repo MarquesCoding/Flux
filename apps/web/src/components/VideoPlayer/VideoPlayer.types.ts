@@ -10,6 +10,7 @@ type PartyPlayback = {
   isPlaying: boolean;
   isHeld: boolean;
   waitingFor: readonly string[];
+  members: number;
   onReport: (where: {
     positionSeconds: number;
     bufferedAheadSeconds: number;

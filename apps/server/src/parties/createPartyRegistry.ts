@@ -72,6 +72,7 @@ type Held = {
   password: string | null;
   notWelcome: Set<string>;
   heldSinceMs: number | null;
+  movedAtMs: number | null;
 };
 
 const WAIT_MOST_MS = 20_000;
@@ -139,7 +140,12 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
   const save = (party: WatchParty, sequence: number, was?: Held): WatchParty => {
     const atMs = Date.now();
     const settled = settleTimekeeper(party);
-    const waitingFor = whoIsHoldingUp(settled.members, settled.timekeeperId, atMs);
+    const waitingFor = whoIsHoldingUp(
+      settled.members,
+      settled.timekeeperId,
+      atMs,
+      was?.movedAtMs ?? null,
+    );
 
     const heldSinceMs = waitingFor.length === 0 ? null : (was?.heldSinceMs ?? atMs);
 
@@ -154,6 +160,7 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
       password: was?.password ?? null,
       notWelcome: was?.notWelcome ?? new Set<string>(),
       heldSinceMs,
+      movedAtMs: was?.movedAtMs ?? null,
     });
 
     return held;
@@ -267,6 +274,8 @@ const createPartyRegistry = (newId: () => string): PartyRegistry => {
       }
 
       const sequence = holding.sequence + 1;
+
+      holding.movedAtMs = Date.now();
 
       const intended =
         command.kind === 'play' || command.kind === 'pause'

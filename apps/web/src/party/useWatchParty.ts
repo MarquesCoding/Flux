@@ -125,10 +125,16 @@ const useWatchParty = (client: RealtimeClient = getRealtimeClient()): WatchParty
   const referenceSeconds = useMemo(() => {
     const timekeeper = party?.members.find((member) => member.connectionId === party.timekeeperId);
 
-    return timekeeper === undefined || timekeeper.connectionId === meConnectionId
-      ? null
-      : whereTheRoomIs(timekeeper, Date.now() + (partyRef.current?.offsetMs() ?? 0));
-  }, [party, meConnectionId]);
+    if (timekeeper === undefined || timekeeper.connectionId === meConnectionId) {
+      return null;
+    }
+
+    if (command !== null && timekeeper.reportedAtMs < command.atMs) {
+      return null;
+    }
+
+    return whereTheRoomIs(timekeeper, Date.now() + (partyRef.current?.offsetMs() ?? 0));
+  }, [party, command, meConnectionId]);
 
   const waitingFor = useMemo(
     () =>
@@ -138,8 +144,9 @@ const useWatchParty = (client: RealtimeClient = getRealtimeClient()): WatchParty
             party.members,
             party.timekeeperId,
             Date.now() + (partyRef.current?.offsetMs() ?? 0),
+            command?.atMs ?? null,
           ).map((member) => member.name),
-    [party],
+    [party, command],
   );
 
   const open = useCallback((mediaId: string) => {

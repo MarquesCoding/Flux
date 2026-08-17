@@ -27,15 +27,21 @@ type Watcher = {
  * Waiting is measured against whoever keeps time rather than against an average, so every client
  * works out the same answer from the same party.
  *
+ * Somebody who has not been heard from since the last thing that moved the picture holds it up too,
+ * because nothing they last said is worth believing: a position measured before a skip describes a
+ * different film. They are waited for rather than guessed at, and they answer within a second.
+ *
  * @param members - Everybody in the party.
  * @param timekeeperId - Whoever keeps time, whose position the rest are measured against.
  * @param atMs - Now, on the clock the reports were stamped with.
+ * @param movedAtMs - When the picture was last moved by a command, or null where nothing has moved it.
  * @returns Whoever is not ready, in the order they appear in the party.
  */
 const whoIsHoldingUp = (
   members: readonly Watcher[],
   timekeeperId: string | null,
   atMs: number,
+  movedAtMs: number | null = null,
 ): readonly Watcher[] => {
   const timekeeper = members.find((member) => member.connectionId === timekeeperId);
 
@@ -43,12 +49,18 @@ const whoIsHoldingUp = (
     return [];
   }
 
+  const isStale = (member: Watcher): boolean =>
+    movedAtMs !== null && member.reportedAtMs < movedAtMs;
+
   const reference = whereTheRoomIs(timekeeper, atMs);
+  const isReferenceWorthComparing = !isStale(timekeeper);
 
   return members.filter(
     (member) =>
+      isStale(member) ||
       !member.isReady ||
-      Math.abs(whereTheRoomIs(member, atMs) - reference) > TOGETHER_WITHIN_SECONDS,
+      (isReferenceWorthComparing &&
+        Math.abs(whereTheRoomIs(member, atMs) - reference) > TOGETHER_WITHIN_SECONDS),
   );
 };
 

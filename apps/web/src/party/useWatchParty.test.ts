@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWatchParty } from './useWatchParty';
-import type { PartyMember, WatchParty } from '@FluxContracts/schemas/WatchParty';
+import type { PartyMember, SequencedCommand, WatchParty } from '@FluxContracts/schemas/WatchParty';
 import type { RealtimeClient } from '@FluxWeb/realtime/createRealtimeClient';
 import type { RealtimeEvent } from '@FluxContracts/schemas/Realtime';
 
@@ -102,6 +102,15 @@ const createWorld = (meConnectionId = 'sam') => {
           party: { ...party({ members: [] }), members: [] },
           notice: { kind: 'removed', byName },
         },
+      });
+    },
+    tellWithCommand: (told: WatchParty, command: SequencedCommand) => {
+      heard?.({
+        kind: 'event',
+        topic: 'party',
+        atMs: NOW_MS,
+        folded: 0,
+        payload: { party: told, command },
       });
     },
     tellNonsense: () => {
@@ -313,6 +322,40 @@ describe('useWatchParty', () => {
     });
 
     expect(result.current.passwordWanted).toBeNull();
+  });
+
+  it('will not follow a position measured before the last skip, which describes a different film', () => {
+    const world = createWorld();
+    const { result } = renderHook(() => useWatchParty(world.client));
+
+    act(() => {
+      world.tellWithCommand(party(), {
+        sequence: 1,
+        atMs: NOW_MS + 5000,
+        byName: 'Dan',
+        byConnectionId: 'dan',
+        command: { kind: 'seek', atSeconds: 4000 },
+      });
+    });
+
+    expect(result.current.referenceSeconds).toBeNull();
+  });
+
+  it('follows it again once the timekeeper has spoken since', () => {
+    const world = createWorld();
+    const { result } = renderHook(() => useWatchParty(world.client));
+
+    act(() => {
+      world.tellWithCommand(party(), {
+        sequence: 1,
+        atMs: NOW_MS - 5000,
+        byName: 'Dan',
+        byConnectionId: 'dan',
+        command: { kind: 'seek', atSeconds: 4000 },
+      });
+    });
+
+    expect(result.current.referenceSeconds).not.toBeNull();
   });
 
   it('ignores a party event it cannot read, rather than showing half a party', () => {

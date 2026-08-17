@@ -109,6 +109,25 @@ const CATCH_UP_BEYOND_SECONDS = 2;
 
 const HAVE_METADATA = 1;
 
+const LINE_UP_BEYOND_SECONDS = 0.05;
+
+/**
+ * What to say while the room is waiting, which is the difference between a picture that has stopped
+ * and a picture that is broken.
+ *
+ * @param names - Whoever the room is waiting for.
+ * @returns The line to show.
+ */
+const waitingWord = (names: readonly string[]): string => {
+  if (names.length === 0) {
+    return 'Getting the room in step';
+  }
+
+  return names.length === 1
+    ? `Waiting for ${names[0] ?? ''}`
+    : `Waiting for ${names.length.toString()} people`;
+};
+
 const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000;
 
 const PRESENCE_HEALTH_INTERVAL_MILLISECONDS = 1000;
@@ -244,6 +263,7 @@ const VideoPlayer = ({
   const [isPoppedOut, setIsPoppedOut] = useState(false);
   const [castState, setCastState] = useState<CastState>('unavailable');
   const [castNote, setCastNote] = useState<string | null>(null);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [partyNote, setPartyNote] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
@@ -277,6 +297,8 @@ const VideoPlayer = ({
 
   const appliedSequenceRef = useRef(-1);
   const hasCaughtUpRef = useRef(false);
+  const partyRef = useRef(party);
+  const stateRef = useRef<PlayerState>('starting');
 
   useEffect(() => {
     const reference = party?.referenceSeconds ?? null;
@@ -337,32 +359,40 @@ const VideoPlayer = ({
     }
   }, [party, party?.isPlaying, party?.isHeld, state]);
 
+  const isInAParty = party !== undefined;
+
   useEffect(() => {
-    if (party === undefined) {
+    partyRef.current = party;
+    stateRef.current = state;
+  });
+
+  useEffect(() => {
+    if (!isInAParty) {
       return;
     }
 
     const timer = setInterval(() => {
       const element = videoRef.current;
+      const held = partyRef.current;
 
-      if (element === null) {
+      if (element === null || held === undefined) {
         return;
       }
 
       const ahead = bufferedAhead(element);
 
-      party.onReport({
+      held.onReport({
         positionSeconds: element.currentTime,
         bufferedAheadSeconds: ahead,
         isWatching: !element.paused,
-        isReady: state === 'playing' && ahead >= ENOUGH_TO_START_SECONDS,
+        isReady: stateRef.current === 'playing' && ahead >= ENOUGH_TO_START_SECONDS,
       });
     }, PARTY_REPORT_EVERY_MS);
 
     return () => {
       clearInterval(timer);
     };
-  }, [party, state]);
+  }, [isInAParty]);
 
   useEffect(() => {
     const reference = party?.referenceSeconds ?? null;
@@ -374,6 +404,14 @@ const VideoPlayer = ({
     const element = videoRef.current;
 
     if (element === null || (element.paused && !party.isHeld)) {
+      return;
+    }
+
+    if (party.isHeld && element.paused) {
+      if (Math.abs(reference - element.currentTime) > LINE_UP_BEYOND_SECONDS) {
+        element.currentTime = reference;
+      }
+
       return;
     }
 
@@ -1482,6 +1520,7 @@ const VideoPlayer = ({
           }}
           onDurationChange={setReportedDuration}
           onPlayingChange={setIsPlaying}
+          onBufferingChange={setIsBuffering}
           onEnded={() => {
             onProgress?.(duration, duration);
             onEnded?.();
@@ -1571,6 +1610,25 @@ const VideoPlayer = ({
           />
         )}
 
+        {state !== 'playing' || (!isBuffering && party?.isHeld !== true) ? null : (
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <Spinner
+              label={
+                party?.isHeld === true
+                  ? waitingWord(party.waitingFor)
+                  : 'Waiting for more of the film'
+              }
+              size="lg"
+            />
+
+            <p className="flux-glass rounded-full px-4 py-1.5 text-sm text-white">
+              {party?.isHeld === true
+                ? waitingWord(party.waitingFor)
+                : 'Waiting for more of the film'}
+            </p>
+          </div>
+        )}
+
         {state === 'starting' ? (
           <div
             className={
@@ -1603,6 +1661,18 @@ const VideoPlayer = ({
               health={health}
               delivered={delivered}
               sessionStartSeconds={request.startSeconds}
+              {...(party === undefined
+                ? {}
+                : {
+                    party: {
+                      isPlaying: party.isPlaying,
+                      isHeld: party.isHeld,
+                      waitingFor: party.waitingFor,
+                      referenceSeconds: party.referenceSeconds,
+                      jitterMs: party.jitterMs,
+                      members: party.members,
+                    },
+                  })}
               onClose={() => {
                 setIsShowingStats(false);
               }}

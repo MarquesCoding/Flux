@@ -1925,6 +1925,7 @@ describe('when the player is in a watch party', () => {
       isPlaying: true,
       isHeld: false,
       waitingFor: [],
+      members: 2,
       onReport,
       onCommand,
       ...party,
@@ -1958,6 +1959,42 @@ describe('when the player is in a watch party', () => {
     await actor.keyboard(' ');
 
     expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(before);
+  });
+
+  it('lines up exactly while the room waits, a seek costing nothing when nothing is playing', async () => {
+    const { element, view, full } = await inParty({ isHeld: true, waitingFor: ['Me'] });
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={{ ...full, isHeld: true, waitingFor: ['Me'], referenceSeconds: 120.4 }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(120.4);
+    });
+  });
+
+  it('keeps reporting while the party is changing faster than it reports', async () => {
+    const { onReport, view, full } = await inParty();
+
+    for (let pass = 0; pass < 10; pass += 1) {
+      view.rerender(
+        <VideoPlayer
+          media={media}
+          onClose={vi.fn()}
+          isImmersive
+          party={{ ...full, referenceSeconds: pass }}
+        />,
+      );
+
+      await new Promise((settle) => setTimeout(settle, 300));
+    }
+
+    expect(onReport).toHaveBeenCalled();
   });
 
   it('does not start the picture while the room is still waiting for somebody', async () => {

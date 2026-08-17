@@ -122,6 +122,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             isPlaying: watchParty.party.isPlaying,
             isHeld: watchParty.party.isHeld,
             waitingFor: watchParty.waitingFor,
+            members: watchParty.party.members.length,
             onReport: watchParty.report,
             onCommand: watchParty.send,
           },

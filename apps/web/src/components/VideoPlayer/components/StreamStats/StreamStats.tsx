@@ -96,6 +96,7 @@ const size = (width: number | null, height: number | null): string =>
  * @param delivered - What the engine is actually being sent, where it has chosen a variant.
  * @param sessionStartSeconds - Where the session itself began, which is not always where the viewer
  *   is now.
+ * @param party - How the watch party is faring, where this viewing is part of one.
  * @param onClose - Called to close the panel.
  */
 const StreamStats = ({
@@ -105,6 +106,7 @@ const StreamStats = ({
   health,
   delivered,
   sessionStartSeconds,
+  party,
   onClose,
 }: StreamStatsProps) => {
   const video = detail?.videoCodec ?? media.id;
@@ -205,6 +207,29 @@ const StreamStats = ({
               : `${health.droppedFrames.toString()} of ${health.decodedFrames.toString()}`}
           </Row>
         </Group>
+
+        {party === undefined ? null : (
+          <Group name="Watch party">
+            <Row name="Watching together">{party.members.toString()}</Row>
+            <Row name="Room state">
+              {party.isHeld ? 'held' : party.isPlaying ? 'playing' : 'paused'}
+            </Row>
+            <Row name="Waiting for">
+              {party.waitingFor.length === 0 ? 'nobody' : party.waitingFor.join(', ')}
+            </Row>
+            <Row name="Room position">
+              {party.referenceSeconds === null
+                ? 'this tab keeps time'
+                : formatDuration(party.referenceSeconds)}
+            </Row>
+            <Row name="Out by">
+              {party.referenceSeconds === null
+                ? 'n/a'
+                : seconds(party.referenceSeconds - health.positionSeconds)}
+            </Row>
+            <Row name="Clock jitter">{`${Math.round(party.jitterMs).toString()}ms`}</Row>
+          </Group>
+        )}
 
         {session === null || session.warnings.length === 0 ? null : (
           <Group name="Warnings">

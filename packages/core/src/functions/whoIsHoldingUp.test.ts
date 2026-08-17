@@ -102,4 +102,48 @@ describe('whoIsHoldingUp', () => {
 
     expect(names(held)).toEqual(['Sam', 'Kit']);
   });
+
+  it('waits for somebody who has not been heard from since the picture last moved', () => {
+    const held = whoIsHoldingUp(
+      [
+        watcher({ reportedAtMs: NOW_MS }),
+        watcher({ connectionId: 'sam', name: 'Sam', reportedAtMs: NOW_MS - 5000 }),
+      ],
+      'dan',
+      NOW_MS,
+      NOW_MS - 1000,
+    );
+
+    expect(names(held)).toEqual(['Sam']);
+  });
+
+  it('does not judge where anybody is against a reference measured before the skip', () => {
+    const held = whoIsHoldingUp(
+      [
+        watcher({ positionSeconds: 100, reportedAtMs: NOW_MS - 5000 }),
+        watcher({
+          connectionId: 'sam',
+          name: 'Sam',
+          positionSeconds: 4000,
+          reportedAtMs: NOW_MS,
+        }),
+      ],
+      'dan',
+      NOW_MS,
+      NOW_MS - 1000,
+    );
+
+    expect(names(held)).toEqual(['Dan']);
+  });
+
+  it('goes back to comparing positions once everybody has spoken again', () => {
+    const held = whoIsHoldingUp(
+      [watcher(), watcher({ connectionId: 'sam', name: 'Sam' })],
+      'dan',
+      NOW_MS,
+      NOW_MS - 1000,
+    );
+
+    expect(held).toEqual([]);
+  });
 });

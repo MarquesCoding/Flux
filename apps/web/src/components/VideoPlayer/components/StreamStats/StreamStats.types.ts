@@ -12,6 +12,15 @@ type PlaybackHealth = {
   presentedHeight: number;
 };
 
+type PartyHealth = {
+  isPlaying: boolean;
+  isHeld: boolean;
+  waitingFor: readonly string[];
+  referenceSeconds: number | null;
+  jitterMs: number;
+  members: number;
+};
+
 type StreamStatsProps = {
   media: Pick<MediaSummary, 'id' | 'title' | 'durationSeconds'>;
   session: StartedSession | null;
@@ -19,7 +28,8 @@ type StreamStatsProps = {
   health: PlaybackHealth;
   delivered: DeliveredFormat | null;
   sessionStartSeconds: number;
+  party?: PartyHealth;
   onClose: () => void;
 };
 
-export type { PlaybackHealth, StreamStatsProps };
+export type { PlaybackHealth, PartyHealth, StreamStatsProps };
