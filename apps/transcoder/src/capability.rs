@@ -315,9 +315,12 @@ pub const HARDWARE_SCALERS: [&str; 4] = ["scale_vt", "scale_cuda", "vpp_qsv", "s
 ///
 /// Verified against the shipped arm64 package, which has `overlay_vaapi`,
 /// `overlay_cuda`, `overlay_opencl`, `overlay_vulkan` and `overlay_rkrga`.
-/// `overlay_qsv` is absent there because QSV is not built for arm, and
-/// `overlay_videotoolbox` because the package is Linux only — both are listed
-/// so the backends that do have them are not left on the software path.
+/// `overlay_qsv` is absent there because QSV is not built for arm, and it is
+/// listed so a build that does have it is not left on the software path.
+///
+/// `overlay_videotoolbox` was absent for the same reason until FLUX-110, which
+/// was that no macOS package existed. The Apple silicon build has it, and it
+/// was measured compositing rather than merely listed.
 pub const HARDWARE_OVERLAYS: [&str; 5] = [
     "overlay_videotoolbox",
     "overlay_cuda",
@@ -396,6 +399,20 @@ pub fn probe_arguments(candidate: &EncoderCandidate, device: &str) -> Vec<String
     arguments
 }
 
+/// What a probe frame has to claim to be for a tone mapper to accept it.
+///
+/// Ten bits is not enough on its own. `testsrc2` carries no colour properties,
+/// so a tone mapper is handed a frame whose transfer function is `unknown` —
+/// and `tonemap_videotoolbox` refuses that outright rather than passing it
+/// through: "No DOVI metadata and unsupported transfer function
+/// characteristic". Measured on Apple silicon against the FLUX-110 build.
+///
+/// So the probe says what the frame is. PQ on BT.2020 is the HDR a tone mapper
+/// exists to convert, which makes this the honest question to ask rather than a
+/// concession to one filter.
+const PROBE_HDR_PARAMETERS: &str =
+    "setparams=color_primaries=bt2020:color_trc=smpte2084:colorspace=bt2020nc";
+
 /// The arguments that ask a tone mapper to prove itself.
 ///
 /// Ten-bit frames, because that is what a tone mapper is for and what the
@@ -410,7 +427,7 @@ pub fn tone_map_probe_arguments(accel: HardwareAccel, filter: &str, device: &str
         "error".to_owned(),
     ];
 
-    arguments.extend(accel.device_arguments(device));
+    arguments.extend(accel.filter_device_arguments(device));
     arguments.extend([
         "-f".to_owned(),
         "lavfi".to_owned(),
@@ -419,7 +436,7 @@ pub fn tone_map_probe_arguments(accel: HardwareAccel, filter: &str, device: &str
         "-frames:v".to_owned(),
         "1".to_owned(),
         "-vf".to_owned(),
-        format!("format=p010,hwupload,{filter}"),
+        format!("format=p010,{PROBE_HDR_PARAMETERS},hwupload,{filter}"),
         "-f".to_owned(),
         "null".to_owned(),
         "-".to_owned(),
@@ -456,12 +473,17 @@ async fn verify_tone_map(ffmpeg: &str, accel: HardwareAccel, filter: &str, devic
 ///
 /// Two gates, and the second is the one that matters: a filter can be compiled
 /// in and still be refused by the driver underneath it. Only backends with a
-/// tone mapper of their own are asked, which is what keeps this to one or two
-/// short probes rather than a sweep.
+/// tone mapper of their own are asked, which is what keeps this to a few short
+/// probes rather than a sweep — and only one of the three can be present on any
+/// given machine.
 async fn verified_tone_maps(ffmpeg: &str, filters: &[String], device: &str) -> Vec<String> {
     let mut verified = Vec::new();
 
-    for accel in [HardwareAccel::Vaapi, HardwareAccel::Nvenc] {
+    for accel in [
+        HardwareAccel::Vaapi,
+        HardwareAccel::Nvenc,
+        HardwareAccel::VideoToolbox,
+    ] {
         let Some(mapper) = accel.pipeline().and_then(|pipeline| pipeline.tone_map) else {
             continue;
         };
@@ -702,8 +724,59 @@ mod tests {
             .map(|pair| pair[1].clone())
             .expect("the probe names a filter chain");
 
-        assert!(chain.starts_with("format=p010,hwupload,"), "{chain}");
+        assert!(chain.starts_with("format=p010,"), "{chain}");
+        assert!(chain.contains(",hwupload,"), "{chain}");
         assert!(chain.contains("tonemap_vaapi"), "{chain}");
+    }
+
+    /// An untagged frame is not HDR, and a tone mapper is entitled to say so.
+    ///
+    /// `testsrc2` carries no transfer function, and `tonemap_videotoolbox`
+    /// rejects that rather than passing it through — so without this the probe
+    /// would report a working filter as broken and every HDR session on a Mac
+    /// would convert in software for no reason.
+    #[test]
+    fn tells_a_tone_mapper_the_probe_frame_is_hdr() {
+        let arguments = tone_map_probe_arguments(
+            HardwareAccel::VideoToolbox,
+            "tonemap_videotoolbox",
+            DEFAULT_DEVICE,
+        );
+
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("the probe names a filter chain");
+
+        assert!(chain.contains("color_trc=smpte2084"), "{chain}");
+        assert!(chain.contains("color_primaries=bt2020"), "{chain}");
+    }
+
+    /// `VideoToolbox` needs no device to transcode and one to be probed.
+    ///
+    /// A session gets its device from the decoder. A probe has no decoder, so
+    /// `hwupload` has nothing to derive from and the chain will not configure.
+    #[test]
+    fn gives_the_videotoolbox_probe_a_device_it_would_not_need_to_transcode() {
+        let arguments = tone_map_probe_arguments(
+            HardwareAccel::VideoToolbox,
+            "tonemap_videotoolbox",
+            DEFAULT_DEVICE,
+        );
+
+        assert!(
+            arguments
+                .iter()
+                .any(|argument| argument == "videotoolbox=vt"),
+            "{arguments:?}"
+        );
+        assert!(
+            HardwareAccel::VideoToolbox
+                .device_arguments(DEFAULT_DEVICE)
+                .is_empty(),
+            "a transcode must not name a second device"
+        );
     }
 
     /// A tone mapper works on device surfaces, so the probe needs a device.

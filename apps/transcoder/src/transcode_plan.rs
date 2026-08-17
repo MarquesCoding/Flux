@@ -775,16 +775,17 @@ pub struct HardwarePipeline {
     /// `None` where the backend has no tone mapper of its own. QSV and RKMPP
     /// are in that position: both would have to derive a second `OpenCL` or
     /// Vulkan device, which is a different piece of work, and until it is done
-    /// they convert in software exactly as before. `VideoToolbox` has
-    /// `tonemap_videotoolbox` in the patches flux-ffmpeg carries, but the Linux
-    /// package does not build it and there is no macOS package yet to check the
-    /// options against — a guessed filter string is worse than the software
-    /// path it would replace. See FLUX-110.
+    /// they convert in software exactly as before.
     ///
-    /// The whole expression rather than the name, because the two that exist do
-    /// not take the same options: `tonemap_vaapi` is fixed-function VPP with no
-    /// algorithm to choose, and `tonemap_cuda` has one but — unlike every other
-    /// `tonemap_*` — no `desat`.
+    /// The whole expression rather than the name, because the three that exist
+    /// do not take the same options: `tonemap_vaapi` is fixed-function VPP with
+    /// no algorithm to choose, `tonemap_cuda` has one but — unlike every other
+    /// `tonemap_*` — no `desat`, and `tonemap_videotoolbox` adds `tonemap_mode`
+    /// and `apply_dovi` that neither of the others offers.
+    ///
+    /// `VideoToolbox`'s options are read out of the macOS package FLUX-110
+    /// built, and the expression below was run against it on Apple silicon
+    /// rather than inferred from the patch.
     pub tone_map: Option<&'static str>,
 }
 
@@ -817,7 +818,9 @@ impl HardwareAccel {
                 overlay: "overlay_videotoolbox",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload",
-                tone_map: None,
+                tone_map: Some(
+                    "tonemap_videotoolbox=format=nv12:p=bt709:t=bt709:m=bt709:tonemap=bt2390",
+                ),
             }),
             Self::Nvenc => Some(HardwarePipeline {
                 output_format: "cuda",
@@ -912,6 +915,32 @@ impl HardwareAccel {
                 "qs".to_owned(),
             ],
             _ => Vec::new(),
+        }
+    }
+
+    /// The device arguments a filter graph needs when its frames start in
+    /// software.
+    ///
+    /// Not the same question as [`Self::device_arguments`], and `VideoToolbox`
+    /// is where the two part company. It finds its own device when there is a
+    /// decoder to find one from, which is every real session — so a transcode
+    /// needs nothing, and naming a second device there would risk `hwupload`
+    /// filling a pool the decoder does not share.
+    ///
+    /// A probe has no decoder. Its frames come from `lavfi`, and `hwupload`
+    /// with nothing to derive from fails with "a hardware device reference is
+    /// required to upload frames to" — measured, not predicted. So the probe
+    /// asks for a device that a transcode must not.
+    #[must_use]
+    pub fn filter_device_arguments(self, device: &str) -> Vec<String> {
+        match self {
+            Self::VideoToolbox => vec![
+                "-init_hw_device".to_owned(),
+                "videotoolbox=vt".to_owned(),
+                "-filter_hw_device".to_owned(),
+                "vt".to_owned(),
+            ],
+            _ => self.device_arguments(device),
         }
     }
 }
@@ -1686,6 +1715,41 @@ subtitles='/media/film.mkv':si=2,hwupload"
         );
     }
 
+    /// A Mac converts HDR on the device too, once the build has the filter.
+    ///
+    /// This was the one backend left in software after FLUX-111, because the
+    /// filter is a flux-ffmpeg patch and there was no macOS package to check
+    /// its options against. FLUX-110 built one, and the expression below was
+    /// run against it on Apple silicon.
+    #[test]
+    fn converts_hdr_on_a_mac_without_leaving_the_device() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264_videotoolbox".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: Some(ToneMapping::Zscale),
+            },
+            ..on_gpu(HardwareAccel::VideoToolbox)
+        };
+
+        assert_eq!(frame_route(&spec, FULL), FrameRoute::OnDevice);
+
+        let args = plan_compositing(spec).to_ffmpeg_args();
+        let chain = args
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert_eq!(
+            chain,
+            "tonemap_videotoolbox=format=nv12:p=bt709:t=bt709:m=bt709:tonemap=bt2390,\
+             scale_vt=w=1280:h=532"
+        );
+    }
+
     /// The conversion precedes the scale, as it does in software.
     ///
     /// Tone mapping the already-resampled picture loses highlight detail. On
@@ -1749,11 +1813,7 @@ subtitles='/media/film.mkv':si=2,hwupload"
     /// deliberate fallback rather than a chain that will not run.
     #[test]
     fn converts_in_software_where_the_backend_has_no_tone_mapper() {
-        for accel in [
-            HardwareAccel::Qsv,
-            HardwareAccel::Rkmpp,
-            HardwareAccel::VideoToolbox,
-        ] {
+        for accel in [HardwareAccel::Qsv, HardwareAccel::Rkmpp] {
             let spec = SessionSpec {
                 video: VideoAction::Encode {
                     encoder: "h264".to_owned(),
