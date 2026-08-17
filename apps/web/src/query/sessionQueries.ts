@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import { fetchSession } from '@FluxWeb/session/fetchSession';
+import { fetchSession } from '@FluxWeb/session/auth';
 import { readVersion } from '@FluxWeb/session/readVersion';
 import { fetchProfiles } from '@FluxWeb/profiles/fetchProfiles';
 import { fetchEveryone } from '@FluxWeb/profiles/fetchEveryone';

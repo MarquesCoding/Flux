@@ -27,7 +27,7 @@ import { sessionQueries } from '@FluxWeb/query/sessionQueries';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import { TwoFactorChallenge } from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge';
 import { isPasskeySupported } from '@FluxWeb/passkeys/isPasskeySupported';
-import { authenticateWithPasskey } from '@FluxWeb/passkeys/authenticateWithPasskey';
+import { authenticateWithPasskey } from '@FluxWeb/session/auth';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import type { ProfileGateProps } from './ProfileGate.types';
 

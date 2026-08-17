@@ -3,7 +3,7 @@ import { renderInACache } from '@FluxWeb/testing/renderInACache';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileGate } from './ProfileGate';
-import { authenticateWithPasskey } from '@FluxWeb/passkeys/authenticateWithPasskey';
+import { authenticateWithPasskey } from '@FluxWeb/session/auth';
 import { isPasskeySupported } from '@FluxWeb/passkeys/isPasskeySupported';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
@@ -22,7 +22,7 @@ const HOUSEHOLD = ['Marques', 'Sam', 'Mum'].map(profileOf);
 const many = (count: number): ViewerProfile[] =>
   Array.from({ length: count }, (_ignored, at) => profileOf(`Person ${(at + 1).toString()}`, at));
 
-vi.mock('@FluxWeb/passkeys/authenticateWithPasskey', () => ({
+vi.mock('@FluxWeb/session/auth', () => ({
   authenticateWithPasskey: vi.fn(),
 }));
 
