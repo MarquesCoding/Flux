@@ -31,6 +31,8 @@ import { detectLibrarySegments } from '@FluxServer/segments/detectLibrarySegment
 import { createDatabaseWatchProgressService } from '@FluxServer/progress/createDatabaseWatchProgressService';
 import { createDatabaseFavouriteService } from '@FluxServer/favourites/createDatabaseFavouriteService';
 import { createDatabaseRatingService } from '@FluxServer/ratings/createDatabaseRatingService';
+import { createDatabaseShareService } from '@FluxServer/sharing/createDatabaseShareService';
+import { createShareSessions } from '@FluxServer/sharing/createShareSessions';
 import { createDatabaseSegmentService } from '@FluxServer/segments/createDatabaseSegmentService';
 import { createChapterSegmentProvider } from '@FluxServer/segments/createChapterSegmentProvider';
 import { createFingerprintSegmentProvider } from '@FluxServer/segments/createFingerprintSegmentProvider';
@@ -917,6 +919,8 @@ const app = createApp({
   readPushPublicKey: async () => (await readPushKeys()).publicKey,
   favourites: createDatabaseFavouriteService(db),
   ratings: createDatabaseRatingService(db),
+  shares: createDatabaseShareService(db),
+  shareSessions: createShareSessions(),
   profiles: profileService,
   promoteProfile: async ({ profileId, email, password }) => {
     const rows = await db

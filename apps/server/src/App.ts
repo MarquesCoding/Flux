@@ -14,6 +14,8 @@ import type { SegmentService } from '@FluxServer/segments/SegmentService';
 import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService';
 import type { FavouriteService } from '@FluxServer/favourites/FavouriteService';
 import type { RatingService } from '@FluxServer/ratings/RatingService';
+import type { ShareService } from '@FluxServer/sharing/ShareService';
+import type { ShareSessions } from '@FluxServer/sharing/createShareSessions';
 import type { PlaybackService, PreviewRead } from '@FluxServer/playback/PlaybackService';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import type { PresenceService } from '@FluxServer/presence/PresenceService';
@@ -59,6 +61,18 @@ import {
   forgetProgressRoute,
 } from '@FluxServer/routes/ProgressRoute';
 import { readPersonRoute, readPersonCreditsRoute } from '@FluxServer/routes/PersonRoute';
+import {
+  createShareRoute,
+  listSharesRoute,
+  revokeShareRoute,
+  openShareRoute,
+} from '@FluxServer/routes/ShareRoute';
+import { SHARE_COOKIE, createShareGate } from '@FluxServer/sharing/createShareGate';
+import { isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
+import { getCookie, setCookie } from 'hono/cookie';
+import { randomUUID } from 'node:crypto';
+
+const SHARE_JOINER = 'flux_share_joiner';
 import {
   listFavouritesRoute,
   keepFavouriteRoute,
@@ -317,6 +331,8 @@ type CreateAppOptions = {
   progress: WatchProgressService;
   favourites: FavouriteService;
   ratings: RatingService;
+  shares?: ShareService;
+  shareSessions?: ShareSessions;
   profiles?: ProfileService;
   promoteProfile?: (request: {
     profileId: string;
@@ -365,6 +381,8 @@ const createApp = ({
   progress,
   favourites,
   ratings,
+  shares,
+  shareSessions,
   profiles,
   promoteProfile,
   listUsers,
@@ -398,7 +416,25 @@ const createApp = ({
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
-  app.use('/api/*', createSessionGate(auth));
+  app.use(
+    '/api/*',
+    createSessionGate(
+      auth,
+      shares === undefined || shareSessions === undefined
+        ? undefined
+        : createShareGate({
+            shares,
+            sessions: shareSessions,
+            itemOf: async (mediaId) => {
+              const item = await library.getMedia(mediaId);
+
+              return item === null
+                ? null
+                : { id: item.id, seriesId: await library.seriesOf(mediaId) };
+            },
+          }),
+    ),
+  );
 
   /**
    * Whether whoever is asking holds a particular permission.
@@ -759,6 +795,16 @@ const createApp = ({
 
     if (outcome.kind === 'failed') {
       return context.json({ error: outcome.reason }, 500);
+    }
+
+    const openedBy = getCookie(context, SHARE_COOKIE);
+
+    if (openedBy !== undefined && shares !== undefined && shareSessions !== undefined) {
+      const held = await shares.resolve(openedBy);
+
+      if (held !== null) {
+        shareSessions.claim(outcome.session.sessionId, held.id);
+      }
     }
 
     if (clientId !== undefined) {
@@ -2469,6 +2515,90 @@ const createApp = ({
     await favourites.drop(profileId, context.req.valid('param').mediaId);
 
     return context.body(null, 204);
+  });
+
+  app.openapi(createShareRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null || shares === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    if (!(await requires(context.req.raw.headers, 'sharing.link'))) {
+      return context.json({ error: 'This account may not share.' }, 403);
+    }
+
+    const made = await shares.create(account.id, context.req.valid('json'));
+
+    if (made === null) {
+      return context.json({ error: 'There is nothing here to share.' }, 404);
+    }
+
+    return context.json(made, 201);
+  });
+
+  app.openapi(listSharesRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null || shares === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    return context.json({ shares: await shares.list(account.id) }, 200);
+  });
+
+  app.openapi(revokeShareRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null || shares === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const withdrawn = await shares.revoke(account.id, context.req.valid('param').shareId);
+
+    if (!withdrawn) {
+      return context.json({ error: 'No such link.' }, 404);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(openShareRoute, async (context) => {
+    if (shares === undefined) {
+      return context.json({ error: 'This link does not work.' }, 404);
+    }
+
+    const { token } = context.req.valid('param');
+    const found = await shares.resolve(token);
+
+    if (found === null) {
+      return context.json({ error: 'This link does not work.' }, 404);
+    }
+
+    const standing = {
+      expiresAt: found.expiresAt,
+      viewCap: found.viewCap,
+      views: found.views,
+      revokedAt: found.revokedAt,
+    };
+
+    const joiner = getCookie(context, SHARE_JOINER) ?? randomUUID();
+
+    if (!isShareLive(standing, new Date())) {
+      return context.json(
+        { error: whyShareEnded(standing, new Date()) ?? 'This link no longer works.' },
+        410,
+      );
+    }
+
+    await shares.join(found.id, joiner);
+
+    setCookie(context, SHARE_JOINER, joiner, { path: '/', httpOnly: true, sameSite: 'Lax' });
+    setCookie(context, SHARE_COOKIE, token, { path: '/', httpOnly: true, sameSite: 'Lax' });
+
+    const items = await library.itemsForShare(found);
+
+    return context.json({ kind: found.kind, title: found.title, items }, 200);
   });
 
   app.openapi(listRatingsRoute, async (context) => {

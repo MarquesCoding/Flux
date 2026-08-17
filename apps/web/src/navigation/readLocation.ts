@@ -19,6 +19,7 @@ type Place = {
   inspecting: string | null;
   show: string | null;
   person: number | null;
+  shareToken: string | null;
   playing: string | null;
   genre: string | null;
   library: string | null;
@@ -32,6 +33,7 @@ const HOME: Place = {
   inspecting: null,
   show: null,
   person: null,
+  shareToken: null,
   playing: null,
   genre: null,
   library: null,
@@ -84,6 +86,7 @@ const readLocation = (url: string): Place => {
     inspecting: first === 'media' && second !== '' ? second : query.get('item'),
     show: query.get('show'),
     person: readPersonId(query.get('person')),
+    shareToken: first === 'share' && second !== '' ? decodeURIComponent(second) : null,
     playing: watching,
     genre: query.get('genre'),
     library: query.get('library'),
@@ -103,6 +106,10 @@ const readLocation = (url: string): Place => {
  * @returns The address to put in the bar.
  */
 const writeLocation = (place: Place): string => {
+  if (place.shareToken !== null) {
+    return `/share/${encodeURIComponent(place.shareToken)}`;
+  }
+
   if (place.playing !== null) {
     return `/watch/${place.playing}`;
   }
