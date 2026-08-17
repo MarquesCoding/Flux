@@ -41,7 +41,7 @@ FROM node:22-bookworm-slim AS runtime
 #
 # Downloaded with ADD rather than curl so the image needs no download tool of
 # its own. Worth pinning `--checksum` here once the version settles.
-ARG FLUX_FFMPEG_VERSION=8.1.2-2flux1
+ARG FLUX_FFMPEG_VERSION=8.1.2-2flux2
 ARG TARGETARCH
 
 ADD https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${FLUX_FFMPEG_VERSION}/flux-ffmpeg_${FLUX_FFMPEG_VERSION}-bookworm_${TARGETARCH}.deb /tmp/flux-ffmpeg.deb
