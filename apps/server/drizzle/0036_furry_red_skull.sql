@@ -1,0 +1,1 @@
+ALTER TABLE "viewer_profile" ADD COLUMN "askStillWatchingAfter" integer DEFAULT 4 NOT NULL;
