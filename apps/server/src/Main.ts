@@ -17,6 +17,7 @@ import { createLogger } from '@FluxServer/logging/createLogger';
 import { createDatabaseLogStore } from '@FluxServer/logging/createDatabaseLogStore';
 import { asJsonLog } from '@FluxServer/logging/asJsonLog';
 import { createLogScope } from '@FluxServer/logging/createLogScope';
+import { createTranscoderIntake } from '@FluxServer/logging/createTranscoderIntake';
 import { traceJobs } from '@FluxServer/logging/traceJobs';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
@@ -1249,10 +1250,13 @@ const realtimeHandler = createRealtimeHandler({
   },
 });
 
+const transcoderIntake = createTranscoderIntake(log);
+
 void relayMonitor({
   open: () => transcoder.openMonitorStream(),
   publish: (report) => {
     realtime.publish('monitor', report, { kind: 'everyone' });
+    transcoderIntake.take(report);
   },
   wait: (afterMs) => new Promise((resolve) => setTimeout(resolve, afterMs)),
   retryMs: MONITOR_RETRY_MS,

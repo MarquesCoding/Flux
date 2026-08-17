@@ -122,6 +122,34 @@ describe('sameEventKey', () => {
     expect(one).not.toBe(two);
   });
 
+  it('makes a key Postgres will accept, which refuses a null byte in text', () => {
+    const key = sameEventKey({
+      level: 'error',
+      source: 'scanner',
+      message: 'unreadable',
+      context: { ...noContext, jobId: 'job-1' },
+    });
+
+    expect([...key].some((letter) => letter.codePointAt(0) === 0)).toBe(false);
+  });
+
+  it('separates the parts, so two different records cannot share one key', () => {
+    const one = sameEventKey({
+      level: 'error',
+      source: 'scanner',
+      message: 'a',
+      context: { ...noContext, jobId: 'b' },
+    });
+    const two = sameEventKey({
+      level: 'error',
+      source: 'scanner',
+      message: 'ab',
+      context: noContext,
+    });
+
+    expect(one).not.toBe(two);
+  });
+
   it('keeps two runs of the same job apart', () => {
     const one = sameEventKey({
       level: 'error',

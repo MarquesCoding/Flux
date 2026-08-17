@@ -24,6 +24,7 @@ use tokio::sync::Mutex;
 use crate::capability::Capabilities;
 use crate::integrity::decodes;
 use crate::media::VideoRange;
+use crate::monitor::{record, LogLevel};
 use crate::transcode_plan::{tone_map_filter, HardwareAccel, ToneMapping, NO_EMBEDDED_CAPTIONS};
 
 /// The file a preview is written to.
@@ -413,9 +414,13 @@ pub async fn generate(
             return Err(failure);
         }
 
-        eprintln!(
-            "preview: hardware encode of {} failed, retrying in software: {failure}",
-            request.input_path
+        record(
+            LogLevel::Warn,
+            "preview",
+            &format!(
+                "hardware encode of {} failed, retrying in software: {failure}",
+                request.input_path
+            ),
         );
 
         chosen = PreviewEncoder::Software;
