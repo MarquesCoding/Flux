@@ -1,0 +1,188 @@
+import { queryOptions } from '@tanstack/react-query';
+import {
+  fetchAdminOverview,
+  fetchRunningScans,
+  fetchMonitor,
+  fetchActiveSessions,
+  fetchJobDefinitions,
+  fetchJobSchedules,
+} from '@FluxWeb/admin/fetchAdmin';
+import { fetchAccounts } from '@FluxWeb/admin/fetchAccounts';
+import {
+  fetchRoles,
+  fetchPermissionCatalogue,
+  fetchAccountPermissions,
+} from '@FluxWeb/admin/fetchRoles';
+import { fetchWebhooks, fetchWebhookDeliveries } from '@FluxWeb/admin/fetchWebhooks';
+import { fetchShares } from '@FluxWeb/sharing/fetchShares';
+
+const ADMIN = ['admin'] as const;
+
+const WATCHED_EVERY_MS = 5000;
+
+/**
+ * What the server is doing at a glance.
+ *
+ * @returns The query.
+ */
+const overview = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'overview'],
+    queryFn: () => fetchAdminOverview(),
+  });
+
+/**
+ * Any scan under way, asked for repeatedly because a scan finishes without announcing it.
+ *
+ * @returns The query.
+ */
+const scans = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'scans'],
+    queryFn: () => fetchRunningScans(),
+    refetchInterval: WATCHED_EVERY_MS,
+  });
+
+/**
+ * What the transcoder is doing.
+ *
+ * @returns The query.
+ */
+const monitor = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'monitor'],
+    queryFn: () => fetchMonitor(),
+  });
+
+/**
+ * Who is watching now.
+ *
+ * @returns The query.
+ */
+const sessions = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'sessions'],
+    queryFn: () => fetchActiveSessions(),
+  });
+
+/**
+ * The jobs this server knows how to run.
+ *
+ * @returns The query.
+ */
+const jobs = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'jobs'],
+    queryFn: () => fetchJobDefinitions(),
+  });
+
+/**
+ * When those jobs are set to run.
+ *
+ * @returns The query.
+ */
+const schedules = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'schedules'],
+    queryFn: () => fetchJobSchedules(),
+  });
+
+/**
+ * The accounts on this server.
+ *
+ * @returns The query.
+ */
+const accounts = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'accounts'],
+    queryFn: () => fetchAccounts(),
+  });
+
+/**
+ * The roles, and what each of them may do.
+ *
+ * @returns The query.
+ */
+const roles = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'roles'],
+    queryFn: () => fetchRoles(),
+  });
+
+/**
+ * Every permission there is, which is what a role is assembled from.
+ *
+ * @returns The query.
+ */
+const permissions = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'permissions'],
+    queryFn: () => fetchPermissionCatalogue(),
+  });
+
+/**
+ * What one account may do, roles and overrides together.
+ *
+ * @param accountId - Whose, or null where nobody is open.
+ * @returns The query.
+ */
+const accountPermissions = (accountId: string | null) =>
+  queryOptions({
+    queryKey: [...ADMIN, 'accountPermissions', accountId],
+    queryFn: () => fetchAccountPermissions(accountId ?? ''),
+    enabled: accountId !== null,
+  });
+
+/**
+ * The webhooks this server will call.
+ *
+ * @returns The query.
+ */
+const webhooks = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'webhooks'],
+    queryFn: () => fetchWebhooks(),
+  });
+
+/**
+ * What happened the last times one was called.
+ *
+ * @param webhookId - Which webhook, or null where none is open.
+ * @returns The query.
+ */
+const deliveries = (webhookId: string | null) =>
+  queryOptions({
+    queryKey: [...ADMIN, 'deliveries', webhookId],
+    queryFn: () => fetchWebhookDeliveries(webhookId ?? ''),
+    enabled: webhookId !== null,
+  });
+
+/**
+ * The share links that have been handed out.
+ *
+ * @returns The query.
+ */
+const shares = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'shares'],
+    queryFn: () => fetchShares(),
+  });
+
+const adminQueries = {
+  overview,
+  scans,
+  monitor,
+  sessions,
+  jobs,
+  schedules,
+  accounts,
+  roles,
+  permissions,
+  accountPermissions,
+  webhooks,
+  deliveries,
+  shares,
+  key: ADMIN,
+};
+
+export { adminQueries };

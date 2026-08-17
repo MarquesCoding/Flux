@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import { renderInACache } from '@FluxWeb/testing/renderInACache';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LibraryBrowser } from './LibraryBrowser';
@@ -67,13 +68,13 @@ afterEach(() => {
 describe('LibraryBrowser', () => {
   it('shows a spinner while loading', () => {
     fetchLibrariesMock.mockReturnValue(new Promise(() => undefined));
-    render(<LibraryBrowser onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     expect(screen.getByRole('status', { name: 'Reading your library' })).toBeInTheDocument();
   });
 
   it('lists the items in the first library', async () => {
-    render(<LibraryBrowser onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     await screen.findByRole('region', { name: 'Recently added' });
 
@@ -81,7 +82,7 @@ describe('LibraryBrowser', () => {
   });
 
   it('does not count the library at somebody, since nobody asked', async () => {
-    render(<LibraryBrowser onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     await screen.findByRole('region', { name: 'Recently added' });
 
@@ -91,7 +92,7 @@ describe('LibraryBrowser', () => {
   it('plays the item that was chosen', async () => {
     const onPlay = vi.fn();
     const actor = userEvent.setup();
-    render(<LibraryBrowser onPlay={onPlay} />);
+    renderInACache(<LibraryBrowser onPlay={onPlay} />);
 
     await screen.findByRole('region', { name: 'Recently added' });
     await actor.click(cardIn('Recently added', 'Arrival'));
@@ -100,7 +101,7 @@ describe('LibraryBrowser', () => {
   });
 
   it('asks the server to search rather than filtering the page it holds', async () => {
-    const { rerender } = render(<LibraryBrowser onPlay={vi.fn()} />);
+    const { rerender } = renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     await screen.findByRole('region', { name: 'Recently added' });
 
@@ -115,7 +116,7 @@ describe('LibraryBrowser', () => {
   });
 
   it('does not send a request for every keystroke', async () => {
-    const { rerender } = render(<LibraryBrowser onPlay={vi.fn()} />);
+    const { rerender } = renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     await screen.findByRole('region', { name: 'Recently added' });
     fetchItemsMock.mockClear();
@@ -132,7 +133,7 @@ describe('LibraryBrowser', () => {
   });
 
   it('says when a search matches nothing', async () => {
-    const { rerender } = render(<LibraryBrowser onPlay={vi.fn()} />);
+    const { rerender } = renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     await screen.findByRole('region', { name: 'Recently added' });
     fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
@@ -145,7 +146,7 @@ describe('LibraryBrowser', () => {
   it('switches between libraries', async () => {
     fetchLibrariesMock.mockResolvedValue([films, shows]);
     const actor = userEvent.setup();
-    render(<LibraryBrowser onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     await actor.click(await screen.findByRole('button', { name: 'Shows' }));
 
@@ -168,7 +169,7 @@ describe('LibraryBrowser', () => {
     const onPlay = vi.fn();
     const actor = userEvent.setup();
 
-    render(<LibraryBrowser onPlay={onPlay} onShow={onShow} hasHero />);
+    renderInACache(<LibraryBrowser onPlay={onPlay} onShow={onShow} hasHero />);
 
     await actor.click(await screen.findByRole('button', { name: /more info/i }));
 
@@ -181,7 +182,7 @@ describe('LibraryBrowser', () => {
     const onPlay = vi.fn();
     const actor = userEvent.setup();
 
-    render(<LibraryBrowser onPlay={onPlay} onShow={onShow} hasHero />);
+    renderInACache(<LibraryBrowser onPlay={onPlay} onShow={onShow} hasHero />);
 
     await actor.click(await screen.findByRole('button', { name: /more info/i }));
 
@@ -190,7 +191,7 @@ describe('LibraryBrowser', () => {
   });
 
   it('asks the server for a page rather than the whole library', async () => {
-    render(<LibraryBrowser onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     await waitFor(() => {
       expect(fetchItemsMock).toHaveBeenCalledWith(films.id, expect.objectContaining({ limit: 60 }));
@@ -199,14 +200,14 @@ describe('LibraryBrowser', () => {
 
   it('guides the operator when there are no libraries', async () => {
     fetchLibrariesMock.mockResolvedValue([]);
-    render(<LibraryBrowser onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     expect(await screen.findByRole('heading', { name: 'No libraries yet' })).toBeInTheDocument();
   });
 
   it('says a server with nothing anywhere has not been scanned yet', async () => {
     fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
-    render(<LibraryBrowser onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     await new Promise((resolve) => setTimeout(resolve, 50));
     screen.debug(document.body, 4000);
@@ -216,19 +217,19 @@ describe('LibraryBrowser', () => {
 
   it('reports an unreachable server', async () => {
     fetchLibrariesMock.mockRejectedValue(new Error('offline'));
-    render(<LibraryBrowser onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded');
   });
 
   it('opens with a featured item when asked for a hero', async () => {
-    render(<LibraryBrowser hasHero onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser hasHero onPlay={vi.fn()} />);
 
     expect(await screen.findByRole('region', { name: 'Featured' })).toBeInTheDocument();
   });
 
   it('shows no hero where someone came looking for something specific', async () => {
-    render(<LibraryBrowser onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     await screen.findByRole('region', { name: 'Recently added' });
 
@@ -237,7 +238,7 @@ describe('LibraryBrowser', () => {
 
   it('shows no hero over an empty library', async () => {
     fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
-    render(<LibraryBrowser hasHero onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser hasHero onPlay={vi.fn()} />);
 
     await screen.findByText('Nothing has been scanned yet');
 
@@ -267,7 +268,7 @@ describe('LibraryBrowser', () => {
       ],
       total: 2,
     });
-    render(<LibraryBrowser onOpenShow={onOpenShow} onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onOpenShow={onOpenShow} onPlay={vi.fn()} />);
 
     const heading = await screen.findByRole('button', {
       name: 'A Sign of Affection',
@@ -282,7 +283,7 @@ describe('LibraryBrowser', () => {
 
   it('says which item the hero is showing, so the page can be lit by it', async () => {
     const onFeatureChange = vi.fn();
-    render(<LibraryBrowser hasHero onFeatureChange={onFeatureChange} onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser hasHero onFeatureChange={onFeatureChange} onPlay={vi.fn()} />);
 
     await screen.findByRole('region', { name: 'Featured' });
 
@@ -293,7 +294,7 @@ describe('LibraryBrowser', () => {
     it('opens on the one the address named rather than the first', async () => {
       fetchLibrariesMock.mockResolvedValue([films, shows]);
 
-      render(<LibraryBrowser onPlay={vi.fn()} libraryId={shows.id} />);
+      renderInACache(<LibraryBrowser onPlay={vi.fn()} libraryId={shows.id} />);
 
       await waitFor(() => {
         expect(fetchItemsMock).toHaveBeenCalledWith(shows.id, expect.anything());
@@ -303,7 +304,9 @@ describe('LibraryBrowser', () => {
     it('falls back to the first for a library this server does not have', async () => {
       fetchLibrariesMock.mockResolvedValue([films, shows]);
 
-      render(<LibraryBrowser onPlay={vi.fn()} libraryId="00000000-0000-4000-8000-000000000000" />);
+      renderInACache(
+        <LibraryBrowser onPlay={vi.fn()} libraryId="00000000-0000-4000-8000-000000000000" />,
+      );
 
       await waitFor(() => {
         expect(fetchItemsMock).toHaveBeenCalledWith(films.id, expect.anything());
@@ -315,7 +318,7 @@ describe('LibraryBrowser', () => {
 
       fetchLibrariesMock.mockResolvedValue([films, shows]);
 
-      render(<LibraryBrowser onPlay={vi.fn()} onLibraryChange={onLibraryChange} />);
+      renderInACache(<LibraryBrowser onPlay={vi.fn()} onLibraryChange={onLibraryChange} />);
 
       await waitFor(() => {
         expect(onLibraryChange).toHaveBeenCalledWith(films.id);
@@ -328,7 +331,7 @@ describe('LibraryBrowser', () => {
 
       fetchLibrariesMock.mockResolvedValue([films, shows]);
 
-      render(<LibraryBrowser onPlay={vi.fn()} onLibraryChange={onLibraryChange} />);
+      renderInACache(<LibraryBrowser onPlay={vi.fn()} onLibraryChange={onLibraryChange} />);
 
       await user.click(await screen.findByRole('button', { name: 'Shows' }));
 
@@ -338,7 +341,7 @@ describe('LibraryBrowser', () => {
     it('follows the address when it changes underneath, as the back button does', async () => {
       fetchLibrariesMock.mockResolvedValue([films, shows]);
 
-      const { rerender } = render(<LibraryBrowser onPlay={vi.fn()} libraryId={films.id} />);
+      const { rerender } = renderInACache(<LibraryBrowser onPlay={vi.fn()} libraryId={films.id} />);
 
       await waitFor(() => {
         expect(fetchItemsMock).toHaveBeenCalledWith(films.id, expect.anything());
@@ -371,7 +374,7 @@ describe('LibraryBrowser', () => {
       const onFeatureChange = vi.fn();
 
       twoLibraries();
-      render(<LibraryBrowser hasHero onFeatureChange={onFeatureChange} onPlay={vi.fn()} />);
+      renderInACache(<LibraryBrowser hasHero onFeatureChange={onFeatureChange} onPlay={vi.fn()} />);
 
       await screen.findByRole('region', { name: 'Featured' });
 
@@ -385,7 +388,7 @@ describe('LibraryBrowser', () => {
       const onFeatureChange = vi.fn();
 
       twoLibraries();
-      render(<LibraryBrowser hasHero onFeatureChange={onFeatureChange} onPlay={vi.fn()} />);
+      renderInACache(<LibraryBrowser hasHero onFeatureChange={onFeatureChange} onPlay={vi.fn()} />);
 
       await screen.findByRole('region', { name: 'Featured' });
 
@@ -408,7 +411,7 @@ describe('LibraryBrowser', () => {
 
       twoLibraries();
 
-      const { rerender } = render(<LibraryBrowser hasHero onPlay={vi.fn()} />);
+      const { rerender } = renderInACache(<LibraryBrowser hasHero onPlay={vi.fn()} />);
 
       await screen.findByRole('region', { name: 'Featured' });
 
@@ -430,7 +433,7 @@ describe('LibraryBrowser', () => {
 
     it('is not drawn on a server with nothing in any library', async () => {
       fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
-      render(<LibraryBrowser hasHero onPlay={vi.fn()} />);
+      renderInACache(<LibraryBrowser hasHero onPlay={vi.fn()} />);
 
       await screen.findByText('Nothing has been scanned yet');
 
@@ -466,7 +469,7 @@ describe('LibraryBrowser', () => {
           });
     });
 
-    render(<LibraryBrowser onPlay={vi.fn()} />);
+    renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
     await screen.findByText('Nothing in Films yet');
 
