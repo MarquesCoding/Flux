@@ -110,6 +110,8 @@ const HAVE_METADATA = 1;
 
 const LINE_UP_BEYOND_SECONDS = 0.05;
 
+const MOST_FRAME_SKEW_SECONDS = 30;
+
 /**
  * What to say while the room is waiting, which is the difference between a picture that has stopped
  * and a picture that is broken.
@@ -153,6 +155,8 @@ const abandonStartedSession = (sessionId: string) => {
 const EMPTY_HEALTH: PlaybackHealth = {
   positionSeconds: 0,
   bufferedAheadSeconds: 0,
+  frameSeconds: 0,
+  streamFromSeconds: 0,
   encodedSeconds: 0,
   droppedFrames: null,
   decodedFrames: null,
@@ -299,6 +303,7 @@ const VideoPlayer = ({
   const partyRef = useRef(party);
   const stateRef = useRef<PlayerState>('starting');
   const lastGoodPositionRef = useRef(0);
+  const frameSkewRef = useRef(0);
 
   useEffect(() => {
     const reference = party?.referenceSeconds ?? null;
@@ -316,8 +321,10 @@ const VideoPlayer = ({
 
     hasCaughtUpRef.current = true;
 
-    if (Math.abs(reference - element.currentTime) > CATCH_UP_BEYOND_SECONDS) {
-      element.currentTime = reference;
+    if (
+      Math.abs(reference - element.currentTime - frameSkewRef.current) > CATCH_UP_BEYOND_SECONDS
+    ) {
+      element.currentTime = reference - frameSkewRef.current;
     }
   }, [party, party?.referenceSeconds]);
 
@@ -383,6 +390,7 @@ const VideoPlayer = ({
 
       const said = whatToReport({
         isSessionPlaying: stateRef.current === 'playing',
+        frameSkewSeconds: frameSkewRef.current,
         readyState: element.readyState,
         currentSeconds: element.currentTime,
         lastGoodSeconds: lastGoodPositionRef.current,
@@ -413,23 +421,25 @@ const VideoPlayer = ({
       return;
     }
 
+    const showing = element.currentTime + frameSkewRef.current;
+
     if (party.isHeld && element.paused) {
-      if (Math.abs(reference - element.currentTime) > LINE_UP_BEYOND_SECONDS) {
-        element.currentTime = reference;
+      if (Math.abs(reference - showing) > LINE_UP_BEYOND_SECONDS) {
+        element.currentTime = reference - frameSkewRef.current;
       }
 
       return;
     }
 
     const corrected = correctDrift({
-      behindByMs: (reference - element.currentTime) * 1000,
+      behindByMs: (reference - showing) * 1000,
       jitterMs: party.jitterMs,
       isSeeking: element.seeking,
       isStalled: bufferedAhead(element) <= 0,
     });
 
     if (corrected.kind === 'snap') {
-      element.currentTime = reference;
+      element.currentTime = reference - frameSkewRef.current;
       element.playbackRate = 1;
 
       return;
@@ -1077,7 +1087,7 @@ const VideoPlayer = ({
       const element = videoRef.current;
 
       if (element !== null) {
-        setHealth(readPlaybackHealth(element));
+        setHealth(readPlaybackHealth(element, frameSkewRef.current));
         setDelivered(deliveredRef.current?.() ?? null);
       }
     };
@@ -1354,9 +1364,13 @@ const VideoPlayer = ({
 
         if (gap > 0 && gap < 1) {
           frameSecondsRef.current = gap;
-
-          return;
         }
+      }
+
+      const skew = metadata.mediaTime - element.currentTime;
+
+      if (Math.abs(skew) < MOST_FRAME_SKEW_SECONDS) {
+        frameSkewRef.current = skew;
       }
 
       previous = metadata.mediaTime;

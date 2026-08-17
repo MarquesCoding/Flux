@@ -11,6 +11,7 @@ type Player = {
   lastGoodSeconds: number;
   bufferedAheadSeconds: number;
   isPaused: boolean;
+  frameSkewSeconds?: number;
 };
 
 type Reported = {
@@ -29,20 +30,29 @@ type Reported = {
  * everybody with them. The last position known to be real is reported instead, and the player says
  * plainly that it cannot play yet.
  *
+ * The position reported is where the picture on screen is, not where the playback clock says it is.
+ * Those are the same thing on a well-built stream and are not on a badly-built one: two sessions of
+ * the same film can put the same second of clock against different frames, depending on where each
+ * was cut and how its timestamps were written. A room that agrees on the clock and disagrees on the
+ * picture is not synchronised, whatever the numbers say, so the frame is what is compared.
+ *
  * Readiness asks the browser rather than counting seconds. A buffer target is the wrong question
  * near the end of a film, or at the end of what has been transcoded so far, where the buffer will
  * never reach it and the room would wait for a player that is in fact perfectly able to start.
  * `HAVE_FUTURE_DATA` is the browser's own answer to whether it could play now, which is the
  * question being asked; a comfortable buffer is accepted as well, for engines that are shy with it.
  *
- * @param player - What the element and its session currently say.
+ * @param player - What the element and its session currently say, including how far the frame on
+ *   screen sits from the playback clock.
  * @returns What to report.
  */
 const whatToReport = (player: Player): Reported => {
   const isSure = player.isSessionPlaying && player.readyState >= HAVE_METADATA;
 
   return {
-    positionSeconds: isSure ? player.currentSeconds : player.lastGoodSeconds,
+    positionSeconds: isSure
+      ? player.currentSeconds + (player.frameSkewSeconds ?? 0)
+      : player.lastGoodSeconds,
     isWatching: isSure && !player.isPaused,
     isReady:
       isSure &&

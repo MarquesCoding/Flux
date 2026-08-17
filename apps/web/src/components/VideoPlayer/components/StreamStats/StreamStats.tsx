@@ -199,6 +199,8 @@ const StreamStats = ({
 
         <Group name="Playback">
           <Row name="Position">{formatDuration(health.positionSeconds)}</Row>
+          <Row name="Frame on screen">{formatDuration(health.frameSeconds)}</Row>
+          <Row name="Stream starts at">{formatDuration(health.streamFromSeconds)}</Row>
           <Row name="Buffered ahead">{seconds(health.bufferedAheadSeconds)}</Row>
           <Row name="Encoded so far">{seconds(health.encodedSeconds)}</Row>
           <Row name="Frames dropped">

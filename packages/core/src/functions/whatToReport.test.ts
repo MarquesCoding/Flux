@@ -52,4 +52,18 @@ describe('whatToReport', () => {
   it('is watching only when it is actually running', () => {
     expect(whatToReport(player({ isPaused: true })).isWatching).toBe(false);
   });
+
+  it('reports where the picture is rather than where the clock is', () => {
+    expect(whatToReport(player({ frameSkewSeconds: -1.4 })).positionSeconds).toBeCloseTo(598.6, 3);
+  });
+
+  it('reports the clock where the two agree, which is the ordinary case', () => {
+    expect(whatToReport(player({ frameSkewSeconds: 0 })).positionSeconds).toBe(600);
+  });
+
+  it('does not apply a frame reading to a position it already does not believe', () => {
+    expect(
+      whatToReport(player({ isSessionPlaying: false, frameSkewSeconds: -1.4 })).positionSeconds,
+    ).toBe(590);
+  });
 });

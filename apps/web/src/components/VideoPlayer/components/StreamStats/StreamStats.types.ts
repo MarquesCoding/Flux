@@ -4,6 +4,8 @@ import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
 
 type PlaybackHealth = {
   positionSeconds: number;
+  frameSeconds: number;
+  streamFromSeconds: number;
   bufferedAheadSeconds: number;
   encodedSeconds: number;
   droppedFrames: number | null;
