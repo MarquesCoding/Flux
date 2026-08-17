@@ -5,6 +5,8 @@ const VIDEO_ENCODERS: Record<VideoSpec['codec'], string> = {
   hevc: 'libx265',
   av1: 'libsvtav1',
   vp9: 'libvpx-vp9',
+  mpeg4: 'mpeg4',
+  mpeg1video: 'mpeg1video',
 };
 
 const AUDIO_ENCODERS: Record<AudioSpec['codec'], string> = {
@@ -15,6 +17,7 @@ const AUDIO_ENCODERS: Record<AudioSpec['codec'], string> = {
   dts: 'dca',
   opus: 'libopus',
   flac: 'flac',
+  mp2: 'mp2',
 };
 
 const RANGE_TAGS: Record<VideoSpec['range'], readonly string[]> = {

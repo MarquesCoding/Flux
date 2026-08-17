@@ -511,4 +511,39 @@ describe('negotiatePlayback', () => {
       reason: { code: 'ClientSupportsSource' },
     });
   });
+
+  describe('a codec nobody listed', () => {
+    it('transcodes a video codec no client claims rather than refusing the file', () => {
+      const plan = negotiatePlayback({ ...media, videoCodec: 'mpeg4' }, profile);
+
+      expect(plan.video.kind).toBe('transcode');
+      expect(plan.video.reason.code).toBe('VideoCodecNotSupported');
+    });
+
+    it('transcodes an audio codec no client claims', () => {
+      const plan = negotiatePlayback(
+        {
+          ...media,
+          audioStreams: [{ index: 1, codec: 'mp2', channels: 2, isDefault: true, isAtmos: false }],
+        },
+        profile,
+      );
+
+      expect(plan.audio.kind).toBe('transcode');
+      expect(plan.audio.reason.code).toBe('AudioCodecNotSupported');
+    });
+
+    it('remuxes a container Flux could not name', () => {
+      const plan = negotiatePlayback({ ...media, container: 'unknown' }, profile);
+
+      expect(plan.container.kind).not.toBe('directPlay');
+    });
+
+    it('holds for a codec that does not exist yet', () => {
+      const plan = negotiatePlayback({ ...media, videoCodec: 'ffv2' }, profile);
+
+      expect(plan.video.kind).toBe('transcode');
+      expect(plan.video.reason.code).toBe('VideoCodecNotSupported');
+    });
+  });
 });

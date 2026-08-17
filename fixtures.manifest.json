@@ -42,6 +42,30 @@
       "bytes": 3184311
     },
     {
+      "name": "mpeg4-asp-avi",
+      "file": "mpeg4-asp-avi.avi",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "208c1b4fee4abc7d82fa121c85282bcfcf5a4238709435eaab74301411968530",
+      "bytes": 2343958
+    },
+    {
+      "name": "mpeg1-program-stream",
+      "file": "mpeg1-program-stream.mpg",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "77ca2b054789e92c2f98418c7242cc9204a897f31b71c01f0fb6f5099ce456ef",
+      "bytes": 2344960
+    },
+    {
+      "name": "mpeg4-asp-mkv",
+      "file": "mpeg4-asp-mkv.mkv",
+      "tier": 0,
+      "licence": "Generated from FFmpeg synthetic sources; no licence required",
+      "sha256": "585d647e016ae23fec218d898f91c3efcfb54607a1a0d99fb590c11cd8da536c",
+      "bytes": 1342027
+    },
+    {
       "name": "h264-8bit-open",
       "file": "h264-8bit-open.mp4",
       "tier": 0,
@@ -320,76 +344,6 @@
       "licence": "Generated from FFmpeg synthetic sources; no licence required",
       "sha256": "4864b3f2c70daf5e9c4d3171a5f78ecfa33903864865e3bd5ba9189d9aa30f66",
       "bytes": 3184467
-    },
-    {
-      "name": "pgs-subtitles",
-      "file": "pgs-subtitles.mkv",
-      "tier": 1,
-      "licence": "Unknown; fetched on demand and never redistributed",
-      "sha256": "e6c8f93f57d0371603704d7e7b16933e6c4c5df669da42b42a2a84de881e0f27",
-      "bytes": 23644,
-      "source": "https://samples.ffmpeg.org/sub/PGS/supsample.mkv"
-    },
-    {
-      "name": "pgs-raw-stream",
-      "file": "pgs-raw-stream.sup",
-      "tier": 1,
-      "licence": "Unknown; fetched on demand and never redistributed",
-      "sha256": "5147481961a2dcd2dacbbe51053f322b0477eaf2f462bee35b9697ee9b1065ba",
-      "bytes": 913926,
-      "source": "https://samples.ffmpeg.org/sub/BluRay/Subpictures_20.sup"
-    },
-    {
-      "name": "heaac-v2-aot5",
-      "file": "heaac-v2-aot5.mp4",
-      "tier": 1,
-      "licence": "Fraunhofer IIS test signal; no terms stated, fetched on demand",
-      "sha256": "ede70e3b2f7e364aeb0eb3854b7d9a5877be99a499dcebe22ac5a7349d68747c",
-      "bytes": 234051,
-      "source": "https://www2.iis.fraunhofer.de/AAC/SBRtestStereoAot5Sig1.mp4"
-    },
-    {
-      "name": "heaac-v2-aot29",
-      "file": "heaac-v2-aot29.mp4",
-      "tier": 1,
-      "licence": "Fraunhofer IIS test signal; no terms stated, fetched on demand",
-      "sha256": "d021b3dfbfb7ad42eacdad9c3391b5268603d6f1c6bcf171e57292ff1ada06fb",
-      "bytes": 241061,
-      "source": "https://www2.iis.fraunhofer.de/AAC/SBRtestStereoAot29Sig1.mp4"
-    },
-    {
-      "name": "vobsub-subtitles",
-      "file": "vobsub-subtitles.mkv",
-      "tier": 1,
-      "licence": "Derived from a fetched fixture; never redistributed",
-      "sha256": "96661787a5cc305f5690036ba9a9530199e50b64c7841ead0dec8dcd57e3c242",
-      "bytes": 16070,
-      "source": "pgs-subtitles.mkv"
-    },
-    {
-      "name": "dvbsub-subtitles",
-      "file": "dvbsub-subtitles.mkv",
-      "tier": 1,
-      "licence": "Derived from a fetched fixture; never redistributed",
-      "sha256": "a7216afa06d7bd4c6b6850eaa55ce6ea7813af2e9ad3944cef72dd4cb8398680",
-      "bytes": 30788,
-      "source": "pgs-subtitles.mkv"
-    },
-    {
-      "name": "dolby-vision-profile-81",
-      "file": "dolby-vision-profile-81.mkv",
-      "tier": 2,
-      "licence": "Generated; the metadata is written rather than taken from anywhere",
-      "sha256": "88493db67ef04bc086105361ce1f5e620c3f27cef8036cb21a6fd20fe494bb0f",
-      "bytes": 689353
-    },
-    {
-      "name": "hdr10plus-dynamic",
-      "file": "hdr10plus-dynamic.mkv",
-      "tier": 2,
-      "licence": "Generated; the metadata is written rather than taken from anywhere",
-      "sha256": "ca7b956529f136e573107915a47d565d31f1dabed7aa6dbec192387123d34617",
-      "bytes": 670564
     }
   ]
 }

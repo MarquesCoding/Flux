@@ -11,6 +11,8 @@ const EXPECTED_CODEC_NAMES: Record<string, string> = {
   hevc: 'hevc',
   av1: 'av1',
   vp9: 'vp9',
+  mpeg4: 'mpeg4',
+  mpeg1video: 'mpeg1video',
 };
 
 const EXPECTED_AUDIO_NAMES: Record<string, string> = {
@@ -21,6 +23,7 @@ const EXPECTED_AUDIO_NAMES: Record<string, string> = {
   dts: 'dts',
   opus: 'opus',
   flac: 'flac',
+  mp2: 'mp2',
 };
 
 const directory = fixturesDirectoryHere();
@@ -96,12 +99,14 @@ describe('the corpus matches what the matrix claims', () => {
 
       it('runs at the frame rate it claims', () => {
         const declared = fixture.video.frameRate;
+        const progressive =
+          fixture.video.codec === 'mpeg1video' ? Math.round(declared) * 2 : Math.round(declared);
         const expected =
           fixture.video.scan === 'telecined'
             ? 30
             : fixture.video.scan === 'interlaced'
               ? Math.round(declared / 2)
-              : Math.round(declared);
+              : progressive;
 
         expect(facts.frameRate).toBe(expected);
       });
@@ -115,7 +120,7 @@ describe('the corpus matches what the matrix claims', () => {
       });
 
       it('starts where it claims to start', () => {
-        const muxerClock = fixture.container === 'ts' ? 1 : 0;
+        const muxerClock = fixture.container === 'ts' || fixture.container === 'mpg' ? 1 : 0;
 
         expect(facts.startSeconds).toBe(fixture.startOffsetSeconds + muxerClock);
       });

@@ -50,14 +50,35 @@ const subtitleTrackUrl = (mediaId: string, trackId: string, fromSeconds = 0): st
   `/api/media/${mediaId}/subtitles/${trackId}?from=${Math.max(0, Math.floor(fromSeconds)).toString()}`;
 
 /**
- * Picks the track to show before anybody has chosen — a forced track where one exists, since forced
- * subtitles carry the parts of a film nobody is meant to miss, and otherwise nothing.
+ * Picks the track to show before anybody has chosen — a forced track in the language being heard,
+ * since forced subtitles carry the parts of a film nobody is meant to miss, and otherwise nothing.
+ *
+ * The language matters because a forced track belongs to the dub it was made for: a release carrying
+ * Italian audio and English audio also carries a forced Italian track, for the Italian viewer who
+ * needs the English signage translated. Chosen for a viewer listening in English it is not a
+ * subtitle, it is the wrong language across the bottom of the picture. Measured on a real file whose
+ * only forced track was Italian while the audio selected was English.
+ *
+ * A track whose language is unknown is not assumed to match, because the cost of being wrong is
+ * subtitles nobody asked for, where the cost of being cautious is a viewer turning them on.
  *
  * @param tracks - The tracks available.
+ * @param spokenLanguage - The language of the audio being played, where it is known.
  * @returns The track to start with, or the identifier meaning none.
  */
-const defaultTrackId = (tracks: SubtitleTrack[]): string =>
-  tracks.find((track) => track.isForced)?.id ?? SUBTITLES_OFF;
+const defaultTrackId = (tracks: SubtitleTrack[], spokenLanguage?: string | null): string => {
+  const spoken = (spokenLanguage ?? '').split('-')[0]?.toLowerCase() ?? '';
+
+  if (spoken === '') {
+    return SUBTITLES_OFF;
+  }
+
+  const forced = tracks.find(
+    (track) => track.isForced && (track.language ?? '').toLowerCase().startsWith(spoken),
+  );
+
+  return forced?.id ?? SUBTITLES_OFF;
+};
 
 /**
  * Finds the track that continues what a viewer was already reading, when playback moves to the next

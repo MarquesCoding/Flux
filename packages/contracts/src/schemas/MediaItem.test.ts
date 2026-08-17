@@ -48,8 +48,31 @@ describe('MediaItemSchema', () => {
     expect(() => MediaItemSchema.parse({ ...validItem, audioStreams: [] })).toThrow();
   });
 
-  it('rejects an unknown container', () => {
-    expect(() => MediaItemSchema.parse({ ...validItem, container: 'rmvb' })).toThrow();
+  it('accepts a container Flux has no name for', () => {
+    expect(MediaItemSchema.parse({ ...validItem, container: 'rmvb' }).container).toBe('rmvb');
+  });
+
+  it('accepts a video codec Flux has never heard of', () => {
+    expect(MediaItemSchema.parse({ ...validItem, videoCodec: 'theora' }).videoCodec).toBe('theora');
+  });
+
+  it('accepts the codecs a real library turned out to hold', () => {
+    for (const videoCodec of ['mpeg4', 'mpeg1video']) {
+      expect(MediaItemSchema.parse({ ...validItem, videoCodec }).videoCodec).toBe(videoCodec);
+    }
+  });
+
+  it('accepts an audio codec Flux has never heard of', () => {
+    const result = MediaItemSchema.parse({
+      ...validItem,
+      audioStreams: [{ index: 1, codec: 'mp2', channels: 2, isAtmos: false }],
+    });
+
+    expect(result.audioStreams[0]?.codec).toBe('mp2');
+  });
+
+  it('still rejects a codec that is not a name at all', () => {
+    expect(() => MediaItemSchema.parse({ ...validItem, videoCodec: '' })).toThrow();
   });
 
   it('rejects a non-uuid id', () => {
