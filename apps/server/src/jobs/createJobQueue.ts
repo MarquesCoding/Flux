@@ -209,6 +209,6 @@ const createJobQueue = async ({
   };
 };
 
-export type { FinishedJob };
+export type { FinishedJob, JobHandler };
 
 export { createJobQueue };

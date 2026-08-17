@@ -9,6 +9,7 @@ use tokio::process::Command;
 use tokio::sync::{oneshot, Mutex, Notify};
 
 use crate::boundaries::ensure_boundaries;
+use crate::monitor::{record, LogLevel};
 use crate::playlist::segment_at;
 use crate::transcode_plan::{
     DeviceFilters, HardwareAccel, SegmentContainer, SegmentStart, SessionSpec, TranscodePlan,
@@ -1174,11 +1175,15 @@ async fn run_attempt(
                 let class = classify_exit(output.status.code(), &stderr);
 
                 if !matches!(class, ExitClass::Completed | ExitClass::Cancelled) {
-                    eprintln!(
-                        "transcode failed ({class:?}{}) for {}:\n{}",
-                        describe_signal(output.status),
-                        plan.spec.input_path,
-                        tail_of(&stderr, FFMPEG_LINES)
+                    record(
+                        LogLevel::Error,
+                        "transcode",
+                        &format!(
+                            "failed ({class:?}{}) for {}:\n{}",
+                            describe_signal(output.status),
+                            plan.spec.input_path,
+                            tail_of(&stderr, FFMPEG_LINES)
+                        ),
                     );
                 }
 
@@ -1386,9 +1391,13 @@ async fn supervise(
             return;
         }
 
-        eprintln!(
-            "transcode: hardware encode of {} failed ({outcome:?}), retrying in software",
-            attempt.spec.input_path
+        record(
+            LogLevel::Warn,
+            "transcode",
+            &format!(
+                "hardware encode of {} failed ({outcome:?}), retrying in software",
+                attempt.spec.input_path
+            ),
         );
 
         attempt = TranscodePlan {
@@ -1405,11 +1414,15 @@ async fn supervise(
 fn spawn_ffmpeg(ffmpeg: &str, plan: &TranscodePlan) -> Result<tokio::process::Child, SessionError> {
     let arguments = plan.to_ffmpeg_args();
 
-    eprintln!(
-        "transcode: {} -> {}\n  ffmpeg {}",
-        plan.spec.input_path,
-        plan.output_directory,
-        arguments.join(" ")
+    record(
+        LogLevel::Info,
+        "transcode",
+        &format!(
+            "{} -> {}\n  ffmpeg {}",
+            plan.spec.input_path,
+            plan.output_directory,
+            arguments.join(" ")
+        ),
     );
 
     let child = Command::new(ffmpeg)

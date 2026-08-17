@@ -12,6 +12,8 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
+use std::sync::Mutex as StdMutex;
+use std::sync::OnceLock;
 use sysinfo::{DiskRefreshKind, Disks, Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 use tokio::sync::Mutex;
 
@@ -59,6 +61,18 @@ pub enum LogLevel {
     Info,
     Warn,
     Error,
+}
+
+impl LogLevel {
+    /// The word this level is written as on a terminal line.
+    #[must_use]
+    pub fn as_word(self) -> &'static str {
+        match self {
+            Self::Info => "info",
+            Self::Warn => "warn",
+            Self::Error => "error",
+        }
+    }
 }
 
 /// One thing that happened.
@@ -134,9 +148,14 @@ pub struct Report {
 ///
 /// Cloning shares one record, so every part of the service writes to the same
 /// place without any of them owning it.
+///
+/// Guarded by an ordinary mutex rather than an async one, so that anywhere in
+/// the service can write a line without being async and without awaiting. A
+/// log that can only be written from async code is a log most of the code
+/// cannot write to, which is how this one came to be written only by a test.
 #[derive(Clone, Default)]
 pub struct Journal {
-    lines: Arc<Mutex<VecDeque<LogLine>>>,
+    lines: Arc<StdMutex<VecDeque<LogLine>>>,
 }
 
 impl Journal {
@@ -146,8 +165,13 @@ impl Journal {
     }
 
     /// Writes a line, dropping the oldest when full.
-    pub async fn write(&self, level: LogLevel, source: &str, message: &str) {
-        let mut lines = self.lines.lock().await;
+    ///
+    /// Never panics on a poisoned lock: a log that stops working because a log
+    /// write panicked once is worse than a lost line.
+    pub fn write(&self, level: LogLevel, source: &str, message: &str) {
+        let Ok(mut lines) = self.lines.lock() else {
+            return;
+        };
 
         lines.push_front(LogLine {
             at_ms: now_ms(),
@@ -160,9 +184,41 @@ impl Journal {
     }
 
     /// The lines kept, newest first.
-    pub async fn read(&self) -> Vec<LogLine> {
-        self.lines.lock().await.iter().cloned().collect()
+    #[must_use]
+    pub fn read(&self) -> Vec<LogLine> {
+        self.lines
+            .lock()
+            .map(|lines| lines.iter().cloned().collect())
+            .unwrap_or_default()
     }
+}
+
+/// The journal this process writes to.
+///
+/// Held for the process rather than passed around because the places worth
+/// logging from — a session failing, a preview giving up, a boundary scan
+/// finding nothing — are nowhere near the router that owns the monitor, and
+/// threading a handle to all of them is what stopped anybody doing it.
+static JOURNAL: OnceLock<Journal> = OnceLock::new();
+
+/// Names the journal the rest of the service writes to.
+///
+/// Called once at startup. Calling it again leaves the first one in place.
+pub fn install_journal(journal: Journal) {
+    let _ = JOURNAL.set(journal);
+}
+
+/// Writes a line to the journal and to stderr.
+///
+/// Both, always. Stderr is what `docker logs` shows and the only thing there is
+/// before the monitor exists or after it has stopped answering; the journal is
+/// what the admin area can actually reach.
+pub fn record(level: LogLevel, source: &str, message: &str) {
+    if let Some(journal) = JOURNAL.get() {
+        journal.write(level, source, message);
+    }
+
+    eprintln!("{} {source}: {message}", level.as_word());
 }
 
 /// Reads what the machine is using.
@@ -357,20 +413,54 @@ impl Monitor {
 
 #[cfg(test)]
 mod tests {
-    use super::{Journal, LogLevel, Monitor};
+    use super::{install_journal, record, Journal, LogLevel, Monitor, LOG_LINES};
 
     #[tokio::test]
     async fn keeps_the_newest_line_first() {
         let journal = Journal::new();
 
-        journal.write(LogLevel::Info, "scan", "started").await;
-        journal.write(LogLevel::Error, "scan", "stopped").await;
+        journal.write(LogLevel::Info, "scan", "started");
+        journal.write(LogLevel::Error, "scan", "stopped");
 
-        let lines = journal.read().await;
+        let lines = journal.read();
 
         assert_eq!(lines[0].message, "stopped");
         assert_eq!(lines[0].level, LogLevel::Error);
         assert_eq!(lines[1].message, "started");
+    }
+
+    #[test]
+    fn drops_the_oldest_once_it_is_full() {
+        let journal = Journal::new();
+
+        for index in 0..LOG_LINES + 10 {
+            journal.write(LogLevel::Info, "scan", &format!("line {index}"));
+        }
+
+        assert_eq!(journal.read().len(), LOG_LINES);
+    }
+
+    #[test]
+    fn says_nothing_when_read_before_anything_happened() {
+        assert!(Journal::new().read().is_empty());
+    }
+
+    #[test]
+    fn writes_what_the_service_records_into_the_journal_it_was_given() {
+        let journal = Journal::new();
+
+        install_journal(journal.clone());
+        record(LogLevel::Warn, "transcode", "hardware encode failed");
+
+        let found = journal
+            .read()
+            .into_iter()
+            .find(|line| line.message == "hardware encode failed");
+
+        assert!(
+            found.is_some(),
+            "a recorded line should reach the journal the admin area reads"
+        );
     }
 
     #[tokio::test]
