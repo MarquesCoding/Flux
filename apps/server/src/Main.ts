@@ -55,6 +55,7 @@ import { createChapterSegmentProvider } from '@FluxServer/segments/createChapter
 import { createFingerprintSegmentProvider } from '@FluxServer/segments/createFingerprintSegmentProvider';
 import { createSidecarSubtitleService } from '@FluxServer/subtitles/createSidecarSubtitleService';
 import { createDatabaseProfileService } from '@FluxServer/profiles/createDatabaseProfileService';
+import { nameForViewer } from '@FluxServer/presence/nameForViewer';
 import { ViewerProfileSchema } from '@FluxContracts/schemas/ViewerProfile';
 import { createEmbeddedSubtitleService } from '@FluxServer/subtitles/createEmbeddedSubtitleService';
 import { createLayeredSubtitleService } from '@FluxServer/subtitles/createLayeredSubtitleService';
@@ -1243,10 +1244,7 @@ const realtimeHandler = createRealtimeHandler({
       presence.disconnect(clientId);
     },
     nameOf: async (accountId, profileId) =>
-      profileId === null
-        ? null
-        : ((await profileService.list(accountId)).find((profile) => profile.id === profileId)
-            ?.name ?? null),
+      nameForViewer(await profileService.list(accountId), profileId),
   },
 });
 
