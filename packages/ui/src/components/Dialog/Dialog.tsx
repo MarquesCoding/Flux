@@ -19,7 +19,7 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
   default: '',
   stage: cn(
     'h-full w-full max-w-none rounded-none p-0',
-    'sm:h-auto sm:min-h-[68vh] sm:max-h-[92vh] sm:w-[min(60rem,94vw)] sm:rounded-lg',
+    'sm:h-[88vh] sm:max-h-[88vh] sm:w-[min(60rem,94vw)] sm:rounded-lg',
   ),
 };
 
@@ -42,8 +42,9 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  * @param onClose - Told when it was dismissed, by the overlay, the escape key or a close button.
  * @param children - What the dialog holds, usually a title, some content and a footer.
  * @param size - How large it stands. A stage fills the screen on a phone and takes the same broad
- *   panel on anything larger, with a floor as well as a ceiling so that the three dialogs a library
- *   opens are the same size whatever they happen to hold.
+ *   panel on anything larger. Its height is fixed rather than bounded, because a floor and a ceiling
+ *   only agree when the content reaches one of them — a cast member with a single film sat at the
+ *   floor while the film behind it sat at the ceiling, and the two boxes visibly disagreed.
  * @param className - Extra classes for the caller's own layout.
  */
 const Dialog = ({ label, isOpen, onClose, children, size = 'default', className }: DialogProps) => {

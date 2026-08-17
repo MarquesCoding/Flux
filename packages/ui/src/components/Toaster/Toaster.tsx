@@ -16,13 +16,14 @@ import type { ToasterProps } from './Toaster.types';
  *
  * @param theme - Which way round to paint, following whatever the page is set to.
  * @param id - Which toaster this is, for messages addressed somewhere other than the page.
+ * @param position - Which corner they arrive in, since a toast over a film wants to be clear of the controls.
  * @returns Where toasts are drawn.
  */
-const Toaster = ({ theme = 'system', id }: ToasterProps) => (
+const Toaster = ({ theme = 'system', id, position = 'bottom-right' }: ToasterProps) => (
   <SonnerToaster
     {...(id === undefined ? {} : { id })}
     theme={theme}
-    position="bottom-right"
+    position={position}
     offset={24}
     mobileOffset={16}
     gap={10}

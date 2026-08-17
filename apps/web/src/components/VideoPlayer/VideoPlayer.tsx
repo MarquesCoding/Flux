@@ -64,7 +64,6 @@ import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
 import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview';
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
-import { PlayerNote } from './components/PlayerNote/PlayerNote';
 import { Toaster } from '@FluxUI/Toaster';
 import { notify } from '@FluxUI/notify';
 import { correctDrift } from '@FluxCore/functions/correctDrift';
@@ -92,11 +91,13 @@ type FullscreenOwner = {
 
 const IDLE_MILLISECONDS = 2500;
 
-const NOTE_MILLISECONDS = 5000;
-
 const PLAYER_TOASTS = 'player';
 
 const ADMIN_NOTICE = 'admin-notice';
+
+const PARTY_NOTICE = 'party-notice';
+
+const CAST_NOTICE = 'cast-notice';
 
 const JUMP_SECONDS = 30;
 
@@ -256,21 +257,6 @@ const VideoPlayer = ({
   const [castState, setCastState] = useState<CastState>('unavailable');
 
   const [isBuffering, setIsBuffering] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (note === null) {
-      return;
-    }
-
-    const goes = setTimeout(() => {
-      setNote(null);
-    }, NOTE_MILLISECONDS);
-
-    return () => {
-      clearTimeout(goes);
-    };
-  }, [note]);
 
     const appliedSequenceRef = useRef(-1);
   const hasCaughtUpRef = useRef(false);
@@ -311,7 +297,11 @@ const VideoPlayer = ({
     }
 
     appliedSequenceRef.current = command.sequence;
-    setNote(describeCommand(command, party?.meConnectionId ?? null));
+    const said = describeCommand(command, party?.meConnectionId ?? null);
+
+    if (said !== null) {
+      notify.say(said, { where: PLAYER_TOASTS, id: PARTY_NOTICE });
+    }
 
     if (command.command.kind !== 'changeWhatIsPlaying') {
       element.currentTime = command.command.atSeconds;
@@ -329,7 +319,10 @@ const VideoPlayer = ({
 
     if (shouldRun && element.paused) {
       element.play().catch(() => {
-        setNote('Your browser will not start this on its own — press play to join in.');
+        notify.say('Your browser will not start this on its own — press play to join in.', {
+          where: PLAYER_TOASTS,
+          id: PARTY_NOTICE,
+        });
       });
 
       return;
@@ -429,7 +422,7 @@ const VideoPlayer = ({
 
   useEffect(() => {
     if (partyNotice !== null) {
-      setNote(partyNotice);
+      notify.say(partyNotice, { where: PLAYER_TOASTS });
     }
   }, [partyNotice]);
   const releaseRef = useRef<(() => Promise<void>) | null>(null);
@@ -579,7 +572,7 @@ const VideoPlayer = ({
             return;
           }
 
-          setNote('That device would not take this stream.');
+          notify.failed('That device would not take this stream.', { where: PLAYER_TOASTS });
         });
       }
 
@@ -1587,9 +1580,7 @@ const VideoPlayer = ({
           </div>
         )}
 
-        <PlayerNote note={note} />
-
-        <Toaster id={PLAYER_TOASTS} />
+        <Toaster id={PLAYER_TOASTS} position="top-center" />
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
@@ -1772,14 +1763,15 @@ const VideoPlayer = ({
               }
 
               if (!isReachableOrigin(window.location.origin)) {
-                setNote(
+                notify.failed(
                   'Open Flux at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
+                  { where: PLAYER_TOASTS, id: CAST_NOTICE },
                 );
 
                 return;
               }
 
-              setNote(null);
+              notify.forget(CAST_NOTICE);
 
               const context = castContextRef.current;
 
@@ -1794,10 +1786,11 @@ const VideoPlayer = ({
                   return;
                 }
 
-                setNote(
+                notify.failed(
                   window.location.protocol === 'https:'
                     ? 'This browser offered no device. Safari casts to AirPlay receivers; Chrome needs the extension that backs casting.'
                     : 'This browser only casts over a secure connection. Serve Flux over HTTPS, or use Safari, which will cast from here as it is.',
+                  { where: PLAYER_TOASTS, id: CAST_NOTICE },
                 );
               });
             }}
