@@ -38,6 +38,9 @@ const keyOf = (rating: { mediaId: string | null; seriesId: string | null }): str
  * only that one subject is put back if the server refuses. Any read still in flight is called off
  * first, so a list that arrives a moment later does not empty the star again.
  *
+ * A rating the server took changes what the household gave the thing, so that figure is thrown away
+ * and asked for again — the panel showing it does not have to know a rating was given.
+ *
  * @param watcherId - Who is watching, so that their ratings are the ones asked for.
  * @returns What they gave each thing, and how to change it.
  */
@@ -83,7 +86,11 @@ const useRatings = (watcherId: string | null): Ratings => {
     void setRating(subject, stars).then((agreed) => {
       if (!agreed) {
         write(subject, before);
+
+        return;
       }
+
+      void cache.invalidateQueries({ queryKey: viewingQueries.household(subject).queryKey });
     });
   };
 

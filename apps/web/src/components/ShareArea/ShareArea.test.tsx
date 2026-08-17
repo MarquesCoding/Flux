@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { renderInACache } from '@FluxWeb/testing/renderInACache';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShareArea } from './ShareArea';
@@ -33,7 +34,7 @@ const item = (over: Partial<MediaSummary> = {}): MediaSummary => ({
 });
 
 const opened = (over: Partial<Parameters<typeof ShareArea>[0]> = {}) =>
-  render(<ShareArea token="abc123" onPlay={vi.fn()} {...over} />);
+  renderInACache(<ShareArea token="abc123" onPlay={vi.fn()} {...over} />);
 
 const answers = (outcome: ShareOutcome) => {
   openMock.mockResolvedValue(outcome);

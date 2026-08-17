@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
 import { StarRating } from '@FluxUI/StarRating';
 import { cn } from '@FluxUI/cn';
-import { fetchHouseholdRating } from '@FluxWeb/library/fetchRatings';
+import { useQuery } from '@tanstack/react-query';
+import { viewingQueries } from '@FluxWeb/query/viewingQueries';
 import type { HouseholdRating } from '@FluxContracts/schemas/Rating';
 import type { RatingPanelProps } from './RatingPanel.types';
 
@@ -32,25 +32,14 @@ const describeCount = (count: number): string =>
  * @param className - Extra classes for the caller's own layout.
  */
 const RatingPanel = ({ subject, title, stars, onRate, className }: RatingPanelProps) => {
-  const [household, setHousehold] = useState<HouseholdRating>(NOTHING);
   const mediaId = 'mediaId' in subject ? subject.mediaId : null;
   const seriesId = 'seriesId' in subject ? subject.seriesId : null;
 
-  useEffect(() => {
-    let isCurrent = true;
+  const asked = useQuery(
+    viewingQueries.household(mediaId === null ? { seriesId: seriesId ?? '' } : { mediaId }),
+  );
 
-    void fetchHouseholdRating(mediaId === null ? { seriesId: seriesId ?? '' } : { mediaId }).then(
-      (found) => {
-        if (isCurrent) {
-          setHousehold(found);
-        }
-      },
-    );
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [mediaId, seriesId, stars]);
+  const household = asked.data ?? NOTHING;
 
   return (
     <section className={cn('flex flex-col gap-3', className)}>

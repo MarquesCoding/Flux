@@ -8,9 +8,10 @@ import { Rail } from '@FluxUI/Rail';
 import { RevealItem } from '@FluxUI/RevealItem';
 import { Skeleton } from '@FluxUI/Skeleton';
 import { hasAnythingToShow } from '@FluxContracts/schemas/Person';
-import { fetchPerson, fetchPersonCredits } from '@FluxWeb/library/fetchPerson';
+import { useQuery } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
-import type { Person, PersonCredits } from '@FluxContracts/schemas/Person';
+import type { PersonCredits } from '@FluxContracts/schemas/Person';
 import type { PersonDialogProps } from './PersonDialog.types';
 
 const NOTHING: PersonCredits = { films: [], shows: [], episodes: [] };
@@ -62,36 +63,19 @@ const PersonDialog = ({
   onInspect,
   onOpenShow,
 }: PersonDialogProps) => {
-  const [person, setPerson] = useState<Person | null>(null);
-  const [credits, setCredits] = useState<PersonCredits>(NOTHING);
-  const [isLoading, setIsLoading] = useState(false);
   const [lastOpened, setLastOpened] = useState<number | null>(null);
 
+  const asked = useQuery(libraryQueries.person(personId));
+  const theirs = useQuery(libraryQueries.credits(personId));
+
+  const person = personId === null ? null : (asked.data ?? null);
+  const credits = personId === null ? NOTHING : (theirs.data ?? NOTHING);
+  const isLoading = personId !== null && (asked.isPending || theirs.isPending);
+
   useEffect(() => {
-    if (personId === null) {
-      return;
+    if (personId !== null) {
+      setLastOpened(personId);
     }
-
-    setLastOpened(personId);
-    setPerson(null);
-    setCredits(NOTHING);
-    setIsLoading(true);
-
-    let abandoned = false;
-
-    void Promise.all([fetchPerson(personId), fetchPersonCredits(personId)]).then(([who, held]) => {
-      if (abandoned) {
-        return;
-      }
-
-      setPerson(who);
-      setCredits(held);
-      setIsLoading(false);
-    });
-
-    return () => {
-      abandoned = true;
-    };
   }, [personId]);
 
   const shown = personId ?? lastOpened;

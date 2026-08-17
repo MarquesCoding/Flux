@@ -8,13 +8,11 @@ import { Badge } from '@FluxUI/Badge';
 import { liquidSpring } from '@FluxUI/animations/reveal';
 import { hasFinePointer } from '@FluxUI/hasFinePointer';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
-import { fetchShow } from '@FluxWeb/library/fetchShows';
+import { useQuery } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
-import type { MediaDetail } from '@FluxContracts/schemas/Library';
-import type { ShowDetail } from '@FluxContracts/schemas/Show';
 import type { RailCardProps } from './RailCard.types';
 
 const HOVER_DELAY_MILLISECONDS = 600;
@@ -100,8 +98,6 @@ const RailCard = ({
     onInspect(media);
   };
 
-  const [detail, setDetail] = useState<MediaDetail | null>(null);
-  const [show, setShow] = useState<ShowDetail | null>(null);
   const holderRef = useRef<HTMLDivElement>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -122,43 +118,20 @@ const RailCard = ({
     };
   }, [anchor, close]);
 
-  useEffect(() => {
-    if (anchor === null || detail !== null || isSeries) {
-      return;
-    }
+  const named = media.seriesId ?? showSlug(media.seriesTitle ?? '');
 
-    let abandoned = false;
+  const asked = useQuery({
+    ...libraryQueries.detail(media.id),
+    enabled: anchor !== null && !isSeries,
+  });
 
-    void fetchMediaDetail(media.id).then((found) => {
-      if (!abandoned) {
-        setDetail(found);
-      }
-    });
+  const asking = useQuery({
+    ...libraryQueries.show(media.libraryId, named === '' ? null : named),
+    enabled: anchor !== null && isSeries,
+  });
 
-    return () => {
-      abandoned = true;
-    };
-  }, [anchor, detail, isSeries, media.id]);
-
-  useEffect(() => {
-    const named = media.seriesId ?? showSlug(media.seriesTitle ?? '');
-
-    if (anchor === null || show !== null || !isSeries || named === '') {
-      return;
-    }
-
-    let abandoned = false;
-
-    void fetchShow(media.libraryId, named).then((found) => {
-      if (!abandoned) {
-        setShow(found);
-      }
-    });
-
-    return () => {
-      abandoned = true;
-    };
-  }, [anchor, show, isSeries, media.libraryId, media.seriesId, media.seriesTitle]);
+  const detail = asked.data ?? null;
+  const show = asking.data ?? null;
 
   const told = isSeries ? null : (detail?.metadata.overview ?? null);
 
