@@ -1,15 +1,20 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
+import { renderHookInACache } from '@FluxWeb/testing/renderHookInACache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useQuery } from '@tanstack/react-query';
+import { viewingQueries } from '@FluxWeb/query/viewingQueries';
 import { useRatings } from './useRatings';
-import type { Rating } from '@FluxContracts/schemas/Rating';
+import type { HouseholdRating, Rating } from '@FluxContracts/schemas/Rating';
 import type { RatingSubject } from '@FluxWeb/library/fetchRatings';
 
 const fetchRatings = vi.fn<() => Promise<Rating[]>>();
 const setRating = vi.fn<(subject: RatingSubject, stars: number | null) => Promise<boolean>>();
+const fetchHouseholdRating = vi.fn<() => Promise<HouseholdRating>>();
 
 vi.mock('@FluxWeb/library/fetchRatings', () => ({
   fetchRatings: () => fetchRatings(),
   setRating: (subject: RatingSubject, stars: number | null) => setRating(subject, stars),
+  fetchHouseholdRating: () => fetchHouseholdRating(),
 }));
 
 const RATED = (over: Partial<Rating> = {}): Rating => ({
@@ -23,13 +28,14 @@ const RATED = (over: Partial<Rating> = {}): Rating => ({
 beforeEach(() => {
   fetchRatings.mockReset().mockResolvedValue([]);
   setRating.mockReset().mockResolvedValue(true);
+  fetchHouseholdRating.mockReset().mockResolvedValue({ average: 4, count: 1 });
 });
 
 describe('useRatings', () => {
   it('reads the whole list once rather than asking per item', async () => {
     fetchRatings.mockResolvedValue([RATED()]);
 
-    const { result } = renderHook(() => useRatings('watcher-1'));
+    const { result } = renderHookInACache(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'media-1' })).toBe(4);
@@ -40,7 +46,7 @@ describe('useRatings', () => {
   it('does not show one person their stars against somebody else', async () => {
     fetchRatings.mockResolvedValue([RATED({ stars: 3 })]);
 
-    const { result, rerender } = renderHook(({ who }: { who: string }) => useRatings(who), {
+    const { result, rerender } = renderHookInACache(({ who }: { who: string }) => useRatings(who), {
       initialProps: { who: 'dan' },
     });
 
@@ -60,7 +66,7 @@ describe('useRatings', () => {
   it('does not carry an unsent change across to the next person', async () => {
     fetchRatings.mockResolvedValue([]);
 
-    const { result, rerender } = renderHook(({ who }: { who: string }) => useRatings(who), {
+    const { result, rerender } = renderHookInACache(({ who }: { who: string }) => useRatings(who), {
       initialProps: { who: 'dan' },
     });
 
@@ -80,7 +86,7 @@ describe('useRatings', () => {
   });
 
   it('has nothing for something nobody rated', async () => {
-    const { result } = renderHook(() => useRatings('watcher-1'));
+    const { result } = renderHookInACache(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'media-1' })).toBeNull();
@@ -93,7 +99,7 @@ describe('useRatings', () => {
       RATED({ mediaId: null, seriesId: 'same', stars: 2 }),
     ]);
 
-    const { result } = renderHook(() => useRatings('watcher-1'));
+    const { result } = renderHookInACache(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'same' })).toBe(4);
@@ -113,7 +119,7 @@ describe('useRatings', () => {
         }),
     );
 
-    const { result } = renderHook(() => useRatings('watcher-1'));
+    const { result } = renderHookInACache(() => useRatings('watcher-1'));
 
     await act(async () => {
       result.current.rate({ mediaId: 'media-1' }, 5);
@@ -136,7 +142,7 @@ describe('useRatings', () => {
     fetchRatings.mockResolvedValue([RATED({ stars: 3 })]);
     setRating.mockResolvedValue(false);
 
-    const { result } = renderHook(() => useRatings('watcher-1'));
+    const { result } = renderHookInACache(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'media-1' })).toBe(3);
@@ -155,7 +161,7 @@ describe('useRatings', () => {
   it('takes a rating back', async () => {
     fetchRatings.mockResolvedValue([RATED()]);
 
-    const { result } = renderHook(() => useRatings('watcher-1'));
+    const { result } = renderHookInACache(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'media-1' })).toBe(4);
@@ -166,7 +172,10 @@ describe('useRatings', () => {
       await Promise.resolve();
     });
 
-    expect(result.current.ratingFor({ mediaId: 'media-1' })).toBeNull();
+    await waitFor(() => {
+      expect(result.current.ratingFor({ mediaId: 'media-1' })).toBeNull();
+    });
+
     expect(setRating).toHaveBeenCalledWith({ mediaId: 'media-1' }, null);
   });
 
@@ -174,7 +183,7 @@ describe('useRatings', () => {
     fetchRatings.mockResolvedValue([RATED()]);
     setRating.mockResolvedValue(false);
 
-    const { result } = renderHook(() => useRatings('watcher-1'));
+    const { result } = renderHookInACache(() => useRatings('watcher-1'));
 
     await waitFor(() => {
       expect(result.current.ratingFor({ mediaId: 'media-1' })).toBe(4);
@@ -190,15 +199,62 @@ describe('useRatings', () => {
     });
   });
 
+  it('asks what the household gave something again once this viewer rates it', async () => {
+    const { result } = renderHookInACache(() => ({
+      ratings: useRatings('watcher-1'),
+      household: useQuery(viewingQueries.household({ mediaId: 'media-1' })),
+    }));
+
+    await waitFor(() => {
+      expect(fetchHouseholdRating).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      result.current.ratings.rate({ mediaId: 'media-1' }, 5);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(fetchHouseholdRating).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('leaves the household figure alone where the server refused the rating', async () => {
+    setRating.mockResolvedValue(false);
+
+    const { result } = renderHookInACache(() => ({
+      ratings: useRatings('watcher-1'),
+      household: useQuery(viewingQueries.household({ mediaId: 'media-1' })),
+    }));
+
+    await waitFor(() => {
+      expect(fetchHouseholdRating).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      result.current.ratings.rate({ mediaId: 'media-1' }, 5);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(result.current.ratings.ratingFor({ mediaId: 'media-1' })).toBeNull();
+    });
+
+    expect(fetchHouseholdRating).toHaveBeenCalledTimes(1);
+  });
+
   it('rates a programme at its own key', async () => {
-    const { result } = renderHook(() => useRatings('watcher-1'));
+    const { result } = renderHookInACache(() => useRatings('watcher-1'));
 
     await act(async () => {
       result.current.rate({ seriesId: 'show-1' }, 5);
       await Promise.resolve();
     });
 
-    expect(result.current.ratingFor({ seriesId: 'show-1' })).toBe(5);
+    await waitFor(() => {
+      expect(result.current.ratingFor({ seriesId: 'show-1' })).toBe(5);
+    });
+
     expect(setRating).toHaveBeenCalledWith({ seriesId: 'show-1' }, 5);
   });
 });

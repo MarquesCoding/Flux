@@ -1,4 +1,5 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
+import { renderInACache } from '@FluxWeb/testing/renderInACache';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RailCard } from './RailCard';
@@ -121,7 +122,7 @@ afterEach(() => {
 
 describe('RailCard', () => {
   it('draws the item it stands for', () => {
-    render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInACache(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     expect(screen.getByText('Parasite')).toBeInTheDocument();
   });
@@ -130,7 +131,7 @@ describe('RailCard', () => {
     const onInspect = vi.fn();
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={onInspect} />);
+    renderInACache(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={onInspect} />);
 
     await actor.click(screen.getByRole('button', { name: /Parasite/ }));
 
@@ -138,7 +139,9 @@ describe('RailCard', () => {
   });
 
   it('does not open on the way past, only where a pointer rests', () => {
-    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    const { container } = renderInACache(
+      <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
 
     act(() => {
       cardHolder(container).dispatchEvent(pointerEvent('pointerover', 'mouse'));
@@ -148,7 +151,9 @@ describe('RailCard', () => {
   });
 
   it('opens once a pointer has rested on it', async () => {
-    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    const { container } = renderInACache(
+      <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
 
     await restOn(cardHolder(container));
 
@@ -156,7 +161,9 @@ describe('RailCard', () => {
   });
 
   it('does not open for a finger, which has nowhere to rest', async () => {
-    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    const { container } = renderInACache(
+      <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
 
     await restOn(cardHolder(container), 'touch');
 
@@ -164,27 +171,33 @@ describe('RailCard', () => {
   });
 
   it('reads the rest of what is known about the item once it is open', async () => {
-    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    const { container } = renderInACache(
+      <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
 
     await restOn(cardHolder(container));
     await flush();
 
-    expect(screen.getByText('A family talks its way into another one.')).toBeInTheDocument();
+    expect(await screen.findByText('A family talks its way into another one.')).toBeInTheDocument();
   });
 
   it('names the genres, up to the number worth naming', async () => {
-    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    const { container } = renderInACache(
+      <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
 
     await restOn(cardHolder(container));
     await flush();
 
-    expect(screen.getByText('Thriller')).toBeInTheDocument();
+    expect(await screen.findByText('Thriller')).toBeInTheDocument();
   });
 
   it('opens the page from anywhere on the open card, not from a small button', async () => {
     const onInspect = vi.fn();
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={onInspect} />);
+    const { container } = renderInACache(
+      <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={onInspect} />,
+    );
 
     await restOn(cardHolder(container));
     await actor.click(screen.getByRole('button', { name: 'More about Parasite' }));
@@ -196,7 +209,9 @@ describe('RailCard', () => {
     const onPlay = vi.fn();
     const onInspect = vi.fn();
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const { container } = render(<RailCard media={MEDIA} onPlay={onPlay} onInspect={onInspect} />);
+    const { container } = renderInACache(
+      <RailCard media={MEDIA} onPlay={onPlay} onInspect={onInspect} />,
+    );
 
     await restOn(cardHolder(container));
     await actor.click(screen.getByRole('button', { name: 'Play' }));
@@ -208,7 +223,7 @@ describe('RailCard', () => {
   it('offers to resume where somebody left it', async () => {
     const onPlay = vi.fn();
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const { container } = render(
+    const { container } = renderInACache(
       <RailCard
         media={MEDIA}
 
@@ -225,7 +240,9 @@ describe('RailCard', () => {
   });
 
   it('closes when the pointer leaves', async () => {
-    const { container } = render(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    const { container } = renderInACache(
+      <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
 
     await restOn(cardHolder(container));
 

@@ -1,19 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { RiCloseLine, RiEqualizerLine, RiSearchLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { fetchFacets } from '@FluxWeb/library/fetchFacets';
-import { fetchLibraries, fetchLibraryItems } from '@FluxWeb/library/fetchLibrary';
+import { useQuery } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { collapseToShows } from '@FluxWeb/library/pickFeatured';
 import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
 import { GridSizeChooser } from '@FluxWeb/components/GridSizeChooser/GridSizeChooser';
 import { readGridSize, saveGridSize } from '@FluxWeb/library/gridSizePreference';
 import { buildFilterOptions } from './buildFilterOptions';
 import { FilterChips } from './components/FilterChips/FilterChips';
-import type { LibraryFacets, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { LibraryFacets } from '@FluxContracts/schemas/Library';
 import type { SearchAreaProps, SearchKind } from './SearchArea.types';
 
 const SETTLE_MILLISECONDS = 250;
@@ -71,17 +71,16 @@ const SearchArea = ({
   isKept,
   onToggleKept,
 }: SearchAreaProps) => {
-  const [libraryIds, setLibraryIds] = useState<string[]>([]);
-  const [items, setItems] = useState<MediaSummary[]>([]);
   const [kind, setKind] = useState<SearchKind>('everything');
-  const [facets, setFacets] = useState<LibraryFacets>(NO_FACETS);
   const [decade, setDecade] = useState<string | null>(null);
   const [minRating, setMinRating] = useState<string | null>(null);
   const [minYourStars, setMinYourStars] = useState<string | null>(null);
   const [isShowingFilters, setIsShowingFilters] = useState(false);
-  const [isReading, setIsReading] = useState(false);
   const [size, setSize] = useState(readGridSize);
   const prefersReducedMotion = useReducedMotion();
+
+  const asking = useQuery(libraryQueries.facets());
+  const facets = asking.data ?? NO_FACETS;
 
   const options = useMemo(() => buildFilterOptions(facets), [facets]);
 
@@ -89,55 +88,51 @@ const SearchArea = ({
 
   reportItems.current = onItemsLoaded;
 
-  useEffect(() => {
-    void fetchLibraries().then((found) => {
-      setLibraryIds(found.map((entry) => entry.id));
-    });
-  }, []);
+  const libraries = useQuery(libraryQueries.all());
 
-  const read = useCallback(async () => {
-    if (libraryIds.length === 0) {
-      return;
-    }
+  const libraryIds = useMemo(
+    () => (libraries.data ?? []).map((entry) => entry.id),
+    [libraries.data],
+  );
 
-    setIsReading(true);
-
+  const asked = useMemo(() => {
     const startsAt = asNumber(decade);
 
-    const pages = await Promise.all(
-      libraryIds.map(async (libraryId) =>
-        fetchLibraryItems(libraryId, {
-          ...(search.trim() === '' ? {} : { search }),
-          ...(kind === 'everything' ? {} : { kind }),
-          ...(genre === null ? {} : { genre }),
-          ...(startsAt === undefined ? {} : { yearFrom: startsAt, yearTo: startsAt + DECADE - 1 }),
-          ...(minRating === null ? {} : { minRating: Number(minRating) }),
-          ...(minYourStars === null ? {} : { minYourStars: Number(minYourStars) }),
-          limit: PAGE_SIZE,
-        }).catch(() => ({ items: [], total: 0 })),
-      ),
-    );
+    return {
+      ...(search.trim() === '' ? {} : { search }),
+      ...(kind === 'everything' ? {} : { kind }),
+      ...(genre === null ? {} : { genre }),
+      ...(startsAt === undefined ? {} : { yearFrom: startsAt, yearTo: startsAt + DECADE - 1 }),
+      ...(minRating === null ? {} : { minRating: Number(minRating) }),
+      ...(minYourStars === null ? {} : { minYourStars: Number(minYourStars) }),
+      limit: PAGE_SIZE,
+    };
+  }, [search, kind, genre, decade, minRating, minYourStars]);
 
-    const found = collapseToShows(pages.flatMap((page) => page.items));
-
-    setItems(found);
-    setIsReading(false);
-    reportItems.current?.(found);
-  }, [libraryIds, search, kind, genre, decade, minRating, minYourStars]);
+  const [settled, setSettled] = useState(asked);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      void read();
+      setSettled(asked);
     }, SETTLE_MILLISECONDS);
 
     return () => {
       clearTimeout(timer);
     };
-  }, [read]);
+  }, [asked]);
+
+  const found = useQuery(libraryQueries.across(libraryIds, settled));
+
+  const items = useMemo(() => collapseToShows(found.data ?? []), [found.data]);
+
+  const isReading =
+    libraries.isPending || (libraryIds.length > 0 && (found.isPending || asked !== settled));
 
   useEffect(() => {
-    void fetchFacets().then(setFacets);
-  }, []);
+    if (!isReading) {
+      reportItems.current?.(items);
+    }
+  }, [items, isReading]);
 
   const narrowed = [decade, minRating, minYourStars].filter((chosen) => chosen !== null).length;
 

@@ -20,13 +20,14 @@ import { Skeleton } from '@FluxUI/Skeleton';
 import { MediaCard } from '@FluxUI/MediaCard';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
+import { useQuery } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
 import { RatingPanel } from '@FluxWeb/components/RatingPanel/RatingPanel';
 import { CastGrid } from './components/CastGrid/CastGrid';
-import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types';
 
 const CAST_PLACEHOLDERS = 5;
@@ -82,8 +83,9 @@ const MediaDetailDialog = ({
   onShare,
   onStartParty,
 }: MediaDetailDialogProps) => {
-  const [detail, setDetail] = useState<MediaDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const asked = useQuery(libraryQueries.detail(media?.id ?? null));
+  const detail = media === null ? null : (asked.data ?? null);
+  const isLoading = media !== null && asked.isPending;
 
   const [unlettered, setUnlettered] = useState<string | null>(null);
   const [lastShown, setLastShown] = useState<MediaSummary | null>(null);
@@ -97,9 +99,6 @@ const MediaDetailDialog = ({
 
   useEffect(() => {
     if (media === null) {
-      setIsLoading(false);
-      setDetail(null);
-
       return;
     }
 
@@ -111,20 +110,7 @@ const MediaDetailDialog = ({
       scrollToTopOf(topRef.current, prefersReducedMotion !== true);
     });
 
-    let abandoned = false;
-
-    setDetail(null);
-    setIsLoading(true);
-
-    void fetchMediaDetail(media.id).then((found) => {
-      if (!abandoned) {
-        setDetail(found);
-        setIsLoading(false);
-      }
-    });
-
     return () => {
-      abandoned = true;
       cancelAnimationFrame(returning);
     };
   }, [media, prefersReducedMotion]);

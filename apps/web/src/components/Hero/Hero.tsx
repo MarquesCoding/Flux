@@ -5,7 +5,8 @@ import { Button } from '@FluxUI/Button';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { cn } from '@FluxUI/cn';
-import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
+import { useQuery } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import { PageDots } from '@FluxUI/PageDots';
@@ -75,8 +76,6 @@ const Hero = ({
   const [index, setIndex] = useState(0);
 
   const [unlettered, setUnlettered] = useState<ReadonlySet<string>>(new Set());
-
-  const [synopsis, setSynopsis] = useState<{ mediaId: string; text: string } | null>(null);
   const [isTelling, setIsTelling] = useState(true);
   const [isPointedAt, setIsPointedAt] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -86,7 +85,11 @@ const Hero = ({
 
   const featured = items[index % Math.max(items.length, 1)];
   const isLettered = featured?.hasLogo === true && !unlettered.has(featured.id);
-  const told = synopsis?.mediaId === featured?.id ? (synopsis?.text ?? null) : null;
+
+  const asked = useQuery(libraryQueries.detail(featured?.id ?? null));
+
+  const overview = asked.data?.metadata.overview ?? null;
+  const told = overview === '' ? null : overview;
   const resume = featured === undefined ? null : (resumeFor?.(featured.id) ?? null);
 
   useEffect(() => {
@@ -125,26 +128,6 @@ const Hero = ({
   }, [items.length, rotateAfterMilliseconds, isHeld, index, showNext]);
 
   const featuredId = featured?.id ?? null;
-
-  useEffect(() => {
-    if (featuredId === null) {
-      return;
-    }
-
-    let abandoned = false;
-
-    void fetchMediaDetail(featuredId).then((found) => {
-      const overview = found?.metadata.overview ?? null;
-
-      if (!abandoned && overview !== null && overview !== '') {
-        setSynopsis({ mediaId: featuredId, text: overview });
-      }
-    });
-
-    return () => {
-      abandoned = true;
-    };
-  }, [featuredId]);
 
   useEffect(() => {
     setIsTelling(true);

@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { renderInACache } from '@FluxWeb/testing/renderInACache';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchArea } from './SearchArea';
@@ -64,7 +65,7 @@ beforeEach(() => {
 
 describe('SearchArea', () => {
   it('offers somewhere to type', async () => {
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -79,7 +80,7 @@ describe('SearchArea', () => {
   });
 
   it('asks the server rather than sifting what happened to arrive', async () => {
-    render(
+    renderInACache(
       <SearchArea
         search="arrival"
         onSearchChange={vi.fn()}
@@ -101,7 +102,7 @@ describe('SearchArea', () => {
   it('narrows to one kind of thing on request', async () => {
     const user = userEvent.setup();
 
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -122,7 +123,7 @@ describe('SearchArea', () => {
   });
 
   it('offers the genres the library actually has', async () => {
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -137,7 +138,7 @@ describe('SearchArea', () => {
   });
 
   it('shows what it found', async () => {
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -154,7 +155,7 @@ describe('SearchArea', () => {
   it('says how to get back when nothing matches everything asked', async () => {
     const user = userEvent.setup();
 
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -174,7 +175,7 @@ describe('SearchArea', () => {
     const onSearchChange = vi.fn();
     const user = userEvent.setup();
 
-    render(
+    renderInACache(
       <SearchArea
         search="arrival"
         onSearchChange={onSearchChange}
@@ -198,7 +199,7 @@ describe('SearchArea', () => {
       total: 2,
     });
 
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -215,7 +216,7 @@ describe('SearchArea', () => {
   it('replaces the whole result set on a filter change, not only the cards that differ', async () => {
     const user = userEvent.setup();
 
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -236,7 +237,7 @@ describe('SearchArea', () => {
   });
 
   it('keeps the narrower filters folded away until they are asked for', async () => {
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -255,7 +256,7 @@ describe('SearchArea', () => {
   it('asks for a decade as the years either side of it', async () => {
     const user = userEvent.setup();
 
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -279,7 +280,7 @@ describe('SearchArea', () => {
   it('asks for a rating floor', async () => {
     const user = userEvent.setup();
 
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -303,7 +304,7 @@ describe('SearchArea', () => {
   it('says how many filters are on, since they are folded away', async () => {
     const user = userEvent.setup();
 
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -322,7 +323,7 @@ describe('SearchArea', () => {
   it('takes every filter off at once when asked to clear', async () => {
     const user = userEvent.setup();
 
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}
@@ -344,7 +345,7 @@ describe('SearchArea', () => {
 
     const user = userEvent.setup();
 
-    render(
+    renderInACache(
       <SearchArea
         search=""
         onSearchChange={vi.fn()}

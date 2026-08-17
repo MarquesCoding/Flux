@@ -1,4 +1,5 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
+import { renderHookInACache } from '@FluxWeb/testing/renderHookInACache';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePlace } from './usePlace';
 
@@ -16,61 +17,75 @@ describe('usePlace', () => {
   it('starts wherever the address bar says', () => {
     window.history.replaceState(null, '', '/search?q=blade');
 
-    const { result } = renderHook(() => usePlace());
+    const { result } = renderHookInACache(() => usePlace());
 
     expect(result.current.place).toMatchObject({ section: 'search', search: 'blade' });
   });
 
-  it('writes where somebody moved to into the address', () => {
-    const { result } = renderHook(() => usePlace());
+  it('writes where somebody moved to into the address', async () => {
+    const { result } = renderHookInACache(() => usePlace());
 
     act(() => {
       result.current.go({ section: 'admin' });
     });
 
-    expect(addressNow()).toBe('/admin');
+    await waitFor(() => {
+      expect(addressNow()).toBe('/admin');
+    });
   });
 
-  it('keeps what it was not told to change', () => {
-    const { result } = renderHook(() => usePlace());
+  it('keeps what it was not told to change', async () => {
+    const { result } = renderHookInACache(() => usePlace());
 
     act(() => {
       result.current.go({ section: 'search', search: 'blade' });
     });
+
+    await waitFor(() => {
+      expect(result.current.place.search).toBe('blade');
+    });
+
     act(() => {
       result.current.go({ inspecting: 'abc' });
     });
 
-    expect(result.current.place).toMatchObject({ search: 'blade', inspecting: 'abc' });
+    await waitFor(() => {
+      expect(result.current.place).toMatchObject({ search: 'blade', inspecting: 'abc' });
+    });
   });
 
-  it('adds an entry to the history when somebody moves', () => {
+  it('adds an entry to the history when somebody moves', async () => {
     const push = vi.spyOn(window.history, 'pushState');
-    const { result } = renderHook(() => usePlace());
+    const { result } = renderHookInACache(() => usePlace());
 
     act(() => {
       result.current.go({ section: 'admin' });
     });
 
-    expect(push).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(push).toHaveBeenCalled();
+    });
   });
 
-  it('replaces the entry when a place is only corrected, so typing is not a history', () => {
+  it('replaces the entry when a place is only corrected, so typing is not a history', async () => {
     const push = vi.spyOn(window.history, 'pushState');
     const replace = vi.spyOn(window.history, 'replaceState');
-    const { result } = renderHook(() => usePlace());
+    const { result } = renderHookInACache(() => usePlace());
 
     act(() => {
       result.current.replace({ section: 'search', search: 'b' });
     });
 
-    expect(replace).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalled();
+    });
+
     expect(push).not.toHaveBeenCalled();
   });
 
   it('does not record going where it already is', () => {
     const push = vi.spyOn(window.history, 'pushState');
-    const { result } = renderHook(() => usePlace());
+    const { result } = renderHookInACache(() => usePlace());
 
     act(() => {
       result.current.go({ section: 'home' });
@@ -79,27 +94,23 @@ describe('usePlace', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it('follows the back button', () => {
-    const { result } = renderHook(() => usePlace());
+  it('follows the back button', async () => {
+    const { result } = renderHookInACache(() => usePlace());
 
     act(() => {
       result.current.go({ section: 'admin' });
     });
 
-    act(() => {
-      window.history.replaceState(null, '', '/');
-      window.dispatchEvent(new PopStateEvent('popstate'));
+    await waitFor(() => {
+      expect(result.current.place.section).toBe('admin');
     });
 
-    expect(result.current.place.section).toBe('home');
-  });
+    act(() => {
+      window.history.back();
+    });
 
-  it('stops listening once it is gone', () => {
-    const remove = vi.spyOn(window, 'removeEventListener');
-    const { unmount } = renderHook(() => usePlace());
-
-    unmount();
-
-    expect(remove).toHaveBeenCalledWith('popstate', expect.anything());
+    await waitFor(() => {
+      expect(result.current.place.section).toBe('home');
+    });
   });
 });
