@@ -11,6 +11,15 @@ import { fetchedUpTo } from './fetchedFixtures';
 import type { FetchedFixture } from './fetchedFixtures';
 import { derivedArguments, derivedUpTo } from './derivedFixtures';
 import type { DerivedFixture } from './derivedFixtures';
+import {
+  baseStreamArguments,
+  muxArguments,
+  synthesisedUpTo,
+  toolUrl,
+  TOOLS,
+} from './synthesisedFixtures';
+import type { SynthesisedFixture } from './synthesisedFixtures';
+import { dolbyVisionConfig, hdr10PlusMetadata } from './synthesisedMetadata';
 
 const ManifestEntrySchema = z.object({
   name: z.string().min(1),
@@ -260,6 +269,174 @@ const deriveFixture = (
   return { kind: 'built', entry: describe() };
 };
 
+const mkvmerge = (): string => process.env['FLUX_MKVMERGE'] ?? 'mkvmerge';
+
+/**
+ * Fetches a metadata tool for this machine, unless it is already here.
+ *
+ * @param tool - Which tool.
+ * @param directory - Where the corpus lives.
+ * @returns The path to the binary, or the reason it could not be had.
+ */
+const fetchTool = async (
+  tool: keyof typeof TOOLS,
+  directory: string,
+): Promise<{ kind: 'ready'; path: string } | { kind: 'failed'; reason: string }> => {
+  const bin = join(directory, 'tools', TOOLS[tool].binary);
+
+  if (existsSync(bin)) {
+    return { kind: 'ready', path: bin };
+  }
+
+  const source = toolUrl(tool, process.platform, process.arch);
+
+  if (source === null) {
+    return { kind: 'failed', reason: `no ${TOOLS[tool].binary} build for ${process.platform}` };
+  }
+
+  mkdirSync(join(directory, 'tools'), { recursive: true });
+
+  const archive = join(directory, 'tools', `${TOOLS[tool].binary}.download`);
+
+  try {
+    const response = await fetch(source.url);
+
+    if (!response.ok) {
+      return { kind: 'failed', reason: `${source.url} answered ${response.status.toString()}` };
+    }
+
+    writeFileSync(archive, Buffer.from(await response.arrayBuffer()));
+  } catch (error) {
+    return { kind: 'failed', reason: `${source.url} could not be reached: ${String(error)}` };
+  }
+
+  const unpack =
+    source.archive === 'zip'
+      ? spawnSync('unzip', ['-oj', archive, TOOLS[tool].binary, '-d', join(directory, 'tools')], {
+          encoding: 'utf8',
+        })
+      : spawnSync('tar', ['-xzf', archive, '-C', join(directory, 'tools')], { encoding: 'utf8' });
+
+  rmSync(archive, { force: true });
+
+  if (unpack.status !== 0 || !existsSync(bin)) {
+    return { kind: 'failed', reason: `could not unpack ${TOOLS[tool].binary}` };
+  }
+
+  spawnSync('chmod', ['+x', bin]);
+
+  return { kind: 'ready', path: bin };
+};
+
+/**
+ * Writes the HDR metadata FFmpeg cannot author, and puts it in a container that keeps it.
+ *
+ * Three steps and three tools. FFmpeg encodes an HDR10 base stream; `dovi_tool` or
+ * `hdr10plus_tool` writes the metadata onto it from a description rather than from any real file;
+ * and mkvmerge muxes the result, because FFmpeg's own muxers lose it.
+ *
+ * @param fixture - What to synthesise.
+ * @param directory - Where the corpus lives.
+ * @param tools - Where the metadata tools were put.
+ * @param force - Whether to rebuild one already present.
+ * @returns The manifest entry, or the reason it could not be made.
+ */
+const synthesiseFixture = (
+  fixture: SynthesisedFixture,
+  directory: string,
+  tools: { dovi: string; hdr10plus: string },
+  force: boolean,
+): { kind: 'built' | 'kept'; entry: ManifestEntry } | { kind: 'failed'; reason: string } => {
+  const path = join(directory, fixture.file);
+
+  const describe = (): ManifestEntry => ({
+    name: fixture.name,
+    file: fixture.file,
+    tier: fixture.tier,
+    licence: fixture.licence,
+    sha256: digestOf(path),
+    bytes: statSync(path).size,
+  });
+
+  if (!force && existsSync(path) && statSync(path).size > 0) {
+    return { kind: 'kept', entry: describe() };
+  }
+
+  const stem = join(directory, `.synthesising-${fixture.name}`);
+  const base = `${stem}.hevc`;
+  const carrying = `${stem}-carrying.hevc`;
+  const description = `${stem}.json`;
+
+  const clean = () => {
+    for (const file of [base, carrying, description, `${stem}.rpu`]) {
+      rmSync(file, { force: true });
+    }
+  };
+
+  const encoded = spawnSync(ffmpeg(), baseStreamArguments(fixture, base), { encoding: 'utf8' });
+
+  if (encoded.status !== 0) {
+    clean();
+
+    return { kind: 'failed', reason: encoded.stderr.trim().split('\n').slice(-2).join('\n') };
+  }
+
+  if (fixture.system === 'DolbyVision') {
+    writeFileSync(description, `${JSON.stringify(dolbyVisionConfig(fixture.frames), null, 2)}\n`);
+
+    const rpu = spawnSync(tools.dovi, ['generate', '-j', description, '-o', `${stem}.rpu`], {
+      encoding: 'utf8',
+    });
+
+    const injected =
+      rpu.status === 0
+        ? spawnSync(
+            tools.dovi,
+            ['inject-rpu', '-i', base, '--rpu-in', `${stem}.rpu`, '-o', carrying],
+            { encoding: 'utf8' },
+          )
+        : rpu;
+
+    if (injected.status !== 0) {
+      clean();
+
+      return {
+        kind: 'failed',
+        reason: `dovi_tool: ${injected.stderr.trim().split('\n').pop() ?? ''}`,
+      };
+    }
+  } else {
+    writeFileSync(description, `${JSON.stringify(hdr10PlusMetadata(fixture.frames))}\n`);
+
+    const injected = spawnSync(
+      tools.hdr10plus,
+      ['inject', '-i', base, '-j', description, '-o', carrying],
+      { encoding: 'utf8' },
+    );
+
+    if (injected.status !== 0) {
+      clean();
+
+      return {
+        kind: 'failed',
+        reason: `hdr10plus_tool: ${injected.stderr.trim().split('\n').pop() ?? ''}`,
+      };
+    }
+  }
+
+  const muxed = spawnSync(mkvmerge(), muxArguments(carrying, path), { encoding: 'utf8' });
+
+  clean();
+
+  if (muxed.status !== 0 || !existsSync(path) || statSync(path).size === 0) {
+    rmSync(path, { force: true });
+
+    return { kind: 'failed', reason: `mkvmerge: ${muxed.stderr.trim().split('\n').pop() ?? ''}` };
+  }
+
+  return { kind: 'built', entry: describe() };
+};
+
 const main = async (): Promise<void> => {
   const argv = process.argv.slice(2);
   const tier = requestedTier(argv);
@@ -344,6 +521,49 @@ const main = async (): Promise<void> => {
       process.stdout.write(
         `  ${outcome.kind === 'built' ? '→' : '='} ${fixture.name} (${(outcome.entry.bytes / 1024).toFixed(0)}kb) — ${fixture.covers}\n`,
       );
+    }
+  }
+
+  const synthesised = synthesisedUpTo(tier);
+
+  if (synthesised.length > 0) {
+    process.stdout.write(
+      `\nSynthesising ${synthesised.length.toString()} fixtures FFmpeg cannot author alone\n`,
+    );
+
+    const hasMkvmerge = spawnSync(mkvmerge(), ['--version'], { encoding: 'utf8' }).status === 0;
+    const dovi = await fetchTool('dovi', directory);
+    const hdr10plus = await fetchTool('hdr10plus', directory);
+
+    if (!hasMkvmerge || dovi.kind === 'failed' || hdr10plus.kind === 'failed') {
+      const missing = [
+        hasMkvmerge ? '' : 'mkvmerge (install mkvtoolnix)',
+        dovi.kind === 'failed' ? `dovi_tool (${dovi.reason})` : '',
+        hdr10plus.kind === 'failed' ? `hdr10plus_tool (${hdr10plus.reason})` : '',
+      ].filter((line) => line !== '');
+
+      process.stdout.write(`  · skipped, needing: ${missing.join(', ')}\n`);
+    } else {
+      for (const fixture of synthesised) {
+        const outcome = synthesiseFixture(
+          fixture,
+          directory,
+          { dovi: dovi.path, hdr10plus: hdr10plus.path },
+          force,
+        );
+
+        if (outcome.kind === 'failed') {
+          failures.push(`${fixture.name}: ${outcome.reason}`);
+          process.stdout.write(`  ✗ ${fixture.name}\n`);
+
+          continue;
+        }
+
+        entries.push(outcome.entry);
+        process.stdout.write(
+          `  ${outcome.kind === 'built' ? '✦' : '='} ${fixture.name} (${(outcome.entry.bytes / 1024).toFixed(0)}kb) — ${fixture.covers}\n`,
+        );
+      }
     }
   }
 

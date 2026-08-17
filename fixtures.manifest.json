@@ -374,6 +374,22 @@
       "sha256": "a7216afa06d7bd4c6b6850eaa55ce6ea7813af2e9ad3944cef72dd4cb8398680",
       "bytes": 30788,
       "source": "pgs-subtitles.mkv"
+    },
+    {
+      "name": "dolby-vision-profile-81",
+      "file": "dolby-vision-profile-81.mkv",
+      "tier": 2,
+      "licence": "Generated; the metadata is written rather than taken from anywhere",
+      "sha256": "88493db67ef04bc086105361ce1f5e620c3f27cef8036cb21a6fd20fe494bb0f",
+      "bytes": 689353
+    },
+    {
+      "name": "hdr10plus-dynamic",
+      "file": "hdr10plus-dynamic.mkv",
+      "tier": 2,
+      "licence": "Generated; the metadata is written rather than taken from anywhere",
+      "sha256": "ca7b956529f136e573107915a47d565d31f1dabed7aa6dbec192387123d34617",
+      "bytes": 670564
     }
   ]
 }

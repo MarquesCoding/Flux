@@ -68,7 +68,8 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            ca-certificates curl git xz-utils build-essential pkg-config
+            ca-certificates curl git xz-utils build-essential pkg-config \
+            unzip mkvtoolnix
 
       - uses: actions/checkout@v4
 
@@ -114,10 +115,14 @@ jobs:
           key: >-
             fixtures-${{ env.FLUX_FFMPEG_VERSION }}-${{ hashFiles('tools/fixtures/fixtureMatrix.ts',
             'tools/fixtures/fixtureArguments.ts', 'tools/fixtures/fetchedFixtures.ts',
-            'tools/fixtures/derivedFixtures.ts') }}
+            'tools/fixtures/derivedFixtures.ts', 'tools/fixtures/synthesisedFixtures.ts',
+            'tools/fixtures/synthesisedMetadata.ts') }}
 
+      # Tier two as well, which is the Dolby Vision and HDR10+ pair. Neither can be authored by
+      # FFmpeg, so they are written by two MIT tools the sync fetches and muxed by mkvmerge, whose
+      # Matroska keeps a Dolby Vision RPU where FFmpeg's own muxers lose it.
       - name: Build the corpus
-        run: pnpm fixtures:sync --tier 1
+        run: pnpm fixtures:sync --tier 2
 
       # Asserts every fixture is what the matrix claims, which is what makes the corpus worth
       # testing against. A corpus that lies is worse than none.
