@@ -76,24 +76,6 @@ describe('LogsPanel', () => {
     expect(await screen.findByText('could not read the file')).toBeInTheDocument();
   });
 
-  it('asks for warnings and errors to begin with, not everything', async () => {
-    const world = build();
-
-    render(<LogsPanel {...world.props} />);
-
-    await waitFor(() => {
-      expect(world.asked[0]?.levels).toStrictEqual(['warn', 'error']);
-    });
-  });
-
-  it('says when nothing matched rather than looking broken', async () => {
-    const world = build([]);
-
-    render(<LogsPanel {...world.props} />);
-
-    expect(await screen.findByText(/Nothing has been reported/)).toBeInTheDocument();
-  });
-
   it('says when it happened, in the reader s own time', async () => {
     const world = build();
 
@@ -104,45 +86,6 @@ describe('LogsPanel', () => {
     expect(
       await screen.findByText(new RegExp(`${local.getHours().toString().padStart(2, '0')}:30:45`)),
     ).toBeInTheDocument();
-  });
-
-  it('asks again with a level the operator turned on', async () => {
-    const actor = userEvent.setup();
-    const world = build();
-
-    render(<LogsPanel {...world.props} />);
-    await screen.findByText('could not read the file');
-    await actor.click(screen.getByRole('button', { name: 'info' }));
-
-    await waitFor(() => {
-      expect(world.asked.at(-1)?.levels).toContain('info');
-    });
-  });
-
-  it('asks again with a level the operator turned off', async () => {
-    const actor = userEvent.setup();
-    const world = build();
-
-    render(<LogsPanel {...world.props} />);
-    await screen.findByText('could not read the file');
-    await actor.click(screen.getByRole('button', { name: 'warn' }));
-
-    await waitFor(() => {
-      expect(world.asked.at(-1)?.levels).not.toContain('warn');
-    });
-  });
-
-  it('asks again narrowed to a source', async () => {
-    const actor = userEvent.setup();
-    const world = build();
-
-    render(<LogsPanel {...world.props} />);
-    await screen.findByText('could not read the file');
-    await actor.click(screen.getByRole('button', { name: 'transcoder' }));
-
-    await waitFor(() => {
-      expect(world.asked.at(-1)?.sources).toStrictEqual(['transcoder']);
-    });
   });
 
   it('asks again with what was typed into the search', async () => {
@@ -167,50 +110,6 @@ describe('LogsPanel', () => {
     world.arrive(aRecord({ id: 'two', message: 'a fresh problem' }));
 
     expect(await screen.findByText('a fresh problem')).toBeInTheDocument();
-  });
-
-  it('does not show a live record the filters exclude', async () => {
-    const world = build();
-
-    render(<LogsPanel {...world.props} />);
-    await screen.findByText('could not read the file');
-
-    world.arrive(aRecord({ id: 'two', level: 'info', message: 'ordinary chatter' }));
-
-    await waitFor(() => {
-      expect(screen.queryByText('ordinary chatter')).not.toBeInTheDocument();
-    });
-  });
-
-  it('stops following when the operator turns it off', async () => {
-    const actor = userEvent.setup();
-    const world = build();
-
-    render(<LogsPanel {...world.props} />);
-    await screen.findByText('could not read the file');
-    await actor.click(screen.getByRole('switch', { name: /Follow live/ }));
-
-    await waitFor(() => {
-      expect(world.watching()).toBe(0);
-    });
-  });
-
-  it('says whether it is following', async () => {
-    const actor = userEvent.setup();
-    const world = build();
-
-    render(<LogsPanel {...world.props} />);
-    await screen.findByText('could not read the file');
-
-    const following = screen.getByRole('switch', { name: /Follow live/ });
-
-    expect(following).toBeChecked();
-
-    await actor.click(following);
-
-    await waitFor(() => {
-      expect(screen.getByRole('switch', { name: /Follow live/ })).not.toBeChecked();
-    });
   });
 
   it('stops watching when the page is left', async () => {
@@ -238,7 +137,7 @@ describe('LogsPanel', () => {
 
     render(<LogsPanel {...world.props} />);
     await screen.findByText('could not read the file');
-    await actor.click(screen.getByRole('button', { name: 'Copy' }));
+    await actor.click(screen.getByRole('button', { name: /Copy what is shown/ }));
 
     await waitFor(() => {
       expect(world.copied[0]).toContain('could not read the file');
@@ -251,7 +150,7 @@ describe('LogsPanel', () => {
 
     render(<LogsPanel {...world.props} />);
     await screen.findByText('could not read the file');
-    await actor.click(screen.getByRole('button', { name: 'Download' }));
+    await actor.click(screen.getByRole('button', { name: /Download what is shown/ }));
 
     expect(world.downloaded[0]?.name).toBe('flux-log.txt');
   });
@@ -264,35 +163,71 @@ describe('LogsPanel', () => {
     expect(await screen.findByText('×4000')).toBeInTheDocument();
   });
 
-  it('opens a record up to show its context', async () => {
+  it('shows the level and the source as columns of the table', async () => {
+    const world = build();
+
+    render(<LogsPanel {...world.props} />);
+    await screen.findByText('could not read the file');
+
+    expect(screen.getByRole('columnheader', { name: /Level/ })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Source/ })).toBeInTheDocument();
+  });
+
+  it('asks for every level, since the table is what narrows them now', async () => {
+    const world = build();
+
+    render(<LogsPanel {...world.props} />);
+
+    await waitFor(() => {
+      expect(world.asked[0]?.levels).toContain('info');
+    });
+  });
+
+  it('pages rather than putting hundreds of rows on one screen', async () => {
+    const many: LogRecord[] = [];
+
+    for (let index = 0; index < 40; index += 1) {
+      many.push(
+        aRecord({ id: `record-${index.toString()}`, message: `problem ${index.toString()}` }),
+      );
+    }
+    const world = build(many);
+
+    render(<LogsPanel {...world.props} />);
+    await screen.findByText('problem 0');
+
+    expect(screen.queryByText('problem 39')).not.toBeInTheDocument();
+  });
+
+  it('opens a record when its row is chosen, so a long message is read whole', async () => {
+    const actor = userEvent.setup();
+    const world = build([aRecord({ detail: 'at readFile()\nat scanLibrary()' })]);
+
+    render(<LogsPanel {...world.props} />);
+    await actor.click(await screen.findByText('could not read the file'));
+
+    expect(await screen.findByText(/at scanLibrary\(\)/)).toBeInTheDocument();
+  });
+
+  it('shows the context of the record it opened', async () => {
     const actor = userEvent.setup();
     const world = build([
       aRecord({ context: { ...aRecord().context, jobId: 'job-1', jobKind: 'scan' } }),
     ]);
 
     render(<LogsPanel {...world.props} />);
-    await actor.click(await screen.findByRole('button', { name: 'More' }));
+    await actor.click(await screen.findByText('could not read the file'));
 
-    expect(screen.getByText('job-1')).toBeInTheDocument();
+    expect(await screen.findByText('job-1')).toBeInTheDocument();
   });
 
-  it('shows a stack trace whole rather than truncating it', async () => {
-    const actor = userEvent.setup();
-    const world = build([aRecord({ detail: 'at readFile()\nat scanLibrary()' })]);
-
-    render(<LogsPanel {...world.props} />);
-    await actor.click(await screen.findByRole('button', { name: 'More' }));
-
-    expect(screen.getByText(/at scanLibrary\(\)/)).toBeInTheDocument();
-  });
-
-  it('offers nothing to open on a record with nothing more to say', async () => {
+  it('follows without being asked, since nothing turns it on', async () => {
     const world = build();
 
     render(<LogsPanel {...world.props} />);
     await screen.findByText('could not read the file');
 
-    expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
+    expect(world.watching()).toBe(1);
   });
 
   it('reads again when asked to refresh', async () => {
@@ -304,7 +239,7 @@ describe('LogsPanel', () => {
 
     const before = world.asked.length;
 
-    await actor.click(screen.getByRole('button', { name: 'Refresh' }));
+    await actor.click(screen.getByRole('button', { name: /Read the log again/ }));
 
     await waitFor(() => {
       expect(world.asked.length).toBeGreaterThan(before);

@@ -1,21 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RiCheckLine, RiDownloadLine, RiFileCopyLine, RiRefreshLine } from '@remixicon/react';
+import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
 import { CardHeader } from '@FluxUI/CardHeader';
-import { Switch } from '@FluxUI/Switch';
+import { DataTable } from '@FluxUI/DataTable';
 import { TextField } from '@FluxUI/TextField';
-import { LOG_LEVELS, LOG_SOURCES } from '@FluxContracts/schemas/Log';
+import { LOG_LEVELS } from '@FluxContracts/schemas/Log';
 import { fetchLogs, watchLogs } from '@FluxWeb/admin/fetchLogs';
 import { logsAsText } from '@FluxWeb/admin/logsAsText';
 import { matchesLogQuery } from '@FluxWeb/admin/matchesLogQuery';
 import { downloadText } from '@FluxWeb/admin/downloadText';
 import { describeLogTime } from '@FluxWeb/admin/describeLogTime';
-import { LogRow } from './components/LogRow/LogRow';
+import { LogDetailDialog } from './components/LogDetailDialog/LogDetailDialog';
 import type { BadgeTone } from '@FluxUI/Badge.types';
-import type { LogLevel, LogRecord, LogSource } from '@FluxContracts/schemas/Log';
+import type { DataTableColumn } from '@FluxUI/DataTable.types';
+import type { LogLevel, LogRecord } from '@FluxContracts/schemas/Log';
 import type { LogsPanelProps } from './LogsPanel.types';
 
 const PAGE = 300;
+
+const ROWS_PER_PAGE = 15;
 
 const KEPT_WHILE_FOLLOWING = 500;
 
@@ -33,14 +38,13 @@ const writeToClipboard = async (text: string): Promise<void> => {
 /**
  * Reads the server's log without reaching for a terminal.
  *
- * Warnings and errors are shown to begin with rather than everything, because an operator opening
- * this has a problem rather than a curiosity, and four thousand lines saying a file was read
- * successfully bury the one saying a file was not.
+ * The log follows itself: records arrive as they are written rather than on a button, because
+ * somebody watching this page is watching for something to happen. What arrives is held to the same
+ * search the page was fetched with, or watching for one thing would quietly show everything.
  *
- * Following is deliberately not the same as scrolling. New records arrive at the top, and while the
- * reader is anywhere but the top the view stays where they left it — a tail that yanks somebody away
- * from the line they were reading is worse than no tail at all. The filters apply to what arrives
- * live as well as to what was fetched, or watching for errors would quietly show everything.
+ * Level and source are columns rather than a bank of filters above the table, so they sort like
+ * every other table here, and a message long enough to matter is read in full by opening the record
+ * rather than by being cut to fit a row.
  *
  * @param read - How a page is fetched, injectable for tests.
  * @param watch - How the live feed is followed, injectable for tests.
@@ -54,22 +58,15 @@ const LogsPanel = ({
   copy = writeToClipboard,
   download = downloadText,
 }: LogsPanelProps) => {
-  const [levels, setLevels] = useState<LogLevel[]>(['warn', 'error']);
-  const [sources, setSources] = useState<LogSource[]>([]);
   const [search, setSearch] = useState('');
   const [records, setRecords] = useState<LogRecord[]>([]);
-  const [total, setTotal] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(true);
   const [isReading, setIsReading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [reading, setReading] = useState<LogRecord | null>(null);
 
-  const listRef = useRef<HTMLDivElement | null>(null);
-  const isAtTop = useRef(true);
+  const hasRead = useRef(false);
 
-  const query = useMemo(
-    () => ({ levels, sources, search, limit: PAGE }),
-    [levels, sources, search],
-  );
+  const query = useMemo(() => ({ levels: [...LOG_LEVELS], search, limit: PAGE }), [search]);
 
   const load = useCallback(async () => {
     setIsReading(true);
@@ -77,187 +74,173 @@ const LogsPanel = ({
     const page = await read(query);
 
     setRecords(page.records);
-    setTotal(page.total);
     setIsReading(false);
+    hasRead.current = true;
   }, [read, query]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (!isFollowing) {
-      return;
-    }
+  useEffect(
+    () =>
+      watch((record) => {
+        if (matchesLogQuery(record, query)) {
+          setRecords((held) => [record, ...held].slice(0, KEPT_WHILE_FOLLOWING));
+        }
+      }),
+    [watch, query],
+  );
 
-    return watch((record) => {
-      if (!matchesLogQuery(record, query)) {
-        return;
-      }
-
-      setRecords((held) => [record, ...held].slice(0, KEPT_WHILE_FOLLOWING));
-      setTotal((held) => held + 1);
-
-      if (isAtTop.current && listRef.current !== null) {
-        listRef.current.scrollTop = 0;
-      }
-    });
-  }, [watch, query, isFollowing]);
-
-  const toggle = <Choice extends string>(held: Choice[], one: Choice): Choice[] =>
-    held.includes(one) ? held.filter((kept) => kept !== one) : [...held, one];
+  const columns = useMemo<DataTableColumn<LogRecord>[]>(
+    () => [
+      {
+        id: 'at',
+        header: 'Time',
+        accessorFn: (record) => record.atMs,
+        cell: ({ row }) => (
+          <span className="font-mono text-xs tabular-nums text-text-muted">
+            {describeLogTime(row.original.atMs)}
+          </span>
+        ),
+      },
+      {
+        id: 'level',
+        header: 'Level',
+        accessorFn: (record) => record.level,
+        cell: ({ row }) => (
+          <Badge size="sm" tone={TONE_BY_LEVEL[row.original.level]}>
+            {row.original.level}
+          </Badge>
+        ),
+      },
+      {
+        id: 'source',
+        header: 'Source',
+        accessorFn: (record) => record.source,
+        cell: ({ row }) => (
+          <span className="font-body text-xs text-text-muted">{row.original.source}</span>
+        ),
+      },
+      {
+        id: 'message',
+        header: 'Message',
+        accessorFn: (record) => record.message,
+        cell: ({ row }) => (
+          <span className="line-clamp-2 min-w-0 break-words text-sm text-text">
+            {row.original.message}
+          </span>
+        ),
+      },
+      {
+        id: 'count',
+        header: 'Seen',
+        accessorFn: (record) => record.count,
+        cell: ({ row }) => (
+          <span className="text-xs tabular-nums text-text-muted">
+            {row.original.count > 1 ? `×${row.original.count.toString()}` : '—'}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
 
   const asText = () => logsAsText(records);
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card as="section" className="flex flex-col gap-4">
-        <p className="text-sm leading-relaxed text-text-muted">
-          What the server and the media service have reported, newest first. Warnings and errors to
-          begin with; turn on the rest when looking for something specific.
-        </p>
+    <Card as="section" padding="none" className="flex flex-col">
+      <CardHeader title="Logs">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <TextField
+            label="Search the messages"
+            isLabelHidden
+            size="sm"
+            isPill
+            type="search"
+            placeholder="skipped, ffmpeg, timed out"
+            value={search}
+            onValueChange={setSearch}
+            className="w-64 max-w-full"
+          />
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="pb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
-            Level
-          </legend>
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+            isPill
+            label="Read the log again"
+            hasTooltip
+            isLoading={isReading && hasRead.current}
+            onClick={() => {
+              void load();
+            }}
+          >
+            <RiRefreshLine size={15} aria-hidden />
+          </Button>
 
-          <ul className="flex flex-wrap gap-2">
-            {LOG_LEVELS.map((level) => (
-              <li key={level}>
-                <Button
-                  size="sm"
-                  isPill
-                  variant={levels.includes(level) ? 'glossy' : 'ghost'}
-                  isActive={levels.includes(level)}
-                  onClick={() => {
-                    setLevels((held) => toggle(held, level));
-                  }}
-                >
-                  {level}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </fieldset>
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+            isPill
+            label={copied ? 'Copied' : 'Copy what is shown'}
+            hasTooltip
+            onClick={() => {
+              void copy(asText()).then(() => {
+                setCopied(true);
+              });
+            }}
+          >
+            {copied ? (
+              <RiCheckLine size={15} aria-hidden />
+            ) : (
+              <RiFileCopyLine size={15} aria-hidden />
+            )}
+          </Button>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="pb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
-            Source
-          </legend>
-
-          <ul className="flex flex-wrap gap-2">
-            {LOG_SOURCES.map((source) => (
-              <li key={source}>
-                <Button
-                  size="sm"
-                  isPill
-                  variant={sources.includes(source) ? 'glossy' : 'ghost'}
-                  isActive={sources.includes(source)}
-                  onClick={() => {
-                    setSources((held) => toggle(held, source));
-                  }}
-                >
-                  {source}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </fieldset>
-
-        <TextField
-          label="Search the messages"
-          value={search}
-          onValueChange={setSearch}
-          type="search"
-          isPill
-          placeholder="skipped, ffmpeg, timed out"
-        />
-      </Card>
-
-      <Card as="section" padding="none" className="flex flex-col overflow-hidden">
-        <CardHeader title={`${total.toString()} record${total === 1 ? '' : 's'}`}>
-          <div className="flex flex-wrap items-center gap-2">
-            <Switch
-              label="Follow live"
-              isOn={isFollowing}
-              onToggle={() => {
-                setIsFollowing((held) => !held);
-              }}
-            />
-
-            <Button
-              variant="ghost"
-              size="sm"
-              isPill
-              onClick={() => {
-                void load();
-              }}
-            >
-              Refresh
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              isPill
-              onClick={() => {
-                void copy(asText()).then(() => {
-                  setCopied(true);
-                });
-              }}
-            >
-              {copied ? 'Copied' : 'Copy'}
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              isPill
-              onClick={() => {
-                download('flux-log.txt', asText());
-              }}
-            >
-              Download
-            </Button>
-          </div>
-        </CardHeader>
-
-        <div
-          ref={listRef}
-          onScroll={(event) => {
-            isAtTop.current = event.currentTarget.scrollTop <= 8;
-          }}
-          className="max-h-[34rem] overflow-y-auto"
-          data-testid="log-list"
-        >
-          {records.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-text-muted">
-              {isReading
-                ? 'Reading the log…'
-                : 'Nothing has been reported that matches this. Widen the levels, or clear the search.'}
-            </p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-[var(--surface-line)]">
-              {records.map((record) => (
-                <LogRow
-                  key={record.id}
-                  record={record}
-                  tone={TONE_BY_LEVEL[record.level]}
-                  at={describeLogTime(record.atMs)}
-                />
-              ))}
-            </ul>
-          )}
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+            isPill
+            label="Download what is shown"
+            hasTooltip
+            onClick={() => {
+              download('flux-log.txt', asText());
+            }}
+          >
+            <RiDownloadLine size={15} aria-hidden />
+          </Button>
         </div>
+      </CardHeader>
 
-        <p className="border-t border-[var(--surface-line)] px-4 py-3 text-xs leading-relaxed text-text-muted">
-          {records.length < total ? `Showing the newest ${records.length.toString()}. ` : ''}A log
-          quotes file paths, which say how the library is laid out and what is on the disk. Read
-          what you are about to send before sending it.
-        </p>
-      </Card>
-    </div>
+      <DataTable
+        label="What the server and the media service have reported"
+        columns={columns}
+        rows={records}
+        pageSize={ROWS_PER_PAGE}
+        onChooseRow={setReading}
+        emptyMessage={
+          isReading && !hasRead.current
+            ? 'Reading the log…'
+            : 'Nothing has been reported that matches this.'
+        }
+      />
+
+      <p className="border-t border-[var(--surface-line)] px-5 py-3 text-xs leading-relaxed text-text-muted">
+        A log quotes file paths, which say how the library is laid out and what is on the disk. Read
+        what you are about to send before sending it.
+      </p>
+
+      <LogDetailDialog
+        record={reading}
+        isOpen={reading !== null}
+        onClose={() => {
+          setReading(null);
+        }}
+      />
+    </Card>
   );
 };
 
