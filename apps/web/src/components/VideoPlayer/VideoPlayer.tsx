@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
-  RiAlertLine,
   RiCastLine,
   RiCloseLine,
   RiPictureInPicture2Line,
@@ -182,7 +181,6 @@ const VideoPlayer = ({
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isShowingStats, setIsShowingStats] = useState(false);
-  const [dismissedWarnings, setDismissedWarnings] = useState<readonly string[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH);
   const [delivered, setDelivered] = useState<DeliveredFormat | null>(null);
@@ -192,18 +190,10 @@ const VideoPlayer = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([]);
   const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF);
+  const defaultedForRef = useRef<string | null>(null);
   const [captionStyle, setCaptionStyle] = useState(readCaptionStyle);
   const [subtitleOffset, setSubtitleOffset] = useState(0);
 
-  const sessionId = session?.sessionId ?? null;
-
-  const visibleWarnings = (session?.warnings ?? []).filter(
-    (warning) => !dismissedWarnings.includes(warning),
-  );
-
-  useEffect(() => {
-    setDismissedWarnings([]);
-  }, [sessionId]);
   const appliedOffsetRef = useRef(0);
   const [segments, setSegments] = useState<MediaSegment[]>([]);
   const [selectedAudioIndex, setSelectedAudioIndex] = useState<number | null>(null);
@@ -242,6 +232,7 @@ const VideoPlayer = ({
   }, [castNote]);
   const releaseRef = useRef<(() => Promise<void>) | null>(null);
   const deliveredRef = useRef<(() => DeliveredFormat | null) | null>(null);
+  const settledRef = useRef<Promise<void>>(Promise.resolve());
   const castContextRef = useRef<CastContext | null>(null);
 
   const popOut = useCallback(() => {
@@ -663,6 +654,12 @@ const VideoPlayer = ({
         return;
       }
 
+      await settledRef.current;
+
+      if (isAbandoned()) {
+        return;
+      }
+
       try {
         if (outcome.session.delivery.kind === 'direct') {
           element.src = outcome.session.delivery.url;
@@ -714,7 +711,7 @@ const VideoPlayer = ({
       startTimerRef.current = null;
       clearInterval(heartbeatInterval ?? undefined);
       clearInterval(presenceHealthInterval ?? undefined);
-      void teardown?.();
+      settledRef.current = Promise.resolve(teardown?.()).catch(() => undefined);
       releaseRef.current = null;
 
       if (startedId !== null) {
@@ -816,13 +813,40 @@ const VideoPlayer = ({
 
       const continuing = trackForLanguage(found, remembered);
 
-      setSelectedSubtitleId(continuing === null ? defaultTrackId(found) : continuing.id);
+      if (continuing !== null) {
+        setSelectedSubtitleId(continuing.id);
+      }
     });
 
     return () => {
       abandoned = true;
     };
   }, [media.id]);
+
+  useEffect(() => {
+    if (detail === null || session === null || subtitleTracks.length === 0) {
+      return;
+    }
+
+    const alreadyDecided = defaultedForRef.current;
+
+    if (alreadyDecided === session.sessionId) {
+      return;
+    }
+
+    defaultedForRef.current = session.sessionId;
+
+    if (readPlaybackPreferences().subtitleLanguage === SUBTITLES_OFF) {
+      return;
+    }
+
+    const heard = detail.audioStreams.find(
+      (stream) => stream.index === session.plan.audio.streamIndex,
+    );
+    const forced = defaultTrackId(subtitleTracks, heard?.language ?? null);
+
+    setSelectedSubtitleId((current) => (current === SUBTITLES_OFF ? forced : current));
+  }, [detail, session, subtitleTracks]);
 
   useEffect(() => {
     const onChange = () => {
@@ -1538,29 +1562,6 @@ const VideoPlayer = ({
           />
         </div>
       </div>
-
-      {visibleWarnings.length === 0 ? null : (
-        <ul className="flex flex-col gap-1 rounded-md border border-border p-3 text-sm text-text-muted">
-          {visibleWarnings.map((warning) => (
-            <li key={warning} className="flex items-start gap-2">
-              <RiAlertLine size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
-              <span className="min-w-0 flex-1">{warning}</span>
-
-              <Button
-                isIconOnly
-                variant="ghost"
-                size="sm"
-                label="Dismiss this warning"
-                onClick={() => {
-                  setDismissedWarnings((dismissed) => [...dismissed, warning]);
-                }}
-              >
-                <RiCloseLine size={14} aria-hidden />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
 
       {state === 'failed' ? (
         <p role="alert" className="text-sm text-danger">

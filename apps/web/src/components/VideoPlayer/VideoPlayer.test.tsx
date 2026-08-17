@@ -585,7 +585,7 @@ describe('VideoPlayer', () => {
     expect(screen.getByText('/ 2:00:00')).toBeInTheDocument();
   });
 
-  it('warns when the server cannot tone map, without hiding it behind a click', async () => {
+  it('does not interrupt a viewer with what the server warned about', async () => {
     startMock.mockResolvedValue({
       kind: 'started',
       session: {
@@ -593,29 +593,6 @@ describe('VideoPlayer', () => {
         warnings: ['This server cannot tone map HDR to SDR, so colours will look washed out.'],
       },
     });
-    render(<VideoPlayer media={media} onClose={vi.fn()} />);
-
-    expect(await screen.findByText(/cannot tone map/)).toBeInTheDocument();
-  });
-
-  it('lets a warning be dismissed once it has been read', async () => {
-    startMock.mockResolvedValue({
-      kind: 'started',
-      session: {
-        ...startedSession,
-        warnings: ['This server cannot tone map HDR to SDR, so colours will look washed out.'],
-      },
-    });
-    render(<VideoPlayer media={media} onClose={vi.fn()} />);
-
-    expect(await screen.findByText(/cannot tone map/)).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Dismiss this warning' }));
-
-    expect(screen.queryByText(/cannot tone map/)).not.toBeInTheDocument();
-  });
-
-  it('shows no warning banner when there is nothing to warn about', async () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
@@ -903,6 +880,50 @@ describe('VideoPlayer', () => {
     expect(screen.queryByRole('status', { name: 'Preparing playback' })).not.toBeInTheDocument();
   });
 
+  it('does not attach the next engine until the last one has let go', async () => {
+    const actor = userEvent.setup();
+    detailMock.mockResolvedValue(detailWithTwoAudioTracks);
+
+    let releaseTeardown: () => void = () => {};
+    const order: string[] = [];
+
+    teardownMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          order.push('teardown started');
+          releaseTeardown = () => {
+            order.push('teardown finished');
+            resolve();
+          };
+        }),
+    );
+    attachMock.mockImplementation(() => {
+      order.push('attach');
+
+      return Promise.resolve({ detach: teardownMock, readDelivered: () => null });
+    });
+
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    await settled();
+
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Audio track/ }));
+    await actor.click(
+      await screen.findByRole('menuitemradio', { name: 'English \u00b7 5.1 \u00b7 AC3' }),
+    );
+
+    await vi.waitFor(() => expect(order).toContain('teardown started'));
+
+    expect(order.filter((step) => step === 'attach')).toHaveLength(1);
+
+    releaseTeardown();
+
+    await vi.waitFor(() => expect(order.filter((step) => step === 'attach')).toHaveLength(2));
+
+    expect(order.indexOf('teardown finished')).toBeLessThan(order.lastIndexOf('attach'));
+  });
+
   it('lets the new stream replace the held frame once it is playing', async () => {
     const actor = userEvent.setup();
     detailMock.mockResolvedValue(detailWithTwoAudioTracks);
@@ -1065,7 +1086,29 @@ describe('VideoPlayer', () => {
     );
   });
 
-  it('shows a forced track without being asked', async () => {
+  it('shows a forced track in the language being heard, without being asked', async () => {
+    detailMock.mockResolvedValue(detailWithTwoAudioTracks);
+    subtitlesMock.mockResolvedValue([
+      {
+        id: 'jpn-forced',
+        language: 'jpn',
+        label: 'Japanese (forced)',
+        format: 'srt',
+        isForced: true,
+        isHearingImpaired: false,
+      },
+    ]);
+    const { container } = render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    await settled();
+
+    await waitFor(() => {
+      expect(container.querySelector('track')).toHaveAttribute('srclang', 'jpn');
+    });
+  });
+
+  it('leaves a forced track belonging to another dub alone', async () => {
+    detailMock.mockResolvedValue(detailWithTwoAudioTracks);
     subtitlesMock.mockResolvedValue([
       {
         id: 'fr',
@@ -1080,9 +1123,7 @@ describe('VideoPlayer', () => {
 
     await settled();
 
-    await waitFor(() => {
-      expect(container.querySelector('track')).toHaveAttribute('srclang', 'fr');
-    });
+    expect(container.querySelector('track')).toBeNull();
   });
 
   it('opens the caption settings from the subtitles menu', async () => {
