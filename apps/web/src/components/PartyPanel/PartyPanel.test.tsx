@@ -140,6 +140,54 @@ describe('PartyPanel', () => {
     expect(onLeave).toHaveBeenCalled();
   });
 
+  it('shows the link that puts somebody else in the party', () => {
+    render(
+      <PartyPanel
+        party={party()}
+        meConnectionId="dan"
+        invitation="https://flux.local/watch/a-film?party=party-1"
+      />,
+    );
+
+    expect(screen.getByText('https://flux.local/watch/a-film?party=party-1')).toBeInTheDocument();
+  });
+
+  it('says what the link does, since a bare address does not', () => {
+    render(<PartyPanel party={party()} meConnectionId="dan" invitation="https://flux.local/x" />);
+
+    expect(screen.getByText(/puts them in this party/)).toBeInTheDocument();
+  });
+
+  it('copies the link when asked', async () => {
+    const actor = userEvent.setup();
+    const onCopyInvitation = vi.fn(() => Promise.resolve());
+
+    render(
+      <PartyPanel
+        party={party()}
+        meConnectionId="dan"
+        invitation="https://flux.local/x"
+        onCopyInvitation={onCopyInvitation}
+      />,
+    );
+
+    await actor.click(screen.getByRole('button', { name: 'Copy' }));
+
+    expect(onCopyInvitation).toHaveBeenCalledWith('https://flux.local/x');
+  });
+
+  it('offers the link to a guest too, since anybody may bring somebody along', () => {
+    render(<PartyPanel party={party()} meConnectionId="sam" invitation="https://flux.local/x" />);
+
+    expect(screen.getByText('https://flux.local/x')).toBeInTheDocument();
+  });
+
+  it('shows no link where there is none to give', () => {
+    render(<PartyPanel party={party()} meConnectionId="dan" />);
+
+    expect(screen.queryByRole('button', { name: 'Copy' })).not.toBeInTheDocument();
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(PartyPanel.displayName).toBe('PartyPanel');
   });

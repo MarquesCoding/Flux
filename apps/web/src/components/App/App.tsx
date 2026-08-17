@@ -38,6 +38,7 @@ import { ShareArea } from '@FluxWeb/components/ShareArea/ShareArea';
 import { ShareDialog } from '@FluxWeb/components/ShareDialog/ShareDialog';
 import { StillWatchingDialog } from '@FluxWeb/components/StillWatchingDialog/StillWatchingDialog';
 import { PartyPanel } from '@FluxWeb/components/PartyPanel/PartyPanel';
+import { invitationTo } from '@FluxWeb/party/invitationTo';
 import { useWatchParty } from '@FluxWeb/party/useWatchParty';
 import { countCarriedOn } from '@FluxWeb/playback/countCarriedOn';
 import { decideWhatFollows } from '@FluxWeb/playback/decideWhatFollows';
@@ -103,6 +104,8 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
   const watchParty = useWatchParty();
 
+  const joinedRef = useRef<string | null>(null);
+
   const carriedOnRef = useRef(0);
   const carriedOnToRef = useRef<string | null>(null);
 
@@ -121,6 +124,21 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   }, [user]);
   const [known, setKnown] = useState(new Map<string, MediaSummary>());
   const { place, go, replace } = usePlace();
+
+  useEffect(() => {
+    if (place.party === null || joinedRef.current === place.party) {
+      return;
+    }
+
+    joinedRef.current = place.party;
+    watchParty.join(place.party);
+  }, [place.party, watchParty]);
+
+  useEffect(() => {
+    if (watchParty.party !== null && place.party !== watchParty.party.id) {
+      replace({ playing: watchParty.party.mediaId, party: watchParty.party.id });
+    }
+  }, [watchParty.party, place.party, replace]);
 
   useEffect(() => {
     carriedOnRef.current = countCarriedOn({
@@ -724,7 +742,14 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             meConnectionId={watchParty.meConnectionId}
             onSetRole={watchParty.setRole}
             onLoosen={watchParty.loosen}
-            onLeave={watchParty.leave}
+            onLeave={() => {
+              watchParty.leave();
+              go({ party: null });
+            }}
+            invitation={invitationTo(watchParty.party.id, watchParty.party.mediaId)}
+            onCopyInvitation={async (invitation) => {
+              await navigator.clipboard.writeText(invitation);
+            }}
           />
         </div>
       )}

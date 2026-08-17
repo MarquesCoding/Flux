@@ -6,6 +6,8 @@ type PartyPanelProps = {
   onSetRole?: (connectionId: string, role: PartyRole) => void;
   onLoosen?: (how: { everyoneMaySeek?: boolean; everyoneMayPlayPause?: boolean }) => void;
   onLeave?: () => void;
+  invitation?: string;
+  onCopyInvitation?: (invitation: string) => Promise<void>;
 };
 
 export type { PartyPanelProps };

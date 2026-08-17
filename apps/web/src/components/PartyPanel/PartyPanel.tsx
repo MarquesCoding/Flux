@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { RiEyeLine, RiPauseCircleLine, RiTimeLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
@@ -40,9 +41,20 @@ const describeDrift = (member: PartyMember, reference: number): string | null =>
  * @param onSetRole - Called to change somebody's role.
  * @param onLoosen - Called to change what everybody may do.
  * @param onLeave - Called to leave.
+ * @param invitation - The address that puts somebody else in this party, where there is one to give.
+ * @param onCopyInvitation - Called to put that address on the clipboard.
  * @returns The panel.
  */
-const PartyPanel = ({ party, meConnectionId, onSetRole, onLoosen, onLeave }: PartyPanelProps) => {
+const PartyPanel = ({
+  party,
+  meConnectionId,
+  onSetRole,
+  onLoosen,
+  onLeave,
+  invitation,
+  onCopyInvitation,
+}: PartyPanelProps) => {
+  const [hasCopied, setHasCopied] = useState(false);
   const me = party.members.find((member) => member.connectionId === meConnectionId);
   const timekeeper = party.members.find((member) => member.connectionId === party.timekeeperId);
   const reference = timekeeper?.positionSeconds ?? 0;
@@ -57,6 +69,34 @@ const PartyPanel = ({ party, meConnectionId, onSetRole, onLoosen, onLeave }: Par
           </Button>
         )}
       </CardHeader>
+
+      {invitation === undefined ? null : (
+        <div className="flex flex-col gap-2 border-b border-[var(--surface-line)] px-4 py-3">
+          <p className="text-xs leading-relaxed text-text-muted">
+            Send this to anybody with an account here. It puts them in this party, watching this.
+          </p>
+
+          <div className="flex items-center gap-2">
+            <code className="min-w-0 flex-1 select-all truncate rounded-lg bg-[var(--surface-hover)] px-3 py-2 font-mono text-xs text-text">
+              {invitation}
+            </code>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              isPill
+              className="shrink-0"
+              onClick={() => {
+                void onCopyInvitation?.(invitation).then(() => {
+                  setHasCopied(true);
+                });
+              }}
+            >
+              {hasCopied ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <ul className="flex flex-col divide-y divide-[var(--surface-line)]">
         {party.members.map((member) => {

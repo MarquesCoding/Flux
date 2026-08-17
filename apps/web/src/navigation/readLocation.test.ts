@@ -123,6 +123,7 @@ describe('writeLocation', () => {
       person: null,
       shareToken: null,
       playing: null,
+      party: null,
       genre: null,
       library: null,
       adminPanel: null,
@@ -233,5 +234,37 @@ describe('a shared link in the address', () => {
     });
 
     expect(written).toBe('/share/abc123');
+  });
+});
+
+describe('a watch party in the address', () => {
+  it('reads the party out of a link somebody was sent', () => {
+    expect(readLocation('http://flux.local/watch/a-film?party=party-1').party).toBe('party-1');
+  });
+
+  it('still reads what is being watched from that link', () => {
+    expect(readLocation('http://flux.local/watch/a-film?party=party-1').playing).toBe('a-film');
+  });
+
+  it('is in no party for an ordinary watch address', () => {
+    expect(readLocation('http://flux.local/watch/a-film').party).toBeNull();
+  });
+
+  it('writes an address worth sending somebody', () => {
+    expect(writeLocation({ ...HOME, playing: 'a-film', party: 'party-1' })).toBe(
+      '/watch/a-film?party=party-1',
+    );
+  });
+
+  it('leaves the address alone when there is no party', () => {
+    expect(writeLocation({ ...HOME, playing: 'a-film' })).toBe('/watch/a-film');
+  });
+
+  it('survives a round trip, so a link that was sent arrives where it was made', () => {
+    const address = writeLocation({ ...HOME, playing: 'a-film', party: 'party-1' });
+    const back = readLocation(`http://flux.local${address}`);
+
+    expect(back.playing).toBe('a-film');
+    expect(back.party).toBe('party-1');
   });
 });
