@@ -23,21 +23,9 @@ use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
 use flux_transcoder::trickplay::TrickplayRegistry;
 
-fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
-}
+mod common;
 
-fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
-}
-
-fn fixture_dir() -> PathBuf {
-    let directory = std::env::temp_dir().join("flux-fixtures");
-
-    std::fs::create_dir_all(&directory).expect("creates the fixture directory");
-
-    directory
-}
+use common::{building_name, ffmpeg, ffprobe, fixture_dir};
 
 /// An "episode": a common opening followed by its own content.
 ///
@@ -48,6 +36,7 @@ fn fixture_dir() -> PathBuf {
 /// change to measure, so the hash of it is noise in both files.
 fn episode(name: &str, filler_seed: u32, bitrate: &str) -> PathBuf {
     let path = fixture_dir().join(name);
+    let building = fixture_dir().join(building_name(name));
 
     if path.exists() {
         return path;
@@ -70,11 +59,13 @@ fn episode(name: &str, filler_seed: u32, bitrate: &str) -> PathBuf {
         .args(["-filter_complex", "[0:a][1:a]concat=n=2:v=0:a=1[out]"])
         .args(["-map", "[out]", "-b:a", bitrate])
         .arg("-y")
-        .arg(&path)
+        .arg(&building)
         .status()
         .expect("runs ffmpeg");
 
     assert!(status.success(), "could not generate {name}");
+
+    std::fs::rename(&building, &path).expect("moves the finished fixture into place");
 
     path
 }

@@ -14,38 +14,15 @@ use std::process::Command;
 use flux_transcoder::media::{Container, VideoRange};
 use flux_transcoder::probe::probe_media;
 
-fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
-}
+mod common;
 
-fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
-}
-
-fn require_ffmpeg() {
-    let available = Command::new(ffmpeg())
-        .arg("-version")
-        .output()
-        .is_ok_and(|output| output.status.success());
-
-    assert!(
-        available,
-        "ffmpeg is required to run the media tests. Install it, or set FLUX_FFMPEG to its path."
-    );
-}
-
-fn fixture_dir() -> PathBuf {
-    let dir = std::env::temp_dir().join("flux-fixtures");
-
-    std::fs::create_dir_all(&dir).expect("creates the fixture directory");
-
-    dir
-}
+use common::{building_name, ffmpeg, ffprobe, fixture_dir, require_ffmpeg};
 
 fn generate(name: &str, args: &[&str]) -> PathBuf {
     require_ffmpeg();
 
     let path = fixture_dir().join(name);
+    let building = fixture_dir().join(building_name(name));
 
     if path.exists() {
         return path;
@@ -55,7 +32,7 @@ fn generate(name: &str, args: &[&str]) -> PathBuf {
         .args(["-hide_banner", "-loglevel", "error"])
         .args(args)
         .arg("-y")
-        .arg(&path)
+        .arg(&building)
         .status()
         .expect("runs ffmpeg");
 
@@ -63,6 +40,8 @@ fn generate(name: &str, args: &[&str]) -> PathBuf {
         status.success(),
         "ffmpeg could not generate the {name} fixture"
     );
+
+    std::fs::rename(&building, &path).expect("moves the finished fixture into place");
 
     path
 }

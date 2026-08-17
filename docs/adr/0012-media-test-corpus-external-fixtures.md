@@ -1,6 +1,6 @@
 # ADR-0012: Media test corpus as external fixture download
 
-- **Status:** Accepted
+- **Status:** Accepted, partially superseded by [ADR-0016](0016-fixture-provenance-decides-how-it-is-verified.md) and [ADR-0017](0017-hdr-metadata-is-written-rather-than-downloaded.md)
 - **Date:** 2026-08-09
 - **Relates to:** ADR-0010, ADR-0011
 

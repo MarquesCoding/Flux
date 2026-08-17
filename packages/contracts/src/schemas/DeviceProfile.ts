@@ -34,6 +34,19 @@ const DeviceProfileSchema = z.object({
     .describe(
       'Which codecs this client can play at more than eight bits per sample. Empty means eight bit only.',
     ),
+  maxVideoLevels: z
+    .record(VideoCodecSchema, z.number().int().positive())
+    .default({})
+    .describe(
+      'The highest codec level this client decodes, per codec, numbered as that codec numbers it. Absent for a codec means no limit is claimed.',
+    ),
+  maxFrameRate: z.number().positive().nullish(),
+  maxRefFrames: z.number().int().positive().nullish(),
+  canPlayInterlaced: z.boolean().default(true),
+  canPlayAnamorphic: z.boolean().default(true),
+  canRotate: z.boolean().default(true),
+  maxAudioSampleRate: z.number().int().positive().nullish(),
+  unsupportedAudioProfiles: z.array(z.string()).default([]),
   supportedSubtitleFormats: z.array(SubtitleFormatSchema),
   directPlayProfiles: z.array(DirectPlayProfileSchema).min(1),
   transcodingProfiles: z.array(TranscodingProfileSchema).min(1),

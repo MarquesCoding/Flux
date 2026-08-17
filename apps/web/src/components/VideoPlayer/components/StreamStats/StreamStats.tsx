@@ -38,6 +38,44 @@ const Row = ({ name, children }: RowProps) => (
 
 Row.displayName = 'Row';
 
+type GroupProps = {
+  name: string;
+  children: React.ReactNode;
+};
+
+/**
+ * A titled run of related facts.
+ *
+ * The panel reads top to bottom as the stream's own journey — what it is, what arrived, what was
+ * decided, what came out, how it is faring — and the headings are what make that order legible
+ * rather than a list of everything Flux happens to know.
+ *
+ * @param name - What this group of facts is about.
+ * @param children - The facts.
+ */
+const Group = ({ name, children }: GroupProps) => (
+  <div className="mb-3 last:mb-0">
+    <h4 className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-white/35">
+      {name}
+    </h4>
+    <dl className="flex flex-col">{children}</dl>
+  </div>
+);
+
+Group.displayName = 'Group';
+
+/**
+ * Describes a picture's size, or says nothing is known yet.
+ *
+ * @param width - How wide.
+ * @param height - How tall.
+ * @returns The size, or a note that there is not one to report.
+ */
+const size = (width: number | null, height: number | null): string =>
+  width === null || height === null || width === 0
+    ? 'not reported'
+    : `${width.toString()}x${height.toString()}`;
+
 /**
  * Everything Flux knows about what is on screen and how it got there: what the file is, what the
  * session did to it, how the machine is coping, and how far ahead the buffer runs. For anybody
@@ -55,6 +93,7 @@ Row.displayName = 'Row';
  * @param session - The session serving it, where one was started.
  * @param detail - What the catalogue holds about the item.
  * @param health - How the stream is faring.
+ * @param delivered - What the engine is actually being sent, where it has chosen a variant.
  * @param sessionStartSeconds - Where the session itself began, which is not always where the viewer
  *   is now.
  * @param onClose - Called to close the panel.
@@ -64,6 +103,7 @@ const StreamStats = ({
   session,
   detail,
   health,
+  delivered,
   sessionStartSeconds,
   onClose,
 }: StreamStatsProps) => {
@@ -84,61 +124,94 @@ const StreamStats = ({
         </Button>
       </header>
 
-      <dl className="flex flex-col">
-        <Row name="Title">{media.title}</Row>
-        <Row name="Media id">{media.id}</Row>
-        <Row name="Session">{session?.sessionId ?? 'not started'}</Row>
-        <Row name="Mode">{session?.mode ?? 'deciding'}</Row>
-        <Row name="Delivery">
-          {session === null
-            ? 'none'
-            : session.delivery.kind === 'hls'
-              ? `HLS — ${session.delivery.manifestUrl}`
-              : `Direct — ${session.delivery.url}`}
-        </Row>
-        <Row name="Session starts at">{formatDuration(sessionStartSeconds)}</Row>
+      <div className="flex flex-col">
+        <Group name="Session">
+          <Row name="Title">{media.title}</Row>
+          <Row name="Media id">{media.id}</Row>
+          <Row name="Session">{session?.sessionId ?? 'not started'}</Row>
+          <Row name="Mode">{session?.mode ?? 'deciding'}</Row>
+          <Row name="Starts at">{formatDuration(sessionStartSeconds)}</Row>
+          <Row name="Delivery">
+            {session === null
+              ? 'none'
+              : session.delivery.kind === 'hls'
+                ? `HLS — ${session.delivery.manifestUrl}`
+                : `Direct — ${session.delivery.url}`}
+          </Row>
+        </Group>
 
-        <Row name="Source video">
-          {detail === null
-            ? 'unknown'
-            : `${video} ${media.durationSeconds > 0 ? '' : ''}${detail.width}x${detail.height} ${detail.videoRange}`}
-        </Row>
-        <Row name="Source audio">
-          {audio === null ? 'none' : `${audio.codec} ${audio.channels}ch ${audio.language ?? ''}`}
-        </Row>
-        <Row name="Subtitles">
-          {detail === null || detail.subtitleStreams.length === 0
-            ? 'none'
-            : `${detail.subtitleStreams.length.toString()} tracks, first ${detail.subtitleStreams[0]?.format ?? ''}`}
-        </Row>
+        <Group name="Source">
+          <Row name="Video">
+            {detail === null
+              ? 'unknown'
+              : `${video} ${detail.width}x${detail.height} ${detail.videoRange}`}
+          </Row>
+          <Row name="Audio">
+            {audio === null ? 'none' : `${audio.codec} ${audio.channels}ch ${audio.language ?? ''}`}
+          </Row>
+          <Row name="Subtitles">
+            {detail === null || detail.subtitleStreams.length === 0
+              ? 'none'
+              : `${detail.subtitleStreams.length.toString()} tracks, first ${detail.subtitleStreams[0]?.format ?? ''}`}
+          </Row>
+        </Group>
 
-        <Row name="Container plan">
-          {plan === null ? 'deciding' : axis(plan.container.kind, plan.container.reason.detail)}
-        </Row>
-        <Row name="Video plan">{plan === null ? 'deciding' : videoAxis(plan.video)}</Row>
-        <Row name="Audio plan">{plan === null ? 'deciding' : audioAxis(plan.audio)}</Row>
-        <Row name="Subtitle plan">
-          {plan === null ? 'deciding' : axis(plan.subtitles.kind, plan.subtitles.reason.detail)}
-        </Row>
+        <Group name="Output">
+          <Row name="Video">
+            {delivered === null
+              ? 'nothing selected yet'
+              : `${delivered.videoCodec ?? 'unknown'} ${size(delivered.width, delivered.height)}${
+                  delivered.frameRate === null ? '' : ` @ ${delivered.frameRate.toFixed(3)}fps`
+                }`}
+          </Row>
+          <Row name="Audio">
+            {delivered === null
+              ? 'nothing selected yet'
+              : `${delivered.audioCodec ?? 'unknown'}${
+                  delivered.audioChannels === null ? '' : ` ${delivered.audioChannels.toString()}ch`
+                }${
+                  delivered.audioSampleRate === null
+                    ? ''
+                    : ` ${delivered.audioSampleRate.toString()}Hz`
+                }`}
+          </Row>
+          <Row name="Container">{delivered?.mimeType ?? 'nothing selected yet'}</Row>
+          <Row name="Bitrate">
+            {delivered?.bitrateKbps === null || delivered === null
+              ? 'not reported'
+              : `${delivered.bitrateKbps.toString()}kbps`}
+          </Row>
+          <Row name="Presented size">{size(health.presentedWidth, health.presentedHeight)}</Row>
+        </Group>
 
-        <Row name="Position">{formatDuration(health.positionSeconds)}</Row>
-        <Row name="Buffered ahead">{seconds(health.bufferedAheadSeconds)}</Row>
-        <Row name="Encoded so far">{seconds(health.encodedSeconds)}</Row>
-        <Row name="Presented size">
-          {health.presentedWidth === 0
-            ? 'nothing decoded yet'
-            : `${health.presentedWidth.toString()}x${health.presentedHeight.toString()}`}
-        </Row>
-        <Row name="Frames dropped">
-          {health.droppedFrames === null || health.decodedFrames === null
-            ? 'not reported'
-            : `${health.droppedFrames.toString()} of ${health.decodedFrames.toString()}`}
-        </Row>
+        <Group name="Plan">
+          <Row name="Container">
+            {plan === null ? 'deciding' : axis(plan.container.kind, plan.container.reason.detail)}
+          </Row>
+          <Row name="Video">{plan === null ? 'deciding' : videoAxis(plan.video)}</Row>
+          <Row name="Audio">{plan === null ? 'deciding' : audioAxis(plan.audio)}</Row>
+          <Row name="Subtitles">
+            {plan === null ? 'deciding' : axis(plan.subtitles.kind, plan.subtitles.reason.detail)}
+          </Row>
+        </Group>
+
+        <Group name="Playback">
+          <Row name="Position">{formatDuration(health.positionSeconds)}</Row>
+          <Row name="Buffered ahead">{seconds(health.bufferedAheadSeconds)}</Row>
+          <Row name="Encoded so far">{seconds(health.encodedSeconds)}</Row>
+          <Row name="Frames dropped">
+            {health.droppedFrames === null || health.decodedFrames === null
+              ? 'not reported'
+              : `${health.droppedFrames.toString()} of ${health.decodedFrames.toString()}`}
+          </Row>
+        </Group>
 
         {session === null || session.warnings.length === 0 ? null : (
-          <Row name="Warnings">{session.warnings.join(' · ')}</Row>
+          <Group name="Warnings">
+            <Row name="From the server">{session.warnings.join(' · ')}</Row>
+          </Group>
         )}
-      </dl>
+      </div>
     </section>
   );
 };

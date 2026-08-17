@@ -28,6 +28,14 @@ struct FfprobeOutput {
     format: Option<FfprobeFormat>,
     #[serde(default)]
     chapters: Vec<FfprobeChapter>,
+    #[serde(default)]
+    frames: Vec<FfprobeFrame>,
+}
+
+#[derive(Debug, Deserialize)]
+struct FfprobeFrame {
+    #[serde(default)]
+    side_data_list: Vec<std::collections::HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -59,11 +67,74 @@ struct FfprobeStream {
     bits_per_raw_sample: Option<String>,
     pix_fmt: Option<String>,
     color_transfer: Option<String>,
+    level: Option<i64>,
+    r_frame_rate: Option<String>,
+    field_order: Option<String>,
+    refs: Option<u32>,
+    sample_aspect_ratio: Option<String>,
+    sample_rate: Option<String>,
     #[serde(default)]
     tags: std::collections::HashMap<String, String>,
     disposition: Option<std::collections::HashMap<String, i32>>,
     #[serde(default)]
     side_data_list: Vec<std::collections::HashMap<String, serde_json::Value>>,
+}
+
+/// Reads a rational like `25/1` as a number.
+///
+/// ffprobe reports frame rates as a ratio because that is what containers
+/// store, and `0/0` for a stream whose rate it could not work out — a still
+/// image, or audio. Both are absent rather than zero.
+fn parse_rational(value: Option<&String>) -> Option<f64> {
+    let text = value?;
+    let (numerator, denominator) = text.split_once('/')?;
+    let numerator: f64 = numerator.parse().ok()?;
+    let denominator: f64 = denominator.parse().ok()?;
+
+    (denominator != 0.0 && numerator != 0.0).then_some(numerator / denominator)
+}
+
+/// Whether a field order means the picture is stored as fields.
+///
+/// ffprobe says `progressive` for whole frames and names the field order
+/// otherwise — `tt`, `bb`, `tb`, `bt`. An absent or unknown value is treated as
+/// progressive, because that is what almost everything is and guessing the
+/// other way would deinterlace material that does not need it.
+fn is_interlaced(field_order: Option<&String>) -> bool {
+    matches!(
+        field_order.map(String::as_str),
+        Some("tt" | "bb" | "tb" | "bt")
+    )
+}
+
+/// The pixel shape, where it is not square.
+///
+/// ffprobe writes `1:1` for square pixels, and for a stream that never declared
+/// one it writes nothing at all. Both mean the picture can be shown at its
+/// stored size, so both are absent here.
+fn parse_pixel_aspect(value: Option<&String>) -> Option<String> {
+    let text = value?.trim();
+
+    (!text.is_empty() && text != "1:1" && text != "0:1").then(|| text.replace(':', "/"))
+}
+
+/// How far the picture is rotated for display.
+fn rotation_of(stream: &FfprobeStream) -> Option<i32> {
+    for side_data in &stream.side_data_list {
+        if let Some(rotation) = side_data
+            .get("rotation")
+            .and_then(serde_json::Value::as_i64)
+        {
+            return i32::try_from(rotation.abs()).ok();
+        }
+    }
+
+    stream
+        .tags
+        .iter()
+        .find(|(key, _)| key.eq_ignore_ascii_case("rotate"))
+        .and_then(|(_, value)| value.parse::<i32>().ok())
+        .map(i32::abs)
 }
 
 fn parse_kbps(value: Option<&String>) -> Option<u32> {
@@ -79,8 +150,25 @@ fn parse_kbps(value: Option<&String>) -> Option<u32> {
 /// Reporting HDR10 for a Dolby Vision stream would silently discard the
 /// dynamic metadata during transcoding, which is the failure this ordering
 /// exists to prevent. See ADR-0010.
-fn detect_range(stream: &FfprobeStream) -> VideoRange {
-    for side_data in &stream.side_data_list {
+///
+/// The two are not carried in the same place. Dolby Vision announces itself in
+/// a configuration record on the stream, where a reader of `-show_streams`
+/// finds it. **HDR10+ does not**: its SMPTE 2094-40 metadata rides in an SEI
+/// message on every frame, so a probe that reads only streams never sees it and
+/// falls through to the transfer curve, reporting plain HDR10 for every HDR10+
+/// file there is.
+///
+/// That was the state of this function until a real HDR10+ file was run through
+/// it. The test that covered the case passed because it put the metadata at
+/// stream level, which is somewhere ffprobe never puts it. Reading the first
+/// frame costs a hundredth of a second on a two gigabyte file. See FLUX-132.
+fn detect_range(stream: &FfprobeStream, frames: &[FfprobeFrame]) -> VideoRange {
+    let stream_side_data = stream.side_data_list.iter();
+    let frame_side_data = frames.iter().flat_map(|frame| frame.side_data_list.iter());
+
+    let mut dynamic = None;
+
+    for side_data in stream_side_data.chain(frame_side_data) {
         let kind = side_data
             .get("side_data_type")
             .and_then(serde_json::Value::as_str)
@@ -91,8 +179,12 @@ fn detect_range(stream: &FfprobeStream) -> VideoRange {
         }
 
         if kind.contains("HDR Dynamic Metadata") || kind.contains("SMPTE2094") {
-            return VideoRange::Hdr10Plus;
+            dynamic = Some(VideoRange::Hdr10Plus);
         }
+    }
+
+    if let Some(range) = dynamic {
+        return range;
     }
 
     match stream.color_transfer.as_deref() {
@@ -156,8 +248,17 @@ fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
             codec: video_codec(stream.codec_name.as_deref().unwrap_or_default()),
             width: stream.width.unwrap_or_default(),
             height: stream.height.unwrap_or_default(),
-            range: detect_range(stream),
+            range: detect_range(stream, &output.frames),
             bitrate_kbps: parse_kbps(stream.bit_rate.as_ref()),
+            level: stream
+                .level
+                .filter(|level| *level > 0)
+                .and_then(|level| u32::try_from(level).ok()),
+            frame_rate: parse_rational(stream.r_frame_rate.as_ref()),
+            is_interlaced: is_interlaced(stream.field_order.as_ref()),
+            ref_frames: stream.refs.filter(|refs| *refs > 0),
+            pixel_aspect: parse_pixel_aspect(stream.sample_aspect_ratio.as_ref()),
+            rotation_degrees: rotation_of(stream),
             bit_depth: stream
                 .bits_per_raw_sample
                 .as_ref()
@@ -173,6 +274,15 @@ fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
             index: stream.index,
             codec: audio_codec(stream.codec_name.as_deref().unwrap_or_default()),
             channels: stream.channels.unwrap_or(2),
+            sample_rate: stream
+                .sample_rate
+                .as_ref()
+                .and_then(|value| value.parse::<u32>().ok()),
+            profile: stream
+                .profile
+                .as_ref()
+                .filter(|profile| profile.as_str() != "unknown")
+                .cloned(),
             language: language_of(stream),
             title: title_of(stream),
             is_default: is_default(stream),
@@ -271,6 +381,9 @@ pub async fn probe_media(ffprobe: &str, path: &Path) -> Result<MediaProbe, Probe
             "-show_format",
             "-show_streams",
             "-show_chapters",
+            "-show_frames",
+            "-read_intervals",
+            "%+#1",
         ])
         .arg(path)
         .output()
@@ -343,16 +456,47 @@ mod tests {
         );
     }
 
+    /// HDR10+ rides on the frames, which is the only place ffprobe reports it.
+    ///
+    /// This test used to put the metadata in the stream's side data, where it
+    /// passed and meant nothing: no real file puts it there, so the branch it
+    /// covered could never be reached. Taken from the output of a real HDR10+
+    /// file. See FLUX-132.
     #[test]
-    fn prefers_hdr10_plus_side_data_over_the_transfer_curve() {
+    fn reads_hdr10_plus_from_the_frames_where_ffprobe_reports_it() {
         let json = r#"{"streams": [{"index": 0, "codec_type": "video", "codec_name": "hevc",
-            "color_transfer": "smpte2084",
-            "side_data_list": [{"side_data_type": "HDR Dynamic Metadata SMPTE2094-40"}]}],
+            "color_transfer": "smpte2084"}],
+            "frames": [{"side_data_list": [
+                {"side_data_type": "Mastering display metadata"},
+                {"side_data_type": "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)"}]}],
             "format": {"format_name": "matroska"}}"#;
 
         let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
 
         assert_eq!(probe.video.expect("has video").range, VideoRange::Hdr10Plus);
+    }
+
+    /// A stream carrying both is Dolby Vision, whichever is found first.
+    ///
+    /// Profile 8.1 is built to be read as HDR10 by players that cannot manage
+    /// the RPU, so a file routinely carries a Dolby Vision configuration record
+    /// on the stream and HDR10+ metadata on every frame. Taken from a real one.
+    #[test]
+    fn prefers_dolby_vision_when_a_file_carries_both() {
+        let json = r#"{"streams": [{"index": 0, "codec_type": "video", "codec_name": "hevc",
+            "color_transfer": "smpte2084",
+            "side_data_list": [{"side_data_type": "DOVI configuration record"}]}],
+            "frames": [{"side_data_list": [
+                {"side_data_type": "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)"},
+                {"side_data_type": "Dolby Vision RPU Data"}]}],
+            "format": {"format_name": "matroska"}}"#;
+
+        let probe = parse_ffprobe_output(json, Path::new("/media/film.mkv")).expect("parses");
+
+        assert_eq!(
+            probe.video.expect("has video").range,
+            VideoRange::DolbyVision
+        );
     }
 
     #[test]

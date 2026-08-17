@@ -22,13 +22,9 @@ use flux_transcoder::router::{create_router, AppState};
 use flux_transcoder::session::{SessionConfig, SessionRegistry};
 use flux_transcoder::trickplay::TrickplayRegistry;
 
-fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
-}
+mod common;
 
-fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
-}
+use common::{building_name, ffmpeg, ffprobe};
 
 /// A file long enough for a clip to be cut out of the middle of it.
 fn source_file() -> PathBuf {
@@ -37,6 +33,7 @@ fn source_file() -> PathBuf {
     std::fs::create_dir_all(&directory).expect("creates the fixture directory");
 
     let path = directory.join("preview-source.mp4");
+    let building = directory.join(building_name("preview-source.mp4"));
 
     if path.exists() {
         return path;
@@ -63,11 +60,13 @@ fn source_file() -> PathBuf {
             "aac",
             "-shortest",
         ])
-        .arg(&path)
+        .arg(&building)
         .status()
         .expect("runs ffmpeg to build the fixture");
 
     assert!(status.success(), "the fixture did not render");
+
+    std::fs::rename(&building, &path).expect("moves the finished fixture into place");
 
     path
 }
