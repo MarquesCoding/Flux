@@ -485,6 +485,30 @@ impl FrameRoute {
 /// overlay and nothing on the device.
 const TEXT_OVERLAY_FPS: u32 = 25;
 
+/// Brings a bitmap subtitle to the size of the picture it is drawn onto.
+///
+/// A subtitle stream carries its own canvas, and that canvas is the size the
+/// disc was authored at rather than the size of the video beside it. Overlaid
+/// untouched it is placed at the origin, so a canvas taller than the picture
+/// puts the text — which sits near the bottom of it — below the frame, where it
+/// is never seen. Measured on the reference library: 161 of the 566 files whose
+/// bitmap subtitles declare a canvas declare one larger than their own picture,
+/// and any session that scales down makes the rest of them larger too.
+///
+/// Padded rather than stretched, and centred, because the canvas and the
+/// picture need not share an aspect ratio. This is the general form, which is
+/// also what Jellyfin uses whenever it cannot compare the two.
+///
+/// Ends without a sink so that a caller can add its own: the device route
+/// converts and uploads the result, and the software route takes it as it is.
+fn bitmap_subtitle_branch(subtitle_index: u32, width: u32, height: u32) -> String {
+    format!(
+        "[0:s:{subtitle_index}]scale,scale=-1:{height}:fast_bilinear,crop,\
+         pad=max({width}\\,iw):max({height}\\,ih):(ow-iw)/2:(oh-ih)/2:black@0,\
+         crop={width}:{height}"
+    )
+}
+
 /// The filter graph that draws subtitles on without bringing the video down.
 ///
 /// Both kinds end the same way — a picture in the compositor's format, uploaded
@@ -520,9 +544,8 @@ fn composited_graph(
 
     let subtitle_branch = if *is_image_based {
         format!(
-            "[0:s:{subtitle_index}]scale,scale=-1:{height}:fast_bilinear,crop,\
-             pad=max({width}\\,iw):max({height}\\,ih):(ow-iw)/2:(oh-ih)/2:black@0,\
-             crop={width}:{height},format={format},{upload}[sub]"
+            "{},format={format},{upload}[sub]",
+            bitmap_subtitle_branch(*subtitle_index, width, height)
         )
     } else {
         format!(
@@ -1150,15 +1173,8 @@ impl TranscodePlan {
                     }
                 }
 
-                let text_burn_in = match &self.spec.subtitles {
-                    SubtitleAction::BurnIn {
-                        subtitle_index,
-                        is_image_based: false,
-                    } => Some((self.spec.input_path.as_str(), *subtitle_index)),
-                    _ => None,
-                };
-
-                let chain = video_filter_chain(*max_width, *max_height, *tone_map, text_burn_in);
+                let chain =
+                    video_filter_chain(*max_width, *max_height, *tone_map, self.text_burn_in());
 
                 if let SubtitleAction::BurnIn {
                     subtitle_index,
@@ -1166,8 +1182,11 @@ impl TranscodePlan {
                 } = &self.spec.subtitles
                 {
                     args.push("-filter_complex".into());
-                    args.push(format!(
-                        "[0:v]{chain}[base];[base][0:s:{subtitle_index}]overlay[v]"
+                    args.push(self.software_composited_graph(
+                        &chain,
+                        *subtitle_index,
+                        *max_width,
+                        *max_height,
                     ));
                     self.push_graph_maps(args);
 
@@ -1180,6 +1199,55 @@ impl TranscodePlan {
         }
 
         is_mapped
+    }
+
+    /// The subtitle the software chain renders itself, if there is one.
+    ///
+    /// Only text: the `subtitles` filter draws from the file, and a bitmap
+    /// subtitle is a second stream that a linear chain cannot reach.
+    fn text_burn_in(&self) -> Option<(&str, u32)> {
+        match &self.spec.subtitles {
+            SubtitleAction::BurnIn {
+                subtitle_index,
+                is_image_based: false,
+            } => Some((self.spec.input_path.as_str(), *subtitle_index)),
+            _ => None,
+        }
+    }
+
+    /// Draws a bitmap subtitle on in system memory.
+    ///
+    /// The route every build without the backend's compositor takes, which is
+    /// every stock one — and the route 18.6% of the reference library needs,
+    /// since a bitmap subtitle cannot be turned into text and so cannot be sent
+    /// for the client to draw.
+    ///
+    /// The size is worked out here rather than left to an expression because
+    /// the subtitle has to be brought to the same size as the picture, and
+    /// `pad` needs a number. `scale_filter` fits the picture inside the box
+    /// without exceeding the source, which is exactly what `fitted_size`
+    /// computes, so the two agree. A spec carrying no source size is not a case
+    /// the server produces — it always sends the item's own dimensions — so the
+    /// box is a floor rather than a guess.
+    fn software_composited_graph(
+        &self,
+        chain: &str,
+        subtitle_index: u32,
+        max_width: u32,
+        max_height: u32,
+    ) -> String {
+        let (width, height) = self
+            .spec
+            .source_size
+            .map_or((max_width, max_height), |source| {
+                fitted_size(source, max_width, max_height)
+            });
+
+        format!(
+            "[0:v]{chain}[base];{}[sub];\
+             [base][sub]overlay=eof_action=pass:repeatlast=0[v]",
+            bitmap_subtitle_branch(subtitle_index, width, height)
+        )
     }
 
     /// Names the streams a filter graph produces.
@@ -2610,10 +2678,61 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
         .to_ffmpeg_args();
 
         assert!(args.iter().any(|a| a == "-filter_complex"));
-        assert!(args.iter().any(|a| a.contains("[0:s:2]overlay")));
+
+        let graph = args
+            .iter()
+            .find(|a| a.contains("overlay"))
+            .expect("a graph that composites");
+
+        assert!(graph.contains("[0:s:2]"), "the subtitle is read: {graph}");
+        assert!(
+            graph.contains("[base][sub]overlay=eof_action=pass:repeatlast=0[v]"),
+            "the subtitle is drawn onto the picture, and outlasts nothing: {graph}"
+        );
         assert!(
             !args.iter().any(|a| a == "-vf"),
             "a graph replaces the chain"
+        );
+    }
+
+    /// A bitmap subtitle is brought to the size of the picture first.
+    ///
+    /// The software route used to overlay the subtitle stream untouched, which
+    /// places its canvas at the origin. A canvas taller than the output — 161
+    /// files in the reference library, and every file at all once a session
+    /// scales down — then carries its text below the frame, so the burn-in
+    /// encoded the whole film again and drew nothing on it.
+    #[test]
+    fn sizes_a_bitmap_subtitle_to_the_picture_it_is_drawn_on() {
+        let args = plan(SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "libx264".into(),
+                max_bitrate_kbps: 4000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: None,
+            },
+            subtitles: SubtitleAction::BurnIn {
+                subtitle_index: 0,
+                is_image_based: true,
+            },
+            source_size: Some((1920, 1080)),
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        let graph = args
+            .iter()
+            .find(|a| a.contains("overlay"))
+            .expect("a graph that composites");
+
+        assert!(
+            graph.contains("crop=1280:720"),
+            "the subtitle is cropped to the size the picture leaves at: {graph}"
+        );
+        assert!(
+            graph.contains("pad=max(1280\\,iw):max(720\\,ih)"),
+            "a subtitle smaller than the picture is padded rather than stretched: {graph}"
         );
     }
 

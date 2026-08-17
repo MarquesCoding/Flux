@@ -47,16 +47,42 @@ describe('subtitleTrackUrl', () => {
 });
 
 describe('defaultTrackId', () => {
-  it('shows a forced track without being asked', () => {
-    expect(defaultTrackId([track(), track({ id: 'fr', isForced: true })])).toBe('fr');
+  it('shows a forced track in the language being heard, without being asked', () => {
+    expect(defaultTrackId([track(), track({ id: 'en-forced', isForced: true })], 'en')).toBe(
+      'en-forced',
+    );
+  });
+
+  it('leaves a forced track belonging to another dub alone', () => {
+    const tracks = [track({ id: 'ita-forced', language: 'ita', isForced: true }), track()];
+
+    expect(defaultTrackId(tracks, 'eng')).toBe(SUBTITLES_OFF);
+  });
+
+  it('matches a two letter preference against a three letter track', () => {
+    const tracks = [track({ id: 'eng-forced', language: 'eng', isForced: true })];
+
+    expect(defaultTrackId(tracks, 'en')).toBe('eng-forced');
+  });
+
+  it('ignores the region on a language that carries one', () => {
+    const tracks = [track({ id: 'en-forced', language: 'en', isForced: true })];
+
+    expect(defaultTrackId(tracks, 'en-GB')).toBe('en-forced');
   });
 
   it('stays off when nothing is forced', () => {
-    expect(defaultTrackId([track()])).toBe(SUBTITLES_OFF);
+    expect(defaultTrackId([track()], 'en')).toBe(SUBTITLES_OFF);
   });
 
   it('stays off when there are no tracks at all', () => {
-    expect(defaultTrackId([])).toBe(SUBTITLES_OFF);
+    expect(defaultTrackId([], 'en')).toBe(SUBTITLES_OFF);
+  });
+
+  it('stays off rather than guessing when nothing is known about the audio', () => {
+    expect(defaultTrackId([track({ id: 'fr', language: 'fr', isForced: true })])).toBe(
+      SUBTITLES_OFF,
+    );
   });
 });
 

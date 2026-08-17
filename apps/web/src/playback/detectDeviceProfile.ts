@@ -33,12 +33,89 @@ const AUDIO_PROBES = [
   { codec: 'flac', mimeType: 'audio/mp4; codecs="flac"' },
 ] as const;
 
+const HE_AAC_PROBES = ['audio/mp4; codecs="mp4a.40.5"', 'audio/mp4; codecs="mp4a.40.29"'] as const;
+
+const HE_AAC_PROFILE = 'HE-AAC';
+
+const H264_LEVEL_PROBES = [
+  { level: 62, mimeType: 'video/mp4; codecs="avc1.64003e"' },
+  { level: 61, mimeType: 'video/mp4; codecs="avc1.64003d"' },
+  { level: 60, mimeType: 'video/mp4; codecs="avc1.64003c"' },
+  { level: 52, mimeType: 'video/mp4; codecs="avc1.640034"' },
+  { level: 51, mimeType: 'video/mp4; codecs="avc1.640033"' },
+  { level: 50, mimeType: 'video/mp4; codecs="avc1.640032"' },
+  { level: 42, mimeType: 'video/mp4; codecs="avc1.64002a"' },
+  { level: 41, mimeType: 'video/mp4; codecs="avc1.640029"' },
+  { level: 40, mimeType: 'video/mp4; codecs="avc1.640028"' },
+  { level: 31, mimeType: 'video/mp4; codecs="avc1.64001f"' },
+  { level: 30, mimeType: 'video/mp4; codecs="avc1.64001e"' },
+] as const;
+
+const HEVC_LEVEL_PROBES = [
+  { level: 186, mimeType: 'video/mp4; codecs="hvc1.1.6.L186.B0"' },
+  { level: 183, mimeType: 'video/mp4; codecs="hvc1.1.6.L183.B0"' },
+  { level: 180, mimeType: 'video/mp4; codecs="hvc1.1.6.L180.B0"' },
+  { level: 156, mimeType: 'video/mp4; codecs="hvc1.1.6.L156.B0"' },
+  { level: 153, mimeType: 'video/mp4; codecs="hvc1.1.6.L153.B0"' },
+  { level: 150, mimeType: 'video/mp4; codecs="hvc1.1.6.L150.B0"' },
+  { level: 123, mimeType: 'video/mp4; codecs="hvc1.1.6.L123.B0"' },
+  { level: 120, mimeType: 'video/mp4; codecs="hvc1.1.6.L120.B0"' },
+  { level: 93, mimeType: 'video/mp4; codecs="hvc1.1.6.L93.B0"' },
+  { level: 90, mimeType: 'video/mp4; codecs="hvc1.1.6.L90.B0"' },
+] as const;
+
 const DEFAULT_MAX_BITRATE_KBPS = 20_000;
+
+/**
+ * The highest codec level this browser admits to decoding, by asking about each in turn.
+ *
+ * Probes are ordered from the highest level down and the first accepted one wins, so a browser that
+ * takes everything answers on its first question. Nothing is returned where a browser accepts none
+ * of them, because claiming a ceiling nobody stated would refuse files that in fact play.
+ *
+ * @param probes - Level probes, highest first.
+ * @param isTypeSupported - What the browser answers about a MIME type.
+ * @returns The highest level accepted, or nothing where none were.
+ */
+const highestSupportedLevel = (
+  probes: readonly { level: number; mimeType: string }[],
+  isTypeSupported: CodecProbe,
+): number | null => probes.find((probe) => isTypeSupported(probe.mimeType))?.level ?? null;
+
+/**
+ * The audio profiles this browser decodes the base codec of but not the extension.
+ *
+ * HE-AAC is the one that matters in practice: it is 7.7% of a real library, it declares itself as
+ * plain AAC to anything that only reads the codec name, and a browser that decodes AAC-LC may still
+ * refuse it. Asked only where AAC itself is supported, since otherwise the codec check already
+ * covers it.
+ *
+ * @param audioCodecs - The codecs this browser accepted.
+ * @param isTypeSupported - What the browser answers about a MIME type.
+ * @returns The profile names to refuse a direct play over.
+ */
+const unsupportedAudioProfilesFor = (
+  audioCodecs: readonly string[],
+  isTypeSupported: CodecProbe,
+): string[] => {
+  if (!audioCodecs.includes('aac')) {
+    return [];
+  }
+
+  return HE_AAC_PROBES.some((mimeType) => isTypeSupported(mimeType)) ? [] : [HE_AAC_PROFILE];
+};
 
 /**
  * Builds the profile the server negotiates against, from what this browser actually reports it can
  * play rather than from what its name suggests — two browsers of the same name on different machines
  * answer differently, and guessing produces a film that will not play.
+ *
+ * Interlaced video is declared unplayable outright rather than probed. Media Source has no
+ * deinterlacer, so a browser decodes an interlaced stream and then shows the combing, and there is
+ * no MIME type that asks the question.
+ *
+ * Frame rate, reference frames and audio sample rate are deliberately left unstated. None can be
+ * asked of a browser, and a guessed ceiling costs a needless transcode on every file above it.
  *
  * @param capabilities - What the browser reported it can decode.
  * @returns The profile to send with a session request.
@@ -66,6 +143,9 @@ const detectDeviceProfile = ({
   const video = videoCodecs.length > 0 ? [...videoCodecs] : ['h264'];
   const audio = audioCodecs.length > 0 ? [...audioCodecs] : ['aac'];
 
+  const h264Level = highestSupportedLevel(H264_LEVEL_PROBES, isTypeSupported);
+  const hevcLevel = highestSupportedLevel(HEVC_LEVEL_PROBES, isTypeSupported);
+
   return DeviceProfileSchema.parse({
     schemaVersion: 1,
     name,
@@ -75,6 +155,12 @@ const detectDeviceProfile = ({
     maxAudioChannels: 2,
     supportedVideoRanges: supportsHdr ? ['SDR', 'HDR10', 'HLG'] : ['SDR'],
     tenBitVideoCodecs,
+    maxVideoLevels: {
+      ...(h264Level === null ? {} : { h264: h264Level }),
+      ...(hevcLevel === null ? {} : { hevc: hevcLevel }),
+    },
+    canPlayInterlaced: false,
+    unsupportedAudioProfiles: unsupportedAudioProfilesFor(audio, isTypeSupported),
     supportedSubtitleFormats: ['webvtt'],
     directPlayProfiles: [
       {

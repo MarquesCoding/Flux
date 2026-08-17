@@ -2,11 +2,22 @@ import { z } from 'zod';
 
 const VideoRangeSchema = z.enum(['SDR', 'HDR10', 'HDR10Plus', 'HLG', 'DolbyVision']);
 
-const VideoCodecSchema = z.enum(['h264', 'hevc', 'av1', 'vp9', 'vp8', 'mpeg2', 'vc1']);
+const KNOWN_VIDEO_CODECS = [
+  'h264',
+  'hevc',
+  'av1',
+  'vp9',
+  'vp8',
+  'mpeg2',
+  'vc1',
+  'mpeg4',
+  'mpeg1video',
+] as const;
 
-const AudioCodecSchema = z.enum([
+const KNOWN_AUDIO_CODECS = [
   'aac',
   'mp3',
+  'mp2',
   'flac',
   'alac',
   'opus',
@@ -17,9 +28,28 @@ const AudioCodecSchema = z.enum([
   'dts',
   'dtshd',
   'pcm',
-]);
+] as const;
 
-const ContainerSchema = z.enum(['mp4', 'mkv', 'webm', 'ts', 'm2ts', 'mov', 'avi']);
+const KNOWN_CONTAINERS = ['mp4', 'mkv', 'webm', 'ts', 'm2ts', 'mov', 'avi', 'unknown'] as const;
+
+const VideoCodecSchema = z
+  .string()
+  .min(1)
+  .describe(
+    'What the demuxer calls this encoding. Any name is accepted, because a library holds whatever it holds and a codec nobody listed is still a file somebody wants to watch. A name no client claims simply never direct-plays.',
+  );
+
+const AudioCodecSchema = z
+  .string()
+  .min(1)
+  .describe('What the demuxer calls this encoding. Open for the same reason as the video codec.');
+
+const ContainerSchema = z
+  .string()
+  .min(1)
+  .describe(
+    'What the demuxer calls this format, or `unknown` where Flux has no name for it. Open for the same reason as the video codec.',
+  );
 
 const SubtitleFormatSchema = z.enum([
   'srt',
@@ -105,15 +135,18 @@ const MediaItemSchema = z.object({
 });
 
 export type VideoRange = z.infer<typeof VideoRangeSchema>;
-export type VideoCodec = z.infer<typeof VideoCodecSchema>;
-export type AudioCodec = z.infer<typeof AudioCodecSchema>;
-export type Container = z.infer<typeof ContainerSchema>;
+export type VideoCodec = (typeof KNOWN_VIDEO_CODECS)[number] | (string & {});
+export type AudioCodec = (typeof KNOWN_AUDIO_CODECS)[number] | (string & {});
+export type Container = (typeof KNOWN_CONTAINERS)[number] | (string & {});
 export type SubtitleFormat = z.infer<typeof SubtitleFormatSchema>;
 export type AudioStream = z.infer<typeof AudioStreamSchema>;
 export type SubtitleStream = z.infer<typeof SubtitleStreamSchema>;
 export type MediaItem = z.infer<typeof MediaItemSchema>;
 
 export {
+  KNOWN_AUDIO_CODECS,
+  KNOWN_CONTAINERS,
+  KNOWN_VIDEO_CODECS,
   MediaItemSchema,
   VideoRangeSchema,
   VideoCodecSchema,
