@@ -45,6 +45,7 @@ const detail: MediaDetail = {
   videoRange: 'HDR10',
   videoBitDepth: 8,
   canCopySegments: true,
+  videoIsInterlaced: false,
   width: 1920,
   height: 1040,
   bitrateKbps: 3308,
@@ -66,8 +67,21 @@ const health: PlaybackHealth = {
   presentedHeight: 1040,
 };
 
+const delivered = {
+  videoCodec: 'avc1.640028',
+  audioCodec: 'mp4a.40.2',
+  mimeType: 'video/mp2t',
+  width: 1920,
+  height: 1040,
+  frameRate: 23.976,
+  bitrateKbps: 14833,
+  audioSampleRate: 48000,
+  audioChannels: 2,
+};
+
 const draw = (overrides: Partial<StreamStatsProps> = {}) => {
   const props: StreamStatsProps = {
+    delivered,
     media: { id: 'media-1', title: 'Arrival', durationSeconds: 7200 },
     session: {
       sessionId: 'abc',

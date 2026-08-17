@@ -12,6 +12,7 @@ const media: MediaItem = {
   videoRange: 'HDR10',
   videoBitDepth: 8,
   canCopySegments: true,
+  videoIsInterlaced: false,
   width: 3840,
   height: 2160,
   bitrateKbps: 24000,
@@ -30,6 +31,11 @@ const profile: DeviceProfile = {
   maxAudioChannels: 8,
   supportedVideoRanges: ['SDR', 'HDR10'],
   tenBitVideoCodecs: [],
+  maxVideoLevels: {},
+  canPlayInterlaced: true,
+  canPlayAnamorphic: true,
+  canRotate: true,
+  unsupportedAudioProfiles: [],
   supportedSubtitleFormats: ['srt', 'webvtt'],
   directPlayProfiles: [
     { container: 'mkv', videoCodecs: ['hevc', 'h264'], audioCodecs: ['truehd', 'aac'] },
@@ -134,6 +140,142 @@ describe('negotiatePlayback', () => {
     const plan = negotiatePlayback(heavy, { ...capped, supportedVideoRanges: ['SDR'] });
 
     expect(plan.video).toMatchObject({ kind: 'transcode', maxBitrateKbps: 20000 });
+  });
+
+  describe('the facts a client refuses a direct play over', () => {
+    const sdr = { ...media, videoRange: 'SDR' as const };
+    const capable: DeviceProfile = { ...profile, supportedVideoRanges: ['SDR'] };
+
+    it('transcodes a level the client does not decode', () => {
+      const plan = negotiatePlayback(
+        { ...sdr, videoLevel: 153 },
+        { ...capable, maxVideoLevels: { hevc: 120 } },
+      );
+
+      expect(plan.video.reason.code).toBe('VideoLevelNotSupported');
+    });
+
+    it('copies a level the client does decode', () => {
+      const plan = negotiatePlayback(
+        { ...sdr, videoLevel: 120 },
+        { ...capable, maxVideoLevels: { hevc: 120 } },
+      );
+
+      expect(plan.video.kind).toBe('passthrough');
+    });
+
+    it('reads the level ceiling for the source codec rather than any codec', () => {
+      const plan = negotiatePlayback(
+        { ...sdr, videoLevel: 153 },
+        { ...capable, maxVideoLevels: { h264: 51 } },
+      );
+
+      expect(plan.video.kind).toBe('passthrough');
+    });
+
+    it('transcodes a frame rate above what the client accepts', () => {
+      const plan = negotiatePlayback(
+        { ...sdr, videoFrameRate: 60 },
+        { ...capable, maxFrameRate: 30 },
+      );
+
+      expect(plan.video.reason.code).toBe('VideoFramerateNotSupported');
+    });
+
+    it('transcodes interlaced video for a client that cannot deinterlace', () => {
+      const plan = negotiatePlayback(
+        { ...sdr, videoIsInterlaced: true },
+        { ...capable, canPlayInterlaced: false },
+      );
+
+      expect(plan.video.reason.code).toBe('InterlacedVideoNotSupported');
+    });
+
+    it('transcodes more reference frames than the decoder can hold', () => {
+      const plan = negotiatePlayback(
+        { ...sdr, videoRefFrames: 9 },
+        { ...capable, maxRefFrames: 4 },
+      );
+
+      expect(plan.video.reason.code).toBe('RefFramesNotSupported');
+    });
+
+    it('transcodes non-square pixels for a client that shows every picture square', () => {
+      const plan = negotiatePlayback(
+        { ...sdr, videoPixelAspect: '4/3' },
+        { ...capable, canPlayAnamorphic: false },
+      );
+
+      expect(plan.video.reason.code).toBe('AnamorphicVideoNotSupported');
+    });
+
+    it('leaves square pixels alone even where the client cannot rotate', () => {
+      const plan = negotiatePlayback(
+        { ...sdr, videoPixelAspect: '1/1' },
+        { ...capable, canPlayAnamorphic: false },
+      );
+
+      expect(plan.video.kind).toBe('passthrough');
+    });
+
+    it('transcodes rotated video for a client that cannot turn it back', () => {
+      const plan = negotiatePlayback(
+        { ...sdr, videoRotationDegrees: 90 },
+        { ...capable, canRotate: false },
+      );
+
+      expect(plan.video.reason.code).toBe('VideoRotationNotSupported');
+    });
+
+    it('treats a rotation of a full turn as no rotation', () => {
+      const plan = negotiatePlayback(
+        { ...sdr, videoRotationDegrees: 360 },
+        { ...capable, canRotate: false },
+      );
+
+      expect(plan.video.kind).toBe('passthrough');
+    });
+
+    it('passes through every fact the client stated no limit on', () => {
+      const plan = negotiatePlayback(
+        {
+          ...sdr,
+          videoLevel: 186,
+          videoFrameRate: 120,
+          videoRefFrames: 16,
+          videoPixelAspect: '4/3',
+          videoRotationDegrees: 90,
+        },
+        capable,
+      );
+
+      expect(plan.video.kind).toBe('passthrough');
+    });
+
+    it('transcodes a sample rate above what the client accepts', () => {
+      const highRate = {
+        ...sdr,
+        audioStreams: [{ ...media.audioStreams[0]!, sampleRate: 96000 }],
+      };
+
+      const plan = negotiatePlayback(highRate, { ...capable, maxAudioSampleRate: 48000 });
+
+      expect(plan.audio.reason.code).toBe('AudioSampleRateNotSupported');
+    });
+
+    it('transcodes an audio profile the client cannot decode', () => {
+      const highEfficiency = {
+        ...sdr,
+        audioStreams: [{ ...media.audioStreams[0]!, profile: 'HE-AAC' }],
+      };
+
+      const plan = negotiatePlayback(highEfficiency, {
+        ...capable,
+        unsupportedAudioProfiles: ['HE-AAC'],
+      });
+
+      expect(plan.audio.reason.code).toBe('AudioProfileNotSupported');
+    });
   });
 
   it('tone maps to SDR only when the client cannot render the source range', () => {

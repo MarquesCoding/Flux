@@ -21,6 +21,7 @@ type StoredItem = {
   externalId: string | null;
   videoBitDepth: number | null;
   canCopySegments: boolean | null;
+  videoFrameRate: number | null;
 };
 
 type MediaRow = {
@@ -95,7 +96,8 @@ const selectChanged = (
       existing.sizeBytes !== file.sizeBytes ||
       existing.modifiedAtMs !== file.modifiedAtMs ||
       existing.videoBitDepth === null ||
-      existing.canCopySegments === null
+      existing.canCopySegments === null ||
+      existing.videoFrameRate === null
     );
   });
 

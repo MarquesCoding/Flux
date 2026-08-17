@@ -22,6 +22,7 @@ import {
   sendPresenceHeartbeat,
 } from '@FluxWeb/playback/startPlaybackSession';
 import { attachShaka, CRITICAL } from '@FluxWeb/playback/attachShaka';
+import type { DeliveredFormat } from '@FluxWeb/playback/attachShaka';
 import {
   describePlaybackFailure,
   PlaybackEngineErrorSchema,
@@ -181,8 +182,10 @@ const VideoPlayer = ({
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isShowingStats, setIsShowingStats] = useState(false);
+  const [dismissedWarnings, setDismissedWarnings] = useState<readonly string[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [health, setHealth] = useState<PlaybackHealth>(EMPTY_HEALTH);
+  const [delivered, setDelivered] = useState<DeliveredFormat | null>(null);
   const [isIdle, setIsIdle] = useState(false);
   const pointRef = useRef<{ x: number; y: number } | null>(null);
   const [activity, setActivity] = useState(0);
@@ -191,6 +194,16 @@ const VideoPlayer = ({
   const [selectedSubtitleId, setSelectedSubtitleId] = useState(SUBTITLES_OFF);
   const [captionStyle, setCaptionStyle] = useState(readCaptionStyle);
   const [subtitleOffset, setSubtitleOffset] = useState(0);
+
+  const sessionId = session?.sessionId ?? null;
+
+  const visibleWarnings = (session?.warnings ?? []).filter(
+    (warning) => !dismissedWarnings.includes(warning),
+  );
+
+  useEffect(() => {
+    setDismissedWarnings([]);
+  }, [sessionId]);
   const appliedOffsetRef = useRef(0);
   const [segments, setSegments] = useState<MediaSegment[]>([]);
   const [selectedAudioIndex, setSelectedAudioIndex] = useState<number | null>(null);
@@ -228,6 +241,7 @@ const VideoPlayer = ({
     };
   }, [castNote]);
   const releaseRef = useRef<(() => Promise<void>) | null>(null);
+  const deliveredRef = useRef<(() => DeliveredFormat | null) | null>(null);
   const castContextRef = useRef<CastContext | null>(null);
 
   const popOut = useCallback(() => {
@@ -417,8 +431,9 @@ const VideoPlayer = ({
 
     const at = element.currentTime;
 
-    void attachShaka({ element, manifestUrl: session.delivery.manifestUrl }).then((teardown) => {
-      releaseRef.current = teardown;
+    void attachShaka({ element, manifestUrl: session.delivery.manifestUrl }).then((attached) => {
+      releaseRef.current = attached.detach;
+      deliveredRef.current = attached.readDelivered;
       element.currentTime = at;
       start(element);
     });
@@ -652,7 +667,7 @@ const VideoPlayer = ({
         if (outcome.session.delivery.kind === 'direct') {
           element.src = outcome.session.delivery.url;
         } else {
-          teardown = await attachShaka({
+          const attached = await attachShaka({
             element,
             manifestUrl: outcome.session.delivery.manifestUrl,
             startSeconds: request.startSeconds,
@@ -666,7 +681,9 @@ const VideoPlayer = ({
             },
           });
 
-          releaseRef.current = teardown;
+          teardown = attached.detach;
+          releaseRef.current = attached.detach;
+          deliveredRef.current = attached.readDelivered;
         }
 
         if (request.startSeconds > 0 && outcome.session.delivery.kind === 'direct') {
@@ -844,6 +861,7 @@ const VideoPlayer = ({
 
       if (element !== null) {
         setHealth(readPlaybackHealth(element));
+        setDelivered(deliveredRef.current?.() ?? null);
       }
     };
 
@@ -1374,6 +1392,7 @@ const VideoPlayer = ({
               session={session}
               detail={detail}
               health={health}
+              delivered={delivered}
               sessionStartSeconds={request.startSeconds}
               onClose={() => {
                 setIsShowingStats(false);
@@ -1512,12 +1531,24 @@ const VideoPlayer = ({
         </div>
       </div>
 
-      {session === null || session.warnings.length === 0 ? null : (
+      {visibleWarnings.length === 0 ? null : (
         <ul className="flex flex-col gap-1 rounded-md border border-border p-3 text-sm text-text-muted">
-          {session.warnings.map((warning) => (
+          {visibleWarnings.map((warning) => (
             <li key={warning} className="flex items-start gap-2">
               <RiAlertLine size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
-              {warning}
+              <span className="min-w-0 flex-1">{warning}</span>
+
+              <Button
+                isIconOnly
+                variant="ghost"
+                size="sm"
+                label="Dismiss this warning"
+                onClick={() => {
+                  setDismissedWarnings((dismissed) => [...dismissed, warning]);
+                }}
+              >
+                <RiCloseLine size={14} aria-hidden />
+              </Button>
             </li>
           ))}
         </ul>

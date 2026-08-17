@@ -20,7 +20,8 @@
     "format:check": "prettier --check .",
     "rust:check": "cargo clippy --all-targets -- -D warnings && cargo fmt --check",
     "rust:test": "cargo test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "fixtures:sync": "tsx tools/fixtures/syncFixtures.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",

@@ -391,3 +391,42 @@ describe('forcedAccel', () => {
     expect(outcome.kind).toBe('ok');
   });
 });
+
+describe('the range the output really carries', () => {
+  const hdrTranscode: PlaybackPlan = {
+    ...directPlay,
+    video: {
+      kind: 'transcode',
+      codec: 'h264',
+      range: 'SDR',
+      maxBitrateKbps: 8000,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      reason,
+    },
+  };
+
+  it('stays HDR when the server cannot tone map it away', () => {
+    const outcome = build(hdrTranscode, noToneMapping, 'DolbyVision');
+
+    expect(outcome.kind === 'ok' && outcome.deliveredRange).toBe('DolbyVision');
+  });
+
+  it('says so rather than claiming a conversion it did not do', () => {
+    const outcome = build(hdrTranscode, noToneMapping, 'HDR10');
+
+    expect(outcome.kind === 'ok' && outcome.warnings[0]).toContain('keeps its original range');
+  });
+
+  it('becomes SDR once the conversion can actually be done', () => {
+    const outcome = build(hdrTranscode, capabilities, 'HDR10');
+
+    expect(outcome.kind === 'ok' && outcome.deliveredRange).toBe('SDR');
+  });
+
+  it('is the target where nothing needed converting', () => {
+    const outcome = build(hdrTranscode, noToneMapping, 'SDR');
+
+    expect(outcome.kind === 'ok' && outcome.deliveredRange).toBe('SDR');
+  });
+});

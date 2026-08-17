@@ -27,12 +27,20 @@ const ProbeVideoSchema = z.object({
   range: z.string(),
   bitrateKbps: z.number().int().nullable(),
   bitDepth: z.number().int().nullable(),
+  level: z.number().int().nullable().default(null),
+  frameRate: z.number().nullable().default(null),
+  isInterlaced: z.boolean().default(false),
+  refFrames: z.number().int().nullable().default(null),
+  pixelAspect: z.string().nullable().default(null),
+  rotationDegrees: z.number().int().nullable().default(null),
 });
 
 const ProbeAudioSchema = z.object({
   index: z.number().int(),
   codec: z.string(),
   channels: z.number().int(),
+  sampleRate: z.number().int().nullable().default(null),
+  profile: z.string().nullable().default(null),
   language: z.string().nullable(),
   title: z.string().nullable().default(null),
   isDefault: z.boolean().default(false),

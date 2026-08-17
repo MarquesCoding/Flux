@@ -28,21 +28,9 @@ use flux_transcoder::transcode_plan::{
     AudioAction, HardwareAccel, SegmentContainer, SessionSpec, SubtitleAction, VideoAction,
 };
 
-fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
-}
+mod common;
 
-fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
-}
-
-fn fixture_dir() -> PathBuf {
-    let dir = std::env::temp_dir().join("flux-fixtures");
-
-    std::fs::create_dir_all(&dir).expect("creates the fixture directory");
-
-    dir
-}
+use common::{building_name, ffmpeg, ffprobe, fixture_dir};
 
 /// A file long enough that it cannot be encoded inside a client's patience.
 ///
@@ -52,6 +40,7 @@ fn fixture_dir() -> PathBuf {
 /// lands at the end never lands at all.
 fn long_source_file() -> PathBuf {
     let path = fixture_dir().join("session-source-long.mp4");
+    let building = fixture_dir().join(building_name("session-source-long.mp4"));
 
     if path.exists() {
         return path;
@@ -76,7 +65,7 @@ fn long_source_file() -> PathBuf {
             "50",
         ])
         .arg("-y")
-        .arg(&path)
+        .arg(&building)
         .status()
         .expect("runs ffmpeg");
 
@@ -85,12 +74,15 @@ fn long_source_file() -> PathBuf {
         "ffmpeg could not generate the long source fixture"
     );
 
+    std::fs::rename(&building, &path).expect("moves the finished fixture into place");
+
     path
 }
 
 /// A short real file with video and audio.
 fn source_file() -> PathBuf {
     let path = fixture_dir().join("session-source.mp4");
+    let building = fixture_dir().join(building_name("session-source.mp4"));
 
     if path.exists() {
         return path;
@@ -125,7 +117,7 @@ fn source_file() -> PathBuf {
             "2",
         ])
         .arg("-y")
-        .arg(&path)
+        .arg(&building)
         .status()
         .expect("runs ffmpeg");
 
@@ -133,6 +125,8 @@ fn source_file() -> PathBuf {
         status.success(),
         "ffmpeg could not generate the source fixture"
     );
+
+    std::fs::rename(&building, &path).expect("moves the finished fixture into place");
 
     path
 }
