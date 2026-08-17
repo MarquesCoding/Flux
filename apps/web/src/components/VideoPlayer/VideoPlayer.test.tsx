@@ -1956,6 +1956,74 @@ describe('when the player is in a watch party', () => {
     expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(before);
   });
 
+  it('catches up to where the room already is, rather than starting from the beginning', async () => {
+    const { element, view, full } = await inParty();
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={{ ...full, referenceSeconds: 400 }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(400);
+    });
+  });
+
+  it('catches up only once, leaving drift correction to handle the rest', async () => {
+    const { element, view, full } = await inParty();
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={{ ...full, referenceSeconds: 400 }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(400);
+    });
+
+    if (element instanceof HTMLVideoElement) {
+      element.currentTime = 402;
+    }
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={{ ...full, referenceSeconds: 500 }}
+      />,
+    );
+
+    expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(402);
+  });
+
+  it('does not jump for a room it is already sitting with', async () => {
+    const { element, view, full } = await inParty();
+
+    if (element instanceof HTMLVideoElement) {
+      element.currentTime = 100;
+    }
+
+    view.rerender(
+      <VideoPlayer
+        media={media}
+        onClose={vi.fn()}
+        isImmersive
+        party={{ ...full, referenceSeconds: 101 }}
+      />,
+    );
+
+    expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(100);
+  });
+
   it('applies a command the party sent', async () => {
     const { element, view, full } = await inParty();
 

@@ -100,6 +100,10 @@ const HEALTH_INTERVAL_MILLISECONDS = 500;
 
 const PARTY_REPORT_EVERY_MS = 1000;
 
+const CATCH_UP_BEYOND_SECONDS = 2;
+
+const HAVE_METADATA = 1;
+
 const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000;
 
 const PRESENCE_HEALTH_INTERVAL_MILLISECONDS = 1000;
@@ -165,6 +169,32 @@ const VideoPlayer = ({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const appliedSequenceRef = useRef(-1);
+  const hasCaughtUpRef = useRef(false);
+
+  useEffect(() => {
+    const reference = party?.referenceSeconds ?? null;
+    const element = videoRef.current;
+
+    if (
+      party === undefined ||
+      reference === null ||
+      element === null ||
+      hasCaughtUpRef.current ||
+      element.readyState < HAVE_METADATA
+    ) {
+      return;
+    }
+
+    hasCaughtUpRef.current = true;
+
+    if (Math.abs(reference - element.currentTime) > CATCH_UP_BEYOND_SECONDS) {
+      element.currentTime = reference;
+    }
+
+    element.play().catch(() => {
+      hasCaughtUpRef.current = false;
+    });
+  }, [party, party?.referenceSeconds]);
 
   useEffect(() => {
     const command = party?.command ?? null;

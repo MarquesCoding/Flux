@@ -1,7 +1,7 @@
 import type { MoodLight } from '@FluxUI/MoodBackground.types';
 import type { ShowSummary } from '@FluxContracts/schemas/Show';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { groupVariants } from '@FluxUI/animations/reveal';
 import { SetupWizard } from '@FluxWeb/components/SetupWizard/SetupWizard';
@@ -103,6 +103,27 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   const [askingAbout, setAskingAbout] = useState<MediaSummary | null>(null);
 
   const watchParty = useWatchParty();
+
+  const partyPlayback = useMemo(
+    () =>
+      watchParty.party === null
+        ? null
+        : {
+            command: watchParty.command,
+            referenceSeconds: watchParty.referenceSeconds,
+            jitterMs: watchParty.jitterMs,
+            onReport: watchParty.report,
+            onCommand: watchParty.send,
+          },
+    [
+      watchParty.party,
+      watchParty.command,
+      watchParty.referenceSeconds,
+      watchParty.jitterMs,
+      watchParty.report,
+      watchParty.send,
+    ],
+  );
 
   const joinedRef = useRef<string | null>(null);
 
@@ -493,19 +514,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
           media={playing}
           startSeconds={startAt}
           isImmersive
-          {...(watchParty.party === null
-            ? {}
-            : {
-                party: {
-                  command: watchParty.command,
-                  referenceSeconds: watchParty.referenceSeconds,
-                  jitterMs: watchParty.jitterMs,
-                  onReport: watchParty.report,
-                  onCommand: (asked) => {
-                    watchParty.send(asked);
-                  },
-                },
-              })}
+          {...(partyPlayback === null ? {} : { party: partyPlayback })}
           episodes={
             playing.seriesTitle === null || playing.seriesTitle === undefined
               ? []
@@ -576,6 +585,25 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
             void readProgress();
           }}
         />
+
+        {watchParty.party !== null && (
+          <div className="pointer-events-auto absolute right-4 top-16 z-50 w-80 max-w-[calc(100vw-2rem)]">
+            <PartyPanel
+              party={watchParty.party}
+              meConnectionId={watchParty.meConnectionId}
+              onSetRole={watchParty.setRole}
+              onLoosen={watchParty.loosen}
+              onLeave={() => {
+                watchParty.leave();
+                go({ playing: null, party: null, inspecting: playing.id });
+              }}
+              invitation={invitationTo(watchParty.party.id, watchParty.party.mediaId)}
+              onCopyInvitation={async (invitation) => {
+                await navigator.clipboard.writeText(invitation);
+              }}
+            />
+          </div>
+        )}
       </motion.main>
     );
   }
