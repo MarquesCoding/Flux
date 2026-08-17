@@ -180,6 +180,7 @@ const viewerProfile = pgTable(
     avatarStyle: text('avatarStyle'),
     avatarSeed: text('avatarSeed'),
     photoPath: text('photoPath'),
+    askStillWatchingAfter: integer('askStillWatchingAfter').notNull().default(4),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
