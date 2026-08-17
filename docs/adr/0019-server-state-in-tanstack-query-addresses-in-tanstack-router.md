@@ -67,25 +67,51 @@ already says when the media, the notifications, the profiles or the sessions
 changed, so being told replaces polling, and a reconnection invalidates
 everything because a sleeping tab missed whatever happened.
 
-**The router owns the address and the history.** `buildRouter` declares the
-addresses Flux serves — `/`, `/watch/$mediaId`, `/share/$token`,
-`/media/$mediaId`, and a splat for the sections — and validates what each
-carries through one Zod schema, `readSearch`. `usePlace` reads the router's
-history and turns it into the `Place` the shell reasons in; nothing touches
-`window.location` or `history.pushState` directly.
+**The router owns the address and the history.** `buildRouter` declares every
+address Flux serves and validates what each carries through one Zod schema,
+`readSearch`. `usePlace` reads the router's history and turns it into the
+`Place` the application reasons in; nothing touches `window.location` or
+`history.pushState` directly.
 
-**Every address draws the same shell.** The route tree says which addresses are
-real; it does not decide what is drawn. Flux is one screen with a player and a
-stack of dialogs over it, and moving from the films page to something playing
-must not tear the player down and build it again.
+**Every branch of the shell is a route, in three layers.** The layers exist
+because three things have different lifetimes:
 
-**Tests mount both.** `renderInACache` and `renderHookInACache` wrap what is
-being tested in `CacheScope`, which holds a fresh cache and a router per render
-so that no test is answered from what an earlier test asked for.
+- the **root** decides whether this server has been set up at all;
+- inside it, everything but a share link sits behind **the way in**, which is
+  also where what the pages share is held — who is watching, what has been seen,
+  how far through it they are, and the watch party;
+- inside that, the **chrome** holds the dock, the bell and the dialogs, and the
+  sections are its children.
+
+So moving between sections changes the page and leaves the chrome, the dialogs
+and anything playing alone, which is what the old ternary achieved by never
+unmounting anything.
+
+**A page reads what it shares from the layer above it, and everything else from
+the cache.** `useShell` gives a page the handful of things a cache cannot answer
+— what this tab has seen, what the player has reported this minute, the party.
+Favourites, ratings, progress, libraries and notifications are queries, so a
+page asks for them itself rather than being handed them.
+
+**Every page but the home page is loaded when it is first asked for**, and each
+route match is its own error boundary.
+
+**Tests mount what the thing under test needs.** `renderInACache` and
+`renderHookInACache` give a component a fresh cache and router; `renderInAShell`
+adds a shell for a page; `renderTheApp` mounts the whole router, which is the
+only honest way to test a layout that renders an outlet.
 
 ## Consequences
 
 ### What this gets us
+
+The main bundle drops from 1.54 MB to 558 kB. An account that never opens the
+admin page never downloads its 453 kB, and nothing downloads the player or Shaka
+until something is played.
+
+A page that throws draws its own apology instead of taking the application with
+it, because each route match is its own error boundary. The browser puts the
+scroll back where it was, rather than `scrollToTopOf` being called by hand.
 
 Resting on a card is what makes its dialog open with the text already there,
 because they are the same key. Leaving a page and coming back shows what was
@@ -109,10 +135,16 @@ Optimistic writes are now cache writes, which means a read in flight has to be
 called off (`cancelQueries`) or it lands after the write and undoes it. That is
 a rule to remember at each such site rather than something the types enforce.
 
-Tests see one more asynchronous hop before anything renders, because a query
-resolves through the cache rather than through a promise the component awaited.
-Several suites needed an extra flush; a few synchronous assertions became
-`findBy`.
+Tests see two more asynchronous hops before anything renders: a query resolves
+through the cache rather than through a promise the component awaited, and the
+router loads its first match before drawing anything. Several suites needed an
+extra flush, a few synchronous assertions became `findBy`, and a test that fired
+a socket event immediately after rendering now waits for the listener first.
+
+A page is now three files rather than a branch in one: the page, its test, and
+whatever it reads from the shell. That is more files for the same behaviour, and
+worth it only because the branch it replaced was one of six in a thousand-line
+component.
 
 ### What this forecloses
 
@@ -120,10 +152,15 @@ Reading server state anywhere other than through a query module. A component
 that calls a `fetch*` function directly reintroduces exactly the duplication
 this removes, and there is no lint rule that catches it — only review.
 
-Route-level loaders, prefetching on hover through the router, and per-route code
-splitting are all available and none are used, because the shell draws every
-address. Taking them up means splitting the shell into route components first,
-which is a larger change than this one and should be its own decision.
+Holding cross-page state anywhere other than the way-in layer. `useShell` is
+deliberately small and every addition to it is state that could not be a query;
+a page that wants to share something with another page should ask whether the
+cache can answer it first.
+
+Route loaders are available and not used. A loader fetches before the route
+renders, which is the right shape for a page whose whole content is one query —
+but Flux's pages compose several, and the cache already shows the last answer
+while it checks. The gain would be smaller than the coupling.
 
 ## Alternatives considered
 
@@ -136,21 +173,25 @@ half of the same problem: the shell was reading `window.location` and parsing it
 by hand for the same reason components were fetching by hand. Doing one and not
 the other leaves the codebase with two answers to "where does state live".
 
-**Split the shell into route components.** The honest route-per-page migration
-means taking a thousand-line shell holding the player, the watch party and six
-dialogs and dividing it across routes. That is a rewrite of the application's
-structure, not a migration of its routing, and it would have landed on top of an
-already large change with no tests written for the new arrangement.
-
 **Keep polling instead of invalidating from the socket.** The socket already
 carries the news; a timer that guesses is strictly worse than being told, and
 Flux already pays for the connection.
 
+**Keep the sections in one component and lazily import them by hand.** That
+would have bought the code splitting without the route tree, and left the
+address, the history and the error boundaries where they were — three of the
+four reasons for doing this at all.
+
 ## Revisit when
 
-The shell is split into route components — at that point route loaders and
-per-route prefetching become worth having, and `usePlace` should give way to the
-router's own typed params.
+`Place` is the last hand-rolled piece: it is a shape the application invented,
+mapped to and from the address by `readLocation` and `writeLocation`. Now that
+every section is a route, it could give way to the router's own typed params and
+search, which would make `go({ section: 'shows' })` a typed navigation rather
+than a partial object that would accept a typo.
+
+A page grows content that is one query deep and slow to arrive — that is the
+case a route loader is for.
 
 A screen needs data the cache should not hold: anything per-keystroke, anything
 enormous, or anything the server expects to be read exactly once.
