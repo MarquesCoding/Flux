@@ -427,6 +427,37 @@ describe('App routing', () => {
     });
   });
 
+  it('opens the search page from the dock, and searches from the address', async () => {
+    window.history.replaceState(null, '', '/search?q=arrival');
+
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    renderInACache(<App />);
+
+    await arrive();
+
+    expect(await screen.findByRole('searchbox', { name: /Search/ })).toHaveValue('arrival');
+  });
+
+  it('opens the programme an address names', async () => {
+    window.history.replaceState(null, '', '/?show=ted');
+
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    renderInACache(<App />);
+
+    await arrive();
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/shows'), expect.anything());
+  });
+
+  it('shows what is waiting on the bell', async () => {
+    serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
+    renderInACache(<App />);
+
+    await arrive();
+
+    expect(await screen.findByRole('button', { name: /Notifications/ })).toBeInTheDocument();
+  });
+
   it('moves to the section chosen from the dock', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });

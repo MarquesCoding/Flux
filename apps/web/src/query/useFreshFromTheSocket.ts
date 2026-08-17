@@ -7,6 +7,8 @@ import { sessionQueries } from '@FluxWeb/query/sessionQueries';
 import { adminQueries } from '@FluxWeb/query/adminQueries';
 import type { RealtimeClient } from '@FluxWeb/realtime/createRealtimeClient';
 
+type SaysWhatChanged = Pick<RealtimeClient, 'subscribe' | 'onResumed'>;
+
 /**
  * Throws away what the server has just said is out of date.
  *
@@ -18,9 +20,9 @@ import type { RealtimeClient } from '@FluxWeb/realtime/createRealtimeClient';
  * A reconnection invalidates everything, because a tab that was asleep missed whatever happened
  * while it was gone and has no way to find out what.
  *
- * @param client - The shared socket, injectable for tests.
+ * @param client - Whatever says what changed, which is the shared socket.
  */
-const useFreshFromTheSocket = (client: RealtimeClient = getRealtimeClient()): void => {
+const useFreshFromTheSocket = (client: SaysWhatChanged = getRealtimeClient()): void => {
   const cache = useQueryClient();
 
   useEffect(() => {
