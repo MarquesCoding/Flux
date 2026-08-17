@@ -126,8 +126,14 @@ const PANELS: readonly { id: PanelId; label: string }[] = SECTIONS.flatMap((sect
  * Reads every job's triggers at once and keys them by job, so that a list of jobs can show what makes
  * each run without a request per row.
  */
-const readJobSchedules = async (): Promise<Map<string, JobTrigger[]>> =>
-  new Map((await fetchJobSchedules()).map((entry) => [entry.kind, entry.triggers]));
+const readJobSchedules = async (): Promise<{
+  byKind: Map<string, JobTrigger[]>;
+  timezone: string | null;
+}> => {
+  const { schedules, timezone } = await fetchJobSchedules();
+
+  return { byKind: new Map(schedules.map((entry) => [entry.kind, entry.triggers])), timezone };
+};
 
 /**
  * The server as the person running it sees it: the dashboard, what is being watched, the libraries
@@ -165,6 +171,7 @@ const AdminArea = ({
   const [unreachable, setUnreachable] = useState<ReadonlySet<string>>(new Set());
   const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
   const [jobSchedules, setJobSchedules] = useState<Map<string, JobTrigger[]>>(new Map());
+  const [jobsTimezone, setJobsTimezone] = useState<string | null>(null);
   const {
     progress: scanProgress,
     isScanningAll,
@@ -232,7 +239,10 @@ const AdminArea = ({
       loadInto('libraries', fetchLibraries, setLibraries),
       loadInto('sessions', fetchActiveSessions, setSessions),
       loadInto('jobs', fetchJobDefinitions, setJobDefinitions),
-      loadInto('schedules', readJobSchedules, setJobSchedules),
+      loadInto('schedules', readJobSchedules, ({ byKind, timezone }) => {
+        setJobSchedules(byKind);
+        setJobsTimezone(timezone);
+      }),
     ]);
   }, [loadInto, readMedia]);
 
@@ -282,7 +292,7 @@ const AdminArea = ({
     const added = await addJobTrigger(kind, trigger);
 
     if (added === null) {
-      setJobSchedules(await readJobSchedules());
+      setJobSchedules((await readJobSchedules()).byKind);
 
       return;
     }
@@ -299,7 +309,7 @@ const AdminArea = ({
     );
 
     if (!(await removeJobTrigger(kind, triggerId))) {
-      setJobSchedules(await readJobSchedules());
+      setJobSchedules((await readJobSchedules()).byKind);
     }
   };
 
@@ -674,6 +684,7 @@ const AdminArea = ({
                 monitor={monitor}
                 viewingJobKind={viewingJobKind}
                 schedules={jobSchedules}
+                schedulesTimezone={jobsTimezone}
                 onRun={startJob}
                 onStop={stopJob}
                 onOpenSchedule={openJobSchedule}

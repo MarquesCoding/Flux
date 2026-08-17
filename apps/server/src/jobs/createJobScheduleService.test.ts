@@ -4,10 +4,13 @@ import { createJobScheduleService } from './createJobScheduleService';
 import { createMemoryJobTriggerStore } from './createMemoryJobTriggerStore';
 import type { JobQueue } from './JobQueue';
 
-const build = (overrides: Partial<JobQueue> = {}) =>
+const ZONE = 'Europe/London';
+
+const build = (overrides: Partial<JobQueue> = {}, timezone = ZONE) =>
   createJobScheduleService({
     store: createMemoryJobTriggerStore(),
     jobs: createInertJobQueue(overrides),
+    readTimezone: () => Promise.resolve(timezone),
   });
 
 describe('createJobScheduleService', () => {
@@ -24,7 +27,60 @@ describe('createJobScheduleService', () => {
 
     const added = await schedules.add('library.scan', { kind: 'everyHours', hours: 6 });
 
-    expect(setSchedule).toHaveBeenCalledWith('library.scan.scheduled', added?.id, '0 */6 * * *');
+    expect(setSchedule).toHaveBeenCalledWith(
+      'library.scan.scheduled',
+      added?.id,
+      '0 */6 * * *',
+      ZONE,
+    );
+  });
+
+  it('schedules in the configured zone rather than leaving pg-boss to assume UTC', async () => {
+    const setSchedule = vi.fn(() => Promise.resolve());
+    const schedules = build({ setSchedule }, 'America/New_York');
+
+    const added = await schedules.add('library.scan', {
+      kind: 'weekly',
+      dayOfWeek: 0,
+      hour: 6,
+      minute: 0,
+    });
+
+    expect(setSchedule).toHaveBeenCalledWith(
+      'library.scan.scheduled',
+      added?.id,
+      expect.any(String),
+      'America/New_York',
+    );
+  });
+
+  it('re-registers existing triggers when the zone changes', async () => {
+    const setSchedule = vi.fn(() => Promise.resolve());
+    let zone = 'UTC';
+    const schedules = createJobScheduleService({
+      store: createMemoryJobTriggerStore(),
+      jobs: createInertJobQueue({ setSchedule }),
+      readTimezone: () => Promise.resolve(zone),
+    });
+
+    await schedules.add('library.scan', { kind: 'daily', hour: 3, minute: 0 });
+
+    expect(setSchedule).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.any(String),
+      'UTC',
+    );
+
+    zone = 'Europe/London';
+    await schedules.sync();
+
+    expect(setSchedule).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.any(String),
+      'Europe/London',
+    );
   });
 
   it('schedules a server-wide kind on its own queue', async () => {
@@ -37,7 +93,12 @@ describe('createJobScheduleService', () => {
       minute: 0,
     });
 
-    expect(setSchedule).toHaveBeenCalledWith('server.cleanupSessions', added?.id, '0 3 * * *');
+    expect(setSchedule).toHaveBeenCalledWith(
+      'server.cleanupSessions',
+      added?.id,
+      '0 3 * * *',
+      ZONE,
+    );
   });
 
   it('keeps several triggers on one job side by side', async () => {
@@ -76,9 +137,10 @@ describe('createJobScheduleService', () => {
         clearSchedule,
         listSchedules: () =>
           Promise.resolve([
-            { queueName: 'library.scan.scheduled', key: 'gone', cron: '0 3 * * *' },
+            { queueName: 'library.scan.scheduled', key: 'gone', cron: '0 3 * * *', timezone: ZONE },
           ]),
       }),
+      readTimezone: () => Promise.resolve(ZONE),
     });
 
     await schedules.add('library.scan', { kind: 'daily', hour: 3, minute: 0 });
@@ -93,8 +155,11 @@ describe('createJobScheduleService', () => {
       jobs: createInertJobQueue({
         clearSchedule,
         listSchedules: () =>
-          Promise.resolve([{ queueName: 'somebody.else', key: 'theirs', cron: '0 3 * * *' }]),
+          Promise.resolve([
+            { queueName: 'somebody.else', key: 'theirs', cron: '0 3 * * *', timezone: ZONE },
+          ]),
       }),
+      readTimezone: () => Promise.resolve(ZONE),
     });
 
     await schedules.sync();
