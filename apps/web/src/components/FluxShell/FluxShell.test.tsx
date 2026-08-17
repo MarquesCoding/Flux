@@ -47,13 +47,19 @@ const A_NOTICE = {
   readAt: null,
 };
 
-const ok = (body: object | null) => ({ ok: true, status: 200, json: () => Promise.resolve(body) });
+const ok = (body: object | null) =>
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
 
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
   fetchMock.mockReset();
 
-  fetchMock.mockImplementation((input: string) => {
+  fetchMock.mockImplementation((asked: string) => {
+    const input = new URL(asked, 'http://localhost:3000').pathname;
+
     if (input === '/api/setup/status') {
       return Promise.resolve(ok(SETUP));
     }

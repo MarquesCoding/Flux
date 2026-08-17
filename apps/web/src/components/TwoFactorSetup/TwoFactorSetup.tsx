@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { QrCode } from '@FluxUI/QrCode';
 import { TextField } from '@FluxUI/TextField';
-import { TwoFactorEnableResponseSchema } from '@FluxContracts/schemas/TwoFactor';
+import { disableTwoFactor, enableTwoFactor, verifyTotp } from '@FluxWeb/session/auth';
 import { readTotpSecret, formatTotpSecret } from './readTotpSecret';
 import type { Enrollment, SetupStage, TwoFactorSetupProps } from './TwoFactorSetup.types';
 
@@ -41,24 +41,18 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
     setIsBusy(true);
 
     try {
-      const response = await fetch('/api/auth/two-factor/enable', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
+      const started = await enableTwoFactor(password);
 
-      if (!response.ok) {
+      if (started === null) {
         setError('That password is incorrect.');
 
         return;
       }
 
-      const body = TwoFactorEnableResponseSchema.parse(await response.json());
-
       setEnrollment({
-        totpURI: body.totpURI,
-        secret: readTotpSecret(body.totpURI),
-        backupCodes: body.backupCodes,
+        totpURI: started.totpURI,
+        secret: readTotpSecret(started.totpURI),
+        backupCodes: started.backupCodes,
       });
       setPassword('');
       setStage('showSecret');
@@ -80,13 +74,7 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
     setIsBusy(true);
 
     try {
-      const response = await fetch('/api/auth/two-factor/verify-totp', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ code: code.trim() }),
-      });
-
-      if (!response.ok) {
+      if (!(await verifyTotp(code.trim()))) {
         setError('That code is not valid. Try the next one.');
 
         return;
@@ -112,13 +100,7 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
     setIsBusy(true);
 
     try {
-      const response = await fetch('/api/auth/two-factor/disable', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-
-      if (!response.ok) {
+      if (!(await disableTwoFactor(password))) {
         setError('That password is incorrect.');
 
         return;

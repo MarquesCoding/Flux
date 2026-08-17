@@ -9,11 +9,8 @@ const deletePasskeyMock = vi.hoisted(() => vi.fn());
 const renamePasskeyMock = vi.hoisted(() => vi.fn());
 const describeUnavailabilityMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/passkeys/registerPasskey', () => ({
+vi.mock('@FluxWeb/session/auth', () => ({
   registerPasskey: registerPasskeyMock,
-}));
-
-vi.mock('@FluxWeb/passkeys/listPasskeys', () => ({
   listPasskeys: listPasskeysMock,
   deletePasskey: deletePasskeyMock,
   renamePasskey: renamePasskeyMock,
