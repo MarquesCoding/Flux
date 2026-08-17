@@ -1086,6 +1086,29 @@ describe('VideoPlayer', () => {
     );
   });
 
+  it('marks the track the server actually chose, not the first in the file', async () => {
+    const actor = userEvent.setup();
+    detailMock.mockResolvedValue(detailWithTwoAudioTracks);
+    startMock.mockResolvedValue({
+      kind: 'started',
+      session: {
+        ...startedSession,
+        plan: { ...transcodingPlan, audio: { kind: 'passthrough', streamIndex: 2, reason } },
+      },
+    });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    await settled();
+
+    await actor.click(screen.getByRole('button', { name: 'Settings' }));
+    await actor.click(await screen.findByRole('button', { name: /Audio track/ }));
+
+    expect(await screen.findByRole('menuitemradio', { name: /English/ })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+  });
+
   it('shows a forced track in the language being heard, without being asked', async () => {
     detailMock.mockResolvedValue(detailWithTwoAudioTracks);
     subtitlesMock.mockResolvedValue([

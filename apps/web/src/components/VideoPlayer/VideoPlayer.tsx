@@ -849,6 +849,16 @@ const VideoPlayer = ({
   }, [detail, session, subtitleTracks]);
 
   useEffect(() => {
+    const chosen = session?.plan.audio.streamIndex;
+
+    if (chosen === undefined || chosen === null) {
+      return;
+    }
+
+    setSelectedAudioIndex(chosen);
+  }, [session]);
+
+  useEffect(() => {
     const onChange = () => {
       setIsFullscreen(Boolean(document.fullscreenElement));
     };
