@@ -79,7 +79,10 @@ const jobs = () =>
   });
 
 /**
- * When those jobs are set to run.
+ * When those jobs are set to run, and the clock the server runs them on.
+ *
+ * The timezone travels with the schedule because it is a property of the schedule: a trigger that
+ * says 03:00 says nothing until you know whose 03:00 it is.
  *
  * @returns The query.
  */

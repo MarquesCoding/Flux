@@ -154,10 +154,16 @@ fn spawn_sweeper(registry: SessionRegistry) {
     });
 }
 
-async fn serve(registry: SessionRegistry, ffprobe: String) {
+async fn serve(registry: SessionRegistry, ffmpeg: String, ffprobe: String) {
     let journal = flux_transcoder::monitor::Journal::new();
 
     flux_transcoder::monitor::install_journal(journal.clone());
+
+    record(
+        LogLevel::Info,
+        "service",
+        &capability::describe_build(&ffmpeg, &capability::read_version(&ffmpeg).await),
+    );
 
     let state = AppState {
         registry: registry.clone(),
@@ -287,9 +293,9 @@ async fn main() {
             );
         }
         Some((command, _)) if command == "serve" => {
-            let registry = SessionRegistry::new(session_config(ffmpeg, ffprobe.clone()));
+            let registry = SessionRegistry::new(session_config(ffmpeg.clone(), ffprobe.clone()));
 
-            serve(registry, ffprobe).await;
+            serve(registry, ffmpeg, ffprobe).await;
         }
         _ => {
             println!("flux-transcoder {}", env!("CARGO_PKG_VERSION"));

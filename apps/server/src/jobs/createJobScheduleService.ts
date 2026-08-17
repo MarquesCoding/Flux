@@ -7,6 +7,7 @@ import type { JobTriggerStore } from './JobTriggerStore';
 type CreateJobScheduleServiceOptions = {
   store: JobTriggerStore;
   jobs: JobQueue;
+  readTimezone: () => Promise<string>;
 };
 
 /**
@@ -19,6 +20,7 @@ type CreateJobScheduleServiceOptions = {
 const createJobScheduleService = ({
   store,
   jobs,
+  readTimezone,
 }: CreateJobScheduleServiceOptions): JobScheduleService => {
   const ownedQueueNames = new Set(
     JOB_DEFINITIONS.map((definition) => scheduleQueueNameFor(definition.kind)),
@@ -28,6 +30,7 @@ const createJobScheduleService = ({
     JOB_DEFINITIONS.some((definition) => definition.kind === kind);
 
   const reconcile = async (): Promise<void> => {
+    const timezone = await readTimezone();
     const stored = await store.list();
     const wanted = new Map<string, { queueName: string; cron: string }>();
 
@@ -48,11 +51,13 @@ const createJobScheduleService = ({
     }
 
     for (const [key, { queueName, cron }] of wanted) {
-      await jobs.setSchedule(queueName, key, cron);
+      await jobs.setSchedule(queueName, key, cron, timezone);
     }
   };
 
   return {
+    timezone: readTimezone,
+
     list: async () => {
       const stored = await store.list();
 

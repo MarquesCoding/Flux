@@ -21,7 +21,7 @@ env:
   # The build Flux ships, rather than whatever the runner happens to carry. ADR-0009 pins it so a
   # transcode behaves the same everywhere, and a fixture generated against a different FFmpeg is a
   # different fixture.
-  FLUX_FFMPEG_VERSION: 8.1.2-2flux1
+  FLUX_FFMPEG_VERSION: 8.1.2-2flux2
   FLUX_FFMPEG_SUITE: bookworm
   FLUX_FFMPEG: /usr/lib/flux-ffmpeg/ffmpeg
   FLUX_FFPROBE: /usr/lib/flux-ffmpeg/ffprobe

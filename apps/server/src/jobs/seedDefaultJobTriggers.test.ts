@@ -16,6 +16,7 @@ const SETTINGS: ServerSettings = {
   pushPublicKey: '',
   pushPrivateKey: '',
   mediaDigestReadTo: null,
+  jobsTimezone: '',
 };
 
 const build = (seededJobTriggerKinds: string[] = []) => ({

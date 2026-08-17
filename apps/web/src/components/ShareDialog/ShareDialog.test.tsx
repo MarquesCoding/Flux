@@ -143,4 +143,39 @@ describe('sharing an episode', () => {
 
     expect(screen.queryByText('What to share')).not.toBeInTheDocument();
   });
+
+  it('shares the whole programme when that is what was chosen', async () => {
+    draw(episode);
+
+    await userEvent.click(screen.getByRole('button', { name: /What to share/ }));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', { name: 'The whole programme' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Make a link' }));
+
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalled();
+    });
+
+    expect(createMock.mock.calls[0]?.[0]?.kind).toBe('series');
+  });
+
+  it('copies the link somebody made, since it is shown only once', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+
+    vi.stubGlobal('navigator', { ...window.navigator, clipboard: { writeText } });
+
+    draw(episode);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Make a link' }));
+    await screen.findByDisplayValue('https://flux.example/share/a-token');
+
+    await userEvent.click(screen.getByRole('button', { name: /Copy/ }));
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('https://flux.example/share/a-token');
+    });
+
+    vi.unstubAllGlobals();
+  });
 });

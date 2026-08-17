@@ -9,6 +9,10 @@ import type { JobScheduleService } from './JobScheduleService';
  * it schedules ever runs.
  */
 const createMemoryJobScheduleService = (): JobScheduleService =>
-  createJobScheduleService({ store: createMemoryJobTriggerStore(), jobs: createInertJobQueue() });
+  createJobScheduleService({
+    store: createMemoryJobTriggerStore(),
+    jobs: createInertJobQueue(),
+    readTimezone: () => Promise.resolve('UTC'),
+  });
 
 export { createMemoryJobScheduleService };
