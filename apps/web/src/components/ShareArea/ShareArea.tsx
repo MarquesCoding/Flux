@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { RiLinkUnlinkM, RiPlayFill } from '@remixicon/react';
-import { Button } from '@FluxUI/Button';
+import { RiLinkUnlinkM } from '@remixicon/react';
 import { Spinner } from '@FluxUI/Spinner';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { openShare } from '@FluxWeb/sharing/fetchShares';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
+import { EpisodeRow } from '@FluxWeb/components/ShowDialog/components/EpisodeRow/EpisodeRow';
 import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { OpenedShare } from '@FluxWeb/sharing/fetchShares';
 import type { ShareAreaProps } from './ShareArea.types';
 
@@ -58,10 +56,6 @@ const ShareArea = ({ token, onPlay, resumeFor, name = 'Flux' }: ShareAreaProps) 
       abandoned = true;
     };
   }, [token]);
-
-  const start = (media: MediaSummary) => {
-    onPlay(media, resumeFor?.(media.id) ?? 0);
-  };
 
   if (standing.kind === 'reading') {
     return (
@@ -119,29 +113,16 @@ const ShareArea = ({ token, onPlay, resumeFor, name = 'Flux' }: ShareAreaProps) 
             Episodes
           </h2>
 
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-2">
             {[...share.items].sort(inBroadcastOrder).map((episode) => (
               <li key={episode.id}>
-                <Button
-                  variant="ghost"
-                  size="none"
-                  className="flex w-full items-center justify-between gap-4 rounded-xl px-3 py-3 text-left"
-                  onClick={() => {
-                    start(episode);
+                <EpisodeRow
+                  episode={episode}
+                  onPlay={(media, startSeconds) => {
+                    onPlay(media, startSeconds);
                   }}
-                >
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-medium text-text">{episode.title}</span>
-                    <span className="font-body text-xs text-text-muted">
-                      {typeof episode.seasonNumber === 'number' &&
-                      typeof episode.episodeNumber === 'number'
-                        ? `S${episode.seasonNumber.toString()} · EP${episode.episodeNumber.toString()} · ${formatDuration(episode.durationSeconds)}`
-                        : formatDuration(episode.durationSeconds)}
-                    </span>
-                  </span>
-
-                  <RiPlayFill size={18} aria-hidden className="shrink-0 text-text-muted" />
-                </Button>
+                  {...(resumeFor === undefined ? {} : { resumeSeconds: resumeFor(episode.id) })}
+                />
               </li>
             ))}
           </ul>
