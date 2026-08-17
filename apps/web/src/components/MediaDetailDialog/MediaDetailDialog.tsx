@@ -13,6 +13,7 @@ import {
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
+import { BackdropScrim } from '@FluxUI/BackdropScrim';
 import { Badge } from '@FluxUI/Badge';
 import { Skeleton } from '@FluxUI/Skeleton';
 import { MediaCard } from '@FluxUI/MediaCard';
@@ -186,7 +187,7 @@ const MediaDetailDialog = ({
               />
             </div>
 
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-surface via-surface/80 to-transparent" />
+            <BackdropScrim />
 
             {onBack === undefined ? null : (
               <div className="absolute left-4 top-4">

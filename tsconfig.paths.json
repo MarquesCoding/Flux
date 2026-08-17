@@ -63,6 +63,7 @@
       "@FluxUI/MoodBackground": ["./packages/ui/src/components/MoodBackground/MoodBackground.tsx"],
       "@FluxUI/OptionMenu": ["./packages/ui/src/components/OptionMenu/OptionMenu.tsx"],
       "@FluxUI/PageDots": ["./packages/ui/src/components/PageDots/PageDots.tsx"],
+      "@FluxUI/BackdropScrim": ["./packages/ui/src/components/BackdropScrim/BackdropScrim.tsx"],
       "@FluxUI/PopoverPanel": ["./packages/ui/src/components/PopoverPanel/PopoverPanel.tsx"],
       "@FluxUI/ProgressBar": ["./packages/ui/src/components/ProgressBar/ProgressBar.tsx"],
       "@FluxUI/ProgressBar.types": [
