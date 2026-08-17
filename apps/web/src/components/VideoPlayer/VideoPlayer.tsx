@@ -60,7 +60,8 @@ import {
 import { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } from '@FluxWeb/playback/liftCues';
 import { describeAudioTrack } from '@FluxCore/functions/describeTrack';
 import { listAvailableQualitySteps } from '@FluxCore/functions/listAvailableQualitySteps';
-import { fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
+import { useQueryClient } from '@tanstack/react-query';
+import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview';
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
@@ -210,6 +211,7 @@ const VideoPlayer = ({
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isSilencedByPolicyRef = useRef(false);
   const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS);
+  const cache = useQueryClient();
   const [session, setSession] = useState<StartedSession | null>(null);
   const [state, setState] = useState<PlayerState>('starting');
   const [problem, setProblem] = useState<string | null>(null);
@@ -1020,7 +1022,7 @@ const VideoPlayer = ({
       }
     });
 
-    void fetchMediaDetail(media.id).then((found) => {
+    void cache.ensureQueryData(libraryQueries.detail(media.id)).then((found) => {
       if (!abandoned) {
         setDetail(found);
       }

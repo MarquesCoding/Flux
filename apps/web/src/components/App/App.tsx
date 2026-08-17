@@ -8,8 +8,6 @@ import { LibraryBrowser } from '@FluxWeb/components/LibraryBrowser/LibraryBrowse
 import { SearchArea } from '@FluxWeb/components/SearchArea/SearchArea';
 import { BrowseArea } from '@FluxWeb/components/BrowseArea/BrowseArea';
 import { ShowDialog } from '@FluxWeb/components/ShowDialog/ShowDialog';
-import { fetchShows } from '@FluxWeb/library/fetchShows';
-import { fetchLibraries, fetchMediaDetail } from '@FluxWeb/library/fetchLibrary';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import { useFavourites } from '@FluxWeb/library/useFavourites';
 import { useRatings } from '@FluxWeb/library/useRatings';
@@ -253,14 +251,15 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
     let abandoned = false;
 
-    void fetchLibraries()
-      .then(async (libraries) => {
-        for (const entry of libraries) {
-          const shows = await fetchShows(entry.id);
-          const found = shows.find((one) => one.id === place.show);
+    void cache
+      .ensureQueryData(libraryQueries.all())
+      .then(async (found) => {
+        for (const entry of found) {
+          const shows = await cache.ensureQueryData(libraryQueries.shows(entry.id));
+          const wanted = shows.find((one) => one.id === place.show);
 
-          if (found !== undefined) {
-            return found;
+          if (wanted !== undefined) {
+            return wanted;
           }
         }
 
@@ -275,7 +274,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
     return () => {
       abandoned = true;
     };
-  }, [place.show, openShow]);
+  }, [place.show, openShow, cache]);
 
   const section: ShellSection = place.section;
   const inspecting = place.inspecting === null ? null : (known.get(place.inspecting) ?? null);
@@ -359,39 +358,40 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
 
     let abandoned = false;
 
-    void Promise.all(wanted.map(async (id) => ({ id, detail: await fetchMediaDetail(id) }))).then(
-      (answers) => {
-        if (abandoned) {
-          return;
-        }
+    void Promise.all(
+      wanted.map(async (id) => ({
+        id,
+        detail: await cache.ensureQueryData(libraryQueries.detail(id)),
+      })),
+    ).then((answers) => {
+      if (abandoned) {
+        return;
+      }
 
-        const summaries = answers
-          .map((answer) => answer.detail)
-          .filter((detail) => detail !== null)
-          .map(summariseDetail);
+      const summaries = answers
+        .map((answer) => answer.detail)
+        .filter((detail) => detail !== null)
+        .map(summariseDetail);
 
-        if (summaries.length > 0) {
-          rememberItems(summaries);
-        }
+      if (summaries.length > 0) {
+        rememberItems(summaries);
+      }
 
-        const missing = answers
-          .filter((answer) => answer.detail === null)
-          .map((answer) => answer.id);
+      const missing = answers.filter((answer) => answer.detail === null).map((answer) => answer.id);
 
-        if (missing.includes(place.playing ?? '')) {
-          replace({ playing: null });
-        }
+      if (missing.includes(place.playing ?? '')) {
+        replace({ playing: null });
+      }
 
-        if (missing.includes(place.inspecting ?? '')) {
-          replace({ inspecting: null });
-        }
-      },
-    );
+      if (missing.includes(place.inspecting ?? '')) {
+        replace({ inspecting: null });
+      }
+    });
 
     return () => {
       abandoned = true;
     };
-  }, [place.playing, place.inspecting, known, rememberItems, replace]);
+  }, [place.playing, place.inspecting, known, rememberItems, replace, cache]);
 
   useEffect(() => {
     markedAtRef.current = 0;
