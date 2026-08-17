@@ -210,6 +210,12 @@ pub fn parse_cuts(csv: &str, duration_seconds: f64) -> Keyframes {
 /// them are is measured on the boundaries those cuts produce, because that is
 /// what the player will find in the media. Keeping the two apart is what lets
 /// the lengths be corrected without moving a single cut.
+///
+/// The target begins at the film's own first presentation time rather than at
+/// nought. A stream whose clock starts elsewhere — 600 seconds in, which is
+/// ordinary in broadcast and camera output — otherwise satisfies the first
+/// target with its first keyframe and gains a segment that ffmpeg never
+/// writes.
 #[must_use]
 pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> {
     if desired_seconds <= 0.0 {
@@ -218,7 +224,7 @@ pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> 
 
     let mut lengths = Vec::new();
     let mut last_start = keyframes.starts_at_seconds;
-    let mut next_cut = desired_seconds;
+    let mut next_cut = keyframes.starts_at_seconds + desired_seconds;
 
     for cut in &keyframes.cuts {
         if cut.at_seconds < next_cut {
@@ -293,7 +299,7 @@ pub fn safe_segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<
 
     let mut lengths = Vec::new();
     let mut last_start = keyframes.starts_at_seconds;
-    let mut next_cut = desired_seconds;
+    let mut next_cut = keyframes.starts_at_seconds + desired_seconds;
 
     for cut in keyframes.cuts.iter().filter(|cut| cut.is_safe()) {
         if cut.at_seconds < next_cut {
@@ -342,12 +348,131 @@ pub fn segment_starts(lengths: &[f64]) -> Vec<f64> {
     starts
 }
 
+/// Where to seek to for a run that is to begin at a segment.
+///
+/// The middle of a segment, not its edge, because a seek lands on a keyframe
+/// either side of the time asked for and never exactly on it. Which side
+/// depends on the container, and the two disagree.
+///
+/// MP4 and Matroska land on the last keyframe at or before the time asked for,
+/// so aiming at the middle of the wanted segment finds it — asking for the
+/// boundary itself would find the keyframe before it and write every segment
+/// one place out.
+///
+/// MPEG-TS lands on the first keyframe at or *after* it. Aiming at the middle
+/// of the wanted segment therefore overshoots into the next one, and the run
+/// writes segment 2 where segment 1 was asked for. Aiming at the middle of the
+/// segment before it is what lands on the one wanted. Measured across H.264 and
+/// HEVC transport streams with keyframes two and five seconds apart, which agree
+/// on this. See FLUX-132.
+///
+/// Nought for the first segment, which is where the film starts and needs no
+/// seek at all.
+#[must_use]
+pub fn seek_into(lengths: &[f64], index: usize, seeks_forward: bool) -> f64 {
+    if index == 0 {
+        return 0.0;
+    }
+
+    let aimed = if seeks_forward { index - 1 } else { index };
+    let start: f64 = lengths.iter().take(aimed).sum();
+
+    start + lengths.get(aimed).copied().unwrap_or(0.0) / 2.0
+}
+
 #[cfg(test)]
 mod tests {
+    /// A run is aimed inside the segment it is to start at, not at its edge.
+    ///
+    /// Measured on the Bluray remux: seeking to 2394.1, where segment 596
+    /// begins, started the run at 2383.673 — the keyframe before it, because
+    /// that is the last one decoded by the time asked for. Seeking to 2394.6
+    /// starts it at 2394.100.
+    #[test]
+    fn seeks_into_a_segment_rather_than_at_it() {
+        assert!((seek_into(&[13.055, 10.427, 7.132], 1, false) - 18.2685).abs() < 1e-9);
+    }
+
+    /// A container that rounds the other way is aimed one segment earlier.
+    ///
+    /// MPEG-TS lands on the first keyframe at or after the time asked for, so
+    /// aiming at the middle of the wanted segment overshoots into the next one.
+    /// The middle of the segment before it is what lands on the one wanted.
+    /// See FLUX-132.
+    #[test]
+    fn aims_earlier_for_a_container_that_seeks_forward() {
+        let lengths = [4.0, 4.0, 4.0, 4.0];
+
+        assert!((seek_into(&lengths, 2, false) - 10.0).abs() < 1e-9);
+        assert!((seek_into(&lengths, 2, true) - 6.0).abs() < 1e-9);
+    }
+
+    /// Whichever way it rounds, the film's beginning needs no seek.
+    #[test]
+    fn does_not_seek_a_forward_seeking_source_that_starts_at_the_beginning() {
+        assert!((seek_into(&[4.0, 4.0], 0, true)).abs() < f64::EPSILON);
+    }
+
+    /// The film's beginning is not somewhere to seek to.
+    #[test]
+    fn does_not_seek_a_run_that_starts_at_the_beginning() {
+        assert!((seek_into(&[13.055, 10.427], 0, false)).abs() < f64::EPSILON);
+    }
+
     use super::{
-        cut_interval, longest_segment, parse_cuts, safe_segment_lengths, segment_lengths,
-        segment_starts, Cut, Keyframes,
+        cut_interval, longest_segment, parse_cuts, safe_segment_lengths, seek_into,
+        segment_lengths, segment_starts, Cut, Keyframes,
     };
+
+    /// A stream whose clock does not start at nought.
+    ///
+    /// Ordinary in broadcast and camera output, and legal everywhere. The
+    /// muxer measures its first target from the film's own start, so a reader
+    /// that measures from zero finds every keyframe already past the target and
+    /// declares a segment ffmpeg never writes. Found by the corpus on a fixture
+    /// whose timestamps begin ten minutes in. See FLUX-132.
+    #[test]
+    fn counts_the_segments_of_a_stream_that_starts_late() {
+        let late = Keyframes {
+            cuts: (0..8)
+                .map(|index| {
+                    let at = 600.0 + f64::from(index) * 2.0;
+
+                    Cut {
+                        at_seconds: at,
+                        starts_at_seconds: at,
+                    }
+                })
+                .collect(),
+            starts_at_seconds: 600.0,
+            duration_seconds: 16.0,
+        };
+
+        let early = Keyframes {
+            cuts: (0..8)
+                .map(|index| {
+                    let at = f64::from(index) * 2.0;
+
+                    Cut {
+                        at_seconds: at,
+                        starts_at_seconds: at,
+                    }
+                })
+                .collect(),
+            starts_at_seconds: 0.0,
+            duration_seconds: 16.0,
+        };
+
+        assert_eq!(
+            segment_lengths(&late, 4.0).len(),
+            segment_lengths(&early, 4.0).len(),
+            "where the clock starts must not change how many segments there are"
+        );
+        assert_eq!(
+            safe_segment_lengths(&late, 4.0).len(),
+            safe_segment_lengths(&early, 4.0).len()
+        );
+    }
 
     /// A source whose segments begin exactly at their keyframes.
     ///

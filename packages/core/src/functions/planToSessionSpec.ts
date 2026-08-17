@@ -63,7 +63,13 @@ type PlanToSessionSpecOptions = {
 };
 
 type SpecOutcome =
-  { kind: 'ok'; spec: SessionSpec; warnings: string[] } | { kind: 'unsupported'; reason: string };
+  | {
+      kind: 'ok';
+      spec: SessionSpec;
+      warnings: string[];
+      deliveredRange: string;
+    }
+  | { kind: 'unsupported'; reason: string };
 
 const HDR_RANGES = new Set(['HDR10', 'HDR10Plus', 'HLG', 'DolbyVision']);
 
@@ -81,22 +87,23 @@ const planToneMapping = (
   sourceRange: string,
   targetRange: string,
   capability: ToneMapping,
-): { toneMap?: ToneMapping; warnings: string[] } => {
+): { toneMap?: ToneMapping; warnings: string[]; deliveredRange: string } => {
   const converting = HDR_RANGES.has(sourceRange) && !HDR_RANGES.has(targetRange);
 
   if (!converting) {
-    return { warnings: [] };
+    return { warnings: [], deliveredRange: targetRange };
   }
 
   if (capability === 'unavailable') {
     return {
+      deliveredRange: sourceRange,
       warnings: [
-        'This server cannot tone map HDR to SDR, so colours in this stream will look washed out. Its FFmpeg build is missing the zscale or libplacebo filter.',
+        `This server cannot tone map ${sourceRange} to SDR, so the stream keeps its original range instead of being converted. A client that colour manages will show it correctly; one that does not will show it washed out. Its FFmpeg build is missing the zscale or libplacebo filter.`,
       ],
     };
   }
 
-  return { toneMap: capability, warnings: [] };
+  return { toneMap: capability, warnings: [], deliveredRange: targetRange };
 };
 
 const AUDIO_ENCODER = 'aac';
@@ -193,6 +200,7 @@ const planToSessionSpec = ({
     return {
       kind: 'ok',
       warnings: subtitleWarnings,
+      deliveredRange: sourceRange,
       spec: {
         inputPath,
         startSeconds,
@@ -247,6 +255,7 @@ const planToSessionSpec = ({
   return {
     kind: 'ok',
     warnings: [...mapping.warnings, ...subtitleWarnings],
+    deliveredRange: mapping.deliveredRange,
     spec: {
       inputPath,
       startSeconds,

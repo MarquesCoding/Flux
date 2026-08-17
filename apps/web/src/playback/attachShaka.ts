@@ -1,11 +1,25 @@
 import { z } from 'zod';
 import type shaka from 'shaka-player/dist/shaka-player.compiled';
 
+type ShakaVariant = {
+  active: boolean;
+  videoCodec?: string | null;
+  audioCodec?: string | null;
+  mimeType?: string | null;
+  width?: number | null;
+  height?: number | null;
+  frameRate?: number | null;
+  bandwidth?: number | null;
+  audioSamplingRate?: number | null;
+  channelsCount?: number | null;
+};
+
 type ShakaPlayer = {
   attach: (element: HTMLMediaElement) => Promise<void>;
   load: (manifestUrl: string, startSeconds?: number) => Promise<void>;
   destroy: () => Promise<void>;
   addEventListener?: (name: string, listener: (event: Event) => void) => void;
+  getVariantTracks?: () => ShakaVariant[];
 };
 
 type ShakaModule = {
@@ -32,6 +46,57 @@ type AttachOptions = {
 };
 
 const CRITICAL = 2;
+
+type DeliveredFormat = {
+  videoCodec: string | null;
+  audioCodec: string | null;
+  mimeType: string | null;
+  width: number | null;
+  height: number | null;
+  frameRate: number | null;
+  bitrateKbps: number | null;
+  audioSampleRate: number | null;
+  audioChannels: number | null;
+};
+
+type AttachedStream = {
+  detach: () => Promise<void>;
+  readDelivered: () => DeliveredFormat | null;
+};
+
+/**
+ * Reads what the engine is actually being sent, rather than what was asked for.
+ *
+ * The two are not the same thing and the difference is worth seeing: a plan describes an intention,
+ * and the variant the engine selected describes the bytes arriving. Where a transcode does
+ * something other than what was negotiated — a range it could not convert, a codec it substituted —
+ * this is where it shows.
+ *
+ * @param variants - The variants the engine knows about.
+ * @returns The active one, or nothing where the engine has not selected one yet.
+ */
+const deliveredFormat = (variants: readonly ShakaVariant[]): DeliveredFormat | null => {
+  const active = variants.find((variant) => variant.active);
+
+  if (active === undefined) {
+    return null;
+  }
+
+  return {
+    videoCodec: active.videoCodec ?? null,
+    audioCodec: active.audioCodec ?? null,
+    mimeType: active.mimeType ?? null,
+    width: active.width ?? null,
+    height: active.height ?? null,
+    frameRate: active.frameRate ?? null,
+    bitrateKbps:
+      active.bandwidth === null || active.bandwidth === undefined
+        ? null
+        : Math.round(active.bandwidth / 1000),
+    audioSampleRate: active.audioSamplingRate ?? null,
+    audioChannels: active.channelsCount ?? null,
+  };
+};
 
 /**
  * Loads Shaka Player the first time something needs it. Not part of the main bundle: it is a large
@@ -66,7 +131,8 @@ const faultFrom = (event: Event): PlaybackFault | null => {
  *
  * @param options - The element to attach to, the manifest to load, where to start, and how to report
  *   a fault the engine could not recover from.
- * @returns The teardown to call; an orphaned engine keeps buffering and holds the element open.
+ * @returns A handle carrying the teardown to call — an orphaned engine keeps buffering and holds
+ *   the element open — and a reading of what the engine is actually being sent.
  */
 const attachShaka = async ({
   element,
@@ -74,7 +140,7 @@ const attachShaka = async ({
   startSeconds = 0,
   onFault,
   loadShaka = loadShakaPlayer,
-}: AttachOptions): Promise<() => Promise<void>> => {
+}: AttachOptions): Promise<AttachedStream> => {
   const shaka = await loadShaka();
 
   shaka.polyfill.installAll();
@@ -97,9 +163,12 @@ const attachShaka = async ({
     await player.load(manifestUrl);
   }
 
-  return () => player.destroy();
+  return {
+    detach: () => player.destroy(),
+    readDelivered: () => deliveredFormat(player.getVariantTracks?.() ?? []),
+  };
 };
 
-export type { ShakaModule, ShakaPlayer };
+export type { AttachedStream, DeliveredFormat, ShakaModule, ShakaPlayer, ShakaVariant };
 
-export { attachShaka, faultFrom, CRITICAL };
+export { attachShaka, deliveredFormat, faultFrom, CRITICAL };

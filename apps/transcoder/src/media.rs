@@ -104,7 +104,7 @@ pub struct Chapter {
 }
 
 /// A video stream as Flux models it.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoStream {
     pub index: u32,
@@ -114,6 +114,33 @@ pub struct VideoStream {
     pub range: VideoRange,
     pub bitrate_kbps: Option<u32>,
     pub bit_depth: Option<u8>,
+    /// The codec level, as the codec itself numbers it.
+    ///
+    /// Not comparable across codecs: H.264 reports level 5.1 as 51 and HEVC
+    /// reports level 2.1 as 63, because one scales by ten and the other by
+    /// thirty. Whoever compares it has to know which codec it came from.
+    pub level: Option<u32>,
+    pub frame_rate: Option<f64>,
+    /// Whether the picture is stored as fields rather than whole frames.
+    pub is_interlaced: bool,
+    /// How many frames the decoder must keep to decode the next one.
+    ///
+    /// Only known once a frame has been read, because it comes from the
+    /// decoder rather than the container.
+    ///
+    /// Meaningful for H.264 and not for HEVC: ffprobe reports the real count
+    /// for the first and a flat 1 for the second, whatever the stream holds.
+    /// Measured on a 4K HEVC remux that reports 1 beside an H.264 fixture
+    /// encoded with nine that reports nine. A ceiling therefore never refuses
+    /// an HEVC source, which fails open rather than shut and is the right way
+    /// round for a fact we cannot read.
+    pub ref_frames: Option<u32>,
+    /// The shape of a pixel, where it is not square.
+    ///
+    /// Absent means square, which is what almost everything is. A source with
+    /// non-square pixels shown as though they were square is the wrong shape.
+    pub pixel_aspect: Option<String>,
+    pub rotation_degrees: Option<i32>,
 }
 
 /// An audio stream as Flux models it.
@@ -123,6 +150,12 @@ pub struct AudioStream {
     pub index: u32,
     pub codec: String,
     pub channels: u8,
+    pub sample_rate: Option<u32>,
+    /// What the codec calls this encoding, where it distinguishes them.
+    ///
+    /// A client that decodes AAC-LC may refuse HE-AAC, which is the same codec
+    /// name and a different thing.
+    pub profile: Option<String>,
     pub language: Option<String>,
     /// What the file calls this track.
     ///

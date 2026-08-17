@@ -1,4 +1,4 @@
-# ADR-0016: Carry every live update on one WebSocket, split into a viewer feed and an admin feed
+# ADR-0017: Carry every live update on one WebSocket, split into a viewer feed and an admin feed
 
 - **Status:** Accepted
 - **Date:** 2026-08-17

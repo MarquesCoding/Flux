@@ -82,6 +82,12 @@ const decideVideo = (
       | 'VideoResolutionAboveLimit'
       | 'VideoRangeNotSupported'
       | 'VideoNotSegmentable'
+      | 'VideoLevelNotSupported'
+      | 'VideoFramerateNotSupported'
+      | 'InterlacedVideoNotSupported'
+      | 'RefFramesNotSupported'
+      | 'AnamorphicVideoNotSupported'
+      | 'VideoRotationNotSupported'
       | 'UserForcedTranscode',
     detail: string,
   ): VideoDecision => ({
@@ -114,6 +120,77 @@ const decideVideo = (
     return transcodeTo(
       'VideoNotSegmentable',
       'The source cannot be cut into segments a player can start at',
+    );
+  }
+
+  const levelCeiling = profile.maxVideoLevels[media.videoCodec];
+
+  if (
+    levelCeiling !== undefined &&
+    media.videoLevel !== null &&
+    media.videoLevel !== undefined &&
+    media.videoLevel > levelCeiling
+  ) {
+    return transcodeTo(
+      'VideoLevelNotSupported',
+      `Client decodes ${media.videoCodec} to level ${levelCeiling.toString()} and the source is level ${media.videoLevel.toString()}`,
+    );
+  }
+
+  if (
+    profile.maxFrameRate !== null &&
+    profile.maxFrameRate !== undefined &&
+    media.videoFrameRate !== null &&
+    media.videoFrameRate !== undefined &&
+    media.videoFrameRate > profile.maxFrameRate
+  ) {
+    return transcodeTo(
+      'VideoFramerateNotSupported',
+      `Source runs at ${media.videoFrameRate.toFixed(3)}fps and the client tops out at ${profile.maxFrameRate.toString()}fps`,
+    );
+  }
+
+  if (media.videoIsInterlaced && !profile.canPlayInterlaced) {
+    return transcodeTo(
+      'InterlacedVideoNotSupported',
+      'Source is interlaced and the client cannot deinterlace it',
+    );
+  }
+
+  if (
+    profile.maxRefFrames !== null &&
+    profile.maxRefFrames !== undefined &&
+    media.videoRefFrames !== null &&
+    media.videoRefFrames !== undefined &&
+    media.videoRefFrames > profile.maxRefFrames
+  ) {
+    return transcodeTo(
+      'RefFramesNotSupported',
+      `Source keeps ${media.videoRefFrames.toString()} reference frames and the client manages ${profile.maxRefFrames.toString()}`,
+    );
+  }
+
+  const isAnamorphic =
+    media.videoPixelAspect !== null &&
+    media.videoPixelAspect !== undefined &&
+    media.videoPixelAspect !== '1/1';
+
+  if (isAnamorphic && !profile.canPlayAnamorphic) {
+    return transcodeTo(
+      'AnamorphicVideoNotSupported',
+      `Source has ${media.videoPixelAspect ?? ''} pixels and the client shows every picture square`,
+    );
+  }
+
+  const isRotated =
+    media.videoRotationDegrees !== null &&
+    media.videoRotationDegrees !== undefined &&
+    media.videoRotationDegrees % 360 !== 0;
+
+  if (isRotated && !profile.canRotate) {
+    return transcodeTo(
+      'VideoRotationNotSupported',
+      `Source is rotated ${(media.videoRotationDegrees ?? 0).toString()} degrees and the client cannot turn it back`,
     );
   }
 
@@ -205,6 +282,18 @@ const decideAudio = (
     entry.audioCodecs.includes(stream.codec),
   );
 
+  const transcodeAudio = (
+    code: 'AudioSampleRateNotSupported' | 'AudioProfileNotSupported',
+    detail: string,
+  ): AudioDecision => ({
+    kind: 'transcode',
+    streamIndex: stream.index,
+    codec: targetCodec,
+    channels: Math.min(stream.channels, profile.maxAudioChannels),
+    maxBitrateKbps,
+    reason: { code, detail },
+  });
+
   if (!codecSupported) {
     return {
       kind: 'transcode',
@@ -217,6 +306,30 @@ const decideAudio = (
         detail: `Client does not support the ${stream.codec} audio codec`,
       },
     };
+  }
+
+  if (
+    profile.maxAudioSampleRate !== null &&
+    profile.maxAudioSampleRate !== undefined &&
+    stream.sampleRate !== null &&
+    stream.sampleRate !== undefined &&
+    stream.sampleRate > profile.maxAudioSampleRate
+  ) {
+    return transcodeAudio(
+      'AudioSampleRateNotSupported',
+      `Track is ${stream.sampleRate.toString()}Hz and the client tops out at ${profile.maxAudioSampleRate.toString()}Hz`,
+    );
+  }
+
+  if (
+    stream.profile !== null &&
+    stream.profile !== undefined &&
+    profile.unsupportedAudioProfiles.includes(stream.profile)
+  ) {
+    return transcodeAudio(
+      'AudioProfileNotSupported',
+      `Client does not decode the ${stream.profile} profile of ${stream.codec}`,
+    );
   }
 
   if (stream.channels > profile.maxAudioChannels) {

@@ -228,7 +228,7 @@ beforeEach(() => {
   detailMock.mockResolvedValue(null);
 
   startMock.mockResolvedValue({ kind: 'started', session: startedSession });
-  attachMock.mockResolvedValue(teardownMock);
+  attachMock.mockResolvedValue({ detach: teardownMock, readDelivered: () => null });
   stopMock.mockResolvedValue(undefined);
   stopWatchingMock.mockResolvedValue(undefined);
 
@@ -596,6 +596,23 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(await screen.findByText(/cannot tone map/)).toBeInTheDocument();
+  });
+
+  it('lets a warning be dismissed once it has been read', async () => {
+    startMock.mockResolvedValue({
+      kind: 'started',
+      session: {
+        ...startedSession,
+        warnings: ['This server cannot tone map HDR to SDR, so colours will look washed out.'],
+      },
+    });
+    render(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    expect(await screen.findByText(/cannot tone map/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss this warning' }));
+
+    expect(screen.queryByText(/cannot tone map/)).not.toBeInTheDocument();
   });
 
   it('shows no warning banner when there is nothing to warn about', async () => {

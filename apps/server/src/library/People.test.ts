@@ -37,6 +37,7 @@ const held = (over: Partial<MediaDetail> = {}, cast: MediaDetail['metadata']['ca
     videoRange: 'SDR',
     videoBitDepth: 8,
     canCopySegments: true,
+    videoIsInterlaced: false,
     width: 1920,
     height: 1080,
     bitrateKbps: 8000,

@@ -49,6 +49,11 @@ const profile: DeviceProfile = {
   maxAudioChannels: 2,
   supportedVideoRanges: ['SDR'],
   tenBitVideoCodecs: [],
+  maxVideoLevels: {},
+  canPlayInterlaced: true,
+  canPlayAnamorphic: true,
+  canRotate: true,
+  unsupportedAudioProfiles: [],
   supportedSubtitleFormats: ['webvtt'],
   directPlayProfiles: [{ container: 'mp4', videoCodecs: ['h264'], audioCodecs: ['aac'] }],
   transcodingProfiles: [

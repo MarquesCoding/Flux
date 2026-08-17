@@ -18,12 +18,20 @@ const probe = (): MediaProbe => ({
     range: 'HDR10',
     bitrateKbps: 12000,
     bitDepth: 10,
+    level: 150,
+    frameRate: 23.976,
+    isInterlaced: false,
+    refFrames: 4,
+    pixelAspect: null,
+    rotationDegrees: null,
   },
   audioStreams: [
     {
       index: 1,
       codec: 'eac3',
       channels: 6,
+      sampleRate: 48000,
+      profile: null,
       language: 'eng',
       title: null,
       isDefault: true,
@@ -48,6 +56,7 @@ const stored = (path: string, overrides: Partial<StoredItem> = {}): StoredItem =
   externalId: null,
   videoBitDepth: 8,
   canCopySegments: true,
+  videoFrameRate: 23.976,
   ...overrides,
 });
 
