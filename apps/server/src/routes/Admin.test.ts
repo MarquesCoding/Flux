@@ -223,6 +223,123 @@ describe('administration over HTTP', () => {
     expect(response.status).toBe(403);
   });
 
+  it('will not let an unauthenticated request message a viewer', async () => {
+    const { app } = build();
+
+    const response = await app.request(`${BASE}/api/admin/sessions/some-session/message`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'Tea is ready' }),
+    });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('will not let an ordinary account message a viewer', async () => {
+    const { app } = build();
+    const cookie = await signedIn(app);
+
+    const response = await app.request(`${BASE}/api/admin/sessions/some-session/message`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'Tea is ready' }),
+    });
+
+    expect(response.status).toBe(403);
+  });
+
+  it('delivers a message to a tab that is open', async () => {
+    const context = build();
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+    const send = vi.fn();
+
+    context.presence.connect('tab-1', null, null, 'Chrome on Mac', send);
+
+    const response = await context.app.request(`${BASE}/api/admin/sessions/tab-1/message`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'Restarting in five minutes' }),
+    });
+
+    expect(response.status).toBe(204);
+    expect(send).toHaveBeenCalledWith({ kind: 'message', text: 'Restarting in five minutes' });
+  });
+
+  it('leaves the session exactly as it found it', async () => {
+    const context = build();
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    context.presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    context.presence.startPlayback('tab-1', {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'direct',
+      transcoderSessionId: null,
+      plan: {
+        mediaId: 'media-1',
+        container: { kind: 'passthrough', reason: REASON },
+        video: { kind: 'passthrough', reason: REASON },
+        audio: { kind: 'passthrough', streamIndex: 1, reason: REASON },
+        subtitles: { kind: 'none', reason: REASON },
+      },
+    });
+
+    await context.app.request(`${BASE}/api/admin/sessions/tab-1/message`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'Tea is ready' }),
+    });
+
+    expect(context.presence.list()).toMatchObject([
+      { playback: { isPlaying: true, pausedByAdmin: false } },
+    ]);
+  });
+
+  it('says nothing is there for a tab that has just closed', async () => {
+    const context = build();
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    const response = await context.app.request(`${BASE}/api/admin/sessions/gone/message`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'Tea is ready' }),
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('refuses an empty message rather than showing a banner saying nothing', async () => {
+    const context = build();
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    context.presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+
+    const response = await context.app.request(`${BASE}/api/admin/sessions/tab-1/message`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ text: '   ' }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('refuses a message longer than the banner can hold', async () => {
+    const context = build();
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+
+    context.presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+
+    const response = await context.app.request(`${BASE}/api/admin/sessions/tab-1/message`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'a'.repeat(500) }),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
   it('will not let an unauthenticated request resume a stream', async () => {
     const { app } = build();
 

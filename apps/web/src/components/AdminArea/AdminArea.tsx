@@ -36,6 +36,7 @@ import {
   watchActiveSessions,
   stopSession,
   pauseSession,
+  messageSession,
   resumeSession,
   fetchJobDefinitions,
   fetchJobSchedules,
@@ -362,6 +363,16 @@ const AdminArea = ({
     }
   };
 
+  const tellViewer = async (clientId: string, text: string) => {
+    setBusyClientId(clientId);
+
+    try {
+      await messageSession(clientId, text);
+    } finally {
+      setBusyClientId(null);
+    }
+  };
+
   const resumeStream = async (clientId: string) => {
     setBusyClientId(clientId);
 
@@ -656,6 +667,7 @@ const AdminArea = ({
                 onResume={(clientId) => {
                   void resumeStream(clientId);
                 }}
+                onMessage={tellViewer}
               />
             </TabPanel>
 

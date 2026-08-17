@@ -404,6 +404,27 @@ const pauseSession = async (clientId: string): Promise<boolean> => {
 };
 
 /**
+ * Tells one watching tab something, without touching what it is playing.
+ *
+ * Answers false rather than throwing when the tab has gone, since a viewer closing their laptop
+ * between the list being drawn and the message being sent is ordinary rather than a fault.
+ *
+ * @param clientId - The tab to tell.
+ * @param text - What to tell them.
+ * @returns Whether it was delivered.
+ */
+const messageSession = async (clientId: string, text: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/sessions/${clientId}/message`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text }),
+  }).catch(() => null);
+
+  return response !== null && response.ok;
+};
+
+/**
  * Lets a stream carry on after an operator paused it, clearing the message the viewer was shown.
  *
  * @param clientId - The session to resume.
@@ -638,6 +659,7 @@ export {
   watchActiveSessions,
   stopSession,
   pauseSession,
+  messageSession,
   resumeSession,
   fetchJobDefinitions,
   runJob,

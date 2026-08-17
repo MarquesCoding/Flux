@@ -1,6 +1,6 @@
 type AdminMessageOverlayProps = {
-  kind: 'stopped' | 'paused';
-  reason: string;
+  kind: 'stopped' | 'paused' | 'message';
+  text: string;
   onDismiss: () => void;
 };
 

@@ -96,6 +96,7 @@ import {
   adminSessionsRoute,
   adminStopSessionRoute,
   adminPauseSessionRoute,
+  adminMessageSessionRoute,
   adminResumeSessionRoute,
   adminJobDefinitionsRoute,
   adminRunJobRoute,
@@ -1607,6 +1608,20 @@ const createApp = ({
 
     if (!presence.pause(clientId, 'This stream was paused by an admin.')) {
       return context.json({ error: 'That tab is not watching anything.' }, 409);
+    }
+
+    return context.body(null, 204);
+  });
+
+  app.openapi(adminMessageSessionRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'streaming.message'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const { clientId } = context.req.valid('param');
+
+    if (!presence.message(clientId, context.req.valid('json').text)) {
+      return context.json({ error: 'That tab is not open.' }, 404);
     }
 
     return context.body(null, 204);

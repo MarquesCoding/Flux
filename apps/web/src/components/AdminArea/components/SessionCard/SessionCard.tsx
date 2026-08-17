@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { RiInformationLine, RiPauseLine, RiPlayLine, RiStopLine, RiTvFill } from '@remixicon/react';
+import {
+  RiChat1Line,
+  RiInformationLine,
+  RiPauseLine,
+  RiPlayLine,
+  RiStopLine,
+  RiTvFill,
+} from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
@@ -18,8 +25,16 @@ import type { SessionCardProps } from './SessionCard.types';
  * @param onStop - Called to stop it.
  * @param onPause - Called to pause it.
  * @param onResume - Called to let it carry on.
+ * @param onMessage - Called to tell the viewer something, without touching their playback.
  */
-const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCardProps) => {
+const SessionCard = ({
+  session,
+  isBusy,
+  onStop,
+  onPause,
+  onResume,
+  onMessage,
+}: SessionCardProps) => {
   const { playback } = session;
   const DeviceIcon = deviceIconFor(session.deviceLabel);
   const [isShowingStats, setIsShowingStats] = useState(false);
@@ -135,6 +150,17 @@ const SessionCard = ({ session, isBusy, onStop, onPause, onResume }: SessionCard
               onClick={onStop}
             >
               <RiStopLine size={15} aria-hidden />
+            </Button>
+
+            <Button
+              isIconOnly
+              variant="ghost"
+              label="Message"
+              size="sm"
+              disabled={isBusy}
+              onClick={onMessage}
+            >
+              <RiChat1Line size={15} aria-hidden />
             </Button>
           </>
         )}

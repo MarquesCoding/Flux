@@ -3,6 +3,7 @@ import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
 import { JobRunRequestSchema } from '@FluxServer/jobs/jobDefinitions';
 import { ScheduleTriggerSchema } from '@FluxServer/jobs/scheduleTrigger';
 import { LogPageSchema, LogQuerySchema } from '@FluxContracts/schemas/Log';
+import { SessionMessageSchema } from '@FluxContracts/schemas/SessionMessage';
 import { ScanAccepted } from './LibraryRoute';
 
 const AdminError = z.object({ error: z.string() }).openapi('AdminError');
@@ -204,6 +205,28 @@ const adminPauseSessionRoute = createRoute({
     },
     409: {
       description: 'That tab is not watching anything',
+      content: { 'application/json': { schema: AdminError } },
+    },
+  },
+});
+
+const adminMessageSessionRoute = createRoute({
+  method: 'post',
+  path: '/api/admin/sessions/{clientId}/message',
+  tags: ['Admin'],
+  summary: 'Tell a viewer something, without touching what they are watching',
+  request: {
+    params: z.object({ clientId: z.string().min(1) }),
+    body: { content: { 'application/json': { schema: SessionMessageSchema } } },
+  },
+  responses: {
+    204: { description: 'The message was delivered' },
+    403: {
+      description: 'Not allowed to message viewers',
+      content: { 'application/json': { schema: AdminError } },
+    },
+    404: {
+      description: 'That tab is not open',
       content: { 'application/json': { schema: AdminError } },
     },
   },
@@ -482,6 +505,7 @@ export {
   adminSessionsRoute,
   adminStopSessionRoute,
   adminPauseSessionRoute,
+  adminMessageSessionRoute,
   adminResumeSessionRoute,
   adminJobDefinitionsRoute,
   adminRunJobRoute,

@@ -49,6 +49,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
 
@@ -64,6 +65,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
 
@@ -78,6 +80,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
 
@@ -95,6 +98,7 @@ describe('SessionCard', () => {
         onStop={onStop}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: /Stop/ }));
@@ -112,6 +116,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={onPause}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: /Pause/ }));
@@ -136,6 +141,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={onResume}
+        onMessage={vi.fn()}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: /Play/ }));
@@ -151,6 +157,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
 
@@ -182,6 +189,7 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={vi.fn()}
+        onMessage={vi.fn()}
       />,
     );
 
@@ -209,10 +217,65 @@ describe('SessionCard', () => {
         onStop={vi.fn()}
         onPause={vi.fn()}
         onResume={onResume}
+        onMessage={vi.fn()}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: /Play/ }));
 
     expect(onResume).toHaveBeenCalled();
+  });
+
+  it('offers a way to message somebody who is watching', () => {
+    render(
+      <SessionCard
+        session={WATCHING_SESSION}
+        isBusy={false}
+        onStop={vi.fn()}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Message' })).toBeInTheDocument();
+  });
+
+  it('asks to message without stopping or pausing anything', async () => {
+    const actor = userEvent.setup();
+    const onMessage = vi.fn();
+    const onStop = vi.fn();
+    const onPause = vi.fn();
+
+    render(
+      <SessionCard
+        session={WATCHING_SESSION}
+        isBusy={false}
+        onStop={onStop}
+        onPause={onPause}
+        onResume={vi.fn()}
+        onMessage={onMessage}
+      />,
+    );
+
+    await actor.click(screen.getByRole('button', { name: 'Message' }));
+
+    expect(onMessage).toHaveBeenCalled();
+    expect(onStop).not.toHaveBeenCalled();
+    expect(onPause).not.toHaveBeenCalled();
+  });
+
+  it('offers no message button for a tab watching nothing, which has no banner to draw', () => {
+    render(
+      <SessionCard
+        session={IDLE_SESSION}
+        isBusy={false}
+        onStop={vi.fn()}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Message' })).not.toBeInTheDocument();
   });
 });

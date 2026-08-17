@@ -6,6 +6,7 @@ import {
   fetchAdminOverview,
   fetchMonitor,
   watchMonitor,
+  messageSession,
   saveCatalogueKey,
   fetchActiveSessions,
   stopSession,
@@ -648,5 +649,43 @@ describe('stopping a job and choosing a backend', () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
     await expect(saveHardwareAccel('nvenc')).resolves.toBe(false);
+  });
+});
+
+describe('messageSession', () => {
+  it('tells one tab something', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 204, json: () => Promise.resolve(null) });
+
+    expect(await messageSession('tab-1', 'Tea is ready')).toBe(true);
+  });
+
+  it('sends the message to that tab s own address', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 204, json: () => Promise.resolve(null) });
+
+    await messageSession('tab-1', 'Tea is ready');
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/admin/sessions/tab-1/message');
+  });
+
+  it('carries what is to be said', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 204, json: () => Promise.resolve(null) });
+
+    await messageSession('tab-1', 'Tea is ready');
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      body: JSON.stringify({ text: 'Tea is ready' }),
+    });
+  });
+
+  it('answers false rather than throwing when the tab has gone', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) });
+
+    expect(await messageSession('gone', 'Tea is ready')).toBe(false);
+  });
+
+  it('answers false rather than throwing when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    expect(await messageSession('tab-1', 'Tea is ready')).toBe(false);
   });
 });

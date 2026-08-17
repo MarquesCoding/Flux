@@ -10,6 +10,7 @@ const PresenceEventSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('stopped'), reason: z.string() }),
   z.object({ kind: z.literal('paused'), reason: z.string() }),
   z.object({ kind: z.literal('resumed') }),
+  z.object({ kind: z.literal('message'), text: z.string().min(1) }),
 ]);
 
 /**
