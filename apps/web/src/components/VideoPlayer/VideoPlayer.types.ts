@@ -26,7 +26,6 @@ type VideoPlayerProps = {
   startSeconds?: number;
   onClose: () => void;
   onProgress?: (positionSeconds: number, durationSeconds: number) => void;
-  askWhyItStopped?: () => Promise<string | null>;
   onEnded?: () => void;
   episodes?: MediaSummary[];
   onSelectEpisode?: (episode: MediaSummary) => void;

@@ -199,7 +199,6 @@ const VideoPlayer = ({
   startSeconds = 0,
   onClose,
   onProgress,
-  askWhyItStopped,
   onEnded,
   episodes = [],
   onSelectEpisode,
@@ -828,34 +827,6 @@ const VideoPlayer = ({
 
     window.addEventListener('pagehide', onPageHide);
 
-    const giveUp = async (category: number | null) => {
-      if (isAbandoned()) {
-        return;
-      }
-
-      const ended = (await askWhyItStopped?.()) ?? null;
-
-      if (isAbandoned()) {
-        return;
-      }
-
-      if (ended === null) {
-        setProblem(describePlaybackFailure(category));
-        setState('failed');
-
-        return;
-      }
-
-      videoRef.current?.pause();
-
-      notify.failed(`${ended} The stream has stopped.`, {
-        id: ADMIN_NOTICE,
-        where: PLAYER_TOASTS,
-        staysUntilDismissed: true,
-        action: { label: 'Close', onPress: onClose },
-      });
-    };
-
     const run = async () => {
       const outcome = await startPlaybackSession(
         request.mediaId,
@@ -925,7 +896,8 @@ const VideoPlayer = ({
                 return;
               }
 
-              void giveUp(fault.category);
+              setProblem(describePlaybackFailure(fault.category));
+              setState('failed');
             },
           });
 
@@ -947,7 +919,8 @@ const VideoPlayer = ({
         if (!isAbandoned()) {
           const engine = PlaybackEngineErrorSchema.safeParse(error);
 
-          await giveUp(engine.success ? engine.data.category : null);
+          setProblem(describePlaybackFailure(engine.success ? engine.data.category : null));
+          setState('failed');
         }
       }
     };

@@ -25,9 +25,12 @@ type Standing =
  * @param token - The token the link carries.
  * @param onPlay - Told to start something, and where from.
  * @param resumeFor - Where they got to in a given episode, for as long as this page lives.
+ * @param endedReason - Why the link stopped working, where something noticed before this screen did.
+ *   Shown at once rather than asking again, so a guest whose link is withdrawn mid-stream is told
+ *   immediately instead of watching a spinner while the server repeats what is already known.
  * @param name - What this server calls itself.
  */
-const ShareArea = ({ token, onPlay, resumeFor, name = 'Flux' }: ShareAreaProps) => {
+const ShareArea = ({ token, onPlay, resumeFor, endedReason, name = 'Flux' }: ShareAreaProps) => {
   const [standing, setStanding] = useState<Standing>({ kind: 'reading' });
 
   useEffect(() => {
@@ -58,24 +61,26 @@ const ShareArea = ({ token, onPlay, resumeFor, name = 'Flux' }: ShareAreaProps) 
     };
   }, [token]);
 
-  if (standing.kind === 'reading') {
-    return (
-      <main className="flex min-h-svh items-center justify-center">
-        <Spinner label={`Opening what was shared with you on ${name}`} />
-      </main>
-    );
-  }
+  const closed = endedReason ?? (standing.kind === 'closed' ? standing.reason : null);
 
-  if (standing.kind === 'closed') {
+  if (closed !== null) {
     return (
       <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-6 text-center">
         <Icon of={Unlink01Icon} size={40} className="text-text-muted" />
 
-        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text">{standing.reason}</h1>
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text">{closed}</h1>
 
         <p className="max-w-[40ch] font-body text-sm text-text-muted">
           Whoever sent it can send another.
         </p>
+      </main>
+    );
+  }
+
+  if (standing.kind !== 'opened') {
+    return (
+      <main className="flex min-h-svh items-center justify-center">
+        <Spinner label={`Opening what was shared with you on ${name}`} />
       </main>
     );
   }

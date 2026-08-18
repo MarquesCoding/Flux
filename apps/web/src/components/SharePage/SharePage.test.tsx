@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderInACache } from '@FluxWeb/testing/renderInACache';
@@ -76,6 +76,8 @@ vi.mock('@FluxWeb/components/VideoPlayer/VideoPlayer', () => ({
 }));
 
 beforeEach(() => {
+  vi.clearAllMocks();
+
   drawn.share = null;
   drawn.player = null;
   window.history.replaceState(null, '', '/share/a-token');
@@ -110,17 +112,48 @@ describe('SharePage', () => {
     expect(drawn.share?.resumeFor?.(ARRIVAL.id)).toBe(120);
   });
 
-  it('lets the player ask why the stream stopped, naming the link in the address', async () => {
+  it('takes the picture away as soon as the link stops working', async () => {
     vi.mocked(reasonIfShareEnded).mockResolvedValue('This link was withdrawn.');
 
     const user = userEvent.setup();
 
-    renderInACache(<SharePage name="Flux" />);
+    renderInACache(<SharePage name="Flux" askEveryMilliseconds={5} />);
 
     await user.click(screen.getByRole('button', { name: 'Play it' }));
 
-    await expect(drawn.player?.askWhyItStopped?.()).resolves.toBe('This link was withdrawn.');
+    expect(screen.getByText('playing Arrival')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByText('playing Arrival')).not.toBeInTheDocument();
+    });
+
     expect(reasonIfShareEnded).toHaveBeenCalledWith('a-token');
+    expect(drawn.share?.endedReason).toBe('This link was withdrawn.');
+  });
+
+  it('asks nothing while nothing is playing, since the screen asks for itself', async () => {
+    vi.mocked(reasonIfShareEnded).mockResolvedValue('This link was withdrawn.');
+
+    renderInACache(<SharePage name="Flux" askEveryMilliseconds={5} />);
+
+    await new Promise((settle) => setTimeout(settle, 30));
+
+    expect(reasonIfShareEnded).not.toHaveBeenCalled();
+  });
+
+  it('leaves a working link alone', async () => {
+    vi.mocked(reasonIfShareEnded).mockResolvedValue(null);
+
+    const user = userEvent.setup();
+
+    renderInACache(<SharePage name="Flux" askEveryMilliseconds={5} />);
+
+    await user.click(screen.getByRole('button', { name: 'Play it' }));
+    await waitFor(() => {
+      expect(reasonIfShareEnded).toHaveBeenCalled();
+    });
+
+    expect(screen.getByText('playing Arrival')).toBeInTheDocument();
   });
 
   it('puts a guest back on the screen that explains itself once they close the notice', async () => {

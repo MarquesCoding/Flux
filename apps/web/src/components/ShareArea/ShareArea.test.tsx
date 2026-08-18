@@ -85,6 +85,16 @@ describe('what a guest is shown', () => {
     expect(screen.queryByRole('button', { name: /Resume from/ })).not.toBeInTheDocument();
   });
 
+  it('says a link has ended the moment it is told, without asking again first', async () => {
+    opened({ endedReason: 'This link was withdrawn.' });
+
+    expect(
+      await screen.findByRole('heading', { name: 'This link was withdrawn.' }),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByRole('button', { name: 'Play' })).not.toBeInTheDocument();
+  });
+
   it('offers no way anywhere else', async () => {
     opened();
 
