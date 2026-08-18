@@ -8,6 +8,7 @@ const build = () =>
   createMemoryShareService({
     shares: [],
     titles: { [FILM]: 'Arrival', [SHOW]: 'The Bear' },
+    names: { ada: 'Ada', grace: 'Grace' },
   });
 
 describe('createMemoryShareService', () => {
@@ -136,6 +137,53 @@ describe('createMemoryShareService', () => {
     });
 
     expect((await shares.list('ada'))[0]?.isSpent).toBe(true);
+  });
+
+  it('lists everybody’s links together, saying who handed each one out', async () => {
+    const shares = build();
+
+    await shares.create('ada', { kind: 'item', mediaId: FILM });
+    await shares.create('grace', { kind: 'series', seriesId: SHOW });
+
+    const everybody = await shares.listEverybody();
+
+    expect(everybody).toHaveLength(2);
+    expect(everybody.map((one) => one.createdByName).sort()).toEqual(['Ada', 'Grace']);
+  });
+
+  it('names somebody it has no name for rather than leaving the column empty', async () => {
+    const shares = build();
+
+    await shares.create('nobody-on-record', { kind: 'item', mediaId: FILM });
+
+    expect((await shares.listEverybody())[0]?.createdByName).toBe('Somebody');
+  });
+
+  it('withdraws anybody’s link, and says whose it was so they can be told', async () => {
+    const shares = build();
+
+    const made = await shares.create('ada', { kind: 'item', mediaId: FILM });
+
+    await expect(shares.revokeAnybody(made?.id ?? '')).resolves.toEqual({
+      createdBy: 'ada',
+      title: 'Arrival',
+    });
+
+    expect((await shares.list('ada'))[0]?.isRevoked).toBe(true);
+  });
+
+  it('withdraws a link only once, so nobody is told about it twice', async () => {
+    const shares = build();
+
+    const made = await shares.create('ada', { kind: 'item', mediaId: FILM });
+
+    await shares.revokeAnybody(made?.id ?? '');
+
+    await expect(shares.revokeAnybody(made?.id ?? '')).resolves.toBeNull();
+  });
+
+  it('has nothing to withdraw for a link nobody handed out', async () => {
+    await expect(build().revokeAnybody('not-a-link')).resolves.toBeNull();
   });
 
   it('shares a whole series when that is what was asked for', async () => {

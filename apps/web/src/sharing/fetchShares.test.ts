@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createShare, fetchShares, openShare, revokeShare, shareAddress } from './fetchShares';
+import {
+  createShare,
+  fetchEverybodysShares,
+  fetchShares,
+  openShare,
+  revokeAnybodysShare,
+  revokeShare,
+  shareAddress,
+} from './fetchShares';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 type FetchLike = (
@@ -69,6 +77,53 @@ describe('createShare', () => {
   });
 });
 
+describe('fetchEverybodysShares', () => {
+  it('reads every link, and who handed each one out', async () => {
+    const { token, ...withoutToken } = MADE;
+
+    fetchMock.mockResolvedValue(
+      ok({ shares: [{ ...withoutToken, createdBy: 'ada', createdByName: 'Ada' }] }),
+    );
+
+    expect(token).toBeTruthy();
+
+    const everybody = await fetchEverybodysShares();
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/admin/shares', expect.anything());
+    expect(everybody[0]?.createdByName).toBe('Ada');
+  });
+
+  it('reads nothing where this account may not look', async () => {
+    fetchMock.mockResolvedValue(said(403, { error: 'no' }));
+
+    await expect(fetchEverybodysShares()).resolves.toEqual([]);
+  });
+
+  it('reads nothing rather than throwing where the server answers with nonsense', async () => {
+    fetchMock.mockResolvedValue(ok({ shares: [{ nothing: 'recognisable' }] }));
+
+    await expect(fetchEverybodysShares()).resolves.toEqual([]);
+  });
+});
+
+describe('revokeAnybodysShare', () => {
+  it('withdraws anybody’s link through the admin route', async () => {
+    fetchMock.mockResolvedValue(said(204, null));
+
+    await expect(revokeAnybodysShare(MADE.id)).resolves.toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/admin/shares/${MADE.id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
+  it('says it did not where the server refused', async () => {
+    fetchMock.mockResolvedValue(said(403, { error: 'no' }));
+
+    await expect(revokeAnybodysShare(MADE.id)).resolves.toBe(false);
+  });
+});
+
 describe('revokeShare', () => {
   it('withdraws a link', async () => {
     fetchMock.mockResolvedValue(said(204, {}));
@@ -93,12 +148,28 @@ describe('openShare', () => {
     expect(outcome.kind).toBe('opened');
   });
 
-  it('tells a link that has run out apart from one that never existed', async () => {
-    fetchMock.mockResolvedValue(said(410, { error: 'This link has expired.' }));
+  it('falls back to withdrawn where the server names no ending it recognises', async () => {
+    fetchMock.mockResolvedValue(said(410, { error: 'This link no longer works.' }));
 
     const gone = await openShare('a-token');
 
-    expect(gone).toEqual({ kind: 'gone', reason: 'This link has expired.' });
+    expect(gone).toEqual({
+      kind: 'gone',
+      reason: 'This link no longer works.',
+      ended: 'withdrawn',
+    });
+  });
+
+  it('tells a link that has run out apart from one that never existed', async () => {
+    fetchMock.mockResolvedValue(said(410, { error: 'This link has expired.', ended: 'expired' }));
+
+    const gone = await openShare('a-token');
+
+    expect(gone).toEqual({
+      kind: 'gone',
+      reason: 'This link has expired.',
+      ended: 'expired',
+    });
 
     fetchMock.mockResolvedValue(said(404, { error: 'This link does not work.' }));
 

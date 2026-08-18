@@ -10,24 +10,9 @@ import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
 import { DataTable } from '@FluxUI/DataTable';
 import { Spinner } from '@FluxUI/Spinner';
 import { endDevice, endOtherDevices, fetchDevices } from '@FluxWeb/account/fetchDevices';
+import { saidWhen } from '@FluxWeb/format/saidWhen';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { Device } from '@FluxWeb/account/fetchDevices';
-
-/**
- * Says when something happened the way somebody would — just now, an hour ago, a date beyond that —
- * for a list of devices where the exact second means nothing.
- *
- * @param when - When it happened.
- * @param now - What to treat as now, so the phrasing can be tested.
- * @returns The phrase to show.
- */
-const said = (when: string): string => {
-  const at = new Date(when);
-
-  return Number.isNaN(at.getTime())
-    ? 'at some point'
-    : at.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-};
 
 /**
  * Everywhere this account is signed in — each device, when it was last used, and a way to end it.
@@ -82,7 +67,7 @@ const DeviceList = () => {
         accessorFn: (device) => device.signedInAt,
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-xs text-text-muted">
-            {said(row.original.signedInAt)}
+            {saidWhen(row.original.signedInAt)}
           </span>
         ),
       },

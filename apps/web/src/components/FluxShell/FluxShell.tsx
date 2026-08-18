@@ -8,6 +8,7 @@ import { ShowDialog } from '@FluxWeb/components/ShowDialog/ShowDialog';
 import { MediaDetailDialog } from '@FluxWeb/components/MediaDetailDialog/MediaDetailDialog';
 import { PersonDialog } from '@FluxWeb/components/PersonDialog/PersonDialog';
 import { ShareDialog } from '@FluxWeb/components/ShareDialog/ShareDialog';
+import type { ShareSubject } from '@FluxWeb/components/ShareDialog/ShareDialog.types';
 import { StillWatchingDialog } from '@FluxWeb/components/StillWatchingDialog/StillWatchingDialog';
 import { NotificationBell } from '@FluxWeb/components/NotificationBell/NotificationBell';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
@@ -29,7 +30,6 @@ import { STILL_WATCHING_ANSWER_SECONDS } from '@FluxContracts/schemas/StillWatch
 import { resumeFor } from '@FluxWeb/playback/resumeFor';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
 import { useShell } from '@FluxWeb/shell/useShell';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { ShowSummary } from '@FluxContracts/schemas/Show';
 
 const NOTHING_WAITING = { notifications: [], unread: 0 };
@@ -61,7 +61,7 @@ const FluxShell = () => {
 
   const [openShow, setOpenShow] = useState<ShowSummary | null>(null);
   const [openRole, setOpenRole] = useState<string | null>(null);
-  const [sharing, setSharing] = useState<MediaSummary | null>(null);
+  const [sharing, setSharing] = useState<ShareSubject | null>(null);
   const [pushChoice, setPushChoice] = useState<boolean | null>(null);
 
   const held = useQuery(notificationQueries.inbox());
@@ -196,6 +196,9 @@ const FluxShell = () => {
     >
       <ShowDialog
         show={openShow}
+        onShare={(show) => {
+          setSharing({ kind: 'series', seriesId: show.seriesId ?? '', title: show.title });
+        }}
         onClose={() => {
           go({ show: null });
         }}
@@ -260,7 +263,7 @@ const FluxShell = () => {
           go({ person: member.personId ?? null });
         }}
         onShare={(media) => {
-          setSharing(media);
+          setSharing({ kind: 'item', media });
         }}
         onStartParty={(media) => {
           watchParty.open(media.id);
@@ -276,7 +279,7 @@ const FluxShell = () => {
       />
 
       <ShareDialog
-        media={sharing}
+        subject={sharing}
         isOpen={sharing !== null}
         onClose={() => {
           setSharing(null);

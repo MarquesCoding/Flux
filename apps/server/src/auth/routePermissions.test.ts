@@ -10,6 +10,7 @@ import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemor
 import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
 import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
 import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
+import { createMemoryShareService } from '@FluxServer/sharing/createMemoryShareService';
 import type { Permission } from '@FluxContracts/schemas/Permission';
 
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
@@ -45,6 +46,7 @@ const build = () => {
     progress: createMemoryWatchProgressService(),
     favourites: createMemoryFavouriteService(),
     ratings: createMemoryRatingService(),
+    shares: createMemoryShareService(),
   });
 
   return { app, store, permissions };
@@ -210,6 +212,8 @@ describe('every gated route, asked by somebody with no permissions', () => {
     ['GET', '/api/admin/overview', 'server.monitor'],
     ['PATCH', '/api/admin/settings', 'server.settings'],
     ['GET', '/api/admin/sessions', 'streaming.view'],
+    ['GET', '/api/admin/shares', 'sharing.manage'],
+    ['DELETE', '/api/admin/shares/6f8e6d3e-6f3a-4a1e-8e9a-2f7b6c5d4e3a', 'sharing.manage'],
     ['DELETE', '/api/admin/sessions/tab-1', 'streaming.stop'],
     ['POST', '/api/admin/sessions/tab-1/pause', 'streaming.pause'],
     ['POST', '/api/admin/sessions/tab-1/resume', 'streaming.pause'],

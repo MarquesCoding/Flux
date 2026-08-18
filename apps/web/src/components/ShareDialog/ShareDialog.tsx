@@ -50,12 +50,20 @@ const endsAt = (lasts: string): string | null =>
  * weekend" and "one watch only" are both reasonable, and where both are set whichever runs out first
  * ends it.
  *
- * @param media - What is being shared, or null while the dialog is shut.
+ * A programme is shared as a programme and nothing else. Opened from an episode there is a choice,
+ * because an episode genuinely belongs to both; opened from the programme itself there is nothing to
+ * choose, and offering "just this episode" would mean the one the catalogue happened to pick.
+ *
+ * What is being shared is still said either way. A row with nothing to choose is not a row worth
+ * removing: somebody handing out a whole programme should be told that is what they are doing before
+ * they press, rather than inferring it from which dialog they happened to open.
+ *
+ * @param subject - What is being shared, or null while the dialog is shut.
  * @param isOpen - Whether the dialog is showing.
  * @param onClose - Told when it was dismissed.
  * @param origin - Where this server is reachable, which the link is written against.
  */
-const ShareDialog = ({ media, isOpen, onClose, origin }: ShareDialogProps) => {
+const ShareDialog = ({ subject, isOpen, onClose, origin }: ShareDialogProps) => {
   const [lasts, setLasts] = useState<string>('7');
   const [cap, setCap] = useState<string>('any');
   const [kind, setKind] = useState<'item' | 'series'>('item');
@@ -73,12 +81,16 @@ const ShareDialog = ({ media, isOpen, onClose, origin }: ShareDialogProps) => {
     setRefusal(null);
     setIsCopied(false);
     setKind('item');
-  }, [isOpen, media]);
+  }, [isOpen, subject]);
 
-  const isEpisode = media?.seriesId !== null && media?.seriesId !== undefined;
+  const media = subject?.kind === 'item' ? subject.media : null;
+  const isEpisode = media !== null && media.seriesId !== null;
+
+  const named =
+    subject?.kind === 'series' ? subject.title : (media?.seriesTitle ?? media?.title ?? 'this');
 
   const hand = async () => {
-    if (media === null) {
+    if (subject === null) {
       return;
     }
 
@@ -86,9 +98,11 @@ const ShareDialog = ({ media, isOpen, onClose, origin }: ShareDialogProps) => {
     setRefusal(null);
 
     const asked: NewShare =
-      kind === 'series' && media.seriesId !== null
-        ? { kind: 'series', seriesId: media.seriesId }
-        : { kind: 'item', mediaId: media.id };
+      subject.kind === 'series'
+        ? { kind: 'series', seriesId: subject.seriesId }
+        : kind === 'series' && subject.media.seriesId !== null
+          ? { kind: 'series', seriesId: subject.media.seriesId }
+          : { kind: 'item', mediaId: subject.media.id };
 
     const made = await createShare({
       ...asked,
@@ -110,7 +124,7 @@ const ShareDialog = ({ media, isOpen, onClose, origin }: ShareDialogProps) => {
   return (
     <Dialog label="Share" isOpen={isOpen} onClose={onClose}>
       <DialogContent>
-        <DialogTitle title={`Share ${media?.seriesTitle ?? media?.title ?? 'this'}`}>
+        <DialogTitle title={`Share ${named}`}>
           <Button isIconOnly variant="ghost" label="Close" onClick={onClose}>
             <Icon of={Cancel01Icon} size={20} />
           </Button>
@@ -118,6 +132,16 @@ const ShareDialog = ({ media, isOpen, onClose, origin }: ShareDialogProps) => {
 
         {link === null ? (
           <div className="flex flex-col gap-5 pt-2">
+            {subject?.kind === 'series' ? (
+              <span className="flex items-center justify-between gap-4">
+                <span className="shrink-0 text-sm text-text-muted">What to share</span>
+
+                <span className="flex h-9 min-w-0 items-center truncate text-sm font-medium text-text">
+                  The whole programme
+                </span>
+              </span>
+            ) : null}
+
             {isEpisode ? (
               <Choice
                 label="What to share"

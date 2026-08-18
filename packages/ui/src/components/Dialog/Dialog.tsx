@@ -28,6 +28,11 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  * handling, so a caller supplies only what is inside. Every dialog in Flux is this or composes it; a
  * raw dialog element elsewhere is lint-banned.
  *
+ * The overlay sits at the same height as the panel rather than below it, so that what decides the
+ * order of two open dialogs is which was opened last rather than which rule happens to be higher. An
+ * overlay lower than the panel dimmed the page a second time and left the dialog it opened over
+ * untouched — the one thing it was meant to put behind.
+ *
  * It enters from the bottom on a phone and from its own centre on anything larger, because a sheet
  * is what a small screen expects and a panel is what a large one does. Both leave the way they
  * arrived, so dismissing reads as the reverse of opening rather than as a second, unrelated event.
@@ -60,10 +65,12 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
         }
       }}
     >
-      <RadixDialog.Portal {...(portalContainer === undefined ? {} : { container: portalContainer })}>
+      <RadixDialog.Portal
+        {...(portalContainer === undefined ? {} : { container: portalContainer })}
+      >
         <RadixDialog.Overlay
           data-slot="dialog-overlay"
-          className={cn('fixed inset-0 z-40 bg-black/70 backdrop-blur-sm', OVERLAY_MOTION)}
+          className={cn('fixed inset-0 z-50 bg-black/70 backdrop-blur-sm', OVERLAY_MOTION)}
         />
 
         <RadixDialog.Content

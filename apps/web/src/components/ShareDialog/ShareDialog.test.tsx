@@ -47,7 +47,24 @@ const episode: MediaSummary = {
 };
 
 const draw = (media: MediaSummary = film) =>
-  render(<ShareDialog media={media} isOpen onClose={vi.fn()} origin="https://flux.example" />);
+  render(
+    <ShareDialog
+      subject={{ kind: 'item', media }}
+      isOpen
+      onClose={vi.fn()}
+      origin="https://flux.example"
+    />,
+  );
+
+const drawProgramme = () =>
+  render(
+    <ShareDialog
+      subject={{ kind: 'series', seriesId: episode.seriesId ?? '', title: 'The Bear' }}
+      isOpen
+      onClose={vi.fn()}
+      origin="https://flux.example"
+    />,
+  );
 
 beforeEach(() => {
   createMock.mockReset().mockResolvedValue({ token: 'a-token' });
@@ -58,7 +75,14 @@ describe('handing out a link', () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
 
-    render(<ShareDialog media={film} isOpen onClose={onClose} origin="http://localhost" />);
+    render(
+      <ShareDialog
+        subject={{ kind: 'item', media: film }}
+        isOpen
+        onClose={onClose}
+        origin="http://localhost"
+      />,
+    );
 
     await user.click(screen.getByRole('button', { name: 'Close' }));
 
@@ -136,6 +160,37 @@ describe('sharing an episode', () => {
     draw(episode);
 
     expect(screen.getByText('What to share')).toBeInTheDocument();
+  });
+
+  it('offers nothing to choose when the programme itself is what is being shared', () => {
+    drawProgramme();
+
+    expect(screen.queryByRole('button', { name: 'What to share' })).not.toBeInTheDocument();
+  });
+
+  it('still says what is being shared, so nobody hands out a programme by inference', () => {
+    drawProgramme();
+
+    expect(screen.getByText('What to share')).toBeInTheDocument();
+    expect(screen.getByText('The whole programme')).toBeInTheDocument();
+  });
+
+  it('names the programme rather than whichever episode stands for it', () => {
+    drawProgramme();
+
+    expect(screen.getByText('Share The Bear')).toBeInTheDocument();
+  });
+
+  it('shares the whole programme, without an episode being involved at all', async () => {
+    const user = userEvent.setup();
+
+    drawProgramme();
+
+    await user.click(screen.getByRole('button', { name: 'Make a link' }));
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'series', seriesId: episode.seriesId }),
+    );
   });
 
   it('offers no such choice for a film, which is one item either way', () => {
