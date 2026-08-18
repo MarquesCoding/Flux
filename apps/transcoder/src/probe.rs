@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::Path;
 
 use serde::Deserialize;
@@ -143,6 +144,12 @@ fn parse_kbps(value: Option<&String>) -> Option<u32> {
         .map(|bits| u32::try_from(bits / 1000).unwrap_or(u32::MAX))
 }
 
+/// What a video stream is graded in, and what is legible underneath it.
+struct DetectedRange {
+    range: VideoRange,
+    base: VideoRange,
+}
+
 /// Determines the dynamic range of a video stream.
 ///
 /// Dolby Vision and HDR10+ are carried as side data alongside an ordinary PQ
@@ -162,7 +169,7 @@ fn parse_kbps(value: Option<&String>) -> Option<u32> {
 /// it. The test that covered the case passed because it put the metadata at
 /// stream level, which is somewhere ffprobe never puts it. Reading the first
 /// frame costs a hundredth of a second on a two gigabyte file. See FLUX-132.
-fn detect_range(stream: &FfprobeStream, frames: &[FfprobeFrame]) -> VideoRange {
+fn detect_range(stream: &FfprobeStream, frames: &[FfprobeFrame]) -> DetectedRange {
     let stream_side_data = stream.side_data_list.iter();
     let frame_side_data = frames.iter().flat_map(|frame| frame.side_data_list.iter());
 
@@ -175,7 +182,10 @@ fn detect_range(stream: &FfprobeStream, frames: &[FfprobeFrame]) -> VideoRange {
             .unwrap_or_default();
 
         if kind.contains("DOVI") || kind.contains("Dolby Vision") {
-            return VideoRange::DolbyVision;
+            return DetectedRange {
+                range: VideoRange::DolbyVision,
+                base: dolby_vision_base(side_data),
+            };
         }
 
         if kind.contains("HDR Dynamic Metadata") || kind.contains("SMPTE2094") {
@@ -184,13 +194,40 @@ fn detect_range(stream: &FfprobeStream, frames: &[FfprobeFrame]) -> VideoRange {
     }
 
     if let Some(range) = dynamic {
-        return range;
+        return DetectedRange {
+            range,
+            base: VideoRange::Hdr10,
+        };
     }
 
-    match stream.color_transfer.as_deref() {
+    let range = match stream.color_transfer.as_deref() {
         Some("smpte2084") => VideoRange::Hdr10,
         Some("arib-std-b67") => VideoRange::Hlg,
         _ => VideoRange::Sdr,
+    };
+
+    DetectedRange { range, base: range }
+}
+
+/// What a player that ignores the Dolby Vision metadata sees in the layer underneath.
+///
+/// A Dolby Vision stream says for itself what its base layer is gradeable as, in
+/// `dv_bl_signal_compatibility_id` on its configuration record. One means the base is HDR10, two
+/// means SDR and four means HLG; anything else — profile 5 above all, which is the single-layer
+/// IPT-PQ-C2 grade — means nothing but a Dolby Vision decoder can read it, and saying so is what
+/// keeps a green and purple picture off a screen that would otherwise have been sent one.
+///
+/// The value is absent from the RPU side data that rides on frames, which carries no such field, so
+/// a file found that way is treated as readable by nothing else. That is the safe way round.
+fn dolby_vision_base(side_data: &HashMap<String, serde_json::Value>) -> VideoRange {
+    match side_data
+        .get("dv_bl_signal_compatibility_id")
+        .and_then(serde_json::Value::as_u64)
+    {
+        Some(1) => VideoRange::Hdr10,
+        Some(2) => VideoRange::Sdr,
+        Some(4) => VideoRange::Hlg,
+        _ => VideoRange::DolbyVision,
     }
 }
 
@@ -236,35 +273,48 @@ fn is_forced(stream: &FfprobeStream) -> bool {
         .is_some_and(|forced| *forced == 1)
 }
 
-fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
-    let format = output.format.as_ref();
-
-    let video = output
+/// The video stream Flux plays, of however many a file holds.
+///
+/// The first is the one: a file with two video streams is almost always carrying cover art or a
+/// thumbnail alongside the film, and ffprobe lists the real one first.
+fn video_stream_of(output: &FfprobeOutput) -> Option<VideoStream> {
+    output
         .streams
         .iter()
         .find(|stream| stream.codec_type.as_deref() == Some("video"))
-        .map(|stream| VideoStream {
-            index: stream.index,
-            codec: video_codec(stream.codec_name.as_deref().unwrap_or_default()),
-            width: stream.width.unwrap_or_default(),
-            height: stream.height.unwrap_or_default(),
-            range: detect_range(stream, &output.frames),
-            bitrate_kbps: parse_kbps(stream.bit_rate.as_ref()),
-            level: stream
-                .level
-                .filter(|level| *level > 0)
-                .and_then(|level| u32::try_from(level).ok()),
-            frame_rate: parse_rational(stream.r_frame_rate.as_ref()),
-            is_interlaced: is_interlaced(stream.field_order.as_ref()),
-            ref_frames: stream.refs.filter(|refs| *refs > 0),
-            pixel_aspect: parse_pixel_aspect(stream.sample_aspect_ratio.as_ref()),
-            rotation_degrees: rotation_of(stream),
-            bit_depth: stream
-                .bits_per_raw_sample
-                .as_ref()
-                .and_then(|value| value.parse::<u8>().ok())
-                .or_else(|| stream.pix_fmt.as_deref().and_then(bit_depth_from_pix_fmt)),
-        });
+        .map(|stream| {
+            let detected = detect_range(stream, &output.frames);
+
+            VideoStream {
+                index: stream.index,
+                codec: video_codec(stream.codec_name.as_deref().unwrap_or_default()),
+                width: stream.width.unwrap_or_default(),
+                height: stream.height.unwrap_or_default(),
+                range: detected.range,
+                range_base: detected.base,
+                bitrate_kbps: parse_kbps(stream.bit_rate.as_ref()),
+                level: stream
+                    .level
+                    .filter(|level| *level > 0)
+                    .and_then(|level| u32::try_from(level).ok()),
+                frame_rate: parse_rational(stream.r_frame_rate.as_ref()),
+                is_interlaced: is_interlaced(stream.field_order.as_ref()),
+                ref_frames: stream.refs.filter(|refs| *refs > 0),
+                pixel_aspect: parse_pixel_aspect(stream.sample_aspect_ratio.as_ref()),
+                rotation_degrees: rotation_of(stream),
+                bit_depth: stream
+                    .bits_per_raw_sample
+                    .as_ref()
+                    .and_then(|value| value.parse::<u8>().ok())
+                    .or_else(|| stream.pix_fmt.as_deref().and_then(bit_depth_from_pix_fmt)),
+            }
+        })
+}
+
+fn to_media_probe(output: &FfprobeOutput, path: &Path) -> MediaProbe {
+    let format = output.format.as_ref();
+
+    let video = video_stream_of(output);
 
     let audio_streams = output
         .streams
@@ -497,6 +547,94 @@ mod tests {
             probe.video.expect("has video").range,
             VideoRange::DolbyVision
         );
+    }
+
+    /// Profile 8.1 says for itself that its base layer is HDR10, and it is the common case.
+    #[test]
+    fn reads_the_hdr10_base_of_a_dolby_vision_stream_that_declares_one() {
+        let json = r#"{"streams": [{"index": 0, "codec_type": "video", "codec_name": "hevc",
+            "color_transfer": "smpte2084",
+            "side_data_list": [{"side_data_type": "DOVI configuration record",
+                "dv_profile": 8, "dv_bl_signal_compatibility_id": 1}]}],
+            "format": {"format_name": "mov,mp4"}}"#;
+
+        let video = parse_ffprobe_output(json, Path::new("/media/film.mp4"))
+            .expect("parses")
+            .video
+            .expect("has video");
+
+        assert_eq!(video.range, VideoRange::DolbyVision);
+        assert_eq!(video.range_base, VideoRange::Hdr10);
+    }
+
+    #[test]
+    fn reads_the_sdr_and_hlg_bases_a_dolby_vision_stream_can_also_declare() {
+        let with = |id: u64| {
+            let json = format!(
+                r#"{{"streams": [{{"index": 0, "codec_type": "video", "codec_name": "hevc",
+                "side_data_list": [{{"side_data_type": "DOVI configuration record",
+                    "dv_bl_signal_compatibility_id": {id}}}]}}],
+                "format": {{"format_name": "mov,mp4"}}}}"#
+            );
+
+            parse_ffprobe_output(&json, Path::new("/media/film.mp4"))
+                .expect("parses")
+                .video
+                .expect("has video")
+                .range_base
+        };
+
+        assert_eq!(with(2), VideoRange::Sdr);
+        assert_eq!(with(4), VideoRange::Hlg);
+    }
+
+    /// Profile 5 is legible to nothing but a Dolby Vision decoder, and sending it anywhere else
+    /// shows a green and purple picture rather than a wrong one nobody notices.
+    #[test]
+    fn leaves_a_dolby_vision_stream_declaring_no_compatible_base_readable_by_nothing_else() {
+        let json = r#"{"streams": [{"index": 0, "codec_type": "video", "codec_name": "hevc",
+            "side_data_list": [{"side_data_type": "DOVI configuration record",
+                "dv_profile": 5, "dv_bl_signal_compatibility_id": 0}]}],
+            "format": {"format_name": "mov,mp4"}}"#;
+
+        let video = parse_ffprobe_output(json, Path::new("/media/film.mp4"))
+            .expect("parses")
+            .video
+            .expect("has video");
+
+        assert_eq!(video.range_base, VideoRange::DolbyVision);
+    }
+
+    /// HDR10+ is HDR10 with per-scene metadata added, so every HDR10 screen already reads it.
+    #[test]
+    fn reads_the_hdr10_base_underneath_hdr10_plus() {
+        let json = r#"{"streams": [{"index": 0, "codec_type": "video", "codec_name": "hevc",
+            "color_transfer": "smpte2084"}],
+            "frames": [{"side_data_list": [
+                {"side_data_type": "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)"}]}],
+            "format": {"format_name": "matroska"}}"#;
+
+        let video = parse_ffprobe_output(json, Path::new("/media/film.mkv"))
+            .expect("parses")
+            .video
+            .expect("has video");
+
+        assert_eq!(video.range, VideoRange::Hdr10Plus);
+        assert_eq!(video.range_base, VideoRange::Hdr10);
+    }
+
+    #[test]
+    fn leaves_a_stream_with_nothing_to_ignore_reading_as_what_it_is() {
+        let json = r#"{"streams": [{"index": 0, "codec_type": "video", "codec_name": "hevc",
+            "color_transfer": "smpte2084"}], "format": {"format_name": "matroska"}}"#;
+
+        let video = parse_ffprobe_output(json, Path::new("/media/film.mkv"))
+            .expect("parses")
+            .video
+            .expect("has video");
+
+        assert_eq!(video.range, VideoRange::Hdr10);
+        assert_eq!(video.range_base, VideoRange::Hdr10);
     }
 
     #[test]

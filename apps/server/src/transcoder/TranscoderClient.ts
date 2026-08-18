@@ -25,6 +25,7 @@ const ProbeVideoSchema = z.object({
   width: z.number().int(),
   height: z.number().int(),
   range: z.string(),
+  rangeBase: z.string().nullable().default(null),
   bitrateKbps: z.number().int().nullable(),
   bitDepth: z.number().int().nullable(),
   level: z.number().int().nullable().default(null),

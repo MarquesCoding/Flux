@@ -20,7 +20,7 @@ use std::path::PathBuf;
 mod common;
 
 use common::ffprobe;
-use flux_transcoder::media::VideoRange;
+use flux_transcoder::media::{VideoRange, VideoStream};
 use flux_transcoder::probe::probe_media;
 
 /// Where the corpus lives, matching `fixturesDirectory` on the TypeScript side.
@@ -36,7 +36,7 @@ fn corpus_directory() -> PathBuf {
     PathBuf::from(home).join(".cache").join("flux-fixtures")
 }
 
-async fn range_of(name: &str) -> Option<VideoRange> {
+async fn video_of(name: &str) -> Option<VideoStream> {
     let path = corpus_directory().join(name);
 
     if !path.exists() {
@@ -49,7 +49,7 @@ async fn range_of(name: &str) -> Option<VideoRange> {
         .await
         .expect("probes the fixture");
 
-    Some(probe.video.expect("has video").range)
+    Some(probe.video.expect("has video"))
 }
 
 /// A Dolby Vision stream is not reported as the HDR10 it is layered over.
@@ -59,11 +59,25 @@ async fn range_of(name: &str) -> Option<VideoRange> {
 /// would silently discard the dynamic metadata in a transcode.
 #[tokio::test]
 async fn reads_dolby_vision_rather_than_the_hdr10_beneath_it() {
-    let Some(range) = range_of("dolby-vision-profile-81.mkv").await else {
+    let Some(video) = video_of("dolby-vision-profile-81.mkv").await else {
         return;
     };
 
-    assert_eq!(range, VideoRange::DolbyVision);
+    assert_eq!(video.range, VideoRange::DolbyVision);
+}
+
+/// And the HDR10 underneath it is read as well, which is what lets it be sent untouched.
+///
+/// Reading the range alone is what made Flux re-encode this file for every screen in the house. The
+/// stream says `dv_bl_signal_compatibility_id` is one, meaning the base layer is ordinary HDR10, so
+/// an HDR10 client is sent the file as it is and shows the picture the format left for it.
+#[tokio::test]
+async fn reads_the_hdr10_base_that_makes_profile_81_playable_elsewhere() {
+    let Some(video) = video_of("dolby-vision-profile-81.mkv").await else {
+        return;
+    };
+
+    assert_eq!(video.range_base, VideoRange::Hdr10);
 }
 
 /// HDR10+ is reported as itself, from metadata that only appears once a frame is read.
@@ -72,19 +86,21 @@ async fn reads_dolby_vision_rather_than_the_hdr10_beneath_it() {
 /// nothing to notice that the probe never looked at a frame.
 #[tokio::test]
 async fn reads_hdr10_plus_from_a_file_that_actually_has_it() {
-    let Some(range) = range_of("hdr10plus-dynamic.mkv").await else {
+    let Some(video) = video_of("hdr10plus-dynamic.mkv").await else {
         return;
     };
 
-    assert_eq!(range, VideoRange::Hdr10Plus);
+    assert_eq!(video.range, VideoRange::Hdr10Plus);
+    assert_eq!(video.range_base, VideoRange::Hdr10);
 }
 
 /// The HDR10 fixture stays HDR10, so the two above are not passing by accident.
 #[tokio::test]
 async fn does_not_promote_plain_hdr10_to_something_dynamic() {
-    let Some(range) = range_of("hevc-10bit-hdr10.mp4").await else {
+    let Some(video) = video_of("hevc-10bit-hdr10.mp4").await else {
         return;
     };
 
-    assert_eq!(range, VideoRange::Hdr10);
+    assert_eq!(video.range, VideoRange::Hdr10);
+    assert_eq!(video.range_base, VideoRange::Hdr10);
 }

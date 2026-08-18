@@ -1,4 +1,4 @@
-import type { MediaItem, SubtitleFormat } from '@FluxContracts/schemas/MediaItem';
+import type { MediaItem, SubtitleFormat, VideoRange } from '@FluxContracts/schemas/MediaItem';
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
 import type {
   AudioDecision,
@@ -44,6 +44,37 @@ const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDec
       detail: `Client does not support the ${media.container} container`,
     },
   };
+};
+
+/**
+ * Which range this file can be delivered in to this client, of the ones it can honestly be read as.
+ *
+ * A file is graded in one range and is sometimes legible as another. Dolby Vision profile 8.1
+ * carries an HDR10 base layer and HDR10+ is HDR10 with per-scene metadata added; in both cases a
+ * player that ignores the extra metadata is not being fooled, it is reading the picture the format
+ * was built to leave for it. Refusing those is how a film that would have played untouched gets
+ * decoded, tone mapped and encoded again on a screen that could have shown the original.
+ *
+ * Profile 5 is the case this exists to keep out. It has no base layer anything else can read, so a
+ * client that cannot decode Dolby Vision is sent something else rather than a green and purple
+ * picture, which is the failure that makes people distrust a server.
+ *
+ * @param media - The file, as the catalogue holds it.
+ * @param profile - What the device says it can play.
+ * @returns The range to send, or nothing where the client can read neither.
+ */
+const rangeFor = (media: MediaItem, profile: DeviceProfile): VideoRange | null => {
+  if (profile.supportedVideoRanges.includes(media.videoRange)) {
+    return media.videoRange;
+  }
+
+  const base = media.videoRangeBase;
+
+  if (base !== null && base !== undefined && profile.supportedVideoRanges.includes(base)) {
+    return base;
+  }
+
+  return null;
 };
 
 /**
@@ -107,7 +138,7 @@ const decideVideo = (
   ): VideoDecision => ({
     kind: 'transcode',
     codec: targetCodec,
-    range: profile.supportedVideoRanges.includes(media.videoRange) ? media.videoRange : 'SDR',
+    range: rangeFor(media, profile) ?? 'SDR',
     maxBitrateKbps: encodeBitrateFor({
       sourceBitrateKbps: media.bitrateKbps,
       sourceCodec: media.videoCodec,
@@ -219,7 +250,7 @@ const decideVideo = (
     );
   }
 
-  if (!profile.supportedVideoRanges.includes(media.videoRange)) {
+  if (rangeFor(media, profile) === null) {
     return transcodeTo(
       'VideoRangeNotSupported',
       `Client does not support the ${media.videoRange} video range`,

@@ -80,6 +80,74 @@ describe('negotiatePlayback', () => {
     expect(plan.audio.kind).toBe('passthrough');
   });
 
+  it('copies a Dolby Vision source whose base layer is a range the client reads', () => {
+    const profile81 = {
+      ...media,
+      videoRange: 'DolbyVision' as const,
+      videoRangeBase: 'HDR10' as const,
+    };
+
+    const plan = negotiatePlayback(profile81, profile);
+
+    expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('copies an HDR10+ source to an HDR10 client, which reads the layer underneath it', () => {
+    const plus = { ...media, videoRange: 'HDR10Plus' as const, videoRangeBase: 'HDR10' as const };
+
+    const plan = negotiatePlayback(plus, profile);
+
+    expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('re-encodes a Dolby Vision source with no base layer anything else can read', () => {
+    const profile5 = {
+      ...media,
+      videoRange: 'DolbyVision' as const,
+      videoRangeBase: 'DolbyVision' as const,
+    };
+
+    const plan = negotiatePlayback(profile5, profile);
+
+    expect(plan.video.kind).toBe('transcode');
+    expect(plan.video.reason.code).toBe('VideoRangeNotSupported');
+  });
+
+  it('re-encodes a source read as a range this client still cannot show', () => {
+    const hlgBase = {
+      ...media,
+      videoRange: 'DolbyVision' as const,
+      videoRangeBase: 'HLG' as const,
+    };
+
+    const plan = negotiatePlayback(hlgBase, profile);
+
+    expect(plan.video.kind).toBe('transcode');
+    expect(plan.video.reason.code).toBe('VideoRangeNotSupported');
+  });
+
+  it('re-encodes a Dolby Vision source that predates knowing what is underneath it', () => {
+    const unprobed = { ...media, videoRange: 'DolbyVision' as const };
+
+    const plan = negotiatePlayback(unprobed, profile);
+
+    expect(plan.video.kind).toBe('transcode');
+    expect(plan.video.reason.code).toBe('VideoRangeNotSupported');
+  });
+
+  it('encodes to the base layer rather than flattening it, where something else forces a transcode', () => {
+    const profile81 = {
+      ...media,
+      videoRange: 'DolbyVision' as const,
+      videoRangeBase: 'HDR10' as const,
+      videoCodec: 'av1',
+    };
+
+    const plan = negotiatePlayback(profile81, profile);
+
+    expect(plan.video).toMatchObject({ kind: 'transcode', range: 'HDR10' });
+  });
+
   it('will not copy a source whose keyframes cannot be cut into playable segments', () => {
     const openGop = { ...media, canCopySegments: false };
 
