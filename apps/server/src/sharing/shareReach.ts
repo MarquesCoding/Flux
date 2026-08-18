@@ -19,6 +19,8 @@ type ShareReach =
 
 const ID = '[0-9a-fA-F-]{36}';
 
+const SESSION_ID = '[^/]+';
+
 const ITEM_ROUTES: readonly RegExp[] = [
   new RegExp(`^/api/media/(${ID})$`),
   new RegExp(`^/api/media/(${ID})/image/[a-z]+$`),
@@ -33,9 +35,9 @@ const ITEM_ROUTES: readonly RegExp[] = [
 ];
 
 const SESSION_ROUTES: readonly RegExp[] = [
-  new RegExp(`^/api/playback/session/(${ID})$`),
-  new RegExp(`^/api/playback/session/(${ID})/heartbeat$`),
-  new RegExp(`^/api/playback/session/(${ID})/[^/]+$`),
+  new RegExp(`^/api/playback/session/(${SESSION_ID})$`),
+  new RegExp(`^/api/playback/session/(${SESSION_ID})/heartbeat$`),
+  new RegExp(`^/api/playback/session/(${SESSION_ID})/[^/]+$`),
 ];
 
 const OPEN_TO_A_GUEST: readonly RegExp[] = [/^\/api\/share\/[^/]+$/, /^\/api\/health$/];
@@ -50,6 +52,12 @@ const OPEN_TO_A_GUEST: readonly RegExp[] = [/^\/api\/share\/[^/]+$/, /^\/api\/he
  * against what the share covers, and a request naming a session has to be checked against the
  * sessions that share itself started. This says which, rather than deciding either, so that the
  * check happens against live state rather than against a path.
+ *
+ * A session identifier is matched loosely on purpose. An item is named by a real identifier and is
+ * checked as one, but a session is whatever the playback service called it — `direct-<item>` for a
+ * file played as it is, and the media service's own name for a transcode. Insisting on a shape here
+ * refused every manifest and segment a guest asked for, while the check that actually protects them
+ * — whether this share started that session — happened not at all.
  *
  * @param request - What is being asked for.
  * @returns Whether it is allowed outright, refused outright, or allowed subject to a check.

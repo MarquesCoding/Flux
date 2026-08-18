@@ -132,6 +132,14 @@ describe('SharePanel', () => {
     expect(await screen.findByText('3 times')).toBeInTheDocument();
   });
 
+  it('says a link opened once was opened one time rather than one times', async () => {
+    fetchShares.mockResolvedValue([share({ views: 1 })]);
+
+    renderInACache(<SharePanel />);
+
+    expect(await screen.findByText('1 time')).toBeInTheDocument();
+  });
+
   it('says first that withdrawing takes anybody watching with it, then withdraws', async () => {
     fetchShares.mockResolvedValue([share()]);
 

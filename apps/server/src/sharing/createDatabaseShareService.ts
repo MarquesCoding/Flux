@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { mediaItem, series, share, shareVisit, user } from '@FluxServer/db/Schema';
 import { isShareLive } from '@FluxContracts/schemas/Share';
 import { hashShareToken, makeShareToken } from './shareToken';
@@ -21,7 +21,19 @@ const GONE = 'Something no longer here';
 const readKind = (stored: string): ShareKind | null =>
   stored === 'item' || stored === 'series' ? stored : null;
 
-const COLUMNS = {
+/**
+ * The columns every listing reads, including how far a link has been used.
+ *
+ * The count is asked for with `$count` rather than written out as a correlated subquery, because
+ * Drizzle omits table qualifiers in a select over one table: a hand-written
+ * `where "shareId" = "id"` then resolves both names against the subquery's own table rather than
+ * the share outside it, and counts nothing at all. It is right by accident in a query that
+ * happens to join, which is exactly how it stayed wrong in one listing and not the other.
+ *
+ * @param db - The database, which is what knows how to build the count.
+ * @returns The selection both listings read.
+ */
+const columnsFor = (db: FluxDatabase) => ({
   id: share.id,
   kind: share.kind,
   mediaItemId: share.mediaItemId,
@@ -30,8 +42,8 @@ const COLUMNS = {
   expiresAt: share.expiresAt,
   viewCap: share.viewCap,
   revokedAt: share.revokedAt,
-  views: sql<number>`(select count(*)::int from ${shareVisit} where ${shareVisit.shareId} = ${share.id})`,
-};
+  views: db.$count(shareVisit, eq(shareVisit.shareId, share.id)),
+});
 
 type ShareRow = {
   id: string;
@@ -54,6 +66,8 @@ type ShareRow = {
  * @returns The share service.
  */
 const createDatabaseShareService = (db: FluxDatabase): ShareService => {
+  const COLUMNS = columnsFor(db);
+
   const countViews = async (shareId: string): Promise<number> => {
     const [found] = await db
       .select({ howMany: count() })
@@ -295,4 +309,4 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
   };
 };
 
-export { createDatabaseShareService, LIMIT };
+export { createDatabaseShareService, columnsFor, LIMIT };

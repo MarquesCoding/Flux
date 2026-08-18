@@ -14,6 +14,7 @@ import { adminQueries } from '@FluxWeb/query/adminQueries';
 import { saidWhen } from '@FluxWeb/format/saidWhen';
 import { standingOf } from '@FluxWeb/sharing/standingOf';
 import { untilWhen } from '@FluxWeb/sharing/untilWhen';
+import { saidOpened } from '@FluxWeb/sharing/saidOpened';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { AdminShare } from '@FluxContracts/schemas/Share';
 
@@ -85,9 +86,7 @@ const SharesPanel = () => {
         accessorFn: (share) => share.views,
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-xs text-text-muted">
-            {row.original.viewCap === null
-              ? `${row.original.views.toString()} times`
-              : `${row.original.views.toString()} of ${row.original.viewCap.toString()} times`}
+            {saidOpened(row.original)}
           </span>
         ),
       },
@@ -152,7 +151,7 @@ const SharesPanel = () => {
 
       <CardHeader title="Links handed out" />
 
-      <p className="px-4 text-sm text-text-muted">
+      <p className="px-4 pt-4 text-sm text-text-muted">
         Anybody holding one of these can watch what it points at without an account here.
         Withdrawing a link stops it at once, and tells whoever made it.
       </p>

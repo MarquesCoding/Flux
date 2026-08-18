@@ -19,6 +19,7 @@ import { z } from 'zod';
 
 const SessionAccountSchema = z.object({ user: z.object({ id: z.string() }) });
 import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
 
 const BASE = 'http://localhost:8420';
 const LIBRARY_ID = '2b6f0cc9-04f0-4f26-9f1a-1d5b2ea92d9f';
@@ -30,6 +31,45 @@ const CREDENTIALS = {
   name: 'Marques',
   email: 'marques@flux.local',
   password: 'a-long-enough-password',
+};
+
+const playable = (id: string, title: string): MediaItem => ({
+  id,
+  title,
+  year: 2016,
+  container: 'mkv',
+  durationSeconds: 7200,
+  videoCodec: 'h264',
+  videoRange: 'SDR',
+  videoBitDepth: 8,
+  canCopySegments: true,
+  videoIsInterlaced: false,
+  width: 1920,
+  height: 1080,
+  bitrateKbps: 8000,
+  audioStreams: [{ index: 1, codec: 'aac', channels: 2, isDefault: true, isAtmos: false }],
+  subtitleStreams: [],
+});
+
+const A_BROWSER = {
+  schemaVersion: 1,
+  name: 'Browser',
+  maxWidth: 1920,
+  maxHeight: 1080,
+  maxBitrateKbps: 8000,
+  maxAudioChannels: 2,
+  supportedVideoRanges: ['SDR'],
+  tenBitVideoCodecs: [],
+  maxVideoLevels: {},
+  canPlayInterlaced: true,
+  canPlayAnamorphic: true,
+  canRotate: true,
+  unsupportedAudioProfiles: [],
+  supportedSubtitleFormats: ['webvtt'],
+  directPlayProfiles: [{ container: 'mp4', videoCodecs: ['h264'], audioCodecs: ['aac'] }],
+  transcodingProfiles: [
+    { container: 'ts', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
+  ],
 };
 
 const item = (over: Partial<MediaDetail> = {}): MediaDetail =>
@@ -91,7 +131,10 @@ const build = () => {
       ],
       media: [item(), item({ id: OTHER, title: 'Nocturnal Animals' })],
     }),
-    playback: createMemoryPlaybackService(),
+    playback: createMemoryPlaybackService({
+      media: { [FILM]: playable(FILM, 'Arrival'), [OTHER]: playable(OTHER, 'Nocturnal Animals') },
+      sessions: {},
+    }),
     segments: createMemorySegmentService(),
     subtitles: createMemorySubtitleService({}),
     profiles: createMemoryProfileService(),
@@ -305,6 +348,25 @@ describe('opening a link as somebody with no account', () => {
   });
 });
 
+/**
+ * Starts playing as a guest holding a link, and answers with the session the server named. The name
+ * is the server's to choose — `direct-<item>` for a file played as it is, the media service's own
+ * name for a transcode — and the guest has to be able to fetch a manifest under whichever it picked.
+ */
+const playing = async (
+  app: ReturnType<typeof build>['app'],
+  jar: string,
+  mediaId = FILM,
+): Promise<string> => {
+  const response = await app.request(`${BASE}/api/playback/${mediaId}/session`, {
+    method: 'POST',
+    headers: { cookie: jar, origin: BASE, 'content-type': 'application/json' },
+    body: JSON.stringify({ deviceProfile: A_BROWSER }),
+  });
+
+  return z.object({ sessionId: z.string() }).parse(await response.json()).sessionId;
+};
+
 describe('what a guest may reach', () => {
   it('reaches what was shared', async () => {
     const built = build();
@@ -318,6 +380,44 @@ describe('what a guest may reach', () => {
     });
 
     expect(response.status).toBe(200);
+  });
+
+  it('fetches the manifest of the session its own link started', async () => {
+    const built = build();
+    const { app } = built;
+    const cookie = await signedIn(built);
+    const made = await shared(app, cookie);
+    const { jar } = await opened(app, made.token);
+
+    const sessionId = await playing(app, jar);
+
+    const response = await app.request(
+      `${BASE}/api/playback/session/${encodeURIComponent(sessionId)}/index.m3u8`,
+      { headers: { cookie: jar, origin: BASE } },
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it('never reaches a session belonging to somebody else’s link', async () => {
+    const built = build();
+    const { app } = built;
+    const cookie = await signedIn(built);
+
+    const mine = await shared(app, cookie);
+    const theirs = await shared(app, cookie, { kind: 'item', mediaId: OTHER });
+
+    const { jar: myJar } = await opened(app, mine.token);
+    const { jar: theirJar } = await opened(app, theirs.token);
+
+    const theirSession = await playing(app, theirJar, OTHER);
+
+    const response = await app.request(
+      `${BASE}/api/playback/session/${encodeURIComponent(theirSession)}/index.m3u8`,
+      { headers: { cookie: myJar, origin: BASE } },
+    );
+
+    expect(response.status).toBe(403);
   });
 
   it('never reaches anything else in the library', async () => {
