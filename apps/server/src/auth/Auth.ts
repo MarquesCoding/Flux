@@ -53,7 +53,8 @@ const createAuth = ({
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
     trustedOrigins: async () => {
-      const configured = (await settings.read()).trustedOrigins;
+      const stored = (await settings.read()).trustedOrigins;
+      const configured = [...new Set([...env.TRUSTED_ORIGINS, ...stored])];
 
       return [...configured, ...ownOrigins(configured, env.PORT)];
     },
