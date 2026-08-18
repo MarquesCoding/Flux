@@ -258,6 +258,52 @@ body {
   }
 }
 
+.flux-logo-edge {
+  filter: drop-shadow(1px 0 0 var(--color-accent)) drop-shadow(-1px 0 0 var(--color-accent))
+    drop-shadow(0 1px 0 var(--color-accent)) drop-shadow(0 -1px 0 var(--color-accent));
+}
+
+.flux-logo-dots {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  mask-image: radial-gradient(circle at center, #000 34%, transparent 36%);
+  -webkit-mask-image: radial-gradient(circle at center, #000 34%, transparent 36%);
+  mask-size: 4px 4px;
+  -webkit-mask-size: 4px 4px;
+  mask-repeat: repeat;
+  -webkit-mask-repeat: repeat;
+  mask-position: center;
+  -webkit-mask-position: center;
+}
+
+.flux-logo-wave {
+  position: absolute;
+  inset: -50%;
+  background: radial-gradient(
+    circle at center,
+    rgb(255 255 255 / 1) 0%,
+    rgb(255 255 255 / 0.6) 24%,
+    rgb(255 255 255 / 0) 48%
+  );
+  animation: flux-logo-wave 3.4s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes flux-logo-wave {
+  from {
+    transform: scale(0.12);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
 .flux-mood-fade {
   position: absolute;
   inset: 0;
@@ -265,6 +311,12 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .flux-logo-wave {
+    animation: none;
+    opacity: 0.35;
+    transform: scale(1);
+  }
+
   .flux-dot-fill {
     animation: none;
     transform: scaleX(1);
