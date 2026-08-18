@@ -21,6 +21,7 @@ import { MediaCard } from '@FluxUI/MediaCard';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { useQuery } from '@tanstack/react-query';
+import { useHeldWhileLeaving } from '@FluxWeb/shell/useHeldWhileLeaving';
 import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
@@ -84,7 +85,7 @@ const MediaDetailDialog = ({
   onStartParty,
 }: MediaDetailDialogProps) => {
   const asked = useQuery(libraryQueries.detail(media?.id ?? null));
-  const detail = media === null ? null : (asked.data ?? null);
+  const detail = useHeldWhileLeaving(asked.data ?? null, media !== null);
   const isLoading = media !== null && asked.isPending;
 
   const [unlettered, setUnlettered] = useState<string | null>(null);
