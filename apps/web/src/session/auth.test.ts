@@ -98,14 +98,15 @@ describe('signOut', () => {
     expect(asked()).toBe('/api/auth/sign-out');
   });
 
-  it('sends what it is sending, so the server will parse the body it was given', async () => {
+  it('says what it is sending and sends it, since a body-less post is refused outright', async () => {
     fetchMock.mockResolvedValue(said({ success: true }));
 
     await signOut();
 
-    const sent = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+    const sent = fetchMock.mock.calls[0]?.[1];
 
-    expect(sent.get('content-type')).toBe('application/json');
+    expect(new Headers(sent?.headers).get('content-type')).toBe('application/json');
+    expect(sent?.body).toBe('{}');
   });
 
   it('forgets which face this device was watching as', async () => {
@@ -121,6 +122,21 @@ describe('signOut', () => {
     fetchMock.mockResolvedValue(said({}, 500));
 
     await expect(signOut()).resolves.toBe(false);
+  });
+
+  it('believes the server rather than a second opinion about the same answer', async () => {
+    fetchMock.mockResolvedValue(said({ success: true }));
+
+    await expect(signOut()).resolves.toBe(true);
+  });
+
+  it('forgets the face even where the server refused, since somebody still walked away', async () => {
+    window.localStorage.setItem('flux.profile', 'somebody');
+    fetchMock.mockResolvedValue(said({}, 500));
+
+    await signOut();
+
+    expect(window.localStorage.getItem('flux.profile')).toBeNull();
   });
 });
 

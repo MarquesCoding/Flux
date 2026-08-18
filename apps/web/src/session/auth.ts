@@ -33,9 +33,14 @@ const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
  * The plugins are the ones the server mounts and this application calls: `admin` for the role on a
  * user, `twoFactor`, and `passkey`.
  *
- * Anything carrying a body says so. The library sends its own JSON without naming it, and a server
- * asked to parse a body it was not told the shape of is entitled to refuse — which is a sign-out
- * that answers politely and leaves the session exactly where it was.
+ * Its `fetch` is handed over rather than left to be found, for two reasons and no others: the
+ * library reads the global once when the client is built, which is before a test has had a chance
+ * to stand in for it, and it asks with a `URL` where a caller may be expecting a string.
+ *
+ * Nothing else is done to the request. A shim here once added a content type as well, on the theory
+ * that the library sent a body without naming it — it sends `{}` with `application/json` and
+ * `credentials: include` of its own accord, so that was an answer to a question nobody had asked,
+ * sitting on the one path where a mistake ends a session or fails to.
  *
  * @returns The client.
  */
@@ -43,18 +48,8 @@ const buildClient = () =>
   createAuthClient({
     basePath: '/api/auth',
     fetchOptions: {
-      customFetchImpl: async (input, init) => {
-        const headers = new Headers(init?.headers);
-
-        if (init?.body !== undefined && init.body !== null && !headers.has('content-type')) {
-          headers.set('content-type', 'application/json');
-        }
-
-        return globalThis.fetch(input instanceof Request ? input : String(input), {
-          ...init,
-          headers,
-        });
-      },
+      customFetchImpl: async (input, init) =>
+        globalThis.fetch(input instanceof Request ? input : String(input), init),
     },
     plugins: [adminClient(), twoFactorClient(), passkeyClient()],
   });
@@ -119,26 +114,21 @@ const fetchSession = async (): Promise<SessionUser | null> => {
  * get wrong: end the session alone and the next person to sign in on this television is silently
  * treated as whoever used it last, with their history and their place in everything.
  *
- * Whether it worked is taken from the library's own success hook rather than from the absence of an
- * error, so that an answer of true means the server said the session is over — which is what the
- * caller is about to act on by emptying the cache and walking away from the account.
+ * Whether it worked is read from the refusal, the way every other call in this module reads it. It
+ * was once taken from the library's success hook instead, which is a second way of asking the same
+ * question and the only one here that could answer no while the server had said yes.
+ *
+ * The face is forgotten either way. A sign-out that did not reach the server still means somebody
+ * walked away from this device, and leaving their face on it is the failure that matters.
  *
  * @returns Whether the session was ended.
  */
 const signOut = async (): Promise<boolean> => {
-  let ended = false;
-
-  await client.signOut({
-    fetchOptions: {
-      onSuccess: () => {
-        ended = true;
-      },
-    },
-  });
+  const { error } = await client.signOut();
 
   writeCurrentProfile(null);
 
-  return ended;
+  return error === null;
 };
 
 /**

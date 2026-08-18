@@ -31,6 +31,48 @@ afterEach(() => {
 });
 
 describe('createAuth', () => {
+  describe('trusted origins', () => {
+    /**
+     * Auth whose stored settings have fallen behind what the deployment configured, which is what a
+     * server looks like after an operator edits the environment on an instance already set up.
+     *
+     * @returns The auth, and a session on it made from an origin it already trusted.
+     */
+    const withStaleSettings = async () => {
+      const { auth, settings } = createProductionAuth({
+        TRUSTED_ORIGINS: 'http://localhost:8420,https://localhost:5173',
+      });
+
+      await settings.write({ trustedOrigins: ['http://localhost:8420'] });
+
+      const signedUp = await auth.handler(
+        post('/api/auth/sign-up/email', credentials, { origin: BASE_URL }),
+      );
+
+      return { auth, cookie: signedUp.headers.getSetCookie()[0]?.split(';')[0] ?? '' };
+    };
+
+    it('trusts what the deployment configured, though the stored settings predate it', async () => {
+      const { auth, cookie } = await withStaleSettings();
+
+      const response = await auth.handler(
+        post('/api/auth/sign-out', {}, { origin: 'https://localhost:5173', cookie }),
+      );
+
+      expect(response.status).toBe(200);
+    });
+
+    it('still refuses an origin nobody named, so reading the environment is not a way in', async () => {
+      const { auth, cookie } = await withStaleSettings();
+
+      const response = await auth.handler(
+        post('/api/auth/sign-out', {}, { origin: 'https://somewhere.else', cookie }),
+      );
+
+      expect(response.status).toBe(403);
+    });
+  });
+
   it('registers a user with email and password', async () => {
     const { auth } = createMemoryAuth();
 
