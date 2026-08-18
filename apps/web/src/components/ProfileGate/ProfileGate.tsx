@@ -44,8 +44,8 @@ const FACES: Variants = {
 };
 
 const FACE: Variants = {
-  hidden: { opacity: 0, y: 16, scale: 0.9 },
-  shown: { opacity: 1, y: 0, scale: 1 },
+  hidden: { opacity: 0, y: 16 },
+  shown: { opacity: 1, y: 0 },
 };
 
 /**
@@ -224,7 +224,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   };
 
   return (
-    <main className="relative flex min-h-svh flex-col items-center justify-center gap-8 px-6 py-16">
+    <main className="relative flex min-h-svh flex-col items-center justify-center gap-8 overflow-hidden px-6 py-16">
       <MoodBackground
         lights={chosen === null ? [] : [{ color: chosen.colour }]}
         hasGrid
