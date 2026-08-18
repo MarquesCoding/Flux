@@ -1,4 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
+import { Logo } from '@FluxUI/Logo';
 import { ArrowLeft01Icon, ArrowRight01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
@@ -16,13 +17,13 @@ import {
   liquidSpring,
   stillTransition,
 } from '@FluxUI/animations/reveal';
-import { signInAsProfile } from '@FluxWeb/profiles/fetchEveryone';
+import { signInAsProfile } from '@FluxClient/profiles/fetchEveryone';
 import { useQuery } from '@tanstack/react-query';
-import { sessionQueries } from '@FluxWeb/query/sessionQueries';
+import { sessionQueries } from '@FluxClient/query/sessionQueries';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import { TwoFactorChallenge } from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge';
 import { isPasskeySupported } from '@FluxWeb/passkeys/isPasskeySupported';
-import { authenticateWithPasskey } from '@FluxWeb/session/auth';
+import { authenticateWithPasskey } from '@FluxClient/session/auth';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import type { ProfileGateProps } from './ProfileGate.types';
 
@@ -43,8 +44,8 @@ const FACES: Variants = {
 };
 
 const FACE: Variants = {
-  hidden: { opacity: 0, y: 16, scale: 0.9 },
-  shown: { opacity: 1, y: 0, scale: 1 },
+  hidden: { opacity: 0, y: 16 },
+  shown: { opacity: 1, y: 0 },
 };
 
 /**
@@ -89,6 +90,8 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   const [isTitleOver, setIsTitleOver] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
   const [needsCode, setNeedsCode] = useState(false);
+
+  const isFlux = name.toLowerCase() === 'flux';
   const facesRef = useRef(new Map<string, HTMLButtonElement>());
   const prefersReducedMotion = useReducedMotion();
 
@@ -221,7 +224,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   };
 
   return (
-    <main className="relative flex min-h-svh flex-col items-center justify-center gap-8 px-6 py-16">
+    <main className="relative flex min-h-svh flex-col items-center justify-center gap-8 overflow-hidden px-6 py-16">
       <MoodBackground
         lights={chosen === null ? [] : [{ color: chosen.colour }]}
         hasGrid
@@ -237,15 +240,27 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
           scale: { duration: 0.7, ease: 'easeOut' },
           layout: move,
         }}
-        className={cn(
-          'bg-gradient-to-br from-text via-text to-accent bg-clip-text font-semibold',
-          'tracking-[-0.05em] text-transparent',
-          isTitleOver
-            ? 'text-[clamp(1.75rem,4vw,2.5rem)]'
-            : 'absolute text-[clamp(3rem,12vw,7rem)]',
-        )}
+        className={cn('flex items-center gap-1', isTitleOver ? '' : 'absolute')}
       >
-        {name}
+        {isFlux ? (
+          <Logo
+            size={isTitleOver ? 44 : 128}
+            isDotted={!isTitleOver}
+            hasEdge
+            isAnimated
+            label={name}
+          />
+        ) : (
+          <span
+            className={cn(
+              'bg-gradient-to-br from-text via-text to-accent bg-clip-text font-semibold',
+              'tracking-[-0.05em] text-transparent',
+              isTitleOver ? 'text-[clamp(1.75rem,4vw,2.5rem)]' : 'text-[clamp(3rem,12vw,7rem)]',
+            )}
+          >
+            {name}
+          </span>
+        )}
       </motion.p>
 
       {!isTitleOver ? null : everyone === null ? (
@@ -319,8 +334,8 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                         {...(prefersReducedMotion === true
                           ? {}
                           : {
-                              whileHover: { transform: 'translateY(-8px)' },
-                              whileTap: { transform: 'scale(0.97)' },
+                              whileHover: { y: -8 },
+                              whileTap: { scale: 0.97 },
                             })}
                         className="flex w-24 flex-col items-center gap-3 sm:w-32"
                       >

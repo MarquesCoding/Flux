@@ -1,5 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RatingPanel } from './RatingPanel';
@@ -7,7 +7,7 @@ import type { HouseholdRating } from '@FluxContracts/schemas/Rating';
 
 const fetchHouseholdRating = vi.fn<() => Promise<HouseholdRating>>();
 
-vi.mock('@FluxWeb/library/fetchRatings', () => ({
+vi.mock('@FluxClient/library/fetchRatings', () => ({
   fetchHouseholdRating: () => fetchHouseholdRating(),
 }));
 
@@ -19,7 +19,7 @@ beforeEach(() => {
 
 describe('RatingPanel', () => {
   it('offers this viewer a row of stars to press', async () => {
-    renderInACache(
+    renderInAnAddress(
       <RatingPanel subject={{ mediaId: MEDIA_ID }} title="Arrival" stars={null} onRate={vi.fn()} />,
     );
 
@@ -31,7 +31,7 @@ describe('RatingPanel', () => {
   it('reports the rating that was pressed', async () => {
     const onRate = vi.fn();
 
-    renderInACache(
+    renderInAnAddress(
       <RatingPanel subject={{ mediaId: MEDIA_ID }} title="Arrival" stars={null} onRate={onRate} />,
     );
 
@@ -43,7 +43,7 @@ describe('RatingPanel', () => {
   it('reports nothing when the star already given is pressed again', async () => {
     const onRate = vi.fn();
 
-    renderInACache(
+    renderInAnAddress(
       <RatingPanel subject={{ mediaId: MEDIA_ID }} title="Arrival" stars={4} onRate={onRate} />,
     );
 
@@ -55,7 +55,7 @@ describe('RatingPanel', () => {
   it('shows what the household gave it', async () => {
     fetchHouseholdRating.mockResolvedValue({ average: 4.5, count: 2 });
 
-    renderInACache(
+    renderInAnAddress(
       <RatingPanel subject={{ mediaId: MEDIA_ID }} title="Arrival" stars={5} onRate={vi.fn()} />,
     );
 
@@ -66,7 +66,7 @@ describe('RatingPanel', () => {
   it('says one rating rather than 1 ratings', async () => {
     fetchHouseholdRating.mockResolvedValue({ average: 3, count: 1 });
 
-    renderInACache(
+    renderInAnAddress(
       <RatingPanel subject={{ mediaId: MEDIA_ID }} title="Arrival" stars={3} onRate={vi.fn()} />,
     );
 
@@ -74,7 +74,7 @@ describe('RatingPanel', () => {
   });
 
   it('says nothing about the household where nobody has rated it', async () => {
-    renderInACache(
+    renderInAnAddress(
       <RatingPanel subject={{ mediaId: MEDIA_ID }} title="Arrival" stars={null} onRate={vi.fn()} />,
     );
 
@@ -87,7 +87,7 @@ describe('RatingPanel', () => {
   it('asks once for a subject rather than again whenever this viewer changes theirs', async () => {
     fetchHouseholdRating.mockResolvedValue({ average: 4, count: 1 });
 
-    const { rerender } = renderInACache(
+    const { rerender } = renderInAnAddress(
       <RatingPanel subject={{ mediaId: MEDIA_ID }} title="Arrival" stars={4} onRate={vi.fn()} />,
     );
 
@@ -109,7 +109,7 @@ describe('RatingPanel', () => {
   it('reads the figure for a different subject', async () => {
     fetchHouseholdRating.mockResolvedValue({ average: 4, count: 1 });
 
-    const { rerender } = renderInACache(
+    const { rerender } = renderInAnAddress(
       <RatingPanel subject={{ mediaId: MEDIA_ID }} title="Arrival" stars={4} onRate={vi.fn()} />,
     );
 
@@ -127,7 +127,7 @@ describe('RatingPanel', () => {
   it('draws the household row as a picture rather than a second control', async () => {
     fetchHouseholdRating.mockResolvedValue({ average: 4.5, count: 2 });
 
-    renderInACache(
+    renderInAnAddress(
       <RatingPanel subject={{ mediaId: MEDIA_ID }} title="Arrival" stars={5} onRate={vi.fn()} />,
     );
 

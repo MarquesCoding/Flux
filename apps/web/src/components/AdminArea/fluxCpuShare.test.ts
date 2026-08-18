@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Monitor } from '@FluxWeb/admin/fetchAdmin';
+import type { Monitor } from '@FluxClient/admin/fetchAdmin';
 import { fluxCpuShare } from './fluxCpuShare';
 
 const resources = (overrides: Partial<Monitor['resources']> = {}): Monitor['resources'] => ({

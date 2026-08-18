@@ -20,14 +20,14 @@ const readScanStateMock = vi.hoisted(() => vi.fn());
 const runJobMock = vi.hoisted(() => vi.fn());
 const fetchRunningScansMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/library/fetchLibrary', () => ({
+vi.mock('@FluxClient/library/fetchLibrary', () => ({
   scanLibrary: scanLibraryMock,
   resetLibrary: resetLibraryMock,
   regenerateLibraryPreviews: regenerateLibraryPreviewsMock,
   readScanState: readScanStateMock,
 }));
 
-vi.mock('@FluxWeb/admin/fetchAdmin', () => ({
+vi.mock('@FluxClient/admin/fetchAdmin', () => ({
   runJob: runJobMock,
   fetchRunningScans: fetchRunningScansMock,
 }));

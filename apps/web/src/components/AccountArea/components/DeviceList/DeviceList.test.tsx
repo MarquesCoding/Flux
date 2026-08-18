@@ -2,13 +2,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeviceList } from './DeviceList';
-import type { Device } from '@FluxWeb/account/fetchDevices';
+import type { Device } from '@FluxClient/account/fetchDevices';
 
 const fetchDevices = vi.fn<() => Promise<Device[]>>();
 const endDevice = vi.fn<(deviceId: string) => Promise<boolean>>();
 const endOtherDevices = vi.fn<() => Promise<boolean>>();
 
-vi.mock('@FluxWeb/account/fetchDevices', () => ({
+vi.mock('@FluxClient/account/fetchDevices', () => ({
   fetchDevices: () => fetchDevices(),
   endDevice: (deviceId: string) => endDevice(deviceId),
   endOtherDevices: () => endOtherDevices(),

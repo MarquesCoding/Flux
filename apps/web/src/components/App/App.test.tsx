@@ -17,7 +17,7 @@ const socket = vi.hoisted(() => ({
   sent: new Array<{ kind: string }>(),
 }));
 
-vi.mock('@FluxWeb/realtime/getRealtimeClient', () => ({
+vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({
   getRealtimeClient: () => ({
     start: () => {},
     stop: () => {},

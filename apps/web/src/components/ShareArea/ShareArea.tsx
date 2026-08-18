@@ -1,14 +1,14 @@
 import { Icon } from '@FluxUI/Icon';
 import { useEffect, useState } from 'react';
 import { Spinner } from '@FluxUI/Spinner';
-import { openShare } from '@FluxWeb/sharing/fetchShares';
+import { openShare } from '@FluxClient/sharing/fetchShares';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { EpisodeRow } from '@FluxWeb/components/ShowDialog/components/EpisodeRow/EpisodeRow';
 import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
-import { intoSeasons } from '@FluxWeb/library/intoSeasons';
-import { nameSeason } from '@FluxWeb/library/nameSeason';
+import { intoSeasons } from '@FluxClient/library/intoSeasons';
+import { nameSeason } from '@FluxClient/library/nameSeason';
 import { describeShareEnding } from '@FluxWeb/sharing/describeShareEnding';
-import type { OpenedShare } from '@FluxWeb/sharing/fetchShares';
+import type { OpenedShare } from '@FluxClient/sharing/fetchShares';
 import type { ShareEnding } from '@FluxContracts/schemas/Share';
 import type { ShareAreaProps } from './ShareArea.types';
 

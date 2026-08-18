@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
-import { collapseToShows } from '@FluxWeb/library/pickFeatured';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
+import { collapseToShows } from '@FluxClient/library/pickFeatured';
 import { MediaGrid } from '@FluxWeb/components/MediaGrid/MediaGrid';
 import { GridSizeChooser } from '@FluxWeb/components/GridSizeChooser/GridSizeChooser';
 import { readGridSize, saveGridSize } from '@FluxWeb/library/gridSizePreference';
@@ -136,7 +137,16 @@ const BrowseArea = ({
         aria-label={page.title}
         className="flex flex-col gap-5"
       >
-        {isReading ? (
+        {libraries.isError || found.isError ? (
+          <CouldNotRead
+            what={page.title}
+            isTryingAgain={libraries.isFetching || found.isFetching}
+            onTryAgain={() => {
+              void libraries.refetch();
+              void found.refetch();
+            }}
+          />
+        ) : isReading ? (
           <Spinner label={`Reading ${page.title.toLowerCase()}`} size="sm" />
         ) : items.length === 0 ? (
           <p className="max-w-prose text-text-muted">{page.empty}</p>

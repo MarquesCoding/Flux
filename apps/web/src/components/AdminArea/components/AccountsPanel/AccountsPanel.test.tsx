@@ -1,9 +1,9 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccountsPanel } from './AccountsPanel';
-import type { Account } from '@FluxWeb/admin/fetchAccounts';
+import type { Account } from '@FluxClient/admin/fetchAccounts';
 
 const accountMocks = vi.hoisted(() => ({
   fetchAccounts: vi.fn(),
@@ -13,7 +13,7 @@ const accountMocks = vi.hoisted(() => ({
   removeAccount: vi.fn(),
 }));
 
-vi.mock('@FluxWeb/admin/fetchAccounts', () => accountMocks);
+vi.mock('@FluxClient/admin/fetchAccounts', () => accountMocks);
 
 const mocks = vi.hoisted(() => ({
   fetchPermissionCatalogue: vi.fn(),
@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => ({
   clearOverride: vi.fn(),
 }));
 
-vi.mock('@FluxWeb/admin/fetchRoles', () => mocks);
+vi.mock('@FluxClient/admin/fetchRoles', () => mocks);
 
 const account = (overrides: Partial<Account> = {}): Account => ({
   id: 'usr_1',
@@ -108,7 +108,7 @@ describe('AccountsPanel', () => {
   });
 
   it('lists everybody with an account', async () => {
-    renderInACache(<AccountsPanel />);
+    renderInAnAddress(<AccountsPanel />);
 
     expect(await screen.findByText('dan@flux.local')).toBeInTheDocument();
     expect(screen.getByText('sam@flux.local')).toBeInTheDocument();
@@ -117,13 +117,13 @@ describe('AccountsPanel', () => {
   it('says when nobody has one', async () => {
     accountMocks.fetchAccounts.mockResolvedValue([]);
 
-    renderInACache(<AccountsPanel />);
+    renderInAnAddress(<AccountsPanel />);
 
     expect(await screen.findByText('Nobody has an account yet.')).toBeInTheDocument();
   });
 
   it('asks the server for nobody until somebody is picked', async () => {
-    renderInACache(<AccountsPanel />);
+    renderInAnAddress(<AccountsPanel />);
 
     await screen.findByText('dan@flux.local');
 
@@ -133,7 +133,7 @@ describe('AccountsPanel', () => {
   it('shows every role on the row, so a change is visible without opening it', async () => {
     accountMocks.fetchAccounts.mockResolvedValue([account({ roles: ['Manager', 'Member'] })]);
 
-    renderInACache(<AccountsPanel />);
+    renderInAnAddress(<AccountsPanel />);
 
     expect(await screen.findByText('Manager')).toBeInTheDocument();
     expect(screen.getByText('Member')).toBeInTheDocument();
@@ -142,7 +142,7 @@ describe('AccountsPanel', () => {
   it('says so plainly when somebody holds none', async () => {
     accountMocks.fetchAccounts.mockResolvedValue([account({ roles: [] })]);
 
-    renderInACache(<AccountsPanel />);
+    renderInAnAddress(<AccountsPanel />);
 
     expect(await screen.findByText('No roles')).toBeInTheDocument();
   });
@@ -152,7 +152,7 @@ describe('AccountsPanel', () => {
       account({ isAdministrator: true, roles: ['Administrator'] }),
     ]);
 
-    renderInACache(<AccountsPanel />);
+    renderInAnAddress(<AccountsPanel />);
 
     expect(await screen.findByText('Administrator')).toBeInTheDocument();
   });
@@ -160,7 +160,7 @@ describe('AccountsPanel', () => {
   describe('banning', () => {
     it('bans somebody', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await confirm(user, 'Dan', /^Ban$/, 'Ban');
 
@@ -172,7 +172,7 @@ describe('AccountsPanel', () => {
         account({ isBanned: true, banReason: 'kept pausing the film' }),
       ]);
 
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       expect(await screen.findByText('banned')).toBeInTheDocument();
       expect(screen.getByText(/kept pausing the film/)).toBeInTheDocument();
@@ -182,7 +182,7 @@ describe('AccountsPanel', () => {
       accountMocks.fetchAccounts.mockResolvedValue([account({ isBanned: true })]);
 
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Let back in/);
 
@@ -196,7 +196,7 @@ describe('AccountsPanel', () => {
       });
 
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await confirm(user, 'Dan', /^Ban$/, 'Ban');
 
@@ -207,7 +207,7 @@ describe('AccountsPanel', () => {
   describe('adding somebody', () => {
     it('will not add until every field is filled', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await openInvite(user);
 
@@ -216,7 +216,7 @@ describe('AccountsPanel', () => {
 
     it('will not accept a password too short to be one', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await openInvite(user);
       await user.type(screen.getByLabelText('Name'), 'Alex');
@@ -228,7 +228,7 @@ describe('AccountsPanel', () => {
 
     it('adds somebody', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await openInvite(user);
       await user.type(screen.getByLabelText('Name'), 'Alex');
@@ -245,7 +245,7 @@ describe('AccountsPanel', () => {
 
     it('says the password has to be handed over, since Flux cannot send it', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await openInvite(user);
 
@@ -258,7 +258,7 @@ describe('AccountsPanel', () => {
       });
 
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await openInvite(user);
       await user.type(screen.getByLabelText('Name'), 'Alex');
@@ -273,7 +273,7 @@ describe('AccountsPanel', () => {
   describe('removing', () => {
     it('removes somebody', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await confirm(user, 'Dan', /Delete account/, 'Delete account');
 
@@ -286,7 +286,7 @@ describe('AccountsPanel', () => {
       });
 
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await confirm(user, 'Dan', /Delete account/, 'Delete account');
 
@@ -296,7 +296,7 @@ describe('AccountsPanel', () => {
 
   it('shows what somebody may do once picked', async () => {
     const user = userEvent.setup();
-    renderInACache(<AccountsPanel />);
+    renderInAnAddress(<AccountsPanel />);
 
     await choose(user, 'Dan', /Edit roles/);
 
@@ -306,7 +306,7 @@ describe('AccountsPanel', () => {
 
   it('closes what somebody may do, without having to pick another account', async () => {
     const user = userEvent.setup();
-    renderInACache(<AccountsPanel />);
+    renderInAnAddress(<AccountsPanel />);
 
     await choose(user, 'Dan', /Edit roles/);
     await user.click(await screen.findByRole('button', { name: 'Close' }));
@@ -317,7 +317,7 @@ describe('AccountsPanel', () => {
   describe('roles', () => {
     it('marks the ones they hold', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
 
@@ -333,7 +333,7 @@ describe('AccountsPanel', () => {
 
     it('gives one they do not hold', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Administrator' }));
@@ -343,7 +343,7 @@ describe('AccountsPanel', () => {
 
     it('takes back one they do', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Member' }));
@@ -353,7 +353,7 @@ describe('AccountsPanel', () => {
 
     it('reads their permissions again once a change lands', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Administrator' }));
@@ -367,7 +367,7 @@ describe('AccountsPanel', () => {
   describe('exceptions', () => {
     it('says when there are none', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
 
@@ -382,7 +382,7 @@ describe('AccountsPanel', () => {
       });
 
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
 
@@ -398,7 +398,7 @@ describe('AccountsPanel', () => {
       });
 
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
       await user.click(
@@ -412,7 +412,7 @@ describe('AccountsPanel', () => {
 
     it('will not allow or deny until a permission is picked', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
 
@@ -426,7 +426,7 @@ describe('AccountsPanel', () => {
       mocks.assignRole.mockResolvedValue({ message: 'That role is at or above your own.' });
 
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Administrator' }));
@@ -440,7 +440,7 @@ describe('AccountsPanel', () => {
       });
 
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Member' }));
@@ -450,7 +450,7 @@ describe('AccountsPanel', () => {
 
     it('says nothing when the server was happy', async () => {
       const user = userEvent.setup();
-      renderInACache(<AccountsPanel />);
+      renderInAnAddress(<AccountsPanel />);
 
       await choose(user, 'Dan', /Edit roles/);
       await user.click(await screen.findByRole('button', { name: 'Administrator' }));
@@ -470,7 +470,7 @@ describe('AccountsPanel', () => {
 
 describe('allowing and denying one thing for one person', () => {
   const openRoles = async (user: ReturnType<typeof userEvent.setup>) => {
-    renderInACache(<AccountsPanel />);
+    renderInAnAddress(<AccountsPanel />);
 
     await choose(user, 'Dan', /Edit roles/);
   };

@@ -1,8 +1,8 @@
 import { LibraryBrowser } from '@FluxWeb/components/LibraryBrowser/LibraryBrowser';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
-import { useShell } from '@FluxWeb/shell/useShell';
-import { useFavourites } from '@FluxWeb/library/useFavourites';
+import { useShell } from '@FluxClient/shell/useShell';
+import { useFavourites } from '@FluxClient/library/useFavourites';
 
 /**
  * The front of the server: a hero drawn from every library, and the rows of one of them.

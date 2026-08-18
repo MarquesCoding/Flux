@@ -69,7 +69,7 @@ describe('Dialog', () => {
     expect(Dialog.displayName).toBe('Dialog');
   });
 
-  it('arrives and leaves rather than appearing and vanishing', () => {
+  it('hangs its motion on the attribute the primitive actually sets while leaving', () => {
     render(
       <Dialog label="Arrival" isOpen onClose={vi.fn()}>
         <p>Details</p>
@@ -78,9 +78,9 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
-    expect(panel.className).toContain('data-[state=open]:fade-in-0');
-    expect(panel.className).toContain('data-[state=closed]:fade-out-0');
-    expect(panel.className).toContain('data-[state=closed]:fade-out-0');
+    expect(panel.className).toContain('data-open:fade-in-0');
+    expect(panel.className).toContain('data-closed:fade-out-0');
+    expect(panel.className).toContain('data-closed:fade-out-0');
   });
 
   it('rises from the edge a thumb summoned it from, and settles in place on a desktop', () => {
@@ -92,8 +92,8 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
-    expect(panel.className).toContain('max-sm:data-[state=open]:slide-in-from-bottom-8');
-    expect(panel.className).toContain('sm:data-[state=open]:zoom-in-95');
+    expect(panel.className).toContain('max-sm:data-open:slide-in-from-bottom-8');
+    expect(panel.className).toContain('sm:data-open:zoom-in-95');
   });
 
   it('drops the movement, but not the fade, when movement is unwelcome', () => {
@@ -107,6 +107,18 @@ describe('Dialog', () => {
       'motion-reduce:duration-[var(--duration-instant)]',
     );
   });
+  it('leaves on a curve that can be seen, rather than one that front-loads the whole move', () => {
+    render(
+      <Dialog label="Arrival" isOpen onClose={vi.fn()}>
+        <p>Details</p>
+      </Dialog>,
+    );
+
+    expect(screen.getByRole('dialog', { name: 'Arrival' }).className).toContain(
+      'data-closed:ease-[var(--ease-in-out)]',
+    );
+  });
+
   it('leaves the way it arrived, rather than being snatched away', () => {
     render(
       <Dialog label="Arrival" isOpen onClose={vi.fn()}>
@@ -116,9 +128,8 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
-    expect(panel.className).toContain('data-[state=closed]:duration-[var(--duration-leaving)]');
-    expect(panel.className).not.toContain('data-[ending-style]:duration-150');
-    expect(panel.className).toContain('sm:data-[state=closed]:zoom-out-95');
+    expect(panel.className).toContain('data-closed:duration-[var(--duration-leaving)]');
+    expect(panel.className).toContain('sm:data-closed:zoom-out-95');
   });
 
   describe('in fullscreen', () => {

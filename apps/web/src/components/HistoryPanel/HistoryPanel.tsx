@@ -6,12 +6,13 @@ import { Button } from '@FluxUI/Button';
 import { Badge } from '@FluxUI/Badge';
 import { Spinner } from '@FluxUI/Spinner';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { forgetViewing, forgetHistory } from '@FluxWeb/history/fetchHistory';
+import { forgetViewing, forgetHistory } from '@FluxClient/history/fetchHistory';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { viewingQueries } from '@FluxWeb/query/viewingQueries';
-import { describeWhen } from '@FluxWeb/history/describeWhen';
+import { viewingQueries } from '@FluxClient/query/viewingQueries';
+import { describeWhen } from '@FluxClient/history/describeWhen';
 import type { Viewing } from '@FluxContracts/schemas/Viewing';
 import type { HistoryPanelProps } from './HistoryPanel.types';
+import type { InfiniteData } from '@tanstack/react-query';
 
 /**
  * Names something in the history that has since left the library, since a viewing outlives the file
@@ -44,13 +45,15 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
   };
 
   const forgetOne = async (viewingId: string) => {
-    cache.setQueryData(viewingQueries.history().queryKey, (held) =>
-      held === undefined
-        ? held
-        : {
-            ...held,
-            pages: held.pages.map((page) => page.filter((one) => one.id !== viewingId)),
-          },
+    cache.setQueryData(
+      viewingQueries.history().queryKey,
+      (held: InfiniteData<Viewing[]> | undefined) =>
+        held === undefined
+          ? held
+          : {
+              ...held,
+              pages: held.pages.map((page) => page.filter((one) => one.id !== viewingId)),
+            },
     );
 
     if (!(await forgetViewing(viewingId))) {

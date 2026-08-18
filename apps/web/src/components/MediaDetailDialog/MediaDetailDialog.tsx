@@ -20,8 +20,10 @@ import { Skeleton } from '@FluxUI/Skeleton';
 import { MediaCard } from '@FluxUI/MediaCard';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { useHeldWhileLeaving } from '@FluxClient/shell/useHeldWhileLeaving';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
@@ -84,7 +86,7 @@ const MediaDetailDialog = ({
   onStartParty,
 }: MediaDetailDialogProps) => {
   const asked = useQuery(libraryQueries.detail(media?.id ?? null));
-  const detail = media === null ? null : (asked.data ?? null);
+  const detail = useHeldWhileLeaving(asked.data ?? null, media !== null);
   const isLoading = media !== null && asked.isPending;
 
   const [unlettered, setUnlettered] = useState<string | null>(null);
@@ -314,6 +316,16 @@ const MediaDetailDialog = ({
                 }}
               />
             )}
+
+            {media !== null && asked.isError ? (
+              <CouldNotRead
+                what="The rest of this"
+                isTryingAgain={asked.isFetching}
+                onTryAgain={() => {
+                  void asked.refetch();
+                }}
+              />
+            ) : null}
 
             <section className="flex flex-col gap-3">
               <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">

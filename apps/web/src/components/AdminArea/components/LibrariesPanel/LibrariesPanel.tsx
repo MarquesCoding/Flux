@@ -18,7 +18,7 @@ import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
 import { CardHeader } from '@FluxUI/CardHeader';
 import { cn } from '@FluxUI/cn';
-import { describeScanResult } from '@FluxWeb/admin/describeScanResult';
+import { describeScanResult } from '@FluxClient/admin/describeScanResult';
 import { AddLibraryDialog } from '@FluxWeb/components/AdminArea/components/AddLibraryDialog/AddLibraryDialog';
 import { LibrarySettingsDialog } from '@FluxWeb/components/AdminArea/components/LibrarySettingsDialog/LibrarySettingsDialog';
 import { ResetLibrariesDialog } from '@FluxWeb/components/AdminArea/components/ResetLibrariesDialog/ResetLibrariesDialog';

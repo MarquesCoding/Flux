@@ -1,4 +1,4 @@
-import type { Job, JobDefinition } from '@FluxWeb/admin/fetchAdmin';
+import type { Job, JobDefinition } from '@FluxClient/admin/fetchAdmin';
 import type { Library } from '@FluxContracts/schemas/Library';
 import type { ScanEntry } from '@FluxWeb/components/AdminArea/scanCoordinator';
 

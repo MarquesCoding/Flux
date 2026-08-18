@@ -1,14 +1,14 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import { SharesPanel } from './SharesPanel';
 import type { AdminShare } from '@FluxContracts/schemas/Share';
 
 const fetchEverybodysShares = vi.fn<() => Promise<AdminShare[]>>();
 const revokeAnybodysShare = vi.fn<(shareId: string) => Promise<boolean>>();
 
-vi.mock('@FluxWeb/sharing/fetchShares', () => ({
+vi.mock('@FluxClient/sharing/fetchShares', () => ({
   fetchEverybodysShares: () => fetchEverybodysShares(),
   revokeAnybodysShare: (shareId: string) => revokeAnybodysShare(shareId),
 }));
@@ -42,7 +42,7 @@ describe('SharesPanel', () => {
       share({ id: 'share-2', title: 'Another Thing', createdByName: 'Grace' }),
     ]);
 
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     expect(await screen.findByText('The Thing')).toBeInTheDocument();
     expect(screen.getByText('Another Thing')).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe('SharesPanel', () => {
       share({ id: 'share-2', title: 'Another Thing', createdByName: 'Grace' }),
     ]);
 
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     expect(await screen.findByText('Ada')).toBeInTheDocument();
     expect(screen.getByText('Grace')).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('SharesPanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     await user.click(await screen.findByRole('button', { name: /Handed out by/ }));
 
@@ -80,7 +80,7 @@ describe('SharesPanel', () => {
   it('says a link is live and what will end it, without claiming the reader made it', async () => {
     fetchEverybodysShares.mockResolvedValue([share()]);
 
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     expect(await screen.findByText('Live')).toBeInTheDocument();
     expect(screen.getByText('Until it is withdrawn')).toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('SharesPanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     await user.click(await screen.findByRole('button', { name: 'Withdraw the link to The Thing' }));
 
@@ -104,7 +104,7 @@ describe('SharesPanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     await user.click(await screen.findByRole('button', { name: 'Withdraw the link to The Thing' }));
     await user.click(await screen.findByRole('button', { name: 'Withdraw it' }));
@@ -126,7 +126,7 @@ describe('SharesPanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     await user.click(await screen.findByRole('button', { name: /Link to/ }));
 
@@ -145,7 +145,7 @@ describe('SharesPanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     await user.click(await screen.findByRole('button', { name: /Standing/ }));
 
@@ -159,7 +159,7 @@ describe('SharesPanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     await user.click(await screen.findByRole('button', { name: 'Withdraw the link to The Thing' }));
     await user.keyboard('{Escape}');
@@ -174,7 +174,7 @@ describe('SharesPanel', () => {
   it('offers no way to withdraw a link that has already ended', async () => {
     fetchEverybodysShares.mockResolvedValue([share({ isRevoked: true, isSpent: true })]);
 
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     expect(await screen.findByText('Withdrawn')).toBeInTheDocument();
     expect(
@@ -183,13 +183,13 @@ describe('SharesPanel', () => {
   });
 
   it('says plainly when nobody has handed anything out', async () => {
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     expect(await screen.findByText('Nobody has handed out a link.')).toBeInTheDocument();
   });
 
   it('says nothing rather than an empty list while it is still reading', () => {
-    renderInACache(<SharesPanel />);
+    renderInAnAddress(<SharesPanel />);
 
     expect(screen.getByLabelText('Reading the links')).toBeInTheDocument();
   });

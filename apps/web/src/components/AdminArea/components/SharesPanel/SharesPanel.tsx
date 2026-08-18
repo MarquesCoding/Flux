@@ -2,6 +2,7 @@ import { Icon } from '@FluxUI/Icon';
 import { Unlink01Icon } from '@hugeicons/core-free-icons';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
@@ -9,12 +10,12 @@ import { CardHeader } from '@FluxUI/CardHeader';
 import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
 import { DataTable } from '@FluxUI/DataTable';
 import { Spinner } from '@FluxUI/Spinner';
-import { revokeAnybodysShare } from '@FluxWeb/sharing/fetchShares';
-import { adminQueries } from '@FluxWeb/query/adminQueries';
-import { saidWhen } from '@FluxWeb/format/saidWhen';
+import { revokeAnybodysShare } from '@FluxClient/sharing/fetchShares';
+import { adminQueries } from '@FluxClient/query/adminQueries';
+import { saidWhen } from '@FluxClient/format/saidWhen';
 import { standingOf } from '@FluxWeb/sharing/standingOf';
-import { untilWhen } from '@FluxWeb/sharing/untilWhen';
-import { saidOpened } from '@FluxWeb/sharing/saidOpened';
+import { untilWhen } from '@FluxClient/sharing/untilWhen';
+import { saidOpened } from '@FluxClient/sharing/saidOpened';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { AdminShare } from '@FluxContracts/schemas/Share';
 
@@ -156,7 +157,15 @@ const SharesPanel = () => {
         Withdrawing a link stops it at once, and tells whoever made it.
       </p>
 
-      {asked.isPending ? (
+      {asked.isError ? (
+        <CouldNotRead
+          what="The links"
+          isTryingAgain={asked.isFetching}
+          onTryAgain={() => {
+            void asked.refetch();
+          }}
+        />
+      ) : asked.isPending ? (
         <div className="p-4">
           <Spinner label="Reading the links" size="sm" />
         </div>
@@ -164,7 +173,7 @@ const SharesPanel = () => {
         <DataTable
           label="Links handed out"
           columns={columns}
-          rows={asked.data ?? []}
+          rows={asked.data}
           emptyMessage="Nobody has handed out a link."
         />
       )}

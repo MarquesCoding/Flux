@@ -22,20 +22,21 @@ import { DialogFooter } from '@FluxUI/DialogFooter';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { OptionMenu } from '@FluxUI/OptionMenu';
 import { TextField } from '@FluxUI/TextField';
-import { describePermission } from '@FluxWeb/admin/describePermission';
-import { groupPermissions } from '@FluxWeb/admin/groupPermissions';
-import { assignRole, clearOverride, removeRole, setOverride } from '@FluxWeb/admin/fetchRoles';
+import { describePermission } from '@FluxClient/admin/describePermission';
+import { groupPermissions } from '@FluxClient/admin/groupPermissions';
+import { assignRole, clearOverride, removeRole, setOverride } from '@FluxClient/admin/fetchRoles';
 import {
   banAccount,
   inviteAccount,
   removeAccount,
   unbanAccount,
-} from '@FluxWeb/admin/fetchAccounts';
+} from '@FluxClient/admin/fetchAccounts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminQueries } from '@FluxWeb/query/adminQueries';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
+import { adminQueries } from '@FluxClient/query/adminQueries';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { Account } from '@FluxWeb/admin/fetchAccounts';
-import type { Refusal } from '@FluxWeb/admin/fetchRoles';
+import type { Account } from '@FluxClient/admin/fetchAccounts';
+import type { Refusal } from '@FluxClient/admin/fetchRoles';
 import type { Permission } from '@FluxContracts/schemas/Permission';
 
 type Asked = { kind: 'ban' | 'remove'; account: Account };
@@ -59,9 +60,13 @@ const AccountsPanel = () => {
 
   const cache = useQueryClient();
 
-  const accounts = useQuery(adminQueries.accounts()).data ?? [];
-  const catalogue = useQuery(adminQueries.permissions()).data ?? [];
-  const roles = useQuery(adminQueries.roles()).data ?? [];
+  const askedAccounts = useQuery(adminQueries.accounts());
+  const askedCatalogue = useQuery(adminQueries.permissions());
+  const askedRoles = useQuery(adminQueries.roles());
+
+  const accounts = askedAccounts.data ?? [];
+  const catalogue = askedCatalogue.data ?? [];
+  const roles = askedRoles.data ?? [];
   const held = useQuery(adminQueries.accountPermissions(accountId)).data ?? null;
 
   const reload = useCallback(async () => {
@@ -351,15 +356,27 @@ const AccountsPanel = () => {
           </Button>
         </CardHeader>
 
-        <DataTable
-          label="Accounts"
-          columns={columns}
-          rows={shown}
-          pageSize={10}
-          emptyMessage={
-            accounts.length === 0 ? 'Nobody has an account yet.' : 'Nobody here matches that.'
-          }
-        />
+        {askedAccounts.isError ? (
+          <CouldNotRead
+            what="The accounts"
+            isTryingAgain={askedAccounts.isFetching}
+            onTryAgain={() => {
+              void askedAccounts.refetch();
+              void askedCatalogue.refetch();
+              void askedRoles.refetch();
+            }}
+          />
+        ) : (
+          <DataTable
+            label="Accounts"
+            columns={columns}
+            rows={shown}
+            pageSize={10}
+            emptyMessage={
+              accounts.length === 0 ? 'Nobody has an account yet.' : 'Nobody here matches that.'
+            }
+          />
+        )}
       </Card>
 
       <Dialog

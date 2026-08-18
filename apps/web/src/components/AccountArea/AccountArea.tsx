@@ -15,8 +15,9 @@ import { TabRow } from '@FluxUI/TabRow';
 import { TabPanel } from '@FluxUI/TabPanel';
 import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { sessionQueries } from '@FluxWeb/query/sessionQueries';
+import { sessionQueries } from '@FluxClient/query/sessionQueries';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import { ProfileEditor } from '@FluxWeb/components/ProfilePicker/components/ProfileEditor/ProfileEditor';
 import { TwoFactorSetup } from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup';
@@ -137,7 +138,15 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
             </CardHeader>
 
             <div className="p-4">
-              {profile === null ? (
+              {asked.isError ? (
+                <CouldNotRead
+                  what="Your profile"
+                  isTryingAgain={asked.isFetching}
+                  onTryAgain={() => {
+                    void asked.refetch();
+                  }}
+                />
+              ) : profile === null ? (
                 <p className="text-sm text-text-muted">Reading your profile…</p>
               ) : (
                 <p className="max-w-prose text-sm leading-relaxed text-text-muted">

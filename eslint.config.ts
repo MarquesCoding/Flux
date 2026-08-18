@@ -50,6 +50,11 @@ export default tseslint.config(
                 'Icons come from @hugeicons/core-free-icons, drawn by @FluxUI/Icon — see code standards section 10.',
             },
             {
+              group: ['@base-ui/react', '@base-ui/react/*'],
+              message:
+                'Base UI is for Dialog alone — see ADR-0021. Everything else in FluxUI is Radix.',
+            },
+            {
               group: ['@hugeicons/react'],
               importNames: ['HugeiconsIcon'],
               message:
@@ -117,9 +122,34 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/ui/src/components/Icon/Icon.tsx'],
+    files: [
+      'packages/ui/src/components/Icon/Icon.tsx',
+      'packages/ui/src/components/Dialog/Dialog.tsx',
+    ],
     rules: {
       'no-restricted-imports': 'off',
+    },
+  },
+  {
+    files: ['packages/client/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@FluxWeb/*'],
+              message:
+                'The application cannot reach into a client. Anything it needs from one is a port on Platform — see ADR-0022.',
+            },
+            {
+              group: ['@FluxUI/*'],
+              message:
+                'The application does not draw. A component belongs to a client, and a shape both need belongs to @FluxContracts.',
+            },
+          ],
+        },
+      ],
     },
   },
   {

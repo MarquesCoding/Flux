@@ -12,25 +12,26 @@ import type { ShareSubject } from '@FluxWeb/components/ShareDialog/ShareDialog.t
 import { StillWatchingDialog } from '@FluxWeb/components/StillWatchingDialog/StillWatchingDialog';
 import { NotificationBell } from '@FluxWeb/components/NotificationBell/NotificationBell';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
-import { markNotificationsRead } from '@FluxWeb/notifications/fetchNotifications';
+import { markNotificationsRead } from '@FluxClient/notifications/fetchNotifications';
 import {
   canReceivePush,
   subscribeToPush,
   unsubscribeFromPush,
 } from '@FluxWeb/notifications/subscribeToPush';
-import { notificationQueries } from '@FluxWeb/query/notificationQueries';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
-import { useFavourites } from '@FluxWeb/library/useFavourites';
-import { useRatings } from '@FluxWeb/library/useRatings';
-import { pickAnything } from '@FluxWeb/library/pickAnything';
-import { findSiblings } from '@FluxWeb/library/pickFeatured';
+import { notificationQueries } from '@FluxClient/query/notificationQueries';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
+import { useFavourites } from '@FluxClient/library/useFavourites';
+import { useRatings } from '@FluxClient/library/useRatings';
+import { pickAnything } from '@FluxClient/library/pickAnything';
+import { findSiblings } from '@FluxClient/library/pickFeatured';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import { watchedFraction } from '@FluxContracts/schemas/WatchProgress';
 import { STILL_WATCHING_ANSWER_SECONDS } from '@FluxContracts/schemas/StillWatching';
-import { resumeFor } from '@FluxWeb/playback/resumeFor';
+import { resumeFor } from '@FluxClient/playback/resumeFor';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
-import { useShell } from '@FluxWeb/shell/useShell';
+import { useShell } from '@FluxClient/shell/useShell';
 import type { ShowSummary } from '@FluxContracts/schemas/Show';
+import type { Inbox } from '@FluxClient/notifications/fetchNotifications';
 
 const NOTHING_WAITING = { notifications: [], unread: 0 };
 
@@ -105,6 +106,7 @@ const FluxShell = () => {
 
         return null;
       })
+      .catch(() => null)
       .then((found) => {
         if (!abandoned) {
           setOpenShow(found);
@@ -150,17 +152,19 @@ const FluxShell = () => {
           }}
           onRead={(id) => {
             void markNotificationsRead(id).then((unread) => {
-              cache.setQueryData(notificationQueries.inbox().queryKey, (waiting) =>
-                waiting === undefined
-                  ? waiting
-                  : {
-                      unread,
-                      notifications: waiting.notifications.map((one) =>
-                        one.id === id && one.readAt === null
-                          ? { ...one, readAt: new Date().toISOString() }
-                          : one,
-                      ),
-                    },
+              cache.setQueryData(
+                notificationQueries.inbox().queryKey,
+                (waiting: Inbox | undefined) =>
+                  waiting === undefined
+                    ? waiting
+                    : {
+                        unread,
+                        notifications: waiting.notifications.map((one) =>
+                          one.id === id && one.readAt === null
+                            ? { ...one, readAt: new Date().toISOString() }
+                            : one,
+                        ),
+                      },
               );
             });
           }}

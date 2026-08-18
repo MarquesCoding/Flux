@@ -4,11 +4,12 @@ import {
   createRouter,
   lazyRouteComponent,
 } from '@tanstack/react-router';
-import { readSearch } from '@FluxWeb/navigation/readSearch';
+import { readSearch } from '@FluxClient/navigation/readSearch';
 import { App } from '@FluxWeb/components/App/App';
 import { SignedIn } from '@FluxWeb/components/SignedIn/SignedIn';
 import { FluxShell } from '@FluxWeb/components/FluxShell/FluxShell';
 import { HomePage } from '@FluxWeb/components/HomePage/HomePage';
+import { scrollKeyOf } from '@FluxWeb/routes/scrollKeyOf';
 import { PageProblem } from '@FluxWeb/components/PageProblem/PageProblem';
 
 const SharePage = lazyRouteComponent(
@@ -118,6 +119,7 @@ const buildRouter = (title = 'Flux') => {
     ]),
     defaultErrorComponent: PageProblem,
     scrollRestoration: true,
+    getScrollRestorationKey: scrollKeyOf,
   });
 };
 

@@ -6,7 +6,7 @@ import type { AccountAreaProps } from '@FluxWeb/components/AccountArea/AccountAr
 const drawn = vi.hoisted((): { props: AccountAreaProps | null } => ({ props: null }));
 const signOut = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/session/auth', () => ({ signOut }));
+vi.mock('@FluxClient/session/auth', () => ({ signOut }));
 
 vi.mock('@FluxWeb/components/AccountArea/AccountArea', () => ({
   AccountArea: (props: AccountAreaProps) => {
@@ -18,7 +18,7 @@ vi.mock('@FluxWeb/components/AccountArea/AccountArea', () => ({
 
 beforeEach(() => {
   drawn.props = null;
-  signOut.mockReset().mockResolvedValue(undefined);
+  signOut.mockReset().mockResolvedValue(true);
   window.history.replaceState(null, '', '/account');
 });
 
@@ -37,6 +37,20 @@ describe('AccountPage', () => {
     drawn.props?.onChanged?.();
 
     expect(refresh).toHaveBeenCalled();
+  });
+
+  it('stays put and says so when the server would not end the session', async () => {
+    signOut.mockResolvedValue(false);
+
+    renderInAShell(<AccountPage />);
+
+    drawn.props?.onSignOut?.();
+
+    await vi.waitFor(() => {
+      expect(signOut).toHaveBeenCalled();
+    });
+
+    expect(window.location.pathname).toBe('/account');
   });
 
   it('signs out, goes home, and reads the session again', async () => {

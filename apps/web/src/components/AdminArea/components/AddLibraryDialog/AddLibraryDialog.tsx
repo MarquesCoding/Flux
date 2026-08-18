@@ -6,7 +6,7 @@ import { DialogFooter } from '@FluxUI/DialogFooter';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { TextField } from '@FluxUI/TextField';
 import { LIBRARY_KINDS } from '@FluxContracts/schemas/Library';
-import { createLibrary } from '@FluxWeb/library/fetchLibrary';
+import { createLibrary } from '@FluxClient/library/fetchLibrary';
 import { validateAddLibraryForm } from './validateAddLibraryForm';
 import type { LibraryKind } from '@FluxContracts/schemas/Library';
 import type { AddLibraryDialogProps, AddLibraryFormErrors } from './AddLibraryDialog.types';

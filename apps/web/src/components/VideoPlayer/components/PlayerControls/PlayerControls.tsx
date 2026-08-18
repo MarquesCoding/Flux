@@ -26,7 +26,7 @@ import { Button } from '@FluxUI/Button';
 import { Slider } from '@FluxUI/Slider';
 import { SettingsMenu } from '@FluxUI/SettingsMenu';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { SUBTITLES_OFF } from '@FluxWeb/playback/fetchSubtitles';
+import { SUBTITLES_OFF } from '@FluxClient/playback/fetchSubtitles';
 import { QUALITY_STEPS } from '@FluxContracts/schemas/QualityStep';
 import { CaptionSettings } from '@FluxWeb/components/VideoPlayer/components/CaptionSettings/CaptionSettings';
 import { EpisodeMenu } from '@FluxWeb/components/VideoPlayer/components/EpisodeMenu/EpisodeMenu';

@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react';
+import { Logo } from '@FluxUI/Logo';
 import type { SplashScreenProps } from './SplashScreen.types';
 
 /**
@@ -6,11 +7,17 @@ import type { SplashScreenProps } from './SplashScreen.types';
  * — whether setup is done, who is signed in, and what was being watched. Its own mark rather than a
  * spinner, since this is the first thing anybody sees.
  *
+ * The mark stands alone, with no name under it — a mark that needs its own name written beneath is
+ * not doing its job. That only holds while the platform is called Flux: an operator who has renamed
+ * it gets the name set instead, since the mark is not theirs to stand for.
+ *
  * @param name - What the platform is called, which may have been renamed by an operator.
  * @param label - What is being waited for, read out to anybody who cannot see the screen.
  */
 const SplashScreen = ({ name = 'Flux', label = 'Loading' }: SplashScreenProps) => {
   const prefersReducedMotion = useReducedMotion();
+
+  const isFlux = name.toLowerCase() === 'flux';
 
   return (
     <div
@@ -19,14 +26,20 @@ const SplashScreen = ({ name = 'Flux', label = 'Loading' }: SplashScreenProps) =
       aria-busy="true"
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 bg-surface"
     >
-      <motion.p
+      <motion.span
         initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="bg-gradient-to-br from-text via-text to-accent bg-clip-text text-5xl font-semibold tracking-[-0.05em] text-transparent sm:text-7xl"
+        className="flex items-center justify-center"
       >
-        {name}
-      </motion.p>
+        {isFlux ? (
+          <Logo size={112} isDotted hasEdge isAnimated label={name} />
+        ) : (
+          <p className="bg-gradient-to-br from-text via-text to-accent bg-clip-text text-4xl font-semibold tracking-[-0.05em] text-transparent sm:text-5xl">
+            {name}
+          </p>
+        )}
+      </motion.span>
 
       <span className="h-0.5 w-48 overflow-hidden rounded-full bg-white/10 sm:w-64">
         {prefersReducedMotion === true ? (

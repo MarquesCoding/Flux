@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { QrCode } from '@FluxUI/QrCode';
 import { TextField } from '@FluxUI/TextField';
-import { disableTwoFactor, enableTwoFactor, verifyTotp } from '@FluxWeb/session/auth';
+import { disableTwoFactor, enableTwoFactor, verifyTotp } from '@FluxClient/session/auth';
 import { readTotpSecret, formatTotpSecret } from './readTotpSecret';
 import type { Enrollment, SetupStage, TwoFactorSetupProps } from './TwoFactorSetup.types';
 

@@ -8,7 +8,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
-import { nameSeason } from '@FluxWeb/library/nameSeason';
+import { nameSeason } from '@FluxClient/library/nameSeason';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { BackdropScrim } from '@FluxUI/BackdropScrim';
@@ -16,8 +16,10 @@ import { Badge } from '@FluxUI/Badge';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { useHeldWhileLeaving } from '@FluxClient/shell/useHeldWhileLeaving';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
 import { RatingPanel } from '@FluxWeb/components/RatingPanel/RatingPanel';
@@ -71,7 +73,7 @@ const ShowDialog = ({
   const prefersReducedMotion = useReducedMotion();
 
   const asked = useQuery(libraryQueries.show(show?.libraryId ?? null, show?.id ?? null));
-  const detail = show === null ? null : (asked.data ?? null);
+  const detail = useHeldWhileLeaving(asked.data ?? null, show !== null);
   const isLoading = show !== null && asked.isPending;
 
   const carryOnRef = useRef({ resumeFor, isFinished });
@@ -319,7 +321,15 @@ const ShowDialog = ({
               )}
             </header>
 
-            {isLoading ? (
+            {show !== null && asked.isError ? (
+              <CouldNotRead
+                what="The episodes"
+                isTryingAgain={asked.isFetching}
+                onTryAgain={() => {
+                  void asked.refetch();
+                }}
+              />
+            ) : isLoading ? (
               <Spinner label="Reading the episodes" size="sm" />
             ) : inOrder.length === 0 ? (
               <p className="text-sm text-text-muted">

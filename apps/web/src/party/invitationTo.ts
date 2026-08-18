@@ -1,4 +1,4 @@
-import { HOME, writeLocation } from '@FluxWeb/navigation/readLocation';
+import { HOME, writeLocation } from '@FluxClient/navigation/readLocation';
 
 /**
  * The address that puts somebody else in this party, watching this.

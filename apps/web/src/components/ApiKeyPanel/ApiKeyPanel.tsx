@@ -1,3 +1,5 @@
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
+import { RequestFailed } from '@FluxClient/query/RequestFailed';
 import { Icon } from '@FluxUI/Icon';
 import { Alert02Icon, Copy01Icon, Delete02Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useState } from 'react';
@@ -11,7 +13,7 @@ import {
   createApiKey,
   setApiKeyEnabled,
   revokeApiKey,
-} from '@FluxWeb/account/fetchApiKeys';
+} from '@FluxClient/account/fetchApiKeys';
 import type { ApiKey } from '@FluxContracts/schemas/ApiKey';
 import type { ApiKeyPanelProps } from './ApiKeyPanel.types';
 
@@ -36,6 +38,7 @@ const lastUsed = (at: string | null): string => {
   return days === 1 ? 'Used yesterday' : `Used ${days.toString()} days ago`;
 };
 
+const NOT_ALLOWED = 403;
 /**
  * The API keys on this account: what each may do, when it was last used, and the making of new ones.
  * A new key is shown once and never again, since the server keeps only a hash of it.
@@ -49,9 +52,21 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
   const [isMaking, setIsMaking] = useState(false);
   const [made, setMade] = useState<{ name: string; key: string } | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
+  const [couldNotRead, setCouldNotRead] = useState(false);
 
   const read = useCallback(async () => {
-    setKeys(await fetchApiKeys());
+    setCouldNotRead(false);
+
+    try {
+      setKeys(await fetchApiKeys());
+    } catch (error) {
+      if (error instanceof RequestFailed && error.status === NOT_ALLOWED) {
+        setKeys(null);
+      } else {
+        setCouldNotRead(true);
+      }
+    }
+
     setIsReading(false);
   }, []);
 
@@ -78,6 +93,18 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
       <div className="p-4">
         <Spinner label="Reading your keys" size="sm" />
       </div>
+    );
+  }
+
+  if (couldNotRead) {
+    return (
+      <CouldNotRead
+        what="Your keys"
+        onTryAgain={() => {
+          setIsReading(true);
+          void read();
+        }}
+      />
     );
   }
 
