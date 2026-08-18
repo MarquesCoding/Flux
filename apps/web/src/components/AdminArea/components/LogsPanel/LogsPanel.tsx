@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { Copy01Icon, Download01Icon, RefreshIcon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RiCheckLine, RiDownloadLine, RiFileCopyLine, RiRefreshLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
@@ -176,7 +177,7 @@ const LogsPanel = ({
               void load();
             }}
           >
-            <RiRefreshLine size={15} aria-hidden />
+            <Icon of={RefreshIcon} size={15} />
           </Button>
 
           <Button
@@ -192,11 +193,7 @@ const LogsPanel = ({
               });
             }}
           >
-            {copied ? (
-              <RiCheckLine size={15} aria-hidden />
-            ) : (
-              <RiFileCopyLine size={15} aria-hidden />
-            )}
+            {copied ? <Icon of={Tick02Icon} size={15} /> : <Icon of={Copy01Icon} size={15} />}
           </Button>
 
           <Button
@@ -210,7 +207,7 @@ const LogsPanel = ({
               download('flux-log.txt', asText());
             }}
           >
-            <RiDownloadLine size={15} aria-hidden />
+            <Icon of={Download01Icon} size={15} />
           </Button>
         </div>
       </CardHeader>

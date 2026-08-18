@@ -1,6 +1,7 @@
+import { Icon } from '@FluxUI/Icon';
+import { Delete02Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { RiCheckLine, RiDeleteBinLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Badge } from '@FluxUI/Badge';
 import { Spinner } from '@FluxUI/Spinner';
@@ -104,7 +105,7 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
 
               {viewing.isFinished ? (
                 <Badge tone="accent">
-                  <RiCheckLine size={12} aria-hidden />
+                  <Icon of={Tick02Icon} size={12} />
                   Finished
                 </Badge>
               ) : null}
@@ -119,7 +120,7 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
                   void forgetOne(viewing.id);
                 }}
               >
-                <RiDeleteBinLine size={16} aria-hidden />
+                <Icon of={Delete02Icon} size={16} />
               </Button>
             </motion.li>
           ))}
@@ -154,7 +155,7 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
             void forgetTheLot();
           }}
         >
-          <RiDeleteBinLine size={16} aria-hidden />
+          <Icon of={Delete02Icon} size={16} />
           Forget everything
         </Button>
       </div>

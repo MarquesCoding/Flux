@@ -1,4 +1,5 @@
-import { RiFolderOpenLine, RiSearchLine } from '@remixicon/react';
+import { Icon } from '@FluxUI/Icon';
+import { FolderOpenIcon, Search01Icon } from '@hugeicons/core-free-icons';
 import type { EmptyLibraryProps } from './EmptyLibrary.types';
 
 /**
@@ -14,7 +15,7 @@ const EmptyLibrary = ({ search, libraryName, hasContentElsewhere }: EmptyLibrary
   if (search !== '') {
     return (
       <div className="flex flex-col items-center gap-2 py-10 text-center">
-        <RiSearchLine size={28} className="text-text-muted" aria-hidden />
+        <Icon of={Search01Icon} size={28} className="text-text-muted" />
 
         <p className="text-sm font-medium text-text">Nothing matches “{search}”</p>
 
@@ -28,7 +29,7 @@ const EmptyLibrary = ({ search, libraryName, hasContentElsewhere }: EmptyLibrary
 
   return (
     <div className="flex flex-col items-center gap-2 py-10 text-center">
-      <RiFolderOpenLine size={28} className="text-text-muted" aria-hidden />
+      <Icon of={FolderOpenIcon} size={28} className="text-text-muted" />
 
       <p className="text-sm font-medium text-text">
         {hasContentElsewhere

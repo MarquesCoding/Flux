@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { StarIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
-import { RiStarFill, RiStarLine } from '@remixicon/react';
 import { cn } from '@FluxUI/cn';
 import { Button } from '@FluxUI/Button';
 import type { StarRatingProps, StarRatingSize } from './StarRating.types';
@@ -54,7 +55,7 @@ const StarRating = ({
       >
         <span className={cn('flex text-text-muted', GAP_CLASSES[size])} aria-hidden>
           {STEPS.map((step) => (
-            <RiStarLine key={step} size={glyph} />
+            <Icon of={StarIcon} key={step} size={glyph} />
           ))}
         </span>
 
@@ -65,7 +66,7 @@ const StarRating = ({
         >
           <span className={cn('flex w-max text-amber-400', GAP_CLASSES[size])}>
             {STEPS.map((step) => (
-              <RiStarFill key={step} size={glyph} className="shrink-0" />
+              <Icon of={StarIcon} key={step} size={glyph} className="shrink-0" />
             ))}
           </span>
         </span>
@@ -86,7 +87,6 @@ const StarRating = ({
     >
       {STEPS.map((step) => {
         const isLit = step <= shown;
-        const Glyph = isLit ? RiStarFill : RiStarLine;
 
         return (
           <Button
@@ -119,7 +119,7 @@ const StarRating = ({
               onRate(step);
             }}
           >
-            <Glyph size={glyph} aria-hidden />
+            <Icon of={StarIcon} size={glyph} isActive={isLit} />
           </Button>
         );
       })}

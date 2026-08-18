@@ -1,6 +1,7 @@
+import { Icon } from '@FluxUI/Icon';
+import { InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
-import { RiInformationLine, RiPlayFill } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
@@ -295,7 +296,7 @@ const Hero = ({
                   onPlay(featured, resume ?? 0);
                 }}
               >
-                <RiPlayFill size={18} aria-hidden />
+                <Icon of={PlayIcon} size={18} />
                 {resume === null ? 'Play' : `Resume from ${formatDuration(resume)}`}
               </Button>
 
@@ -308,7 +309,7 @@ const Hero = ({
                     onInspect(featured);
                   }}
                 >
-                  <RiInformationLine size={18} aria-hidden />
+                  <Icon of={InformationCircleIcon} size={18} />
                   More info
                 </Button>
               )}

@@ -1,13 +1,8 @@
+import { Icon } from '@FluxUI/Icon';
+import { ArrowLeft01Icon, ArrowRight01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { Variants } from 'motion/react';
-import {
-  RiArrowLeftLine,
-  RiArrowLeftSLine,
-  RiArrowRightLine,
-  RiArrowRightSLine,
-  RiKey2Line,
-} from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { cn } from '@FluxUI/cn';
 import { TextField } from '@FluxUI/TextField';
@@ -289,7 +284,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                       setPage((current) => Math.max(current - 1, 0));
                     }}
                   >
-                    <RiArrowLeftSLine size={20} aria-hidden />
+                    <Icon of={ArrowLeft01Icon} size={20} />
                   </Button>
                 </span>
 
@@ -350,7 +345,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                       setPage((current) => Math.min(current + 1, pages - 1));
                     }}
                   >
-                    <RiArrowRightSLine size={20} aria-hidden />
+                    <Icon of={ArrowRight01Icon} size={20} />
                   </Button>
                 </span>
               </motion.div>
@@ -436,7 +431,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                     disabled={password === ''}
                   >
                     Watch
-                    <RiArrowRightLine size={18} aria-hidden />
+                    <Icon of={ArrowRight01Icon} size={18} />
                   </Button>
 
                   {!isPasskeySupported() ? null : (
@@ -449,7 +444,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                         void signInWithPasskey();
                       }}
                     >
-                      <RiKey2Line size={16} aria-hidden />
+                      <Icon of={Key01Icon} size={16} />
                       Use a passkey instead
                     </Button>
                   )}
@@ -473,7 +468,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
                     setNeedsCode(false);
                   }}
                 >
-                  <RiArrowLeftLine size={18} aria-hidden />
+                  <Icon of={ArrowLeft01Icon} size={18} />
                 </Button>
               </motion.div>
             </div>

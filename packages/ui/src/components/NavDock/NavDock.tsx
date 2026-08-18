@@ -81,12 +81,21 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                     className={cn(
                       'relative flex h-9 items-center gap-1.5 rounded-md px-3 text-sm',
                       'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
-                      isNamed || isCurrent
-                        ? 'font-medium text-text'
-                        : 'text-text-muted hover:text-text focus-visible:text-text',
+                      isCurrent
+                        ? 'font-medium text-accent'
+                        : isNamed
+                          ? 'font-medium text-text'
+                          : 'text-text-muted hover:text-text focus-visible:text-text',
                     )}
                   >
                     {isNamed ? mark : null}
+
+                    {isCurrent ? (
+                      <span
+                        aria-hidden
+                        className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-accent"
+                      />
+                    ) : null}
 
                     {item.icon === undefined ? null : (
                       <AnimatedIcon

@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
-import { RiCloseLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
@@ -48,7 +49,7 @@ const SessionMessageDialog = ({ watcher, isOpen, onSend, onClose }: SessionMessa
     <Dialog label="Send a message" isOpen={isOpen} onClose={onClose}>
       <DialogTitle title={`Message ${watcher}`}>
         <Button isIconOnly variant="ghost" label="Close" size="sm" onClick={onClose}>
-          <RiCloseLine size={16} aria-hidden />
+          <Icon of={Cancel01Icon} size={16} />
         </Button>
       </DialogTitle>
 

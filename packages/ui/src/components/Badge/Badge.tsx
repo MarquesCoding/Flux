@@ -27,7 +27,7 @@ const SIZE_CLASSES: Record<BadgeSize, string> = {
 const Badge = ({ children, tone = 'quiet', size = 'sm', className }: BadgeProps) => (
   <span
     className={cn(
-      'inline-flex shrink-0 select-none items-center justify-center rounded-full font-medium',
+      'inline-flex shrink-0 select-none items-center justify-center rounded-md font-medium',
       'uppercase tracking-[0.12em] indent-[0.12em] leading-none whitespace-nowrap',
       TONE_CLASSES[tone],
       SIZE_CLASSES[size],

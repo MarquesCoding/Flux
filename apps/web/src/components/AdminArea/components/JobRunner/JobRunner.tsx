@@ -1,11 +1,12 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { Icon } from '@FluxUI/Icon';
 import {
-  RiCalendarScheduleLine,
-  RiInformationLine,
-  RiMoreLine,
-  RiPlayLine,
-  RiStopLine,
-} from '@remixicon/react';
+  Calendar03Icon,
+  InformationCircleIcon,
+  MoreHorizontalIcon,
+  PlayIcon,
+  StopIcon,
+} from '@hugeicons/core-free-icons';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
@@ -176,7 +177,7 @@ const JobRunner = ({
                 Running
               </Badge>
 
-              <RiInformationLine size={15} className="shrink-0 text-text-muted" aria-hidden />
+              <Icon of={InformationCircleIcon} size={15} className="shrink-0 text-text-muted" />
             </HoverCard>
           );
         },
@@ -189,14 +190,14 @@ const JobRunner = ({
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.label}`}
-              trigger={<RiMoreLine size={16} aria-hidden />}
+              trigger={<Icon of={MoreHorizontalIcon} size={16} />}
               groups={[
                 {
                   items: [
                     {
                       id: 'run',
                       label: 'Run now',
-                      icon: <RiPlayLine size={15} aria-hidden />,
+                      icon: <Icon of={PlayIcon} size={15} />,
                       isDestructive: row.original.destructive,
                       isDisabled:
                         live.current.isBusy && live.current.summaryFor(row.original.kind) === null,
@@ -210,7 +211,7 @@ const JobRunner = ({
                           {
                             id: 'stop',
                             label: 'Stop it',
-                            icon: <RiStopLine size={15} aria-hidden />,
+                            icon: <Icon of={StopIcon} size={15} />,
                             isDestructive: true,
                             onChoose: () => {
                               live.current.onStop(row.original.kind);
@@ -220,7 +221,7 @@ const JobRunner = ({
                     {
                       id: 'schedule',
                       label: 'Edit schedule',
-                      icon: <RiCalendarScheduleLine size={15} aria-hidden />,
+                      icon: <Icon of={Calendar03Icon} size={15} />,
                       onChoose: () => {
                         live.current.onOpenSchedule(row.original.kind);
                       },

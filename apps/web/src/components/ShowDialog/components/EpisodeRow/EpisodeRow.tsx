@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { Button } from '@FluxUI/Button';
-import { RiInformationLine, RiPlayFill } from '@remixicon/react';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import type { EpisodeRowProps } from './EpisodeRow.types';
 
@@ -58,7 +59,7 @@ const EpisodeRow = ({
         )}
 
         <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover/episode:opacity-100">
-          <RiPlayFill size={20} className="text-white" aria-hidden />
+          <Icon of={PlayIcon} size={20} className="text-white" />
         </span>
 
         {watchedFraction === undefined ? null : (
@@ -90,7 +91,7 @@ const EpisodeRow = ({
           onInspect(episode);
         }}
       >
-        <RiInformationLine size={18} aria-hidden />
+        <Icon of={InformationCircleIcon} size={18} />
       </Button>
     )}
   </div>

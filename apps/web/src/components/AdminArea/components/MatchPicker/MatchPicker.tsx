@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { ArrowTurnBackwardIcon, Search01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
-import { RiArrowGoBackLine, RiSearchLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
@@ -125,7 +126,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
               void look(query);
             }}
           >
-            <RiSearchLine size={16} aria-hidden />
+            <Icon of={Search01Icon} size={16} />
             Search
           </Button>
         </div>
@@ -183,7 +184,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
             void forget();
           }}
         >
-          <RiArrowGoBackLine size={16} aria-hidden />
+          <Icon of={ArrowTurnBackwardIcon} size={16} />
           Forget the correction
         </Button>
 

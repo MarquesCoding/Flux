@@ -1,24 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { Icon } from '@FluxUI/Icon';
 import {
-  RiAccountCircleFill,
-  RiAccountCircleLine,
-  RiDice5Line,
-  RiFilmFill,
-  RiFilmLine,
-  RiHeartFill,
-  RiHeartLine,
-  RiHome5Fill,
-  RiHome5Line,
-  RiFireFill,
-  RiFireLine,
-  RiNotification3Line,
-  RiSearchFill,
-  RiSearchLine,
-  RiSettings3Fill,
-  RiSettings3Line,
-  RiTvFill,
-  RiTvLine,
-} from '@remixicon/react';
+  DiceFaces05Icon,
+  FavouriteIcon,
+  FilmRoll01Icon,
+  FireIcon,
+  Home01Icon,
+  Notification01Icon,
+  Search01Icon,
+  Settings01Icon,
+  Tv01Icon,
+  UserCircleIcon,
+} from '@hugeicons/core-free-icons';
+import { useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { NavDock } from '@FluxUI/NavDock';
@@ -38,25 +31,25 @@ const SURPRISE_LABELS: Record<LibraryKind, string> = {
 };
 
 const SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <RiHome5Line size={18} aria-hidden />,
-  shows: <RiTvLine size={18} aria-hidden />,
-  films: <RiFilmLine size={18} aria-hidden />,
-  new: <RiFireLine size={18} aria-hidden />,
-  favourites: <RiHeartLine size={18} aria-hidden />,
-  search: <RiSearchLine size={18} aria-hidden />,
-  account: <RiAccountCircleLine size={18} aria-hidden />,
-  admin: <RiSettings3Line size={18} aria-hidden />,
+  home: <Icon of={Home01Icon} size={18} />,
+  shows: <Icon of={Tv01Icon} size={18} />,
+  films: <Icon of={FilmRoll01Icon} size={18} />,
+  new: <Icon of={FireIcon} size={18} />,
+  favourites: <Icon of={FavouriteIcon} size={18} />,
+  search: <Icon of={Search01Icon} size={18} />,
+  account: <Icon of={UserCircleIcon} size={18} />,
+  admin: <Icon of={Settings01Icon} size={18} />,
 };
 
 const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <RiHome5Fill size={18} aria-hidden />,
-  shows: <RiTvFill size={18} aria-hidden />,
-  films: <RiFilmFill size={18} aria-hidden />,
-  new: <RiFireFill size={18} aria-hidden />,
-  favourites: <RiHeartFill size={18} aria-hidden />,
-  search: <RiSearchFill size={18} aria-hidden />,
-  account: <RiAccountCircleFill size={18} aria-hidden />,
-  admin: <RiSettings3Fill size={18} aria-hidden />,
+  home: <Icon of={Home01Icon} size={18} isActive />,
+  shows: <Icon of={Tv01Icon} size={18} isActive />,
+  films: <Icon of={FilmRoll01Icon} size={18} isActive />,
+  new: <Icon of={FireIcon} size={18} isActive />,
+  favourites: <Icon of={FavouriteIcon} size={18} isActive />,
+  search: <Icon of={Search01Icon} size={18} isActive />,
+  account: <Icon of={UserCircleIcon} size={18} isActive />,
+  admin: <Icon of={Settings01Icon} size={18} isActive />,
 };
 
 const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
@@ -160,8 +153,8 @@ const AppShell = ({
     {
       id: 'search',
       label: 'Search',
-      icon: <RiSearchLine size={20} aria-hidden />,
-      activeIcon: <RiSearchFill size={20} aria-hidden />,
+      icon: <Icon of={Search01Icon} size={20} />,
+      activeIcon: <Icon of={Search01Icon} size={20} />,
       gesture: 'settle' as const,
       isCurrent: section === 'search',
       onSelect: () => {
@@ -174,7 +167,7 @@ const AppShell = ({
           {
             id: 'surprise',
             label: 'Randomiser',
-            icon: <RiDice5Line size={20} aria-hidden />,
+            icon: <Icon of={DiceFaces05Icon} size={20} />,
             gesture: 'tumble' as const,
             ...(surpriseKinds.length > 1
               ? {
@@ -183,7 +176,7 @@ const AppShell = ({
                       label="Choose something at random"
                       align="center"
                       className="hover:bg-transparent data-[popup-open]:bg-transparent"
-                      trigger={<RiDice5Line size={20} aria-hidden />}
+                      trigger={<Icon of={DiceFaces05Icon} size={20} />}
                       groups={[
                         {
                           items: [
@@ -220,7 +213,7 @@ const AppShell = ({
           {
             id: 'notifications',
             label: 'Notifications',
-            icon: <RiNotification3Line size={20} aria-hidden />,
+            icon: <Icon of={Notification01Icon} size={20} />,
             gesture: 'ring' as const,
             control: notifications,
           },
@@ -230,8 +223,8 @@ const AppShell = ({
           {
             id: 'admin',
             label: 'Admin',
-            icon: <RiSettings3Line size={20} aria-hidden />,
-            activeIcon: <RiSettings3Fill size={20} aria-hidden />,
+            icon: <Icon of={Settings01Icon} size={20} />,
+            activeIcon: <Icon of={Settings01Icon} size={20} />,
             gesture: 'spin' as const,
             isCurrent: section === 'admin',
             onSelect: () => {
@@ -243,8 +236,8 @@ const AppShell = ({
     {
       id: 'account',
       label: 'Account',
-      icon: avatar ?? <RiAccountCircleLine size={22} aria-hidden />,
-      activeIcon: avatar ?? <RiAccountCircleFill size={20} aria-hidden />,
+      icon: avatar ?? <Icon of={UserCircleIcon} size={22} />,
+      activeIcon: avatar ?? <Icon of={UserCircleIcon} size={20} />,
       gesture: 'settle' as const,
       isCurrent: section === 'account',
       onSelect: () => {
