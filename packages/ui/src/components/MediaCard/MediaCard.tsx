@@ -58,13 +58,12 @@ const MediaCard = ({
       {...(prefersReducedMotion === true || isStill || !canHover
         ? {}
         : {
-            whileHover: { transform: 'translateY(-6px)' },
-            whileTap: { transform: 'scale(0.985)' },
+            whileHover: { y: -6 },
+            whileTap: { scale: 0.985 },
           })}
       transition={revealTransition(prefersReducedMotion)}
       className={cn(
         'group flex w-full flex-col gap-3 rounded-md text-left outline-none',
-        'focus-visible:ring-[3px] focus-visible:ring-ring/40',
         className,
       )}
     >
