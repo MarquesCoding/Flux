@@ -1,11 +1,13 @@
 import { createMiddleware } from 'hono/factory';
 import { getCookie } from 'hono/cookie';
-import { isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
+import { howShareEnded, isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
 import { covers, reachOf } from './shareReach';
 import type { ShareService } from './ShareService';
 import type { ShareSessions } from './createShareSessions';
 
 const SHARE_COOKIE = 'flux_share';
+
+const SHARE_JOINER = 'flux_share_joiner';
 
 type ShareGateOptions = {
   shares: ShareService;
@@ -22,7 +24,9 @@ type ShareGateOptions = {
  * Three things are checked on every request rather than once at the start, which is what makes
  * revocation and expiry immediate for a stream already playing:
  *
- * * the link still exists, has not been withdrawn, has not expired and has views left;
+ * * the link still exists, has not been withdrawn, has not expired, and either has room left or is
+ *   being asked for by somebody already let in — a cap counts people rather than requests, so the
+ *   person it admitted is not refused by it a moment later;
  * * the route is one a guest may ask for at all, which is decided by naming what is open rather
  *   than what is closed, so a route added later is shut to a share until somebody opens it;
  * * the thing being asked for is inside what the link covers.
@@ -46,16 +50,22 @@ const createShareGate = ({ shares, sessions, itemOf }: ShareGateOptions) =>
       return context.json({ error: 'This link does not work.' }, 404);
     }
 
+    const joiner = getCookie(context, SHARE_JOINER);
+
     const standing = {
       expiresAt: found.expiresAt,
       viewCap: found.viewCap,
       views: found.views,
       revokedAt: found.revokedAt,
+      isReturning: joiner !== undefined && (await shares.hasJoined(found.id, joiner)),
     };
 
     if (!isShareLive(standing, new Date())) {
       return context.json(
-        { error: whyShareEnded(standing, new Date()) ?? 'This link no longer works.' },
+        {
+          error: whyShareEnded(standing, new Date()) ?? 'This link no longer works.',
+          ended: howShareEnded(standing, new Date()) ?? 'withdrawn',
+        },
         410,
       );
     }

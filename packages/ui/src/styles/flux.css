@@ -331,6 +331,10 @@ body {
   }
 }
 
+.flux-docked {
+  --dock-clearance: 4rem;
+}
+
 .flux-glass {
   background: var(--glass-tint);
   backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));

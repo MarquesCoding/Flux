@@ -136,6 +136,7 @@ describe('the notification routes', () => {
     expect(read.preferences).toStrictEqual([
       { event: 'media.added', inApp: true, push: false },
       { event: 'party.invited', inApp: true, push: false },
+      { event: 'sharing.withdrawn', inApp: true, push: false },
     ]);
   });
 

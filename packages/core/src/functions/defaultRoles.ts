@@ -33,6 +33,7 @@ const DEFAULT_ROLES: readonly DefaultRole[] = [
       'streaming.message',
       'sharing.link',
       'sharing.party',
+      'sharing.manage',
       'download.media',
       'account.keys',
       'server.logs',

@@ -22,12 +22,14 @@ import { ProfileEditor } from '@FluxWeb/components/ProfilePicker/components/Prof
 import { TwoFactorSetup } from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup';
 import { PasskeySetup } from '@FluxWeb/components/PasskeySetup/PasskeySetup';
 import { DeviceList } from '@FluxWeb/components/AccountArea/components/DeviceList/DeviceList';
+import { SharePanel } from '@FluxWeb/components/AccountArea/components/SharePanel/SharePanel';
 import type { AccountAreaProps } from './AccountArea.types';
 
 const PANELS = [
   { id: 'profile', label: 'Profile' },
   { id: 'security', label: 'Security' },
   { id: 'devices', label: 'Devices' },
+  { id: 'links', label: 'Links' },
   { id: 'history', label: 'History' },
 ] as const;
 
@@ -35,7 +37,7 @@ type PanelId = (typeof PANELS)[number]['id'];
 
 /**
  * Somebody's own account: their name and password, the devices they are signed in on, their passkeys
- * and second factor, their API keys, and their viewing history.
+ * and second factor, their API keys, the links they have handed out, and their viewing history.
  *
  * @param user - Whose account it is.
  * @param onSignOut - Told to sign out.
@@ -188,6 +190,18 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
           }
         >
           <DeviceList />
+        </TabPanel>
+
+        <TabPanel
+          value="links"
+          render={
+            <motion.section
+              variants={revealVariants(prefersReducedMotion)}
+              transition={revealTransition(prefersReducedMotion)}
+            />
+          }
+        >
+          <SharePanel />
         </TabPanel>
 
         <TabPanel

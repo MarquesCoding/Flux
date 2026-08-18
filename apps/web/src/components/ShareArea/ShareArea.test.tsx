@@ -78,6 +78,23 @@ describe('what a guest is shown', () => {
     expect(onPlay).toHaveBeenCalledWith(expect.anything(), 640);
   });
 
+  it('offers to play rather than to resume where nothing has been watched', async () => {
+    opened({ resumeFor: () => null });
+
+    expect(await screen.findByRole('button', { name: 'Play' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Resume from/ })).not.toBeInTheDocument();
+  });
+
+  it('says a link has ended the moment it is told, without asking again first', async () => {
+    opened({ ended: 'withdrawn' });
+
+    expect(
+      await screen.findByRole('heading', { name: 'This link was withdrawn.' }),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByRole('button', { name: 'Play' })).not.toBeInTheDocument();
+  });
+
   it('offers no way anywhere else', async () => {
     opened();
 
@@ -115,12 +132,31 @@ describe('a series that was shared', () => {
     });
   });
 
-  it('lists its episodes', async () => {
+  it('lists its episodes under the season they belong to', async () => {
     opened();
 
-    expect(await screen.findByRole('heading', { name: 'Episodes' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Season 1' })).toBeInTheDocument();
     expect(screen.getByText('System')).toBeInTheDocument();
     expect(screen.getByText('Hands')).toBeInTheDocument();
+  });
+
+  it('separates the seasons, so episode one after episode seven reads as a beginning', async () => {
+    answers({
+      kind: 'opened',
+      share: {
+        kind: 'series',
+        title: 'The Bear',
+        items: [
+          item({ id: 'a', title: 'System', seasonNumber: 1, episodeNumber: 1 }),
+          item({ id: 'b', title: 'Sheridan', seasonNumber: 2, episodeNumber: 1 }),
+        ],
+      },
+    });
+
+    opened();
+
+    expect(await screen.findByRole('heading', { name: 'Season 1' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Season 2' })).toBeInTheDocument();
   });
 
   it('offers the first episode rather than whichever came back first', async () => {
@@ -145,24 +181,48 @@ describe('a series that was shared', () => {
 });
 
 describe('a link that no longer works', () => {
-  it('says why, in words', async () => {
-    answers({ kind: 'gone', reason: 'This link has expired.' });
+  it('says a link that ran out of time has expired', async () => {
+    answers({ kind: 'gone', reason: 'x', ended: 'expired' });
 
     opened();
 
     expect(
       await screen.findByRole('heading', { name: 'This link has expired.' }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/made to last a while/)).toBeInTheDocument();
   });
 
-  it('says a withdrawn link was withdrawn', async () => {
-    answers({ kind: 'gone', reason: 'This link was withdrawn.' });
+  it('says a withdrawn link was withdrawn, and that somebody did it', async () => {
+    answers({ kind: 'gone', reason: 'x', ended: 'withdrawn' });
 
     opened();
 
     expect(
       await screen.findByRole('heading', { name: 'This link was withdrawn.' }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/stopped it working/)).toBeInTheDocument();
+  });
+
+  it('says a link opened its full number of times has been used up', async () => {
+    answers({ kind: 'gone', reason: 'x', ended: 'spent' });
+
+    opened();
+
+    expect(
+      await screen.findByRole('heading', { name: 'This link has been used up.' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/set number of times/)).toBeInTheDocument();
+  });
+
+  it('tells the three endings apart rather than calling them all withdrawn', async () => {
+    answers({ kind: 'gone', reason: 'x', ended: 'spent' });
+
+    opened();
+
+    await screen.findByRole('heading', { name: 'This link has been used up.' });
+
+    expect(screen.queryByText(/withdrawn/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/expired/)).not.toBeInTheDocument();
   });
 
   it('says something useful for a link that never existed', async () => {
@@ -174,7 +234,7 @@ describe('a link that no longer works', () => {
   });
 
   it('offers no way in, since a guest has no account to sign in to', async () => {
-    answers({ kind: 'gone', reason: 'This link has expired.' });
+    answers({ kind: 'gone', reason: 'x', ended: 'expired' });
 
     opened();
 

@@ -1,8 +1,14 @@
 import { Icon } from '@FluxUI/Icon';
-import { Cancel01Icon, InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
+import {
+  Cancel01Icon,
+  InformationCircleIcon,
+  Link01Icon,
+  PlayIcon,
+} from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
+import { nameSeason } from '@FluxWeb/library/nameSeason';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { BackdropScrim } from '@FluxUI/BackdropScrim';
@@ -32,20 +38,6 @@ import type { ShowDialogProps } from './ShowDialog.types';
 const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
 /**
- * Names a season the way somebody would say it, giving specials their own name rather than calling
- * them season zero.
- *
- * @param seasonNumber - The season.
- * @returns What to call it.
- */
-const nameSeason = (seasonNumber: number | null): string =>
-  seasonNumber === null
-    ? 'Specials'
-    : seasonNumber === 0
-      ? 'Specials'
-      : `Season ${seasonNumber.toString()}`;
-
-/**
  * A programme in full: its seasons, its episodes, where a viewer got to in each, and the episodes
  * the catalogue says exist that this library does not have. Opening it is how somebody decides what
  * to watch next rather than only what to watch now.
@@ -66,6 +58,7 @@ const ShowDialog = ({
   onClose,
   onPlay,
   onInspect,
+  onShare,
   watchedFractionFor,
   resumeFor,
   isFinished,
@@ -270,6 +263,20 @@ const ShowDialog = ({
               >
                 <Icon of={InformationCircleIcon} size={18} />
                 About this episode
+              </Button>
+            )}
+
+            {onShare === undefined || (shown.seriesId ?? null) === null ? null : (
+              <Button
+                variant="secondary"
+                size="lg"
+                isPill
+                onClick={() => {
+                  onShare(shown);
+                }}
+              >
+                <Icon of={Link01Icon} size={18} />
+                Share
               </Button>
             )}
           </div>

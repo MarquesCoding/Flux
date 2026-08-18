@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
+import { ArrowDown01Icon, InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { Button } from '@FluxUI/Button';
@@ -60,6 +60,13 @@ const LOGO_BOX = [
  * @param resumeFor - Where this viewer left each item, for the button that offers to carry on.
  * @param rotateAfterMilliseconds - How long each item holds the screen.
  * @param fills - Whether it fills what it is put in rather than standing in a runway of its own.
+ *   A hero standing in a runway says there is more underneath, with a mark that fades as soon as
+ *   somebody starts scrolling — it has said its piece by then, and a hint that outstays the moment
+ *   it was needed becomes decoration. One that fills has nothing beneath it and says nothing.
+ *
+ *   The mark stands clear of whatever the shell has put along the bottom, which it learns from the
+ *   shell rather than assuming: a screen with a dock says how much room it takes, and a screen with
+ *   no dock — a shared link, which has no chrome at all — says nothing and the mark sits low.
  *   A library's front page scrolls beneath it, which is what the runway and the card drawing in are
  *   for; a page holding nothing but this has nothing to scroll, and the card would be drawing in
  *   against a scroll that never comes.
@@ -109,6 +116,7 @@ const Hero = ({
   const lift = useTransform(scrollYProgress, [0, 1], ['0px', '72px']);
   const foot = useTransform(scrollYProgress, [0, 1], ['0px', FOOT_OF_THE_CARD]);
   const corner = useTransform(scrollYProgress, [0, 1], ['0px', '10px']);
+  const beckon = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
 
   const showNext = useCallback(() => {
     if (items.length > 1 && !isHeld) {
@@ -327,6 +335,22 @@ const Hero = ({
               : {})}
             className="mb-8 mr-5 self-end sm:absolute sm:bottom-8 sm:right-10 sm:mb-0 sm:mr-0"
           />
+
+          {fills ? null : (
+            <motion.span
+              aria-hidden
+              style={{ opacity: beckon }}
+              animate={prefersReducedMotion === true ? {} : { y: [0, 6, 0] }}
+              transition={
+                prefersReducedMotion === true
+                  ? {}
+                  : { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+              }
+              className="pointer-events-none absolute bottom-[calc(2rem+var(--dock-clearance,0px))] left-1/2 -translate-x-1/2 text-text-muted"
+            >
+              <Icon of={ArrowDown01Icon} size={24} />
+            </motion.span>
+          )}
         </motion.section>
       </div>
     </div>

@@ -64,15 +64,20 @@ import { readPersonRoute, readPersonCreditsRoute } from '@FluxServer/routes/Pers
 import {
   createShareRoute,
   listSharesRoute,
+  listEverybodysSharesRoute,
   revokeShareRoute,
+  revokeAnybodysShareRoute,
   openShareRoute,
 } from '@FluxServer/routes/ShareRoute';
 import { SHARE_COOKIE, createShareGate } from '@FluxServer/sharing/createShareGate';
-import { isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
+import { howShareEnded, isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
+import { rememberGuestFor } from '@FluxServer/sharing/rememberGuestFor';
 import { getCookie, setCookie } from 'hono/cookie';
 import { randomUUID } from 'node:crypto';
 
 const SHARE_JOINER = 'flux_share_joiner';
+
+const GUEST_REMEMBERED_FOR_SECONDS = 30 * 86_400;
 import {
   listFavouritesRoute,
   keepFavouriteRoute,
@@ -366,6 +371,11 @@ type CreateAppOptions = {
   searchCatalogue?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
   realtime?: RealtimePublisher;
   logs?: LogStore;
+  sayALinkWasWithdrawn?: (told: {
+    accountId: string;
+    title: string;
+    byName: string;
+  }) => Promise<void>;
 };
 
 /**
@@ -419,8 +429,16 @@ const createApp = ({
   editAccount,
   realtime,
   logs,
+  sayALinkWasWithdrawn,
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
+
+  app.use('*', async (context, next) => {
+    await next();
+
+    context.res.headers.set('Referrer-Policy', 'no-referrer');
+    context.res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  });
 
   app.use(
     '/api/*',
@@ -2554,6 +2572,48 @@ const createApp = ({
     return context.json({ shares: await shares.list(account.id) }, 200);
   });
 
+  app.openapi(listEverybodysSharesRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null || shares === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    if (!(await requires(context.req.raw.headers, 'sharing.manage'))) {
+      return context.json({ error: 'This account may not look at everybody’s links.' }, 403);
+    }
+
+    return context.json({ shares: await shares.listEverybody() }, 200);
+  });
+
+  app.openapi(revokeAnybodysShareRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null || shares === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    if (!(await requires(context.req.raw.headers, 'sharing.manage'))) {
+      return context.json({ error: 'This account may not withdraw somebody else’s link.' }, 403);
+    }
+
+    const withdrawn = await shares.revokeAnybody(context.req.valid('param').shareId);
+
+    if (withdrawn === null) {
+      return context.json({ error: 'No such link.' }, 404);
+    }
+
+    if (withdrawn.createdBy !== account.id) {
+      await sayALinkWasWithdrawn?.({
+        accountId: withdrawn.createdBy,
+        title: withdrawn.title,
+        byName: account.name,
+      });
+    }
+
+    return context.body(null, 204);
+  });
+
   app.openapi(revokeShareRoute, async (context) => {
     const account = await readAccount(context.req.raw.headers);
 
@@ -2582,26 +2642,34 @@ const createApp = ({
       return context.json({ error: 'This link does not work.' }, 404);
     }
 
+    const held = getCookie(context, SHARE_JOINER);
+    const joiner = held ?? randomUUID();
+
     const standing = {
       expiresAt: found.expiresAt,
       viewCap: found.viewCap,
       views: found.views,
       revokedAt: found.revokedAt,
+      isReturning: held !== undefined && (await shares.hasJoined(found.id, held)),
     };
-
-    const joiner = getCookie(context, SHARE_JOINER) ?? randomUUID();
 
     if (!isShareLive(standing, new Date())) {
       return context.json(
-        { error: whyShareEnded(standing, new Date()) ?? 'This link no longer works.' },
+        {
+          error: whyShareEnded(standing, new Date()) ?? 'This link no longer works.',
+          ended: howShareEnded(standing, new Date()) ?? 'withdrawn',
+        },
         410,
       );
     }
 
     await shares.join(found.id, joiner);
 
-    setCookie(context, SHARE_JOINER, joiner, { path: '/', httpOnly: true, sameSite: 'Lax' });
-    setCookie(context, SHARE_COOKIE, token, { path: '/', httpOnly: true, sameSite: 'Lax' });
+    const keptFor = rememberGuestFor(found.expiresAt, new Date(), GUEST_REMEMBERED_FOR_SECONDS);
+    const kept = { path: '/', httpOnly: true, sameSite: 'Lax', maxAge: keptFor } as const;
+
+    setCookie(context, SHARE_JOINER, joiner, kept);
+    setCookie(context, SHARE_COOKIE, token, kept);
 
     const items = await library.itemsForShare(found);
 

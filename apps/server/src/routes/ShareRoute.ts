@@ -1,5 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
+  ShareEndingSchema,
+  AdminShareListSchema,
   CreatedShareSchema,
   NewShareSchema,
   ShareListSchema,
@@ -11,7 +13,10 @@ const Share = ShareSchema.openapi('Share');
 const ShareList = ShareListSchema.openapi('ShareList');
 const CreatedShare = CreatedShareSchema.openapi('CreatedShare');
 const NewShare = NewShareSchema.openapi('NewShare');
+const AdminShareList = AdminShareListSchema.openapi('AdminShareList');
 const ShareError = z.object({ error: z.string() }).openapi('ShareError');
+
+const ShareEnded = z.object({ error: z.string(), ended: ShareEndingSchema }).openapi('ShareEnded');
 
 const OpenedShare = z
   .object({
@@ -83,6 +88,50 @@ const revokeShareRoute = createRoute({
   },
 });
 
+const listEverybodysSharesRoute = createRoute({
+  method: 'get',
+  path: '/api/admin/shares',
+  tags: ['Sharing'],
+  summary: 'Read every link this server has handed out, and who handed each one out',
+  responses: {
+    200: {
+      description: 'Every link',
+      content: { 'application/json': { schema: AdminShareList } },
+    },
+    401: {
+      description: 'Nobody is signed in',
+      content: { 'application/json': { schema: ShareError } },
+    },
+    403: {
+      description: 'This account may not look at everybody’s links',
+      content: { 'application/json': { schema: ShareError } },
+    },
+  },
+});
+
+const revokeAnybodysShareRoute = createRoute({
+  method: 'delete',
+  path: '/api/admin/shares/{shareId}',
+  tags: ['Sharing'],
+  summary: 'Withdraw anybody’s link, at once and including anybody watching through it',
+  request: { params: z.object({ shareId: z.string().uuid() }) },
+  responses: {
+    204: { description: 'Withdrawn' },
+    401: {
+      description: 'Nobody is signed in',
+      content: { 'application/json': { schema: ShareError } },
+    },
+    403: {
+      description: 'This account may not withdraw somebody else’s link',
+      content: { 'application/json': { schema: ShareError } },
+    },
+    404: {
+      description: 'No such link, or it had already been withdrawn',
+      content: { 'application/json': { schema: ShareError } },
+    },
+  },
+});
+
 const openShareRoute = createRoute({
   method: 'get',
   path: '/api/share/{token}',
@@ -99,10 +148,19 @@ const openShareRoute = createRoute({
       content: { 'application/json': { schema: ShareError } },
     },
     410: {
-      description: 'This link no longer works',
-      content: { 'application/json': { schema: ShareError } },
+      description: 'This link no longer works, and which of the three ways it ended',
+      content: { 'application/json': { schema: ShareEnded } },
     },
   },
 });
 
-export { createShareRoute, listSharesRoute, revokeShareRoute, openShareRoute, Share, OpenedShare };
+export {
+  createShareRoute,
+  listSharesRoute,
+  listEverybodysSharesRoute,
+  revokeShareRoute,
+  revokeAnybodysShareRoute,
+  openShareRoute,
+  Share,
+  OpenedShare,
+};

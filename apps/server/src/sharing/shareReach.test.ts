@@ -54,6 +54,24 @@ describe('what a guest may ask for', () => {
     expect(asking(`/api/playback/session/${SESSION}/heartbeat`).kind).toBe('needsSession');
     expect(asking(`/api/playback/session/${SESSION}`).kind).toBe('needsSession');
   });
+
+  it('recognises a session whatever the playback service named it', () => {
+    expect(asking(`/api/playback/session/direct-${FILM}/index.m3u8`)).toEqual({
+      kind: 'needsSession',
+      sessionId: `direct-${FILM}`,
+    });
+
+    expect(asking('/api/playback/session/07c4641b5a588ce94295c98a3e4179ee/index.m3u8')).toEqual({
+      kind: 'needsSession',
+      sessionId: '07c4641b5a588ce94295c98a3e4179ee',
+    });
+  });
+
+  it('hands the whole name to the check rather than the part that looked like an identifier', () => {
+    const asked = asking(`/api/playback/session/direct-${FILM}/heartbeat`);
+
+    expect(asked.kind === 'needsSession' ? asked.sessionId : null).toBe(`direct-${FILM}`);
+  });
 });
 
 describe('what a guest may never ask for', () => {

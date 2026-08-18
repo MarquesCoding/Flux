@@ -19,6 +19,7 @@ const LABELS: Record<Permission, string> = {
 
   'sharing.link': 'Create share links',
   'sharing.party': 'Start watch parties',
+  'sharing.manage': 'See and withdraw anybody’s share links',
 
   'streaming.view': 'See who is watching',
   'streaming.stop': 'Stop somebody’s stream',
