@@ -430,6 +430,13 @@ const createApp = ({
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
+  app.use('*', async (context, next) => {
+    await next();
+
+    context.res.headers.set('Referrer-Policy', 'no-referrer');
+    context.res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  });
+
   app.use(
     '/api/*',
     createSessionGate(

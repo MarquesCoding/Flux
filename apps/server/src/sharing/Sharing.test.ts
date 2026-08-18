@@ -543,6 +543,28 @@ describe('withdrawing a link', () => {
   });
 });
 
+describe('what a link tells the rest of the internet', () => {
+  it('asks not to be indexed, since a link is a credential rather than a page', async () => {
+    const built = build();
+    const cookie = await signedIn(built);
+    const made = await shared(built.app, cookie);
+
+    const response = await built.app.request(`${BASE}/api/share/${made.token}`, {
+      headers: { origin: BASE },
+    });
+
+    expect(response.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
+  });
+
+  it('sends no referrer, since the token is in the address and would travel with it', async () => {
+    const built = build();
+
+    const response = await built.app.request(`${BASE}/api/health`, { headers: { origin: BASE } });
+
+    expect(response.headers.get('Referrer-Policy')).toBe('no-referrer');
+  });
+});
+
 describe('looking after everybody’s links', () => {
   it('refuses somebody who may share but may not look after what others shared', async () => {
     const built = build();
