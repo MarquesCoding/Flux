@@ -9,9 +9,9 @@ import { DialogTitle } from '@FluxUI/DialogTitle';
 import { Spinner } from '@FluxUI/Spinner';
 import { notify } from '@FluxUI/notify';
 import { TextField } from '@FluxUI/TextField';
-import { searchCatalogue } from '@FluxWeb/admin/fetchAdmin';
-import { correctMatch, forgetCorrection } from '@FluxWeb/library/fetchLibrary';
-import type { CatalogueMatch } from '@FluxWeb/admin/fetchAdmin';
+import { searchCatalogue } from '@FluxClient/admin/fetchAdmin';
+import { correctMatch, forgetCorrection } from '@FluxClient/library/fetchLibrary';
+import type { CatalogueMatch } from '@FluxClient/admin/fetchAdmin';
 import type { MatchPickerProps } from './MatchPicker.types';
 
 /**

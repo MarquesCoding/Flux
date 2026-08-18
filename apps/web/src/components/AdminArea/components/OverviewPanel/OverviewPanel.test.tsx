@@ -2,13 +2,13 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { OverviewPanel } from './OverviewPanel';
-import { measureStorage } from '@FluxWeb/admin/fetchAdmin';
-import type * as FetchAdmin from '@FluxWeb/admin/fetchAdmin';
-import type { ActiveSession, AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin';
+import { measureStorage } from '@FluxClient/admin/fetchAdmin';
+import type * as FetchAdmin from '@FluxClient/admin/fetchAdmin';
+import type { ActiveSession, AdminOverview, Job, Monitor } from '@FluxClient/admin/fetchAdmin';
 import type { Library } from '@FluxContracts/schemas/Library';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 
-vi.mock('@FluxWeb/admin/fetchAdmin', async (importOriginal) => ({
+vi.mock('@FluxClient/admin/fetchAdmin', async (importOriginal) => ({
   ...(await importOriginal<typeof FetchAdmin>()),
   measureStorage: vi.fn(),
 }));

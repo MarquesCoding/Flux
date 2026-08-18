@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ShareArea } from '@FluxWeb/components/ShareArea/ShareArea';
 import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
-import { shareEndingFor } from '@FluxWeb/sharing/shareEndingFor';
+import { shareEndingFor } from '@FluxClient/sharing/shareEndingFor';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { ShareEnding } from '@FluxContracts/schemas/Share';
 import type { SharePageProps } from './SharePage.types';

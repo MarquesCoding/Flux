@@ -10,23 +10,23 @@ import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
 import { VideoSurface } from '@FluxUI/VideoSurface';
 import { detectFromBrowser } from '@FluxWeb/playback/detectDeviceProfile';
-import { detectFromNavigator } from '@FluxWeb/playback/detectClientLabel';
-import { qualityStepCostsFor } from '@FluxWeb/playback/qualityStepCostsFor';
-import { readClientId } from '@FluxWeb/presence/clientIdentity';
-import { onPresenceEvent } from '@FluxWeb/presence/presenceEvents';
+import { describeThisBrowser } from '@FluxWeb/platform/describeThisBrowser';
+import { qualityStepCostsFor } from '@FluxClient/playback/qualityStepCostsFor';
+import { thisTabsId } from '@FluxWeb/platform/thisTabsId';
+import { onPresenceEvent } from '@FluxClient/presence/presenceEvents';
 import {
   startPlaybackSession,
   stopPlaybackSession,
   stopWatching,
   heartbeatPlaybackSession,
   sendPresenceHeartbeat,
-} from '@FluxWeb/playback/startPlaybackSession';
+} from '@FluxClient/playback/startPlaybackSession';
 import { attachShaka, CRITICAL } from '@FluxWeb/playback/attachShaka';
 import type { DeliveredFormat } from '@FluxWeb/playback/attachShaka';
 import {
   describePlaybackFailure,
   PlaybackEngineErrorSchema,
-} from '@FluxWeb/playback/describePlaybackFailure';
+} from '@FluxClient/playback/describePlaybackFailure';
 import {
   watchCastState,
   isReachableOrigin,
@@ -45,16 +45,19 @@ import {
   defaultTrackId,
   trackForLanguage,
   SUBTITLES_OFF,
-} from '@FluxWeb/playback/fetchSubtitles';
+} from '@FluxClient/playback/fetchSubtitles';
 import {
   toCueCss,
   readCaptionStyle,
   saveCaptionStyle,
   DEFAULT_CAPTION_STYLE,
 } from '@FluxWeb/playback/captionStyle';
-import { readQualityPreference, saveQualityPreference } from '@FluxWeb/playback/qualityPreference';
-import { fetchSegments, skippableAt, describeSkip } from '@FluxWeb/playback/fetchSegments';
-import { reportWatchProgress, REPORT_EVERY_MILLISECONDS } from '@FluxWeb/playback/watchProgress';
+import {
+  readQualityPreference,
+  saveQualityPreference,
+} from '@FluxClient/playback/qualityPreference';
+import { fetchSegments, skippableAt, describeSkip } from '@FluxClient/playback/fetchSegments';
+import { reportWatchProgress, REPORT_EVERY_MILLISECONDS } from '@FluxClient/playback/watchProgress';
 import {
   readPlaybackPreferences,
   writePlaybackPreferences,
@@ -63,7 +66,7 @@ import { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } from '@FluxWeb/play
 import { describeAudioTrack } from '@FluxCore/functions/describeTrack';
 import { listAvailableQualitySteps } from '@FluxCore/functions/listAvailableQualitySteps';
 import { useQueryClient } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview';
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
@@ -72,17 +75,17 @@ import { Toaster } from '@FluxUI/Toaster';
 import { notify } from '@FluxUI/notify';
 import { correctDrift } from '@FluxCore/functions/correctDrift';
 import { whatToReport } from '@FluxCore/functions/whatToReport';
-import { describeCommand } from '@FluxWeb/party/describeCommand';
+import { describeCommand } from '@FluxClient/party/describeCommand';
 import type { Trickplay } from '@FluxWeb/playback/fetchTrickplay';
 import type { PoppedOut } from '@FluxWeb/playback/popOutWithCaptions';
 import type { CastState } from '@FluxWeb/playback/castPlayback.types';
 import type { CastContext } from '@FluxWeb/playback/castSender.types';
-import type { StartedSession } from '@FluxWeb/playback/startPlaybackSession';
+import type { StartedSession } from '@FluxClient/playback/startPlaybackSession';
 import type { MediaDetail } from '@FluxContracts/schemas/Library';
-import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles';
+import type { SubtitleTrack } from '@FluxClient/playback/fetchSubtitles';
 import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
 import type { PlaybackHealth } from './components/StreamStats/StreamStats.types';
-import type { QualityPreference } from '@FluxWeb/playback/qualityPreference';
+import type { QualityPreference } from '@FluxClient/playback/qualityPreference';
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types';
 
 type FullscreenTarget = {
@@ -222,7 +225,7 @@ const VideoPlayer = ({
   const [reportedDuration, setReportedDuration] = useState(0);
   const [trickplay, setTrickplay] = useState<Trickplay | null>(null);
   const [detail, setDetail] = useState<MediaDetail | null>(null);
-  const deviceProfile = useMemo(() => detectFromBrowser(detectFromNavigator()), []);
+  const deviceProfile = useMemo(() => detectFromBrowser(describeThisBrowser()), []);
   const [volume, setVolume] = useState(() => readPlaybackPreferences().volume);
   const [isMuted, setIsMuted] = useState(() => readPlaybackPreferences().isMuted);
   const [isShowingRemaining, setIsShowingRemaining] = useState(
@@ -796,7 +799,7 @@ const VideoPlayer = ({
     let startedId: string | null = null;
     let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
     let presenceHealthInterval: ReturnType<typeof setInterval> | null = null;
-    const clientId = readClientId();
+    const clientId = thisTabsId();
 
     const onPageHide = () => {
       const element = videoRef.current;
@@ -999,12 +1002,12 @@ const VideoPlayer = ({
       return;
     }
 
-    void sendPresenceHeartbeat(readClientId(), isPlaying);
+    void sendPresenceHeartbeat(thisTabsId(), isPlaying);
   }, [isPlaying, session]);
 
   useEffect(
     () => () => {
-      void stopWatching(readClientId());
+      void stopWatching(thisTabsId());
     },
     [],
   );

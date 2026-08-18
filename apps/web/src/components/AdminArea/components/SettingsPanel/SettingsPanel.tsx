@@ -6,7 +6,7 @@ import { Card } from '@FluxUI/Card';
 import { CardHeader } from '@FluxUI/CardHeader';
 import { OptionMenu } from '@FluxUI/OptionMenu';
 import { TextField } from '@FluxUI/TextField';
-import { saveCatalogueKey, saveHardwareAccel } from '@FluxWeb/admin/fetchAdmin';
+import { saveCatalogueKey, saveHardwareAccel } from '@FluxClient/admin/fetchAdmin';
 import { accelerationOptions } from '@FluxWeb/components/AdminArea/accelerationOptions';
 import type { SettingsPanelProps } from './SettingsPanel.types';
 

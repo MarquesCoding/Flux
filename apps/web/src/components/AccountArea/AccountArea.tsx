@@ -17,7 +17,7 @@ import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { sessionQueries } from '@FluxWeb/query/sessionQueries';
+import { sessionQueries } from '@FluxClient/query/sessionQueries';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import { ProfileEditor } from '@FluxWeb/components/ProfilePicker/components/ProfileEditor/ProfileEditor';
 import { TwoFactorSetup } from '@FluxWeb/components/TwoFactorSetup/TwoFactorSetup';

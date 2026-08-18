@@ -3,8 +3,8 @@ import { Outlet } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SplashScreen } from '@FluxUI/SplashScreen';
 import { SetupWizard } from '@FluxWeb/components/SetupWizard/SetupWizard';
-import { sessionQueries } from '@FluxWeb/query/sessionQueries';
-import { useFreshFromTheSocket } from '@FluxWeb/query/useFreshFromTheSocket';
+import { sessionQueries } from '@FluxClient/query/sessionQueries';
+import { useFreshFromTheSocket } from '@FluxClient/query/useFreshFromTheSocket';
 import type { AppProps } from './App.types';
 
 /**

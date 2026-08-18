@@ -8,8 +8,8 @@ import { DialogFooter } from '@FluxUI/DialogFooter';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { OptionMenu } from '@FluxUI/OptionMenu';
 import { TextField } from '@FluxUI/TextField';
-import { DAY_NAMES } from '@FluxWeb/admin/describeTrigger';
-import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin';
+import { DAY_NAMES } from '@FluxClient/admin/describeTrigger';
+import type { ScheduleTrigger } from '@FluxClient/admin/fetchAdmin';
 import type { AddTriggerDialogProps } from './AddTriggerDialog.types';
 
 const TRIGGER_TYPES = [

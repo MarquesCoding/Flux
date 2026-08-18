@@ -1,5 +1,5 @@
 import { CouldNotRead } from '@FluxUI/CouldNotRead';
-import { RequestFailed } from '@FluxWeb/query/RequestFailed';
+import { RequestFailed } from '@FluxClient/query/RequestFailed';
 import { Icon } from '@FluxUI/Icon';
 import { Alert02Icon, Copy01Icon, Delete02Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useState } from 'react';
@@ -13,7 +13,7 @@ import {
   createApiKey,
   setApiKeyEnabled,
   revokeApiKey,
-} from '@FluxWeb/account/fetchApiKeys';
+} from '@FluxClient/account/fetchApiKeys';
 import type { ApiKey } from '@FluxContracts/schemas/ApiKey';
 import type { ApiKeyPanelProps } from './ApiKeyPanel.types';
 

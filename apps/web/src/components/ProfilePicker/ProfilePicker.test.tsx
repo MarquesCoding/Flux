@@ -1,5 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePicker } from './ProfilePicker';
@@ -31,13 +31,17 @@ afterEach(() => {
 
 describe('ProfilePicker', () => {
   it('asks who is watching', () => {
-    renderInACache(<ProfilePicker profiles={HOUSEHOLD} onChoose={vi.fn()} onChanged={vi.fn()} />);
+    renderInAnAddress(
+      <ProfilePicker profiles={HOUSEHOLD} onChoose={vi.fn()} onChanged={vi.fn()} />,
+    );
 
     expect(screen.getByText('Who is watching?')).toBeInTheDocument();
   });
 
   it('shows everybody sharing the account', () => {
-    renderInACache(<ProfilePicker profiles={HOUSEHOLD} onChoose={vi.fn()} onChanged={vi.fn()} />);
+    renderInAnAddress(
+      <ProfilePicker profiles={HOUSEHOLD} onChoose={vi.fn()} onChanged={vi.fn()} />,
+    );
 
     expect(screen.getByRole('button', { name: /Marques/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sam/ })).toBeInTheDocument();
@@ -47,7 +51,9 @@ describe('ProfilePicker', () => {
     const onChoose = vi.fn();
     const actor = userEvent.setup();
 
-    renderInACache(<ProfilePicker profiles={HOUSEHOLD} onChoose={onChoose} onChanged={vi.fn()} />);
+    renderInAnAddress(
+      <ProfilePicker profiles={HOUSEHOLD} onChoose={onChoose} onChanged={vi.fn()} />,
+    );
 
     await actor.click(screen.getByRole('button', { name: /Sam/ }));
 
@@ -55,14 +61,16 @@ describe('ProfilePicker', () => {
   });
 
   it('offers no way to change the account on the way in', () => {
-    renderInACache(<ProfilePicker profiles={HOUSEHOLD} onChoose={vi.fn()} onChanged={vi.fn()} />);
+    renderInAnAddress(
+      <ProfilePicker profiles={HOUSEHOLD} onChoose={vi.fn()} onChanged={vi.fn()} />,
+    );
 
     expect(screen.queryByRole('button', { name: 'Edit Marques' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument();
   });
 
   it('offers to change the account when it was opened to do that', () => {
-    renderInACache(
+    renderInAnAddress(
       <ProfilePicker profiles={HOUSEHOLD} onChoose={vi.fn()} onChanged={vi.fn()} isEditable />,
     );
 
@@ -72,7 +80,7 @@ describe('ProfilePicker', () => {
   it('opens the editor on somebody', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(
+    renderInAnAddress(
       <ProfilePicker profiles={HOUSEHOLD} onChoose={vi.fn()} onChanged={vi.fn()} isEditable />,
     );
 
@@ -84,7 +92,7 @@ describe('ProfilePicker', () => {
   it('offers to add somebody', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(
+    renderInAnAddress(
       <ProfilePicker profiles={HOUSEHOLD} onChoose={vi.fn()} onChanged={vi.fn()} isEditable />,
     );
 
@@ -97,7 +105,7 @@ describe('ProfilePicker', () => {
     const onChanged = vi.fn();
     const actor = userEvent.setup();
 
-    renderInACache(
+    renderInAnAddress(
       <ProfilePicker profiles={HOUSEHOLD} onChoose={vi.fn()} onChanged={onChanged} isEditable />,
     );
 
@@ -109,7 +117,7 @@ describe('ProfilePicker', () => {
   });
 
   it('will not remove the last profile, which would leave nowhere to record viewing', () => {
-    renderInACache(
+    renderInAnAddress(
       <ProfilePicker
         profiles={[HOUSEHOLD[0] ?? profileOf('Marques', 0)]}
         onChoose={vi.fn()}
@@ -122,7 +130,7 @@ describe('ProfilePicker', () => {
   });
 
   it('stops offering to add once the household is full', () => {
-    renderInACache(
+    renderInAnAddress(
       <ProfilePicker
         profiles={['One', 'Two', 'Three', 'Four', 'Five', 'Six'].map(profileOf)}
         onChoose={vi.fn()}

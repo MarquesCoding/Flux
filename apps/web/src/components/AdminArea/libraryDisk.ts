@@ -1,4 +1,4 @@
-import type { Monitor } from '@FluxWeb/admin/fetchAdmin';
+import type { Monitor } from '@FluxClient/admin/fetchAdmin';
 
 type DiskUse = Monitor['resources']['disks'][number];
 

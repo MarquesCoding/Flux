@@ -8,7 +8,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
-import { nameSeason } from '@FluxWeb/library/nameSeason';
+import { nameSeason } from '@FluxClient/library/nameSeason';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { BackdropScrim } from '@FluxUI/BackdropScrim';
@@ -18,8 +18,8 @@ import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/anima
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { useHeldWhileLeaving } from '@FluxWeb/shell/useHeldWhileLeaving';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { useHeldWhileLeaving } from '@FluxClient/shell/useHeldWhileLeaving';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
 import { RatingPanel } from '@FluxWeb/components/RatingPanel/RatingPanel';

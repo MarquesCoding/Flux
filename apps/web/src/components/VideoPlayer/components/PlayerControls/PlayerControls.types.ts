@@ -2,8 +2,8 @@ import type { CastState } from '@FluxWeb/playback/castPlayback.types';
 import type { ReactNode } from 'react';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { CaptionStyle } from '@FluxWeb/playback/captionStyle';
-import type { SubtitleTrack } from '@FluxWeb/playback/fetchSubtitles';
-import type { QualityPreference } from '@FluxWeb/playback/qualityPreference';
+import type { SubtitleTrack } from '@FluxClient/playback/fetchSubtitles';
+import type { QualityPreference } from '@FluxClient/playback/qualityPreference';
 import type { QualityStepId } from '@FluxContracts/schemas/QualityStep';
 
 type AudioTrack = {

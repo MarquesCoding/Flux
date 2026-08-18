@@ -4,7 +4,7 @@ import {
   createRouter,
   lazyRouteComponent,
 } from '@tanstack/react-router';
-import { readSearch } from '@FluxWeb/navigation/readSearch';
+import { readSearch } from '@FluxClient/navigation/readSearch';
 import { App } from '@FluxWeb/components/App/App';
 import { SignedIn } from '@FluxWeb/components/SignedIn/SignedIn';
 import { FluxShell } from '@FluxWeb/components/FluxShell/FluxShell';

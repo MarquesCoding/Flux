@@ -1,5 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccountArea } from './AccountArea';
@@ -45,25 +45,25 @@ afterEach(() => {
 
 describe('AccountArea', () => {
   it('says who the account belongs to', async () => {
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
     expect(await screen.findByRole('heading', { name: 'Marques' })).toBeInTheDocument();
   });
 
   it('says which address signs in', () => {
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
     expect(screen.getByText('marques@flux.local')).toBeInTheDocument();
   });
 
   it('marks an account that runs the server', () => {
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
     expect(screen.getByText('admin')).toBeInTheDocument();
   });
 
   it('does not call an ordinary account an admin', () => {
-    renderInACache(
+    renderInAnAddress(
       <AccountArea user={{ ...USER, role: 'user' }} onChanged={vi.fn()} onSignOut={vi.fn()} />,
     );
 
@@ -73,7 +73,7 @@ describe('AccountArea', () => {
   it('keeps how somebody appears apart from how they get in', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
     expect(screen.getByText('How you appear')).toBeInTheDocument();
 
@@ -86,7 +86,7 @@ describe('AccountArea', () => {
   it('opens the editor on the profile it read', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
     await actor.click(await screen.findByRole('button', { name: /Change/ }));
 
@@ -96,7 +96,7 @@ describe('AccountArea', () => {
   it('reads the profile again once it has been changed, so the face is the new one', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
     await actor.click(await screen.findByRole('button', { name: /Change/ }));
 
@@ -113,7 +113,7 @@ describe('AccountArea', () => {
     const onChanged = vi.fn();
     const actor = userEvent.setup();
 
-    renderInACache(<AccountArea user={USER} onChanged={onChanged} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={onChanged} onSignOut={vi.fn()} />);
 
     await actor.click(await screen.findByRole('button', { name: /Change/ }));
     await actor.click(screen.getByRole('button', { name: 'Save' }));
@@ -126,7 +126,7 @@ describe('AccountArea', () => {
   it('closes the editor when the change is abandoned', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
     await actor.click(await screen.findByRole('button', { name: /Change/ }));
     await actor.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -138,7 +138,7 @@ describe('AccountArea', () => {
     const onSignOut = vi.fn();
     const actor = userEvent.setup();
 
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={onSignOut} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={onSignOut} />);
 
     await actor.click(screen.getByRole('button', { name: /Sign out/ }));
 
@@ -146,7 +146,7 @@ describe('AccountArea', () => {
   });
 
   it('says nothing about viewing being lost, because it is not', () => {
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
     expect(screen.getByText(/Nothing about what you have watched is lost/)).toBeInTheDocument();
   });
@@ -154,7 +154,7 @@ describe('AccountArea', () => {
   it('says the profile could not be read, rather than reading it forever', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve(null) });
 
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('could not be read');
     expect(screen.queryByText('Reading your profile…')).not.toBeInTheDocument();
@@ -163,7 +163,7 @@ describe('AccountArea', () => {
   it('offers to read it again', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve(null) });
 
-    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
     expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });

@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShowDialog } from './ShowDialog';
@@ -16,7 +16,7 @@ vi.mock('motion/react', async () => ({
 
 const fetchShowMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/library/fetchShows', () => ({
+vi.mock('@FluxClient/library/fetchShows', () => ({
   fetchShow: fetchShowMock,
   fetchShows: vi.fn(),
 }));
@@ -85,7 +85,7 @@ describe('ShowDialog', () => {
 
     const programme = { ...summary, seriesId: '5d3e2c1b-0a9f-4e8d-9c7b-6a5f4e3d2c1b' };
 
-    renderInACache(
+    renderInAnAddress(
       <ShowDialog show={programme} onClose={vi.fn()} onPlay={vi.fn()} onShare={onShare} />,
     );
 
@@ -97,7 +97,7 @@ describe('ShowDialog', () => {
   it('offers no way to share a programme it has no series for', async () => {
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
 
-    renderInACache(
+    renderInAnAddress(
       <ShowDialog
         show={{ ...summary, seriesId: null }}
         onClose={vi.fn()}
@@ -113,14 +113,14 @@ describe('ShowDialog', () => {
 
   it('lists the episodes it holds', async () => {
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1, 2, 3] }]));
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByRole('button', { name: /Play Episode 1/ })).toBeInTheDocument();
   });
 
   it('shows the hole where a missing episode belongs', async () => {
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1, 2, 4] }]));
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByText('Not in this library')).toBeInTheDocument();
     expect(screen.getByText('Episode 3')).toBeInTheDocument();
@@ -128,7 +128,7 @@ describe('ShowDialog', () => {
 
   it('puts the missing episode in its own place in the order', async () => {
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1, 2, 4] }]));
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await screen.findByText('Not in this library');
 
@@ -146,7 +146,7 @@ describe('ShowDialog', () => {
 
   it('says nothing about gaps in a season that has none', async () => {
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1, 2, 3] }]));
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await screen.findByRole('button', { name: /Play Episode 1/ });
 
@@ -160,7 +160,7 @@ describe('ShowDialog', () => {
         { seasonNumber: 3, episodes: [1] },
       ]),
     );
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByRole('button', { name: 'Season 2' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Season 1' })).toBeInTheDocument();
@@ -182,7 +182,7 @@ describe('ShowDialog', () => {
         },
       ],
     });
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await user.click(await screen.findByRole('button', { name: 'Season 2' }));
 
@@ -204,7 +204,7 @@ describe('ShowDialog', () => {
         },
       ],
     });
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await user.click(await screen.findByRole('button', { name: 'Season 2' }));
 
@@ -225,7 +225,7 @@ describe('ShowDialog', () => {
         },
       ],
     });
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await screen.findByText('Someone Is Thinking');
 
@@ -247,7 +247,7 @@ describe('ShowDialog', () => {
         { seasonNumber: 1, episodeCount: 1, episodes: [] },
       ],
     });
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByRole('button', { name: 'Specials' })).toBeInTheDocument();
   });
@@ -257,7 +257,7 @@ describe('ShowDialog', () => {
       ...detail([{ seasonNumber: 1, episodes: [1, 2] }]),
       shape: [{ seasonNumber: 1, episodeCount: 2, episodes: [] }],
     });
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await screen.findByRole('button', { name: /Play Episode 1/ });
 
@@ -268,7 +268,7 @@ describe('ShowDialog', () => {
     const onPlay = vi.fn();
     const user = userEvent.setup();
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1, 2] }]));
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={onPlay} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={onPlay} />);
 
     await user.click(await screen.findByRole('button', { name: /Play Episode 2/ }));
 
@@ -279,7 +279,7 @@ describe('ShowDialog', () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
-    renderInACache(<ShowDialog show={summary} onClose={onClose} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={onClose} onPlay={vi.fn()} />);
 
     await user.click(await screen.findByRole('button', { name: 'Close' }));
 
@@ -287,7 +287,7 @@ describe('ShowDialog', () => {
   });
 
   it('draws nothing at all when no show is open', () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <ShowDialog show={null} onClose={vi.fn()} onPlay={vi.fn()} />,
     );
 
@@ -296,7 +296,7 @@ describe('ShowDialog', () => {
 
   it('asks for the series it was given', async () => {
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await waitFor(() => {
       expect(fetchShowMock).toHaveBeenCalledWith(LIBRARY, 'a-sign-of-affection');
@@ -311,7 +311,7 @@ describe('ShowDialog', () => {
 describe('what the header says about a series', () => {
   it('counts episodes alone for a series of one season', async () => {
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1, 2, 3] }]));
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByText('3 episodes')).toBeInTheDocument();
   });
@@ -325,7 +325,7 @@ describe('what the header says about a series', () => {
         { seasonNumber: 2, episodes: [1, 2, 3] },
       ]),
     );
-    renderInACache(<ShowDialog show={across} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={across} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByText('2 seasons · 6 episodes')).toBeInTheDocument();
   });
@@ -334,7 +334,7 @@ describe('what the header says about a series', () => {
     const filed = { ...summary, genres: ['Animation', 'Romance'] };
 
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
-    renderInACache(<ShowDialog show={filed} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={filed} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByText('Animation')).toBeInTheDocument();
     expect(screen.getByText('Romance')).toBeInTheDocument();
@@ -347,7 +347,7 @@ describe('what the header says about a series', () => {
     };
 
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
-    renderInACache(<ShowDialog show={many} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={many} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await screen.findByText('Animation');
 
@@ -356,7 +356,7 @@ describe('what the header says about a series', () => {
 
   it('says nothing about genres for a series carrying none', async () => {
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await screen.findByText('3 episodes');
 
@@ -368,7 +368,7 @@ describe('what the header says about a series', () => {
     const actor = userEvent.setup();
 
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
-    renderInACache(<ShowDialog show={summary} onClose={onClose} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={onClose} onPlay={vi.fn()} />);
 
     await screen.findByText('3 episodes');
     await actor.click(screen.getByRole('button', { name: /Close/ }));
@@ -377,7 +377,7 @@ describe('what the header says about a series', () => {
   });
 
   it('draws nothing at all without a series to draw', () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <ShowDialog show={null} onClose={vi.fn()} onPlay={vi.fn()} />,
     );
 
@@ -388,7 +388,7 @@ describe('what the header says about a series', () => {
     motion.isReduced = true;
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
 
-    renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByText('3 episodes')).toBeInTheDocument();
   });

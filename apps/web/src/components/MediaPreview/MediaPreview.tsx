@@ -3,15 +3,15 @@ import { PauseIcon, PlayIcon, VolumeHighIcon, VolumeMute01Icon } from '@hugeicon
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { VideoSurface } from '@FluxUI/VideoSurface';
-import { frameUrl } from '@FluxWeb/playback/frameUrl';
+import { frameUrl } from '@FluxClient/playback/frameUrl';
 import { readLights } from '@FluxWeb/library/readLights';
 import {
   fetchSubtitleTracks,
   subtitleTrackUrl,
   previewTrack,
-} from '@FluxWeb/playback/fetchSubtitles';
+} from '@FluxClient/playback/fetchSubtitles';
 import { liftCues } from '@FluxWeb/playback/liftCues';
-import { readPreviewState } from '@FluxWeb/playback/readPreviewState';
+import { readPreviewState } from '@FluxClient/playback/readPreviewState';
 import type { MediaPreviewProps, PreviewAbsence } from './MediaPreview.types';
 
 const SETTLE_MILLISECONDS = 2600;

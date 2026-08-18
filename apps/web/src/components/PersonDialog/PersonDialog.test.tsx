@@ -1,5 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PersonDialog } from './PersonDialog';
@@ -9,7 +9,7 @@ import type { Person, PersonCredits } from '@FluxContracts/schemas/Person';
 const personMock = vi.hoisted(() => vi.fn());
 const creditsMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/library/fetchPerson', () => ({
+vi.mock('@FluxClient/library/fetchPerson', () => ({
   fetchPerson: personMock,
   fetchPersonCredits: creditsMock,
 }));
@@ -53,7 +53,7 @@ const item = (over: Partial<MediaSummary> = {}): MediaSummary => ({
 });
 
 const draw = (over: Partial<Parameters<typeof PersonDialog>[0]> = {}) =>
-  renderInACache(
+  renderInAnAddress(
     <PersonDialog
       personId={1245}
       onClose={vi.fn()}

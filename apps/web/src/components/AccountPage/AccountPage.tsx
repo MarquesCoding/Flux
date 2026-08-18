@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { notify } from '@FluxUI/notify';
 import { AccountArea } from '@FluxWeb/components/AccountArea/AccountArea';
-import { signOut } from '@FluxWeb/session/auth';
+import { signOut } from '@FluxClient/session/auth';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
-import { useShell } from '@FluxWeb/shell/useShell';
+import { useShell } from '@FluxClient/shell/useShell';
 
 /**
  * This account: who it is, how it signs in, what it is signed in on, and what it has watched.

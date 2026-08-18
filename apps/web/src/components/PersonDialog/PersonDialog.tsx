@@ -11,7 +11,7 @@ import { Skeleton } from '@FluxUI/Skeleton';
 import { hasAnythingToShow } from '@FluxContracts/schemas/Person';
 import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
 import type { PersonCredits } from '@FluxContracts/schemas/Person';
 import type { PersonDialogProps } from './PersonDialog.types';

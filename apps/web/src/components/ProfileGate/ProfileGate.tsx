@@ -17,13 +17,13 @@ import {
   liquidSpring,
   stillTransition,
 } from '@FluxUI/animations/reveal';
-import { signInAsProfile } from '@FluxWeb/profiles/fetchEveryone';
+import { signInAsProfile } from '@FluxClient/profiles/fetchEveryone';
 import { useQuery } from '@tanstack/react-query';
-import { sessionQueries } from '@FluxWeb/query/sessionQueries';
+import { sessionQueries } from '@FluxClient/query/sessionQueries';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import { TwoFactorChallenge } from '@FluxWeb/components/TwoFactorChallenge/TwoFactorChallenge';
 import { isPasskeySupported } from '@FluxWeb/passkeys/isPasskeySupported';
-import { authenticateWithPasskey } from '@FluxWeb/session/auth';
+import { authenticateWithPasskey } from '@FluxClient/session/auth';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import type { ProfileGateProps } from './ProfileGate.types';
 
