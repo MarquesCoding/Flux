@@ -122,7 +122,7 @@ describe('fetchAdminOverview', () => {
   it('says so when the server cannot be reached at all', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchAdminOverview()).rejects.toThrow('could not be reached');
+    await expect(fetchAdminOverview()).rejects.toThrow('offline');
   });
 
   it('refuses an answer it does not understand rather than reading past it', async () => {
@@ -139,16 +139,16 @@ describe('fetchMonitor', () => {
     await expect(fetchMonitor()).resolves.toEqual(MONITOR);
   });
 
-  it('says nothing when the media service has nothing to say', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     answerWith({}, false);
 
-    await expect(fetchMonitor()).resolves.toBeNull();
+    await expect(fetchMonitor()).rejects.toThrow();
   });
 
-  it('says nothing when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchMonitor()).resolves.toBeNull();
+    await expect(fetchMonitor()).rejects.toThrow();
   });
 });
 
@@ -210,16 +210,16 @@ describe('fetchActiveSessions', () => {
     await expect(fetchActiveSessions()).resolves.toEqual([SESSION]);
   });
 
-  it('reports nothing when the server refuses, rather than throwing', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     answerWith([], false);
 
-    await expect(fetchActiveSessions()).resolves.toEqual([]);
+    await expect(fetchActiveSessions()).rejects.toThrow();
   });
 
-  it('reports nothing when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchActiveSessions()).resolves.toEqual([]);
+    await expect(fetchActiveSessions()).rejects.toThrow();
   });
 });
 
@@ -310,16 +310,16 @@ describe('fetchJobDefinitions', () => {
     await expect(fetchJobDefinitions()).resolves.toEqual(DEFINITIONS);
   });
 
-  it('reports nothing when the server refuses', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     answerWith({}, false);
 
-    await expect(fetchJobDefinitions()).resolves.toEqual([]);
+    await expect(fetchJobDefinitions()).rejects.toThrow();
   });
 
-  it('reports nothing when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchJobDefinitions()).resolves.toEqual([]);
+    await expect(fetchJobDefinitions()).rejects.toThrow();
   });
 });
 
@@ -398,16 +398,16 @@ describe('fetchJobSchedules', () => {
     });
   });
 
-  it('reports nothing when the server refuses', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     answerWith({}, false);
 
-    await expect(fetchJobSchedules()).resolves.toEqual({ schedules: [], timezone: null });
+    await expect(fetchJobSchedules()).rejects.toThrow();
   });
 
-  it('reports nothing when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchJobSchedules()).resolves.toEqual({ schedules: [], timezone: null });
+    await expect(fetchJobSchedules()).rejects.toThrow();
   });
 });
 
@@ -566,26 +566,26 @@ describe('what the server is working on', () => {
     await expect(fetchRunningScans()).resolves.toMatchObject([{ jobId: 'job-1' }]);
   });
 
-  it('says nothing is running when the server refuses to say', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 403, json: () => Promise.resolve(null) });
 
-    await expect(fetchRunningScans()).resolves.toEqual([]);
+    await expect(fetchRunningScans()).rejects.toThrow();
   });
 
-  it('says nothing is running when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchRunningScans()).resolves.toEqual([]);
+    await expect(fetchRunningScans()).rejects.toThrow();
   });
 
-  it('says nothing is running when the answer is not one it recognises', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
       json: () => Promise.resolve({ nope: 1 }),
     });
 
-    await expect(fetchRunningScans()).resolves.toEqual([]);
+    await expect(fetchRunningScans()).rejects.toThrow();
   });
 });
 

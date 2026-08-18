@@ -93,16 +93,16 @@ describe('fetchSubtitleTracks', () => {
     await expect(fetchSubtitleTracks('media-1')).resolves.toMatchObject([{ label: 'English' }]);
   });
 
-  it('answers with nothing when the item has none', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     respondWith({ ok: false, body: null });
 
-    await expect(fetchSubtitleTracks('media-1')).resolves.toEqual([]);
+    await expect(fetchSubtitleTracks('media-1')).rejects.toThrow();
   });
 
-  it('answers with nothing rather than throwing when the server sends nonsense', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     respondWith({ ok: true, body: { tracks: [{ id: 42 }] } });
 
-    await expect(fetchSubtitleTracks('media-1')).resolves.toEqual([]);
+    await expect(fetchSubtitleTracks('media-1')).rejects.toThrow();
   });
 });
 

@@ -28,6 +28,10 @@
         "./packages/ui/src/components/AnimatedIcon/AnimatedIcon.types.ts"
       ],
       "@FluxUI/Card": ["./packages/ui/src/components/Card/Card.tsx"],
+      "@FluxUI/CouldNotRead": ["./packages/ui/src/components/CouldNotRead/CouldNotRead.tsx"],
+      "@FluxUI/CouldNotRead.types": [
+        "./packages/ui/src/components/CouldNotRead/CouldNotRead.types.ts"
+      ],
       "@FluxUI/ConfirmDialog": ["./packages/ui/src/components/ConfirmDialog/ConfirmDialog.tsx"],
       "@FluxUI/ConfirmDialog.types": [
         "./packages/ui/src/components/ConfirmDialog/ConfirmDialog.types.ts"

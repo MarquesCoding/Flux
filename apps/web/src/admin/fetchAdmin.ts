@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { z } from 'zod';
 import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
 import { ScanJobSchema } from '@FluxWeb/library/fetchLibrary';
@@ -220,17 +221,7 @@ type RunningScan = z.infer<typeof RunningScansSchema>['scans'][number];
  * an idle library that quietly finishes later.
  */
 const fetchRunningScans = async (): Promise<RunningScan[]> => {
-  const response = await fetch('/api/libraries/scans', { credentials: 'same-origin' }).catch(
-    () => null,
-  );
-
-  if (response === null || !response.ok) {
-    return [];
-  }
-
-  const parsed = RunningScansSchema.safeParse(await response.json().catch(() => null));
-
-  return parsed.success ? parsed.data.scans : [];
+  return (await readFromServer('/api/libraries/scans', RunningScansSchema)).scans;
 };
 
 const CatalogueMatchesSchema = z.object({
@@ -277,19 +268,7 @@ const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<Cat
  * dashboard is built from.
  */
 const fetchAdminOverview = async (): Promise<AdminOverview> => {
-  const response = await fetch('/api/admin/overview', { credentials: 'same-origin' }).catch(
-    () => null,
-  );
-
-  if (response === null) {
-    throw new Error('The server could not be reached.');
-  }
-
-  if (!response.ok) {
-    throw new Error(`The server answered ${response.status.toString()}.`);
-  }
-
-  return AdminOverviewSchema.parse(await response.json());
+  return readFromServer('/api/admin/overview', AdminOverviewSchema);
 };
 
 /**
@@ -297,16 +276,8 @@ const fetchAdminOverview = async (): Promise<AdminOverview> => {
  * build the graphs, which is why it is one reading rather than a history — the page keeps the
  * history it wants and the server keeps none.
  */
-const fetchMonitor = async (): Promise<Monitor | null> => {
-  const response = await fetch('/api/admin/monitor', { credentials: 'same-origin' }).catch(
-    () => null,
-  );
-
-  if (response === null || !response.ok) {
-    return null;
-  }
-
-  return MonitorSchema.parse(await response.json());
+const fetchMonitor = async (): Promise<Monitor> => {
+  return readFromServer('/api/admin/monitor', MonitorSchema);
 };
 
 /**
@@ -368,15 +339,7 @@ const watchActiveSessions = (
  * is presence rather than history: a session appears while it is open and is gone once it is not.
  */
 const fetchActiveSessions = async (): Promise<ActiveSession[]> => {
-  const response = await fetch('/api/admin/sessions', { credentials: 'same-origin' }).catch(
-    () => null,
-  );
-
-  if (response === null || !response.ok) {
-    return [];
-  }
-
-  return z.array(ActiveSessionSchema).parse(await response.json());
+  return readFromServer('/api/admin/sessions', z.array(ActiveSessionSchema));
 };
 
 /**
@@ -450,19 +413,12 @@ const resumeSession = async (clientId: string): Promise<boolean> => {
  * the page, so a job added to the server appears without the page being changed.
  */
 const fetchJobDefinitions = async (): Promise<JobDefinition[]> => {
-  const response = await fetch('/api/admin/jobs/definitions', {
-    credentials: 'same-origin',
-  }).catch(() => null);
-
-  if (response === null || !response.ok) {
-    return [];
-  }
-
-  const { definitions } = z
-    .object({ definitions: z.array(JobDefinitionSchema) })
-    .parse(await response.json());
-
-  return definitions;
+  return (
+    await readFromServer(
+      '/api/admin/jobs/definitions',
+      z.object({ definitions: z.array(JobDefinitionSchema) }),
+    )
+  ).definitions;
 };
 
 /**
@@ -516,17 +472,7 @@ const cancelJob = async (jobId: string): Promise<boolean> => {
  * job or none at all.
  */
 const fetchJobSchedules = async (): Promise<JobSchedules> => {
-  const response = await fetch('/api/admin/jobs/schedules', { credentials: 'same-origin' }).catch(
-    () => null,
-  );
-
-  if (response === null || !response.ok) {
-    return { schedules: [], timezone: null };
-  }
-
-  const parsed = JobSchedulesSchema.safeParse(await response.json());
-
-  return parsed.success ? parsed.data : { schedules: [], timezone: null };
+  return readFromServer('/api/admin/jobs/schedules', JobSchedulesSchema);
 };
 
 /**

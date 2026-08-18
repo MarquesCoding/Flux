@@ -1,3 +1,4 @@
+import { readFromServerOrAbsent } from '@FluxWeb/query/readFromServerOrAbsent';
 import { z } from 'zod';
 import { LibrarySchema, MediaPageSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
 import type { Library, LibraryKind, MediaDetail, MediaPage } from '@FluxContracts/schemas/Library';
@@ -194,19 +195,7 @@ const fetchLibraryItems = async (
  * @returns Everything held about it, or null where it could not be read.
  */
 const fetchMediaDetail = async (mediaId: string): Promise<MediaDetail | null> => {
-  try {
-    const response = await fetch(`/api/media/${mediaId}`, {
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return MediaDetailSchema.parse(await response.json());
-  } catch {
-    return null;
-  }
+  return readFromServerOrAbsent(`/api/media/${mediaId}`, MediaDetailSchema);
 };
 
 const CorrectionSchema = z.object({ corrected: z.number(), jobId: z.string().nullable() });

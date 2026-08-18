@@ -150,4 +150,21 @@ describe('AccountArea', () => {
 
     expect(screen.getByText(/Nothing about what you have watched is lost/)).toBeInTheDocument();
   });
+
+  it('says the profile could not be read, rather than reading it forever', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve(null) });
+
+    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be read');
+    expect(screen.queryByText('Reading your profile…')).not.toBeInTheDocument();
+  });
+
+  it('offers to read it again', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve(null) });
+
+    renderInACache(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
 });

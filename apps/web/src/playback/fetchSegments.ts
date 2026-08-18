@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { z } from 'zod';
 import { MediaSegmentSchema } from '@FluxContracts/schemas/MediaSegment';
 import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
@@ -15,19 +16,7 @@ const OFFER_SECONDS = 12;
  * @returns Its marked stretches, or none where there are any.
  */
 const fetchSegments = async (mediaId: string): Promise<MediaSegment[]> => {
-  try {
-    const response = await fetch(`/api/media/${mediaId}/segments`, {
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return SegmentListSchema.parse(await response.json()).segments;
-  } catch {
-    return [];
-  }
+  return (await readFromServer(`/api/media/${mediaId}/segments`, SegmentListSchema)).segments;
 };
 
 /**

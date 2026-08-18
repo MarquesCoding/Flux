@@ -67,16 +67,16 @@ describe('reading the accounts', () => {
     ]);
   });
 
-  it('has no accounts to offer when the server refuses', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     answering({ error: 'no' }, false, 403);
 
-    await expect(fetchAccounts()).resolves.toEqual([]);
+    await expect(fetchAccounts()).rejects.toThrow();
   });
 
-  it('has no accounts to offer when the server cannot be reached', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     unreachable();
 
-    await expect(fetchAccounts()).resolves.toEqual([]);
+    await expect(fetchAccounts()).rejects.toThrow();
   });
 });
 

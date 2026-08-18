@@ -36,16 +36,16 @@ describe('fetchDevices', () => {
     await expect(fetchDevices()).resolves.toMatchObject([{ name: 'Chrome on macOS' }]);
   });
 
-  it('answers with nothing rather than throwing when the server refuses', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve(null) });
 
-    await expect(fetchDevices()).resolves.toEqual([]);
+    await expect(fetchDevices()).rejects.toThrow();
   });
 
-  it('answers with nothing rather than throwing when the answer is not one', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(ok({ devices: [{ id: 'session-1' }] }));
 
-    await expect(fetchDevices()).resolves.toEqual([]);
+    await expect(fetchDevices()).rejects.toThrow();
   });
 });
 

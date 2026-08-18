@@ -39,16 +39,16 @@ describe('fetchWebhooks', () => {
     expect(read[0]?.name).toBe('Discord');
   });
 
-  it('shows nothing rather than breaking when the server refuses', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     vi.stubGlobal('fetch', answering({ error: 'This account may not manage webhooks.' }, 403));
 
-    expect(await fetchWebhooks()).toStrictEqual([]);
+    await expect(fetchWebhooks()).rejects.toThrow();
   });
 
-  it('shows nothing rather than breaking when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
-    expect(await fetchWebhooks()).toStrictEqual([]);
+    await expect(fetchWebhooks()).rejects.toThrow();
   });
 });
 
@@ -149,10 +149,10 @@ describe('fetchWebhookDeliveries', () => {
     expect(read[0]?.attempts).toBe(2);
   });
 
-  it('shows nothing rather than breaking when the history cannot be read', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     vi.stubGlobal('fetch', answering({ error: 'No such subscription.' }, 404));
 
-    expect(await fetchWebhookDeliveries(aSubscription.id)).toStrictEqual([]);
+    await expect(fetchWebhookDeliveries(aSubscription.id)).rejects.toThrow();
   });
 });
 
@@ -187,7 +187,7 @@ describe('testWebhook', () => {
 });
 
 describe('when the server cannot be reached at all', () => {
-  it('says so plainly rather than leaving the operator guessing', async () => {
+  it('says so when the server cannot be reached', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
     const said = await Promise.all([
@@ -201,6 +201,6 @@ describe('when the server cannot be reached at all', () => {
       expect(refusal?.message).toContain('could not be reached');
     }
 
-    await expect(fetchWebhookDeliveries(aSubscription.id)).resolves.toEqual([]);
+    await expect(fetchWebhookDeliveries(aSubscription.id)).rejects.toThrow();
   });
 });

@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { z } from 'zod';
 import {
   AdminShareListSchema,
@@ -34,20 +35,7 @@ type ShareOutcome =
  * @returns The links, or none where the request failed.
  */
 const fetchShares = async (): Promise<Share[]> => {
-  try {
-    const response = await fetch('/api/shares', {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return ShareListSchema.parse(await response.json()).shares;
-  } catch {
-    return [];
-  }
+  return (await readFromServer('/api/shares', ShareListSchema)).shares;
 };
 
 /**
@@ -57,20 +45,7 @@ const fetchShares = async (): Promise<Share[]> => {
  * @returns The links, or none where the request failed or this account may not see them.
  */
 const fetchEverybodysShares = async (): Promise<AdminShare[]> => {
-  try {
-    const response = await fetch('/api/admin/shares', {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return AdminShareListSchema.parse(await response.json()).shares;
-  } catch {
-    return [];
-  }
+  return (await readFromServer('/api/admin/shares', AdminShareListSchema)).shares;
 };
 
 /**

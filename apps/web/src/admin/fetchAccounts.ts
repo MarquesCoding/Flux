@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { readRefusal } from './readRefusal';
 import type { Refusal } from './readRefusal';
 import { z } from 'zod';
@@ -21,15 +22,9 @@ type Account = z.infer<typeof AccountSchema>;
  * the administration page needs to show them all in one table.
  */
 const fetchAccounts = async (): Promise<Account[]> => {
-  const response = await fetch('/api/admin/accounts', { credentials: 'same-origin' }).catch(
-    () => null,
-  );
-
-  if (response === null || !response.ok) {
-    return [];
-  }
-
-  return z.object({ accounts: z.array(AccountSchema) }).parse(await response.json()).accounts;
+  return (
+    await readFromServer('/api/admin/accounts', z.object({ accounts: z.array(AccountSchema) }))
+  ).accounts;
 };
 
 /**

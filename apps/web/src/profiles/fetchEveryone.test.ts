@@ -61,22 +61,22 @@ describe('fetchEveryone', () => {
     await expect(fetchEveryone()).resolves.toEqual([PROFILE]);
   });
 
-  it('answers with nobody when the server refuses', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     answerWith('{}', false);
 
-    await expect(fetchEveryone()).resolves.toEqual([]);
+    await expect(fetchEveryone()).rejects.toThrow();
   });
 
-  it('answers with nobody when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchEveryone()).resolves.toEqual([]);
+    await expect(fetchEveryone()).rejects.toThrow();
   });
 
-  it('answers with nobody rather than throwing on an answer that is not a list', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     answerWith(JSON.stringify({ profiles: 'everybody' }));
 
-    await expect(fetchEveryone()).resolves.toEqual([]);
+    await expect(fetchEveryone()).rejects.toThrow();
   });
 });
 

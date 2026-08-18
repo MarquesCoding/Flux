@@ -88,13 +88,15 @@ const MediaPreview = ({
 
     let abandoned = false;
 
-    void fetchSubtitleTracks(mediaId).then((tracks) => {
-      const chosen = previewTrack(tracks, navigator.language);
+    void fetchSubtitleTracks(mediaId)
+      .catch(() => [])
+      .then((tracks) => {
+        const chosen = previewTrack(tracks, navigator.language);
 
-      if (!abandoned && chosen !== null) {
-        setSubtitles({ id: chosen.id, language: chosen.language ?? 'und' });
-      }
-    });
+        if (!abandoned && chosen !== null) {
+          setSubtitles({ id: chosen.id, language: chosen.language ?? 'und' });
+        }
+      });
 
     return () => {
       abandoned = true;
